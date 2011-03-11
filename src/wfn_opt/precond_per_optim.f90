@@ -1,16 +1,11 @@
-!!****f* BigDFT/precong_per
-!! FUNCTION
-!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   x is the right hand side on input and the solution on output
-!!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hx,hy,hz,x)
@@ -186,15 +181,13 @@ contains
   END SUBROUTINE deallocate_all
 
 END SUBROUTINE precong_per
-!!***
 
 
-!!****f* BigDFT/prec_fft_c
-!! FUNCTION
-!!   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
+
+!>   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
 !!   x_c is the right hand side on input and the solution on output
 !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
-!! SOURCE
+!!
 !! 
 subroutine prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,&
@@ -229,15 +222,13 @@ subroutine prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
 END SUBROUTINE prec_fft_c
-!!***
 
 
-!!****f* BigDFT/prec_fft_fast
-!! FUNCTION
-!!   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
+
+!>   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
 !!   x_c is the right hand side on input and the solution on output
 !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
-!! SOURCE
+!!
 !! 
 subroutine prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,&
@@ -276,7 +267,7 @@ subroutine prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
 END SUBROUTINE prec_fft_fast
-!!***
+
 
 
 subroutine prec_fft(n1,n2,n3, &
@@ -372,11 +363,9 @@ contains
 END SUBROUTINE prec_fft
 
 
-!!****f* BigDFT/apply_hp
-!! FUNCTION
-!!  Applies the operator (KE+cprecr*I)*x=y
+!>  Applies the operator (KE+cprecr*I)*x=y
 !!  array x is input, array y is output
-!! SOURCE
+!!
 !!
 subroutine apply_hp(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -407,7 +396,7 @@ subroutine apply_hp(n1,n2,n3, &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
        ww,y(1),y(nvctr_c+1),psifscf)
 END SUBROUTINE apply_hp
-!!***
+
 
 
 subroutine apply_hp_slab_k(n1,n2,n3, &

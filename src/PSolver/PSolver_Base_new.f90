@@ -1,16 +1,12 @@
-!!****f* PSolver/G_PoissonSolver
-!! FUNCTION
-!!  Parallel version of Poisson Solver
+!>  Parallel version of Poisson Solver
 !!  General version, for each boundary condition
 !!
 !! RESTRICTIONS on USAGE
-!! Copyright (C) 2002-2010 BigDFT group 
+!! Copyright (C) 2002-2011 BigDFT group 
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !! For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,&
              scal,hx,hy,hz,offset)
@@ -522,7 +518,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   end if
   call timing(iproc,'PSolv_comput  ','OF')
 END SUBROUTINE G_PoissonSolver
-!!***
+
 
 !general routine, takes into account the free boundary conditions
 subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
@@ -591,9 +587,7 @@ subroutine G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt,zw)
 END SUBROUTINE G_switch_upcorn
 
 
-!!****f* PSolver/P_unfill_downcorn
-!! FUNCTION
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array
 !!
 !! SYNOPSIS
@@ -605,7 +599,7 @@ END SUBROUTINE G_switch_upcorn
 !!     nfft:        number of planes
 !!     scal:        Needed to achieve unitarity and correct dimensions
 !!
-!! WARNING
+!! @warning
 !!     Assuming that high frequencies are in the corners 
 !!     and that n3 is multiple of 4   
 !!
@@ -615,14 +609,11 @@ END SUBROUTINE G_switch_upcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! AUTHORS
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!! SOURCE
 !!
 subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
   implicit none
@@ -643,7 +634,7 @@ subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
   end do
 
 END SUBROUTINE P_unfill_downcorn
-!!***
+
 
 !complex output
 subroutine C_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
@@ -668,7 +659,7 @@ subroutine C_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
   end do
 
 END SUBROUTINE C_unfill_downcorn
-!!***
+
 
 subroutine P_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
   implicit none
@@ -686,7 +677,7 @@ subroutine P_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
   end do
 
 END SUBROUTINE P_fill_upcorn
-!!***
+
 
 !to be ussed for complex input
 subroutine C_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
@@ -708,9 +699,7 @@ END SUBROUTINE C_fill_upcorn
 
 
 
-!!****f* PSolver/scramble_P
-!! FUNCTION
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Assign the correct planes to the work array zmpi2
 !!     in order to prepare for interprocessor data transposition.
 !!
@@ -727,14 +716,11 @@ END SUBROUTINE C_fill_upcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! AUTHORS
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!! SOURCE
 !!
 subroutine scramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2)
   implicit none
@@ -753,12 +739,10 @@ subroutine scramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2)
   end do
 
 END SUBROUTINE scramble_P
-!!***
 
 
-!!****f* PSolver/unscramble_P
-!! FUNCTION
-!!     (Based on suitable modifications of S.Goedecker routines)
+
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Insert the correct planes of the work array zmpi2
 !!     in order to prepare for backward FFT transform
 !!
@@ -775,14 +759,11 @@ END SUBROUTINE scramble_P
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! AUTHORS
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!! SOURCE
 !!
 subroutine unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw)
   implicit none
@@ -810,11 +791,9 @@ subroutine unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw)
   end do
 
 END SUBROUTINE unscramble_P
-!!***
 
-!!****f* PSolver/P_multkernel
-!! FUNCTION
-!!     (Based on suitable modifications of S.Goedecker routines)
+
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Multiply with the kernel taking into account its symmetry
 !!     Conceived to be used into convolution loops
 !!
@@ -833,14 +812,11 @@ END SUBROUTINE unscramble_P
 !!     Copyright (C) 2009 Luigi Genovese, ESRF Grenoble
 !!     This file is distributed under the terms of the
 !!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! AUTHORS
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!! SOURCE
 !!
 subroutine P_multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset)
   implicit none
@@ -871,11 +847,9 @@ subroutine P_multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset)
      end do
   end do
 END SUBROUTINE P_multkernel
-!!***
 
-!!****f* PSolver/multkernel
-!! FUNCTION
-!!     (Based on suitable modifications of S.Goedecker routines)
+
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Multiply with the kernel taking into account its symmetry
 !!     Conceived to be used into convolution loops
 !!
@@ -892,14 +866,11 @@ END SUBROUTINE P_multkernel
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! AUTHORS
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!! SOURCE
 !!
 subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
   implicit none
@@ -948,7 +919,7 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
   end do
 
 END SUBROUTINE multkernel
-!!***
+
 
 subroutine G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt,zw,zt)
   implicit none
@@ -996,9 +967,7 @@ subroutine G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,n1dim,md2,nd3,npro
 END SUBROUTINE G_unmpiswitch_downcorn
 
 
-!!****f* PSolver/unfill_downcorn
-!! FUNCTION
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array, calculating in the meanwhile
 !!     Hartree energy of the potential 
 !!
@@ -1012,7 +981,7 @@ END SUBROUTINE G_unmpiswitch_downcorn
 !!     scal:        Needed to achieve unitarity and correct dimensions
 !!     ehartreetmp: Hartree energy
 !!
-!! WARNING
+!! @warning
 !!     Assuming that high frequencies are in the corners 
 !!     and that n3 is multiple of 4   
 !!
@@ -1022,14 +991,11 @@ END SUBROUTINE G_unmpiswitch_downcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! AUTHORS
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!! SOURCE
 !!
 subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
      ,scal)!,ehartreetmp)
@@ -1058,7 +1024,7 @@ subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
   end do
   
 END SUBROUTINE unfill_downcorn
-!!***
+
 
 
 subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
@@ -1088,9 +1054,7 @@ subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
 END SUBROUTINE halfill_upcorn
 
 
-!!****f* PSolver/scramble_unpack
-!! FUNCTION
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Assign the correct planes to the work array zmpi2
 !!     in order to prepare for interprocessor data transposition.
 !!     In the meanwhile, it unpacks the data of the HalFFT in order to prepare for
@@ -1110,14 +1074,11 @@ END SUBROUTINE halfill_upcorn
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! AUTHORS
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!! SOURCE
 !!
 subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
   implicit none
@@ -1164,12 +1125,10 @@ subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
   end do
 
 END SUBROUTINE scramble_unpack
-!!***
+
 
  
-!!****f* PSolver/unscramble_pack
-!! FUNCTION
-!!     (Based on suitable modifications of S.Goedecker routines)
+!>     (Based on suitable modifications of S.Goedecker routines)
 !!     Insert the correct planes of the work array zmpi2
 !!     in order to prepare for backward FFT transform
 !!     In the meanwhile, it packs the data in order to be transformed with the HalFFT 
@@ -1189,14 +1148,11 @@ END SUBROUTINE scramble_unpack
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
 !!     This file is distributed under the terms of the
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! AUTHORS
+!! Author:S
 !!    S. Goedecker, L. Genovese
 !!
 !! CREATION DATE
 !!     February 2006
-!!
-!! SOURCE
 !!
 subroutine unscramble_pack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw,cosinarr)
   implicit none
@@ -1233,7 +1189,7 @@ subroutine unscramble_pack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw,cosinarr)
   end do
 
 END SUBROUTINE unscramble_pack
-!!***
+
 
 
 

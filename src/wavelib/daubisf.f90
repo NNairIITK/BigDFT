@@ -1,13 +1,10 @@
-!!****f* BigDFT/initialize_work_arrays_locham
-!!
-!! COPYRIGHT
+!> BigDFT/initialize_work_arrays_locham
+!! @author
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine initialize_work_arrays_locham(lr,nspinor,w)
   use module_base
@@ -167,13 +164,11 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
   end select
 
 END SUBROUTINE initialize_work_arrays_locham
-!!***
 
 
-!!****f* BigDFT/memspace_work_arrays_locham
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine memspace_work_arrays_locham(lr,nspinor,memwork)
   use module_base
@@ -273,13 +268,11 @@ subroutine memspace_work_arrays_locham(lr,nspinor,memwork)
   memwork=nw1+nw2+nxc+nxf+nyc+nyf+nxf1+nxf2+nxf3
 
 END SUBROUTINE memspace_work_arrays_locham
-!!***
 
 
-!!****f* BigDFT/deallocate_work_arrays_locham
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine deallocate_work_arrays_locham(lr,w)
   use module_base
@@ -331,15 +324,13 @@ subroutine deallocate_work_arrays_locham(lr,w)
 
   
 END SUBROUTINE deallocate_work_arrays_locham
-!!***
 
 
-!!****f* BigDFT/daub_to_isf_locham
-!! FUNCTION
-!!   Transforms a wavefunction written in Daubechies basis into a 
+
+!>   Transforms a wavefunction written in Daubechies basis into a 
 !!   real space wavefunction in interpolating scaling functions on a finer grid
 !!   does the job for all supported BC
-!! SOURCE
+!!
 !!
 subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   use module_base
@@ -438,7 +429,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   end select
   
 END SUBROUTINE daub_to_isf_locham
-!!***
+
 
 subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   use module_base
@@ -817,7 +808,7 @@ subroutine memspace_work_arrays_sumrho(lr,memwork)
   end select
   memwork=nxc+nxf+nw1+nw2
 
-end subroutine memspace_work_arrays_sumrho
+END SUBROUTINE memspace_work_arrays_sumrho
 
 
 subroutine deallocate_work_arrays_sumrho(w)

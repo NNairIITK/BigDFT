@@ -1,11 +1,10 @@
-
-integer,parameter::lowfil=-14,lupfil=14
-real*8 scale
-real*8::fil(lowfil:lupfil)
+!> @file Second derivative filters for Daubechies 16
+integer,parameter :: lowfil=-14,lupfil=14
+real(kind=8) :: scale
+real(kind=8) :: fil(lowfil:lupfil)
 
 scale=-.5d0/hgrid**2
 
-! second derivative filters for Daubechies 16
 fil(0)=   -3.5536922899131901941296809374d0*scale
 fil(1)=    2.2191465938911163898794546405d0*scale
 fil(2)=   -0.6156141465570069496314853949d0*scale

@@ -1,10 +1,7 @@
-!!****m* PSolver/Poisson_Solver
-!! FUNCTION
-!!    The module of the Poisson Solver.
+!>    The module of the Poisson Solver.
 !!    It must be used in the parent routine. 
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2002-2010 BigDFT group 
+!! @author
+!!    Copyright (C) 2002-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -41,9 +38,7 @@
 !!
 !!       Any other changment of the arguments require reading of the documentation.
 !!       See documentations of the Public routines
-!!
-!!
-!! WARNING
+!! @warning
 !!    This module REQUIRE the module of XC functional from ABINIT, defs_xc, which
 !!    require defs_basis and defs_datatypes. 
 !!    Such routines are provided inside the abinit directory of this bundle.
@@ -51,15 +46,14 @@
 !!    If you want to use this Poisson Solver without the XC functionals, you can comment out
 !!    the XC part in the PSolver routine
 !!    Search for
-!!
-!! AUTHOR
+!! Author:
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
 !!
 !! MODIFICATIONS
 !!    PSolverNC added by Anders Bergman, March 2008
-!! SOURCE
+!!
 !!
 module Poisson_Solver
 
@@ -92,4 +86,4 @@ contains
   !include 'scaling_function.f90'
 
 end module Poisson_Solver
-!!***
+

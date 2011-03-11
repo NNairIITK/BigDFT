@@ -1,10 +1,7 @@
-!!****f* BigDFT/createKernel
-!! FUNCTION
-!!    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
+!>    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
 !!    calculating the convolution with the kernel expressed in the interpolating scaling
 !!    function basis. The kernel pointer is unallocated on input, allocated on output.
-!!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) 2002-2007 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -34,19 +31,16 @@
 !!                kernel is injective. This will divide by two each direction, 
 !!                since the kernel for the zero-padded convolution is real and symmetric.
 !!
-!! WARNING
+!! @warning
 !!    Due to the fact that the kernel dimensions are unknown before the calling, the kernel
 !!    must be declared as pointer in input of this routine.
 !!    To avoid that, one can properly define the kernel dimensions by adding 
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
-!!
-!! AUTHOR
+!! Author:
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2007
-!!
-!! SOURCE
 !!
 subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,&
      quiet) !optional arguments
@@ -215,4 +209,4 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
   call timing(iproc,'PSolvKernel   ','OF')
 
 END SUBROUTINE createKernel
-!!***
+

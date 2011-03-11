@@ -1,12 +1,11 @@
-!!****f* BigDFT/reformatonewave
-!! COPYRIGHT
+!> BigDFT/reformatonewave
+!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
      rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
@@ -206,7 +205,7 @@ subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old
   call memocc(i_stat,i_all,'ww',subname)
 
 END SUBROUTINE reformatonewave
-!!***
+
 
 
 !calculates the minimum difference between two coordinates

@@ -1,8 +1,8 @@
-!!****h* PSolver/lazy_60
-!! FUNCTION
+!> PSolver/lazy_60
+!! :
 !!   Filters for interpolating scaling functions (order 60)
 !!
-!! SOURCE
+!!
 !!
 integer, parameter :: m=62
 real(kind=8), dimension(-m:m) :: ch = (/ &
@@ -57,5 +57,5 @@ do i=-m,m-1
    cg(i+1)=cht(-i)*(-1.d0)**(i+1)
    cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
 enddo
-!!***
+
 

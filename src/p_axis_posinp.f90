@@ -1,15 +1,10 @@
-!!****p* BigDFT/BigDFT
-!! FUNCTION
-!!  Rotates the molecular structure such that its principal axis coincide with the x,y,z axis
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!>  Rotates the molecular structure such that its principal axis coincide with the x,y,z axis
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 PROGRAM p_axis_posinp
 

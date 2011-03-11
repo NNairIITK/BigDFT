@@ -146,8 +146,8 @@
  evale(1)= -8.07926940185955E-01 <-
  evale(2)= -4.50759692173289E-01 <-
  evale(3)= -4.50181171988568E-01 <-
- evale(4)= -2.77158629189571E-01 <- Last eigenvalue for input wavefunctions
- evale(5)=  4.11683056187001E-01 <- First virtual eigenvalue
+ evale(4)= -2.77158629189571E-01 <- Last InputGuess eval, H-L IG gap:  18.7443 eV
+ evale(5)=  4.11683056187001E-01 <- First virtual eval
  evale(6)=  4.56664695372772E-01 <-
  evale(7)=  4.58880537568136E-01 <-
  Building orthogonal Wavefunctions... done.

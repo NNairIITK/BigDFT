@@ -1,13 +1,12 @@
-!!****f* BigDFT/call_bigdft
-!! FUNCTION
-!!   Routines to use bigdft as a blackbox
-!! COPYRIGHT
-!!   Copyright (C) 2005-2010 BigDFT group 
+!>   Routines to use bigdft as a blackbox
+!!
+!! @author
+!!   Copyright (C) 2005-2011 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !!
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocode)
   use module_base
@@ -148,14 +147,12 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
 END SUBROUTINE call_bigdft
-!!***
 
 
-!!****f* BigDFT/cluster
-!! FUNCTION
-!!  Main routine which does self-consistent loop.
+
+!>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
-!! DESCRIPTION
+!!
 !!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
 !!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
 !!                    as definition of the previous system.
@@ -170,7 +167,7 @@ END SUBROUTINE call_bigdft
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!! SOURCE
+!!
 !!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
@@ -213,7 +210,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nelec,ndegree_ip,j,i,iorb,npoints
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,ispin
+  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,jkpt,ispin
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
@@ -230,7 +227,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real(gp), dimension(3) :: shift,chargec
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho,psirocc,psirvirt
-  real(gp), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
+  real(gp), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi,band_structure_eval
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   type(ab6_mixing_object) :: mix
@@ -1226,8 +1223,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !plot the ionic potential, if required by output_grid
   if (mod(abs(in%output_grid), 10) == 2 .and. DoLastRunThings) then
-     !if (in%output_grid==2) then
-     !if (iproc == 0) write(*,*) 'writing ionic_potential.pot'
      if (iproc == 0) write(*,*) 'writing ionic_potential' // gridformat
      call plot_density('ionic_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1391,6 +1386,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
 
+     !for a band structure calculation allocate the array in which to put the eigenvalues
+     if (associated(in%kptv)) then
+        allocate(band_structure_eval(orbs%norbu+orbs%norbd+in%nspin*norbv,in%nkptv+ndebug),stat=i_stat)
+        call memocc(i_stat,band_structure_eval,'band_structure_eval',subname)
+     end if
+
      !calculate davidson procedure for all the groups of k-points which are chosen
      ikpt=1
      do igroup=1,in%ngroups_kptv
@@ -1414,11 +1415,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 & orbs%nspinor,nkptv,in%kptv(1,ikpt),wkptv,orbsv)
-
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-
-
 
            i_all=-product(shape(wkptv))*kind(wkptv)
            deallocate(wkptv,stat=i_stat)
@@ -1436,14 +1434,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj) 
            call timing(iproc,'CrtProjectors ','OF') 
 
-           ikpt=ikpt+in%nkptsv_group(igroup)
-
         else
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-
 
         end if
 
@@ -1522,6 +1517,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         !in the case of band structure calculation, copy the values of the eigenvectors
         !into a new array to write them afterwards
+        if (associated(in%kptv)) then
+           call dcopy(orbsv%norb*nkptv,orbsv%eval(1),1,band_structure_eval(1,ikpt),1)
+           !increment the value of ikpt
+           ikpt=ikpt+in%nkptsv_group(igroup)
+        end if
 
         i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
         deallocate(orbsv%eval,stat=i_stat)
@@ -1532,6 +1532,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,i_all,'psivirt',subname)
 
      end do
+
+     if (associated(in%kptv)) then
+        !dump the band structure eigenvalue on a file and deallocate it
+        
+        i_all=-product(shape(band_structure_eval))*kind(band_structure_eval)
+        deallocate(band_structure_eval,stat=i_stat)
+        call memocc(i_stat,i_all,'band_structure_eval',subname)
+     end if
 
   end if
 
@@ -1775,4 +1783,4 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE cluster
-!!***
+

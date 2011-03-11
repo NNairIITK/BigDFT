@@ -1,7 +1,5 @@
-!!****f* BigDFT/write_etsf_density
-!! FUNCTION
-!!   Write a field in the ISF basis in the ETSF format
-!! SOURCE
+!>   Write a field in the ISF basis in the ETSF format
+!!
 !!
 subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
      x)
@@ -20,13 +18,9 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,
   write(0, "(A)") "Illegal call to write_etsf_density(), not compiled with ETSF_IO support."
   stop
 END SUBROUTINE write_etsf_density
-!!***
 
-!!****f* BigDFT/read_etsf
-!! FUNCTION
-!!   Read a field in the ISF basis in the ETSF format
-!!
-!! SOURCE
+
+!>   Read a field in the ISF basis in the ETSF format
 !!
 subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz)
@@ -45,7 +39,7 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   write(0, "(A)") "Illegal call to read_etsf(), not compiled with ETSF_IO support."
   stop
 END SUBROUTINE read_etsf
-!!***
+
 
 subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
@@ -63,7 +57,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   character(len = *), intent(in) :: filename
 
   stop 'No ETSF support at compilation!'
-end subroutine read_waves_etsf
+END SUBROUTINE read_waves_etsf
 
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
   use module_types
@@ -78,4 +72,4 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,p
   character(len = *), intent(in) :: filename
 
   stop 'No ETSF support at compilation!'
-end subroutine write_waves_etsf
+END SUBROUTINE write_waves_etsf

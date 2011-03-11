@@ -1,20 +1,24 @@
-!!****m* BigDFT/module_base
+!> BigDFT/module_base
 !!
-!! DESCRIPTION
+!!
 !!  Modules which contains the low level definitions, as well as some profiling procedures
 !!
-!! AUTHOR
+!!
+!! Author:
+!!
 !!    Luigi Genovese
 !!
-!! COPYRIGHT
-!!    Copyright (C) 2008-2010 CEA, ESRF
+!!
+!! Copyright:
+!!
+!!    Copyright (C) 2008-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
-!! 
+!!
+!!
 #if defined HAVE_CONFIG_H
 #include <config.inc>
 #endif
@@ -39,8 +43,10 @@ module module_defs
 
   ! MPI definitions and datatypes for density and wavefunctions
   include 'mpif.h'
+
   integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION,mpidtypd=MPI_DOUBLE_PRECISION
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
+
 #ifdef HAVE_MPI2
   ! Flag to use in the code to switch between MPI1 and MPI2
   logical, parameter :: have_mpi2 = .true.
@@ -50,6 +56,7 @@ module module_defs
   ! Flag to use in the code to switch between MPI1 and MPI2
   logical, parameter :: have_mpi2 = .false.
 #endif
+
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
   !Flag for GPU computing, if CUDA libraries are present
@@ -79,6 +86,12 @@ module module_defs
   real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem
   real(gp), parameter :: ha2ev = 27.21138386_gp                         ! 1 Ha in eV
   real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
+  real(gp), parameter :: Ha_eV=27.21138386_gp                           ! 1 Hartree, in eV
+  real(gp), parameter :: Ha_K=315774.65_gp                              ! 1Hartree, in Kelvin
+  real(gp), parameter :: Ha_THz=6579.683920722_gp                       ! 1 Hartree, in THz
+  real(gp), parameter :: Ha_J=4.35974394d-18                            !1 Hartree, in J
+  real(gp), parameter :: e_Cb=1.602176487d-19                           ! minus the electron charge, in Coulomb
+  real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       ! Boltzmann constant in Ha/K
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass
 
   !interface for MPI_ALLREDUCE routine
@@ -248,14 +261,13 @@ module module_defs
       call memocc(i_stat,i_all,'copybuf',subname)
 #endif
     end subroutine mpiallred_double
-    
 
 
     !interfaces for LAPACK routines
     !WARNING: in these interfaces the input arrays are declared as scalars,
     !         so the passage of the arguments by addresses is compulsory when calling
     !         these routines
-    
+
     !Cholesky factorization of a positive definite matrix
     subroutine potrf_simple(uplo,n,a,lda,info)
       implicit none
@@ -469,7 +481,7 @@ module module_defs
          call CSCAL(n,da,dx,incx)
       end if
     end subroutine c_scal_simple
-    
+
     subroutine c_scal_double(n,da,dx,incx)
       implicit none
       integer, intent(in) :: incx,n
@@ -791,4 +803,4 @@ module module_defs
     end subroutine herk_double
 
 end module module_defs
-!!***
+

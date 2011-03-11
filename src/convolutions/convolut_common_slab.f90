@@ -1,14 +1,13 @@
-!!****f* BigDFT/analyse_shrink
-!! FUNCTION
-!!   A analysis wavelet transformation where the size of the data is forced to shrink
+!>   A analysis wavelet transformation where the size of the data is forced to shrink
 !!   The input array y is overwritten
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!!
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !!
 subroutine analyse_shrink(n1,n2,n3,ww,y,x)
   use module_base
@@ -31,14 +30,12 @@ subroutine analyse_shrink(n1,n2,n3,ww,y,x)
   call  ana_rot_shrink(n3,nt,y,x)
 
 END SUBROUTINE analyse_shrink
-!!***
 
 
-!!****f* BigDFT/synthese_grow
-!! FUNCTION
-!!   A synthesis wavelet transformation where the size of the data is allowed to grow
+
+!>   A synthesis wavelet transformation where the size of the data is allowed to grow
 !!   The input array x is not overwritten
-!! SOURCE
+!!
 !!
 subroutine synthese_grow(n1,n2,n3,ww,x,y)
   use module_base
@@ -61,14 +58,12 @@ subroutine synthese_grow(n1,n2,n3,ww,x,y)
   call  syn_rot_grow(n3,nt,ww,y)
 
 END SUBROUTINE synthese_grow
-!!***
 
 
-!!****f* BigDFT/analyse_slab
-!! FUNCTION
-!!   An analysis wavelet transformation where the size of the data is forced to shrink
+
+!>   An analysis wavelet transformation where the size of the data is forced to shrink
 !!   The input array y is not overwritten
-!! SOURCE
+!!
 !!
 subroutine analyse_slab(n1,n2,n3,ww,y,x)
   implicit none
@@ -91,14 +86,12 @@ subroutine analyse_slab(n1,n2,n3,ww,y,x)
   call  ana_rot_per(n3,nt,y,x)
 
 END SUBROUTINE analyse_slab
-!!***
 
 
-!!****f* BigDFT/synthese_slab
-!! FUNCTION
-!!   A synthesis wavelet transformation where the size of the data is allowed to grow
+
+!>   A synthesis wavelet transformation where the size of the data is allowed to grow
 !!   The input array x is not overwritten
-!! SOURCE
+!!
 !!
 subroutine synthese_slab(n1,n2,n3,ww,x,y)
   implicit real(kind=8) (a-h,o-z)
@@ -117,14 +110,12 @@ subroutine synthese_slab(n1,n2,n3,ww,x,y)
   call  syn_rot_per(n3,nt,ww,y)
 
 END SUBROUTINE synthese_slab
-!!***
 
 
-!!****f* BigDFT/analyse_slab_self
-!! FUNCTION
-!!  A analysis wavelet transformation where the size of the data is forced to shrink
+
+!>  A analysis wavelet transformation where the size of the data is forced to shrink
 !!  The input array y is overwritten
-!! SOURCE
+!!
 !!
 subroutine analyse_slab_self(n1,n2,n3,y,x)
   implicit none
@@ -143,14 +134,12 @@ subroutine analyse_slab_self(n1,n2,n3,y,x)
   call  ana_rot_per(n3,nt,y,x)
 
 END SUBROUTINE analyse_slab_self
-!!***
 
 
-!!****f* BigDFT/synthese_slab_self
-!! FUNCTION
-!!   A synthesis wavelet transformation where the size of the data is allowed to grow
+
+!>   A synthesis wavelet transformation where the size of the data is allowed to grow
 !!   The input array x is overwritten
-!! SOURCE
+!!
 !!
 subroutine synthese_slab_self(n1,n2,n3,x,y)
   implicit none
@@ -169,15 +158,13 @@ subroutine synthese_slab_self(n1,n2,n3,x,y)
   call  syn_rot_per(n3,nt,x,y)
 
 END SUBROUTINE synthese_slab_self
-!!***
 
 
-!!****f* BigDFT/convolut_magic_n_slab_self
-!! FUNCTION
-!!   Applies the magic filter matrix in slabwise BC ( no transposition)
+
+!>   Applies the magic filter matrix in slabwise BC ( no transposition)
 !!   The input array x is overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
-!! SOURCE
+!!
 !!
 subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
   use module_base
@@ -225,15 +212,13 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
      stop 'the GPU part is not yet written'
   end if
 END SUBROUTINE convolut_magic_n_slab_self
-!!***
 
 
-!!****f* BigDFT/convolut_magic_n_slab
-!! FUNCTION
-!!   Applies the magic filter matrix in periodic BC ( no transposition)
+
+!>   Applies the magic filter matrix in periodic BC ( no transposition)
 !!   The input array x is not overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
-!! SOURCE
+!!
 !!
 subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
   use module_base
@@ -282,15 +267,13 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
      stop 'the GPU part is not yet written'
   end if
 END SUBROUTINE convolut_magic_n_slab
-!!***
 
 
-!!****f* BigDFT/convolut_magic_t_slab_self
-!! FUNCTION
-!!   Applies the magic filter matrix transposed in periodic BC 
+
+!>   Applies the magic filter matrix transposed in periodic BC 
 !!   The input array x is overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
-!! SOURCE
+!!
 !!
 subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
   use module_base
@@ -339,13 +322,11 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
   end if
 
 END SUBROUTINE convolut_magic_t_slab_self
-!!***
 
 
-!!****f* BigDFT/convolut_kinetic_slab_sdc
-!! FUNCTION
-!!   Applies the kinetic energy operator onto x to get y. Works for periodic BC
-!! SOURCE
+
+!>   Applies the kinetic energy operator onto x to get y. Works for periodic BC
+!!
 !!
 subroutine convolut_kinetic_slab_sdc(n1,n2,n3,x,y,cprecr,modul1,modul3,a,b,c,e)
   use module_base
@@ -499,11 +480,11 @@ subroutine convolut_kinetic_slab_sdc(n1,n2,n3,x,y,cprecr,modul1,modul3,a,b,c,e)
 !  close(97)
 
 END SUBROUTINE convolut_kinetic_slab_sdc
-!!***
 
 
-!!****f* BigDFT/prepare_sdc_slab
-!! SOURCE
+
+!> BigDFT/prepare_sdc_slab
+!!
 !!
 subroutine prepare_sdc_slab(n1,n3,modul1,modul3,a,b,c,e,hx,hy,hz)
   use module_base
@@ -608,4 +589,4 @@ subroutine prepare_sdc_slab(n1,n3,modul1,modul3,a,b,c,e,hx,hy,hz)
      e(-i,:)=e(i,:)
   enddo
 END SUBROUTINE prepare_sdc_slab
-!!***
+

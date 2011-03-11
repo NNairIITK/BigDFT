@@ -1,17 +1,12 @@
-!!****f* BigDFT/createWavefunctionsDescriptors
-!! FUNCTION
-!!   Calculates the descriptor arrays and nvctrp
+!>   Calculates the descriptor arrays and nvctrp
 !!   Calculates also the bounds arrays needed for convolutions
 !!   Refers this information to the global localisation region descriptor
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 bigDFT group
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
      crmult,frmult,Glr)
@@ -177,13 +172,11 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   Glr%geocode=atoms%geocode
 
 END SUBROUTINE createWavefunctionsDescriptors
-!!***
 
 
-!!****f* BigDFT/createProjectorsArrays
-!! FUNCTION
-!!   Determine localization region for all projectors, but do not yet fill the descriptor arrays
-!! SOURCE
+
+!>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
+!!
 !!
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
@@ -280,12 +273,10 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   end if
 
 END SUBROUTINE createProjectorsArrays
-!!***
 
-!!****f* BigDFT/input_wf_diag
-!! FUNCTION
-!!   input guess wavefunction diagonalization
-!! SOURCE
+
+!>   input guess wavefunction diagonalization
+!!
 !!
 subroutine input_wf_diag(iproc,nproc,at,&
      orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
@@ -723,4 +714,4 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call deallocate_orbs(orbse,subname)
      
 END SUBROUTINE input_wf_diag
-!!***
+

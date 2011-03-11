@@ -9,4 +9,4 @@ subroutine gemmsy_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,y,ldy)
   real(kind=8), intent(inout) :: y
   call gemm_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,y,ldy)
 
-end subroutine gemmsy_double
+END SUBROUTINE gemmsy_double

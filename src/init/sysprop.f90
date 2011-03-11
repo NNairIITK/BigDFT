@@ -1,16 +1,13 @@
-!!****f* BigDFT/system_properties
+!> BigDFT/system_properties
 !!
-!! FUNCTION
+!! :
 !!  Calculate the important objects related to the physical properties of the system
-!!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   use module_base
@@ -63,14 +60,12 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
 END SUBROUTINE system_properties
-!!***
 
 
-!!****f* BigDFT/calculate_rhocore
-!! FUNCTION
-!!  Check for the need of a core density and fill the rhocore array which
+
+!>  Check for the need of a core density and fill the rhocore array which
 !!  should be passed at the rhocore pointer
-!! SOURCE
+!!
 subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   use module_base
   use module_types
@@ -154,16 +149,14 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   end if
 
 END SUBROUTINE calculate_rhocore
-!!***
 
 
-!!****f* BigDFT/read_system_variables
-!! FUNCTION
-!!   Assign some of the physical system variables
+
+!>   Assign some of the physical system variables
 !!   Performs also some cross-checks with other variables
-!! DESCRIPTION
+!!
 !!   The pointer in atoms structure have to be associated or nullified.
-!! SOURCE
+!!
 !!
 subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,norbuempty,norbdempty,iunit)
@@ -651,16 +644,14 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
 !!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
 END SUBROUTINE read_system_variables
-!!***
 
 
-!!****f* BigDFT/atomic_occupation_numbers
-!! FUNCTION
-!!   Fix all the atomic occupation numbers of the atoms which has the same type
+
+!>   Fix all the atomic occupation numbers of the atoms which has the same type
 !!   look also at the input polarisation and spin
 !!   look at the file of the input occupation numbers and, if exists, modify the 
 !!   occupations accordingly
-!! SOURCE
+!!
 !!
 subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
   use module_base
@@ -795,14 +786,12 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
   if (exists) close(unit=91)
 
 END SUBROUTINE atomic_occupation_numbers
-!!***
 
 
-!!****f* BigDFT/orbitals_descriptors
-!! FUNCTION
-!!    Define the descriptors of the orbitals from a given norb
+
+!>    Define the descriptors of the orbitals from a given norb
 !!    It uses the cubic strategy for partitioning the orbitals
-!! SOURCE
+!!
 !!
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wkpt,orbs)
   use module_base
@@ -836,7 +825,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   ! Change the wavefunctions to complex if k-points are used (except gamma).
   orbs%nspinor=nspinor
   if (nspinor == 1) then
-     if (maxval(abs(orbs%kpts)) > 0._gp) orbs%nspinor = 2
+     if (maxval(abs(orbs%kpts)) > 0._gp) orbs%nspinor=2
      !nspinor=2 !fake, used for testing with gamma
   end if
 
@@ -954,14 +943,12 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
 
 END SUBROUTINE orbitals_descriptors
-!!***
 
 
-!!****f* BigDFT/input_occup
-!! FUNCTION
-!!    Fill the arrays occup and spinsgn
+
+!>    Fill the arrays occup and spinsgn
 !!    if iunit /=0 this means that the file 'input.occ' does exist and it opens
-!! SOURCE
+!!
 !!
 subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
   use module_base
@@ -1141,7 +1128,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,
 
 
 END SUBROUTINE input_occup
-!!***
+
 
 subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   use module_base
@@ -1233,7 +1220,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      end if
      if (N_c>0) nobj_par(n_ip)=nobj_par(n_ip)+N_c
   end do
-end subroutine parallel_repartition_with_kpoints
+END SUBROUTINE parallel_repartition_with_kpoints
 
 subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
      nkptsp,mykpts,nobj_pkpt)
@@ -1292,4 +1279,4 @@ subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
      end if
   end do
 
-end subroutine parallel_repartition_per_kpoints
+END SUBROUTINE parallel_repartition_per_kpoints

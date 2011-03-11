@@ -1,15 +1,12 @@
-!! FUNCTION
+!! :
 !!    Orthogonality routine, for all the orbitals
 !!    Uses wavefunctions in their transposed form
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
   use module_base
@@ -23,13 +20,12 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
   real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='orthogonalize'
-  integer :: i_stat,i_all,ierr,info
-  integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
+  integer :: i_stat,i_all
+  integer :: ispin,nspin,nspinor
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: ovrlp
   integer,dimension(:),allocatable:: norbArr
   character(len=20):: category
-
 
   ! Determine wheter we have close shell (nspin=1) or spin polarized (nspin=2)
   if (orbs%norbd>0) then 
@@ -126,7 +122,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
   call timing(iproc,trim(category)//'_comput','OF')
   
 END SUBROUTINE orthogonalize
-!!***
+
 
 subroutine check_closed_shell(nspin,orbs,lcs)
   use module_base
@@ -144,13 +140,11 @@ subroutine check_closed_shell(nspin,orbs,lcs)
         exit
      end if
   end do
-end subroutine check_closed_shell
+END SUBROUTINE check_closed_shell
 
-!!****f* BigDFT/orthoconstraint
-!! FUNCTION
-!!   Orthogonality routine, for all the orbitals
+!>   Orthogonality routine, for all the orbitals
 !!   Uses wavefunctions in their transposed form
-!! SOURCE
+!!
 !!
 subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   use module_base
@@ -165,7 +159,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb,ise,jorb
+  integer :: i_stat,i_all,ierr,iorb,ise
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ,tt
   integer, dimension(:,:), allocatable :: ndimovrlp
@@ -317,14 +311,12 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthoconstraint
-!!***
 
 
-!!****f* BigDFT/subspace_diagonalisation
-!! FUNCTION
-!!   Found the linear combination of the wavefunctions which diagonalises
+
+!>   Found the linear combination of the wavefunctions which diagonalises
 !!   the overlap matrix
-!! SOURCE
+!!
 !!
 subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   use module_base
@@ -534,18 +526,18 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   call memocc(i_stat,i_all,'ndimovrlp',subname)
 
 END SUBROUTINE subspace_diagonalisation
-!!***
 
 
-!!****f* BigDFT/orthon_virt_occup
-!! DESCRIPTION
+
+!> BigDFT/orthon_virt_occup
+!!
 !!   Makes sure all psivirt/gradients are othogonal to the occupied states psi.
 !!   This routine is almost the same as orthoconstraint_p. Difference:
 !!   hpsi(:,norb) -->  psivirt(:,nvirte) , therefore rectangular alag.
 !! 
-!! WARNING
+!! @warning
 !!   Orthogonality to spin polarized channels is achieved in two calls,
-!! SOURCE
+!!
 !!
 subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_virt,msg)
   use module_base
@@ -718,7 +710,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthon_virt_occup
-!!***
+
 
 subroutine complex_components(nspinor,norb,norbs,ncomp)
   implicit none
@@ -1570,7 +1562,7 @@ subroutine gsChol(iproc, nproc, psi, input, nspinor, orbs, nspin,ndimovrlp,norbA
   
   ! Local variables
   integer:: iblock, jblock, ist, jst, iter, iter2, gcd, blocksize, blocksizeSmall, i_stat, i_all
-  integer:: getBlocksize, ispin, ikptp, norbs, ncomp
+  integer:: getBlocksize, ispin
   real(wp),dimension(:), allocatable :: ovrlp
   character(len=*), parameter:: subname='gsChol',category='GS/Chol'
    
@@ -1659,7 +1651,7 @@ subroutine gsChol(iproc, nproc, psi, input, nspinor, orbs, nspin,ndimovrlp,norbA
     
 end do
 
-end subroutine gsChol
+END SUBROUTINE gsChol
 
 
 ! ********************************************************************************************************
@@ -1709,7 +1701,7 @@ real(wp),dimension(ndimovrlp(nspin,orbs%nkpts)):: ovrlp
 integer,dimension(nspin):: norbTot
 
 ! Local arguments
-integer:: nvctrp, ist, ierr, i_stat, i_all, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther
+integer:: nvctrp, i_stat, i_all, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther
 real(kind=8),dimension(:),allocatable:: A1D
 character(len=*),parameter:: subname='gramschmidt'
 
@@ -1769,7 +1761,7 @@ do ikptp=1,orbs%nkptsp
     end do
 end do
 
-end subroutine gramschmidt
+END SUBROUTINE gramschmidt
 
 
 ! ********************************************************************************************************
@@ -1818,7 +1810,7 @@ real(kind=8),dimension(ndimL(nspin,orbs%nkpts),1):: Lc
 integer,dimension(nspin):: norbTot
 
 ! Local variables
-integer:: ist, info, i_stat, i_all, ispin, ikptp, ikpt, ncomp, norbs, norb
+integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb
 character(len=*),parameter:: subname='cholesky'
   
  
@@ -1873,7 +1865,7 @@ do ikptp=1,orbs%nkptsp
     end do
 end do         
 
-end subroutine cholesky
+END SUBROUTINE cholesky
 
 
 ! ********************************************************************************************************
@@ -2023,7 +2015,7 @@ i_all=-product(shape(evall))*kind(evall)
 deallocate(evall,stat=i_stat)
 call memocc(i_stat,i_all,'evall',subname)
 
-end subroutine loewdin
+END SUBROUTINE loewdin
 
 
 ! ********************************************************************************************************
@@ -2138,7 +2130,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
   ! This is somehow redundant but it is one way of reducing the number of communications
   ! without defining group of processors.
 
-end subroutine getOverlap
+END SUBROUTINE getOverlap
 
 
 ! ********************************************************************************************************
@@ -2255,7 +2247,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
   
   ! Now each processors knows all the overlap matrices for each k-point even if it does not handle it.
   
-end subroutine getOverlapDifferentPsi
+END SUBROUTINE getOverlapDifferentPsi
 
 
 ! ********************************************************************************************************

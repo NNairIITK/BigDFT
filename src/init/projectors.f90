@@ -1,14 +1,11 @@
-!!****f* BigDFT/localize_projectors
-!! FUNCTION
+!>
 !!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
      logrid,at,orbs,nlpspd)
@@ -207,7 +204,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
 
   if (iproc == 0) then
      if (DistProjApply) then
-        write(*,'(44x,a)') '------   On-the-fly projectors application'
+        write(*,'(44x,a)') '------  On-the-fly projectors application'
      else
         write(*,'(44x,a)') '------'
      end if
@@ -217,14 +214,10 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   end if
 
 END SUBROUTINE localize_projectors
-!!***
 
 
-!!****f* BigDFT/fill_projectors
-!! FUNCTION
-!!   Fill the proj array with the PSP projectors or their derivatives, following idir value
-!!
-!! SOURCE
+
+!>   Fill the proj array with the PSP projectors or their derivatives, following idir value
 !!
 subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   use module_base
@@ -282,11 +275,11 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir
   end if
 
 END SUBROUTINE fill_projectors
-!!***
 
 
-!!****f* BigDFT/atom_projector
-!! SOURCE
+
+!> BigDFT/atom_projector
+!!
 !!
 subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
      n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
@@ -342,13 +335,11 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
      enddo
   enddo
 END SUBROUTINE atom_projector
-!!***
 
 
-!!****f* BigDFT/deallocate_proj_descr
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine deallocate_proj_descr(nlpspd,subname)
   use module_base
@@ -377,11 +368,11 @@ subroutine deallocate_proj_descr(nlpspd,subname)
   deallocate(nlpspd%nseg_p,stat=i_stat)
   call memocc(i_stat,i_all,'nseg_p',subname)
 END SUBROUTINE deallocate_proj_descr
-!!***
 
 
-!!****f* BigDFT/projector
-!! SOURCE
+
+!> BigDFT/projector
+!!
 !!
 subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
      hx,hy,hz,kx,ky,kz,ncplx,&
@@ -478,14 +469,10 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
   enddo
 END SUBROUTINE projector
-!!***
 
 
-!!****f* BigDFT/numb_proj
-!! FUNCTION
-!!   Determines the number of projectors (valid for GTH and HGH pseudopotentials)
-!!
-!! SOURCE
+
+!>   Determines the number of projectors (valid for GTH and HGH pseudopotentials)
 !!
 subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   use module_base
@@ -513,16 +500,12 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   end if
 
 END SUBROUTINE numb_proj
-!!***
 
 
-!!****f* BigDFT/crtproj
-!! FUNCTION
-!!   Returns the compressed form of a Gaussian projector 
+
+!>   Returns the compressed form of a Gaussian projector 
 !!   x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
 !!   in the arrays proj_c, proj_f
-!!
-!! SOURCE
 !!
 subroutine crtproj(geocode,nterm,n1,n2,n3, & 
      hx,hy,hz,kx,ky,kz,ncplx,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
@@ -1004,13 +987,11 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
   call memocc(i_stat,i_all,'work',subname)
 
 END SUBROUTINE crtproj
-!!***
 
 
-!!****f* BigDFT/re_cmplx_prod
-!! FUNCTION
-!!   Real part of the complex product
-!! SOURCE
+
+!>   Real part of the complex product
+!!
 !!
 function re_cmplx_prod(a,b,c)
   use module_base
@@ -1024,13 +1005,11 @@ function re_cmplx_prod(a,b,c)
        -a(2)*b(2)*c(1)
   
 END FUNCTION re_cmplx_prod
-!!***
 
 
-!!****f* BigDFT/im_cmplx_prod
-!! FUNCTION
-!!   Imaginary part of the complex product
-!! SOURCE
+
+!>   Imaginary part of the complex product
+!!
 !!
 function im_cmplx_prod(a,b,c)
   use module_base
@@ -1044,14 +1023,12 @@ function im_cmplx_prod(a,b,c)
        +a(1)*b(1)*c(2)
   
 END FUNCTION im_cmplx_prod
-!!***
 
 
-!!****f* BigDFT/pregion_size
-!! FUNCTION
-!!   Finds the size of the smallest subbox that contains a localization region made 
+
+!>   Finds the size of the smallest subbox that contains a localization region made 
 !!   out of atom centered spheres
-!! SOURCE
+!!
 !!
 subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
   use module_base
@@ -1116,13 +1093,11 @@ subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,
   end if
 
 END SUBROUTINE pregion_size
-!!***
 
 
-!!****f* BigDFT/calc_coeff_proj
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   use module_base
@@ -1660,4 +1635,4 @@ subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   endif
   
 END SUBROUTINE calc_coeff_proj
-!!***
+
