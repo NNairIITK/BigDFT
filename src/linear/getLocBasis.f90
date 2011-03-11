@@ -514,6 +514,10 @@ iterLoop: do it=1,lin%nItMax
          nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
          rhopot(1),&
          phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel=pkernelseq)
+!write(300,*) hphi
+!write(301,*) hphi
+!call mpi_barrier(mpi_comm_world, ierr)
+!stop
 
 
     ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
