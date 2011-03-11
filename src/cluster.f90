@@ -203,7 +203,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
   character(len=4) :: f4
-  character(len=5) :: gridformat, wfformat
+  character(len=5) :: gridformat, wfformat, final_out
   character(len=50) :: filename
   character(len=500) :: errmess
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
@@ -1039,18 +1039,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
            write( *,'(1x,a,3(1x,1pe18.11))') &
                 'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
+           if ((in%itrpmax >1 .and. endlooprp) .or. in%itrpmax == 1) then
+              write(final_out, "(A5)") "FINAL"
+           else
+              write(final_out, "(A5)") "final"
+           end if
            if (gnrm_zero == 0.0_gp) then
               write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-                   'FINAL iter,total energy,gnrm',iter,energy,gnrm
+                   final_out // ' iter,total energy,gnrm',iter,energy,gnrm
            else
               write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
-                   'FINAL iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+                   final_out // ' iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
 
            end if
            !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
            if (in%itrpmax >1) then
               if ( diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-                   'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
+                   & 'WARNING: Found an energy value lower than the ' // final_out // &
+                   & ' energy, delta:',diis%energy-diis%energy_min
            else
               !write this warning only if the system is closed shell
               call check_closed_shell(in%nspin,orbs,lcs)
