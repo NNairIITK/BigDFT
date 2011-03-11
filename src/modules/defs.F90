@@ -73,7 +73,7 @@ module module_defs
   integer, parameter :: SMEARING_DIST_FERMI = 2
   character(len = 11), dimension(2), parameter :: smearing_names = &
        & (/ "Error func.", "Fermi      " /)
-  integer, parameter :: occopt = SMEARING_DIST_FERMI
+  integer, parameter :: occopt = SMEARING_DIST_ERF
 
   ! Physical constants.
   real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem

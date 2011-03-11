@@ -660,7 +660,7 @@ END SUBROUTINE deallocate_orbs
     nullify(rst%gbd%psiat)
     nullify(rst%gbd%rxyz)
 
-    !initialise the acceleration stategy if required
+    !initialise the acceleration strategy if required
     call init_material_acceleration(iproc,iacceleration,rst%GPU)
 
   end subroutine init_restart_objects
