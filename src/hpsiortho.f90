@@ -808,7 +808,6 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
     
     !update the occupation number
     do ikpt=1,orbs%nkpts
-       !ikpt=1
        do iorb=1,orbs%norbu + orbs%norbd
           arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
           if (occopt == SMEARING_DIST_ERF) then
@@ -821,17 +820,6 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
              orbs%occup((ikpt-1)*orbs%norb+iorb)=full*1.d0/(1.d0+exp(arg))
           end if
        end do
-!!$       do iorb=1,orbs%norbd
-!!$          arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-!!$          if (occopt == SMEARING_DIST_ERF) then
-!!$             !error function
-!!$             call derf_ab(res,arg)
-!!$             orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
-!!$          else if (occopt == SMEARING_DIST_FERMI) then
-!!$             !Fermi function
-!!$             orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*1.d0/(1.d0+exp(arg))
-!!$          end if
-!!$       end do
     end do
     ! Sanity check on sum of occup.
     chargef=0.0_gp
