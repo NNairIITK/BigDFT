@@ -715,7 +715,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
  type(orbitals_data), intent(inout) :: orbs
  !local variables
  integer :: ikpt,iorb,melec,ii
- real(gp) :: charge
+ real(gp) :: charge, chargef
  real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
  parameter(pi=3.1415926535897932d0)
  !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
@@ -732,7 +732,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
     !number of zero orbitals for the given k-point
     !overall charge of the system
     do iorb=1,orbs%norb
-       charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
+       charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb) * orbs%kwgts(ikpt)
     end do
  end do
  melec=nint(charge)
@@ -758,13 +758,13 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
              if (occopt == SMEARING_DIST_ERF) then
                 ! next 2 line error function distribution
                 call derf_ab(res,arg)
-                electrons=electrons+.5d0*(1.d0-res)
-                dlectrons=dlectrons-exp(-arg**2)
+                electrons=electrons+.5d0*(1.d0-res) * orbs%kwgts(ikpt)
+                dlectrons=dlectrons-exp(-arg**2) * orbs%kwgts(ikpt)
                 !print *,iorb,ef,orbs%eval((ikpt-1)*orbs%norb+iorb),arg,electrons
              else if (occopt == SMEARING_DIST_FERMI) then
                 !! next 2 line Fermi function distribution
-                electrons=electrons+1.d0/(1.d0+exp(arg))
-                dlectrons=dlectrons-1.d0/(2.d0+exp(arg)+exp(-arg))
+                electrons=electrons+1.d0/(1.d0+exp(arg)) * orbs%kwgts(ikpt)
+                dlectrons=dlectrons-1.d0/(2.d0+exp(arg)+exp(-arg)) * orbs%kwgts(ikpt)
              end if
           enddo
        enddo
@@ -809,7 +809,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
     !update the occupation number
     do ikpt=1,orbs%nkpts
        !ikpt=1
-       do iorb=1,orbs%norbu
+       do iorb=1,orbs%norbu + orbs%norbd
           arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
           if (occopt == SMEARING_DIST_ERF) then
              !error function
@@ -821,18 +821,26 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
              orbs%occup((ikpt-1)*orbs%norb+iorb)=full*1.d0/(1.d0+exp(arg))
           end if
        end do
-       do iorb=1,orbs%norbd
-          arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-          if (occopt == SMEARING_DIST_ERF) then
-             !error function
-             call derf_ab(res,arg)
-             orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
-          else if (occopt == SMEARING_DIST_FERMI) then
-             !Fermi function
-             orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*1.d0/(1.d0+exp(arg))
-          end if
+!!$       do iorb=1,orbs%norbd
+!!$          arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
+!!$          if (occopt == SMEARING_DIST_ERF) then
+!!$             !error function
+!!$             call derf_ab(res,arg)
+!!$             orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
+!!$          else if (occopt == SMEARING_DIST_FERMI) then
+!!$             !Fermi function
+!!$             orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*1.d0/(1.d0+exp(arg))
+!!$          end if
+!!$       end do
+    end do
+    ! Sanity check on sum of occup.
+    chargef=0.0_gp
+    do ikpt=1,orbs%nkpts
+       do iorb=1,orbs%norb
+          chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
        end do
     end do
+    if (abs(charge - chargef) > 1e-6)  stop 'error occupation update'
  else if(full==1.0_gp) then
     call eFermi_nosmearing(iproc,orbs)
  end if
