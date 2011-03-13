@@ -1,9 +1,18 @@
+!> @file
+!!  Routines to apply the local part of the hamiltonian
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!>  Applies the local potential and kinetic energy operator to one wavefunction 
+!! Input: pot,psi
+!! Output: hpsi,epot,ekin
 subroutine applylocpotkinone_per(n1,n2,n3, & 
      hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
      psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin,npot,nspinor)
-  !  Applies the local potential and kinetic energy operator to one wavefunction 
-  ! Input: pot,psi
-  ! Output: hpsi,epot,ekin
   use module_base
   use module_interfaces
   implicit none
@@ -81,12 +90,12 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
 END SUBROUTINE applylocpotkinone_per
 
 
+!>  Applies the local potential and kinetic energy operator to one wavefunction 
+!! Input: pot,psi
+!! Output: hpsi,epot,ekin
 subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
      psir,psi,pot,hpsi,epot,ekin,bounds,nspinor,npot)
-  !  Applies the local potential and kinetic energy operator to one wavefunction 
-  ! Input: pot,psi
-  ! Output: hpsi,epot,ekin
   use module_base
   use module_types
   use module_interfaces
@@ -222,17 +231,16 @@ subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      i_all=-product(shape(ww))*kind(ww)
      deallocate(ww,stat=i_stat)
      call memocc(i_stat,i_all,'ww','applylocpotkinone_hyb')
-	   
+ 
 END SUBROUTINE applylocpotkinone_hyb
 
 
-
+!>  Applies the local potential and kinetic energy operator to one wavefunction 
+!! Input: pot,psi
+!! Output: hpsi,epot,ekin
 subroutine applylocpotkinone_slab(n1,n2,n3, & 
      hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
      psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin,nspinor,npot)
-  !  Applies the local potential and kinetic energy operator to one wavefunction 
-  ! Input: pot,psi
-  ! Output: hpsi,epot,ekin
   use module_base
   use module_interfaces
   implicit none
@@ -294,6 +302,9 @@ subroutine applylocpotkinone_slab(n1,n2,n3, &
 END SUBROUTINE applylocpotkinone_slab
 
 
+!>  Applies the local potential and kinetic energy operator to one wavefunction 
+!! Input: pot,psi
+!! Output: hpsi,epot,ekin
 subroutine applylocpotkinone_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
      hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
      ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
@@ -301,9 +312,6 @@ subroutine applylocpotkinone_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
      psi,pot,hpsi,epot,ekin,x_c,x_fc,x_f,w1,w2,&
      ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
      ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)
-  !  Applies the local potential and kinetic energy operator to one wavefunction 
-  ! Input: pot,psi
-  ! Output: hpsi,epot,ekin
   use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
@@ -370,6 +378,7 @@ subroutine applylocpotkinone_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 
 END SUBROUTINE applylocpotkinone_prev
 
+
 subroutine realspace_prev(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   implicit none
   integer,intent(in)::n1,n2,n3
@@ -394,6 +403,7 @@ subroutine realspace_prev(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   enddo
 
 END SUBROUTINE realspace_prev
+
 
 subroutine realspace_nbuf_prev(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   implicit none

@@ -1,9 +1,11 @@
-!> PSolver/lazy_8
-!! :
+!> @file
 !!   Filters for interpolating scaling functions (order 8)
-!!
-!!
-!!
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 integer, parameter :: m=10
 real(kind=8), dimension(-m:m) ::  ch,cg,cht,cgt
 

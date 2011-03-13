@@ -1,11 +1,14 @@
-!>  Copy old wavefunctions from psi to psi_old
+!> @file
+!!  Routines to do restart
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Copy old wavefunctions from psi to psi_old
 subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
      n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
@@ -75,10 +78,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
 END SUBROUTINE copy_old_wavefunctions
 
 
-
 !>   Reformat wavefunctions if the mesh have changed (in a restart)
-!!
-!!
 subroutine reformatmywaves(iproc,orbs,at,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
      hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
@@ -272,11 +272,8 @@ subroutine reformatmywaves(iproc,orbs,at,&
 END SUBROUTINE reformatmywaves
 
 
-
 !>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
-!!
-!!
 subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
   use module_base
@@ -362,8 +359,6 @@ END SUBROUTINE readmywaves
 
 
 !>   Write all my wavefunctions in files by calling writeonewave
-!!
-!!
 subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
@@ -420,4 +415,3 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   end if
 
 END SUBROUTINE writemywaves
-

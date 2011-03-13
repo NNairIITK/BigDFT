@@ -1,4 +1,12 @@
-!> @file Second derivative filters for Daubechies 16
+!> @file
+!!  Second derivative filters for Daubechies 16
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
 integer,parameter :: lowfil=-14,lupfil=14
 real(kind=8) :: scale
 real(kind=8) :: fil(lowfil:lupfil)

@@ -1,26 +1,23 @@
-!>    Build the kernel of the Poisson operator with
-!!    surfaces Boundary conditions
-!!    in an interpolating scaling functions basis.
-!!    Beware of the fact that the nonperiodic direction is y!
-!!
-!! SYNOPSIS
-!!    n1,n2,n3           Dimensions for the FFT
-!!    nker1,nker2,nker3  Dimensions of the kernel (nker3=n3/2+1) nker(1,2)=n(1,2)/2+1
-!!    h1,h2,h3           Mesh steps in the three dimensions
-!!    itype_scf          Order of the scaling function
-!!    iproc,nproc        Number of process, number of processes
-!!    karray             output array
-!! Author:
-!!    L. Genovese
-!! CREATION DATE
-!!    October 2006
+!> @file
+!!  Routines to build the kernel used by the Poisson solver
 !! @author
-!!    Copyright (C) 2006-2011 CEA, ESRF
+!!    Copyright (C) 2006-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+!>  Build the kernel of the Poisson operator with
+!!  surfaces Boundary conditions
+!!  in an interpolating scaling functions basis.
+!!  Beware of the fact that the nonperiodic direction is y!
+!! SYNOPSIS
+!!   @param n1,n2,n3           Dimensions for the FFT
+!!   @param nker1,nker2,nker3  Dimensions of the kernel (nker3=n3/2+1) nker(1,2)=n(1,2)/2+1
+!!   @param h1,h2,h3           Mesh steps in the three dimensions
+!!   @param itype_scf          Order of the scaling function
+!!   @param iproc,nproc        Number of process, number of processes
+!!   @param karray             output array
 subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
   use module_base
   implicit none
@@ -98,11 +95,8 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
 END SUBROUTINE Periodic_Kernel
 
 
-
 !>  Calculate the fourier transform
 !!  Suppose the output symmetric and real
-!!
-!!
 subroutine fourtrans_isf(n,ftisf)
   use module_base
   implicit none
@@ -152,10 +146,7 @@ subroutine fourtrans_isf(n,ftisf)
 END SUBROUTINE fourtrans_isf
 
 
-
 !>   Transform the wavelet filters
-!!
-!!
 subroutine fourtrans(p,htp)
   use module_base
   implicit none
@@ -179,25 +170,18 @@ subroutine fourtrans(p,htp)
 END SUBROUTINE fourtrans
 
 
-
 !>    Build the kernel of the Poisson operator with
 !!    surfaces Boundary conditions
 !!    in an interpolating scaling functions basis.
 !!    Beware of the fact that the nonperiodic direction is y!
-!!
 !! SYNOPSIS
-!!    n1,n2,n3           Dimensions for the FFT
-!!    m3                 Actual dimension in non-periodic direction
-!!    nker1,nker2,nker3  Dimensions of the kernel (nker3=n3/2+1) nker(1,2)=n(1,2)/2+1
-!!    h1,h2,h3           Mesh steps in the three dimensions
-!!    itype_scf          Order of the scaling function
-!!    iproc,nproc        Number of process, number of processes
-!!    karray             output array
-!! Author:
-!!    L. Genovese
-!! CREATION DATE
-!!    October 2006
-!!
+!!   @param n1,n2,n3           Dimensions for the FFT
+!!   @param m3                 Actual dimension in non-periodic direction
+!!   @param nker1,nker2,nker3  Dimensions of the kernel (nker3=n3/2+1) nker(1,2)=n(1,2)/2+1
+!!   @param h1,h2,h3           Mesh steps in the three dimensions
+!!   @param itype_scf          Order of the scaling function
+!!   @param iproc,nproc        Number of process, number of processes
+!!   @param karray             output array
 subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
   
   use module_base
@@ -585,9 +569,6 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
 END SUBROUTINE Surfaces_Kernel
 
 
-
-!>
-!!
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
   use module_base
   implicit none
@@ -726,9 +707,6 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
 END SUBROUTINE calculates_green_opt
 
 
-
-!>
-!!
 subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   use module_base
   implicit none
@@ -818,9 +796,6 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
 END SUBROUTINE calculates_green_opt_muzero
 
 
-
-!>
-!!
 subroutine indices(nimag,nelem,intrn,extrn,nindex)
   implicit none
   !arguments
@@ -841,7 +816,6 @@ subroutine indices(nimag,nelem,intrn,extrn,nindex)
 END SUBROUTINE indices
 
 
-
 !>    Build the kernel of a gaussian function
 !!    for interpolating scaling functions.
 !!    Do the parallel HalFFT of the symmetrized function and stores into
@@ -852,18 +826,13 @@ END SUBROUTINE indices
 !!    for interpolating scaling functions
 !!    @f$ K(j) = \sum_k \omega_k \int \int \phi(x) g_k(x'-x) \delta(x'- j) dx dx' @f$
 !!
-!!    n01,n02,n03        Mesh dimensions of the density
-!!    nfft1,nfft2,nfft3  Dimensions of the FFT grid (HalFFT in the third direction)
-!!    n1k,n2k,n3k        Dimensions of the kernel FFT
-!!    hgrid              Mesh step
-!!    itype_scf          Order of the scaling function (8,14,16)
-!! Author:S
-!!    T. Deutsch, L. Genovese
-!! CREATION DATE
-!!    February 2006
+!!   @param n01,n02,n03        Mesh dimensions of the density
+!!   @param nfft1,nfft2,nfft3  Dimensions of the FFT grid (HalFFT in the third direction)
+!!   @param n1k,n2k,n3k        Dimensions of the kernel FFT
+!!   @param hgrid              Mesh step
+!!   @param itype_scf          Order of the scaling function (8,14,16)
 !! MODIFICATION
 !!    Different calculation of the gaussian times ISF integral, LG, Dec 2009
-!!
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
      hx,hy,hz,itype_scf,iproc,nproc,karray)
  use module_base
@@ -1122,8 +1091,8 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
 END SUBROUTINE gauconv_ffts
 
 
-!here alpha correspondes to sqrtalpha in mathematica
-! the final result is fwork(j+m)-fwork(j-m)
+!> Here alpha correspondes to sqrtalpha in mathematica
+!! the final result is fwork(j+m)-fwork(j-m)
 subroutine analytic_integral(alpha,ntot,m,fwork)
   use module_base
   implicit none
@@ -1351,23 +1320,23 @@ subroutine inserthalf(n1,n3,lot,nfft,i1,zf,zw)
 END SUBROUTINE inserthalf
 
 
-!>     (Based on suitable modifications of S.Goedecker routines)
-!!     Calculates the FFT of the distributed kernel
+!> Calculates the FFT of the distributed kernel
+!!(Based on suitable modifications of S.Goedecker routines)
 !!
 !! SYNOPSIS
-!!     zf:          Real kernel (input)
-!!                  zf(i1,i2,i3)
-!!     zr:          Distributed Kernel FFT 
-!!                  zr(2,i1,i2,i3)
-!!     nproc:       number of processors used as returned by MPI_COMM_SIZE
-!!     iproc:       [0:nproc-1] number of processor as returned by MPI_COMM_RANK
-!!     n1,n2,n3:    logical dimension of the transform. As transform lengths 
-!!                  most products of the prime factors 2,3,5 are allowed.
-!!                  The detailed table with allowed transform lengths can 
-!!                  be found in subroutine ctrig_sg
-!!     nd1,nd2,nd3: Dimensions of work arrays
+!!   @param  zf:          Real kernel (input)
+!!                        zf(i1,i2,i3)
+!!   @param  zr:          Distributed Kernel FFT 
+!!                        zr(2,i1,i2,i3)
+!!   @param  nproc:       number of processors used as returned by MPI_COMM_SIZE
+!!   @param  iproc:       [0:nproc-1] number of processor as returned by MPI_COMM_RANK
+!!   @param  n1,n2,n3:    logical dimension of the transform. As transform lengths 
+!!                        most products of the prime factors 2,3,5 are allowed.
+!!                        The detailed table with allowed transform lengths can 
+!!                        be found in subroutine ctrig_sg
+!!   @param  nd1,nd2,nd3: Dimensions of work arrays
 !!
-!! RESTRICTIONS on USAGE
+!! @author
 !!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
 !!     Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
 !!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
@@ -1375,10 +1344,6 @@ END SUBROUTINE inserthalf
 !!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 !! Author:S
 !!    S. Goedecker, L. Genovese
-!!
-!! CREATION DATE
-!!     February 2006
-!!
 subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   use module_base
   implicit none
@@ -1649,7 +1614,6 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
 END SUBROUTINE kernelfft
 
 
-
 subroutine realcopy(lot,nfft,n2,nk1,nk2,zin,zout)
   use module_base
   implicit none
@@ -1716,9 +1680,9 @@ subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
 END SUBROUTINE mpiswitch
 
 
-!the conversion from d0 to dp type should be finished
+!> The conversion from d0 to dp type should be finished
 subroutine gequad(p,w,urange,drange,acc)
-! 
+ 
   use module_base
   implicit none
 

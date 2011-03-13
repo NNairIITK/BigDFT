@@ -1,18 +1,20 @@
-!!****f* BigDFT/comb_grow_all_prev
-!! COPYRIGHT
-!!    Copyright (C) 2010 BigDFT group 
+!> @file
+!!  Combined convolution routines
+!! @deprecated
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
+
+
+!> w2 and w1 are switched because from shrink convention we go
+!! to grow convention
+!! @deprecated
 subroutine comb_grow_all_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
      ,w2,w1,xc,xf,y,ibyz_c,ibzxx_c,ibxxyy_c,&
      ibyz_f,ibzxx_f,ibxxyy_f)
-  ! w2 and w1 are switched because from shrink convention we go
-  ! to grow convention
   implicit none
   
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -40,16 +42,16 @@ subroutine comb_grow_all_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
        ,w1,w2,xf,y,ibyz_f,ibzxx_f,ibxxyy_f)    
   
 END SUBROUTINE comb_grow_all_prev
-!!***
 
 
+!> In 3d,   
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!!  the size of the data is allowed to grow
+!! The input array x is not overwritten
+!! @deprecated
 subroutine comb_grow_tree_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
      ,w1,w2,x,y,ibyz,ibzxx,ibxxyy)
-  ! In 3d,   
-  ! Applies synthesis wavelet transformation 
-  ! then convolves with magic filter
-  !  the size of the data is allowed to grow
-  ! The input array x is not overwritten
 
   implicit real(kind=8) (a-h,o-z)
 
@@ -78,15 +80,17 @@ subroutine comb_grow_tree_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
   
 END SUBROUTINE comb_grow_tree_prev
 
+
+!> In 3d,   
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!!  the size of the data is allowed to grow
+!! The input array x is not overwritten
+!! However, the output array y contains nonphysical values
+!! outside of the localization region
+!! that remain from the first comb_grow
+!! @deprecated
 subroutine comb_grow_c_prev(n1,n2,n3,ww,x,y,ibyz,ibzxx,ibxxyy)
-  ! In 3d,   
-  ! Applies synthesis wavelet transformation 
-  ! then convolves with magic filter
-  !  the size of the data is allowed to grow
-  ! The input array x is not overwritten
-  ! However, the output array y contains nonphysical values
-  ! outside of the localization region
-  ! that remain from the first comb_grow
   
   implicit real(kind=8) (a-h,o-z)
   real(kind=8) :: x(0:n1,0:n2,0:n3)
@@ -111,13 +115,15 @@ subroutine comb_grow_c_prev(n1,n2,n3,ww,x,y,ibyz,ibzxx,ibxxyy)
   
 END SUBROUTINE comb_grow_c_prev
 
-! subroutine for scfunctions
+
+!> subroutine for scfunctions
+!! In one dimesnion, 
+!! with optimised cycles
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!!  the size of the data is allowed to grow
+!! @deprecated
 subroutine comb_rot_grow_loc_prev(nfl,nfu,ndat,x,y,icf,ib)
-! In one dimesnion, 
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-!  the size of the data is allowed to grow
 
   implicit real(kind=8) (a-h,o-z)
   integer t
@@ -286,16 +292,12 @@ subroutine comb_rot_grow_loc_prev(nfl,nfu,ndat,x,y,icf,ib)
 END SUBROUTINE comb_rot_grow_loc_prev
 
 
-!!****f* BigDFT/comb_rot_grow_loc_1_prev
-!! FUNCTION
-!!   In one dimension, 
+!>   In one dimension, 
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
-!!
-!! SOURCE
-!!
+!! @deprecated
 subroutine  comb_rot_grow_loc_1_prev(nfl,nfu,ndat,x,y,ib)
 
   implicit none
@@ -417,15 +419,15 @@ subroutine  comb_rot_grow_loc_1_prev(nfl,nfu,ndat,x,y,ib)
 
   !write(20,*) tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_1_prev
-!!***
 
 
+!> In one dimesnion, 
+!! with optimised cycles
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!! the size of the data is allowed to grow
+!! @deprecated
 subroutine comb_rot_grow_loc_2_prev(nfl,nfu,ndat,x,y,ib)
-! In one dimesnion, 
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-! the size of the data is allowed to grow
 
   implicit real(kind=8) (a-h,o-z)
   integer t
@@ -514,15 +516,14 @@ subroutine comb_rot_grow_loc_2_prev(nfl,nfu,ndat,x,y,ib)
 END SUBROUTINE comb_rot_grow_loc_2_prev
 
 
-
+!> In one dimension, 
+!! with optimised cycles
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!! then adds the result to y.
+!! The size of the data is allowed to grow
+!! @deprecated
 subroutine comb_rot_grow_loc_3_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
-! In one dimension, 
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-! then adds the result to y.
-! The size of the data is allowed to grow
-
     implicit real(kind=8) (a-h,o-z)
     integer t
     integer,parameter:: lowfil=-7,lupfil=8
@@ -693,10 +694,11 @@ enddo
 END SUBROUTINE comb_rot_grow_loc_3_prev
 
 
+!> y = (kinetic energy operator)x + (cprec*I)x 
+!! @deprecated
 subroutine Convolkinetic_prev(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f)
-  !   y = (kinetic energy operator)x + (cprec*I)x 
   implicit real(kind=8) (a-h,o-z)
   logical :: firstcall=.true. 
   integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
@@ -1076,10 +1078,11 @@ subroutine Convolkinetic_prev(n1,n2,n3, &
 END SUBROUTINE Convolkinetic_prev
 
 
+!>  y = y+(kinetic energy operator)x 
+!! @deprecated
 subroutine ConvolkineticT_prev(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f,ekin)
-  !   y = y+(kinetic energy operator)x 
   implicit real(kind=8) (a-h,o-z)
   !Arguments
   integer, intent(in) :: n1,n2,n3
@@ -1492,10 +1495,12 @@ subroutine ConvolkineticT_prev(n1,n2,n3, &
   return
 END SUBROUTINE ConvolkineticT_prev
 
+
+!>   y = y + (kinetic energy operator)x 
+!! @deprecated
 subroutine ConvolkineticP_prev(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,y,ekin)
-  !   y = y + (kinetic energy operator)x 
   implicit real(kind=8) (a-h,o-z)
   logical :: firstcall=.true. 
   integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
@@ -1902,7 +1907,3 @@ subroutine ConvolkineticP_prev(n1,n2,n3, &
 
   return
 END SUBROUTINE ConvolkineticP_prev
-
-
-
-

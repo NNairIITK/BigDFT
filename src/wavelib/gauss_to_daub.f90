@@ -1,29 +1,32 @@
-!>   Project gaussian functions in a mesh of Daubechies scaling functions
-!!   Gives the expansion coefficients of :
-!!     factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
-!! INPUT
-!!   hgrid    step size
-!!   factor   normalisation factor
-!!   gau_cen  center of gaussian function
-!!   gau_a    parameter of gaussian
-!!   n_gau    x**n_gau (polynomial degree)
-!!   nmax     size of the grid
-!!   nwork    size of the work array (ww) >= (nmax+1)*17
-!!   periodic the flag for periodic boundary conditions
-!!
-!! OUTPUT
-!!   n_left,n_right  interval where the gaussian is larger than the machine precision
-!!   C(:,1)          array of scaling function coefficients:
-!!   C(:,2)          array of wavelet coefficients:
-!!   WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
-!!   err_norm        normalisation error
+!> @file
+!!  Gaussian to Daubechies projection routines
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
+!>   Project gaussian functions in a mesh of Daubechies scaling functions
+!!   Gives the expansion coefficients of :
+!!     factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
+!! INPUT
+!!   @param hgrid    step size
+!!   @param factor   normalisation factor
+!!   @param gau_cen  center of gaussian function
+!!   @param gau_a    parameter of gaussian
+!!   @param n_gau    x**n_gau (polynomial degree)
+!!   @param nmax     size of the grid
+!!   @param nwork    size of the work array (ww) >= (nmax+1)*17
+!!   @param periodic the flag for periodic boundary conditions
 !!
+!! OUTPUT
+!!   @param n_left,n_right  interval where the gaussian is larger than the machine precision
+!!   @param C(:,1)          array of scaling function coefficients:
+!!   @param C(:,2)          array of wavelet coefficients:
+!!   @param WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
+!!   @param err_norm        normalisation error
 subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nmax,n_left,n_right,c,err_norm,&                      !no err_wav. nmax instead of n_intvx
      ww,nwork,periodic)                         !added work arrays ww with dimension nwork
@@ -43,9 +46,9 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
   real(wp) :: func
   integer, dimension(0:4) :: lefts,rights
   !include the convolutions filters
-  include 'recs16.inc'! MAGIC FILTER  
-  include 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
-  include 'sym_16.inc'! WAVELET FILTERS
+  include 'recs16.inc' !< MAGIC FILTER  
+  include 'intots.inc' !< HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
+  include 'sym_16.inc' !< WAVELET FILTERS
 
   !rescale the parameters so that hgrid goes to 1.d0  
   a=gau_a/hgrid
@@ -110,13 +113,13 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
 
 contains
 
+  !> Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
+  !! are fixed, we get the expansion coefficients in the usual way:
+  !! get them on the finest grid by quadrature
+  !! then forward transform to get the coeffs on the coarser grid.
+  !! All this is done assuming nonperiodic boundary conditions
+  !! but will also work in the periodic case if the tails are folded
   subroutine gauss_to_scf
-    ! Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
-    ! are fixed, we get the expansion coefficients in the usual way:
-    ! get them on the finest grid by quadrature
-    ! then forward transform to get the coeffs on the coarser grid.
-    ! All this is done assuming nonperiodic boundary conditions
-    ! but will also work in the periodic case if the tails are folded
     n_left=lefts(0)
     n_right=rights(0)
     length=n_right-n_left+1
@@ -180,13 +183,12 @@ contains
 
   END SUBROUTINE gauss_to_scf
 
+
+  !> One of the tails of the Gaussian is folded periodically
+  !! We assume that the situation when we need to fold both tails
+  !! will never arise
   subroutine fold_tail
-    ! One of the tails of the Gaussian is folded periodically
-    ! We assume that the situation when we need to fold both tails
-    ! will never arise
-    !implicit none
-
-
+    
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
 
@@ -246,33 +248,27 @@ END SUBROUTINE gauss_to_daub
 !!     factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
 !!   Multiply it for the k-point factor exp(Ikx)
 !!   For this reason, a real (cos(kx)) and an imaginary (sin(kx)) part are provided 
-!!   WARNING: in this version, we dephase the projector to wrt the center of the gaussian
-!!            this should not have an impact on the results since the operator is unchanged
 !! INPUT
-!!   hgrid    step size
-!!   factor   normalisation factor
-!!   gau_cen  center of gaussian function
-!!   gau_a    parameter of gaussian
-!!   n_gau    x**n_gau (polynomial degree)
-!!   nmax     size of the grid
-!!   nwork    size of the work array (ww) >= (nmax+1)*17
-!!   periodic the flag for periodic boundary conditions
-!!   kval     value for the k-point
-!!   ncplx    number of components in the complex direction (must be 2 if kval /=0)
+!!   @param hgrid    step size
+!!   @param factor   normalisation factor
+!!   @param gau_cen  center of gaussian function
+!!   @param gau_a    parameter of gaussian
+!!   @param n_gau    x**n_gau (polynomial degree)
+!!   @param nmax     size of the grid
+!!   @param nwork    size of the work array (ww) >= (nmax+1)*17
+!!   @param periodic the flag for periodic boundary conditions
+!!   @param kval     value for the k-point
+!!   @param ncplx    number of components in the complex direction (must be 2 if kval /=0)
 !!
 !! OUTPUT
-!!   n_left,n_right  interval where the gaussian is larger than the machine precision
-!!   C(:,1)          array of scaling function coefficients:
-!!   C(:,2)          array of wavelet coefficients:
-!!   WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
-!!   err_norm        normalisation error
-!! @author
-!!    Copyright (C) 2007-2011 CEA (LG)
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
+!!   @param n_left,n_right  interval where the gaussian is larger than the machine precision
+!!   @param C(:,1)          array of scaling function coefficients:
+!!   @param C(:,2)          array of wavelet coefficients:
+!!   @param WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
+!!   @param err_norm        normalisation error
+!!@warning 
+!!  In this version, we dephase the projector to wrt the center of the gaussian
+!!  this should not have an impact on the results since the operator is unchanged
 subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nmax,n_left,n_right,c,& 
      ww,nwork,periodic)      !added work arrays ww with dimension nwork
@@ -347,13 +343,13 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
 
 contains
 
+  !> Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
+  !! are fixed, we get the expansion coefficients in the usual way:
+  !! get them on the finest grid by quadrature
+  !! then forward transform to get the coeffs on the coarser grid.
+  !! All this is done assuming nonperiodic boundary conditions
+  !! but will also work in the periodic case if the tails are folded
   subroutine gauss_to_scf
-    ! Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
-    ! are fixed, we get the expansion coefficients in the usual way:
-    ! get them on the finest grid by quadrature
-    ! then forward transform to get the coeffs on the coarser grid.
-    ! All this is done assuming nonperiodic boundary conditions
-    ! but will also work in the periodic case if the tails are folded
     n_left=lefts(0)
     n_right=rights(0)
     length=n_right-n_left+1
@@ -481,12 +477,11 @@ contains
 
   END SUBROUTINE gauss_to_scf
 
-  subroutine fold_tail
-    ! One of the tails of the Gaussian is folded periodically
-    ! We assume that the situation when we need to fold both tails
-    ! will never arise
-    !implicit none
 
+  !> One of the tails of the Gaussian is folded periodically
+  !! We assume that the situation when we need to fold both tails
+  !! will never arise
+  subroutine fold_tail
 
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
@@ -507,11 +502,7 @@ contains
 END SUBROUTINE gauss_to_daub_k
 
 
-
-
-!
-!       APPLYING THE MAGIC FILTER ("SHRINK") 
-!
+!> APPLYING THE MAGIC FILTER ("SHRINK") 
 subroutine apply_w(cx,c,leftx,rightx,left,right,h)
   use module_base
   implicit none
@@ -537,9 +528,7 @@ subroutine apply_w(cx,c,leftx,rightx,left,right,h)
 END SUBROUTINE apply_w
 
 
-!
-!      FORWARD WAVELET TRANSFORM WITHOUT WAVELETS ("SHRINK")
-!
+!> FORWARD WAVELET TRANSFORM WITHOUT WAVELETS ("SHRINK")
 subroutine forward_c(c,c_1,left,right,left_1,right_1)
   use module_base
   implicit none
@@ -551,9 +540,7 @@ subroutine forward_c(c,c_1,left,right,left_1,right_1)
   real(wp) :: ci
   include 'sym_16.inc'
 
-  !
-  !      get the coarse scfunctions and wavelets
-  !
+  ! get the coarse scfunctions and wavelets
   do i=left_1,right_1
      i2=2*i
      ci=0.0_wp
@@ -565,9 +552,8 @@ subroutine forward_c(c,c_1,left,right,left_1,right_1)
 
 END SUBROUTINE forward_c
 
-!
-!      CONVENTIONAL FORWARD WAVELET TRANSFORM ("SHRINK")
-!
+
+!>  CONVENTIONAL FORWARD WAVELET TRANSFORM ("SHRINK")
 subroutine forward(c,cd_1,left,right,left_1,right_1)
   use module_base
   implicit none
@@ -579,9 +565,7 @@ subroutine forward(c,cd_1,left,right,left_1,right_1)
   real(wp) :: ci,di
   include 'sym_16.inc'
 
-  !
-  !      get the coarse scfunctions and wavelets
-  !
+  ! get the coarse scfunctions and wavelets
   do i=left_1,right_1
      i2=2*i
      ci=0.d0

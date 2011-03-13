@@ -5,13 +5,13 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
 subroutine  MPI_INIT(ierr)
   implicit none
   integer, intent(out) :: ierr
   ierr=0
 END SUBROUTINE MPI_INIT
-
         
 subroutine MPI_INITIALIZED(init,ierr)
   implicit none

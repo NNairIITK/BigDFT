@@ -1,5 +1,5 @@
-!> art/saddles
-!!
+!! @file
+!!  Routines to find the saddle point
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
@@ -7,7 +7,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
+ 
+
+!> Module used by ART
 module saddles
 
   use defs
@@ -29,7 +31,6 @@ module saddles
   integer, dimension(:), allocatable  :: atom_displaced     ! Id of local atoms displaced
   integer                     :: natom_displaced    ! # of local atoms displaced
 end module saddles
-
 
 
 !>  This subroutine initiates the random displacement at the start

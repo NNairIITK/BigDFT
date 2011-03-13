@@ -1,11 +1,14 @@
-!>  Main program to calculate electronic structures
+!> @file
+!! BigDFT package performing ab initio calculation based on wavelets
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Main program to calculate electronic structures
 program BigDFT
 
   use module_base
@@ -13,10 +16,10 @@ program BigDFT
   use module_interfaces
   use ab6_symmetry
 
-  !as a general policy, we'll have "implicit none" by assuming the same
-  !name convention as "implicit real(kind=8) (a-h,o-z)"
-
+  !<as a general policy, we'll have "implicit none" by assuming the same
+  !!name convention as "implicit real(kind=8) (a-h,o-z)"
   implicit none
+
   character(len=*), parameter :: subname='BigDFT'
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
   integer :: ncount_bigdft

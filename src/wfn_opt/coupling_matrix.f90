@@ -1,3 +1,12 @@
+!> @file
+!!  Routines related to coupling matrix (TD-DFT Casida's formalism)
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
 subroutine center_of_charge(at,rxyz,cc)
   use module_base
   use module_types
@@ -32,11 +41,7 @@ subroutine center_of_charge(at,rxyz,cc)
 END SUBROUTINE center_of_charge
 
 
-
-
 !>    Calculate the coupling matrix needed for Casida's TDDFT approach
-!!
-!! 
 subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,i3s,n3p,&
      hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr)
   use module_base
@@ -469,7 +474,4 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   deallocate(dipoles,stat=i_stat)
   call memocc(i_stat,i_all,'dipoles',subname)
 
-
-
 END SUBROUTINE coupling_matrix_prelim
-

@@ -1,12 +1,18 @@
-!>   Read a ETSF file containing wavefunctions.
-!!
-!!   Read a NetCDF file.
+!> @file
+!! Routines to read NetCDF (ETSF) format
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+!>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    coordinates_of_grid_points is used to store the geometric
 !!   position of coefficients of wavelets i, as integer in
 !!   dtset%wvl%ni(:) dimensions.
 !!   coefficients_of_wavefunctions is used to store the psi values for
 !!   each wavelet.
-!!
 subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
   use module_base
@@ -358,14 +364,12 @@ END SUBROUTINE read_waves_etsf
 
 
 !>   Write a ETSF file containing wavefunctions.
-!!
 !!   Write a NetCDF file.
 !!    coordinates_of_grid_points is used to store the geometric
 !!   position of coefficients of wavelets i, as integer in
 !!   (/ n1, n2, n3 /) dimensions.
 !!   coefficients_of_wavefunctions is used to store the psi values for
 !!   each wavelet.
-!!
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
@@ -728,4 +732,3 @@ contains
     call memocc(i_stat,i_all,'coeff_map',subname)
   END SUBROUTINE build_grid
 END SUBROUTINE write_waves_etsf
-

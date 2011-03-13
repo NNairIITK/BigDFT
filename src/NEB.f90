@@ -1,4 +1,5 @@
-!> @file NEB routines
+!> @file 
+!! NEB routines
 !! The IO with the external program is performed using atomic units. 
 !! The restart file is in atomic units too.
 !! Both output files ( int and dat files ) are in angstrom and eV.
@@ -7,10 +8,9 @@
 !! reading the gen_output_file.
 !!
 !! References :
-!!
-!! - G.Henkelman, B.P.Uberuaga, H.Jonsson; J.Chem.Phys., 113, 9901, (2000)
-!! - G.Henkelman and H.Jonsson; J.Chem.Phys., 113, 9978, (2000)
-!! - H.Jonsson, G.Mills, K.W.Jacobsen, "Nudged elastic band method for finding
+!! - G. Henkelman, B.P. Uberuaga, H. Jonsson; J.Chem.Phys., 113, 9901, (2000)
+!! - G. Henkelman and H. Jonsson; J.Chem.Phys., 113, 9978, (2000)
+!! - H. Jonsson, G. Mills, K.W. Jacobsen, "Nudged elastic band method for finding
 !!   minimum energy paths of transitions", in Classical and Quantum Dynamics in 
 !!   Condensed Phase Simulations, edited by B.J.Berne, G.Ciccotti, D.F.Coker 
 !!   (World Scientific, Singapore, 1998), pag. 385 .
@@ -31,8 +31,11 @@
 !!    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE       !!
 !!    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                  !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!
+!! @todo
+!!  Group NEB modules
 
-!> Module for NEB calculations (parameters)
+!> Module for NEB calculations (define kinds of real)
 MODULE Numeric
 
   IMPLICIT NONE
@@ -42,7 +45,7 @@ MODULE Numeric
 END MODULE Numeric
 
 
-!> Module for NEB calculations (defined formats)
+!> Module for NEB calculations (define formats)
 MODULE Formats
 
   IMPLICIT NONE
@@ -98,14 +101,14 @@ MODULE NEB_variables
 
 !! parameters
 
-  CHARACTER (LEN=4)           :: exit_file = "EXIT"  
-  REAL (KIND=dbl), PARAMETER  :: a_zero = 0.529177D0 ! from Bohr to angstrom
-  REAL (KIND=dbl), PARAMETER  :: E_zero = 27.212D0   ! from a.u. to eV 
+  CHARACTER (LEN=4), PARAMETER :: exit_file = "EXIT"  
+  REAL (KIND=dbl), PARAMETER   :: a_zero = 0.529177D0 ! from Bohr to angstrom
+  REAL (KIND=dbl), PARAMETER   :: E_zero = 27.212D0   ! from a.u. to eV 
 
 END MODULE NEB_variables
 
 
-!> Module for NEB calculations (Miscellany)
+!> Module for NEB calculations (Calculate norm of a vector)
 MODULE Miscellany
 
   USE Numeric

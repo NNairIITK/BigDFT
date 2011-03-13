@@ -1,6 +1,16 @@
+!> @file
+!!  Routine usig kernels
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> hits the input array x with the kernel
+!! ((-1/2\Delta+C)_{ij})^{-1}
 subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)  
-! hits the input array x with the kernel
-! ((-1/2\Delta+C)_{ij})^{-1}
   use module_base
   implicit none
   integer,intent(in)::n1,n2,n3,nd1,nd2,nd3
@@ -40,12 +50,10 @@ subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)
 END SUBROUTINE hit_with_kernel
 
 
-
-
+!> construct the kernel (-1/2 d^2/dx^2)_{ij}
+!! at a real space grid with grid size hgrid
+!! and then fourier transform it to momentum space
 subroutine make_kernel(n1,hgrid,kern)
-! construct the kernel (-1/2 d^2/dx^2)_{ij}
-! at a real space grid with grid size hgrid
-! and then fourier transform it to momentum space
 use module_base
 implicit none
 integer,intent(in)::n1

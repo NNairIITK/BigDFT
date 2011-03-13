@@ -1,12 +1,13 @@
-!>   Lanczos diagonalization
-!!
+!> @file
+!!  Lanczos diagonalisation used by XANES calculation
 !! @author
-!!    Copyright (C) 2009 ESRF (AM, LG)
+!!    Copyright (C) 2009-2011 BigDFT group (AM, LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+!>   Lanczos diagonalization
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -225,10 +226,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 END SUBROUTINE xabs_lanczos
 
 
-
 !>   Chebychev polynomials to calculate the density of states
-!!
-!!
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
@@ -534,10 +532,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 END SUBROUTINE xabs_chebychev
 
 
-
 !>   finds the spectra solving  (H-omega)x=b
-!!
-!!
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -807,21 +802,13 @@ subroutine dirac_hara (rho, E , V)
   real(gp) Vcorr, rs, xk, EV,x
   integer i
 
-
-
   if(rho>1.0e-4) then
      rs = (3.0_gp / (4.0_gp*pi*rho)) ** (1.0_gp/3.0_gp)
   else
      rs=1000.0_gp
   endif
 
-
-
   Vcorr=V
-
-
-
-
 
   EV=E-Vcorr
   if(EV<=0) then

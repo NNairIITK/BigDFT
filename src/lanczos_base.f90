@@ -1,12 +1,14 @@
-!>   Module to handle diagonalization scheme
-!!
+!> @file
+!!  Rotuine to handle Lanczos diagonalisation
 !! @author
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>   Module to handle diagonalization scheme
 module lanczos_base
   use module_base
   implicit none
@@ -1010,4 +1012,3 @@ contains
   END function LB_cg
 
 END MODULE lanczos_base
-

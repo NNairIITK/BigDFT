@@ -1,23 +1,20 @@
-!>          Van der Waals empirical correction module             !
-!!================================================================!
-!!                                                                !
-!! This module contains subroutines for calculating a Van der     !
-!! Waals energy correction as a sum of damped London potentials.  !
-!!----------------------------------------------------------------!
-!! Written by Quintin Hill in 2007/8 with assistance from         !
-!! Chris-Kriton Skylaris.                                         !
-!! Forces added July 2008 by Quintin Hill                         !
-!! Modified for BigDFT in March/April 2009 by Quintin Hill        !
-!!================================================================!
-!! COPYRIGHT                                                      !
-!! Copyright (C)  2007-2009  Quintin Hill.                        !
-!! This file is distributed under the terms of the                !
-!! GNU General Public License either version 2 of the License, or !
-!! (at your option) any later version, see ~/COPYING file,        !
-!! http://www.gnu.org/licenses/gpl-2.0.txt (for GPL v2)           !
-!! or http://www.gnu.org/copyleft/gpl.txt (for latest version).   !
-!!================================================================!
+!! @author
+!! Written by Quintin Hill in 2007/8 with assistance from
+!! Chris-Kriton Skylaris.\n
+!! Forces added July 2008 by Quintin Hill\n
+!! Modified for BigDFT in March/April 2009 by Quintin Hill\n
+!! COPYRIGHT\n
+!! Copyright (C)  2007-2009  Quintin Hill.
+!! This file is distributed under the terms of the
+!! GNU General Public License either version 2 of the License, or
+!! (at your option) any later version, see ~/COPYING file,
+!! http://www.gnu.org/licenses/gpl-2.0.txt (for GPL v2)
+!! or http://www.gnu.org/copyleft/gpl.txt (for latest version).
 
+
+!> @brief  Van der Waals empirical correction module. 
+!! This module contains subroutines for calculating a Van der
+!! Waals energy correction as a sum of damped London potentials.
 module vdwcorrection
 
   use module_base, only: GP
@@ -50,19 +47,13 @@ module vdwcorrection
 
 contains
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  !< This subroutine populates the array of Van der Waals parameters
+  !! @author
+  !! Written by Quintin Hill in 2007, with some modifications in 2008
+  !! Some unoptimised parameters (e.g. for P) were taken from Halgren.
+  !! Journal of the American Chemical Society 114(20), 7827–7843, 1992
   subroutine vdwcorrection_initializeparams(in)
-
-    !==================================================================!
-    ! This subroutine populates the array of Van der Waals parameters  !
-    !------------------------------------------------------------------!
-    ! Written by Quintin Hill in 2007, with some modifications in 2008 !
-    ! Some unoptimised parameters (e.g. for P) were taken from Halgren.!
-    ! Journal of the American Chemical Society 114(20), 7827–7843, 1992!
-    !==================================================================!
 
     use module_types, only: input_variables
     implicit none
@@ -628,20 +619,13 @@ contains
 
   END SUBROUTINE vdwcorrection_initializeparams
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  !< This subroutine calculates the dispersion correction to the total energy.                                                    !
+  !! @author
+  !! Written by Quintin Hill in 2008, with some modifications in 2008
+  !! Modified for BigDFT in March/April 2009 by Quintin Hill.
   subroutine vdwcorrection_calculate_energy(dispersion_energy,rxyz,atoms,in,&
        iproc)
-
-    !==================================================================!
-    ! This subroutine calculates the dispersion correction to the      !
-    ! total energy.                                                    !
-    !------------------------------------------------------------------!
-    ! Written by Quintin Hill in 2007, with some modifications in 2008 !
-    ! Modified for BigDFT in March/April 2009 by Quintin Hill.         !
-    !==================================================================!
 
     use module_types, only: input_variables, atoms_data
 
@@ -705,19 +689,12 @@ contains
 
   END SUBROUTINE vdwcorrection_calculate_energy
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  !< This subroutine calculates the dispersion correction to the total energy.i
+  !! @author
+  !! Written by Quintin Hill in 2007, with some modifications in 2008
+  !! Modified for BigDFT in March/April 2009 by Quintin Hill.
   subroutine vdwcorrection_calculate_forces(vdw_forces,rxyz,atoms,in) 
-
-    !==================================================================!
-    ! This subroutine calculates the dispersion correction to the      !
-    ! total energy.                                                    !
-    !------------------------------------------------------------------!
-    ! Written by Quintin Hill in 2007, with some modifications in 2008 !
-    ! Modified for BigDFT in March/April 2009 by Quintin Hill.         !
-    !==================================================================!
 
     use module_types, only: input_variables, atoms_data
 
@@ -795,19 +772,12 @@ contains
 
   END SUBROUTINE vdwcorrection_calculate_forces
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  !< This subroutine warns about the use of unoptimised or unavailable dispersion parameters.
+  !! @author
+  ! Written by Quintin Hill on 13/02/2009.
+  ! Quintin Hill added functional check on 23/02/2009.
   subroutine vdwcorrection_warnings(atoms,in)
-
-    !==================================================================!
-    ! This subroutine warns about the use of unoptimised or unavailable!
-    ! dispersion parameters.                                           !
-    !------------------------------------------------------------------!
-    ! Written by Quintin Hill on 13/02/2009.                           !
-    ! Quintin Hill added functional check on 23/02/2009.               !
-    !==================================================================!
 
     use module_types, only: input_variables, atoms_data
 
@@ -845,20 +815,14 @@ contains
     end if
   END SUBROUTINE vdwcorrection_warnings
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  !< This function calculates a heteroatomic C_6 coefficient from
+  !! homoatomic C_6 coefficients using the formula given in Elstner's
+  !! paper (J. Chem. Phys. 114(12), 5149–5155). 
+  !! (Corrected error in the formula appearing in this paper.) 
+  !! @author
+  !! Written by Quintin Hill in 2007, with some modifications in 2008
   function vdwcorrection_c6(nzatom1,nzatom2)
-
-    !==================================================================!
-    ! This function calculates a heteroatomic C_6 coefficient from     !
-    ! homoatomic C_6 coefficients using the formula given in Elstner's !
-    ! paper (J. Chem. Phys. 114(12), 5149–5155). (Corrected error in   !
-    ! the formula appearing in this paper.)                            !
-    !------------------------------------------------------------------!
-    ! Written by Quintin Hill in 2007, with some modifications in 2008 !
-    !==================================================================!
 
     implicit none
 
@@ -888,23 +852,15 @@ contains
 
   end function vdwcorrection_c6
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  !< This function calculates the damping function specified by in%dispersion:
+  !! (1) Damping funtion from Elstner                  (J. Chem. Phys. 114(12), 5149-5155).                         
+  !! (2) First damping function from Wu and Yang (I)   (J. Chem. Phys. 116(2), 515-524).
+  !! (3) Second damping function from Wu and Yang (II) (J. Chem. Phys. 116(2), 515–524).
+  !! @author
+  !! Written by Quintin Hill in 2007, with some modifications in 2008
+  !! Merged into a single function in July 2008
   function vdwcorrection_damping(nzatom1,nzatom2,separation,in)
-
-    !==================================================================!
-    ! This function calculates the damping function specified by       !
-    ! in%dispersion:                                                   !
-    ! (1) Damping funtion from Elstner                                 !
-    !     (J. Chem. Phys. 114(12), 5149-5155).                         !
-    ! (2) First damping function from Wu and Yang (I)                  !
-    !     (J. Chem. Phys. 116(2), 515-524).                            !
-    ! (3) Second damping function from Wu and Yang (II)                !
-    !     (J. Chem. Phys. 116(2), 515–524).                            !
-    !------------------------------------------------------------------!
-    ! Written by Quintin Hill in 2007, with some modifications in 2008 !
-    ! Merged into a single function in July 2008                       !
-    !==================================================================!
 
     use module_types, only: input_variables
     implicit none
@@ -944,24 +900,19 @@ contains
   end function vdwcorrection_damping
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+  !< This function calculates the derivative with respect to atomic
+  !!cooridinates of the damping function specified by in%dispersion:  
+  !! (1) Damping funtion from Elstner
+  !!     (J. Chem. Phys. 114(12), 5149-5155).\n
+  !! (2) First damping function from Wu and Yang (I)
+  !!     (J. Chem. Phys. 116(2), 515-524).\n
+  !! (3) Second damping function from Wu and Yang (II)
+  !!     (J. Chem. Phys. 116(2), 515–524).\n
+  !! Note: For simplicity the @f$(r_{A,i}-r_{B_i})@f$ (where i is x,y or z)
+  !!       term is omitted here and included in the calling routine.
+  !! @author
+  !! Written by Quintin Hill in July 2008.
   function vdwcorrection_drvdamping(nzatom1,nzatom2,separation,in)
-
-    !==================================================================!
-    ! This function calculates the derivative with respect to atomic   !
-    !cooridinates of the damping function specified by in%dispersion:  !  
-    ! (1) Damping funtion from Elstner                                 !
-    !     (J. Chem. Phys. 114(12), 5149-5155).                         !
-    ! (2) First damping function from Wu and Yang (I)                  !
-    !     (J. Chem. Phys. 116(2), 515-524).                            !
-    ! (3) Second damping function from Wu and Yang (II)                !
-    !     (J. Chem. Phys. 116(2), 515–524).                            !
-    ! Note: For simplicity the (r_{A,i}-r_{B_i}) (where i is x,y or z) !
-    !       term is omitted here and included in the calling routine.  ! 
-    !------------------------------------------------------------------!
-    ! Written by Quintin Hill in July 2008.                            !
-    !==================================================================!
 
     use module_types, only: input_variables
 
@@ -1006,16 +957,12 @@ contains
 
   end function vdwcorrection_drvdamping
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  !< Function to calculate the R_0 for an atom pair. Uses expression
+  !! found in Elstner's paper (J. Chem. Phys. 114(12), 5149–5155).
+  !! @author
+  !! Written by Quintin Hill in 2007, with some modifications in 2008
   function vdwcorrection_radzero(nzatom1,nzatom2)
-
-    !==================================================================!
-    ! Function to calculate the R_0 for an atom pair. Uses expression  !
-    ! found in Elstner's paper (J. Chem. Phys. 114(12), 5149–5155).    !
-    !------------------------------------------------------------------!
-    ! Written by Quintin Hill in 2007, with some modifications in 2008 !
-    !==================================================================!
 
     implicit none
     real(kind=GP) :: vdwcorrection_radzero
@@ -1029,7 +976,4 @@ contains
 
   end function vdwcorrection_radzero
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 end module vdwcorrection
-

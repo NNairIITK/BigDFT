@@ -1,13 +1,14 @@
-!>   Initialize the potential
-!!
+!> @file
+!!  Routines to initialize the potential
 !! @author
 !!   Copyright (C) 2010 BigDFT group, Normand Mousseau
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!!
-!!
+
+
+!>   Initialize the potential
 subroutine initialize_potential()
 
   use defs
@@ -33,10 +34,7 @@ subroutine initialize_potential()
 END SUBROUTINE initialize_potential
 
 
-
 !>   Finalize the potential
-!!
-!!
 subroutine finalise_potential()
 
   use bigdft_forces
@@ -45,4 +43,3 @@ subroutine finalise_potential()
   
   call bigdft_finalise()
 END SUBROUTINE finalise_potential
-

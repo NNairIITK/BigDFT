@@ -1,11 +1,14 @@
-!>    Perform all the projection associated to local variables
+!> @file
+!!  Partial DOS analysis routines
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>    Perform all the projection associated to local variables
 subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,psi,psivirt)
   use module_base
   use module_types
@@ -130,9 +133,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,ps
 END SUBROUTINE local_analysis
 
 
-
 !> Calculate Mulliken charge population
-!! 
 subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
   use module_base
   use module_types
@@ -254,9 +255,6 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
 END SUBROUTINE mulliken_charge_population
 
 
-
-!> BigDFT/gaussian_pdos
-!! 
 subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
   use module_base
   use module_types
@@ -350,11 +348,6 @@ subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
 END SUBROUTINE gaussian_pdos
 
 
-
-
-!> BigDFT/shell_name
-!!
-!! 
 subroutine shell_name(l,m,name)
   implicit none
   integer, intent(in) :: l,m
@@ -422,4 +415,3 @@ subroutine shell_name(l,m,name)
   end select
 
 END SUBROUTINE shell_name
-

@@ -1,3 +1,14 @@
+!> @file
+!! Define the module module_interfaces containing all interfaces
+!!
+!! @author 
+!!    Luigi Genovese, Damien Caliste
+!!    Copyright (C) 2007-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
 !>  Modules which contains all interfaces
 !!  Interfaces of:
 !!  - call_cluster
@@ -23,14 +34,6 @@
 !!  - nonlocal_forces
 !!  - CalculateTailCorrection
 !!  - reformatonewave
-!!    
-!! @author Luigi Genovese, Damien Caliste
-!!    Copyright (C) 2007-2011 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
 module module_interfaces
 
   implicit none

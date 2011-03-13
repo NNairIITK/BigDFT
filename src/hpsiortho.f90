@@ -1,11 +1,14 @@
-!>  Application of the Hamiltonian
+!> @file
+!!  Application of the Hamiltonian + orthonormalize constraints
 !! @author
 !!    Copyright (C) 2007-2011 CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Application of the Hamiltonian
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
@@ -211,7 +214,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 END SUBROUTINE HamiltonianApplication
 
 
-!build the potential in the whole box
+!> Build the potential in the whole box
 subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
   use module_base
   use libxc_functionals
@@ -266,6 +269,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
 
 END SUBROUTINE full_local_potential
 
+
 subroutine free_full_potential(nproc,pot,subname)
   use module_base
   use libxc_functionals
@@ -288,10 +292,9 @@ subroutine free_full_potential(nproc,pot,subname)
 
 END SUBROUTINE free_full_potential
 
+
 !>   Operations after h|psi> 
 !!   (transposition, orthonormalisation, inverse transposition)
-!!
-!!
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      ncong,iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,nspin,GPU,input)
   use module_base
@@ -487,8 +490,6 @@ END SUBROUTINE hpsitopsi
 
 
 !>   First orthonormalisation
-!!
-!!
 subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   use module_base
   use module_types
@@ -545,8 +546,6 @@ END SUBROUTINE first_orthon
 
 
 !>   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-!!
-!!
 subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt_keeppsit)
   use module_base
   use module_types
@@ -677,9 +676,9 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 END SUBROUTINE last_orthon
 
 
+!> finds  the fermi level ef for an error function distribution with a width wf
+!! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
 subroutine evaltoocc(iproc,filewrite,wf,orbs)
- ! finds  the fermi level ef for an error function distribution with a width wf
- ! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
  use module_base
  use module_types
  implicit none
@@ -794,6 +793,7 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
 
 END SUBROUTINE evaltoocc
 
+
 subroutine eFermi_nosmearing(iproc,orbs)
   use module_base
   use module_types
@@ -862,10 +862,7 @@ subroutine eFermi_nosmearing(iproc,orbs)
 END SUBROUTINE eFermi_nosmearing
 
 
-
 !>   Calculate magnetic moments
-!!
-!!
 subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   use module_base
   implicit none
@@ -927,7 +924,6 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   end if
 
 END SUBROUTINE calc_moments
-
 
 
 subroutine check_communications(iproc,nproc,orbs,lr,comms)
@@ -1134,7 +1130,8 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
 END SUBROUTINE check_communications
 
-!define a value for the wavefunction which is dependent of the indices
+
+!> define a value for the wavefunction which is dependent of the indices
 subroutine test_value(ikpt,iorb,ispinor,icomp,val)
   use module_base
   implicit none

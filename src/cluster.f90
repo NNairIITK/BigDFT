@@ -1,13 +1,14 @@
-!>   Routines to use bigdft as a blackbox
-!!
+!! @file 
+!!   Routines to use BigDFT as a blackbox
 !! @author
 !!   Copyright (C) 2005-2011 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!!
-!!
+
+
+!> Routine to use BigDFT as a blackbox
 subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
@@ -152,22 +153,23 @@ END SUBROUTINE call_bigdft
 
 !>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
+!!  Does an electronic structure calculation. 
+!!  Output is the total energy and the forces 
 !!
-!!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
-!!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
-!!                    as definition of the previous system.
-!!   inputPsiId = 2 : read waves from disk
-!!   does an electronic structure calculation. Output is the total energy and the forces 
-!!   psi, keyg, keyv and eval should be freed after use outside of the routine.
-!!   infocode -> encloses some information about the status of the run
-!!            =0 run succesfully succeded
-!!            =1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+!!   @param inputPsiId 
+!!           - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+!!           - 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
+!!                 as definition of the previous system.
+!!           - 2 : read waves from disk
+!!   @param psi, keyg, keyv and eval should be freed after use outside of the routine.
+!!   @param infocode -> encloses some information about the status of the run
+!!           - 0 run succesfully succeded
+!!           - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
 !!               forces may be meaningless   
-!!            =2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+!!           - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
-!!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!!
+!!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 !!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
@@ -250,7 +252,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nkptv, nvirtu, nvirtd
   real(gp), allocatable :: wkptv(:)
 
-
   ! ----------------------------------
 
   !copying the input variables for readability
@@ -259,7 +260,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !an array would have been copied, thus occupying more memory space
   !Hence WARNING: these variables are copied, in case of an update the new value should be 
   !reassigned inside the structure
-
 
   crmult=in%crmult
   frmult=in%frmult
@@ -1766,4 +1766,3 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE cluster
-

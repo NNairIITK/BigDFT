@@ -1,10 +1,15 @@
+!> @file
+!!  Routines to do tail calculation (correct effect of finite size)
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 !>  Calculate the finite size corrections over wavefunctions
 !!  Conceived only for isolated Boundary Conditions
-!!
-!! @author
-!!    Copyright (C) 2007-2008 UNIBAS,CEA
-!!
-!!
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
      proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
@@ -580,7 +585,6 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 END SUBROUTINE CalculateTailCorrection
 
 
-
 subroutine transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 
      mseg_c,mvctr_c,keyg_c,keyv_c,mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      msegb_c,mvctrb_c,keybg_c,keybv_c,msegb_f,mvctrb_f,keybg_f,keybv_f,  & 
@@ -672,6 +676,7 @@ subroutine transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,
   enddo
 
 END SUBROUTINE transform_fortail
+
 
 subroutine transform_fortail_prev(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 
      mseg_c,mvctr_c,keyg_c,keyv_c,mseg_f,mvctr_f,keyg_f,keyv_f,  & 
@@ -769,6 +774,7 @@ subroutine transform_fortail_prev(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,n
   enddo
 
 END SUBROUTINE transform_fortail_prev
+
 
 subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
      hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
@@ -882,10 +888,9 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 END SUBROUTINE applylocpotkinone
 
 
-
-! Applies all the projectors onto a single wavefunction
-! Input: psi_c,psi_f
-! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
+!> Applies all the projectors onto a single wavefunction
+!! Input: psi_c,psi_f
+!! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
 subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
      nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj)

@@ -1,12 +1,14 @@
-!>   Interface for routines which handle diagonalization
-!!
+!! @file
+!!    Define routines for Lanczos diagonalization
 !! @author
 !!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>   Interface for routines which handle diagonalization
 module lanczos_interface
   use module_base
   use module_types
@@ -583,9 +585,7 @@ contains
    END SUBROUTINE EP_GramSchmidt_interna
 
 
-!>   Hits the input array x with the kernel ((-1/2\Delta+C)_{ij})^{-1}
-!!
-!!
+!>   Hits the input array x with the kernel @f$((-1/2\Delta+C)_{ij})^{-1}@f$
    subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
      n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,ene, gamma )
      use module_base

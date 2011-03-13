@@ -1,12 +1,14 @@
-!> Compute one atom system
-!! @deprecated
+!> @file
+!!  Program to do one atom calculation
 !! @author
-!!    Copyright (C) 2010 ESRF, PoliTo
+!!    Copyright (C) 2010-2011 ESRF, PoliTo
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+!> Compute one atom system
+!! @deprecated
 program oneatom
   use BigDFT_API
   use Poisson_Solver

@@ -1,14 +1,14 @@
-!> BigDFT/system_properties
-!!
-!! :
-!!  Calculate the important objects related to the physical properties of the system
+!> @file
+!!  Routines related to system properties
 !! @author
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   use module_base
   use module_types
@@ -62,10 +62,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 END SUBROUTINE system_properties
 
 
-
 !>  Check for the need of a core density and fill the rhocore array which
 !!  should be passed at the rhocore pointer
-!!
 subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   use module_base
   use module_types
@@ -151,13 +149,9 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 END SUBROUTINE calculate_rhocore
 
 
-
 !>   Assign some of the physical system variables
 !!   Performs also some cross-checks with other variables
-!!
 !!   The pointer in atoms structure have to be associated or nullified.
-!!
-!!
 subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,norbuempty,norbdempty,iunit)
   use module_base
@@ -646,13 +640,10 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
 END SUBROUTINE read_system_variables
 
 
-
 !>   Fix all the atomic occupation numbers of the atoms which has the same type
 !!   look also at the input polarisation and spin
 !!   look at the file of the input occupation numbers and, if exists, modify the 
 !!   occupations accordingly
-!!
-!!
 subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
   use module_base
   use module_types
@@ -788,11 +779,8 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
 END SUBROUTINE atomic_occupation_numbers
 
 
-
 !>    Define the descriptors of the orbitals from a given norb
 !!    It uses the cubic strategy for partitioning the orbitals
-!!
-!!
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wkpt,orbs)
   use module_base
   use module_types
@@ -945,11 +933,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
 END SUBROUTINE orbitals_descriptors
 
 
-
 !>    Fill the arrays occup and spinsgn
 !!    if iunit /=0 this means that the file 'input.occ' does exist and it opens
-!!
-!!
 subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
   use module_base
   implicit none
@@ -1221,6 +1206,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      if (N_c>0) nobj_par(n_ip)=nobj_par(n_ip)+N_c
   end do
 END SUBROUTINE parallel_repartition_with_kpoints
+
 
 subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
      nkptsp,mykpts,nobj_pkpt)

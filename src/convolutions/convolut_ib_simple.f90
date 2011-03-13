@@ -1,12 +1,14 @@
-!> Module for convolution operators
-!!
-!! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
+!> @file
+!!  Simple convolution routines
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!> Module for convolution operators
 module convSimpleBench
   implicit none
   integer :: conv_f_nflop1,conv_f_nflop2,conv_f_nflop3
@@ -441,7 +443,7 @@ subroutine Convolkinetic_sep(n1,n2,n3, &
 
 END SUBROUTINE Convolkinetic_sep
 
-!<  y = (kinetic energy operator)x + (cprec*I)x 
+!>  y = (kinetic energy operator)x + (cprec*I)x 
 subroutine Convolkinetic(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,x_f1,x_f2,x_f3)
@@ -1433,7 +1435,3 @@ subroutine ConvolkineticT(n1,n2,n3, &
   ekinout=real(ekin,gp)
 
 END SUBROUTINE ConvolkineticT
-
-
-
-

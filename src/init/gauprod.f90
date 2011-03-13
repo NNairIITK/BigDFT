@@ -1,4 +1,5 @@
-!>  Restart from gaussian functions
+!> @file
+!!    
 !! @author
 !!    Copyright (C) 2007-2011 CEA (LG)
 !!    This file is distributed under the terms of the
@@ -6,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
+!>  Restart from gaussian functions
 subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
@@ -42,9 +44,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
 END SUBROUTINE restart_from_gaussians
 
 
-
 !>   Read information for gaussian basis set (from CP2K) or for restarting
-!!
 subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   use module_base
   use module_types
@@ -94,7 +94,6 @@ subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
   allocate(coeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,coeffs,'coeffs',subname)
   
-
   if(fillrxyz) then
 
      allocate(G%rxyz (3,G%nat+ndebug),stat=i_stat)
@@ -107,7 +106,6 @@ subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
         read(99,*)jat,rx,ry ,ry  ,G%nshell(iat)
      end do
   endif
-
 
 
   read(99,*)G%ndoc(1:G%nshltot),G%nam(1:G%nshltot)
@@ -132,7 +130,6 @@ END SUBROUTINE read_gaussian_information
 
 
 !>   Write gaussian informatio for another program or for restarting
-!!
 subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   use module_base
   use module_types
@@ -732,7 +729,7 @@ END SUBROUTINE normalize_shell
 
 
 
-!>   Calculates \int_0^\infty \exp^{-a*x^2} x^l dx
+!>   Calculates @f$\int_0^\infty \exp^{-a*x^2} x^l dx@f$
 !!
 !!
 function gauinth(a,l)
@@ -862,11 +859,8 @@ subroutine kinprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
 END SUBROUTINE kinprod
 
 
-
-!>   Calculates \int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx
+!>   Calculates @f$\int d^2/dx^2(\exp^{-a1*x^2} x^l1) \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
 !!   in terms of the govrlp function below
-!!
-!!
 function kinovrlp(a1,a2,d,l1,l2)
   use module_base
   implicit none
@@ -894,7 +888,7 @@ END FUNCTION kinovrlp
 
 
 
-!>   Calculates \int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx
+!>   Calculates @f$\int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$
 !!
 !!
 function govrlp(a1,a2,d,l1,l2)
@@ -951,7 +945,7 @@ END FUNCTION govrlp
 
 
 
-!>   Calculates \int \exp^{-a*(x-c)^2} x^l dx
+!>   Calculates @f$\int \exp^{-a*(x-c)^2} x^l dx@f$
 !!   this works ALSO when c/=0.d0
 !!
 !!
@@ -1016,7 +1010,7 @@ END FUNCTION gauint
 
 
 
-!>   Calculates \int \exp^{-a*x^2} x^l dx
+!>   Calculates @f$\int \exp^{-a*x^2} x^l dx@f$
 !!   this works only when l is even (if not equal to zero)
 !!
 !!
@@ -1425,10 +1419,10 @@ END SUBROUTINE lsh_rotation
 
 
 !>   Calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
-!!   \int dx dy dz 
+!!   @f$\int dx dy dz 
 !!             \sum_i=1..ntp fac_arr(i) {
 !!                  \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
-!!                      *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)
+!!                      *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)@f$
 !!   Expressed in Daubechies Basis in the arrays psi_c, psi_f
 !!
 !!

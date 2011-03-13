@@ -1,11 +1,12 @@
-!>  @file 3-dimensional complex-complex FFT routine:
+!>  @file 
+!!  @brief 3-dimensional complex-complex FFT routines
 !!   When compared to the best vendor implementations on RISC architectures 
 !!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
 !!   and it is significanly faster than many not so good vendor implementations 
 !!   as well as other portable FFT's. 
 !!   On all vector machines tested so far (Cray, NEC, Fujitsu) is 
 !!   was significantly faster than the vendor routines
-!!   The theoretical background is described in :
+!!   The theoretical background is described in :\n
 !!   1) S. Goedecker: Rotating a three-dimensional array in optimal
 !!   positions for vector processing: Case study for a three-dimensional Fast
 !!   Fourier Transform, Comp. Phys. Commun. 76, 294 (1993)
@@ -62,22 +63,20 @@ module module_fft_sg
    integer, parameter :: n_factors = 7
    integer :: i_d,j_d
 
-!< @warning
+!! @warning
 !!   some reasonable values of ncache: 
 !!   IBM/RS6000/590: 16*1024 ; IBM/RS6000/390: 3*1024 ; 
 !!   IBM/PwPC: 1*1024 ; SGI/MIPS/R8000: 16*1024 ; DEC/Alpha/EV5 and EV6 6*1024
 !!   But if you care about performance find the optimal value of ncache yourself!
 !!       On all vector machines: ncache=0
 
-   !<To have all available dimensions, ncache should be a multiple of 4*nfft_max (T.D.)
-   integer :: ncache = 8*1024
+   integer :: ncache = 8*1024  !< To have all available dimensions, ncache should be a multiple of 4*nfft_max (T.D.)
    !integer, parameter :: ncache = (4*nfft_max)
    !Vectorial computer
    !integer, parameter :: ncache = 0
 
 
-   integer, parameter :: ndata = 304
-   !< Multiple of 3,5,4,6,7,8 (and 2) with certain restrictions
+   integer, parameter :: ndata = 304  !< Multiple of 3,5,4,6,7,8 (and 2) with certain restrictions
    integer, dimension(ndata), parameter :: i_data = (/   &
        3,      4,      5,      6,      7,      8,      9,     12,  &
       14,     15,     16,     18,     20,     21,     24,     25,  &

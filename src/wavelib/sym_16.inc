@@ -1,4 +1,12 @@
-!       daubechy S6
+!> @file
+!!   Daubechy S6
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
         integer, parameter :: m=8,mm=m+2
         real(wp) :: cg(-mm:mm),cht(-mm:mm),cgt(-mm:mm)
         real(wp), parameter :: CH(-MM:MM) = (/ &

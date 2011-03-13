@@ -1,4 +1,5 @@
-!>    Random number generator (from "Numerical Recipes").
+!> @file
+!!    Random number generator (from "Numerical Recipes").
 !!    Returns a uniform random deviate between 0.0 and 1.0.
 !!    Set idum to any negative value to initialize or
 !!    reinitialize the sequence.
@@ -8,7 +9,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
 MODULE random
 
   implicit none
@@ -20,10 +21,6 @@ MODULE random
 end module random
 
 
-
-!> BigDFT/ran3
-!!
-!!
 real(8) function ran3()
   use RANDOM
   implicit none
@@ -70,4 +67,3 @@ real(8) function ran3()
   ma(inext)=mj
   ran3=mj*fac
 end function ran3
-
