@@ -1319,7 +1319,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,gxyz,'gxyz',subname)
 
      call timing(iproc,'Forces        ','ON')
-     !> Calculate local part of the forces gxyz
+     ! Calculate local part of the forces gxyz
      !! @todo Symmetrize forces with k points
      call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
           n1,n2,n3,n3p,i3s+i3xcsh,n1i,n2i,n3i,rho,pot,gxyz)
