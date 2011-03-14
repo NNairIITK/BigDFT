@@ -1,20 +1,17 @@
-!!****p* BigDFT/rism
-!!
-!! COPYRIGHT
+!> BigDFT/rism
+!! @author
 !!    Copyright (C) 2010 ESRF, CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
-!!
 program rism
   use BigDFT_API
   implicit none
   character(len=*), parameter :: subname='rism'
   integer :: n1i,n2i,n3i,iproc,nproc,i_stat,i_all,nelec
-  integer :: n3d,n3p,n3pi,i3xcsh,i3s,nlr,iat
+  integer :: n3d,n3p,n3pi,i3xcsh,i3s,nlr,iat,nspin
   real(gp) :: hxh,hyh,hzh
   type(atoms_data) :: atoms
   type(input_variables) :: in
@@ -27,6 +24,7 @@ program rism
   real(gp), dimension(:,:), allocatable :: radii_cf
   real(gp), dimension(:,:), pointer :: rxyz
   real(dp), dimension(:,:), pointer :: rho,pot,pot_ion
+  character(len=5) :: fformat
 
   !for the moment no need to have parallelism
   iproc=0
@@ -37,6 +35,11 @@ program rism
   !the pseudopotential for the dummy centers have to be provided
   call read_input_variables(iproc,'centers', &
        & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", in, atoms, rxyz)
+  if (abs(in%output_grid) > 10) then
+     write(fformat, "(A)") ".etsf"
+  else
+     write(fformat, "(A)") ".cube"
+  end if
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)
@@ -73,15 +76,15 @@ program rism
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
 
   !read the files from the .cubes on the disk
-  call read_cube('electronic_density',atoms%geocode,&
-       n1i,n2i,n3i,1,hxh,hyh,hzh,rho)
+  call read_density('electronic_density' // fformat,atoms%geocode,&
+       n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho)
 
-  call read_cube('hartree_potential',atoms%geocode,&
-       n1i,n2i,n3i,1,hxh,hyh,hzh,pot)
+  call read_density('hartree_potential' // fformat,atoms%geocode,&
+       n1i,n2i,n3i,nspin,hxh,hyh,hzh,pot)
 
   !not needed for the moment
-  call read_cube('ionic_potential',atoms%geocode,&
-       n1i,n2i,n3i,1,hxh,hyh,hzh,pot_ion)
+  call read_density('ionic_potential' // fformat,atoms%geocode,&
+       n1i,n2i,n3i,nspin,hxh,hyh,hzh,pot_ion)
 
   !also extract the number of atoms and the positions
   !for the atomic densities, if they are present
@@ -157,7 +160,7 @@ program rism
 
 
 end program rism
-!!***
+
 
 subroutine assign_atomic_radii(nat,iatlr,nlr,radii)
   use module_base
@@ -186,18 +189,14 @@ subroutine assign_atomic_radii(nat,iatlr,nlr,radii)
 
   if (ilr /= nlr) stop 'ERROR ilr'
 
-end subroutine assign_atomic_radii
+END SUBROUTINE assign_atomic_radii
 
-!!****f* BigDFT/atomic_charges
-!! FUNCTION
-!!   Calculate atomic charges using Lee, York and Yang method 
+!>   Calculate atomic charges using Lee, York and Yang method 
 !!   But with a basis similar to Blochl one 
 !!   Refs: J.Chem.Phys. 102(19),7549 (1995)
 !!         J.Chem.Phys. 103(17),7422 (1995) 
 !!   use a basis of error functions centered on the atoms, with atom-defined radii
 !!   and also short-range functions are allowed, as well as dummy atoms
-!!
-!! SOURCE
 !!
 subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngatherarr,&
      hxh,hyh,hzh,n3p,i3s,rho,pot,C)
@@ -509,19 +508,11 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
 
 
 END SUBROUTINE atomic_charges
-!!***
 
 
 
-!!****f* BigDFT/two_center_two_electrons_analytic
-!! FUNCTION
-!! COPYRIGHT
-!!   Copyright (C) 2010 BigDFT group 
-!!   This file is distributed under the terms of the
-!!   GNU General Public License, see ~/COPYING file
-!!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+
+!>
 !!
 subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
   use module_base
@@ -533,8 +524,7 @@ subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
   real(gp), dimension(nlr,nlr), intent(out) :: H
   !local variables
   integer :: iat,jat,i,j,ilr,jlr
-  real(dp) :: factor,factor2
-  real(gp) :: ra2,ra2pb2,rab2,oneopk,oneoexpo,expo,oneofac,fac,ra,erfor
+  real(gp) :: ra2,ra2pb2,rab2,erfor
   real(gp), dimension(3) :: A
 
   !the loop is so fast that we just do not need to process only the upeer triangular part
@@ -573,12 +563,10 @@ subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
   !end do
 
 END SUBROUTINE two_center_two_electrons_analytic
-!!***
 
-!!****f* BigDFT/calculate_rho_longrange
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,rhoarr)
@@ -596,10 +584,10 @@ subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,h
   real(gp), dimension(nlr), intent(out) :: rhoarr
   !Local variables---------
   logical :: perx,pery,perz,gox,goy,goz
-  integer :: i1,i2,i3,ind,iat,ierr,ityp,i,ilr
-  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
-  real(gp) :: pi,prefactor,cutoff,rloc,Rel,cutofrac
-  real(gp) :: rx,ry,rz,x,y,z,arg,r2,xp,charge,erfor
+  integer :: i1,i2,i3,ind,iat,ierr,i,ilr
+  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3
+  real(gp) :: pi,cutoff,rloc,Rel
+  real(gp) :: rx,ry,rz,x,y,z,r2,charge,erfor
 
   pi=4.d0*atan(1.d0)
 
@@ -673,7 +661,7 @@ subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,h
   if (iproc == 0) write(*,*)'Charge:',charge
 
 END SUBROUTINE calculate_rho_longrange
-!!***
+
 
 !erf(r/(sqrt(2)rl)/r
 function erfor(r,rl)
@@ -697,10 +685,8 @@ function erfor(r,rl)
 
 end function erfor
   
-!!****f* BigDFT/gaussian_rism_basis
-!! FUNCTION
-!!   Gaussian basis associated to the long-range term of rism calculation
-!! SOURCE
+!>   Gaussian basis associated to the long-range term of rism calculation
+!!
 !!
 subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   use module_base
@@ -768,7 +754,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   end do
 
 END SUBROUTINE gaussian_rism_basis
-!!***
+
 
 !calculate the second part, by expressing the atomic wavefunctions on a real grid
 subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,ngatherarr,&
@@ -978,4 +964,4 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
   deallocate(ncoeff_par,stat=i_stat)
   call memocc(i_stat,i_all,'ncoeff_par',subname)
   
-end subroutine calculate_rho_shortrange
+END SUBROUTINE calculate_rho_shortrange

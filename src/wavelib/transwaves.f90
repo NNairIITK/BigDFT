@@ -1,12 +1,11 @@
-!!****f* BigDFT/psitransspi
-!! COPYRIGHT
+!> BigDFT/psitransspi
+!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 subroutine psitransspi(nvctrp,orbs,psi,forward)
   use module_base
@@ -94,7 +93,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   deallocate(tpsit,stat=i_stat)
   call memocc(i_stat,i_all,'tpsit',subname)
 END SUBROUTINE psitransspi
-!!***
+
 
 
 !transposition of the arrays, variable version (non homogeneous)
@@ -293,9 +292,8 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
   real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(out) :: psi
   !local variables
   integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
-  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt,iproc,ierr
+  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
 
-  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   isorb=orbs%isorb+1
   isorbp=0
   ispsi=0

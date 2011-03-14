@@ -1,35 +1,36 @@
-!!****m* BigDFT/module_types
-!! FUNCTION
-!!  Modules which contains the Fortran data structures
+!>  Modules which contains the Fortran data structures
 !!  and the routines of allocations and de-allocations
-!! AUTHOR
+!!
+!! Author:
 !!    Luigi Genovese
-!! COPYRIGHT
-!!    Copyright (C) 2008-2010 CEA, ESRF
+!!
+!! @author
+!!    Copyright (C) 2008-2011 CEA, ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !! 
 module module_types
 
   use module_base, only : gp,wp,dp,tp
   implicit none
-!!***
 
 
-!!****t* module_types/input_variables
-!! DESCRIPTION
-!!   Input variable structure
-!!   Structure of the variables read by input.* files (*.dft, *.geopt...)
-!! SOURCE
+  integer, parameter :: WF_FORMAT_NONE   = 0
+  integer, parameter :: WF_FORMAT_PLAIN  = 1
+  integer, parameter :: WF_FORMAT_BINARY = 2
+  integer, parameter :: WF_FORMAT_ETSF   = 3
+
+!> Structure of the variables read by input.* files (*.dft, *.geopt...)
+!!
 !!
   type, public :: input_variables
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
-     integer :: output_grid, dispersion,last_run
+     integer :: output_grid, dispersion,last_run,output_wf_format
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: nvacancy,verbosity
@@ -53,8 +54,10 @@ module module_types
      integer :: freq_method
 
      ! kpoints related input variables
-     integer :: nkpt, nkptv
+     integer :: nkpt, nkptv,ngroups_kptv
+     integer, dimension(:), pointer :: nkptsv_group
      real(gp), pointer :: kpt(:,:), wkpt(:), kptv(:,:)
+     character(len=100) :: band_structure_filename
 
      ! Geometry variables from *.geopt
      character(len=10) :: geopt_approach
@@ -103,53 +106,49 @@ module module_types
      !   OP2P (Overlap Point-to-Point)
      character(len=4) :: exctxpar
   end type input_variables
-!!***
 
 
-!!****t* convolution_bounds/kinetic_bounds
-!! DESCRIPTION
-!!   Bounds for coarse and fine grids for kinetic operations
-!!   Useful only for isolated systems AND in CPU
-!! SOURCE
+
+!>  Bounds for coarse and fine grids for kinetic operations
+!!  Useful only for isolated systems AND in CPU
+!!
 !!
   type, public :: kinetic_bounds
      integer, dimension(:,:,:), pointer :: ibyz_c,ibxz_c,ibxy_c
      integer, dimension(:,:,:), pointer :: ibyz_f,ibxz_f,ibxy_f
   end type kinetic_bounds
-!!***
 
 
-!!****t* convolution_bounds/shrink_bounds
-!! DESCRIPTION
-!!   Bounds to compress the wavefunctions
-!!   Useful only for isolated systems AND in CPU
-!! SOURCE
+
+!>  Bounds to compress the wavefunctions
+!!  Useful only for isolated systems AND in CPU
+!!
 !!
   type, public :: shrink_bounds
      integer, dimension(:,:,:), pointer :: ibzzx_c,ibyyzz_c
      integer, dimension(:,:,:), pointer :: ibxy_ff,ibzzx_f,ibyyzz_f
   end type shrink_bounds
-!!***
 
 
-!!****t* convolution_bounds/grow_bounds
-!! DESCRIPTION
+
+!> convolution_bounds/grow_bounds
+!!
 !!   Bounds to uncompress the wavefunctions
 !!   Useful only for isolated systems AND in CPU
-!! SOURCE
+!!
 !!
   type, public :: grow_bounds
      integer, dimension(:,:,:), pointer :: ibzxx_c,ibxxyy_c
      integer, dimension(:,:,:), pointer :: ibyz_ff,ibzxx_f,ibxxyy_f
   end type grow_bounds
-!!***
 
 
-!!****t* module_types/convolutions_bounds
-!! DESCRIPTION
+
+!> module_types/convolutions_bounds
+!!
 !!   Bounds for convolutions operations
 !!   Useful only for isolated systems AND in CPU
-!! SOURCE
+!!
 !!
   type, public :: convolutions_bounds
      type(kinetic_bounds) :: kb
@@ -157,26 +156,26 @@ module module_types
      type(grow_bounds) :: gb
      integer, dimension(:,:,:), pointer :: ibyyzz_r ! real space border
   end type convolutions_bounds
-!!***
 
 
-!!****t* module_types/wavefunctions_descriptors
-!! DESCRIPTION
+
+!> module_types/wavefunctions_descriptors
+!!
 !!   Used for lookup table for compressed wavefunctions
-!! SOURCE
+!!
 !!
   type, public :: wavefunctions_descriptors
      integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
      integer, dimension(:,:), pointer :: keyg
      integer, dimension(:), pointer :: keyv
   end type wavefunctions_descriptors
-!!***
 
 
-!!****t* module_types/nonlocal_psp_descriptors
-!! DESCRIPTION
+
+!> module_types/nonlocal_psp_descriptors
+!!
 !!   Non local pseudopotential descriptors
-!! SOURCE
+!!
 !!
   type, public :: nonlocal_psp_descriptors
      !number of projectors and number of elements
@@ -187,18 +186,18 @@ module module_types
      ! Parameters for the boxes containing the projectors
      integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
   end type nonlocal_psp_descriptors
-!!***
 
 
-!!****t* module_types/atoms_data
-!! DESCRIPTION
+
+!> module_types/atoms_data
+!!
 !!   Atomic data (name, polarisation, ...)
 !! nat          Number of atoms
 !! ntypes       Number of type of atoms
 !! iatype(nat)  Type of the atoms
 !! lfrztyp(nat) Frozen atoms
 !! amu(ntypes)  Atomic Mass Unit for each type of atoms
-!! SOURCE
+!!
 !!
   type, public :: atoms_data
      character(len=1) :: geocode
@@ -217,24 +216,24 @@ module module_types
      integer :: iat_absorber 
      ! AMmodif end
   end type atoms_data
-!!***
 
 
-!!****t* module_types/grid_dimensions
-!! DESCRIPTION
+
+!> module_types/grid_dimensions
+!!
 !!   Grid dimensions in old different wavelet basis
-!! SOURCE
+!!
 !!
   type, public :: grid_dimensions
      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   end type grid_dimensions
-!!***
 
 
-!!****t* module_types/gaussian_basis
-!! DESCRIPTION
+
+!> module_types/gaussian_basis
+!!
 !!   Structures of basis of gaussian functions
-!! SOURCE
+!!
 !!
   type, public :: gaussian_basis
      integer :: nat,ncoeff,nshltot,nexpo
@@ -242,15 +241,13 @@ module module_types
      real(gp), dimension(:), pointer :: xp,psiat
      real(gp), dimension(:,:), pointer :: rxyz
   end type gaussian_basis
-!!***
 
 
-!!****t* module_types/orbitals_data
-!! DESCRIPTION
+
+!> module_types/orbitals_data
+!!
 !! All the parameters which are important for describing the orbitals
 !! Add also the objects related to k-points sampling, after symmetries applications
-!!
-!! SOURCE
 !!
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
@@ -260,14 +257,14 @@ module module_types
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
   end type orbitals_data
-!!***
 
 
-!!****t* module_types/locreg_descriptors
-!! DESCRIPTION
+
+!> module_types/locreg_descriptors
+!!
 !! Contains the information needed for describing completely a
 !! wavefunction localisation region
-!! SOURCE
+!!
 !!
   type, public :: locreg_descriptors
      character(len=1) :: geocode
@@ -277,51 +274,51 @@ module module_types
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
-!!***
 
 
-!!****t* module_types/communications_arrays
-!! DESCRIPTION
+
+!> module_types/communications_arrays
+!!
 !! Contains the information needed for communicating the wavefunctions
 !! between processors for the transposition
-!!
-!! SOURCE
 !!
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
   end type communications_arrays
-!!***
 
 
-!!****t* module_types/GPU_pointers
-!! DESCRIPTION
+
+!> module_types/GPU_pointers
+!!
 !! Contains the pointers to be handled to control GPU information
 !! Given that they are pointers on GPU address, they are C pointers
 !! which take 8 bytes
 !! So they are declared as kind=8 variables either if the GPU works in simple precision
 !! Also other information concerning the GPU runs can be stored in this structure
 !!
-!! SOURCE
-!!
   type, public :: GPU_pointers
      logical :: useDynamic,full_locham
      integer :: id_proc
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
+     real(kind=8) :: rhopot_down, rhopot_up
+     real(kind=8) :: work1_i,work2_i,work3_i,d_i
      real(kind=8) :: pinned_in,pinned_out
      real(kind=8), dimension(:), pointer :: psi
      real(kind=8) :: psi_c,psi_f
+     real(kind=8) :: psi_c_i,psi_f_i
      real(kind=8) :: psi_c_r,psi_f_r,psi_c_b,psi_f_b,psi_c_d,psi_f_d
+     real(kind=8) :: psi_c_r_i,psi_f_r_i,psi_c_b_i,psi_f_b_i,psi_c_d_i,psi_f_d_i
      real(kind=8) :: keyg_c,keyg_f,keyv_c,keyv_f
      real(kind=8) :: context,queue
   end type GPU_pointers
-!!***
 
-!!****t* module_types/restart_objects
-!! DESCRIPTION
+
+!> module_types/restart_objects
+!!
 !!  Used to restart a new DFT calculation or to save information 
 !!  for post-treatment
-!! SOURCE
+!!
 !!
   type, public :: restart_objects
      integer :: n1,n2,n3
@@ -334,28 +331,24 @@ module module_types
      type(orbitals_data) :: orbs
      type(GPU_pointers) :: GPU
   end type restart_objects
-!!***
 
 
-!!****t* module_types/workarr_sumrho
-!! DESCRIPTION
+
+!> module_types/workarr_sumrho
+!!
 !! Contains the work arrays needed for expressing wavefunction in real space
 !!  with all the BC
-!!
-!! SOURCE
 !!
   type, public :: workarr_sumrho
      integer :: nw1,nw2,nxc,nxf
      real(wp), dimension(:), pointer :: x_c,x_f,w1,w2
   end type workarr_sumrho
-!!***
 
 
-!!****t* module_types/workarr_locham
-!! DESCRIPTION
-!! Contains the work arrays needed for hamiltonian application with all the BC
+
+!> module_types/workarr_locham
 !!
-!! SOURCE
+!! Contains the work arrays needed for hamiltonian application with all the BC
 !!
   type, public :: workarr_locham
      integer :: nw1,nw2,nxc,nyc,nxf1,nxf2,nxf3,nxf,nyf
@@ -364,15 +357,13 @@ module module_types
      !psifscf,psifscfk,psig,ww respectively
      real(wp), dimension(:,:), pointer :: x_c,y_c,x_f1,x_f2,x_f3,x_f,y_f
   end type workarr_locham
-!!***
 
 
-!!****t* module_types/workarr_precond
-!! DESCRIPTION
+
+!> module_types/workarr_precond
+!!
 !! Contains the work arrays needed for th preconditioner with all the BC
 !! Take different pointers depending on the boundary conditions
-!!
-!! SOURCE
 !!
   type, public :: workarr_precond
      integer, dimension(:), pointer :: modul1,modul2,modul3
@@ -382,14 +373,12 @@ module module_types
      real(wp), dimension(:,:,:,:), pointer :: xpsig_f,ypsig_f,x_f,y_f
      real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
   end type workarr_precond
-!!***
 
 
-!!****t* module_types/lanczos_args
-!! DESCRIPTION
-!! Contains the arguments needed for the application of the hamiltonian
+
+!> module_types/lanczos_args
 !!
-!! SOURCE
+!! Contains the arguments needed for the application of the hamiltonian
 !!
   type, public :: lanczos_args
      !arguments for the hamiltonian
@@ -406,35 +395,33 @@ module module_types
      real(gp), dimension(:,:),  pointer :: rxyz,radii_cf
      real(wp), dimension(:), pointer :: proj
      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), pointer :: psi
-     real(wp), dimension(:,:), pointer :: potential
+     real(wp), dimension(:), pointer :: potential
      real(wp), dimension(:), pointer :: Gabs_coeffs
      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp) :: hpsi
      type(GPU_pointers), pointer :: GPU
   end type lanczos_args
-!!***
 
-!!****t* module_types/diis_objects
-!! DESCRIPTION
-!! Contains the arguments needed for the diis procedure
+
+!> module_types/diis_objects
 !!
-!! SOURCE
+!! Contains the arguments needed for the diis procedure
 !!
   type, public :: diis_objects
      logical :: switchSD
      integer :: idiistol,mids,ids,idsx
-     real(gp) :: energy_min,energy_old,energy,alpha
+     real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
      real(wp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
      real(wp), dimension(:,:,:,:), pointer :: ads
   end type diis_objects
-!!***
+
 
 contains
 
-  !!****f* module_types/allocate_diis_objects
-  !! FUNCTION
+  !> module_types/allocate_diis_objects
+  !! :
   !!   Allocate diis objects
-  !! SOURCE
+  !!
   !!
   subroutine allocate_diis_objects(idsx,npsidim,nkptsp,diis,subname)
     use module_base
@@ -453,10 +440,8 @@ contains
     call razero(nkptsp*3*(idsx+1)**2,diis%ads)
   END SUBROUTINE allocate_diis_objects
 
-!!****f* module_types/deallocate_diis_objects
-!! FUNCTION
-!!   De-Allocate diis objects
-!! SOURCE
+!>   De-Allocate diis objects
+!!
 !!
   subroutine deallocate_diis_objects(diis,subname)
     use module_base
@@ -477,15 +462,13 @@ contains
     call memocc(i_stat,i_all,'ads',subname)
 
   END SUBROUTINE deallocate_diis_objects
-!!***
 
 
 
 
-!!****f* module_types/allocate_comms
-!! FUNCTION
-!!   Allocate communications_arrays
-!! SOURCE
+
+!>   Allocate communications_arrays
+!!
 !!
   subroutine allocate_comms(nproc,orbs,comms,subname)
     use module_base
@@ -508,13 +491,11 @@ contains
     allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
     call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
   END SUBROUTINE allocate_comms
-!!***
 
 
-!!****f* module_types/deallocate_comms
-!! FUNCTION
-!!   De-Allocate communications_arrays
-!! SOURCE
+
+!>   De-Allocate communications_arrays
+!!
 !!
   subroutine deallocate_comms(comms,subname)
     use module_base
@@ -540,13 +521,11 @@ contains
     deallocate(comms%ndsplt,stat=i_stat)
     call memocc(i_stat,i_all,'ndsplt',subname)
   END SUBROUTINE deallocate_comms
-!!***
 
 
-!!****f* module_types/deallocate_abscalc_input
-!! FUNCTION
-!!  
-!! SOURCE
+
+!>  
+!!
 !!
   subroutine deallocate_abscalc_input(in, subname)
     use module_base
@@ -563,14 +542,12 @@ contains
     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
 
   END SUBROUTINE deallocate_abscalc_input
-!!***
 
 
-!!****f* module_types/deallocate_orbs
-!! FUNCTION
-!!   De-Allocate orbitals data structure, except eval pointer
+
+!>   De-Allocate orbitals data structure, except eval pointer
 !!   which is not allocated in the orbitals_descriptor routine
-!! SOURCE
+!!
 !!
 subroutine deallocate_orbs(orbs,subname)
   use module_base
@@ -609,13 +586,11 @@ subroutine deallocate_orbs(orbs,subname)
     !call memocc(i_stat,i_all,'orbs%ikptsp',subname)
 
 END SUBROUTINE deallocate_orbs
-!!***
 
 
-!!****f* module_types/init_restart_objects
-!! FUNCTION
-!!   Allocate and nullify restart objects
-!! SOURCE
+
+!>   Allocate and nullify restart objects
+!!
 !!
   subroutine init_restart_objects(iproc,iacceleration,atoms,rst,subname)
     use module_base
@@ -653,14 +628,12 @@ END SUBROUTINE deallocate_orbs
     !initialise the acceleration stategy if required
     call init_material_acceleration(iproc,iacceleration,rst%GPU)
 
-  end subroutine init_restart_objects
-!!***
+  END SUBROUTINE init_restart_objects
 
 
-!!****f* module_types/free_restart_objects
-!! FUNCTION
-!!   De-Allocate restart_objects
-!! SOURCE
+
+!>   De-Allocate restart_objects
+!!
 !!
   subroutine free_restart_objects(rst,subname)
     use module_base
@@ -711,13 +684,11 @@ END SUBROUTINE deallocate_orbs
     call release_material_acceleration(rst%GPU)
 
   END SUBROUTINE free_restart_objects
-!!***
 
 
-!!****f* module_types/allocate_wfd
-!! FUNCTION
-!!   Allocate wavefunctions_descriptors
-!! SOURCE
+
+!>   Allocate wavefunctions_descriptors
+!!
 !!
   subroutine allocate_wfd(wfd,subname)
     use module_base
@@ -732,13 +703,11 @@ END SUBROUTINE deallocate_orbs
     allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyv,'keyv',subname)
   END SUBROUTINE allocate_wfd
-!!***
 
 
-!!****f* module_types/deallocate_wfd
-!! FUNCTION
-!!   De-Allocate wavefunctions_descriptors
-!! SOURCE
+
+!>   De-Allocate wavefunctions_descriptors
+!!
 !!
   subroutine deallocate_wfd(wfd,subname)
     use module_base
@@ -759,13 +728,11 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'wfd%keyv',subname)
     end if
   END SUBROUTINE deallocate_wfd
-!!***
 
 
-!!****f* module_types/deallocate_gwf
-!! FUNCTION
-!!   De-Allocate gaussian_basis type
-!! SOURCE
+
+!>   De-Allocate gaussian_basis type
+!!
 !!
   subroutine deallocate_gwf(G,subname)
     use module_base
@@ -794,13 +761,11 @@ END SUBROUTINE deallocate_orbs
     call memocc(i_stat,i_all,'xp',subname)
 
   END SUBROUTINE deallocate_gwf
-!!***
 
 
-!!****f* module_types/deallocate_bounds
-!! FUNCTION
-!!   De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
-!! SOURCE
+
+!>   De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
+!!
 !!
   subroutine deallocate_bounds(geocode,hybrid_on,bounds,subname)
     use module_base
@@ -886,7 +851,7 @@ END SUBROUTINE deallocate_orbs
     
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
 
-  end subroutine deallocate_lr
+  END SUBROUTINE deallocate_lr
 
 end module module_types
-!!***
+

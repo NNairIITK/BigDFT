@@ -1,11 +1,7 @@
-!!****p* CUDA/GPUham
-!! FUNCTION
-!!    Test the hamiltonian operation for GPU and compare with CPU
-!!
-!! AUTHOR
+!>    Test the hamiltonian operation for GPU and compare with CPU
+!! Author:
 !!    Luigi Genovese, Matthieu Ospici
-!!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) 2008 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -15,10 +11,7 @@
 !! CREATION DATE
 !!    December 2008
 !!
-!! SOURCE
 !!
-
-
 program GPUham
   use module_base
   use iso_c_binding 
@@ -321,5 +314,5 @@ program GPUham
 
 end program GPUham
 
-!!***
+
 

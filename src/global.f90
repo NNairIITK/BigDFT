@@ -1,14 +1,11 @@
-!!****p* MINHOP
-!!
-!! DESCRIPTION
+!> MINHOP
 !!  Main program fro the minima hopping
 !!  New modified version 17th Nov 2009 Sandip De  
-!! COPYRIGHT
+!!
+!! @author
 !!    Copyright (C) 2008 UNIBAS
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
-!!
-!! SOURCE
 !!
 program MINHOP
 
@@ -78,6 +75,7 @@ program MINHOP
   !if (iproc == 0) write(67,'(a,2(1x,1pe10.3))') 'predicted fraction accepted, rejected', & 
   !     ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)
   if (iproc == 0) write(67,*) 'mdmin',mdmin
+  accepted=0.0d0
 
 
   call cpu_time(tcpu1)
@@ -660,7 +658,6 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        enmin1=en0000
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
        inputs_md%inputPsiId=1
-       if (istep > 2) inputs_md%itermax=50
        call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,fnoise,rst,infocode)
 
        if (iproc == 0) then
@@ -881,7 +878,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
 
 
 end program MINHOP
-!!***
+
 
 
 

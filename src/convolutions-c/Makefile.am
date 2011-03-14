@@ -17,8 +17,7 @@ endif
 EXTRA_PROGRAMS = conv_check
 noinst_LIBRARIES = libbasef.a libbasec.a
 
-libbasef_a_SOURCES = ../profiling/memory.f90 \
-                     ../modules/base.F90 \
+libbasef_a_SOURCES = ../modules/defs.F90 ../modules/base.f90 \
                      ../modules/cublas_fake.f90 $(mpi_source)
 libbasec_a_SOURCES = thread_engine.cpp \
                      MagicFilter_sse.c
@@ -31,7 +30,7 @@ endif
 
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 AM_CFLAGS = -Wall -Werror -O2 -msse3 -mtune=core2 -ftree-vectorize -ftree-vectorizer-verbose=9 -ffast-math
 #-funroll-loops -mtune=core2 -ftree-vectorize -floop-interchange -floop-strip-mine -floop-block
 

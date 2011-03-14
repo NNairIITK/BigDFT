@@ -6,7 +6,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 28/06/2010
+# Date: 17/11/2010
 #----------------------------------------------------------------------------
 
 import difflib
@@ -75,6 +75,7 @@ if bigdft:
         return re_version.search(line) \
             or " |" in line \
             or "CPU time" in line \
+			or "SP-TIMINGS" in line \
             or "Load" in line \
             or "memory" in line \
             or "MB" in line \
@@ -82,7 +83,9 @@ if bigdft:
             or "Processes" in line \
             or "allocation" in line \
             or "~W" in line \
-            or "for the array" in line
+            or "for the array" in line \
+            or "WRITING WAVES" in line \
+            or "READING WAVES" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
     def line_junk(line):

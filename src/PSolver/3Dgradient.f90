@@ -1,13 +1,10 @@
-!!****f* PSolver/wb_correction
-!! FUNCTION
-!! Calculates the White-Bird correction to the XC potential.
+!> Calculates the White-Bird correction to the XC potential.
 !! Since this correction strongly depends on the way of calculating the gradient
 !! It is based on a finite difference calculation of the gradient, corrected at the border
 !! (see the calc_gradient routine)
 !! Works either in parallel or in serial, by proper adjustation of the arguments
-!!
-!! COPYRIGHT
-!! Copyright (C) 2002-2010 BigDFT group 
+!! @author
+!! Copyright (C) 2002-2011 BigDFT group 
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -20,8 +17,6 @@
 !! wbl, wbr indicates the point starting from which we have to calculate the WB correction
 !! The correction is then added to the wb_vxc array in the proper points
 !! n3grad is the effective dimension of interest
-!!
-!! SOURCE
 !!
 subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
      wb_vxc)
@@ -534,12 +529,10 @@ subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
  end do
 
 END SUBROUTINE wb_correction
-!!***
 
 
-!!****f* BigDFT/calc_gradient
-!! FUNCTION
-!! Calculates the finite difference gradient.White-Bird correction to the XC potential.
+
+!> Calculates the finite difference gradient.White-Bird correction to the XC potential.
 !! The gradient in point x is calculated by taking four point before and after x.
 !! The lack of points near the border is solved by ideally prolungating the input
 !! function outside the grid, by assigning the same value of the border point.
@@ -566,9 +559,7 @@ END SUBROUTINE wb_correction
 !! The drivexc routine uses only the first part of this array (component 0)
 !! The rest of the array is defined for later use in the wb postprocessing routine.
 !!
-!! WARNING
-!!
-!! SOURCE
+!! @warning
 !!
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient)
@@ -1051,4 +1042,4 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
   call memocc(i_stat,i_all,'density',subname)
 
 END SUBROUTINE calc_gradient
-!!***
+

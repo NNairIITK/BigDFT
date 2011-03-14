@@ -1,16 +1,13 @@
-!!****f* BigDFT/system_properties
+!> BigDFT/system_properties
 !!
-!! FUNCTION
+!! :
 !!  Calculate the important objects related to the physical properties of the system
-!!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   use module_base
@@ -62,16 +59,13 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      call input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
-
 END SUBROUTINE system_properties
-!!***
 
 
-!!****f* BigDFT/calculate_rhocore
-!! FUNCTION
-!!  Check for the need of a core density and fill the rhocore array which
+
+!>  Check for the need of a core density and fill the rhocore array which
 !!  should be passed at the rhocore pointer
-!! SOURCE
+!!
 subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   use module_base
   use module_types
@@ -155,16 +149,14 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   end if
 
 END SUBROUTINE calculate_rhocore
-!!***
 
 
-!!****f* BigDFT/read_system_variables
-!! FUNCTION
-!!   Assign some of the physical system variables
+
+!>   Assign some of the physical system variables
 !!   Performs also some cross-checks with other variables
-!! DESCRIPTION
+!!
 !!   The pointer in atoms structure have to be associated or nullified.
-!! SOURCE
+!!
 !!
 subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,norbuempty,norbdempty,iunit)
@@ -652,16 +644,14 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
 !!!  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
 END SUBROUTINE read_system_variables
-!!***
 
 
-!!****f* BigDFT/atomic_occupation_numbers
-!! FUNCTION
-!!   Fix all the atomic occupation numbers of the atoms which has the same type
+
+!>   Fix all the atomic occupation numbers of the atoms which has the same type
 !!   look also at the input polarisation and spin
 !!   look at the file of the input occupation numbers and, if exists, modify the 
 !!   occupations accordingly
-!! SOURCE
+!!
 !!
 subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,neleconf,nsccode,mxpl,mxchg)
   use module_base
@@ -796,21 +786,19 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
   if (exists) close(unit=91)
 
 END SUBROUTINE atomic_occupation_numbers
-!!***
 
 
-!!****f* BigDFT/orbitals_descriptors
-!! FUNCTION
-!!    Define the descriptors of the orbitals from a given norb
+
+!>    Define the descriptors of the orbitals from a given norb
 !!    It uses the cubic strategy for partitioning the orbitals
-!! SOURCE
+!!
 !!
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wkpt,orbs)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt
-  integer, intent(inout) :: nspinor
+  integer, intent(in) :: nspinor
   type(orbitals_data), intent(out) :: orbs
   real(gp), dimension(nkpt), intent(in) :: wkpt
   real(gp), dimension(3,nkpt), intent(in) :: kpt
@@ -835,8 +823,9 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   orbs%kwgts(1:nkpt) = wkpt(:)
 
   ! Change the wavefunctions to complex if k-points are used (except gamma).
+  orbs%nspinor=nspinor
   if (nspinor == 1) then
-     if (maxval(abs(orbs%kpts)) > 0._gp) nspinor = 2
+     if (maxval(abs(orbs%kpts)) > 0._gp) orbs%nspinor=2
      !nspinor=2 !fake, used for testing with gamma
   end if
 
@@ -913,7 +902,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   !assign the values of the orbitals data
   orbs%norb=norb
   orbs%norbp=orbs%norb_par(iproc)
-  orbs%nspinor=nspinor
   orbs%norbu=norbu
   orbs%norbd=norbd
 
@@ -955,14 +943,12 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
 
 END SUBROUTINE orbitals_descriptors
-!!***
 
 
-!!****f* BigDFT/input_occup
-!! FUNCTION
-!!    Fill the arrays occup and spinsgn
+
+!>    Fill the arrays occup and spinsgn
 !!    if iunit /=0 this means that the file 'input.occ' does exist and it opens
-!! SOURCE
+!!
 !!
 subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
   use module_base
@@ -1142,7 +1128,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,
 
 
 END SUBROUTINE input_occup
-!!***
+
 
 subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   use module_base
@@ -1151,7 +1137,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   integer, dimension(0:nproc-1), intent(out) :: nobj_par
   !local variables
   integer :: n_i,n_ip,rs_i,N_a,N_b,N_c,ikpt,jproc,i,ntmp
-  real(gp) :: rtmp
+!!$  real(gp) :: rtmp
 
   ! Strategy to divide between k points.
   ! There is an nproc length to divide into orbs%nkpts segments.
@@ -1168,7 +1154,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   !  - N_a = int(nobj * (n_i * orbs%nkpts - (ikpt - 1) * nproc) / nproc);
   !  - N_c = int(nobj * ((ikpt - 1) * nproc - n_i * orbs%nkpts) / nproc);
   !  - N_b = nobj - N_a - N_b.
-  ! After, if N_a > 0, we put this quantity to proc n_i - 1, if N_b > 0
+  ! After, if N_a > 0, we put this quantity to proc n_i - 1, if N_c > 0
   ! we put its quantity to proc n_ip ; and finally N_b is distributed
   ! among [n_i;n_ip[ procs.
 
@@ -1185,19 +1171,32 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
 
      rs_i=ikpt*nproc
      n_ip=rs_i/nkpts
-     !print *,'ikpt,ni,nip',ikpt,n_i,n_ip
+!!$     if (iproc == 0) print *,'ikpt,ni,nip',ikpt,n_i,n_ip
      ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
-     if (n_ip >= n_i) then      
-        ntmp=n_i*nkpts-(ikpt-1)*nproc
-        rtmp=real(nobj,gp)/real(nproc,gp)
-        rtmp=rtmp*real(ntmp,gp)
-        N_a=nint(rtmp+1.e-10_gp)
-        !print *,'ikpts,rtmp',ikpt,rtmp
-        ntmp=ikpt*nproc-n_ip*nkpts
-        rtmp=real(nobj,gp)/real(nproc,gp)
-        rtmp=rtmp*real(ntmp,gp)
-        N_c=nint(rtmp-1.e-10_gp)
-        !print *,'ikpts,rtmp2',ikpt,rtmp,N_a,N_c
+     if (n_ip >= n_i) then
+        ntmp = (n_i*nkpts-(ikpt-1)*nproc) * nobj
+        if (modulo(ntmp, nproc) == 0) then
+           N_a = ntmp / nproc
+        else
+           N_a = (ntmp - modulo(ntmp, nproc) + nproc) / nproc
+        end if
+!!$        ntmp=n_i*nkpts-(ikpt-1)*nproc
+!!$        rtmp=real(nobj,gp)/real(nproc,gp)
+!!$        rtmp=rtmp*real(ntmp,gp)
+!!$        N_a=floor(rtmp)
+!!$        if (iproc == 0) print *,'ikpts,rtmp',ikpt,rtmp
+        ntmp = (ikpt*nproc-n_ip*nkpts) * nobj
+        if (modulo(ntmp, nproc) == 0) then
+           N_c = ntmp / nproc
+        else
+           N_c = (ntmp - modulo(ntmp, nproc) + nproc) / nproc
+        end if
+
+!!$        ntmp=ikpt*nproc-n_ip*nkpts
+!!$        rtmp=real(nobj,gp)/real(nproc,gp)
+!!$        rtmp=rtmp*real(ntmp,gp)
+!!$        N_c=ceiling(rtmp)
+!!$        if (iproc == 0) print *,'ikpts,rtmp2',ikpt,rtmp,N_a,N_c
         !the corrections above are to avoid the 32 bit integer overflow
         !N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
         !N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
@@ -1207,9 +1206,10 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      end if
      N_b=nobj-N_a-N_c
      if (N_b == -1) then
-        write(*,*) ikpt, n_i, n_ip, N_a, N_b, N_c
-        stop
+        N_c = N_c - 1
+        N_b = 0
      end if
+!!$     if (iproc == 0) write(*,*) ikpt, N_a, N_b, N_c
      !assign to procs the objects.
      if (N_a>0) nobj_par(n_i-1)=nobj_par(n_i-1)+N_a
      if (N_b>0) then
@@ -1220,7 +1220,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      end if
      if (N_c>0) nobj_par(n_ip)=nobj_par(n_ip)+N_c
   end do
-end subroutine parallel_repartition_with_kpoints
+END SUBROUTINE parallel_repartition_with_kpoints
 
 subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
      nkptsp,mykpts,nobj_pkpt)
@@ -1279,4 +1279,4 @@ subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
      end if
   end do
 
-end subroutine parallel_repartition_per_kpoints
+END SUBROUTINE parallel_repartition_per_kpoints

@@ -1,15 +1,10 @@
-!!****f* BigDFT/local_analysis
-!! FUNCTION
-!!    Perform all the projection associated to local variables
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!>    Perform all the projection associated to local variables
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,psi,psivirt)
   use module_base
@@ -133,11 +128,10 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,ps
   call memocc(i_stat,i_all,'Gocc',subname)
   
 END SUBROUTINE local_analysis
-!!***
 
 
-!!****f* BigDFT/mulliken_charge_population
-!! SOURCE
+
+!> Calculate Mulliken charge population
 !! 
 subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
   use module_base
@@ -258,11 +252,10 @@ subroutine mulliken_charge_population(iproc,nproc,nspin,orbs,Gocc,G,coeff,duals)
   call memocc(i_stat,i_all,'mchg',subname)
   
 END SUBROUTINE mulliken_charge_population
-!!***
 
 
-!!****f* BigDFT/gaussian_pdos
-!! SOURCE
+
+!> BigDFT/gaussian_pdos
 !! 
 subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
   use module_base
@@ -355,12 +348,12 @@ subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
   call memocc(i_stat,i_all,'pdos',subname)
   
 END SUBROUTINE gaussian_pdos
-!!***
 
 
 
-!!****f* BigDFT/shell_name
-!! SOURCE
+
+!> BigDFT/shell_name
+!!
 !! 
 subroutine shell_name(l,m,name)
   implicit none
@@ -429,4 +422,4 @@ subroutine shell_name(l,m,name)
   end select
 
 END SUBROUTINE shell_name
-!!***
+

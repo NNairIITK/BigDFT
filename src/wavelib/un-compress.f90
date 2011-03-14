@@ -1,14 +1,11 @@
-!!****f* BigDFT/compress
-!! FUNCTION
-!!    Compresses a psig wavefunction into psi_c,psi_f form
-!! COPYRIGHT
+!>    Compresses a psig wavefunction into psi_c,psi_f form
+!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
@@ -73,7 +70,7 @@ subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, &
   !$omp end parallel
 
 END SUBROUTINE compress
-!!***
+
 
 
 subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -690,7 +687,7 @@ subroutine compress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp enddo
 
   !$omp end parallel
-end subroutine compress_scal
+END SUBROUTINE compress_scal
 
 
 subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -764,7 +761,7 @@ subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !psig=1.d0/sqrt(real(8*(n1+1)*(n2+1)*(n3+1),wp))
 
 
-end subroutine uncompress_scal
+END SUBROUTINE uncompress_scal
 
 subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 

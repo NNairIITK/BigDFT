@@ -1,24 +1,22 @@
-!!****f* BigDFT/Gaussian_DiagHam
-!! DESCRIPTION
+!> BigDFT/Gaussian_DiagHam
+!!
 !!    Diagonalise the hamiltonian in a basis set of norbe orbitals and select the first
 !!    norb eigenvectors. Works also with the spin-polarisation case and perform also the 
 !!    treatment of semicore atoms. 
 !!    In the absence of norbe parameters, it simply diagonalize the hamiltonian in the given
 !!    orbital basis set.
 !!    Works for wavefunctions given in a Gaussian basis set provided bt the structure G
-!!
-!! COPYRIGHT
+!! @author
 !!    Copyright (C) 2010 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! AUTHOR
+!! Author:
 !!    Luigi Genovese
 !! CREATION DATE
 !!    January 2009
-!! SOURCE
+!!
 !! 
 subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
      psigau,hpsigau,orbse,etol,norbsc_arr)
@@ -211,18 +209,19 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
 !!!  end if
 
 END SUBROUTINE Gaussian_DiagHam
-!!***
 
 
 
-!!****f* BigDFT/DiagHam
-!! DESCRIPTION
+
+!> BigDFT/DiagHam
+!!
 !!    Diagonalise the hamiltonian in a basis set of norbe orbitals and select the first
 !!    norb eigenvectors. Works also with the spin-polarisation case and perform also the 
 !!    treatment of semicore atoms. 
 !!    In the absence of norbe parameters, it simply diagonalizes the hamiltonian in the given
 !!    orbital basis set.
-!! COPYRIGHT
+!!
+!! @author
 !!    Copyright (C) 2008 CEA Grenoble
 !!    Copyright (C) 2009 ESRF Grenoble
 !!    This file is distributed under the terms of the
@@ -264,11 +263,12 @@ END SUBROUTINE Gaussian_DiagHam
 !!           if nvirte >0: on Output, eigenvectors after input guess
 !!           if nvirte=0: unchanged on output
 !!    eval   array of the first norb eigenvalues       
-!! AUTHOR
+!!
+!! Author:
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2008
-!! SOURCE
+!!
 !! 
 subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      psi,hpsi,psit,input,& !mandatory
@@ -619,7 +619,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   end if
 
 END SUBROUTINE DiagHam
-!!***
+
 
 subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
      norbsc_arr,hamovr,psi,hpsi)
@@ -688,8 +688,8 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
 END SUBROUTINE overlap_matrices
 
 
-!!****f* BigDFT/solve_eigensystem
-!! SOURCE
+!> BigDFT/solve_eigensystem
+!!
 !!
 subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
      natsc,nspin,nspinor,etol,&
@@ -703,11 +703,13 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   real(wp), dimension(norb), intent(out) :: eval
   !local variables
   character(len=*), parameter :: subname='solve_eigensystem'
+  character(len=25) :: gapstring
   character(len=64) :: message
   integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,ncplx,ncomp
   integer :: nwrtmsg,norbj,jiorb,jjorb,ihs,ispin,norbij
   real(wp), dimension(2) :: preval
   real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
+  real(gp) :: HLIGgap
 integer:: j
 
 !if(iproc==0) write(30100,*) hamovr(1:ndim_hamovr,1)
@@ -850,13 +852,23 @@ integer:: j
               message=' <- '
            end if
            if (iorb+iorbst-1 == norb) then
+              !calculate the IG HOMO-LUMO gap
+              !if(iorb+iorbst <= norbi) then !Luigi and I did together
+              if(norb<norbi) then !I added after they left Basel.
+                 HLIGgap=evale(iorb+1)-evale(iorb)
+
+                 write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*ha2ev,' eV'
+                 !if(iproc==0) write(*,*) "REZA ",HLIGgap,ha2ev,iproc,iorb,norbi,norb
+              else
+                gapstring=''
+              end if
               nwrtmsg=1
-              message=' <- Last eigenvalue for input wavefunctions'
+              message=' <- Last InputGuess eval'//gapstring
               preval(1)=evale(iorb)
            end if
            if (iorb+iorbst-2 == norb) then
               nwrtmsg=1
-              message=' <- First virtual eigenvalue '
+              message=' <- First virtual eval '
            end if
            if (iproc == 0) then
               if (nwrtmsg == 1) then
@@ -943,7 +955,7 @@ integer:: j
   call memocc(i_stat,i_all,'evale',subname)
 
 END SUBROUTINE solve_eigensystem
-!!***
+
 
 
 subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
@@ -1068,13 +1080,9 @@ integer:: j,l,iproc
 END SUBROUTINE build_eigenvectors
 
 
-!!****f* BigDFT/psitospi
-!! FUNCTION
-!! Reads magnetic moments from file ('moments') and transforms the
+!> Reads magnetic moments from file ('moments') and transforms the
 !! atomic orbitals to spinors 
 !! warning: Does currently not work for mx<0
-!!
-!! SOURCE
 !!
 subroutine psitospi(iproc,nproc,norbe,norbep,norbsc, &
      & nvctr_c,nvctr_f,nat,nspin,spinsgne,otoa,psi)
@@ -1211,12 +1219,12 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   ! Local variables
   integer :: i, j, iorb, jorb, ispin, ii, jj, kk, norbtot, norbtotPad, iter, ierr, itermax
   integer :: ist, i_stat, i_all, nprocSub, ishift, jjorb
-  integer :: jspin, ist2, ishift1, ishift2, norb, blocksize, lwork
+  integer :: jspin, ist2, ishift2, norb, blocksize, lwork
   integer :: norbi, norbj, iat, imatrst, imatrst2, ihs, jiorb, norbij, ncplx, ncomp
   integer :: istpsi, istpsit, nvctrp, kkSave, iiSave, jproc, ist3, ikptp2, ikpt2
   integer :: blocksizeSmall, nprocSubu, nprocSubd, nspinSub, isp, kp, ikpt, ikptp
-  integer :: istpsiS, istpsitS, info, wholeGroup, newGroup, newComm, wholeGroupu
-  integer :: newGroupu, newCommu, wholeGroupd, newGroupd, newCommd
+  integer :: istpsiS, istpsitS, info, wholeGroup, newGroup, newComm
+  integer :: newGroupu, newCommu, newGroupd, newCommd
   integer,dimension(:),allocatable:: sendcounts, sdispls, recvcounts, rdispls, norbpArr,&
        norbtotpArr, kArr, kstArr, nkArr, norbArr
   integer,dimension(:),allocatable:: newID, newIDu, newIDd, norbpArrSimul, norbpArrSimulLoc
@@ -1224,11 +1232,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   real(kind=8),dimension(2):: gradientMax
   real(kind=8),dimension(:),allocatable:: alphaArr, rayleigh, evale, sceval, work, rwork
   real(kind=8),dimension(:,:),allocatable:: gradient, gradientOld
-  real(kind=8),dimension(:,:,:),allocatable:: psiGuessP, overlapPsiGuessP, psiGuess, psiGuessPTrunc, sortArr, hamovrTemp
+  real(kind=8),dimension(:,:,:),allocatable:: psiGuessP, overlapPsiGuessP, psiGuess, psiGuessPTrunc, sortArr
   real(kind=8),dimension(:,:,:,:),allocatable:: HamPad, overlapPad
   integer,dimension(:,:,:),allocatable:: kpArr
   logical:: success, warning, simul
-  complex(8):: zdotc, dznrm2, zz
+  complex(kind=8):: zdotc, zz
   integer stat(mpi_status_size)
   character(len=*),parameter:: subname='inputguessParallel'
 
@@ -2729,7 +2737,7 @@ end if semicoreIf
   ! Stop the timing for the input guess.
   call timing(iproc, 'Input_comput', 'OF')
 
-end subroutine inputguessParallel
+END SUBROUTINE inputguessParallel
 
 
 
@@ -3020,7 +3028,7 @@ subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
 
 
 
-end subroutine orthonormalize
+END SUBROUTINE orthonormalize
 
 
 
@@ -3063,7 +3071,6 @@ real(kind=8),dimension(1:norbtot*nspinor,1:norb,nkpts),intent(in out):: psi
 integer:: ikpt, ist, ierr, i_stat, i_all
 real(kind=8),dimension(:,:),allocatable:: A
 real(kind=8),dimension(:,:,:),allocatable:: ovrlp
-real(kind=8):: ddot
 character(len=*),parameter:: subname='gramschmidtOverlap'
 
 ! Allocate the matrix A which will hold some partial results.
@@ -3124,7 +3131,7 @@ deallocate(ovrlp, stat=i_stat)
 call memocc(i_stat, i_all, 'ovrlp', subname)
 
 
-end subroutine gramschmidtOverlap
+END SUBROUTINE gramschmidtOverlap
 
 
 
@@ -3230,7 +3237,7 @@ i_all=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=i_stat)
 call memocc(i_stat, i_all, 'ovrlp', subname)
 
-end subroutine choleskyOverlap
+END SUBROUTINE choleskyOverlap
 
 
 
@@ -3388,5 +3395,5 @@ seed=37*(10*iproc+ispin)*(/(i-1, i=1,n)/)
 call random_seed(put=seed)
 
 deallocate(seed)
-end subroutine initRandomSeed
+END SUBROUTINE initRandomSeed
 

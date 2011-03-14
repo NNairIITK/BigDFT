@@ -6,7 +6,8 @@ SUBDIRS = \
 	  DFT \
 	  H2-freq \
 	  NEB \
-	  XabsCheb
+	  XabsCheb \
+	  SPLSAD
 
 
 #This will run the automatic tests also for minima hopping
@@ -28,6 +29,10 @@ endif
 
 if USE_OCL
 SUBDIRS += OpenCL
+endif
+
+if HAVE_ETSF_IO
+SUBDIRS += ETSF_IO
 endif
 
 

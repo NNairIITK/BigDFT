@@ -72,9 +72,12 @@ H2O-slab.post-in:
 
 
 # Generic part, do not touch.
+INS = $(TESTDIRS:=.in)
 CHECKS = $(TESTDIRS:=.check)
 FAILEDCHECKS = $(TESTDIRS:=.recheck)
 CLEANS = $(TESTDIRS:=.clean)
+
+in: $(INS)
 
 check: $(CHECKS) report
 
@@ -108,7 +111,7 @@ report:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 $(PSPS):
-	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@
+	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@ 
 
 %.clean:
 	@dir=`basename $@ .clean` ; \
@@ -153,7 +156,7 @@ $(PSPS):
 	  if grep -qs "failed" $$r ; then \
 	    target=` basename $$r .report` ; \
 	    $(MAKE) $*".in" && rm -f $*".in" ; \
-	    rm -f $$dir/$$target".out" ; \
+	    rm -f $$dir/$$target".out" $$dir/$$target".report" ; \
 	    cd $$dir && $(MAKE) -f ../Makefile $$target".out" $$target".report" && cd - ; \
 	  fi \
 	done
@@ -168,5 +171,5 @@ endif
 EXTRA_DIST = \
 	README \
 	inguess.dat \
-        $(TESTS) \
+        $(TESTDIRS) \
         GPU OCL

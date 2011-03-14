@@ -1,13 +1,12 @@
-!!****m* BigDFT/timeData
-!! FUNCTION
-!!    Contains variables used a timing for BigDFT
-!! COPYRIGHT
+!>    Contains variables used a timing for BigDFT
+!!
+!! @author
 !!    Copyright (C) 2010, BigDFT group (Luigi Genovese)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !!
 module timeData
 
@@ -21,7 +20,7 @@ module timeData
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
   character(len=10), dimension(ncat) :: pcnames !names of the partial counters, to be assigned
 end module timeData
-!!***
+
 
 
 !the same timing routine but with system_clock (in case of a supported specs)

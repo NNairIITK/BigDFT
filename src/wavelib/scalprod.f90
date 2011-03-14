@@ -1,14 +1,11 @@
-!!****f* BigDFT/wnrm_wrap
-!! FUNCTION
-!!    Wrapper for simplifying the call
-!! COPYRIGHT
+!>    Wrapper for simplifying the call
+!!
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   use module_base
@@ -31,7 +28,7 @@ subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   end if
   
 END SUBROUTINE wnrm_wrap
-!!***
+
 
 
 ! calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
@@ -47,21 +44,21 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   integer :: i
   real(dp) :: pc,pf1,pf2,pf3,pf4,pf5,pf6,pf7
   real(dp) :: scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
-!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+!!!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
    scpr=0.0_dp
-!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
+!!!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
    scpr0=0.0_dp
-!$    ithread=omp_get_thread_num()
-!$    nthread=omp_get_num_threads()
-!$  if (ithread .eq. 0) then
+!!!$    ithread=omp_get_thread_num()
+!!!$    nthread=omp_get_num_threads()
+!!!$  if (ithread .eq. 0) then
  do i=1,mvctr_c
     !scpr0=scpr0+psi_c(i)**2
     pc=real(psi_c(i),dp)
     scpr0=scpr0+pc**2
  enddo
-!$  endif
-!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
+!!!$  endif
+!!!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
  scpr1=0.0_dp
  scpr2=0.0_dp
  scpr3=0.0_dp
@@ -69,6 +66,7 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
  scpr5=0.0_dp
  scpr6=0.0_dp
  scpr7=0.0_dp
+
  do i=1,mvctr_f
 !     scpr1=scpr1+psi_f(1,i)**2
 !     scpr2=scpr2+psi_f(2,i)**2
@@ -93,11 +91,11 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
     scpr7=scpr7+pf7**2
  enddo
  scpr0=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
-!$  endif
-!$omp critical
+!!!$  endif
+!!!$omp critical
    scpr=scpr+scpr0
-!$omp end critical
-!$omp end parallel
+!!!$omp end critical
+!!!$omp end parallel
 
 
 END SUBROUTINE wnrm
@@ -312,7 +310,7 @@ subroutine wpdot(  &
   integer :: iaseg,ibseg,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,i
   real(dp) :: pac,paf1,paf2,paf3,paf4,paf5,paf6,paf7,pbc,pbf1,pbf2,pbf3,pbf4,pbf5,pbf6,pbf7
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
-!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+!!!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel
 
@@ -324,15 +322,15 @@ subroutine wpdot(  &
   scpr=0.0_dp
 
   !dee
-!$omp parallel default (private) &
-!$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
-!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyav_f)&
-!$omp shared (apsi_f,scpr)
-!$    ithread=omp_get_thread_num()
-!$    nthread=omp_get_num_threads()
+!!!$omp parallel default (private) &
+!!!$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
+!!!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyav_f)&
+!!!$omp shared (apsi_f,scpr)
+!!!$    ithread=omp_get_thread_num()
+!!!$    nthread=omp_get_num_threads()
     scpr0=0.0_dp
 
-!$  if (ithread .eq. 0) then
+!!!$  if (ithread .eq. 0) then
 !  llc=0
   !coarse part
   ibseg=1
@@ -376,9 +374,9 @@ subroutine wpdot(  &
         if (ibseg > mbseg_c) exit loop_jac !function b ended 
      end do loop_jbc
   enddo loop_jac
-!$  endif
-  !print *,'nvctr_c',llc,mavctr_c,mbvctr_c
+!!!$  endif
 !$  if (ithread .eq. 1  .or. nthread .eq. 1) then
+
   scpr1=0.0_dp
   scpr2=0.0_dp
   scpr3=0.0_dp
@@ -450,14 +448,14 @@ subroutine wpdot(  &
      enddo loop_jaf
   end if
  scpr0=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
-!$  endif
+!!!$  endif
   !print *,'nvctr_f',llf,mavctr_f,mbvctr_f
 
-!$omp critical 
+!!!$omp critical 
    scpr=scpr+scpr0
-!$omp end critical
+!!!$omp end critical
 
-!$omp end parallel
+!!!$omp end parallel
   !        write(*,*) 'llc,llf',llc,llf
   !  call system_clock(ncount2,ncount_rate,ncount_max)
   !  tel=dble(ncount2-ncount0)/dble(ncount_rate)
@@ -575,7 +573,7 @@ subroutine waxpy(  &
   !  integer :: ncount0,ncount2,ncount_rate,ncount_max
   !  real(gp) :: tel 
   real(wp) :: scprwp
-!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+!!!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
   !dee
   !  open(unit=97,file='time_waxpy',status='unknown')
@@ -583,17 +581,17 @@ subroutine waxpy(  &
 
   scprwp=real(scpr,wp)
   !dee
-!$omp parallel default (private) &
-!$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,mbseg_f,maseg_f)&
-!$omp shared (keyav_f,keyag_f,keybg_f,keybv_f,scprwp,bpsi_c,bpsi_f)&
-!$omp shared (apsi_f,apsi_c,keybv_c)
-!$   ithread=omp_get_thread_num()
-!$   nthread=omp_get_num_threads()
+!!!$omp parallel default (private) &
+!!!$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,mbseg_f,maseg_f)&
+!!!$omp shared (keyav_f,keyag_f,keybg_f,keybv_f,scprwp,bpsi_c,bpsi_f)&
+!!!$omp shared (apsi_f,apsi_c,keybv_c)
+!!!$   ithread=omp_get_thread_num()
+!!!$   nthread=omp_get_num_threads()
   !        llc=0
   ! coarse part
   ibseg=1
 
-!$  if (ithread .eq. 0) then
+!!!$  if (ithread .eq. 0) then
      loop_jac: do iaseg=1,maseg_c
         jaj=keyav_c(iaseg)
         ja0=keyag_c(1,iaseg)
@@ -627,12 +625,12 @@ subroutine waxpy(  &
            if (ibseg > mbseg_c) exit loop_jac
         end do loop_jbc
      enddo loop_jac
-!$  endif
+!!!$  endif
 
   !        llf=0
   ! fine part
   ibseg=1
-!$  if (ithread .eq. 1 .or. nthread .eq. 1) then
+!!!  if (ithread .eq. 1 .or. nthread .eq. 1) then
      if (mbseg_f /= 0) then
         loop_jaf: do iaseg=1,maseg_f
            jaj=keyav_f(iaseg)
@@ -674,9 +672,9 @@ subroutine waxpy(  &
            end do loop_jbf
         enddo loop_jaf
      end if
-!$  endif
+!  endif
   !        write(*,*) 'waxpy,llc,llf',llc,llf
-!$omp end parallel
+!!!$omp end parallel
 
   !  call system_clock(ncount2,ncount_rate,ncount_max)
   !  tel=dble(ncount2-ncount0)/dble(ncount_rate)
@@ -685,8 +683,4 @@ subroutine waxpy(  &
 
 
 END SUBROUTINE waxpy
-
-
-
-
 

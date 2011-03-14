@@ -1,40 +1,59 @@
-subroutine mix_rhopot(npoints,alphamix,rhopot_old,rhopot,rpnrm)
-  use module_base
-  implicit none
-  integer, intent(in) :: npoints
-  real(gp), intent(in) :: alphamix
-  real(dp), dimension(npoints), intent(inout) :: rhopot,rhopot_old
-  real(gp), intent(out) :: rpnrm
-  !local variables
-  integer :: ierr
-  
-  !vold=>vold-vnew
-  call axpy(npoints,-1.0_dp,rhopot(1),1,rhopot_old(1),1)
-
-  !calculate rhopot_norm
-  rpnrm=(nrm2(npoints,rhopot_old(1),1))**2
-  if (npoints > 0) rpnrm=rpnrm/real(npoints,gp)
-  call mpiallred(rpnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-  rpnrm=sqrt(rpnrm)
-      
-  !vnew=vnew+alpha(vold-vnew)
-  call axpy(npoints,alphamix,rhopot_old(1),1,rhopot(1),1)
-  
-  !vold=vnew
-  call dcopy(npoints,rhopot(1),1,rhopot_old(1),1)
-
-end subroutine mix_rhopot
-
-
-!!****f* BigDFT/psimix
-!! FUNCTION
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!>
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
+!!
+subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,rpnrm)
+  use module_base
+  use defs_basis, only: AB6_NO_ERROR
+  use m_ab6_mixing
+  implicit none
+  integer, intent(in) :: npoints, istep, ntot, nproc, iproc
+  real(gp), intent(in) :: alphamix, ucvol
+  type(ab6_mixing_object), intent(inout) :: mix
+  real(dp), dimension(npoints), intent(inout) :: rhopot
+  real(gp), intent(out) :: rpnrm
+  !local variables
+  integer :: ierr
+  character(len = 500) :: errmess
+
+  ! Calculate the residue and put it in rhopot
+  if (istep > 1) then
+     ! rhopot = vin
+     call axpy(npoints, -1.d0, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
+          & rhopot(1), 1)
+     call dscal(npoints, 1.d0 - alphamix, rhopot(1), 1)
+     ! rhopot = alpha(vin - v(out-1))
+  else
+     mix%f_fftgr(:,:, mix%i_vrespc(1)) = 0.d0
+  end if
+  ! rhopot = v(out-1) and fftgr = alpha(vin - v(out-1))
+  call dswap(npoints, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
+       & rhopot(1), 1)
+
+  ! Do the mixing
+  call ab6_mixing_eval(mix, rhopot, istep, ntot, ucvol, &
+       & MPI_COMM_WORLD, (nproc > 1), ierr, errmess, resnrm = rpnrm)
+  if (ierr /= AB6_NO_ERROR) then
+     if (iproc == 0) write(0,*) errmess
+     call MPI_ABORT(MPI_COMM_WORLD, ierr)
+  end if
+  rpnrm = sqrt(rpnrm) / real(ntot, gp)
+  rpnrm = rpnrm / (1.d0 - alphamix)
+
+  ! Copy new in vrespc
+  call dcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
+
+END SUBROUTINE mix_rhopot
+
+
+
+!> BigDFT/psimix
+!!
 !!
 subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   use module_base
@@ -47,7 +66,7 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
   !real(wp), dimension(:), pointer :: psit,hpsit
   !local variables
-  integer :: ikptp,nvctrp,ispsi,ispsidst,jj,ierr
+  integer :: ikptp,nvctrp,ispsi,ispsidst,jj
 
   if (diis%idsx > 0) then
      !do not transpose the hpsi wavefunction into the diis array
@@ -57,12 +76,12 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
      do ikptp=1,orbs%nkptsp
         nvctrp=comms%nvctr_par(iproc,ikptp)
         if (nvctrp == 0) cycle
-        
      !here we can choose to store the DIIS arrays with single precision
      !psidst=psit
         call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
              psit(ispsi),1,&
              diis%psidst(ispsidst+nvctrp*orbs%nspinor*orbs%norb*(diis%mids-1)),1)
+
      !hpsidst=hpsi
      !   call dcopy(nvctrp*orbs%norb*orbs%nspinor,&
      !        hpsit(ispsi),1,&
@@ -82,10 +101,10 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   else
      ! update all wavefunctions with the preconditioned gradient
      if (diis%energy > diis%energy_old) then
-        diis%alpha=max(.125_wp,.5_wp*diis%alpha)
-        if (diis%alpha == .125_wp) write(*,*) ' WARNING: Convergence problem or limit'
+        diis%alpha=max(5.d-2,.5_wp*diis%alpha)
+        if (diis%alpha == 5.d-2) write(*,*) ' WARNING: Convergence problem or limit'
      else
-        diis%alpha=min(1.05_wp*diis%alpha,1._wp)
+        diis%alpha=min(1.05_wp*diis%alpha,diis%alpha_max)
      endif
      if (iproc == 0 .and. verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
 
@@ -100,7 +119,7 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   endif
 
 END SUBROUTINE psimix
-!!***
+
 
 
 subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
@@ -138,8 +157,8 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
   if ((diis%energy == diis%energy_min) .and. diis%switchSD) then
      diis%idiistol=diis%idiistol+1
   end if
-  if (diis%idiistol > idsx .and. diis%switchSD) then
-     !if (diis%idiistol > 100*idsx .and. diis%switchSD) then
+!  if (diis%idiistol > idsx .and. diis%switchSD) then
+   if (diis%idiistol > 10000*idsx .and. diis%switchSD) then
      !restore the original DIIS
      if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
           'WARNING: The energy value is now decreasing again, coming back to DIIS'
@@ -159,7 +178,7 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
      call razero(nkptsp*3*(idsx+1)**2,diis%ads)
   end if
 
-end subroutine diis_or_sd
+END SUBROUTINE diis_or_sd
 
 
 ! diis subroutine:
@@ -341,7 +360,7 @@ subroutine ds_dot(ndim,x,x0,dx,y,y0,dy,dot_out)
     ix=ix+dx
     iy=iy+dy
   end do
-end subroutine ds_dot
+END SUBROUTINE ds_dot
 
 function s2d_dot(ndim,x,dx,y,dy)
   implicit none

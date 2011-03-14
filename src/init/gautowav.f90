@@ -1,15 +1,10 @@
-!!****f* BigDFT/check_gaussian_expansion
-!! FUNCTION
-!!  Control the accuracy of the expansion in gaussian
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group (LG)
+!>  Control the accuracy of the expansion in gaussian
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
@@ -64,7 +59,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   call memocc(i_stat,i_all,'workpsi',subname)
 
 END SUBROUTINE check_gaussian_expansion
-!!***
+
 
 subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
      CP2K,wfn_cp2k)
@@ -603,11 +598,11 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
      end if
      totnorm=0.0_dp
      do ispinor=1,orbs%nspinor,ncplx
-        !print *,'start',ispinor,ncplx,iorb,orbs%nspinor
+        !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
         call gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,&
              wfn_gau(1,ispinor,iorb),psi(1,ispinor,iorb))
-        !print *,'end',ispinor,ncplx,iorb,orbs%nspinor
+        !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         call wnrm_wrap(ncplx,lr%wfd%nvctr_c,lr%wfd%nvctr_f,psi(1,ispinor,iorb),scpr) 
         totnorm=totnorm+scpr
      end do
@@ -740,6 +735,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                  end do
               end do
               nterms=nterms+nterm*ng
+              !print *,'nterms',nterms,nterms_max
            end if
            icoeff=icoeff+1
         end do

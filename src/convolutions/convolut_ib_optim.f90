@@ -6,8 +6,8 @@ subroutine Convolkinetic(n1,n2,n3, &
   use module_base
   implicit none
 !dee
-!  integer :: iend_test,count_rate_test,count_max_test,istart_test
-
+  !integer :: iend_test,count_rate_test,count_max_test,istart_test
+  
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(wp), intent(in) :: cprecr
   real(gp), intent(in) :: hgrid
@@ -25,7 +25,8 @@ subroutine Convolkinetic(n1,n2,n3, &
   integer, parameter :: lowfil=-14,lupfil=14
   !logical :: firstcall=.true. 
   !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  !integer :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  !integer(8) :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0,ncnt1
+  !integer(8) :: clock0,clock1,clock2
   integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
@@ -119,11 +120,12 @@ subroutine Convolkinetic(n1,n2,n3, &
   e(13)=  -2.70800493626319438269856689037647576e-13_wp*scale
   e(14)=   6.924474940639200152025730585882e-18_wp*scale
   do i=1,14
-     e(-i)=e(i)
+    e(-i)=e(i)
   enddo
 
 
-
+! uncomment by Huan --- begin
+!
 !  if (firstcall) then
 !
 !     ! (1/2) d^2/dx^2
@@ -243,24 +245,32 @@ subroutine Convolkinetic(n1,n2,n3, &
 !
 !     firstcall=.false.
 !  endif
-!
-!
-!  !---------------------------------------------------------------------------
+
+! uncomment by Huan -- end
+
+  !---------------------------------------------------------------------------
 
   ! Scaling function part
 
-!  call system_clock(ncount0,ncount_rate,ncount_max)
+  ! write(*,*) 'ncount0-1',ncount0
 
   ! (1/2) d^2/dx^2
 
 !dee
 !call system_clock(istart_test,count_rate_test,count_max_test)
 
+
+!call system_clock(ncount0,ncount_rate,ncount_max)
+
 !$omp parallel default(private) &
 !$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
 !$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
-!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
-  !$omp do  
+!$omp shared(x_f1,x_f2,x_f3,a,b,c,e,ncount0)&
+!$omp private(ncount1,ncount2,ncount3,ncount4,ncount5,ncount6)
+
+  !$omp do schedule(static,1)
+!  !$omp parallel do collapse(2)
+
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -355,14 +365,16 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
-  !$omp enddo
+  !$omp enddo !nowait
   
-  !  call system_clock(ncount1,ncount_rate,ncount_max)
-  !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
-  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
+    !call system_clock(ncount1,ncount_rate,ncount_max)
+    !tel=dble(ncount1-ncount0)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
 
   ! + (1/2) d^2/dy^2
-  !$omp do
+
+  !$omp do schedule(static,1)
+!  !$omp parallel do collapse(2)
   do i3=0,n3
      do i1=0,n1
         if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -457,16 +469,16 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
-  !$omp enddo
+  !$omp enddo !nowait
 
-
-  !  call system_clock(ncount2,ncount_rate,ncount_max)
-  !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:y',tel,1.d-6*mflop2/tel
+    !call system_clock(ncount2,ncount_rate,ncount_max)
+    !tel=dble(ncount2-ncount1)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:y',tel,1.d-6*mflop2/tel
 
   ! + (1/2) d^2/dz^2
 
-  !$omp do
+!   !$omp parallel do collapse(2)
+  !$omp do schedule(static,1)
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -560,18 +572,18 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
-  !$omp enddo
-
-
+  !$omp enddo !nowait
   
-  !  call system_clock(ncount3,ncount_rate,ncount_max)
-  !  tel=dble(ncount3-ncount2)/dble(ncount_rate)
-  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:z',tel,1.d-6*mflop3/tel
+    !call system_clock(ncount3,ncount_rate,ncount_max)
+    !tel=dble(ncount3-ncount2)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:z',tel,1.d-6*mflop3/tel
 
   ! wavelet part
   ! (1/2) d^2/dx^2
 
-  !$omp do
+
+!   !omp parallel do collapse(3)
+  !$omp do schedule(static,1)
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -596,15 +608,16 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
-  !$omp enddo
+  !$omp enddo !nowait
 
-  !  call system_clock(ncount4,ncount_rate,ncount_max)
-  !  tel=dble(ncount4-ncount3)/dble(ncount_rate)
-  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:x',tel,1.d-6*nflop1/tel
+    !call system_clock(ncount4,ncount_rate,ncount_max)
+    !tel=dble(ncount4-ncount3)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:x',tel,1.d-6*nflop1/tel
 
 
   ! + (1/2) d^2/dy^2
-  !$omp do
+!  !$omp parallel do collapse(2)
+  !$omp do schedule(static,1)
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -629,14 +642,15 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
-  !$omp enddo
+  !$omp enddo !nowait
 
-  !  call system_clock(ncount5,ncount_rate,ncount_max)
-  !  tel=dble(ncount5-ncount4)/dble(ncount_rate)
-  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.d-6*nflop2/tel
+    !call system_clock(ncount5,ncount_rate,ncount_max)
+    !tel=dble(ncount5-ncount4)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.d-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
-  !$omp do
+  !$omp do schedule(static,1)
+!  !$omp parallel do collapse(3)
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
@@ -658,13 +672,21 @@ subroutine Convolkinetic(n1,n2,n3, &
            y_f(5,i1,i2,i3)=y_f(5,i1,i2,i3)+t212
            y_f(3,i1,i2,i3)=y_f(3,i1,i2,i3)+t221
            y_f(7,i1,i2,i3)=y_f(7,i1,i2,i3)+t222
-
         enddo
      enddo
   enddo
-  !$omp enddo
+  !$omp enddo !nowait
+
+  !call system_clock(ncount6,ncount_rate,ncount_max)
+  !tel=dble(ncount6-ncount5)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:z',tel,1.d-6*nflop3/tel
+
+  !tel=dble(ncount6-ncount0)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'K:ALL PART',  &
+  !tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
   !$omp end parallel
+
 !dee
 !call system_clock(iend_test,count_rate_test,count_max_test)
 !write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
@@ -702,7 +724,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
   integer, parameter :: lowfil=-14,lupfil=14
   !logical :: firstcall=.true. 
   !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  !integer :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  !integer :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0
   integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211,ekin
@@ -928,7 +950,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 !
   ! Scaling function part
 
-!  call system_clock(ncount0,ncount_rate,ncount_max)
+  !call system_clock(ncount0,ncount_rate,ncount_max)
 
 !  ! (1/2) d^2/dx^2
 !
@@ -937,10 +959,11 @@ subroutine ConvolkineticT(n1,n2,n3, &
 !$omp parallel default(private) &
 !$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
 !$omp shared(ekin,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
-!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
+!$omp shared(x_f1,x_f2,x_f3,a,b,c,e,ncount0)&
+!$omp private(ncount1,ncount2,ncount3,ncount4,ncount5,ncount6)
   ekinp=0._wp
 
-  !$omp do
+  !$omp do schedule(static,1)
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -1054,13 +1077,13 @@ subroutine ConvolkineticT(n1,n2,n3, &
   enddo
   !$omp enddo
   
-  !  call system_clock(ncount1,ncount_rate,ncount_max)
-  !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
-  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:x',tel,1.d-6*mflop1/tel
+    !call system_clock(ncount1,ncount_rate,ncount_max)
+    !tel=dble(ncount1-ncount0)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:x',tel,1.d-6*mflop1/tel
   !!
   !!  ! + (1/2) d^2/dy^2
   !!
-  !$omp do
+  !$omp do schedule(static,1)
   do i3=0,n3
      do i1=0,n1
         if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -1177,13 +1200,13 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !$omp enddo
   !    
   !!
-  !  call system_clock(ncount2,ncount_rate,ncount_max)
-  !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:y',tel,1.d-6*mflop2/tel
+    !call system_clock(ncount2,ncount_rate,ncount_max)
+    !tel=dble(ncount2-ncount1)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:y',tel,1.d-6*mflop2/tel
   !!
   !!  ! + (1/2) d^2/dz^2
   !!
-  !$omp do
+  !$omp do schedule(static,1)
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -1297,13 +1320,13 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
   !$omp enddo
-  ! call system_clock(ncount3,ncount_rate,ncount_max)
-  ! tel=dble(ncount3-ncount2)/dble(ncount_rate)
-  ! write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:z',tel,1.d-6*mflop3/tel
+   !call system_clock(ncount3,ncount_rate,ncount_max)
+   !tel=dble(ncount3-ncount2)/dble(ncount_rate)
+   !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:z',tel,1.d-6*mflop3/tel
 
   ! wavelet part
   ! (1/2) d^2/dx^2
-  !$omp do
+  !$omp do schedule(static,1)
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -1337,14 +1360,14 @@ subroutine ConvolkineticT(n1,n2,n3, &
   enddo
   !$omp enddo
 
-  !  call system_clock(ncount4,ncount_rate,ncount_max)
-  !  tel=dble(ncount4-ncount3)/dble(ncount_rate)
-  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:x',tel,1.d-6*nflop1/tel
+    !call system_clock(ncount4,ncount_rate,ncount_max)
+    !tel=dble(ncount4-ncount3)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:x',tel,1.d-6*nflop1/tel
 
 
   ! + (1/2) d^2/dy^2
   !nb=16
-  !$omp do
+  !$omp do schedule(static,1)
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -1378,13 +1401,13 @@ subroutine ConvolkineticT(n1,n2,n3, &
   enddo
   !$omp enddo
 
-  !  call system_clock(ncount5,ncount_rate,ncount_max)
-  !  tel=dble(ncount5-ncount4)/dble(ncount_rate)
-  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:y',tel,1.d-6*nflop2/tel
+    !call system_clock(ncount5,ncount_rate,ncount_max)
+    !tel=dble(ncount5-ncount4)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:y',tel,1.d-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
   !nb=16
-  !$omp do
+  !$omp do schedule(static,1)
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
@@ -1418,6 +1441,14 @@ subroutine ConvolkineticT(n1,n2,n3, &
   enddo
   !$omp enddo
   
+    !call system_clock(ncount6,ncount_rate,ncount_max)
+    !tel=dble(ncount6-ncount5)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:z',tel,1.d-6*nflop3/tel
+
+    !tel=dble(ncount6-ncount0)/dble(ncount_rate)
+    !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:ALL   PART',  & 
+    !tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
+
   !$omp critical
   ekin=ekin+ekinp
   !$omp end critical

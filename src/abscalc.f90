@@ -1,15 +1,10 @@
-!!****p* BigDFT/abscalc_main
-!! FUNCTION
-!!  Main program for XANES calculation (absorption calculation)
+!>  Main program for XANES calculation (absorption calculation)
 !!
-!! COPYRIGHT
-!!    Copyright (C) 2009-2010 ESRF
+!! @author Copyright (C) 2009-2011 ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 program abscalc_main
 
@@ -153,13 +148,10 @@ program abscalc_main
   call MPI_FINALIZE(ierr)
 
 end program abscalc_main
-!!***
 
 
-!!****f* BigDFT/call_abscalc
-!! FUNCTION
-!!   Routines to use abscalc as a blackbox
-!! SOURCE
+!>   Routines to use abscalc as a blackbox
+!!
 !!
  subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
   use module_base
@@ -285,12 +277,9 @@ end program abscalc_main
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
 END SUBROUTINE call_abscalc
-!!***
 
 
-!!****f* BigDFT/abscalc
-!! FUNCTION
-!!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+!>   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
 !!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid
 !!                    as definition of the previous system.
 !!   inputPsiId = 2 : read waves from disk
@@ -304,7 +293,7 @@ END SUBROUTINE call_abscalc
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!! SOURCE
+!!
 !!
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
@@ -381,6 +370,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   type(atoms_data) :: atoms_b2B
   real(gp), dimension(:,:), pointer :: rxyz_b2B
+  integer, dimension(:), pointer :: iatype_b2B, znucl_b2B
   real(gp) :: shift_b2B(3)
   integer itype, nd
   integer n1i_bB,n2i_bB,n3i_bB
@@ -410,8 +400,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer, parameter :: noccmax=2
 
 
-
-  if (  in%potshortcut==0) then
+  if (in%potshortcut==0) then
      if(nproc>1) call MPI_Finalize(ierr)
      stop '   in%potshortcut==0 calculating spectra. Use rather box2Box option      '
   endif
@@ -587,14 +576,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      allocate(rhoXanes(1,1,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,rhoXanes,'rhoXanes',subname)     
   endif
-
-
+  
 
   nullify(rhocore)
   !check the communication distribution
   !call check_communications(iproc,nproc,orbs,Glr,comms)
-
-
 
 
   if( iand( in%potshortcut,4)  .gt. 0 ) then
@@ -716,10 +702,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      deallocate(phnons,stat=i_stat)
      call memocc(i_stat,i_all,'phnons',subname)
      
-     
-
-
-
      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
      deallocate(atoms_clone%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
@@ -727,10 +709,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      deallocate(atoms_clone%iasctype,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
 
-
-
   endif
-
 
 
   if( iand( in%potshortcut,1)  .gt. 0 ) then
@@ -833,7 +812,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         print *, "controllo ",  trim(filename)//'.cube', exists
         if(exists) then
 
-           call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B)
+           call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, &
+                & nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
            !call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
            hx_old=hx_old*2
            hy_old=hy_old*2
@@ -1057,6 +1037,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'rxyz',subname)
+        i_all=-product(shape(iatype_b2B))*kind(rxyz_b2B)
+        deallocate(iatype_b2B,stat=i_stat)
+        call memocc(i_stat,i_all,'iatype',subname)
+        i_all=-product(shape(znucl_b2B))*kind(rxyz_b2B)
+        deallocate(znucl_b2B,stat=i_stat)
+        call memocc(i_stat,i_all,'znucl',subname)
         i_all=-product(shape(rhopottmp))*kind(rhopottmp)
         deallocate(rhopottmp,stat=i_stat)
         call memocc(i_stat,i_all,'rhopottmp',subname)
@@ -1186,7 +1172,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         enddo
      end if
      infocode=0
- 
+
      if (in%iabscalc_type==2) then
         call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
@@ -1426,5 +1412,3 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE abscalc
-!!***
-

@@ -1,10 +1,17 @@
+!>   In one dimension,    
+!!   with optimised cycles
+!!   Applies synthesis wavelet transformation 
+!!   then convolves with magic filter
+!!   then adds the result to y.
+!!   The size of the data is allowed to grow
+!! @author
+!!    Copyright (C) 2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
 subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
-  ! In one dimension,    
-  ! with optimised cycles
-  ! Applies synthesis wavelet transformation 
-  ! then convolves with magic filter
-  ! then adds the result to y.
-  ! The size of the data is allowed to grow
   use module_base
   implicit none
   integer,intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
@@ -33,7 +40,7 @@ subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 !$omp parallel default (private) shared(x,y,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)&
 !$omp shared(ib,fil2)
 
- !$omp do
+ !$omp do !!schedule(static,1)
   do l2=-14+2*nfl2,2*nfu2+16
      !    do l1=-14+2*nfl1,2*nfu1+16
      ! bulk values of l1:
@@ -94,13 +101,16 @@ subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 END SUBROUTINE comb_rot_grow_loc_3
 
 
+
+!>   In one dimension,
+!!   with unoptimized cycles   
+!!   Applies synthesis wavelet transformation 
+!!   then convolves with magic filter
+!!   the size of the data is allowed to grow
+!!   One of the most CPU intensive routines
+!!
+!!
 subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
-  ! In one dimesnion,
-  ! with unoptimized cycles   
-  ! Applies synthesis wavelet transformation 
-  ! then convolves with magic filter
-  !  the size of the data is allowed to grow
-  ! One of the most CPU intensive routines
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -109,7 +119,6 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(out) :: y
   !local variables
-!!    integer ncount0,ncount1,ncount2,ncount_rate,ncount_max,nflop
 !!    real(kind=8) tel,t0,t1
   integer :: i,t,l1,l2,l3
   integer :: ll3,l31,ll2,l21
@@ -133,8 +142,6 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
 
   call make_loczero(n1,n2,n3,ib2,y)
 
-
-
   !    call system_clock(ncount1,ncount_rate,ncount_max)
   !    
   !    t0=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -144,7 +151,8 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
 !$omp parallel default (private) shared(x,y,n1,n2,n3)&
 !$omp shared(ib,fil2,ib2)
 
-  !$omp do ! switched off because does not improve the performance.  
+ ! call system_clock(ncount1,ncount_rate,ncount_max)
+  !$omp do !!schedule(static,1) ! switched off because does not improve the performance.  
   do l1=-14,2*n1+16
      do l3=0,n3 
         do l2=ib2(1,l3,l1),ib2(2,l3,l1)
@@ -152,10 +160,13 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
         enddo
      enddo
   enddo
-   !$omp enddo
-   !$omp barrier
+  !$omp enddo
+
+!   !$omp barrier
+!  call system_clock(ncount2,ncount_rate,ncount_max)
+!  write (*,*) 'Timing ', real(ncount2-ncount1)/real(ncount_rate)
    
- !$omp do
+ !$omp do !!schedule(static,1)
   do ll3=0,(n3-1)/2
      l3=ll3*2 ! even l3
      l31=ll3*2+1  ! odd l3
@@ -247,7 +258,7 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   !$omp enddo
 
   ! remaining values of l3
-  !$omp do
+  !$omp do !!schedule(static,1)
   do l3=2*((n3-1)/2)+2,n3
      do l2=0,n2
 
@@ -278,6 +289,8 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   !
   !    write(10,'(3f10.3,f10.0)') t0,t1,tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_square
+
+
 
 subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
   ! In one dimesnion,
@@ -323,7 +336,7 @@ subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
 !$omp parallel default (private) shared(x,y,n1,n2,n3)&
 !$omp shared(ib,fil2)
 
- !$omp do
+ !$omp do !!schedule(static,1)
   do ll3=0,(n3-1)/2
      l3=ll3*2 ! even l3
      l31=ll3*2+1  ! odd l3
@@ -414,9 +427,8 @@ subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
   enddo
   !$omp enddo
 
-
   ! remaining values of l3
-  !$omp do
+  !$omp do !!schedule(static,1)
   do l3=2*((n3-1)/2)+2,n3
      do l2=0,n2
 
@@ -447,6 +459,7 @@ subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
   !    write(10,'(3f10.3,f10.0)') t0,t1,tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_grow_loc_square_3
 
+
 subroutine make_loczero(n1,n2,n3,ib2,y)
   !   initialize the y array with zeroes
   !   but only inside the region defined by ib2 array
@@ -456,9 +469,12 @@ subroutine make_loczero(n1,n2,n3,ib2,y)
   integer, intent(in) :: n1,n2,n3
   integer, dimension(2,0:n3,-14:2*n1+16), intent(in) :: ib2
   real(wp), dimension(0:n2,0:n3,-14:2*n1+16), intent(out) :: y
-  !local variables
+  !Local variables
   integer :: ll1,l10,l11,ll3,l30,l31,i,l1,l3
 
+! call system_clock(ncount0,ncount_rate,ncount_max)
+!$omp parallel default (shared)
+!$omp do schedule(static,1)
   do ll1=-7,n1+7
      l10=2*ll1
      l11=l10+1
@@ -485,6 +501,11 @@ subroutine make_loczero(n1,n2,n3,ib2,y)
 
   enddo
 
+!$omp enddo
+!$omp end parallel
+
+! call system_clock(ncount1,ncount_rate,ncount_max)
+!  write(*,*) 'Timing ', real(ncount1-ncount0)/real(ncount_rate)
   ! remaining value of l1=2*n1+16
   l1=2*n1+16
   do l3=0,n3

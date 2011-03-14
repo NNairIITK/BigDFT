@@ -1,15 +1,10 @@
-!!****p* BigDFT/BigDFT
-!! FUNCTION
-!!  Main program to calculate electronic structures
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!>  Main program to calculate electronic structures
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !!
 program BigDFT
 
@@ -43,6 +38,8 @@ program BigDFT
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+  call memocc_set_memory_limit(memorylimit)
 
   ! find out which input files will be used
   inquire(file="list_posinp",exist=exist_list)
@@ -104,7 +101,7 @@ program BigDFT
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
         close(16)
         filename=trim('final_'//trim(arr_posinp(iconfig)))
-        if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
+        if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION')
      end if
 
      !if there is a last run to be performed do it now before stopping
@@ -157,4 +154,4 @@ program BigDFT
   call MPI_FINALIZE(ierr)
 
 end program BigDFT
-!!***
+

@@ -1,14 +1,11 @@
-!!****f* BigDFT/preconditionall
-!! FUNCTION
-!!    Calls the preconditioner for each orbital treated by the processor
-!! COPYRIGHT
-!!    Copyright (C) 2005-2010 BigDFT group 
+!>    Calls the preconditioner for each orbital treated by the processor
+!!
+!! @author
+!!    Copyright (C) 2005-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
 !! 
 subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
@@ -21,8 +18,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
   real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
-  integer :: iorb,inds,ncplx
-  real(wp) :: cprecr,scpr,eval_zero
+  integer :: iorb,inds,ncplx,ikpt,ierr,jorb
+  real(wp) :: cprecr,scpr,evalmax,eval_zero
   real(gp) :: kx,ky,kz
 
   ! Preconditions all orbitals belonging to iproc
@@ -33,20 +30,38 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
   !norm of gradient of unoccupied orbitals
   gnrm_zero=0.0_dp
 
+
+  !commented out, never used
+!   evalmax=orbs%eval(orbs%isorb+1)
+!   do iorb=1,orbs%norbp
+!     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
+!   enddo
+!   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
+!        MPI_MAX,MPI_COMM_WORLD,ierr)
+
+
+  if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
-     ! define zero energy for preconditioning 
-     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
-     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
-        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
-     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
-        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
+     !if it is the first orbital or the k-point has changed calculate the max
+     if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
+        !the eval array contains all the values
+        !take the max for all k-points
+        !one may think to take the max per k-point
+        evalmax=orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+1)
+        do jorb=1,orbs%norb
+           evalmax=max(orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+jorb),evalmax)
+        enddo
+        eval_zero=evalmax
+        ikpt=orbs%iokpt(iorb)
      end if
+
      !indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      !k-point values, if present
      kx=orbs%kpts(1,orbs%iokpt(iorb))
      ky=orbs%kpts(2,orbs%iokpt(iorb))
      kz=orbs%kpts(3,orbs%iokpt(iorb))
+!       print *, iorb, orbs%kpts(1,orbs%iokpt(iorb)), orbs%kpts(2,orbs%iokpt(iorb)), orbs%kpts(3,orbs%iokpt(iorb))
 
      !real k-point different from Gamma still not implemented
      if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
@@ -67,21 +82,8 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
         end if
 
        if (scpr /= 0.0_wp) then
-           !value of the cpreconditioner
-           !cprecr=-(orbs%eval(orbs%isorb+iorb)-eval_zero)+.10d0
-           !write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
-           select case(lr%geocode)
-           case('F')
-              cprecr=-orbs%eval(orbs%isorb+iorb)
-!             cprecr=sqrt(.2d0**2+min(0.d0,orbs%eval(orbs%isorb+iorb))**2)
-           case('S')
-              cprecr=0.5_wp
-           case('P')
-              cprecr=0.5_wp
-!              cprecr=-orbs%eval(orbs%isorb+iorb)
-           end select
-           
 
+          call cprecr_from_eval(lr%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)          
            !cases with no CG iterations, diagonal preconditioning
            !for Free BC it is incorporated in the standard procedure
            if (ncong == 0 .and. lr%geocode /= 'F') then
@@ -108,11 +110,32 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
 
         end if
 
+!     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
+!     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
      end do
   enddo
 
 END SUBROUTINE preconditionall
-!!***
+
+
+!this function has been created also for the GPU-ported routines
+subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  real(gp), intent(in) :: eval,eval_zero
+  real(gp), intent(out) :: cprecr
+
+  select case(geocode)
+  case('F')
+     cprecr=sqrt(.2d0**2+min(0.d0,eval)**2)
+  case('S')
+     cprecr=sqrt(0.2d0**2+(eval-eval_zero)**2)
+  case('P')
+     cprecr=sqrt(0.2d0**2+(eval-eval_zero)**2)
+  end select
+
+END SUBROUTINE cprecr_from_eval
 
 
 !routine used for the k-points, eventually to be used for all cases
@@ -1061,12 +1084,8 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
 END SUBROUTINE precond_proper
 
 
-!!****f* BigDFT/precong
-!! FUNCTION
-!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   hpsi is the right hand side on input and the solution on output
-!!
-!! SOURCE
 !!
 subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
@@ -1314,4 +1333,4 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call memocc(i_stat,i_all,'x_f3',subname)
      
 END SUBROUTINE precong
-!!***
+

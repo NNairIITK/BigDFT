@@ -29,15 +29,13 @@ subroutine center_of_charge(at,rxyz,cc)
   cc(1)=cc(1)/qtot
   cc(2)=cc(2)/qtot
   cc(3)=cc(3)/qtot
-end subroutine center_of_charge
+END SUBROUTINE center_of_charge
 
 
 
 
-!!****f* BigDFT/coupling_matrix_prelim
-!! FUNCTION
-!!    Calculate the coupling matrix needed for Casida's TDDFT approach
-!! SOURCE
+!>    Calculate the coupling matrix needed for Casida's TDDFT approach
+!!
 !! 
 subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,i3s,n3p,&
      hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr)
@@ -59,17 +57,14 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   !local variables
   character(len=*), parameter :: subname='coupling_matrix_prelim'
   logical :: tda=.true.,onlyfxc=.false.,dofxc=.true.,perx,pery,perz
-  integer :: i_all,i_stat,ierr,ispinor,ispsiw,norbocc,norbvirt,imulti,jmulti,jorba,jorbi,index
-  integer :: i1,i2,i3p,iorbi,iorba,ispsir,indi,inda,jproc,iorb,jorb,ind2,ind3,ntda,ispin,jspin
+  integer :: i_all,i_stat,ierr,imulti,jmulti,jorba,jorbi,index
+  integer :: i1,i2,i3p,iorbi,iorba,indi,inda,ind2,ind3,ntda,ispin,jspin
   integer :: ik,jk,nmulti,lwork,info,nbl1,nbl2,nbl3,nbr3,nbr2,nbr1,ndipoles
-  real(gp) :: ehart,hfac,sign,sfac,hfaci,ktrace,x,y,z
-  type(workarr_sumrho) :: w
-  integer, dimension(:,:), allocatable :: ncommvirt
+  real(gp) :: ehart,hfac,x,y,z
   real(wp), dimension(:), allocatable :: omega,work
   real(wp), dimension(:,:), allocatable :: K,Kbig,Kaux,dipoles,fi
   real(wp), dimension(:,:,:), allocatable :: v_ias
   real(wp), dimension(:,:,:,:), allocatable :: rho_ias
-  real(gp) :: coeff
 
   if(iproc==0) write(*,'(1x,a)')"=========================================================="
   if(iproc==0)write(*,'(1x,a)')" Linear-Response TDDFT calculations"
@@ -476,5 +471,5 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
 
 
-end subroutine coupling_matrix_prelim
-!!***
+END SUBROUTINE coupling_matrix_prelim
+

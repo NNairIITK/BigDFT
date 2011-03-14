@@ -1,5 +1,5 @@
-!!****f* BigDFT/FFT2d
-!! DESCRIPTION
+!> BigDFT/FFT2d
+!!
 !!    CALCULATES THE DISCRETE FOURIERTRANSFORM F(I1,I2)=
 !!    S_(j1,j2) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2)) R(j1,j2)
 !!    INPUT:
@@ -34,7 +34,9 @@
 !!       to a value so small, that not even a single one dimensional transform 
 !!       can be done in the workarray zw, the program stops with an error message.
 !!    On a vector machine ncache has to be put to 0 
-!! COPYRIGHT
+!!
+!! Copyright:
+!!
 !!  Copyright (C) Stefan Goedecker, Lausanne, Switzerland, August 1, 1991
 !!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
 !!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
@@ -44,7 +46,7 @@
 !!  GNU General Public License, see ~/COPYING file
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!  For the list of contributors, see ~/AUTHORS 
-!! SOURCE
+!!
 !!
 subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
 
@@ -171,4 +173,4 @@ subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
       endif
     return
 end subroutine fft2d
-!!***
+
