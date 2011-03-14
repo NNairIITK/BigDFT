@@ -450,10 +450,10 @@ subroutine realspace_nbuf_prev(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
 END SUBROUTINE realspace_nbuf_prev
 
 
+!> ypsi = @f$(1/2) \nabla^2 xpsi@f$
 SUBROUTINE CALC_GRAD_REZA_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsi_c,xpsi_f,ypsi_c,ypsi_f)
-  ! ypsi = (1/2) \Nabla^2 xpsi
   use module_base
   implicit none
   integer :: keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
