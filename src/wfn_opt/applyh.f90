@@ -203,12 +203,11 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
   real(gp) :: epot_p
-  
+ 
   !the Tail treatment is allowed only in the Free BC case
   if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
 
   epot=0.0_wp
-
 !$omp parallel default(private)&
 !$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
   !case without bounds
@@ -231,7 +230,6 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
                  i1s=max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf)
                  i1e=min(ibyyzz_r(2,i2,i3)-14,2*n1+16-2*nbuf)
               end if
-              
               !here we put the branchments wrt to the spin
               if (nspinor == 4) then
                  do i1=i1s,i1e
@@ -286,7 +284,7 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
                  do ispinor=1,nspinor
                     do i1=i1s,i1e
                        !the local potential is always real
-                       tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)*psir(i1,i2,i3,ispinor)
+                       tt=0.d0 !pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
                        psir(i1,i2,i3,ispinor)=tt
                     end do

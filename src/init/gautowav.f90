@@ -586,7 +586,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
 
   if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Writing wavefunctions in wavelet form...'
-
+  
   normdev=0.0_dp
   tt=0.0_dp
   do iorb=1,orbs%norbp
@@ -749,7 +749,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
 
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-  !accumulate wavefuncton
+  !accumulate wavefunction
   call wfn_from_tensprod(lr,ncplx,nterms,wx,wy,wz,psi)
 !psi=1.d0
   i_all=-product(shape(wx))*kind(wx)

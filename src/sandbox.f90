@@ -37,13 +37,25 @@ program sandbox
   real(wp), dimension(:), pointer :: hpsi,psit,psi,psidst,hpsidst,proj
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
-  real(wp), dimension(:),allocatable :: apsi_c,bpsi_c
-  real(wp), dimension(:,:),allocatable :: apsi_f,bpsi_f
-  real(gp) :: scpr
-  real(gp), dimension(:,:),allocatable :: keyag_c,keybg_c,keyag_f,keybg_f
-  real(gp), dimension(:),allocatable :: keyav_c,keybv_c,keyav_f,keybv_f
   ! arrays for DIIS convergence accelerator
   real(wp), dimension(:,:,:), pointer :: ads
+  !##########################################
+  ! My variables
+  !##########################################
+  integer :: ilr
+  integer, parameter :: nlr=3,alr=1,blr=2
+  integer :: ldim   ! dimension of lpsi
+  integer :: fmin   ! min(1,nseg_f)
+  logical :: isovrlp
+  real(wp) :: scpr
+  real(wp),dimension(nlr-1),parameter :: locrad=(/ 22.0, 22.0 /) !it has dimension nlr-1, because the last element of Llr is overlap
+  real(wp), dimension(:),allocatable :: lpsi    ! local projection of |Psi>
+  real(wp), dimension(:),allocatable :: lhpsi   ! local projection of H|Psi>
+  type(locreg_descriptors), dimension(nlr+1) :: Llr
+  real :: sum_pot  ! debug
+  integer :: ii    ! debug
+  type(nonlocal_psp_descriptors) :: Lnlpspd
+  type(atoms_data) :: Latoms
 
   !for the moment no need to have parallelism
   iproc=0
@@ -84,6 +96,7 @@ program sandbox
   call createWavefunctionsDescriptors(iproc,in%hx,in%hy,in%hz,&
        atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr)
   call timing(iproc,'CrtDescriptors','OF')
+
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
@@ -137,14 +150,18 @@ program sandbox
      call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)  
   endif
 
-  pot_ion=0.0d0
+  sum_pot = 0.0d0
+  do ii=1,n1i*n2i*n3pi
+     sum_pot = sum_pot + pot_ion(ii)
+  end do
+  print *,'Sum of the potential :',sum_pot
 
   !create input guess wavefunction
   call psi_from_gaussians(iproc,nproc,atoms,orbs,Glr,rxyz,in%hx,in%hy,in%hz,in%nspin,psi)
 
   !calculate scalar product between wavefunctions
   !this scheme works only in sequential
-  write(*,'(A25)') 'Overlap matrix with ddot:'
+  write(*,'(A26)') 'Overlap matrix with ddot:'
   do iorb=1,orbs%norb
      do jorb=iorb,orbs%norb
         write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
@@ -152,88 +169,158 @@ program sandbox
              psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
      end do
   end do
-
-!#######################################################################################################################
-!  write(*,'(A25)') 'Overlap matrix using wpdot:'
-
-  allocate(apsi_c(Glr%wfd%nvctr_c))
-  allocate(bpsi_c(Glr%wfd%nvctr_c))
-  allocate(apsi_f(7,Glr%wfd%nvctr_f))
-  allocate(bpsi_f(7,Glr%wfd%nvctr_f))
-  allocate(keyag_c(2,Glr%wfd%nvctr_c))
-  allocate(keybg_c(2,Glr%wfd%nvctr_c)) 
-  allocate(keyag_f(2,Glr%wfd%nvctr_f)) 
-  allocate(keybg_f(2,Glr%wfd%nvctr_f))
-  allocate(keyav_c(Glr%wfd%nvctr_c)) 
-  allocate(keybv_c(Glr%wfd%nvctr_c)) 
-  allocate(keyav_f(Glr%wfd%nvctr_f)) 
-  allocate(keybv_f(Glr%wfd%nvctr_f)) 
-
-! First format the two orbitals 
-  apsi_c(:) = psi(1:Glr%wfd%nvctr_c)
-  bpsi_c(:) = psi(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f+1:2*Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
  
-  keyag_c(:,:) = Glr%wfd%keyg(:,1:Glr%wfd%nseg_c)    ! dim are (2,nseg_c)
-  keybg_c(:,:) = Glr%wfd%keyg(:,Glr%wfd%nseg_c+Glr%wfd%nseg_f+1:2*Glr%wfd%nseg_c+Glr%wfd%nseg_f)
-  keyag_f(:,:) = Glr%wfd%keyg(:,Glr%wfd%nseg_c+1:Glr%wfd%nseg_c+Glr%wfd%nseg_f)
-  keybg_f(:,:) = Glr%wfd%keyg(:,2*Glr%wfd%nseg_c+Glr%wfd%nseg_f+1:2*Glr%wfd%nseg_c+2*Glr%wfd%nseg_f)
-  keyav_c(:) = Glr%wfd%keyv(1:Glr%wfd%nseg_c)
-  keybv_c(:) = Glr%wfd%keyv(Glr%wfd%nseg_c+Glr%wfd%nseg_f+1:2*Glr%wfd%nseg_c+Glr%wfd%nseg_f)
-  keyav_f(:) = Glr%wfd%keyv(Glr%wfd%nseg_c+1:Glr%wfd%nseg_c+Glr%wfd%nseg_f)
-  keybv_f(:) = Glr%wfd%keyv(2*Glr%wfd%nseg_c+Glr%wfd%nseg_f+1:2*Glr%wfd%nseg_c+2*Glr%wfd%nseg_f)
-
-  do ifine=1,7
-     apsi_f(ifine,:) = psi(Glr%wfd%nvctr_c+(ifine-1)*Glr%wfd%nvctr_f+1:Glr%wfd%nvctr_c+ifine*Glr%wfd%nvctr_f)
-     bpsi_f(ifine,:) = psi(2*Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f+(ifine-1)*Glr%wfd%nvctr_f+1:&
-     &                     Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f+(ifine)*Glr%wfd%nvctr_f)
-  end do
-!  write(*,'(a,1x,1pe19.12)')'Overlap with dot',dot(Glr%wfd%nvctr_f,apsi_c(:),1,bpsi_c(:),1)
-!  & dot(Glr%wfd%nvctr_f,apsi_f(1,:),1,bpsi_f(1,:),1) + dot(Glr%wfd%nvctr_f,apsi_f(2,:),1,bpsi_f(2,:),1) + &
-!  & dot(Glr%wfd%nvctr_f,apsi_f(3,:),1,bpsi_f(3,:),1) + dot(Glr%wfd%nvctr_f,apsi_f(4,:),1,bpsi_f(4,:),1) + &
-!  & dot(Glr%wfd%nvctr_f,apsi_f(5,:),1,bpsi_f(5,:),1) + dot(Glr%wfd%nvctr_f,apsi_f(6,:),1,bpsi_f(6,:),1) !+ &
-!  & dot(Glr%wfd%nvctr_f,apsi_f(7,:),1,bpsi_f(7,:),1)
-
-! Then call the subroutine calculating the overlap (only calculate the overlap and not the 4 permutations)
-  call wpdot( Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,keyav_c,keyav_f,&
-& keyag_c,keyag_f,apsi_c,apsi_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
-& keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,scpr)
-  stop
-  write(*,'(2(i4),1x,1pe19.12)') 1,2,scpr
-
-  deallocate(apsi_c)
-  deallocate(bpsi_c)
-  deallocate(apsi_f)
-  deallocate(bpsi_f)
-
 !#######################################################################################################################
+! Test the overlap calculation of wavefunctions defined in different localisation regions
+!########################################################################################################################
+ write(*,'(A32)') 'Entering the localisation code.'
 
-!!$  psi=0.0d0
-!!$  ttsum=0.0d0
-!!$  do i=1,orbs%npsidim
-!!$     do j=0,iproc-1
-!!$        call random_number(ttr)
-!!$     end do
-!!$     call random_number(ttr)
-!!$     psi(i)=real(ttr,wp)*0.01_wp
-!!$     ttsum=ttsum+psi(i)
-!!$     do j=iproc+1,nproc
-!!$        call random_number(ttr)
-!!$     end do
-!!$  end do
-!!$
-!!$  psi=1.d0
+! First, determine the localisation regions
+! NOTE: we only pass nlr as the dimension of Llr (when it really is nlr+1)
+  call determine_locreg(nlr-1,rxyz,locrad,in%hx,in%hy,in%hz,Glr,Llr)
 
+! Plot the localization regions
+!  call draw_locregs(2,in%hx,in%hy,in%hz,Llr)
 
-  print *,'norbs',orbs%norb
+! Second, calculate the overlap region
+  call get_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr,Llr(nlr))
 
-  !plot first orbital
-  call plot_wf_sandbox('iter0-1',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
-  !plot second orbital
-  call plot_wf_sandbox('iter0-2',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f+1),'')
+! Write some physical information on the overlap
+  write(*,'(a24,3i4)')'Global region n1,n2,n3:',Glr%d%n1,Glr%d%n2,Glr%d%n3
+  write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*in%hx,Glr%d%n2*in%hy,Glr%d%n3*in%hz
+  write(*,'(a17,f12.2)')'Global volume: ',Glr%d%n1*in%hx*Glr%d%n2*in%hy*Glr%d%n3*in%hz
+  write(*,'(a25,3i4)')'Overlap region n1,n2,n3:',Llr(nlr)%d%n1,Llr(nlr)%d%n2,Llr(nlr)%d%n3
+  write(*,'(a27,f6.2,f6.2,f6.2)')'Overlap dimension (x,y,z):',Llr(nlr)%d%n1*in%hx,Llr(nlr)%d%n2*in%hy,Llr(nlr)%d%n3*in%hz
+  write(*,'(a17,f12.2)')'Overlap volume: ',Llr(nlr)%d%n1*in%hx*Llr(nlr)%d%n2*in%hy*Llr(nlr)%d%n3*in%hz
 
+! Plot the overlap region
+  if(isovrlp) then
+     call draw_locregs(1,in%hx,in%hy,in%hz,Llr(nlr))
+
+! Third, transform the wavefunction to this overlap region
+     ilr = nlr
+     ldim = (Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*orbs%norb*orbs%nspinor
+     allocate(lpsi(ldim), stat=i_stat)
+     call memocc(i_stat,lpsi,'lpsi',subname)
+
+     call psi_to_locreg(Glr,ilr,ldim,Llr,lpsi,nlr,orbs,psi)
+
+! Calculate overlap in localization region using ddot
+     write(*,'(A26)') 'Overlap matrix with ddot:'
+     do iorb=1,orbs%norb
+        do jorb=iorb,orbs%norb
+           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
+                dot(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f,lpsi((Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*(iorb-1)+1),1,&
+                lpsi((Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*(jorb-1)+1),1)
+        end do
+     end do
+
+! Calculate overlap in localization region using wpdot
+     write(*,'(A27)')'Overlap matrix with wpdot:'
+     fmin = min(Llr(ilr)%wfd%nseg_f,1)  ! checks if there is some fine_grid in the region, if not, do not shift keyv
+     do iorb=1,orbs%norb
+        do jorb=iorb,orbs%norb
+           call wpdot(Llr(ilr)%wfd%nvctr_c,Llr(ilr)%wfd%nvctr_f,Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nseg_f,&
+&                  Llr(ilr)%wfd%keyv(1),Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+fmin),Llr(ilr)%wfd%keyg(1,1),&
+&                  Llr(ilr)%wfd%keyg(1,Llr(ilr)%wfd%nseg_c+fmin),lpsi(1+(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*(iorb-1)),&
+&                  lpsi(Llr(ilr)%wfd%nvctr_c+fmin+(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*(iorb-1)),&
+&                  Llr(ilr)%wfd%nvctr_c,Llr(ilr)%wfd%nvctr_f,Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nseg_f,&
+&                  Llr(ilr)%wfd%keyv(1),Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+fmin),Llr(ilr)%wfd%keyg(1,1),&
+&                  Llr(ilr)%wfd%keyg(1,Llr(ilr)%wfd%nseg_c+fmin),lpsi((Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*(jorb-1)+1),&
+&                  lpsi(Llr(ilr)%wfd%nvctr_c+(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*(jorb-1)+fmin),scpr)
+           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,scpr
+        end do
+     end do
+           
+! Plot the orbitals that are inside the overlap region
+! plot first orbital
+     call plot_wf_sandbox('orb1_ovrlp',1,atoms,Llr(ilr),hxh,hyh,hzh,rxyz,lpsi,'')
+! plot second orbital
+     call plot_wf_sandbox('orb2_ovrlp',1,atoms,Llr(ilr),hxh,hyh,hzh,rxyz,&
+&                     lpsi(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f+1),'')
+ 
+! Fourth, calculate scalar product of the overlap
+!  call scalar_product_in_overlap_region()
   
+! Plot first orbital
+     call plot_wf_sandbox('iter0-1',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
+! Plot second orbital
+     call plot_wf_sandbox('iter0-2',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f+1),'')
 
-  stop
+     allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+     call memocc(i_stat,orbs%eval,'eval',subname)
+
+! Fake Eigenvalues for orbitals
+     orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
+
+
+! #################
+!  Kinetic part
+! #################
+  !put in hpsi the kinetic operator (pot_ion = 0d.0)
+     call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+         nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3pi,&
+         pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
+
+  !calculate scalar product between wavefunctions
+  !this scheme works only in sequential
+     write(*,*)' '
+     write(*,'(A34)') 'Kinetic overlap matrix with ddot:'
+     do iorb=1,orbs%norb
+        do jorb=iorb,orbs%norb
+           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
+                dot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(iorb-1)+1),1,&
+                hpsi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
+        end do
+     end do
+
+! Now transform hpsi to overlap region
+     allocate(lhpsi(ldim), stat=i_stat)
+     call memocc(i_stat,lpsi,'lpsi',subname)
+
+     call psi_to_locreg(Glr,ilr,ldim,Llr,lhpsi,nlr,orbs,hpsi)
+
+     write(*,'(A51)') 'Kinetic overlap matrix with ddot and localization:'
+     do iorb=1,orbs%norb
+        do jorb=iorb,orbs%norb
+           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
+               dot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,lpsi((Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*(iorb-1)+1),1,&
+               lhpsi((Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*(jorb-1)+1),1)
+        end do
+     end do
+
+! ##################
+! Non-local Projectors part
+! ##################
+
+! Need to project non-local projectors to overlap region
+!   First make the descriptors
+     call nlpspd_to_locreg(in,iproc,Glr,Llr(ilr),rxyz,atoms,orbs,&
+&       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,Lnlpspd)
+    
+!   Second fill the projectors
+
+! Apply them on the wavefunctions in the overlap region
+
+! Calculate dotprod: <Psi_a|p><p|Psi_b>
+
+
+
+! Deallocations
+     deallocate(lpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'lpsi',subname)
+
+     deallocate(lhpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'lhpsi',subname)
+  end if   !isovrlp
+
+  stop  !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<------------------------------------------------------------------
+!#######################################################################################################################
+! End of Localization part
+!######################################################################################################################
+
+
+
   !othogonalise them
   !transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,&
@@ -242,10 +329,6 @@ program sandbox
   !untranspose psi
   call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi,work=hpsi)
 
-  allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbs%eval,'eval',subname)
-
-  orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
   alpha=2.d0
   energy=1.d10
@@ -481,6 +564,16 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
         write(*,'(i4,10(1x,1pe19.12))')i,(ovrlp(i,j),j=1,G%ncoeff)
      end do
 
+     !calculate the overlap matrix
+     call kinetic_overlap(G,G,ovrlp)
+
+     !print it 
+     write(*,'(A37)') 'Overlap matrix with kinetic_overlap:'
+     do i=1,G%ncoeff
+        write(*,'(i4,10(1x,1pe19.12))')i,(ovrlp(i,j),j=1,G%ncoeff)
+     end do
+
+
   else
      !as an alternative strategy we may take the eigenvectors of the kinetic+k hamiltonian
 
@@ -547,7 +640,6 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 
   call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,&
        gaucoeffs,psi)
-
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)
 
@@ -583,8 +675,8 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
   !local variables
   character(len=*), parameter :: subname='plot_wf'
-  integer :: i_stat,i_all
-  integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3,i1,i2,i3,nu1,nu2,nu3,iat
+  integer :: i_stat,i_all,tmp
+  integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3,i1,i2,i3,nu1,nu2,nu3
   real(gp) :: x,y,z
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:,:), allocatable :: psir
@@ -629,17 +721,20 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   end if
  
   call daub_to_isf(lr,w,psi,psir)
-
+ 
   open(unit=22,file=trim(orbname),status='unknown')
 
   do i3=-nl3,2*n3+1+nu3
-     z=hzh*real(i3,gp)
+     tmp = i3 + 2*lr%ns3
+     z=hzh*real(tmp,gp)
      do i2=-nl2,2*n2+1+nu2
-        y=hyh*real(i2,gp)
+        tmp = i2 + 2*lr%ns2
+        y=hyh*real(tmp,gp)
         do i1=-nl1,2*n1+1+nu1
-           x=hxh*real(i1,gp)
-           if (i3 == n3+1 .and. i2 ==  n2+1) then
-           !print *,'value of the center',rxyz(1,iat)
+           tmp = i1 + 2*lr%ns1
+           x=hxh*real(tmp,gp)
+           if (y == rxyz(2,1) .and. z ==  rxyz(3,1)) then
+!              print *,'Localization:',x,y,z,rxyz(1,1),rxyz(2,1),rxyz(3,1)
               write(22,'(1x,f9.5,1pe18.10)')x,psir(i1,i2,i3)**nexpo
            end if
         end do
@@ -654,4 +749,796 @@ subroutine plot_wf_sandbox(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE plot_wf_sandbox
+!%***
+
+!#############################################################################################################################################
+!!****f* BigDFT/psi_to_locreg
+!#############################################################################################################################################
+!! FUNCTION: Tranform wavefunction between Global region and localisation region
+!!
+!! WARNING: 
+!!         Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
+!! SOURCE:
+!!
+subroutine psi_to_locreg(Glr,ilr,ldim,Llr,lpsi,nlr,orbs,psi)
+
+  use module_base
+  use module_types
+ 
+ implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  integer, intent(in) :: nlr                  ! number of localization regions
+  integer :: ilr           ! index of the localization region we are considering
+  integer :: ldim          ! dimension of lpsi 
+  type(orbitals_data),intent(in) :: orbs      ! orbital descriptor
+  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+  !########################################
+  !Subroutine Array Arguments
+  !########################################
+  type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors 
+  real(wp),dimension(orbs%npsidim),intent(in) :: psi       !Wavefunction (compressed format)
+  real(wp),dimension(ldim),intent(inout) :: lpsi !Wavefunction in localization region
+  !#############################################
+  !local variables
+  !############################################
+  integer :: igrid,isegloc,isegG,ix,iorbs
+  integer :: lmin,lmax,Gmin,Gmax
+  integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
+  integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
+  integer :: length      ! Length of the overlap between Lseg and Gseg
+  integer :: lincrement  ! Increment for writing orbitals in loc_psi
+  integer :: Gincrement  ! Increment for reading orbitals in psi
+  integer :: nseg        ! total number of segments in Llr
+  integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
+  character(len=*), parameter :: subname='psi_to_locreg'
+  integer :: i_stat,i_all
+  integer :: start,Gstart
+  integer :: lfinc,Gfinc
+
+! Define integers
+  nseg = Llr(ilr)%wfd%nseg_c + Llr(ilr)%wfd%nseg_f
+  lincrement = Llr(ilr)%wfd%nvctr_c + 7*Llr(ilr)%wfd%nvctr_f
+  Gincrement = Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+  icheck = 0
+
+! Initialize loc_psi
+  call razero(lincrement*orbs%norb*orbs%nspinor,lpsi)
+ 
+! Get the keymask: shift for every segment of Llr (with respect to Glr)
+  allocate(keymask(2,nseg),stat=i_stat)
+  call memocc(i_stat,keymask,'keymask',subname)
+
+  call shift_locreg_indexes(Glr,Llr(ilr),keymask,nseg)
+
+!####################################################
+! Do coarse region
+!####################################################
+  do isegloc = 1,Llr(ilr)%wfd%nseg_c
+     lmin = keymask(1,isegloc)
+     lmax = keymask(2,isegloc)
+ 
+! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
+     do isegG = 1,Glr%wfd%nseg_c
+        Gmin = Glr%wfd%keyg(1,isegG)
+        Gmax = Glr%wfd%keyg(2,isegG)
+
+        ! For each segment in Llr check if there is a collision with the segment in Glr
+        ! if not, cycle
+        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+        
+        ! Define the offset between the two segments
+        offset = lmin - Gmin
+        if(offset < 0) then
+           offset = 0
+        end if
+    
+        ! Define the length of the two segments
+        length = min(lmax,Gmax)-max(lmin,Gmin)
+ 
+        !Find the common elements and write them to the new localized wavefunction
+        ! WARNING: index goes from 0 to length because it is the offset of the element
+        do ix = 0,length
+           icheck = icheck + 1
+           ! loop over the orbitals
+           do iorbs=1,orbs%norb*orbs%nspinor
+              lpsi(icheck+lincrement*(iorbs-1))=psi(Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1))
+           end do
+        end do
+     end do
+  end do
+
+! Check if the number of elements in loc_psi is valid
+  if(icheck .ne. Llr(ilr)%wfd%nvctr_c) then
+    write(*,*)'There is an error in psi_to_locreg: number of coarse points used',icheck
+    write(*,*)'is not equal to the number of coarse points in the region',Llr(ilr)%wfd%nvctr_c
+  end if
+
+!##############################################################
+! Now do fine region
+!##############################################################
+
+  icheck = 0
+  start = Llr(ilr)%wfd%nvctr_c
+  Gstart = Glr%wfd%nvctr_c
+  lfinc  = Llr(ilr)%wfd%nvctr_f
+  Gfinc = Glr%wfd%nvctr_f
+
+  do isegloc = Llr(ilr)%wfd%nseg_c+1,nseg
+     lmin = keymask(1,isegloc)
+     lmax = keymask(2,isegloc)
+ 
+! Could optimize the routine by looping only on Gsegs not looped on before (TO DO)
+     do isegG = Glr%wfd%nseg_c+1,Glr%wfd%nseg_c+Glr%wfd%nseg_f
+
+        Gmin = Glr%wfd%keyg(1,isegG)
+        Gmax = Glr%wfd%keyg(2,isegG)
+
+        ! For each segment in Llr check if there is a collision with the segment in Glr
+        ! if not, cycle
+        if((lmin > Gmax) .or. (lmax < Gmin)) cycle
+
+        offset = lmin - Gmin
+        if(offset < 0) offset = 0
+
+        length = min(lmax,Gmax)-max(lmin,Gmin)
+
+        !Find the common elements and write them to the new localized wavefunction
+        ! WARNING: index goes from 0 to length because it is the offset of the element
+        do ix = 0,length
+           icheck = icheck + 1
+           do igrid=0,6
+              do iorbs=1,orbs%norb*orbs%nspinor
+                 lpsi(start+icheck+lincrement*(iorbs-1)+igrid*lfinc)=&
+&                psi(Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc)
+              end do
+           end do
+        end do
+     end do
+  end do
+  
+ ! Check if the number of elements in loc_psi is valid
+  if(icheck .ne. Llr(ilr)%wfd%nvctr_f) then
+    write(*,*)'There is an error in psi_to_locreg: number of fine points used',icheck
+    write(*,*)'is not equal to the number of fine points in the region',Llr(ilr)%wfd%nvctr_f
+  end if
+
+  deallocate(keymask,stat=i_stat)
+  call memocc(i_stat,i_all,'keymask',subname)
+
+END SUBROUTINE psi_to_locreg
+!%***
+
+!##############################################################################################################################################
+!!****f* BigDFT/get_overlap_region
+!##############################################################################################################################################
+!! FUNCTION
+!!
+!! SOURCE
+!!
+subroutine get_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
+
+  use module_base
+  use module_types
+ 
+ implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  integer, intent(in) :: alr,blr              ! index of the two localization regions
+  integer, intent(in) :: nlr                  ! number of localization regions
+  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+  logical, intent(out) :: isovrlp             ! True if there is an overlap
+  type(locreg_descriptors),intent(out) :: Olr ! Overlap localization region 
+  !########################################
+  !Subroutine Array Arguments
+  !########################################
+  type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors 
+  !#############################################
+  !local variables
+  !############################################
+  integer :: axmin,axmax,aymin,aymax,azmin,azmax ! bounds of localization region A
+  integer :: bxmin,bxmax,bymin,bymax,bzmin,bzmax ! bounds of localization region B
+  integer :: isx,isy,isz,iex,iey,iez             ! bounds of the overlap region
+  character(len=*), parameter :: subname='get_overlap_region'
+
+! Set the bounds of region A
+  axmin = Llr(alr)%ns1
+  aymin = Llr(alr)%ns2
+  azmin = Llr(alr)%ns3
+  axmax = Llr(alr)%ns1 + Llr(alr)%d%n1
+  aymax = Llr(alr)%ns2 + Llr(alr)%d%n2
+  azmax = Llr(alr)%ns3 + Llr(alr)%d%n3
+
+! Set the bounds of region B
+  bxmin = Llr(blr)%ns1
+  bymin = Llr(blr)%ns2
+  bzmin = Llr(blr)%ns3
+  bxmax = Llr(blr)%ns1 + Llr(blr)%d%n1
+  bymax = Llr(blr)%ns2 + Llr(blr)%d%n2
+  bzmax = Llr(blr)%ns3 + Llr(blr)%d%n3
+
+! Set initial value of isovrlp
+  isovrlp = .false.  
+
+! Determine if there is an overlap
+! To do this, we compare axis by axis if there is an overlap.
+! The cubes overlap if they overlap on all axis.
+  if(((axmin .le. bxmax).and.(bxmin .le. axmax)) .and. &
+&    ((aymin .le. bymax).and.(bymin .le. aymax)) .and. &
+&    ((azmin .le. bzmax).and.(bzmin .le. azmax))) then
+     isovrlp = .true.
+  end if
+
+! Now construct the Overlap localization region descriptor
+! only if there is an overlap. The following only works
+! when the previous test is successful. Note also that
+! isx, isy and isz are necessarily in the Glr by construction
+! of the Llrs, so don't need to test them.
+  if(isovrlp) then
+ 
+!   Determine the limits of the overlap region
+    isx = max(axmin,bxmin)
+    isy = max(aymin,bymin)
+    isz = max(azmin,bymin)
+
+    iex = min(axmax,bxmax)
+    iey = min(aymax,bymax)
+    iez = min(azmax,bzmax)
+
+!   Checks to assign the geometric code of the overlap region (TO DO?)
+!   This could change the values of the bounds, so do it here
+!   for now, is sandbox, deal only with free boundary
+    Olr%geocode = 'F'  
+
+!   Values for the starting point of the cube
+    Olr%ns1 = isx
+    Olr%ns2 = isy
+    Olr%ns3 = isz
+
+!   Dimensions of the overlap region
+    Olr%d%n1 = iex - isx
+    Olr%d%n2 = iey - isy
+    Olr%d%n3 = iez - isz
+    
+!   Dimensions of the fine grid inside the overlap region
+    if (isx < iex) then
+       Olr%d%nfl1=max(isx,Glr%d%nfl1)-isx
+       Olr%d%nfu1=min(iex,Glr%d%nfu1)-isx
+    else
+       write(*,*)'Yet to be implemented (little effort?)'
+       stop
+    end if
+
+    if (isy < iey) then
+       Olr%d%nfl2=max(isy,Glr%d%nfl2)-isy
+       Olr%d%nfu2=min(iey,Glr%d%nfu2)-isy
+    else
+       write(*,*)'Yet to be implemented (little effort?)'
+       stop
+    end if
+
+    if (isz < iez) then
+       Olr%d%nfl3=max(isz,Glr%d%nfl3)-isz
+       Olr%d%nfu3=min(iez,Glr%d%nfu3)-isz
+    else
+       write(*,*)'Yet to be implemented (little effort?)'
+       stop
+    end if
+
+!   Dimensions of the interpolating scaling function grid 
+!   (geocode already taken into acount because it is simple)
+    select case(Olr%geocode)
+    case('F')
+       Olr%d%n1i=2*Olr%d%n1+31
+       Olr%d%n2i=2*Olr%d%n2+31
+       Olr%d%n3i=2*Olr%d%n3+31
+    case('S')
+       Olr%d%n1i=2*Olr%d%n1+2
+       Olr%d%n2i=2*Olr%d%n2+31
+       Olr%d%n3i=2*Olr%d%n3+2
+    case('P')
+       Olr%d%n1i=2*Olr%d%n1+2
+       Olr%d%n2i=2*Olr%d%n2+2
+       Olr%d%n3i=2*Olr%d%n3+2
+    end select
+ 
+!   Now define the wavefunction descriptors inside the overlap region
+!   First calculate the number of points and segments for the region
+!   Coarse part:
+    call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+         Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+         Olr%wfd%nseg_c,Olr%wfd%nvctr_c)
+!   Fine part:
+    call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+         Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+         Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+         Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+         Olr%wfd%nseg_f,Olr%wfd%nvctr_f)
+
+!   Now allocate the wavefunction descriptors (keyg,keyv) following the needs
+    call allocate_wfd(Olr%wfd,subname)
+
+!   At last, fill the wavefunction descriptors
+!   Coarse part
+     call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+          Olr%wfd%nseg_c,Olr%wfd%nvctr_c,&
+          Olr%wfd%keyg(1,1),Olr%wfd%keyv(1))
+!   Fine part
+     call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+          Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+          Olr%wfd%nseg_f,Olr%wfd%nvctr_f,&
+          Olr%wfd%keyg(1,Olr%wfd%nseg_c+min(1,Olr%wfd%nseg_f)),&
+          Olr%wfd%keyv(Olr%wfd%nseg_c+min(1,Olr%wfd%nseg_f)))
+
+!    If the localisation region is isolated build also the bounds
+     if (Olr%geocode=='F') then
+        call locreg_bounds(Olr%d%n1,Olr%d%n2,Olr%d%n3,&
+             Olr%d%nfl1,Olr%d%nfu1,Olr%d%nfl2,Olr%d%nfu2,&
+             Olr%d%nfl3,Olr%d%nfu3,Olr%wfd,Olr%bounds)
+     
+     end if
+
+! If there is no overlap, write it and end routine
+  else
+     write(*,*)'There is no overlap between regions:',alr, blr
+  end if
+
+END SUBROUTINE get_overlap_region
+!%***
+
+
+!#############################################################################################################################################
+!!****f* BigDFT/shift_locreg_indexes
+!#############################################################################################################################################
+!! FUNCTION:
+!!        Find the shift necessary for the indexes of every segment of Blr
+!!        to make them compatible with the indexes of Alr. These shifts are
+!!        returned in the array keymask(nseg), where nseg should be the number
+!!        of segments in Blr.
+!! WARNING: 
+!!         This routine supposes that the region Blr is contained in the region Alr.
+!!         This should always be the case, if we concentrate on the overlap between two regions.
+!! SOURCE:
+!!
+subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
+
+  use module_base
+  use module_types
+ 
+ implicit none
+
+!############################
+! Arguments
+!############################
+ type(locreg_descriptors),intent(in) :: Alr,Blr   ! The two localization regions
+ integer,intent(in) :: nseg
+ integer,intent(out) :: keymask(2,nseg)
+!#############################
+! Local variable
+!#############################
+ integer :: iseg      !integer for the loop
+ integer :: Bindex    !starting index of segments in Blr
+ integer :: x,y,z     !coordinates of start of segments in Blr 
+ integer :: shift(3)  !shift between the beginning of the segment in Blr and the origine of Alr
+ integer ::  tmp
+
+!Big loop on all segments
+ do iseg=1,nseg
+
+!##########################################
+! For the Starting index
+    Bindex = Blr%wfd%keyg(1,iseg)
+    tmp = Bindex -1
+    z   = tmp / ((Blr%d%n2+1)*(Blr%d%n1+1))
+    tmp = tmp - z*((Blr%d%n2+1)*(Blr%d%n1+1))
+    y   = tmp / (Blr%d%n1+1)
+    x   = tmp - y * (Blr%d%n1+1)
+ 
+! Shift between the beginning of the segment and the start of the Alr region
+    shift(1) = x + Blr%ns1 - Alr%ns1
+    shift(2) = y + Blr%ns2 - Alr%ns2
+    shift(3) = z + Blr%ns3 - Alr%ns3
+
+! Write the shift in index form
+    keymask(1,iseg) = shift(3)*(Alr%d%n1+1)*(Alr%d%n2+1) + shift(2)*(Alr%d%n1+1) + shift(1) + 1
+
+!######################################
+! For the ending index
+
+    Bindex = Blr%wfd%keyg(2,iseg)
+    tmp = Bindex -1
+    z   = tmp / ((Blr%d%n2+1)*(Blr%d%n1+1))
+    tmp = tmp - z*((Blr%d%n2+1)*(Blr%d%n1+1))
+    y   = tmp / (Blr%d%n1+1)
+    x   = tmp - y * (Blr%d%n1+1)
+
+! Shift between the beginning of the segment and the start of the Alr region
+    shift(1) = x + Blr%ns1 - Alr%ns1
+    shift(2) = y + Blr%ns2 - Alr%ns2
+    shift(3) = z + Blr%ns3 - Alr%ns3
+
+! Write the shift in index form
+    keymask(2,iseg) = shift(3)*(Alr%d%n1+1)*(Alr%d%n2+1) + shift(2)*(Alr%d%n1+1) + shift(1) + 1
+ end do
+
+END SUBROUTINE shift_locreg_indexes
+!%***
+
+!#############################################################################################################################################
+!!****f* BigDFT/nlpspd_to_locreg
+!#############################################################################################################################################
+!! FUNCTION: Transform projectors between Global region and localisation region
+!!
+!! WARNING: 
+!!         
+!! SOURCE:
+!!
+subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
+       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,Lnlpspd)
+
+  use module_base
+  use module_types
+ 
+ implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  type(input_variables),intent(in) :: input_parameters
+  integer,intent(in) :: iproc
+  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+  type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
+  type(atoms_data),intent(in) :: atoms        ! atom descriptors
+  type(orbitals_data),intent(in) :: orbs      ! orbital descriptors
+  real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz  ! grid descriptions
+  type(nonlocal_psp_descriptors),intent(in) :: nlpspd  ! global descriptors for the projectors
+  type(nonlocal_psp_descriptors),intent(out) :: Lnlpspd  ! local descriptors for the projectors 
+  !########################################
+  !Subroutine Array Arguments
+  !########################################
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz !atomic positions
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf  ! radii of the different atom types
+  !#############################################
+  !local variables
+  !############################################
+   integer :: iatom,igrid
+   integer :: mproj
+   integer :: mseg_c,mvctr_c,mseg_f,mvctr_f
+   integer :: iat  ! index of the atoms
+   real(gp) :: hhx,hhy,hhz   !reals to shorten name of variables
+   integer,dimension(atoms%nat) :: projflg
+   logical,dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3) :: logrid
+
+! Rename some variables
+  hhx = input_parameters%hx
+  hhy = input_parameters%hy
+  hhz = input_parameters%hz
+  
+!Determine the number of projectors with components in locreg
+! and also which atoms have such projectors
+   call  number_of_projectors_in_locreg(atoms,Glr,Llr,nlpspd,mproj,projflg)
+
+   Lnlpspd%nproj = mproj
+
+!TESTS
+  print *,'Number of projectors:', mproj
+  print *,'Projflg', projflg
+!ENDTESTS
+
+  iat = 0
+!  Lnlpspd%nseg_p(0)=0
+!  Lnlpspd%nvctr_p(0)=0
+
+  do iatom = 1,atoms%nat
+     if(projflg(iatom) == 0) cycle 
+     iat = iat + 1    
+!    Now we can determine the number of segments and elements of coarse grid
+     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nlpspd%nboxp_c(1,1,iatom),&
+&                     nlpspd%nboxp_c(2,1,iatom),nlpspd%nboxp_c(1,2,iatom),nlpspd%nboxp_c(2,2,iatom),&
+&                     nlpspd%nboxp_c(1,3,iatom),nlpspd%nboxp_c(2,3,iatom),0,1,atoms%ntypes,&
+&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(1,3),cpmult,hhx,hhy,hhz,logrid)
+
+     call number_of_projector_elements_in_locreg(iatom,1,atoms,Glr,Llr,logrid,nlpspd,mproj,projflg,mseg_c,mvctr_c)
+
+!     Lnlpspd%nseg_p(2*iat-1) = mseg_c
+!     Lnlpspd%nvctr_p(2*iat-1) = mvctr_c 
+
+!TEST     
+     print *,'Number of segments,coarse:',nlpspd%nseg_p(2*iatom-1),'for atom:',iatom
+     print *,'Number of elements,coarse:',nlpspd%nvctr_p(2*iatom-1),'for atom:',iatom
+     print *,'Number of segments,fine:',nlpspd%nseg_p(2*iatom),'for atom:',iatom
+     print *,'Number of elements,fine:',nlpspd%nvctr_p(2*iatom),'for atom:',iatom
+     print *,'Calculated now:'
+     print *,'Number of segments,coarse:',mseg_c,'for atom:',iatom
+     print *,'Number of elements,coarse:',mvctr_c,'for atom:',iatom
+!END TEST
+
+! Do the same for fine grid
+     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nlpspd%nboxp_f(1,1,iatom),&
+&                     nlpspd%nboxp_f(2,1,iatom),nlpspd%nboxp_f(1,2,iatom),nlpspd%nboxp_f(2,2,iatom),&
+&                     nlpspd%nboxp_f(1,3,iatom),nlpspd%nboxp_f(2,3,iatom),0,1,atoms%ntypes,&
+&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(1,2),fpmult,hhx,hhy,hhz,logrid)
+
+     call number_of_projector_elements_in_locreg(iatom,2,atoms,Glr,Llr,logrid,nlpspd,mproj,projflg,mseg_f,mvctr_f)
+
+!     Lnlpspd%nseg_p(2*iat) = mseg_f
+!     Lnlpspd%nvctr_p(2*iat) = mvctr_f
+
+!TEST     
+     print *,'Number of segments,fine:',mseg_f,'for atom:',iatom
+     print *,'Number of elements,fine:',mvctr_f,'for atom:',iatom
+     print *,'-------------------------'
+!END TEST   
+
+! Allocate the arrays
+
+  end do
+
+END SUBROUTINE nlpspd_to_locreg
+!%***
+
+!#############################################################################################################################################
+!!****f* BigDFT/number_of_projectors_in_locreg
+!#############################################################################################################################################
+!! FUNCTION: Calculates the number of projectors with components in the locreg
+!!           It also returns a vector, projflg, which identifies the atoms with projectors inside the region
+!!                      projflg = 0, no projectors in locreg
+!!                      projflg = 1, projectros in locreg
+!! WARNING: 
+!!         
+!! SOURCE:
+!!
+subroutine number_of_projectors_in_locreg(atoms,Glr,Llr,nlpspd,mproj,projflg)
+
+  use module_base
+  use module_types
+ 
+ implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  type(atoms_data),intent(in) :: atoms        ! atoms descriptor
+  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+  type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
+  type(nonlocal_psp_descriptors),intent(in) :: nlpspd  ! global descriptors for the projectors
+  integer,intent(out) :: mproj  ! number of projectors
+  !#######################################
+  ! Subroutine Array Arguments
+  !#######################################
+  integer,dimension(atoms%nat),intent(out) :: projflg ! flag which is 1 if atom as projector components inside locreg
+  !#######################################
+  ! Local Variables
+  !#######################################
+  integer :: iatom            ! integer for loop
+  integer :: bound(1:2,1:3)   ! bound of locreg
+  integer :: nproj            ! temporary number of projectors
+
+! bounds of the localization region
+  !lower bound
+  bound(1,1) = Llr%ns1 - Glr%ns1
+  bound(1,2) = Llr%ns2 - Glr%ns2
+  bound(1,3) = Llr%ns3 - Glr%ns3
+
+  !upper bound
+  bound(2,1) = Llr%ns1 + Llr%d%n1 - Glr%ns1
+  bound(2,2) = Llr%ns2 + Llr%d%n2 - Glr%ns2
+  bound(2,3) = Llr%ns3 + Llr%d%n3 - Glr%ns3 
+
+  projflg = 0
+  mproj = 0
+  do iatom=1,atoms%nat
+
+! check if projector of atom iatom overlap the locreg (coarse grid)
+     if(nlpspd%nboxp_c(1,1,iatom) < bound(2,1) .and. nlpspd%nboxp_c(2,1,iatom) > bound(1,1) .and. &
+&       nlpspd%nboxp_c(1,2,iatom) < bound(2,2) .and. nlpspd%nboxp_c(2,2,iatom) > bound(1,2) .and. &
+&       nlpspd%nboxp_c(1,3,iatom) < bound(2,3) .and. nlpspd%nboxp_c(2,3,iatom) > bound(1,3)) then
+        
+        call numb_proj(atoms%iatype(iatom),atoms%ntypes,atoms%psppar,atoms%npspcode,nproj)
+        mproj = mproj + nproj
+        if(nproj > 0) projflg(iatom) = 1
+!        nbox_c(,iatom)
+     end if
+
+! check if projector of atom iatom overlap the locreg (fine grid)
+! Only have to do it if the atom is not yet selected
+     if (projflg(iatom) .eq. 0) then
+        if(nlpspd%nboxp_f(1,1,iatom) < bound(2,1) .and. nlpspd%nboxp_f(2,1,iatom) > bound(1,1) .and. &
+&          nlpspd%nboxp_f(1,2,iatom) < bound(2,2) .and. nlpspd%nboxp_f(2,2,iatom) > bound(1,2) .and.&
+&          nlpspd%nboxp_f(1,3,iatom) < bound(2,3) .and. nlpspd%nboxp_f(2,3,iatom) > bound(1,3)) then
+          
+           call numb_proj(atoms%iatype(iatom),atoms%ntypes,atoms%psppar,atoms%npspcode,nproj)
+           mproj = mproj + nproj
+           if(nproj > 0) projflg(iatom) = 1
+        end if
+     end if        
+  end do
+
+END SUBROUTINE number_of_projectors_in_locreg
+!%***
+
+!#############################################################################################################################################
+!!****f* BigDFT/number_of_projector_elements_in_locreg
+!#############################################################################################################################################
+!! FUNCTION: Calculates the number of segments (mseg) and elements (mvctr) of projectors in locreg
+!!           
+!! WARNING: 
+!!         
+!! SOURCE:
+!!
+subroutine number_of_projector_elements_in_locreg(iatom,igrid,atoms,Glr,Llr,logrid,nlpspd,mproj,projflg,mseg,mvctr)
+
+  use module_base
+  use module_types
+ 
+ implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  integer,intent(in) :: iatom  ! current atom
+  integer,intent(in) :: igrid  ! treat coarse (1) or fine (2) grid
+  type(atoms_data),intent(in) :: atoms        ! atoms descriptor
+  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+  type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
+  type(nonlocal_psp_descriptors),intent(in) :: nlpspd  ! global descriptors for the projectors
+  integer,intent(in) :: mproj  ! number of projectors
+  integer,intent(out):: mseg   ! number of segments
+  integer,intent(out):: mvctr  ! number of elements
+  !#######################################
+  ! Subroutine Array Arguments
+  !#######################################
+  logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid
+  integer,dimension(atoms%nat),intent(in) :: projflg ! flag which is 1 if atom as projector components inside locreg
+  !#######################################
+  ! Local Variables
+  !#######################################
+  integer :: i1,i2,i3  ! integers for loops
+  integer :: nl1,nl2,nl3,nu1,nu2,nu3   ! rename the bounds of projectors coarse grid
+  integer :: nend,nsrt,mvctri,nsrti,nendi
+  integer,dimension(1:2,1:3) :: bound  ! rename the bounds of locreg
+  logical :: plogrid   ! logical to check start of new segment
+
+
+! Set boundaries of projectors (coarse)
+   if(igrid == 1) then
+      nl1 = nlpspd%nboxp_c(1,1,iatom)
+      nl2 = nlpspd%nboxp_c(1,2,iatom)
+      nl3 = nlpspd%nboxp_c(1,3,iatom)
+
+      nu1 = nlpspd%nboxp_c(2,1,iatom)
+      nu2 = nlpspd%nboxp_c(2,2,iatom)
+      nu3 = nlpspd%nboxp_c(2,3,iatom)
+   end if
+
+! Set boundaries of projectors (fine)
+   if(igrid == 2) then
+      nl1 = nlpspd%nboxp_f(1,1,iatom)
+      nl2 = nlpspd%nboxp_f(1,2,iatom)
+      nl3 = nlpspd%nboxp_f(1,3,iatom)
+
+      nu1 = nlpspd%nboxp_f(2,1,iatom)
+      nu2 = nlpspd%nboxp_f(2,2,iatom)
+      nu3 = nlpspd%nboxp_f(2,3,iatom)
+   end if
+
+! bounds of the localization region
+  !lower bound
+  bound(1,1) = Llr%ns1 - Glr%ns1
+  bound(1,2) = Llr%ns2 - Glr%ns2
+  bound(1,3) = Llr%ns3 - Glr%ns3
+
+  !upper bound
+  bound(2,1) = Llr%ns1 + Llr%d%n1 - Glr%ns1
+  bound(2,2) = Llr%ns2 + Llr%d%n2 - Glr%ns2
+  bound(2,3) = Llr%ns3 + Llr%d%n3 - Glr%ns3 
+
+
+  if (igrid == 1) then
+!Initialize counters
+     mvctr=0
+     nsrt=0
+     nend=0
+     mvctri=0
+     nsrti=0
+     nendi=0
+
+! Do coarse grid
+     do i3=nl3,nu3
+        if(i3 > bound(2,3) .or. i3 < bound(1,3)) cycle
+        do i2=nl2,nu2
+           if(i2 > bound(2,2) .or. i2 < bound(1,2)) cycle
+           plogrid=.false.
+           do i1=nl1,nu1
+              if(i1 > bound(2,1) .or. i1 < bound(1,1))cycle
+
+              if(logrid(i1,i2,i3)) then
+                 mvctri=mvctri+1
+                 if (.not. plogrid) then
+                    nsrti=nsrti+1
+                 endif
+              else
+                 if(plogrid) then
+                    nendi=nendi+1
+                 endif
+              endif
+              plogrid=logrid(i1,i2,i3)
+           enddo
+           if (i2 .le. bound(2,2) .and. i2 .ge. bound(1,2) .and. &
+&              i3 .le. bound(2,3) .and. i3 .ge. bound(1,3) .and. &
+               plogrid .eqv. .true.) then
+              nendi=nendi+1
+           endif
+        enddo
+     enddo
+
+     mvctr=mvctr+mvctri
+     nsrt=nsrt+nsrti
+     nend=nend+nendi
+
+     if (nend /= nsrt) then
+        write(*,*)' ERROR in number_of_projector_elements_in_locreg : nend <> nsrt',nend,nsrt
+        stop
+     endif
+     mseg=nend
+  end if
+
+  if(igrid == 2) then
+
+     !Initialize counters
+     mvctr=0
+     nsrt=0
+     nend=0
+     mvctri=0
+     nsrti=0
+     nendi=0
+
+! Do fine grid
+     do i3=nl3,nu3
+        if(i3 > bound(2,3) .or. i3 < bound(1,3)) cycle
+        do i2=nl2,nu2
+           if(i2 > bound(2,2) .or. i2 < bound(1,2)) cycle
+           plogrid=.false.
+           do i1=nl1,nu1
+              if(i1 > bound(2,1) .or. i1 < bound(1,1))cycle
+
+              if(logrid(i1,i2,i3)) then
+                 mvctri=mvctri+1
+                 if (.not. plogrid) then
+                    nsrti=nsrti+1
+                 endif
+              else
+                 if(plogrid) then
+                    nendi=nendi+1
+                 endif
+              endif
+              plogrid=logrid(i1,i2,i3)
+           enddo
+           if (i2 .le. bound(2,2) .and. i2 .ge. bound(1,2) .and. &
+&              i3 .le. bound(2,3) .and. i3 .ge. bound(1,3) .and. &
+               plogrid .eqv. .true.) then
+              nendi=nendi+1
+           endif
+        enddo
+     enddo
+
+     mvctr=mvctr+mvctri
+     nsrt=nsrt+nsrti
+     nend=nend+nendi
+
+     if (nend /= nsrt) then
+        write(*,*)' ERROR in number_of_projector_elements_in_locreg (fine) : nend <> nsrt',nend,nsrt
+        stop
+     endif
+     mseg=nend
+  end if
+
+END SUBROUTINE number_of_projector_elements_in_locreg
 !%***
