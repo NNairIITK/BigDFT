@@ -10,7 +10,19 @@ EXTRA_DIST = \
 	Manual/grid300.pdf \
 	Manual/grid400.pdf \
 	Manual/manual.tex \
-	Manual/sym_16.pdf
+	Manual/sym_16.pdf \
+	html/commun.css \
+	html/doxygen.css \
+	html/footer.html \
+	html/header.html \
+	html/logo_header.png \
+	html/menu_fond.png \
+	html/menu_footer.png \
+	html/menu_header.png \
+	html/original.css \
+	html/point.png \
+	html/sample.png
+
 
 if BUILD_PDFDOC
 pdfs = cluster.pdf \
@@ -21,20 +33,26 @@ pdfs =
 endif
 
 if BUILD_DEVDOC
-devdocs = Doxygen
+devdocs = Doxygen/html
 else
 devdocs =
 endif
 
 doc_DATA = $(pdfs) $(devdocs)
 
-doxygen: Doxygen
+Doxygen/html: Doxygen.stamp web.stamp
 
-Doxygen:
+Doxygen.stamp: $(top_builddir)/config/Doxyfile $(srcdir)/html/header.html $(srcdir)/html/footer.html
 	\rm -rf Doxygen;\
-	export OLDPWD=`pwd`; cd $(top_srcdir)/src; \
-	pwd; doxygen $(abs_builddir)/../config/Doxyfile; \
-	mv Doxygen $${OLDPWD}
+	doxygen $(top_builddir)/config/Doxyfile; \
+	touch Doxygen.stamp
+
+web.stamp: Doxygen.stamp
+	if [ ! -d Doxygen/images ] ; then mkdir Doxygen/images ; fi
+	\cp $(srcdir)/html/*.png Doxygen/images
+	if [ ! -d Doxygen/styles ] ; then mkdir Doxygen/styles ; fi
+	\cp $(srcdir)/html/*.css Doxygen/styles
+	touch web.stamp
 
 cluster.pdf: cluster.tex compress.pdf figrid.pdf
 	TEXINPUTS=$(top_srcdir)/doc:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/cluster.tex
@@ -47,5 +65,5 @@ manual.pdf: Manual/manual.tex Manual/grid100.pdf Manual/grid200.pdf Manual/grid3
 	TEXINPUTS=$(top_srcdir)/doc/Manual:$${TEXINPUTS} pdflatex $(top_srcdir)/doc/Manual/manual.tex
 
 clean:
-	rm -rf *.aux *.log cluster.pdf halFFT.pdf manual.pdf *.toc Doxygen
+	rm -rf *.aux *.log cluster.pdf halFFT.pdf manual.pdf *.toc Doxygen *.stamp
 

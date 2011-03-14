@@ -1,4 +1,4 @@
-!! @file
+!> @file
 !!    Define routines for Lanczos diagonalization
 !! @author
 !!    Copyright (C) 2009-2011 BigDFT group

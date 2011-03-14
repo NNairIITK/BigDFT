@@ -398,6 +398,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   integer, allocatable :: nvctr(:)
   integer, allocatable :: gcoord(:,:)
   real(gp) :: tel
+  logical, parameter :: sequential = .false.
   character(len = *), parameter :: subname = "write_waves_etsf"
 
   integer :: iproc_writing
@@ -435,12 +436,14 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
 
   iproc_writing = 0
 
-!!$  ! Now that the file is created and writable, we call the writing routines.
-!!$  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-
-  do i = 0, iproc - 1, 1
+  ! Now that the file is created and writable, we call the writing routines.
+  if (sequential) then
+     do i = 0, iproc - 1, 1
+        call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+     end do
+  else
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-  end do
+  end if
 
   call etsf_io_low_open_modify(ncid, filename, lstat, error_data = error)
   if (.not. lstat) call etsf_error(error)
@@ -509,12 +512,14 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   call etsf_io_low_close(ncid, lstat, error)
   if (.not. lstat) call etsf_error(error)
 
-  do i = iproc, nproc - 1, 1
+  ! We wait for all procs to write their waves.
+  if (sequential) then
+     do i = iproc, nproc - 1, 1
+        call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+     end do
+  else
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-  end do
-
-!!$  ! We wait for all procs to write their waves.
-!!$  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  end if
 
   if (iproc == 0) then
      call cpu_time(tr1)

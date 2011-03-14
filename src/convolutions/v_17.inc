@@ -1,5 +1,6 @@
 !> @file
 !!  Include file to define magic filter
+!!  Daubechies-16 double density magic filter for scfunctions and wavelets
 !! @author
 !!    Copyright (C) 2009-2011 BigDFT group 
 !!    This file is distributed under the terms of the
@@ -7,8 +8,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
-!> Daubechies-16 double density magic filter for scfunctions and wavelets
        real(wp) :: fil2(-14:17,2)
         
        fil2(:,1)=(/-9.2250149921474082015e-9_wp,&

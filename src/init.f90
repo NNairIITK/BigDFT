@@ -1,5 +1,5 @@
 !> @file
-!!  Rountines to initialize the information about localisation regions
+!!  Routines to initialize the information about localisation regions
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the

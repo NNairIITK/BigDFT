@@ -1,5 +1,5 @@
 !> @file
-!!  Rotuines to reformat wavefunctions
+!!  Routines to reformat wavefunctions
 !! @author
 !!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the

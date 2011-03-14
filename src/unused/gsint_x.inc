@@ -9,7 +9,6 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-
          integer, parameter :: LMAX=16
 
          real(kind=8) :: W(0:LMAX,0:6) 

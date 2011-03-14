@@ -40,4 +40,3 @@ do i=-m,m-1
    cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
 enddo
 
-

@@ -1,4 +1,5 @@
-!>    Fake functions for MPI in the case of serial version
+!> @file
+!!    Fake functions for MPI in the case of serial version
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group 
 !!    This file is distributed under the terms of the

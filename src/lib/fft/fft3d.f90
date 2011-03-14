@@ -1,5 +1,6 @@
 !>  @file 
 !!  @brief 3-dimensional complex-complex FFT routines
+!!
 !!   When compared to the best vendor implementations on RISC architectures 
 !!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
 !!   and it is significanly faster than many not so good vendor implementations 

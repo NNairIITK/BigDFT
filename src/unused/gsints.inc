@@ -1,8 +1,8 @@
 !> @file
 !! W(N_GAU,M)
-!! M: CORRESPONDS TO DAUBECHIES-2M
+!! M: corresponds to Daubechies-2M
 !! W=SQRT(INT ( (D/DX)^M X^N_GAU EXP(-X^2/2) )^2 DX)*L_M/M!
-!! SO, ERROR=W*H^M FOR THE FUNCTION X^N_GAU EXP(-X^2/2) EXPANDED IN DAUBECHIES
+!! So, error=W*H^M for the function X^N_GAU EXP(-X^2/2) expanded in Daubechies
 !! @author
 !!    Copyright (C) 2009-2011 BigDFT group 
 !!    This file is distributed under the terms of the

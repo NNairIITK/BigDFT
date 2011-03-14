@@ -1,12 +1,13 @@
 !> @file
-!!    
+!!   Routines to handle Gaussian basis set
 !! @author
 !!    Copyright (C) 2007-2011 CEA (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
 !>  Restart from gaussian functions
 subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base

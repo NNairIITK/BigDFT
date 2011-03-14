@@ -1,4 +1,4 @@
-!! @file
+!> @file
 !!    Test of convolution in GPU (conv_check)
 !! @author
 !!    Copyright (C) 2008-2011 BigDFT group 

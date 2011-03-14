@@ -6,7 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 integer, parameter :: m=52
+
 real(kind=8), dimension(-m:m) :: ch = (/ &
      0.d0, 0.d0, 0.d0, &
      2.03510990661269603d-16,0.d0,-1.03963806080363471d-14,0.d0,&

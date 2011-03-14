@@ -1,5 +1,5 @@
 !> @file
-!!  Rotuine to handle Lanczos diagonalisation
+!!  Routine to handle Lanczos diagonalisation
 !! @author
 !!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the

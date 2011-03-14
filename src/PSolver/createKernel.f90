@@ -1,3 +1,5 @@
+!> @file
+!!    Routines to create the kernel for Poisson solver
 !! @author
 !!    Copyright (C) 2002-2011 BigDFT group  (LG)
 !!    This file is distributed under the terms of the
