@@ -20,7 +20,7 @@ program BigDFT
   use module_interfaces
   use ab6_symmetry
 
-  implicit none     !< As a general policy, we'll have "implicit none" by assuming the same
+  implicit none     !< As a general policy, we will have "implicit none" by assuming the same
                     !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
   character(len=*), parameter :: subname='BigDFT'
@@ -163,3 +163,4 @@ program BigDFT
   call MPI_FINALIZE(ierr)
 
 end program BigDFT
+
