@@ -347,6 +347,19 @@ hr.footer {
 
 /* Styles for detailed member documentation */
 
+div.memitem table
+{
+    border: 0px;
+    background-color: transparent;
+    padding: 0px;
+}
+div.memitem table td
+{
+    border: 0px;
+    background-color: transparent;
+    padding: 0px;
+}
+
 .memtemplate {
 	font-size: 80%;
 	color: #606060;
@@ -372,6 +385,9 @@ hr.footer {
         white-space: nowrap;
         font-weight: bold;
         margin-left: 6px;
+        border: 0px;
+        background-color: transparent;
+        padding: 0px;
 }
 
 .memproto {
@@ -422,6 +438,7 @@ hr.footer {
 .paramname {
 	color: #602020;
 	white-space: nowrap;
+        border: 0px;
 }
 .paramname em {
 	font-style: normal;
