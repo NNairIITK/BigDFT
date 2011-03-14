@@ -10,7 +10,19 @@ EXTRA_DIST = \
 	Manual/grid300.pdf \
 	Manual/grid400.pdf \
 	Manual/manual.tex \
-	Manual/sym_16.pdf
+	Manual/sym_16.pdf \
+	html/commun.css \
+	html/doxygen.css \
+	html/footer.html \
+	html/header.html \
+	html/logo_header.png \
+	html/menu_fond.png \
+	html/menu_footer.png \
+	html/menu_header.png \
+	html/original.css \
+	html/point.png \
+	html/sample.png
+
 
 if BUILD_PDFDOC
 pdfs = cluster.pdf \
