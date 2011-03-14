@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.4)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.5)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -41,7 +41,7 @@
  =F= Used method              1
  =F=> Check if the file "frequencies.res" is present.
  =F=> No "frequencies.res" file present.
- =F=> There are     0 moves already calculated over    12 frequencies.
+ =F=> There are 0 moves already calculated over 12 frequencies.
 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
@@ -73,14 +73,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91246246551011E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001495710   0.000E+00
@@ -120,7 +120,7 @@
  total average noise            :   3.61692123E-04
  clean forces norm (Ha/Bohr): maxval=  9.539517667720E-04  fnrm2=  1.820047946655E-06
  raw forces:                  maxval=  1.105470382172E-03  fnrm2=  1.951066502809E-06
- CPU time/ELAPSED time for root process     0         6.90         6.24
+ CPU time/ELAPSED time for root process     0         7.30         7.18
  Wavefunction Optimization Finished, exit signal=    0
  Final values of the Forces for each atom
      1      H -9.53952E-04  8.47033E-22  1.69407E-21
@@ -158,14 +158,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.94622336979817E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001559448   0.000E+00
@@ -192,9 +192,7 @@
  total average noise            :   3.57413952E-04
  clean forces norm (Ha/Bohr): maxval=  1.442530450179E-03  fnrm2=  4.161788199388E-06
  raw forces:                  maxval=  1.578005093938E-03  fnrm2=  4.289713955081E-06
- CPU time/ELAPSED time for root process     0         3.05         2.91
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         3.81         3.75
  =F Move the atom 1 in the direction  1*x by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -226,14 +224,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.87902815183132E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001430549   0.000E+00
@@ -260,9 +258,7 @@
  total average noise            :   3.64452421E-04
  clean forces norm (Ha/Bohr): maxval=  3.294701831289E-03  fnrm2=  2.171012031420E-05
  raw forces:                  maxval=  3.435167656302E-03  fnrm2=  2.184316241223E-05
- CPU time/ELAPSED time for root process     0         3.11         3.06
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         4.02         3.96
  =F Move the atom 1 in the direction -1*y by    -7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -294,14 +290,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
@@ -328,9 +324,7 @@
  total average noise            :   3.59678379E-04
  clean forces norm (Ha/Bohr): maxval=  9.630204508093E-04  fnrm2=  1.854816777354E-06
  raw forces:                  maxval=  1.103014902768E-03  fnrm2=  1.995142216749E-06
- CPU time/ELAPSED time for root process     0         3.95         3.79
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         3.81         3.75
  =F Move the atom 1 in the direction  1*y by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -362,14 +356,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
@@ -397,9 +391,7 @@
  total average noise            :   3.60554956E-04
  clean forces norm (Ha/Bohr): maxval=  9.628606150121E-04  fnrm2=  1.854201127883E-06
  raw forces:                  maxval=  1.129141337974E-03  fnrm2=  1.999719977659E-06
- CPU time/ELAPSED time for root process     0         4.16         4.02
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         4.64         4.56
  =F Move the atom 1 in the direction -1*z by    -7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -431,14 +423,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
@@ -465,9 +457,7 @@
  total average noise            :   3.60287174E-04
  clean forces norm (Ha/Bohr): maxval=  9.622008110666E-04  fnrm2=  1.851660801634E-06
  raw forces:                  maxval=  1.102812094774E-03  fnrm2=  1.992214056082E-06
- CPU time/ELAPSED time for root process     0         3.14         3.11
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         3.80         3.74
  =F Move the atom 1 in the direction  1*z by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -499,14 +489,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
@@ -534,9 +524,7 @@
  total average noise            :   3.60555698E-04
  clean forces norm (Ha/Bohr): maxval=  9.628606704874E-04  fnrm2=  1.854201341543E-06
  raw forces:                  maxval=  1.129142078816E-03  fnrm2=  1.999720720683E-06
- CPU time/ELAPSED time for root process     0         3.65         3.54
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         4.55         4.47
  =F Move the atom 2 in the direction -1*x by    -7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -568,14 +556,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.87902815183132E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001430549   0.000E+00
@@ -602,9 +590,7 @@
  total average noise            :   3.63034808E-04
  clean forces norm (Ha/Bohr): maxval=  3.294738942138E-03  fnrm2=  2.171060939368E-05
  raw forces:                  maxval=  3.433893372016E-03  fnrm2=  2.184260711909E-05
- CPU time/ELAPSED time for root process     0         3.52         2.82
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         3.80         3.74
  =F Move the atom 2 in the direction  1*x by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -636,14 +622,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.94622336979817E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001559448   0.000E+00
@@ -670,9 +656,7 @@
  total average noise            :   3.56444231E-04
  clean forces norm (Ha/Bohr): maxval=  1.442054435263E-03  fnrm2=  4.159041988521E-06
  raw forces:                  maxval=  1.576597783010E-03  fnrm2=  4.286276163322E-06
- CPU time/ELAPSED time for root process     0         3.35         2.87
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         3.99         3.92
  =F Move the atom 2 in the direction -1*y by    -7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -704,14 +688,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
@@ -738,9 +722,7 @@
  total average noise            :   3.61100953E-04
  clean forces norm (Ha/Bohr): maxval=  9.623470202667E-04  fnrm2=  1.852223574832E-06
  raw forces:                  maxval=  1.129369597019E-03  fnrm2=  1.998208348301E-06
- CPU time/ELAPSED time for root process     0         3.27         2.99
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         3.83         3.76
  =F Move the atom 2 in the direction  1*y by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -772,14 +754,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
@@ -807,9 +789,7 @@
  total average noise            :   3.60234086E-04
  clean forces norm (Ha/Bohr): maxval=  9.622401243867E-04  fnrm2=  1.851812113959E-06
  raw forces:                  maxval=  1.102943719248E-03  fnrm2=  1.992514480372E-06
- CPU time/ELAPSED time for root process     0         4.82         3.56
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         4.57         4.47
  =F Move the atom 2 in the direction -1*z by    -7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -841,14 +821,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
@@ -875,9 +855,7 @@
  total average noise            :   3.60497870E-04
  clean forces norm (Ha/Bohr): maxval=  9.629156542993E-04  fnrm2=  1.854413114589E-06
  raw forces:                  maxval=  1.129173553940E-03  fnrm2=  1.999624470328E-06
- CPU time/ELAPSED time for root process     0         3.48         3.21
- =F =================================================================================
-
+ CPU time/ELAPSED time for root process     0         3.84         3.70
  =F Move the atom 2 in the direction  1*z by     7.0312500000E-03 bohr
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -909,14 +887,14 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        717 points=     16762
    Fine resolution grid: Number of segments=         21 points=       144
+ Wavefunctions memory occupation for root processor (Bytes): 142160
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
- Wavefunctions memory occupation for root processor (Bytes): 142160
  ion-ion interaction energy  6.91238082123304E-01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -2.000001492465   0.000E+00
@@ -944,15 +922,20 @@
  total average noise            :   3.60233341E-04
  clean forces norm (Ha/Bohr): maxval=  9.622400713467E-04  fnrm2=  1.851811909810E-06
  raw forces:                  maxval=  1.102942977600E-03  fnrm2=  1.992513731770E-06
- CPU time/ELAPSED time for root process     0         4.51         3.97
+ CPU time/ELAPSED time for root process     0         4.69         4.60
+
  =F =================================================================================
 
- =F: eigenvalues (real)      =     3.6667157101E-04    7.2429655781E-07    7.2424934256E-07    6.6174449004E-24   -5.2939559203E-23   -5.4210108624E-20
- =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
- =F: frequencies (Hartree)   =     1.9148670215E-02    8.5105614257E-04    8.5102840291E-04    2.5724394843E-12   -7.2759576142E-12   -2.3283064365E-10
- =F: frequencies (cm-1)      =       4202.65       186.79       186.78         0.00        -0.00        -0.00
- =F: Zero-point energy =      2288.11 cm-1    1.0425377262E-02 Hartree
+ =F: eigenvalues (real)      =     3.6667157101E-04    7.2429655781E-07    7.2424934256E-07   -2.3763710087E-23   -2.3763710087E-23   -2.7105054312E-20
+ =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00   -8.0902120497E-23    8.0902120497E-23    0.0000000000E+00
+ =F: frequencies (Hartree)   =     1.9148670215E-02    8.5105614257E-04    8.5102840291E-04   -4.8748035947E-12   -4.8748035947E-12   -1.6463612700E-10
+ =F: frequencies (cm-1)      =       4202.65       186.79       186.78        -0.00        -0.00        -0.00
+ =F =================================================================================
+ =F: Zero-point energy   =      2101.32 cm-1         9.5743351076E-03 Hartree
+ =F: Vibrational entropy =      4.5058946542E-02 at 300.0K
+ =F: Vibrational  energy =      2101.32 cm-1         9.5743351414E-03 Hartree at 300.0K
+ =F: Total energy        =      9.5743351414E-03 Hartree at 300.0K
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 7637 allocations and 7637 deallocations, remaining memory(B): 0
+ 7639 allocations and 7639 deallocations, remaining memory(B): 0
  memory occupation peak: 58 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

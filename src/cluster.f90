@@ -150,7 +150,6 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
 END SUBROUTINE call_bigdft
 
 
-
 !>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
 !!  Does an electronic structure calculation. 
@@ -170,7 +169,6 @@ END SUBROUTINE call_bigdft
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!           - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
@@ -202,7 +200,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
   character(len=4) :: f4
-  character(len=5) :: gridformat, wfformat
+  character(len=5) :: gridformat, wfformat, final_out
   character(len=50) :: filename
   character(len=500) :: errmess
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
@@ -212,7 +210,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nelec,ndegree_ip,j,i,iorb,npoints
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,ispin
+  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,jkpt,ispin
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
@@ -229,7 +227,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real(gp), dimension(3) :: shift,chargec
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho,psirocc,psirvirt
-  real(gp), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
+  real(gp), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi,band_structure_eval
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   type(ab6_mixing_object) :: mix
@@ -927,7 +925,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                  call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
                       & rhopot,itrp,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,hx*hy*hz,rpnrm)
                  if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                      'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                      'POTENTIAL iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
                  endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
               end if
 
@@ -1036,18 +1034,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
            write( *,'(1x,a,3(1x,1pe18.11))') &
                 'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
+           if ((in%itrpmax >1 .and. endlooprp) .or. in%itrpmax == 1) then
+              write(final_out, "(A5)") "FINAL"
+           else
+              write(final_out, "(A5)") "final"
+           end if
            if (gnrm_zero == 0.0_gp) then
               write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
-                   'FINAL iter,total energy,gnrm',iter,energy,gnrm
+                   final_out // ' iter,total energy,gnrm',iter,energy,gnrm
            else
               write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') &
-                   'FINAL iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
+                   final_out // ' iter,total energy,gnrm,gnrm_zero',iter,energy,gnrm,gnrm_zero
 
            end if
            !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
            if (in%itrpmax >1) then
               if ( diis%energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
-                   'WARNING: Found an energy value lower than the FINAL energy, delta:',diis%energy-diis%energy_min
+                   & 'WARNING: Found an energy value lower than the ' // final_out // &
+                   & ' energy, delta:',diis%energy-diis%energy_min
            else
               !write this warning only if the system is closed shell
               call check_closed_shell(in%nspin,orbs,lcs)
@@ -1078,7 +1082,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         if (in%itrpmax == 1 .and. in%norbsempty > 0) then
            !recalculate orbitals occupation numbers
-           call evaltoocc(iproc,.false.,in%Tel,orbs)
+           call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
 
            gnrm =1.d10
            diis%energy_min=1.d10
@@ -1095,7 +1099,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         end if
 
         !recalculate orbitals occupation numbers
-        call evaltoocc(iproc,.false.,in%Tel,orbs)
+        call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
 
         gnrm =1.d10
         diis%energy_min=1.d10
@@ -1217,8 +1221,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !plot the ionic potential, if required by output_grid
   if (mod(abs(in%output_grid), 10) == 2 .and. DoLastRunThings) then
-     !if (in%output_grid==2) then
-     !if (iproc == 0) write(*,*) 'writing ionic_potential.pot'
      if (iproc == 0) write(*,*) 'writing ionic_potential' // gridformat
      call plot_density('ionic_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1312,7 +1314,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,gxyz,'gxyz',subname)
 
      call timing(iproc,'Forces        ','ON')
-     ! calculate local part of the forces gxyz
+     !> Calculate local part of the forces gxyz
+     !! @todo Symmetrize forces with k points
      call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
           n1,n2,n3,n3p,i3s+i3xcsh,n1i,n2i,n3i,rho,pot,gxyz)
 
@@ -1382,6 +1385,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
 
+     !for a band structure calculation allocate the array in which to put the eigenvalues
+     if (associated(in%kptv)) then
+        allocate(band_structure_eval(orbs%norbu+orbs%norbd+in%nspin*norbv,in%nkptv+ndebug),stat=i_stat)
+        call memocc(i_stat,band_structure_eval,'band_structure_eval',subname)
+     end if
+
      !calculate davidson procedure for all the groups of k-points which are chosen
      ikpt=1
      do igroup=1,in%ngroups_kptv
@@ -1405,11 +1414,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 & orbs%nspinor,nkptv,in%kptv(1,ikpt),wkptv,orbsv)
-
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-
-
 
            i_all=-product(shape(wkptv))*kind(wkptv)
            deallocate(wkptv,stat=i_stat)
@@ -1427,14 +1433,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj) 
            call timing(iproc,'CrtProjectors ','OF') 
 
-           ikpt=ikpt+in%nkptsv_group(igroup)
-
         else
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-
 
         end if
 
@@ -1513,6 +1516,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         !in the case of band structure calculation, copy the values of the eigenvectors
         !into a new array to write them afterwards
+        if (associated(in%kptv)) then
+           call dcopy(orbsv%norb*nkptv,orbsv%eval(1),1,band_structure_eval(1,ikpt),1)
+           !increment the value of ikpt
+           ikpt=ikpt+in%nkptsv_group(igroup)
+        end if
 
         i_all=-product(shape(orbsv%eval))*kind(orbsv%eval)
         deallocate(orbsv%eval,stat=i_stat)
@@ -1523,6 +1531,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,i_all,'psivirt',subname)
 
      end do
+
+     if (associated(in%kptv)) then
+        !dump the band structure eigenvalue on a file and deallocate it
+        
+        i_all=-product(shape(band_structure_eval))*kind(band_structure_eval)
+        deallocate(band_structure_eval,stat=i_stat)
+        call memocc(i_stat,i_all,'band_structure_eval',subname)
+     end if
 
   end if
 
@@ -1639,7 +1655,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
 contains
 
-  !routine which deallocate the pointers and the arrays before exiting 
+  !> Routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
 
     !when this condition is verified we are in the middle of the SCF cycle

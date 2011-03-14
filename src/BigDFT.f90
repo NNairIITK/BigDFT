@@ -8,6 +8,10 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
+!> @mainpage BigDFT Package developer documentation
+!! BigDFT is a package to do ab initio calculation based on wavelet basis set
+
+
 !>  Main program to calculate electronic structures
 program BigDFT
 
@@ -153,6 +157,9 @@ program BigDFT
   enddo !loop over iconfig
 
   deallocate(arr_posinp)
+
+  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   call MPI_FINALIZE(ierr)
 

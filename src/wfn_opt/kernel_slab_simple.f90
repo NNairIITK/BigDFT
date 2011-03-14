@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   Hits the input array x with the kernel
-!!   ((-1/2\Delta+C)_{ij})^{-1}
+!> Hits the input array x with the kernel
+!! @f$((-1/2\Delta+C)_{ij})^{-1}@f$
 subroutine hit_with_kernel_slab(x,zx,kern_k1,kern_k3,n1,n2,n3,c,hgrid)
   use module_base
   implicit none

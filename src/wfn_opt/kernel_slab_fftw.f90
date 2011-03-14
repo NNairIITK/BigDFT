@@ -9,7 +9,7 @@
 
 
 !> hits the input array x with the kernel
-!! ((-1/2\Delta+C)_{ij})^{-1}
+!! @f$((-1/2\Delta+C)_{ij})^{-1}@f$
 subroutine hit_with_kernel_slab(x,z  ,kern_k1,kern_k3,n1,n2,n3,c,hgrid)    
     implicit none
     integer,intent(in)::n1,n2,n3

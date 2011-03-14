@@ -9,7 +9,7 @@
  
 
 !>   Hits the input array x with the kernel
-!!   ((-1/2\Delta+C)_{ij})^{-1}
+!!   @f$((-1/2\Delta+C)_{ij})^{-1}@f$
 !! See the optimized version (hit_kernel_slab_optim) and
 !!     non-optimized version (hit_kernal_slab_simple)
 subroutine hit_with_kernel_slab(x,z  ,kern_k1,kern_k3,n1,n2,n3,c,hgrid)    

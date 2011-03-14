@@ -16,7 +16,7 @@
 subroutine hit_with_kernel_fac(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
      n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,c,fac)
   ! hits the input array x with the kernel
-  ! ((-1/2\Delta+C)_{ij})^{-1}
+  ! @f$ ((-1/2\Delta+C)_{ij})^{-1} @f$
   use module_base
   implicit none
   integer,intent(in) :: n1,n2,n3,nd1,nd2,nd3
@@ -100,7 +100,7 @@ subroutine hit_with_kernel_fac(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,
 END SUBROUTINE hit_with_kernel_fac
 
 
-!>  Hits the input array x with the kernel ((-1/2\Delta+C)_{ij})^{-1}
+!>  Hits the input array x with the kernel @f$((-1/2\Delta+C)_{ij})^{-1}@f$
 subroutine hit_with_kernel(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
   n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,c)
   use module_base

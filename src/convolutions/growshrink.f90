@@ -46,7 +46,6 @@ END SUBROUTINE comb_grow_all
 !!   However, the output array y contains nonphysical values
 !!   outside of the localization region
 !!   that remain from the first comb_grow
-!!
 subroutine comb_grow_c(n1,n2,n3,w1,w2,x,y,ibyz,ibzxx,ibxxyy)
   use module_base
   implicit none

@@ -18,7 +18,7 @@
 !!   The only difference from the case k=0 is the first derivative operator
 !!   2I( kx d/dx + ...+ kz d/dz)
 !!   for which we need the 1-dimensional Galerkin matrix
-!!   1/h\int phi(x/h) d/dx phi(x/h-i) dx 
+!!   @f$ 1/h\int phi(x/h) d/dx phi(x/h-i) dx @f$ 
 !!   that is stored in the arrays fil(2,:,1)..fil(2,:,3)
 !!   multiplied by the factor scale1.
 !!   The second derivative operator is stored in the arrays
@@ -27,7 +27,7 @@
 !!   of the operator A.
 !!
 !!   One can check (I did that) that the Galerkin matrix (almost) annihilates the array
-!!   c_j=\int exp(Ikx) phi(x/h-j)dx that is the wavelet projection
+!!   @f$ c_j=\int exp(Ikx) phi(x/h-j)dx @f$ that is the wavelet projection
 !!   of the plane wave exp(Ikx), if the plane wave is periodic in the simulation
 !!   box. 
 !!   The annihilation accuracy improves with decreasing grid constant h, as expected,

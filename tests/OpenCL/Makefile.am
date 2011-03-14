@@ -12,7 +12,7 @@ endif
 
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 malloc.prc *linkinfo
 
-AM_FCFLAGS = -I../../src/modules @MPI_INCLUDE@ -I. -I$(srcdir)
+AM_FCFLAGS = -I../../src/modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 

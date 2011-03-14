@@ -1,15 +1,13 @@
 !> @file
-!!    Random number generator (from "Numerical Recipes").
-!!    Returns a uniform random deviate between 0.0 and 1.0.
-!!    Set idum to any negative value to initialize or
-!!    reinitialize the sequence.
+!!   Routines to generate random numbers for ART methods
 !! @author
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+!> Module used by ART methods (random routine)
 MODULE random
 
   implicit none
@@ -21,6 +19,10 @@ MODULE random
 end module random
 
 
+!>  Random number generator (from "Numerical Recipes").
+!!  Returns a uniform random deviate between 0.0 and 1.0.
+!!  Set idum to any negative value to initialize or
+!!  reinitialize the sequence.
 real(8) function ran3()
   use RANDOM
   implicit none

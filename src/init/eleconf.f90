@@ -1474,8 +1474,9 @@ rprb=5.20d0
 ehomo=-0.161308d0
 neleconf(5,0)=2
 neleconf(5,1)=6
-neleconf(5,2)=9
+neleconf(5,2)=8
 neleconf(6,0)=1
+neleconf(6,1)=1
 nsccode=12
 amu=195.08d0
 
@@ -3356,8 +3357,9 @@ rprb=5.20d0
 ehomo=-0.161308d0
 neleconf(5,0)=2
 neleconf(5,1)=6
-neleconf(5,2)=9
+neleconf(5,2)=8
 neleconf(6,0)=1
+neleconf(6,1)=1
 nsccode=12
 
 has_found=1

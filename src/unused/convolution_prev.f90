@@ -11,7 +11,6 @@
 
 !> w2 and w1 are switched because from shrink convention we go
 !! to grow convention
-!! @deprecated
 subroutine comb_grow_all_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
      ,w2,w1,xc,xf,y,ibyz_c,ibzxx_c,ibxxyy_c,&
      ibyz_f,ibzxx_f,ibxxyy_f)
@@ -49,7 +48,6 @@ END SUBROUTINE comb_grow_all_prev
 !! then convolves with magic filter
 !!  the size of the data is allowed to grow
 !! The input array x is not overwritten
-!! @deprecated
 subroutine comb_grow_tree_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
      ,w1,w2,x,y,ibyz,ibzxx,ibxxyy)
 
@@ -89,7 +87,6 @@ END SUBROUTINE comb_grow_tree_prev
 !! However, the output array y contains nonphysical values
 !! outside of the localization region
 !! that remain from the first comb_grow
-!! @deprecated
 subroutine comb_grow_c_prev(n1,n2,n3,ww,x,y,ibyz,ibzxx,ibxxyy)
   
   implicit real(kind=8) (a-h,o-z)
@@ -122,7 +119,6 @@ END SUBROUTINE comb_grow_c_prev
 !! Applies synthesis wavelet transformation 
 !! then convolves with magic filter
 !!  the size of the data is allowed to grow
-!! @deprecated
 subroutine comb_rot_grow_loc_prev(nfl,nfu,ndat,x,y,icf,ib)
 
   implicit real(kind=8) (a-h,o-z)
@@ -297,7 +293,6 @@ END SUBROUTINE comb_rot_grow_loc_prev
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
-!! @deprecated
 subroutine  comb_rot_grow_loc_1_prev(nfl,nfu,ndat,x,y,ib)
 
   implicit none
@@ -426,7 +421,6 @@ END SUBROUTINE comb_rot_grow_loc_1_prev
 !! Applies synthesis wavelet transformation 
 !! then convolves with magic filter
 !! the size of the data is allowed to grow
-!! @deprecated
 subroutine comb_rot_grow_loc_2_prev(nfl,nfu,ndat,x,y,ib)
 
   implicit real(kind=8) (a-h,o-z)
@@ -522,7 +516,6 @@ END SUBROUTINE comb_rot_grow_loc_2_prev
 !! then convolves with magic filter
 !! then adds the result to y.
 !! The size of the data is allowed to grow
-!! @deprecated
 subroutine comb_rot_grow_loc_3_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
     implicit real(kind=8) (a-h,o-z)
     integer t
@@ -695,7 +688,6 @@ END SUBROUTINE comb_rot_grow_loc_3_prev
 
 
 !> y = (kinetic energy operator)x + (cprec*I)x 
-!! @deprecated
 subroutine Convolkinetic_prev(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f)
@@ -1079,7 +1071,6 @@ END SUBROUTINE Convolkinetic_prev
 
 
 !>  y = y+(kinetic energy operator)x 
-!! @deprecated
 subroutine ConvolkineticT_prev(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f,ekin)
@@ -1497,7 +1488,6 @@ END SUBROUTINE ConvolkineticT_prev
 
 
 !>   y = y + (kinetic energy operator)x 
-!! @deprecated
 subroutine ConvolkineticP_prev(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,y,ekin)

@@ -831,7 +831,7 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
 END SUBROUTINE precond_locham
 
 
-!> ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
+!> ypsi = @f$(1/2) \Nabla^2 xpsi + cprecr xpsi@f$
 subroutine calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&

@@ -381,7 +381,7 @@ subroutine mix_input_variables_default(in)
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%iscf=0 !only 2(potential) or 12(density) are allowed (ABINIT conventions for the moment)
+  in%iscf=7
   in%Tel=0.0_gp
   in%norbsempty=0
   in%alphadiis=2.d0
@@ -1236,7 +1236,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   end if
 
   open(unit=99,file=trim(filename),status='old')
-  if (iproc.eq.0) write(*,*) 'Reading atomic input positions from file:',trim(filename) 
+  !if (iproc.eq.0) write(*,*) 'Reading atomic input positions from file:',trim(filename) 
 
   if (atoms%format == "xyz") then
      read(99,*) atoms%nat,atoms%units
@@ -2175,6 +2175,7 @@ END SUBROUTINE frozen_alpha
 
 !>    Print all general parameters
 subroutine print_general_parameters(in,atoms)
+  use module_base
   use module_types
   use defs_basis
   use ab6_symmetry
@@ -2191,9 +2192,11 @@ subroutine print_general_parameters(in,atoms)
   integer :: spaceGroupId, pointGroupMagn
   integer, parameter :: maxLen = 50, width = 24
   character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
+  character(len = 11) :: potden
 
   ! Output for atoms and k-points
-  write(*,'(1x,a)') '---------------------------------------------------------------- Input atomic system'
+  write(*,'(1x,a,a,a)') '--- (file: posinp.', &
+       & atoms%format, ') --------------------------------------- Input atomic system'
   write(*, "(A)")   "   Atomic system                  Fixed positions           Additional data"
   do i = 1, maxLen
      write(at(i), "(a)") " "
@@ -2280,13 +2283,13 @@ subroutine print_general_parameters(in,atoms)
   end do
 
   if (atoms%geocode /= 'F') then
-     write(*,'(1x,a)') '--------------------------------------------------------------------------- k-points'
+     write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
      if (in%disableSym .and. in%nkpt > 1) then
         write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
      end if
      write(*, "(1x,a)")    "       red. coordinates         weight      id         BZ coordinates"
      do i = 1, in%nkpt, 1
-        write(*, "(1x,3f9.5,2x,f9.5,5x,I3,2x,3f9.5)") &
+        write(*, "(1x,3f9.5,2x,f9.5,5x,I4,2x,3f9.5)") &
              & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
              & in%wkpt(i), i, in%kpt(:, i)
      end do
@@ -2301,8 +2304,31 @@ subroutine print_general_parameters(in,atoms)
      end if
   end if
 
+  ! Printing for mixing parameters.
+  if (in%itrpmax>1) then
+     if (in%iscf < 10) then
+        write(potden, "(A)") "potential"
+     else
+        write(potden, "(A)") "density"
+     end if
+     write(*,'(1x,a)') '--- (file: input.mix) ------------------------------------------------------- Mixing'
+     write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
+          & "     Target=", potden,        "|", &
+          & " Add. bands=", in%norbsempty, "|", &
+          & "    Coeff.=", in%alphamix
+     write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
+          & "     Scheme=", modulo(in%iscf, 10), "|", &
+          & "Elec. temp.=", in%tel,              "|", &
+          & "      DIIS=", in%alphadiis
+     write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
+          & "  Max iter.=", in%itrpmax,    "|", &
+          & "Occ. scheme=", smearing_names(occopt), "|"
+     write(*,"(1x,A12,1pe12.2,1x,A1,1x,A24,1x,A1)") &
+          & "   Rp norm.=", in%rpnrm_cv,    "|", " ", "|"
+  end if
+
   if (in%ncount_cluster_x > 0) then
-     write(*,'(1x,a)') '------------------------------------------------------------- Geopt Input Parameters'
+     write(*,'(1x,a)') '--- (file: input.geopt) ------------------------------------- Geopt Input Parameters'
      write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
 
      write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &

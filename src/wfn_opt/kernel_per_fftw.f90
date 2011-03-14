@@ -9,7 +9,7 @@
 
 
 !> hits the input array x with the kernel
-!! ((-1/2\Delta+C)_{ij})^{-1}
+!! @f$ ((-1/2\Delta+C)_{ij})^{-1} @f$
 subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)  
   use module_base
   implicit none
