@@ -1,6 +1,8 @@
 !> @file
 !!  Include file for density magic filter.
 !!  Daubechies-16 double density magic filter  for scfunctions and wavelets
+!! @todo
+!!  Fix the ebahviour of Doxygen for include Fortran files
 !! @author
 !!    Copyright (C) 2009-2011 BigDFT group 
 !!    This file is distributed under the terms of the

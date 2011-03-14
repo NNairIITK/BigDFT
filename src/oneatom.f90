@@ -34,12 +34,9 @@ program oneatom
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(gp), dimension(:,:), allocatable :: radii_cf
-  real(wp), dimension(:), pointer :: hpsi,psit,psi,psidst,hpsidst,proj,pot
+  real(wp), dimension(:), pointer :: hpsi,psit,psi,proj,pot
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
-  ! arrays for DIIS convergence accelerator
-  real(wp), dimension(:,:,:), pointer :: ads
-
 
   !for the moment no need to have parallelism
   iproc=0

@@ -2080,7 +2080,7 @@ subroutine caltmax2(istep,n,np,x,xold,fends,epot,xt,ft,pnow,pold,nproc,iproc,ato
     !--------------------------------------------------------
     call checkpathway(iproc,istep,n,np,x,xold,pnow)
     !pnow%do_fill_ex_exd=.true.
-1358 continue
+!1358 continue
     !if(istep<3 .or. pnow%do_fill_ex_exd .or. pold%npv>np+pnow%ns2) then
     if(istep<1 .or. pnow%do_fill_ex_exd) then
         call fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms, &
