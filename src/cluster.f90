@@ -717,6 +717,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call readmywaves(iproc,"wavefunction", &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
+     if (in%itrpmax > 1) then
+        !recalculate orbitals occupation numbers
+        call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
+     end if
+
   case(11)
      !restart from previously calculated gaussian coefficients
      if (iproc == 0) then
