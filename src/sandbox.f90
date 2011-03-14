@@ -52,8 +52,9 @@ program sandbox
   real(wp), dimension(:),allocatable :: lpsi    ! local projection of |Psi>
   real(wp), dimension(:),allocatable :: lhpsi   ! local projection of H|Psi>
   type(locreg_descriptors), dimension(nlr+1) :: Llr
+  real(wp), dimension(:), pointer :: potential
   real :: sum_pot  ! debug
-  integer :: ii    ! debug
+  integer :: ii    ! debug  
   type(nonlocal_psp_descriptors) :: Lnlpspd
   type(atoms_data) :: Latoms
 
@@ -257,10 +258,15 @@ program sandbox
 ! #################
 !  Kinetic part
 ! #################
+
+  !allocate the potential in the full box
+     call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3pi,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+          orbs%norb,orbs%norbp,ngatherarr,pot_ion,potential)
+
   !put in hpsi the kinetic operator (pot_ion = 0d.0)
      call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-         nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3pi,&
-         pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
+         nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,&
+         eproj_sum,in%nspin,GPU)
 
   !calculate scalar product between wavefunctions
   !this scheme works only in sequential
@@ -361,9 +367,12 @@ program sandbox
      !terminate SCF loop if forced to switch more than once from DIIS to SD
      endloop=endloop .or. ndiis_sd_sw > 2
 
+     call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3pi,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+          orbs%norb,orbs%norbp,ngatherarr,pot_ion,potential)
+
      call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-          pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
+          nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,&
+          eproj_sum,in%nspin,GPU)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -1233,9 +1242,6 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 !ENDTESTS
 
   iat = 0
-!  Lnlpspd%nseg_p(0)=0
-!  Lnlpspd%nvctr_p(0)=0
-
   do iatom = 1,atoms%nat
      if(projflg(iatom) == 0) cycle 
      iat = iat + 1    

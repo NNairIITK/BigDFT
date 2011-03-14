@@ -334,7 +334,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         ixyz=mod(i-1,3)+1
         if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) nr=nr+1
     enddo
-    if(iproc==0) write(*,'(a,i,i)') 'DOF: n,nr ',n,nr
+    if(iproc==0) write(*,*) 'DOF: n,nr ',n,nr
     !---------------------------------------------------------------------------
     call readinputsplsad(iproc,np,np_neb,parmin,parmin_neb,pnow)
     if(iproc==0)    then

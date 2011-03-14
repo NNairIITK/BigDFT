@@ -259,20 +259,21 @@ rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-<<<<<<< TREE
 	$(libs_cuda) \
 	$(libs_ocl)
 
 sandbox_SOURCES = sandbox.f90
 sandbox_LDFLAGS = 
 sandbox_LDADD = libbigdft.a \
-=======
-	$(libs_opt)
+        PSolver/libpoissonsolver.a \
+        $(LMPI) \
+        @MPI_LIBS@ \
+        $(libs_opt)
+
  
 oneatom_SOURCES = oneatom.f90
 oneatom_LDFLAGS = 
 oneatom_LDADD = libbigdft.a \
->>>>>>> MERGE-SOURCE
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
