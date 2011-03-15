@@ -2402,17 +2402,17 @@ subroutine print_general_parameters(in,atoms)
      if (in%disableSym .and. in%nkpt > 1) then
         write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
      end if
-     write(*, "(1x,a)")    "       red. coordinates         weight      id         BZ coordinates"
+     write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
      do i = 1, in%nkpt, 1
-        write(*, "(1x,3f9.5,2x,f9.5,5x,I4,2x,3f9.5)") &
+        write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
              & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
              & in%wkpt(i), i, in%kpt(:, i)
      end do
      if (in%nkptv > 0) then
         write(*, "(1x,a)")    " K points for band structure calculation"
-        write(*, "(1x,a)")    "       red. coordinates         weight      id         BZ coordinates"
+        write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
         do i = 1, in%nkptv, 1
-           write(*, "(1x,3f9.5,2x,f9.5,5x,I3,2x,3f9.5)") &
+           write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
                 & in%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
                 & 1.0d0 / real(size(in%kptv, 2), gp), i, in%kptv(:, i)
         end do
