@@ -949,7 +949,7 @@ END SUBROUTINE deallocate_orbs
     integer :: i
 
     write(*, "(1x,A)") "Available values of output_wf are:"
-    do i = 1, size(wf_format_names)
+    do i = 0, size(wf_format_names) - 1
        write(*, "(1x,A,I5,A,A)") " | ", i, &
             & " - ", wf_format_names(i)
     end do
@@ -966,11 +966,16 @@ END SUBROUTINE deallocate_orbs
     integer :: i, j
 
     write(*, "(1x,A)") "Available values of output_grid are:"
-    do i = 1, size(output_grid_format_names)
-       do j = 1, size(output_grid_names)
-          write(*, "(1x,A,I5,A,A)") " | ", i * 10 + j, &
-               & " - ", trim(output_grid_names(i)), &
-               & " in ", trim(output_grid_format_names(i)), " format."
+    do i = 0, size(output_grid_format_names) - 1
+       do j = 0, size(output_grid_names) - 1
+          if (j == 0 .and. i == 0) then
+             write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
+                  & " - ", trim(output_grid_names(j)), "."
+          else if (j /= 0) then
+             write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
+                  & " - ", trim(output_grid_names(j)), &
+                  & " in ", trim(output_grid_format_names(i)), " format."
+          end if
        end do
     end do
   end subroutine output_grid_help
