@@ -59,11 +59,7 @@ module module_defs
   !! inside localize_projectors routines
   logical :: DistProjApply=.true.
 
-<<<<<<< TREE
-  ! Physical constants.
-=======
   !> Physical constants.
->>>>>>> MERGE-SOURCE
   real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem
   real(gp), parameter :: ha2ev = 27.21138386_gp                         ! 1 Ha in eV
   real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
@@ -74,13 +70,6 @@ module module_defs
   real(gp), parameter :: e_Cb=1.602176487d-19                           ! minus the electron charge, in Coulomb
   real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       ! Boltzmann constant in Ha/K
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass
-
-  !> Occupation parameters.
-  integer, parameter :: SMEARING_DIST_ERF   = 1
-  integer, parameter :: SMEARING_DIST_FERMI = 2
-  character(len = 11), dimension(2), parameter :: smearing_names =  (/ "Error func.", "Fermi      " /)
-  integer, parameter :: occopt = SMEARING_DIST_ERF
-
 
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
