@@ -974,7 +974,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   close(22)
 
   !average in x direction
-  open(unit=23,file=filename//'_avg_x',status='unknown')
+  open(unit=23,file=trim(filename)//'_avg_x',status='unknown')
   do i1=0,2*n1+1
      later_avg=0.0_dp
      do i3=0,2*n3+1
@@ -989,7 +989,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   end do
   close(23)
   !average in y direction
-  open(unit=23,file=filename//'_avg_y',status='unknown')
+  open(unit=23,file=trim(filename)//'_avg_y',status='unknown')
   do i2=0,2*n2+1
      later_avg=0.0_dp
      do i3=0,2*n3+1
@@ -1004,7 +1004,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   end do
   close(23)
   !average in z direction
-  open(unit=23,file=filename//'_avg_z',status='unknown')
+  open(unit=23,file=trim(filename)//'_avg_z',status='unknown')
   do i3=0,2*n3+1
      later_avg=0.0_dp
      do i2=0,2*n2+1
