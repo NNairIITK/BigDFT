@@ -96,7 +96,7 @@ Logic CPU : 0 with real CPU 0
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Si               8                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   40
  Total number of components =               552960
  Percent of zero components =                   22

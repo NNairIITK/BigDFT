@@ -91,7 +91,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -200,7 +200,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -276,7 +276,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -368,7 +368,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -428,7 +428,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -513,7 +513,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -573,7 +573,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -662,7 +662,7 @@ End of minimization using  VSSD
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36

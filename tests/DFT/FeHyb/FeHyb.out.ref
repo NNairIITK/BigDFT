@@ -93,7 +93,7 @@
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Fe               1                   13
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   13
  Total number of components =                64688
  Percent of zero components =                   18

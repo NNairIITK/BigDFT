@@ -87,7 +87,7 @@ In :ediff,ekinetic,dt,nsoften   0.138E-03  0.814E-02  0.840E-01   20
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31440
  Percent of zero components =                    0
@@ -182,7 +182,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.474247909692604E+00     0.542351415
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31440
  Percent of zero components =                    0
@@ -255,7 +255,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.474297809573945E+00     0.542459345
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30480
  Percent of zero components =                    0
@@ -341,7 +341,7 @@ End of minimization using  SDCG
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116970
  Percent of zero components =                   13
@@ -419,7 +419,7 @@ SD EXIT because fnrm < fluct*frac_fluct  2.53029216192304784E-02  3.956644920247
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116250
  Percent of zero components =                   13
@@ -496,7 +496,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.107351518970438E-01     0.601538248
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116390
  Percent of zero components =                   13
@@ -573,7 +573,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.877328271527724E-02     0.561927314
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116460
  Percent of zero components =                   13
@@ -649,7 +649,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.678224800056231E-02     0.522563690
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116460
  Percent of zero components =                   13
@@ -734,7 +734,7 @@ End of minimization using  SDCG
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -810,7 +810,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.178082625433826E+00     0.296403725
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31120
  Percent of zero components =                    0
@@ -888,7 +888,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.152377277824178E+00     0.283073733
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -965,7 +965,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.168411033286224E+00     0.291361703
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30960
  Percent of zero components =                    0
@@ -1040,7 +1040,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.140197706056276E+00     0.268590372
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30960
  Percent of zero components =                    0
@@ -1115,7 +1115,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.109553923496321E+00     0.239784351
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31040
  Percent of zero components =                    0
@@ -1190,7 +1190,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.865131273035710E-01     0.214951121
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31120
  Percent of zero components =                    0
@@ -1265,7 +1265,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.746038628338026E-01     0.200644557
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31040
  Percent of zero components =                    0
@@ -1340,7 +1340,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.730274119350760E-01     0.198046649
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31040
  Percent of zero components =                    0
@@ -1415,7 +1415,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.802601667080338E-01     0.206506102
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -1490,7 +1490,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.939432543250687E-01     0.222463224
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30920
  Percent of zero components =                    0
@@ -1565,7 +1565,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.111819477912720E+00     0.241927340
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30920
  Percent of zero components =                    0
@@ -1640,7 +1640,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.130128535965343E+00     0.261288411
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31080
  Percent of zero components =                    0
@@ -1715,7 +1715,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.145552163784169E+00     0.277309929
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31120
  Percent of zero components =                    0
@@ -1790,7 +1790,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.152217475289461E+00     0.285691902
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31120
  Percent of zero components =                    0
@@ -1865,7 +1865,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.146529139087227E+00     0.283600437
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31120
  Percent of zero components =                    0
@@ -1940,7 +1940,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.126322033079286E+00     0.268048732
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31040
  Percent of zero components =                    0
@@ -2015,7 +2015,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.951556185761308E-01     0.240935962
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31040
  Percent of zero components =                    0
@@ -2090,7 +2090,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.630432517908904E-01     0.208849820
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -2165,7 +2165,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.424824172552800E-01     0.186713369
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -2240,7 +2240,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.416775713048725E-01     0.189297527
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -2315,7 +2315,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.606311458894907E-01     0.215487361
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -2390,7 +2390,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.907225544950167E-01     0.249536240
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30840
  Percent of zero components =                    0
@@ -2465,7 +2465,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.122007018984467E+00     0.279438094
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30840
  Percent of zero components =                    0
@@ -2540,7 +2540,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.147074922616394E+00     0.300358363
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30840
  Percent of zero components =                    0
@@ -2615,7 +2615,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.163314074011692E+00     0.312139101
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30800
  Percent of zero components =                    0
@@ -2690,7 +2690,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.172045537944972E+00     0.316954557
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30800
  Percent of zero components =                    0
@@ -2765,7 +2765,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.175445502248194E+00     0.316912002
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30680
  Percent of zero components =                    0
@@ -2839,7 +2839,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.175760353665733E+00     0.313267334
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30680
  Percent of zero components =                    0
@@ -2914,7 +2914,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.172999818939236E+00     0.308118588
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30520
  Percent of zero components =                    0
@@ -2989,7 +2989,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.169803121855612E+00     0.302423122
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30560
  Percent of zero components =                    0
@@ -3064,7 +3064,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.163976868030058E+00     0.293910342
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -3139,7 +3139,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.155550637262388E+00     0.283848984
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30600
  Percent of zero components =                    0
@@ -3214,7 +3214,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.143507435767800E+00     0.271844964
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30440
  Percent of zero components =                    0
@@ -3289,7 +3289,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.127203269217504E+00     0.257854410
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30280
  Percent of zero components =                    0
@@ -3364,7 +3364,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.105374117990211E+00     0.239675582
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30040
  Percent of zero components =                    0
@@ -3439,7 +3439,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.795072128550587E-01     0.216278505
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30040
  Percent of zero components =                    0
@@ -3514,7 +3514,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.540945849057613E-01     0.188090300
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30040
  Percent of zero components =                    0
@@ -3589,7 +3589,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.352060908144166E-01     0.157589351
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30040
  Percent of zero components =                    0
@@ -3664,7 +3664,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.290139177520190E-01     0.134553494
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30040
  Percent of zero components =                    0
@@ -3739,7 +3739,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.380286599955578E-01     0.132217359
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30280
  Percent of zero components =                    0
@@ -3814,7 +3814,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.589690327457384E-01     0.165366937
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30440
  Percent of zero components =                    0
@@ -3889,7 +3889,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.850113075134951E-01     0.205058423
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30480
  Percent of zero components =                    0
@@ -3964,7 +3964,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.109379850766506E+00     0.229398880
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30480
  Percent of zero components =                    0
@@ -4039,7 +4039,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.127877685692146E+00     0.251506157
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30480
  Percent of zero components =                    0
@@ -4114,7 +4114,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.139453343866498E+00     0.273475961
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30720
  Percent of zero components =                    0
@@ -4189,7 +4189,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.145456878762446E+00     0.288617947
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30720
  Percent of zero components =                    0
@@ -4264,7 +4264,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.147680124176054E+00     0.297962080
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -4339,7 +4339,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.147106394802588E+00     0.302339627
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30560
  Percent of zero components =                    0
@@ -4414,7 +4414,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.145274966788678E+00     0.303117409
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30560
  Percent of zero components =                    0
@@ -4488,7 +4488,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.143306608944547E+00     0.301492734
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30560
  Percent of zero components =                    0
@@ -4563,7 +4563,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.139354332409682E+00     0.296577366
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30560
  Percent of zero components =                    0
@@ -4638,7 +4638,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.135900529719701E+00     0.290128820
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -4716,7 +4716,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.132319672065682E+00     0.281994803
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -4795,7 +4795,7 @@ End of minimization using  SDCG
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116795
  Percent of zero components =                   13
@@ -4880,7 +4880,7 @@ End of minimization using  SDCG
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -4957,7 +4957,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.180335828932389E+00     0.298503537
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30960
  Percent of zero components =                    0
@@ -5034,7 +5034,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.121388389282819E+00     0.253129187
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30800
  Percent of zero components =                    0
@@ -5110,7 +5110,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.169929101425071E+00     0.300648205
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30680
  Percent of zero components =                    0
@@ -5185,7 +5185,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.157791817216578E+00     0.302579238
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -5260,7 +5260,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.148991938926552E+00     0.303776462
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30680
  Percent of zero components =                    0
@@ -5335,7 +5335,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.148043490478415E+00     0.305183611
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30680
  Percent of zero components =                    0
@@ -5410,7 +5410,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.156097143382585E+00     0.307090033
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30720
  Percent of zero components =                    0
@@ -5485,7 +5485,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.170797346409120E+00     0.308917834
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30720
  Percent of zero components =                    0
@@ -5560,7 +5560,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.187266499261676E+00     0.309723275
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -5635,7 +5635,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.199689542862569E+00     0.317139460
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30800
  Percent of zero components =                    0
@@ -5710,7 +5710,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.203621988867641E+00     0.328871353
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30960
  Percent of zero components =                    0
@@ -5785,7 +5785,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.196447895124552E+00     0.328468810
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30960
  Percent of zero components =                    0
@@ -5860,7 +5860,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.178566525403445E+00     0.316734173
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30960
  Percent of zero components =                    0
@@ -5935,7 +5935,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.153522579133700E+00     0.295687523
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31040
  Percent of zero components =                    0
@@ -6010,7 +6010,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.127623846634890E+00     0.269463376
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31280
  Percent of zero components =                    0
@@ -6085,7 +6085,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.107896397126799E+00     0.244215409
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31360
  Percent of zero components =                    0
@@ -6160,7 +6160,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.988162377474412E-01     0.224916800
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31280
  Percent of zero components =                    0
@@ -6235,7 +6235,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.101587682930361E+00     0.221957577
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31280
  Percent of zero components =                    0
@@ -6310,7 +6310,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.112645628100475E+00     0.242857330
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31320
  Percent of zero components =                    0
@@ -6385,7 +6385,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.126197112013486E+00     0.261706390
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31320
  Percent of zero components =                    0
@@ -6460,7 +6460,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.136948557222121E+00     0.273374695
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31320
  Percent of zero components =                    0
@@ -6535,7 +6535,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.142091217265372E+00     0.276213511
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31400
  Percent of zero components =                    0
@@ -6610,7 +6610,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.141046224087364E+00     0.270677436
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31400
  Percent of zero components =                    0
@@ -6685,7 +6685,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.135226941740264E+00     0.259107787
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31400
  Percent of zero components =                    0
@@ -6760,7 +6760,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.127047358954755E+00     0.249560888
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31480
  Percent of zero components =                    0
@@ -6835,7 +6835,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.118523087168805E+00     0.247333788
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31560
  Percent of zero components =                    0
@@ -6910,7 +6910,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.111527466885442E+00     0.245415519
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31600
  Percent of zero components =                    0
@@ -6985,7 +6985,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.107359246185871E+00     0.244857703
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31680
  Percent of zero components =                    0
@@ -7060,7 +7060,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.106641974846403E+00     0.246048522
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31680
  Percent of zero components =                    0
@@ -7135,7 +7135,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.109841968042440E+00     0.249872049
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31680
  Percent of zero components =                    0
@@ -7209,7 +7209,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.116748105988304E+00     0.255524085
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31680
  Percent of zero components =                    0
@@ -7283,7 +7283,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.126923382066945E+00     0.263763359
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31600
  Percent of zero components =                    0
@@ -7358,7 +7358,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.140904606651472E+00     0.276125479
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31600
  Percent of zero components =                    0
@@ -7433,7 +7433,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.155963304112275E+00     0.288163048
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31600
  Percent of zero components =                    0
@@ -7508,7 +7508,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.170653708167085E+00     0.299632804
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31560
  Percent of zero components =                    0
@@ -7583,7 +7583,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.182379825403562E+00     0.309045736
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -7658,7 +7658,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.186523694721614E+00     0.312387945
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30800
  Percent of zero components =                    0
@@ -7733,7 +7733,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.181931629395137E+00     0.310103804
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30680
  Percent of zero components =                    0
@@ -7808,7 +7808,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.165976895900979E+00     0.299525552
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30680
  Percent of zero components =                    0
@@ -7883,7 +7883,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.142182490190833E+00     0.281773339
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30560
  Percent of zero components =                    0
@@ -7958,7 +7958,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.119721629925937E+00     0.262349851
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -8033,7 +8033,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.107242797172593E+00     0.246810402
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30560
  Percent of zero components =                    0
@@ -8108,7 +8108,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.108843427360770E+00     0.239982889
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30440
  Percent of zero components =                    0
@@ -8183,7 +8183,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.119605682540003E+00     0.238722432
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30280
  Percent of zero components =                    0
@@ -8258,7 +8258,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.130467883824166E+00     0.261115093
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30200
  Percent of zero components =                    0
@@ -8333,7 +8333,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.134252675988110E+00     0.271268300
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30280
  Percent of zero components =                    0
@@ -8408,7 +8408,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.129499615003798E+00     0.265755874
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30520
  Percent of zero components =                    0
@@ -8483,7 +8483,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.119302451690835E+00     0.246693610
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -8558,7 +8558,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.106932986027768E+00     0.235222052
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30680
  Percent of zero components =                    0
@@ -8633,7 +8633,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.936068496192698E-01     0.237109175
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30680
  Percent of zero components =                    0
@@ -8708,7 +8708,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.799498559729857E-01     0.234100542
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -8783,7 +8783,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.658549272517329E-01     0.223194910
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -8861,7 +8861,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.520969989235577E-01     0.204035513
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -8940,7 +8940,7 @@ End of minimization using  SDCG
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116575
  Percent of zero components =                   13
@@ -9025,7 +9025,7 @@ End of minimization using  SDCG
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -9102,7 +9102,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.180118538939079E+00     0.298321728
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31280
  Percent of zero components =                    0
@@ -9178,7 +9178,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.613705425296756E-01     0.177123218
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31280
  Percent of zero components =                    0
@@ -9256,7 +9256,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.503174975368580E-01     0.181935506
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -9332,7 +9332,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.177114774998790E+00     0.303932804
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -9407,7 +9407,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.161960430157139E+00     0.299851295
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30920
  Percent of zero components =                    0
@@ -9482,7 +9482,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.134323783467716E+00     0.281825702
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -9557,7 +9557,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.969244351268311E-01     0.250394820
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31040
  Percent of zero components =                    0
@@ -9632,7 +9632,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.593260268382141E-01     0.210464215
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31040
  Percent of zero components =                    0
@@ -9707,7 +9707,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.339879937765576E-01     0.174223050
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31080
  Percent of zero components =                    0
@@ -9782,7 +9782,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.307943782743907E-01     0.161051808
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31160
  Percent of zero components =                    0
@@ -9857,7 +9857,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.502021671276650E-01     0.177272135
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31120
  Percent of zero components =                    0
@@ -9932,7 +9932,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.828084356374427E-01     0.206123539
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31280
  Percent of zero components =                    0
@@ -10007,7 +10007,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.115103822300056E+00     0.244419865
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31520
  Percent of zero components =                    0
@@ -10082,7 +10082,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.138060005600961E+00     0.277696148
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31440
  Percent of zero components =                    0
@@ -10157,7 +10157,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.148423696963372E+00     0.295876279
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31360
  Percent of zero components =                    0
@@ -10232,7 +10232,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.148137201961675E+00     0.302820353
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31440
  Percent of zero components =                    0
@@ -10307,7 +10307,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.141667337209790E+00     0.302895587
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31360
  Percent of zero components =                    0
@@ -10382,7 +10382,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.133180028696927E+00     0.299537320
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31200
  Percent of zero components =                    0
@@ -10457,7 +10457,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.125087374105942E+00     0.294515925
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31280
  Percent of zero components =                    0
@@ -10532,7 +10532,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.118960302762803E+00     0.289383941
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31240
  Percent of zero components =                    0
@@ -10607,7 +10607,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.115566764867430E+00     0.285159537
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31320
  Percent of zero components =                    0
@@ -10682,7 +10682,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.114998956558111E+00     0.281899021
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31320
  Percent of zero components =                    0
@@ -10757,7 +10757,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.117107454957050E+00     0.279884331
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31280
  Percent of zero components =                    0
@@ -10832,7 +10832,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.121693924805049E+00     0.279081260
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31280
  Percent of zero components =                    0
@@ -10907,7 +10907,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.128828518306481E+00     0.280171138
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31440
  Percent of zero components =                    0
@@ -10982,7 +10982,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.138129986038012E+00     0.282529367
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30960
  Percent of zero components =                    0
@@ -11057,7 +11057,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.148904012503305E+00     0.285841513
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -11132,7 +11132,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.161985038332782E+00     0.290883547
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30720
  Percent of zero components =                    0
@@ -11207,7 +11207,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.175909467342623E+00     0.297004071
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30600
  Percent of zero components =                    0
@@ -11282,7 +11282,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.189291765812052E+00     0.303995007
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30560
  Percent of zero components =                    0
@@ -11357,7 +11357,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.198431079172817E+00     0.314265904
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -11432,7 +11432,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.197917796427094E+00     0.314497672
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -11507,7 +11507,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.180520506720546E+00     0.297639800
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30440
  Percent of zero components =                    0
@@ -11582,7 +11582,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.142400001033848E+00     0.263459638
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30200
  Percent of zero components =                    0
@@ -11657,7 +11657,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.885731181275652E-01     0.214453874
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30040
  Percent of zero components =                    0
@@ -11732,7 +11732,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.381412013055702E-01     0.145444703
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30040
  Percent of zero components =                    0
@@ -11807,7 +11807,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.167350205181606E-01     0.983891582
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30040
  Percent of zero components =                    0
@@ -11882,7 +11882,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.383278328629635E-01     0.160897683
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30280
  Percent of zero components =                    0
@@ -11957,7 +11957,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.935459120184224E-01     0.259254684
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30440
  Percent of zero components =                    0
@@ -12032,7 +12032,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.157406124545387E+00     0.330837833
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -12107,7 +12107,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.208171657582493E+00     0.373344424
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -12182,7 +12182,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.236885874922420E+00     0.391567840
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30560
  Percent of zero components =                    0
@@ -12257,7 +12257,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.247370353261638E+00     0.394909303
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30600
  Percent of zero components =                    0
@@ -12332,7 +12332,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.246436631242850E+00     0.390584704
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30640
  Percent of zero components =                    0
@@ -12407,7 +12407,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.238253607703861E+00     0.382573357
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30720
  Percent of zero components =                    0
@@ -12482,7 +12482,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.227679496337113E+00     0.373094770
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30880
  Percent of zero components =                    0
@@ -12557,7 +12557,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.215578466387134E+00     0.362479418
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30960
  Percent of zero components =                    0
@@ -12632,7 +12632,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.201384348893054E+00     0.349558543
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30920
  Percent of zero components =                    0
@@ -12707,7 +12707,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.185075232856598E+00     0.333276118
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30920
  Percent of zero components =                    0
@@ -12782,7 +12782,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.166512757453175E+00     0.312184256
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -12857,7 +12857,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.145696690687990E+00     0.285580800
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30960
  Percent of zero components =                    0
@@ -12932,7 +12932,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.123713091261048E+00     0.252895872
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                30960
  Percent of zero components =                    0
@@ -13007,7 +13007,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.101932043323450E+00     0.214571967
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -13085,7 +13085,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.825395809591801E-01     0.206288761
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =                31000
  Percent of zero components =                    0
@@ -13164,7 +13164,7 @@ End of minimization using  SDCG
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116030
  Percent of zero components =                   13
@@ -13241,7 +13241,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.251895726725810E-01     0.118858245
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116190
  Percent of zero components =                   13
@@ -13320,7 +13320,7 @@ SD EXIT because fnrm < fluct*frac_fluct  1.10090698646485192E-02  2.810820039187
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116340
  Percent of zero components =                   13
@@ -13397,7 +13397,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.492547687153633E-02     0.428279983
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116075
  Percent of zero components =                   13
@@ -13475,7 +13475,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.339825701660793E-02     0.542726736
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116135
  Percent of zero components =                   13
@@ -13550,7 +13550,7 @@ Dirty: fnrm2, fmax. Clean: fnrm2, fmax     0.503808191850693E-02     0.464466735
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               116110
  Percent of zero components =                   13
