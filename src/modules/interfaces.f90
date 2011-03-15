@@ -484,7 +484,8 @@ module module_interfaces
        type(orbitals_data), intent(in) :: orbs
        type(locreg_descriptors), intent(in) :: Glr
        type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-       integer, intent(in) :: iproc,nproc,ncongt,nspin,output_grid
+       integer, intent(in) :: iproc,nproc,ncongt,nspin
+       logical, intent(in) :: output_grid
        real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
        real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
        real(kind=8), dimension(3,at%nat), intent(in) :: rxyz

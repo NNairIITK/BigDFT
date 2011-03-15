@@ -383,6 +383,7 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
+  if (iproc == 0) write(*,"(1x,A,A)") "Write wavefunctions to file: ", trim(filename)
   isuffix = index(filename, ".etsf", back = .true.)
   if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
   if (isuffix > 0) then
@@ -417,6 +418,7 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
      write(*,'(a,i4,2(1x,e10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+     write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
 
 END SUBROUTINE writemywaves

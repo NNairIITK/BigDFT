@@ -178,6 +178,7 @@ subroutine default_input_variables(inputs)
 
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
+  inputs%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
@@ -274,6 +275,12 @@ subroutine dft_input_variables(iproc,filename,in)
   end if
   call check()
   if (in%output_wf_format /= WF_FORMAT_NONE) in%output_wf = .true.
+  ! Validate inputPsiId value.
+  if (.not. input_psi_validate(in%inputPsiId) .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
+     call input_psi_help()
+     stop
+  end if
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
   !switch on the gaussian auxiliary treatment 
@@ -281,6 +288,14 @@ subroutine dft_input_variables(iproc,filename,in)
   if (in%inputPsiId == 10) then
      in%inputPsiId=0
   end if
+  ! Setup out grid parameters.
+  if (in%output_grid >= 0) then
+     in%output_grid_format = in%output_grid / 10
+  else
+     in%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
+     in%output_grid = abs(in%output_grid)
+  end if
+  in%output_grid = modulo(in%output_grid, 10)
   read(1,*,iostat=ierror) in%rbuf,in%ncongt
   call check()
   in%calc_tail=(in%rbuf > 0.0_gp)
@@ -2480,11 +2495,11 @@ subroutine print_dft_parameters(in,atoms)
   type(atoms_data), intent(in) :: atoms
 
   write(*,'(1x,a)')&
-       '------------------------------------------------------------------- Input Parameters'
+       '--- (file: input.dft) --------------------------------------------- Input Parameters'
   write(*,'(1x,a)')&
        '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
   write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-       'Max. hgrid  =',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
+       '  Max. hgrid=',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
        '| Calculate=',in%calc_tail
   write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
        '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
@@ -2504,6 +2519,12 @@ subroutine print_dft_parameters(in,atoms)
           '  Box Sizes (Bohr) =',atoms%alat1,atoms%alat2,atoms%alat3
 
   end if
+  write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
+       & "Input wf. policy=", in%inputPsiId, " (" // input_psi_names(in%inputPsiId) // ")", "|", &
+       & "Output wf. policy=", in%output_wf_format, " (" // wf_format_names(in%output_wf_format) // ")"
+  write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
+       & "Output grid policy=", in%output_grid, "   (" // output_grid_names(in%output_grid) // ")", "|", &
+       & "Output grid format=", in%output_grid_format, "         (" // output_grid_format_names(in%output_grid_format) // ")"
 END SUBROUTINE print_dft_parameters
 
 

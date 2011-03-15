@@ -24,7 +24,7 @@ program rism
   real(gp), dimension(:,:), allocatable :: radii_cf
   real(gp), dimension(:,:), pointer :: rxyz
   real(dp), dimension(:,:), pointer :: rho,pot,pot_ion
-  character(len=5) :: fformat
+  character(len=5) :: gridformat
 
   !for the moment no need to have parallelism
   iproc=0
@@ -35,11 +35,13 @@ program rism
   !the pseudopotential for the dummy centers have to be provided
   call read_input_variables(iproc,'centers', &
        & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", in, atoms, rxyz)
-  if (abs(in%output_grid) > 10) then
-     write(fformat, "(A)") ".etsf"
-  else
-     write(fformat, "(A)") ".cube"
-  end if
+  write(gridformat, "(A)") ""
+  select case (in%output_grid_format)
+     case (OUTPUT_GRID_FORMAT_ETSF)
+        write(gridformat, "(A)") ".etsf"
+     case (OUTPUT_GRID_FORMAT_CUBE)
+        write(gridformat, "(A)") ".bin"
+  end select
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)
@@ -76,14 +78,14 @@ program rism
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
 
   !read the files from the .cubes on the disk
-  call read_density('electronic_density' // fformat,atoms%geocode,&
+  call read_density('electronic_density' // gridformat,atoms%geocode,&
        n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho)
 
-  call read_density('hartree_potential' // fformat,atoms%geocode,&
+  call read_density('hartree_potential' // gridformat,atoms%geocode,&
        n1i,n2i,n3i,nspin,hxh,hyh,hzh,pot)
 
   !not needed for the moment
-  call read_density('ionic_potential' // fformat,atoms%geocode,&
+  call read_density('ionic_potential' // gridformat,atoms%geocode,&
        n1i,n2i,n3i,nspin,hxh,hyh,hzh,pot_ion)
 
   !also extract the number of atoms and the positions
