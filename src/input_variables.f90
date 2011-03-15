@@ -288,6 +288,12 @@ subroutine dft_input_variables(iproc,filename,in)
   if (in%inputPsiId == 10) then
      in%inputPsiId=0
   end if
+  ! Validate output_wf value.
+  if (.not. output_wf_format_validate(in%output_wf_format) .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
+     call output_wf_format_help()
+     stop
+  end if
   ! Setup out grid parameters.
   if (in%output_grid >= 0) then
      in%output_grid_format = in%output_grid / 10
@@ -296,6 +302,14 @@ subroutine dft_input_variables(iproc,filename,in)
      in%output_grid = abs(in%output_grid)
   end if
   in%output_grid = modulo(in%output_grid, 10)
+  ! Validate output_wf value.
+  if (.not. output_grid_validate(in%output_grid, in%output_grid_format) .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_grid (', in%output_grid, ').'
+     call output_grid_help()
+     stop
+  end if
+
+  ! Tail treatment.
   read(1,*,iostat=ierror) in%rbuf,in%ncongt
   call check()
   in%calc_tail=(in%rbuf > 0.0_gp)

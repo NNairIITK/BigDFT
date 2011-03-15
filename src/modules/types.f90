@@ -945,5 +945,43 @@ END SUBROUTINE deallocate_orbs
     end do
   end function input_psi_validate
 
+  subroutine output_wf_format_help()
+    integer :: i
+
+    write(*, "(1x,A)") "Available values of output_wf are:"
+    do i = 1, size(wf_format_names)
+       write(*, "(1x,A,I5,A,A)") " | ", i, &
+            & " - ", wf_format_names(i)
+    end do
+  end subroutine output_wf_format_help
+
+  function output_wf_format_validate(id)
+    integer, intent(in) :: id
+    logical :: output_wf_format_validate
+
+    output_wf_format_validate = (id >= 0 .and. id < size(wf_format_names))
+  end function output_wf_format_validate
+
+  subroutine output_grid_help()
+    integer :: i, j
+
+    write(*, "(1x,A)") "Available values of output_grid are:"
+    do i = 1, size(output_grid_format_names)
+       do j = 1, size(output_grid_names)
+          write(*, "(1x,A,I5,A,A)") " | ", i * 10 + j, &
+               & " - ", trim(output_grid_names(i)), &
+               & " in ", trim(output_grid_format_names(i)), " format."
+       end do
+    end do
+  end subroutine output_grid_help
+
+  function output_grid_validate(id, fid)
+    integer, intent(in) :: id, fid
+    logical :: output_grid_validate
+
+    output_grid_validate = (id >= 0 .and. id < size(output_grid_names)) .and. &
+         & (fid >= 0 .and. fid < size(output_grid_format_names))
+  end function output_grid_validate
+
 end module module_types
 
