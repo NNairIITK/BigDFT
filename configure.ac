@@ -668,6 +668,7 @@ tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
+tests/SPLSAD/Makefile
 tests/DFT/Makefile
 tests/OpenCL/Makefile
 tests/CUDA/Makefile

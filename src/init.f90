@@ -646,7 +646,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call free_gpu_OCL(GPU,orbse,nspin_ig)
   end if
 
-  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
 
   !psivirt can be eliminated here, since it will be allocated before davidson
