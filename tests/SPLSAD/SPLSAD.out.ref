@@ -90,7 +90,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                12108
  Percent of zero components =                   14
@@ -357,7 +357,7 @@ DOF: n,nr           12          12
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                12108
  Percent of zero components =                   14
@@ -593,7 +593,7 @@ ENDs: epot1,fnrm1,epot2,fnrm2   -0.117016503759489E+02   0.965168485420791E-03  
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5894
  Percent of zero components =                   14
@@ -810,7 +810,7 @@ ENDs: epot1,fnrm1,epot2,fnrm2   -0.117016503759489E+02   0.965168485420791E-03  
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5894
  Percent of zero components =                   14
@@ -1028,7 +1028,7 @@ begin of minimization_sp using  FIRE
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5893
  Percent of zero components =                   14
@@ -1236,7 +1236,7 @@ begin of minimization_sp using  FIRE
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5893
  Percent of zero components =                   14
@@ -1446,7 +1446,7 @@ fort56    7.3956162170E-02   9.2445202713E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5893
  Percent of zero components =                   14
@@ -1654,7 +1654,7 @@ fort56    7.3956162170E-02   9.2445202713E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5893
  Percent of zero components =                   14
@@ -1864,7 +1864,7 @@ fort56    7.4674068772E-02   9.1935313458E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5893
  Percent of zero components =                   14
@@ -2072,7 +2072,7 @@ fort56    7.4674068772E-02   9.1935313458E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5893
  Percent of zero components =                   14
@@ -2282,7 +2282,7 @@ fort56    7.4818015724E-02   9.1410855225E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5893
  Percent of zero components =                   14
@@ -2490,7 +2490,7 @@ fort56    7.4818015724E-02   9.1410855225E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5893
  Percent of zero components =                   14
@@ -2701,7 +2701,7 @@ end of minimization_sp using  FIRE
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5865
  Percent of zero components =                   14
@@ -2909,7 +2909,7 @@ end of minimization_sp using  FIRE
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5864
  Percent of zero components =                   14
@@ -3117,7 +3117,7 @@ end of minimization_sp using  FIRE
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5794
  Percent of zero components =                   14
@@ -3325,7 +3325,7 @@ end of minimization_sp using  FIRE
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5864
  Percent of zero components =                   14
@@ -3533,7 +3533,7 @@ end of minimization_sp using  FIRE
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5865
  Percent of zero components =                   14
@@ -3744,7 +3744,7 @@ fort53    0   0.00000E+00
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5941
  Percent of zero components =                   14
@@ -3952,7 +3952,7 @@ fort53    0   0.00000E+00
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5794
  Percent of zero components =                   14
@@ -4160,7 +4160,7 @@ fort53    0   0.00000E+00
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5941
  Percent of zero components =                   14
@@ -4368,7 +4368,7 @@ fort53    0   0.00000E+00
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5794
  Percent of zero components =                   14
@@ -4580,7 +4580,7 @@ fort51     0    0    4  -1.168429688844727E+01  -2.579728E-05  9.92864E-02 -1.07
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                12072
  Percent of zero components =                   14
@@ -4792,7 +4792,7 @@ fort53    1   1.76308E-01
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5804
  Percent of zero components =                   14
@@ -5000,7 +5000,7 @@ fort53    1   1.76308E-01
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5816
  Percent of zero components =                   14
@@ -5212,7 +5212,7 @@ fort51     1    0    2  -1.168851920487359E+01   1.698663E-04  5.43133E-02 -3.34
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                12114
  Percent of zero components =                   14
@@ -5433,7 +5433,7 @@ fort53    2   5.15389E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5826
  Percent of zero components =                   14
@@ -5641,7 +5641,7 @@ fort53    2   5.15389E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5831
  Percent of zero components =                   14
@@ -5853,7 +5853,7 @@ fort51     2    0    2  -1.169192609449178E+01   3.771749E-04  1.94077E-02 -2.38
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                12093
  Percent of zero components =                   14
@@ -6074,7 +6074,7 @@ fort53    3   3.02635E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5859
  Percent of zero components =                   14
@@ -6282,7 +6282,7 @@ fort53    3   3.02635E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5857
  Percent of zero components =                   14
@@ -6494,7 +6494,7 @@ fort51     3    0    2  -1.169227923350153E+01   1.926646E-04  1.32157E-02 -2.32
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                12043
  Percent of zero components =                   14
@@ -6715,7 +6715,7 @@ fort53    4   2.68685E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5802
  Percent of zero components =                   14
@@ -6923,7 +6923,7 @@ fort53    4   2.68685E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5814
  Percent of zero components =                   14
@@ -7135,7 +7135,7 @@ fort51     4    0    2  -1.169194742257503E+01   4.448175E-04  2.96415E-02 -2.46
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                12126
  Percent of zero components =                   14
@@ -7356,7 +7356,7 @@ fort53    5   1.82907E-02
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5853
  Percent of zero components =                   14
@@ -7568,7 +7568,7 @@ fort51     5    0    2  -1.169233507503209E+01   2.898760E-04  2.98649E-03 -2.29
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                12080
  Percent of zero components =                   14

@@ -1,7 +1,6 @@
-!>   This contains a series of utilities that could be used by a number
-!!   of program. They suppose very little.
-!!   The subroutine convert_to_chain takes an integer and transforms it into a
-!!   chain of character.
+!> @file
+!!  This contains a series of utilities that could be used by a number
+!!  of program. They suppose very little.
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
@@ -9,7 +8,10 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
+
+
+!> The subroutine convert_to_chain takes an integer and transforms it into a
+!! chain of character.
 subroutine convert_to_chain(init_number,chain)
   implicit none
   !Arguments

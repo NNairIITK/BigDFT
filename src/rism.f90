@@ -1,11 +1,13 @@
-!> BigDFT/rism
+!> @file
+!!  Program RISM
 !! @author
-!!    Copyright (C) 2010 ESRF, CEA
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
 program rism
   use BigDFT_API
   implicit none
@@ -193,13 +195,13 @@ subroutine assign_atomic_radii(nat,iatlr,nlr,radii)
 
 END SUBROUTINE assign_atomic_radii
 
+
 !>   Calculate atomic charges using Lee, York and Yang method 
 !!   But with a basis similar to Blochl one 
 !!   Refs: J.Chem.Phys. 102(19),7549 (1995)
 !!         J.Chem.Phys. 103(17),7422 (1995) 
 !!   use a basis of error functions centered on the atoms, with atom-defined radii
 !!   and also short-range functions are allowed, as well as dummy atoms
-!!
 subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngatherarr,&
      hxh,hyh,hzh,n3p,i3s,rho,pot,C)
   use module_base
@@ -512,10 +514,6 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
 END SUBROUTINE atomic_charges
 
 
-
-
-!>
-!!
 subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
   use module_base
   implicit none
@@ -567,9 +565,6 @@ subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
 END SUBROUTINE two_center_two_electrons_analytic
 
 
-!>
-!!
-!!
 subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,rhoarr)
   use module_base
@@ -665,7 +660,7 @@ subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,h
 END SUBROUTINE calculate_rho_longrange
 
 
-!erf(r/(sqrt(2)rl)/r
+!> erf(r/(sqrt(2)rl)/r
 function erfor(r,rl)
   use module_base
   implicit none
@@ -687,9 +682,8 @@ function erfor(r,rl)
 
 end function erfor
   
+
 !>   Gaussian basis associated to the long-range term of rism calculation
-!!
-!!
 subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   use module_base
   use module_types
@@ -758,7 +752,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
 END SUBROUTINE gaussian_rism_basis
 
 
-!calculate the second part, by expressing the atomic wavefunctions on a real grid
+!> calculate the second part, by expressing the atomic wavefunctions on a real grid
 subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,ngatherarr,&
      rho,rhoarr)
   use module_base

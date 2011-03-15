@@ -1,6 +1,16 @@
+!> @file
+!! Simple routines of convolutions
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> A analysis wavelet transformation where the size of the data is forced to shrink
+!! The input array y is not overwritten
 subroutine analyse_slab(n1,n2,n3,ww,y,x)
-  ! A analysis wavelet transformation where the size of the data is forced to shrink
-  ! The input array y is not overwritten
   implicit real(kind=8) (a-h,o-z)
   real*8 x(0:n1,2,0:n2,2,0:n3,2)
   real*8 y (0:2*n1+1,-7:2*n2+8,0:2*n3+1)
@@ -19,9 +29,10 @@ subroutine analyse_slab(n1,n2,n3,ww,y,x)
   return
 END SUBROUTINE analyse_slab
 
+
+!> A synthesis wavelet transformation where the size of the data is allowed to grow
+!! The input array x is not overwritten
 subroutine synthese_slab(n1,n2,n3,ww,x,y)
-  ! A synthesis wavelet transformation where the size of the data is allowed to grow
-  ! The input array x is not overwritten
   implicit real(kind=8) (a-h,o-z)
   real*8 x(0:n1,2,0:n2,2,0:n3,2)
   real*8 y (0:2*n1+1,-7:2*n2+8,0:2*n3+1)
@@ -40,16 +51,9 @@ subroutine synthese_slab(n1,n2,n3,ww,x,y)
 END SUBROUTINE synthese_slab
 
 
-
-
-
-
-
-
-
+!> A analysis wavelet transformation where the size of the data is forced to shrink
+!! The input array y is overwritten
 subroutine analyse_slab_self(n1,n2,n3,y,x)
-  ! A analysis wavelet transformation where the size of the data is forced to shrink
-  ! The input array y is overwritten
   implicit none
   integer,intent(in)::n1,n2,n3
   real*8,dimension((2*n1+2)*(2*n2+16)*(2*n3+2))::x,y
@@ -87,9 +91,10 @@ subroutine synthese_slab_self(n1,n2,n3,x,y)
 
 END SUBROUTINE synthese_slab_self
 
-! Applies the magic filter matrix in slabwise BC ( no transposition)
-! The input array x is overwritten
-! this routine is modified to accept the GPU convolution if it is the case
+
+!> Applies the magic filter matrix in slabwise BC ( no transposition)
+!! The input array x is overwritten
+!! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
   use module_base
   implicit none
@@ -134,13 +139,14 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
      call convrot_n_per(n3,ndat,x,y)
 
   else
-	  stop 'the GPU part is not yet written'
+     stop 'the GPU part is not yet written'
   end if
 END SUBROUTINE convolut_magic_n_slab_self
 
-! Applies the magic filter matrix in periodic BC ( no transposition)
-! The input array x is not overwritten
-! this routine is modified to accept the GPU convolution if it is the case
+
+!> Applies the magic filter matrix in periodic BC ( no transposition)
+!! The input array x is not overwritten
+!! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
   use module_base
   implicit none
@@ -186,16 +192,14 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
      call convrot_n_per(n3,ndat,ww,y)
 
   else
-	  stop 'the GPU part is not yet written'
+      stop 'the GPU part is not yet written'
   end if
 END SUBROUTINE convolut_magic_n_slab
 
 
-
-
-! Applies the magic filter matrix transposed in periodic BC 
-! The input array x is overwritten
-! this routine is modified to accept the GPU convolution if it is the case
+!> Applies the magic filter matrix transposed in periodic BC 
+!! The input array x is overwritten
+!! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
   use module_base
   implicit none
@@ -240,19 +244,14 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
      call convrot_t_per(n3,ndat,x,y)
 
   else
-	  stop 'the GPU part is not yet written'
+      stop 'the GPU part is not yet written'
   end if
 
 END SUBROUTINE convolut_magic_t_slab_self
 
 
-
-
-
-
-
+!>  Applies the kinetic energy operator onto x to get y. Works for periodic BC
 subroutine convolut_kinetic_slab_c(n1,n2,n3,hgrid,x,y,c)
-!   applies the kinetic energy operator onto x to get y. Works for periodic BC
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -336,8 +335,8 @@ subroutine convolut_kinetic_slab_c(n1,n2,n3,hgrid,x,y,c)
 END SUBROUTINE convolut_kinetic_slab_c
 
 
+!>  Applies the kinetic energy operator onto x to get y. Works for periodic BC
 subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
-!   applies the kinetic energy operator onto x to get y. Works for periodic BC
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -386,7 +385,7 @@ subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(j   ,i2,i3)*fil(l,1)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-			ekin=ekin+x(i1,i2,i3)*tt
+            ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
      
@@ -401,7 +400,7 @@ subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(i1,i2+l ,i3)*fil(l,2)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-			ekin=ekin+x(i1,i2,i3)*tt
+            ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
      
@@ -417,7 +416,7 @@ subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(i1,i2,   j)*fil(l,3)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-			ekin=ekin+x(i1,i2,i3)*tt
+            ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
   enddo

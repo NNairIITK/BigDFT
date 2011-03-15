@@ -1,8 +1,5 @@
-!>   This subroutine is used to restart an event during the activation. It uses the files:
-!!     restart.dat
-!!     siestart2art
-!!   It then continues the event where it stopped. 
-!!   Below - subtoutine save_restart, saves the status for a restart
+!> @file
+!!  Restart routines for ART methods
 !! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
@@ -10,7 +7,13 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
+
+
+!>   This subroutine is used to restart an event during the activation. It uses the files:
+!!     restart.dat
+!!     siestart2art
+!!   It then continues the event where it stopped. 
+!!   Below - subtoutine save_restart, saves the status for a restart
 subroutine restart_states(istatus,ieventcurrent, iterations)
   use defs
   implicit none  
@@ -47,9 +50,6 @@ subroutine restart_states(istatus,ieventcurrent, iterations)
 END SUBROUTINE
 
 
-!> art/save_state
-!!
-!! 
 subroutine save_state(istatus,iter,direction)
   use defs
   implicit none  
@@ -75,4 +75,3 @@ subroutine save_state(istatus,iter,direction)
   close(FRESTART)
 
 END SUBROUTINE
-

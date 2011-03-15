@@ -1,11 +1,18 @@
-!>  Main program to calculate electronic structures
+!> @file
+!! BigDFT package performing ab initio calculation based on wavelets
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> @mainpage BigDFT Package developer documentation
+!! BigDFT is a package to do ab initio calculation based on wavelet basis set
+
+
+!>  Main program to calculate electronic structures
 program BigDFT
 
   use module_base
@@ -13,10 +20,9 @@ program BigDFT
   use module_interfaces
   use ab6_symmetry
 
-  !as a general policy, we'll have "implicit none" by assuming the same
-  !name convention as "implicit real(kind=8) (a-h,o-z)"
+  implicit none     !< As a general policy, we will have "implicit none" by assuming the same
+                    !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
-  implicit none
   character(len=*), parameter :: subname='BigDFT'
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
   integer :: ncount_bigdft
@@ -123,12 +129,12 @@ program BigDFT
            sumy=sumy+fxyz(2,iat)
            sumz=sumz+fxyz(3,iat)
         enddo
-!!$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-!!$           write(*,'(1x,a)')'the sum of the forces is'
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-!!$        end if
+!$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
+!$$           write(*,'(1x,a)')'the sum of the forces is'
+!$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+!$$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+!$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+!$$        end if
      endif
 
      call deallocate_atoms(atoms,subname) 

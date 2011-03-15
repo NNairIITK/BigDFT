@@ -1,6 +1,12 @@
-!        W(L,N_GAU)=2*INT(X^(2*N_GAU) EXP(-X^2) dx) FROM L TO INFINITY
-!        THIS IS THE SQUARED NORM OF DISCARDED SCALING FUNCTIONS THAT ARE OUTSIDE THE INTERVAL (-L,L)
-!
+!> @file
+!!        W(L,N_GAU)=2*INT(X^(2*N_GAU) EXP(-X^2) dx) FROM L TO INFINITY
+!!        THIS IS THE SQUARED NORM OF DISCARDED SCALING FUNCTIONS THAT ARE OUTSIDE THE INTERVAL (-L,L)
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 
 
          integer, parameter :: LMAX=16

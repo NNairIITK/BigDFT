@@ -1,17 +1,15 @@
-!>    Test the hamiltonian operation for GPU and compare with CPU
-!! Author:
-!!    Luigi Genovese, Matthieu Ospici
+!> @file
+!! Program of comparing of the application of the Hamiltonian for GPU and CPU
 !! @author
+!!    Luigi Genovese, Matthieu Ospici
 !!    Copyright (C) 2008 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! CREATION DATE
-!!    December 2008
-!!
-!!
+
+
+!>    Test the hamiltonian operation for GPU and compare with CPU
 program GPUham
   use module_base
   use iso_c_binding 
@@ -313,6 +311,3 @@ program GPUham
  call cublas_shutdown()
 
 end program GPUham
-
-
-

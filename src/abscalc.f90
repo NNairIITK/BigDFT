@@ -1,11 +1,12 @@
-!>  Main program for XANES calculation (absorption calculation)
-!!
+!> @file
+!! Main file for XANES calculation
 !! @author Copyright (C) 2009-2011 ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
+!>  Main program for XANES calculation (absorption calculation)
 program abscalc_main
 
   use module_base
@@ -151,8 +152,6 @@ end program abscalc_main
 
 
 !>   Routines to use abscalc as a blackbox
-!!
-!!
  subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
   use module_base
   use module_types
@@ -279,21 +278,22 @@ end program abscalc_main
 END SUBROUTINE call_abscalc
 
 
-!>   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
-!!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid
-!!                    as definition of the previous system.
-!!   inputPsiId = 2 : read waves from disk
-!!   does an electronic structure calculation. Output is the total energy and the forces 
-!!   psi, keyg, keyv and eval should be freed after use outside of the routine.
-!!   infocode -> encloses some information about the status of the run
-!!            =0 run succesfully succeded
-!!            =1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+!>   Absorption (XANES) calculation
+!!   @param inputPsiId = 
+!!          - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+!!          - 1 : read waves from argument psi, using n1, n2, n3, hgrid
+!!                as definition of the previous system.
+!!          - 2 : read waves from disk
+!!                does an electronic structure calculation. Output is the total energy and the forces 
+!!   @param psi, keyg, keyv and eval should be freed after use outside of the routine.
+!!   @param infocode -> encloses some information about the status of the run
+!!          - 0 run succesfully succeded
+!!          - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
 !!               forces may be meaningless   
-!!            =2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+!!          - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
-!!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!!
+!!          - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 !!
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)

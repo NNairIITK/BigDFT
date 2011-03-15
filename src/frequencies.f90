@@ -1,5 +1,5 @@
-!>  Calculate vibrational frequencies by frozen phonon approximation.
-!!  Use a file 'frequencies.res' to restart calculations.
+!> @file
+!!  Routines to do frequencies calculation by finite difference
 !! @author
 !!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
@@ -10,7 +10,11 @@
 !! @todo
 !!  Add higher order for finite difference
 !!  Maybe possibility to use Lanczos to determine lowest frequencies
-!!
+!!  Indicate correct formulae for entropy
+
+
+!>  Calculate vibrational frequencies by frozen phonon approximation.
+!!  Use a file 'frequencies.res' to restart calculations.
 program frequencies
 
   use module_base
@@ -592,7 +596,7 @@ contains
 END PROGRAM frequencies
 
 
-
+!> Integrate forces (not used)
 subroutine integrate_forces(iproc,energies,forces,n_moves,nat)
 
   use module_base

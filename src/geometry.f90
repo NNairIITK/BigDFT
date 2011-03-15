@@ -1,46 +1,46 @@
-!>   Define the type parameterminimization
+!> @file
+!!  Routines to do geometry optimisation
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!> Define the type parameterminimization
 module minpar
   implicit none
 
   type parameterminimization
-     !general parameters for all methods
-     character(10)::approach
-     integer::iter
-     integer::iflag
-     integer::history
-     !parameters for print information
+     !>general parameters for all methods
+     character (len=10) :: approach
+     integer :: iter
+     integer :: iflag
+     integer :: history
+     !>parameters for print information
      integer :: verbosity
-     INTEGER:: MSAVE
-     INTEGER:: MP
-     INTEGER:: LP
-     INTEGER:: MAXFEV
-     INTEGER:: FINSTEP
-     DOUBLE PRECISION:: ALPHA 
-     DOUBLE PRECISION:: GTOL
-     DOUBLE PRECISION:: XTOL
-     DOUBLE PRECISION:: FTOL
-     DOUBLE PRECISION:: STPMIN
-     DOUBLE PRECISION:: STPMAX
-     LOGICAL:: DIAGCO
-     LOGICAL:: IWRITE
+     integer :: MSAVE
+     integer :: MP
+     integer :: LP
+     integer :: MAXFEV
+     integer :: FINSTEP
+     double precision :: ALPHA 
+     double precision :: GTOL
+     double precision :: XTOL
+     double precision :: FTOL
+     double precision :: STPMIN
+     double precision :: STPMAX
+     logical :: DIAGCO
+     logical :: IWRITE
   end type parameterminimization
 
   type(parameterminimization) :: parmin
-
 
 end module minpar
 
 
 !>   Geometry optimization, parametrisation routine.
-!!
-!!
 subroutine geopt_init()
   use minpar
   implicit none
@@ -64,10 +64,7 @@ subroutine geopt_init()
 END SUBROUTINE geopt_init
 
 
-
 !>   Geometry optimization, parametrisation routine.
-!!
-!!
 subroutine geopt_set_verbosity(verbosity_)
   use minpar
   implicit none
@@ -77,10 +74,7 @@ subroutine geopt_set_verbosity(verbosity_)
 END SUBROUTINE geopt_set_verbosity
 
 
-
 !>   Geometry optimization
-!!
-!!
 subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
@@ -182,10 +176,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 END SUBROUTINE geopt
 
 
-
 !>  Molecular Dynamics
-!!
-!!
 subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -285,14 +276,13 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 END SUBROUTINE ab6md
 
 
-
+!> MODIFIED version for refined time limit on restart of global.f90.
+!! Only difference: Calls routine CPUtime(tt)
 subroutine timeleft(tt)
   use module_base
   implicit none
   real(gp), intent(out) :: tt
   !local variables
-  ! MODIFIED version for refined time limit on restart of global.f90.
-  ! Only difference: Calls routine CPUtime(tt)
   integer :: ierr
   real(kind=4) :: tcpu
   real(gp) :: timelimit
@@ -307,8 +297,6 @@ END SUBROUTINE timeleft
 
 
 !>  Conjugate gradient method
-!!
-!!
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   use module_base
   use module_types
@@ -608,10 +596,7 @@ contains
 END SUBROUTINE conjgrad
 
 
-
 !>  Steepest descent method
-!!
-!!
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
      fnrm,fnoise,in,forcemax_sw,nitsd,fluct)
   use module_base
@@ -875,9 +860,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
 END SUBROUTINE steepdes
 
 
-
+!> Variable step steepest descent
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
-! variable step steepest descent
   use module_base
   use module_types
   use minpar
@@ -1082,6 +1066,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
 END SUBROUTINE vstepsd
 
+
 subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
   use module_base
   implicit none
@@ -1098,6 +1083,7 @@ subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
   endif
 
 END SUBROUTINE convcheck
+
 
 subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
   use module_base
@@ -1174,7 +1160,7 @@ subroutine updatefluctsum(nat,fnoise,fluct)
 END SUBROUTINE updatefluctsum
 
 
-!should we evaluate the translational force also with blocked atoms?
+!> Should we evaluate the translational force also with blocked atoms?
 subroutine transforce(at,fxyz,sumx,sumy,sumz)
   use module_base
   use module_types
@@ -1198,7 +1184,7 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
 END SUBROUTINE transforce
 
 
-!should we evaluate the translational force also with blocked atoms?
+!> Should we evaluate the translational force also with blocked atoms?
 subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   use module_base
   use module_types
@@ -1229,8 +1215,6 @@ END SUBROUTINE transforce_forfluct
 
 !>  DIIS relax. Original source from ART from N. Mousseau.
 !!  Adaptations to BigDFT by D. Caliste.
-!!
-!!
 subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -1427,12 +1411,9 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 END SUBROUTINE rundiis
 
 
- 
 !>   Driver for the LBFGS routine found on the Nocedal Homepage
 !!   The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
 !!   This is helpfull when we are looking for the source of problems during BFGS runs
-!!
-!!
 subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail) 
   use module_base
   use module_types
@@ -1666,9 +1647,10 @@ subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
 END SUBROUTINE atomic_copymoving_backward
 
 
-!     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A  TABOO file
+!>     This file contains the LBFGS algorithm and supporting routines
+!!@todo     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A TABOO file
+
 !     ----------------------------------------------------------------------
-!     This file contains the LBFGS algorithm and supporting routines
 !
 !     ****************
 !     LBFGS SUBROUTINE
