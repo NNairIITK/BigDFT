@@ -270,11 +270,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   rbuf=in%rbuf
   ncongt=in%ncongt
   nspin=in%nspin
-  if (abs(in%output_grid) > 10) then
-     write(gridformat, "(A)") ".etsf"
-  else
-     write(gridformat, "(A)") ".cube"
-  end if
+  write(gridformat, "(A)") ""
+  select case (in%output_grid_format)
+     case (OUTPUT_GRID_FORMAT_ETSF)
+        write(gridformat, "(A)") ".etsf"
+     case (OUTPUT_GRID_FORMAT_CUBE)
+        write(gridformat, "(A)") ".bin"
+  end select
   write(wfformat, "(A)") ""
   select case (in%output_wf_format)
      case (WF_FORMAT_ETSF)
@@ -573,7 +575,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
-  case(-1000)
+  case(INPUT_PSI_EMPTY)
      !allocate fake psit and hpsi
      allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
@@ -619,7 +621,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         !end do
      end if
 
-  case(-2)
+  case(INPUT_PSI_RANDOM)
 
      if (iproc == 0) then
         write( *,'(1x,a)')&
@@ -644,7 +646,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
-  case(-1)
+  case(INPUT_PSI_CP2K)
 
      !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
@@ -677,7 +679,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
      orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
 
-  case(0)
+  case(INPUT_PSI_LCAO)
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc, atoms,&
@@ -687,7 +689,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      if (nvirt > norbv) then
         nvirt = norbv
      end if
-  case(1)
+  case(INPUT_PSI_MEMORY_WVL)
      !these parts should be reworked for the non-collinear spin case
 
      !restart from previously calculated wavefunctions, in memory
@@ -705,7 +707,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      deallocate(psi_old,stat=i_stat)
      call memocc(i_stat,i_all,'psi_old',subname)
 
-  case(2)
+  case(INPUT_PSI_DISK_WVL)
      !restart from previously calculated wavefunctions, on disk
      if (iproc == 0) then
         write( *,'(1x,a)')&
@@ -720,7 +722,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
      end if
 
-  case(11)
+  case(INPUT_PSI_MEMORY_GAUSS)
      !restart from previously calculated gaussian coefficients
      if (iproc == 0) then
         write( *,'(1x,a)')&
@@ -729,7 +731,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      call restart_from_gaussians(iproc,nproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
 
-  case(12)
+  case(INPUT_PSI_DISK_GAUSS)
      !reading wavefunctions from gaussian file
      if (iproc == 0) then
         write( *,'(1x,a)')&
@@ -753,11 +755,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   case default
 
      !     if (iproc == 0) then
-     write( *,'(1x,a)')'ERROR:values of inputPsiId must be integers from -2 to  2'
-     write( *,'(1x,a)')'                                         or from 10 to 12'
-     write( *,'(1x,a,i0)')'                               while we found',in%inputPsiId
-     !     end if
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
+     call input_psi_help()
      stop
+     !     end if
 
   end select
 
@@ -1220,12 +1221,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      else
         call  writemywaves(iproc,"wavefunction" // trim(wfformat), &
              & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psi)
-        if (verbose >0) write( *,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
      end if
   end if
 
   !plot the ionic potential, if required by output_grid
-  if (mod(abs(in%output_grid), 10) == 2 .and. DoLastRunThings) then
+  if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
      if (iproc == 0) write(*,*) 'writing ionic_potential' // gridformat
      call plot_density('ionic_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1277,7 +1277,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
 
      !plot the density on the density.pot file
-     if ((abs(in%output_grid) >= 1 .or. in%nvacancy /=0) .and. DoLastRunThings) then
+     if ((in%output_grid >= OUTPUT_GRID_DENSITY .or. in%nvacancy /=0) .and. DoLastRunThings) then
         if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
 
         call plot_density('electronic_density' // gridformat,&
@@ -1308,7 +1308,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           n1i,n2i,n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.)
 
      !plot also the electrostatic potential
-     if (mod(abs(in%output_grid), 10) == 2 .and. DoLastRunThings) then
+     if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
         if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
         call plot_density('hartree_potential' // gridformat, &
              & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -1557,6 +1557,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         orbsv%norbp=0
      end if
      call local_analysis(iproc,nproc,hx,hy,hz,in,atoms,rxyz,shift,Glr,orbs,orbsv,psi,psivirt)
+  else if (DoLastRunThings .and. verbose > 2) then
+     ! Do a full DOS calculation.
+     call global_analysis(iproc, nproc, orbs)
   end if
 
   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -1610,7 +1613,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,rbuf,orbs,&
           Glr,nlpspd,ncongt,pot,hx,rxyz,radii_cf,crmult,frmult,in%nspin,&
-          proj,psi,in%output_grid,ekin_sum,epot_sum,eproj_sum)
+          proj,psi,(in%output_grid /= 0),ekin_sum,epot_sum,eproj_sum)
 
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)

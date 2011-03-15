@@ -71,13 +71,6 @@ module module_defs
   real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       ! Boltzmann constant in Ha/K
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass
 
-  !> Occupation parameters.
-  integer, parameter :: SMEARING_DIST_ERF   = 1
-  integer, parameter :: SMEARING_DIST_FERMI = 2
-  character(len = 11), dimension(2), parameter :: smearing_names =  (/ "Error func.", "Fermi      " /)
-  integer, parameter :: occopt = SMEARING_DIST_ERF
-
-
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real,mpiallred_double

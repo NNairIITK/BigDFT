@@ -769,8 +769,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 !!$
 !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
-     if (abs(in%output_grid)==2) then
-        if (in%output_grid==2) then
+     if (in%output_grid == OUTPUT_GRID_DENSPOT) then
+        if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
           if (iproc == 0) write(*,*) 'writing local_potential.pot'
            call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&

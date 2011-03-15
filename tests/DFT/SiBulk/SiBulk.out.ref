@@ -27,7 +27,6 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Reading atomic input positions from file:posinp.xyz
- ciao
  File 'myparameters' is missing... using default values:
    Input guess: direct diagonalization of Hamiltonian
    Orthogonalization method: Cholesky
@@ -38,8 +37,6 @@
 
  ---------------------------------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
- ciao
- ciao
  Bound. C.= P             | No fixed atom            | N. sym.   = disabled    
  N. types =     1         |                          | Sp. group = disabled    
  N. atoms =     8         |                          | Virt. orb.=     3 orb.  

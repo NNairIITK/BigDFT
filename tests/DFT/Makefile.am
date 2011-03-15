@@ -149,11 +149,11 @@ $(PSPS):
         cd $$dir && $(MAKE) -f ../Makefile $$tgts
 	touch $@
 
-%.recheck:
+%.recheck: %.in
 	@dir=`basename $@ .recheck` ; \
         reps="$$dir/*.report" ; \
 	for r in $$reps ; do \
-	  if grep -qs "failed" $$r ; then \
+	  if ! grep -qs "succeeded" $$r ; then \
 	    target=` basename $$r .report` ; \
 	    $(MAKE) $*".in" && rm -f $*".in" ; \
 	    rm -f $$dir/$$target".out" $$dir/$$target".report" ; \

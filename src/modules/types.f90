@@ -15,17 +15,57 @@ module module_types
   use module_base, only : gp,wp,dp,tp
   implicit none
 
+  !> Input wf parameters.
+  integer, parameter :: INPUT_PSI_EMPTY        = -1000
+  integer, parameter :: INPUT_PSI_RANDOM       = -2
+  integer, parameter :: INPUT_PSI_CP2K         = -1
+  integer, parameter :: INPUT_PSI_LCAO         = 0
+  integer, parameter :: INPUT_PSI_MEMORY_WVL   = 1
+  integer, parameter :: INPUT_PSI_DISK_WVL     = 2
+  integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
+  integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
+  integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
+  integer, dimension(9), parameter :: input_psi_values = &
+       & (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
+       & INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
+       & INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS /)
+
+  !> Output wf parameters.
   integer, parameter :: WF_FORMAT_NONE   = 0
   integer, parameter :: WF_FORMAT_PLAIN  = 1
   integer, parameter :: WF_FORMAT_BINARY = 2
   integer, parameter :: WF_FORMAT_ETSF   = 3
+  integer, parameter :: WF_N_FORMAT      = 4
+  character(len = 12), dimension(0:WF_N_FORMAT-1), parameter :: wf_format_names = &
+       & (/ "none        ", "plain text  ", "Fortran bin.", "ETSF        " /)
+
+  !> Output grid parameters.
+  integer, parameter :: OUTPUT_GRID_NONE    = 0
+  integer, parameter :: OUTPUT_GRID_DENSITY = 1
+  integer, parameter :: OUTPUT_GRID_DENSPOT = 2
+  character(len = 12), dimension(0:2), parameter :: output_grid_names = &
+       & (/ "none        ", "density     ", "dens. + pot." /)
+  integer, parameter :: OUTPUT_GRID_FORMAT_TEXT = 0
+  integer, parameter :: OUTPUT_GRID_FORMAT_ETSF = 1
+  integer, parameter :: OUTPUT_GRID_FORMAT_CUBE = 2
+  character(len = 4), dimension(0:2), parameter :: output_grid_format_names = &
+       & (/ "text", "ETSF", "cube" /)
+
+  !> Occupation parameters.
+  integer, parameter :: SMEARING_DIST_ERF   = 1
+  integer, parameter :: SMEARING_DIST_FERMI = 2
+  character(len = 11), dimension(2), parameter :: smearing_names = &
+       & (/ "Error func.", "Fermi      " /)
+  ! To be moved as an input parameter later
+  integer, parameter :: occopt = SMEARING_DIST_ERF
+
 
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
-     integer :: output_grid, dispersion,last_run,output_wf_format
+     integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
      integer :: nvacancy,verbosity
@@ -721,9 +761,105 @@ END SUBROUTINE deallocate_orbs
     type(locreg_descriptors) :: lr
 
     call deallocate_wfd(lr%wfd,subname)
-    
+
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
 
   END SUBROUTINE deallocate_lr
+
+  function input_psi_names(id)
+    integer, intent(in) :: id
+    character(len = 14) :: input_psi_names
+
+    select case(id)
+    case(INPUT_PSI_EMPTY)
+       write(input_psi_names, "(A)") "empty"
+    case(INPUT_PSI_RANDOM)
+       write(input_psi_names, "(A)") "random"
+    case(INPUT_PSI_CP2K)
+       write(input_psi_names, "(A)") "CP2K"
+    case(INPUT_PSI_LCAO)
+       write(input_psi_names, "(A)") "LCAO"
+    case(INPUT_PSI_MEMORY_WVL)
+       write(input_psi_names, "(A)") "wvl. in mem."
+    case(INPUT_PSI_DISK_WVL)
+       write(input_psi_names, "(A)") "wvl. on disk"
+    case(INPUT_PSI_LCAO_GAUSS)
+       write(input_psi_names, "(A)") "LCAO + gauss."
+    case(INPUT_PSI_MEMORY_GAUSS)
+       write(input_psi_names, "(A)") "gauss. in mem."
+    case(INPUT_PSI_DISK_GAUSS)
+       write(input_psi_names, "(A)") "gauss. on disk"
+    case default
+       write(input_psi_names, "(A)") "Error"
+    end select
+  end function input_psi_names
+
+  subroutine input_psi_help()
+    integer :: i
+
+    write(*, "(1x,A)") "Available values of inputPsiId are:"
+    do i = 1, size(input_psi_values)
+       write(*, "(1x,A,I5,A,A)") " | ", input_psi_values(i), &
+            & " - ", input_psi_names(input_psi_values(i))
+    end do
+  end subroutine input_psi_help
+
+  function input_psi_validate(id)
+    integer, intent(in) :: id
+    logical :: input_psi_validate
+
+    integer :: i
+
+    input_psi_validate = .false.
+    do i = 1, size(input_psi_values)
+       if (id == input_psi_values(i)) then
+          input_psi_validate = .true.
+          return
+       end if
+    end do
+  end function input_psi_validate
+
+  subroutine output_wf_format_help()
+    integer :: i
+
+    write(*, "(1x,A)") "Available values of output_wf are:"
+    do i = 0, size(wf_format_names) - 1
+       write(*, "(1x,A,I5,A,A)") " | ", i, &
+            & " - ", wf_format_names(i)
+    end do
+  end subroutine output_wf_format_help
+
+  function output_wf_format_validate(id)
+    integer, intent(in) :: id
+    logical :: output_wf_format_validate
+
+    output_wf_format_validate = (id >= 0 .and. id < size(wf_format_names))
+  end function output_wf_format_validate
+
+  subroutine output_grid_help()
+    integer :: i, j
+
+    write(*, "(1x,A)") "Available values of output_grid are:"
+    do i = 0, size(output_grid_format_names) - 1
+       do j = 0, size(output_grid_names) - 1
+          if (j == 0 .and. i == 0) then
+             write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
+                  & " - ", trim(output_grid_names(j)), "."
+          else if (j /= 0) then
+             write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
+                  & " - ", trim(output_grid_names(j)), &
+                  & " in ", trim(output_grid_format_names(i)), " format."
+          end if
+       end do
+    end do
+  end subroutine output_grid_help
+
+  function output_grid_validate(id, fid)
+    integer, intent(in) :: id, fid
+    logical :: output_grid_validate
+
+    output_grid_validate = (id >= 0 .and. id < size(output_grid_names)) .and. &
+         & (fid >= 0 .and. fid < size(output_grid_format_names))
+  end function output_grid_validate
 
 end module module_types

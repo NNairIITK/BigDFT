@@ -415,3 +415,21 @@ subroutine shell_name(l,m,name)
   end select
 
 END SUBROUTINE shell_name
+
+!>    Perform a total DOS output.
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+subroutine global_analysis(iproc,nproc,orbs)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+
+  
+end subroutine global_analysis
