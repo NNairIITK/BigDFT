@@ -1649,12 +1649,13 @@ END SUBROUTINE atomic_copymoving_backward
 
 !>     This file contains the LBFGS algorithm and supporting routines
 !!@todo     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A TABOO file
-!!     ----------------------------------------------------------------------
-!!
-!!     ****************
-!!     LBFGS SUBROUTINE
-!!     ****************
-!!
+
+!     ----------------------------------------------------------------------
+!
+!     ****************
+!     LBFGS SUBROUTINE
+!     ****************
+!
 !      SUBROUTINE LBFGS(IPROC,IN,N,M,X,F,G,DIAGCO,DIAG,IPRINT,EPS,XTOL,W,IFLAG)
 !      SUBROUTINE LBFGS(IPROC,IN,PAR,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
       SUBROUTINE LBFGS(IPROC,IN,PARMIN,N,M,X,F,G,DIAG,IPRINT,EPS,W,IFLAG)
