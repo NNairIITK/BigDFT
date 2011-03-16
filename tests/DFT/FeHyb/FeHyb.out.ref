@@ -250,7 +250,8 @@ Exact Exchange Energy: -3.08074093273E+00
  done. ekin_sum,eks:      67.2368749486      67.1769441307
  ekin_sum,epot_sum,eproj_sum  6.72368749486E+01 -6.99863510523E+01 -2.15327773296E+01
     ehart,   eexcu,    vexcu  1.05228491322E+02 -9.97170173143E+00 -1.29776453512E+01
- Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
+ Input Wavefunctions Orthogonalization: 
+ Overlap Matrix... Direct diagonalization...
  evale(   1,u)= -3.77935367778187E+00            evale(   1,d)= -3.56587442572571E+00
  evale(   2,u)= -2.51918550031853E+00            evale(   2,d)= -2.24397797071027E+00
  evale(   3,u)= -2.44281988818628E+00            evale(   3,d)= -2.23541555091189E+00

@@ -686,7 +686,6 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   real(wp), dimension(2) :: preval
   real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
   real(gp) :: HLIGgap
-integer:: j
 
 !if(iproc==0) write(30100,*) hamovr(1:ndim_hamovr,1)
 !if(iproc==0) write(30110,*) hamovr(1:ndim_hamovr,2)
@@ -950,9 +949,8 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
   integer, parameter :: iunit=1978
   integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj
   integer :: ncplx,ncomp,i,ispsiv
+  integer:: j,iproc
 
-
-integer:: j,l,iproc
   if(iproc==0) then
       do j=1,size(hamovr)
           !write(100001,*) hamovr(j)
