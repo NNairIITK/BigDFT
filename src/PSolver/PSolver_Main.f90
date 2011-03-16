@@ -1,72 +1,77 @@
-!>    Calculate the Hartree potential by solving Poisson equation 
-!!    @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
-!!    from a given @f$\rho@f$, 
-!!    for different boundary conditions an for different data distributions.
-!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
+!> @file
+!!    Main routine to perform Poisson solver calculation
 !! @author
+!!    Creation date: February 2007
+!!    Luigi Genovese
 !!    Copyright (C) 2002-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 !!
-!! SYNOPSIS
-!!    geocode  Indicates the boundary conditions (BC) of the problem:
-!!            'F' free BC, isolated systems.
+!!  @param geocode Indicates the boundary conditions (BC) of the problem:
+!!          - 'F' free BC, isolated systems.
 !!                The program calculates the solution as if the given density is
 !!                "alone" in R^3 space.
-!!            'S' surface BC, isolated in y direction, periodic in xz plane                
+!!          - 'S' surface BC, isolated in y direction, periodic in xz plane                
 !!                The given density is supposed to be periodic in the xz plane,
 !!                so the dimensions in these direction mus be compatible with the FFT
 !!                Beware of the fact that the isolated direction is y!
-!!            'P' periodic BC.
+!!          - 'P' periodic BC.
 !!                The density is supposed to be periodic in all the three directions,
 !!                then all the dimensions must be compatible with the FFT.
 !!                No need for setting up the kernel.
-!!    datacode Indicates the distribution of the data of the input/output array:
-!!            'G' global data. Each process has the whole array of the density 
-!!                which will be overwritten with the whole array of the potential
-!!            'D' distributed data. Each process has only the needed part of the density
+!!  @param datacode Indicates the distribution of the data of the input/output array:
+!!          - 'G' global data. Each process has the whole array of the density 
+!!                which will be overwritten with the whole array of the potential.
+!!          - 'D' distributed data. Each process has only the needed part of the density
 !!                and of the potential. The data distribution is such that each processor
 !!                has the xy planes needed for the calculation AND for the evaluation of the 
 !!                gradient, needed for XC part, and for the White-Bird correction, which
 !!                may lead up to 8 planes more on each side. Due to this fact, the information
 !!                between the processors may overlap.
-!!    nproc       number of processors
-!!    iproc       label of the process,from 0 to nproc-1
-!!    n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
+!!  @param nproc   Number of processors
+!!  @param iproc   Label of the process,from 0 to nproc-1
+!!  @param n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
 !!                datacode is in 'G' or in 'D' position.
-!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
+!!  @param hx,hy,hz grid spacings. For the isolated BC case for the moment they are supposed to 
 !!                be equal in the three directions
-!!    rhopot      main input/output array.
+!!  @param rhopot  main input/output array.
 !!                On input, it represents the density values on the grid points
 !!                On output, it is the Hartree potential
-!!    karray      kernel of the poisson equation. It is provided in distributed case, with
+!!  @param karray  kernel of the poisson equation. It is provided in distributed case, with
 !!                dimensions that are related to the output of the PS_dim4allocation routine
 !!                it MUST be created by following the same geocode as the Poisson Solver.
-!!    pot_ion     additional external potential that is added to the output, 
+!!  @param pot_ion additional external potential that is added to the output, 
 !!                when the XC parameter ixc/=0 and sumpion=.true.
 !!                When sumpion=.true., it is always provided in the distributed form,
 !!                clearly without the overlapping terms which are needed only for the XC part
-!!    eh          Hartree energy
-!!    offset      Total integral on the supercell of the final potential on output
+!!  @param eh     Hartree energy
+!!  @param offset  Total integral on the supercell of the final potential on output
 !!                To be used only in the periodic case, ignored for other boundary conditions.
-!!    sumpion     logical value which states whether to sum pot_ion to the final result or not
-!!                if sumpion==.true. rhopot will be the Hartree potential + pot_ion+vxci
-!!                                   pot_ion will be untouched
-!!                if sumpion==.false. rhopot will be only the Hartree potential
-!!                                    pot_ion will be the XC potential vxci
+!!  @param sumpion logical value which states whether to sum pot_ion to the final result or not
+!!                - if sumpion==.true. rhopot will be the Hartree potential + pot_ion+vxci
+!!                                     pot_ion will be untouched
+!!                - if sumpion==.false. rhopot will be only the Hartree potential
+!!                                      pot_ion will be the XC potential vxci
+!!  @param quiet  Optional argument to avoid output writings
+!!
 !! @warning
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-!! Author:
-!!    Luigi Genovese
-!! CREATION DATE
-!!    February 2007
-!! 
+!!
+!! @todo
+!!    Wire boundary condition is missing
+
+
+!>    Calculate the Hartree potential by solving Poisson equation 
+!!    @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
+!!    from a given @f$\rho@f$, 
+!!    for different boundary conditions an for different data distributions.
+!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
 subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,offset,sumpion,&
      quiet) !optional argument

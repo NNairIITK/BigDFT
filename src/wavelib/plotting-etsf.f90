@@ -1,6 +1,13 @@
+!> @file
+!!  Routines to plot in ETSF format
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
 !>   Write a field in the ISF basis in the ETSF format
-!!
-!!
 subroutine write_etsf_density(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
      x, nspin)
   use module_base
@@ -199,7 +206,6 @@ END SUBROUTINE write_etsf_density
 
 
 !>   Read a field in the ISF basis in the ETSF format
-!!
 subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz, iatypes, znucl)
   use module_base
@@ -345,4 +351,3 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      stop
   end if
 END SUBROUTINE read_etsf
-

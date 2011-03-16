@@ -85,7 +85,8 @@ if bigdft:
             or "~W" in line \
             or "for the array" in line \
             or "WRITING WAVES" in line \
-            or "READING WAVES" in line
+            or "READING WAVES" in line \
+            or "average CG stepsize" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
     def line_junk(line):

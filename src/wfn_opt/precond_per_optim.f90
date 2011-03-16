@@ -1,12 +1,15 @@
-!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-!!   x is the right hand side on input and the solution on output
+!> @file
+!!  Optimized routines to precondition wavefunctions
 !! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
+ 
+
+!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!!   x is the right hand side on input and the solution on output
 subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hx,hy,hz,x)
   use module_base
@@ -183,12 +186,9 @@ contains
 END SUBROUTINE precong_per
 
 
-
 !>   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
 !!   x_c is the right hand side on input and the solution on output
 !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
-!!
-!! 
 subroutine prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,&
      kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
@@ -224,12 +224,9 @@ subroutine prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 END SUBROUTINE prec_fft_c
 
 
-
 !>   Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
 !!   x_c is the right hand side on input and the solution on output
 !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
-!!
-!! 
 subroutine prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,&
      kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
@@ -269,12 +266,11 @@ subroutine prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 END SUBROUTINE prec_fft_fast
 
 
-
+!> Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!! hpsi is the right hand side on input and the solution on output
 subroutine prec_fft(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi)
-  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-  ! hpsi is the right hand side on input and the solution on output
   use module_base
   implicit none 
   integer, intent(in) :: n1,n2,n3
@@ -365,8 +361,6 @@ END SUBROUTINE prec_fft
 
 !>  Applies the operator (KE+cprecr*I)*x=y
 !!  array x is input, array y is output
-!!
-!!
 subroutine apply_hp(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psifscf,ww)
@@ -398,12 +392,11 @@ subroutine apply_hp(n1,n2,n3, &
 END SUBROUTINE apply_hp
 
 
-
+!> Applies the operator (KE+cprecr*I)*x=y
+!! array x is input, array y is output
 subroutine apply_hp_slab_k(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,kx,ky,kz,x,y,psifscf,ww,scal)
-  ! Applies the operator (KE+cprecr*I)*x=y
-  ! array x is input, array y is output
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -452,11 +445,11 @@ subroutine apply_hp_slab_k(n1,n2,n3, &
 END SUBROUTINE apply_hp_slab_k
 
 
+!> Applies the operator (KE+cprecr*I)*x=y
+!! array x is input, array y is output
 subroutine apply_hp_per_k(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,k1,k2,k3,x,y,psifscf,ww,scal)
-  ! Applies the operator (KE+cprecr*I)*x=y
-  ! array x is input, array y is output
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -500,9 +493,8 @@ subroutine apply_hp_per_k(n1,n2,n3, &
 END SUBROUTINE apply_hp_per_k
 
 
-
+!> multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 subroutine wscal_f(mvctr_f,psi_f,hx,hy,hz,c)
-  ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
   use module_base
   implicit none
   integer,intent(in)::mvctr_f
@@ -539,8 +531,9 @@ subroutine wscal_f(mvctr_f,psi_f,hx,hy,hz,c)
 
 END SUBROUTINE wscal_f
 
+
+!> multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 subroutine wscal_per_self(mvctr_c,mvctr_f,scal,psi_c,psi_f)
-  ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
   use module_base
   implicit none
   integer,intent(in)::mvctr_c,mvctr_f
@@ -565,8 +558,9 @@ subroutine wscal_per_self(mvctr_c,mvctr_f,scal,psi_c,psi_f)
 
 END SUBROUTINE wscal_per_self
 
+
+!> multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 subroutine wscal_per(mvctr_c,mvctr_f,scal,psi_c_in,psi_f_in,psi_c_out,psi_f_out)
-  ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
   use module_base
   implicit none
   integer,intent(in)::mvctr_c,mvctr_f
@@ -593,8 +587,8 @@ subroutine wscal_per(mvctr_c,mvctr_f,scal,psi_c_in,psi_f_in,psi_c_out,psi_f_out)
 END SUBROUTINE wscal_per
 
 
+!> initialization for the array scal in the subroutine wscal_per  
 subroutine wscal_init_per(scal,hx,hy,hz,c)
-  ! initialization for the array scal in the subroutine wscal_per  
   use module_base
   implicit none
   real(wp), intent(in) :: c,hx,hy,hz

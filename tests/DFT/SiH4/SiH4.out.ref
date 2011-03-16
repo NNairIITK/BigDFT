@@ -98,7 +98,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -141,7 +141,8 @@
  Hamiltonian application... done. ekin_sum,eks:       5.0237812704       5.0225194919
  ekin_sum,epot_sum,eproj_sum  5.02378127043E+00 -7.89137339235E+00  8.74950283601E-01
     ehart,   eexcu,    vexcu  1.12186349378E+01 -2.67140759016E+00 -3.44314794589E+00
- Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
+ Input Wavefunctions Orthogonalization: 
+ Overlap Matrix... Direct diagonalization...
  evale(1)= -4.98848660956293E-01 <-
  evale(2)= -2.96722074331401E-01 <-
  evale(3)= -2.96722074331391E-01 <-
@@ -314,7 +315,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -430,7 +431,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -564,7 +565,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -689,7 +690,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -812,7 +813,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -937,7 +938,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -1060,7 +1061,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22

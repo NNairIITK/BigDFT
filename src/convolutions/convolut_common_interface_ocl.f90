@@ -1,3 +1,13 @@
+!> @file
+!!  Interface routines to do GPU convolution with OpenCL
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 subroutine release_acceleration_OCL(GPU)
   use module_base
   use module_types
@@ -6,6 +16,7 @@ subroutine release_acceleration_OCL(GPU)
   call ocl_clean_command_queue(GPU%queue)
   call ocl_clean(GPU%context)
 END SUBROUTINE release_acceleration_OCL
+
 
 subroutine init_acceleration_OCL(GPU)
   use module_base
@@ -19,6 +30,7 @@ subroutine init_acceleration_OCL(GPU)
   call ocl_create_command_queue_id(GPU%queue,GPU%context,GPU%id_proc)
   call init_event_list
 END SUBROUTINE init_acceleration_OCL
+
 
 subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   use module_base
@@ -693,5 +705,3 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
   endif
 
 END SUBROUTINE local_partial_density_OCL
-
-
