@@ -5,6 +5,7 @@
 #include <pmmintrin.h>
 #include <assert.h>
 #include <math.h>
+#include <papi.h>
 
 const double filt[] __attribute__ ((aligned (16))) = { 8.4334247333529341094733325815816e-7,
                        -0.1290557201342060969516786758559028e-4,
@@ -96,6 +97,7 @@ inline void conv_gliding(unsigned int n, double const * source0, double const * 
   __m128d S8,S9,S10,S11,S12,S13,S14,S15;
   __m128d F;
   __m128d D;
+  S0=S1=S2=S3=S4=S5=S6=S7=S8=S9=S10=S11=S12=S13=S14=S15=_mm_setzero_pd();
 
   microloop_nostore(source0,source1,0,D,F,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15);
   microloop_nostore(source0,source1,1,D,F,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0);
@@ -1681,12 +1683,199 @@ void conv_ref(double const * source, double * dest){
   }
 }
 
+int read_print_stop_counters( long long int *counters, char **event_name, int event_number){
+    int i;
+    int error;
+
+    error = PAPI_stop_counters(counters,event_number);
+    for(i=0; i<event_number; i++)
+      printf("%s : %lld\n",event_name[i],counters[i]);
+    return error;
+}
+
 #define FLOP (BUFFER_WIDTH*BUFFER_DEPTH)*2*FILTER_SIZE
+#define EVENT_NUMBER 6
+
+inline void check_conv(void (*func) (size_t,size_t, double const *, double *), double const * source, double * dest, double * check, char const * description) {
+    int event_number = EVENT_NUMBER;
+    long long int counters[EVENT_NUMBER];
+/*    int events[EVENT_NUMBER] = {PAPI_L1_TCM,PAPI_L2_TCM,PAPI_L3_TCM,
+                                PAPI_L2_TCA,PAPI_L3_TCA,
+                                PAPI_TOT_CYC,PAPI_TOT_INS};
+    char * event_name[] = { "PAPI_L1_TCM","PAPI_L2_TCM","PAPI_L3_TCM",
+                            "PAPI_L2_TCA","PAPI_L3_TCA",
+                            "PAPI_TOT_CYC","PAPI_TOT_INS"};*/
+    int events[EVENT_NUMBER] = {PAPI_RES_STL, PAPI_BR_MSP, PAPI_BR_PRC, PAPI_BR_CN,
+                                PAPI_TOT_INS, PAPI_TOT_CYC};
+    char * event_name[] = { "PAPI_RES_STL", "PAPI_BR_MSP", "PAPI_BR_PRC", "PAPI_BR_CN", 
+                            "PAPI_TOT_INS", "PAPI_TOT_CYC"};
+
+    unsigned long long int t1,t2;
+    unsigned int i,j;
+
+    PAPI_start_counters(events,event_number);
+    nanosec(&t1);
+    (*func)(BUFFER_DEPTH,BUFFER_WIDTH,source,dest);
+    nanosec(&t2);
+    read_print_stop_counters(counters, event_name, event_number);
+
+
+    double br;
+    br=0;
+    for(i=0; i<BUFFER_WIDTH;i++) {
+      for(j=0;j<BUFFER_DEPTH;j++) {
+        br+=dest[i*BUFFER_DEPTH+j];
+        if(fabs(dest[i*BUFFER_DEPTH+j]-check[i*BUFFER_DEPTH+j])>1e-10){
+          printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , dest[i*BUFFER_DEPTH+j], check[i*BUFFER_DEPTH+j], fabs(dest[i*BUFFER_DEPTH+j]-check[i*BUFFER_DEPTH+j]));
+        }
+      }
+    }
+    printf("result %10s %le, duration %10llu ns, FLOP %d, GFLOPS %lf\n", description, br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
+}
+
+inline void conv_16_line_bis_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_16_line_bis(n,&source[i*(n+FILTER_SIZE)],&dest[i*n]);
+  }
+}
+inline void conv_2_line_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_2_line(n,&source[i*(n+FILTER_SIZE)],&dest[i*n]);
+  }
+}
+inline void conv_2_line_fused_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_2_line_fused(n,&source[i*(n+FILTER_SIZE)],&dest[i*n]);
+  }
+}
+inline void conv_2x2_line_fused_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i+=2){
+    conv_2x2_line_fused(n,&source[i*(n+FILTER_SIZE)], &source[(i+1)*(n+FILTER_SIZE)],
+                          &dest[i*n], &dest[(i+1)*n]);
+  }
+}
+inline void conv_4_line_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_4_line(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_4_line_fused_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_4_line_fused(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_2x4_line_fused_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i+=2){
+    conv_2x4_line_fused(n,&source[i*(n+FILTER_SIZE)], &source[(i+1)*(n+FILTER_SIZE)],
+                          &dest[i*n], &dest[(i+1)*n]);
+  }
+}
+inline void conv_4x2_line_fused_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i+=4){
+    conv_4x2_line_fused(n,&source[i*(n+FILTER_SIZE)], &source[(i+1)*(n+FILTER_SIZE)], &source[(i+2)*(n+FILTER_SIZE)], &source[(i+3)*(n+FILTER_SIZE)],
+                          &dest[i*n], &dest[(i+1)*n], &dest[(i+2)*n], &dest[(i+3)*n]);
+  }
+}
+inline void conv_6_line_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_6_line(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_6_line_fused_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_6_line_fused(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_8_line_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_8_line(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_8_line_fused_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_8_line_fused(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_10_line_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_10_line(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_10_line_fused_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_10_line_fused(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_12_line_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_12_line(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_12_line_fused_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_12_line_fused(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_14_line_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_14_line(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_16_line_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_16_line(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_18_line_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i++){
+    conv_18_line(n,&source[i*(n+FILTER_SIZE)], &dest[i*n]);
+  }
+}
+inline void conv_gliding_w(size_t n, size_t ndat, double const *source, double *dest){
+  int i;
+  for(i=0;i<ndat;i+=2){
+    conv_gliding(n,&source[i*(n+FILTER_SIZE)], &source[(i+1)*(n+FILTER_SIZE)],
+                          &dest[i*n], &dest[(i+1)*n]);
+  }
+}
 int main(void) {
+  int event_number = EVENT_NUMBER;
+  long long int counters[EVENT_NUMBER];
+/*  int events[EVENT_NUMBER] = {PAPI_L1_TCM,PAPI_L2_TCM,PAPI_L3_TCM,
+                              PAPI_L2_TCA,PAPI_L3_TCA,
+                              PAPI_TOT_CYC,PAPI_TOT_INS};
+  char * event_name[] = { "PAPI_L1_TCM","PAPI_L2_TCM","PAPI_L3_TCM",
+                         "PAPI_L2_TCA","PAPI_L3_TCA",
+                         "PAPI_TOT_CYC","PAPI_TOT_INS"};*/
+  int events[EVENT_NUMBER] = {PAPI_RES_STL, PAPI_BR_MSP, PAPI_BR_PRC, PAPI_BR_CN,
+                              PAPI_TOT_INS, PAPI_TOT_CYC};
+  char * event_name[] = { "PAPI_RES_STL", "PAPI_BR_MSP", "PAPI_BR_PRC", "PAPI_BR_CN", 
+                              "PAPI_TOT_INS", "PAPI_TOT_CYC"};
+
   void * t;
   double * a;
   double * b;
   double * c;
+  double br;
   int err = posix_memalign(&t,16,BUFFER_WIDTH*(BUFFER_DEPTH+FILTER_SIZE)*sizeof(double));
   if(err){    printf("memalign error : %i\n",err);    exit(0);  }
   a=t;
@@ -1712,326 +1901,26 @@ int main(void) {
       conv_ref(&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&c[i*BUFFER_DEPTH]);
   }
   unsigned long long int t1,t2;
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_16_line_bis(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  double br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result  16b %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
 
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_2_line(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result  2eo %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_2_line_fused(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result   2f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i+=2) {
-      conv_2x2_line_fused(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&a[(i+1)*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH],&b[(i+1)*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result 2x2f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_4_line(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result  4eo %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_4_line_fused(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result   4f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i+=2) {
-      conv_2x4_line_fused(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&a[(i+1)*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH],&b[(i+1)*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result 2x4f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i+=4) {
-      conv_4x2_line_fused(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&a[(i+1)*(BUFFER_DEPTH+FILTER_SIZE)],&a[(i+2)*(BUFFER_DEPTH+FILTER_SIZE)],&a[(i+3)*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH],&b[(i+1)*BUFFER_DEPTH],&b[(i+2)*BUFFER_DEPTH],&b[(i+3)*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result 4x2f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_6_line(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result  6eo %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_6_line_fused(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result   6f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_8_line(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result  8eo %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_8_line_fused(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result   8f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_10_line(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result 10eo %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_10_line_fused(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result  10f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_12_line(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result 12eo %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_12_line_fused(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result  12f %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_14_line(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result 14eo %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_16_line(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result 16eo %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i++) {
-      conv_18_line(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result 18eo %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-  nanosec(&t1);
-  for(i=0; i<BUFFER_WIDTH;i+=2) {
-      conv_gliding(BUFFER_DEPTH,&a[i*(BUFFER_DEPTH+FILTER_SIZE)],&a[(i+1)*(BUFFER_DEPTH+FILTER_SIZE)],&b[i*BUFFER_DEPTH],&b[(i+1)*BUFFER_DEPTH]);
-  }
-  nanosec(&t2);
-  br=0;
-  for(i=0; i<BUFFER_WIDTH;i++) {
-    for(j=0;j<BUFFER_DEPTH;j++) {
-      br+=b[i*BUFFER_DEPTH+j];
-      if(fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j])>1e-10){
-        printf("error %u %u: %1.15lf != %1.15lf (error %1.15lf)!\n",i,j , b[i*BUFFER_DEPTH+j], c[i*BUFFER_DEPTH+j], fabs(b[i*BUFFER_DEPTH+j]-c[i*BUFFER_DEPTH+j]));
-     }
-    }
-  }
-  printf("result glide %lf, duration %llu ns, FLOP %d, GFLOPS %lf\n", br, t2-t1, FLOP, (double)FLOP/(float)(t2-t1));
-
-
+  check_conv(conv_16_line_bis_w,a,b,c,"16b");
+  check_conv(conv_2_line_w,a,b,c,"2eo");
+  check_conv(conv_2_line_fused_w,a,b,c,"2f");
+  check_conv(conv_2x2_line_fused_w,a,b,c,"2x2f");
+  check_conv(conv_4_line_w,a,b,c,"4eo");
+  check_conv(conv_4_line_fused_w,a,b,c,"4f");
+  check_conv(conv_2x4_line_fused_w,a,b,c,"2x4f");
+  check_conv(conv_4x2_line_fused_w,a,b,c,"4x2f");
+  check_conv(conv_6_line_w,a,b,c,"6eo");
+  check_conv(conv_6_line_fused_w,a,b,c,"6f");
+  check_conv(conv_8_line_w,a,b,c,"8eo");
+  check_conv(conv_8_line_fused_w,a,b,c,"8f");
+  check_conv(conv_10_line_w,a,b,c,"10eo");
+  check_conv(conv_10_line_fused_w,a,b,c,"10f");
+  check_conv(conv_12_line_w,a,b,c,"12eo");
+  check_conv(conv_12_line_fused_w,a,b,c,"12f");
+  check_conv(conv_14_line_w,a,b,c,"14eo");
+  check_conv(conv_16_line_w,a,b,c,"16eo");
+  check_conv(conv_18_line_w,a,b,c,"18eo");
+  check_conv(conv_gliding_w,a,b,c,"glide");
   return 0;
 }

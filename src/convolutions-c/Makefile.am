@@ -14,7 +14,7 @@ else
 check =
 endif
 
-EXTRA_PROGRAMS = conv_check
+EXTRA_PROGRAMS = conv_check convolution_sse convolution_sse_t
 noinst_LIBRARIES = libbasef.a libbasec.a
 
 libbasef_a_SOURCES = ../profiling/memory.f90 \
@@ -29,15 +29,30 @@ else
 mpi_source = ../MPIfake.f90
 endif
 
+if USE_DGEMMSY
+libs_dgemmsy=../dgemmsy/libdgemmsy.a
+else
+libs_dgemmsy=
+endif
+
+
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
 AM_CFLAGS = -Wall -Werror -O2 -msse3 -mtune=core2 -ftree-vectorize -ftree-vectorizer-verbose=9 -ffast-math
+AM_LDFLAGS = -lrt -lpapi
 #-funroll-loops -mtune=core2 -ftree-vectorize -floop-interchange -floop-strip-mine -floop-block
 
+convolution_sse_SOURCES = convolution_sse.c
+convolution_sse_LDFLAGS = -lrt -lpapi
+
+convolution_sse_t_SOURCES = convolution_sse_t.c
+convolution_sse_t_LDFLAGS = -lrt -lpapi
+
+
 conv_check_SOURCES = conv_check.f90 
-conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a ../PSolver/libpoissonsolver.a
-conv_check_LDFLAGS = -lpthread -lconfig++ -lstdc++ -lrt
+conv_check_LDADD = libbasec.a libbasef.a ../libbigdft.a ../PSolver/libpoissonsolver.a $(libs_dgemmsy)
+conv_check_LDFLAGS = -lpthread -lconfig++ -lstdc++ -lrt -lpapi
 
 check_conv: conv_check
 	echo 1 128 128 204900 204900 10 > fort.1

@@ -58,6 +58,123 @@ program conv_check
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
 
+      INTEGER, PARAMETER :: PAPI_L1_DCM        = ((-2147483647) - 1)
+      INTEGER, PARAMETER :: PAPI_L1_ICM        = -2147483647
+      INTEGER, PARAMETER :: PAPI_L2_DCM        = -2147483646
+      INTEGER, PARAMETER :: PAPI_L2_ICM        = -2147483645
+      INTEGER, PARAMETER :: PAPI_L3_DCM        = -2147483644
+      INTEGER, PARAMETER :: PAPI_L3_ICM        = -2147483643
+      INTEGER, PARAMETER :: PAPI_L1_TCM        = -2147483642
+      INTEGER, PARAMETER :: PAPI_L2_TCM        = -2147483641
+      INTEGER, PARAMETER :: PAPI_L3_TCM        = -2147483640
+      INTEGER, PARAMETER :: PAPI_CA_SNP        = -2147483639
+      INTEGER, PARAMETER :: PAPI_CA_SHR        = -2147483638
+      INTEGER, PARAMETER :: PAPI_CA_CLN        = -2147483637
+      INTEGER, PARAMETER :: PAPI_CA_INV        = -2147483636
+      INTEGER, PARAMETER :: PAPI_CA_ITV        = -2147483635
+      INTEGER, PARAMETER :: PAPI_L3_LDM        = -2147483634
+      INTEGER, PARAMETER :: PAPI_L3_STM        = -2147483633
+      INTEGER, PARAMETER :: PAPI_BRU_IDL       = -2147483632
+      INTEGER, PARAMETER :: PAPI_FXU_IDL       = -2147483631
+      INTEGER, PARAMETER :: PAPI_FPU_IDL       = -2147483630
+      INTEGER, PARAMETER :: PAPI_LSU_IDL       = -2147483629
+      INTEGER, PARAMETER :: PAPI_TLB_DM        = -2147483628
+      INTEGER, PARAMETER :: PAPI_TLB_IM        = -2147483627
+      INTEGER, PARAMETER :: PAPI_TLB_TL        = -2147483626
+      INTEGER, PARAMETER :: PAPI_L1_LDM        = -2147483625
+      INTEGER, PARAMETER :: PAPI_L1_STM        = -2147483624
+      INTEGER, PARAMETER :: PAPI_L2_LDM        = -2147483623
+      INTEGER, PARAMETER :: PAPI_L2_STM        = -2147483622
+      INTEGER, PARAMETER :: PAPI_BTAC_M        = -2147483621
+      INTEGER, PARAMETER :: PAPI_PRF_DM        = -2147483620
+      INTEGER, PARAMETER :: PAPI_L3_DCH        = -2147483619
+      INTEGER, PARAMETER :: PAPI_TLB_SD        = -2147483618
+      INTEGER, PARAMETER :: PAPI_CSR_FAL       = -2147483617
+      INTEGER, PARAMETER :: PAPI_CSR_SUC       = -2147483616
+      INTEGER, PARAMETER :: PAPI_CSR_TOT       = -2147483615
+      INTEGER, PARAMETER :: PAPI_MEM_SCY       = -2147483614
+      INTEGER, PARAMETER :: PAPI_MEM_RCY       = -2147483613
+      INTEGER, PARAMETER :: PAPI_MEM_WCY       = -2147483612
+      INTEGER, PARAMETER :: PAPI_STL_ICY       = -2147483611
+      INTEGER, PARAMETER :: PAPI_FUL_ICY       = -2147483610
+      INTEGER, PARAMETER :: PAPI_STL_CCY       = -2147483609
+      INTEGER, PARAMETER :: PAPI_FUL_CCY       = -2147483608
+      INTEGER, PARAMETER :: PAPI_HW_INT        = -2147483607
+      INTEGER, PARAMETER :: PAPI_BR_UCN        = -2147483606
+      INTEGER, PARAMETER :: PAPI_BR_CN         = -2147483605
+      INTEGER, PARAMETER :: PAPI_BR_TKN        = -2147483604
+      INTEGER, PARAMETER :: PAPI_BR_NTK        = -2147483603
+      INTEGER, PARAMETER :: PAPI_BR_MSP        = -2147483602
+      INTEGER, PARAMETER :: PAPI_BR_PRC        = -2147483601
+      INTEGER, PARAMETER :: PAPI_FMA_INS       = -2147483600
+      INTEGER, PARAMETER :: PAPI_TOT_IIS       = -2147483599
+      INTEGER, PARAMETER :: PAPI_TOT_INS       = -2147483598
+      INTEGER, PARAMETER :: PAPI_INT_INS       = -2147483597
+      INTEGER, PARAMETER :: PAPI_FP_INS        = -2147483596
+      INTEGER, PARAMETER :: PAPI_LD_INS        = -2147483595
+      INTEGER, PARAMETER :: PAPI_SR_INS        = -2147483594
+      INTEGER, PARAMETER :: PAPI_BR_INS        = -2147483593
+      INTEGER, PARAMETER :: PAPI_VEC_INS       = -2147483592
+      INTEGER, PARAMETER :: PAPI_RES_STL       = -2147483591
+      INTEGER, PARAMETER :: PAPI_FP_STAL       = -2147483590
+      INTEGER, PARAMETER :: PAPI_TOT_CYC       = -2147483589
+      INTEGER, PARAMETER :: PAPI_LST_INS       = -2147483588
+      INTEGER, PARAMETER :: PAPI_SYC_INS       = -2147483587
+      INTEGER, PARAMETER :: PAPI_L1_DCH        = -2147483586
+      INTEGER, PARAMETER :: PAPI_L2_DCH        = -2147483585
+      INTEGER, PARAMETER :: PAPI_L1_DCA        = -2147483584
+      INTEGER, PARAMETER :: PAPI_L2_DCA        = -2147483583
+      INTEGER, PARAMETER :: PAPI_L3_DCA        = -2147483582
+      INTEGER, PARAMETER :: PAPI_L1_DCR        = -2147483581
+      INTEGER, PARAMETER :: PAPI_L2_DCR        = -2147483580
+      INTEGER, PARAMETER :: PAPI_L3_DCR        = -2147483579
+      INTEGER, PARAMETER :: PAPI_L1_DCW        = -2147483578
+      INTEGER, PARAMETER :: PAPI_L2_DCW        = -2147483577
+      INTEGER, PARAMETER :: PAPI_L3_DCW        = -2147483576
+      INTEGER, PARAMETER :: PAPI_L1_ICH        = -2147483575
+      INTEGER, PARAMETER :: PAPI_L2_ICH        = -2147483574
+      INTEGER, PARAMETER :: PAPI_L3_ICH        = -2147483573
+      INTEGER, PARAMETER :: PAPI_L1_ICA        = -2147483572
+      INTEGER, PARAMETER :: PAPI_L2_ICA        = -2147483571
+      INTEGER, PARAMETER :: PAPI_L3_ICA        = -2147483570
+      INTEGER, PARAMETER :: PAPI_L1_ICR        = -2147483569
+      INTEGER, PARAMETER :: PAPI_L2_ICR        = -2147483568
+      INTEGER, PARAMETER :: PAPI_L3_ICR        = -2147483567
+      INTEGER, PARAMETER :: PAPI_L1_ICW        = -2147483566
+      INTEGER, PARAMETER :: PAPI_L2_ICW        = -2147483565
+      INTEGER, PARAMETER :: PAPI_L3_ICW        = -2147483564
+      INTEGER, PARAMETER :: PAPI_L1_TCH        = -2147483563
+      INTEGER, PARAMETER :: PAPI_L2_TCH        = -2147483562
+      INTEGER, PARAMETER :: PAPI_L3_TCH        = -2147483561
+      INTEGER, PARAMETER :: PAPI_L1_TCA        = -2147483560
+      INTEGER, PARAMETER :: PAPI_L2_TCA        = -2147483559
+      INTEGER, PARAMETER :: PAPI_L3_TCA        = -2147483558
+      INTEGER, PARAMETER :: PAPI_L1_TCR        = -2147483557
+      INTEGER, PARAMETER :: PAPI_L2_TCR        = -2147483556
+      INTEGER, PARAMETER :: PAPI_L3_TCR        = -2147483555
+      INTEGER, PARAMETER :: PAPI_L1_TCW        = -2147483554
+      INTEGER, PARAMETER :: PAPI_L2_TCW        = -2147483553
+      INTEGER, PARAMETER :: PAPI_L3_TCW        = -2147483552
+      INTEGER, PARAMETER :: PAPI_FML_INS       = -2147483551
+      INTEGER, PARAMETER :: PAPI_FAD_INS       = -2147483550
+      INTEGER, PARAMETER :: PAPI_FDV_INS       = -2147483549
+      INTEGER, PARAMETER :: PAPI_FSQ_INS       = -2147483548
+      INTEGER, PARAMETER :: PAPI_FNV_INS       = -2147483547
+      INTEGER, PARAMETER :: PAPI_FP_OPS        = -2147483546
+      INTEGER, PARAMETER :: PAPI_SP_OPS        = -2147483545
+      INTEGER, PARAMETER :: PAPI_DP_OPS        = -2147483544
+      INTEGER, PARAMETER :: PAPI_VEC_SP        = -2147483543
+      INTEGER, PARAMETER :: PAPI_VEC_DP        = -2147483542
+
+  integer, parameter :: event_number = 7
+  integer, dimension(event_number) :: events
+  data events /PAPI_L1_TCM,PAPI_L2_TCM,PAPI_L3_TCM,PAPI_L2_TCA,PAPI_L3_TCA,&
+               PAPI_TOT_CYC,PAPI_TOT_INS/
+  integer(kind=8), dimension(event_number) :: counters
+  character(*), parameter, dimension(event_number) :: event_name = (/&
+                'PAPI_L1_TCM','PAPI_L2_TCM','PAPI_L3_TCM',&
+                'PAPI_L2_TCA','PAPI_L3_TCA',&
+                'PAPI_TOT_CYC','PAPI_TOT_INS'/)
  
 !!!  !Use arguments
 !!!  call getarg(1,chain)
@@ -176,14 +293,16 @@ program conv_check
              end do
            end do
             
-           write(*,'(a,i7,i7,i7)')'CPU 3D Simple Convolutions, dimensions:',n1,n2,n3
+           call PAPIF_start_counters(events,event_number,ierror)
 
+           write(*,'(a,i7,i7,i7)')'CPU 3D Simple Convolutions, dimensions:',n1,n2,n3
            call nanosec(tsc0);
            do i=1,ntimes
               call convrot_n_per_3d_simple(n1,n2,n3,psi_3d_in,psi_3d_out,psi_3d_tmp)
            end do
            call nanosec(tsc1);
-           !call system_clock(it1,count_rate,count_max)
+
+           call read_print_stop_counters(counters,event_name,event_number,ierror)
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -206,14 +325,18 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
 
-           write(*,'(a,i7,i7,i7)')'CPU 3D Transposed Convolutions, dimensions:',n1,n2,n3
 
+           write(*,'(a,i7,i7,i7)')'CPU 3D Convolutions, dimensions:',n1,n2,n3
+
+           call PAPIF_start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do i=1,ntimes
-              call convrot_n_per_3d_transpose(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+              call convrot_n_per_3d(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
            end do
            call nanosec(tsc1);
            !call system_clock(it1,count_rate,count_max)
+
+           call read_print_stop_counters(counters,event_name,event_number,ierror)
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -223,15 +346,16 @@ program conv_check
 
            call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
 
+           write(*,'(a,i7,i7,i7)')'CPU 3D Transposed Convolutions, dimensions:',n1,n2,n3
 
-           write(*,'(a,i7,i7,i7)')'CPU 3D Convolutions, dimensions:',n1,n2,n3
-
+           call PAPIF_start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do i=1,ntimes
-              call convrot_n_per_3d(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+              call convrot_n_per_3d_transpose(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
            end do
            call nanosec(tsc1);
-           !call system_clock(it1,count_rate,count_max)
+
+           call read_print_stop_counters(counters,event_name,event_number,ierror)
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -243,6 +367,7 @@ program conv_check
 
            write(*,'(a,i7,i7,i7)')'CPU 3D Transposed sse Convolutions, dimensions:',n1,n2,n3
 
+           call PAPIF_start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do i=1,ntimes
               call convrot_n_per_3d_sse(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
@@ -250,11 +375,31 @@ program conv_check
            call nanosec(tsc1);
            !call system_clock(it1,count_rate,count_max)
 
+           call read_print_stop_counters(counters,event_name,event_number,ierror)
+
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            call print_time(GPUtime,n1*n2*n3,32*3,ntimes)
 
            call compare_3D_results(n1,n2,n3,psi_3d_out, psi_3d_cuda, maxdiff, 3.d-7)
+
+           call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
+
+           write(*,'(a,i7,i7,i7)')'CPU 3D Transposed sse Convolutions T, dimensions:',n1,n2,n3
+
+           call PAPIF_start_counters(events,event_number,ierror)
+           call nanosec(tsc0);
+           do i=1,ntimes
+              call convrot_t_per_3d_sse(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
+           end do
+           call nanosec(tsc1);
+           !call system_clock(it1,count_rate,count_max)
+
+           call read_print_stop_counters(counters,event_name,event_number,ierror)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+
+           call print_time(GPUtime,n1*n2*n3,32*3,ntimes)
 
            call compare_time(CPUtime,GPUtime,n1*n2*n3,32*3,ntimes,maxdiff,3.d-7)
 
@@ -370,6 +515,21 @@ program conv_check
   end if
 
 contains
+
+  subroutine read_print_stop_counters(counters,event_name,event_number,ierror)
+    implicit none
+    integer, intent(in) :: event_number
+    integer, intent(inout) :: ierror
+    integer(kind=8), dimension(event_number), intent(inout) :: counters
+    character(*), dimension(event_number), intent(in) :: event_name
+    integer :: i
+
+    call PAPIF_stop_counters(counters,event_number,ierror)
+    do i=1,event_number
+      print *,event_name(i),':',counters(i)
+    enddo
+
+  end subroutine read_print_stop_counters
 
   subroutine print_time(time,nbelem,nop,ntimes)
     implicit none
@@ -647,6 +807,20 @@ subroutine convrot_n_per_3d_sse(n1,n2,n3,x,y,tmp)
   call magicfilter1d_sse(n3,n1*n2,tmp,y)
 
 end subroutine convrot_n_per_3d_sse
+
+subroutine convrot_t_per_3d_sse(n1,n2,n3,x,y,tmp)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(wp), dimension(n1*n2*n3), intent(in) :: x
+  real(wp), dimension(n1*n2*n3), intent(out) :: y,tmp
+
+  call magicfilter1d_t_sse(n1,n2*n3,x,y)
+  call magicfilter1d_t_sse(n2,n1*n3,y,tmp)
+  call magicfilter1d_t_sse(n3,n1*n2,tmp,y)
+
+end subroutine convrot_t_per_3d_sse
+
 
 subroutine convrot_n_per_3d(n1,n2,n3,x,y,tmp)
   use module_base
