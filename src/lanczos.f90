@@ -74,7 +74,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
-  write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
+  write(filename,'(A,A,A,I1)') "gproje_", &
+       & trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
   
   inquire(FILE=trim(filename),EXIST=projeexists)
   
@@ -82,7 +83,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
+             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
         print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
         print '(a,a20)'," from file " , trim(filename)
      endif
@@ -107,7 +109,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      
         if(iproc==0) then
            print *, "calculating  projection on pseudofunctions"
-           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+           print *, "for 1s of atom number ", in_iat_absorber, &
+                & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
            print *, "After application of a 2*L-pole  with L= ", in%L_absorber
         endif
            call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
@@ -307,7 +310,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
+             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
         print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
         print '(a,a20)'," from file " , trim(filename)
      endif
@@ -331,7 +335,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   else
      if(iproc==0) then
         print *, "calculating  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", &
+             & at%atomnames(at%iatype(  in_iat_absorber ))," )"
         print *, "After application of a 2*L-pole  with L= ", in%L_absorber
      endif
      
@@ -619,7 +624,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
+             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
         print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
         print '(a,a20)'," from file " , trim(filename)
      endif
@@ -644,7 +650,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      
         if(iproc==0) then
            print *, "calculating  projection on pseudofunctions"
-           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", &
+                & at%atomnames(at%iatype(  in_iat_absorber ))," )"
            print *, "After application of a 2*L-pole  with L= ", in%L_absorber
         endif
            call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&

@@ -769,7 +769,6 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
        diff=real(melec,gp)/full-electrons
        if (abs(diff) < 1.d-12) exit loop_fermi
        corr=diff/dlectrons
-       if (iproc == 0) write(*,"(I6,3G)") ii, electrons, melec, diff
        !if (iproc==0) write(*,*) ii,electrons,ef,dlectrons,melec,corr
        if (corr > 1.d0*wf) corr=1.d0*wf
        if (corr < -1.d0*wf) corr=-1.d0*wf
@@ -848,6 +847,9 @@ subroutine eFermi_nosmearing(iproc,orbs)
   real(gp) :: charge
   real(wp) :: eF
 
+  iu=0
+  id=0
+  eF = 0._wp
   do ikpt=1,orbs%nkpts
      !number of zero orbitals for the given k-point
      nzeroorbs=0
