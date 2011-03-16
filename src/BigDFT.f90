@@ -9,7 +9,7 @@
 
 
 !> @mainpage BigDFT Package developer documentation
-!! BigDFT is a package to do ab initio calculation based on wavelet basis set
+!! The BigDFT project is an electronic structure calculations based on wavelet basis set.
 
 
 !>  Main program to calculate electronic structures
@@ -23,7 +23,7 @@ program BigDFT
   implicit none     !< As a general policy, we will have "implicit none" by assuming the same
                     !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
-  character(len=*), parameter :: subname='BigDFT'
+  character(len=*), parameter :: subname='BigDFT' !< Use by memocc routine (timing)
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
   integer :: ncount_bigdft
   real(gp) :: etot,sumx,sumy,sumz,fnoise

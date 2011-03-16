@@ -20,7 +20,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
   real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
-  integer :: iorb,inds,ncplx,ikpt,ierr,jorb
+  integer :: iorb,inds,ncplx,ikpt,jorb
   real(wp) :: cprecr,scpr,evalmax,eval_zero
   real(gp) :: kx,ky,kz
 

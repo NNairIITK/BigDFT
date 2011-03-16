@@ -1,5 +1,5 @@
 !> @file
-!!  File defining parameters for BigDFT package
+!!  File defining parameters for BigDFT package (processed by the build system)
 !! @author
 !!    Copyright (C) 2008-2011 BigDFT group (LG)
 !! Author:

@@ -1,6 +1,15 @@
-//accumulate the partial density of a decompressed, fscf psi
-//add a work array to do not overwrite psifscf, since it is needed for
-//the hamiltonian
+/*!
+  accumulate the partial density of a decompressed, fscf psi
+  add a work array to do not overwrite psifscf, since it is needed for
+  the hamiltonian
+ @author
+    Copyright (C) 2010-2011 BigDFT group
+    This file is distributed under the terms of the
+    GNU General Public License, see ~/COPYING file
+    or http://www.gnu.org/copyleft/gpl.txt .
+    For the list of contributors, see ~/AUTHORS 
+
+*/
 template<typename T>
 int densityaccumulation(int n1,int n2, int n3,
 			dim3 gridMF1, dim3 gridMF2, dim3 gridMF3,

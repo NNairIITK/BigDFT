@@ -1,17 +1,13 @@
-/****u* CUDA/locham.cu
-**
-** AUTHOR
-**  Luigi Genovese
-**
-** COPYRIGHT
-**    Copyright (C) 2010 BigDFT group 
-**    This file is distributed under the terms of the
-**    GNU General Public License, see ~/COPYING file
-**    or http://www.gnu.org/copyleft/gpl.txt .
-**    For the list of contributors, see ~/AUTHORS 
-**
-** SOURCE
+/*!
+ @author
+    Copyright (C) 2010-2011 BigDFT group (LG)
+    This file is distributed under the terms of the
+    GNU General Public License, see ~/COPYING file
+    or http://www.gnu.org/copyleft/gpl.txt .
+    For the list of contributors, see ~/AUTHORS 
+
 */
+
 #include "check_cuda.h"  
 #include <stdio.h>
 #include <cublas.h>

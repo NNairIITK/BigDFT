@@ -105,7 +105,7 @@ report:
           Davidson-SiH4.out*) prec="4.e-9" ;; \
           NaCl.out*) prec="2.e-8" ;; \
           SiBulk.out*) prec="5.e-10" ;; \
-          SiH4.out*) prec="1.e-9" ;; \
+          SiH4.out*) prec="1.3e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
