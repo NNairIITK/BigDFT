@@ -1,13 +1,15 @@
-!>  Test the input files and estimates the memory occupation versus the number
-!!  of processors
-!!
-!! @author Luigi Genovese
-!!   Copyright (C) 2007-2011 BigDFT group
+!> @file
+!!   Program to guess the used memory by BigDFT
+!! @author
+!!   Copyright (C) 2007-2011 BigDFT group (LG)
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Test the input files and estimates the memory occupation versus the number
+!!  of processors
 program memguess
 
   use module_base
@@ -458,13 +460,8 @@ program memguess
 end program memguess
 
   
-
 !>  Rotate the molecule via an orthogonal matrix in order to minimise the
 !!  volume of the cubic cell
-!!
-!! @author Stefan Goedecker, Luigi Genovese
-!!
-!!
 subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   use module_base
   use module_types
@@ -574,10 +571,6 @@ END SUBROUTINE optimise_volume
 
 !>  Add a shift in the periodic directions such that the system
 !!  uses as less as possible the modulo operation
-!!
-!! @author Luigi Genovese
-!!
-!!
 subroutine shift_periodic_directions(at,rxyz,radii_cf)
   use module_base
   use module_types
@@ -1119,9 +1112,8 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 END SUBROUTINE compare_data_and_gflops
 
+
 !>    Read the input variables in the file 'input.dat', old format.
-!!
-!!
 subroutine read_input_variables_old(iproc,filename,in)
   use module_base
   use module_types
@@ -1311,10 +1303,7 @@ contains
 END SUBROUTINE read_input_variables_old
 
 
-
 !>  Convert the format of input variables
-!!
-!!
 subroutine dft_input_converter(in)
   use module_base
   use module_types
@@ -1408,4 +1397,3 @@ subroutine dft_input_converter(in)
    
   close(unit=1)
 END SUBROUTINE dft_input_converter
-

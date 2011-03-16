@@ -1,3 +1,13 @@
+!> @file
+!!  Old kinetic convolution routines with tail boundary conditions
+!! @deprecated
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
 
          subroutine ConvolkineticPP(nbuf,nb1,nb2,nb3,n1,n2,n3, &
                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,  &

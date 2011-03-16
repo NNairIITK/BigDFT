@@ -1,20 +1,21 @@
-!>
-!!
-!! @author
-!!    Copyright (C) 2010 BigDFT group 
+!> @file
+!!  Simple convolution routines
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!> Module for convolution operators
 module convSimpleBench
   implicit none
   integer :: conv_f_nflop1,conv_f_nflop2,conv_f_nflop3
 end module convSimpleBench
 
 
-
-!   y = (kinetic energy operator)x + (cprec*I)x 
+!> y = (kinetic energy operator)x + (cprec*I)x 
 subroutine Convolkinetic_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_f,ibxz_f,ibxy_f,x_f,y_f)
   use module_base
@@ -38,8 +39,8 @@ subroutine Convolkinetic_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 
   scale=-.5_wp/real(hgrid**2,wp)
   !---------------------------------------------------------------------------
-  ! second derivative filters for Daubechies 16
-  !  <phi|D^2|phi_i>
+  !< second derivative filters for Daubechies 16
+  !!  <phi|D^2|phi_i>
   a(0)=   -3.5536922899131901941296809374_wp*scale
   a(1)=    2.2191465938911163898794546405_wp*scale
   a(2)=   -0.6156141465570069496314853949_wp*scale
@@ -183,7 +184,7 @@ END SUBROUTINE Convolkinetic_f
 
 
 
-!   y = (kinetic energy operator)x + (cprec*I)x 
+!<   y = (kinetic energy operator)x + (cprec*I)x 
 subroutine Convolkinetic_sep(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,x_f1,x_f2,x_f3)
@@ -287,8 +288,6 @@ subroutine Convolkinetic_sep(n1,n2,n3, &
      e(-i)=e(i)
   enddo
 
-
-
   ! Scaling function part
 
   !call system_clock(ncount0,ncount_rate,ncount_max)
@@ -322,7 +321,6 @@ subroutine Convolkinetic_sep(n1,n2,n3, &
            enddo
     enddo
  enddo
-
 
  !call system_clock(ncount2,ncount_rate,ncount_max)
  !tel=dble(ncount2-ncount1)/dble(ncount_rate)
@@ -445,7 +443,7 @@ subroutine Convolkinetic_sep(n1,n2,n3, &
 
 END SUBROUTINE Convolkinetic_sep
 
-!   y = (kinetic energy operator)x + (cprec*I)x 
+!>  y = (kinetic energy operator)x + (cprec*I)x 
 subroutine Convolkinetic(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,x_f1,x_f2,x_f3)
@@ -1437,7 +1435,3 @@ subroutine ConvolkineticT(n1,n2,n3, &
   ekinout=real(ekin,gp)
 
 END SUBROUTINE ConvolkineticT
-
-
-
-

@@ -1,16 +1,18 @@
-!>   In one dimension,    
-!!   with optimised cycles
-!!   Applies synthesis wavelet transformation 
-!!   then convolves with magic filter
-!!   then adds the result to y.
-!!   The size of the data is allowed to grow
+!> @file
+!!    Optimized routines combining synthesis and convolution with magic filters
 !! @author
 !!    Copyright (C) 2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>   In one dimension, with optimised cycles
+!!   Applies synthesis wavelet transformation 
+!!   then convolves with magic filter
+!!   then adds the result to y.
+!!   The size of the data is allowed to grow
 subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   use module_base
   implicit none
@@ -102,14 +104,11 @@ END SUBROUTINE comb_rot_grow_loc_3
 
 
 
-!>   In one dimension,
-!!   with unoptimized cycles   
+!>   In one dimension, with unoptimized cycles   
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
 !!   One of the most CPU intensive routines
-!!
-!!
 subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
   use module_base
   implicit none
@@ -292,13 +291,12 @@ END SUBROUTINE comb_rot_grow_loc_square
 
 
 
+!> In one dimension, with unoptimized cycles   
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!!  the size of the data is allowed to grow
+!! One of the most CPU intensive routines
 subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
-  ! In one dimesnion,
-  ! with unoptimized cycles   
-  ! Applies synthesis wavelet transformation 
-  ! then convolves with magic filter
-  !  the size of the data is allowed to grow
-  ! One of the most CPU intensive routines
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -460,10 +458,10 @@ subroutine comb_rot_grow_loc_square_3(n1,n2,n3,x,y,ib)
 END SUBROUTINE comb_rot_grow_loc_square_3
 
 
+!>  Initialize the y array with zeroes
+!!  but only inside the region defined by ib2 array
+!!  which is the ib array for the next step
 subroutine make_loczero(n1,n2,n3,ib2,y)
-  !   initialize the y array with zeroes
-  !   but only inside the region defined by ib2 array
-  !   which is the ib array for the next step
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3

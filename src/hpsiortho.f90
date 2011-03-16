@@ -1,11 +1,14 @@
-!>  Application of the Hamiltonian
+!> @file
+!!  Application of the Hamiltonian + orthonormalize constraints
 !! @author
 !!    Copyright (C) 2007-2011 CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!> Application of the Hamiltonian
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
@@ -211,7 +214,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 END SUBROUTINE HamiltonianApplication
 
 
-!build the potential in the whole box
+!> Build the potential in the whole box
 subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
   use module_base
   use libxc_functionals
@@ -266,6 +269,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
 
 END SUBROUTINE full_local_potential
 
+
 subroutine free_full_potential(nproc,pot,subname)
   use module_base
   use libxc_functionals
@@ -288,10 +292,9 @@ subroutine free_full_potential(nproc,pot,subname)
 
 END SUBROUTINE free_full_potential
 
+
 !>   Operations after h|psi> 
 !!   (transposition, orthonormalisation, inverse transposition)
-!!
-!!
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      ncong,iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,nspin,GPU,input)
   use module_base
@@ -487,8 +490,6 @@ END SUBROUTINE hpsitopsi
 
 
 !>   First orthonormalisation
-!!
-!!
 subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   use module_base
   use module_types
@@ -545,8 +546,6 @@ END SUBROUTINE first_orthon
 
 
 !>   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-!!
-!!
 subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt_keeppsit)
   use module_base
   use module_types
@@ -566,6 +565,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
   integer :: i_all,i_stat,iorb,jorb,md,ikpt,isorb
+  real(gp) :: mpol
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   
@@ -620,6 +620,20 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   if (iproc == 0) then
      write(*,'(1x,a)')&
           '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
+     ! Calculate and print the magnetisation
+     if (nspin == 2) then
+        mpol = 0._gp
+        do ikpt=1,orbs%nkpts
+           isorb = (ikpt - 1) * orbs%norb
+           do iorb = 1, orbs%norbu
+              mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+           end do
+           do iorb = orbs%norbu + 1, orbs%norb, 1
+              mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+           end do
+        end do
+        write(*,"(1x,A,f9.6)") "Total magnetisation: ", mpol
+     end if
      if (orbs%nspinor ==4) then
         write(*,'(1x,a)')&
              '           Eigenvalue                                      m_x       m_y       m_z'
@@ -677,9 +691,9 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 END SUBROUTINE last_orthon
 
 
+!> Finds the fermi level ef for an error function distribution with a width wf
+!! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
 subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
- ! finds  the fermi level ef for an error function distribution with a width wf
- ! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
  use module_base
  use module_types
  implicit none
@@ -689,7 +703,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
  type(orbitals_data), intent(inout) :: orbs
  !local variables
  integer :: ikpt,iorb,melec,ii
- real(gp) :: charge
+ real(gp) :: charge, chargef
  real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
  parameter(pi=3.1415926535897932d0)
  !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
@@ -706,7 +720,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
     !number of zero orbitals for the given k-point
     !overall charge of the system
     do iorb=1,orbs%norb
-       charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
+       charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb) * orbs%kwgts(ikpt)
     end do
  end do
  melec=nint(charge)
@@ -732,13 +746,14 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
              if (occopt == SMEARING_DIST_ERF) then
                 ! next 2 line error function distribution
                 call derf_ab(res,arg)
-                electrons=electrons+.5d0*(1.d0-res)
-                dlectrons=dlectrons-exp(-arg**2)
+                electrons=electrons+.5d0*(1.d0-res) * orbs%kwgts(ikpt)
+                dlectrons=dlectrons-exp(-arg**2) * orbs%kwgts(ikpt)
+             else if (occopt == SMEARING_DIST_FERMI) then
                 !print *,iorb,ef,orbs%eval((ikpt-1)*orbs%norb+iorb),arg,electrons
              else if (occopt == SMEARING_DIST_FERMI) then
                 !! next 2 line Fermi function distribution
-                electrons=electrons+1.d0/(1.d0+exp(arg))
-                dlectrons=dlectrons-1.d0/(2.d0+exp(arg)+exp(-arg))
+                electrons=electrons+1.d0/(1.d0+exp(arg)) * orbs%kwgts(ikpt)
+                dlectrons=dlectrons-1.d0/(2.d0+exp(arg)+exp(-arg)) * orbs%kwgts(ikpt)
              end if
           enddo
        enddo
@@ -754,7 +769,6 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
        diff=real(melec,gp)/full-electrons
        if (abs(diff) < 1.d-12) exit loop_fermi
        corr=diff/dlectrons
-       if (iproc == 0) write(*,"(I6,3G)") ii, electrons, melec, diff
        !if (iproc==0) write(*,*) ii,electrons,ef,dlectrons,melec,corr
        if (corr > 1.d0*wf) corr=1.d0*wf
        if (corr < -1.d0*wf) corr=-1.d0*wf
@@ -778,13 +792,12 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
           cutoffd=1.d0/(1.d0+exp(argd))
        end if
     enddo
-    if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
+    if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
     orbs%efermi=ef
     
     !update the occupation number
     do ikpt=1,orbs%nkpts
-       !ikpt=1
-       do iorb=1,orbs%norbu
+       do iorb=1,orbs%norbu + orbs%norbd
           arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
           if (occopt == SMEARING_DIST_ERF) then
              !error function
@@ -796,18 +809,15 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
              orbs%occup((ikpt-1)*orbs%norb+iorb)=full*1.d0/(1.d0+exp(arg))
           end if
        end do
-       do iorb=1,orbs%norbd
-          arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-          if (occopt == SMEARING_DIST_ERF) then
-             !error function
-             call derf_ab(res,arg)
-             orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
-          else if (occopt == SMEARING_DIST_FERMI) then
-             !Fermi function
-             orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*1.d0/(1.d0+exp(arg))
-          end if
+    end do
+    ! Sanity check on sum of occup.
+    chargef=0.0_gp
+    do ikpt=1,orbs%nkpts
+       do iorb=1,orbs%norb
+          chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
        end do
     end do
+    if (abs(charge - chargef) > 1e-6)  stop 'error occupation update'
  else if(full==1.0_gp) then
     call eFermi_nosmearing(iproc,orbs)
  end if
@@ -825,6 +835,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
 
 END SUBROUTINE evaltoocc
 
+
 subroutine eFermi_nosmearing(iproc,orbs)
   use module_base
   use module_types
@@ -836,6 +847,9 @@ subroutine eFermi_nosmearing(iproc,orbs)
   real(gp) :: charge
   real(wp) :: eF
 
+  iu=0
+  id=0
+  eF = 0._wp
   do ikpt=1,orbs%nkpts
      !number of zero orbitals for the given k-point
      nzeroorbs=0
@@ -893,10 +907,7 @@ subroutine eFermi_nosmearing(iproc,orbs)
 END SUBROUTINE eFermi_nosmearing
 
 
-
 !>   Calculate magnetic moments
-!!
-!!
 subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   use module_base
   implicit none
@@ -958,7 +969,6 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   end if
 
 END SUBROUTINE calc_moments
-
 
 
 subroutine check_communications(iproc,nproc,orbs,lr,comms)
@@ -1165,7 +1175,8 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
 END SUBROUTINE check_communications
 
-!define a value for the wavefunction which is dependent of the indices
+
+!> define a value for the wavefunction which is dependent of the indices
 subroutine test_value(ikpt,iorb,ispinor,icomp,val)
   use module_base
   implicit none

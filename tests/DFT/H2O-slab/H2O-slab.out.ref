@@ -98,7 +98,7 @@
  Type    Name Number of atoms Number of projectors
     1       O               1                    1
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 8126
  Percent of zero components =                    0
@@ -361,7 +361,7 @@
  Type    Name Number of atoms Number of projectors
     1       O               1                    1
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 8126
  Percent of zero components =                    0
@@ -558,7 +558,7 @@
  Type    Name Number of atoms Number of projectors
     1       O               1                    1
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 8141
  Percent of zero components =                    0
@@ -766,7 +766,7 @@ End of minimization using  AB6MD
  Type    Name Number of atoms Number of projectors
     1       O               1                    1
     2       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 8126
  Percent of zero components =                    0

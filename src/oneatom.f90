@@ -1,12 +1,14 @@
-!> Compute one atom system
-!! @deprecated
+!> @file
+!!  Program to do one atom calculation
 !! @author
-!!    Copyright (C) 2010 ESRF, PoliTo
+!!    Copyright (C) 2010-2011 ESRF, PoliTo
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+!> Compute one atom system
+!! @deprecated
 program oneatom
   use BigDFT_API
   use Poisson_Solver
@@ -32,12 +34,9 @@ program oneatom
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(gp), dimension(:,:), allocatable :: radii_cf
-  real(wp), dimension(:), pointer :: hpsi,psit,psi,psidst,hpsidst,proj,pot
+  real(wp), dimension(:), pointer :: hpsi,psit,psi,proj,pot
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
-  ! arrays for DIIS convergence accelerator
-  real(wp), dimension(:,:,:), pointer :: ads
-
 
   !for the moment no need to have parallelism
   iproc=0

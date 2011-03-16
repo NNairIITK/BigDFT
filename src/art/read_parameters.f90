@@ -1,3 +1,12 @@
+!> @file
+!!  Routines to read parameters
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
 
 subroutine read_parameters()
 
@@ -15,7 +24,6 @@ subroutine read_parameters()
   character(len=9)   :: digit = "123456789"
 
   ! We first read the parameters defining the run
-
 
   call getenv('EVENT_TYPE', temporary)
   if (temporary .eq. '') then

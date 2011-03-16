@@ -1,11 +1,14 @@
-!>  Rotates the molecular structure such that its principal axis coincide with the x,y,z axis
+!> @file
+!!  Program p_axis_posinp ??
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Rotates the molecular structure such that its principal axis coincide with the x,y,z axis
 PROGRAM p_axis_posinp
 
    implicit real*8 (a-h,o-z)
@@ -45,81 +48,73 @@ PROGRAM p_axis_posinp
    close(unit=9)
 
 end program p_axis_posinp
-!!
 
 
-
-
-
-        subroutine ha_trans(nat,pos,haratio)
-        implicit real*8 (a-h,o-z)
-        parameter(lwork=100)
-        dimension pos(3,nat),pos_n(3,1000),pos_s(3)
-        dimension theta(3,3),theta_e(3),work(lwork)
-        if (nat.gt.1000) stop 'ha_trans'
+subroutine ha_trans(nat,pos,haratio)
+   implicit real*8 (a-h,o-z)
+   parameter(lwork=100)
+   dimension pos(3,nat),pos_n(3,1000),pos_s(3)
+   dimension theta(3,3),theta_e(3),work(lwork)
+   if (nat.gt.1000) stop 'ha_trans'
         
 ! positions relative to center of mass
-        pos_s(1)=0.d0
-        pos_s(2)=0.d0
-        pos_s(3)=0.d0
-        do iat=1,nat
-             pos_s(1)=pos_s(1)+pos(1,iat)
-             pos_s(2)=pos_s(2)+pos(2,iat)
-             pos_s(3)=pos_s(3)+pos(3,iat)
-        enddo
-        pos_s(1)=pos_s(1)/nat
-        pos_s(2)=pos_s(2)/nat
-        pos_s(3)=pos_s(3)/nat  
+   pos_s(1)=0.d0
+   pos_s(2)=0.d0
+   pos_s(3)=0.d0
+   do iat=1,nat
+        pos_s(1)=pos_s(1)+pos(1,iat)
+        pos_s(2)=pos_s(2)+pos(2,iat)
+        pos_s(3)=pos_s(3)+pos(3,iat)
+   enddo
+   pos_s(1)=pos_s(1)/nat
+   pos_s(2)=pos_s(2)/nat
+   pos_s(3)=pos_s(3)/nat  
 
-        do iat=1,nat
-             pos(1,iat)=pos(1,iat)-pos_s(1)
-             pos(2,iat)=pos(2,iat)-pos_s(2)        
-             pos(3,iat)=pos(3,iat)-pos_s(3)
-        enddo
+   do iat=1,nat
+        pos(1,iat)=pos(1,iat)-pos_s(1)
+        pos(2,iat)=pos(2,iat)-pos_s(2)        
+        pos(3,iat)=pos(3,iat)-pos_s(3)
+   enddo
 
 ! Calculate inertia tensor theta
-        do 10,j=1,3
-        do 10,i=1,3
-10      theta(i,j)=0.d0
-        do iat=1,nat
-             theta(1,1)=theta(1,1) + pos(2,iat)* pos(2,iat) + &  
-                                     pos(3,iat)* pos(3,iat)
-             theta(2,2)=theta(2,2) + pos(1,iat)* pos(1,iat) + &  
-                                     pos(3,iat)* pos(3,iat)
-             theta(3,3)=theta(3,3) + pos(1,iat)* pos(1,iat) + &   
-                                     pos(2,iat)* pos(2,iat)
+   do 10,j=1,3
+   do 10,i=1,3
+10 theta(i,j)=0.d0
+   do iat=1,nat
+        theta(1,1)=theta(1,1) + pos(2,iat)* pos(2,iat) + &  
+                                pos(3,iat)* pos(3,iat)
+        theta(2,2)=theta(2,2) + pos(1,iat)* pos(1,iat) + &  
+                                pos(3,iat)* pos(3,iat)
+        theta(3,3)=theta(3,3) + pos(1,iat)* pos(1,iat) + &   
+                                pos(2,iat)* pos(2,iat)
 
-             theta(1,2)=theta(1,2) - pos(1,iat)*pos(2,iat)
-             theta(1,3)=theta(1,3) - pos(1,iat)*pos(3,iat)
-             theta(2,3)=theta(2,3) - pos(2,iat)*pos(3,iat)
-             theta(2,1)=theta(1,2)
-             theta(3,1)=theta(1,3)
-             theta(3,2)=theta(2,3)
-        enddo
+        theta(1,2)=theta(1,2) - pos(1,iat)*pos(2,iat)
+        theta(1,3)=theta(1,3) - pos(1,iat)*pos(3,iat)
+        theta(2,3)=theta(2,3) - pos(2,iat)*pos(3,iat)
+        theta(2,1)=theta(1,2)
+        theta(3,1)=theta(1,3)
+        theta(3,2)=theta(2,3)
+   enddo
 ! diagonalize theta
-        call DSYEV('V','U',3,theta(1,1),3,theta_e(1),work(1),lwork,info)        
-        haratio=theta_e(3)/theta_e(1)
+   call DSYEV('V','U',3,theta(1,1),3,theta_e(1),work(1),lwork,info)        
+   haratio=theta_e(3)/theta_e(1)
  
-        do iat=1,nat
-             pos_n(1,iat) = theta(1,1)*pos(1,iat)+ &
-                            theta(2,1)*pos(2,iat)+ &
-                            theta(3,1)*pos(3,iat)
-             pos_n(2,iat) = theta(1,2)*pos(1,iat)+ &
-                            theta(2,2)*pos(2,iat)+ &
-                            theta(3,2)*pos(3,iat)
-             pos_n(3,iat) = theta(1,3)*pos(1,iat)+ &
-                            theta(2,3)*pos(2,iat)+ &
-                            theta(3,3)*pos(3,iat)
-        enddo
+   do iat=1,nat
+        pos_n(1,iat) = theta(1,1)*pos(1,iat)+ &
+                       theta(2,1)*pos(2,iat)+ &
+                       theta(3,1)*pos(3,iat)
+        pos_n(2,iat) = theta(1,2)*pos(1,iat)+ &
+                       theta(2,2)*pos(2,iat)+ &
+                       theta(3,2)*pos(3,iat)
+        pos_n(3,iat) = theta(1,3)*pos(1,iat)+ &
+                       theta(2,3)*pos(2,iat)+ &
+                       theta(3,3)*pos(3,iat)
+   enddo
 
-        do iat=1,nat
-             pos(1,iat)=pos_n(1,iat)
-             pos(2,iat)=pos_n(2,iat)
-             pos(3,iat)=pos_n(3,iat)
-        enddo
+   do iat=1,nat
+        pos(1,iat)=pos_n(1,iat)
+        pos(2,iat)=pos_n(2,iat)
+        pos(3,iat)=pos_n(3,iat)
+   enddo
 
-
-        return
-        end
-
-
+END SUBROUTINE ha_trans

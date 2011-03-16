@@ -1,9 +1,11 @@
-!> PSolver/lazy_16
-!! :
+!> @file
 !!   Filters for interpolating scaling functions (order 16)
-!!
-!!
-!!
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 integer, parameter :: m=18
 real(kind=8), dimension(-m:m) :: ch = (/&
      0.d0,0.d0,0.d0,-6.39259815216064453D-6,0.D0,0.000110641121864318848D0,0.D0,&

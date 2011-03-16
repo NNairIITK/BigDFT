@@ -1,6 +1,15 @@
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
+!> @file
+!!  Optimized routines combined magic filters and analysis wavelet transform
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
   use module_base
   implicit none
@@ -110,9 +119,9 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
   !write(10,*) tel, 1.d-6*nflop/tel
 END SUBROUTINE comb_rot_shrink_loc
 
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   use module_base
   implicit none
@@ -196,9 +205,10 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 
 END SUBROUTINE comb_rot_shrink_loc_1
 
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
+
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
   use module_base
   implicit none
@@ -286,9 +296,3 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
   !    write(20,*) tel, 1.d-6*nflop/tel
 
 END SUBROUTINE comb_rot_shrink_loc_2
-
-
-
-
-
-

@@ -1,12 +1,14 @@
-!>    Wrapper for simplifying the call
-!!
+!> @file
+!! Routines to do scalar products
 !! @author
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
+
+
+!>    Wrapper for simplifying the call
 subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   use module_base
   implicit none
@@ -30,8 +32,7 @@ subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
 END SUBROUTINE wnrm_wrap
 
 
-
-! calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
+!> calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
 subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   use module_base
   implicit none
@@ -101,7 +102,7 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
 END SUBROUTINE wnrm
 
 
-!wrapper for simplifying the call
+!> wrapper for simplifying the call
 subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
   use module_base
   implicit none
@@ -117,7 +118,8 @@ subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
   
 END SUBROUTINE wscal_wrap
 
-! multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
+
+!> multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
 subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   use module_base
   implicit none
@@ -148,7 +150,8 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
 
 END SUBROUTINE wscal
 
-!wrapper for simplifying the call
+
+!> wrapper for simplifying the call
 subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
   use module_base
   implicit none
@@ -165,7 +168,7 @@ subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
 END SUBROUTINE wscalv_wrap
 
 
-! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
+!> multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   use module_base
   implicit none
@@ -195,7 +198,8 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
 !$omp end parallel
 END SUBROUTINE wscalv
 
-! initializes a wavefunction to zero
+
+!> initializes a wavefunction to zero
 subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   use module_base
   implicit none
@@ -228,9 +232,10 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
 END SUBROUTINE wzero
 
 
-!wrapper of wpdot to avoid boundary problems in absence of wavelets
-!and to perform scalar product for complex wavefunctions and projectors
-!NOTE: is the wavefunctions are complex, so should be also the projectors
+!> wrapper of wpdot to avoid boundary problems in absence of wavelets
+!! and to perform scalar product for complex wavefunctions and projectors
+!! @warning
+!! is the wavefunctions are complex, so should be also the projectors
 subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,scpr)
   use module_base
@@ -281,12 +286,14 @@ subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi, 
 
 END SUBROUTINE wpdot_wrap
 
-!this function must be generalized for the linear scaling code
-! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
-! Warning: the subroutine assumes that bpsi has only one segment along each line,
-! whereas apsi can have several segments. This assumption is true if bpsi is a projector 
-! To be more precise, it is assumed that the segments of bpsi are always contained inside
-! the segments of apsi, no matter whether they are in the same line or not.
+
+!> This function must be generalized for the linear scaling code
+!! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
+!! @warning
+!!  The subroutine assumes that bpsi has only one segment along each line,
+!!  whereas apsi can have several segments. This assumption is true if bpsi is a projector 
+!!  To be more precise, it is assumed that the segments of bpsi are always contained inside
+!!  the segments of apsi, no matter whether they are in the same line or not.
 subroutine wpdot(  &
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,scpr)
@@ -462,9 +469,11 @@ subroutine wpdot(  &
 
 END SUBROUTINE wpdot
 
-!wrapper of waxpy for complex Ax+y and for no fine grid cases
-!WARNING: in complex cases, it acts with y = Conj(A) *x +y, with the complex conjugate
-!         if the a function is complex, so should be the b function
+
+!> wrapper of waxpy for complex Ax+y and for no fine grid cases
+!! @warning
+!!   in complex cases, it acts with y = Conj(A) *x +y, with the complex conjugate
+!!   if the a function is complex, so should be the b function
 subroutine waxpy_wrap(ncplx,scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi)
   use module_base
@@ -545,8 +554,8 @@ subroutine waxpy_wrap(ncplx,scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,b
 END SUBROUTINE waxpy_wrap
 
 
-! rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
-! The update is only done in the localization region of apsi
+!> rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
+!! The update is only done in the localization region of apsi
 subroutine waxpy(  & 
      scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f, & 
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f)
@@ -679,6 +688,4 @@ subroutine waxpy(  &
   !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'waxpy:',tel
   !  close(97)
 
-
 END SUBROUTINE waxpy
-
