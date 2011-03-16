@@ -1127,7 +1127,7 @@ type(linearParameters):: lin
                 write(*,'(x,a)') '********* Use the selfconsistent potential for the linear scaling version. *********'
             end if
             ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
-            call initializeParameters(iproc, nproc, Glr, orbs, atoms, lin, phi, in, rxyz, occupForInguess)
+            call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, atoms, lin, phi, in, rxyz, occupForInguess)
             !if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the linear scaling version...'
             if(nproc==1) allocate(psit(size(psi)))
             if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,atoms%nat))
@@ -1147,6 +1147,8 @@ type(linearParameters):: lin
 
             ! Calculate the forces arising from the new psi.
             call calculateForces()
+
+            call deallocateLinear(lin, phi)
         end if linearIf
 
 

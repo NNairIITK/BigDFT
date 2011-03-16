@@ -24,22 +24,22 @@ subroutine choosePreconditioner(iproc,nproc,orbs,lin,lr,hx,hy,hz,ncong,hpsi, nat
 !  ---------------------
 !     hpsi      the gradient to be preconditioned
 !
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc,ncong
-  real(gp), intent(in) :: hx,hy,hz
-  type(locreg_descriptors), intent(in) :: lr
-  type(orbitals_data), intent(in) :: orbs
-  type(linearParameters):: lin
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
-  integer,intent(in):: nat, it
-  real(8),dimension(3,nat),intent(in):: rxyz
-  type(atoms_data), intent(in) :: at
-  !local variables
-  integer :: iorb, inds, ncplx, ikpt, ierr, iiAt
-  real(wp) :: cprecr,scpr,eval_zero,evalmax 
-  real(gp) :: kx,ky,kz
+use module_base
+use module_types
+implicit none
+integer, intent(in) :: iproc,nproc,ncong
+real(gp), intent(in) :: hx,hy,hz
+type(locreg_descriptors), intent(in) :: lr
+type(orbitals_data), intent(in) :: orbs
+type(linearParameters):: lin
+real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
+integer,intent(in):: nat, it
+real(8),dimension(3,nat),intent(in):: rxyz
+type(atoms_data), intent(in) :: at
+!local variables
+integer :: iorb, inds, ncplx, ikpt, ierr, iiAt
+real(wp) :: cprecr,scpr,eval_zero,evalmax 
+real(gp) :: kx,ky,kz
 
 
 
@@ -118,33 +118,64 @@ subroutine choosePreconditioner(iproc,nproc,orbs,lin,lr,hx,hy,hz,ncong,hpsi, nat
   enddo
 
 END SUBROUTINE choosePreconditioner
-!!***
 
 
 
 
 subroutine solvePrecondEquation(lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, parabPrefac, it)
-  use module_base
-  use module_types
-  ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
-  ! x is the right hand side on input and the solution on output
-  implicit none
-  integer, intent(in) :: ncong,ncplx
-  real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
-  type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, it)
+!
+! Purpose:
+! ========
+!   Solves the preconditioning equation by conjugate gradient iterations.
+!   The equation reads ( kin.energy + cprecr*Id + potentialPrefac*(r-r0)^4 )x=y
+!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method.
+! 
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   ----------------   
+!     lr               type describing the localization region
+!     ncplx            real or complex??
+!     ncong            number of CG iterations
+!     cprecr           preconditioning constant
+!     hx               hgrid in x direction
+!     hy               hgrid in y direction
+!     hz               hgrid in z direction
+!     kx               kpoints in x direction?
+!     ky               kpoints in y direction?
+!     kz               kpoints in z direction?
+!     rxyzParab        the center of the confinement potential
+!     orbs             type describing the orbitals
+!     potentialPrefac  prefactor for the confinement potential
+!     it               delete later??
+!   Input / Output arguments:
+!   -------------------------
+!     x                on input: the right hand side of the equation (i.e. y)
+!                      on output: the solution of the equation (i.e. x)
+!
+use module_base
+use module_types
+! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+! x is the right hand side on input and the solution on output
+! Calling arguments
+implicit none
+integer, intent(in) :: ncong,ncplx
+real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
+type(locreg_descriptors), intent(in) :: lr
+real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
 real(8),dimension(3),intent(in):: rxyzParab
-type(orbitals_data), intent(in) :: orbs
-real(8):: parabPrefac
+type(orbitals_data), intent(in):: orbs
+real(8):: potentialPrefac
 integer:: it
-  ! local variables
-  character(len=*), parameter :: subname='precondition_residue'
-  real(gp), dimension(0:7) :: scal
-  real(wp) :: rmr_old,rmr_new,alpha,beta
-  integer :: i_stat,i_all,icong
-  type(workarr_precond) :: w
-  real(wp), dimension(:), allocatable :: b,r,d
+
+! Local variables
+character(len=*), parameter :: subname='precondition_residue'
+real(gp), dimension(0:7) :: scal
+real(wp) :: rmr_old,rmr_new,alpha,beta
+integer :: i_stat,i_all,icong
+type(workarr_precond) :: w
+real(wp), dimension(:), allocatable :: b,r,d
 
   !arrays for the CG procedure
   allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
@@ -158,7 +189,7 @@ integer:: it
 
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
-  call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal, rxyzParab, orbs, parabPrefac, it)
+  call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal, rxyzParab, orbs, potentialPrefac, it)
 
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
@@ -175,7 +206,7 @@ integer:: it
   do icong=1,ncong 
      !write(*,*)icong,rmr_new
 
-     call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal, rxyzParab, orbs, parabPrefac, it)
+     call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal, rxyzParab, orbs, potentialPrefac, it)
 
      !in the complex case these objects are to be supposed real
      alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)

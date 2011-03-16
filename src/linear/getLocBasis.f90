@@ -114,10 +114,12 @@ call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPo
 call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWorkPointer)
 
 allocate(HamSmall(lin%orbs%norb,lin%orbs%norb), stat=istat)
+call memocc(istat, HamSmall, 'HamSmall', subname)
 call transformHam(iproc, nproc, lin%orbs, lin%comms, phi, hphi, HamSmall)
 
 if(iproc==0) write(*,'(a)', advance='no') 'Linear Algebra... '
 allocate(eval(lin%orbs%norb), stat=istat)
+call memocc(istat, eval, 'eval', subname)
 call diagonalizeHamiltonian(iproc, nproc, lin%orbs, HamSmall, eval)
 
 call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
@@ -138,6 +140,13 @@ iall=-product(shape(hphi))*kind(hphi)
 deallocate(hphi, stat=istat)
 call memocc(istat, iall, 'hphi', subname)
 
+iall=-product(shape(HamSmall))*kind(HamSmall)
+deallocate(HamSmall, stat=istat)
+call memocc(istat, iall, 'HamSmall', subname)
+
+iall=-product(shape(eval))*kind(eval)
+deallocate(eval, stat=istat)
+call memocc(istat, iall, 'eval', subname)
 
 
 end subroutine getLinearPsi
@@ -145,7 +154,7 @@ end subroutine getLinearPsi
 
 
 
-subroutine initializeParameters(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
+subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
 !
 ! Purpose:
 ! ========
@@ -171,16 +180,16 @@ subroutine initializeParameters(iproc, nproc, Glr, orbs, at, lin, phi, input, rx
 !
 use module_base
 use module_types
-use module_interfaces, except_this_one => initializeParameters
+use module_interfaces, exceptThisOne => allocateAndInitializeLinear
 implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(locreg_descriptors), intent(in) :: Glr
-type(orbitals_data), intent(inout) :: orbs
-type(atoms_data), intent(in) :: at
+type(locreg_descriptors), intent(in):: Glr
+type(orbitals_data), intent(inout):: orbs
+type(atoms_data), intent(in):: at
 type(linearParameters):: lin
-type(input_variables), intent(in) :: input
+type(input_variables), intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(32,at%nat):: occupForInguess
 real(8),dimension(:),allocatable,intent(out):: phi
@@ -196,13 +205,13 @@ logical:: written
 
 ! Allocate all local arrays.
 allocate(norbsPerType(at%ntypes), stat=istat)
-call memocc(istat, at%ntypes, 'norbsPerType', subname)
+call memocc(istat, norbsPerType, 'norbsPerType', subname)
 allocate(norbsPerAtom(at%nat), stat=istat)
-call memocc(istat, at%nat, 'norbsPerAtom', subname)
+call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 
 ! Read in all parameters related to the linear scaling version and print them.
 allocate(lin%potentialPrefac(at%ntypes), stat=istat)
-call memocc(istat, at%ntypes, 'lin%potentialPrefac', subname)
+call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 open(unit=99, file='input.lin')
 read(99,*) lin%nItMax
 read(99,*) lin%convCrit
@@ -212,22 +221,22 @@ if(lin%DIISHistMin>lin%DIISHistMax) then
     & DIISHistMax, but you chose ', lin%DIISHistMin, ' and ', lin%DIISHistMax, '!'
     stop
 end if
-if(iproc==0) write(*,'(x,a)') '================== Input parameters. =================='
-if(iproc==0) write(*,'(x,a,9x,a,3x,a,3x,a,4x,a,4x,a)') '| ', ' | ', 'number of', ' | ', 'prefactor for', ' |'
-if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis functions', ' | ', 'confinement potential', ' |'
+if(iproc==0) write(*,'(x,a)') '################### Input parameters. ###################'
+if(iproc==0) write(*,'(x,a,9x,a,3x,a,3x,a,4x,a,4x,a)') '#| ', ' | ', 'number of', ' | ', 'prefactor for', ' |#'
+if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '#| ', 'atom type', ' | ', 'basis functions', ' | ', 'confinement potential', ' |#'
 do iat=1,at%ntypes
     read(99,*) atomname, norbsPerType(iat), lin%potentialPrefac(iat)
-    if(iproc==0) write(*,'(x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomname), repeat(' ', 6-len_trim(atomname)), '|',  &
-        repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)))), norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |'
+    if(iproc==0) write(*,'(x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '#| ', trim(atomname), repeat(' ', 6-len_trim(atomname)), '|',  &
+        repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)))), norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |#'
 end do
-if(iproc==0) write(*,'(x,a)') '--------------------------------------------------------'
-if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'maximal number', ' | ', 'convergence', ' | ', 'DIIS history', ' |'
-if(iproc==0) write(*,'(x,a,x,a,a,x,a,x,a,x,a,2x,a)') '| ', 'of iterations', ' | ', 'criterion', ' | ', 'min   max', ' |'
-if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,3x,a,i0,2x,a)') '| ', repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)))), lin%nItMax, &
+if(iproc==0) write(*,'(x,a)') '#-------------------------------------------------------#'
+if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '#| ', 'maximal number', ' | ', 'convergence', ' | ', 'DIIS history', '         |#'
+if(iproc==0) write(*,'(x,a,x,a,a,x,a,x,a,x,a,2x,a)') '#| ', 'of iterations', ' | ', 'criterion', ' | ', 'min   max', '         |#'
+if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,3x,a,i0,2x,a)') '#| ', repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)))), lin%nItMax, &
     ' | ', lin%convCrit, ' | ', repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)))), lin%DIISHistMin, &
-    repeat(' ', 4-ceiling(log10(dble(lin%nItMax+1)))), lin%DIISHistMax, ' |'
-if(iproc==0) write(*,'(x,a)') '======================================================='
+    repeat(' ', 4-ceiling(log10(dble(lin%nItMax+1)))), lin%DIISHistMax, '         |#'
 close(unit=99)
+if(iproc==0) write(*,'(x,a)') '#-------------------------------------------------------#'
 
 
 ! Assign to each atom its number of basis functions and count how many basis functions 
@@ -247,20 +256,26 @@ call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, orbs%nspinor, input%
 written=.false.
 do jproc=1,nproc-1
     if(lin%orbs%norb_par(jproc)<lin%orbs%norb_par(jproc-1)) then
-        if(iproc==0) write(*,'(x,a,5(i0,a))') 'Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), &
-            ' orbitals, processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.'
+        !if(iproc==0) write(*,'(x,a,5(i0,a))') '#| Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), &
+        !    ' orbitals, processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.'
+        if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '#| Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), ' orbitals,', &
+            repeat(' ', 14-ceiling(log10(dble(jproc)))-ceiling(log10(dble(lin%orbs%norb_par(jproc-1)+1)))), '|#'
+        if(iproc==0) write(*,'(x,a,3(i0,a),a,a)')  '#| processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.', &
+            repeat(' ', 16-ceiling(log10(dble(jproc+1)))-ceiling(log10(dble(nproc)))-ceiling(log10(dble(lin%orbs%norb_par(jproc)+1)))), '|#'
         written=.true.
         exit
     end if
 end do
 if(.not.written) then
-    if(iproc==0) write(*,'(x,a,2(i0,a))') 'Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals.'
+    if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '#| Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals.', &
+        repeat(' ', 15-ceiling(log10(dble(nproc)))-ceiling(log10(dble(lin%orbs%norbp+1)))), '|#'
 end if
+if(iproc==0) write(*,'(x,a)') '#########################################################'
 
 
 ! Decide which orbital is centered in which atom.
 allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
-call memocc(istat, nproc, 'lin%onWhichAtomnorb_par', subname)
+call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
 call assignOrbitalsToAtoms(iproc, at%nat, lin, norbsPerAtom)
 
 !write(*,'(a,i2,3x,200i4)') 'iproc, lin%onWhichAtom', iproc, lin%onWhichAtom
@@ -279,6 +294,7 @@ if(associated(lin%orbs%eval)) then
     nullify(lin%orbs%eval)
 end if
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
+call memocc(istat, lin%orbs%eval, 'lin%orbs%eval', subname)
 lin%orbs%eval=-.5d0
 
 
@@ -288,7 +304,7 @@ call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 
 ! Allocate phi and initialize it at random
 allocate(phi(lin%orbs%npsidim), stat=istat)
-call memocc(istat, lin%orbs%npsidim, 'phi', subname)
+call memocc(istat, phi, 'phi', subname)
 call initRandomSeed(iproc, 1)
 call random_number(phi)
 
@@ -305,7 +321,7 @@ deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
 
-end subroutine initializeParameters
+end subroutine allocateAndInitializeLinear
 
 
 
@@ -485,7 +501,7 @@ end if
 
 
 
-if(iproc==0) write(*,'(a)') '============================ basis functions creation... ============================'
+if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
 alpha=1.d-2
 iterLoop: do it=1,lin%nItMax
     fnrmMax=0.d0
@@ -996,3 +1012,48 @@ call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, Ha
 
 
 end subroutine buildWavefunction
+
+
+
+
+subroutine deallocateLinear(lin, phi)
+!
+! Purpose:
+! ========
+!   Deallocates all array related to the linear scaling version.
+!
+! Calling arguments:
+! ==================
+!
+use module_base
+use module_types
+use module_interfaces, exceptThisOne => deallocateLinear
+implicit none
+
+! Calling arguments
+type(linearParameters):: lin
+real(8),dimension(:),allocatable:: phi
+
+! Local variables
+integer:: istat, iall
+character(len=*),parameter:: subname='deallocateLinear'
+
+
+
+
+iall=-product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
+deallocate(lin%potentialPrefac, stat=istat)
+call memocc(istat, iall, 'lin%potentialPrefac', subname)
+
+iall=-product(shape(lin%onWhichAtom))*kind(lin%onWhichAtom)
+deallocate(lin%onWhichAtom, stat=istat)
+call memocc(istat, iall, 'lin%onWhichAtom', subname)
+
+call deallocate_orbs(lin%orbs,subname)
+
+iall=-product(shape(phi))*kind(phi)
+deallocate(phi, stat=istat)
+call memocc(istat, iall, 'phi', subname)
+
+
+end subroutine deallocateLinear

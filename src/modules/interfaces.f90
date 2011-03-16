@@ -1221,7 +1221,7 @@ end subroutine improveOrbitals
 
 
 
-subroutine initializeParameters(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
+subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
 
 use module_base
 use module_types
@@ -1236,7 +1236,7 @@ real(8),dimension(:),allocatable:: phi
 type(input_variables), intent(in) :: input
 real(8),dimension(3,at%nat):: rxyz
 real(8),dimension(32,at%nat):: occupForInguess
-end subroutine initializeParameters
+end subroutine allocateAndInitializeLinear
 
 
 
@@ -1555,6 +1555,18 @@ integer:: nat
 real(8),dimension(3,nat):: rxyz
 type(atoms_data), intent(in) :: at
 end subroutine local_hamiltonianParabola
+
+
+subroutine deallocateLinear(lin, phi)
+use module_base
+use module_types
+implicit none
+
+type(linearParameters):: lin
+real(8),dimension(:),allocatable:: phi
+
+end subroutine deallocateLinear
+
 
   end interface
 

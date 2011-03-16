@@ -453,13 +453,6 @@ END SUBROUTINE local_hamiltonianParabola
 
 
 
-!!****f* BigDFT/apply_potential
-!! FUNCTION
-!!   routine for applying the local potentials
-!!   supports the non-collinear case, the buffer for tails and different Boundary Conditions
-!!   Optimal also for the complex wavefuntion case
-!! SOURCE
-!!
 subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzConfinement, &
      hxh, hyh, hzh, potentialPrefac, &
      ibyyzz_r) !optional
@@ -480,43 +473,44 @@ subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,p
 !     nl1
 !     nl2
 !     nl3
-!     nbuf
-!     nspinor
+!     nbuf                       ???
+!     nspinor                    real or complex?
 !     npot
-!     pot
-!     ibyyzz_r     (optional)
-!     rxyzConfinement
-!     hxh
-!     hyh
-!     hzh
-!     potentialPrefac
+!     pot                        the potential to be applied. The confinement potential
+!                                  will be applied on the fly.
+!     ibyyzz_r (optional)
+!     rxyzConfinement            the center for the confinement potential
+!     hxh                        the grid spacing in x direction divided by 2
+!     hyh                        the grid spacing in y direction divided by 2
+!     hzh                        the grid spacing in z direction divided by 2
+!     potentialPrefac            the prefactor for the confinement potential
 !   Input / Output arguments:
 !   -------------------------
-!     psir
+!     psir                       wave function om real space grid
 !   Output arguments:
 !   -----------------
-!     epot
+!     epot                       potential energy
 !
-  use module_base
-  implicit none
-  integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot
-  real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
-  real(wp), dimension(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
-       -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), intent(in) :: pot
-  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
-  real(gp), intent(out) :: epot
-  real(8),dimension(3),intent(in):: rxyzConfinement
-  real(8),intent(in):: hxh, hyh, hzh, potentialPrefac
-  !local variables
-  integer :: i1,i2,i3,i1s,i1e,ispinor
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
-  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
-  real(gp) :: epot_p
-  
+use module_base
+implicit none
+integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot
+real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+real(wp), dimension(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
+     -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), intent(in) :: pot
+integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+real(gp), intent(out) :: epot
+real(8),dimension(3),intent(in):: rxyzConfinement
+real(8),intent(in):: hxh, hyh, hzh, potentialPrefac
+!local variables
+integer :: i1,i2,i3,i1s,i1e,ispinor
+real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
+real(gp) :: epot_p
+
 
   !the Tail treatment is allowed only in the Free BC case
   if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
-
+  
   epot=0.0_wp
 
 !$omp parallel default(private)&
