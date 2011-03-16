@@ -67,9 +67,10 @@ sub_dirs_libconfig=
 endif
 
 if HAVE_ETSF_IO
-etsf_files = wavelib/plotting-etsf.f90
+etsf_files = wavelib/plotting-etsf.f90 \
+	wavelib/i-o-etsf.f90
 else
-etsf_files = wavelib/plotting-etsf.fake.f90
+etsf_files = wavelib/etsf_fake.f90
 endif
 
 

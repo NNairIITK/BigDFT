@@ -1,20 +1,17 @@
-! Subroutine min_converge
-!
-! Minimizes the energy at constant volume. It uses a steepest descent
-! algorithm which is fast and precise enough for our needs.
-!
-! This minimization is done with only a minimal knowledge of the physics
-! of the problem so that it is portable
-!
-! The minimization uses a simple steepest descent with variable step size.
-!
-! This file contains 2 routines
-!
-! June 2001  Normand Mousseau
-!
+!> @file
+!!    Define module and routines for minimization scheme for ART method
+!! @author
+!!    June 2001  Normand Mousseau
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
 
+!> This module defines a number of parameters used during the minimization
+!! for ART method
 MODULE minimization
-!  This module defines a number of parameters used during the minimization
   implicit none
   save
 
@@ -26,6 +23,13 @@ MODULE minimization
 END MODULE minimization
 
 
+!> Minimizes the energy at constant volume. It uses a steepest descent
+!! algorithm which is fast and precise enough for our needs.
+!!
+!! This minimization is done with only a minimal knowledge of the physics
+!! of the problem so that it is portable
+!!
+!! The minimization uses a simple steepest descent with variable step size.
 subroutine min_converge
   use defs
   use minimization

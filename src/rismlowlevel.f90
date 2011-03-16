@@ -1,13 +1,13 @@
-!!****f* BigDFT/two_center_two_electrons
-!! FUNCTION
-!! COPYRIGHT
+!> @file
+!!   In this file, we have the analytic routines for the calculation of the overlap of short-range functions
+!! @author
 !!   Copyright (C) 2010 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+
 subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
   use module_base
   implicit none
@@ -85,17 +85,11 @@ subroutine two_center_two_electrons(nat,a1,a2,a3,rxyz,radii,H)
   end do
 
 END SUBROUTINE two_center_two_electrons
-!!***
 
 
-!!****f* BigDFT/atomic_charges_york
-!! FUNCTION
-!!   calculate atomic charges using Lee, York and Yang method 
+!>   calculate atomic charges using Lee, York and Yang method 
 !!   Ref: J.Chem.Phys. 102(19),7549 (1995)
 !!   use a basis of error functions centered on the atoms, with atom-defined radii
-!!
-!! SOURCE
-!!
 subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,&
      hxh,hyh,hzh,n3p,i3s,rho,pot,C)
   use module_base
@@ -456,7 +450,8 @@ subroutine atomic_charges_york(iproc,nproc,rxyz,radii,atoms,nelec,lr,ngatherarr,
 
 
 END SUBROUTINE atomic_charges_york
-!!***
+
+
 subroutine assign_atomic_radii_york(at,radii)
   use module_base
   use module_types
@@ -509,13 +504,11 @@ subroutine assign_atomic_radii_york(at,radii)
      !   radii(iat)=at%psppar(0,0,ityp)
      !end if
   end do
-end subroutine assign_atomic_radii_york
-!!****f* BigDFT/gaussian_hermite_basis
-!! FUNCTION
-!!   Gaussian basis associated to Hermite Polyomials multiplied by s-terms
+END SUBROUTINE assign_atomic_radii_york
+
+
+!>   Gaussian basis associated to Hermite Polyomials multiplied by s-terms
 !!   given by the radii
-!! SOURCE
-!!
 subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
   use module_base
   use module_types
@@ -577,14 +570,9 @@ subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
      end do
   end do
 
-end subroutine gaussian_hermite_basis
-!!***
+END SUBROUTINE gaussian_hermite_basis
 
-!!****f* BigDFT/calculate_rho
-!! FUNCTION
-!!
-!! SOURCE
-!!
+
 subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pot,rhoarr)
   use module_base
@@ -692,22 +680,11 @@ subroutine calculate_rho(iproc,nproc,geocode,nat,radii,rxyz,hxh,hyh,hzh,&
   if (iproc == 0) write(*,*)'Charge:',charge
 
 END SUBROUTINE calculate_rho
-!!***
 
 
-!!****f* BigDFT/rismlowlevel
-!! DESCRIPTION
-!!   In this file, we have the analytic routines for the calculation of the overlap of short-range functions
-!!***
-
-
-!!****f* BigDFT/kinetic_overlap_h
-!! FUNCTION
-!!   Overlap kinetic matrix between two different basis structures
+!>   Overlap kinetic matrix between two different basis structures
 !!   the kinetic operator is applicated on the A basis structure
 !!   The basis structure is supposed to be based on s-functions times Hermite polynomials
-!! SOURCE
-!!
 subroutine kinetic_overlap_h(A,B,ovrlp)
   use module_base
   use module_types
@@ -777,18 +754,13 @@ subroutine kinetic_overlap_h(A,B,ovrlp)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
 END SUBROUTINE kinetic_overlap_h
-!!***
 
 
-!!****f* BigDFT/kineticovrlp_h
-!! FUNCTION
-!!   Calculates the scalar product between two shells
+!>   Calculates the scalar product between two shells
 !!   by considering only the nonzero coefficients
 !!   actual building block for calculating overlap matrix
 !!   inserted work arrays for calculation
 !!   Only Hermite polynomials of r^2 are to be considered
-!! SOURCE
-!!
 subroutine kineticovrlp_h(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,ih1,l2,ih2,dx,dy,dz,&
      niw,nrw,iw,rw,ovrlp)
   use module_base
@@ -821,16 +793,11 @@ subroutine kineticovrlp_h(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,ih1,l2,ih2,dx,dy,
   end do
   
 END SUBROUTINE kineticovrlp_h
-!!***
 
 
-!!****f* BigDFT/kinprod_h
-!! FUNCTION
-!!  Kinetic overlap between gaussians, based on cartesian coordinates
+!>  Kinetic overlap between gaussians, based on cartesian coordinates
 !!  calculates a dot product between two differents gaussians times spherical harmonics
 !!  only hermite polynomials
-!! SOURCE
-!!
 subroutine kinprod_h(a1,a2,dx,dy,dz,l1,ih1,l2,ih2,niw,nrw,iw,rw,ovrlp)
   use module_base
   implicit none
@@ -877,15 +844,8 @@ subroutine kinprod_h(a1,a2,dx,dy,dz,l1,ih1,l2,ih2,niw,nrw,iw,rw,ovrlp)
   end do
  
 END SUBROUTINE kinprod_h
-!!***
 
 
-!!****f* BigDFT/calc_coeff_hermite_r2
-!! FUNCTION
-!!   
-!!
-!! SOURCE
-!!
 subroutine calc_coeff_hermite_r2(l,ih,nterm_max,nterm,lx,ly,lz,fac_arr)
   use module_base
   implicit none
@@ -944,8 +904,8 @@ subroutine calc_coeff_hermite_r2(l,ih,nterm_max,nterm,lx,ly,lz,fac_arr)
   !last term
   nterm=nterm-1
 
-end subroutine calc_coeff_hermite_r2
-!!***
+END SUBROUTINE calc_coeff_hermite_r2
+
 
 subroutine gaussians_to_wavelets_new_h(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
   use module_base
@@ -1013,11 +973,6 @@ subroutine gaussians_to_wavelets_new_h(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,ps
 END SUBROUTINE gaussians_to_wavelets_new_h
 
 
-!!****f* BigDFT/gaussians_to_wavelets_orb_h
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   use module_base
   use module_types
@@ -1152,15 +1107,10 @@ subroutine gaussians_to_wavelets_orb_h(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   call memocc(i_stat,i_all,'work',subname)
 
 END SUBROUTINE gaussians_to_wavelets_orb_h
-!!***
 
 
-!!****f* BigDFT/gaussian_overlap_h
-!! FUNCTION
-!!   Overlap matrix between two different basis structures
+!>   Overlap matrix between two different basis structures
 !!   The first one is a gaussian hermite basis
-!! SOURCE
-!!
 subroutine gaussian_overlap_h(A,B,ovrlp)
   use module_base
   use module_types
@@ -1229,18 +1179,13 @@ subroutine gaussian_overlap_h(A,B,ovrlp)
   call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
 END SUBROUTINE gaussian_overlap_h
-!!***
 
 
-!!****f* BigDFT/gbasovrlp_h
-!! FUNCTION
-!!   Calculates the scalar product between two shells
+!>   Calculates the scalar product between two shells
 !!   by considering only the nonzero coefficients
 !!   actual building block for calculating overlap matrix
 !!   inserted work arrays for calculation
 !!   The first are Hermite polynomial basis
-!! SOURCE
-!!
 subroutine gbasovrlp_h(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,ih1,l2,m2,dx,dy,dz,&
      niw,nrw,iw,rw,ovrlp)
   use module_base
@@ -1273,9 +1218,10 @@ subroutine gbasovrlp_h(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,ih1,l2,m2,dx,dy,dz,&
   end do
   
 END SUBROUTINE gbasovrlp_h
-!!***
-!calculates a dot product between two differents gaussians times spherical harmonics
-!the first one is supposed to be hermite polynomial matrix
+
+
+!> calculates a dot product between two differents gaussians times spherical harmonics
+!! the first one is supposed to be hermite polynomial matrix
 subroutine gprod_h(a1,a2,dx,dy,dz,l1,ih1,l2,m2,niw,nrw,iw,rw,ovrlp)
   use module_base
   implicit none

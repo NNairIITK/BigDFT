@@ -91,7 +91,7 @@
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Ti               1                   13
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   13
  Total number of components =               120354
  Percent of zero components =                   38
@@ -133,7 +133,8 @@
  Hamiltonian application... done. ekin_sum,eks:      25.0233539368      25.0031524241
  ekin_sum,epot_sum,eproj_sum  2.50233539368E+01 -3.54617220431E+01 -3.38854423055E+00
     ehart,   eexcu,    vexcu  4.61964867598E+01 -7.06541257173E+00 -9.16810044042E+00
- Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
+ Input Wavefunctions Orthogonalization: 
+ Overlap Matrix... Direct diagonalization...
  evale(1)= -2.35195521472468E+00
  evale(2)= -1.41949529601383E+00
  evale(3)= -1.41949529601383E+00

@@ -1,18 +1,16 @@
-!!****f* BigDFT/createWavefunctionsDescriptors
-!! FUNCTION
-!!   Calculates the descriptor arrays and nvctrp
-!!   Calculates also the bounds arrays needed for convolutions
-!!   Refers this information to the global localisation region descriptor
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 bigDFT group
+!> @file
+!!  Routines to initialize the information about localisation regions
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>   Calculates the descriptor arrays and nvctrp
+!!   Calculates also the bounds arrays needed for convolutions
+!!   Refers this information to the global localisation region descriptor
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
      crmult,frmult,Glr)
   use module_base
@@ -177,14 +175,9 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   Glr%geocode=atoms%geocode
 
 END SUBROUTINE createWavefunctionsDescriptors
-!!***
 
 
-!!****f* BigDFT/createProjectorsArrays
-!! FUNCTION
-!!   Determine localization region for all projectors, but do not yet fill the descriptor arrays
-!! SOURCE
-!!
+!>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   use module_base
@@ -280,13 +273,9 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   end if
 
 END SUBROUTINE createProjectorsArrays
-!!***
 
-!!****f* BigDFT/input_wf_diag
-!! FUNCTION
-!!   input guess wavefunction diagonalization
-!! SOURCE
-!!
+
+!>   input guess wavefunction diagonalization
 subroutine input_wf_diag(iproc,nproc,at,&
      orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
@@ -655,7 +644,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call free_gpu_OCL(GPU,orbse,nspin_ig)
   end if
 
-  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
        'Input Wavefunctions Orthogonalization:'
 
   !psivirt can be eliminated here, since it will be allocated before davidson
@@ -681,12 +670,12 @@ subroutine input_wf_diag(iproc,nproc,at,&
            end if
         end if
         tt=builtin_rand(idum)
-        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+input%Tel*real(tt,gp))
+        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
         !use the first k-point to guess fermi energy input
      end do
 
      !correct the occupation numbers wrt fermi level
-     call evaltoocc(iproc,.false.,input%Tel,orbs)
+     call evaltoocc(iproc,nproc,.false.,input%Tel,orbs)
 
      !restore the occupation numbers
      call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
@@ -703,7 +692,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
   if (iproc == 0) then
-     if (verbose > 1) write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
      if (at%geocode == 'F') then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
@@ -724,4 +712,3 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call deallocate_orbs(orbse,subname)
      
 END SUBROUTINE input_wf_diag
-!!***

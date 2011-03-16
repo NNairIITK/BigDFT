@@ -1,19 +1,15 @@
-!!****m* PSolver/module_base
-!! FUNCTION
-!!  Modules which contains the low level definitions, as well as some profiling procedures
+!> @file
+!!    Define types for reals, memory and timing
+!! @author 
+!!    Copyright (C) 2008-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+ 
+!>  Modules which contains the low level definitions, as well as some profiling procedures
 !!  in order to have a standalone PSolver version.
-!!
-!! DESCRIPTION
-!!  Interfaces of:
-!!
-!! AUTHOR
-!!    Luigi Genovese
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2008 CEA
-!!
-!! SOURCE
-!! 
 module module_base 
   !use MPI
   implicit none  
@@ -603,4 +599,4 @@ module module_base
     END SUBROUTINE mo_c1
 
 end module module_base
-!!***
+

@@ -10,9 +10,8 @@ subroutine driveXC(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    ! ****************************************************************
    use libxcModule
    implicit real*8 (a-h,o-z)
-   real(8):: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad),& ! dummy arguments
-             Exc,Vxc(nspol),dEdg(nspol), grad(nspol),&      ! arguments to XCfunction
-             c(-8:8), sign(nspol) !                           ! local varialbes for derivatives 
+   !Dummy arguments
+   real(kind=8) :: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad)
 
    if (libxc_functionals_isgga()) then
       select case(nspol)
@@ -31,7 +30,8 @@ subroutine driveXC(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    end if
 
    return
-end subroutine
+end subroutine driveXC
+
 
 subroutine driveLDAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    ! ****************************************************************
@@ -39,9 +39,8 @@ subroutine driveLDAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    ! ****************************************************************
    use libxcModule
    implicit real*8 (a-h,o-z)
-   real(8):: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad),& ! dummy arguments
-             Exc,Vxc(nspol),dEdg(nspol), grad(nspol),&      ! arguments to XCfunction
-             c(-8:8), sign(nspol) !                         ! local varialbes for derivatives 
+   real(kind=8) :: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad) ! dummy arguments
+   real(kind=8) :: Exc,Vxc(nspol),dEdg(nspol), grad(nspol)  ! arguments to XCfunction
 
    enexc=0.d0
    pot=0d0
@@ -65,19 +64,14 @@ subroutine driveLDAsimple(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
 end subroutine
 
 
-
-
 subroutine driveLDApolarized(nspol,nrad,r,rw,rd,rho,enexc,pot,eps)
    ! ****************************************************************
    !   the simple LDA XC driver generalized for two spin channels
    ! ****************************************************************
    use libxcModule
    implicit real*8 (a-h,o-z)
-   real(8):: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad),& ! dummy arguments
-             Exc,Vxc(nspol),dEdg(nspol), grad(nspol),&      ! arguments to XCfunction
-             c(-8:8), sign(nspol) !                           ! local varialbes for derivatives 
-
-
+   real(kind=8) :: rho(nrad,nspol),r(nrad),rw(nrad),rd(nrad),pot(nrad,nspol),eps(nrad) ! dummy arguments
+   real(kind=8) :: Exc,Vxc(nspol),dEdg(nspol), grad(nspol)      ! arguments to XCfunction
 
    enexc=0.d0
    pot=0d0

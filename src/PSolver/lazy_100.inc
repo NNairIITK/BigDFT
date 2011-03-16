@@ -1,9 +1,11 @@
-!!****h* PSolver/lazy_100
-!! FUNCTION
-!!   Filters for interpolating scaling functions (order 100)
-!!
-!! SOURCE
-!!
+!> @file
+!!  Include file for filters for interpolating scaling functions (order 100)
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 integer, parameter :: m=102
 real(kind=8), dimension(-m:m) :: ch = (/ 0.d0, 0.d0, 0.d0, &
   -1.2683805626484815d-31,0.d0,1.28158741180595538d-29,0.d0,  -6.41198417717232202d-28,0.d0,2.11779334023809847d-26,0.d0,&
@@ -58,5 +60,5 @@ do i=-m,m-1
    cg(i+1)=cht(-i)*(-1.d0)**(i+1)
    cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
 enddo
-!!***
+
 

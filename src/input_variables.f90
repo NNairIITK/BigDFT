@@ -1,14 +1,14 @@
-!!****f* BigDFT/print_logo
-!! FUNCTION
-!!    Display the logo of BigDFT 
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group 
+!> @file
+!!  Routines to read and print input variables
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+
+!>    Display the logo of BigDFT 
 subroutine print_logo()
   use module_base
   implicit none
@@ -53,16 +53,11 @@ subroutine print_logo()
   write(*,'(1x,a)')&
        '                                  The Journal of Chemical Physics 129, 014109 (2008)'
 END SUBROUTINE print_logo
-!!***
 
 
-!!****f* BigDFT/read_input_variables
-!! FUNCTION
-!!    Do all initialisation for all different files of BigDFT. 
+!>    Do all initialisation for all different files of BigDFT. 
 !!    Set default values if not any.
 !!    Initialize memocc
-!! SOURCE
-!!
 subroutine read_input_variables(iproc,posinp, &
      & file_dft, file_kpt, file_mix, file_geopt, file_perf, inputs,atoms,rxyz)
   use module_base
@@ -78,9 +73,6 @@ subroutine read_input_variables(iproc,posinp, &
   type(input_variables), intent(out) :: inputs
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
-  !Local variables
-  real(gp) :: tt
-  integer :: iat
 
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
@@ -89,15 +81,11 @@ subroutine read_input_variables(iproc,posinp, &
   call read_input_parameters(iproc, file_dft, file_kpt, file_mix, &
        & file_geopt, file_perf, inputs, atoms, rxyz)
 END SUBROUTINE read_input_variables
-!!***
 
-!!****f* BigDFT/read_input_parameters
-!! FUNCTION
-!!    Do initialisation for all different calculation parameters of BigDFT. 
+
+!>    Do initialisation for all different calculation parameters of BigDFT. 
 !!    Set default values if not any. Atomic informations are updated  by
 !!    symmetries if necessary and by geometry input parameters.
-!! SOURCE
-!!
 subroutine read_input_parameters(iproc, &
      & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
   use module_base
@@ -164,20 +152,17 @@ subroutine read_input_parameters(iproc, &
 
   ! Stop code for unproper input variables combination.
   if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym) then
-     stop 'Forces are not implemented with symmetry support, disable symmetry please'
+     if (iproc==0) write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+     stop 'Forces are not implemented with symmetry support, disable symmetry please (T)'
   end if
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
      stop 'Gaussian projection is not implemented with k-point support'
   end if
 END SUBROUTINE read_input_parameters
-!!***
 
 
-!!****f* BigDFT/default_input_variables
-!! FUNCTION
-!!    Set default values.
-!! SOURCE
-!!
+
+!>    Set default values.
 subroutine default_input_variables(inputs)
   use module_base
   use module_types
@@ -186,6 +171,8 @@ subroutine default_input_variables(inputs)
   type(input_variables), intent(out) :: inputs
 
   ! Default values.
+  inputs%output_wf_format = WF_FORMAT_NONE
+  inputs%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
   nullify(inputs%kpt)
   nullify(inputs%wkpt)
   nullify(inputs%kptv)
@@ -200,19 +187,14 @@ subroutine default_input_variables(inputs)
   call mix_input_variables_default(inputs) 
 
 END SUBROUTINE default_input_variables
-!!***
 
 
-!!****f* BigDFT/dft_input_variables
-!! FUNCTION
-!!    Read the input variables needed for the DFT calculation
+!>    Read the input variables needed for the DFT calculation
 !!    The variables are divided in two groups:
 !!    "cruising" variables -- general DFT run
 !!    "brakeing" variables -- for the last run, once relaxation is achieved
 !!                            of for a single-point calculation
 !!    Every argument should be considered as mandatory
-!! SOURCE
-!!
 subroutine dft_input_variables(iproc,filename,in)
   use module_base
   use module_types
@@ -229,7 +211,7 @@ subroutine dft_input_variables(iproc,filename,in)
   ! Read the input variables.
   inquire(file=trim(filename),exist=exists)
   if (.not.exists) then
-      write(*,*) "The file 'input.dft' does not exist!"
+      if (iproc == 0) write(*,*) "The file 'input.dft' does not exist!"
       stop
   end if
 
@@ -274,8 +256,22 @@ subroutine dft_input_variables(iproc,filename,in)
   end if
 
   !now the variables which are to be used only for the last run
-  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+  read(1,'(a100)')line
+  read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+  if (ierror /= 0) then
+     in%output_wf = .false.
+     read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
+  else if (in%output_wf) then
+     in%output_wf_format = WF_FORMAT_PLAIN
+  end if
   call check()
+  if (in%output_wf_format /= WF_FORMAT_NONE) in%output_wf = .true.
+  ! Validate inputPsiId value.
+  if (.not. input_psi_validate(in%inputPsiId) .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
+     call input_psi_help()
+     stop
+  end if
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
   !switch on the gaussian auxiliary treatment 
@@ -283,6 +279,28 @@ subroutine dft_input_variables(iproc,filename,in)
   if (in%inputPsiId == 10) then
      in%inputPsiId=0
   end if
+  ! Validate output_wf value.
+  if (.not. output_wf_format_validate(in%output_wf_format) .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
+     call output_wf_format_help()
+     stop
+  end if
+  ! Setup out grid parameters.
+  if (in%output_grid >= 0) then
+     in%output_grid_format = in%output_grid / 10
+  else
+     in%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
+     in%output_grid = abs(in%output_grid)
+  end if
+  in%output_grid = modulo(in%output_grid, 10)
+  ! Validate output_wf value.
+  if (.not. output_grid_validate(in%output_grid, in%output_grid_format) .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_grid (', in%output_grid, ').'
+     call output_grid_help()
+     stop
+  end if
+
+  ! Tail treatment.
   read(1,*,iostat=ierror) in%rbuf,in%ncongt
   call check()
   in%calc_tail=(in%rbuf > 0.0_gp)
@@ -356,14 +374,9 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE dft_input_variables
-!!***
 
 
-!!****f* BigDFT/geopt_input_variables_default
-!! FUNCTION
-!!    Assign default values for GEOPT variables
-!! SOURCE
-!!
+!>    Assign default values for GEOPT variables
 subroutine geopt_input_variables_default(in)
   use module_base
   use module_types
@@ -383,13 +396,9 @@ subroutine geopt_input_variables_default(in)
   nullify(in%qmass)
 
 END SUBROUTINE geopt_input_variables_default
-!!***
 
-!!****f* BigDFT/mix_input_variables_default
-!! FUNCTION
-!!    Assign default values for mixing variables
-!! SOURCE
-!!
+
+!>    Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
   use module_types
@@ -401,21 +410,16 @@ subroutine mix_input_variables_default(in)
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%iscf=0 !only 2(potential) or 12(density) are allowed (ABINIT conventions for the moment)
+  in%iscf=7
   in%Tel=0.0_gp
   in%norbsempty=0
   in%alphadiis=2.d0
 
 END SUBROUTINE mix_input_variables_default
-!!***
 
 
-!!****f* BigDFT/mix_input_variables
-!! FUNCTION
-!!    Read the input variables needed for the geometry optimisation
+!>    Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
-!! SOURCE
-!! 
 subroutine mix_input_variables(filename,in)
   use module_base
   use module_types
@@ -466,15 +470,10 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE mix_input_variables
-!!***
 
 
-!!****f* BigDFT/geopt_input_variables
-!! FUNCTION
-!!    Read the input variables needed for the geometry optimisation
+!>    Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
-!! SOURCE
-!!
 subroutine geopt_input_variables(filename,in)
   use module_base
   use module_types
@@ -574,14 +573,9 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE geopt_input_variables
-!!***
 
 
-!!****f* BigDFT/update_symmetries
-!! FUNCTION
-!!    Calculate symmetries and update
-!! SOURCE
-!!
+!>    Calculate symmetries and update
 subroutine update_symmetries(in, atoms, rxyz)
   use module_base
   use module_types
@@ -656,14 +650,9 @@ subroutine update_symmetries(in, atoms, rxyz)
      atoms%symObj = -1
   end if
 END SUBROUTINE update_symmetries
-!!***
 
 
-!!****f* BigDFT/kpt_input_variables
-!! FUNCTION
-!!    Read the input variables needed for the k points generation
-!! SOURCE
-!!
+!>    Read the input variables needed for the k points generation
 subroutine kpt_input_variables(iproc,filename,in,atoms)
   use module_base
   use module_types
@@ -855,14 +844,9 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE kpt_input_variables
-!!***
 
 
-!!****f* BigDFT/perf_input_variables
-!! FUNCTION
-!!    Read the input variables which can be used for performances
-!! SOURCE
-!!
+!>    Read the input variables which can be used for performances
 subroutine perf_input_variables(iproc,filename,inputs)
   use module_base
   use module_types
@@ -1003,14 +987,9 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE perf_input_variables
-!!***
 
 
-!!****f* BigDFT/free_input_variables
-!! FUNCTION
-!!  Free all dynamically allocated memory from the input variable structure.
-!! SOURCE
-!!
+!>  Free all dynamically allocated memory from the input variable structure.
 subroutine free_input_variables(in)
   use module_base
   use module_types
@@ -1051,14 +1030,9 @@ subroutine free_input_variables(in)
 !!$     call memocc(i_stat,i_all,'in%Gabs_coeffs',subname)
 !!$  end if
 END SUBROUTINE free_input_variables
-!!***
 
 
-!!****f* BigDFT/abscalc_input_variables_default
-!! FUNCTION
-!!    Assign default values for ABSCALC variables
-!! SOURCE
-!!
+!>    Assign default values for ABSCALC variables
 subroutine abscalc_input_variables_default(in)
   use module_base
   use module_types
@@ -1070,15 +1044,10 @@ subroutine abscalc_input_variables_default(in)
   in%iat_absorber=0
 
 END SUBROUTINE abscalc_input_variables_default
-!!***
 
 
-!!****f* BigDFT/abscalc_input_variables
-!! FUNCTION
-!!    Read the input variables needed for the ABSCALC
+!>    Read the input variables needed for the ABSCALC
 !!    Every argument should be considered as mandatory
-!! SOURCE
-!!
 subroutine abscalc_input_variables(iproc,filename,in)
   use module_base
   use module_types
@@ -1153,18 +1122,12 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE abscalc_input_variables
-!!***
 
 
-!!****f* BigDFT/frequencies_input_variables_default
-!! FUNCTION
-!!    Assign default values for frequencies variables
-!! DESCRIPTION
+!>    Assign default values for frequencies variables
 !!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
 !!    freq_order; order of the finite difference (2 or 3 i.e. 2 or 4 points)
 !!    freq_method: 1 - systematic moves of atoms over each direction
-!! SOURCE
-!!
 subroutine frequencies_input_variables_default(inputs)
   use module_base
   use module_types
@@ -1176,15 +1139,10 @@ subroutine frequencies_input_variables_default(inputs)
   inputs%freq_method=1
 
 END SUBROUTINE frequencies_input_variables_default
-!!***
 
 
-!!****f* BigDFT/frequencies_input_variables
-!! FUNCTION
-!!    Read the input variables needed for the frequencies calculation.
+!>    Read the input variables needed for the frequencies calculation.
 !!    Every argument should be considered as mandatory.
-!! SOURCE
-!!
 subroutine frequencies_input_variables(iproc,filename,in)
   use module_base
   use module_types
@@ -1249,14 +1207,9 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE frequencies_input_variables
-!!***
 
 
-!!****f* BigDFT/read_atomic_file
-!! FUNCTION
-!!    Read atomic file
-!! SOURCE
-!!
+!>    Read atomic file
 subroutine read_atomic_file(file,iproc,atoms,rxyz)
   use module_base
   use module_types
@@ -1312,7 +1265,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   end if
 
   open(unit=99,file=trim(filename),status='old')
-  if (iproc.eq.0) write(*,*) 'Reading atomic input positions from file:',trim(filename) 
+  !if (iproc.eq.0) write(*,*) 'Reading atomic input positions from file:',trim(filename) 
 
   if (atoms%format == "xyz") then
      read(99,*) atoms%nat,atoms%units
@@ -1337,14 +1290,9 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   atoms%symObj = -1
 
 END SUBROUTINE read_atomic_file
-!!***
 
 
-!!****f* BigDFT/deallocate_atoms
-!! FUNCTION
-!!    Deallocate the structure atoms_data.
-!! SOURCE
-!!
+!>    Deallocate the structure atoms_data.
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
@@ -1375,14 +1323,9 @@ subroutine deallocate_atoms(atoms,subname)
      call ab6_symmetry_free(atoms%symObj)
   end if
 END SUBROUTINE deallocate_atoms
-!!***
 
 
-!!****f* BigDFT/deallocate_atoms_scf
-!! FUNCTION
-!!    Deallocate the structure atoms_data after scf loop.
-!! SOURCE
-!!
+!>    Deallocate the structure atoms_data after scf loop.
 subroutine deallocate_atoms_scf(atoms,subname) 
   use module_base
   use module_types
@@ -1411,14 +1354,9 @@ subroutine deallocate_atoms_scf(atoms,subname)
   deallocate(atoms%npspcode,stat=i_stat)
   call memocc(i_stat,i_all,'npspcode',subname)
 END SUBROUTINE deallocate_atoms_scf
-!!***
 
 
-!!****f* BigDFT/read_atomic_positions
-!! FUNCTION
-!!    Read atomic positions
-!! SOURCE
-!!
+!>    Read atomic positions
 subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   use module_base
   use module_types
@@ -1606,14 +1544,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
 END SUBROUTINE read_atomic_positions
-!!***
 
 
-!!****f* BigDFT/check_atoms_positions
-!! FUNCTION
-!!    Check the position of atoms
-!! SOURCE
-!!
+!>    Check the position of atoms
 subroutine check_atoms_positions(iproc,atoms,rxyz)
   use module_base
   use module_types
@@ -1665,15 +1598,9 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
      stop 'check_atoms_positions'
   end if
 END SUBROUTINE check_atoms_positions
-!!***
 
 
-!!****f* BigDFT/find_extra_info
-!! FUNCTION
-!!    Find extra information
-!!
-!! SOURCE
-!!
+!>    Find extra information
 subroutine find_extra_info(line,extra)
   implicit none
   character(len=150), intent(in) :: line
@@ -1704,15 +1631,9 @@ subroutine find_extra_info(line,extra)
      i=i+1
   end do find_space
 END SUBROUTINE find_extra_info
-!!***
 
 
-!!****f* BigDFT/parse_extra_info
-!! FUNCTION
-!!    Parse extra information
-!!
-!! SOURCE
-!!
+!>    Parse extra information
 subroutine parse_extra_info(iat,extra,atoms)
   use module_types
   implicit none
@@ -1794,14 +1715,9 @@ contains
  END SUBROUTINE error
   
 END SUBROUTINE parse_extra_info
-!!***
 
 
-!!****f* BigDFT/read_ascii_positions
-!! FUNCTION
-!!    Read atomic positions of ascii files.
-!! SOURCE
-!!
+!>    Read atomic positions of ascii files.
 subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   use module_base
   use module_types
@@ -2018,15 +1934,10 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
 END SUBROUTINE read_ascii_positions
-!!***
 
 
-!!****f* BigDFT/charge_and_spol
-!! FUNCTION
-!!   Calculate the charge and the spin polarisation to be placed on a given atom
+!>   Calculate the charge and the spin polarisation to be placed on a given atom
 !!   RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
-!! SOURCE
-!!
 subroutine charge_and_spol(natpol,nchrg,nspol)
   implicit none
   integer, intent(in) :: natpol
@@ -2044,14 +1955,9 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
   nspol=natpol-1000*nchrg-nsgn*100
 
 END SUBROUTINE charge_and_spol
-!!***
 
 
-!!****f* BigDFT/write_atomic_file
-!! FUNCTION
-!!    Write an atomic file
-!! SOURCE
-!!
+!>    Write an atomic file
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -2070,14 +1976,9 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
      stop
   end if
 END SUBROUTINE write_atomic_file
-!!***
 
 
-!!****f* BigDFT/wtxyz
-!! FUNCTION
-!!   Write xyz atomic file.
-!! SOURCE
-!!
+!>   Write xyz atomic file.
 subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -2141,14 +2042,9 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   close(unit=9)
 
 END SUBROUTINE wtxyz
-!!***
 
 
-!!****f* BigDFT/wtascii
-!! FUNCTION
-!!   Write ascii file (atomic position). 
-!! SOURCE
-!!
+!>   Write ascii file (atomic position). 
 subroutine wtascii(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -2209,14 +2105,9 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   close(unit=9)
 
 END SUBROUTINE wtascii
-!!***
 
 
-!!****f* BigDFT/write_extra_info
-!! FUNCTION
-!!   Write the extra info necessary for the output file
-!! SOURCE
-!!
+!>   Write the extra info necessary for the output file
 subroutine write_extra_info(extra,natpol,ifrztyp)
   use module_base
   implicit none 
@@ -2242,14 +2133,8 @@ subroutine write_extra_info(extra,natpol,ifrztyp)
   end if
   
 END SUBROUTINE write_extra_info
-!!***
 
 
-!!****f* BigDFT/frozen_itof
-!! FUNCTION
-!!    
-!! SOURCE
-!!
 subroutine frozen_itof(ifrztyp,frzchain)
   implicit none
   integer, intent(in) :: ifrztyp
@@ -2266,14 +2151,8 @@ subroutine frozen_itof(ifrztyp,frzchain)
   end if
         
 END SUBROUTINE frozen_itof
-!!***
 
 
-!!****f* BigDFT/valid_frzchain
-!! FUNCTION
-!!    
-!! SOURCE
-!!
 subroutine valid_frzchain(frzchain,go)
   implicit none
   character(len=*), intent(in) :: frzchain
@@ -2284,14 +2163,8 @@ subroutine valid_frzchain(frzchain,go)
        trim(frzchain) == 'fxz'
   
 END SUBROUTINE valid_frzchain
-!!***
 
 
-!!****f* BigDFT/frozen_ftoi
-!! FUNCTION
-!!    
-!! SOURCE
-!!
 subroutine frozen_ftoi(frzchain,ifrztyp)
   implicit none
   character(len=4), intent(in) :: frzchain
@@ -2308,14 +2181,9 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
   end if
         
 END SUBROUTINE frozen_ftoi
-!!***
 
 
-!!****f* BigDFT/frozen_alpha
-!! FUNCTION
-!!   Calculate the coefficient for moving atoms following the ifrztyp
-!! SOURCE
-!!
+!>   Calculate the coefficient for moving atoms following the ifrztyp
 subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
   use module_base
   implicit none
@@ -2332,15 +2200,11 @@ subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
   end if
  
 END SUBROUTINE frozen_alpha
-!!***
 
 
-!!****f* BigDFT/print_general_parameters
-!! FUNCTION
-!!    Print all general parameters
-!! SOURCE
-!!
+!>    Print all general parameters
 subroutine print_general_parameters(in,atoms)
+  use module_base
   use module_types
   use defs_basis
   use ab6_symmetry
@@ -2357,9 +2221,11 @@ subroutine print_general_parameters(in,atoms)
   integer :: spaceGroupId, pointGroupMagn
   integer, parameter :: maxLen = 50, width = 24
   character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
+  character(len = 11) :: potden
 
   ! Output for atoms and k-points
-  write(*,'(1x,a)') '---------------------------------------------------------------- Input atomic system'
+  write(*,'(1x,a,a,a)') '--- (file: posinp.', &
+       & atoms%format, ') --------------------------------------- Input atomic system'
   write(*, "(A)")   "   Atomic system                  Fixed positions           Additional data"
   do i = 1, maxLen
      write(at(i), "(a)") " "
@@ -2446,29 +2312,52 @@ subroutine print_general_parameters(in,atoms)
   end do
 
   if (atoms%geocode /= 'F') then
-     write(*,'(1x,a)') '--------------------------------------------------------------------------- k-points'
+     write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
      if (in%disableSym .and. in%nkpt > 1) then
         write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
      end if
-     write(*, "(1x,a)")    "       red. coordinates         weight      id         BZ coordinates"
+     write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
      do i = 1, in%nkpt, 1
-        write(*, "(1x,3f9.5,2x,f9.5,5x,I3,2x,3f9.5)") &
+        write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
              & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
              & in%wkpt(i), i, in%kpt(:, i)
      end do
      if (in%nkptv > 0) then
         write(*, "(1x,a)")    " K points for band structure calculation"
-        write(*, "(1x,a)")    "       red. coordinates         weight      id         BZ coordinates"
+        write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
         do i = 1, in%nkptv, 1
-           write(*, "(1x,3f9.5,2x,f9.5,5x,I3,2x,3f9.5)") &
+           write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
                 & in%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
                 & 1.0d0 / real(size(in%kptv, 2), gp), i, in%kptv(:, i)
         end do
      end if
   end if
 
+  ! Printing for mixing parameters.
+  if (in%itrpmax>1) then
+     if (in%iscf < 10) then
+        write(potden, "(A)") "potential"
+     else
+        write(potden, "(A)") "density"
+     end if
+     write(*,'(1x,a)') '--- (file: input.mix) ------------------------------------------------------- Mixing'
+     write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
+          & "     Target=", potden,        "|", &
+          & " Add. bands=", in%norbsempty, "|", &
+          & "    Coeff.=", in%alphamix
+     write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
+          & "     Scheme=", modulo(in%iscf, 10), "|", &
+          & "Elec. temp.=", in%tel,              "|", &
+          & "      DIIS=", in%alphadiis
+     write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
+          & "  Max iter.=", in%itrpmax,    "|", &
+          & "Occ. scheme=", smearing_names(occopt), "|"
+     write(*,"(1x,A12,1pe12.2,1x,A1,1x,A24,1x,A1)") &
+          & "   Rp norm.=", in%rpnrm_cv,    "|", " ", "|"
+  end if
+
   if (in%ncount_cluster_x > 0) then
-     write(*,'(1x,a)') '------------------------------------------------------------- Geopt Input Parameters'
+     write(*,'(1x,a)') '--- (file: input.geopt) ------------------------------------- Geopt Input Parameters'
      write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
 
      write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &
@@ -2507,14 +2396,9 @@ subroutine print_general_parameters(in,atoms)
      end if
   end if
 END SUBROUTINE print_general_parameters
-!!***
 
 
-!!****f* BigDFT/print_dft_parameters
-!! FUNCTION
-!!    Print all dft input parameters
-!! SOURCE
-!!
+!>    Print all dft input parameters
 subroutine print_dft_parameters(in,atoms)
   use module_types
   implicit none
@@ -2522,11 +2406,11 @@ subroutine print_dft_parameters(in,atoms)
   type(atoms_data), intent(in) :: atoms
 
   write(*,'(1x,a)')&
-       '------------------------------------------------------------------- Input Parameters'
+       '--- (file: input.dft) --------------------------------------------- Input Parameters'
   write(*,'(1x,a)')&
        '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
   write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-       'Max. hgrid  =',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
+       '  Max. hgrid=',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
        '| Calculate=',in%calc_tail
   write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
        '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
@@ -2546,19 +2430,20 @@ subroutine print_dft_parameters(in,atoms)
           '  Box Sizes (Bohr) =',atoms%alat1,atoms%alat2,atoms%alat3
 
   end if
+  write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
+       & "Input wf. policy=", in%inputPsiId, " (" // input_psi_names(in%inputPsiId) // ")", "|", &
+       & "Output wf. policy=", in%output_wf_format, " (" // wf_format_names(in%output_wf_format) // ")"
+  write(*, "(1x,A19,I5,A,1x,A1,1x,A19,I6,A)") &
+       & "Output grid policy=", in%output_grid, "   (" // output_grid_names(in%output_grid) // ")", "|", &
+       & "Output grid format=", in%output_grid_format, "         (" // output_grid_format_names(in%output_grid_format) // ")"
 END SUBROUTINE print_dft_parameters
-!!***
 
 
-!!****f* BigDFT/atomic_axpy
-!! FUNCTION
-!!   Routine for moving atomic positions, takes into account the 
+!>   Routine for moving atomic positions, takes into account the 
 !!   frozen atoms and the size of the cell
 !!   synopsis: rxyz=txyz+alpha*sxyz
 !!   all the shift are inserted into the box if there are periodic directions
 !!   if the atom are frozen they are not moved
-!! SOURCE
-!!
 subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
   use module_base
   use module_types
@@ -2593,18 +2478,13 @@ subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
   end do
 
 END SUBROUTINE atomic_axpy
-!!***
 
 
-!!****f* BigDFT/atomic_axpy_forces
-!! FUNCTION
-!!   Routine for moving atomic positions, takes into account the 
+!>   Routine for moving atomic positions, takes into account the 
 !!   frozen atoms and the size of the cell
 !!   synopsis: fxyz=txyz+alpha*sxyz
 !!   update the forces taking into account the frozen atoms
 !!   do not apply the modulo operation on forces 
-!! SOURCE
-!!
 subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
   use module_base
   use module_types
@@ -2629,15 +2509,10 @@ subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
   end do
   
 END SUBROUTINE atomic_axpy_forces
-!!***
 
 
-!!****f* BigDFT/atomic_dot
-!! FUNCTION
-!!   Calculate the scalar product between atomic positions by considering
+!>   Calculate the scalar product between atomic positions by considering
 !!   only non-blocked atoms
-!! SOURCE
-!!
 subroutine atomic_dot(atoms,x,y,scpr)
   use module_base
   use module_types
@@ -2663,14 +2538,9 @@ subroutine atomic_dot(atoms,x,y,scpr)
   end do
   
 END SUBROUTINE atomic_dot
-!!***
 
 
-!!****f* BigDFT/atomic_gemv
-!! FUNCTION
-!!   z=alpha*A*x + beta* y
-!! SOURCE
-!!
+!>   z=alpha*A*x + beta* y
 subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
   use module_base
   use module_types
@@ -2698,14 +2568,9 @@ subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
   end do
 
 END SUBROUTINE atomic_gemv
-!!***
 
 
-!!****f* BigDFT/move_this_coordinate
-!! FUNCTION
-!!  The function which controls all the moving positions
-!! SOURCE
-!!
+!>  The function which controls all the moving positions
 function move_this_coordinate(ifrztyp,ixyz)
   use module_base
   implicit none
@@ -2718,14 +2583,9 @@ function move_this_coordinate(ifrztyp,ixyz)
        (ifrztyp == 3 .and. ixyz ==2)
        
 END FUNCTION move_this_coordinate
-!!***
 
 
-!!****f* BigDFT/atomic_coordinate_axpy
-!! FUNCTION
-!!   rxyz=txyz+alpha*sxyz
-!! SOURCE
-!!
+!>   rxyz=txyz+alpha*sxyz
 subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   use module_base
   use module_types
@@ -2762,14 +2622,8 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   end if
 
 END SUBROUTINE atomic_coordinate_axpy
-!!***
 
 
-!!****f* BigDFT/init_material_acceleration
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine init_material_acceleration(iproc,iacceleration,GPU)
   use module_base
   use module_types
@@ -2817,15 +2671,9 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      end if
   end if
 
-end subroutine init_material_acceleration
-!!***
+END SUBROUTINE init_material_acceleration
 
 
-!!****f* BigDFT/release_material_acceleration
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine release_material_acceleration(GPU)
   use module_base
   use module_types
@@ -2842,14 +2690,8 @@ subroutine release_material_acceleration(GPU)
   end if
 
 END SUBROUTINE release_material_acceleration
-!!***
 
 
-!!****f* BigDFT/processor_id_per_node
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine processor_id_per_node(iproc,nproc,iproc_node)
   use module_base
   integer, intent(in) :: iproc,nproc
@@ -2892,4 +2734,3 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node)
   end if
      
 END SUBROUTINE processor_id_per_node
-!!***

@@ -36,7 +36,7 @@ subroutine xcast_mpi_intv(xval,master,spaceComm,ier)
 !Arguments-------------------------
  integer,intent(inout) :: xval
  integer,intent(in) :: spaceComm,master
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 ! *************************************************************************
 
@@ -89,7 +89,7 @@ subroutine xcast_mpi_int1d(xval,master,spaceComm,ier)
 !Arguments ------------------------------------
  integer,intent(inout) :: xval(:)
  integer,intent(in) :: spaceComm,master
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 !Local variables-------------------------------
  integer :: n
 
@@ -144,7 +144,7 @@ subroutine xcast_mpi_int2d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  integer,intent(inout) :: xval(:,:)
  integer,intent(in) :: spaceComm,master
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -203,7 +203,7 @@ subroutine xcast_mpi_int3d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  integer,intent(inout) :: xval(:,:,:)
  integer,intent(in) :: spaceComm,master
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------------------
 #if defined HAVE_MPI
@@ -263,7 +263,7 @@ subroutine xcast_mpi_dpv(xval,master,spaceComm,ier)
 !Arguments ------------------------------------
  real(dp),intent(inout) :: xval
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 !Local variables-------------------------------
 
 ! *************************************************************************
@@ -317,11 +317,11 @@ subroutine xcast_mpi_dp1d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n
+ integer :: n
 #endif
 
 ! *************************************************************************
@@ -376,11 +376,11 @@ subroutine xcast_mpi_dp2d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2
+ integer :: n1,n2
 #endif
 
 ! *************************************************************************
@@ -436,11 +436,11 @@ subroutine xcast_mpi_dp3d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:,:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2,n3
+ integer :: n1,n2,n3
 #endif
 
 ! *************************************************************************
@@ -497,11 +497,11 @@ subroutine xcast_mpi_dp4d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  real(dp),intent(inout) :: xval(:,:,:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2,n3,n4
+ integer :: n1,n2,n3,n4
 #endif
 
 ! *************************************************************************
@@ -614,11 +614,11 @@ subroutine xcast_mpi_sp1d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  real,intent(inout) :: xval(:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n
+ integer :: n
 #endif
 
 ! *************************************************************************
@@ -673,11 +673,11 @@ subroutine xcast_mpi_sp2d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  real,intent(inout) :: xval(:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2
+ integer :: n1,n2
 #endif
 
 ! *************************************************************************
@@ -733,11 +733,11 @@ subroutine xcast_mpi_sp3d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  real,intent(inout) :: xval(:,:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2,n3
+ integer :: n1,n2,n3
 #endif
 
 ! *************************************************************************
@@ -794,11 +794,11 @@ subroutine xcast_mpi_sp4d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  real,intent(inout) :: xval(:,:,:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2,n3,n4
+ integer :: n1,n2,n3,n4
 #endif
 
 ! *************************************************************************
@@ -856,7 +856,7 @@ implicit none
 !Arguments-------------------------
  complex,intent(inout) :: xval
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 
@@ -911,11 +911,11 @@ implicit none
 !Arguments-------------------------
  complex,intent(inout) :: xval(:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n
+ integer :: n
 #endif
 
 ! *************************************************************************
@@ -970,11 +970,11 @@ implicit none
 !Arguments-------------------------
  complex,intent(inout) :: xval(:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2
+ integer :: n1,n2
 #endif
 
 ! *************************************************************************
@@ -982,9 +982,9 @@ implicit none
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-   call MPI_BCAST(xval,n1*n2,MPI_COMPLEX,master,spaceComm,ier)
    n1=size(xval,dim=1)
    n2=size(xval,dim=2)
+   call MPI_BCAST(xval,n1*n2,MPI_COMPLEX,master,spaceComm,ier)
  end if
 #endif
 
@@ -1030,11 +1030,11 @@ implicit none
 !Arguments-------------------------
  complex,intent(inout) :: xval(:,:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2,n3
+ integer :: n1,n2,n3
 #endif
 
 ! *************************************************************************
@@ -1091,11 +1091,11 @@ implicit none
 !Arguments-------------------------
  complex,intent(inout) :: xval(:,:,:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2,n3,n4
+ integer :: n1,n2,n3,n4
 #endif
 
 ! *************************************************************************
@@ -1153,7 +1153,7 @@ implicit none
 !Arguments-------------------------
  complex(dpc),intent(inout):: xval
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 
@@ -1208,11 +1208,11 @@ implicit none
 !Arguments-------------------------
  complex(dpc),intent(inout):: xval(:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n
+ integer :: n
 #endif
 
 ! *************************************************************************
@@ -1267,11 +1267,11 @@ implicit none
 !Arguments-------------------------
  complex(dpc),intent(inout):: xval(:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2
+ integer :: n1,n2
 #endif
 
 ! *************************************************************************
@@ -1279,9 +1279,9 @@ implicit none
  ier=0
 #if defined HAVE_MPI
  if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
-   call MPI_BCAST(xval,n1*n2,MPI_DOUBLE_COMPLEX,master,spaceComm,ier)
    n1=size(xval,dim=1)
    n2=size(xval,dim=2)
+   call MPI_BCAST(xval,n1*n2,MPI_DOUBLE_COMPLEX,master,spaceComm,ier)
  end if
 #endif
 
@@ -1327,11 +1327,11 @@ implicit none
 !Arguments-------------------------
  complex(dpc),intent(inout):: xval(:,:,:)
  integer ,intent(in) :: spaceComm,master
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
- integer::n1,n2,n3
+ integer :: n1,n2,n3
 #endif
 
 ! *************************************************************************
@@ -1388,7 +1388,7 @@ implicit none
 !Arguments-------------------------
  complex(dpc),intent(inout) :: xval(:,:,:,:)
  integer,intent(in) :: spaceComm,master
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1451,7 +1451,7 @@ subroutine xcast_mpi_ch0d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  character(len=*),intent(inout) :: xval
  integer,intent(in) :: spaceComm,master
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------------------
 #if defined HAVE_MPI
@@ -1514,7 +1514,7 @@ subroutine xcast_mpi_ch1d(xval,master,spaceComm,ier)
 !Arguments-------------------------
  Character(len=*),intent(inout) :: xval(:)
  integer,intent(in) :: spaceComm,master
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------------------
 #if defined HAVE_MPI

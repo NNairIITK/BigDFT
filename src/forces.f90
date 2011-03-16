@@ -1,16 +1,14 @@
-!!****f* BigDFT/local_forces
-!! FUNCTION
-!!   Calculates the local forces acting on the atoms belonging to iproc
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!> @file
+!!  Routines to calculate the lcoal part of atomic forces
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>   Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
   use module_base
@@ -155,16 +153,11 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
 END SUBROUTINE local_forces
-!!***
 
 
-!!****f* BigDFT/nonlocal_forces
-!! FUNCTION
-!!  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
+!>  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !!  belonging to iproc and adds them to the force array
-!   recalculate the projectors at the end if refill flag is .true.
-!! SOURCE
-!!
+!!  recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
      orbs,nlpspd,proj,wfd,psi,fsep,refill)
   use module_base
@@ -480,14 +473,9 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
   call memocc(i_stat,i_all,'scalprod',subname)
 
 END SUBROUTINE nonlocal_forces
-!!***
 
 
-!!****f* BigDFT/calc_coeff_derproj
-!! FUNCTION
-!!   Calculates the coefficient of derivative of projectors
-!! SOURCE
-!!
+!>   Calculates the coefficient of derivative of projectors
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)
   implicit none
   integer, intent(in) :: l,i,m,nterm_max
@@ -2822,13 +2810,13 @@ else
    stop 'PSP format error'
 end if
 END SUBROUTINE calc_coeff_derproj
-!!***
 
-!!Eliminate the translational forces before calling this subroutine!!!
-!Main subroutine: Input is nat (number of atoms), rat0 (atomic positions) and fat (forces on atoms)
-!The atomic positions will be returned untouched
-!In fat, the rotational forces will be eliminated with respect to the center of mass. 
-!All atoms are treated equally (same atomic mass) 
+
+!> Eliminate the translational forces before calling this subroutine!!!
+!! Main subroutine: Input is nat (number of atoms), rat0 (atomic positions) and fat (forces on atoms)
+!! The atomic positions will be returned untouched
+!! In fat, the rotational forces will be eliminated with respect to the center of mass. 
+!! All atoms are treated equally (same atomic mass) 
 subroutine elim_torque_reza(nat,rat0,fat)
   use module_base
   implicit none
@@ -2908,7 +2896,8 @@ subroutine elim_torque_reza(nat,rat0,fat)
   deallocate(amass,stat=i_stat)
   call memocc(i_stat,i_all,'amass',subname)
 
-end subroutine elim_torque_reza
+END SUBROUTINE elim_torque_reza
+
 
 subroutine cross(a,b,c)
   use module_base
@@ -2919,7 +2908,8 @@ subroutine cross(a,b,c)
   c(1)=a(2)*b(3)-b(2)*a(3)
   c(2)=a(3)*b(1)-b(3)*a(1)
   c(3)=a(1)*b(2)-b(1)*a(2)
-end subroutine cross
+END SUBROUTINE cross
+
 
 subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   use module_base
@@ -2962,7 +2952,8 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   deallocate(amass,stat=i_stat)
   call memocc(i_stat,i_all,'amass',subname)
   
-end subroutine moment_of_inertia
+END SUBROUTINE moment_of_inertia
+
 
 subroutine normalizevector(n,v)
   use module_base
@@ -2980,7 +2971,7 @@ subroutine normalizevector(n,v)
   vnrm=sqrt(vnrm)
   v(1:n)=v(1:n)/vnrm
 
-end subroutine normalizevector
+END SUBROUTINE normalizevector
 
 
 subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
@@ -2999,7 +2990,6 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   !my variables
   real(gp):: fmax1,t1,t2,t3,fnrm1
   real(gp):: fmax2,fnrm2
-
 
   !The maximum force and force norm is computed prior to modification of the forces
   fmax1=0._gp
@@ -3082,4 +3072,4 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
      if (at%geocode /= 'P') &
   &  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
   end if
-end subroutine clean_forces
+END SUBROUTINE clean_forces

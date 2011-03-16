@@ -1,3 +1,13 @@
+!> @file
+!!  Old gauss to daubechies (unused)
+!! @deprecated
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
  !       PROGRAM MAIN
  !       implicit real(kind=8) (a-h,o-z)          
  !       PARAMETER(NMAX=1000,NWORK=10000)

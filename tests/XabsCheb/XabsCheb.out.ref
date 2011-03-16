@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.2)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.5)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -72,7 +72,7 @@
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Fe               1                   13
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   13
  Total number of components =                90610
  Percent of zero components =                   18
@@ -114,17 +114,15 @@
  Wavefunctions memory occupation for root processor (Bytes): 12855280
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    7.47E-05
- Calculation of charge density... done. Total electronic charge=      15.999983273240
+ Calculation of charge density... done. Total electronic charge=      15.999983273238
  PSolver, periodic BC, dimensions:   108  108  108   proc    1 ... done.
   going to calculate spectra 
   IN ROUTINE  chebychev  
  Wavefunctions memory occupation for root processor (Bytes): 1285528
  reading  precalculated  projection on pseudofunctions
- for 1s of atom number            1  ( atomname = Fe                   )
- After application of a 2*L-pole  with L=            1
-  from file 
- gproje_Fe_1s_1                                                                 
-  
+for 1s of atom number      1 ( atomname = Fe         )
+After application of a 2*L-pole  with L=      1
+ from file       gproje_Fe_1s_1
  OK 
  OK 1
  OK 2
@@ -156,26 +154,23 @@
  Hamiltonian application...  done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
-  writing spectra to 
- cheb_spectra_39                                                                
-                                                                                
-                                           
+                                                                  writing spectra to cheb_spectra_39
   done 
  Hamiltonian application...  done 
  coefficients from Chebychev 
-   40 1.6785726182760831E+02 5.8035787346174018E-03
+   40 1.6785726182760868E+02 5.8035787346174140E-03
  ... 
- 2.8032097970193256E-05
--6.9868633071488735E-05
- 8.9925560087372562E-05
--8.2631370239723972E-05
- 6.1734834452527396E-05
--5.7743630815925828E-05
- 1.0173233607006695E-04
--1.8840548308767793E-04
- 2.5808015931693025E-04
--2.4686515922294578E-04
- CPU time/ELAPSED time for root process     0         5.25         5.25
+ 2.8032097969300090E-05
+-6.9868633070607712E-05
+ 8.9925560086541413E-05
+-8.2631370238954406E-05
+ 6.1734834451806619E-05
+-5.7743630815242347E-05
+ 1.0173233606944766E-04
+-1.8840548308720804E-04
+ 2.5808015931672599E-04
+-2.4686515922306960E-04
+ CPU time/ELAPSED time for root process     0        17.35        17.34
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -209,7 +204,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.2)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.5)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -260,7 +255,7 @@
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Fe               1                   13
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   13
  Total number of components =                90610
  Percent of zero components =                   18
@@ -302,26 +297,15 @@
  Wavefunctions memory occupation for root processor (Bytes): 12855280
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    7.47E-05
- Calculation of charge density... done. Total electronic charge=      15.999983273240
+ Calculation of charge density... done. Total electronic charge=      15.999983273238
  PSolver, periodic BC, dimensions:   108  108  108   proc    1 ... done.
   going to calculate spectra 
   IN ROUTINE LANCZOS 
  Wavefunctions memory occupation for root processor (Bytes): 1285528
  reading  precalculated  projection on pseudofunctions
- for 1s of atom number            1  ( atomname = Fe                   )
- After application of a 2*L-pole  with L=            1
-  from file 
- gproje_Fe_1s_1                                                                 
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-                                                                                
-           
+for 1s of atom number      1 ( atomname = Fe         )
+After application of a 2*L-pole  with L=      1
+ from file       gproje_Fe_1s_1
   sono in EP_allocate_for_eigenprob 
   sono in EP_allocate_for_eigenprob EP_dim , nsteps       160691          20
   esco 
@@ -354,28 +338,28 @@
  Hamiltonian application...  done 
  Hamiltonian application...  done 
   alpha and beta from lanczos 
-   20 1.7562530507505276E-03
- 4.6367176497143035E+01 4.6854586541482490E+01
- 1.1070200087401912E+02 6.6843275871318596E+01
- 1.4012733872842813E+02 7.7668910309474626E+01
- 1.5515439706358373E+02 8.1978527003579430E+01
- 1.6202146082219707E+02 8.3225919541583764E+01
- 1.6347576981223466E+02 8.3689229430736958E+01
- 1.6520956102295125E+02 8.3714612022203070E+01
- 1.6458234736422364E+02 8.2928345714907820E+01
- 1.6249982934072537E+02 8.1634089675380309E+01
- 1.5995985716172305E+02 8.0587272898735009E+01
- 1.6189714557890886E+02 8.2699908753817795E+01
- 1.6476485774115446E+02 8.3304154426189967E+01
- 1.6625821420349698E+02 8.2753375490318405E+01
- 1.6363483954860504E+02 8.2795831040870809E+01
- 1.6191549704645428E+02 8.1202038340193951E+01
- 1.6186495853321560E+02 7.9126926656163874E+01
- 1.6111621324290553E+02 8.0369732062818542E+01
- 1.5225934446109548E+02 7.8766290640403483E+01
- 1.5689912593807281E+02 7.4476439338186765E+01
- 1.4926424466876176E+02 7.4740068926014203E+01
- CPU time/ELAPSED time for root process     0         5.05         5.05
+   20 1.7562530507505285E-03
+ 4.6367176497138374E+01 4.6854586541482398E+01
+ 1.1070200087401460E+02 6.6843275871318838E+01
+ 1.4012733872842358E+02 7.7668910309474768E+01
+ 1.5515439706357935E+02 8.1978527003579345E+01
+ 1.6202146082219318E+02 8.3225919541583806E+01
+ 1.6347576981223000E+02 8.3689229430737058E+01
+ 1.6520956102294730E+02 8.3714612022203511E+01
+ 1.6458234736421838E+02 8.2928345714907948E+01
+ 1.6249982934072210E+02 8.1634089675380352E+01
+ 1.5995985716171904E+02 8.0587272898734909E+01
+ 1.6189714557890517E+02 8.2699908753817553E+01
+ 1.6476485774114951E+02 8.3304154426189982E+01
+ 1.6625821420349348E+02 8.2753375490318675E+01
+ 1.6363483954859944E+02 8.2795831040870809E+01
+ 1.6191549704645192E+02 8.1202038340193951E+01
+ 1.6186495853321208E+02 7.9126926656163761E+01
+ 1.6111621324290192E+02 8.0369732062818258E+01
+ 1.5225934446109170E+02 7.8766290640403568E+01
+ 1.5689912593806878E+02 7.4476439338186950E+01
+ 1.4926424466875716E+02 7.4740068926014459E+01
+ CPU time/ELAPSED time for root process     0        17.82        17.82
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -409,7 +393,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.2)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.5)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -460,7 +444,7 @@
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Fe               1                   13
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   13
  Total number of components =                90610
  Percent of zero components =                   18
@@ -503,11 +487,9 @@
   IN ROUTINE  chebychev  
  Wavefunctions memory occupation for root processor (Bytes): 1285528
  reading  precalculated  projection on pseudofunctions
- for 1s of atom number            1  ( atomname = Fe                   )
- After application of a 2*L-pole  with L=            1
-  from file 
- gproje_Fe_1s_1                                                                 
-  
+for 1s of atom number      1 ( atomname = Fe         )
+After application of a 2*L-pole  with L=      1
+ from file       gproje_Fe_1s_1
  OK 
  OK 1
  OK 2
@@ -539,26 +521,23 @@
  Hamiltonian application...  done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
-  writing spectra to 
- cheb_spectra_39                                                                
-                                                                                
-                                           
+                                                                  writing spectra to cheb_spectra_39
   done 
  Hamiltonian application...  done 
  coefficients from Chebychev 
-   40 1.6785726182760831E+02 5.8035787346174018E-03
+   40 1.6785726182760868E+02 5.8035787346174140E-03
  ... 
- 2.8698552728719309E-05
--7.0518066633021466E-05
- 9.0529061278488577E-05
--8.3176771030732660E-05
- 6.2229730901652153E-05
--5.8207117131204049E-05
- 1.0216408579951384E-04
--1.8875004463204319E-04
- 2.5824142065893020E-04
--2.4678223774906400E-04
- CPU time/ELAPSED time for root process     0         8.15         8.12
+ 2.8698552728593542E-05
+-7.0518066632899168E-05
+ 9.0529061278377555E-05
+-8.3176771030634864E-05
+ 6.2229730901564983E-05
+-5.8207117131123167E-05
+ 1.0216408579943881E-04
+-1.8875004463198898E-04
+ 2.5824142065890851E-04
+-2.4678223774908439E-04
+ CPU time/ELAPSED time for root process     0        19.39        19.39
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -566,6 +545,6 @@
       y direction     0.00000000E+00
       z direction     0.00000000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1406 allocations and 1406 deallocations, remaining memory(B): 0
+ 1409 allocations and 1409 deallocations, remaining memory(B): 12
  memory occupation peak: 50 MB
  for the array  y in the routine scaling_function4b2B

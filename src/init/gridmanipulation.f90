@@ -1,18 +1,16 @@
-!!****f* BigDFT/system_size
-!! FUNCTION
-!!   Calculates the overall size of the simulation cell 
-!!   and shifts the atoms such that their position is the most symmetric possible.
-!!   Assign these values to the global localisation region descriptor.
-!!
-!! COPYRIGHT
+!> @file
+!!  Routines to manipulate the grid
+!! @author
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>   Calculates the overall size of the simulation cell 
+!!   and shifts the atoms such that their position is the most symmetric possible.
+!!   Assign these values to the global localisation region descriptor.
 subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
   use module_base
   use module_types
@@ -254,15 +252,10 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
   endif
 
 END SUBROUTINE system_size
-!!***
 
 
-!!****f* BigDFT/correct_grid
-!! FUNCTION
-!!   Here the dimensions should be corrected in order to 
+!>   Here the dimensions should be corrected in order to 
 !!   allow the fft for the preconditioner and for Poisson Solver
-!! SOURCE
-!!
 subroutine correct_grid(a,h,n)
   use module_base
   use Poisson_Solver
@@ -304,14 +297,9 @@ subroutine correct_grid(a,h,n)
   h=a/real(n+1,gp)
   
 END SUBROUTINE correct_grid
-!!***
 
 
-!!****f* BigDFT/num_segkeys
-!! FUNCTION
-!!   Calculates the length of the keys describing a wavefunction data structure
-!! SOURCE
-!!
+!>   Calculates the length of the keys describing a wavefunction data structure
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   implicit none
   integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3
@@ -363,14 +351,9 @@ nend=nend+nendi
   mseg=nend
   
 END SUBROUTINE num_segkeys
-!!***
 
 
-!!****f* BigDFT/segkeys
-!! FUNCTION
-!!   Calculates the keys describing a wavefunction data structure
-!! SOURCE
-!!
+!>   Calculates the keys describing a wavefunction data structure
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   !implicit real(kind=8) (a-h,o-z)
   implicit none
@@ -417,16 +400,10 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   endif
   !mseg=nend
 END SUBROUTINE segkeys
-!!***
 
 
-!!****f* BigDFT/fill_logrid
-!! FUNCTION
-!!   set up an array logrid(i1,i2,i3) that specifies whether the grid point
+!>   set up an array logrid(i1,i2,i3) that specifies whether the grid point
 !!   i1,i2,i3 is the center of a scaling function/wavelet
-!!
-!! SOURCE
-!!
 subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
   use module_base
@@ -517,14 +494,8 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   enddo
 
 END SUBROUTINE fill_logrid
-!!***
 
 
-!!****f* BigDFT/make_bounds
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -601,5 +572,3 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   end do
 
 END SUBROUTINE make_bounds
-!!***
-

@@ -1,23 +1,15 @@
-!!****p* OpenCL/conv_check
-!! FUNCTION
-!!    Program test for the convolution in GPU
-!!
-!! AUTHOR
-!!    Luigi Genovese
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2008 BigDFT group 
+!> @file
+!!   Test program for convolutions with OpenCL
+!! @author
+!!    Copyright (C) 2008-2011 BigDFT group (LG) (BV)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! CREATION DATE
-!!    Septembre 2008
-!!
-!! SOURCE
-!!
 
+
+!> Program test for the convolution in GPU (OpenCL version)
 program conv_check
   use module_base
   implicit none
@@ -1817,7 +1809,6 @@ program conv_check
            deallocate(keyv,stat=i_stat)
            call memocc(i_stat,i_all,'keyv',subname)
 
-
         end do
      end do
     
@@ -1839,7 +1830,7 @@ contains
       time*1.d3/real(ntimes,kind=8),&
       real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(time*1.d9)
 
-  end subroutine print_time
+  END SUBROUTINE print_time
 
   subroutine compare_time(REFtime,TESTtime,nbelem,nop,ntimes,maxdiff,threshold)
     implicit none
@@ -1858,7 +1849,7 @@ contains
     else
       write(*,'(a)')'<<<< WARNING' 
     end if
-  end subroutine compare_time
+  END SUBROUTINE compare_time
 
   subroutine compare_3D_results(dim1, dim2, dim3, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -1883,7 +1874,7 @@ contains
         end do
       end do
     end do
-  end subroutine compare_3D_results
+  END SUBROUTINE compare_3D_results
 
   subroutine compare_2D_results(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -1906,7 +1897,7 @@ contains
         end if
       end do
     end do
-  end subroutine compare_2D_results
+  END SUBROUTINE compare_2D_results
 
   subroutine compare_2D_results_t(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -1929,7 +1920,7 @@ contains
         end if
       end do
     end do
-  end subroutine compare_2D_results_t
+  END SUBROUTINE compare_2D_results_t
 
   subroutine compare_1D_results(dim1, psi_ref, psi, maxdiff, printdiff)
     implicit none
@@ -1950,7 +1941,7 @@ contains
         maxdiff=comp
       end if
     end do
-  end subroutine compare_1D_results
+  END SUBROUTINE compare_1D_results
 
   subroutine conv_kin_x(x,y,ndat,ekin)
     implicit none
@@ -1992,18 +1983,18 @@ contains
              tt11=tt11+x(j,i*12+11)*fil(l)
              tt12=tt12+x(j,i*12+12)*fil(l)
           enddo
-          y(i*12+1 ,i1)=tt1;	 ekin=ekin+tt1*x(i1,i*12+1)
-          y(i*12+2 ,i1)=tt2;	 ekin=ekin+tt2*x(i1,i*12+2)
-          y(i*12+3 ,i1)=tt3;	 ekin=ekin+tt3*x(i1,i*12+3)
-          y(i*12+4 ,i1)=tt4;	 ekin=ekin+tt4*x(i1,i*12+4)
-          y(i*12+5 ,i1)=tt5;	 ekin=ekin+tt5*x(i1,i*12+5)
-          y(i*12+6 ,i1)=tt6;	 ekin=ekin+tt6*x(i1,i*12+6)
-          y(i*12+7 ,i1)=tt7;	 ekin=ekin+tt7*x(i1,i*12+7)
-          y(i*12+8 ,i1)=tt8;	 ekin=ekin+tt8*x(i1,i*12+8)
-          y(i*12+9 ,i1)=tt9 ;	 ekin=ekin+tt9 *x(i1,i*12+9 )
-          y(i*12+10,i1)=tt10;	 ekin=ekin+tt10*x(i1,i*12+10)
-          y(i*12+11,i1)=tt11;	 ekin=ekin+tt11*x(i1,i*12+11)
-          y(i*12+12,i1)=tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
+          y(i*12+1 ,i1)=tt1;     ekin=ekin+tt1*x(i1,i*12+1)
+          y(i*12+2 ,i1)=tt2;     ekin=ekin+tt2*x(i1,i*12+2)
+          y(i*12+3 ,i1)=tt3;     ekin=ekin+tt3*x(i1,i*12+3)
+          y(i*12+4 ,i1)=tt4;     ekin=ekin+tt4*x(i1,i*12+4)
+          y(i*12+5 ,i1)=tt5;     ekin=ekin+tt5*x(i1,i*12+5)
+          y(i*12+6 ,i1)=tt6;     ekin=ekin+tt6*x(i1,i*12+6)
+          y(i*12+7 ,i1)=tt7;     ekin=ekin+tt7*x(i1,i*12+7)
+          y(i*12+8 ,i1)=tt8;     ekin=ekin+tt8*x(i1,i*12+8)
+          y(i*12+9 ,i1)=tt9 ;    ekin=ekin+tt9 *x(i1,i*12+9 )
+          y(i*12+10,i1)=tt10;    ekin=ekin+tt10*x(i1,i*12+10)
+          y(i*12+11,i1)=tt11;    ekin=ekin+tt11*x(i1,i*12+11)
+          y(i*12+12,i1)=tt12;    ekin=ekin+tt12*x(i1,i*12+12)
        enddo
     enddo
     !$omp end do
@@ -2020,9 +2011,6 @@ contains
        enddo
     enddo
     !$omp end do
-  end subroutine conv_kin_x
+  END SUBROUTINE conv_kin_x
 
- 
 end program conv_check
-
-!!***

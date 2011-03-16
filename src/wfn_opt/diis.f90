@@ -1,3 +1,13 @@
+!> @file
+!!   DIIS routine for density mixing
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,rpnrm)
   use module_base
   use defs_basis, only: AB6_NO_ERROR
@@ -39,19 +49,9 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,r
   ! Copy new in vrespc
   call dcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
 
-end subroutine mix_rhopot
+END SUBROUTINE mix_rhopot
 
 
-!!****f* BigDFT/psimix
-!! FUNCTION
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
 subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   use module_base
   use module_types
@@ -116,7 +116,6 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   endif
 
 END SUBROUTINE psimix
-!!***
 
 
 subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
@@ -175,13 +174,12 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
      call razero(nkptsp*3*(idsx+1)**2,diis%ads)
   end if
 
-end subroutine diis_or_sd
+END SUBROUTINE diis_or_sd
 
 
-! diis subroutine:
-! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
-! using  the previous iteration points psidst and the associated error 
-! vectors (preconditioned gradients) hpsidst
+!> calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
+!! using  the previous iteration points psidst and the associated error 
+!! vectors (preconditioned gradients) hpsidst
 subroutine diisstp(iproc,nproc,orbs,comms,diis,psit)
   use module_base
   use module_types
@@ -338,8 +336,9 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis,psit)
 
 END SUBROUTINE diisstp
 
-! compute a dot product of two single precision vectors 
-! returning a double precision result
+
+!> compute a dot product of two single precision vectors 
+!! returning a double precision result
 subroutine ds_dot(ndim,x,x0,dx,y,y0,dy,dot_out)
   use module_base
   use module_types
@@ -357,7 +356,7 @@ subroutine ds_dot(ndim,x,x0,dx,y,y0,dy,dot_out)
     ix=ix+dx
     iy=iy+dy
   end do
-end subroutine ds_dot
+END SUBROUTINE ds_dot
 
 function s2d_dot(ndim,x,dx,y,dy)
   implicit none

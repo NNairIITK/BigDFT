@@ -1,13 +1,12 @@
-!!****f* BigDFT/reformatonewave
-!! COPYRIGHT
-!!    Copyright (C) 2010 BigDFT group 
+!> @file
+!!  Routines to reformat wavefunctions
+!! @author
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
+ 
 subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
      rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
   use module_base
@@ -38,7 +37,7 @@ subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old
   pery=(at%geocode == 'P')
   perz=(at%geocode /= 'F')
 
-  !buffers realted to periodicity
+  !buffers related to periodicity
   !WARNING: the boundary conditions are not assumed to change between new and old
   call ext_buffers_coarse(perx,nb1)
   call ext_buffers_coarse(pery,nb2)
@@ -206,11 +205,10 @@ subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old
   call memocc(i_stat,i_all,'ww',subname)
 
 END SUBROUTINE reformatonewave
-!!***
 
 
-!calculates the minimum difference between two coordinates
-!knowing that there could have been a modulo operation
+!> Calculates the minimum difference between two coordinates
+!! knowing that there could have been a modulo operation
 function mindist(periodic,alat,r,r_old)
   use module_base
   implicit none
@@ -240,6 +238,7 @@ function mindist(periodic,alat,r,r_old)
   end if
 
 end function mindist
+
 
 subroutine ext_buffers_coarse(periodic,nb)
   implicit none
@@ -399,6 +398,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
 END SUBROUTINE readonewave
 
+
 subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
      nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f, & 
@@ -486,7 +486,6 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      enddo
   enddo
 
-  write(*,'(1x,i0,a)') iorb,'th wavefunction written'
-
+  if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 END SUBROUTINE writeonewave

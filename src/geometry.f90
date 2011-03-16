@@ -1,53 +1,46 @@
-!!****m* BigDFT/minimization
-!! FUNCTION
-!!   Define the type parameterminimization
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!> @file
+!!  Routines to do geometry optimisation
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!> Define the type parameterminimization
 module minpar
   implicit none
 
   type parameterminimization
-     !general parameters for all methods
-     character(10)::approach
-     integer::iter
-     integer::iflag
-     integer::history
-     !parameters for print information
+     !>general parameters for all methods
+     character (len=10) :: approach
+     integer :: iter
+     integer :: iflag
+     integer :: history
+     !>parameters for print information
      integer :: verbosity
-     INTEGER:: MSAVE
-     INTEGER:: MP
-     INTEGER:: LP
-     INTEGER:: MAXFEV
-     INTEGER:: FINSTEP
-     DOUBLE PRECISION:: ALPHA 
-     DOUBLE PRECISION:: GTOL
-     DOUBLE PRECISION:: XTOL
-     DOUBLE PRECISION:: FTOL
-     DOUBLE PRECISION:: STPMIN
-     DOUBLE PRECISION:: STPMAX
-     LOGICAL:: DIAGCO
-     LOGICAL:: IWRITE
+     integer :: MSAVE
+     integer :: MP
+     integer :: LP
+     integer :: MAXFEV
+     integer :: FINSTEP
+     double precision :: ALPHA 
+     double precision :: GTOL
+     double precision :: XTOL
+     double precision :: FTOL
+     double precision :: STPMIN
+     double precision :: STPMAX
+     logical :: DIAGCO
+     logical :: IWRITE
   end type parameterminimization
 
   type(parameterminimization) :: parmin
 
-
 end module minpar
-!!***
 
-!!****f* BigDFT/geopt_init
-!! FUNCTION
-!!   Geometry optimization, parametrisation routine.
-!! SOURCE
-!!
+
+!>   Geometry optimization, parametrisation routine.
 subroutine geopt_init()
   use minpar
   implicit none
@@ -69,14 +62,9 @@ subroutine geopt_init()
   parmin%IWRITE=.FALSE.
 
 END SUBROUTINE geopt_init
-!!***
 
 
-!!****f* BigDFT/geopt_set_verbosity
-!! FUNCTION
-!!   Geometry optimization, parametrisation routine.
-!! SOURCE
-!!
+!>   Geometry optimization, parametrisation routine.
 subroutine geopt_set_verbosity(verbosity_)
   use minpar
   implicit none
@@ -84,14 +72,9 @@ subroutine geopt_set_verbosity(verbosity_)
   integer, intent(in) :: verbosity_
   parmin%verbosity = verbosity_
 END SUBROUTINE geopt_set_verbosity
-!!***
 
 
-!!****f* BigDFT/geopt
-!! FUNCTION
-!!   Geometry optimization
-!! SOURCE
-!!
+!>   Geometry optimization
 subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
@@ -191,14 +174,9 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
 END SUBROUTINE geopt
-!!***
 
 
-!!****f* BigDFT/ab6md
-!! FUNCTION
-!!  Molecular Dynamics
-!! SOURCE
-!!
+!>  Molecular Dynamics
 subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -296,16 +274,15 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   fail = (iexit == 0)
 END SUBROUTINE ab6md
-!!***
 
 
+!> MODIFIED version for refined time limit on restart of global.f90.
+!! Only difference: Calls routine CPUtime(tt)
 subroutine timeleft(tt)
   use module_base
   implicit none
   real(gp), intent(out) :: tt
   !local variables
-  ! MODIFIED version for refined time limit on restart of global.f90.
-  ! Only difference: Calls routine CPUtime(tt)
   integer :: ierr
   real(kind=4) :: tcpu
   real(gp) :: timelimit
@@ -319,11 +296,7 @@ subroutine timeleft(tt)
 END SUBROUTINE timeleft
 
 
-!!****f* BigDFT/conjgrad
-!! FUNCTION
-!!  Conjugate gradient method
-!! SOURCE
-!!
+!>  Conjugate gradient method
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   use module_base
   use module_types
@@ -621,14 +594,9 @@ contains
   END SUBROUTINE close_and_deallocate
 
 END SUBROUTINE conjgrad
-!!***
 
 
-!!****f* BigDFT/steepdes
-!! FUNCTION
-!!  Steepest descent method
-!! SOURCE
-!!
+!>  Steepest descent method
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
      fnrm,fnoise,in,forcemax_sw,nitsd,fluct)
   use module_base
@@ -890,11 +858,10 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   call memocc(i_stat,i_all,'tpos',subname)
 
 END SUBROUTINE steepdes
-!!***
 
 
+!> Variable step steepest descent
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
-! variable step steepest descent
   use module_base
   use module_types
   use minpar
@@ -1099,6 +1066,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
 END SUBROUTINE vstepsd
 
+
 subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
   use module_base
   implicit none
@@ -1115,6 +1083,7 @@ subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
   endif
 
 END SUBROUTINE convcheck
+
 
 subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
   use module_base
@@ -1191,7 +1160,7 @@ subroutine updatefluctsum(nat,fnoise,fluct)
 END SUBROUTINE updatefluctsum
 
 
-!should we evaluate the translational force also with blocked atoms?
+!> Should we evaluate the translational force also with blocked atoms?
 subroutine transforce(at,fxyz,sumx,sumy,sumz)
   use module_base
   use module_types
@@ -1215,7 +1184,7 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
 END SUBROUTINE transforce
 
 
-!should we evaluate the translational force also with blocked atoms?
+!> Should we evaluate the translational force also with blocked atoms?
 subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   use module_base
   use module_types
@@ -1244,12 +1213,8 @@ subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
 END SUBROUTINE transforce_forfluct
 
 
-!!****f* BigDFT/rundiis
-!! FUNCTION
-!!  DIIS relax. Original source from ART from N. Mousseau.
+!>  DIIS relax. Original source from ART from N. Mousseau.
 !!  Adaptations to BigDFT by D. Caliste.
-!! SOURCE
-!!
 subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -1444,16 +1409,11 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   fail = (ncount_bigdft>in%ncount_cluster_x-1)
 END SUBROUTINE rundiis
-!!***
 
- 
-!!****f* BigDFT/lbfgsdriver
-!! FUNCTION
-!!   Driver for the LBFGS routine found on the Nocedal Homepage
+
+!>   Driver for the LBFGS routine found on the Nocedal Homepage
 !!   The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
 !!   This is helpfull when we are looking for the source of problems during BFGS runs
-!! SOURCE
-!!
 subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail) 
   use module_base
   use module_types
@@ -1644,7 +1604,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
       deallocate(W,stat=i_stat)
       call memocc(i_stat,i_all,'W',subname)
 
-END subroutine lbfgsdriver
+END SUBROUTINE lbfgsdriver
 
 
 subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
@@ -1687,9 +1647,10 @@ subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
 END SUBROUTINE atomic_copymoving_backward
 
 
-!     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A  TABOO file
+!>     This file contains the LBFGS algorithm and supporting routines
+!!@todo     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A TABOO file
+
 !     ----------------------------------------------------------------------
-!     This file contains the LBFGS algorithm and supporting routines
 !
 !     ****************
 !     LBFGS SUBROUTINE
@@ -2259,8 +2220,6 @@ END SUBROUTINE atomic_copymoving_backward
 !      return
 !!
 !!        code for both increments equal to 1
-!!
-!!
 !!        clean-up loop
 !!
 !   20 m = mod(n,4)
@@ -2312,8 +2271,6 @@ END SUBROUTINE atomic_copymoving_backward
 !      return
 !!
 !!        code for both increments equal to 1
-!!
-!!
 !!        clean-up loop
 !!
 !   20 m = mod(n,5)
@@ -2899,22 +2856,20 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   real(gp), dimension(3*at%nat), intent(inout) :: fxyz
 
   real(gp) :: fluct,fnrm,  fnoise
-  real(gp) ::sumx,sumy,sumz,fmax,vmax
+  real(gp) :: fmax,vmax
   integer :: check
-  integer :: infocode,i,ixyz,iat
-  character*4 fn4
-  character*40 comment
-  logical :: move_this_coordinate
+  integer :: infocode,iat
+  character(len=4) :: fn4
+  character(len=40) :: comment
 
   character(len=*), parameter :: subname='fire'
-  integer :: i_stat,i_all
 
 !Fire parameters:
-  real(gp):: alpha,P,finc,fdec,falpha,alphastart,dt,dtmax,dtmd,fnrmtol,vnrm
+  real(gp):: alpha,P,finc,fdec,falpha,alphastart,dt,dtmax,vnrm
   real(gp):: velcur(3*at%nat), velpred(3*at%nat),poscur(3*at%nat),pospred(3*at%nat),fcur(3*at%nat),fpred(3*at%nat),mass(3*at%nat)
   real(gp):: ecur,epred,eprev,anoise
   integer:: Nmin,nstep,it
-  logical:: state
+
   check=0
 !Set FIRE parameters
   Nmin=5

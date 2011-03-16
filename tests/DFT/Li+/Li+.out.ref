@@ -26,7 +26,6 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- Reading atomic input positions from file:posinp.xyz
  File 'myparameters' is missing... using default values:
    Input guess: direct diagonalization of Hamiltonian
    Orthogonalization method: Cholesky
@@ -35,7 +34,7 @@
  |   'debug' option disabled
  |   'fftcache' = 8192
 
- ---------------------------------------------------------------- Input atomic system
+ --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
  N. types =     1         |                          | Sp. group = free BC     
@@ -43,12 +42,14 @@
  Types    = 'Li'          |                          | Plot dens.= none        
                           |                          | Spin pol. = no          
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 5.0
  total charge=      1 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
      Li          3       2            2.07000  0.40000  0.00000                   X    
@@ -82,7 +83,7 @@
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Li               1                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
@@ -124,8 +125,9 @@
  Hamiltonian application... done. ekin_sum,eks:       6.3173951733       6.3148658639
  ekin_sum,epot_sum,eproj_sum  6.31739517334E+00 -1.06916426175E+01  0.00000000000E+00
     ehart,   eexcu,    vexcu  3.19362607776E+00 -1.50139722165E+00 -1.97400581330E+00
- Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
- evale(1)= -2.18712372206252E+00 <- Last eigenvalue for input wavefunctions
+ Input Wavefunctions Orthogonalization:
+ Overlap Matrix... Direct diagonalization...
+ evale(1)= -2.18712372206252E+00 <- Last InputGuess eval
  Building orthogonal Wavefunctions... done.
  expected accuracy in energy  2.53E-03
  expected accuracy in energy per orbital  2.53E-03

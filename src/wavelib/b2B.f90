@@ -1,3 +1,12 @@
+!> @file
+!!  Contains a part of code which is included
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
   if(  iand( in%potshortcut, 16)  > 0 ) then
      b2BN=2
   else
@@ -255,13 +264,10 @@
   enddo
 
 
-
   if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
 
   call plot_density_old(atoms%geocode,'local_potentialb2BNEW.pot',iproc,nproc,&
        n1,n2,n3,n1i,n2i,n3i,n3p,&
        atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
 
-
   print *," exiting b2B"
-

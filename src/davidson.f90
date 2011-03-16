@@ -1,18 +1,15 @@
-!!****f* BigDFT/direct_minimization
-!!
-!! DESCRIPTION
-!!   Naive subroutine which performs a direct minimization of the energy 
-!!   for a given hamiltonian
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!> @file
+!!  Routines to do diagonalisation with Davidson algorithm
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>  Naive subroutine which performs a direct minimization of the energy 
+!!  for a given hamiltonian
 subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
@@ -44,7 +41,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   integer :: occnorb, occnorbu, occnorbd
   integer :: i_stat,i_all,iter,ikpt,idsx_actual_before,ndiis_sd_sw
   real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum
-  real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
+  real(gp) :: energy,energy_old,energybs,evsum,scprsum
   type(diis_objects) :: diis
   real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
 
@@ -352,19 +349,15 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !the plotting should be added here (perhaps build a common routine?)
   call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
   
-end subroutine direct_minimization
-!!***
+END SUBROUTINE direct_minimization
 
+
+!> ??
 subroutine jacobi_davidson
-end subroutine jacobi_davidson
+END SUBROUTINE jacobi_davidson
 
 
-
-!!****f* BigDFT/davidson
-!! AUTHOR
-!!   Alexander Willand
-!! DESCRIPTION
-!!   Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
+!> Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
 !!   under orthogonality constraints to occupied orbitals psi. The nvirt input
 !!   variable gives the number of unoccupied orbitals for which the exit criterion
 !!   for the gradients norm holds. nvirte = norbe - norb >= nvirt is the number of
@@ -375,44 +368,34 @@ end subroutine jacobi_davidson
 !!   _________
 !!   (parallel)
 !!
-!!   (transpose psi, v is already transposed)
-!!   orthogonality of v to psi
-!!   orthogonalize v
-!!   (retranspose v)
-!!   Hamilton(v) --> hv
-!!   transpose v and hv
-!!   Rayleigh quotients  e
-!!   do
-!!      gradients g= e*v -hv
-!!      exit condition gnrm
-!!      orthogonality of g to psi
-!!      (retranspose g)
-!!      preconditioning of g
-!!      (transpose g again)
-!!      orthogonality of g to psi
-!!      (retranspose g)
-!!      Hamilton(g) --> hg
-!!      (transpose g and hg)
-!!      subspace matrices H and S
-!!      DSYGV(H,e,S)  --> H
-!!      update v with eigenvectors H
-!!      orthogonality of v to psi
-!!      orthogonalize v
-!!      (retranspose v)
-!!      Hamilton(v) --> hv
-!!      (transpose v and hv)
-!!   end do
-!!   (retranspose v and psi)
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+!!   (transpose psi, v is already transposed)\n
+!!   orthogonality of v to psi\n
+!!   orthogonalize v\n
+!!   (retranspose v)\n
+!!   Hamilton(v) --> hv\n
+!!   transpose v and hv\n
+!!   Rayleigh quotients  e\n
+!!   do\n
+!!      gradients g= e*v -hv\n
+!!      exit condition gnrm\n
+!!      orthogonality of g to psi\n
+!!      (retranspose g)\n
+!!      preconditioning of g\n
+!!      (transpose g again)\n
+!!      orthogonality of g to psi\n
+!!      (retranspose g)\n
+!!      Hamilton(g) --> hg\n
+!!      (transpose g and hg)\n
+!!      subspace matrices H and S\n
+!!      DSYGV(H,e,S)  --> H\n
+!!      update v with eigenvectors H\n
+!!      orthogonality of v to psi\n
+!!      orthogonalize v\n
+!!      (retranspose v)\n
+!!      Hamilton(v) --> hv\n
+!!      (transpose v and hv)\n
+!!   end do\n
+!!   (retranspose v and psi)\n
 subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      orbs,orbsv,nvirt,lr,comms,commsv,&
      hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
@@ -440,14 +423,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
                         !v, that is psivirt, is transposed on input and direct on output
   !local variables
   character(len=*), parameter :: subname='davidson'
-  character(len=10) :: comment
-  character(len=11) :: orbname,denname
   logical :: msg,exctX,occorbs !extended output
   integer :: occnorb, occnorbu, occnorbd
-  integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,norb,nspinor
+  integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor
   integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake
-  real(wp) :: val, valu, vald
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
   real(wp), dimension(:), allocatable :: hv,g,hg,ew
@@ -684,8 +664,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   iter=1
   davidson_loop: do 
 
-     if(iproc==0)write( *,'(1x,a,i0)') &
-	repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
+     if(iproc==0) write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
      !write(*,'(1x,a,i3)')&
      !"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter",iter
      if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
@@ -1270,14 +1249,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   end if
 
 END SUBROUTINE davidson
-!!***
 
 
-!!****f* BigDFT/Davidson_subspace_hamovr
-!! FUNCTION
-!!   Generate upper triangular matrix in the subspace of Davidson algorithm
-!! SOURCE
-!!
+!>   Generate upper triangular matrix in the subspace of Davidson algorithm
 subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   use module_base
   implicit none
@@ -1394,7 +1368,6 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   enddo
 
 END SUBROUTINE Davidson_subspace_hamovr
-!!***
 
 
 subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
@@ -1447,6 +1420,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
 
 END SUBROUTINE update_psivirt
 
+
 subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nspin,psivirt)
   use module_base
   use module_types
@@ -1463,9 +1437,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   !local variables
   character(len=*), parameter :: subname='psivirt_from_gaussians'
   logical ::  randinp
-  integer :: iorb,icoeff,i_all,i_stat,jproc,nwork,info,jorb,idum=0,ikpt,korb
+  integer :: iorb,icoeff,i_all,i_stat,nwork,info,jorb,ikpt,korb
   integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f
-  real(kind=4) :: tt,builtin_rand
   real(wp) :: rfreq,gnrm_fake
   real(wp), dimension(:,:,:), allocatable :: gaucoeffs
   real(gp), dimension(:), allocatable :: work,ev
@@ -1679,6 +1652,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   
 END SUBROUTINE psivirt_from_gaussians
 
+
 subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
   use module_base
   use module_types
@@ -1695,7 +1669,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
   character(len=10) :: comment
   character(len=11) :: orbname,denname
   integer :: iorb,ikpt,jorb,ind,occnorb,occnorbu,occnorbd
-  real(gp) :: eg,egu,egd,valu,vald,val
+  real(gp) :: valu,vald,val
   
   if (occorbs) then
      occnorb = 0
@@ -1804,7 +1778,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
               end if
               write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
            end do
-	   write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
+           write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
                 'HOMO LUMO gap   =',orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
                 ' (',ha2ev*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val),&
                 ' eV)'
@@ -1914,7 +1888,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
         write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
         write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
 
-	call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+        call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
         call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
         
      endif
@@ -1922,4 +1896,4 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
   ! END OF PLOTTING
 
 
-end subroutine write_eigen_objects 	
+END SUBROUTINE write_eigen_objects

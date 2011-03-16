@@ -1,86 +1,88 @@
-!!****m* BigDFT/module_base
+!> @file
+!!  File defining parameters for BigDFT package (processed by the build system)
+!! @author
+!!    Copyright (C) 2008-2011 BigDFT group (LG)
+!! Author:
 !!
-!! DESCRIPTION
-!!  Modules which contains the low level definitions, as well as some profiling procedures
 !!
-!! AUTHOR
-!!    Luigi Genovese
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2008-2010 CEA, ESRF
+!!    Copyright (C) 2008-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
+
 #if defined HAVE_CONFIG_H
 #include <config.inc>
 #endif
 
+!> Modules which contains the low level definitions, as well as some profiling procedures
 module module_defs
 
   use m_profiling
 
   implicit none  
 
-  ! Include variables set from configure.
-  include 'configure.inc'
+  include 'configure.inc' !< Include variables set from configure.
 
-  ! Verbosity of the output, control the level of writing (minimal by default)
-  integer :: verbose=2
+  integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
 
   ! General precision, density and the wavefunctions types
-  integer, parameter :: gp=kind(1.0d0)  !general-type precision
-  integer, parameter :: dp=kind(1.0d0)  !density-type precision
-  integer, parameter :: wp=kind(1.0d0)  !wavefunction-type precision
-  integer, parameter :: tp=kind(1.0d0)  !diis precision (single in this context, if double is only for non-regression)
+  integer, parameter :: gp=kind(1.0d0)  !< general-type precision
+  integer, parameter :: dp=kind(1.0d0)  !< density-type precision
+  integer, parameter :: wp=kind(1.0d0)  !< wavefunction-type precision
+  integer, parameter :: tp=kind(1.0d0)  !< diis precision (single in this context, if double is only for non-regression)
 
-  ! MPI definitions and datatypes for density and wavefunctions
-  include 'mpif.h'
-  integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION,mpidtypd=MPI_DOUBLE_PRECISION
+  include 'mpif.h'      !< MPI definitions and datatypes for density and wavefunctions
+
+  integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
+  integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
-#ifdef HAVE_MPI2
-  ! Flag to use in the code to switch between MPI1 and MPI2
-  logical, parameter :: have_mpi2 = .true.
-#else
-  ! Fake MPI_IN_PLACE variable to allow compilation in sumrho.
-  integer :: MPI_IN_PLACE = 0
-  ! Flag to use in the code to switch between MPI1 and MPI2
-  logical, parameter :: have_mpi2 = .false.
-#endif
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
-  !Flag for GPU computing, if CUDA libraries are present
-  !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
-  !this value can be changed in the read_input_variables routine
+#ifdef HAVE_MPI2
+  logical, parameter :: have_mpi2 = .true.  !< Flag to use in the code to switch between MPI1 and MPI2
+#else
+  integer :: MPI_IN_PLACE = 0               !< Fake MPI_IN_PLACE variable to allow compilation in sumrho.
+  logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
+#endif
+
+
+
+  !> Flag for GPU computing, if CUDA libraries are present
+  !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
+  !! this value can be changed in the read_input_variables routine
   logical :: GPUconv=.false.,GPUblas=.false.,GPUshare=.true.
 
-  !Flag for GPU computing, if OpenCL libraries are present
-  !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
-  !this value can be changed in the read_input_variables routine
+  !> Flag for GPU computing, if OpenCL libraries are present
+  !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
+  !! this value can be changed in the read_input_variables routine
   logical :: OCLconv=.false.
   logical :: ASYNCconv=.true.
 
-  !Logical parameter for the projectors application strategy (true for distributed way)
-  !if the projector allocation passes the memorylimit this is switched to true
-  !inside localize_projectors routines
+  !> Logical parameter for the projectors application strategy (true for distributed way)
+  !! if the projector allocation passes the memorylimit this is switched to true
+  !! inside localize_projectors routines
   logical :: DistProjApply=.true.
 
-  ! Physical constants.
+  !> Physical constants.
   real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem
   real(gp), parameter :: ha2ev = 27.21138386_gp                         ! 1 Ha in eV
   real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
+  real(gp), parameter :: Ha_eV=27.21138386_gp                           ! 1 Hartree, in eV
+  real(gp), parameter :: Ha_K=315774.65_gp                              ! 1Hartree, in Kelvin
+  real(gp), parameter :: Ha_THz=6579.683920722_gp                       ! 1 Hartree, in THz
+  real(gp), parameter :: Ha_J=4.35974394d-18                            !1 Hartree, in J
+  real(gp), parameter :: e_Cb=1.602176487d-19                           ! minus the electron charge, in Coulomb
+  real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       ! Boltzmann constant in Ha/K
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass
 
-  !interface for MPI_ALLREDUCE routine
+  !> interface for MPI_ALLREDUCE routine
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real,mpiallred_double
   end interface
 
 
-  !interfaces for LAPACK routines
+  !> interfaces for LAPACK routines
   interface potrf
      module procedure potrf_simple,potrf_double
   end interface
@@ -107,7 +109,7 @@ module module_defs
   end interface
 
 
-  !interfaces for BLAS routines
+  !> interfaces for BLAS routines
   interface gemm
      module procedure gemm_simple,gemm_double
   end interface
@@ -241,15 +243,14 @@ module module_defs
       call memocc(i_stat,i_all,'copybuf',subname)
 #endif
     end subroutine mpiallred_double
-    
 
 
-    !interfaces for LAPACK routines
-    !WARNING: in these interfaces the input arrays are declared as scalars,
-    !         so the passage of the arguments by addresses is compulsory when calling
-    !         these routines
-    
-    !Cholesky factorization of a positive definite matrix
+    !> Interfaces for LAPACK routines
+    !! @warning
+    !!   In these interfaces the input arrays are declared as scalars,
+    !!   so the passage of the arguments by addresses is compulsory when calling
+    !!   these routines
+    !> Cholesky factorization of a positive definite matrix
     subroutine potrf_simple(uplo,n,a,lda,info)
       implicit none
       character(len=1), intent(in) :: uplo
@@ -420,10 +421,11 @@ module module_defs
     end subroutine hegv_double
 
 
-    !interfaces for BLAS routines
-    !WARNING: in these interfaces the input arrays are declared as scalars,
-    !         so the passage of the arguments by addresses is compulsory when calling
-    !         these routines
+    !> Interfaces for BLAS routines
+    !! @warning
+    !!         In these interfaces the input arrays are declared as scalars,
+    !!         so the passage of the arguments by addresses is compulsory when calling
+    !!         these routines
 
     !SCALe a vector by a constant
     subroutine scal_simple(n,da,dx,incx)
@@ -462,7 +464,7 @@ module module_defs
          call CSCAL(n,da,dx,incx)
       end if
     end subroutine c_scal_simple
-    
+
     subroutine c_scal_double(n,da,dx,incx)
       implicit none
       integer, intent(in) :: incx,n
@@ -784,4 +786,3 @@ module module_defs
     end subroutine herk_double
 
 end module module_defs
-!!***
