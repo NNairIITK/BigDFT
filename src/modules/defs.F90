@@ -2,6 +2,10 @@
 !!  File defining parameters for BigDFT package (processed by the build system)
 !! @author
 !!    Copyright (C) 2008-2011 BigDFT group (LG)
+!! Author:
+!!
+!!
+!!    Copyright (C) 2008-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -41,6 +45,7 @@ module module_defs
   integer :: MPI_IN_PLACE = 0               !< Fake MPI_IN_PLACE variable to allow compilation in sumrho.
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
+
 
 
   !> Flag for GPU computing, if CUDA libraries are present
@@ -245,7 +250,6 @@ module module_defs
     !!   In these interfaces the input arrays are declared as scalars,
     !!   so the passage of the arguments by addresses is compulsory when calling
     !!   these routines
-
     !> Cholesky factorization of a positive definite matrix
     subroutine potrf_simple(uplo,n,a,lda,info)
       implicit none

@@ -1679,6 +1679,9 @@ END SUBROUTINE nzsymbol
 
 
 !>   Correct the electronic configuration for a given atomic charge
+
+!>   Correct the electronic configuration for a given atomic charge
+!!
 subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
   use module_base
   implicit none

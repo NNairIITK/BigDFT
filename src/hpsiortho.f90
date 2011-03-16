@@ -748,6 +748,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
                 call derf_ab(res,arg)
                 electrons=electrons+.5d0*(1.d0-res) * orbs%kwgts(ikpt)
                 dlectrons=dlectrons-exp(-arg**2) * orbs%kwgts(ikpt)
+             else if (occopt == SMEARING_DIST_FERMI) then
                 !print *,iorb,ef,orbs%eval((ikpt-1)*orbs%norb+iorb),arg,electrons
              else if (occopt == SMEARING_DIST_FERMI) then
                 !! next 2 line Fermi function distribution
@@ -846,6 +847,9 @@ subroutine eFermi_nosmearing(iproc,orbs)
   real(gp) :: charge
   real(wp) :: eF
 
+  iu=0
+  id=0
+  eF = 0._wp
   do ikpt=1,orbs%nkpts
      !number of zero orbitals for the given k-point
      nzeroorbs=0
