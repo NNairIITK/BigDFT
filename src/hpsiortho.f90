@@ -748,6 +748,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
                 call derf_ab(res,arg)
                 electrons=electrons+.5d0*(1.d0-res) * orbs%kwgts(ikpt)
                 dlectrons=dlectrons-exp(-arg**2) * orbs%kwgts(ikpt)
+             else if (occopt == SMEARING_DIST_FERMI) then
                 !print *,iorb,ef,orbs%eval((ikpt-1)*orbs%norb+iorb),arg,electrons
              else if (occopt == SMEARING_DIST_FERMI) then
                 !! next 2 line Fermi function distribution
@@ -768,6 +769,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
        diff=real(melec,gp)/full-electrons
        if (abs(diff) < 1.d-12) exit loop_fermi
        corr=diff/dlectrons
+       if (iproc == 0) write(*,"(I6,3G)") ii, electrons, melec, diff
        !if (iproc==0) write(*,*) ii,electrons,ef,dlectrons,melec,corr
        if (corr > 1.d0*wf) corr=1.d0*wf
        if (corr < -1.d0*wf) corr=-1.d0*wf

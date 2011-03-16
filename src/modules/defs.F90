@@ -2,6 +2,10 @@
 !!  File defining parameters for BigDFT package
 !! @author
 !!    Copyright (C) 2008-2011 BigDFT group (LG)
+!! Author:
+!!
+!!
+!!    Copyright (C) 2008-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -43,6 +47,7 @@ module module_defs
 #endif
 
 
+
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
@@ -60,6 +65,12 @@ module module_defs
   logical :: DistProjApply=.true.
 
   !> Physical constants.
+  integer, parameter :: SMEARING_DIST_ERF   = 1
+  integer, parameter :: SMEARING_DIST_FERMI = 2
+  character(len = 11), dimension(2), parameter :: smearing_names = &
+       & (/ "Error func.", "Fermi      " /)
+  integer, parameter :: occopt = SMEARING_DIST_FERMI
+
   real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem
   real(gp), parameter :: ha2ev = 27.21138386_gp                         ! 1 Ha in eV
   real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
@@ -245,7 +256,6 @@ module module_defs
     !!   In these interfaces the input arrays are declared as scalars,
     !!   so the passage of the arguments by addresses is compulsory when calling
     !!   these routines
-
     !> Cholesky factorization of a positive definite matrix
     subroutine potrf_simple(uplo,n,a,lda,info)
       implicit none

@@ -82,9 +82,9 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
 
      nullify( dum_coeffs  ) 
@@ -307,9 +307,9 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
      
      nullify( dum_coeffs  ) 
@@ -619,9 +619,9 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
 
      nullify( dum_coeffs  ) 

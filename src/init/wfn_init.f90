@@ -208,10 +208,12 @@ END SUBROUTINE Gaussian_DiagHam
 
 
 !>    Diagonalise the hamiltonian in a basis set of norbe orbitals and select the first
+!!
 !!    norb eigenvectors. Works also with the spin-polarisation case and perform also the 
 !!    treatment of semicore atoms. 
 !!    In the absence of norbe parameters, it simply diagonalizes the hamiltonian in the given
 !!    orbital basis set.
+!! @author
 !! INPUT VARIABLES
 !!    @param iproc  process id
 !!    @param nproc  number of mpi processes
@@ -248,6 +250,7 @@ END SUBROUTINE Gaussian_DiagHam
 !!           if nvirte >0: on Output, eigenvectors after input guess
 !!           if nvirte=0: unchanged on output
 !!    @param eval   array of the first norb eigenvalues       
+!! Author:
 subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      psi,hpsi,psit,input,& !mandatory
      orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
