@@ -130,6 +130,12 @@ $(PSPS):
           if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
           for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
         fi ; \
+	if ! test -f $(srcdir)/$$dir/input.perf ; then \
+	  rm -f $$dir/input.perf ; \
+	  if test -n "$(run_ocl)" ; then \
+	    echo "ACCEL OCLGPU" > $$dir/input.perf ; \
+	  fi ; \
+	fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp" $$dir".post-in"; \
         echo "Input prepared in "$$dir" dir. make $$dir.run available"
 	touch $@
