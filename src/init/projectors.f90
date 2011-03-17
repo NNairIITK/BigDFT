@@ -555,8 +555,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
      !$omp shared(nterm,mvctr_f,mseg_f)
-     !$ ithread=omp_get_thread_num()
-     !$ nthread=omp_get_num_threads()
+     !$  ithread=omp_get_thread_num()
+     !$  nthread=omp_get_num_threads()
 
      !$  if(ithread .eq. 0) then
      mvctr=0
@@ -580,7 +580,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /=  mvctr_c) then
-        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        !$  write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
@@ -697,7 +697,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      end if
      !$omp end parallel
 
-  else if (ncplx ==2) then
+  else if (ncplx == 2) then
 
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
@@ -728,7 +728,6 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
                 re_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
         enddo
      enddo
-
      if (mvctr /=  mvctr_c) then
         !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_c ',mvctr,mvctr_c
@@ -762,7 +761,6 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
            proj(ind_f+7)=re_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,2,1))
         enddo
      enddo
-
      if (mvctr /= mvctr_f) then
         !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
         write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_f ',mvctr,mvctr_f
@@ -918,10 +916,9 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
               end do
            end do
         end do
-
         !$  end if
 
-        !$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
+        !$  if((ithread == 1 .and. nthread <=3) .or. nthread == 1 .or. ithread == 3) then
         ! Other terms: fine projector components
         do iseg=mseg_c+1,mseg_c+mseg_f
            jj=keyv_p(iseg)
@@ -953,8 +950,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
               end do
            end do
         end do
-
         !$  end if
+
      end if
 
      !$omp end parallel
