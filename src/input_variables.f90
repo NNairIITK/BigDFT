@@ -102,7 +102,7 @@ subroutine read_input_parameters(iproc, &
   real(gp), dimension(:,:), pointer :: rxyz
   !Local variables
   real(gp) :: tt
-  integer :: iat
+  integer :: iat,ierr
 
   ! Default for inputs
   call default_input_variables(inputs)
@@ -147,7 +147,8 @@ subroutine read_input_parameters(iproc, &
 
   !stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
-     stop 'GPU calculation allowed only in periodic boundary conditions'
+     write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
 
   ! Stop code for unproper input variables combination.
@@ -203,10 +204,9 @@ subroutine dft_input_variables(iproc,filename,in)
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
   !local variables
-  character(len=7) :: string
   character(len=100) :: line
   logical :: exists
-  integer :: ierror,ierrfrc,iline,ivrbproj
+  integer :: ierror,iline,ivrbproj
 
   ! Read the input variables.
   inquire(file=trim(filename),exist=exists)
@@ -243,19 +243,8 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%dispersion
   call check()
-  !read the line for force the CUDA GPU or OpenCL calculation for all processors
-  read(1,'(a100)')line
-  read(line,*,iostat=ierrfrc) string
-  iline=iline+1
-  !determine the acceleration strategy
-  in%iacceleration=0 !default
-  if (ierrfrc == 0 .and. string=='CUDAGPU') then
-     in%iacceleration=1
-  else  if (ierrfrc == 0 .and. string=='OCLGPU') then
-     in%iacceleration=2
-  end if
 
-  !now the variables which are to be used only for the last run
+  ! Now the variables which are to be used only for the last run
   read(1,'(a100)')line
   read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
   if (ierror /= 0) then
@@ -364,12 +353,13 @@ subroutine dft_input_variables(iproc,filename,in)
 contains
 
   subroutine check()
+    integer :: ierr
     iline=iline+1
     if (ierror/=0) then
        !if (iproc == 0) 
-             write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
+       write(*,'(1x,a,a,a,i3)') &
+       'Error while reading the file "',trim(filename),'", line=',iline
+       call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
     end if
   END SUBROUTINE check
 
@@ -857,8 +847,9 @@ subroutine perf_input_variables(iproc,filename,inputs)
   !local variables
   character(len=*), parameter :: subname='perf_input_variables'
   character(len=100) :: line
+  character(len=7) :: string
   logical :: exists, myparametersExists
-  integer :: iline,ierror,ii
+  integer :: iline,ierror,ii,ierr
 
   ! Set default values.
   !Debug option (used for memocc mainly)
@@ -869,6 +860,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%projrad= 15.0_gp
   !exact exchange parallelisation scheme
   inputs%exctxpar='BC' !(blocking collective)
+  !Acceleration scheme
+  inputs%iacceleration=0 !default:no acceleration
 
   !Check if the file is present
   inquire(file=trim(filename),exist=exists)
@@ -883,19 +876,33 @@ subroutine perf_input_variables(iproc,filename,inputs)
            !End of file (normally ierror < 0)
            exit
         end if
-        call check()
         if (trim(line) == "debug" .or. trim(line) == "Debug" .or. trim(line) == "DEBUG") then
            inputs%debug = .true.
         else if (index(line,"fftcache") /= 0 .or. index(line,"FFTCACHE") /= 0) then
-            ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
-           read(line(ii:),*) inputs%ncache_fft
+           ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
+           read(line(ii:),fmt=*,iostat=ierror) inputs%ncache_fft
         else if (index(line,"projrad") /= 0 .or. index(line,"PROJRAD") /= 0) then
-            ii = index(line,"projrad")  + index(line,"PROJRAD") + 8 
-           read(line(ii:),*) inputs%projrad
+           ii = index(line,"projrad")  + index(line,"PROJRAD") + 7
+           read(line(ii:),fmt=*,iostat=ierror) inputs%projrad
         else if (index(line,"exctxpar") /= 0 .or. index(line,"EXCTXPAR") /= 0) then
-            ii = index(line,"exctxpar")  + index(line,"EXCTXPAR") + 8 
-           read(line(ii:),*) inputs%exctxpar
+           ii = index(line,"exctxpar")  + index(line,"EXCTXPAR") + 8 
+           read(line(ii:),fmt=*,iostat=ierror) inputs%exctxpar
+        else if (index(line,"accel") /= 0 .or. index(line,"ACCEL") /= 0) then
+            ii = index(line,"ACCEL")  + index(line,"ACCEL") + 5
+           read(line(ii:),fmt=*,iostat=ierror) string
+           if (string=="CUDAGPU") then
+              inputs%iacceleration=1
+           else  if (string=="OCLGPU ") then
+              inputs%iacceleration=2
+           else
+              write(*,'(1x,3a)') "input.perf: Unknown acceleration '",trim(string),"'"
+              call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+           end if
+        else if (index(line,"blas") /= 0 .or. index(line,"BLAS") /= 0) then
+           ii = index(line,"blas")  + index(line,"BLAS") + 4
+           read(line(ii:),fmt=*,iostat=ierror) GPUblas
         end if
+        call check()
      end do
      close(unit=1,iostat=ierror)
   end if
@@ -980,9 +987,8 @@ contains
     iline=iline+1
     if (ierror/=0) then
        !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
+        write(*,'(1x,a,a,a,i3)')  'Error while reading the file "',trim(filename),'", line=',iline
+        call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
     end if
   END SUBROUTINE check
 
@@ -2667,7 +2673,6 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
            write(*,*)' OpenCL convolutions activated'
         end if
         OCLconv=.true.
-        GPUblas=.false.
      end if
   end if
 
