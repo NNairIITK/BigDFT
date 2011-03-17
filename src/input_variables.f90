@@ -246,12 +246,14 @@ subroutine dft_input_variables(iproc,filename,in)
 
   ! Now the variables which are to be used only for the last run
   read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+  read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
   if (ierror /= 0) then
+     ! Old format
      in%output_wf = .false.
-     read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
-  else if (in%output_wf) then
-     in%output_wf_format = WF_FORMAT_PLAIN
+     read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+     if (in%output_wf) in%output_wf_format = WF_FORMAT_PLAIN
+  else
+     in%output_wf = (in%output_wf_format /= WF_FORMAT_NONE)
   end if
   call check()
   if (in%output_wf_format /= WF_FORMAT_NONE) in%output_wf = .true.
@@ -970,34 +972,34 @@ subroutine perf_input_variables(iproc,filename,inputs)
           "|","debug",                          '!Option disabled'
      end if
 
-     write(*,"(1x,a,3x,a,i0,t30,a)") &
+     write(*,"(1x,a,3x,a,1x,i0,t30,a)") &
           "|","fftcache",inputs%ncache_fft,  '!Cache size for the FFT'
-     write(*,"(1x,a,3x,a,a,t30,a)") &
+     write(*,"(1x,a,3x,a,1x,a,t30,a)") &
           "|","accel",string,                '!Acceleration (NO, CUDAGPU, OCLGPU)'
-     write(*,"(1x,a,3x,a,l,t30,a)") &             
+     write(*,"(1x,a,3x,a,1x,l,t30,a)") &             
           "|","blas",GPUblas,                '!CUBLAS acceleration'
-     write(*,"(1x,a,3x,a,f6.2,t30,a)") &          
+     write(*,"(1x,a,3x,a,1x,f6.2,t30,a)") &          
           "|","projrad",inputs%projrad,      '!Radius of the projector as a function of the maxrad'
-     write(*,"(1x,a,3x,a,a,t30,a)") &             
+     write(*,"(1x,a,3x,a,1x,a,t30,a)") &             
           "|","exctxpar",inputs%exctxpar,    '!Exact exchange parallelisation scheme'
 
      !Input guess performance variables
      if(inputs%directDiag) then                   
-        write(*,'(1x,a,3x,a,l,t30,a)') &          
+        write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
           "|","ig_diag",inputs%directDiag,   '!Input guess: direct diagonalization of Hamiltonian'
      else if(.not.inputs%directDiag) then         
-        write(*,'(1x,a,3x,a,l,t30,a)') &          
+        write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
           "|","ig_diag",inputs%directDiag,   '!Input guess: iterative diagonalization of Hamiltonian'
-        write(*,'(1x,a,3x,a,i0,t30,a)') &
+        write(*,'(1x,a,3x,a,1x,i0,t30,a)') &
           "|","ig_norbp",inputs%norbpInguess,'!Input guess: orbitals per process for iterative diag.'
      end if
      !Possible value: 0=Cholesky, 1=hybrid Gram-Schmidt/Cholesky, 2=Loewdin
-     write(*,"(1x,a,3x,a,i0,t30,a)") &
+     write(*,"(1x,a,3x,a,1x,i0,t30,a)") &
           "|","ig_ortho",inputs%methOrtho,  '!Input guess: Orthog. (0=Cholesky,1=GS/Chol,2=Loewdin)'
-     write(*,"(1x,a,3x,a,i0,1x,i0,t30,a)") &
+     write(*,"(1x,a,3x,a,1x,i0,1x,i0,t30,a)") &
           "|","ig_blocks",inputs%bsLow,inputs%bsUp, &
                                                  '!Input guess: Block size for orthonormalisation'
-     write(*,'(1x,a,3x,a,es9.2,t30,a)') &
+     write(*,'(1x,a,3x,a,1x,es9.2,t30,a)') &
           "|","ig_tol",inputs%iguessTol,    '!Input guess: Tolerance criterion'
      write(*,*)
   end if
@@ -2268,6 +2270,7 @@ subroutine print_general_parameters(in,atoms)
   integer, parameter :: maxLen = 50, width = 24
   character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
   character(len = 11) :: potden
+  character(len = 12) :: dos
 
   ! Output for atoms and k-points
   write(*,'(1x,a,a,a)') '--- (file: posinp.', &
@@ -2398,8 +2401,13 @@ subroutine print_general_parameters(in,atoms)
      write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
           & "  Max iter.=", in%itrpmax,    "|", &
           & "Occ. scheme=", smearing_names(occopt), "|"
-     write(*,"(1x,A12,1pe12.2,1x,A1,1x,A24,1x,A1)") &
-          & "   Rp norm.=", in%rpnrm_cv,    "|", " ", "|"
+     if (in%verbosity > 2) then
+        write(dos, "(A)") "dos.gnuplot"
+     else
+        write(dos, "(A)") "no verb. < 3"
+     end if
+     write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
+          & "   Rp norm.=", in%rpnrm_cv,    "|", " output DOS=", dos, "|"
   end if
 
   if (in%ncount_cluster_x > 0) then
