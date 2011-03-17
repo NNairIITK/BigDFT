@@ -1557,9 +1557,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         orbsv%norbp=0
      end if
      call local_analysis(iproc,nproc,hx,hy,hz,in,atoms,rxyz,shift,Glr,orbs,orbsv,psi,psivirt)
-  else if (DoLastRunThings .and. verbose > 2) then
+  else if (DoLastRunThings .and. in%itrpmax > 1 .and. verbose > 2) then
      ! Do a full DOS calculation.
-     call global_analysis(iproc, nproc, orbs)
+     if (iproc == 0) call global_analysis(iproc, nproc, orbs, in%Tel)
   end if
 
   i_all=-product(shape(pkernel))*kind(pkernel)

@@ -2222,6 +2222,7 @@ subroutine print_general_parameters(in,atoms)
   integer, parameter :: maxLen = 50, width = 24
   character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
   character(len = 11) :: potden
+  character(len = 12) :: dos
 
   ! Output for atoms and k-points
   write(*,'(1x,a,a,a)') '--- (file: posinp.', &
@@ -2352,8 +2353,13 @@ subroutine print_general_parameters(in,atoms)
      write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
           & "  Max iter.=", in%itrpmax,    "|", &
           & "Occ. scheme=", smearing_names(occopt), "|"
-     write(*,"(1x,A12,1pe12.2,1x,A1,1x,A24,1x,A1)") &
-          & "   Rp norm.=", in%rpnrm_cv,    "|", " ", "|"
+     if (in%verbosity > 2) then
+        write(dos, "(A)") "dos.gnuplot"
+     else
+        write(dos, "(A)") "no verb. < 3"
+     end if
+     write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
+          & "   Rp norm.=", in%rpnrm_cv,    "|", " output DOS=", dos, "|"
   end if
 
   if (in%ncount_cluster_x > 0) then
