@@ -30,11 +30,11 @@
  File 'myparameters' is missing... using default values:
    Input guess: direct diagonalization of Hamiltonian
    Orthogonalization method: Cholesky
- 
+
  Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
