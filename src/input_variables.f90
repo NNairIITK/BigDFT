@@ -257,12 +257,14 @@ subroutine dft_input_variables(iproc,filename,in)
 
   !now the variables which are to be used only for the last run
   read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+  read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
   if (ierror /= 0) then
+     ! Old format
      in%output_wf = .false.
-     read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
-  else if (in%output_wf) then
-     in%output_wf_format = WF_FORMAT_PLAIN
+     read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+     if (in%output_wf) in%output_wf_format = WF_FORMAT_PLAIN
+  else
+     in%output_wf = (in%output_wf_format /= WF_FORMAT_NONE)
   end if
   call check()
   if (in%output_wf_format /= WF_FORMAT_NONE) in%output_wf = .true.
