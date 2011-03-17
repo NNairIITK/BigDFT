@@ -555,8 +555,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
      !$omp shared(nterm,mvctr_f,mseg_f)
-     !$	ithread=omp_get_thread_num()
-     !$	nthread=omp_get_num_threads()
+     !$ ithread=omp_get_thread_num()
+     !$ nthread=omp_get_num_threads()
 
      !$  if(ithread .eq. 0) then
      mvctr=0
@@ -580,7 +580,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /=  mvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' BUG(crtproj): mvctr >< mvctr_c ',mvctr,mvctr_c
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr >< mvctr_c ',mvctr,mvctr_c
         stop
      end if
      !$  end if
@@ -613,7 +613,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /= mvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr >< mvctr_f ',mvctr,mvctr_f
         stop 
      end if
      !$  end if
@@ -700,8 +700,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
      !$omp shared(nterm,mvctr_f,mseg_f)
-     !$	ithread=omp_get_thread_num()
-     !$	nthread=omp_get_num_threads()
+     !$  ithread=omp_get_thread_num()
+     !$  nthread=omp_get_num_threads()
 
      !part with real and imaginary part
      !modify the openMP statements such as to benefit from parallelisation
@@ -728,7 +728,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /=  mvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_c ',mvctr,mvctr_c
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr >< mvctr_c ',mvctr,mvctr_c
         stop
      end if
      !$  end if
@@ -761,7 +761,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /= mvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr >< mvctr_f ',mvctr,mvctr_f
         stop 
      end if
      !$  end if
@@ -853,7 +853,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      !$  end if
 
      if (mvctr /=  mvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_c ',mvctr,mvctr_c
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr >< mvctr_c ',mvctr,mvctr_c
         stop
      end if
 
@@ -884,7 +884,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
         enddo
      enddo
      if (mvctr /= mvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr >< mvctr_f ',mvctr,mvctr_f
         stop 
      end if
      !$  end if
