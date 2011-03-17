@@ -986,12 +986,12 @@ subroutine perf_input_variables(iproc,filename,inputs)
      !Input guess performance variables
      if(inputs%directDiag) then                   
         write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
-          "|","ig_diag",inputs%directDiag,   '!Input guess: direct diagonalization of Hamiltonian'
+          "|","ig_diag",inputs%directDiag,   '!Input guess: Direct diagonalization of Hamiltonian'
      else if(.not.inputs%directDiag) then         
         write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
-          "|","ig_diag",inputs%directDiag,   '!Input guess: iterative diagonalization of Hamiltonian'
+          "|","ig_diag",inputs%directDiag,   '!Input guess: Iterative diagonalization of Hamiltonian'
         write(*,'(1x,a,3x,a,1x,i0,t30,a)') &
-          "|","ig_norbp",inputs%norbpInguess,'!Input guess: orbitals per process for iterative diag.'
+          "|","ig_norbp",inputs%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'
      end if
      !Possible value: 0=Cholesky, 1=hybrid Gram-Schmidt/Cholesky, 2=Loewdin
      write(*,"(1x,a,3x,a,1x,i0,t30,a)") &

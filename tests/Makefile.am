@@ -29,6 +29,9 @@ endif
 
 if USE_OCL
 SUBDIRS += OpenCL
+ocl_message = oclrun
+else
+ocl_message =
 endif
 
 if HAVE_ETSF_IO
@@ -37,9 +40,9 @@ endif
 
 
 if USE_MPI
-mpirun_message=mpirun
+mpirun_message = mpirun
 else
-mpirun_message=
+mpirun_message =
 endif
 
 head_message: all-recursive
@@ -53,6 +56,9 @@ mpirun: head_message
 	@echo "     Use the environment variable run_parallel"
 	@echo "     ex: export run_parallel='mpirun -np 2'  "
 
+oclrun:
+	@echo "     Use the environment variable run_ocl 
+	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
 
 EXTRA_DIST = \
 	README \
