@@ -580,7 +580,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /=  mvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr >< mvctr_c ',mvctr,mvctr_c
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
      !$  end if
@@ -613,7 +614,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /= mvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr >< mvctr_f ',mvctr,mvctr_f
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if
      !$  end if
@@ -728,7 +730,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /=  mvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr >< mvctr_c ',mvctr,mvctr_c
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
      !$  end if
@@ -761,7 +764,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /= mvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr >< mvctr_f ',mvctr,mvctr_f
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if
      !$  end if
@@ -850,12 +854,13 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
                 im_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
         enddo
      enddo
-     !$  end if
-
      if (mvctr /=  mvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr >< mvctr_c ',mvctr,mvctr_c
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
+     !$  end if
+
 
      !$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! First term: fine projector components
@@ -884,7 +889,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
         enddo
      enddo
      if (mvctr /= mvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr >< mvctr_f ',mvctr,mvctr_f
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if
      !$  end if
