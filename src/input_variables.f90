@@ -848,7 +848,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   character(len=*), parameter :: subname='perf_input_variables'
   character(len=100) :: line
   character(len=7) :: string
-  logical :: exists, myparametersExists
+  logical :: exists
   integer :: iline,ierror,ii,ierr
 
   ! Set default values.
@@ -864,7 +864,20 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%iacceleration=0 !default:no acceleration
   !BLAS acceleration
   GPUblas=.false.
+  !Direct diagonalisation of the Hamiltonian for the input guess
+  inputs%directDiag=.true.
+  !Orbitals per process
+  inputs%norbpInguess=5
+  !Block size used for the orthonormalization
+  inputs%bsLow=300
+  inputs%bsLow=800
+  !Orthogonalization method
+  inputs%methOrtho=0
+  !Tolerance criterion for input guess
+  inputs%iguessTol=1.d-4
 
+  !initialization of the character string for printing
+  string = ""
   !Check if the file is present
   inquire(file=trim(filename),exist=exists)
   if (exists) then
@@ -880,19 +893,25 @@ subroutine perf_input_variables(iproc,filename,inputs)
         end if
         if (trim(line) == "debug" .or. trim(line) == "Debug" .or. trim(line) == "DEBUG") then
            inputs%debug = .true.
+
         else if (index(line,"fftcache") /= 0 .or. index(line,"FFTCACHE") /= 0) then
            ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
            read(line(ii:),fmt=*,iostat=ierror) inputs%ncache_fft
+
         else if (index(line,"projrad") /= 0 .or. index(line,"PROJRAD") /= 0) then
            ii = index(line,"projrad")  + index(line,"PROJRAD") + 7
            read(line(ii:),fmt=*,iostat=ierror) inputs%projrad
+
         else if (index(line,"exctxpar") /= 0 .or. index(line,"EXCTXPAR") /= 0) then
            ii = index(line,"exctxpar")  + index(line,"EXCTXPAR") + 8 
            read(line(ii:),fmt=*,iostat=ierror) inputs%exctxpar
+
         else if (index(line,"accel") /= 0 .or. index(line,"ACCEL") /= 0) then
             ii = index(line,"ACCEL")  + index(line,"ACCEL") + 5
            read(line(ii:),fmt=*,iostat=ierror) string
-           if (string=="CUDAGPU") then
+           if (string=="NO     ") then
+              inputs%iacceleration=0
+           else if (string=="CUDAGPU") then
               inputs%iacceleration=1
            else  if (string=="OCLGPU ") then
               inputs%iacceleration=2
@@ -900,68 +919,34 @@ subroutine perf_input_variables(iproc,filename,inputs)
               write(*,'(1x,3a)') "input.perf: Unknown acceleration '",trim(string),"'"
               call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
            end if
+
         else if (index(line,"blas") /= 0 .or. index(line,"BLAS") /= 0) then
            ii = index(line,"blas")  + index(line,"BLAS") + 4
            read(line(ii:),fmt=*,iostat=ierror) GPUblas
+
+        else if (index(line,"ig_diag") /= 0 .or. index(line,"IG_DIAG") /= 0) then
+           ii = index(line,"ig_diag")  + index(line,"IG_DIAG") + 10
+           read(line(ii:),fmt=*,iostat=ierror) inputs%directDiag
+
+        else if (index(line,"ig_norbp") /= 0 .or. index(line,"IG_NORBP") /= 0) then
+           ii = index(line,"ig_norbp")  + index(line,"IG_NORBP") + 8
+           read(line(ii:),fmt=*,iostat=ierror) inputs%norbpInguess
+
+        else if (index(line,"ig_ortho") /= 0 .or. index(line,"IG_ORTHO") /= 0) then
+           ii = index(line,"ig_ortho")  + index(line,"IG_ORTHO") + 8
+           read(line(ii:),fmt=*,iostat=ierror) inputs%methOrtho
+
+        else if (index(line,"ig_blocks") /= 0 .or. index(line,"IG_BLOCKS") /= 0) then
+           ii = index(line,"ig_blocks")  + index(line,"IG_BLOCKS") + 8
+           read(line(ii:),fmt=*,iostat=ierror) inputs%bsLow,inputs%bsUp
         end if
+
+        !Check iostat error
         call check()
      end do
      close(unit=1,iostat=ierror)
   end if
 
-  ! These variables have to be added to the file 'input.perf'
-  inquire(file='myparameters', exist=myparametersExists)
-  if(myparametersExists) then
-     open(unit=20, file='myparameters')
-     read(20,*) inputs%directDiag
-     read(20,*) inputs%norbpInguess
-     read(20,*) inputs%bsLow, inputs%bsUp
-     read(20,*) inputs%methOrtho
-     read(20,*) inputs%iguessTol
-     close(unit=20)
-     if(iproc==0) write(*,'(1x,a)') "File 'myparameters' is present... using the following values:"
-  else
-     inputs%directDiag=.true.
-     inputs%norbpInguess=5
-     inputs%bsLow=300
-     inputs%bsLow=800
-     inputs%methOrtho=0
-     inputs%iguessTol=1.d-4
-     if(iproc==0) write(*,'(1x,a)') "File 'myparameters' is missing... using default values:"
-  end if
-  if(iproc==0) then
-     if(inputs%directDiag) then 
-        write(*,'(3x,a)') 'Input guess: direct diagonalization of Hamiltonian'
-     else if(.not.inputs%directDiag) then
-        write(*,'(3x,a)') 'Input guess: iterative diagonalization of Hamiltonian'
-        write(*,'(3x,a,i0)') 'orbitals per process: ',inputs%norbpInguess
-     end if
-     if(inputs%methOrtho==0) then
-        write(*,'(3x,a,i0)') 'Orthogonalization method: Cholesky'
-     else if(inputs%methOrtho==1) then
-        write(*,'(3x,a,i0)') 'Orthogonalization method: hybrid Gram-Schmidt/Cholesky'
-     else if(inputs%methOrtho==2) then
-        write(*,'(3x,a,i0)') 'Orthogonalization method: Loewdin'
-     else
-        write(*,'(3x,a,i0)') 'ERROR: invalid value for inputs%methOrtho (',inputs%methOrtho,').'
-        write(*,'(3x,a,i0)') "Change it in the file 'inputs.perf' to 0, 1 or 2."
-        stop
-     end if
-     if(.not.inputs%directDiag .or. inputs%methOrtho==1) then 
-        write(*,'(3x,a)') 'Block size used for the orthonormalization:'
-        if(inputs%bsLow==inputs%bsUp) then
-           write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%bsLow
-        else if(inputs%bsLow<inputs%bsUp) then
-           write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%bsLow,' and ',inputs%bsUp
-        else
-           write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
-        end if
-        write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
-        write(*,'(3x,a,es9.2)') 'Tolerance criterion for input guess:',inputs%iguessTol
-     end if
-  end if
-  
-  
   ! Set performance variables
   call memocc_set_debug(inputs%debug)
   call set_cache_size(inputs%ncache_fft)
@@ -970,17 +955,70 @@ subroutine perf_input_variables(iproc,filename,inputs)
   if (iproc == 0) then
      write(*,*)
      if (exists) then
-        write(*, "(1x,a)") "Performance options (file 'input.perf' used):"
+        write(*,'(1x,a)')&
+          '--- (file: input.perf) ----------------------------------------- Performance Options'
      else
-        write(*, "(1x,a)") "Performance options (file 'input.perf' not present):"
+        write(*,'(1x,a)')&
+          '--- (file: input.perf -- not present) -------------------------- Performance Options'
      end if
+
      if (inputs%debug) then
-        write(*, "(1x,a,3x,a)") "|","'debug' option enabled"
+        write(*, "(1x,a,3x,a,t30,a)") &
+          "|","debug",                          '!Debug option enabled'
      else
-        write(*, "(1x,a,3x,a)") "|","'debug' option disabled"
+        write(*, "(1x,a,3x,a,t30,a)") &
+          "|","debug",                          '!Option disabled'
      end if
-     write(*,"(1x,a,3x,a,i0)")  "|","'fftcache' = ",inputs%ncache_fft
+
+     write(*,"(1x,a,3x,a,i0,t30,a)") &
+          "|","fftcache",inputs%ncache_fft,  '!Cache size for the FFT'
+     write(*,"(1x,a,3x,a,a,t30,a)") &
+          "|","accel",string,                '!Acceleration (NO, CUDAGPU, OCLGPU)'
+     write(*,"(1x,a,3x,a,l,t30,a)") &             
+          "|","blas",GPUblas,                '!CUBLAS acceleration'
+     write(*,"(1x,a,3x,a,f6.2,t30,a)") &          
+          "|","projrad",inputs%projrad,      '!Radius of the projector as a function of the maxrad'
+     write(*,"(1x,a,3x,a,a,t30,a)") &             
+          "|","exctxpar",inputs%exctxpar,    '!Exact exchange parallelisation scheme'
+
+     !Input guess performance variables
+     if(inputs%directDiag) then                   
+        write(*,'(1x,a,3x,a,l,t30,a)') &          
+          "|","ig_diag",inputs%directDiag,   '!Input guess: direct diagonalization of Hamiltonian'
+     else if(.not.inputs%directDiag) then         
+        write(*,'(1x,a,3x,a,l,t30,a)') &          
+          "|","ig_diag",inputs%directDiag,   '!Input guess: iterative diagonalization of Hamiltonian'
+        write(*,'(1x,a,3x,a,i0,t30,a)') &
+          "|","ig_norbp",inputs%norbpInguess,'!Input guess: orbitals per process for iterative diag.'
+     end if
+     !Possible value: 0=Cholesky, 1=hybrid Gram-Schmidt/Cholesky, 2=Loewdin
+     write(*,"(1x,a,3x,a,i0,t30,a)") &
+          "|","ig_ortho",inputs%methOrtho,  '!Input guess: Orthog. (0=Cholesky,1=GS/Chol,2=Loewdin)'
+     write(*,"(1x,a,3x,a,i0,1x,i0,t30,a)") &
+          "|","ig_blocks",inputs%bsLow,inputs%bsUp, &
+                                                 '!Input guess: Block size for orthonormalisation'
+     write(*,'(1x,a,3x,a,es9.2,t30,a)') &
+          "|","ig_tol",inputs%iguessTol,    '!Input guess: Tolerance criterion'
      write(*,*)
+  end if
+
+  !Check after collecting all values
+  if (inputs%methOrtho < 0 .or. inputs%methOrtho > 2) then
+     write(*,'(3x,a,i0)') "ERROR: invalid value for inputs%methOrtho (",inputs%methOrtho,")."
+     write(*,'(3x,a,i0)') "Change it in the file 'inputs.perf' to 0, 1 or 2."
+     call MPI_ABORT(MPI_COMM_WORLD,inputs%methOrtho,ierr)
+  end if
+  if(.not.inputs%directDiag .or. inputs%methOrtho==1) then 
+     write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
+     if(inputs%bsLow==inputs%bsUp) then
+        write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%bsLow
+     else if(inputs%bsLow<inputs%bsUp) then
+        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%bsLow,' and ',inputs%bsUp
+     else
+        write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
+        call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+     end if
+     write(*,'(5x,a)') 'This values will be adjusted if it is larger than the number of orbitals.'
   end if
 
 contains
