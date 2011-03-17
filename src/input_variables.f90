@@ -862,6 +862,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%exctxpar='BC' !(blocking collective)
   !Acceleration scheme
   inputs%iacceleration=0 !default:no acceleration
+  !BLAS acceleration
+  GPUblas=.false.
 
   !Check if the file is present
   inquire(file=trim(filename),exist=exists)

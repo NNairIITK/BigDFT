@@ -7,7 +7,6 @@
  50 1 itermax,nrepmax: maximum number of wavefunction optimizations and of re-diagonalised runs
   7  6 ncong, idsx: # CG iterations for the preconditioning equation, length of the diis history
   0 dispersion correction functional (values 1,2,3), 0=no correction
- write "CUDAGPU" on this line to use GPU acceleration (GPU.config file is needed)
            0 F           2  InputPsiId, output_wf, output_grid
  0.0  30 rbuf, ncongt: length of the tail (AU),# tail CG iterations
  0  0  0 davidson treatment, no. of virtual orbitals, no of plotted orbitals
