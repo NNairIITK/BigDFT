@@ -46,11 +46,11 @@ mpirun_message =
 endif
 
 head_message: all-recursive
-	@echo "=============================================="
+	@echo "======================================================="
 	@echo "Type 'make check' in the directory tests      "
 
 foot_message: $(mpirun_message) head_message
-	@echo "=============================================="
+	@echo "======================================================="
 
 mpirun: head_message
 	@echo "     Use the environment variable run_parallel"
