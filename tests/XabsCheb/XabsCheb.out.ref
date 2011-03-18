@@ -480,8 +480,7 @@ After application of a 2*L-pole  with L=      1
   going to calculate spectra 
  controllo b2B_xanes.cube T
   scaling function for interpolation 
- for replica            0 SHIFT   0.944862749961537       0.944862749961537     
-  0.944862749961537     
+ for replica            0 SHIFT   0.944862749961537       0.944862749961537     0.944862749961537     
  writing NEW local_potential.pot
   exiting b2B
   IN ROUTINE  chebychev  
