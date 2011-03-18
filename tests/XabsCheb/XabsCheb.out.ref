@@ -26,17 +26,21 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- Reading atomic input positions from file:posinp.xyz
- File 'myparameters' is missing... using default values:
-   Input guess: direct diagonalization of Hamiltonian
-   Orthogonalization method: Cholesky
 
- Performance options (file 'input.perf' not present):
- |   'debug' option disabled
- |   'fftcache' = 8192
+ --- (file: input.perf -- not present) -------------------------- Performance Options
+ |   debug                   !Option disabled
+ |   fftcache 8192           !Cache size for the FFT
+ |   accel                   !Acceleration (NO, CUDAGPU, OCLGPU)
+ |   blas F                  !CUBLAS acceleration
+ |   projrad  15.00          !Radius of the projector as a function of the maxrad
+ |   exctxpar BC             !Exact exchange parallelisation scheme
+ |   ig_diag T               !Input guess: Direct diagonalization of Hamiltonian
+ |   ig_blocks 800 0         !Input guess: Block size for orthonormalisation
+ |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
 
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.=45.00 | Wavefns Conv.= 2.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 9.00 | Max. N. Iter.=   50x10 | Extension= 5.0
@@ -209,17 +213,21 @@ After application of a 2*L-pole  with L=      1
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- Reading atomic input positions from file:posinp.xyz
- File 'myparameters' is missing... using default values:
-   Input guess: direct diagonalization of Hamiltonian
-   Orthogonalization method: Cholesky
- 
- Performance options (file 'input.perf' not present):
- |   'debug' option disabled
- |   'fftcache' = 8192
- 
+
+ --- (file: input.perf -- not present) -------------------------- Performance Options
+ |   debug                   !Option disabled
+ |   fftcache 8192           !Cache size for the FFT
+ |   accel                   !Acceleration (NO, CUDAGPU, OCLGPU)
+ |   blas F                  !CUBLAS acceleration
+ |   projrad  15.00          !Radius of the projector as a function of the maxrad
+ |   exctxpar BC             !Exact exchange parallelisation scheme
+ |   ig_diag T               !Input guess: Direct diagonalization of Hamiltonian
+ |   ig_blocks 800 0         !Input guess: Block size for orthonormalisation
+ |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.=45.00 | Wavefns Conv.= 2.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 9.00 | Max. N. Iter.=   50x10 | Extension= 5.0
@@ -398,17 +406,21 @@ After application of a 2*L-pole  with L=      1
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- Reading atomic input positions from file:posinp.xyz
- File 'myparameters' is missing... using default values:
-   Input guess: direct diagonalization of Hamiltonian
-   Orthogonalization method: Cholesky
- 
- Performance options (file 'input.perf' not present):
- |   'debug' option disabled
- |   'fftcache' = 8192
- 
+
+ --- (file: input.perf -- not present) -------------------------- Performance Options
+ |   debug                   !Option disabled
+ |   fftcache 8192           !Cache size for the FFT
+ |   accel                   !Acceleration (NO, CUDAGPU, OCLGPU)
+ |   blas F                  !CUBLAS acceleration
+ |   projrad  15.00          !Radius of the projector as a function of the maxrad
+ |   exctxpar BC             !Exact exchange parallelisation scheme
+ |   ig_diag T               !Input guess: Direct diagonalization of Hamiltonian
+ |   ig_blocks 800 0         !Input guess: Block size for orthonormalisation
+ |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+
  ===================== BigDFT XANE calculation =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.=45.00 | Wavefns Conv.= 2.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 9.00 | Max. N. Iter.=   50x10 | Extension= 5.0

@@ -50,7 +50,7 @@ Li+.psp: psppar.Li
 H2-spin.psp: HGH/psppar.H
 SiH4.psp: HGH-K/psppar.H HGH-K/psppar.Si
 NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
-TiMix.psp: HGH-K/psppar.Ti
+TiMix.psp: HGH-K/psppar.Ti HGH/psppar.Na
 NaCl.psp: HGH/psppar.Na HGH/psppar.Cl
 Ca2.psp: psppar.Ca
 Mn2.psp: psppar.Mn

@@ -2747,11 +2747,12 @@ END SUBROUTINE release_material_acceleration
 
 subroutine processor_id_per_node(iproc,nproc,iproc_node)
   use module_base
+  implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(out) :: iproc_node
   !local variables
   character(len=*), parameter :: subname='processor_id_per_node'
-  integer :: ierr,namelen,i_stat,i_all
+  integer :: ierr,namelen,i_stat,i_all,jproc
   character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
 
   if (nproc == 1) then

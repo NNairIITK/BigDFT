@@ -785,7 +785,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
   real(wp) :: re_cmplx_prod,im_cmplx_prod
-!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+  !!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
   !the filling of the wavefunction should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
