@@ -879,7 +879,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%iguessTol=1.d-4
 
   !initialization of the character string for printing
-  string = ""
+  string = "NO"
   !Check if the file is present
   inquire(file=trim(filename),exist=exists)
   if (exists) then
