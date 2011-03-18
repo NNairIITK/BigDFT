@@ -8,10 +8,6 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> @mainpage BigDFT Package developer documentation
-!! The BigDFT project is an electronic structure calculations based on wavelet basis set.
-
-
 !>  Main program to calculate electronic structures
 program BigDFT
 
