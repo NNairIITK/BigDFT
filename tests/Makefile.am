@@ -29,9 +29,9 @@ endif
 
 if USE_OCL
 SUBDIRS += OpenCL
-ocl_message = oclrun
+oclrun_message = oclrun
 else
-ocl_message =
+oclrun_message =
 endif
 
 if HAVE_ETSF_IO
@@ -56,7 +56,7 @@ mpirun: head_message
 	@echo "     Use the environment variable run_parallel"
 	@echo "     ex: export run_parallel='mpirun -np 2'  "
 
-oclrun:
+oclrun: head_message
 	@echo "     Use the environment variable run_ocl 
 	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
 
@@ -67,7 +67,7 @@ EXTRA_DIST = \
 
 CLEANFILES =
 
-all: head_message $(mpirun_message) foot_message
+all: head_message $(mpirun_message) $(oclrun_message) foot_message
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
