@@ -815,7 +815,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      end do
 
      if (nvctr /=  lr%wfd%nvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
      !!$  end if
@@ -847,7 +847,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /= lr%wfd%nvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
      !!$  end if
@@ -872,7 +872,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /=  lr%wfd%nvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
      !!$  end if
@@ -904,7 +904,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /= lr%wfd%nvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
      !!$  end if

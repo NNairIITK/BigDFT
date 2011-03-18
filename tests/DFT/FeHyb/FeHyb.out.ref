@@ -352,6 +352,7 @@ Exact Exchange Energy: -3.08074060411E+00
  FINAL iter,total energy,gnrm     1  -1.23424060530775151E+02  1.00E+10
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+ Total magnetisation:  4.000000
  e(   1,u)= -3.78023354768537E+00 1.0000      1.0000 e(   1,d)= -3.56587925614551E+00
  e(   2,u)= -2.51919040729492E+00 1.0000      1.0000 e(   2,d)= -2.24396693404644E+00
  e(   3,u)= -2.44281624761591E+00 1.0000      1.0000 e(   3,d)= -2.23541893362010E+00

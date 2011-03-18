@@ -1684,13 +1684,6 @@ contains
        deallocate(hpsi,stat=i_stat)
        call memocc(i_stat,i_all,'hpsi',subname)
 
-       !free GPU if it is the case
-       if (GPUconv .and. .not.(DoDavidson)) then
-          call free_gpu(GPU,orbs%norbp)
-       else if (OCLconv .and. .not.(DoDavidson)) then
-          call free_gpu_OCL(GPU,orbs,in%nspin)
-       end if
-
        i_all=-product(shape(pot_ion))*kind(pot_ion)
        deallocate(pot_ion,stat=i_stat)
        call memocc(i_stat,i_all,'pot_ion',subname)

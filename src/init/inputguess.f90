@@ -1105,7 +1105,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
-  if (nintp.ne.n_int) stop 'n_int><nintp'
+  if (nintp.ne.n_int) stop 'n_int/=nintp'
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l
