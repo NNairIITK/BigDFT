@@ -38,7 +38,7 @@ for file in files:
             state = "%7.1e < (%7.1e) succeeded" % (discrepancy,max_discrepancy)
             end = "\033[m"
         else:
-            start = "\032[0;31m"
+            start = "\033[0;31m"
             state = "%7.1e > (%7.1e)    failed" % (discrepancy,max_discrepancy)
             end = "\033[m"
             Exit = 1
