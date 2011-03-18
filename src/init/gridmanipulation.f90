@@ -245,6 +245,8 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
 
+  if (OCLConv) Glr%hybrid_on = .false.
+
   if (Glr%hybrid_on) then
      if (iproc == 0) write(*,*)'wavelet localization is ON'
   else
