@@ -57,7 +57,7 @@ mpirun: head_message
 	@echo "     ex: export run_parallel='mpirun -np 2'  "
 
 oclrun: head_message
-	@echo "     Use the environment variable run_ocl 
+	@echo "     Use the environment variable run_ocl"
 	@echo "     ex: export run_ocl='on' to use OpenCL acceleration"
 
 EXTRA_DIST = \
