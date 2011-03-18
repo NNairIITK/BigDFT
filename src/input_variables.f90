@@ -934,8 +934,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
            ii = index(line,"ig_norbp")  + index(line,"IG_NORBP") + 8
            read(line(ii:),fmt=*,iostat=ierror) inputs%norbpInguess
 
-        else if (index(line,"ig_ortho") /= 0 .or. index(line,"IG_ORTHO") /= 0) then
-           ii = index(line,"ig_ortho")  + index(line,"IG_ORTHO") + 8
+        else if (index(line,"methortho") /= 0 .or. index(line,"METHORTHO") /= 0) then
+           ii = index(line,"methortho")  + index(line,"METHORTHO") + 9
            read(line(ii:),fmt=*,iostat=ierror) inputs%methOrtho
 
         else if (index(line,"ig_blocks") /= 0 .or. index(line,"IG_BLOCKS") /= 0) then
@@ -993,14 +993,14 @@ subroutine perf_input_variables(iproc,filename,inputs)
         write(*,'(1x,a,3x,a,1x,i0,t30,a)') &
           "|","ig_norbp",inputs%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'
      end if
-     !Possible value: 0=Cholesky, 1=hybrid Gram-Schmidt/Cholesky, 2=Loewdin
-     write(*,"(1x,a,3x,a,1x,i0,t30,a)") &
-          "|","ig_ortho",inputs%methOrtho,  '!Input guess: Orthog. (0=Cholesky,1=GS/Chol,2=Loewdin)'
      write(*,"(1x,a,3x,a,1x,i0,1x,i0,t30,a)") &
           "|","ig_blocks",inputs%bsLow,inputs%bsUp, &
                                                  '!Input guess: Block size for orthonormalisation'
      write(*,'(1x,a,3x,a,1x,es9.2,t30,a)') &
           "|","ig_tol",inputs%iguessTol,    '!Input guess: Tolerance criterion'
+     !Orthogonalisation: possible value: 0=Cholesky, 1=hybrid Gram-Schmidt/Cholesky, 2=Loewdin
+     write(*,"(1x,a,3x,a,1x,i0,t30,a)") &
+          "|","methortho",inputs%methOrtho,  '!Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)'
      write(*,*)
   end if
 
