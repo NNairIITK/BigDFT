@@ -17,8 +17,7 @@ PSPS = psppar.H \
        HGH-K/psppar.Ti
 
 # Give here the list of existing tests
-TESTDIRS = H \
-	  C \
+TESTDIRS = C \
 	  Li+ \
 	  H2-spin \
 	  SiH4 \
@@ -30,7 +29,6 @@ TESTDIRS = H \
 	  SiBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
-	  Graphene \
 	  TiMix \
 	  O2-Spin \
 	  FeHyb 
@@ -40,6 +38,9 @@ if USE_CUDA_GPU
 endif
 if USE_OCL
   TESTDIRS += OCL
+else
+#Add H only if we do not use OCL 
+  TESTDIRS += H Graphene
 endif
 
 # Give here the pseudo-potentials used by each test.
