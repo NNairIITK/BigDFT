@@ -2321,7 +2321,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!   Uses wavefunctions in their transposed form
 !! SOURCE
 !!
-subroutine orthoconstraintNotSymmetric(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum,diag)
+subroutine orthoconstraintNotSymmetric(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   use module_base
   use module_types
   implicit none
@@ -2332,9 +2332,8 @@ subroutine orthoconstraintNotSymmetric(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprs
   real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(in) :: psi
   real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(out) :: hpsi
   real(dp), intent(out) :: scprsum
- real(8),dimension(orbs%norb):: diag
   !local variables
-  character(len=*), parameter :: subname='orthoconstraint'
+  character(len=*), parameter :: subname='orthoconstraintNotSymmetric'
   integer :: i_stat,i_all,ierr,iorb,ise,jorb
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ,tt
@@ -2343,7 +2342,6 @@ subroutine orthoconstraintNotSymmetric(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprs
 
 
 integer:: istart, jstart
-real(8),dimension(:),allocatable:: hpsi2, diag2
 
   !separate the orthogonalisation procedure for up and down orbitals 
   !and for different k-points
@@ -2443,14 +2441,10 @@ real(8),dimension(:),allocatable:: hpsi2, diag2
 
         !calculate the scprsum if the k-point is associated to this processor
         !the scprsum always coincide with the trace of the hamiltonian
-        diag=0.d0
-        allocate(diag2(orbs%norb), stat=i_stat)
-        diag2=0.d0
         if (orbs%ikptproc(ikpt) == iproc) then
            occ=real(orbs%kwgts(ikpt),dp)
            if(nspinor == 1) then
               do iorb=1,norb
-                 diag2(iorb)=occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
               enddo
@@ -2465,8 +2459,6 @@ real(8),dimension(:),allocatable:: hpsi2, diag2
            end if
         end if
         ise=norb
-        call mpi_allreduce(diag2(1), diag(1), orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)         
-        deallocate(diag2)
 
         if(nspinor==1 .and. nvctrp /= 0) then
            !call gemm('N','N',nvctrp,norb,norb,-1.0_wp,psi(ispsi),max(1,nvctrp),&
@@ -2478,30 +2470,8 @@ real(8),dimension(:),allocatable:: hpsi2, diag2
            call gemm('N','T',nvctrp,norb,norb,-.5_wp,psi(ispsi),max(1,nvctrp),&
                 alag(ndimovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
                 hpsi(ispsi),max(1,nvctrp))
-           !!! TEST THIS
-           !!allocate(hpsi2(size(hpsi)))
-           !!call dcopy(size(hpsi), hpsi(1), 1, hpsi(1), 1)
-           !!istart=1
-           !!do iorb=1,norb
-           !!  jstart=1
-           !!  do jorb=1,norb
-           !!    call daxpy(nvctrp, -.5d0*alag((iorb-1)*norb+jorb), psi(jstart), 1, hpsi2(istart), 1)
-           !!    call daxpy(nvctrp, -.5d0*alag((jorb-1)*norb+iorb), psi(jstart), 1, hpsi2(istart), 1)
-           !!    jstart=jstart+nvctrp
-           !!  end do
-           !!  istart=istart+nvctrp
-           !!end do
-           !!do iorb=1,size(hpsi)
-           !!  write(100+iproc,*) hpsi(iorb)
-           !!end do
-           !!do iorb=1,size(hpsi)
-           !!  write(200+iproc,*) hpsi(iorb)
-           !!end do
-           !!call mpi_barrier(mpi_comm_world, ierr)
-           !!stop
-
-
         else if (nvctrp /= 0) then
+           stop 'not implemented for nspinor/=1!'
            call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psi(ispsi),max(1,ncomp*nvctrp),&
                 alag(ndimovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
         end if

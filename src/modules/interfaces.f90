@@ -1180,44 +1180,44 @@ end subroutine getLocalizedBasis
 
 
 
-subroutine improveOrbitals(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, at, rxyz, rxyzParab, &
-    nscatterarr, ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-    iter, infoBasisFunctions, n3p, pulayAt, pulayDir, shift, ebs_mod)
-!
-! Purpose:
-! ========
-!   Improves the eigenvectors according to the updated electronic density.
-!
-! Calling arguments:
-! ==================
-!
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer:: iproc, nproc, nspin, sizeRhopot, infoBasisFunctions
-type(locreg_descriptors), intent(in) :: Glr
-type(orbitals_data), intent(inout) :: orbs, orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
-type(atoms_data), intent(in) :: at
-real(8),dimension(3,at%nat):: rxyz, rxyzParab
-integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-!real(dp), dimension(*), intent(inout) :: rhopot
-real(dp), dimension(sizeRhopot), intent(inout) :: rhopot
-type(GPU_pointers), intent(inout) :: GPU
-type(input_variables):: input
-real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(orbsLIN%npsidim):: phi
-real(8),dimension(orbs%npsidim):: psi, psit
-integer:: iter, n3p
-integer,optional:: pulayAt, pulayDir
-real(8),optional:: shift, ebs_mod
-end subroutine improveOrbitals
+!!!!subroutine improveOrbitals(iproc, nproc, nspin, Glr, orbs, orbsLIN, comms, commsLIN, at, rxyz, rxyzParab, &
+!!!!    nscatterarr, ngatherarr, nlpspd, proj, sizeRhopot, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
+!!!!    iter, infoBasisFunctions, n3p, pulayAt, pulayDir, shift, ebs_mod)
+!!!!!
+!!!!! Purpose:
+!!!!! ========
+!!!!!   Improves the eigenvectors according to the updated electronic density.
+!!!!!
+!!!!! Calling arguments:
+!!!!! ==================
+!!!!!
+!!!!use module_base
+!!!!use module_types
+!!!!implicit none
+!!!!
+!!!!! Calling arguments
+!!!!integer:: iproc, nproc, nspin, sizeRhopot, infoBasisFunctions
+!!!!type(locreg_descriptors), intent(in) :: Glr
+!!!!type(orbitals_data), intent(inout) :: orbs, orbsLIN
+!!!!type(communications_arrays), intent(in) :: comms
+!!!!type(communications_arrays), intent(in) :: commsLIN
+!!!!type(atoms_data), intent(in) :: at
+!!!!real(8),dimension(3,at%nat):: rxyz, rxyzParab
+!!!!integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!!integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+!!!!type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+!!!!real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+!!!!!real(dp), dimension(*), intent(inout) :: rhopot
+!!!!real(dp), dimension(sizeRhopot), intent(inout) :: rhopot
+!!!!type(GPU_pointers), intent(inout) :: GPU
+!!!!type(input_variables):: input
+!!!!real(dp), dimension(:), pointer :: pkernelseq
+!!!!real(8),dimension(orbsLIN%npsidim):: phi
+!!!!real(8),dimension(orbs%npsidim):: psi, psit
+!!!!integer:: iter, n3p
+!!!!integer,optional:: pulayAt, pulayDir
+!!!!real(8),optional:: shift, ebs_mod
+!!!!end subroutine improveOrbitals
 
 
 
