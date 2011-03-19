@@ -257,12 +257,14 @@ subroutine dft_input_variables(iproc,filename,in)
 
   !now the variables which are to be used only for the last run
   read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+  read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
   if (ierror /= 0) then
+     ! Old format
      in%output_wf = .false.
-     read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
-  else if (in%output_wf) then
-     in%output_wf_format = WF_FORMAT_PLAIN
+     read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+     if (in%output_wf) in%output_wf_format = WF_FORMAT_PLAIN
+  else
+     in%output_wf = (in%output_wf_format /= WF_FORMAT_NONE)
   end if
   call check()
   if (in%output_wf_format /= WF_FORMAT_NONE) in%output_wf = .true.
@@ -2222,6 +2224,7 @@ subroutine print_general_parameters(in,atoms)
   integer, parameter :: maxLen = 50, width = 24
   character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
   character(len = 11) :: potden
+  character(len = 12) :: dos
 
   ! Output for atoms and k-points
   write(*,'(1x,a,a,a)') '--- (file: posinp.', &
@@ -2352,8 +2355,13 @@ subroutine print_general_parameters(in,atoms)
      write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
           & "  Max iter.=", in%itrpmax,    "|", &
           & "Occ. scheme=", smearing_names(occopt), "|"
-     write(*,"(1x,A12,1pe12.2,1x,A1,1x,A24,1x,A1)") &
-          & "   Rp norm.=", in%rpnrm_cv,    "|", " ", "|"
+     if (in%verbosity > 2) then
+        write(dos, "(A)") "dos.gnuplot"
+     else
+        write(dos, "(A)") "no verb. < 3"
+     end if
+     write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
+          & "   Rp norm.=", in%rpnrm_cv,    "|", " output DOS=", dos, "|"
   end if
 
   if (in%ncount_cluster_x > 0) then

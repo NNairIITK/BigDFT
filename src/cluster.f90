@@ -210,7 +210,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nelec,ndegree_ip,j,i,iorb,npoints
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,jkpt,ispin
+  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,ispin
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
@@ -717,7 +717,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call readmywaves(iproc,"wavefunction", &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
-     if (in%itrpmax > 1) then
+     if (in%itrpmax /= 1) then
         !recalculate orbitals occupation numbers
         call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
      end if
@@ -851,6 +851,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !if we are in the last_run case, validate the last_run only for the last cycle
   DoLastRunThings=(in%last_run == 1 .and. in%nrepmax == 0) !do the last_run things regardless of infocode
 
+  infocode=0
   rhopot_loop: do itrp=1,in%itrpmax
      !set the infocode to the value it would have in the case of no convergence
      infocode=1
@@ -1565,9 +1566,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         orbsv%norbp=0
      end if
      call local_analysis(iproc,nproc,hx,hy,hz,in,atoms,rxyz,shift,Glr,orbs,orbsv,psi,psivirt)
-  else if (DoLastRunThings .and. verbose > 2) then
+  else if (DoLastRunThings .and. in%itrpmax /= 1 .and. verbose > 2) then
      ! Do a full DOS calculation.
-     call global_analysis(iproc, nproc, orbs)
+     if (iproc == 0) call global_analysis(iproc, nproc, orbs, in%Tel)
   end if
 
   i_all=-product(shape(pkernel))*kind(pkernel)

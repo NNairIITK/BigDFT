@@ -737,7 +737,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
     !print *,0,ef
     loop_fermi: do
        ii=ii+1
-       if (ii > 10000) stop 'error Fermilevel'
+       if (ii > 100000) stop 'error Fermilevel'
        electrons=0.d0
        dlectrons=0.d0
        do ikpt=1,orbs%nkpts
