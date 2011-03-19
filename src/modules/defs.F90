@@ -71,7 +71,7 @@ module module_defs
   real(gp), parameter :: Ha_eV=27.21138386_gp                           ! 1 Hartree, in eV
   real(gp), parameter :: Ha_K=315774.65_gp                              ! 1Hartree, in Kelvin
   real(gp), parameter :: Ha_THz=6579.683920722_gp                       ! 1 Hartree, in THz
-  real(gp), parameter :: Ha_J=4.35974394d-18                            !1 Hartree, in J
+  real(gp), parameter :: Ha_J=4.35974394d-18                            ! 1 Hartree, in J
   real(gp), parameter :: e_Cb=1.602176487d-19                           ! minus the electron charge, in Coulomb
   real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       ! Boltzmann constant in Ha/K
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass

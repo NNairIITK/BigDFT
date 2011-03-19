@@ -147,13 +147,13 @@ subroutine reformatmywaves(iproc,orbs,at,&
          'The wavefunctions need reformatting because:                                 '
         if (hx /= hx_old .or. hy /= hy_old .or. hz /= hz_old) then 
            write(*,"(4x,a,6(1pe20.12))") &
-                '  hgrid_old >< hgrid  ',hx_old,hy_old,hz_old,hx,hy,hz
+                '  hgrid_old /= hgrid  ',hx_old,hy_old,hz_old,hx,hy,hz
         else if (wfd_old%nvctr_c /= wfd%nvctr_c) then
            write(*,"(4x,a,2i8)") &
-                'nvctr_c_old >< nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+                'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
         else if (wfd_old%nvctr_f /= wfd%nvctr_f)  then
            write(*,"(4x,a,2i8)") &
-                'nvctr_f_old >< nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+                'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
         else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 )  then  
            write(*,"(4x,a,6i5)") &
                 'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
@@ -171,13 +171,13 @@ subroutine reformatmywaves(iproc,orbs,at,&
 !         'The wavefunctions need reformatting because:                                 '
 !        if (hgrid_old.ne.hgrid) then 
 !           write(100+iproc,"(4x,a,1pe20.12)") &
-!                '  hgrid_old >< hgrid  ',hgrid_old, hgrid
+!                '  hgrid_old /= hgrid  ',hgrid_old, hgrid
 !        else if (wfd_old%nvctr_c.ne.wfd%nvctr_c) then
 !           write(100+iproc,"(4x,a,2i8)") &
-!                'nvctr_c_old >< nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+!                'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
 !        else if (wfd_old%nvctr_f.ne.wfd%nvctr_f)  then
 !           write(100+iproc,"(4x,a,2i8)") &
-!                'nvctr_f_old >< nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+!                'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
 !        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
 !           write(100+iproc,"(4x,a,6i5)") &
 !                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3

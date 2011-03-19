@@ -392,7 +392,7 @@
  PSolver, surfaces BC, dimensions:    36  113   36   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   13151   13149
+    nvctr_c_old /= nvctr_c   13151   13149
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999874392
@@ -589,7 +589,7 @@
  PSolver, surfaces BC, dimensions:    36  113   36   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   13149   13147
+    nvctr_c_old /= nvctr_c   13149   13147
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999873916
@@ -797,7 +797,7 @@ End of minimization using  AB6MD
  PSolver, surfaces BC, dimensions:    36  113   36   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   13147   13151
+    nvctr_c_old /= nvctr_c   13147   13151
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999873502
