@@ -85,7 +85,7 @@
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               2                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
@@ -128,7 +128,8 @@
  Hamiltonian application... done. ekin_sum,eks:       1.8321852120       1.8320770340
  ekin_sum,epot_sum,eproj_sum  1.83218521203E+00 -1.96713576718E+00  0.00000000000E+00
     ehart,   eexcu,    vexcu  1.10265238721E+00 -8.02869789553E-01 -1.06021184344E+00
- Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
+ Input Wavefunctions Orthogonalization:
+ Overlap Matrix... Direct diagonalization...
  evale(   1,u)= -6.79468694585921E-02  <-Last->  evale(   1,d)= -6.79537413002484E-02
  evale(   2,u)=  2.57360344443278E-01            evale(   2,d)=  2.57367052608239E-01
  Building orthogonal Wavefunctions... done.
@@ -278,6 +279,7 @@
  final ehart, eexcu,  vexcu   8.14505197593E-01 -5.41731581833E-01 -7.12788755892E-01
  FINAL iter,total energy,gnrm    16  -9.65594679048399018E-01  3.59E-06
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+ Total magnetisation:  0.000000
  e(   1,u)= -2.72177280475482E-01 1.0000      1.0000 e(   1,d)= -2.72191597261479E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       1.999999989697

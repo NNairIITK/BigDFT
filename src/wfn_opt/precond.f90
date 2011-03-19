@@ -1,12 +1,14 @@
-!>    Calls the preconditioner for each orbital treated by the processor
-!!
+!> @file
+!!   Routines to precondition wavefunctions
 !! @author
 !!    Copyright (C) 2005-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
+ 
+
+!>    Calls the preconditioner for each orbital treated by the processor
 subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
   use module_types
@@ -18,7 +20,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
   real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
-  integer :: iorb,inds,ncplx,ikpt,ierr,jorb
+  integer :: iorb,inds,ncplx,ikpt,jorb
   real(wp) :: cprecr,scpr,evalmax,eval_zero
   real(gp) :: kx,ky,kz
 
@@ -118,7 +120,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
 END SUBROUTINE preconditionall
 
 
-!this function has been created also for the GPU-ported routines
+! > This function has been created also for the GPU-ported routines
 subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
   use module_base
   implicit none
@@ -138,7 +140,7 @@ subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
 END SUBROUTINE cprecr_from_eval
 
 
-!routine used for the k-points, eventually to be used for all cases
+!> Routine used for the k-points, eventually to be used for all cases
 subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
      hx,hy,hz,kx,ky,kz,x)
   use module_base
@@ -222,6 +224,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
 
 END SUBROUTINE precondition_residue
+
 
 subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
   use module_base
@@ -455,6 +458,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   
 END SUBROUTINE precondition_preconditioner
 
+
 subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   use module_base
   use module_types
@@ -578,6 +582,7 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   end if
 
 END SUBROUTINE allocate_work_arrays
+
 
 subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
   use module_base
@@ -748,6 +753,7 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
 
 END SUBROUTINE deallocate_work_arrays
 
+
 subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
      cprecr,x,y,w,scal)! y:=Ax
   use module_base
@@ -824,7 +830,8 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
    end if
 END SUBROUTINE precond_locham
 
-! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
+
+!> ypsi = @f$(1/2) \nabla^2 xpsi + cprecr xpsi@f$
 subroutine calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
@@ -989,6 +996,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
 END SUBROUTINE prec_diag
 
+
 subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
   use module_base
   implicit none
@@ -1086,7 +1094,6 @@ END SUBROUTINE precond_proper
 
 !>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   hpsi is the right hand side on input and the solution on output
-!!
 subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
@@ -1333,4 +1340,3 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call memocc(i_stat,i_all,'x_f3',subname)
      
 END SUBROUTINE precong
-

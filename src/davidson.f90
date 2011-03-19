@@ -1,12 +1,15 @@
-!>  Naive subroutine which performs a direct minimization of the energy 
-!!  for a given hamiltonian
+!> @file
+!!  Routines to do diagonalisation with Davidson algorithm
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Naive subroutine which performs a direct minimization of the energy 
+!!  for a given hamiltonian
 subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
@@ -349,9 +352,9 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
 END SUBROUTINE direct_minimization
 
 
+!> ??
 subroutine jacobi_davidson
 END SUBROUTINE jacobi_davidson
-
 
 
 !> Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
@@ -365,42 +368,34 @@ END SUBROUTINE jacobi_davidson
 !!   _________
 !!   (parallel)
 !!
-!!   (transpose psi, v is already transposed)
-!!   orthogonality of v to psi
-!!   orthogonalize v
-!!   (retranspose v)
-!!   Hamilton(v) --> hv
-!!   transpose v and hv
-!!   Rayleigh quotients  e
-!!   do
-!!      gradients g= e*v -hv
-!!      exit condition gnrm
-!!      orthogonality of g to psi
-!!      (retranspose g)
-!!      preconditioning of g
-!!      (transpose g again)
-!!      orthogonality of g to psi
-!!      (retranspose g)
-!!      Hamilton(g) --> hg
-!!      (transpose g and hg)
-!!      subspace matrices H and S
-!!      DSYGV(H,e,S)  --> H
-!!      update v with eigenvectors H
-!!      orthogonality of v to psi
-!!      orthogonalize v
-!!      (retranspose v)
-!!      Hamilton(v) --> hv
-!!      (transpose v and hv)
-!!   end do
-!!   (retranspose v and psi)
-!!
-!! @author Alexander Willand
-!!    Copyright (C) 2007-2011 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
+!!   (transpose psi, v is already transposed)\n
+!!   orthogonality of v to psi\n
+!!   orthogonalize v\n
+!!   (retranspose v)\n
+!!   Hamilton(v) --> hv\n
+!!   transpose v and hv\n
+!!   Rayleigh quotients  e\n
+!!   do\n
+!!      gradients g= e*v -hv\n
+!!      exit condition gnrm\n
+!!      orthogonality of g to psi\n
+!!      (retranspose g)\n
+!!      preconditioning of g\n
+!!      (transpose g again)\n
+!!      orthogonality of g to psi\n
+!!      (retranspose g)\n
+!!      Hamilton(g) --> hg\n
+!!      (transpose g and hg)\n
+!!      subspace matrices H and S\n
+!!      DSYGV(H,e,S)  --> H\n
+!!      update v with eigenvectors H\n
+!!      orthogonality of v to psi\n
+!!      orthogonalize v\n
+!!      (retranspose v)\n
+!!      Hamilton(v) --> hv\n
+!!      (transpose v and hv)\n
+!!   end do\n
+!!   (retranspose v and psi)\n
 subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      orbs,orbsv,nvirt,lr,comms,commsv,&
      hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
@@ -1256,10 +1251,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 END SUBROUTINE davidson
 
 
-
 !>   Generate upper triangular matrix in the subspace of Davidson algorithm
-!!
-!!
 subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   use module_base
   implicit none
@@ -1378,7 +1370,6 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
 END SUBROUTINE Davidson_subspace_hamovr
 
 
-
 subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   use module_base
   implicit none
@@ -1428,6 +1419,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   call dcopy(nspinor*nvctrp*norb,work(1),1,v(1),1)
 
 END SUBROUTINE update_psivirt
+
 
 subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nspin,psivirt)
   use module_base
@@ -1659,6 +1651,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 
   
 END SUBROUTINE psivirt_from_gaussians
+
 
 subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
   use module_base

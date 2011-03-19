@@ -1,12 +1,18 @@
-!>   Read a ETSF file containing wavefunctions.
-!!
-!!   Read a NetCDF file.
+!> @file
+!! Routines to read NetCDF (ETSF) format
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+!>   Read a ETSF (NETCDF) file containing wavefunctions.
 !!    coordinates_of_grid_points is used to store the geometric
 !!   position of coefficients of wavelets i, as integer in
 !!   dtset%wvl%ni(:) dimensions.
 !!   coefficients_of_wavefunctions is used to store the psi values for
 !!   each wavelet.
-!!
 subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
   use module_base
@@ -358,14 +364,12 @@ END SUBROUTINE read_waves_etsf
 
 
 !>   Write a ETSF file containing wavefunctions.
-!!
 !!   Write a NetCDF file.
 !!    coordinates_of_grid_points is used to store the geometric
 !!   position of coefficients of wavelets i, as integer in
 !!   (/ n1, n2, n3 /) dimensions.
 !!   coefficients_of_wavefunctions is used to store the psi values for
 !!   each wavelet.
-!!
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
@@ -394,6 +398,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   integer, allocatable :: nvctr(:)
   integer, allocatable :: gcoord(:,:)
   real(gp) :: tel
+  logical, parameter :: sequential = .false.
   character(len = *), parameter :: subname = "write_waves_etsf"
 
   integer :: iproc_writing
@@ -431,12 +436,14 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
 
   iproc_writing = 0
 
-!!$  ! Now that the file is created and writable, we call the writing routines.
-!!$  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-
-  do i = 0, iproc - 1, 1
+  ! Now that the file is created and writable, we call the writing routines.
+  if (sequential) then
+     do i = 0, iproc - 1, 1
+        call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+     end do
+  else
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-  end do
+  end if
 
   call etsf_io_low_open_modify(ncid, filename, lstat, error_data = error)
   if (.not. lstat) call etsf_error(error)
@@ -505,12 +512,14 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
   call etsf_io_low_close(ncid, lstat, error)
   if (.not. lstat) call etsf_error(error)
 
-  do i = iproc, nproc - 1, 1
+  ! We wait for all procs to write their waves.
+  if (sequential) then
+     do i = iproc, nproc - 1, 1
+        call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+     end do
+  else
      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-  end do
-
-!!$  ! We wait for all procs to write their waves.
-!!$  call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  end if
 
   if (iproc == 0) then
      call cpu_time(tr1)
@@ -728,4 +737,3 @@ contains
     call memocc(i_stat,i_all,'coeff_map',subname)
   END SUBROUTINE build_grid
 END SUBROUTINE write_waves_etsf
-

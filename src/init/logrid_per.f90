@@ -1,11 +1,13 @@
-!> BigDFT/make_bounds_per
+!> @file
+!! Routines to creation localisation regions
 !! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
+
+
 subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   use module_base
   use module_types
@@ -118,9 +120,8 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 END SUBROUTINE make_all_ib_per
 
 
-
+!>   This subroutine mimics the comb_grow_f one
 subroutine make_ib_inv_per(logrid_big,ibxy,ibzzx,ibyyzz,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-  !    This subroutine mimics the comb_grow_f one
   implicit none
   integer nt,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
   integer,intent(out):: ibxy(2,nfl1:nfu1,nfl2:nfu2)
@@ -144,8 +145,8 @@ subroutine make_ib_inv_per(logrid_big,ibxy,ibzzx,ibyyzz,n1,n2,n3,nfl1,nfu1,nfl2,
 END SUBROUTINE make_ib_inv_per
 
 
+!> This one mimics the comb_rot_grow_f_loc
 subroutine ib_to_logrid_inv_per(ib,logrid,n,ndat)
-  ! This one mimics the comb_rot_grow_f_loc
   implicit none
   integer ndat,l,i,n,ii
   integer ib(2,ndat)! input
@@ -164,7 +165,6 @@ END SUBROUTINE ib_to_logrid_inv_per
 
 
 !>    This subroutine mimics the comb_grow_f one
-!!
 subroutine make_ib_per(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,nfl2,nfu2,nfl3,nfu3)
   implicit none
   integer :: nt,nfl2,nfu2,nfl3,nfu3,n1,n2
@@ -189,9 +189,7 @@ subroutine make_ib_per(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,nfl2,nfu2,nfl3,nfu3)
 END SUBROUTINE make_ib_per
 
 
-
 !>   This one mimics the comb_rot_grow_f_loc
-!!
 subroutine ib_to_logrid_rot_per(ib,logrid,n,ndat)
   implicit none
   integer ndat,n,l,i,ii
@@ -210,10 +208,6 @@ subroutine ib_to_logrid_rot_per(ib,logrid,n,ndat)
 END SUBROUTINE ib_to_logrid_rot_per
 
 
-
-!> BigDFT/make_logrid_f
-!!
-!!
 subroutine make_logrid_f(n1,n2,n3, & 
      mseg_f,keyg_f,keyv_f,&
      logrid)
@@ -244,4 +238,3 @@ subroutine make_logrid_f(n1,n2,n3, &
   enddo
 
 END SUBROUTINE make_logrid_f
-

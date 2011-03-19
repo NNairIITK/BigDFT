@@ -105,13 +105,13 @@ report:
           Davidson-SiH4.out*) prec="4.e-9" ;; \
           NaCl.out*) prec="2.e-8" ;; \
           SiBulk.out*) prec="5.e-10" ;; \
-          SiH4.out*) prec="1.e-9" ;; \
+          SiH4.out*) prec="1.3e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 $(PSPS):
-	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@
+	ln -fs $(abs_top_srcdir)/utils/PSPfiles/$@ 
 
 %.clean:
 	@dir=`basename $@ .clean` ; \
@@ -149,11 +149,11 @@ $(PSPS):
         cd $$dir && $(MAKE) -f ../Makefile $$tgts
 	touch $@
 
-%.recheck:
+%.recheck: %.in
 	@dir=`basename $@ .recheck` ; \
         reps="$$dir/*.report" ; \
 	for r in $$reps ; do \
-	  if grep -qs "failed" $$r ; then \
+	  if ! grep -qs "succeeded" $$r ; then \
 	    target=` basename $$r .report` ; \
 	    $(MAKE) $*".in" && rm -f $*".in" ; \
 	    rm -f $$dir/$$target".out" $$dir/$$target".report" ; \

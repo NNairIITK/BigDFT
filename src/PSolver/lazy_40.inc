@@ -1,9 +1,11 @@
-!> PSolver/lazy_40
-!! :
+!> @file
 !!   Filters for interpolating scaling functions (order 40)
-!!
-!!
-!!
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 integer, parameter :: m=42
 real(kind=8), dimension(-m:m) :: ch = (/ &
      0.d0, 0.d0, 0.d0, &

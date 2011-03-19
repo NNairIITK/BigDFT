@@ -1,6 +1,12 @@
-!
-!          THE MAGIC FILTER FOR DAUBECHIES-14
-!
+!> @file
+!!          THE MAGIC FILTER FOR DAUBECHIES-14
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
            integer, parameter :: N=7
            real(kind=8), parameter :: W(-N:N) = (/0.d0,&
           -0.00019734150275056012d0,0.24695942557979256d0,1.067322833221752d0,&

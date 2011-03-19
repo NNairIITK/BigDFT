@@ -1,30 +1,32 @@
-!>   Give electronic configuration of atom
+!> @file
+!!  Data routines for electronic configuration of the atoms
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group (TD,LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>   Give electronic configuration of atom
 !! SYNOPSIS
 !!  Input
-!!   nzatom    Z number of atom
-!!   nvalelec  Number of valence electrons
+!!   @param nzatom    Z number of atom
+!!   @param nvalelec  Number of valence electrons
 !!  Output
-!!   symbol    Atomic symbol
-!!   rcov      Covalent radius
-!!   rprb      Parabolic radius for the input guess using the subroutine "gatom"
-!!   ehomo     Highest occupied molecular orbital energy
-!!             See http://physics.nist.gov/PhysRefData/DFTdata/Tables/ptable.html
-!!   neleconf  Occupation number (electronic configuration of the atom)
-!!   nsccode   Semicore orbitals, indicated as an integer.
-!!             The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
-!!             where n_l are the number of semicore orbitals for a given angular momentum
-!!             starting from the lower level of course
-!!   mxpl      Maximum spin polarisation to be placed on the atom
-!!   mxchg     Maximum charge to be placed on the atom
-!!   amu       Atomic mass unit (use values coming from ABINIT/11util/atmdata.F90)
-!!
+!!   @param symbol    Atomic symbol
+!!   @param rcov      Covalent radius
+!!   @param rprb      Parabolic radius for the input guess using the subroutine "gatom"
+!!   @param ehomo     Highest occupied molecular orbital energy
+!!                    See <a>http://physics.nist.gov/PhysRefData/DFTdata/Tables/ptable.html</a>
+!!   @param neleconf  Occupation number (electronic configuration of the atom)
+!!   @param nsccode   Semicore orbitals, indicated as an integer.
+!!                    The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
+!!                    where n_l are the number of semicore orbitals for a given angular momentum
+!!                    starting from the lower level of course
+!!   @param mxpl      Maximum spin polarisation to be placed on the atom
+!!   @param mxchg     Maximum charge to be placed on the atom
+!!   @param amu       Atomic mass unit (use values coming from ABINIT/11util/atmdata.F90)
 subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
   implicit none
 ! Arguments
@@ -1472,8 +1474,9 @@ rprb=5.20d0
 ehomo=-0.161308d0
 neleconf(5,0)=2
 neleconf(5,1)=6
-neleconf(5,2)=9
+neleconf(5,2)=8
 neleconf(6,0)=1
+neleconf(6,1)=1
 nsccode=12
 amu=195.08d0
 
@@ -1648,7 +1651,6 @@ end select
 END SUBROUTINE eleconf
 
 
-
 !>   Give the symbol of element.
 subroutine nzsymbol(nzatom, symbol)
   implicit none
@@ -1676,9 +1678,9 @@ subroutine nzsymbol(nzatom, symbol)
 END SUBROUTINE nzsymbol
 
 
+!>   Correct the electronic configuration for a given atomic charge
 
 !>   Correct the electronic configuration for a given atomic charge
-!!
 !!
 subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
   use module_base
@@ -1802,24 +1804,21 @@ subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
 END SUBROUTINE correct_semicore
 
 
-
 ! AMmodif  start
 !>   Give electronic configuration of atom (copied from eleconf).
 !!   This modified version returns the hardest pseudo potential for the given atom.
 !!
-!! SYNOPSIS
 !!  Input
-!!   nzatom    Z number of atom
+!!   @param nzatom    Z number of atom
 !!  Output
-!!   symbol    Atomic symbol
-!!   rcov      Covalent radius
-!!   rprb      Parabolic radius for the input guess using the subroutines "gatom"
-!!   neleconf  Occupation number (electronic configuration of the atom)
-!!   nsccode   Semicore orbitals, indicated as an integer.
-!!             The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
-!!             where n_l are the number of semicore orbitals for a given angular momentum
-!!             starting from the lower level of course
-!!
+!!   @param symbol    Atomic symbol
+!!   @param rcov      Covalent radius
+!!   @param rprb      Parabolic radius for the input guess using the subroutines "gatom"
+!!   @param neleconf  Occupation number (electronic configuration of the atom)
+!!   @param nsccode   Semicore orbitals, indicated as an integer.
+!!                    The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
+!!                    where n_l are the number of semicore orbitals for a given angular momentum
+!!                    starting from the lower level of course
 subroutine modified_eleconf(nzatom,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
   implicit none
 ! Arguments
@@ -3361,8 +3360,9 @@ rprb=5.20d0
 ehomo=-0.161308d0
 neleconf(5,0)=2
 neleconf(5,1)=6
-neleconf(5,2)=9
+neleconf(5,2)=8
 neleconf(6,0)=1
+neleconf(6,1)=1
 nsccode=12
 
 has_found=1
@@ -3585,5 +3585,4 @@ write(222,*) l,n,neleconf(n,l)
   enddo
 
 END SUBROUTINE modified_eleconf
-
 ! AMmodif end

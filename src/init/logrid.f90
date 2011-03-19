@@ -1,11 +1,14 @@
-!>   Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
+!> @file
+!!  Routines to build localisation regions
 !! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>   Cleaned version of the logrid_old.f90 in the unused directory (with newmethod=.true.)
 subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
      ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
@@ -98,10 +101,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 END SUBROUTINE make_all_ib
 
 
-
 !>   This subroutine mimics the comb_grow_f one
-!!
-!!
 subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
   implicit none
   integer nt,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -126,9 +126,8 @@ subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
 END SUBROUTINE make_ib_inv
 
 
-
+!> This one mimics the comb_rot_grow_f_loc
 subroutine ib_to_logrid_inv(ib,logrid,nfl,nfu,ndat)
-  ! This one mimics the comb_rot_grow_f_loc
   implicit none
   integer ndat,nfl,nfu,l,i
   integer ib(2,ndat)! input
@@ -144,8 +143,9 @@ subroutine ib_to_logrid_inv(ib,logrid,nfl,nfu,ndat)
 
 END SUBROUTINE ib_to_logrid_inv
 
+
+!> Mimics the bounds subroutine    
 subroutine ib_from_logrid_inv(ib,logrid,ml1,mu1,ndat)
-  ! mimics the bounds subroutine    
   implicit none
   integer i,i1
   integer ml1,mu1,ndat
@@ -174,8 +174,8 @@ subroutine ib_from_logrid_inv(ib,logrid,ml1,mu1,ndat)
 END SUBROUTINE ib_from_logrid_inv
 
 
+!> This subroutine mimics the comb_grow_f one
 subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)
-  !    This subroutine mimics the comb_grow_f one
   implicit none
   integer nt,n1,n2,n3
   integer ibyz(2,0:n2,0:n3)! input
@@ -203,8 +203,8 @@ subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)
 END SUBROUTINE make_ib_c
 
 
+!> This subroutine mimics the comb_grow_f one
 subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-  !    This subroutine mimics the comb_grow_f one
   implicit none
   integer nt,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer ibyz(  2,nfl2:nfu2,nfl3:nfu3)! input
@@ -227,8 +227,9 @@ subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 
 END SUBROUTINE make_ib
 
+
+!> This one mimics the comb_rot_grow_f_loc
 subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
-  ! This one mimics the comb_rot_grow_f_loc
   implicit none
   integer ndat,nfl,nfu,l,i
   integer ib(2,ndat)! input
@@ -244,8 +245,9 @@ subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
 
 END SUBROUTINE ib_to_logrid_rot
 
+
+!> Mimics the bounds subroutine    
 subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
-  ! mimics the bounds subroutine    
   implicit none
   integer i,i1
   integer ml1,mu1,ndat
@@ -278,8 +280,6 @@ END SUBROUTINE ib_from_logrid
 !!   so that it is made up of blocks of size 2
 !!   the localization region is enlarged as a result
 !!   works for even nfl2 only
-!!
-!!
 subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
   implicit none
   !Arguments
@@ -305,12 +305,9 @@ subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
 END SUBROUTINE squares_1d
 
 
-
 !>   Modifies the ib array 
 !!   so that it is made up of squares 2x2
 !!   the localization region is enlarged as a result
-!!
-!!
 subroutine squares(ib,n2,n3)
   implicit none
   integer,intent(in)::n2,n3
@@ -340,7 +337,6 @@ subroutine squares(ib,n2,n3)
      enddo
   enddo
 END SUBROUTINE squares
-
 
 
 subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
@@ -403,6 +399,5 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
           'ERROR: problem in wfd_to_logrid(fine)',nvctr_check,wfd%nvctr_f
      stop
   end if
-
 
 END SUBROUTINE wfd_to_logrids

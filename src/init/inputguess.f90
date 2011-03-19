@@ -1,11 +1,14 @@
-!>   Generate the input guess via the inguess_generator
+!> @file
+!!  Routines to generate the input guess
 !! @author
 !!    Copyright (C) 2007-2011 (LG) BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>   Generate the input guess via the inguess_generator
 subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
      orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
   use module_base
@@ -141,10 +144,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
 END SUBROUTINE inputguess_gaussian_orbitals
 
 
-
 !>   Count the number of atomic shells
-!!
-!!
 subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occup,nl)
   use module_base
   implicit none
@@ -187,10 +187,7 @@ subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occu
 END SUBROUTINE count_atomic_shells
 
 
-
 !>   Read atomic orbitals
-!!
-!!
 subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
   use module_base
   use module_types
@@ -268,9 +265,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
 END SUBROUTINE readAtomicOrbitals
 
 
-
 !>   Generate atomic orbitals
-!!
 subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
      nspin,eks,scorb,G,gaucoeff,iorbtolr)
   use module_base
@@ -716,10 +711,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 END SUBROUTINE AtomicOrbitals
 
 
-
 !>   Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
 !!   the output psiatn is a normalized version of psiat
-!!
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   use module_base
   implicit none
@@ -783,9 +776,6 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
 END SUBROUTINE atomkin
 
 
-
-!>
-!!
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   use module_base
   implicit none
@@ -893,9 +883,6 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 END SUBROUTINE calc_coeff_inguess
 
 
-
-!>   
-!!
 subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
      nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb)
   use module_base
@@ -1100,11 +1087,8 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
 END SUBROUTINE iguess_generator
 
 
-
 !>  Calculates the solution of the radial Schroedinger equation for a given
 !!  pseudoptential.
-!!
-!!
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg)
@@ -1461,9 +1445,6 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 END SUBROUTINE gatom
 
 
-
-!>
-!!
 subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
                  ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
                  potgrd,xcgrd,noproj)
@@ -1562,10 +1543,6 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
 END SUBROUTINE resid
 
 
-
-!>
-!!
-!!
 subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
@@ -1649,9 +1626,6 @@ subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
 END SUBROUTINE crtvh
 
 
-
-!>   
-!!
 function wave(ng,ll,xp,psi,r)
   use module_base, only: gp
   implicit none
@@ -1745,9 +1719,6 @@ function gamma_restricted(x)
 end function gamma_restricted
 
 
-
-!>   
-!!
 !  call psitospi0(iproc,nproc,norbe,norbep,norbsc,&
 !       wfd%nvctr_c,wfd%nvctr_f,nspin,spinsgne,psi)
 subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,&
@@ -1821,9 +1792,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,&
 END SUBROUTINE psitospi0
 
 
-
 !>  Calculate the occupation number for any of the orbitals
-!!
 subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   use module_base
   implicit none
@@ -1941,10 +1910,7 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
 END SUBROUTINE at_occnums
 
 
-
 !>   Print the electronic configuration, with the semicore orbitals
-!!
-!!
 subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   use module_base
   implicit none
@@ -2036,8 +2002,6 @@ END SUBROUTINE print_eleconf
 
 !>  Control whether the occupation number can be rounded by a shell-dependent fraction 
 !!  denominator
-!!
-!!
 subroutine write_fraction_string(l,occ,string,nstring)
   use module_base
   implicit none
@@ -2072,10 +2036,7 @@ subroutine write_fraction_string(l,occ,string,nstring)
 END SUBROUTINE write_fraction_string
 
 
-
 !>  Here the fraction is indicated by the ':' or '/'
-!!
-!!
 subroutine read_fraction_string(string,occ,ierror)
   use module_base
   implicit none
@@ -2101,10 +2062,7 @@ subroutine read_fraction_string(string,occ,ierror)
 END SUBROUTINE read_fraction_string
 
 
-
 !>  Here the fraction is indicated by the :
-!!
-!!
 subroutine read_fraction_string_old(l,string,occ)
   use module_base
   implicit none
@@ -2130,10 +2088,7 @@ subroutine read_fraction_string_old(l,string,occ)
 END SUBROUTINE read_fraction_string_old
 
 
-
 !>   Read the electronic configuration, with the semicore orbitals
-!!
-!!
 subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   use module_base
   implicit none
@@ -2229,4 +2184,3 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   end do
 
 END SUBROUTINE read_eleconf
-

@@ -1,11 +1,14 @@
-!>  Self-Consistent Loop API
+!> @file
+!!  Files containing the self-consistent loop routines
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Self-Consistent Loop API
 module scfloop_API
 
   use module_base
@@ -43,9 +46,6 @@ contains
 end module scfloop_API
 
 
-
-!>
-!!
 subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred)
   use scfloop_API
   use module_base
@@ -115,9 +115,6 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 END SUBROUTINE scfloop_main
 
 
-
-!>
-!!
 subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
   use scfloop_API
   use module_base
@@ -167,10 +164,7 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 END SUBROUTINE scfloop_output
 
 
-
 !>    Read atomic positions
-!!
-!!
 subroutine read_velocities(iproc,filename,atoms,vxyz)
   use scfloop_API
   use module_base
@@ -272,9 +266,6 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
 END SUBROUTINE read_velocities
 
 
-
-!>
-!!
 subroutine wtvel(filename,vxyz,atoms,comment)
   use module_base
   use module_types
@@ -326,4 +317,3 @@ subroutine wtvel(filename,vxyz,atoms,comment)
 
   close(unit=iunit)
 END SUBROUTINE wtvel
-

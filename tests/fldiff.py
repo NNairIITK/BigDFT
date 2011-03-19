@@ -75,6 +75,7 @@ if bigdft:
         return re_version.search(line) \
             or " |" in line \
             or "CPU time" in line \
+			or "SP-TIMINGS" in line \
             or "Load" in line \
             or "memory" in line \
             or "MB" in line \
@@ -84,7 +85,8 @@ if bigdft:
             or "~W" in line \
             or "for the array" in line \
             or "WRITING WAVES" in line \
-            or "READING WAVES" in line
+            or "READING WAVES" in line \
+            or "average CG stepsize" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
     def line_junk(line):

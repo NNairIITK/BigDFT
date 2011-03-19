@@ -1,12 +1,15 @@
-!>  Applies the operator (KE+cprecr*I)*x=y
-!!  array x is input, array y is output
+!> @file
+!!  Routines doing optimized convolutions
 !! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Applies the operator (KE+cprecr*I)*x=y
+!!  array x is input, array y is output
 subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e)
   use module_base
@@ -47,10 +50,8 @@ subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 END SUBROUTINE apply_hp_sd
 
 
-
 !>  Applies the operator (KE+cprecr*I)*x=y
 !!  array x is input, array y is output
-!!
 subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e,scal)
   use module_base
@@ -92,9 +93,7 @@ subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 END SUBROUTINE apply_hp_scal
 
 
-
 !>   Applies the kinetic energy operator onto x to get y. Works for periodic BC
-!!
 subroutine convolut_kinetic_per_sdc(n1,n2,n3,x,y,cprecr,modul1,modul2,modul3,a,b,c,e)
   use module_base
   implicit none

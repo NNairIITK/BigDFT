@@ -1,11 +1,14 @@
-!>  Module to use lanczos inside art
+!> @file
+!!  Routine to do lanczos algorithm for ART methods
 !! @author
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Module to use lanczos inside art
 module lanczos_defs
   use defs
   implicit none
@@ -19,10 +22,7 @@ module lanczos_defs
 end module lanczos_defs
 
 
-
 !>  Lanczos routine to determine lowest frequencies
-!!
-!!
 subroutine lanczos(maxvec,new_projection)
 
   use defs
@@ -256,4 +256,3 @@ subroutine lanczos(maxvec,new_projection)
   call MPI_Bcast(projection,nat,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
 
 END SUBROUTINE lanczos
-

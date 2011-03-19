@@ -1,12 +1,11 @@
-!> BigDFT/plot_wf_old
-!!
+!> @file
+!!  Routines to plot wavefunctions
 !! @author
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
 subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -78,10 +77,6 @@ subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
 END SUBROUTINE plot_wf_old
 
 
-
-!>
-!!
-!!
 subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -242,10 +237,6 @@ subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
 END SUBROUTINE plot_wf_cube
 
 
-
-!>
-!!
-!!
 subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,pot)
   use module_base
   implicit none
@@ -295,10 +286,6 @@ subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,po
 END SUBROUTINE plot_pot
 
 
-
-!>
-!!
-!!
 subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
@@ -341,10 +328,6 @@ subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
 END SUBROUTINE plot_pot_full
 
 
-
-!>
-!!
-!!
 subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
@@ -415,10 +398,6 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
 END SUBROUTINE plot_cube_full
 
 
-
-!>
-!!
-!!
 subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
   use module_base
   implicit none
@@ -470,10 +449,6 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
 END SUBROUTINE plot_psifscf
 
 
-
-!>
-!!
-!!
 subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   use module_base
   implicit none
@@ -526,10 +501,6 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
 END SUBROUTINE read_potfile
 
 
-
-!>
-!!
-!!
 subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      alat1,alat2,alat3,ngatherarr,rho)
   use module_base
@@ -625,10 +596,6 @@ subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3
 END SUBROUTINE plot_density_old
 
 
-
-!>
-!!
-!!
 subroutine plot_density_cube_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
@@ -791,10 +758,6 @@ contains
 END SUBROUTINE plot_density_cube_old
 
 
-
-!>
-!!
-!!
 subroutine read_density_cube_old(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
   use module_base
   use module_types
@@ -898,10 +861,7 @@ contains
 END SUBROUTINE read_density_cube_old
 
 
-
 !>   Write a (sum of two) field in the ISF basis in the cube format
-!!
-!!
 subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
   use module_base
@@ -974,7 +934,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   close(22)
 
   !average in x direction
-  open(unit=23,file=filename//'_avg_x',status='unknown')
+  open(unit=23,file=trim(filename)//'_avg_x',status='unknown')
   do i1=0,2*n1+1
      later_avg=0.0_dp
      do i3=0,2*n3+1
@@ -989,7 +949,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   end do
   close(23)
   !average in y direction
-  open(unit=23,file=filename//'_avg_y',status='unknown')
+  open(unit=23,file=trim(filename)//'_avg_y',status='unknown')
   do i2=0,2*n2+1
      later_avg=0.0_dp
      do i3=0,2*n3+1
@@ -1004,7 +964,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   end do
   close(23)
   !average in z direction
-  open(unit=23,file=filename//'_avg_z',status='unknown')
+  open(unit=23,file=trim(filename)//'_avg_z',status='unknown')
   do i3=0,2*n3+1
      later_avg=0.0_dp
      do i2=0,2*n2+1
@@ -1022,10 +982,6 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
 END SUBROUTINE write_cube_fields
 
 
-
-!>
-!!
-!!
 subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
@@ -1166,7 +1122,6 @@ END SUBROUTINE plot_density
 
 
 !>  Read a density file using file format depending on the extension.
-!!
 subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz,iatypes, znucl)
   use module_base
@@ -1240,9 +1195,6 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
 END SUBROUTINE read_density
 
 
-!>
-!!
-!!
 subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -1293,9 +1245,6 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
 END SUBROUTINE plot_wf
 
 
-!>
-!!
-!!
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz, iatypes, znucl)
   use module_base
@@ -1467,10 +1416,7 @@ contains
 END SUBROUTINE read_cube
 
 
-
 !>   Read a cube field which have been plotted previously by write_cube_fields
-!!
-!!
 subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   use module_base
   use module_types
@@ -1557,5 +1503,3 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
  ! write(14,*)rho
 
 END SUBROUTINE read_cube_field
-
-

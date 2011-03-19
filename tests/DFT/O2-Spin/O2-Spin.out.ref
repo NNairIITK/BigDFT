@@ -26,7 +26,6 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- Reading atomic input positions from file:posinp.xyz
  File 'myparameters' is missing... using default values:
    Input guess: direct diagonalization of Hamiltonian
    Orthogonalization method: Cholesky
@@ -35,7 +34,7 @@
  |   'debug' option disabled
  |   'fftcache' = 8192
 
- ---------------------------------------------------------------- Input atomic system
+ --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
  N. types =     1         |                          | Sp. group = free BC     
@@ -43,13 +42,15 @@
  Types    = 'O'           |                          | Plot dens.= none        
                           |                          | Spin pol. = collinear   
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.400 |  Coarse Wfs.= 6.00 | Wavefns Conv.= 1.0E-05 | Calculate=   F
+   Max. hgrid=  0.400 |  Coarse Wfs.= 6.00 | Wavefns Conv.= 1.0E-05 | Calculate=   F
         XC id=     11 |    Fine Wfs.= 8.00 | Max. N. Iter.=    5x 2 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       0
  Polarisation=      4 |
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       O          6      10            1.21558  0.21133  0.41429         X              
@@ -86,7 +87,7 @@
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       O               2                    1
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    2
  Total number of components =                 4600
  Percent of zero components =                    0
@@ -127,7 +128,8 @@
  Hamiltonian application... done. ekin_sum,eks:      23.7953367646      23.7908619683
  ekin_sum,epot_sum,eproj_sum  2.37953367646E+01 -3.39456727385E+01  2.80126258047E+00
     ehart,   eexcu,    vexcu  4.25433170028E+01 -6.87737719791E+00 -8.93594935702E+00
- Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
+ Input Wavefunctions Orthogonalization:
+ Overlap Matrix... Direct diagonalization...
  evale(   1,u)= -1.20562286196544E+00            evale(   1,d)= -1.08267166062760E+00
  evale(   2,u)= -7.96602225420337E-01            evale(   2,d)= -6.78200222664286E-01
  evale(   3,u)= -5.32500671025369E-01            evale(   3,d)= -4.09780747081893E-01
@@ -185,7 +187,8 @@
  FINAL iter,total energy,gnrm,gnrm_zero     5  -3.14426758491354263E+01  2.81E-01  1.10E-01
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1,u)= -1.33791380197204E+00 1.0000      1.0000 e(   1,d)= -1.21859256367489E+00
+ Total magnetisation:  4.000000
+ e(   1,u)= -1.33791380197204E+00 1.0000      1.0000 e(   1,d)= -1.21859256367490E+00
  e(   2,u)= -8.60589063262883E-01 1.0000      1.0000 e(   2,d)= -7.39026669964744E-01
  e(   3,u)= -6.41858422013909E-01 1.0000      1.0000 e(   3,d)= -5.15571546788919E-01
  e(   4,u)= -5.95199060399948E-01 1.0000      1.0000 e(   4,d)= -4.92257645214475E-01
@@ -242,6 +245,7 @@
  FINAL iter,total energy,gnrm,gnrm_zero     5  -3.19252626807364095E+01  5.08E-02  1.21E-01
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+ Total magnetisation:  2.000000
  e(   1,u)= -1.21402247832695E+00 1.0000      1.0000 e(   1,d)= -1.16823581439564E+00
  e(   2,u)= -7.55676525344834E-01 1.0000      1.0000 e(   2,d)= -6.88580458408936E-01
  e(   3,u)= -5.01066864323076E-01 1.0000      1.0000 e(   3,d)= -4.66201653874319E-01
