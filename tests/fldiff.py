@@ -6,7 +6,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 17/11/2010
+# Date: 18/03/2011
 #----------------------------------------------------------------------------
 
 import difflib
@@ -86,7 +86,8 @@ if bigdft:
             or "for the array" in line \
             or "WRITING WAVES" in line \
             or "READING WAVES" in line \
-            or "average CG stepsize" in line
+            or "average CG stepsize" in line \
+            or "GPU data" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
     def line_junk(line):
@@ -185,9 +186,18 @@ if bigdft:
         print "Max Discrepancy: NaN"
         sys.exit(1)
 
+#Remove line_junk
+nojunk1 = []
+for line in original1:
+    if not line_junk(line):
+        nojunk1.append(line)
+nojunk2 = []
+for line in original2:
+    if not line_junk(line):
+        nojunk2.append(line)
 
 #Compare both files
-compare = difflib.unified_diff(original1,original2,n=0)
+compare = difflib.unified_diff(nojunk1,nojunk2,n=0)
 
 try:
     #The 2 first lines are irrelevant
@@ -236,9 +246,6 @@ while not EOF:
         i2 += 1
         line1 = left[i1]
         line2 = right[i2]
-        #We avoid some lines
-        if line_junk(line1) or line_junk(line2):
-            continue
         floats1 = list()
         for (one,two) in re_float.findall(line1):
             floats1.append(float(one))

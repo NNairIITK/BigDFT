@@ -1679,9 +1679,6 @@ END SUBROUTINE nzsymbol
 
 
 !>   Correct the electronic configuration for a given atomic charge
-
-!>   Correct the electronic configuration for a given atomic charge
-!!
 subroutine correct_semicore(nmax,lmax,ichg,neleconf,eleconf,nsccode)
   use module_base
   implicit none
@@ -1819,6 +1816,8 @@ END SUBROUTINE correct_semicore
 !!                    The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
 !!                    where n_l are the number of semicore orbitals for a given angular momentum
 !!                    starting from the lower level of course
+!! @todo
+!! Merge this routine with eleconf routine
 subroutine modified_eleconf(nzatom,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
   implicit none
 ! Arguments

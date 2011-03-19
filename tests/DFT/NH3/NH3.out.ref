@@ -344,7 +344,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27696   27699
+    nvctr_c_old /= nvctr_c   27696   27699
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999311029
@@ -523,7 +523,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27699   27716
+    nvctr_c_old /= nvctr_c   27699   27716
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999305768
@@ -711,7 +711,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27716   27721
+    nvctr_c_old /= nvctr_c   27716   27721
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999322220
@@ -899,7 +899,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27721   27709
+    nvctr_c_old /= nvctr_c   27721   27709
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999329699
@@ -1069,7 +1069,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27709   27707
+    nvctr_c_old /= nvctr_c   27709   27707
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999328421
@@ -1230,7 +1230,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27707   27704
+    nvctr_c_old /= nvctr_c   27707   27704
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999328150
@@ -1391,7 +1391,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27704   27707
+    nvctr_c_old /= nvctr_c   27704   27707
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999328162
@@ -1552,7 +1552,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27707   27705
+    nvctr_c_old /= nvctr_c   27707   27705
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999328355
@@ -1704,7 +1704,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_f_old >< nvctr_f     707     708
+    nvctr_f_old /= nvctr_f     707     708
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999328382
