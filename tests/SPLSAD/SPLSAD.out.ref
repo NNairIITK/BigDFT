@@ -26,14 +26,19 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- File 'myparameters' is missing... using default values:
-   Input guess: direct diagonalization of Hamiltonian
-   Orthogonalization method: Cholesky
- 
- Performance options (file 'input.perf' not present):
- |   'debug' option disabled
- |   'fftcache' = 8192
- 
+
+ --- (file: input.perf -- not present) -------------------------- Performance Options
+ |   debug                   !Option disabled
+ |   fftcache 8192           !Cache size for the FFT
+ |   accel NO                !Acceleration (NO, CUDAGPU, OCLGPU)
+ |   blas F                  !CUBLAS acceleration
+ |   projrad  15.00          !Radius of the projector as a function of the maxrad
+ |   exctxpar BC             !Exact exchange parallelisation scheme
+ |   ig_diag T               !Input guess: Direct diagonalization of Hamiltonian
+ |   ig_blocks 800 11074     !Input guess: Block size for orthonormalisation
+ |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -42,12 +47,14 @@
  Types    = 'N', 'H'      |                          | Plot dens.= none        
                           |                          | Spin pol. = no          
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-05 | Calculate=   F
+   Max. hgrid=  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-05 | Calculate=   F
         XC id=      1 |    Fine Wfs.=10.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.40520         X              
@@ -299,22 +306,29 @@ DOF: n,nr           12          12
  -----------------------------------------------------------
  number of anchor points            2
  degree of freedom: n,nr           12          12
- File 'myparameters' is missing... using default values:
-   Input guess: direct diagonalization of Hamiltonian
-   Orthogonalization method: Cholesky
- 
- Performance options (file 'input.perf' not present):
- |   'debug' option disabled
- |   'fftcache' = 8192
- 
+
+ --- (file: input.perf -- not present) -------------------------- Performance Options
+ |   debug                   !Option disabled
+ |   fftcache 8192           !Cache size for the FFT
+ |   accel NO                !Acceleration (NO, CUDAGPU, OCLGPU)
+ |   blas F                  !CUBLAS acceleration
+ |   projrad  15.00          !Radius of the projector as a function of the maxrad
+ |   exctxpar BC             !Exact exchange parallelisation scheme
+ |   ig_diag T               !Input guess: Direct diagonalization of Hamiltonian
+ |   ig_blocks 800 0         !Input guess: Block size for orthonormalisation
+ |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+
  ALIREZA-02
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-05 | Calculate=   F
+   Max. hgrid=  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-05 | Calculate=   F
         XC id=      1 |    Fine Wfs.=10.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.40520         X              
@@ -546,12 +560,14 @@ DOF: n,nr           12          12
  CPU time/ELAPSED time for root process     0        21.34        21.34
 ENDs: epot1,fnrm1,epot2,fnrm2   -0.117016503759494E+02   0.965168485609383E-03  -0.117016265025930E+02   0.963598000984899E-03
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -764,12 +780,14 @@ ENDs: epot1,fnrm1,epot2,fnrm2   -0.117016503759494E+02   0.965168485609383E-03  
  raw forces:                  maxval=  1.261907381639E-03  fnrm2=  4.726338071267E-06
  CPU time/ELAPSED time for root process     0         8.84         8.84
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -983,12 +1001,14 @@ ENDs: epot1,fnrm1,epot2,fnrm2   -0.117016503759494E+02   0.965168485609383E-03  
  CPU time/ELAPSED time for root process     0         8.85         8.86
 begin of minimization_sp using  FIRE      
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -1192,7 +1212,7 @@ begin of minimization_sp using  FIRE
  raw forces:                  maxval=  3.422647956479E-02  fnrm2=  4.439861447463E-03
  CPU time/ELAPSED time for root process     0         8.18         8.18
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -1403,7 +1423,7 @@ begin of minimization_sp using  FIRE
 FIREMIN      0  1.307372582453270E-01  0.000E+00 9.24452E-02 3.23577E-02  7.3956E-02  2.0000E-02  5.0000E-01   0  6.8369E-03
 fort56    7.3956162170E-02   9.2445202713E-02
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -1612,12 +1632,14 @@ fort56    7.3956162170E-02   9.2445202713E-02
  raw forces:                  maxval=  3.395296530383E-02  fnrm2=  4.374356916326E-03
  CPU time/ELAPSED time for root process     0         8.23         8.23
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -1823,12 +1845,14 @@ fort56    7.3956162170E-02   9.2445202713E-02
 FIREMIN      1  1.300161657682012E-01 -7.211E-04 9.19353E-02 3.22016E-02  7.5800E-02  2.0000E-02  5.0000E-01   1  6.9687E-03
 fort56    7.4674068772E-02   9.1935313458E-02
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -2032,12 +2056,14 @@ fort56    7.4674068772E-02   9.1935313458E-02
  raw forces:                  maxval=  3.367301874955E-02  fnrm2=  4.307848416610E-03
  CPU time/ELAPSED time for root process     0         8.23         8.23
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -2243,12 +2269,14 @@ fort56    7.4674068772E-02   9.1935313458E-02
 FIREMIN      2  1.292744696264863E-01 -7.417E-04 9.14109E-02 3.20399E-02  7.6508E-02  2.0000E-02  5.0000E-01   2  6.9936E-03
 fort56    7.4818015724E-02   9.1410855225E-02
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -2452,12 +2480,14 @@ fort56    7.4818015724E-02   9.1410855225E-02
  raw forces:                  maxval=  3.339058158600E-02  fnrm2=  4.241296933047E-03
  CPU time/ELAPSED time for root process     0         8.19         8.19
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -2664,12 +2694,14 @@ FIREMIN      3  1.285225671418747E-01 -7.519E-04 9.08792E-02 3.18748E-02  7.7005
 FIRE FINISHED: itfire,epot,fnrm,fmax    3  1.285225671418747E-01 9.08792E-02 3.18748E-02
 end of minimization_sp using  FIRE      
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -2873,12 +2905,14 @@ end of minimization_sp using  FIRE
  raw forces:                  maxval=  2.899209411984E-02  fnrm2=  3.215774066757E-03
  CPU time/ELAPSED time for root process     0         8.25         8.26
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -3082,12 +3116,14 @@ end of minimization_sp using  FIRE
  raw forces:                  maxval=  4.960417684347E-02  fnrm2=  8.022111068672E-03
  CPU time/ELAPSED time for root process     0         8.21         8.21
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -3291,12 +3327,14 @@ end of minimization_sp using  FIRE
  raw forces:                  maxval=  5.743045336905E-02  fnrm2=  9.857968689476E-03
  CPU time/ELAPSED time for root process     0         8.21         8.21
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -3500,12 +3538,14 @@ end of minimization_sp using  FIRE
  raw forces:                  maxval=  4.961833703620E-02  fnrm2=  8.002008706115E-03
  CPU time/ELAPSED time for root process     0         8.22         8.22
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       8
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       N          5       3            1.37026  0.25661  0.50650         X              
@@ -3712,7 +3752,7 @@ begin of minimization_sp using  BFGS
 fort57    0  7.00E-01  7.00E-01 snp   1.40001E+00
 fort53    0   0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -3921,7 +3961,7 @@ fort53    0   0.00000E+00
  raw forces:                  maxval=  4.040020001214E-02  fnrm2=  5.811005343841E-03
  CPU time/ELAPSED time for root process     0         8.21         8.20
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -4130,7 +4170,7 @@ fort53    0   0.00000E+00
  raw forces:                  maxval=  5.743045336906E-02  fnrm2=  9.857968689477E-03
  CPU time/ELAPSED time for root process     0         8.16         8.16
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -4339,7 +4379,7 @@ fort53    0   0.00000E+00
  raw forces:                  maxval=  4.042357880574E-02  fnrm2=  5.786603398863E-03
  CPU time/ELAPSED time for root process     0         8.19         8.19
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -4551,7 +4591,7 @@ fort54    0   0.00000E+00   3.50001E-01   7.01442E-01   1.05000E+00   1.40001E+0
 fort55    0  -1.16984E+01  -1.16909E+01  -1.16843E+01  -1.16908E+01  -1.16982E+01  -1.16843E+01
 fort51     0    0    4  -1.168429688844656E+01  -2.579728E-05  9.92864E-02 -1.0724E-01  4.6624E+00  7.0144E-01  5.0103E-01
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-05 | Calculate=   F
         XC id=      1 |    Fine Wfs.=10.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -4764,7 +4804,7 @@ BFGSMIN      0 -1.168751042423292E+01  0.000E+00 9.94247E-02 5.72428E-02  7.0000
 fort57    1  7.66E-01  7.66E-01 snp   1.53171E+00
 fort53    1   1.76308E-01
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -4973,7 +5013,7 @@ fort53    1   1.76308E-01
  raw forces:                  maxval=  3.168380805450E-02  fnrm2=  2.950062169583E-03
  CPU time/ELAPSED time for root process     0         8.53         8.53
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -5185,7 +5225,7 @@ fort54    1   0.00000E+00   7.68716E-01   1.53171E+00   7.68716E-01
 fort55    1  -1.16984E+01  -1.16885E+01  -1.16982E+01  -1.16885E+01
 fort51     1    0    2  -1.168851920487228E+01   1.698663E-04  5.43133E-02 -3.3451E-02  1.4947E+01  7.6872E-01  5.0187E-01
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-05 | Calculate=   F
         XC id=      1 |    Fine Wfs.=10.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -5407,7 +5447,7 @@ BFGSMIN      1 -1.169207672269383E+01 -4.566E-03 5.44703E-02 3.07610E-02  7.7000
 fort57    2  7.33E-01  7.34E-01 snp   1.46688E+00
 fort53    2   5.15389E-02
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -5616,7 +5656,7 @@ fort53    2   5.15389E-02
  raw forces:                  maxval=  1.189973467423E-02  fnrm2=  3.762901621683E-04
  CPU time/ELAPSED time for root process     0         8.51         8.52
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -5828,7 +5868,7 @@ fort54    2   0.00000E+00   7.42500E-01   1.46688E+00   7.42500E-01
 fort55    2  -1.16984E+01  -1.16919E+01  -1.16982E+01  -1.16919E+01
 fort51     2    0    2  -1.169192609449070E+01   3.771750E-04  1.94077E-02 -2.3806E-02  2.1003E+01  7.4250E-01  5.0618E-01
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-05 | Calculate=   F
         XC id=      1 |    Fine Wfs.=10.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -6050,7 +6090,7 @@ BFGSMIN      2 -1.169543224233523E+01 -3.356E-03 1.78469E-02 1.11986E-02  8.4700
 fort57    3  7.22E-01  7.22E-01 snp   1.44403E+00
 fort53    3   3.02635E-02
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -6259,7 +6299,7 @@ fort53    3   3.02635E-02
  raw forces:                  maxval=  1.032916533027E-02  fnrm2=  1.762303603420E-04
  CPU time/ELAPSED time for root process     0         8.52         8.52
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -6471,7 +6511,7 @@ fort54    3   0.00000E+00   7.31175E-01   1.44403E+00   7.31175E-01
 fort55    3  -1.16984E+01  -1.16923E+01  -1.16982E+01  -1.16923E+01
 fort51     3    0    2  -1.169227923350058E+01   1.926646E-04  1.32157E-02 -2.3211E-02  2.1542E+01  7.3117E-01  5.0634E-01
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-05 | Calculate=   F
         XC id=      1 |    Fine Wfs.=10.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -6693,7 +6733,7 @@ BFGSMIN      3 -1.169571473650729E+01 -2.825E-04 1.30731E-02 1.02415E-02  9.3170
 fort57    4  7.19E-01  7.19E-01 snp   1.43812E+00
 fort53    4   2.68685E-02
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -6902,7 +6942,7 @@ fort53    4   2.68685E-02
  raw forces:                  maxval=  2.297832571961E-02  fnrm2=  8.769388591685E-04
  CPU time/ELAPSED time for root process     0         8.49         8.49
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -7114,7 +7154,7 @@ fort54    4   0.00000E+00   7.27955E-01   1.43812E+00   7.27955E-01
 fort55    4  -1.16984E+01  -1.16919E+01  -1.16982E+01  -1.16919E+01
 fort51     4    0    2  -1.169194742257428E+01   4.448175E-04  2.96415E-02 -2.4685E-02  2.0255E+01  7.2795E-01  5.0619E-01
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-05 | Calculate=   F
         XC id=      1 |    Fine Wfs.=10.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -7336,7 +7376,7 @@ BFGSMIN      4 -1.169536051683601E+01  3.542E-04 3.03203E-02 2.28960E-02  1.0000
 fort57    5  7.23E-01  7.24E-01 snp   1.44652E+00
 fort53    5   1.82907E-02
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.450 |  Coarse Wfs.= 4.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
@@ -7548,7 +7588,7 @@ fort54    5   0.00000E+00   7.32210E-01   1.44652E+00   7.32210E-01
 fort55    5  -1.16984E+01  -1.16923E+01  -1.16982E+01  -1.16923E+01
 fort51     5    0    2  -1.169233507503118E+01   2.898760E-04  2.98649E-03 -2.2917E-02  2.1818E+01  7.3221E-01  5.0619E-01
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Max. hgrid  =  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-05 | Calculate=   F
         XC id=      1 |    Fine Wfs.=10.00 | Max. N. Iter.=   50x10 | Extension= 0.0
