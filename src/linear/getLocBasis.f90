@@ -81,8 +81,8 @@ integer:: istat
 real(8),dimension(:),allocatable:: hphi, eval 
 real(8),dimension(:,:),allocatable:: HamSmall 
 real(8),dimension(:),pointer:: phiWorkPointer 
-real(8):: epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace 
-real(wp), dimension(:), pointer :: potential 
+real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace 
+real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
  
 
@@ -198,7 +198,7 @@ real(8),dimension(:),allocatable,intent(out):: phi
 integer:: jproc, istat, iorb, jorb, ierr, iat, ityp, iall, norb_tot
 integer:: norb, norbu, norbd
 integer,dimension(:),allocatable:: norbsPerType, norbsPerAtom
-character(len=*),parameter:: subname='initializeParameters'
+character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20):: atomname
 logical:: written
 
@@ -443,7 +443,7 @@ subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspi
 use module_base
 use module_types
 use module_interfaces, except_this_one => getLocalizedBasis
-  use Poisson_Solver
+!  use Poisson_Solver
 !use allocModule
 implicit none
 
@@ -480,181 +480,173 @@ type(diis_objects):: diisLIN
 
 
 
-call allocateLocalArrays()
+  call allocateLocalArrays()
+  
+  
+  
+  icountSDSatur=0
+  icountSwitch=0
+  icountDIISFailureTot=0
+  icountDIISFailureCons=0
+  
+  
+  ! No DIIS in the beginning
+  call initializeDIISParameters(lin%DIISHistMax)
+  allowDIIS=.true.
+  !if(allowDIIS) then
+  !else
+  !    diisLIN%idsx=0
+  !    call deallocate_diis_objects(diisLIN,subname)
+  !end if
+  
+  
+  
+  if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
+  alpha=1.d-2
+  iterLoop: do it=1,lin%nItMax
+      fnrmMax=0.d0
+      fnrm=0.d0
+  
+      if (iproc==0) then
+          write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
+      endif
+  
+  
+      ! Orthonormalize the orbitals.
+      if(iproc==0) then
+          write(*,'(x,a)', advance='no') 'Orthonormalization... '
+      end if
+      call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
+  
+      ! Untranspose phi
+      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
+  
+  
+      ! Calculate the unconstrained gradient.
+      if(iproc==0) then
+          write(*,'(a)', advance='no') 'Hamiltonian application... '
+      end if
+      call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+           nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+           rhopot(1),&
+           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel=pkernelseq)
+  
+  
+      ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
+      if(iproc==0) then
+          write(*,'(a)', advance='no') 'orthoconstraint... '
+      end if
+      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWorkPointer)
+      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
+      call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH, diag)
+  
+  
+      ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
+      ! of the previous iteration (fnrmOvrlpArr).
+      nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+      istart=1
+      do iorb=1,lin%orbs%norb
+          if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphiold(istart), 1)
+          fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphi(istart), 1)
+          istart=istart+nvctrp*orbs%nspinor
+      end do
+      call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(fnrmOvrlpArr(1,2), fnrmOvrlpArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+  
+      ! Keep the gradient for the next iteration.
+      if(it>1) then
+          call dcopy(lin%orbs%norb, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
+      end if
+  
+      ! Determine the gradient norm and its maximal component. In addition, adapt the
+      !  step size for the steepest descent minimization (depending on the angle 
+      ! between the current gradient and the one from the previous iteration).
+      ! This is of course only necessary if we are using steepest descent and not DIIS.
+      do iorb=1,lin%orbs%norb
+          fnrm=fnrm+fnrmArr(iorb,1)
+          if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
+          if(it>1 .and. diisLIN%idsx==0 .and. .not.diisLIN%switchSD) then
+          ! Adapt step size for the steepest descent minimization.
+              tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
+              if(tt>.7d0) then
+                  alpha(iorb)=alpha(iorb)*1.05d0
+              else
+                  alpha(iorb)=alpha(iorb)*.5d0
+              end if
+          end if
+      end do
+      fnrm=sqrt(fnrm)
+      fnrmMax=sqrt(fnrmMax)
+      ! Copy the gradient (will be used in the next iteration to adapt the step size).
+      call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
+  
+      ! Untranspose hphi.
+      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWorkPointer)
+  
+  
+      ! Precondition the gradient
+      if(iproc==0) then
+          write(*,'(a)') 'preconditioning. '
+      end if
+      ncong=10
+      gnrm=1.d3 ; gnrm_zero=1.d3
+      call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+          ncong, hphi, at%nat, rxyz, at, it)
+  
+      !tt=gnrm
+      !call mpi_allreduce(tt, gnrm, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+      !gnrm=sqrt(gnrm)
+      !tt=gnrmMax
+      !call mpi_allreduce(tt, gnrmMax, 1, mpi_double_precision, mpi_max, mpi_comm_world, ierr)
+      !gnrmMax=sqrt(gnrmMax)
+  
+  
+      tt=sum(alpha)
+      meanAlpha=tt/dble(lin%orbs%norb)
+  
+  
+  
+      if(iproc==0) write(*,'(x,a,i6,2es15.7,f14.7)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
+      if(iproc==0) write(1000,'(i6,2es15.7,f15.7,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
+      if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
+          if(it>=lin%nItMax) then
+              if(iproc==0) write(*,'(a,i0,a)') 'WARNING: not converged within ', it, &
+                  ' iterations! Exiting loop due to limitations of iterations.'
+              if(iproc==0) write(*,'(a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              infoBasisFunctions=1
+          else
+              if(iproc==0) then
+                  write(*,'(a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
+                  write (*,'(a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              end if
+              infoBasisFunctions=0
+          end if
+          if(iproc==0) write(*,'(x,a)') '============================= Basis functions created. ============================='
+          call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
+          !call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+          !    .5d0*input%hy, .5d0*input%hz, 1)
+          exit iterLoop
+      end if
+  
+  
+      call DIISorSD()
+      if(iproc==0) then
+          if(diisLIN%idsx>0) then
+              write(*,'(x,3(a,i0))') 'DIIS informations: history length=',diisLIN%idsx, ', consecutive failures=', &
+                  icountDIISFailureCons, ', total failures=', icountDIISFailureTot
+          else
+              write(*,'(x,a,es9.3,a,i0)') 'steepest descent informations: mean alpha=', meanAlpha, &
+              ', consecutive successes=', icountSDSatur
+          end if
+      end if
+      if(.not. diisLIN%switchSD) call improve()
+  
+   
+  
+  end do iterLoop
 
 
-
-icountSDSatur=0
-icountSwitch=0
-icountDIISFailureTot=0
-icountDIISFailureCons=0
-
-
-! No DIIS in the beginning
-call initializeDIISParameters(lin%DIISHistMax)
-allowDIIS=.true.
-if(allowDIIS) then
-else
-    diisLIN%idsx=0
-    call deallocate_diis_objects(diisLIN,subname)
-end if
-
-
-
-if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
-alpha=1.d-2
-iterLoop: do it=1,lin%nItMax
-    fnrmMax=0.d0
-    fnrm=0.d0
-
-    if (iproc==0) then
-        write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
-    endif
-
-
-    ! Orthonormalize the orbitals.
-    if(iproc==0) then
-        write(*,'(x,a)', advance='no') 'Orthonormalization... '
-    end if
-    call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
-
-    ! Untranspose phi
-    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
-
-
-    ! Calculate the unconstrained gradient.
-    if(iproc==0) then
-        write(*,'(a)', advance='no') 'Hamiltonian application... '
-    end if
-    call HamiltonianApplicationParabola(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-         nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-         rhopot(1),&
-         phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel=pkernelseq)
-!write(300,*) hphi
-!write(301,*) hphi
-!call mpi_barrier(mpi_comm_world, ierr)
-!stop
-
-
-    ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
-    if(iproc==0) then
-        write(*,'(a)', advance='no') 'orthoconstraint... '
-    end if
-    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWorkPointer)
-    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
-    call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH, diag)
-
-
-    ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
-    ! of the previous iteration (fnrmOvrlpArr).
-    nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
-    istart=1
-    do iorb=1,lin%orbs%norb
-        if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphiold(istart), 1)
-        fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphi(istart), 1)
-        istart=istart+nvctrp*orbs%nspinor
-    end do
-    call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-    call mpi_allreduce(fnrmOvrlpArr(1,2), fnrmOvrlpArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-
-    ! Keep the gradient for the next iteration.
-    if(it>1) then
-        call dcopy(lin%orbs%norb, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
-    end if
-
-    ! Determine the gradient norm and its maximal component. In addition, adapt the
-    !  step size for the steepest descent minimization (depending on the angle 
-    ! between the current gradient and the one from the previous iteration).
-    ! This is of course only necessary if we are using steepest descent and not DIIS.
-    do iorb=1,lin%orbs%norb
-        fnrm=fnrm+fnrmArr(iorb,1)
-        if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
-        if(it>1 .and. diisLIN%idsx==0 .and. .not.diisLIN%switchSD) then
-        ! Adapt step size for the steepest descent minimization.
-            tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
-            if(tt>.7d0) then
-                alpha(iorb)=alpha(iorb)*1.05d0
-            else
-                alpha(iorb)=alpha(iorb)*.5d0
-            end if
-        end if
-    end do
-    fnrm=sqrt(fnrm)
-    fnrmMax=sqrt(fnrmMax)
-    ! Copy the gradient (will be used in the next iteration to adapt the step size).
-    call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
-
-    ! Untranspose hphi.
-    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWorkPointer)
-
-
-    ! Precondition the gradient
-    if(iproc==0) then
-        write(*,'(a)') 'preconditioning. '
-    end if
-    ncong=10
-    gnrm=1.d3 ; gnrm_zero=1.d3
-    call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
-        ncong, hphi, at%nat, rxyz, at, it)
-
-    tt=gnrm
-    call mpi_allreduce(tt, gnrm, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-    gnrm=sqrt(gnrm)
-    tt=gnrmMax
-    call mpi_allreduce(tt, gnrmMax, 1, mpi_double_precision, mpi_max, mpi_comm_world, ierr)
-    gnrmMax=sqrt(gnrmMax)
-
-
-    tt=sum(alpha)
-    meanAlpha=tt/dble(lin%orbs%norb)
-
-
-
-    if(iproc==0) write(*,'(x,a,i6,2es15.7,f14.7)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
-    if(iproc==0) write(1000,'(i6,2es15.7,f15.7,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
-    if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
-        if(it>=lin%nItMax) then
-            if(iproc==0) write(*,'(a,i0,a)') 'WARNING: not converged within ', it, &
-                ' iterations! Exiting loop due to limitations of iterations.'
-            if(iproc==0) write(*,'(a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-            infoBasisFunctions=1
-        else
-            if(iproc==0) then
-                write(*,'(a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
-                write (*,'(a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
-            end if
-            infoBasisFunctions=0
-        end if
-        if(iproc==0) write(*,'(a)') '============================== basis functions created =============================='
-        call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWorkPointer)
-        !call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-        !    .5d0*input%hy, .5d0*input%hz, 1)
-        exit iterLoop
-    end if
-
-
-    call DIISorSD()
-    if(iproc==0) then
-        if(diisLIN%idsx>0) then
-            write(*,'(x,3(a,i0))') 'DIIS informations: history length=',diisLIN%idsx, ', consecutive failures=', &
-                icountDIISFailureCons, ', total failures=', icountDIISFailureTot
-        else
-            write(*,'(x,a,es9.3,a,i0)') 'steepest descent informations: mean alpha=', meanAlpha, &
-            ', consecutive successes=', icountSDSatur
-        end if
-    end if
-    if(.not. diisLIN%switchSD) call improve()
-
- 
-
-end do iterLoop
-
-
-
-
-
-
-
+  call deallocateLocalArrays()
 
 contains
 
@@ -681,6 +673,7 @@ contains
     diisLIN%energy=1.d10
     diisLIN%alpha=2.d0
     call allocate_diis_objects(diisLIN%idsx, lin%orbs%npsidim, 1, diisLIN, subname) ! 1 for k-points
+
     end subroutine initializeDIISParameters
 
 
@@ -771,25 +764,25 @@ contains
     !   This subroutine allocates all local arrays.
     !
 
-    allocate(hphiold(lin%orbs%npsidim), stat=istat)
-    call memocc(istat, lin%orbs%npsidim, 'hphiold', subname)
+      allocate(hphiold(lin%orbs%npsidim), stat=istat)
+      call memocc(istat, hphiold, 'hphiold', subname)
 
-    allocate(alpha(lin%orbs%norb), stat=istat)
-    call memocc(istat, lin%orbs%norbp, 'alpha', subname)
+      allocate(alpha(lin%orbs%norb), stat=istat)
+      call memocc(istat, alpha, 'alpha', subname)
 
-    allocate(fnrmArr(lin%orbs%norb,2), stat=istat)
-    call memocc(istat, lin%orbs%norb*2, 'fnrmArr', subname)
+      allocate(fnrmArr(lin%orbs%norb,2), stat=istat)
+      call memocc(istat, fnrmArr, 'fnrmArr', subname)
 
-    allocate(fnrmOldArr(lin%orbs%norb), stat=istat)
-    call memocc(istat, lin%orbs%norb, 'fnrmOldArr', subname)
+      allocate(fnrmOldArr(lin%orbs%norb), stat=istat)
+      call memocc(istat, fnrmOldArr, 'fnrmOldArr', subname)
 
-    allocate(fnrmOvrlpArr(lin%orbs%norb,2), stat=istat)
-    call memocc(istat, lin%orbs%norb*2, 'fnrmOvrlpArr', subname)
+      allocate(fnrmOvrlpArr(lin%orbs%norb,2), stat=istat)
+      call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
 
-    allocate(phiWorkPointer(size(phi)), stat=istat)
-    call memocc(istat, size(phi), 'phiWorkPointer', subname)
-    
-    allocate(diag(lin%orbs%norb), stat=istat)
+      allocate(phiWorkPointer(size(phi)), stat=istat)
+      call memocc(istat, phiWorkPointer, 'phiWorkPointer', subname)
+      
+      allocate(diag(lin%orbs%norb), stat=istat)
     
 
     end subroutine allocateLocalArrays
@@ -802,20 +795,32 @@ contains
     !   This subroutine deallocates all local arrays.
     !
 
-    iall=-product(shape(hphiold))*kind(hphiold)
-    deallocate(hphiold, stat=istat)
-    call memocc(istat, iall, 'hphiold', subname)
-    
-    iall=-product(shape(alpha))*kind(alpha)
-    deallocate(alpha, stat=istat)
-    call memocc(istat, iall, 'alpha', subname)
+      iall=-product(shape(hphiold))*kind(hphiold)
+      deallocate(hphiold, stat=istat)
+      call memocc(istat, iall, 'hphiold', subname)
+      
+      iall=-product(shape(alpha))*kind(alpha)
+      deallocate(alpha, stat=istat)
+      call memocc(istat, iall, 'alpha', subname)
 
-    iall=-product(shape(phiWorkPointer))*kind(phiWorkPointer)
-    deallocate(phiWorkPointer, stat=istat)
-    call memocc(istat, iall, 'phiWorkPointer', subname)
-    
-    ! if diisLIN%idsx==0, these arrays have already been deallocated
-    if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN,subname)
+      iall=-product(shape(fnrmArr))*kind(fnrmArr)
+      deallocate(fnrmArr, stat=istat)
+      call memocc(istat, iall, 'fnrmArr', subname)
+
+      iall=-product(shape(fnrmOldArr))*kind(fnrmOldArr)
+      deallocate(fnrmOldArr, stat=istat)
+      call memocc(istat, iall, 'fnrmOldArr', subname)
+
+      iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
+      deallocate(fnrmOvrlpArr, stat=istat)
+      call memocc(istat, iall, 'fnrmOvrlpArr', subname)
+
+      iall=-product(shape(phiWorkPointer))*kind(phiWorkPointer)
+      deallocate(phiWorkPointer, stat=istat)
+      call memocc(istat, iall, 'phiWorkPointer', subname)
+      
+      ! if diisLIN%idsx==0, these arrays have already been deallocated
+      if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN,subname)
 
     end subroutine deallocateLocalArrays
 
@@ -867,33 +872,33 @@ character(len=*),parameter:: subname='transformHam'
 
 
 
-! Allocate a temporary array if there are several MPI processes
-if(nproc>1) then
-    allocate(HamTemp(orbs%norb,orbs%norb), stat=istat)
-    call memocc(istat, orbs%norb*orbs%norb, 'HamTemp', subname)
-end if
-
-! nvctrp is the amount of each phi hold by the current process
-nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-
-! Build the Hamiltonian. In the parallel case, each process writes its Hamiltonian in HamTemp
-! and a mpi_allreduce sums up the contribution from all processes.
-if(nproc==1) then
-    call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
-               hphi(1,1), nvctrp, 0.d0, HamSmall(1,1), orbs%norb)
-else
-    call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
-               hphi(1,1), nvctrp, 0.d0, HamTemp(1,1), orbs%norb)
-end if
-if(nproc>1) then
-    call mpi_allreduce(HamTemp(1,1), HamSmall(1,1), orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-end if
-
-if(nproc>1) then
-   iall=-product(shape(HamTemp))*kind(HamTemp)
-   deallocate(HamTemp,stat=istat)
-   call memocc(istat, iall, 'HamTemp', subname)
-end if
+  ! Allocate a temporary array if there are several MPI processes
+  if(nproc>1) then
+      allocate(HamTemp(orbs%norb,orbs%norb), stat=istat)
+      call memocc(istat, HamTemp, 'HamTemp', subname)
+  end if
+  
+  ! nvctrp is the amount of each phi hold by the current process
+  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+  
+  ! Build the Hamiltonian. In the parallel case, each process writes its Hamiltonian in HamTemp
+  ! and a mpi_allreduce sums up the contribution from all processes.
+  if(nproc==1) then
+      call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
+                 hphi(1,1), nvctrp, 0.d0, HamSmall(1,1), orbs%norb)
+  else
+      call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi(1,1), nvctrp, &
+                 hphi(1,1), nvctrp, 0.d0, HamTemp(1,1), orbs%norb)
+  end if
+  if(nproc>1) then
+      call mpi_allreduce(HamTemp(1,1), HamSmall(1,1), orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+  end if
+  
+  if(nproc>1) then
+     iall=-product(shape(HamTemp))*kind(HamTemp)
+     deallocate(HamTemp,stat=istat)
+     call memocc(istat, iall, 'HamTemp', subname)
+  end if
 
 end subroutine transformHam
 
@@ -935,26 +940,24 @@ real(8),dimension(orbs%norb):: eval
 integer:: lwork, info, istat, i, iorb, jorb
 real(8),dimension(:),allocatable:: work
 
-
-! Diagonalize the Hamiltonian 
-lwork=-1 
-allocate(work(1), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
-call dsyev('v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-lwork=work(1) 
-deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
-allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
-call dsyev('v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-
-! Make sure that the eigenvectors are the same for all MPI processes. To do so, require that 
-! the first entry of each vector is positive.
-do iorb=1,orbs%norb
-    if(HamSmall(1,iorb)<0.d0) then
-        do jorb=1,orbs%norb
-            HamSmall(jorb,iorb)=-HamSmall(jorb,iorb)
-        end do
-    end if
-end do
-
+  ! Diagonalize the Hamiltonian 
+  lwork=-1 
+  allocate(work(1), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+  call dsyev('v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+  lwork=work(1) 
+  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+  call dsyev('v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+  
+  ! Make sure that the eigenvectors are the same for all MPI processes. To do so, require that 
+  ! the first entry of each vector is positive.
+  do iorb=1,orbs%norb
+      if(HamSmall(1,iorb)<0.d0) then
+          do jorb=1,orbs%norb
+              HamSmall(jorb,iorb)=-HamSmall(jorb,iorb)
+          end do
+      end if
+  end do
 
 
 end subroutine diagonalizeHamiltonian
@@ -1005,11 +1008,10 @@ real(8),dimension(orbsLIN%norb,orbsLIN%norb):: HamSmall
 integer:: nvctrp
 
 
-nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, HamSmall(1,1), &
-           orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
-
-
+  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+  call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, HamSmall(1,1), &
+             orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
+  
 
 end subroutine buildWavefunction
 
@@ -1039,21 +1041,24 @@ integer:: istat, iall
 character(len=*),parameter:: subname='deallocateLinear'
 
 
+  iall=-product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
+  deallocate(lin%potentialPrefac, stat=istat)
+  call memocc(istat, iall, 'lin%potentialPrefac', subname)
+  
+  iall=-product(shape(lin%onWhichAtom))*kind(lin%onWhichAtom)
+  deallocate(lin%onWhichAtom, stat=istat)
+  call memocc(istat, iall, 'lin%onWhichAtom', subname)
+  
+  call deallocate_orbs(lin%orbs,subname)
 
+  call deallocate_comms(lin%comms,subname)
+  
+  iall=-product(shape(phi))*kind(phi)
+  deallocate(phi, stat=istat)
+  call memocc(istat, iall, 'phi', subname)
 
-iall=-product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-deallocate(lin%potentialPrefac, stat=istat)
-call memocc(istat, iall, 'lin%potentialPrefac', subname)
-
-iall=-product(shape(lin%onWhichAtom))*kind(lin%onWhichAtom)
-deallocate(lin%onWhichAtom, stat=istat)
-call memocc(istat, iall, 'lin%onWhichAtom', subname)
-
-call deallocate_orbs(lin%orbs,subname)
-
-iall=-product(shape(phi))*kind(phi)
-deallocate(phi, stat=istat)
-call memocc(istat, iall, 'phi', subname)
-
+  iall=-product(shape(lin%orbs%eval))*kind(lin%orbs%eval)
+  deallocate(lin%orbs%eval, stat=istat)
+  call memocc(istat, iall, 'lin%orbs%eval', subname)
 
 end subroutine deallocateLinear

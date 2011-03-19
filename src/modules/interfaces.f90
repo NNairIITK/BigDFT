@@ -397,7 +397,7 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psirocc
      END SUBROUTINE HamiltonianApplication
 
-     subroutine HamiltonianApplicationParabola(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
+     subroutine HamiltonianApplicationConfinement(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel,orbsocc,psirocc)
        use module_base
@@ -422,7 +422,7 @@ module module_interfaces
        real(dp), dimension(*), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
-     END SUBROUTINE HamiltonianApplicationParabola
+     END SUBROUTINE HamiltonianApplicationConfinement
 
      subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           ncong,iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,nspin,GPU,input)

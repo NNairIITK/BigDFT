@@ -1,4 +1,4 @@
-subroutine HamiltonianApplicationParabola(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
+subroutine HamiltonianApplicationConfinement(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola,&
      pkernel,orbsocc,psirocc) ! optional
@@ -42,41 +42,44 @@ subroutine HamiltonianApplicationParabola(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,
 !     eexctX          ?
 !     eproj_sum       ?
 !
-  use module_base
-  use module_types
-  use libxc_functionals
-  implicit none
-  integer, intent(in) :: iproc,nproc,ndimpot,nspin
-  real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs
-  type(linearParameters):: lin
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(locreg_descriptors), intent(in) :: lr 
-  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
-  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
-  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
-  type(GPU_pointers), intent(inout) :: GPU
+use module_base
+use module_types
+use libxc_functionals
+implicit none
+
+! Calling arguments
+integer, intent(in) :: iproc,nproc,ndimpot,nspin
+real(gp), intent(in) :: hx,hy,hz
+type(atoms_data), intent(in) :: at
+type(orbitals_data), intent(in) :: orbs
+type(linearParameters):: lin
+type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+type(locreg_descriptors), intent(in) :: lr 
+integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+real(gp), dimension(3,at%nat), intent(in) :: rxyz
+real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
+real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+type(GPU_pointers), intent(inout) :: GPU
 real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
-  real(dp), dimension(*), optional :: pkernel
-  type(orbitals_data), intent(in), optional :: orbsocc
-  real(wp), dimension(:), pointer, optional :: psirocc
-  !local variables
-  character(len=*), parameter :: subname='HamiltonianApplication'
-  logical :: exctX,op2p
-  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
-  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
+real(dp), dimension(*), optional :: pkernel
+type(orbitals_data), intent(in), optional :: orbsocc
+real(wp), dimension(:), pointer, optional :: psirocc
+
+! Local variables
+character(len=*),parameter:: subname='HamiltonianApplicationConfinement'
+logical:: exctX,op2p
+integer:: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
+integer:: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
-  real(gp), dimension(3,2) :: wrkallred
-  real(wp), dimension(:), pointer :: pot
+real(gp),dimension(3,2) :: wrkallred
+real(wp),dimension(:), pointer :: pot
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-  integer,parameter::lupfil=14
+integer,parameter::lupfil=14
 
 
   !stream ptr array
@@ -273,7 +276,7 @@ real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
   !exact exchange operator (twice the exact exchange energy)
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
-END SUBROUTINE HamiltonianApplicationParabola
+END SUBROUTINE HamiltonianApplicationConfinement
 !!***
 
 

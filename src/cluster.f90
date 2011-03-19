@@ -564,7 +564,11 @@ type(linearParameters):: lin
   end if
 
   !all the input formats need to allocate psi except the LCAO input_guess
-  if (inputpsi /= 0) then
+  ! WARNING: at the momemt the linear scaling version allocates psi in the same
+  ! way as the LCAO input guess, so it is not necessary to allocate it here.
+  ! Maybe to bve changed later.
+  !if (inputpsi /= 0) then
+  if (inputpsi /= 0 .and. inputpsi/=100) then
      allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
   end if
@@ -693,14 +697,14 @@ type(linearParameters):: lin
      ! Do also the normal cubic case at the moment to avoid changes in the code (allocating etc.)
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     do iat=1,atoms%nat
-         ishell=0
-         do
-             ishell=ishell+1
-             if(atoms%aocc(ishell,iat)==0.d0) exit
-             if(iproc==0) write(*,'(a,2i5,es12.5)') 'iat, ishell, atoms%aocc(ishell,iat)', iat, ishell, atoms%aocc(ishell,iat)
-         end do
-     end do
+     !do iat=1,atoms%nat
+     !    ishell=0
+     !    do
+     !        ishell=ishell+1
+     !        if(atoms%aocc(ishell,iat)==0.d0) exit
+     !        if(iproc==0) write(*,'(a,2i5,es12.5)') 'iat, ishell, atoms%aocc(ishell,iat)', iat, ishell, atoms%aocc(ishell,iat)
+     !    end do
+     !end do
      call input_wf_diag(iproc,nproc, atoms,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
@@ -800,7 +804,11 @@ type(linearParameters):: lin
   end select
 
   !all the input format need first_orthon except the LCAO input_guess
-  if (inputpsi /= 0 .and. inputpsi /=-1000) then
+  ! WARNING: at the momemt the linear scaling version does not need first_orthon.
+  ! hpsi and psit have been allocated during the LCAO input guess.
+  ! Maybe to be changed later.
+  !if (inputpsi /= 0 .and. inputpsi /=-1000) then
+  if (inputpsi /= 0 .and. inputpsi/=100 .and. inputpsi /=-1000) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
   end if
