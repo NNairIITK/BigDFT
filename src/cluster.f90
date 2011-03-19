@@ -210,7 +210,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   integer :: nelec,ndegree_ip,j,i,iorb,npoints
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,jkpt,ispin
+  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,ispin
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
@@ -717,7 +717,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call readmywaves(iproc,"wavefunction", &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
-     if (in%itrpmax > 1) then
+     if (in%itrpmax /= 1) then
         !recalculate orbitals occupation numbers
         call evaltoocc(iproc,nproc,.false.,in%Tel,orbs)
      end if
@@ -851,6 +851,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !if we are in the last_run case, validate the last_run only for the last cycle
   DoLastRunThings=(in%last_run == 1 .and. in%nrepmax == 0) !do the last_run things regardless of infocode
 
+  infocode=0
   rhopot_loop: do itrp=1,in%itrpmax
      !set the infocode to the value it would have in the case of no convergence
      infocode=1
@@ -936,7 +937,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
 
            end if
-
+           
            !temporary, to be corrected with comms structure
            if (in%exctxpar == 'OP2P') eexctX = -99.0_gp
 
@@ -1539,7 +1540,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      if (associated(in%kptv)) then
         !dump the band structure eigenvalue on a file and deallocate it
-        
+        if (iproc == 0) then
+           open(unit=11,file='band_structure.dat',status='unknown')
+           do ikpt=1,in%nkptv
+              write(11,'(i5,3(f12.6),10000(1pe12.4))')ikpt,(in%kptv(i,ikpt),i=1,3),(band_structure_eval(i,ikpt),i=1,orbsv%norb)
+           end do
+           !tentative gnuplot string for the band structure file
+           print '(a,9999(a,i6,a))',"plot 'band_structure.dat' u 1:5 w l t ''",(",'' u 1:",5+i-1," w l t ''" ,i=2,orbsv%norb)
+           close(unit=11)
+        end if
         i_all=-product(shape(band_structure_eval))*kind(band_structure_eval)
         deallocate(band_structure_eval,stat=i_stat)
         call memocc(i_stat,i_all,'band_structure_eval',subname)
@@ -1557,9 +1566,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         orbsv%norbp=0
      end if
      call local_analysis(iproc,nproc,hx,hy,hz,in,atoms,rxyz,shift,Glr,orbs,orbsv,psi,psivirt)
-  else if (DoLastRunThings .and. verbose > 2) then
+  else if (DoLastRunThings .and. in%itrpmax /= 1 .and. verbose > 2) then
      ! Do a full DOS calculation.
-     call global_analysis(iproc, nproc, orbs)
+     if (iproc == 0) call global_analysis(iproc, nproc, orbs, in%Tel)
   end if
 
   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -1682,13 +1691,6 @@ contains
        i_all=-product(shape(hpsi))*kind(hpsi)
        deallocate(hpsi,stat=i_stat)
        call memocc(i_stat,i_all,'hpsi',subname)
-
-       !free GPU if it is the case
-       if (GPUconv .and. .not.(DoDavidson)) then
-          call free_gpu(GPU,orbs%norbp)
-       else if (OCLconv .and. .not.(DoDavidson)) then
-          call free_gpu_OCL(GPU,orbs,in%nspin)
-       end if
 
        i_all=-product(shape(pot_ion))*kind(pot_ion)
        deallocate(pot_ion,stat=i_stat)

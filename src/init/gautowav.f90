@@ -785,7 +785,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
   real(wp) :: re_cmplx_prod,im_cmplx_prod
-!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+  !!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
   !the filling of the wavefunction should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
@@ -815,7 +815,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      end do
 
      if (nvctr /=  lr%wfd%nvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
      !!$  end if
@@ -847,7 +847,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /= lr%wfd%nvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
      !!$  end if
@@ -872,7 +872,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /=  lr%wfd%nvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
      !!$  end if
@@ -904,7 +904,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /= lr%wfd%nvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
      !!$  end if

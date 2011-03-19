@@ -131,9 +131,9 @@
  ---------------------------------------------------- Reading Wavefunctions from disk
  Reading wavefunctions in ETSF file format.
  wavefunctions need reformatting
- because hgrid_old >< hgrid  0.35432364843629810       0.35432364843629810       0.35432364843629810       0.28345891874903845       0.28345891874903845       0.28345891874903845     
- because nvctr_c_old >< nvctr_c       13824       27000
- because nvctr_f_old >< nvctr_f         856        1656
+ because hgrid_old /= hgrid  0.35432364843629810       0.35432364843629810       0.35432364843629810       0.28345891874903845       0.28345891874903845       0.28345891874903845     
+ because nvctr_c_old /= nvctr_c       13824       27000
+ because nvctr_f_old /= nvctr_f         856        1656
  because cell size has changed          23          29          23          29          23          29
 - READING WAVES TIME   2  0.393E+01  0.392E+01
 - READING WAVES TIME   0  0.393E+01  0.408E+01

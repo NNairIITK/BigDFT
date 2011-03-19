@@ -21,7 +21,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
-  !local variables
+  !Local variables
   logical :: cmplxprojs
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
   integer :: ikpt,nkptsproj,ikptp
@@ -229,7 +229,7 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
-  !local variables
+  !Local variables
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
 
@@ -289,7 +289,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   integer, intent(inout) :: istart_c,iproj,nwarnings
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
-  !local variables
+  !Local variables
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,ncplx
   real(gp) :: kx,ky,kz
 
@@ -377,7 +377,7 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
   real(gp), dimension(3), intent(in) :: rxyz
   integer, intent(inout) :: nwarnings
   real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx), intent(out) :: proj
-  !local variables
+  !Local variables
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: m,iterm
   !integer :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
@@ -466,7 +466,7 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   integer, dimension(ntypes), intent(in) :: npspcode
   real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   integer, intent(out) :: mproj
-  !local variables
+  !Local variables
   integer :: l,i
 
   mproj=0
@@ -487,9 +487,9 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
 END SUBROUTINE numb_proj
 
 
-!>   Returns the compressed form of a Gaussian projector 
-!!   x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
-!!   in the arrays proj_c, proj_f
+!>  Returns the compressed form of a Gaussian projector 
+!!  @f$ x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 )) @f$
+!!  in the arrays proj_c, proj_f
 subroutine crtproj(geocode,nterm,n1,n2,n3, & 
      hx,hy,hz,kx,ky,kz,ncplx,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj)
@@ -503,7 +503,7 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
   integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
   real(wp), dimension((mvctr_c+7*mvctr_f)*ncplx), intent(out) :: proj
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='crtproj'
   integer, parameter :: nw=65536
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
@@ -555,10 +555,10 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
      !$omp shared(nterm,mvctr_f,mseg_f)
-     !$	ithread=omp_get_thread_num()
-     !$	nthread=omp_get_num_threads()
+     !$  ithread=omp_get_thread_num()
+     !$  nthread=omp_get_num_threads()
 
-     !$  if(ithread .eq. 0) then 
+     !$  if(ithread .eq. 0) then
      mvctr=0
      ! coarse part
      do iseg=1,mseg_c
@@ -580,7 +580,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /=  mvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_c ',mvctr,mvctr_c
+        !$  write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
      !$  end if
@@ -613,7 +614,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      enddo
 
      if (mvctr /= mvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 1): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if
      !$  end if
@@ -695,13 +697,13 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
      end if
      !$omp end parallel
 
-  else if (ncplx ==2) then
+  else if (ncplx == 2) then
 
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
      !$omp shared(nterm,mvctr_f,mseg_f)
-     !$	ithread=omp_get_thread_num()
-     !$	nthread=omp_get_num_threads()
+     !$  ithread=omp_get_thread_num()
+     !$  nthread=omp_get_num_threads()
 
      !part with real and imaginary part
      !modify the openMP statements such as to benefit from parallelisation
@@ -726,9 +728,9 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
                 re_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
         enddo
      enddo
-
      if (mvctr /=  mvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_c ',mvctr,mvctr_c
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
      !$  end if
@@ -759,9 +761,9 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
            proj(ind_f+7)=re_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,2,1))
         enddo
      enddo
-
      if (mvctr /= mvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 2): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if
      !$  end if
@@ -850,12 +852,13 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
                 im_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
         enddo
      enddo
-     !$  end if
-
      if (mvctr /=  mvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_c ',mvctr,mvctr_c
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_c ',mvctr,mvctr_c
         stop
      end if
+     !$  end if
+
 
      !$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
      ! First term: fine projector components
@@ -884,7 +887,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
         enddo
      enddo
      if (mvctr /= mvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
+        !$ write(*,'(1x,a,i0,1x,i0)')' ithread,nthread: ',ithread,nthread
+        write(*,'(1x,a,i0,1x,i0)')' ERROR (crtproj 3): mvctr /= mvctr_f ',mvctr,mvctr_f
         stop 
      end if
      !$  end if
@@ -912,10 +916,9 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
               end do
            end do
         end do
-
         !$  end if
 
-        !$  if((ithread .eq. 1 .and. nthread <=3) .or. nthread .eq. 1 .or. ithread == 3) then
+        !$  if((ithread == 1 .and. nthread <=3) .or. nthread == 1 .or. ithread == 3) then
         ! Other terms: fine projector components
         do iseg=mseg_c+1,mseg_c+mseg_f
            jj=keyv_p(iseg)
@@ -947,8 +950,8 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
               end do
            end do
         end do
-
         !$  end if
+
      end if
 
      !$omp end parallel
@@ -1012,7 +1015,7 @@ subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,
   real(gp), intent(in) :: hx,hy,hz,rmult,radius
   real(gp), dimension(3), intent(in) :: rxyz
   integer, intent(out) :: nl1,nu1,nl2,nu2,nl3,nu3
-  !local variables
+  !Local variables
   real(kind=8), parameter :: eps_mach=1.d-12
   real(kind=8) :: onem
   real(gp) :: cxmax,cymax,czmax,cxmin,cymin,czmin,rad

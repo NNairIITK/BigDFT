@@ -44,7 +44,6 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='allocate_data_OCL'
-  integer :: i_stat,iorb
   integer :: n1b, n2b, n3b
   integer, dimension(3) :: periodic
 
@@ -150,8 +149,6 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='free_gpu_OCL'
-  integer :: i_stat,iorb,norbp,i_all
-  
 
   call ocl_release_mem_object(GPU%d)
   call ocl_release_mem_object(GPU%work1)
@@ -320,12 +317,10 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
   real(gp), dimension(2,orbs%norbp), intent(out) :: epot
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_OCL'
-  integer :: i_stat,iorb,isf,i
+  integer :: iorb,isf
   real(gp), dimension(3) :: hgrids
   integer, dimension(3) :: periodic
   !stream ptr array
-  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
-  real(kind=8) :: stream_ptr_first_trsf
   real(kind=8) :: rhopot
   integer :: n1, n2, n3
 
@@ -473,7 +468,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='preconditionall_OCL'
-  integer ::  ierr,iorb,jorb,i_stat,ncplx,i_all,inds,isf,ikpt
+  integer ::  iorb,jorb,i_stat,ncplx,i_all,inds,isf,ikpt
   real(wp) :: scpr
   real(gp) :: cprecr,eval_zero,evalmax
   type(GPU_pointers), intent(inout) :: GPU
@@ -482,7 +477,6 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   real(wp), dimension(:,:), allocatable :: b
   real(gp), dimension(0:7) :: scal
   !stream ptr array
-  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
 
   !the eval array contains all the values
   !take the max for all k-points
@@ -637,8 +631,7 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
   real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,nspin), intent(inout) :: rho_p
   type(GPU_pointers), intent(inout) :: GPU
   
-  integer:: iorb,iorb_r,i_stat,isf,iaddjmp
-  real(kind=8) :: stream_ptr
+  integer:: iorb,iorb_r,isf
   real(gp) :: hfac
   integer, dimension(3) :: periodic
   real(kind=8) :: rhopot
