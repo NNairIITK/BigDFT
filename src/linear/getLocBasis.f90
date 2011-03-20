@@ -571,7 +571,7 @@ type(diis_objects):: diisLIN
       if(iproc==0) then
           write(*,'(a)') 'preconditioning. '
       end if
-      ncong=10
+      ncong=8
       gnrm=1.d3 ; gnrm_zero=1.d3
       call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
           ncong, hphi, at%nat, rxyz, at, it)

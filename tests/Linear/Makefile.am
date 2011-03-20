@@ -2,7 +2,7 @@
 
 SUBDIRS = 
 
-EXTRA_DIST = input.dft  Linear.out.ref  orbitalsValues  posinp.xyz  psppar.C  psppar.H
+EXTRA_DIST = input.dft  input.lin  Linear.out.ref  posinp.xyz  psppar.C  psppar.H
 
 CLEANFILES = Linear.out fort* *.prc fldiff.report $(EXTRA_CLEAN) 
 

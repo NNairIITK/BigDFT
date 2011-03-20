@@ -1127,7 +1127,10 @@ type(linearParameters):: lin
 
         ! Here we try to reproduce the above result with the linear scaling version, i.e. we take the selfconsistent potential
         ! for all calculations.
-        ! ATTENTION: this will overwrite some results of the cubic run made so far, in particular psi and psit.
+        ! ATTENTION: This will overwrite some results of the cubic run made so far, in particular psi and psit.
+        !            In addition we calculate the forces for the linear scaling version. This will somehow overwrite
+        !            some values taht are needed for the usual forces calculation later on, so these forces are 
+        !            completely garbage.
         linearIf: if(inputpsi==100) then
             if(iproc==0) then
                 write(*,'(x,a)') repeat('*',84)
