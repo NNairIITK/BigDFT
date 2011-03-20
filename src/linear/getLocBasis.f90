@@ -350,34 +350,34 @@ integer,dimension(nat):: norbsPerAt
 integer:: jproc, iiOrb, iorb, jorb, jat
 
 
-! There are four counters:
-!   jproc: indicates which MPI process is handling the basis function which is being treated
-!   jat: counts the atom numbers
-!   jorb: counts the orbitals handled by a given process
-!   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
-jproc=0
-jat=1
-jorb=0
-iiOrb=0
-
-do iorb=1,lin%orbs%norb
-
-    ! Switch to the next MPI process if the numbers of orbitals for a given
-    ! MPI process is reached.
-    if(jorb==lin%orbs%norb_par(jproc)) then
-        jproc=jproc+1
-        jorb=0
-    end if
-    
-    ! Switch to the next atom if the number of basis functions for this atom is reached.
-    if(iiOrb==norbsPerAt(jat)) then
-        jat=jat+1
-        iiOrb=0
-    end if
-    jorb=jorb+1
-    iiOrb=iiOrb+1
-    if(iproc==jproc) lin%onWhichAtom(jorb)=jat
-end do    
+  ! There are four counters:
+  !   jproc: indicates which MPI process is handling the basis function which is being treated
+  !   jat: counts the atom numbers
+  !   jorb: counts the orbitals handled by a given process
+  !   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
+  jproc=0
+  jat=1
+  jorb=0
+  iiOrb=0
+  
+  do iorb=1,lin%orbs%norb
+  
+      ! Switch to the next MPI process if the numbers of orbitals for a given
+      ! MPI process is reached.
+      if(jorb==lin%orbs%norb_par(jproc)) then
+          jproc=jproc+1
+          jorb=0
+      end if
+      
+      ! Switch to the next atom if the number of basis functions for this atom is reached.
+      if(iiOrb==norbsPerAt(jat)) then
+          jat=jat+1
+          iiOrb=0
+      end if
+      jorb=jorb+1
+      iiOrb=iiOrb+1
+      if(iproc==jproc) lin%onWhichAtom(jorb)=jat
+  end do    
 
 end subroutine assignOrbitalsToAtoms
 
@@ -637,73 +637,97 @@ contains
     ! Calling arguments
     integer:: idsxHere
 
-    diisLIN%switchSD=.false.
-    diisLIN%idiistol=0
-    diisLIN%mids=1
-    diisLIN%ids=0
-    diisLIN%idsx=idsxHere
-    diisLIN%energy_min=1.d10
-    diisLIN%energy_old=1.d10
-    diisLIN%energy=1.d10
-    diisLIN%alpha=2.d0
-    call allocate_diis_objects(diisLIN%idsx, lin%orbs%npsidim, 1, diisLIN, subname) ! 1 for k-points
+      diisLIN%switchSD=.false.
+      diisLIN%idiistol=0
+      diisLIN%mids=1
+      diisLIN%ids=0
+      diisLIN%idsx=idsxHere
+      diisLIN%energy_min=1.d10
+      diisLIN%energy_old=1.d10
+      diisLIN%energy=1.d10
+      diisLIN%alpha=2.d0
+      call allocate_diis_objects(diisLIN%idsx, lin%orbs%npsidim, 1, diisLIN, subname) ! 1 for k-points
 
     end subroutine initializeDIISParameters
 
 
     subroutine DIISorSD()
-    if(diisLIN%switchSD) diisLIN%switchSD=.false.
-    ! Determine wheter to use DIIS or SD
-    if(trH<=diisLIN%energy_min) then
-        ! everything ok
-        diisLIN%energy_min=trH
-        diisLIN%switchSD=.false.
-        itBest=it
-        icountSDSatur=icountSDSatur+1
-        icountDIISFailureCons=0
-        if(icountSDSatur>=10 .and. diisLIN%idsx==0) then
-            ! switch back to DIIS 
-            icountSwitch=icountSwitch+1
-            idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
-            if(iproc==0) write(*,'(a,i0)') 'switch to DIIS with new history length ', idsx
-            call initializeDIISParameters(idsx)
-            icountDIISFailureTot=0
-            icountDIISFailureCons=0
-        end if
-    else
-        ! the trace is growing.
-        ! Count how many times this occurs and switch to SD after 3 times.
-        icountDIISFailureCons=icountDIISFailureCons+1
-        icountDIISFailureTot=icountDIISFailureTot+1
-        icountSDSatur=0
-        if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3) .and. diisLIN%idsx>0) then
-            alpha=1.d0
-            if(iproc==0) then
-                if(icountDIISFailureCons>=2) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
-                    icountDIISFailureCons, ' times consecutievly. Switch to SD with stepsize', alpha(1)
-                if(icountDIISFailureTot>=3) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
-                    icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
-            end if
-            ! Try to get back the orbitals of the best iteration. This is possible if
-            ! these orbitals are still present in the DIIS history.
-            if(it-itBest<diisLIN%idsx) then
-               if(iproc==0) then
-                   if(iproc==0) write(*,'(x,a,i0,a)')  'Recover the orbitals from iteration ', &
-                       itBest, ' which are the best so far.'
-               end if
-               ii=modulo(diisLIN%mids-(it-itBest),diisLIN%mids)
-               nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
-               call dcopy(lin%orbs%norb*nvctrp, diisLIN%psidst(ii*nvctrp*lin%orbs%norb+1), 1, phi(1), 1)
-            end if
-            call deallocate_diis_objects(diisLIN, subname)
-            diisLIN%idsx=0
-            diisLIN%switchSD=.true.
-        end if
-    end if
+    !
+    ! Purpose:
+    ! ========
+    !   This subroutine decides whether one should use DIIS or variable step size
+    !   steepest descent to improve the orbitals. In the beginning we start with DIIS
+    !   with history length lin%DIISHistMax. If DIIS becomes unstable, we switch to
+    !   steepest descent. If the steepest descent iterations are successful, we switch
+    !   back to DIIS, but decrease the DIIS history length by one. However the DIIS
+    !   history length is limited to be larger or equal than lin%DIISHistMin.
+    !
+
+      ! If we swicthed to SD in the previous iteration, reset this flag.
+      if(diisLIN%switchSD) diisLIN%switchSD=.false.
+
+      ! Determine wheter the trace is decreasing (as it should) or increasing.
+      ! This is done by comparing the current value with diisLIN%energy_min, which is
+      ! the minimal value of the trace so far.
+      if(trH<=diisLIN%energy_min) then
+          ! Everything ok
+          diisLIN%energy_min=trH
+          diisLIN%switchSD=.false.
+          itBest=it
+          icountSDSatur=icountSDSatur+1
+          icountDIISFailureCons=0
+
+          ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
+          ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
+          if(icountSDSatur>=10 .and. diisLIN%idsx==0) then
+              icountSwitch=icountSwitch+1
+              idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
+              if(iproc==0) write(*,'(a,i0)') 'switch to DIIS with new history length ', idsx
+              call initializeDIISParameters(idsx)
+              icountDIISFailureTot=0
+              icountDIISFailureCons=0
+          end if
+      else
+          ! The trace is growing.
+          ! Count how many times this occurs and (if we are using DIIS) switch to SD after 3 
+          ! total failures or after 2 consecutive failures.
+          icountDIISFailureCons=icountDIISFailureCons+1
+          icountDIISFailureTot=icountDIISFailureTot+1
+          icountSDSatur=0
+          if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3) .and. diisLIN%idsx>0) then
+              ! Switch back to SD. The initial step size is 1.d0.
+              alpha=1.d0
+              if(iproc==0) then
+                  if(icountDIISFailureCons>=2) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
+                      icountDIISFailureCons, ' times consecutievly. Switch to SD with stepsize', alpha(1)
+                  if(icountDIISFailureTot>=3) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
+                      icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
+              end if
+              ! Try to get back the orbitals of the best iteration. This is possible if
+              ! these orbitals are still present in the DIIS history.
+              if(it-itBest<diisLIN%idsx) then
+                 if(iproc==0) then
+                     if(iproc==0) write(*,'(x,a,i0,a)')  'Recover the orbitals from iteration ', &
+                         itBest, ' which are the best so far.'
+                 end if
+                 ii=modulo(diisLIN%mids-(it-itBest),diisLIN%mids)
+                 nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+                 call dcopy(lin%orbs%norb*nvctrp, diisLIN%psidst(ii*nvctrp*lin%orbs%norb+1), 1, phi(1), 1)
+              end if
+              call deallocate_diis_objects(diisLIN, subname)
+              diisLIN%idsx=0
+              diisLIN%switchSD=.true.
+          end if
+      end if
+
     end subroutine DIISorSD
 
 
     subroutine improveOrbitals()
+    !
+    ! Purpose:
+    ! ========
+    !   This subroutine improves the basis functions by following the gradient 
     ! For DIIS 
     if (diisLIN%idsx > 0) then
        diisLIN%mids=mod(diisLIN%ids,diisLIN%idsx)+1
