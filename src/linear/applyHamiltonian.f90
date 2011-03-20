@@ -1,59 +1,86 @@
-!!****f* BigDFT/HamiltonianApplication
-!! FUNCTION
-!!  Application of the Hamiltonian
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
-subroutine HamiltonianApplicationParabola(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
+subroutine HamiltonianApplicationConfinement(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola,&
      pkernel,orbsocc,psirocc) ! optional
-  use module_base
-  use module_types
-  use libxc_functionals
-  implicit none
-  integer, intent(in) :: iproc,nproc,ndimpot,nspin
-  real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs
-  type(linearParameters):: lin
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(locreg_descriptors), intent(in) :: lr 
-  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
-  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
-  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
-  type(GPU_pointers), intent(inout) :: GPU
+!
+! Purpose:
+! ========
+!   Applies the Hamiltonian including the quartic confinemnt potential to the orbitals
+!   belonging to iproc.
+!
+! Calling arguments:
+! ==================
+!   Input Arguments:
+!   ----------------
+!     iproc           process ID
+!     nproc           total number of processes
+!     at              type containing the paraneters for the atoms
+!     orbs            type describing the physical orbitals psi
+!     lin             type containing parameters for the linear version
+!     hx              grid spacing in x direction
+!     hy              grid spacing in y direction
+!     hz              grid spacing in z direction
+!     rxyz            the atomic positions
+!     nlpsp           ???
+!     proj            ???
+!     lr              type describing the localization region
+!     ngatherarr      ???
+!     ndimpot         the array potential has the dimension max(ndimpot,1)*nspin
+!     potential       the potential
+!     psi             the wave functions
+!     nspin           npsin==1 -> closed shell; npsin==2 -> spin polarized
+!     GPU             parameters for GPUs
+!     rxyzParabola    the center of the confinement potential
+!     pkernel         ???
+!     orbsocc         ???
+!     psirocc         ???
+!   Output arguments
+!   ----------------
+!     hpsi            the Hamiltonian applied to the wave functions
+!     ekin_sum        sum of the kinetic energy
+!     epot_sum        sum of the potential energy
+!     eexctX          ?
+!     eproj_sum       ?
+!
+use module_base
+use module_types
+use libxc_functionals
+implicit none
+
+! Calling arguments
+integer, intent(in) :: iproc,nproc,ndimpot,nspin
+real(gp), intent(in) :: hx,hy,hz
+type(atoms_data), intent(in) :: at
+type(orbitals_data), intent(in) :: orbs
+type(linearParameters):: lin
+type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+type(locreg_descriptors), intent(in) :: lr 
+integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+real(gp), dimension(3,at%nat), intent(in) :: rxyz
+real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
+real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+type(GPU_pointers), intent(inout) :: GPU
 real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
-  real(dp), dimension(*), optional :: pkernel
-  type(orbitals_data), intent(in), optional :: orbsocc
-  real(wp), dimension(:), pointer, optional :: psirocc
-  !local variables
-  character(len=*), parameter :: subname='HamiltonianApplication'
-  logical :: exctX,op2p
-  integer :: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
-  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
+real(dp), dimension(*), optional :: pkernel
+type(orbitals_data), intent(in), optional :: orbsocc
+real(wp), dimension(:), pointer, optional :: psirocc
+
+! Local variables
+character(len=*),parameter:: subname='HamiltonianApplicationConfinement'
+logical:: exctX,op2p
+integer:: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
+integer:: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
-  real(gp), dimension(3,2) :: wrkallred
-  real(wp), dimension(:), pointer :: pot
+real(gp),dimension(3,2) :: wrkallred
+real(wp),dimension(:), pointer :: pot
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-  integer,parameter::lupfil=14
+integer,parameter::lupfil=14
 
-
-!write(*,'(a,2i9)') 'in HamiltonianApplicationParabola, iproc, ndimpot', iproc, ndimpot
-!write(*,*) 'size(potential)', size(potential)
 
   !stream ptr array
 !  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
@@ -161,6 +188,7 @@ real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
      !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
 
+
   !test part to check the results wrt OCL convolutions
 !!$  if (OCLconv) then
 !!$     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
@@ -248,7 +276,7 @@ real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
   !exact exchange operator (twice the exact exchange energy)
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
-END SUBROUTINE HamiltonianApplicationParabola
+END SUBROUTINE HamiltonianApplicationConfinement
 !!***
 
 
@@ -271,33 +299,61 @@ END SUBROUTINE HamiltonianApplicationParabola
 !!
 subroutine local_hamiltonianParabola(iproc,orbs,lin,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at)
+!
+! Purpose:
+! ========
+!   This subroutine calculates the action of the local hamiltonian on the orbitals.
+!   The Hamiltonian includes the quartic confinement potential.
+!
+! Calling Arguments:
+! ==================
+!   Input Arguments:
+!   ----------------
+!     iproc           process ID
+!     orbs            type describing the physical orbitals psi
+!     lin             type containing parameters for the linear version
+!     lr              type describing the localization region
+!     hx              grid spacing in x direction
+!     hy              grid spacing in y direction
+!     hz              grid spacing in z direction
+!     nspin           npsin==1 -> closed shell; npsin==2 -> spin polarized
+!     pot             the potential
+!     nat             number of atoms
+!     psi             the wave functions
+!     rxyz            the atomic positions
+!     at              type containing the paraneters for the atoms
+!   Output arguments
+!   ----------------
+!     hpsi            the Hamiltonian applied to the wave functions
+!     ekin_sum        sum of the kinetic energy
+!     epot_sum        sum of the potential energy
+!
   use module_base
   use module_types
   use module_interfaces
   use libxc_functionals
   implicit none
-  integer, intent(in) :: iproc,nspin
-  real(gp), intent(in) :: hx,hy,hz
-  type(orbitals_data), intent(in) :: orbs
-  type(linearParameters):: lin
-  type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(*) :: pot
+  integer, intent(in):: iproc, nspin, nat
+  real(gp), intent(in):: hx,hy,hz
+  type(orbitals_data),intent(in):: orbs
+  type(linearParameters),intent(in):: lin
+  type(locreg_descriptors),intent(in) :: lr
+  real(wp),dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp),intent(in):: psi
+  real(wp),dimension(*):: pot
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
-  real(gp), intent(out) :: ekin_sum,epot_sum
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
-integer:: nat
-real(8),dimension(3,nat):: rxyz 
-type(atoms_data), intent(in) :: at
+  real(gp),intent(out):: ekin_sum,epot_sum
+  real(wp),dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp),intent(out):: hpsi
+  real(8),dimension(3,nat),intent(in):: rxyz 
+  type(atoms_data),intent(in):: at
   !local variables
-  character(len=*), parameter :: subname='local_hamiltonian'
-  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
-  real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,etest
-  type(workarr_locham) :: wrk_lh
-  real(wp), dimension(:,:), allocatable :: psir
-real(8):: hxh, hyh, hzh
-real(8),dimension(3):: rxyzShifted
+  character(len=*),parameter:: subname='local_hamiltonian'
+  integer:: i_all ,i_stat, iorb, npot, nsoffset, oidx, ispot
+  real(wp):: exctXcoeff
+  real(gp):: ekin,epot,kx,ky,kz,etest
+  type(workarr_locham):: wrk_lh
+  real(wp),dimension(:,:),allocatable:: psir
+  real(8):: hxh, hyh, hzh
+
 
   exctXcoeff=libxc_functionals_exctXfac()
 
@@ -346,24 +402,9 @@ real(8),dimension(3):: rxyzShifted
      select case(lr%geocode)
      case('F')
 
-   ! ATTENTION: WITH SHIFTED PARABOLA
-    rxyzShifted(1)=rxyz(1,lin%onWhichAtom(iorb))!+orbs%parabolaShift(1,iorb)
-    rxyzShifted(2)=rxyz(2,lin%onWhichAtom(iorb))!+orbs%parabolaShift(2,iorb)
-    rxyzShifted(3)=rxyz(3,lin%onWhichAtom(iorb))!+orbs%parabolaShift(3,iorb)
         call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot, rxyzShifted, hxh, hyh, hzh, lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), &
+             pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), &
              lr%bounds%ibyyzz_r) !optional
-   ! THIS WAS THE ORIGINAL
-        !call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-        !     pot(nsoffset),epot, rxyz(1,onWhichAtom(iorb)), hxh, hyh, hzh, orbs%parabPrefacArr(at%iatype(onWhichAtom(iorb))),  &
-        !     lr%bounds%ibyyzz_r) !optional
-
-        !call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-        !     pot(nsoffset),epot, rxyz(1,onWhichAtom(iorb)), hxh, hyh, hzh, orbs%parabPrefac,  &
-        !     lr%bounds%ibyyzz_r) !optional
-        !call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-        !     pot(nsoffset),epot,&
-        !     lr%bounds%ibyyzz_r) !optional
           
      case('P') 
         !here the hybrid BC act the same way
@@ -415,70 +456,65 @@ END SUBROUTINE local_hamiltonianParabola
 
 
 
-!!****f* BigDFT/apply_potential
-!! FUNCTION
-!!   routine for applying the local potentials
-!!   supports the non-collinear case, the buffer for tails and different Boundary Conditions
-!!   Optimal also for the complex wavefuntion case
-!! SOURCE
-!!
-subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzParab, &
-     hxh, hyh, hzh, parabPrefac, &
+subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzConfinement, &
+     hxh, hyh, hzh, potentialPrefac, &
      ibyyzz_r) !optional
-  use module_base
-  implicit none
-  integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot
-  real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
-  real(wp), dimension(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
-       -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), intent(in) :: pot
-  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
-  real(gp), intent(out) :: epot
-real(8),dimension(3):: rxyzParab
-real(8):: hxh, hyh, hzh, parabPrefac
-  !local variables
-  integer :: i1,i2,i3,i1s,i1e,ispinor
-  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
-  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
-  real(gp) :: epot_p
-real(8):: hxh2, hyh2, hzh2
-integer:: ix0, iy0, iz0, istat, ipot
-real(8),dimension(:,:,:,:),allocatable:: potCopy
+!
+! Purpose:
+! ========
+!   Routine for applying the local potentials. Supports the non-collinear case, the buffer for tails 
+!   and different Boundary Conditions. Optimal also for the complex wavefuntion case.
+!   The potential includes also the confinement potential.
+!
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   ----------------
+!     n1
+!     n2
+!     n3
+!     nl1
+!     nl2
+!     nl3
+!     nbuf                       ???
+!     nspinor                    real or complex?
+!     npot
+!     pot                        the potential to be applied. The confinement potential
+!                                  will be applied on the fly.
+!     ibyyzz_r (optional)
+!     rxyzConfinement            the center for the confinement potential
+!     hxh                        the grid spacing in x direction divided by 2
+!     hyh                        the grid spacing in y direction divided by 2
+!     hzh                        the grid spacing in z direction divided by 2
+!     potentialPrefac            the prefactor for the confinement potential
+!   Input / Output arguments:
+!   -------------------------
+!     psir                       wave function om real space grid
+!   Output arguments:
+!   -----------------
+!     epot                       potential energy
+!
+use module_base
+implicit none
+integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot
+real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+real(wp), dimension(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
+     -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), intent(in) :: pot
+integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+real(gp), intent(out) :: epot
+real(8),dimension(3),intent(in):: rxyzConfinement
+real(8),intent(in):: hxh, hyh, hzh, potentialPrefac
+!local variables
+integer :: i1,i2,i3,i1s,i1e,ispinor
+real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
+real(gp) :: epot_p
 
-!write(*,'(a,2i7)') '-14*nl3, 2*n3+1+15*nl3', -14*nl3, 2*n3+1+15*nl3
-!write(*,'(a,2i7)') '-14*nl2, 2*n2+1+15*nl2', -14*nl2, 2*n2+1+15*nl2
-!write(*,'(a,2i7)') 'max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf), min(ibyyzz_r(2,i2,i3)-14,2*n1+16-2*nbuf)', max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf), min(ibyyzz_r(2,i2,i3)-14,2*n1+16-2*nbuf)
-allocate(potCopy(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
-       -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), stat=istat)
-potCopy=0.d0
-  
+
   !the Tail treatment is allowed only in the Free BC case
   if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
-
+  
   epot=0.0_wp
-  ! Copy the potential
-!write(*,*) 'size(pot)', size(pot)
-  !potCopy=pot
-  do ipot=1,npot
-      do i3=-14*nl3,2*n3+1+15*nl3-4*nbuf
-          do i2=-14*nl2,2*n2+1+15*nl2-4*nbuf
-              do i1=-14*nl1,2*n1+1+15*nl1-4*nbuf
- !write(1,'(a,4i8)') 'i1, i2, i3, ipot', i1, i2, i3, ipot
-                  potCopy(i1,i2,i3,ipot)=pot(i1,i2,i3,ipot)
-              end do
-          end do
-      end do
-  end do
-  !potCopy(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
-  !     -14*nl3:2*n3+1+15*nl3-4*nbuf,1:npot) &
-  !  =pot(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
-  !     -14*nl3:2*n3+1+15*nl3-4*nbuf,1:npot)
-
-   ix0=nint(rxyzParab(1)/hxh)
-   iy0=nint(rxyzParab(2)/hyh)
-   iz0=nint(rxyzParab(3)/hzh)
-   hxh2=hxh**2
-   hyh2=hyh**2
-   hzh2=hzh**2
 
 !$omp parallel default(private)&
 !$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
@@ -557,21 +593,11 @@ potCopy=0.d0
                  do ispinor=1,nspinor
                     do i1=i1s,i1e
                        !the local potential is always real
-                       ! Add the parabola to the potential
-                       !tt=hxh**2*dble(i1-ix0)**2 + hyh**2*dble(i2-iy0)**2 + hzh**2*dble(i3-iz0)**2
-                       !tt=hxh2*dble(i1-ix0)**2 + hyh2*dble(i2-iy0)**2 + hzh2*dble(i3-iz0)**2
-                       tt=(hxh*dble(i1)-rxyzParab(1))**2 + (hyh*dble(i2)-rxyzParab(2))**2 + (hzh*dble(i3)-rxyzParab(3))**2
-                       tt=parabPrefac*tt
-                       !if(power==2) then
-                       !    tt=parabPrefac*tt
-                       !else if(power==4) then
-                       !    tt=parabPrefac*tt**2
-                       !else
-                       !    write(*,'(a,i0)') "'power' must be 2 or 4, but we found ", power
-                       !    stop
-                       !end if
-                       potCopy(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)=potCopy(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
-                       tt=potCopy(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)*psir(i1,i2,i3,ispinor)
+                       ! Add the quartic confinement potential to the potential.
+                       tt=(hxh*dble(i1)-rxyzConfinement(1))**2 + (hyh*dble(i2)-rxyzConfinement(2))**2 + (hzh*dble(i3)-rxyzConfinement(3))**2
+                       tt=potentialPrefac*tt**2
+                       tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
+                       tt=tt*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
                        psir(i1,i2,i3,ispinor)=tt
                     end do

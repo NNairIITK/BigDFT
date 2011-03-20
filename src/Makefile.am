@@ -224,6 +224,7 @@ low_level = init/projectors.f90  \
 	wavelib/daubisf.f90 \
         linear/getLocBasis.f90 \
         linear/applyHamiltonian.f90 \
+        linear/precondLinear.f90 \
 	$(DGEMMSY_INTERFACE)  
 
 libbigdft_a_SOURCES = \
