@@ -1568,6 +1568,27 @@ real(8),dimension(:),allocatable:: phi
 end subroutine deallocateLinear
 
 
+subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, orbs, comms, newComm, norbPerGroup)
+  !calculate the number of elements to be sent to each process
+  !and the array of displacements
+  !cubic strategy: -the components are equally distributed among the wavefunctions
+  !                -each processor has all the orbitals in transposed form
+  !                -each wavefunction is equally distributed in its transposed form
+  !                -this holds for each k-point, which regroups different processors
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc, lproc, uproc
+  type(linearParameters):: lin
+  type(locreg_descriptors), intent(in) :: lr
+  type(orbitals_data), intent(inout) :: orbs
+  type(communications_arrays), intent(out) :: comms
+  integer:: newComm
+  integer:: norbPerGroup
+end subroutine orbitalsCommunicatorsWithGroups
+
+
+
   end interface
 
 end module module_interfaces

@@ -846,7 +846,8 @@ do igroup=1,ngroups
     lproc=procsInGroup(1,igroup)
     uproc=procsInGroup(2,igroup)
     if(iproc>=lproc .and. iproc<=uproc) then
-        call orbitals_communicatorsLIN_group(iproc, lproc, uproc, lin, lr, lin%orbs, lin%comms, newComm(igroup), norbPerGroupArr(igroup))
+        !call orbitals_communicatorsLIN_group(iproc, lproc, uproc, lin, lr, lin%orbs, lin%comms, newComm(igroup), norbPerGroupArr(igroup))
+        call orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, lin%orbs, lin%comms, newComm(igroup), norbPerGroupArr(igroup))
     end if
 end do
 
@@ -1028,7 +1029,14 @@ END SUBROUTINE fill_logridCut
 !!
 !! SOURCE
 !!
-subroutine orbitals_communicatorsLIN_group(iproc, lproc, uproc, lin, lr, orbs, comms, newComm, norbPerGroup)
+!subroutine orbitals_communicatorsLIN_group(iproc, lproc, uproc, lin, lr, orbs, comms, newComm, norbPerGroup)
+subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, orbs, comms, newComm, norbPerGroup)
+  !calculate the number of elements to be sent to each process
+  !and the array of displacements
+  !cubic strategy: -the components are equally distributed among the wavefunctions
+  !                -each processor has all the orbitals in transposed form
+  !                -each wavefunction is equally distributed in its transposed form
+  !                -this holds for each k-point, which regroups different processors
   use module_base
   use module_types
   implicit none
@@ -1037,29 +1045,21 @@ subroutine orbitals_communicatorsLIN_group(iproc, lproc, uproc, lin, lr, orbs, c
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(inout) :: orbs
   type(communications_arrays), intent(out) :: comms
-integer:: newComm
-integer:: norbPerGroup
+  integer:: newComm
+  integer:: norbPerGroup
   !local variables
-  character(len=*), parameter :: subname='orbitals_communicators'
-  logical :: yesorb,yescomp
-  integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
-  integer :: ncomp_res,nkptsp,ierr
-  integer, dimension(:), allocatable :: mykpts
-  logical, dimension(:), allocatable :: GPU_for_comp
-  integer, dimension(:,:), allocatable :: nvctr_par,norb_par !for all the components and orbitals (with k-pts)
-  integer, dimension(:,:,:,:), allocatable :: nvctr_parLIN, nvctr_parLIN2 !for all the components and orbitals (with k-pts)
-integer:: iorb, ii, outproc, nproc, kproc, istat
-integer,dimension(:,:),allocatable:: ncntdLIN, ndspldLIN, ncnttLIN, ndspltLIN
+  logical:: yesorb, yescomp
+  integer:: jproc, nvctr_tot, ikpts, iorb, iorbp, jorb, norb_tot, ikpt, istat, iall, ii, outproc, nproc
+  integer:: ncomp_res, nkptsp, ierr
+  integer, dimension(:), allocatable:: mykpts
+  logical, dimension(:), allocatable:: GPU_for_comp
+  integer, dimension(:,:),allocatable:: nvctr_par, norb_par !for all the components and orbitals (with k-pts)
+  integer, dimension(:,:,:,:),allocatable:: nvctr_parLIN !for all the components and orbitals (with k-pts)
+  character(len=*),parameter:: subname='orbitalsCommunicatorsWithGroups'
   
     nproc=uproc-lproc+1
 
 
-  !calculate the number of elements to be sent to each process
-  !and the array of displacements
-  !cubic strategy: -the components are equally distributed among the wavefunctions
-  !                -each processor has all the orbitals in transposed form
-  !                -each wavefunction is equally distributed in its transposed form
-  !                -this holds for each k-point, which regroups different processors
 
   !check of allocation of important arrays
   if (.not. associated(orbs%norb_par)) then
@@ -1069,13 +1069,12 @@ integer,dimension(:,:),allocatable:: ncntdLIN, ndspldLIN, ncnttLIN, ndspltLIN
   
 
   ! Allocate the local arrays.
-  allocate(nvctr_par(lproc:uproc,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,nvctr_par,'nvctr_par',subname)
-  !allocate(norb_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-  allocate(norb_par(lproc:uproc,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,norb_par,'norb_par',subname)
-  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,mykpts,'mykpts',subname)
+  allocate(nvctr_par(lproc:uproc,0:orbs%nkpts+ndebug),stat=istat)
+  call memocc(istat,nvctr_par,'nvctr_par',subname)
+  allocate(norb_par(lproc:uproc,0:orbs%nkpts+ndebug),stat=istat)
+  call memocc(istat,norb_par,'norb_par',subname)
+  allocate(mykpts(orbs%nkpts+ndebug),stat=istat)
+  call memocc(istat,mykpts,'mykpts',subname)
 
   ! Initialise the arrays
   do ikpts=0,orbs%nkpts
@@ -1086,12 +1085,11 @@ integer,dimension(:,:),allocatable:: ncntdLIN, ndspldLIN, ncnttLIN, ndspltLIN
   end do
 
 
- !! THIS PART IS COPIED FROM BELOW !!
-   !calculate the same k-point distribution for the orbitals
-   !assign the k-point to the given orbital, counting one orbital after each other
+  ! Distribute the orbitals among the processes, taking into acount k-points.
+  ! norb_par(jproc,ikpts)=ii means that process jproc holds ii orbitals
+  ! of k-point ikpts
   jorb=1
   ikpts=1
-  !print *,'here',orbs%norb_par(:)
   do jproc=lproc,uproc
      do iorbp=1,orbs%norb_par(jproc)
         norb_par(jproc,ikpts)=norb_par(jproc,ikpts)+1
@@ -1102,22 +1100,15 @@ integer,dimension(:,:),allocatable:: ncntdLIN, ndspldLIN, ncnttLIN, ndspltLIN
      end do
   end do
 
-  !allocate(nvctr_parLIN2(maxval(norb_par(:,1)),0:nproc-1,0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-  allocate(nvctr_parLIN2(maxval(norb_par(:,1)),lproc:uproc,lproc:uproc,0:orbs%nkpts+ndebug),stat=i_stat)
-  !allocate(nvctr_parLIN(maxval(norb_par(:,1)),0:nproc-1,0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-  allocate(nvctr_parLIN(maxval(norb_par(:,1)),lproc:uproc,lproc:uproc,0:orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,nvctr_par,'nvctr_parLIN',subname)
-  nvctr_parLIN2=0
+  allocate(nvctr_parLIN(maxval(norb_par(:,1)),lproc:uproc,lproc:uproc,0:orbs%nkpts+ndebug),stat=istat)
+  call memocc(istat,nvctr_par,'nvctr_parLIN',subname)
   nvctr_parLIN=0
 
-  !balance the components between processors
-  !in the most symmetric way
-  !here the components are taken into account for all the k-points
 
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines
-  allocate(GPU_for_comp(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,GPU_for_comp,'GPU_for_comp',subname)
+  allocate(GPU_for_comp(0:nproc-1+ndebug),stat=istat)
+  call memocc(istat,GPU_for_comp,'GPU_for_comp',subname)
 
   if (nproc > 1 .and. .not. GPUshare) then
      call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
@@ -1126,9 +1117,9 @@ integer,dimension(:,:),allocatable:: ncntdLIN, ndspldLIN, ncnttLIN, ndspltLIN
      GPU_for_comp(0)=GPUblas
   end if
 
-  i_all=-product(shape(GPU_for_comp))*kind(GPU_for_comp)
-  deallocate(GPU_for_comp,stat=i_stat)
-  call memocc(i_stat,i_all,'GPU_for_comp',subname)
+  iall=-product(shape(GPU_for_comp))*kind(GPU_for_comp)
+  deallocate(GPU_for_comp,stat=istat)
+  call memocc(istat,iall,'GPU_for_comp',subname)
 
 
   ! Distribute the orbitals belonging to outproc among the nproc processes in the communicator (done ny calling 
@@ -1145,7 +1136,6 @@ integer,dimension(:,:),allocatable:: ncntdLIN, ndspldLIN, ncnttLIN, ndspltLIN
          end do
      end do
   end do
-
 
 
   ! Redistribute the orbitals among the processes considering k-points.
@@ -1179,221 +1169,216 @@ integer,dimension(:,:),allocatable:: ncntdLIN, ndspldLIN, ncnttLIN, ndspltLIN
    end do
  end do
  
-   !some checks
-   !check the distribution
 
-   ! Now we do some checks to make sure that the above distribution is correct.
-   ! First we check whether the orbitals are correctly distributed among the MPI communicator
-   ! when they are transposed.
-   do ikpts=1,orbs%nkpts
-     do outproc=lproc,uproc
-       do iorb=1,orbs%norbp
-          nvctr_tot=0
-          do jproc=lproc,uproc
-              nvctr_tot=nvctr_tot+nvctr_parLIN(iorb,outproc,jproc,ikpts)
-          end do
-          if(nvctr_tot /= lin%wfds(iorb,outproc)%nvctr_c+7*lin%wfds(iorb,outproc)%nvctr_f) then
-             write(*,*)'ERROR: partition of components incorrect, iorb, kpoint:',iorb, ikpts
-             stop
-          end if
-       end do
-     end do
-   end do
-
-   ! Now we check whether the number of orbitals are correctly distributed.
-   if (orbs%norb /= 0) then
-      do ikpts=1,orbs%nkpts
-         norb_tot=0
+  ! Now we do some checks to make sure that the above distribution is correct.
+  ! First we check whether the orbitals are correctly distributed among the MPI communicator
+  ! when they are transposed.
+  do ikpts=1,orbs%nkpts
+    do outproc=lproc,uproc
+      do iorb=1,orbs%norbp
+         nvctr_tot=0
          do jproc=lproc,uproc
-            norb_tot=norb_tot+norb_par(jproc,ikpts)
+             nvctr_tot=nvctr_tot+nvctr_parLIN(iorb,outproc,jproc,ikpts)
          end do
-         if(norb_tot /= norbPerGroup) then
-            write(*,*)'ERROR: partition of orbitals incorrect, kpoint:',ikpts
-            write(*,*) 'norb_tot, orbs%norb', norb_tot, orbs%norb
+         if(nvctr_tot /= lin%wfds(iorb,outproc)%nvctr_c+7*lin%wfds(iorb,outproc)%nvctr_f) then
+            write(*,*)'ERROR: partition of components incorrect, iorb, kpoint:',iorb, ikpts
             stop
          end if
       end do
-   end if
+    end do
+  end do
+ 
+  ! Now we check whether the number of orbitals are correctly distributed.
+  if (orbs%norb /= 0) then
+     do ikpts=1,orbs%nkpts
+        norb_tot=0
+        do jproc=lproc,uproc
+           norb_tot=norb_tot+norb_par(jproc,ikpts)
+        end do
+        if(norb_tot /= norbPerGroup) then
+           write(*,*)'ERROR: partition of orbitals incorrect, kpoint:',ikpts
+           write(*,*) 'norb_tot, orbs%norb', norb_tot, orbs%norb
+           stop
+        end if
+     end do
+  end if
+  
+  
+  ! WARNING: Make sure that this does not interfere with the 'normal' subroutine, since
+  !          it might change the value of orbs%ikptproc(ikpts).
+  !this function which associates a given k-point to a processor in the component distribution
+  !the association is chosen such that each k-point is associated to only
+  !one processor
+  !if two processors treat the same k-point the processor which highest rank is chosen
+  do ikpts=1,orbs%nkpts
+     loop_jproc: do jproc=uproc,lproc,-1
+        if (nvctr_par(jproc,ikpts) /= 0) then
+           orbs%ikptproc(ikpts)=jproc
+           exit loop_jproc
+        end if
+     end do loop_jproc
+  end do
+  
+ 
+  ! WARNING: Make sure that this does not interfere with the 'normal' subroutine, since
+  !          it might change the value of orbs%iskpts.
+  !calculate the number of k-points treated by each processor in both
+  ! the component distribution and the orbital distribution.
+  nkptsp=0
+  orbs%iskpts=-1
+  do ikpts=1,orbs%nkpts
+     if (nvctr_par(iproc,ikpts) /= 0 .or. norb_par(iproc,ikpts) /= 0) then
+        if (orbs%iskpts == -1) orbs%iskpts=ikpts-1
+        nkptsp=nkptsp+1
+        mykpts(nkptsp) = ikpts
+     end if
+  end do
+  orbs%nkptsp=nkptsp
  
  
-   ! WARNING: Make sure that this does not interfere with the 'normal' subroutine, since
-   !          it might change the value of orbs%ikptproc(ikpts).
-   !this function which associates a given k-point to a processor in the component distribution
-   !the association is chosen such that each k-point is associated to only
-   !one processor
-   !if two processors treat the same k-point the processor which highest rank is chosen
-   do ikpts=1,orbs%nkpts
-      loop_jproc: do jproc=uproc,lproc,-1
-         if (nvctr_par(jproc,ikpts) /= 0) then
-            orbs%ikptproc(ikpts)=jproc
-            exit loop_jproc
-         end if
-      end do loop_jproc
-   end do
-   
+  !print the distribution scheme ussed for this set of orbital
+  !in the case of multiple k-points
+  if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
+     call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
+  end if
  
+  !before printing the distribution schemes, check that the two distributions contain
+  !the same k-points
+  yesorb=.false.
+  kpt_components: do ikpts=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikpts
+     do jorb=1,orbs%norbp
+        if (orbs%iokpt(jorb) == ikpt) yesorb=.true.
+     end do
+     if (.not. yesorb .and. orbs%norbp /= 0) then
+        write(*,*)' ERROR: processor ', iproc,' kpt ',ikpt,&
+             ' not found in the orbital distribution'
+        stop
+     end if
+  end do kpt_components
+ 
+  yescomp=.false.
+  kpt_orbitals: do jorb=1,orbs%norbp
+     ikpt=orbs%iokpt(jorb)   
+     do ikpts=1,orbs%nkptsp
+        if (orbs%iskpts+ikpts == ikpt) yescomp=.true.
+     end do
+     if (.not. yescomp) then
+        write(*,*)' ERROR: processor ', iproc,' kpt,',ikpt,&
+             'not found in the component distribution'
+        stop
+     end if
+  end do kpt_orbitals
 
-   ! WARNING: Make sure that this does not interfere with the 'normal' subroutine, since
-   !          it might change the value of orbs%iskpts.
-   !calculate the number of k-points treated by each processor in both
-   ! the component distribution and the orbital distribution.
-   nkptsp=0
-   orbs%iskpts=-1
-   do ikpts=1,orbs%nkpts
-      if (nvctr_par(iproc,ikpts) /= 0 .or. norb_par(iproc,ikpts) /= 0) then
-         if (orbs%iskpts == -1) orbs%iskpts=ikpts-1
-         nkptsp=nkptsp+1
-         mykpts(nkptsp) = ikpts
-      end if
-   end do
-   orbs%nkptsp=nkptsp
- 
- !!$  allocate(orbs%ikptsp(orbs%nkptsp+ndebug),stat=i_stat)
- !!$  call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
- !!$  orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
- 
-   !print the distribution scheme ussed for this set of orbital
-   !in the case of multiple k-points
-   if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
-      call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
-   end if
- 
-   !before printing the distribution schemes, check that the two distributions contain
-   !the same k-points
-   yesorb=.false.
-   kpt_components: do ikpts=1,orbs%nkptsp
-      ikpt=orbs%iskpts+ikpts
-      do jorb=1,orbs%norbp
-         if (orbs%iokpt(jorb) == ikpt) yesorb=.true.
-      end do
-      if (.not. yesorb .and. orbs%norbp /= 0) then
-         write(*,*)' ERROR: processor ', iproc,' kpt ',ikpt,&
-              ' not found in the orbital distribution'
-         stop
-      end if
-   end do kpt_components
- 
-   yescomp=.false.
-   kpt_orbitals: do jorb=1,orbs%norbp
-      ikpt=orbs%iokpt(jorb)   
-      do ikpts=1,orbs%nkptsp
-         if (orbs%iskpts+ikpts == ikpt) yescomp=.true.
-      end do
-      if (.not. yescomp) then
-         write(*,*)' ERROR: processor ', iproc,' kpt,',ikpt,&
-              'not found in the component distribution'
-         stop
-      end if
-   end do kpt_orbitals
-
 
  
-   ! Now comes the determination of the arrays needed for the communication.
-   
-   ! First copy the content of nvctr_parLIN to comms%nvctr_parLIN.
-   allocate(comms%nvctr_parLIN(1:orbs%norb,lproc:uproc,lproc:uproc,orbs%nkptsp+ndebug),stat=i_stat)
-   call memocc(i_stat,comms%nvctr_parLIN,'nvctr_parLIN',subname)
-   !assign the partition of the k-points to the communication array
-   do ikpts=1,orbs%nkptsp
-      ikpt=orbs%iskpts+ikpts!orbs%ikptsp(ikpts)
-      do jproc=lproc,uproc
-         do outproc=lproc,uproc
-            do iorb=1,norb_par(outproc,ikpt)
-               comms%nvctr_parLIN(iorb,outproc,jproc,ikpt)=nvctr_parLIN(iorb,outproc,jproc,ikpt) 
-            end do
-         end do
-      end do
-   end do
- 
-   ! Now come the send counts for the transposition (i.e. mpi_alltoallv).
-   ! comms%ncntdLIN(jproc)=ii means that the current process (i.e. process iproc) passes
-   ! totally ii elements to process jproc.
-   allocate(comms%ncntdLIN(lproc:uproc), stat=istat)
-   call memocc(istat, comms%ncntdLIN, 'comms%ncntdLIN', subname)
-   comms%ncntdLIN=0
-   do jproc=lproc,uproc
-         do ikpts=1,orbs%nkpts
-            ii=0
-            do jorb=1,norb_par(iproc,ikpts)
-                ii=ii+nvctr_parLIN(jorb,iproc,jproc,ikpts)*orbs%nspinor
-            end do
-            comms%ncntdLIN(jproc)=comms%ncntdLIN(jproc)+ii
-         end do
-   end do
- 
-   ! Now come the send displacements for the mpi_alltoallv.
-   ! comms%ndspldLIN(jproc)=ii means that data sent from the current process (i.e. process iproc)
-   ! to process jproc starts at location ii in the array hold by iproc.
-   allocate(comms%ndspldLIN(lproc:uproc), stat=istat)
-   call memocc(istat, comms%ndspldLIN, 'comms%ndspldLIN', subname)
-   comms%ndspldLIN=0
-   do jproc=lproc+1,uproc
-      comms%ndspldLIN(jproc)=comms%ndspldLIN(jproc-1)+comms%ncntdLIN(jproc-1)
-   end do
- 
- 
-   ! Now come the receive counts for mpi_alltoallv.
-   ! comms%ncnttLIN(jproc)=ii means that the current process (i.e. process iproc) receives
-   ! ii elements from process jproc.
-   allocate(comms%ncnttLIN(lproc:uproc), stat=i_stat)
-   comms%ncnttLIN=0
-   !allocate(ncnttLIN(0:nproc-1,0:nproc-1), stat=i_stat)
-   allocate(ncnttLIN(lproc:uproc,lproc:uproc), stat=istat)
-   call memocc(istat, comms%ncnttLIN, 'comms%ncnttLIN', subname)
-   ncnttLIN=0
-   do jproc=lproc,uproc
-       do ikpts=1,orbs%nkpts
-           ii=0
-           do jorb=1,norb_par(jproc,ikpts)
-               ii=ii+nvctr_parLIN(jorb,jproc,iproc,ikpts)*orbs%nspinor
+  ! Now comes the determination of the arrays needed for the communication.
+  
+  ! First copy the content of nvctr_parLIN to comms%nvctr_parLIN.
+  allocate(comms%nvctr_parLIN(1:orbs%norb,lproc:uproc,lproc:uproc,orbs%nkptsp+ndebug),stat=istat)
+  call memocc(istat,comms%nvctr_parLIN,'nvctr_parLIN',subname)
+  !assign the partition of the k-points to the communication array
+  do ikpts=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikpts!orbs%ikptsp(ikpts)
+     do jproc=lproc,uproc
+        do outproc=lproc,uproc
+           do iorb=1,norb_par(outproc,ikpt)
+              comms%nvctr_parLIN(iorb,outproc,jproc,ikpt)=nvctr_parLIN(iorb,outproc,jproc,ikpt) 
            end do
-           comms%ncnttLIN(jproc)=comms%ncnttLIN(jproc)+ii
-       end do
-   end do
-   
+        end do
+     end do
+  end do
+ 
+  ! Now come the send counts for the transposition (i.e. mpialltoallv).
+  ! comms%ncntdLIN(jproc)=ii means that the current process (i.e. process iproc) passes
+  ! totally ii elements to process jproc.
+  allocate(comms%ncntdLIN(lproc:uproc), stat=istat)
+  call memocc(istat, comms%ncntdLIN, 'comms%ncntdLIN', subname)
+  comms%ncntdLIN=0
+  do jproc=lproc,uproc
+        do ikpts=1,orbs%nkpts
+           ii=0
+           do jorb=1,norb_par(iproc,ikpts)
+               ii=ii+nvctr_parLIN(jorb,iproc,jproc,ikpts)*orbs%nspinor
+           end do
+           comms%ncntdLIN(jproc)=comms%ncntdLIN(jproc)+ii
+        end do
+  end do
+ 
+  ! Now come the send displacements for the mpialltoallv.
+  ! comms%ndspldLIN(jproc)=ii means that data sent from the current process (i.e. process iproc)
+  ! to process jproc starts at location ii in the array hold by iproc.
+  allocate(comms%ndspldLIN(lproc:uproc), stat=istat)
+  call memocc(istat, comms%ndspldLIN, 'comms%ndspldLIN', subname)
+  comms%ndspldLIN=0
+  do jproc=lproc+1,uproc
+     comms%ndspldLIN(jproc)=comms%ndspldLIN(jproc-1)+comms%ncntdLIN(jproc-1)
+  end do
+ 
+ 
+  ! Now come the receive counts for mpialltoallv.
+  ! comms%ncnttLIN(jproc)=ii means that the current process (i.e. process iproc) receives
+  ! ii elements from process jproc.
+  allocate(comms%ncnttLIN(lproc:uproc), stat=istat)
+  call memocc(istat, comms%ncnttLIN, 'comms%ncnttLIN', subname)
+  comms%ncnttLIN=0
+  do jproc=lproc,uproc
+      do ikpts=1,orbs%nkpts
+          ii=0
+          do jorb=1,norb_par(jproc,ikpts)
+              ii=ii+nvctr_parLIN(jorb,jproc,iproc,ikpts)*orbs%nspinor
+          end do
+          comms%ncnttLIN(jproc)=comms%ncnttLIN(jproc)+ii
+      end do
+  end do
+  
 
-   ! Now come the receive displacements for mpi_alltoallv.
-   ! comms%ndspltLIN(jproc)=ii means that the data sent from process jproc to the current
-   ! process (i.e. process iproc) start at the location ii in the array hold by iproc.
-   allocate(comms%ndspltLIN(lproc:uproc), stat=istat)
-   call memocc(istat, comms%ndspltLIN, 'comms%ndspltLIN', subname)
-   comms%ndspltLIN=0
-   do jproc=lproc+1,uproc
-       comms%ndspltLIN(jproc)=comms%ndspltLIN(jproc-1)+comms%ncnttLIN(jproc-1)
-   end do
+  ! Now come the receive displacements for mpialltoallv.
+  ! comms%ndspltLIN(jproc)=ii means that the data sent from process jproc to the current
+  ! process (i.e. process iproc) start at the location ii in the array hold by iproc.
+  allocate(comms%ndspltLIN(lproc:uproc), stat=istat)
+  call memocc(istat, comms%ndspltLIN, 'comms%ndspltLIN', subname)
+  comms%ndspltLIN=0
+  do jproc=lproc+1,uproc
+      comms%ndspltLIN(jproc)=comms%ndspltLIN(jproc-1)+comms%ncnttLIN(jproc-1)
+  end do
  
  
-   ! Deallocate the local arrays
-   i_all=-product(shape(nvctr_par))*kind(nvctr_par)
-   deallocate(nvctr_par,stat=i_stat)
-   call memocc(i_stat,i_all,'nvctr_par',subname)
-   i_all=-product(shape(norb_par))*kind(norb_par)
-   deallocate(norb_par,stat=i_stat)
-   call memocc(i_stat,i_all,'norb_par',subname)
-   i_all=-product(shape(mykpts))*kind(mykpts)
-   deallocate(mykpts,stat=i_stat)
-   call memocc(i_stat,i_all,'mykpts',subname)
- 
-   ! Calculate the dimension of the wave function for the given process.
-   ! Take into account max one k-point per processor??
-   ! WARNING: This changes the value of orbs%npsidim, which is then used in the context
-   !          of the usual linear scaling version. Therefore this value will be changed back
-   !          again at the end of the subroutine initializeLocRegLIN.
-   orbs%npsidim=0
-   ! Calculate the dimension of psi if it has to hodl its wave functions in the direct (i.e. not
-   ! transposed) way.
-   do iorb=1,orbs%norbp
-       orbs%npsidim=orbs%npsidim+(lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f)*orbs%nspinor
-   end do
-   ! Eventuall the dimension must be larger to hold all wavefunctions in the transposed way.
-   ! Choose the maximum of these two numbers.
-   orbs%npsidim=max(orbs%npsidim,sum(comms%ncnttLIN(lproc:uproc)))
- 
-   write(*,'(1x,a,i0,4x,i5)') &
-        'LIN: Wavefunctions memory occupation for root processor (Bytes), iproc ',&
-        orbs%npsidim*8, iproc
- 
+  ! Deallocate the local arrays
+  iall=-product(shape(nvctr_par))*kind(nvctr_par)
+  deallocate(nvctr_par,stat=istat)
+  call memocc(istat,iall,'nvctr_par',subname)
+  iall=-product(shape(nvctr_parLIN))*kind(nvctr_parLIN)
+  deallocate(nvctr_parLIN,stat=istat)
+  call memocc(istat,iall,'nvctr_parLIN',subname)
+  iall=-product(shape(norb_par))*kind(norb_par)
+  deallocate(norb_par,stat=istat)
+  call memocc(istat,iall,'norb_par',subname)
+  iall=-product(shape(mykpts))*kind(mykpts)
+  deallocate(mykpts,stat=istat)
+  call memocc(istat,iall,'mykpts',subname)
  
 
-END SUBROUTINE orbitals_communicatorsLIN_group
+  ! Calculate the dimension of the wave function for the given process.
+  ! Take into account max one k-point per processor??
+  ! WARNING: This changes the value of orbs%npsidim, which is then used in the context
+  !          of the usual linear scaling version. Therefore this value will be changed back
+  !          again at the end of the subroutine initializeLocRegLIN.
+  ! Calculate the dimension of psi if it has to hodl its wave functions in the direct (i.e. not
+  ! transposed) way.
+  orbs%npsidim=0
+  do iorb=1,orbs%norbp
+      orbs%npsidim=orbs%npsidim+(lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f)*orbs%nspinor
+  end do
+  ! Eventually the dimension must be larger to hold all wavefunctions in the transposed way.
+  ! Choose the maximum of these two numbers.
+  orbs%npsidim=max(orbs%npsidim,sum(comms%ncnttLIN(lproc:uproc)))
+ 
+  write(*,'(1x,a,i0,4x,i5)') &
+       'LIN: Wavefunctions memory occupation for root processor (Bytes), iproc ',&
+       orbs%npsidim*8, iproc
+ 
+
+!END SUBROUTINE orbitals_communicatorsLIN_group
+END SUBROUTINE orbitalsCommunicatorsWithGroups
 !!***
