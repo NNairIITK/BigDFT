@@ -531,17 +531,17 @@ module module_interfaces
      subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
           nseg_c,nvctr_c,keyg_c,keyv_c,  & 
           nseg_f,nvctr_f,keyg_f,keyv_f, & 
-          psi_c,psi_f,norb,eval)
+          psi_c,psi_f,eval)
        use module_base
        implicit none
        logical, intent(in) :: useFormattedOutput
-       integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,norb
+       integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f
        real(gp), intent(in) :: hx,hy,hz
+       real(wp), intent(in) :: eval
        integer, dimension(nseg_c), intent(in) :: keyv_c
        integer, dimension(nseg_f), intent(in) :: keyv_f
        integer, dimension(2,nseg_c), intent(in) :: keyg_c
        integer, dimension(2,nseg_f), intent(in) :: keyg_f
-       real(wp), dimension(norb), intent(in) :: eval
        real(wp), dimension(nvctr_c), intent(in) :: psi_c
        real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
        real(gp), dimension(3,nat), intent(in) :: rxyz

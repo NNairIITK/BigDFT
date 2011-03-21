@@ -665,7 +665,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      !add a small displacement in the eigenvalues
      do iorb=1,orbs%norb*orbs%nkpts
         if (iorb <= orbs%norb) then
-           if (orbs%efermi == -.1_gp .and. orbs%occup(iorb) < 1.0_gp) then
+           if (orbs%efermi == UNINITIALISED .and. orbs%occup(iorb) < 1.0_gp) then
               orbs%efermi=orbs%eval(iorb)
            end if
         end if

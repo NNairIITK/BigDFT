@@ -924,7 +924,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   end do
 
   !put a default value for the fermi energy
-  orbs%efermi=-.1_gp
+  orbs%efermi = UNINITIALISED
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
