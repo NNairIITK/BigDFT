@@ -432,10 +432,10 @@ subroutine transpose_vLIN(iproc, lproc, uproc, norbPerGroup, orbs, comms, psi, l
      !   call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
      !        psi,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
      !end if
-write(*,'(a,i3,3x,8i9)') 'in transpose_vLIN: iproc, comms%ncnttLIN(0:nproc-1)', iproc, comms%ncnttLIN(0:nproc-1)
-write(*,'(a,i3,3x,8i9)') 'in transpose_vLIN: iproc, comms%ndspltLIN(0:nproc-1)', iproc, comms%ndspltLIN(0:nproc-1)
-write(*,'(a,i3,3x,8i9)') 'in transpose_vLIN: iproc, comms%ncntdLIN(0:nproc-1)', iproc, comms%ncntdLIN(0:nproc-1)
-write(*,'(a,i3,3x,8i9)') 'in transpose_vLIN: iproc, comms%ndspldLIN(0:nproc-1)', iproc, comms%ndspldLIN(0:nproc-1)
+!write(*,'(a,i3,3x,8i9)') 'in transpose_vLIN: iproc, comms%ncnttLIN(0:nproc-1)', iproc, comms%ncnttLIN(0:nproc-1)
+!write(*,'(a,i3,3x,8i9)') 'in transpose_vLIN: iproc, comms%ndspltLIN(0:nproc-1)', iproc, comms%ndspltLIN(0:nproc-1)
+!write(*,'(a,i3,3x,8i9)') 'in transpose_vLIN: iproc, comms%ncntdLIN(0:nproc-1)', iproc, comms%ncntdLIN(0:nproc-1)
+!write(*,'(a,i3,3x,8i9)') 'in transpose_vLIN: iproc, comms%ndspldLIN(0:nproc-1)', iproc, comms%ndspldLIN(0:nproc-1)
 call mpi_barrier(newComm, ierr)
      if (present(outadd)) then
         !call MPI_ALLTOALLV(work,comms%ncntdLIN,comms%ndspldLIN,mpidtypw, &
