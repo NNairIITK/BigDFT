@@ -124,7 +124,14 @@ $(PSPS):
 
 %.post-in: ;
 
-%.in:
+in_message:
+	@if test -n "$(run_ocl)" ; then \
+	  echo "==============================================" ; \
+	  echo "Will generate a 'input.perf' file to force OCL" ; \
+	  echo "==============================================" ; \
+	fi
+
+%.in: in_message
 	@dir=`basename $@ .in` ; \
         if ! test x"$(srcdir)" = x"." ; then \
           if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
