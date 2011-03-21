@@ -404,7 +404,8 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
         call writeonewave(99,(isuffix <= 0),iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 
              wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
              wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
-             psi(1,iorb),psi(wfd%nvctr_c+1,iorb),orbs%norb,orbs%eval)
+             psi(1,iorb),psi(wfd%nvctr_c+1,iorb), &
+             orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb))
         close(99)
 
      enddo
