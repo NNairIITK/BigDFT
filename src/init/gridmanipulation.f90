@@ -653,68 +653,79 @@ if(lr%geocode/='F' .and. lr%geocode/='f') then
     stop
 end if
 
-! logridCut is a logical array that is trie for a given grid point if this point is within the
-! localization radius and false otherwise. It, of course, different for each orbital.
+
+!! COPY EVERYTHING -- TO BE CHANGED LATER !!
+lin%lr=lr
+
+
+
+! logridCut is a logical array that is true for a given grid point if this point is within the
+! localization radius and false otherwise. It is, of course, different for each orbital.
 ! Maybe later this array can be changed such that it does not cover the whole simulation box,
 ! but only a part of it.
-allocate(logridCut_c(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3,orbsLIN%norbp), stat=istat)
-allocate(logridCut_f(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3,orbsLIN%norbp), stat=istat)
+allocate(logridCut_c(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3,lin%orbs%norbp), stat=istat)
+allocate(logridCut_f(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3,lin%orbs%norbp), stat=istat)
 
-norbpMax=maxval(orbsLIN%norb_par)
-allocate(lr%wfdLIN(norbpMax,0:nproc-1), stat=istat)
+norbpMax=maxval(lin%orbs%norb_par)
+!allocate(lr%wfdLIN(norbpMax,0:nproc-1), stat=istat)
+allocate(lin%wfds(norbpMax,0:nproc-1), stat=istat)
 do jproc=0,nproc-1
     do iorb=1,norbpMax
-        lr%wfdLIN(iorb,jproc)%nseg_c=0
-        lr%wfdLIN(iorb,jproc)%nseg_f=0
-        lr%wfdLIN(iorb,jproc)%nvctr_c=0
-        lr%wfdLIN(iorb,jproc)%nvctr_f=0
+        lin%wfds(iorb,jproc)%nseg_c=0
+        lin%wfds(iorb,jproc)%nseg_f=0
+        lin%wfds(iorb,jproc)%nvctr_c=0
+        lin%wfds(iorb,jproc)%nvctr_f=0
     end do
 end do
-write(*,*) 'iproc, size(lr%wfdLIN)', iproc, size(lr%wfdLIN)
+!write(*,*) 'iproc, size(lr%wfdLIN)', iproc, size(lr%wfdLIN)
 
 ! Fill logridCut for each orbital
-radiusCut=10.d0
-do iorb=1,orbsLIN%norbp
+!radiusCut=10.d0
+radiusCut=1.d3
+
+write(*,'(a,3i8)') 'lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3', lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3
+!do iorb=1,orbsLIN%norbp
+do iorb=1,lin%orbs%norbp
 
     !iiAt=orbsLIN%onWhichAtom(iorb)
     iiAt=lin%onWhichAtom(iorb)
     iitype=at%iatype(iiAt)
     radius=radii_cf(1,iitype)
-    call fill_logridCUT(lr%geocode, lr%d%n1, lr%d%n2, lr%d%n3, 0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, 0, 1, &
+    call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, &
          1, 1, rxyz(1,iiAt), radius, radiusCut, input%hx, input%hy, input%hz, logridCut_c(0,0,0,iorb))
     !!subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
     !!     ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
 
     ! Calculate the number of segments and the number of grid points for each orbital.
-    call num_segkeys(lr%d%n1, lr%d%n2, lr%d%n3, 0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, logridCut_c(0,0,0,iorb), &
-        lr%wfdLIN(iorb,iproc)%nseg_c, lr%wfdLIN(iorb,iproc)%nvctr_c)
+    call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), &
+        lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c)
     !!subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
-    !write(*,'(a,2i4,2x,2i4,2i8)') 'iproc, iorb, iiAt, iitype, lr%wfdLIN(iorb)%nseg_c, lr%wfdLIN(iorb)%nvctr_c', iproc, iorb, iiAt, iitype, lr%wfdLIN(iorb)%nseg_c, lr%wfdLIN(iorb)%nvctr_c
+    write(*,'(a,2i4,2x,2i4,2i8)') 'iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c', iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c
 
     ! Now the same procedure for the fine radius.
     radius=radii_cf(2,iitype)
-    call fill_logridCUT(lr%geocode, lr%d%n1, lr%d%n2, lr%d%n3, 0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, 0, 1, &
+    call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, &
          1, 1, rxyz(1,iiAt), radius, radiusCut, input%hx, input%hy, input%hz, logridCut_f(0,0,0,iorb))
     !!subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
     !!     ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
 
     ! Calculate the number of segments and the number of grid points for each orbital.
-    call num_segkeys(lr%d%n1, lr%d%n2, lr%d%n3, 0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, logridCut_f(0,0,0,iorb), &
-        lr%wfdLIN(iorb,iproc)%nseg_f, lr%wfdLIN(iorb,iproc)%nvctr_f)
+    call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), &
+        lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f)
     !!subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
-    !write(*,'(a,2i4,2x,2i4,2i8)') 'iproc, iorb, iiAt, iitype, lr%wfdLIN(iorb)%nseg_f, lr%wfdLIN(iorb)%nvctr_f', iproc, iorb, iiAt, iitype, lr%wfdLIN(iorb)%nseg_f, lr%wfdLIN(iorb)%nvctr_f
+    write(*,'(a,2i4,2x,2i4,2i8)') 'iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f', iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f
 
 
 
     ! Now fill the descriptors.
-    call allocate_wfd(lr%wfdLIN(iorb,iproc),subname)
+    call allocate_wfd(lin%wfds(iorb,iproc),subname)
     ! First the coarse part
-    call segkeys(lr%d%n1, lr%d%n2, lr%d%n3, 0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, logridCut_c(0,0,0,iorb), &
-        lr%wfdLIN(iorb,iproc)%nseg_c, lr%wfdLIN(iorb,iproc)%keyg(1,1), lr%wfdLIN(iorb,iproc)%keyv(1))
+    call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), &
+        lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%keyg(1,1), lin%wfds(iorb,iproc)%keyv(1))
     ! And then the fine part
-    ii=lr%wfdLIN(iorb,iproc)%nseg_c+1
-    call segkeys(lr%d%n1, lr%d%n2, lr%d%n3, 0, lr%d%n1, 0, lr%d%n2, 0, lr%d%n3, logridCut_f(0,0,0,iorb), &
-        lr%wfdLIN(iorb,iproc)%nseg_f, lr%wfdLIN(iorb,iproc)%keyg(1,ii), lr%wfdLIN(iorb,iproc)%keyv(ii))
+    ii=lin%wfds(iorb,iproc)%nseg_c+1
+    call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), &
+        lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%keyg(1,ii), lin%wfds(iorb,iproc)%keyv(ii))
     !!subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
 end do
 
@@ -722,27 +733,31 @@ end do
 allocate(tempArr(1:norbpMax,0:nproc-1,2))
 tempArr=0
 do jproc=0,nproc-1
-    do iorb=1,orbsLIN%norb_par(jproc)
-        tempArr(iorb,jproc,2)=lr%wfdLIN(iorb,jproc)%nvctr_c
+    !do iorb=1,orbsLIN%norb_par(jproc)
+    do iorb=1,lin%orbs%norb_par(jproc)
+        tempArr(iorb,jproc,2)=lin%wfds(iorb,jproc)%nvctr_c
     end do
 end do
 call mpi_allreduce(tempArr(1,0,2), tempArr(1,0,1), norbpMax*nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
 do jproc=0,nproc-1
-    do iorb=1,orbsLIN%norb_par(jproc)
-        lr%wfdLIN(iorb,jproc)%nvctr_c=tempArr(iorb,jproc,1)
+    !do iorb=1,orbsLIN%norb_par(jproc)
+    do iorb=1,lin%orbs%norb_par(jproc)
+        lin%wfds(iorb,jproc)%nvctr_c=tempArr(iorb,jproc,1)
         tempArr(iorb,jproc,1)=0
     end do
 end do
 
 do jproc=0,nproc-1
-    do iorb=1,orbsLIN%norb_par(jproc)
-        tempArr(iorb,jproc,2)=lr%wfdLIN(iorb,jproc)%nvctr_f
+    !do iorb=1,orbsLIN%norb_par(jproc)
+    do iorb=1,lin%orbs%norb_par(jproc)
+        tempArr(iorb,jproc,2)=lin%wfds(iorb,jproc)%nvctr_f
     end do
 end do
 call mpi_allreduce(tempArr(1,0,2), tempArr(1,0,1), norbpMax*nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
 do jproc=0,nproc-1
-    do iorb=1,orbsLIN%norb_par(jproc)
-        lr%wfdLIN(iorb,jproc)%nvctr_f=tempArr(iorb,jproc,1)
+    !do iorb=1,orbsLIN%norb_par(jproc)
+    do iorb=1,lin%orbs%norb_par(jproc)
+        lin%wfds(iorb,jproc)%nvctr_f=tempArr(iorb,jproc,1)
     end do
 end do
 
@@ -752,13 +767,13 @@ end do
 ! Now divide the system in parts for the orthonormalization.
 ! At the moment just make ngroups groups.
 norbPerGroup=30
-ngroups=nint(dble(orbsLIN%norb)/dble(norbPerGroup))
+ngroups=nint(dble(lin%orbs%norb)/dble(norbPerGroup))
 if(ngroups>nproc) then
     if(iproc==0) write(*,'(a,i0,a,i0,a)') 'WARNING: change ngroups from ', ngroups, ' to ', nproc,'!'
     ngroups=nproc
 end if
 ngroups=min(ngroups,nproc)
-idealSplit=dble(orbsLIN%norb)/dble(ngroups)
+idealSplit=dble(lin%orbs%norb)/dble(ngroups)
 allocate(norbPerGroupArr(ngroups), stat=istat)
 allocate(procsInGroup(2,ngroups))
 ! Now distribute the orbitals to the groups. Do not split MPI processes, i.e.
@@ -772,12 +787,12 @@ do jproc=0,nproc-1
     if(igroup==ngroups) then
         ! This last group has to take all the rest
         do ii=jproc,nproc-1
-            norbtot1=norbtot1+orbsLIN%norb_par(jproc)
+            norbtot1=norbtot1+lin%orbs%norb_par(jproc)
             jprocEnd=jprocEnd+1
         end do
     else
         norbtot1=norbtot1+orbsLIN%norb_par(jproc)
-        if(jproc<nproc-1) norbtot2=norbtot1+orbsLIN%norb_par(jproc+1)
+        if(jproc<nproc-1) norbtot2=norbtot1+lin%orbs%norb_par(jproc+1)
         jprocEnd=jprocEnd+1
     end if
     if(abs(dble(norbtot1)-idealSplit)<abs(dble(norbtot2-idealSplit)) .or. igroup==ngroups) then
@@ -822,7 +837,7 @@ do igroup=1,ngroups
     lproc=procsInGroup(1,igroup)
     uproc=procsInGroup(2,igroup)
     if(iproc>=lproc .and. iproc<=uproc) then
-        call orbitals_communicatorsLIN_group(iproc, lproc, uproc, lr, orbsLIN, commsLIN, newComm(igroup), norbPerGroupArr(igroup))
+        call orbitals_communicatorsLIN_group(iproc, lproc, uproc, lin, lr, lin%orbs, lin%comms, newComm(igroup), norbPerGroupArr(igroup))
     end if
 end do
 
@@ -831,32 +846,34 @@ do igroup=1,ngroups
     lproc=procsInGroup(1,igroup)
     uproc=procsInGroup(2,igroup)
     do jproc=lproc,uproc
-        if(iproc>=lproc .and. iproc<=uproc) write(*,'(a,3i5,4i12)') 'iproc, igroup, jproc, commsLIN%ncntdLIN(jproc), &
-            & commsLIN%ndspldLIN(jproc), commsLIN%ncnttLIN(jproc), commsLIN%ndspltLIN(jproc)', &
-            iproc, igroup, jproc, commsLIN%ncntdLIN(jproc), commsLIN%ndspldLIN(jproc), &
-            commsLIN%ncnttLIN(jproc), commsLIN%ndspltLIN(jproc)
+        if(iproc>=lproc .and. iproc<=uproc) write(*,'(a,3i5,4i12)') 'iproc, igroup, jproc, lin%comms%ncntdLIN(jproc), &
+            & lin%comms%ndspldLIN(jproc), lin%comms%ncnttLIN(jproc), lin%comms%ndspltLIN(jproc)', &
+            iproc, igroup, jproc, lin%comms%ncntdLIN(jproc), lin%comms%ndspldLIN(jproc), &
+            lin%comms%ncnttLIN(jproc), lin%comms%ndspltLIN(jproc)
     end do
 end do
 
 
-!!! Test the transposition.
-!!allocate(psi(orbsLIN%npsidim), stat=istat)
-!!allocate(psiWork(orbsLIN%npsidim), stat=istat)
-!!call random_number(psi)
-!!write(100+iproc,*) psi
-!!do igroup=1,ngroups
-!!    lproc=procsInGroup(1,igroup)
-!!    uproc=procsInGroup(2,igroup)
-!!    if(iproc>=lproc .and. iproc<=uproc) then
-!!        call transpose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, lr, newComm(igroup), work=psiWork)
-!!        write(200+iproc,*) psi
-!!        call orthogonalizeLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, input, newComm(igroup))
-!!        call untranspose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, lr, newComm(igroup), work=psiWork)
-!!    end if
-!!end do
-!!write(300+iproc,*) psi
-!!nullify(psi)
-!!nullify(psiWork)
+! Test the transposition.
+allocate(psi(lin%orbs%npsidim), stat=istat)
+allocate(psiWork(lin%orbs%npsidim), stat=istat)
+call random_number(psi)
+write(100+iproc,*) psi
+do igroup=1,ngroups
+    lproc=procsInGroup(1,igroup)
+    uproc=procsInGroup(2,igroup)
+    if(iproc>=lproc .and. iproc<=uproc) then
+        !call transpose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, lr, newComm(igroup), work=psiWork)
+        call transpose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, newComm(igroup), work=psiWork)
+        write(200+iproc,*) psi
+        !!call orthogonalizeLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, input, newComm(igroup))
+        !call untranspose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, lr, newComm(igroup), work=psiWork)
+        call untranspose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, newComm(igroup), work=psiWork)
+    end if
+end do
+write(300+iproc,*) psi
+nullify(psi)
+nullify(psiWork)
 
 
 
@@ -889,7 +906,7 @@ subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3
   real(gp) :: dx,dy2,dz2,rad
 
-!write(*,'(a,3i15,4x,3i15,3es12.3)') 'at start fill_logridCut: nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz', nl1, nu1, nl2, nu2, nl3, nu3, hx, hy, hz
+write(*,'(a,3i10,4x,3i10,3i10,4x,3es12.3)') 'at start fill_logridCut: nl1, nu1, nl2, nu2, nl3, nu3, n1, n2, n3, hx, hy, hz', nl1, nu1, nl2, nu2, nl3, nu3, n1, n2, n3, hx, hy, hz
 !write(*,'(a,3es15.5)') 'rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)', rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
 
   !some checks
@@ -925,6 +942,7 @@ subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
 
   do iat=1,nat
      rad=radii(iatype(iat))*rmult+real(nbuf,gp)*hx
+ write(*,*) '... rad', rad
      if (rad /= 0.0_gp) then
         ml1=max(ceiling((rxyz(1,iat)-rad)/hx - eps_mach), nl1)
         ml2=max(ceiling((rxyz(2,iat)-rad)/hy - eps_mach), nl2)
@@ -932,6 +950,7 @@ subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
         mu1=min(floor((rxyz(1,iat)+rad)/hx + eps_mach), nu1)
         mu2=min(floor((rxyz(2,iat)+rad)/hy + eps_mach), nu2)
         mu3=min(floor((rxyz(3,iat)+rad)/hz + eps_mach), nu3)
+!write(*,'(a,6i8)') 'ml1, ml2, ml3, mu1, mu2, mu3', ml1, ml2, ml3, mu1, mu2, mu3
         !write(*,'(a,3es15.5)') 'rxyz(1,iat)+rad, rxyz(2,iat)+rad, rxyz(3,iat)+rad', rxyz(1,iat)+rad, rxyz(2,iat)+rad, rxyz(3,iat)+rad
         !write(*,'(a,f9.2,3es12.4)') 'rxyz(1,iat), rxyz(2,iat), rxyz(3,iat), rad', rxyz(1,iat), rxyz(2,iat), rxyz(3,iat), rad
         !for Free BC, there must be no incoherences with the previously calculated delimiters
@@ -948,6 +967,9 @@ subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
         !what follows works always provided the check before
 !$omp parallel default(shared) private(i3,dz2,j3,i2,dy2,j2,i1,j1,dx)
 !$omp do
+!write(*,*) 'max(ml3,-n3/2-1),min(mu3,n3+n3/2+1)', max(ml3,-n3/2-1),min(mu3,n3+n3/2+1)
+!write(*,*) 'max(ml2,-n2/2-1),min(mu2,n2+n2/2+1)', max(ml2,-n2/2-1),min(mu2,n2+n2/2+1)
+!write(*,*) 'max(ml1,-n1/2-1),min(mu1,n1+n1/2+1)', max(ml1,-n1/2-1),min(mu1,n1+n1/2+1)
         do i3=max(ml3,-n3/2-1),min(mu3,n3+n3/2+1)
            dz2=(real(i3,gp)*hz-rxyz(3,iat))**2
            j3=modulo(i3,n3+1)
@@ -957,8 +979,10 @@ subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
               do i1=max(ml1,-n1/2-1),min(mu1,n1+n1/2+1)
                  j1=modulo(i1,n1+1)
                  dx=real(i1,gp)*hx-rxyz(1,iat)
+!write(*,'(a,4es12.4)') 'dx**2, dy2, dz2, rad**2', dx**2, dy2, dz2, rad**2
                  if (dx**2+(dy2+dz2) <= rad**2) then
                     !if(j1<0 .or. j1>n1 .or. j2<0 .or. j2>n2 .or. j3<0 .or. j3>n3) write(*,'(a,f6.1,3i6,2x,3i6)') 'dx**2+(dy2+dz2), j1, j2, j3, n1, n2, n3', dx**2+(dy2+dz2), j1, j2, j3, n1, n2, n3
+!write(*,*) 'true'
                     logrid(j1,j2,j3)=.true.
                  endif
               enddo
@@ -996,11 +1020,12 @@ END SUBROUTINE fill_logridCut
 !!
 !! SOURCE
 !!
-subroutine orbitals_communicatorsLIN_group(iproc, lproc, uproc, lr, orbs, comms, newComm, norbPerGroup)
+subroutine orbitals_communicatorsLIN_group(iproc, lproc, uproc, lin, lr, orbs, comms, newComm, norbPerGroup)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc, lproc, uproc
+  type(linearParameters):: lin
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(inout) :: orbs
   type(communications_arrays), intent(out) :: comms
@@ -1108,7 +1133,7 @@ integer,dimension(:,:),allocatable:: ncntdLIN, ndspldLIN, ncnttLIN, ndspltLIN
          !call parallel_repartition_with_kpoints(nproc,orbs%nkpts,(lr%wfdCut(iorb,iproc)%nvctr_c+7*lr%wfdCut(iorb,iproc)%nvctr_f),nvctr_par)
          !call parallel_repartition_with_kpoints(nproc,orbs%nkpts,(lr%wfdLIN(iorb,iproc)%nvctr_c+7*lr%wfdLIN(iorb,iproc)%nvctr_f),nvctr_par)
          call parallel_repartition_with_kpoints(nproc,orbs%nkpts,&
-             (lr%wfdLIN(iorb,iproc)%nvctr_c+7*lr%wfdLIN(iorb,iproc)%nvctr_f),nvctr_par)
+             (lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f),nvctr_par)
          !do jproc=0,nproc-1
          do jproc=lproc,uproc
              !nvctr_parLIN(iorb,0:nproc-1,0)=nvctr_par(jproc,0)
@@ -1150,17 +1175,17 @@ write(*,*) 'after loop calling parallel_repartition_with_kpoints, iproc', iproc
         ikpts=1
         write(*,'(a,2i6)') 'increasing iorb: iproc, iorb', iproc, iorb
         !ncomp_res=(lr%wfdCut(iorb,outproc)%nvctr_c+7*lr%wfdCut(iorb,outproc)%nvctr_f)
-        ncomp_res=(lr%wfdLIN(iorb,outproc)%nvctr_c+7*lr%wfdLIN(iorb,outproc)%nvctr_f)
+        ncomp_res=(lin%wfds(iorb,outproc)%nvctr_c+7*lin%wfds(iorb,outproc)%nvctr_f)
         !do jproc=0,nproc-1
         do jproc=lproc,uproc
            loop_comps: do
-              !write(*,'(a,4i12)') 'iproc, nvctr_parLIN(iorb,jproc,0), ncomp_res, ikpts, ', iproc, nvctr_parLIN(iorb,jproc,0), ncomp_res, ikpts
+              write(*,'(a,4i12)') 'iproc, nvctr_parLIN(iorb,outproc,jproc,0), ncomp_res, ikpts, ', iproc, nvctr_parLIN(iorb,outproc,jproc,0), ncomp_res, ikpts
               if(ikpts>1) write(*,*) 'ATTENTION: iproc',iproc
               if (nvctr_parLIN(iorb,outproc,jproc,0) >= ncomp_res) then
                  nvctr_parLIN(iorb,outproc,jproc,ikpts)= ncomp_res
                  ikpts=ikpts+1
                  nvctr_parLIN(iorb,outproc,jproc,0)=nvctr_parLIN(iorb,outproc,jproc,0)-ncomp_res
-                 ncomp_res=(lr%wfdLIN(iorb,outproc)%nvctr_c+7*lr%wfdLIN(iorb,outproc)%nvctr_f)
+                 ncomp_res=(lin%wfds(iorb,outproc)%nvctr_c+7*lin%wfds(iorb,outproc)%nvctr_f)
               else
                  nvctr_parLIN(iorb,outproc,jproc,ikpts)= nvctr_parLIN(iorb,outproc,jproc,0)
              if(nvctr_parLIN(iorb,outproc,jproc,ikpts)==0) write(*,'(a,3i6)') 'ATTENTION: iorb, outproc, jproc', iorb, &
@@ -1170,7 +1195,7 @@ write(*,*) 'after loop calling parallel_repartition_with_kpoints, iproc', iproc
                  exit loop_comps
               end if
               if (nvctr_parLIN(iorb,outproc,jproc,0) == 0 ) then
-                 ncomp_res=(lr%wfdLIN(iorb,outproc)%nvctr_c+7*lr%wfdLIN(iorb,outproc)%nvctr_f)
+                 ncomp_res=(lin%wfds(iorb,outproc)%nvctr_c+7*lin%wfds(iorb,outproc)%nvctr_f)
                  exit loop_comps
               end if
     
@@ -1199,7 +1224,7 @@ write(*,*) 'PERFORMING CHECKS..., iproc', iproc
           do jproc=lproc,uproc
               nvctr_tot=nvctr_tot+nvctr_parLIN(iorb,outproc,jproc,ikpts)
           end do
-          if(nvctr_tot /= lr%wfdLIN(iorb,outproc)%nvctr_c+7*lr%wfdLIN(iorb,outproc)%nvctr_f) then
+          if(nvctr_tot /= lin%wfds(iorb,outproc)%nvctr_c+7*lin%wfds(iorb,outproc)%nvctr_f) then
              write(*,*)'ERROR: partition of components incorrect, iorb, kpoint:',iorb, ikpts
              stop
           end if
@@ -1486,7 +1511,7 @@ write(*,*) 'PERFORMING CHECKS..., iproc', iproc
      do iorb=1,orbs%norbp
          !orbs%npsidimLIN=orbs%npsidimLIN+(lr%wfdCut(iorb,iproc)%nvctr_c+7*lr%wfdCut(iorb,iproc)%nvctr_f)*orbs%nspinor
          !orbs%npsidimLIN=orbs%npsidimLIN+(lr%wfdLIN(iorb,iproc)%nvctr_c+7*lr%wfdLIN(iorb,iproc)%nvctr_f)*orbs%nspinor
-         orbs%npsidim=orbs%npsidim+(lr%wfdLIN(iorb,iproc)%nvctr_c+7*lr%wfdLIN(iorb,iproc)%nvctr_f)*orbs%nspinor
+         orbs%npsidim=orbs%npsidim+(lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f)*orbs%nspinor
      end do
      !orbs%npsidimLIN=max(orbs%npsidimLIN,sum(comms%ncnttLIN(0:nproc-1,iproc)))
      !orbs%npsidimLIN=max(orbs%npsidimLIN,sum(comms%ncnttLIN(0:nproc-1)))

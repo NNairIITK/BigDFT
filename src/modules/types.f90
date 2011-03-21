@@ -277,7 +277,6 @@ module module_types
      integer :: ns1,ns2,ns3 !starting points of the localisation region in global coordinates
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
-   type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfdLIN
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
 !!***
@@ -431,6 +430,8 @@ type,public:: linearParameters
   real(8),dimension(:),allocatable:: potentialPrefac
   type(orbitals_data):: orbs
   type(communications_arrays):: comms
+  type(locreg_descriptors):: lr
+  type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfds
   integer,dimension(:),allocatable:: onWhichAtom
 end type
 

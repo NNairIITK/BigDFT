@@ -734,7 +734,6 @@ type(linearParameters):: lin
         nvirt = norbv
      end if
 
-     !call initializeLocRegLIN(iproc, nproc, Glr, orbsLIN, lin, atoms, in, rxyz, radii_cf)
   case(1)
      !these parts should be reworked for the non-collinear spin case
 
@@ -1139,6 +1138,8 @@ type(linearParameters):: lin
             end if
             ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
             call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, atoms, lin, phi, in, rxyz, occupForInguess)
+     ! THIS IS A TEST !
+     call initializeLocRegLIN(iproc, nproc, Glr, orbsLIN, lin, atoms, in, rxyz, radii_cf)
             !if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the linear scaling version...'
             if(nproc==1) allocate(psit(size(psi)))
             if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,atoms%nat))
