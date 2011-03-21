@@ -147,7 +147,14 @@ in_message:
         echo "Input prepared in "$$dir" dir. make $$dir.run available"
 	touch $@
 
-%.run: %.in
+run_message:
+	@if test -n "$(run_parallel)" ; then \
+	  echo "==============================================" ; \
+	  echo "Will run tests in parallel with '$$run_parallel'" ; \
+	  echo "==============================================" ; \
+	fi
+
+%.run: %.in run_message
 	@dir=`basename $@ .run` ; \
         runs="$(srcdir)/$$dir/*.ref" ; \
 	tgts=`for r in $$runs ; do echo $$(basename $$r .ref)".out"; done` ; \
