@@ -1073,4 +1073,10 @@ character(len=*),parameter:: subname='deallocateLinear'
   deallocate(lin%orbs%eval, stat=istat)
   call memocc(istat, iall, 'lin%orbs%eval', subname)
 
+  if(allocated(lin%wfds)) then
+      !iall=-product(shape(lin%wfds))*kind(lin%wfds)
+      !deallocate(lin%wfds, stat=istat)
+      !call memocc(istat, iall, 'lin%wfds', subname)
+  end if
+
 end subroutine deallocateLinear

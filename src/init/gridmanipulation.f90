@@ -634,7 +634,7 @@ real(8),dimension(at%ntypes,3):: radii_cf
 type(communications_arrays):: commsLIN
 
 ! Local variables
-integer:: iorb, iiAt, iitype, istat, ierr, ii, ngroups, norbPerGroup, jprocStart, jprocEnd, norbtot1
+integer:: iorb, iiAt, iitype, istat, iall, ierr, ii, ngroups, norbPerGroup, jprocStart, jprocEnd, norbtot1
 integer:: norbtot2, igroup, jproc, norbpMax, lproc, uproc, wholeGroup
 real(8):: radius, radiusCut, idealSplit
 logical,dimension(:,:,:,:),allocatable:: logridCut_c
@@ -664,11 +664,13 @@ lin%lr=lr
 ! Maybe later this array can be changed such that it does not cover the whole simulation box,
 ! but only a part of it.
 allocate(logridCut_c(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3,lin%orbs%norbp), stat=istat)
+call memocc(istat, logridCut_c, 'logridCut_c', subname)
 allocate(logridCut_f(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3,lin%orbs%norbp), stat=istat)
+call memocc(istat, logridCut_f, 'logridCut_f', subname)
 
 norbpMax=maxval(lin%orbs%norb_par)
-!allocate(lr%wfdLIN(norbpMax,0:nproc-1), stat=istat)
 allocate(lin%wfds(norbpMax,0:nproc-1), stat=istat)
+!call memocc(istat, lin%wfds, 'lin%wfds', subname)
 do jproc=0,nproc-1
     do iorb=1,norbpMax
         lin%wfds(iorb,jproc)%nseg_c=0
@@ -677,48 +679,36 @@ do jproc=0,nproc-1
         lin%wfds(iorb,jproc)%nvctr_f=0
     end do
 end do
-!write(*,*) 'iproc, size(lr%wfdLIN)', iproc, size(lr%wfdLIN)
 
-! Fill logridCut for each orbital
-!radiusCut=10.d0
 radiusCut=1.d3
-
-write(*,'(a,3i8)') 'lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3', lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3
-!do iorb=1,orbsLIN%norbp
+! Now comes the loop which determines the localization region for each orbital.
 do iorb=1,lin%orbs%norbp
 
-    !iiAt=orbsLIN%onWhichAtom(iorb)
     iiAt=lin%onWhichAtom(iorb)
     iitype=at%iatype(iiAt)
     radius=radii_cf(1,iitype)
+    ! Fill logridCut. The cutoff for the localization region is given by radiusCut*radius
     call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, &
          1, 1, rxyz(1,iiAt), radius, radiusCut, input%hx, input%hy, input%hz, logridCut_c(0,0,0,iorb))
-    !!subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
-    !!     ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
 
     ! Calculate the number of segments and the number of grid points for each orbital.
     call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), &
         lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c)
-    !!subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
-    write(*,'(a,2i4,2x,2i4,2i8)') 'iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c', iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c
+    !write(*,'(a,2i4,2x,2i4,2i8)') 'iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c', iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c
 
     ! Now the same procedure for the fine radius.
     radius=radii_cf(2,iitype)
     call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, &
          1, 1, rxyz(1,iiAt), radius, radiusCut, input%hx, input%hy, input%hz, logridCut_f(0,0,0,iorb))
-    !!subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
-    !!     ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
 
     ! Calculate the number of segments and the number of grid points for each orbital.
     call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), &
         lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f)
-    !!subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
-    write(*,'(a,2i4,2x,2i4,2i8)') 'iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f', iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f
-
+    !write(*,'(a,2i4,2x,2i4,2i8)') 'iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f', iproc, iorb, iiAt, iitype, lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f
 
 
     ! Now fill the descriptors.
-    call allocate_wfd(lin%wfds(iorb,iproc),subname)
+    call allocate_wfd(lin%wfds(iorb,iproc), subname)
     ! First the coarse part
     call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), &
         lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%keyg(1,1), lin%wfds(iorb,iproc)%keyv(1))
@@ -726,58 +716,68 @@ do iorb=1,lin%orbs%norbp
     ii=lin%wfds(iorb,iproc)%nseg_c+1
     call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), &
         lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%keyg(1,ii), lin%wfds(iorb,iproc)%keyv(ii))
-    !!subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
+
 end do
 
-
-allocate(tempArr(1:norbpMax,0:nproc-1,2))
+! Now each orbital knows only its own localization region. However we want each orbital to
+! know the number of grid points of all the other orbitals. This is done in the following.
+allocate(tempArr(1:norbpMax,0:nproc-1,2), stat=istat)
+call memocc(istat, tempArr, 'tempArr', subname)
 tempArr=0
-do jproc=0,nproc-1
-    !do iorb=1,orbsLIN%norb_par(jproc)
-    do iorb=1,lin%orbs%norb_par(jproc)
-        tempArr(iorb,jproc,2)=lin%wfds(iorb,jproc)%nvctr_c
-    end do
+do iorb=1,lin%orbs%norbp
+    tempArr(iorb,iproc,2)=lin%wfds(iorb,iproc)%nvctr_c
 end do
 call mpi_allreduce(tempArr(1,0,2), tempArr(1,0,1), norbpMax*nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
 do jproc=0,nproc-1
-    !do iorb=1,orbsLIN%norb_par(jproc)
     do iorb=1,lin%orbs%norb_par(jproc)
         lin%wfds(iorb,jproc)%nvctr_c=tempArr(iorb,jproc,1)
         tempArr(iorb,jproc,1)=0
     end do
 end do
 
-do jproc=0,nproc-1
-    !do iorb=1,orbsLIN%norb_par(jproc)
-    do iorb=1,lin%orbs%norb_par(jproc)
-        tempArr(iorb,jproc,2)=lin%wfds(iorb,jproc)%nvctr_f
-    end do
+do iorb=1,lin%orbs%norbp
+    tempArr(iorb,iproc,2)=lin%wfds(iorb,iproc)%nvctr_f
 end do
 call mpi_allreduce(tempArr(1,0,2), tempArr(1,0,1), norbpMax*nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
 do jproc=0,nproc-1
-    !do iorb=1,orbsLIN%norb_par(jproc)
     do iorb=1,lin%orbs%norb_par(jproc)
         lin%wfds(iorb,jproc)%nvctr_f=tempArr(iorb,jproc,1)
     end do
 end do
 
 
+! Now divide the system in parts, i.e. create new MPI communicators that include only
+! a part of the orbitals. For instance, group 1 contains the MPI processes 0 to 10 and
+! group 2 contains the MPI processes 11 to 20. We specify how many orbitals a given group
+! should contain and then assign the best matching number of MPI processes to this group.
 
+! norbPerGroup gives the ideal number of orbitals per group.
+! If you don't want to deal with these groups and have only one group (as usual), simply put
+! norbPerGroup equal to lin%orbs%norb
+!norbPerGroup=30
+norbPerGroup=lin%orbs%norb
 
-! Now divide the system in parts for the orthonormalization.
-! At the moment just make ngroups groups.
-norbPerGroup=30
+! ngroups is the number of groups that we will have.
 ngroups=nint(dble(lin%orbs%norb)/dble(norbPerGroup))
 if(ngroups>nproc) then
     if(iproc==0) write(*,'(a,i0,a,i0,a)') 'WARNING: change ngroups from ', ngroups, ' to ', nproc,'!'
     ngroups=nproc
 end if
-ngroups=min(ngroups,nproc)
+
+! idealSplit gives the number of orbitals that would be assigned to each group
+! in the ideal case.
 idealSplit=dble(lin%orbs%norb)/dble(ngroups)
-allocate(norbPerGroupArr(ngroups), stat=istat)
-allocate(procsInGroup(2,ngroups))
+
 ! Now distribute the orbitals to the groups. Do not split MPI processes, i.e.
 ! all orbitals for one process will remain with this proccess.
+! The procedure is as follows: We weant to assign idealSplit orbitals to a group.
+! To do so, we iterate through the MPI processes and sum up the number of orbitals.
+! If we are at process k of this iteration, then norbtot1 gives the sum of the orbitals
+! up to process k, and norbtot2 the orbitals up to process k+1. If norbtot2 is closer
+! to idealSplit than norbtot1, we continue the iteration, otherwise we split the groups
+! at process k.
+allocate(norbPerGroupArr(ngroups), stat=istat)
+allocate(procsInGroup(2,ngroups))
 norbtot1=0
 norbtot2=0
 igroup=1
@@ -809,13 +809,16 @@ do jproc=0,nproc-1
 end do
 
 do igroup=1,ngroups
-    if(iproc==0) write(*,'(a,3i12)') 'norbPerGroupArr(igroup), procsInGroup(1,igroup), procsInGroup(2,igroup)',&
-        norbPerGroupArr(igroup), procsInGroup(1,igroup), procsInGroup(2,igroup)
+    if(iproc==0) write(*,'(a,i4,3i5)') 'iproc, norbPerGroupArr(igroup), procsInGroup(1,igroup), procsInGroup(2,igroup)',&
+        iproc, norbPerGroupArr(igroup), procsInGroup(1,igroup), procsInGroup(2,igroup)
 end do
 
 
 
-! Create the new communicators.
+! Now create the new MPI communicators.
+! These communicators will be contained in the array newComm. If you want to
+! use MPI processes only for the processes in group igroup, you can use the
+! ordinary MPI routines just with newComm(igroup) instead of mpi_comm_world.
 allocate(newID(0:nproc), stat=istat)
 allocate(newGroup(1:ngroups))
 allocate(newComm(1:ngroups))
@@ -833,6 +836,8 @@ end do
 
 
 ! Now create the parameters for the transposition.
+! lproc and uproc give the first and last process ID of the processes
+! in the communicator igroup.
 do igroup=1,ngroups
     lproc=procsInGroup(1,igroup)
     uproc=procsInGroup(2,igroup)
@@ -842,6 +847,7 @@ do igroup=1,ngroups
 end do
 
 
+! Write out the parameters for the transposition.
 do igroup=1,ngroups
     lproc=procsInGroup(1,igroup)
     uproc=procsInGroup(2,igroup)
@@ -877,6 +883,16 @@ nullify(psiWork)
 
 
 
+iall=-product(shape(logridCut_c))*kind(logridCut_c)
+deallocate(logridCut_c, stat=istat)
+call memocc(istat, iall, 'logridCut_c', subname)
+iall=-product(shape(logridCut_f))*kind(logridCut_f)
+deallocate(logridCut_f, stat=istat)
+call memocc(istat, iall, 'logridCut_f', subname)
+iall=-product(shape(tempArr))*kind(tempArr)
+deallocate(tempArr, stat=istat)
+call memocc(istat, iall, 'tempArr', subname)
+
 
 end subroutine initializeLocRegLIN
 
@@ -906,7 +922,7 @@ subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3
   real(gp) :: dx,dy2,dz2,rad
 
-write(*,'(a,3i10,4x,3i10,3i10,4x,3es12.3)') 'at start fill_logridCut: nl1, nu1, nl2, nu2, nl3, nu3, n1, n2, n3, hx, hy, hz', nl1, nu1, nl2, nu2, nl3, nu3, n1, n2, n3, hx, hy, hz
+!write(*,'(a,3i10,4x,3i10,3i10,4x,3es12.3)') 'at start fill_logridCut: nl1, nu1, nl2, nu2, nl3, nu3, n1, n2, n3, hx, hy, hz', nl1, nu1, nl2, nu2, nl3, nu3, n1, n2, n3, hx, hy, hz
 !write(*,'(a,3es15.5)') 'rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)', rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
 
   !some checks
@@ -1129,7 +1145,7 @@ integer,dimension(:,:),allocatable:: ncntdLIN, ndspldLIN, ncnttLIN, ndspltLIN
      do iorb=1,orbs%norbp
          !!! lr%wfdCut(iorb)%nvctr_c and lr%wfdCut(iorb)%nvctr_f NOT YET ALLOCATED AT CALLING TIME !!
          !call parallel_repartition_with_kpoints(nproc,orbs%nkpts,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),nvctr_par)
-         write(*,*) 'calling parallel_repartition_with_kpoints, iproc, iorb',iproc, iorb
+         !write(*,*) 'calling parallel_repartition_with_kpoints, iproc, iorb',iproc, iorb
          !call parallel_repartition_with_kpoints(nproc,orbs%nkpts,(lr%wfdCut(iorb,iproc)%nvctr_c+7*lr%wfdCut(iorb,iproc)%nvctr_f),nvctr_par)
          !call parallel_repartition_with_kpoints(nproc,orbs%nkpts,(lr%wfdLIN(iorb,iproc)%nvctr_c+7*lr%wfdLIN(iorb,iproc)%nvctr_f),nvctr_par)
          call parallel_repartition_with_kpoints(nproc,orbs%nkpts,&
@@ -1145,7 +1161,7 @@ integer,dimension(:,:),allocatable:: ncntdLIN, ndspldLIN, ncnttLIN, ndspltLIN
 call mpi_allreduce(nvctr_parLIN2(1,lproc,lproc,0), nvctr_parLIN(1,lproc,lproc,0), &
      maxval(norb_par(:,1))*nproc*nproc*(orbs%nkpts+1), mpi_integer, mpi_sum, newComm, ierr)
 call mpi_barrier(newComm, ierr)
-write(*,*) 'after loop calling parallel_repartition_with_kpoints, iproc', iproc
+!write(*,*) 'after loop calling parallel_repartition_with_kpoints, iproc', iproc
 
 !!!!do outproc=0,nproc-1
 !!!do outproc=lproc,uproc
@@ -1173,13 +1189,13 @@ write(*,*) 'after loop calling parallel_repartition_with_kpoints, iproc', iproc
     !do iorb=1,orbs%norbp
     do iorb=1,norb_par(outproc,1) ! index 1 for k-points
         ikpts=1
-        write(*,'(a,2i6)') 'increasing iorb: iproc, iorb', iproc, iorb
+        !write(*,'(a,2i6)') 'increasing iorb: iproc, iorb', iproc, iorb
         !ncomp_res=(lr%wfdCut(iorb,outproc)%nvctr_c+7*lr%wfdCut(iorb,outproc)%nvctr_f)
         ncomp_res=(lin%wfds(iorb,outproc)%nvctr_c+7*lin%wfds(iorb,outproc)%nvctr_f)
         !do jproc=0,nproc-1
         do jproc=lproc,uproc
            loop_comps: do
-              write(*,'(a,4i12)') 'iproc, nvctr_parLIN(iorb,outproc,jproc,0), ncomp_res, ikpts, ', iproc, nvctr_parLIN(iorb,outproc,jproc,0), ncomp_res, ikpts
+              !write(*,'(a,4i12)') 'iproc, nvctr_parLIN(iorb,outproc,jproc,0), ncomp_res, ikpts, ', iproc, nvctr_parLIN(iorb,outproc,jproc,0), ncomp_res, ikpts
               if(ikpts>1) write(*,*) 'ATTENTION: iproc',iproc
               if (nvctr_parLIN(iorb,outproc,jproc,0) >= ncomp_res) then
                  nvctr_parLIN(iorb,outproc,jproc,ikpts)= ncomp_res
@@ -1210,7 +1226,7 @@ do outproc=lproc,uproc
       !write(*,'(a,i3,3x,8i8)') 'LIN: iproc, nvctr_par(iorb,outproc,lproc:uproc,1)',iproc, nvctr_parLIN(iorb,outproc,lproc:uproc,1)
   end do
 end do
-write(*,*) 'PERFORMING CHECKS..., iproc', iproc
+!write(*,*) 'PERFORMING CHECKS..., iproc', iproc
  
    !some checks
    !check the distribution
