@@ -636,7 +636,7 @@ type(communications_arrays):: commsLIN
 ! Local variables
 integer:: iorb, iiAt, iitype, istat, iall, ierr, ii, ngroups, norbPerGroup, jprocStart, jprocEnd, norbtot1
 integer:: norbtot2, igroup, jproc, norbpMax, lproc, uproc, wholeGroup
-real(8):: radius, radiusCut, idealSplit
+real(8):: radius, radiusCut, idealSplit, npsidimTemp
 logical,dimension(:,:,:,:),allocatable:: logridCut_c
 logical,dimension(:,:,:,:),allocatable:: logridCut_f
 character(len=*),parameter:: subname='initializeLocRegLIN'
@@ -645,6 +645,10 @@ integer,dimension(:,:),allocatable:: procsInGroup
 integer,dimension(:,:,:),allocatable:: tempArr
 real(8),dimension(:),pointer:: psi, psiWork
 
+
+!! WARNING: during this subroutine lin%orbs%npsidim may be modified. Therefore copy it here
+! and assign it back at the end of the subroutine.
+npsidimTemp=lin%orbs%npsidim
 
 ! First check wheter we have free boundary conditions.
 if(lr%geocode/='F' .and. lr%geocode/='f') then
@@ -680,7 +684,7 @@ do jproc=0,nproc-1
     end do
 end do
 
-radiusCut=1.d3
+radiusCut=4.d0
 ! Now comes the loop which determines the localization region for each orbital.
 do iorb=1,lin%orbs%norbp
 
@@ -861,6 +865,8 @@ end do
 
 
 ! Test the transposition.
+write(*,*) 'iproc, lin%orbs%npsidim', iproc, lin%orbs%npsidim
+
 allocate(psi(lin%orbs%npsidim), stat=istat)
 allocate(psiWork(lin%orbs%npsidim), stat=istat)
 call random_number(psi)
@@ -870,11 +876,11 @@ do igroup=1,ngroups
     uproc=procsInGroup(2,igroup)
     if(iproc>=lproc .and. iproc<=uproc) then
         !call transpose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, lr, newComm(igroup), work=psiWork)
-        call transpose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, newComm(igroup), work=psiWork)
+      call transpose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, newComm(igroup), work=psiWork)
         write(200+iproc,*) psi
         !!call orthogonalizeLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, input, newComm(igroup))
         !call untranspose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, lr, newComm(igroup), work=psiWork)
-        call untranspose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, newComm(igroup), work=psiWork)
+      call untranspose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, newComm(igroup), work=psiWork)
     end if
 end do
 write(300+iproc,*) psi
@@ -893,6 +899,9 @@ iall=-product(shape(tempArr))*kind(tempArr)
 deallocate(tempArr, stat=istat)
 call memocc(istat, iall, 'tempArr', subname)
 
+
+!! WARNING: assign back the original value of lin%orbs%npsidim
+lin%orbs%npsidim=npsidimTemp
 
 end subroutine initializeLocRegLIN
 
@@ -922,7 +931,7 @@ subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3
   real(gp) :: dx,dy2,dz2,rad
 
-!write(*,'(a,3i10,4x,3i10,3i10,4x,3es12.3)') 'at start fill_logridCut: nl1, nu1, nl2, nu2, nl3, nu3, n1, n2, n3, hx, hy, hz', nl1, nu1, nl2, nu2, nl3, nu3, n1, n2, n3, hx, hy, hz
+write(*,'(a,3i10,4x,3i10,3i10,4x,3es12.3)') 'at start fill_logridCut: nl1, nu1, nl2, nu2, nl3, nu3, n1, n2, n3, hx, hy, hz', nl1, nu1, nl2, nu2, nl3, nu3, n1, n2, n3, hx, hy, hz
 !write(*,'(a,3es15.5)') 'rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)', rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
 
   !some checks
