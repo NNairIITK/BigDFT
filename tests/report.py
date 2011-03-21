@@ -42,6 +42,6 @@ for file in files:
             state = "%7.1e > (%7.1e)    failed" % (discrepancy,max_discrepancy)
             end = "\033[m"
             Exit = 1
-        print "%s%-20s %-28s %s%s" % (start,dir,fic,state,end)
+        print "%s%-23s %-28s %s%s" % (start,dir,fic,state,end)
 #Error code
 sys.exit(Exit)

@@ -1094,7 +1094,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
   real(gp) :: rgrid(Ngrid)
   real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid)
 
-  if (nintp.ne.n_int) stop 'n_int><nintp'
+  if (nintp.ne.n_int) stop 'n_int/=nintp'
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l
@@ -1621,7 +1621,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!!  print *, py_r(1)
 !!! 
 
-  if (nintp.ne.n_int) stop 'n_int><nintp'
+  if (nintp.ne.n_int) stop 'n_int/=nintp'
 
 
   do l=0,lmax

@@ -23,7 +23,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
   real(gp), intent(inout) :: hx,hy,hz
   type(locreg_descriptors), intent(out) :: Glr
   real(gp), dimension(3), intent(out) :: shift
-  !local variables
+  !Local variables
   integer, parameter :: lupfil=14
   real(gp), parameter ::eps_mach=1.e-12_gp
   integer :: iat,j,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
@@ -244,6 +244,9 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
   Glr%hybrid_on=                   (nfu1-nfl1+lupfil < n1+1)
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
+
+  !OCL convolutions not compatible with hybrid boundary conditions
+  if (OCLConv) Glr%hybrid_on = .false.
 
   if (Glr%hybrid_on) then
      if (iproc == 0) write(*,*)'wavelet localization is ON'

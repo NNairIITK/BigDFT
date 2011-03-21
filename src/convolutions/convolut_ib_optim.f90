@@ -35,8 +35,10 @@ subroutine Convolkinetic(n1,n2,n3, &
   integer, parameter :: lowfil=-14,lupfil=14
   !logical :: firstcall=.true. 
   !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  !integer(8) :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0,ncnt1
-  !integer(8) :: clock0,clock1,clock2
+  !integer(8) :: clock0,clock1,clock2,ncount_max,ncount_rate
+
+!$ integer(8) :: ncount1,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0 !< variables used by OpenMP
+
   integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211
@@ -734,9 +736,13 @@ subroutine ConvolkineticT(n1,n2,n3, &
   integer, parameter :: lowfil=-14,lupfil=14
   !logical :: firstcall=.true. 
   !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  !integer :: ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0
+  !integer :: ncount_max,ncount_rate
+
+!$ integer :: ncount1,ncount2,ncount3,ncount4,ncount5,ncount6,ncount0
+
   integer :: i,t,i1,i2,i3
   integer :: icur,istart,iend,l
+
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211,ekin
   !real(kind=8) :: tel
   real(wp), dimension(-3+lowfil:lupfil+3) :: a,b,c

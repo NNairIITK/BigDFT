@@ -17,8 +17,7 @@ PSPS = psppar.H \
        HGH-K/psppar.Ti
 
 # Give here the list of existing tests
-TESTDIRS = H \
-	  C \
+TESTDIRS = C \
 	  Li+ \
 	  H2-spin \
 	  SiH4 \
@@ -30,7 +29,6 @@ TESTDIRS = H \
 	  SiBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
-	  Graphene \
 	  TiMix \
 	  O2-Spin \
 	  FeHyb 
@@ -40,6 +38,9 @@ if USE_CUDA_GPU
 endif
 if USE_OCL
   TESTDIRS += OCL
+else
+#Add H  and Graphene only if we do not use OCL (see README)
+  TESTDIRS += H Graphene
 endif
 
 # Give here the pseudo-potentials used by each test.
@@ -49,7 +50,7 @@ Li+.psp: psppar.Li
 H2-spin.psp: HGH/psppar.H
 SiH4.psp: HGH-K/psppar.H HGH-K/psppar.Si
 NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
-TiMix.psp: HGH-K/psppar.Ti
+TiMix.psp: HGH-K/psppar.Ti HGH/psppar.Na
 NaCl.psp: HGH/psppar.Na HGH/psppar.Cl
 Ca2.psp: psppar.Ca
 Mn2.psp: psppar.Mn
@@ -104,8 +105,8 @@ report:
           Ca2.out*) prec="4.e-10" ;; \
           Davidson-SiH4.out*) prec="4.e-9" ;; \
           NaCl.out*) prec="2.e-8" ;; \
-          SiBulk.out*) prec="5.e-10" ;; \
-          SiH4.out*) prec="1.e-9" ;; \
+          SiBulk.out*) prec="2.e-7" ;; \
+          SiH4.out*) prec="1.5e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

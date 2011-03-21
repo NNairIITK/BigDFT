@@ -26,16 +26,20 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- Reading atomic input positions from file:posinp.xyz
- File 'myparameters' is missing... using default values:
-   Input guess: direct diagonalization of Hamiltonian
-   Orthogonalization method: Cholesky
 
- Performance options (file 'input.perf' not present):
- |   'debug' option disabled
- |   'fftcache' = 8192
+ --- (file: input.perf -- not present) -------------------------- Performance Options
+ |   debug                   !Option disabled
+ |   fftcache 8192           !Cache size for the FFT
+ |   accel NO                !Acceleration (NO, CUDAGPU, OCLGPU)
+ |   blas F                  !CUBLAS acceleration
+ |   projrad  15.00          !Radius of the projector as a function of the maxrad
+ |   exctxpar BC             !Exact exchange parallelisation scheme
+ |   ig_diag T               !Input guess: Direct diagonalization of Hamiltonian
+ |   ig_blocks 800 11075     !Input guess: Block size for orthonormalisation
+ |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
 
- ---------------------------------------------------------------- Input atomic system
+ --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
  N. types =     1         |                          | Sp. group = free BC     
@@ -43,12 +47,14 @@
  Types    = 'C'           |                          | Plot dens.= none        
                           |                          | Spin pol. = no          
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 9.00 | Max. N. Iter.=   50x 1 | Extension= 5.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       C          4       2            1.48231  0.25000  0.50754                   X    
@@ -125,7 +131,8 @@
  Hamiltonian application... done. ekin_sum,eks:       3.5471935652       3.5465992603
  ekin_sum,epot_sum,eproj_sum  3.54719356520E+00 -5.48192039776E+00  6.59170117061E-01
     ehart,   eexcu,    vexcu  4.49059877542E+00 -1.40660805055E+00 -1.83798690221E+00
- Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
+ Input Wavefunctions Orthogonalization: 
+ Overlap Matrix... Direct diagonalization...
  evale(1)= -4.69840302244570E-01 <-
  evale(2)= -1.67938803530777E-01 <-
  evale(3)= -1.67938803530777E-01 <-
