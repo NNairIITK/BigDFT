@@ -39,7 +39,7 @@ endif
 if USE_OCL
   TESTDIRS += OCL
 else
-#Add H only if we do not use OCL 
+#Add H  and Graphene only if we do not use OCL (see README)
   TESTDIRS += H Graphene
 endif
 
