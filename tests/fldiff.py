@@ -202,11 +202,11 @@ if bigdft:
 
 
 #Open 2 temproray files
-t1 = tempfile.NamedTemporaryFile(delete=False)
+t1 = tempfile.NamedTemporaryFile()
 for line in original1:
     t1.write(line)
 t1.close()
-t2 = tempfile.NamedTemporaryFile(delete=False)
+t2 = tempfile.NamedTemporaryFile()
 for line in original2:
     t2.write(line)
 t2.close()
