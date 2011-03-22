@@ -294,7 +294,7 @@ end module modulesplinedsaddle
 !*****************************************************************************************
 subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use minimization_sp, only:parameterminimization_sp  !Reza
     use modulesplinedsaddle, only:parametersplinedsaddle
@@ -573,7 +573,7 @@ end subroutine change_np
 !*****************************************************************************************
 subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     !use energyandforces, only:calenergyforces
@@ -663,7 +663,7 @@ end subroutine improvepeak
 !*****************************************************************************************
 subroutine pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     !use energyandforces, only:calenergyforces
@@ -801,7 +801,7 @@ end subroutine pickbestanchors2
 !*****************************************************************************************
 subroutine pickbestanchors(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     !use energyandforces, only:calenergyforces
@@ -1004,7 +1004,7 @@ end subroutine readinputsplsad
 !*****************************************************************************************
 subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use minimization_sp, only:parameterminimization_sp
     use modulesplinedsaddle, only:parametersplinedsaddle
@@ -1304,7 +1304,7 @@ end subroutine calmaxforcecomponentanchors
 !*****************************************************************************************
 subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
@@ -1368,7 +1368,7 @@ end subroutine nebforce
 subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
     iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft,fatsp)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use minimization_sp, only:parameterminimization_sp
     use modulesplinedsaddle, only:parametersplinedsaddle
@@ -1778,7 +1778,7 @@ end subroutine testparmin
 !*****************************************************************************************
 subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
@@ -1844,7 +1844,7 @@ end subroutine perpendicularforce
 subroutine calvmaxanchorforces(istep,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,ftmax, &
     nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use minimization_sp, only:parameterminimization_sp
     use modulesplinedsaddle, only:parametersplinedsaddle
@@ -2016,7 +2016,7 @@ end subroutine checkpathway
 subroutine caltmax2(istep,n,np,x,xold,fends,epot,xt,ft,pnow,pold,nproc,iproc,atoms, &
         rst,ll_inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
@@ -2482,7 +2482,7 @@ end subroutine calvquintic
 !*****************************************************************************************
 subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
@@ -2873,7 +2873,7 @@ end subroutine estimate_sv
 !*****************************************************************************************
 !subroutine epot_along_traj(istep,n,nr,np,x,npv,pnow,nproc,iproc,atoms,rst,inputs,ncount_bigdft)
 !    use module_base
-!    use module_interfaces, except_this_one => geopt
+!    use module_interfaces
 !    use module_types
 !    use modulesplinedsaddle, only:parametersplinedsaddle
 !    implicit none
@@ -3540,7 +3540,7 @@ end subroutine prepcd1cd2
 !*****************************************************************************************
 subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
-    use module_interfaces, except_this_one => geopt
+    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
