@@ -1557,15 +1557,36 @@ type(atoms_data), intent(in) :: at
 end subroutine local_hamiltonianParabola
 
 
-subroutine deallocateLinear(lin, phi)
+subroutine deallocateLinear(iproc, lin, phi)
 use module_base
 use module_types
 implicit none
 
+integer,intent(in):: iproc
 type(linearParameters):: lin
 real(8),dimension(:),allocatable:: phi
 
 end subroutine deallocateLinear
+
+
+subroutine initializeLocRegLIN(iproc, nproc, lr, orbsLIN, lin, at, input, rxyz, radii_cf)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer:: iproc, nproc
+type(locreg_descriptors):: lr
+type(orbitals_data),intent(in):: orbsLIN
+type(linearParameters):: lin
+type(atoms_data),intent(in):: at
+type(input_variables),intent(in):: input
+real(8),dimension(3,at%nat):: rxyz
+real(8),dimension(at%ntypes,3):: radii_cf
+type(communications_arrays):: commsLIN
+
+end subroutine initializeLocRegLIN
+
 
 
 subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, orbs, comms, newComm, norbPerGroup)

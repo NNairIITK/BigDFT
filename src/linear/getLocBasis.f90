@@ -1029,7 +1029,7 @@ end subroutine buildWavefunction
 
 
 
-subroutine deallocateLinear(lin, phi)
+subroutine deallocateLinear(iproc, lin, phi)
 !
 ! Purpose:
 ! ========
@@ -1045,11 +1045,12 @@ use module_interfaces, exceptThisOne => deallocateLinear
 implicit none
 
 ! Calling arguments
+integer,intent(in):: iproc
 type(linearParameters):: lin
 real(8),dimension(:),allocatable:: phi
 
 ! Local variables
-integer:: istat, iall
+integer:: istat, iall, iorb
 character(len=*),parameter:: subname='deallocateLinear'
 
 
@@ -1077,6 +1078,46 @@ character(len=*),parameter:: subname='deallocateLinear'
       !iall=-product(shape(lin%wfds))*kind(lin%wfds)
       !deallocate(lin%wfds, stat=istat)
       !call memocc(istat, iall, 'lin%wfds', subname)
+      do iorb=1,lin%orbs%norbp
+          call deallocate_wfd(lin%wfds(iorb,iproc), subname)
+      end do
+      deallocate(lin%wfds, stat=istat)
   end if
+
+  if(associated(lin%comms%nvctr_parLIN)) then
+      iall=-product(shape(lin%comms%nvctr_parLIN))*kind(lin%comms%nvctr_parLIN)
+      deallocate(lin%comms%nvctr_parLIN, stat=istat)
+      call memocc(istat, iall, 'lin%comms%nvctr_parLIN', subname)
+  end if
+
+  if(associated(lin%comms%ncntdLIN)) then
+      iall=-product(shape(lin%comms%ncntdLIN))*kind(lin%comms%ncntdLIN)
+      deallocate(lin%comms%ncntdLIN, stat=istat)
+      call memocc(istat, iall, 'lin%comms%ncntdLIN', subname)
+  end if
+
+  if(associated(lin%comms%ndspldLIN)) then
+      iall=-product(shape(lin%comms%ndspldLIN))*kind(lin%comms%ndspldLIN)
+      deallocate(lin%comms%ndspldLIN, stat=istat)
+      call memocc(istat, iall, 'lin%comms%ndspldLIN', subname)
+  end if
+
+  if(associated(lin%comms%ncnttLIN)) then
+      iall=-product(shape(lin%comms%ncnttLIN))*kind(lin%comms%ncnttLIN)
+      deallocate(lin%comms%ncnttLIN, stat=istat)
+      call memocc(istat, iall, 'lin%comms%ncnttLIN', subname)
+  end if
+
+  if(associated(lin%comms%ndspltLIN)) then
+      iall=-product(shape(lin%comms%ndspltLIN))*kind(lin%comms%ndspltLIN)
+      deallocate(lin%comms%ndspltLIN, stat=istat)
+      call memocc(istat, iall, 'lin%comms%ndspltLIN', subname)
+  end if
+
+  !if(allocated(lin%MPIComms)) then
+  !    iall=-product(shape(lin%MPIComms))*kind(lin%MPIComms)
+  !    deallocate(lin%MPIComms, stat=istat)
+  !    call memocc(istat, iall, 'lin%MPIComms', subname)
+  !end if
 
 end subroutine deallocateLinear

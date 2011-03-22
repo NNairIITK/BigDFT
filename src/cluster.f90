@@ -1160,7 +1160,7 @@ type(linearParameters):: lin
             ! Calculate the forces arising from the new psi.
             call calculateForces()
 
-            call deallocateLinear(lin, phi)
+            call deallocateLinear(iproc, lin, phi)
         end if linearIf
 
 
