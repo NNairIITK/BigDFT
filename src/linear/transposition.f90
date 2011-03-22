@@ -217,6 +217,7 @@ integer:: k, ii
   ! Number of processes in the current communicator.
   nproc=uproc-lproc+1
 
+  ! Related to k-points...
   isorb=orbs%isorb+1
   isorbp=0
   ispsi=0
@@ -331,8 +332,7 @@ integer:: k, ii
     stop
   end if
 
-  !! CAN I DELETE THIS? !!
-  !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  ! Related to k-points...
   isorb=orbs%isorb+1
   isorbp=0
   ispsi=0
