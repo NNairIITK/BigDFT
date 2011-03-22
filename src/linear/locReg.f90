@@ -1,11 +1,32 @@
-subroutine initializeLocRegLIN(iproc, nproc, lr, orbsLIN, lin, at, input, rxyz, radii_cf)
+subroutine initializeLocRegLIN(iproc, nproc, lr, lin, at, input, rxyz, radii_cf)
 !
 ! Purpose:
 ! ========
-!   Determines the localization regions for each orbital.
+!   Determines the localization region for each orbital. In contrast to the usual
+!   version, the localization regions can be different for each orbital.
+!   In addition this subroutine creates the parameters needed for the communication
+!   of the variable-size orbitals. At the end it performs a test of the transposition
+!   to check the above initializations.
+!   In addition this subroutine is able to split up the MPI process into different
+!   communicators and perform the communication operations separatly for each
+!   communicator.
 !
 ! Calling arguments:
 ! ==================
+!   Input arguments:
+!   ----------------
+!     iproc      process ID
+!     nproc      number of processes
+!     lr         type describing the localization region of the usual cubic version.
+!                  This type is used to initialize some parameters of the new variable
+!                  localization region descriptors. Maybe this can be done otherwise later?
+!     at         type containing the paraneters for the atoms
+!     input      type containing some very general parameters
+!     rxyz       atomic positions
+!     radii_cf   coase and fine radii around the atoms
+!   Input / Output arguments
+!   ------------------------
+!     lin        type containing all parameters concerning the linear scaling version
 !
 use module_base
 use module_types
@@ -13,15 +34,13 @@ use module_interfaces, exceptThisOne => initializeLocRegLIN
 implicit none 
 
 ! Calling arguments
-integer:: iproc, nproc
-type(locreg_descriptors):: lr
-type(orbitals_data),intent(in):: orbsLIN
-type(linearParameters):: lin
+integer,intent(in):: iproc, nproc
+type(locreg_descriptors),intent(in):: lr
+type(linearParameters),intent(in out):: lin
 type(atoms_data),intent(in):: at
 type(input_variables),intent(in):: input
-real(8),dimension(3,at%nat):: rxyz
-real(8),dimension(at%ntypes,3):: radii_cf
-type(communications_arrays):: commsLIN
+real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 
 ! Local variables
 integer:: iorb, iiAt, iitype, istat, iall, ierr, ii, ngroups, norbPerGroup, jprocStart, jprocEnd, i
@@ -37,298 +56,291 @@ real(8),dimension(:),pointer:: psiInit, psi, psiWork
 character(len=*),parameter:: subname='initializeLocRegLIN'
 
 
-!! WARNING: during this subroutine lin%orbs%npsidim may be modified. Therefore copy it here
-! and assign it back at the end of the subroutine.
-npsidimTemp=lin%orbs%npsidim
-
-! First check wheter we have free boundary conditions.
-if(lr%geocode/='F' .and. lr%geocode/='f') then
-    if(iproc==0) write(*,'(a)') 'initializeLocRegLIN only implemented for free boundary conditions!'
-    call mpi_barrier(mpi_comm_world, ierr)
-    stop
-end if
-
-
-! Copy the whole type describing the localization region. This will also automatically allocate all pointers.
-! Change later?
-lin%lr=lr
-
-
-
-! logridCut is a logical array that is true for a given grid point if this point is within the
-! localization radius and false otherwise. It is, of course, different for each orbital.
-! Maybe later this array can be changed such that it does not cover the whole simulation box,
-! but only a part of it.
-allocate(logridCut_c(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3,lin%orbs%norbp), stat=istat)
-call memocc(istat, logridCut_c, 'logridCut_c', subname)
-allocate(logridCut_f(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3,lin%orbs%norbp), stat=istat)
-call memocc(istat, logridCut_f, 'logridCut_f', subname)
-
-norbpMax=maxval(lin%orbs%norb_par)
-allocate(lin%wfds(norbpMax,0:nproc-1), stat=istat)
-!call memocc(istat, lin%wfds, 'lin%wfds', subname)
-do jproc=0,nproc-1
-    do iorb=1,norbpMax
-        lin%wfds(iorb,jproc)%nseg_c=0
-        lin%wfds(iorb,jproc)%nseg_f=0
-        lin%wfds(iorb,jproc)%nvctr_c=0
-        lin%wfds(iorb,jproc)%nvctr_f=0
-    end do
-end do
-
-! Now comes the loop which determines the localization region for each orbital.
-! radiusCut gives the cutoff radius. More precisely: the cutoff radius is given by
-! radius*radiusCut, where radius is the coarse/fine radius of the given atom type.
-! IMPORTANT: The subroutines used by this part are identical to the cubic part! 
-radiusCut=4.d0
-do iorb=1,lin%orbs%norbp
-
-    iiAt=lin%onWhichAtom(iorb)
-    iitype=at%iatype(iiAt)
-    radius=radii_cf(1,iitype)
-    ! Fill logridCut. The cutoff for the localization region is given by radiusCut*radius
-    call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, &
-         1, 1, rxyz(1,iiAt), radius, radiusCut, input%hx, input%hy, input%hz, logridCut_c(0,0,0,iorb))
-
-    ! Calculate the number of segments and the number of grid points for each orbital.
-    call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), &
-        lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c)
-
-    ! Now the same procedure for the fine radius.
-    radius=radii_cf(2,iitype)
-    call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, &
-         1, 1, rxyz(1,iiAt), radius, radiusCut, input%hx, input%hy, input%hz, logridCut_f(0,0,0,iorb))
-
-    ! Calculate the number of segments and the number of grid points for each orbital.
-    call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), &
-        lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f)
-
-
-    ! Now fill the descriptors.
-    call allocate_wfd(lin%wfds(iorb,iproc), subname)
-    ! First the coarse part
-    call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), &
-        lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%keyg(1,1), lin%wfds(iorb,iproc)%keyv(1))
-    ! And then the fine part
-    ii=lin%wfds(iorb,iproc)%nseg_c+1
-    call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), &
-        lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%keyg(1,ii), lin%wfds(iorb,iproc)%keyv(ii))
-
-end do
-
-! Now each orbital knows only its own localization region. However we want each orbital to
-! know the number of grid points of all the other orbitals. This is done in the following.
-allocate(tempArr(1:norbpMax,0:nproc-1,2), stat=istat)
-call memocc(istat, tempArr, 'tempArr', subname)
-tempArr=0
-! First copy the number of coarse grid points (of all orbital on iproc) to a auxiliary array and sum it up
-! among all processes. Since each process filled only its own part, these arrays are then identical
-! on all processes.
-do iorb=1,lin%orbs%norbp
-    tempArr(iorb,iproc,2)=lin%wfds(iorb,iproc)%nvctr_c
-end do
-call mpi_allreduce(tempArr(1,0,2), tempArr(1,0,1), norbpMax*nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
-! Now assign the number of coarse grid points (of all orbitals on all processes) to lin%wfds(iorb,jproc)%nvctr_c.
-do jproc=0,nproc-1
-    do iorb=1,lin%orbs%norb_par(jproc)
-        lin%wfds(iorb,jproc)%nvctr_c=tempArr(iorb,jproc,1)
-        tempArr(iorb,jproc,1)=0
-    end do
-end do
-! Now do the same with the fine quantities.
-do iorb=1,lin%orbs%norbp
-    tempArr(iorb,iproc,2)=lin%wfds(iorb,iproc)%nvctr_f
-end do
-call mpi_allreduce(tempArr(1,0,2), tempArr(1,0,1), norbpMax*nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
-do jproc=0,nproc-1
-    do iorb=1,lin%orbs%norb_par(jproc)
-        lin%wfds(iorb,jproc)%nvctr_f=tempArr(iorb,jproc,1)
-    end do
-end do
-
-
-! Now divide the system in parts, i.e. create new MPI communicators that include only
-! a part of the orbitals. For instance, group 1 contains the MPI processes 0 to 10 and
-! group 2 contains the MPI processes 11 to 20. We specify how many orbitals a given group
-! should contain and then assign the best matching number of MPI processes to this group.
-
-! norbPerGroup gives the ideal number of orbitals per group.
-! If you don't want to deal with these groups and have only one group (as usual), simply put
-! norbPerGroup equal to lin%orbs%norb
-!norbPerGroup=30
-norbPerGroup=lin%orbs%norb
-
-! ngroups is the number of groups that we will have.
-ngroups=nint(dble(lin%orbs%norb)/dble(norbPerGroup))
-if(ngroups>nproc) then
-    if(iproc==0) write(*,'(a,i0,a,i0,a)') 'WARNING: change ngroups from ', ngroups, ' to ', nproc,'!'
-    ngroups=nproc
-end if
-
-! idealSplit gives the number of orbitals that would be assigned to each group
-! in the ideal case.
-idealSplit=dble(lin%orbs%norb)/dble(ngroups)
-
-! Now distribute the orbitals to the groups. Do not split MPI processes, i.e.
-! all orbitals for one process will remain with this proccess.
-! The procedure is as follows: We weant to assign idealSplit orbitals to a group.
-! To do so, we iterate through the MPI processes and sum up the number of orbitals.
-! If we are at process k of this iteration, then norbtot1 gives the sum of the orbitals
-! up to process k, and norbtot2 the orbitals up to process k+1. If norbtot2 is closer
-! to idealSplit than norbtot1, we continue the iteration, otherwise we split the groups
-! at process k.
-!allocate(norbPerGroupArr(ngroups), stat=istat)
-!allocate(procsInGroup(2,ngroups))
-lin%ncomms=ngroups
-allocate(lin%procsInComm(2,lin%ncomms), stat=istat)
-call memocc(istat, lin%procsInComm, 'lin%procsInComm', subname)
-allocate(lin%norbPerComm(lin%ncomms), stat=istat)
-call memocc(istat, lin%norbPerComm, 'lin%norbPerComm', subname)
-norbtot1=0
-norbtot2=0
-igroup=1
-jprocStart=0
-jprocEnd=0
-do jproc=0,nproc-1
-    if(igroup==ngroups) then
-        ! This last group has to take all the rest
-        do ii=jproc,nproc-1
-            norbtot1=norbtot1+lin%orbs%norb_par(jproc)
-            jprocEnd=jprocEnd+1
-        end do
-    else
-        norbtot1=norbtot1+orbsLIN%norb_par(jproc)
-        if(jproc<nproc-1) norbtot2=norbtot1+lin%orbs%norb_par(jproc+1)
-        jprocEnd=jprocEnd+1
-    end if
-    if(abs(dble(norbtot1)-idealSplit)<abs(dble(norbtot2-idealSplit)) .or. igroup==ngroups) then
-        ! Here is the split between two groups
-        lin%norbPerComm(igroup)=norbtot1
-        lin%procsInComm(1,igroup)=jprocStart
-        lin%procsInComm(2,igroup)=jprocEnd-1
-        norbtot1=0
-        norbtot2=0
-        jprocStart=jproc+1
-        if(igroup==ngroups) exit
-        igroup=igroup+1
-    end if
-end do
-
-
-
-! Now create the new MPI communicators.
-! These communicators will be contained in the array newComm. If you want to
-! use MPI processes only for the processes in group igroup, you can use the
-! ordinary MPI routines just with newComm(igroup) instead of mpi_comm_world.
-allocate(newID(0:nproc), stat=istat)
-call memocc(istat, newID, 'newID', subname)
-allocate(newGroup(1:ngroups))
-call memocc(istat, newGroup, 'newGroup', subname)
-allocate(lin%MPIcomms(1:ngroups), stat=istat)
-call memocc(istat, lin%MPIComms, 'lin%MPIComms', subname)
-do jproc=0,nproc-1
-    newID(jproc)=jproc
-end do
-call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
-do igroup=1,ngroups
-    call mpi_group_incl(wholeGroup, newID(lin%procsInComm(2,igroup))-newID(lin%procsInComm(1,igroup))+1,&
-        newID(lin%procsInComm(1,igroup)), newGroup(igroup), ierr)
-    call mpi_comm_create(mpi_comm_world, newGroup(igroup), lin%MPIComms(igroup), ierr)
-end do
-
-
-
-! Now create the parameters for the transposition.
-! lproc and uproc give the first and last process ID of the processes
-! in the communicator igroup.
-do igroup=1,ngroups
-    lproc=lin%procsInComm(1,igroup)
-    uproc=lin%procsInComm(2,igroup)
-    if(iproc>=lproc .and. iproc<=uproc) then
-        call orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lin%MPIComms(igroup), lin%norbPerComm(igroup))
-    end if
-end do
-
-
-!!! Write out the parameters for the transposition.
-!!do igroup=1,ngroups
-!!    lproc=lin%procsInComm(1,igroup)
-!!    uproc=lin%procsInComm(2,igroup)
-!!    do jproc=lproc,uproc
-!!        if(iproc>=lproc .and. iproc<=uproc) write(*,'(a,3i5,4i12)') 'iproc, igroup, jproc, lin%comms%ncntdLIN(jproc), &
-!!            & lin%comms%ndspldLIN(jproc), lin%comms%ncnttLIN(jproc), lin%comms%ndspltLIN(jproc)', &
-!!            iproc, igroup, jproc, lin%comms%ncntdLIN(jproc), lin%comms%ndspldLIN(jproc), &
-!!            lin%comms%ncnttLIN(jproc), lin%comms%ndspltLIN(jproc)
-!!    end do
-!!end do
-
-
-! Test the transposition. To do so, transpose and retranspose an array. If the transposition is
-! correct, this should give the same result
-allocate(psi(lin%orbs%npsidim), stat=istat)
-allocate(psiInit(lin%orbs%npsidim), stat=istat)
-allocate(psiWork(lin%orbs%npsidim), stat=istat)
-call random_number(psi)
-psiInit=psi
-!ii=0
-!do iorb=1,lin%orbs%norbp
-!    do i=1,lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f
-!        ii=ii+1
-!        write(100+iproc,*) ii,psi(ii)
-!    end do
-!end do
-do igroup=1,ngroups
-    lproc=lin%procsInComm(1,igroup)
-    uproc=lin%procsInComm(2,igroup)
-    !write(*,'(a,4i8)') 'igroup, lproc, uproc, lin%norbPerComm(igroup)', igroup, lproc, uproc, lin%norbPerComm(igroup)
-    if(iproc>=lproc .and. iproc<=uproc) then
-        call transpose_vLIN(iproc, lproc, uproc, lin%norbPerComm(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
-        call untranspose_vLIN(iproc, lproc, uproc, lin%norbPerComm(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
-    end if
-end do
-
-passedTest=.true.
-ii=0
-do iorb=1,lin%orbs%norbp
-    do i=1,lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f
-        ii=ii+1
-        !write(300+iproc,*) ii,psi(ii)
-        if(psi(ii)/=psiInit(ii)) then
-            passedTest=.false.
-        end if
-    end do
-end do
-if(passedTest) then
-    write(*,'(x,a,i0,a)') 'transposition test passed on process ', iproc, '.'
-else
-    write(*,'(x,a,i0,a)') 'transposition test failed on process ', iproc, '.'
-    write(*,'(x,a)') 'The program will stop now!'
-    stop
-end if
-nullify(psi)
-nullify(psiWork)
-
-
-
-iall=-product(shape(logridCut_c))*kind(logridCut_c)
-deallocate(logridCut_c, stat=istat)
-call memocc(istat, iall, 'logridCut_c', subname)
-iall=-product(shape(logridCut_f))*kind(logridCut_f)
-deallocate(logridCut_f, stat=istat)
-call memocc(istat, iall, 'logridCut_f', subname)
-iall=-product(shape(tempArr))*kind(tempArr)
-deallocate(tempArr, stat=istat)
-call memocc(istat, iall, 'tempArr', subname)
-iall=-product(shape(newID))*kind(newID)
-deallocate(newID, stat=istat)
-call memocc(istat, iall, 'newID', subname)
-iall=-product(shape(newGroup))*kind(newGroup)
-deallocate(newGroup)
-call memocc(istat, iall, 'newGroup', subname)
-
-
-!! WARNING: assign back the original value of lin%orbs%npsidim
-lin%orbs%npsidim=npsidimTemp
+  ! WARNING: during this subroutine lin%orbs%npsidim may be modified. Therefore copy it here
+  !          and assign it back at the end of the subroutine.
+  !          Otherwise the linear scaling version which is executed after the call to this
+  !          subroutine will not work any more!
+  npsidimTemp=lin%orbs%npsidim
+  
+  ! First check wheter we have free boundary conditions.
+  if(lr%geocode/='F' .and. lr%geocode/='f') then
+      if(iproc==0) write(*,'(a)') 'initializeLocRegLIN only implemented for free boundary conditions!'
+      call mpi_barrier(mpi_comm_world, ierr)
+      stop
+  end if
+  
+  
+  ! Copy the whole type describing the localization region. This will also automatically allocate all pointers.
+  ! Change later?
+  lin%lr=lr
+  
+  
+  ! logridCut is a logical array that is true for a given grid point if this point is within the
+  ! localization radius and false otherwise. It is, of course, different for each orbital.
+  ! Maybe later this array can be changed such that it does not cover the whole simulation box,
+  ! but only a part of it.
+  allocate(logridCut_c(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3,lin%orbs%norbp), stat=istat)
+  call memocc(istat, logridCut_c, 'logridCut_c', subname)
+  allocate(logridCut_f(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3,lin%orbs%norbp), stat=istat)
+  call memocc(istat, logridCut_f, 'logridCut_f', subname)
+  
+  ! Allocate the wave function descriptors which will describe the orbitals.
+  ! Since each orbital has its own localization region, we need an array.
+  ! Since we allocate an array of types, there are problems with memocc...
+  norbpMax=maxval(lin%orbs%norb_par)
+  allocate(lin%wfds(norbpMax,0:nproc-1), stat=istat)
+  !call memocc(istat, lin%wfds, 'lin%wfds', subname)
+  do jproc=0,nproc-1
+      do iorb=1,norbpMax
+          lin%wfds(iorb,jproc)%nseg_c=0
+          lin%wfds(iorb,jproc)%nseg_f=0
+          lin%wfds(iorb,jproc)%nvctr_c=0
+          lin%wfds(iorb,jproc)%nvctr_f=0
+      end do
+  end do
+  
+  ! Now comes the loop which determines the localization region for each orbital.
+  ! radiusCut gives the cutoff radius. More precisely: the cutoff radius is given by
+  ! radius*radiusCut, where radius is the coarse/fine radius of the given atom type.
+  ! IMPORTANT: The subroutines used by this part are identical to the cubic part! 
+  radiusCut=4.d0
+  do iorb=1,lin%orbs%norbp
+  
+      iiAt=lin%onWhichAtom(iorb)
+      iitype=at%iatype(iiAt)
+      radius=radii_cf(1,iitype)
+      ! Fill logridCut. The cutoff for the localization region is given by radiusCut*radius
+      call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, &
+           1, 1, rxyz(1,iiAt), radius, radiusCut, input%hx, input%hy, input%hz, logridCut_c(0,0,0,iorb))
+  
+      ! Calculate the number of segments and the number of grid points for each orbital.
+      call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), &
+          lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c)
+  
+      ! Now the same procedure for the fine radius.
+      radius=radii_cf(2,iitype)
+      call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, &
+           1, 1, rxyz(1,iiAt), radius, radiusCut, input%hx, input%hy, input%hz, logridCut_f(0,0,0,iorb))
+  
+      ! Calculate the number of segments and the number of grid points for each orbital.
+      call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), &
+          lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f)
+  
+  
+      ! Now fill the descriptors.
+      call allocate_wfd(lin%wfds(iorb,iproc), subname)
+      ! First the coarse part
+      call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), &
+          lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%keyg(1,1), lin%wfds(iorb,iproc)%keyv(1))
+      ! And then the fine part
+      ii=lin%wfds(iorb,iproc)%nseg_c+1
+      call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), &
+          lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%keyg(1,ii), lin%wfds(iorb,iproc)%keyv(ii))
+  
+  end do
+  
+  ! Now each orbital knows only its own localization region. However we want each orbital to
+  ! know the number of grid points of all the other orbitals. This is done in the following.
+  allocate(tempArr(1:norbpMax,0:nproc-1,2), stat=istat)
+  call memocc(istat, tempArr, 'tempArr', subname)
+  tempArr=0
+  ! First copy the number of coarse grid points (of all orbital on iproc) to a auxiliary array and sum it up
+  ! among all processes. Since each process filled only its own part, these arrays are then identical
+  ! on all processes.
+  do iorb=1,lin%orbs%norbp
+      tempArr(iorb,iproc,2)=lin%wfds(iorb,iproc)%nvctr_c
+  end do
+  call mpi_allreduce(tempArr(1,0,2), tempArr(1,0,1), norbpMax*nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+  ! Now assign the number of coarse grid points (of all orbitals on all processes) to lin%wfds(iorb,jproc)%nvctr_c.
+  do jproc=0,nproc-1
+      do iorb=1,lin%orbs%norb_par(jproc)
+          lin%wfds(iorb,jproc)%nvctr_c=tempArr(iorb,jproc,1)
+          tempArr(iorb,jproc,1)=0
+      end do
+  end do
+  ! Now do the same with the fine quantities.
+  do iorb=1,lin%orbs%norbp
+      tempArr(iorb,iproc,2)=lin%wfds(iorb,iproc)%nvctr_f
+  end do
+  call mpi_allreduce(tempArr(1,0,2), tempArr(1,0,1), norbpMax*nproc, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+  do jproc=0,nproc-1
+      do iorb=1,lin%orbs%norb_par(jproc)
+          lin%wfds(iorb,jproc)%nvctr_f=tempArr(iorb,jproc,1)
+      end do
+  end do
+  
+  
+  ! Now divide the system in parts, i.e. create new MPI communicators that include only
+  ! a part of the orbitals. For instance, group 1 contains the MPI processes 0 to 10 and
+  ! group 2 contains the MPI processes 11 to 20. We specify how many orbitals a given group
+  ! should contain and then assign the best matching number of MPI processes to this group.
+  
+  ! norbPerGroup gives the ideal number of orbitals per group.
+  ! If you don't want to deal with these groups and have only one group (as usual), simply put
+  ! norbPerGroup equal to lin%orbs%norb
+  !norbPerGroup=30
+  norbPerGroup=lin%orbs%norb
+  
+  ! ngroups is the number of groups that we will have.
+  ngroups=nint(dble(lin%orbs%norb)/dble(norbPerGroup))
+  if(ngroups>nproc) then
+      if(iproc==0) write(*,'(a,i0,a,i0,a)') 'WARNING: change ngroups from ', ngroups, ' to ', nproc,'!'
+      ngroups=nproc
+  end if
+  
+  ! idealSplit gives the number of orbitals that would be assigned to each group
+  ! in the ideal case.
+  idealSplit=dble(lin%orbs%norb)/dble(ngroups)
+  
+  ! Now distribute the orbitals to the groups. Do not split MPI processes, i.e.
+  ! all orbitals for one process will remain with this proccess.
+  ! The procedure is as follows: We weant to assign idealSplit orbitals to a group.
+  ! To do so, we iterate through the MPI processes and sum up the number of orbitals.
+  ! If we are at process k of this iteration, then norbtot1 gives the sum of the orbitals
+  ! up to process k, and norbtot2 the orbitals up to process k+1. If norbtot2 is closer
+  ! to idealSplit than norbtot1, we continue the iteration, otherwise we split the groups
+  ! at process k.
+  lin%ncomms=ngroups
+  allocate(lin%procsInComm(2,lin%ncomms), stat=istat)
+  call memocc(istat, lin%procsInComm, 'lin%procsInComm', subname)
+  allocate(lin%norbPerComm(lin%ncomms), stat=istat)
+  call memocc(istat, lin%norbPerComm, 'lin%norbPerComm', subname)
+  norbtot1=0
+  norbtot2=0
+  igroup=1
+  jprocStart=0
+  jprocEnd=0
+  do jproc=0,nproc-1
+      if(igroup==ngroups) then
+          ! This last group has to take all the rest
+          do ii=jproc,nproc-1
+              norbtot1=norbtot1+lin%orbs%norb_par(jproc)
+              jprocEnd=jprocEnd+1
+          end do
+      else
+          norbtot1=norbtot1+lin%orbs%norb_par(jproc)
+          if(jproc<nproc-1) norbtot2=norbtot1+lin%orbs%norb_par(jproc+1)
+          jprocEnd=jprocEnd+1
+      end if
+      if(abs(dble(norbtot1)-idealSplit)<abs(dble(norbtot2-idealSplit)) .or. igroup==ngroups) then
+          ! Here is the split between two groups
+          lin%norbPerComm(igroup)=norbtot1
+          lin%procsInComm(1,igroup)=jprocStart
+          lin%procsInComm(2,igroup)=jprocEnd-1
+          norbtot1=0
+          norbtot2=0
+          jprocStart=jproc+1
+          if(igroup==ngroups) exit
+          igroup=igroup+1
+      end if
+  end do
+  
+  
+  
+  ! Now create the new MPI communicators.
+  ! These communicators will be contained in the array newComm. If you want to
+  ! use MPI processes only for the processes in group igroup, you can use the
+  ! ordinary MPI routines just with newComm(igroup) instead of mpi_comm_world.
+  allocate(newID(0:nproc), stat=istat)
+  call memocc(istat, newID, 'newID', subname)
+  allocate(newGroup(1:ngroups))
+  call memocc(istat, newGroup, 'newGroup', subname)
+  allocate(lin%MPIcomms(1:ngroups), stat=istat)
+  call memocc(istat, lin%MPIComms, 'lin%MPIComms', subname)
+  do jproc=0,nproc-1
+      newID(jproc)=jproc
+  end do
+  call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
+  do igroup=1,ngroups
+      call mpi_group_incl(wholeGroup, newID(lin%procsInComm(2,igroup))-newID(lin%procsInComm(1,igroup))+1,&
+          newID(lin%procsInComm(1,igroup)), newGroup(igroup), ierr)
+      call mpi_comm_create(mpi_comm_world, newGroup(igroup), lin%MPIComms(igroup), ierr)
+  end do
+  
+  
+  
+  ! Now create the parameters for the transposition.
+  ! lproc and uproc give the first and last process ID of the processes
+  ! in the communicator igroup.
+  do igroup=1,ngroups
+      lproc=lin%procsInComm(1,igroup)
+      uproc=lin%procsInComm(2,igroup)
+      if(iproc>=lproc .and. iproc<=uproc) then
+          call orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lin%MPIComms(igroup), lin%norbPerComm(igroup))
+      end if
+  end do
+  
+  
+  
+  ! Test the transposition. To do so, transpose and retranspose an array. If the transposition is
+  ! correct, this should give the same result.
+  allocate(psi(lin%orbs%npsidim), stat=istat)
+  call memocc(istat, psi, 'psi', subname)
+  allocate(psiInit(lin%orbs%npsidim), stat=istat)
+  call memocc(istat, psiInit, 'psiInit', subname)
+  allocate(psiWork(lin%orbs%npsidim), stat=istat)
+  call memocc(istat, psiWork, 'psiWork', subname)
+  call random_number(psi)
+  call dcopy(lin%orbs%npsidim, psi(1), 1, psiInit(1), 1)
+  do igroup=1,ngroups
+      lproc=lin%procsInComm(1,igroup)
+      uproc=lin%procsInComm(2,igroup)
+      !write(*,'(a,4i8)') 'igroup, lproc, uproc, lin%norbPerComm(igroup)', igroup, lproc, uproc, lin%norbPerComm(igroup)
+      if(iproc>=lproc .and. iproc<=uproc) then
+          call transpose_vLIN(iproc, lproc, uproc, lin%norbPerComm(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
+          call untranspose_vLIN(iproc, lproc, uproc, lin%norbPerComm(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
+      end if
+  end do
+  
+  passedTest=.true.
+  ii=0
+  do iorb=1,lin%orbs%norbp
+      do i=1,lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f
+          ii=ii+1
+          !write(300+iproc,*) ii,psi(ii)
+          if(psi(ii)/=psiInit(ii)) then
+              passedTest=.false.
+          end if
+      end do
+  end do
+  if(passedTest) then
+      write(*,'(x,a,i0,a)') 'transposition test passed on process ', iproc, '.'
+  else
+      write(*,'(x,a,i0,a)') 'transposition test failed on process ', iproc, '.'
+      write(*,'(x,a)') 'The program will stop now!'
+      stop
+  end if
+  
+  ! Deallocate all local arrays
+  iall=-product(shape(psi))*kind(psi)
+  deallocate(psi, stat=istat)
+  call memocc(istat, iall, 'psi', subname)
+  iall=-product(shape(psiInit))*kind(psiInit)
+  deallocate(psiInit, stat=istat)
+  call memocc(istat, iall, 'psiInit', subname)
+  iall=-product(shape(psiWork))*kind(psiWork)
+  deallocate(psiWork, stat=istat)
+  call memocc(istat, iall, 'psiWork', subname)
+  iall=-product(shape(logridCut_c))*kind(logridCut_c)
+  deallocate(logridCut_c, stat=istat)
+  call memocc(istat, iall, 'logridCut_c', subname)
+  iall=-product(shape(logridCut_f))*kind(logridCut_f)
+  deallocate(logridCut_f, stat=istat)
+  call memocc(istat, iall, 'logridCut_f', subname)
+  iall=-product(shape(tempArr))*kind(tempArr)
+  deallocate(tempArr, stat=istat)
+  call memocc(istat, iall, 'tempArr', subname)
+  iall=-product(shape(newID))*kind(newID)
+  deallocate(newID, stat=istat)
+  call memocc(istat, iall, 'newID', subname)
+  iall=-product(shape(newGroup))*kind(newGroup)
+  deallocate(newGroup)
+  call memocc(istat, iall, 'newGroup', subname)
+  
+  
+  ! WARNING: assign back the original value of lin%orbs%npsidim due to the reasons
+  !          explained in the beginning.
+  lin%orbs%npsidim=npsidimTemp
 
 end subroutine initializeLocRegLIN
 
@@ -350,35 +362,35 @@ subroutine fill_logridCut(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
 ! ==================
 !   Input arguments:
 !   ----------------
-!     geocode       boundary conditions
-!     n1            grid dimension in x direction is 0:n1
-!     n2            grid dimension in y direction is 0:n2
-!     n3            grid dimension in z direction is 0:n3
-!     nl1           lower bound of the grid (in x direction) for which we determine the localization region
-!     nl2           lower bound of the grid (in y direction) for which we determine the localization region
-!     nl3           lower bound of the grid (in z direction) for which we determine the localization region
-!     nu1           upper bound of the grid (in x direction) for which we determine the localization region
-!     nu2           upper bound of the grid (in y direction) for which we determine the localization region
-!     nu3           upper bound of the grid (in z direction) for which we determine the localization region
-!     nbuf          ??
-!     nat           number of atoms for which we should check wheter the grid point i1,i2,i3 is within 
-!                     the localization region of these atoms. For the linear scaling version we should only
-!                     take one atom, since the orbitals are centered on one atom.
-!     ntypes        number of types of atom. For the linear scaling version, this should be equal to one for
-!                   the same reasons as nat.
-!     iatype        array indicating to which atom type a given atom belongs. For the linear scaling version
-!                   this is one for again the same reasons.
-!     rxyz          atomic positions
-!     radii         part 1 of the cutoff radius (calculated by BigDFT)
-!     rmult         part 2 of the cutoff radius (user specified)
-!                   -> the cutoff radius is then given by radii*rmult
-!     hx            hgrid in x dimension
-!     hy            hgrid in y dimension
-!     hz            hgrid in z dimension
+!     geocode    boundary conditions
+!     n1         grid dimension in x direction is 0:n1
+!     n2         grid dimension in y direction is 0:n2
+!     n3         grid dimension in z direction is 0:n3
+!     nl1        lower bound of the grid (in x direction) for which we determine the localization region
+!     nl2        lower bound of the grid (in y direction) for which we determine the localization region
+!     nl3        lower bound of the grid (in z direction) for which we determine the localization region
+!     nu1        upper bound of the grid (in x direction) for which we determine the localization region
+!     nu2        upper bound of the grid (in y direction) for which we determine the localization region
+!     nu3        upper bound of the grid (in z direction) for which we determine the localization region
+!     nbuf       ??
+!     nat        number of atoms for which we should check wheter the grid point i1,i2,i3 is within 
+!                  the localization region of these atoms. For the linear scaling version we should only
+!                  take one atom, since the orbitals are centered on one atom.
+!     ntypes     number of types of atom. For the linear scaling version, this should be equal to one for
+!                the same reasons as nat.
+!     iatype     array indicating to which atom type a given atom belongs. For the linear scaling version
+!                this is one for again the same reasons.
+!     rxyz       atomic positions
+!     radii      part 1 of the cutoff radius (calculated by BigDFT)
+!     rmult      part 2 of the cutoff radius (user specified)
+!                -> the cutoff radius is then given by radii*rmult
+!     hx         hgrid in x dimension
+!     hy         hgrid in y dimension
+!     hz         hgrid in z dimension
 !   Output arguments:
 !   -----------------
-!     logrid        array indicating wheter a given grid point i1,i2,i3 is within the localization region or not.
-!                   If logrid(i1,i2,i3) is true, then the point i1,i2,i3 is within the region, otherwise not.
+!     logrid     array indicating wheter a given grid point i1,i2,i3 is within the localization region or not.
+!                If logrid(i1,i2,i3) is true, then the point i1,i2,i3 is within the region, otherwise not.
 !
 use module_base
 implicit none
