@@ -565,6 +565,8 @@ real(8):: tt
   isorbp=0
   ispsi=0
 
+write(*,*) 'orbs%npsidim', orbs%npsidim
+
 if(orbs%nkptsp>1) then
   write(*,*) 'ERROR: more than 1 k-point!'
   stop
@@ -681,6 +683,8 @@ integer:: k, ii
   nproc=uproc-lproc+1
 
 write(*,*) 'size(psi), size(psiw)',size(psi), size(psiw)
+write(2000+iproc,*) psiw
+write(2100+iproc,*) psi
 
   !! CAN I DELETE THIS? !!
   !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -714,6 +718,7 @@ write(*,*) 'size(psi), size(psiw)',size(psi), size(psiw)
               !     ispsi
               ind=ii+ijproc*orbs%nspinor+ispsi
               !do i=1,nvctr_par(j,ikptsp)
+ write(*,'(a,3i5,i10)') 'iproc, j, iorb, comms%nvctr_parLIN(iorb,iproc,j,ikptsp)', iproc, j, iorb, comms%nvctr_parLIN(iorb,iproc,j,ikptsp)
               do i=1,comms%nvctr_parLIN(iorb,iproc,j,ikptsp)
                  it=ind+i
                  !psi(ij,orbs%nspinor,iorb+isorbp)=psiw(it)
@@ -725,6 +730,7 @@ write(*,*) 'size(psi), size(psiw)',size(psi), size(psiw)
                      write(*,'(a,2i12)') 'ERROR: it>size(psiw), it, size(psiw)',it, size(psiw)
                      stop
                  end if
+                 write(2500+iproc,'(a,2i10,2es15.7)') 'ij, it, psi(ij), psiw(it)', ij, it, psi(ij), psiw(it)
                  psi(ij)=psiw(it)
                  ij=ij+1
               end do
@@ -788,6 +794,9 @@ write(*,*) 'size(psi), size(psiw)',size(psi), size(psiw)
      !!!and starting point for psi
      !!ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
   end do
+
+write(2200+iproc,*) psiw
+write(2300+iproc,*) psi
   
 END SUBROUTINE unswitch_waves_vLIN
 

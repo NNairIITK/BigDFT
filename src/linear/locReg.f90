@@ -24,7 +24,7 @@ real(8),dimension(at%ntypes,3):: radii_cf
 type(communications_arrays):: commsLIN
 
 ! Local variables
-integer:: iorb, iiAt, iitype, istat, iall, ierr, ii, ngroups, norbPerGroup, jprocStart, jprocEnd
+integer:: iorb, iiAt, iitype, istat, iall, ierr, ii, ngroups, norbPerGroup, jprocStart, jprocEnd, i
 integer:: norbtot1, norbtot2, igroup, jproc, norbpMax, lproc, uproc, wholeGroup
 real(8):: radius, radiusCut, idealSplit, npsidimTemp
 logical,dimension(:,:,:,:),allocatable:: logridCut_c
@@ -273,24 +273,52 @@ end do
 
 
 ! Test the transposition.
+write(*,*) 'lin%orbs%npsidim', lin%orbs%npsidim
 allocate(psi(lin%orbs%npsidim), stat=istat)
 allocate(psiWork(lin%orbs%npsidim), stat=istat)
 call random_number(psi)
-write(100+iproc,*) psi
+ii=0
+do iorb=1,lin%orbs%norbp
+    do i=1,lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f
+        ii=ii+1
+        write(100+iproc,*) ii,psi(ii)
+    end do
+end do
 do igroup=1,ngroups
     lproc=procsInGroup(1,igroup)
     uproc=procsInGroup(2,igroup)
     write(*,'(a,4i8)') 'igroup, lproc, uproc, norbPerGroupArr(igroup)', igroup, lproc, uproc, norbPerGroupArr(igroup)
     if(iproc>=lproc .and. iproc<=uproc) then
+
+        !! TEST !!
+        !!call switch_waves_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, lr, psi, psiWork)
+        !!write(600+iproc,*) psiWork
+        !!call mpi_alltoallv(psiWork, lin%comms%ncntdLIN, lin%comms%ndspldLIN, mpidtypw, &
+        !!    psi, lin%comms%ncnttLIN, lin%comms%ndspltLIN, mpidtypw, newComm, ierr)
+        !!write(200+iproc,*) psi
+        !!call mpi_alltoallv(psi, lin%comms%ncnttLIN, lin%comms%ndspltLIN, mpidtypw,  &
+        !!    psiWork, lin%comms%ncntdLIN, lin%comms%ndspldLIN, mpidtypw, newComm, ierr)
+        !!write(700+iproc,*) psiWork
+        !!call unswitch_waves_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, lr, psiWork, psi)
+        !!write(800+iproc,*) psi
+
+
         call transpose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, newComm(igroup), work=psiWork)
         !call transpose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
-        write(200+iproc,*) psi
+        !write(200+iproc,*) psi
         !!call orthogonalizeLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, input, newComm(igroup))
         call untranspose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, newComm(igroup), work=psiWork)
         !call untranspose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
     end if
 end do
-write(300+iproc,*) psi
+!write(300+iproc,*) psi
+ii=0
+do iorb=1,lin%orbs%norbp
+    do i=1,lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f
+        ii=ii+1
+        write(300+iproc,*) ii,psi(ii)
+    end do
+end do
 nullify(psi)
 nullify(psiWork)
 
@@ -694,6 +722,7 @@ subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, orbs, c
         do outproc=lproc,uproc
            do iorb=1,norb_par(outproc,ikpt)
               comms%nvctr_parLIN(iorb,outproc,jproc,ikpt)=nvctr_parLIN(iorb,outproc,jproc,ikpt) 
+              if(iproc==0) write(*,'(a,3i5,i10)') 'outproc, jproc, iorb, comms%nvctr_parLIN(iorb,outproc,jproc,ikpt)', outproc, jproc, iorb, comms%nvctr_parLIN(iorb,outproc,jproc,ikpt)
            end do
         end do
      end do
