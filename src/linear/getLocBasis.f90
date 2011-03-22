@@ -1114,10 +1114,22 @@ character(len=*),parameter:: subname='deallocateLinear'
       call memocc(istat, iall, 'lin%comms%ndspltLIN', subname)
   end if
 
-  !if(allocated(lin%MPIComms)) then
-  !    iall=-product(shape(lin%MPIComms))*kind(lin%MPIComms)
-  !    deallocate(lin%MPIComms, stat=istat)
-  !    call memocc(istat, iall, 'lin%MPIComms', subname)
-  !end if
+  if(allocated(lin%MPIComms)) then
+      iall=-product(shape(lin%MPIComms))*kind(lin%MPIComms)
+      deallocate(lin%MPIComms, stat=istat)
+      call memocc(istat, iall, 'lin%MPIComms', subname)
+  end if
+
+  if(allocated(lin%procsInComm)) then
+      iall=-product(shape(lin%procsInComm))*kind(lin%procsInComm)
+      deallocate(lin%procsInComm, stat=istat)
+      call memocc(istat, iall, 'lin%procsInComm', subname)
+  end if
+
+  if(allocated(lin%norbPerComm)) then
+      iall=-product(shape(lin%norbPerComm))*kind(lin%norbPerComm)
+      deallocate(lin%norbPerComm, stat=istat)
+      call memocc(istat, iall, 'lin%norbPerComm', subname)
+  end if
 
 end subroutine deallocateLinear

@@ -433,9 +433,9 @@ type,public:: linearParameters
   type(locreg_descriptors):: lr
   type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfds
   integer,dimension(:),allocatable:: onWhichAtom
-  !integer,dimension(:),allocatable:: MPIComms, norbPerComm
-  !integer,dimension(:,:),allocatable:: procsInComm
-  !integer:: ncomms
+  integer,dimension(:),allocatable:: MPIComms, norbPerComm
+  integer,dimension(:,:),allocatable:: procsInComm
+  integer:: ncomms
 end type
 
 

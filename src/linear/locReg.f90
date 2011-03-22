@@ -27,12 +27,13 @@ type(communications_arrays):: commsLIN
 integer:: iorb, iiAt, iitype, istat, iall, ierr, ii, ngroups, norbPerGroup, jprocStart, jprocEnd, i
 integer:: norbtot1, norbtot2, igroup, jproc, norbpMax, lproc, uproc, wholeGroup
 real(8):: radius, radiusCut, idealSplit, npsidimTemp
+logical:: passedTest
 logical,dimension(:,:,:,:),allocatable:: logridCut_c
 logical,dimension(:,:,:,:),allocatable:: logridCut_f
 integer,dimension(:),allocatable:: norbPerGroupArr, newID, newGroup, newComm
 integer,dimension(:,:),allocatable:: procsInGroup
 integer,dimension(:,:,:),allocatable:: tempArr
-real(8),dimension(:),pointer:: psi, psiWork
+real(8),dimension(:),pointer:: psiInit, psi, psiWork
 character(len=*),parameter:: subname='initializeLocRegLIN'
 
 
@@ -176,11 +177,13 @@ idealSplit=dble(lin%orbs%norb)/dble(ngroups)
 ! up to process k, and norbtot2 the orbitals up to process k+1. If norbtot2 is closer
 ! to idealSplit than norbtot1, we continue the iteration, otherwise we split the groups
 ! at process k.
-allocate(norbPerGroupArr(ngroups), stat=istat)
-allocate(procsInGroup(2,ngroups))
-!lin%ncomms=ngroups
-!allocate(lin%procsInComm(2,lin%ncomms), stat=istat)
-!allocate(lin%norbPerComm(lin%ncomms), stat=istat)
+!allocate(norbPerGroupArr(ngroups), stat=istat)
+!allocate(procsInGroup(2,ngroups))
+lin%ncomms=ngroups
+allocate(lin%procsInComm(2,lin%ncomms), stat=istat)
+call memocc(istat, lin%procsInComm, 'lin%procsInComm', subname)
+allocate(lin%norbPerComm(lin%ncomms), stat=istat)
+call memocc(istat, lin%norbPerComm, 'lin%norbPerComm', subname)
 norbtot1=0
 norbtot2=0
 igroup=1
@@ -200,23 +203,15 @@ do jproc=0,nproc-1
     end if
     if(abs(dble(norbtot1)-idealSplit)<abs(dble(norbtot2-idealSplit)) .or. igroup==ngroups) then
         ! Here is the split between two groups
-        norbPerGroupArr(igroup)=norbtot1
-        !lin%norbPerComm(igroup)=norbtot1
-        procsInGroup(1,igroup)=jprocStart
-        procsInGroup(2,igroup)=jprocEnd-1
-        !lin%procsInComm(1,igroup)=jprocStart
-        !lin%procsInComm(2,igroup)=jprocEnd-1
+        lin%norbPerComm(igroup)=norbtot1
+        lin%procsInComm(1,igroup)=jprocStart
+        lin%procsInComm(2,igroup)=jprocEnd-1
         norbtot1=0
         norbtot2=0
         jprocStart=jproc+1
         if(igroup==ngroups) exit
         igroup=igroup+1
     end if
-end do
-
-do igroup=1,ngroups
-    if(iproc==0) write(*,'(a,i4,3i5)') 'iproc, norbPerGroupArr(igroup), procsInGroup(1,igroup), procsInGroup(2,igroup)',&
-        iproc, norbPerGroupArr(igroup), procsInGroup(1,igroup), procsInGroup(2,igroup)
 end do
 
 
@@ -226,23 +221,20 @@ end do
 ! use MPI processes only for the processes in group igroup, you can use the
 ! ordinary MPI routines just with newComm(igroup) instead of mpi_comm_world.
 allocate(newID(0:nproc), stat=istat)
+call memocc(istat, newID, 'newID', subname)
 allocate(newGroup(1:ngroups))
-allocate(newComm(1:ngroups))
-!allocate(lin%MPIcomms(1:ngroups), stat=istat)
-!call memocc(istat, lin%MPIComms, 'lin%MPIComms', subname)
+call memocc(istat, newGroup, 'newGroup', subname)
+allocate(lin%MPIcomms(1:ngroups), stat=istat)
+call memocc(istat, lin%MPIComms, 'lin%MPIComms', subname)
 do jproc=0,nproc-1
     newID(jproc)=jproc
 end do
 call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
 do igroup=1,ngroups
-    call mpi_group_incl(wholeGroup, newID(procsInGroup(2,igroup))-newID(procsInGroup(1,igroup))+1,&
-        newID(procsInGroup(1,igroup)), newGroup(igroup), ierr)
-    !call mpi_group_incl(wholeGroup, newID(lin%procsInComm(2,igroup))-newID(lin%procsInComm(1,igroup))+1,&
-    !    newID(lin%procsInComm(1,igroup)), newGroup(igroup), ierr)
-    call mpi_comm_create(mpi_comm_world, newGroup(igroup), newComm(igroup), ierr)
-    !call mpi_comm_create(mpi_comm_world, newGroup(igroup), lin%MPIComms(igroup), ierr)
+    call mpi_group_incl(wholeGroup, newID(lin%procsInComm(2,igroup))-newID(lin%procsInComm(1,igroup))+1,&
+        newID(lin%procsInComm(1,igroup)), newGroup(igroup), ierr)
+    call mpi_comm_create(mpi_comm_world, newGroup(igroup), lin%MPIComms(igroup), ierr)
 end do
-
 
 
 
@@ -250,75 +242,69 @@ end do
 ! lproc and uproc give the first and last process ID of the processes
 ! in the communicator igroup.
 do igroup=1,ngroups
-    lproc=procsInGroup(1,igroup)
-    uproc=procsInGroup(2,igroup)
+    lproc=lin%procsInComm(1,igroup)
+    uproc=lin%procsInComm(2,igroup)
     if(iproc>=lproc .and. iproc<=uproc) then
-        call orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, lin%orbs, lin%comms, newComm(igroup), norbPerGroupArr(igroup))
-        !call orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, lin%orbs, lin%comms, lin%MPIComms(igroup), lin%norbPerComm(igroup))
+        call orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, lin%orbs, lin%comms, lin%MPIComms(igroup), lin%norbPerComm(igroup))
     end if
 end do
 
 
-! Write out the parameters for the transposition.
-do igroup=1,ngroups
-    lproc=procsInGroup(1,igroup)
-    uproc=procsInGroup(2,igroup)
-    do jproc=lproc,uproc
-        if(iproc>=lproc .and. iproc<=uproc) write(*,'(a,3i5,4i12)') 'iproc, igroup, jproc, lin%comms%ncntdLIN(jproc), &
-            & lin%comms%ndspldLIN(jproc), lin%comms%ncnttLIN(jproc), lin%comms%ndspltLIN(jproc)', &
-            iproc, igroup, jproc, lin%comms%ncntdLIN(jproc), lin%comms%ndspldLIN(jproc), &
-            lin%comms%ncnttLIN(jproc), lin%comms%ndspltLIN(jproc)
-    end do
-end do
+!!! Write out the parameters for the transposition.
+!!do igroup=1,ngroups
+!!    lproc=lin%procsInComm(1,igroup)
+!!    uproc=lin%procsInComm(2,igroup)
+!!    do jproc=lproc,uproc
+!!        if(iproc>=lproc .and. iproc<=uproc) write(*,'(a,3i5,4i12)') 'iproc, igroup, jproc, lin%comms%ncntdLIN(jproc), &
+!!            & lin%comms%ndspldLIN(jproc), lin%comms%ncnttLIN(jproc), lin%comms%ndspltLIN(jproc)', &
+!!            iproc, igroup, jproc, lin%comms%ncntdLIN(jproc), lin%comms%ndspldLIN(jproc), &
+!!            lin%comms%ncnttLIN(jproc), lin%comms%ndspltLIN(jproc)
+!!    end do
+!!end do
 
 
-! Test the transposition.
-write(*,*) 'lin%orbs%npsidim', lin%orbs%npsidim
+! Test the transposition. To do so, transpose and retranspose an array. If the transposition is
+! correct, this should give the same result
 allocate(psi(lin%orbs%npsidim), stat=istat)
+allocate(psiInit(lin%orbs%npsidim), stat=istat)
 allocate(psiWork(lin%orbs%npsidim), stat=istat)
 call random_number(psi)
-ii=0
-do iorb=1,lin%orbs%norbp
-    do i=1,lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f
-        ii=ii+1
-        write(100+iproc,*) ii,psi(ii)
-    end do
-end do
+psiInit=psi
+!ii=0
+!do iorb=1,lin%orbs%norbp
+!    do i=1,lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f
+!        ii=ii+1
+!        write(100+iproc,*) ii,psi(ii)
+!    end do
+!end do
 do igroup=1,ngroups
-    lproc=procsInGroup(1,igroup)
-    uproc=procsInGroup(2,igroup)
-    write(*,'(a,4i8)') 'igroup, lproc, uproc, norbPerGroupArr(igroup)', igroup, lproc, uproc, norbPerGroupArr(igroup)
+    lproc=lin%procsInComm(1,igroup)
+    uproc=lin%procsInComm(2,igroup)
+    !write(*,'(a,4i8)') 'igroup, lproc, uproc, lin%norbPerComm(igroup)', igroup, lproc, uproc, lin%norbPerComm(igroup)
     if(iproc>=lproc .and. iproc<=uproc) then
-
-        !! TEST !!
-        !!call switch_waves_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, lr, psi, psiWork)
-        !!write(600+iproc,*) psiWork
-        !!call mpi_alltoallv(psiWork, lin%comms%ncntdLIN, lin%comms%ndspldLIN, mpidtypw, &
-        !!    psi, lin%comms%ncnttLIN, lin%comms%ndspltLIN, mpidtypw, newComm, ierr)
-        !!write(200+iproc,*) psi
-        !!call mpi_alltoallv(psi, lin%comms%ncnttLIN, lin%comms%ndspltLIN, mpidtypw,  &
-        !!    psiWork, lin%comms%ncntdLIN, lin%comms%ndspldLIN, mpidtypw, newComm, ierr)
-        !!write(700+iproc,*) psiWork
-        !!call unswitch_waves_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, lr, psiWork, psi)
-        !!write(800+iproc,*) psi
-
-
-        call transpose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, newComm(igroup), work=psiWork)
-        !call transpose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
-        !write(200+iproc,*) psi
-        !!call orthogonalizeLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), orbsLIN, commsLIN, psi, input, newComm(igroup))
-        call untranspose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, newComm(igroup), work=psiWork)
-        !call untranspose_vLIN(iproc, lproc, uproc, norbPerGroupArr(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
+        call transpose_vLIN(iproc, lproc, uproc, lin%norbPerComm(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
+        call untranspose_vLIN(iproc, lproc, uproc, lin%norbPerComm(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
     end if
 end do
-!write(300+iproc,*) psi
+
+passedTest=.true.
 ii=0
 do iorb=1,lin%orbs%norbp
     do i=1,lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f
         ii=ii+1
-        write(300+iproc,*) ii,psi(ii)
+        !write(300+iproc,*) ii,psi(ii)
+        if(psi(ii)/=psiInit(ii)) then
+            passedTest=.false.
+        end if
     end do
 end do
+if(passedTest) then
+    write(*,'(x,a,i0,a)') 'transposition test passed on process ', iproc, '.'
+else
+    write(*,'(x,a,i0,a)') 'transposition test failes on process ', iproc, '.'
+    write(*,'(x,a)') 'The program will stop now!'
+    stop
+end if
 nullify(psi)
 nullify(psiWork)
 
@@ -333,6 +319,12 @@ call memocc(istat, iall, 'logridCut_f', subname)
 iall=-product(shape(tempArr))*kind(tempArr)
 deallocate(tempArr, stat=istat)
 call memocc(istat, iall, 'tempArr', subname)
+iall=-product(shape(newID))*kind(newID)
+deallocate(newID, stat=istat)
+call memocc(istat, iall, 'newID', subname)
+iall=-product(shape(newGroup))*kind(newGroup)
+deallocate(newGroup)
+call memocc(istat, iall, 'newGroup', subname)
 
 
 !! WARNING: assign back the original value of lin%orbs%npsidim
@@ -722,7 +714,6 @@ subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, orbs, c
         do outproc=lproc,uproc
            do iorb=1,norb_par(outproc,ikpt)
               comms%nvctr_parLIN(iorb,outproc,jproc,ikpt)=nvctr_parLIN(iorb,outproc,jproc,ikpt) 
-              if(iproc==0) write(*,'(a,3i5,i10)') 'outproc, jproc, iorb, comms%nvctr_parLIN(iorb,outproc,jproc,ikpt)', outproc, jproc, iorb, comms%nvctr_parLIN(iorb,outproc,jproc,ikpt)
            end do
         end do
      end do
