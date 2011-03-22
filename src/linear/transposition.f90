@@ -157,27 +157,64 @@ END SUBROUTINE untranspose_vLIN
 
 
 subroutine switch_waves_vLIN(iproc, lproc, uproc, orbs, comms, psi, psiw)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,lproc,uproc
-  type(communications_arrays), intent(in) :: comms
-  type(orbitals_data), intent(in) :: orbs
-  !integer, dimension(nproc,orbs%nkptsp), intent(in) :: nvctr_par
-  !real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  !!! CHECK THIS !!!
-  !real(wp), dimension((sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_c)+7*sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_f))*orbs%nspinor), intent(in) :: psi
-  real(wp), dimension(orbs%npsidim), intent(in) :: psi
-  !! THIS HAS TO BE CHANGED AS WELL !!
-  !real(wp), dimension(orbs%nspinor*nvctr*orbs%norbp), intent(out) :: psiw
-  !real(wp), dimension((sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_c)+7*sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_f))*orbs%nspinor), intent(out) :: psiw
-  real(wp), dimension(orbs%npsidim), intent(out) :: psiw
-  !local variables
-  integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp, nproc, jproc, kproc
-  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
-integer:: k, ii, idebug
-real(8):: tt
+!
+! Purpose:
+! ========
+!   This subroutine rearranges the orbitals such that they can be transposed using
+!   a single call to mpi_alltoallv.
+!   Here is an example how it works:
+!
+!       process 0                process 1            process 2        process 3        process 4
+!   1   9       1  13   |   17  25      17  29   |   33      33   |   41      41   |   49      49
+!   2  10       2  14   |   18  26      18  30   |   34      34   |   42      42   |   50      50
+!   3  11       9   7   |   19  27      25  23   |   35      35   |   43      43   |   51      51
+!   4  12      10   0   |   20  28      26   0   |   36      36   |   44      44   |   52      52
+!   5  13  =>   3   8   |   21  29  =>  19  24   |   37  =>  37   |   45  =>  45   |   53  =>  53
+!   6  14       4   0   |   22  30      20   0   |   38      38   |   46      46   |   54      54
+!   7  15      11  15   |   23  31      27  31   |   39      39   |   47      47   |   55      55
+!   8  16      12   0   |   24  32      28   0   |   40       0   |   48       0   |   56       0 
+!   0   0       5  16   |    0   0      21  32   |    0      40   |    0      48   |    0      56
+!   0   0       6   0   |    0   0      22   0   |    0       0   |    0       0   |    0       0 
+!
+!
+!   After this step, we can transpose it with one call to mpi_alltoallv:
+!
+!       process 0               process 1                process 2                process 3                process 4
+!  1  9 17 25 33 41 49  |   3 11 19 27 35 43 51  |   5 13 21 29 37 45 53  |   7 15 23 31 39 47 55  |   8 16 24 32 40 48 56
+!  2 10 18 26 34 42 50  |   4 12 20 28 36 44 52  |   6 14 22 30 38 46 54  |   0  0  0  0  0  0  0  |   0  0  0  0  0  0  0
+!
+!
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   ----------------
+!     iproc      process ID
+!     lproc      lowest process ID in the current communicator
+!     uproc      highest process ID in the current communicator
+!     orbs       type describing the orbitals
+!     comms      type containing the communications parameters
+!     psi        the orbitals to be rearranged
+!     Output arguments:
+!   -----------------
+!     psiw       the rearranged orbitals
+!  
+use module_base
+use module_types
+implicit none
 
+! Calling arguments
+integer,intent(in):: iproc, lproc, uproc
+type(communications_arrays), intent(in) :: comms
+type(orbitals_data),intent(in):: orbs
+real(wp),dimension(orbs%npsidim),intent(in):: psi
+real(wp),dimension(orbs%npsidim),intent(out):: psiw
+
+! Local variables
+integer :: iorb, i, j, ij, ijproc, ind, it, it1, it2, it3, it4, ikptsp, nproc
+integer :: isorb, isorbp, ispsi, norbp_kpt, ikpt
+integer:: k, ii
+
+  ! Number of processes in the current communicator.
   nproc=uproc-lproc+1
 
   isorb=orbs%isorb+1
@@ -185,84 +222,55 @@ real(8):: tt
   ispsi=0
 
 
-if(orbs%nkptsp>1) then
-  write(*,*) 'ERROR: more than 1 k-point!'
-  stop
-end if
-  do ikptsp =1,orbs%nkptsp
+  if(orbs%nkptsp>1) then
+    write(*,'(x,a)') 'ERROR: more than 1 k-point!'
+    stop
+  end if
+  
+  ! This k-point loop is fake.
+  do ikptsp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptsp !orbs%ikptsp(ikptsp)
-     !if (ikpt < orbs%iokpt(1) .or. ikpt > orbs%iokpt(orbs%norbp)) cycle
 
-     !calculate the number of orbitals belonging to k-point ikptstp
-     !calculate to which k-point it belongs
+     ! Calculate the number of orbitals belonging to k-point ikptstp.
+     ! Calculate to which k-point it belongs.
      norbp_kpt=min(orbs%norb*ikpt,orbs%isorb+orbs%norbp)-isorb+1
 
      if(orbs%nspinor==1) then
-     ij=1
-      !do jproc=lproc,uproc
-        !do iorb=1,orbs%norb_par(jproc)
-        do iorb=1,orbs%norbp
-           ijproc=0
-           do j=lproc,uproc
-              ii=0
-               do k=1,iorb-1
-                   ii=ii+orbs%nspinor*comms%nvctr_parLIN(k,iproc,j,ikptsp)
-               end do
-              ind=ii+ijproc*orbs%nspinor+ispsi
-              do i=1,comms%nvctr_parLIN(iorb,iproc,j,ikptsp)
-                 it=ind+i
-                 psiw(it)=psi(ij)
-                 ij=ij+1
-              enddo
-              !ijproc=ijproc+comms%nvctr_parLIN(iorb,iproc,j,ikptsp)
-              do k=1,orbs%norbp
-                  ijproc=ijproc+comms%nvctr_parLIN(k,iproc,j,ikptsp)
-              end do
-           enddo
-        enddo
-      !end do
+         ij=1
+         ! Make a loop over all orbitals belonging to iproc.
+         do iorb=1,orbs%norbp
+             ijproc=0
+             ! Make a loop over all processes in the communicator.
+             do j=lproc,uproc
+                 ! Go to the starting index ind in psiw. This consists out of two parts:
+                 !   - ii gives the amount of all orbitals up to iorb of process iproc which will
+                 !     be passed from process iproc to process j
+                 !   - ijproc gives the amount of all orbitals belonging to iproc which will be
+                 !     passed to the processes up to j
+                 ! ispsi is related to k-points and not used at the moment.
+                 ii=0
+                 do k=1,iorb-1
+                      ii=ii+orbs%nspinor*comms%nvctr_parLIN(k,iproc,j,ikptsp)
+                 end do
+                 ind=ii+ijproc+ispsi
+                 ! Now copy the values from psi to psiw.
+                 do i=1,comms%nvctr_parLIN(iorb,iproc,j,ikptsp)
+                     it=ind+i
+                     psiw(it)=psi(ij)
+                     ij=ij+1
+                 enddo
+                 ! Update the ijproc counter.
+                 do k=1,orbs%norbp
+                     ijproc=ijproc+orbs%nspinor*comms%nvctr_parLIN(k,iproc,j,ikptsp)
+                 end do
+             enddo
+         enddo
      else if (orbs%nspinor == 2) then
         write(*,*) 'ERROR: not yet implemented for orbs%nspinor==2!'
         stop
-        !!do iorb=1,norbp_kpt
-        !!   ij=1
-        !!   ijproc=0
-        !!   do j=1,nproc
-        !!      ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
-        !!           ispsi
-        !!      do i=1,nvctr_par(j,ikptsp)
-        !!         it1=ind+2*i-1
-        !!         it2=ind+2*i
-        !!         psiw(it1)=psi(ij,1,iorb+isorbp)
-        !!         psiw(it2)=psi(ij,2,iorb+isorbp)
-        !!         ij=ij+1
-        !!      enddo
-        !!      ijproc=ijproc+nvctr_par(j,ikptsp)
-        !!   enddo
-        !!enddo
      else if (orbs%nspinor == 4) then
         write(*,*) 'ERROR: not yet implemented for orbs%nspinor==4!'
         stop
-        !!do iorb=1,norbp_kpt
-        !!   ij=1
-        !!   ijproc=0
-        !!   do j=1,nproc
-        !!      ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
-        !!           ispsi
-        !!      do i=1,nvctr_par(j,ikptsp)
-        !!         it1=ind+2*i-1
-        !!         it2=ind+2*i
-        !!         it3=ind+2*i+2*nvctr_par(j,ikptsp)-1
-        !!         it4=ind+2*i+2*nvctr_par(j,ikptsp)
-        !!         psiw(it1)=psi(ij,1,iorb+isorbp)
-        !!         psiw(it2)=psi(ij,2,iorb+isorbp)
-        !!         psiw(it3)=psi(ij,3,iorb+isorbp)
-        !!         psiw(it4)=psi(ij,4,iorb+isorbp)
-        !!         ij=ij+1
-        !!      enddo
-        !!      ijproc=ijproc+nvctr_par(j,ikptsp)
-        !!   enddo
-        !!enddo
      end if
      !! NOT YET IMPLEMENTED !!
      !!!update starting orbitals
@@ -276,128 +284,102 @@ END SUBROUTINE switch_waves_vLIN
 
 
 
-!subroutine unswitch_waves_vLIN(nproc,orbs,nvctr,nvctr_par,psiw,psi)
 subroutine unswitch_waves_vLIN(iproc, lproc, uproc, orbs, comms, psiw, psi)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc, lproc, uproc
-  type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
-  !real(wp), dimension(orbs%nspinor*nvctr*orbs%norbp), intent(in) :: psiw
-  !real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(out) :: psi
-  !real(wp), dimension((sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_c)+7*sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_f))*orbs%nspinor), intent(out) :: psi
-  real(wp), dimension(orbs%npsidim), intent(out) :: psi
-  !! THIS HAS TO BE CHANGED AS WELL !!
-  !real(wp), dimension(orbs%nspinor*nvctr*orbs%norbp), intent(out) :: psiw
-  !real(wp), dimension((sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_c)+7*sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_f))*orbs%nspinor), intent(in) :: psiw
-  real(wp), dimension(orbs%npsidim), intent(in) :: psiw
-  !local variables
-  integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp, nproc, jproc
-  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt,ierr
+!
+! Purpose:
+! ========
+!   This subroutine rearranges the orbitals back. As an input it takes the psiw in the form
+!   which is used for the mpi_alltoallv.
+!   The idea is the same as in switch_waves_vLIN, just now the other way around.
+!
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   ----------------
+!     iproc      process ID
+!     lproc      lowest process ID in the current communicator
+!     uproc      highest process ID in the current communicator
+!     orbs       type describing the orbitals
+!     comms      type containing the communications parameters
+!     psiw       the orbitals to be rearranged
+!     Output arguments:
+!   -----------------
+!     psi        the rearranged orbitals
+!  
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, lproc, uproc
+type(orbitals_data),intent(in) :: orbs
+type(communications_arrays),intent(in) :: comms
+real(wp),dimension(orbs%npsidim),intent(in):: psiw
+real(wp),dimension(orbs%npsidim),intent(out):: psi
+
+! Local variables
+integer:: iorb, i, j, ij, ijproc, ind, it, it1, it2, it3, it4, ikptsp, nproc, jproc
+integer:: isorb, isorbp, ispsi, norbp_kpt, ikpt, ierr
 integer:: k, ii
 
+  ! Number of processes in the current communicator.
   nproc=uproc-lproc+1
 
+  ! This subroutine is not yet implemented for k-points.
+  if(orbs%nkptsp>1) then
+    write(*,'(x,a)') 'ERROR: more than 1 k-point!'
+    stop
+  end if
 
   !! CAN I DELETE THIS? !!
   !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   isorb=orbs%isorb+1
   isorbp=0
   ispsi=0
+
+
+  ! This k-point loop is fake.
   do ikptsp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptsp !orbs%ikptsp(ikptsp)
-     !if (ikpt < orbs%iokpt(1) .or. ikpt > orbs%iokpt(orbs%norbp)) cycle
 
-     !calculate the number of orbitals belonging to k-point ikptstp
-     !calculate to which k-point it belongs
+     ! Calculate the number of orbitals belonging to k-point ikptstp.
+     ! Calculate to which k-point it belongs.
      norbp_kpt=min(orbs%norb*ikpt,orbs%isorb+orbs%norbp)-isorb+1
 
      if(orbs%nspinor==1) then
-        !ij=1
-       !do jproc=lproc,uproc
-        !do iorb=1,norbp_kpt
-        !do iorb=1,norbPerGroup
-        ij=1
-        do iorb=1,orbs%norbp
-           !ij=1
-           ijproc=0
-           !do j=0,nproc-1
-           do j=lproc,uproc
-              ii=0
-              do k=1,iorb-1
-                  ii=ii+orbs%nspinor*comms%nvctr_parLIN(k,iproc,j,ikptsp)
-              end do
-              !ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
-              !     ispsi
-              ind=ii+ijproc*orbs%nspinor+ispsi
-              !do i=1,nvctr_par(j,ikptsp)
-              do i=1,comms%nvctr_parLIN(iorb,iproc,j,ikptsp)
-                 it=ind+i
-                 !psi(ij,orbs%nspinor,iorb+isorbp)=psiw(it)
-                 if(ij>size(psi)) then
-                     write(*,'(a,2i12)') 'ERROR: ij>size(psi), ij, size(psi)',ij, size(psi)
-                     stop
-                 end if
-                 if(it>size(psiw)) then
-                     write(*,'(a,2i12)') 'ERROR: it>size(psiw), it, size(psiw)',it, size(psiw)
-                     stop
-                 end if
-                 psi(ij)=psiw(it)
-                 ij=ij+1
-              end do
-              !ijproc=ijproc+nvctr_par(j,ikptsp)
-              !do k=1,norbp_kpt
-              !ijproc=ijproc+comms%nvctr_parLIN(iorb,iproc,j,ikptsp)
-              do k=1,orbs%norbp
-                  ijproc=ijproc+comms%nvctr_parLIN(k,iproc,j,ikptsp)
-              end do
-              !ijproc=ijproc+comms%nvctr_parLIN(iorb,j,ikptsp)
-           end do
-        end do
-      !end do
+         ij=1
+         ! Make a loop over all orbitals belonging to iproc.
+         do iorb=1,orbs%norbp
+             ijproc=0
+             ! Make a loop over all processes in the communicator.
+             do j=lproc,uproc
+                 ! Go to the starting index ind in psiw. This consists out of two parts:
+                 !   - ii gives the amount of all orbitals up to iorb of process iproc which have been
+                 !     be passed from process iproc to process j
+                 !   - ijproc gives the amount of all orbitals belonging to iproc which have been
+                 !     passed to the processes up to j
+                 ! ispsi is related to k-points and not used at the moment.
+                 ii=0
+                 do k=1,iorb-1
+                     ii=ii+orbs%nspinor*comms%nvctr_parLIN(k,iproc,j,ikptsp)
+                 end do
+                 ind=ii+ijproc+ispsi
+                 do i=1,comms%nvctr_parLIN(iorb,iproc,j,ikptsp)
+                     it=ind+i
+                     psi(ij)=psiw(it)
+                     ij=ij+1
+                 end do
+                 do k=1,orbs%norbp
+                     ijproc=ijproc+orbs%nspinor*comms%nvctr_parLIN(k,iproc,j,ikptsp)
+                 end do
+             end do
+         end do
      else if (orbs%nspinor == 2) then
         write(*,*) 'ERROR: not yet implemented for orbs%nspinor==2!'
         stop
-        !!do iorb=1,norbp_kpt
-        !!   ij=1
-        !!   ijproc=0
-        !!   do j=1,nproc
-        !!      ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
-        !!           ispsi
-        !!      do i=1,nvctr_par(j,ikptsp)
-        !!         it1=ind+2*i-1
-        !!         it2=ind+2*i
-        !!         psi(ij,1,iorb+isorbp)=psiw(it1)
-        !!         psi(ij,2,iorb+isorbp)=psiw(it2)
-        !!         ij=ij+1
-        !!      end do
-        !!      ijproc=ijproc+nvctr_par(j,ikptsp)
-        !!   end do
-        !!end do
      else if (orbs%nspinor == 4) then
         write(*,*) 'ERROR: not yet implemented for orbs%nspinor==4!'
         stop
-        !!do iorb=1,norbp_kpt
-        !!   ij=1
-        !!   ijproc=0
-        !!   do j=1,nproc
-        !!      ind=(iorb-1)*orbs%nspinor*nvctr_par(j,ikptsp)+ijproc*orbs%nspinor*norbp_kpt+&
-        !!           ispsi
-        !!      do i=1,nvctr_par(j,ikptsp)
-        !!         it1=ind+2*i-1
-        !!         it2=ind+2*i
-        !!         it3=ind+2*i+2*nvctr_par(j,ikptsp)-1
-        !!         it4=ind+2*i+2*nvctr_par(j,ikptsp)
-        !!         psi(ij,1,iorb+isorbp)=psiw(it1)
-        !!         psi(ij,2,iorb+isorbp)=psiw(it2)
-        !!         psi(ij,3,iorb+isorbp)=psiw(it3)
-        !!         psi(ij,4,iorb+isorbp)=psiw(it4)
-        !!         ij=ij+1
-        !!      end do
-        !!      ijproc=ijproc+nvctr_par(j,ikptsp)
-        !!   end do
-        !!end do
      end if
      !!! NOT YET IMPLEMENTED
      !!!update starting orbitals
