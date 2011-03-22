@@ -1240,14 +1240,13 @@ end subroutine allocateAndInitializeLinear
 
 
 
-subroutine transpose_vLIN(iproc, lproc, uproc, norbPerGroup, orbs, comms, psi, lr, newComm, &
+subroutine transpose_vLIN(iproc, lproc, uproc, orbs, comms, psi, newComm, &
      work,outadd) !optional
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc, lproc, uproc, norbPerGroup, newComm
+  integer, intent(in) :: iproc, lproc, uproc, newComm
   type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors):: lr
   type(communications_arrays), intent(in) :: comms
   !real(8),dimension((sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_c)+7*sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_f))*orbs%nspinor):: psi
   real(8),dimension(orbs%npsidim):: psi
@@ -1256,15 +1255,14 @@ subroutine transpose_vLIN(iproc, lproc, uproc, norbPerGroup, orbs, comms, psi, l
 end subroutine transpose_vLIN
 
 
-subroutine untranspose_vLIN(iproc, lproc, uproc, norbPerGroup, orbs, comms, psi, lr, newComm, &
+subroutine untranspose_vLIN(iproc, lproc, uproc, orbs, comms, psi, newComm, &
      work,outadd) !optional
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,lproc, uproc, norbPerGroup, newComm
+  integer, intent(in) :: iproc,lproc, uproc, newComm
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
-  type(locreg_descriptors):: lr
   !real(8),dimension((sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_c)+7*sum(lr%wfdLIN(1:orbs%norbp,iproc)%nvctr_f))*orbs%nspinor):: psi
   real(8),dimension(orbs%npsidim):: psi
   real(wp), dimension(:), pointer, optional :: work

@@ -285,10 +285,9 @@ character(len=*),parameter:: subname='initializeLocRegLIN'
   do igroup=1,ngroups
       lproc=lin%procsInComm(1,igroup)
       uproc=lin%procsInComm(2,igroup)
-      !write(*,'(a,4i8)') 'igroup, lproc, uproc, lin%norbPerComm(igroup)', igroup, lproc, uproc, lin%norbPerComm(igroup)
       if(iproc>=lproc .and. iproc<=uproc) then
-          call transpose_vLIN(iproc, lproc, uproc, lin%norbPerComm(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
-          call untranspose_vLIN(iproc, lproc, uproc, lin%norbPerComm(igroup), lin%orbs, lin%comms, psi, lr, lin%MPIComms(igroup), work=psiWork)
+          call transpose_vLIN(iproc, lproc, uproc, lin%orbs, lin%comms, psi, lin%MPIComms(igroup), work=psiWork)
+          call untranspose_vLIN(iproc, lproc, uproc, lin%orbs, lin%comms, psi, lin%MPIComms(igroup), work=psiWork)
       end if
   end do
   
