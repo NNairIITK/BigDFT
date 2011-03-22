@@ -725,7 +725,6 @@ integer:: k, ii
                      write(*,'(a,2i12)') 'ERROR: it>size(psiw), it, size(psiw)',it, size(psiw)
                      stop
                  end if
-                 write(2500+iproc,'(a,2i10,2es15.7)') 'ij, it, psi(ij), psiw(it)', ij, it, psi(ij), psiw(it)
                  psi(ij)=psiw(it)
                  ij=ij+1
               end do

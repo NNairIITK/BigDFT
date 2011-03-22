@@ -1589,7 +1589,7 @@ end subroutine initializeLocRegLIN
 
 
 
-subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, orbs, comms, newComm, norbPerGroup)
+subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, newComm, norbPerComm)
   !calculate the number of elements to be sent to each process
   !and the array of displacements
   !cubic strategy: -the components are equally distributed among the wavefunctions
@@ -1599,13 +1599,8 @@ subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lr, orbs, c
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc, lproc, uproc
-  type(linearParameters):: lin
-  type(locreg_descriptors), intent(in) :: lr
-  type(orbitals_data), intent(inout) :: orbs
-  type(communications_arrays), intent(out) :: comms
-  integer:: newComm
-  integer:: norbPerGroup
+  integer, intent(in) :: iproc, lproc, uproc, newComm, norbPerComm
+  type(linearParameters),intent(in out):: lin
 end subroutine orbitalsCommunicatorsWithGroups
 
 
