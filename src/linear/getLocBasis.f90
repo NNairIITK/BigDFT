@@ -68,7 +68,7 @@ integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
 real(dp), dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin) :: rhopot
-type(GPU_pointers):: GPU
+type(GPU_pointers),intent(in out):: GPU
 real(dp),dimension(:),pointer,intent(in) :: pkernelseq
 real(8),dimension(lin%orbs%npsidim),intent(in out):: phi
 real(8),dimension(orbs%npsidim),intent(out):: psi, psit

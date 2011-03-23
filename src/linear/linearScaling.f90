@@ -1,6 +1,6 @@
-subroutine linearScaling(iproc, nproc, Glr, orbs, comms, at, input, lin, rxyz, nscatterarr, ngatherarr, &
-    nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, i3s, i3xcsh, irrzon, phnons, pkernel, pot_ion, &
-    rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, fxyz, fion, fdisp)
+subroutine linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, fion, fdisp, radii_cf, &
+    nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+    eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
 !
 ! Purpose:
 ! ========
@@ -8,6 +8,48 @@ subroutine linearScaling(iproc, nproc, Glr, orbs, comms, at, input, lin, rxyz, n
 !
 ! Calling arguments:
 ! ==================
+!   Input arguments:
+!   ----------------
+!     iproc       process ID
+!     nproc       total number of processes
+!     n3d         ??
+!     n3p         ??
+!     i3s         ??
+!     i3xcsh      ??
+!     Glr         type describing the localization region
+!     orbs        type describing the physical orbitals psi
+!     comms       type containing the communication parameters for the physical orbitals psi
+!     at          type containing the parameters for the atoms
+!     lin         type containing parameters for the linear version
+!     rxyz        atomic positions
+!     nscatterarr ??
+!     ngatherarr  ??
+!     nlpspd      ??
+!     proj        ??
+!     rhopot      the charge density
+!     GPU         parameters for GPUs?
+!     pkernelseq  ??
+!     radii_cf    coarse and fine radii around the atoms
+!     irrzon      ??
+!     phnons      ??
+!     pkernel     ??
+!     pot_ion     the ionic potential
+!     rhocore     ??
+!     potxc       ??
+!     PSquiet     flag to control the output from the Poisson solver
+!     eion        ionic energy
+!     edisp       dispersion energy
+!     eexctX      ??
+!     scpot       flag indicating whether we have a self consistent calculation
+!     fion        ionic forces
+!     fdisp       dispersion forces
+!   Output arguments:
+!   -----------------
+!     psi         the physical orbitals
+!     psit        psi transposed
+!     fxyz        the forces acting on the atom
+!     energy
+!     
 
 use module_base
 use module_types
@@ -20,36 +62,36 @@ type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
-type(linearParameters):: lin
+type(linearParameters),intent(in out):: lin
 type(input_variables),intent(in):: input
-real(8),dimension(3,at%nat):: rxyz, fxyz, fion, fdisp
-integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
-type(nonlocal_psp_descriptors),intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-real(dp), dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin) :: rhopot
-type(GPU_pointers):: GPU
-real(dp),dimension(:),pointer,intent(in) :: pkernelseq
-real(8),dimension(orbs%npsidim),intent(out):: psi
-real(8),dimension(:),pointer:: psit
+real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)) :: irrzon 
-real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)) :: phnons 
-real(dp), dimension(lin%as%size_pkernel):: pkernel
-real(wp), dimension(lin%as%size_pot_ion):: pot_ion
+integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
+type(nonlocal_psp_descriptors),intent(in):: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(in):: proj
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in out):: rhopot
+type(GPU_pointers),intent(in out):: GPU
+real(dp),dimension(:),pointer,intent(in):: pkernelseq
+integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
+real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons 
+real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
+real(wp), dimension(lin%as%size_pot_ion),intent(in):: pot_ion
 !real(wp), dimension(lin%as%size_rhocore):: rhocore 
-real(wp), dimension(:),pointer:: rhocore                  
-real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
-character(len=3):: PSquiet
-real(gp):: eion, edisp, eexctX
-logical:: scpot
-
+real(wp), dimension(:),pointer,intent(in):: rhocore                  
+real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(in):: potxc
+character(len=3),intent(in):: PSquiet
+real(gp),intent(in):: eion, edisp, eexctX
+logical,intent(in):: scpot
+real(8),dimension(orbs%npsidim),intent(out):: psi
+real(8),dimension(:),pointer,intent(out):: psit
+real(8),intent(out):: energy
+real(8),dimension(3,at%nat),intent(out):: fxyz
 
 
 ! Local variables
 integer:: infoBasisFunctions
 real(8),dimension(:),allocatable:: phi
-real(8),dimension(:,:),allocatable:: rxyzParab
 real(8),dimension(:,:),allocatable:: occupForInguess
 
 
@@ -58,43 +100,35 @@ real(8),dimension(:,:),allocatable:: occupForInguess
       write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'
       write(*,'(x,a)') '********* Use the selfconsistent potential for the linear scaling version. *********'
   end if
-  ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
   allocate(occupForInguess(32,at%nat))
+
+  ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
+
+  ! The next subroutine will create the variable wave function descriptors.
+  ! It is not used at the moment.
   if(iproc==0) write(*,'(x,a)') ' ~~~~~~~ Creating the variable wave function descriptors and testing them... ~~~~~~~'
   call initializeLocRegLIN(iproc, nproc, Glr, lin, at, input, rxyz, radii_cf)
   if(iproc==0) write(*,'(x,a)') '~~~~~~~~~~~~~~~~~~~~~~~ Descriptors created and test passed. ~~~~~~~~~~~~~~~~~~~~~~~'
-  !if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the linear scaling version...'
+
+
   if(nproc==1) allocate(psit(size(psi)))
-  if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,at%nat))
-  rxyzParab=rxyz
   ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
-  call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
+  call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
       infoBasisFunctions, n3p)
 
-call potentialAndEnergySub(iproc, nproc, Glr, orbs, at, input, lin, psi, rhopot, &
-    nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    proj, nlpspd, pkernelseq, rxyz, eion, edisp, eexctX, scpot, n3d, n3p)
+  ! Calculate the energy that we get with psi.
+  call potentialAndEnergySub(iproc, nproc, Glr, orbs, at, input, lin, psi, rhopot, &
+      nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      proj, nlpspd, pkernelseq, rxyz, eion, edisp, eexctX, scpot, n3d, n3p, energy)
 
-  ! Calculate the potential arising from the new psi and calculate the energy.
-  !!$call potentialAndEnergy()
+  ! Calculate the forces we get with psi.
+  call calculateForcesSub(iproc, nproc, Glr, orbs, at, input, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
+      irrzon, phnons, pkernel, rxyz, fxyz, fion, fdisp, n3p, i3s, i3xcsh, psi)
 
-  !nscatterarrCorrect=nscatterarr
-  !ngatherarrCorrect=ngatherarr
-  !projCorrect=proj
-  !fxyzOld=fxyz
-
-call calculateForcesSub(iproc, nproc, Glr, orbs, at, input, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
-    irrzon, phnons, pkernel, rxyz, fxyz, fion, fdisp, n3p, i3s, i3xcsh, psi)
-
-  ! Calculate the forces arising from the new psi.
-  !!$call calculateForces()
-
+  ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi)
-
-
-
 
 
 end subroutine linearScaling

@@ -1169,7 +1169,7 @@ real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
 integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
 real(dp), dimension(*), intent(inout) :: rhopot
-type(GPU_pointers), intent(inout) :: GPU
+type(GPU_pointers), intent(in out) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
 !real(8),dimension(orbsLIN%npsidim):: phi, hphi
 real(8),dimension(lin%orbs%npsidim):: phi, hphi
@@ -1527,7 +1527,7 @@ real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
 !real(dp), dimension(*), intent(inout) :: rhopot
 !real(dp), dimension(sizeRhopot), intent(inout) :: rhopot
 real(dp), dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), intent(inout) :: rhopot
-type(GPU_pointers), intent(inout) :: GPU
+type(GPU_pointers), intent(in) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
 real(8),dimension(lin%orbs%npsidim):: phi
 real(8),dimension(orbs%npsidim):: psi, psit
@@ -1600,50 +1600,49 @@ subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, newComm, no
   type(linearParameters),intent(in out):: lin
 end subroutine orbitalsCommunicatorsWithGroups
 
-
-subroutine linearScaling(iproc, nproc, Glr, orbs, comms, at, input, lin, rxyz, nscatterarr, ngatherarr, &
-    nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, i3s, i3xcsh, irrzon, phnons, pkernel, pot_ion, &
-    rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, fxyz, fion, fdisp)
+subroutine linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, fion, fdisp, radii_cf, &
+    nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+    eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
 use module_base
 use module_types
 implicit none
-
-! Calling arguments
 integer,intent(in):: iproc, nproc, n3d, n3p, i3s, i3xcsh
 type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
-type(linearParameters):: lin
+type(linearParameters),intent(in out):: lin
 type(input_variables),intent(in):: input
-real(8),dimension(3,at%nat):: rxyz, fxyz, fion, fdisp
-integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
-type(nonlocal_psp_descriptors),intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-real(dp), dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin) :: rhopot
-type(GPU_pointers):: GPU
-real(dp),dimension(:),pointer,intent(in) :: pkernelseq
-real(8),dimension(orbs%npsidim),intent(out):: psi
-real(8),dimension(:),pointer:: psit
+real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)) :: irrzon
-real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)) :: phnons
-real(dp), dimension(lin%as%size_pkernel):: pkernel
-real(wp), dimension(lin%as%size_pot_ion):: pot_ion
+integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
+type(nonlocal_psp_descriptors),intent(in):: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(in):: proj
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in out):: rhopot
+type(GPU_pointers),intent(in out):: GPU
+real(dp),dimension(:),pointer,intent(in):: pkernelseq
+integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
+real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
+real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
+real(wp), dimension(lin%as%size_pot_ion),intent(in):: pot_ion
 !real(wp), dimension(lin%as%size_rhocore):: rhocore 
-real(wp), dimension(:),pointer:: rhocore
-real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
-character(len=3):: PSquiet
-real(gp):: eion, edisp, eexctX
-logical:: scpot
+real(wp), dimension(:),pointer,intent(in):: rhocore
+real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(in):: potxc
+character(len=3),intent(in):: PSquiet
+real(gp),intent(in):: eion, edisp, eexctX
+logical,intent(in):: scpot
+real(8),dimension(orbs%npsidim),intent(out):: psi
+real(8),dimension(:),pointer,intent(out):: psit
+real(8),intent(out):: energy
+real(8),dimension(3,at%nat),intent(out):: fxyz
 
 end subroutine linearScaling
 
 
 subroutine potentialAndEnergySub(iproc, nproc, Glr, orbs, atoms, in, lin, psi, rhopot, &
     nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    proj, nlpspd, pkernelseq, rxyz, eion, edisp, eexctX, scpot, n3d, n3p)
+    proj, nlpspd, pkernelseq, rxyz, eion, edisp, eexctX, scpot, n3d, n3p, energy)
 use module_base
 use module_types
 !use Poisson_Solver
@@ -1660,7 +1659,7 @@ real(8),dimension(orbs%npsidim):: psi
 real(dp), dimension(lin%as%size_rhopot) :: rhopot
 integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
-type(GPU_pointers):: GPU
+type(GPU_pointers),intent(in out):: GPU
 integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)) :: irrzon 
 real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)) :: phnons 
 real(dp), dimension(lin%as%size_pkernel):: pkernel
@@ -1673,7 +1672,7 @@ type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
 real(dp),dimension(lin%as%size_pkernelseq),intent(in):: pkernelseq
 real(8),dimension(3,atoms%nat),intent(in):: rxyz
-real(gp):: eion, edisp, eexctX
+real(gp):: eion, edisp, eexctX, energy
 logical:: scpot
 
 end subroutine potentialAndEnergySub
@@ -1697,7 +1696,7 @@ type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 real(wp), dimension(nlpspd%nprojel) :: proj
 integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
 integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-type(GPU_pointers):: GPU
+type(GPU_pointers),intent(in out):: GPU
 integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)) :: irrzon
 real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)) :: phnons
 real(dp), dimension(lin%as%size_pkernel):: pkernel
