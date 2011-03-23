@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 21/03/2011
+# Date: 23/03/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -213,10 +213,6 @@ t2.close()
 
 #Generate comparison using the unix diff command
 compare = iter(commands.getoutput("diff -b -d %s %s" %(t1.name,t2.name)).splitlines(True))
-
-#Delete files
-os.unlink(t1.name)
-os.unlink(t2.name)
 
 try:
     line = compare.next()
