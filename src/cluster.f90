@@ -1088,10 +1088,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
             lin%as%size_irrzon(1)=size(irrzon,1)
             lin%as%size_irrzon(2)=size(irrzon,2)
             lin%as%size_irrzon(3)=size(irrzon,3)
-            !call linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, atoms, in, lin, rxyz, nscatterarr, ngatherarr, &
-            !    nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, irrzon, phnons, pkernel, pot_ion, &
-            !    rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, fxyz, fion, fdisp)
 
+            ! This is the main routine that does everything related to the linear scaling version.
             call linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, atoms, in, lin, rxyz, fion, fdisp, radii_cf, &
                 nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
                 eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
@@ -1100,6 +1098,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
             if(iproc==0) write(*,'(x,a)') '************************ END OF THE LINEAR SCALING VERSION. ************************'
             if(iproc==0) write(*,'(x,a)') '********** The program will now continue with the standard cubic version. **********'
             if(iproc==0) write(*,'(x,a)') '********************* !!WARNING: What follows may be garbage!! *********************'
+
         end if linearIf
 
 

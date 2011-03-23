@@ -89,7 +89,7 @@ logical:: scpot
 real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, ekin_sum, epot_sum, eproj_sum, energybs
 real(wp), dimension(:), pointer :: potential
 real(8),dimension(:),allocatable:: hpsi
-integer:: istat
+integer:: istat, iall
 character(len=*),parameter:: subname='potentialAndEnergy'
 
 
@@ -98,14 +98,13 @@ hyh=0.5d0*in%hy
 hzh=0.5d0*in%hz
 
 allocate(hpsi(orbs%npsidim), stat=istat)
-hpsi=0.d0
+call memocc(istat, hpsi, 'hpsi', subname)
 
 
 if(iproc==0) write(*,'(x,a)') '-------------------------------------------------- Calculation of energy and forces.'
 
   !calculate the self-consistent potential
   if (scpot) then
-      !write(*,*) 'SCPOT'
      ! Potential from electronic charge density
      call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
           Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
@@ -182,6 +181,12 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   !!      end if
   !!   end if
   !!endif
+
+  iall=-product(shape(hpsi))*kind(hpsi)
+  deallocate(hpsi, stat=istat)
+  call memocc(istat, iall, 'hpsi', subname)
+
+
 end subroutine potentialAndEnergySub
 
 
@@ -189,12 +194,11 @@ end subroutine potentialAndEnergySub
 
 subroutine calculateForcesSub(iproc, nproc, Glr, orbs, atoms, in, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
     irrzon, phnons, pkernel, rxyz, fxyz, fion, fdisp, n3p, i3s, i3xcsh, psi)
-
-    ! Purpose:
-    ! ========
-    !   Calculates the forces. It is just copy&paste from above, with an additional
-    !   write statement to print the forces.
-    !
+! Purpose:
+! ========
+!   Calculates the forces we get with psi. It is copied from cluster, with an additional
+!   write statement to print the forces.
+!
 use module_base
 use module_types
 use Poisson_Solver
