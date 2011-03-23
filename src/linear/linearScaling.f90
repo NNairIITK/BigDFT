@@ -20,14 +20,13 @@ subroutine linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, 
 !     orbs        type describing the physical orbitals psi
 !     comms       type containing the communication parameters for the physical orbitals psi
 !     at          type containing the parameters for the atoms
+!     input       type  containing some very general parameters
 !     lin         type containing parameters for the linear version
 !     rxyz        atomic positions
 !     nscatterarr ??
 !     ngatherarr  ??
 !     nlpspd      ??
 !     proj        ??
-!     rhopot      the charge density
-!     GPU         parameters for GPUs?
 !     pkernelseq  ??
 !     radii_cf    coarse and fine radii around the atoms
 !     irrzon      ??
@@ -43,6 +42,10 @@ subroutine linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, 
 !     scpot       flag indicating whether we have a self consistent calculation
 !     fion        ionic forces
 !     fdisp       dispersion forces
+!   Input / Output arguments
+!   ------------------------
+!     GPU         parameters for GPUs?
+!     rhopot      the charge density
 !   Output arguments:
 !   -----------------
 !     psi         the physical orbitals
@@ -119,9 +122,10 @@ real(8),dimension(:,:),allocatable:: occupForInguess
       infoBasisFunctions, n3p)
 
   ! Calculate the energy that we get with psi.
-  call potentialAndEnergySub(iproc, nproc, Glr, orbs, at, input, lin, psi, rhopot, &
-      nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      proj, nlpspd, pkernelseq, rxyz, eion, edisp, eexctX, scpot, n3d, n3p, energy)
+  call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, psi, rxyz, &
+      rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, energy)
+
 
   ! Calculate the forces we get with psi.
   call calculateForcesSub(iproc, nproc, Glr, orbs, at, input, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &

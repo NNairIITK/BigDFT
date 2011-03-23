@@ -1640,12 +1640,11 @@ real(8),dimension(3,at%nat),intent(out):: fxyz
 end subroutine linearScaling
 
 
-subroutine potentialAndEnergySub(iproc, nproc, Glr, orbs, atoms, in, lin, psi, rhopot, &
-    nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    proj, nlpspd, pkernelseq, rxyz, eion, edisp, eexctX, scpot, n3d, n3p, energy)
+subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, psi, rxyz, &
+    rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, energy)
 use module_base
 use module_types
-!use Poisson_Solver
 implicit none
 
 ! Calling arguments
@@ -1660,12 +1659,12 @@ real(dp), dimension(lin%as%size_rhopot) :: rhopot
 integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
 type(GPU_pointers),intent(in out):: GPU
-integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)) :: irrzon 
-real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)) :: phnons 
+integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)) :: irrzon
+real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)) :: phnons
 real(dp), dimension(lin%as%size_pkernel):: pkernel
 real(wp), dimension(lin%as%size_pot_ion):: pot_ion
 !real(wp), dimension(lin%as%size_rhocore):: rhocore 
-real(wp), dimension(:),pointer:: rhocore      
+real(wp), dimension(:),pointer:: rhocore
 real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
 character(len=3):: PSquiet
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd

@@ -1,11 +1,56 @@
-subroutine potentialAndEnergySub(iproc, nproc, Glr, orbs, atoms, in, lin, psi, rhopot, &
-    nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    proj, nlpspd, pkernelseq, rxyz, eion, edisp, eexctX, scpot, n3d, n3p, energy)
-  !
-  ! Purpose:
-  ! ========
-  !   Calculates the potential and energy and writes them. It is just copy&paste from above.
-  !
+subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, psi, rxyz, &
+    rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, energy)
+!
+! Purpose:
+! ========
+!   Calculates the potential and energy and writes them. This is subroutine is copied
+!   from cluster.
+!
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   -----------------
+!     iproc       process ID
+!     nproc       total number of processes
+!     n3d         ??
+!     n3p         ??
+!     Glr         type describing the localization region
+!     orbs        type describing the physical orbitals psi
+!     atoms       type containing the parameters for the atoms
+!     in          type  containing some very general parameters
+!     lin         type containing parameters for the linear version
+!     psi         the physical orbitals
+!     rxyz        atomic positions
+!     rhopot      the charge density
+!     nscatterarr ??
+!     ngatherarr  ??
+!     nlpspd      ??
+!     proj        ??
+!     GPU         parameters for GPUs?
+!     pkernelseq  ??
+!     radii_cf    coarse and fine radii around the atoms
+!     irrzon      ??
+!     phnons      ??
+!     pkernel     ??
+!     pot_ion     the ionic potential
+!     rhocore     ??
+!     potxc       ??
+!     PSquiet     flag to control the output from the Poisson solver
+!     eion        ionic energy
+!     edisp       dispersion energy
+!     eexctX      ??
+!     scpot       flag indicating whether we have a self consistent calculation
+!     fion        ionic forces
+!     fdisp       dispersion forces
+!   Input / Output arguments
+!   ------------------------
+!     GPU         parameters for GPUs?
+!     rhopot      the charge density
+!   Output arguments:
+!   -----------------
+!     energy      the total energy
+
 
 use module_base
 use module_types
@@ -106,10 +151,6 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   !deallocate potential
   call free_full_potential(nproc,potential,subname)
 
-  !call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-  !     nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-  !     rhopot,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
-  !     in%nspin,GPU,pkernel=pkernelseq)
 
   energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
   energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
@@ -117,7 +158,7 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
                   ekin_sum,epot_sum,eproj_sum
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-  if(iproc==0) write(*,*) 'energy', energy
+  if(iproc==0) write(*,*) 'total energy', energy
 
   !!if (iproc == 0) then
   !!   if (verbose > 0 .and. in%itrpmax==1) then
