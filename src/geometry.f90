@@ -2896,94 +2896,96 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   epred=etot
 
 
-  do it=1,in%ncount_cluster_x-1
-    do iat=1,3*at%nat
-    pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
-    enddo
+  Big_loop: do it=1,in%ncount_cluster_x-1
+     do iat=1,3*at%nat
+        pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
+     enddo
 
+     in%inputPsiId=1
+     in%output_grid=0
+     in%output_wf=.false.
+     call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,fnoise,rst,infocode)
+     ncount_bigdft=ncount_bigdft+1
+     call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
+   !  call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
-  in%inputPsiId=1
-  in%output_grid=0
-  in%output_wf=.false.
-  call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,fnoise,rst,infocode)
-  fxyz=fpred
-  ncount_bigdft=ncount_bigdft+1
-  call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
-!  call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+     do iat=1,3*at%nat
+        velpred(iat)=velcur(iat)+0.5_gp*dt*(fpred(iat))/mass(iat)+0.5_gp*dt*fcur(iat)/mass(iat)
+     enddo
+     P=dot_product(fpred,velpred)
+     call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
 
-  do iat=1,3*at%nat
-  velpred(iat)=velcur(iat)+0.5_gp*dt*(fpred(iat))/mass(iat)+0.5_gp*dt*fcur(iat)/mass(iat)
-  enddo
-  P=dot_product(fpred,velpred)
-  call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
+     if (iproc == 0) then
+        write(fn4,'(i4.4)') ncount_bigdft
+        write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
+        call  write_atomic_file('posout_'//fn4,epred,pospred,at,trim(comment))
+     endif
+     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+     if (iproc==0.and.parmin%verbosity > 0) & 
+         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
+         &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+         &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
+     if (iproc==0.and.parmin%verbosity > 0) & 
+         write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
+         &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+         &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
+         eprev=epred
+     if (iproc==0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
+                             'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
+     call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+     if (ncount_bigdft >= in%ncount_cluster_x-1) then
+         !Too many iterations
+         exit Big_loop
+     end if
+     close(16)
+     open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
 
-   if (iproc == 0) then
-     write(fn4,'(i4.4)') ncount_bigdft
-     write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
-     call  write_atomic_file('posout_'//fn4,epred,pospred,at,trim(comment))
-   endif
-   if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
-   if (iproc==0.and.parmin%verbosity > 0) & 
-       write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
-       &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
-       &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
-       &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
-   if (iproc==0.and.parmin%verbosity > 0) & 
-       write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
-       &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
-       &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
-       &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
-       eprev=epred
-   if (iproc==0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
-                           'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
-   call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
-   if (ncount_bigdft >= in%ncount_cluster_x-1) goto 50
-   close(16)
-   open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
-
-    if(check.gt.5) then
-      if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
-      goto 50
-    endif
+     if(check.gt.5) then
+        if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
+        !Exit from the loop (the calculation is finished).
+        exit Big_loop
+     endif
 
 !Update variables
-  fcur=fpred
-  poscur=pospred
+     fcur=fpred
+     poscur=pospred
 !Normal verlet velocity update
 !  velcur=velpred
 
 !!FIRE Update
-  call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
-  fnrm=sqrt(fnrm)
-  call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
-  vnrm=sqrt(vnrm)
+     call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
+     fnrm=sqrt(fnrm)
+     call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
+     vnrm=sqrt(vnrm)
 !Modified velocity update, suggested by Alireza
 !  velcur(:)=(1.0_gp-alpha)*velpred(:)+fpred(:)*min(alpha*vnrm/fnrm,2.0_gp*in%betax)!alpha*fpred(:)/fnrm*vnrm
 !Original FIRE velocitiy update
-  velcur(:)=(1.0_gp-alpha)*velpred(:)+alpha*fpred(:)/fnrm*vnrm
-       if(P.gt.-anoise*vnrm .and. nstep.gt.Nmin) then
-         dt=min(dt*finc,dtmax)
-!         alpha=max(alpha*falpha,0.1_gp) !Limit the decrease of alpha
-         alpha=alpha*falpha
-       elseif(P.le.-anoise*vnrm) then
-         nstep=0
-         dt=dt*fdec
-         velcur=0.d0
-         alpha=alphastart
-       endif
-       nstep=nstep+1
+     velcur(:)=(1.0_gp-alpha)*velpred(:)+alpha*fpred(:)/fnrm*vnrm
+     if(P.gt.-anoise*vnrm .and. nstep.gt.Nmin) then
+        dt=min(dt*finc,dtmax)
+!        alpha=max(alpha*falpha,0.1_gp) !Limit the decrease of alpha
+        alpha=alpha*falpha
+     elseif(P.le.-anoise*vnrm) then
+        nstep=0
+        dt=dt*fdec
+        velcur=0.d0
+        alpha=alphastart
+     endif
+     nstep=nstep+1
 
-if (iproc==0) write(10,*) epred, vnrm*0.5d0
-enddo
+     if (iproc==0) write(10,*) epred, vnrm*0.5d0
+   end do Big_loop
 
 
- 50  CONTINUE
         
-! Output the final energy.
-etot = epred
+! Output the final energy, atomic positions and forces
+   etot = epred
+   rxyz = pospred
+   fxyz = fpred
 
-      return 
-      END
+END SUBROUTINE fire
 
 
 

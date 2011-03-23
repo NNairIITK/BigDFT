@@ -205,14 +205,17 @@ if bigdft:
 t1 = tempfile.NamedTemporaryFile()
 for line in original1:
     t1.write(line)
-t1.close()
+t1.flush()
 t2 = tempfile.NamedTemporaryFile()
 for line in original2:
     t2.write(line)
-t2.close()
+t2.flush()
 
 #Generate comparison using the unix diff command
 compare = iter(commands.getoutput("diff -b -d %s %s" %(t1.name,t2.name)).splitlines(True))
+
+t1.close()
+t2.close()
 
 try:
     line = compare.next()
