@@ -1147,8 +1147,8 @@ type(linearParameters):: lin
             lin%as%size_irrzon(2)=size(irrzon,2)
             lin%as%size_irrzon(3)=size(irrzon,3)
             call linearScaling(iproc, nproc, Glr, orbs, comms, atoms, in, lin, rxyz, nscatterarr, ngatherarr, &
-                nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, irrzon, phnons, pkernel, pot_ion, &
-                rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot)
+                nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, i3s, i3xcsh, irrzon, phnons, pkernel, pot_ion, &
+                rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, fxyz, fion, fdisp)
             !!!!!if(iproc==0) then
             !!!!!    write(*,'(x,a)') repeat('*',84)
             !!!!!    write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'

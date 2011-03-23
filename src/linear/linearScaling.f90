@@ -1,6 +1,6 @@
 subroutine linearScaling(iproc, nproc, Glr, orbs, comms, at, input, lin, rxyz, nscatterarr, ngatherarr, &
-    nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, irrzon, phnons, pkernel, pot_ion, &
-    rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot)
+    nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, i3s, i3xcsh, irrzon, phnons, pkernel, pot_ion, &
+    rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, fxyz, fion, fdisp)
 !
 ! Purpose:
 ! ========
@@ -15,14 +15,14 @@ use module_interfaces, exceptThisOne => linearScaling
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, n3d, n3p
+integer,intent(in):: iproc, nproc, n3d, n3p, i3s, i3xcsh
 type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
 type(linearParameters):: lin
 type(input_variables),intent(in):: input
-real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),dimension(3,at%nat):: rxyz, fxyz, fion, fdisp
 integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
@@ -84,6 +84,9 @@ call potentialAndEnergySub(iproc, nproc, Glr, orbs, at, input, lin, psi, rhopot,
   !ngatherarrCorrect=ngatherarr
   !projCorrect=proj
   !fxyzOld=fxyz
+
+call calculateForcesSub(iproc, nproc, Glr, orbs, at, input, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
+    irrzon, phnons, pkernel, rxyz, fxyz, fion, fdisp, n3p, i3s, i3xcsh, psi)
 
   ! Calculate the forces arising from the new psi.
   !!$call calculateForces()

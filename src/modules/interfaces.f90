@@ -1601,23 +1601,22 @@ subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, newComm, no
 end subroutine orbitalsCommunicatorsWithGroups
 
 
-
 subroutine linearScaling(iproc, nproc, Glr, orbs, comms, at, input, lin, rxyz, nscatterarr, ngatherarr, &
-    nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, irrzon, phnons, pkernel, pot_ion, &
-    rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot)
+    nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, i3s, i3xcsh, irrzon, phnons, pkernel, pot_ion, &
+    rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, fxyz, fion, fdisp)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, n3d, n3p
+integer,intent(in):: iproc, nproc, n3d, n3p, i3s, i3xcsh
 type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
 type(linearParameters):: lin
 type(input_variables),intent(in):: input
-real(8),dimension(3,at%nat),intent(in):: rxyz
+real(8),dimension(3,at%nat):: rxyz, fxyz, fion, fdisp
 integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
@@ -1678,6 +1677,34 @@ real(gp):: eion, edisp, eexctX
 logical:: scpot
 
 end subroutine potentialAndEnergySub
+
+
+
+subroutine calculateForcesSub(iproc, nproc, Glr, orbs, atoms, in, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
+    irrzon, phnons, pkernel, rxyz, fxyz, fion, fdisp, n3p, i3s, i3xcsh, psi)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer:: iproc, nproc, n3p, i3s, i3xcsh
+type(locreg_descriptors) :: Glr
+type(orbitals_data):: orbs
+type(atoms_data):: atoms
+type(input_variables):: in
+type(linearParameters):: lin
+type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+real(wp), dimension(nlpspd%nprojel) :: proj
+integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
+integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+type(GPU_pointers):: GPU
+integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)) :: irrzon
+real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)) :: phnons
+real(dp), dimension(lin%as%size_pkernel):: pkernel
+real(8),dimension(3,atoms%nat):: rxyz, fxyz, fion, fdisp
+real(8):: fnoise
+real(8),dimension(orbs%npsidim):: psi
+end subroutine calculateForcesSub
 
 
 
