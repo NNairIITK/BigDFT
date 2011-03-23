@@ -91,7 +91,7 @@ call calculateForcesSub(iproc, nproc, Glr, orbs, at, input, lin, nlpspd, proj, n
   ! Calculate the forces arising from the new psi.
   !!$call calculateForces()
 
-  !!$call deallocateLinear(iproc, lin, phi)
+  call deallocateLinear(iproc, lin, phi)
 
 
 

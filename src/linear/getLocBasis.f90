@@ -94,6 +94,8 @@ character(len=*),parameter:: subname='getLinearPsi'
   call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
       infoBasisFunctions)
+
+  if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
   
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
@@ -102,6 +104,7 @@ character(len=*),parameter:: subname='getLinearPsi'
   call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,potential,&
        phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+  if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
   
   !deallocate potential
   call free_full_potential(nproc,potential,subname)
@@ -114,11 +117,13 @@ character(len=*),parameter:: subname='getLinearPsi'
   call memocc(istat, HamSmall, 'HamSmall', subname)
   call transformHam(iproc, nproc, lin%orbs, lin%comms, phi, hphi, HamSmall)
   
-  if(iproc==0) write(*,'(a)', advance='no') 'Linear Algebra... '
+  if(iproc==0) write(*,'(a)', advance='no') ' Diagonalization... '
   allocate(eval(lin%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
   call diagonalizeHamiltonian(iproc, nproc, lin%orbs, HamSmall, eval)
+  if(iproc==0) write(*,'(a)', advance='no') 'done.'
   
+  if(iproc==0) write(*,'(a)', advance='no') ' Linear combinations... '
   call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
   
   call dcopy(orbs%npsidim, psi, 1, psit, 1)

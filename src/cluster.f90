@@ -1149,6 +1149,9 @@ type(linearParameters):: lin
             call linearScaling(iproc, nproc, Glr, orbs, comms, atoms, in, lin, rxyz, nscatterarr, ngatherarr, &
                 nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, i3s, i3xcsh, irrzon, phnons, pkernel, pot_ion, &
                 rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, fxyz, fion, fdisp)
+            if(iproc==0) write(*,'(x,a)') '************************ END OF THE LINEAR SCALING VERSION. ************************'
+            if(iproc==0) write(*,'(x,a)') '********** The program will now continue with the standard cubic version. **********'
+            if(iproc==0) write(*,'(x,a)') '********************* !!WARNING: What follows may be garbage!! *********************'
             !!!!!if(iproc==0) then
             !!!!!    write(*,'(x,a)') repeat('*',84)
             !!!!!    write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'
@@ -1169,7 +1172,7 @@ type(linearParameters):: lin
             !!!!!    infoBasisFunctions, n3p)
 
             ! Calculate the potential arising from the new psi and calculate the energy.
-            call potentialAndEnergy()
+            !call potentialAndEnergy()
 
             !nscatterarrCorrect=nscatterarr
             !ngatherarrCorrect=ngatherarr
@@ -1177,7 +1180,7 @@ type(linearParameters):: lin
             !fxyzOld=fxyz
 
             ! Calculate the forces arising from the new psi.
-            call calculateForces()
+            !call calculateForces()
 
             !call deallocateLinear(iproc, lin, phi)
         end if linearIf

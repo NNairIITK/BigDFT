@@ -56,6 +56,7 @@ allocate(hpsi(orbs%npsidim), stat=istat)
 hpsi=0.d0
 
 
+if(iproc==0) write(*,'(x,a)') '-------------------------------------------------- Calculation of energy and forces.'
 
   !calculate the self-consistent potential
   if (scpot) then
@@ -100,6 +101,7 @@ hpsi=0.d0
   call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
        in%nspin,GPU,pkernel=pkernelseq)
+  if(iproc==0) write(*,'(x,a)') 'done.'
 
   !deallocate potential
   call free_full_potential(nproc,potential,subname)
@@ -180,7 +182,7 @@ real(8),dimension(orbs%npsidim):: psi
 
 
 ! Local variables
-integer:: jproc, i_stat, i_all, iat, ierr
+integer:: jproc, i_stat, i_all, iat, ierr, j
 real(8):: hxh, hyh, hzh, ehart_fake
 real(kind=8), dimension(:), allocatable :: rho
 real(gp), dimension(:,:), allocatable :: gxyz
@@ -305,16 +307,24 @@ hzh=0.5d0*in%hz
       deallocate(gxyz,stat=i_stat)
       call memocc(i_stat,i_all,'gxyz',subname)
 
-    if(iproc==0) write(*,*) '>>> NEW VERSION <<<'
-    do iat=1,atoms%nat
-       if(iproc==0) write(*,'(a,i0,3es14.5)') 'forces for atom ',iat, fxyz(1,iat), fxyz(2,iat), fxyz(3,iat)
-    end do
+
+    !!do iat=1,atoms%nat
+    !!   if(iproc==0) write(*,'(a,i0,3es14.5)') 'forces for atom ',iat, fxyz(1,iat), fxyz(2,iat), fxyz(3,iat)
+    !!end do
 
     !subtraction of zero of the forces, disabled for the moment
     !the zero of the forces depends on the atomic positions
     !if (in%gaussian_help .and. .false.) then
     call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
     !end if
+
+    if(iproc==0) then
+        write(*,'(x,a)') 'Force values for all atoms in x, y, z direction.'
+        do iat=1,atoms%nat
+           write(*,'(3x,i0,x,a6,x,3(x,es12.5))') &
+                iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
+        end do
+    end if
 
     call timing(iproc,'Forces        ','OF')
 
