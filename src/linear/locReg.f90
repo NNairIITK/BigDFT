@@ -279,6 +279,7 @@ character(len=*),parameter:: subname='initializeLocRegLIN'
       end if
   end do
 
+  ! Write the memory occupation for the wave functions on each process.
   allocate(npsidimArr(0:nproc-1), stat=istat)
   call memocc(istat, npsidimArr, 'npsidimArr', subname)
   call mpi_gather(lin%orbs%npsidim, 1, mpi_integer, npsidimArr(0), 1, mpi_integer, 0, mpi_comm_world, ierr)
@@ -311,17 +312,19 @@ character(len=*),parameter:: subname='initializeLocRegLIN'
       end if
   end do
   
+  ! Check whether the transposition was successful. First check on each process.
   passedTest=.true.
   ii=0
   do iorb=1,lin%orbs%norbp
       do i=1,lin%wfds(iorb,iproc)%nvctr_c+7*lin%wfds(iorb,iproc)%nvctr_f
           ii=ii+1
-          !write(300+iproc,*) ii,psi(ii)
           if(psi(ii)/=psiInit(ii)) then
               passedTest=.false.
           end if
       end do
   end do
+  
+  ! Now check whether the test failes on any process.
   call mpi_allreduce(passedTest, passedTestAll, 1, mpi_logical, mpi_land, mpi_comm_world, ierr)
   if(passedTestAll) then
       if(iproc==0) write(*,'(3x,a)') 'Transposition test passed on all processes.'

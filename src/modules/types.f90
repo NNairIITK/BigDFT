@@ -424,6 +424,18 @@ module module_types
 
 
 
+type,public:: arraySizes
+    integer:: size_rhopot
+    integer,dimension(4):: size_potxc
+    integer:: size_rhocore
+    integer:: size_pot_ion
+    integer,dimension(3):: size_phnons
+    integer,dimension(3):: size_irrzon
+    integer:: size_pkernel
+    integer:: size_pkernelseq
+end type
+
+
 type,public:: linearParameters
   integer:: DIISHistMin, DIISHistMax, nItMax
   real(8):: convCrit
@@ -436,6 +448,7 @@ type,public:: linearParameters
   integer,dimension(:),allocatable:: MPIComms, norbPerComm
   integer,dimension(:,:),allocatable:: procsInComm
   integer:: ncomms
+  type(arraySizes):: as
 end type
 
 

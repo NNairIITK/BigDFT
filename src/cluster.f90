@@ -1131,24 +1131,42 @@ type(linearParameters):: lin
         !            some values taht are needed for the usual forces calculation later on, so these forces are 
         !            completely garbage.
         linearIf: if(inputpsi==100) then
-            if(iproc==0) then
-                write(*,'(x,a)') repeat('*',84)
-                write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'
-                write(*,'(x,a)') '********* Use the selfconsistent potential for the linear scaling version. *********'
-            end if
-            ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
-            call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, atoms, lin, phi, in, rxyz, occupForInguess)
-            if(iproc==0) write(*,'(x,a)') ' ~~~~~~~ Creating the variable wave function descriptors and testing them... ~~~~~~~'
-            call initializeLocRegLIN(iproc, nproc, Glr, lin, atoms, in, rxyz, radii_cf)
-            if(iproc==0) write(*,'(x,a)') '~~~~~~~~~~~~~~~~~~~~~~~ Descriptors created and test passed. ~~~~~~~~~~~~~~~~~~~~~~~'
-            !if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the linear scaling version...'
-            if(nproc==1) allocate(psit(size(psi)))
-            if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,atoms%nat))
-            rxyzParab=rxyz
-            ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
-            call getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, atoms, lin, rxyz, rxyzParab, &
-                nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, in, pkernelseq, phi, psi, psit, &
-                infoBasisFunctions, n3p)
+            lin%as%size_rhopot=size(rhopot)
+            lin%as%size_potxc(1)=size(potxc,1)
+            lin%as%size_potxc(2)=size(potxc,2)
+            lin%as%size_potxc(3)=size(potxc,3)
+            lin%as%size_potxc(4)=size(potxc,4)
+            lin%as%size_rhocore=size(rhocore)
+            lin%as%size_pot_ion=size(pot_ion)
+            lin%as%size_pkernel=size(pkernel)
+            lin%as%size_pkernelseq=size(pkernelseq)
+            lin%as%size_phnons(1)=size(phnons,1)
+            lin%as%size_phnons(2)=size(phnons,2)
+            lin%as%size_phnons(3)=size(phnons,3)
+            lin%as%size_irrzon(1)=size(irrzon,1)
+            lin%as%size_irrzon(2)=size(irrzon,2)
+            lin%as%size_irrzon(3)=size(irrzon,3)
+            call linearScaling(iproc, nproc, Glr, orbs, comms, atoms, in, lin, rxyz, nscatterarr, ngatherarr, &
+                nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, irrzon, phnons, pkernel, pot_ion, &
+                rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot)
+            !!!!!if(iproc==0) then
+            !!!!!    write(*,'(x,a)') repeat('*',84)
+            !!!!!    write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'
+            !!!!!    write(*,'(x,a)') '********* Use the selfconsistent potential for the linear scaling version. *********'
+            !!!!!end if
+            !!!!!! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
+            !!!!!call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, atoms, lin, phi, in, rxyz, occupForInguess)
+            !!!!!if(iproc==0) write(*,'(x,a)') ' ~~~~~~~ Creating the variable wave function descriptors and testing them... ~~~~~~~'
+            !!!!!call initializeLocRegLIN(iproc, nproc, Glr, lin, atoms, in, rxyz, radii_cf)
+            !!!!!if(iproc==0) write(*,'(x,a)') '~~~~~~~~~~~~~~~~~~~~~~~ Descriptors created and test passed. ~~~~~~~~~~~~~~~~~~~~~~~'
+            !!!!!!if(iproc==0) write(*,'(a)') 'trying to reproduce the result with the linear scaling version...'
+            !!!!!if(nproc==1) allocate(psit(size(psi)))
+            !!!!!if(.not.allocated(rxyzParab)) allocate(rxyzParab(3,atoms%nat))
+            !!!!!rxyzParab=rxyz
+            !!!!!! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
+            !!!!!call getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, atoms, lin, rxyz, rxyzParab, &
+            !!!!!    nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, in, pkernelseq, phi, psi, psit, &
+            !!!!!    infoBasisFunctions, n3p)
 
             ! Calculate the potential arising from the new psi and calculate the energy.
             call potentialAndEnergy()
@@ -1161,7 +1179,7 @@ type(linearParameters):: lin
             ! Calculate the forces arising from the new psi.
             call calculateForces()
 
-            call deallocateLinear(iproc, lin, phi)
+            !call deallocateLinear(iproc, lin, phi)
         end if linearIf
 
 
@@ -2040,6 +2058,7 @@ contains
     !allocate the potential in the full box
     call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
          orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
+
 
     call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
          nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&

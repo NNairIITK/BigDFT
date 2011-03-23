@@ -207,6 +207,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      eproj_sum=wrkallred(3,1) 
   endif
 
+
+if(iproc==0) write(*,*) 'debug in HamApp: epot_sum',epot_sum
+
   !up to this point, the value of the potential energy is 
   !only taking into account the local potential part
   !whereas it should consider also the value coming from the 

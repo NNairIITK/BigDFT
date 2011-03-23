@@ -183,7 +183,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(locreg_descriptors), intent(in):: Glr
-type(orbitals_data), intent(inout):: orbs
+type(orbitals_data), intent(in):: orbs
 type(atoms_data), intent(in):: at
 type(linearParameters):: lin
 type(input_variables), intent(in):: input

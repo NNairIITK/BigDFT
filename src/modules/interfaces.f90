@@ -1229,7 +1229,7 @@ implicit none
 
 integer:: iproc, nproc
 type(locreg_descriptors), intent(in) :: Glr
-type(orbitals_data), intent(inout) :: orbs
+type(orbitals_data), intent(in) :: orbs
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
 real(8),dimension(:),allocatable:: phi
@@ -1514,7 +1514,7 @@ use module_types
 ! Calling arguments
 integer:: iproc, nproc, nspin, infoBasisFunctions, n3p
 type(locreg_descriptors), intent(in) :: Glr
-type(orbitals_data), intent(inout) :: orbs
+type(orbitals_data), intent(in) :: orbs
 type(communications_arrays), intent(in) :: comms
 type(atoms_data), intent(in) :: at
 type(linearParameters):: lin
@@ -1599,6 +1599,85 @@ subroutine orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, newComm, no
   integer, intent(in) :: iproc, lproc, uproc, newComm, norbPerComm
   type(linearParameters),intent(in out):: lin
 end subroutine orbitalsCommunicatorsWithGroups
+
+
+
+subroutine linearScaling(iproc, nproc, Glr, orbs, comms, at, input, lin, rxyz, nscatterarr, ngatherarr, &
+    nlpspd, proj, rhopot, GPU, pkernelseq, psi, psit, radii_cf, n3d, n3p, irrzon, phnons, pkernel, pot_ion, &
+    rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, n3d, n3p
+type(locreg_descriptors),intent(in) :: Glr
+type(orbitals_data),intent(in):: orbs
+type(communications_arrays),intent(in) :: comms
+type(atoms_data),intent(in):: at
+type(linearParameters):: lin
+type(input_variables),intent(in):: input
+real(8),dimension(3,at%nat),intent(in):: rxyz
+integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
+type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+real(dp), dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin) :: rhopot
+type(GPU_pointers):: GPU
+real(dp),dimension(:),pointer,intent(in) :: pkernelseq
+real(8),dimension(orbs%npsidim),intent(out):: psi
+real(8),dimension(:),pointer:: psit
+real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)) :: irrzon
+real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)) :: phnons
+real(dp), dimension(lin%as%size_pkernel):: pkernel
+real(wp), dimension(lin%as%size_pot_ion):: pot_ion
+!real(wp), dimension(lin%as%size_rhocore):: rhocore 
+real(wp), dimension(:),pointer:: rhocore
+real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
+character(len=3):: PSquiet
+real(gp):: eion, edisp, eexctX
+logical:: scpot
+
+end subroutine linearScaling
+
+
+subroutine potentialAndEnergySub(iproc, nproc, Glr, orbs, atoms, in, lin, psi, rhopot, &
+    nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+    proj, nlpspd, pkernelseq, rxyz, eion, edisp, eexctX, scpot, n3d, n3p)
+use module_base
+use module_types
+!use Poisson_Solver
+implicit none
+
+! Calling arguments
+integer:: iproc, nproc, n3d, n3p
+type(locreg_descriptors) :: Glr
+type(orbitals_data):: orbs
+type(atoms_data):: atoms
+type(input_variables):: in
+type(linearParameters):: lin
+real(8),dimension(orbs%npsidim):: psi
+real(dp), dimension(lin%as%size_rhopot) :: rhopot
+integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
+type(GPU_pointers):: GPU
+integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)) :: irrzon 
+real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)) :: phnons 
+real(dp), dimension(lin%as%size_pkernel):: pkernel
+real(wp), dimension(lin%as%size_pot_ion):: pot_ion
+!real(wp), dimension(lin%as%size_rhocore):: rhocore 
+real(wp), dimension(:),pointer:: rhocore      
+real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
+character(len=3):: PSquiet
+type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+real(dp),dimension(lin%as%size_pkernelseq),intent(in):: pkernelseq
+real(8),dimension(3,atoms%nat),intent(in):: rxyz
+real(gp):: eion, edisp, eexctX
+logical:: scpot
+
+end subroutine potentialAndEnergySub
 
 
 

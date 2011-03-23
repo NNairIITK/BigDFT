@@ -227,6 +227,8 @@ low_level = init/projectors.f90  \
         linear/precondLinear.f90 \
         linear/locReg.f90 \
         linear/transposition.f90 \
+        linear/linearScaling.f90 \
+        linear/energyAndForces.f90 \
 	$(DGEMMSY_INTERFACE)  
 
 libbigdft_a_SOURCES = \
