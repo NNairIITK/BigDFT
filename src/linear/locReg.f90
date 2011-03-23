@@ -46,11 +46,11 @@ real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 integer:: iorb, iiAt, iitype, istat, iall, ierr, ii, ngroups, norbPerGroup, jprocStart, jprocEnd, i
 integer:: norbtot1, norbtot2, igroup, jproc, norbpMax, lproc, uproc, wholeGroup
 real(8):: radius, radiusCut, idealSplit, npsidimTemp
-logical:: passedTest
+logical:: passedTest, passedTestAll
 logical,dimension(:,:,:,:),allocatable:: logridCut_c
 logical,dimension(:,:,:,:),allocatable:: logridCut_f
-integer,dimension(:),allocatable:: norbPerGroupArr, newID, newGroup, newComm
-integer,dimension(:,:),allocatable:: procsInGroup
+integer,dimension(:),allocatable:: norbPerGroupArr, newGroup, newComm, npsidimArr
+integer,dimension(:,:),allocatable:: procsInGroup, newID
 integer,dimension(:,:,:),allocatable:: tempArr
 real(8),dimension(:),pointer:: psiInit, psi, psiWork
 character(len=*),parameter:: subname='initializeLocRegLIN'
@@ -178,8 +178,8 @@ character(len=*),parameter:: subname='initializeLocRegLIN'
   ! norbPerGroup gives the ideal number of orbitals per group.
   ! If you don't want to deal with these groups and have only one group (as usual), simply put
   ! norbPerGroup equal to lin%orbs%norb
-  !norbPerGroup=30
-  norbPerGroup=lin%orbs%norb
+  norbPerGroup=20
+  !norbPerGroup=lin%orbs%norb
   
   ! ngroups is the number of groups that we will have.
   ngroups=nint(dble(lin%orbs%norb)/dble(norbPerGroup))
@@ -235,25 +235,33 @@ character(len=*),parameter:: subname='initializeLocRegLIN'
       end if
   end do
   
+  if(iproc==0) write(*,'(x,a,i0,a)') 'Create ', lin%ncomms, ' new MPI communicators:'
+  do igroup=1,lin%ncomms
+      if(iproc==0) write(*,'(3x,a,i0,a,i0,a,i0,a)') '- Communicator ', igroup, ' includes the processes ', &
+                       lin%procsInComm(1,igroup), ' to ', lin%procsInComm(2,igroup), '.'
+  end do
+  
   
   
   ! Now create the new MPI communicators.
   ! These communicators will be contained in the array newComm. If you want to
   ! use MPI processes only for the processes in group igroup, you can use the
   ! ordinary MPI routines just with newComm(igroup) instead of mpi_comm_world.
-  allocate(newID(0:nproc), stat=istat)
+  allocate(newID(0:nproc,lin%ncomms), stat=istat)
   call memocc(istat, newID, 'newID', subname)
   allocate(newGroup(1:ngroups))
   call memocc(istat, newGroup, 'newGroup', subname)
   allocate(lin%MPIcomms(1:ngroups), stat=istat)
   call memocc(istat, lin%MPIComms, 'lin%MPIComms', subname)
-  do jproc=0,nproc-1
-      newID(jproc)=jproc
-  end do
   call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
   do igroup=1,ngroups
-      call mpi_group_incl(wholeGroup, newID(lin%procsInComm(2,igroup))-newID(lin%procsInComm(1,igroup))+1,&
-          newID(lin%procsInComm(1,igroup)), newGroup(igroup), ierr)
+      do jproc=0,lin%procsInComm(2,igroup)-lin%procsInComm(1,igroup)+1
+          newID(jproc,igroup)=lin%procsInComm(1,igroup)+jproc
+      end do
+      !call mpi_group_incl(wholeGroup, newID(lin%procsInComm(2,igroup))-newID(lin%procsInComm(1,igroup))+1,&
+      !    newID(lin%procsInComm(1,igroup)), newGroup(igroup), ierr)
+      call mpi_group_incl(wholeGroup, lin%procsInComm(2,igroup)-lin%procsInComm(1,igroup)+1,&
+          newID(0,igroup), newGroup(igroup), ierr)
       call mpi_comm_create(mpi_comm_world, newGroup(igroup), lin%MPIComms(igroup), ierr)
   end do
   
@@ -262,6 +270,7 @@ character(len=*),parameter:: subname='initializeLocRegLIN'
   ! Now create the parameters for the transposition.
   ! lproc and uproc give the first and last process ID of the processes
   ! in the communicator igroup.
+  if(iproc==0) write(*,'(x,a)') 'Wavefunction memory occupation:'
   do igroup=1,ngroups
       lproc=lin%procsInComm(1,igroup)
       uproc=lin%procsInComm(2,igroup)
@@ -269,11 +278,22 @@ character(len=*),parameter:: subname='initializeLocRegLIN'
           call orbitalsCommunicatorsWithGroups(iproc, lproc, uproc, lin, lin%MPIComms(igroup), lin%norbPerComm(igroup))
       end if
   end do
+
+  allocate(npsidimArr(0:nproc-1), stat=istat)
+  call memocc(istat, npsidimArr, 'npsidimArr', subname)
+  call mpi_gather(lin%orbs%npsidim, 1, mpi_integer, npsidimArr(0), 1, mpi_integer, 0, mpi_comm_world, ierr)
+  do jproc=0,nproc-1
+      if(iproc==0) write(*,'(3x,a,i0,a,i0,a)') '- process ', jproc, ': ', npsidimArr(jproc)*8, ' Bytes'
+  end do
+  iall=-product(shape(npsidimArr))*kind(npsidimArr)
+  deallocate(npsidimArr, stat=istat)
+  call memocc(istat, iall, 'npsidimArr', subname)
   
   
   
   ! Test the transposition. To do so, transpose and retranspose an array. If the transposition is
   ! correct, this should give the same result.
+  if(iproc==0) write(*,'(x,a)') 'Testing whether the transposition works...'
   allocate(psi(lin%orbs%npsidim), stat=istat)
   call memocc(istat, psi, 'psi', subname)
   allocate(psiInit(lin%orbs%npsidim), stat=istat)
@@ -302,11 +322,13 @@ character(len=*),parameter:: subname='initializeLocRegLIN'
           end if
       end do
   end do
-  if(passedTest) then
-      write(*,'(x,a,i0,a)') 'transposition test passed on process ', iproc, '.'
+  call mpi_allreduce(passedTest, passedTestAll, 1, mpi_logical, mpi_land, mpi_comm_world, ierr)
+  if(passedTestAll) then
+      if(iproc==0) write(*,'(3x,a)') 'Transposition test passed on all processes.'
   else
-      write(*,'(x,a,i0,a)') 'transposition test failed on process ', iproc, '.'
-      write(*,'(x,a)') 'The program will stop now!'
+      do jproc=0,nproc-1
+          if(iproc==jproc .and. .not.passedTest) write(*,'(3x,a,i0,a)') 'ERROR: transposition test failed on process ', iproc, '!'
+      end do
       stop
   end if
   
@@ -849,9 +871,6 @@ character(len=*),parameter:: subname='orbitalsCommunicatorsWithGroups'
   ! Choose the maximum of these two numbers.
   lin%orbs%npsidim=max(lin%orbs%npsidim,sum(lin%comms%ncnttLIN(lproc:uproc)))
  
-  write(*,'(1x,a,i0,4x,i5)') &
-       'LIN: Wavefunctions memory occupation for root processor (Bytes), iproc ',&
-       lin%orbs%npsidim*8, iproc
- 
+
 
 END SUBROUTINE orbitalsCommunicatorsWithGroups
