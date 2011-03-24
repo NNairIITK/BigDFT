@@ -1147,7 +1147,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !if infocode is not zero but the last run has been done for nrepmax times
   DoLastRunThings= (in%last_run == 1 .and. infocode == 0) .or. DoLastRunThings
 
-  !analyse the possiblity to calculate Davidson treatment
+  !analyse the possibility to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
   DoDavidson= abs(in%norbv) > 0 .and. DoLastRunThings
 
@@ -1398,7 +1398,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,band_structure_eval,'band_structure_eval',subname)
      end if
 
-     !calculate davidson procedure for all the groups of k-points which are chosen
+     !calculate Davidson procedure for all the groups of k-points which are chosen
      ikpt=1
      do igroup=1,in%ngroups_kptv
 
@@ -1775,6 +1775,11 @@ contains
     ! Free the libXC stuff if necessary.
     if (ixc < 0) then
        call libxc_functionals_end()
+    end if
+
+    !deallocate the mixing
+    if (in%itrpmax > 1) then
+       call ab6_mixing_deallocate(mix)
     end if
 
     !end of wavefunction minimisation
