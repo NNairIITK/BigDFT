@@ -626,7 +626,11 @@ AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
 AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes")
 dnl Test for the developers' documentation.
 AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
-AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes")
+AC_ARG_ENABLE(devel-doc,
+              AS_HELP_STRING([--enable-devel-doc],
+                             [compile documentation for developers using Doxygen.]),
+              ac_devel_doc=$withval, ac_devel_doc="no")
+AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],
@@ -708,7 +712,7 @@ Build:
   Minima hopping binary:     $ac_build_bin_minima_hopping
   atom and pseudo binaries:  $ac_build_bin_pseudo
   User documentation:        $ac_have_pdflatex
-  Devel. documentation:      $ac_have_doxygen
+  Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
 
 Options:
   Debug version:             $ac_use_debug		
