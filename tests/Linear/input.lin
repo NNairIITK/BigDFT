@@ -1,0 +1,6 @@
+600            max number of iterations
+1.d-3          convergence criterion
+6   10         DIISHistMin, DIISHistMax
+C  5  2.d-7    number of basis functions per atom, prefactor for confinement potential
+H  5  2.d-7    number of basis functions per atom, prefactor for confinement potential
+

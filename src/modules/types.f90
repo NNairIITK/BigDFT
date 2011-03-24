@@ -263,6 +263,9 @@ module module_types
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
+  integer,dimension(:,:,:,:),pointer:: nvctr_parLIN
+  integer, dimension(:), pointer :: ncntdLIN,ncnttLIN,ndspldLIN,ndspltLIN
+
   end type communications_arrays
 
 
@@ -354,6 +357,38 @@ module module_types
      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp) :: hpsi
      type(GPU_pointers), pointer :: GPU
   end type lanczos_args
+
+
+
+type,public:: arraySizes
+    integer:: size_rhopot
+    integer,dimension(4):: size_potxc
+    integer:: size_rhocore
+    integer:: size_pot_ion
+    integer,dimension(3):: size_phnons
+    integer,dimension(3):: size_irrzon
+    integer:: size_pkernel
+    integer:: size_pkernelseq
+end type
+
+
+type,public:: linearParameters
+  integer:: DIISHistMin, DIISHistMax, nItMax
+  real(8):: convCrit
+  real(8),dimension(:),allocatable:: potentialPrefac
+  type(orbitals_data):: orbs
+  type(communications_arrays):: comms
+  type(locreg_descriptors):: lr
+  type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfds
+  integer,dimension(:),allocatable:: onWhichAtom
+  integer,dimension(:),allocatable:: MPIComms, norbPerComm
+  integer,dimension(:,:),allocatable:: procsInComm
+  integer:: ncomms
+  type(arraySizes):: as
+end type
+
+
+
 
 
 !> Contains the arguments needed for the diis procedure

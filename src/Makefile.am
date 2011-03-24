@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft test_forces memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft test_forces memguess NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -223,7 +223,14 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
-	$(DGEMMSY_INTERFACE)
+        linear/getLocBasis.f90 \
+        linear/applyHamiltonian.f90 \
+        linear/precondLinear.f90 \
+        linear/locReg.f90 \
+        linear/transposition.f90 \
+        linear/linearScaling.f90 \
+        linear/energyAndForces.f90 \
+	$(DGEMMSY_INTERFACE)  
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
@@ -243,15 +250,6 @@ bigdft_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_opt)
-
-splsad_SOURCES = splinedsaddle.f90
-splsad_LDFLAGS =
-splsad_LDADD = libbigdft.a \
-	PSolver/libpoissonsolver.a \
-	$(LMPI) \
-	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDFLAGS = 
