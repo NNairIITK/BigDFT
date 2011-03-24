@@ -106,7 +106,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
         in%inputPsiId=1
         if(iproc==0) then
            write(*,*)&
-                ' WARNING: Self-consistent cycle did not met convergence criteria'
+                ' WARNING: Self-consistent cycle did not meet convergence criteria'
         end if
         exit loop_cluster
      else if (in%inputPsiId == 0 .and. infocode==3) then
