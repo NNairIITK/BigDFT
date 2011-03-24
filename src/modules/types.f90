@@ -375,7 +375,7 @@ end type
 
 
 type,public:: linearParameters
-  integer:: DIISHistMin, DIISHistMax, nItMax
+  integer:: DIISHistMin, DIISHistMax, nItMax, nItPrecond
   real(8):: convCrit
   real(8),dimension(:),allocatable:: potentialPrefac
   type(orbitals_data):: orbs

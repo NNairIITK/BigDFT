@@ -218,12 +218,13 @@ open(unit=99, file='input.lin')
 read(99,*) lin%nItMax
 read(99,*) lin%convCrit
 read(99,*) lin%DIISHistMin, lin%DIISHistMax
+read(99,*) lin%nItPrecond
 if(lin%DIISHistMin>lin%DIISHistMax) then
     if(iproc==0) write(*,'(a,i0,a,i0,a)') 'ERROR: DIISHistMin must not be larger than &
     & DIISHistMax, but you chose ', lin%DIISHistMin, ' and ', lin%DIISHistMax, '!'
     stop
 end if
-if(iproc==0) write(*,'(x,a)') '################## Input parameters. ##################'
+if(iproc==0) write(*,'(x,a)') '######################## Input parameters. ########################'
 if(iproc==0) write(*,'(x,a,9x,a,3x,a,3x,a,4x,a,4x,a)') '| ', ' | ', 'number of', ' | ', 'prefactor for', ' |'
 if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis functions', ' | ', 'confinement potential', ' |'
 do iat=1,at%ntypes
@@ -231,14 +232,15 @@ do iat=1,at%ntypes
     if(iproc==0) write(*,'(x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomname), repeat(' ', 6-len_trim(atomname)), '|',  &
         repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)))), norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |'
 end do
-if(iproc==0) write(*,'(x,a)') '-------------------------------------------------------'
-if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'maximal number', ' | ', 'convergence', ' | ', 'DIIS history', '         |'
-if(iproc==0) write(*,'(x,a,x,a,a,x,a,x,a,x,a,2x,a)') '| ', 'of iterations', ' | ', 'criterion', ' | ', 'min   max', '         |'
-if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,3x,a,i0,2x,a)') '| ', repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)))), lin%nItMax, &
+if(iproc==0) write(*,'(x,a)') '-------------------------------------------------------------------'
+if(iproc==0) write(*,'(x,a,a,a,a,a,a,a,a)') '| ', 'maximal number', ' | ', 'convergence', ' | ', 'DIIS history', ' |', ' no. of iterations |'
+if(iproc==0) write(*,'(x,a,x,a,a,x,a,x,a,x,a,2x,a,a)') '| ', 'of iterations', ' | ', 'criterion', ' | ', 'min   max', ' |', ' in preconditioner |'
+if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,3x,a,i0,2x,a,a,i0,a)') '| ', repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)))), lin%nItMax, &
     ' | ', lin%convCrit, ' | ', repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)))), lin%DIISHistMin, &
-    repeat(' ', 4-ceiling(log10(dble(lin%nItMax+1)))), lin%DIISHistMax, '         |'
+    repeat(' ', 4-ceiling(log10(dble(lin%nItMax+1)))), lin%DIISHistMax, ' |',   repeat(' ', 10-ceiling(log10(dble(lin%nItPrecond+1)))), &
+    lin%nItPrecond, '         |' 
 close(unit=99)
-if(iproc==0) write(*,'(x,a)') '-------------------------------------------------------'
+if(iproc==0) write(*,'(x,a)') '-------------------------------------------------------------------'
 
 
 ! Assign to each atom its number of basis functions and count how many basis functions 
@@ -269,10 +271,10 @@ do jproc=1,nproc-1
     end if
 end do
 if(.not.written) then
-    if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals.', &
-        repeat(' ', 15-ceiling(log10(dble(nproc)))-ceiling(log10(dble(lin%orbs%norbp+1)))), '|'
+    if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals. |'!, &
+        !repeat(' ', 15-ceiling(log10(dble(nproc)))-ceiling(log10(dble(lin%orbs%norbp+1)))), '|'
 end if
-if(iproc==0) write(*,'(x,a)') '#######################################################'
+if(iproc==0) write(*,'(x,a)') '###################################################################'
 
 
 ! Decide which orbital is centered in which atom.
@@ -687,7 +689,7 @@ contains
           if(icountSDSatur>=10 .and. diisLIN%idsx==0) then
               icountSwitch=icountSwitch+1
               idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
-              if(iproc==0) write(*,'(a,i0)') 'switch to DIIS with new history length ', idsx
+              if(iproc==0) write(*,'(x,a,i0)') 'switch to DIIS with new history length ', idsx
               call initializeDIISParameters(idsx)
               icountDIISFailureTot=0
               icountDIISFailureCons=0
