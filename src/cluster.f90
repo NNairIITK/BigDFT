@@ -695,7 +695,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         nvirt = norbv
      end if
   case(INPUT_PSI_LINEAR)
-     ! Do also the normal cubic case at the moment to avoid changes in the code (allocating etc.)
+     ! Do also the normal cubic case at the moment to avoid changes in the code (allocating etc.) and
+     ! to get the selfconsistent potential.
      nspin=in%nspin
      call input_wf_diag(iproc,nproc, atoms,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&

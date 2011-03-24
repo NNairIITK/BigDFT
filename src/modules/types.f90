@@ -361,33 +361,34 @@ module module_types
   end type lanczos_args
 
 
+!> Contains the dimensions of some arrays.
+  type,public:: arraySizes
+      integer:: size_rhopot
+      integer,dimension(4):: size_potxc
+      integer:: size_rhocore
+      integer:: size_pot_ion
+      integer,dimension(3):: size_phnons
+      integer,dimension(3):: size_irrzon
+      integer:: size_pkernel
+      integer:: size_pkernelseq
+  end type
 
-type,public:: arraySizes
-    integer:: size_rhopot
-    integer,dimension(4):: size_potxc
-    integer:: size_rhocore
-    integer:: size_pot_ion
-    integer,dimension(3):: size_phnons
-    integer,dimension(3):: size_irrzon
-    integer:: size_pkernel
-    integer:: size_pkernelseq
-end type
 
-
-type,public:: linearParameters
-  integer:: DIISHistMin, DIISHistMax, nItMax, nItPrecond
-  real(8):: convCrit
-  real(8),dimension(:),allocatable:: potentialPrefac
-  type(orbitals_data):: orbs
-  type(communications_arrays):: comms
-  type(locreg_descriptors):: lr
-  type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfds
-  integer,dimension(:),allocatable:: onWhichAtom
-  integer,dimension(:),allocatable:: MPIComms, norbPerComm
-  integer,dimension(:,:),allocatable:: procsInComm
-  integer:: ncomms
-  type(arraySizes):: as
-end type
+!> Contains all parameters related to the linear scaling version.
+  type,public:: linearParameters
+    integer:: DIISHistMin, DIISHistMax, nItMax, nItPrecond
+    real(8):: convCrit
+    real(8),dimension(:),allocatable:: potentialPrefac
+    type(orbitals_data):: orbs
+    type(communications_arrays):: comms
+    type(locreg_descriptors):: lr
+    type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfds
+    integer,dimension(:),allocatable:: onWhichAtom
+    integer,dimension(:),allocatable:: MPIComms, norbPerComm
+    integer,dimension(:,:),allocatable:: procsInComm
+    integer:: ncomms
+    type(arraySizes):: as
+  end type
 
 
 
