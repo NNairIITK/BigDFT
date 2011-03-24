@@ -58,6 +58,8 @@ END SUBROUTINE print_logo
 !>    Do all initialisation for all different files of BigDFT. 
 !!    Set default values if not any.
 !!    Initialize memocc
+!! @todo
+!!   Should be better for debug purpose to read input.perf before
 subroutine read_input_variables(iproc,posinp, &
      & file_dft, file_kpt, file_mix, file_geopt, file_perf, inputs,atoms,rxyz)
   use module_base
