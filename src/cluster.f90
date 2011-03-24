@@ -694,7 +694,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      if (nvirt > norbv) then
         nvirt = norbv
      end if
-  case(100)
+  case(INPUT_PSI_LINEAR)
      ! Do also the normal cubic case at the moment to avoid changes in the code (allocating etc.)
      nspin=in%nspin
      call input_wf_diag(iproc,nproc, atoms,&

@@ -688,6 +688,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   integer :: nwrtmsg,norbj,jiorb,jjorb,ihs,ispin,norbij
   real(wp), dimension(2) :: preval
   real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
+  real(gp) :: HLIGgap
 
 !if(iproc==0) write(30100,*) hamovr(1:ndim_hamovr,1)
 !if(iproc==0) write(30110,*) hamovr(1:ndim_hamovr,2)
