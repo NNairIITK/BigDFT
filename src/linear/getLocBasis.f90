@@ -56,21 +56,21 @@ use module_interfaces, exceptThisOne => getLinearPsi
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nspin, n3p
-type(locreg_descriptors), intent(in) :: Glr
-type(orbitals_data), intent(in) :: orbs
-type(communications_arrays), intent(in) :: comms
-type(atoms_data), intent(in) :: at
-type(linearParameters):: lin
+type(locreg_descriptors),intent(in):: Glr
+type(orbitals_data),intent(in) :: orbs
+type(communications_arrays),intent(in) :: comms
+type(atoms_data),intent(in):: at
+type(linearParameters),intent(in):: lin
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz, rxyzParab
-integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
-type(nonlocal_psp_descriptors),intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-real(dp), dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin) :: rhopot
-type(GPU_pointers),intent(in out):: GPU
-real(dp),dimension(:),pointer,intent(in) :: pkernelseq
-real(8),dimension(lin%orbs%npsidim),intent(in out):: phi
+integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
+type(nonlocal_psp_descriptors),intent(in):: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(in):: proj
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
+type(GPU_pointers),intent(inout):: GPU
+real(dp),dimension(:),pointer,intent(in):: pkernelseq
+real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
 real(8),dimension(orbs%npsidim),intent(out):: psi, psit
 integer,intent(out):: infoBasisFunctions
 
@@ -217,30 +217,34 @@ call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 open(unit=99, file='input.lin')
 read(99,*) lin%nItMax
 read(99,*) lin%convCrit
-read(99,*) lin%DIISHistMin, lin%DIISHistMax
+read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaSD
 read(99,*) lin%nItPrecond
 if(lin%DIISHistMin>lin%DIISHistMax) then
     if(iproc==0) write(*,'(a,i0,a,i0,a)') 'ERROR: DIISHistMin must not be larger than &
     & DIISHistMax, but you chose ', lin%DIISHistMin, ' and ', lin%DIISHistMax, '!'
     stop
 end if
-if(iproc==0) write(*,'(x,a)') '######################## Input parameters. ########################'
+if(iproc==0) write(*,'(x,a)') '############################## Input parameters ##############################'
 if(iproc==0) write(*,'(x,a,9x,a,3x,a,3x,a,4x,a,4x,a)') '| ', ' | ', 'number of', ' | ', 'prefactor for', ' |'
-if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis functions', ' | ', 'confinement potential', ' |'
+if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis functions', ' | ', &
+    'confinement potential', ' |'
 do iat=1,at%ntypes
     read(99,*) atomname, norbsPerType(iat), lin%potentialPrefac(iat)
-    if(iproc==0) write(*,'(x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomname), repeat(' ', 6-len_trim(atomname)), '|',  &
-        repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)))), norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |'
+    if(iproc==0) write(*,'(x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomname), &
+        repeat(' ', 6-len_trim(atomname)), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)))), &
+         norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |'
 end do
-if(iproc==0) write(*,'(x,a)') '-------------------------------------------------------------------'
-if(iproc==0) write(*,'(x,a,a,a,a,a,a,a,a)') '| ', 'maximal number', ' | ', 'convergence', ' | ', 'DIIS history', ' |', ' no. of iterations |'
-if(iproc==0) write(*,'(x,a,x,a,a,x,a,x,a,x,a,2x,a,a)') '| ', 'of iterations', ' | ', 'criterion', ' | ', 'min   max', ' |', ' in preconditioner |'
-if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,3x,a,i0,2x,a,a,i0,a)') '| ', repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)))), lin%nItMax, &
-    ' | ', lin%convCrit, ' | ', repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)))), lin%DIISHistMin, &
-    repeat(' ', 4-ceiling(log10(dble(lin%nItMax+1)))), lin%DIISHistMax, ' |',   repeat(' ', 10-ceiling(log10(dble(lin%nItPrecond+1)))), &
-    lin%nItPrecond, '         |' 
+if(iproc==0) write(*,'(x,a)') '------------------------------------------------------------------------------'
+if(iproc==0) write(*,'(x,a)') '| maximal number | convergence | DIIS history | alpha SD | no. of iterations |'
+if(iproc==0) write(*,'(x,a)') '|  of iterations |  criterion  |  min   max   |          | in preconditioner |'
+if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,3x,a,i0,2x,a,x,es8.2,x,a,a,i0,a)') '| ', &
+    repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)))), lin%nItMax, ' | ', lin%convCrit, ' | ', &
+    repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)))), lin%DIISHistMin, &
+    repeat(' ', 4-ceiling(log10(dble(lin%nItMax+1)))), lin%DIISHistMax, ' |', &
+    lin%alphaSD, '|', &
+      repeat(' ', 10-ceiling(log10(dble(lin%nItPrecond+1)))), lin%nItPrecond, '         |' 
 close(unit=99)
-if(iproc==0) write(*,'(x,a)') '-------------------------------------------------------------------'
+if(iproc==0) write(*,'(x,a)') '------------------------------------------------------------------------------'
 
 
 ! Assign to each atom its number of basis functions and count how many basis functions 
@@ -262,19 +266,23 @@ do jproc=1,nproc-1
     if(lin%orbs%norb_par(jproc)<lin%orbs%norb_par(jproc-1)) then
         !if(iproc==0) write(*,'(x,a,5(i0,a))') '#| Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), &
         !    ' orbitals, processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.'
-        if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), ' orbitals,', &
+        if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+            lin%orbs%norb_par(jproc-1), ' orbitals,', &
             repeat(' ', 14-ceiling(log10(dble(jproc)))-ceiling(log10(dble(lin%orbs%norb_par(jproc-1)+1)))), '|'
-        if(iproc==0) write(*,'(x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.', &
-            repeat(' ', 16-ceiling(log10(dble(jproc+1)))-ceiling(log10(dble(nproc)))-ceiling(log10(dble(lin%orbs%norb_par(jproc)+1)))), '|'
+        if(iproc==0) write(*,'(x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+            lin%orbs%norb_par(jproc),' orbitals.', &
+            repeat(' ', 16-ceiling(log10(dble(jproc+1)))-ceiling(log10(dble(nproc)))-&
+            ceiling(log10(dble(lin%orbs%norb_par(jproc)+1)))), '|'
         written=.true.
         exit
     end if
 end do
 if(.not.written) then
-    if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1,' treat ',lin%orbs%norbp,' orbitals. |'!, &
+    if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+        ' treat ',lin%orbs%norbp,' orbitals. |'!, &
         !repeat(' ', 15-ceiling(log10(dble(nproc)))-ceiling(log10(dble(lin%orbs%norbp+1)))), '|'
 end if
-if(iproc==0) write(*,'(x,a)') '###################################################################'
+if(iproc==0) write(*,'(x,a)') '##############################################################################'
 
 
 ! Decide which orbital is centered in which atom.
@@ -492,7 +500,9 @@ type(diis_objects):: diisLIN
   
   
   if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
-  alpha=1.d-2
+
+  ! Assign the step size for SD iterations.
+  alpha=lin%alphaSD
   iterLoop: do it=1,lin%nItMax
       fnrmMax=0.d0
       fnrm=0.d0
@@ -591,14 +601,14 @@ type(diis_objects):: diisLIN
       if(iproc==0) write(1000,'(i6,2es15.7,f15.7,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
       if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
           if(it>=lin%nItMax) then
-              if(iproc==0) write(*,'(a,i0,a)') 'WARNING: not converged within ', it, &
+              if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
-              if(iproc==0) write(*,'(a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               infoBasisFunctions=1
           else
               if(iproc==0) then
-                  write(*,'(a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
-                  write (*,'(a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+                  write(*,'(x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
+                  write (*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
               end if
               infoBasisFunctions=0
           end if
@@ -702,7 +712,7 @@ contains
           icountSDSatur=0
           if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3) .and. diisLIN%idsx>0) then
               ! Switch back to SD. The initial step size is 1.d0.
-              alpha=1.d0
+              alpha=lin%alphaSD
               if(iproc==0) then
                   if(icountDIISFailureCons>=2) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
                       icountDIISFailureCons, ' times consecutievly. Switch to SD with stepsize', alpha(1)

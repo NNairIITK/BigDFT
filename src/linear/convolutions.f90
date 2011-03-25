@@ -2,10 +2,7 @@ subroutine getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, eff, filterCode)
 !
 ! Purpose:
 ! ========
-!   Calculates the effective filter for the operator (x-x0)^2. Using the notation
-!   in the header of the module 'filterModule', this effective filter is given by
-!   aeff_i = a2_i -2*x0*a1_i + x0^2*delta(i) (delta being the Kronecker delta).
-!   The other filters (beff, ceff, eeff) are given in the analogous way.
+!   Calculates the effective filter for the operator [kineticEnergy + (x-x0)^4].
 !   
 ! Calling arguments:
 ! ==================
@@ -42,6 +39,7 @@ hgrid3=hgrid**3
 x02=x0**2
 x03=x0**3
 
+! Determine which filter we have to calculate
 select case(trim(filterCode))
 case('a')
     do i=lb,ub
@@ -73,8 +71,6 @@ case default
 end select
 
 
-
-
 end subroutine getEffectiveFilterQuartic
 
 
@@ -85,17 +81,16 @@ end subroutine getEffectiveFilterQuartic
 
 
 
-  !   y = (kinetic energy operator)x + (cprec*I)x + ((x-x0)^2*I)*x
-! One of the most CPU intensive routines
+!>  Applies the following operation: 
+!!  y = [kinetic energy operator) + (cprec*I) + ((r-r0)^4)]*x
 subroutine ConvolkineticQuartic(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,x_f1,x_f2,x_f3, &
-     rxyzParabola, parabPrefac, it)
+     rxyzConf, potentialPrefac, it)
   use module_base
   implicit none
-!dee
-!  integer :: iend_test,count_rate_test,count_max_test,istart_test
 
+  ! Calling arguments
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(wp), intent(in) :: cprecr
   real(gp), intent(in) :: hgrid
@@ -109,8 +104,8 @@ subroutine ConvolkineticQuartic(n1,n2,n3, &
   real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: x_f3
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
-real(8),dimension(3):: rxyzParabola
-real(8):: parabPrefac
+real(8),dimension(3):: rxyzConf
+real(8):: potentialPrefac
 integer:: it
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
@@ -131,13 +126,6 @@ real(8):: x2, y2, z2
 real(8):: x3, y3, z3
 integer:: ii
 
-!write(901,*) x_c
-!write(902,*) x_f
-!write(903,*) x_f1
-!write(904,*) x_f2
-!write(905,*) x_f3
-!call mpi_barrier(mpi_comm_world, ii)
-!stop
 
   scale=-.5_wp/real(hgrid**2,wp)
 
@@ -385,14 +373,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
               dyi2=0.0_wp 
               dyi3=0.0_wp 
               ! Get the effective a-filters for the x dimension
-              x0=hgrid*(i1+0)-rxyzParabola(1)
-              x1=hgrid*(i1+1)-rxyzParabola(1)
-              x2=hgrid*(i1+2)-rxyzParabola(1)
-              x3=hgrid*(i1+3)-rxyzParabola(1)
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, aeff0(lowfil), 'a')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x1, aeff1(lowfil), 'a')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x2, aeff2(lowfil), 'a')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x3, aeff3(lowfil), 'a')
+              x0=hgrid*(i1+0)-rxyzConf(1)
+              x1=hgrid*(i1+1)-rxyzConf(1)
+              x2=hgrid*(i1+2)-rxyzConf(1)
+              x3=hgrid*(i1+3)-rxyzConf(1)
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, aeff0(lowfil), 'a')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x1, aeff1(lowfil), 'a')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x2, aeff2(lowfil), 'a')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x3, aeff3(lowfil), 'a')
               do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
                  dyi0=dyi0 + x_c(t,i2,i3)*aeff0(t-i1-0)
                  dyi1=dyi1 + x_c(t,i2,i3)*aeff1(t-i1-1)
@@ -412,8 +400,8 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i1=icur,ibyz_c(2,i2,i3)
            dyi=0.0_wp 
            ! Get the effective a-filters for the x dimension
-           x0=hgrid*(i1+0)-rxyzParabola(1)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, aeff0(lowfil), 'a')
+           x0=hgrid*(i1+0)-rxyzConf(1)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, aeff0(lowfil), 'a')
            do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
               dyi=dyi + x_c(t,i2,i3)*aeff0(t-i1)
            enddo
@@ -430,14 +418,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
               dyi2=0.0_wp
               dyi3=0.0_wp
               ! Get the effective b-filters for the x dimension
-              x0=hgrid*(i1+0)-rxyzParabola(1)
-              x1=hgrid*(i1+1)-rxyzParabola(1)
-              x2=hgrid*(i1+2)-rxyzParabola(1)
-              x3=hgrid*(i1+3)-rxyzParabola(1)
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, beff0(lowfil), 'b')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x1, beff1(lowfil), 'b')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x2, beff2(lowfil), 'b')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x3, beff3(lowfil), 'b')
+              x0=hgrid*(i1+0)-rxyzConf(1)
+              x1=hgrid*(i1+1)-rxyzConf(1)
+              x2=hgrid*(i1+2)-rxyzConf(1)
+              x3=hgrid*(i1+3)-rxyzConf(1)
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, beff0(lowfil), 'b')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x1, beff1(lowfil), 'b')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x2, beff2(lowfil), 'b')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x3, beff3(lowfil), 'b')
               do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
                  dyi0=dyi0 + x_f1(t,i2,i3)*beff0(t-i1-0)
                  dyi1=dyi1 + x_f1(t,i2,i3)*beff1(t-i1-1)
@@ -455,8 +443,8 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i1=istart,iend
            dyi=0.0_wp
            ! Get the effective b-filters for the x dimension
-           x0=hgrid*(i1+0)-rxyzParabola(1)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, beff0(lowfil), 'b')
+           x0=hgrid*(i1+0)-rxyzConf(1)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, beff0(lowfil), 'b')
            do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
               dyi=dyi + x_f1(t,i2,i3)*beff0(t-i1)
            enddo
@@ -470,14 +458,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
               dyi2=0.0_wp 
               dyi3=0.0_wp 
               ! Get the effective c-filters for the x dimension
-              x0=hgrid*(i1+0)-rxyzParabola(1)
-              x1=hgrid*(i1+1)-rxyzParabola(1)
-              x2=hgrid*(i1+2)-rxyzParabola(1)
-              x3=hgrid*(i1+3)-rxyzParabola(1)
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, ceff0(lowfil), 'c')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x1, ceff1(lowfil), 'c')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x2, ceff2(lowfil), 'c')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x3, ceff3(lowfil), 'c')
+              x0=hgrid*(i1+0)-rxyzConf(1)
+              x1=hgrid*(i1+1)-rxyzConf(1)
+              x2=hgrid*(i1+2)-rxyzConf(1)
+              x3=hgrid*(i1+3)-rxyzConf(1)
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, ceff0(lowfil), 'c')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x1, ceff1(lowfil), 'c')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x2, ceff2(lowfil), 'c')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x3, ceff3(lowfil), 'c')
               do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
                  dyi0=dyi0 + x_c(t,i2,i3)*ceff0(t-i1-0)
                  dyi1=dyi1 + x_c(t,i2,i3)*ceff1(t-i1-1)
@@ -496,8 +484,8 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i1=icur,ibyz_f(2,i2,i3)
            dyi=0.0_wp 
            ! Get the effective c-filters for the x dimension
-           x0=hgrid*(i1+0)-rxyzParabola(1)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, ceff0(lowfil), 'c')
+           x0=hgrid*(i1+0)-rxyzConf(1)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, ceff0(lowfil), 'c')
            do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
               dyi=dyi + x_c(t,i2,i3)*ceff0(t-i1)
            enddo
@@ -522,14 +510,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
               dyi2=0.0_wp 
               dyi3=0.0_wp 
               ! Get the effective a-filters for the y dimension
-              y0=hgrid*(i2+0)-rxyzParabola(2)
-              y1=hgrid*(i2+1)-rxyzParabola(2)
-              y2=hgrid*(i2+2)-rxyzParabola(2)
-              y3=hgrid*(i2+3)-rxyzParabola(2)
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y0, aeff0(lowfil), 'a')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y1, aeff1(lowfil), 'a')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y2, aeff2(lowfil), 'a')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y3, aeff3(lowfil), 'a')
+              y0=hgrid*(i2+0)-rxyzConf(2)
+              y1=hgrid*(i2+1)-rxyzConf(2)
+              y2=hgrid*(i2+2)-rxyzConf(2)
+              y3=hgrid*(i2+3)-rxyzConf(2)
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y0, aeff0(lowfil), 'a')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y1, aeff1(lowfil), 'a')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y2, aeff2(lowfil), 'a')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y3, aeff3(lowfil), 'a')
               do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
                  dyi0=dyi0 + x_c(i1,t,i3)*aeff0(t-i2-0)
                  dyi1=dyi1 + x_c(i1,t,i3)*aeff1(t-i2-1)
@@ -549,8 +537,8 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i2=icur,ibxz_c(2,i1,i3)
            dyi=0.0_wp 
            ! Get the effective a-filters for the y dimension
-           y0=hgrid*(i2+0)-rxyzParabola(2)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y0, aeff0(lowfil), 'a')
+           y0=hgrid*(i2+0)-rxyzConf(2)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y0, aeff0(lowfil), 'a')
            do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
               dyi=dyi + x_c(i1,t,i3)*aeff0(t-i2)
            enddo
@@ -566,14 +554,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
               dyi2=0.0_wp
               dyi3=0.0_wp
               ! Get the effective b-filters for the y dimension
-              y0=hgrid*(i2+0)-rxyzParabola(2)
-              y1=hgrid*(i2+1)-rxyzParabola(2)
-              y2=hgrid*(i2+2)-rxyzParabola(2)
-              y3=hgrid*(i2+3)-rxyzParabola(2)
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y0, beff0(lowfil), 'b')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y1, beff1(lowfil), 'b')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y2, beff2(lowfil), 'b')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y3, beff3(lowfil), 'b')
+              y0=hgrid*(i2+0)-rxyzConf(2)
+              y1=hgrid*(i2+1)-rxyzConf(2)
+              y2=hgrid*(i2+2)-rxyzConf(2)
+              y3=hgrid*(i2+3)-rxyzConf(2)
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y0, beff0(lowfil), 'b')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y1, beff1(lowfil), 'b')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y2, beff2(lowfil), 'b')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y3, beff3(lowfil), 'b')
               do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
                  dyi0=dyi0 + x_f2(t,i1,i3)*beff0(t-i2-0)
                  dyi1=dyi1 + x_f2(t,i1,i3)*beff1(t-i2-1)
@@ -591,8 +579,8 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i2=istart,iend
            dyi=0.0_wp
            ! Get the effective b-filters for the y dimension
-           y0=hgrid*(i2+0)-rxyzParabola(2)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y0, beff0(lowfil), 'b')
+           y0=hgrid*(i2+0)-rxyzConf(2)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y0, beff0(lowfil), 'b')
            do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_f(2,i1,i3))
               dyi=dyi + x_f2(t,i1,i3)*beff0(t-i2)
            enddo
@@ -606,14 +594,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
               dyi2=0.0_wp 
               dyi3=0.0_wp 
               ! Get the effective c-filters for the y dimension
-              y0=hgrid*(i2+0)-rxyzParabola(2)
-              y1=hgrid*(i2+1)-rxyzParabola(2)
-              y2=hgrid*(i2+2)-rxyzParabola(2)
-              y3=hgrid*(i2+3)-rxyzParabola(2)
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y0, ceff0(lowfil), 'c')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y1, ceff1(lowfil), 'c')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y2, ceff2(lowfil), 'c')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y3, ceff3(lowfil), 'c')
+              y0=hgrid*(i2+0)-rxyzConf(2)
+              y1=hgrid*(i2+1)-rxyzConf(2)
+              y2=hgrid*(i2+2)-rxyzConf(2)
+              y3=hgrid*(i2+3)-rxyzConf(2)
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y0, ceff0(lowfil), 'c')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y1, ceff1(lowfil), 'c')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y2, ceff2(lowfil), 'c')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y3, ceff3(lowfil), 'c')
               do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
                  dyi0=dyi0 + x_c(i1,t,i3)*ceff0(t-i2-0)
                  dyi1=dyi1 + x_c(i1,t,i3)*ceff1(t-i2-1)
@@ -633,8 +621,8 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i2=icur,ibxz_f(2,i1,i3)
            dyi=0.0_wp 
            ! Get the effective c-filters for the y dimension
-           y0=hgrid*(i2+0)-rxyzParabola(2)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y0, ceff0(lowfil), 'c')
+           y0=hgrid*(i2+0)-rxyzConf(2)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y0, ceff0(lowfil), 'c')
            do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
               dyi=dyi + x_c(i1,t,i3)*ceff0(t-i2)
            enddo
@@ -661,14 +649,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
               dyi2=0.0_wp 
               dyi3=0.0_wp 
               ! Get the effective a-filters for the z dimension
-              z0=hgrid*(i3+0)-rxyzParabola(3)
-              z1=hgrid*(i3+1)-rxyzParabola(3)
-              z2=hgrid*(i3+2)-rxyzParabola(3)
-              z3=hgrid*(i3+3)-rxyzParabola(3)
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z0, aeff0(lowfil), 'a')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z1, aeff1(lowfil), 'a')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z2, aeff2(lowfil), 'a')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z3, aeff3(lowfil), 'a')
+              z0=hgrid*(i3+0)-rxyzConf(3)
+              z1=hgrid*(i3+1)-rxyzConf(3)
+              z2=hgrid*(i3+2)-rxyzConf(3)
+              z3=hgrid*(i3+3)-rxyzConf(3)
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z0, aeff0(lowfil), 'a')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z1, aeff1(lowfil), 'a')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z2, aeff2(lowfil), 'a')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z3, aeff3(lowfil), 'a')
               do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
                  dyi0=dyi0 + x_c(i1,i2,t)*aeff0(t-i3-0)
                  dyi1=dyi1 + x_c(i1,i2,t)*aeff1(t-i3-1)
@@ -688,8 +676,8 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i3=icur,ibxy_c(2,i1,i2)
            dyi=0.0_wp
            ! Get the effective a-filters for the y dimension
-           z0=hgrid*(i3+0)-rxyzParabola(3)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z0, aeff0(lowfil), 'a')
+           z0=hgrid*(i3+0)-rxyzConf(3)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z0, aeff0(lowfil), 'a')
            do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
               dyi=dyi + x_c(i1,i2,t)*aeff0(t-i3)
            enddo
@@ -705,14 +693,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
               dyi2=0.0_wp
               dyi3=0.0_wp
               ! Get the effective b-filters for the z dimension
-              z0=hgrid*(i3+0)-rxyzParabola(3)
-              z1=hgrid*(i3+1)-rxyzParabola(3)
-              z2=hgrid*(i3+2)-rxyzParabola(3)
-              z3=hgrid*(i3+3)-rxyzParabola(3)
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z0, beff0(lowfil), 'b')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z1, beff1(lowfil), 'b')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z2, beff2(lowfil), 'b')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z3, beff3(lowfil), 'b')
+              z0=hgrid*(i3+0)-rxyzConf(3)
+              z1=hgrid*(i3+1)-rxyzConf(3)
+              z2=hgrid*(i3+2)-rxyzConf(3)
+              z3=hgrid*(i3+3)-rxyzConf(3)
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z0, beff0(lowfil), 'b')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z1, beff1(lowfil), 'b')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z2, beff2(lowfil), 'b')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z3, beff3(lowfil), 'b')
               do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
                  dyi0=dyi0 + x_f3(t,i1,i2)*beff0(t-i3-0)
                  dyi1=dyi1 + x_f3(t,i1,i2)*beff1(t-i3-1)
@@ -730,8 +718,8 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i3=istart,iend
            dyi=0.0_wp
            ! Get the effective b-filters for the y dimension
-           z0=hgrid*(i3+0)-rxyzParabola(3)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z0, beff0(lowfil), 'b')
+           z0=hgrid*(i3+0)-rxyzConf(3)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z0, beff0(lowfil), 'b')
            do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
               dyi=dyi + x_f3(t,i1,i2)*beff0(t-i3)
            enddo
@@ -745,14 +733,14 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
               dyi2=0.0_wp 
               dyi3=0.0_wp 
               ! Get the effective c-filters for the z dimension
-              z0=hgrid*(i3+0)-rxyzParabola(3)
-              z1=hgrid*(i3+1)-rxyzParabola(3)
-              z2=hgrid*(i3+2)-rxyzParabola(3)
-              z3=hgrid*(i3+3)-rxyzParabola(3)
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z0, ceff0(lowfil), 'c')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z1, ceff1(lowfil), 'c')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z2, ceff2(lowfil), 'c')
-              call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z3, ceff3(lowfil), 'c')
+              z0=hgrid*(i3+0)-rxyzConf(3)
+              z1=hgrid*(i3+1)-rxyzConf(3)
+              z2=hgrid*(i3+2)-rxyzConf(3)
+              z3=hgrid*(i3+3)-rxyzConf(3)
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z0, ceff0(lowfil), 'c')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z1, ceff1(lowfil), 'c')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z2, ceff2(lowfil), 'c')
+              call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z3, ceff3(lowfil), 'c')
               do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
                  dyi0=dyi0 + x_c(i1,i2,t)*ceff0(t-i3-0)
                  dyi1=dyi1 + x_c(i1,i2,t)*ceff1(t-i3-1)
@@ -772,8 +760,8 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i3=icur,ibxy_f(2,i1,i2)
            dyi=0.0_wp 
            ! Get the effective c-filters for the z dimension
-           z0=hgrid*(i3+0)-rxyzParabola(3)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid,  z0, ceff0(lowfil), 'c')
+           z0=hgrid*(i3+0)-rxyzConf(3)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid,  z0, ceff0(lowfil), 'c')
            do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
               dyi=dyi + x_c(i1,i2,t)*ceff0(t-i3)
            enddo
@@ -798,11 +786,11 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
            t112=0.0_wp;t121=0.0_wp;t122=0.0_wp;t212=0.0_wp;t221=0.0_wp;t222=0.0_wp;t211=0.0_wp 
            ! Get the effective filters for the x dimension
-           x0=hgrid*(i1+0)-rxyzParabola(1)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, aeff0(lowfil), 'a')
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, beff0(lowfil), 'b')
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, ceff0(lowfil), 'c')
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, x0, eeff0(lowfil), 'e')
+           x0=hgrid*(i1+0)-rxyzConf(1)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, aeff0(lowfil), 'a')
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, beff0(lowfil), 'b')
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, ceff0(lowfil), 'c')
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, x0, eeff0(lowfil), 'e')
            do l=max(nfl1-i1,lowfil),min(lupfil,nfu1-i1)
               t112=t112 + x_f(4,i1+l,i2,i3)*aeff0(l) + x_f(5,i1+l,i2,i3)*beff0(l)
               t121=t121 + x_f(2,i1+l,i2,i3)*aeff0(l) + x_f(3,i1+l,i2,i3)*beff0(l)
@@ -836,11 +824,11 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
            t112=0.0_wp;t121=0.0_wp;t122=0.0_wp;t212=0.0_wp;t221=0.0_wp;t222=0.0_wp;t211=0.0_wp 
            ! Get the effective filters for the y dimension
-           y0=hgrid*(i2+0)-rxyzParabola(2)
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y0, aeff0(lowfil), 'a')
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y0, beff0(lowfil), 'b')
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y0, ceff0(lowfil), 'c')
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, y0, eeff0(lowfil), 'e')
+           y0=hgrid*(i2+0)-rxyzConf(2)
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y0, aeff0(lowfil), 'a')
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y0, beff0(lowfil), 'b')
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y0, ceff0(lowfil), 'c')
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, y0, eeff0(lowfil), 'e')
            do l=max(nfl2-i2,lowfil),min(lupfil,nfu2-i2)
               t112=t112 + x_f(4,i1,i2+l,i3)*aeff0(l) + x_f(6,i1,i2+l,i3)*beff0(l)
               t211=t211 + x_f(1,i1,i2+l,i3)*aeff0(l) + x_f(3,i1,i2+l,i3)*beff0(l)
@@ -873,12 +861,12 @@ aeff3=0.d0 ; beff3=0.d0 ; ceff3=0.d0 ; eeff3=0.0
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
            t112=0.0_wp;t121=0.0_wp;t122=0.0_wp;t212=0.0_wp;t221=0.0_wp;t222=0.0_wp;t211=0.0_wp 
            ! Get the effective filters for the z dimension
-           z0=hgrid*(i3+0)-rxyzParabola(3)
-           !call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z0, aeff0(lowfil), beff0(lowfil), ceff0(lowfil), eeff0(lowfil))
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z0, aeff0(lowfil), 'a')
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z0, beff0(lowfil), 'b')
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z0, ceff0(lowfil), 'c')
-           call getEffectiveFilterQuartic(it,parabPrefac,hgrid, z0, eeff0(lowfil), 'e')
+           z0=hgrid*(i3+0)-rxyzConf(3)
+           !call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z0, aeff0(lowfil), beff0(lowfil), ceff0(lowfil), eeff0(lowfil))
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z0, aeff0(lowfil), 'a')
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z0, beff0(lowfil), 'b')
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z0, ceff0(lowfil), 'c')
+           call getEffectiveFilterQuartic(it,potentialPrefac,hgrid, z0, eeff0(lowfil), 'e')
            do l=max(nfl3-i3,lowfil),min(lupfil,nfu3-i3)
               t121=t121 + x_f(2,i1,i2,i3+l)*aeff0(l) + x_f(6,i1,i2,i3+l)*beff0(l)
               t211=t211 + x_f(1,i1,i2,i3+l)*aeff0(l) + x_f(5,i1,i2,i3+l)*beff0(l)

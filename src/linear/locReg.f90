@@ -110,32 +110,38 @@ character(len=*),parameter:: subname='initializeLocRegLIN'
       iitype=at%iatype(iiAt)
       radius=radii_cf(1,iitype)
       ! Fill logridCut. The cutoff for the localization region is given by radiusCut*radius
-      call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, &
-           1, 1, rxyz(1,iiAt), radius, radiusCut, input%hx, input%hy, input%hz, logridCut_c(0,0,0,iorb))
+      call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, &
+           0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, 1, 1, rxyz(1,iiAt), radius, radiusCut, &
+           input%hx, input%hy, input%hz, logridCut_c(0,0,0,iorb))
   
       ! Calculate the number of segments and the number of grid points for each orbital.
-      call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), &
-          lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%nvctr_c)
+      call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, &
+          lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), lin%wfds(iorb,iproc)%nseg_c, &
+          lin%wfds(iorb,iproc)%nvctr_c)
   
       ! Now the same procedure for the fine radius.
       radius=radii_cf(2,iitype)
-      call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, &
-           1, 1, rxyz(1,iiAt), radius, radiusCut, input%hx, input%hy, input%hz, logridCut_f(0,0,0,iorb))
+      call fill_logridCut(lin%lr%geocode, lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, &
+           0, lin%lr%d%n2, 0, lin%lr%d%n3, 0, 1, 1, 1, rxyz(1,iiAt), radius, radiusCut, &
+           input%hx, input%hy, input%hz, logridCut_f(0,0,0,iorb))
   
       ! Calculate the number of segments and the number of grid points for each orbital.
-      call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), &
-          lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%nvctr_f)
+      call num_segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, &
+          lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), lin%wfds(iorb,iproc)%nseg_f, &
+          lin%wfds(iorb,iproc)%nvctr_f)
   
   
       ! Now fill the descriptors.
       call allocate_wfd(lin%wfds(iorb,iproc), subname)
       ! First the coarse part
-      call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), &
-          lin%wfds(iorb,iproc)%nseg_c, lin%wfds(iorb,iproc)%keyg(1,1), lin%wfds(iorb,iproc)%keyv(1))
+      call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, &
+          0, lin%lr%d%n3, logridCut_c(0,0,0,iorb), lin%wfds(iorb,iproc)%nseg_c, &
+          lin%wfds(iorb,iproc)%keyg(1,1), lin%wfds(iorb,iproc)%keyv(1))
       ! And then the fine part
       ii=lin%wfds(iorb,iproc)%nseg_c+1
-      call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, 0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), &
-          lin%wfds(iorb,iproc)%nseg_f, lin%wfds(iorb,iproc)%keyg(1,ii), lin%wfds(iorb,iproc)%keyv(ii))
+      call segkeys(lin%lr%d%n1, lin%lr%d%n2, lin%lr%d%n3, 0, lin%lr%d%n1, 0, lin%lr%d%n2, &
+          0, lin%lr%d%n3, logridCut_f(0,0,0,iorb), lin%wfds(iorb,iproc)%nseg_f, &
+          lin%wfds(iorb,iproc)%keyg(1,ii), lin%wfds(iorb,iproc)%keyv(ii))
   
   end do
   

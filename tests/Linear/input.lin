@@ -1,6 +1,6 @@
 600            max number of iterations
 1.d-3          convergence criterion
-6   10         DIISHistMin, DIISHistMax
+6   10  1.d0   DIISHistMin, DIISHistMax, step size for SD
+8              number of iterations in the preconditioner
 C  5  2.d-7    number of basis functions per atom, prefactor for confinement potential
 H  5  2.d-7    number of basis functions per atom, prefactor for confinement potential
-

@@ -183,7 +183,7 @@ integer,parameter::lupfil=14
   else if (OCLconv) then
      call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   else
-     call local_hamiltonianParabola(iproc,orbs,lin,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum, &
+     call local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum, &
        at%nat, rxyzParabola, at)
      !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
@@ -297,7 +297,7 @@ END SUBROUTINE HamiltonianApplicationConfinement
 !!   For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
-subroutine local_hamiltonianParabola(iproc,orbs,lin,lr,hx,hy,hz,&
+subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at)
 !
 ! Purpose:
@@ -330,7 +330,7 @@ subroutine local_hamiltonianParabola(iproc,orbs,lin,lr,hx,hy,hz,&
 !
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, exceptThisOne => local_hamiltonianConfinement
   use libxc_functionals
   implicit none
   integer, intent(in):: iproc, nspin, nat
@@ -403,8 +403,8 @@ subroutine local_hamiltonianParabola(iproc,orbs,lin,lr,hx,hy,hz,&
      case('F')
 
         call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), &
-             lr%bounds%ibyyzz_r) !optional
+             pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, &
+             lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lr%bounds%ibyyzz_r) !optional
           
      case('P') 
         !here the hybrid BC act the same way
@@ -446,7 +446,7 @@ subroutine local_hamiltonianParabola(iproc,orbs,lin,lr,hx,hy,hz,&
 
   call deallocate_work_arrays_locham(lr,wrk_lh)
 
-END SUBROUTINE local_hamiltonianParabola
+END SUBROUTINE local_hamiltonianConfinement
 !!***
 
 
@@ -456,8 +456,8 @@ END SUBROUTINE local_hamiltonianParabola
 
 
 
-subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzConfinement, &
-     hxh, hyh, hzh, potentialPrefac, &
+subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
+     rxyzConfinement, hxh, hyh, hzh, potentialPrefac, &
      ibyyzz_r) !optional
 !
 ! Purpose:
@@ -594,7 +594,8 @@ real(gp) :: epot_p
                     do i1=i1s,i1e
                        !the local potential is always real
                        ! Add the quartic confinement potential to the potential.
-                       tt=(hxh*dble(i1)-rxyzConfinement(1))**2 + (hyh*dble(i2)-rxyzConfinement(2))**2 + (hzh*dble(i3)-rxyzConfinement(3))**2
+                       tt=(hxh*dble(i1)-rxyzConfinement(1))**2 + (hyh*dble(i2)-rxyzConfinement(2))**2 + &
+                           (hzh*dble(i3)-rxyzConfinement(3))**2
                        tt=potentialPrefac*tt**2
                        tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
                        tt=tt*psir(i1,i2,i3,ispinor)

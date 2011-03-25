@@ -192,8 +192,8 @@ end subroutine potentialAndEnergySub
 
 
 
-subroutine calculateForcesSub(iproc, nproc, n3p, i3s, i3xcsh, Glr, orbs, atoms, in, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
-    irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, fxyz, fnoise)
+subroutine calculateForcesSub(iproc, nproc, n3p, i3s, i3xcsh, Glr, orbs, atoms, in, lin, nlpspd, proj, &
+    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, fxyz, fnoise)
 ! Purpose:
 ! ========
 !   Calculates the forces we get with psi. It is copied from cluster, with an additional
