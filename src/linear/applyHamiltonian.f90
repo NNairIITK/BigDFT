@@ -286,17 +286,6 @@ END SUBROUTINE HamiltonianApplicationConfinement
 
 
 
-!!****f* BigDFT/local_hamiltonian
-!! FUNCTION
-!!   Calculate the action of the local hamiltonian on the orbitals
-!! COPYRIGHT
-!!   Copyright (C) 2005-2010 BigDFT group 
-!!   This file is distributed under the terms of the
-!!   GNU General Public License, see ~/COPYING file
-!!   or http://www.gnu.org/copyleft/gpl.txt .
-!!   For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
 subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at)
 !
@@ -402,7 +391,7 @@ subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
      select case(lr%geocode)
      case('F')
 
-        call apply_potentialParabola(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+        call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
              pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, &
              lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lr%bounds%ibyyzz_r) !optional
           
@@ -456,7 +445,7 @@ END SUBROUTINE local_hamiltonianConfinement
 
 
 
-subroutine apply_potentialParabola(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
+subroutine apply_potentialConfinement(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
      rxyzConfinement, hxh, hyh, hzh, potentialPrefac, &
      ibyyzz_r) !optional
 !
@@ -634,5 +623,5 @@ real(gp) :: epot_p
 
 !$omp end parallel
 
-END SUBROUTINE apply_potentialParabola
+END SUBROUTINE apply_potentialConfinement
 !!***

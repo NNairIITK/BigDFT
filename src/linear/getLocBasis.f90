@@ -202,7 +202,7 @@ integer:: norb, norbu, norbd
 integer,dimension(:),allocatable:: norbsPerType, norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20):: atomname
-logical:: written
+logical:: written, fileExists
 
 
 ! Allocate all local arrays.
@@ -212,6 +212,13 @@ allocate(norbsPerAtom(at%nat), stat=istat)
 call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 
 ! Read in all parameters related to the linear scaling version and print them.
+inquire(file='input.lin', exist=fileExists)
+if(.not. fileExists) then
+    if(iproc==0) write(*,'(x,a)') "ERROR: the file 'input.lin' must be present for the linear &
+        & scaling version!"
+    call mpi_barrier(mpi_comm_world, ierr)
+    stop
+end if
 allocate(lin%potentialPrefac(at%ntypes), stat=istat)
 call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 open(unit=99, file='input.lin')
