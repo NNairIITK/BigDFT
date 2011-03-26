@@ -374,18 +374,33 @@ module module_types
   end type
 
 
+!!!!> Contains all parameters related to the linear scaling version.
+!!!  type,public:: linearParameters
+!!!    integer:: DIISHistMin, DIISHistMax, nItMax, nItPrecond
+!!!    real(8):: convCrit, alphaSD
+!!!    real(8),dimension(:),allocatable:: potentialPrefac
+!!!    type(orbitals_data):: orbs
+!!!    type(communications_arrays):: comms
+!!!    type(locreg_descriptors):: lr
+!!!    type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfds
+!!!    integer,dimension(:),allocatable:: onWhichAtom
+!!!    integer,dimension(:),allocatable:: MPIComms, norbPerComm
+!!!    integer,dimension(:,:),allocatable:: procsInComm
+!!!    integer:: ncomms
+!!!    type(arraySizes):: as
+!!!  end type
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItMax, nItPrecond
     real(8):: convCrit, alphaSD
-    real(8),dimension(:),allocatable:: potentialPrefac
+    real(8),dimension(:),pointer:: potentialPrefac
     type(orbitals_data):: orbs
     type(communications_arrays):: comms
     type(locreg_descriptors):: lr
-    type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfds
-    integer,dimension(:),allocatable:: onWhichAtom
-    integer,dimension(:),allocatable:: MPIComms, norbPerComm
-    integer,dimension(:,:),allocatable:: procsInComm
+    type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
+    integer,dimension(:),pointer:: onWhichAtom
+    integer,dimension(:),pointer:: MPIComms, norbPerComm
+    integer,dimension(:,:),pointer:: procsInComm
     integer:: ncomms
     type(arraySizes):: as
   end type

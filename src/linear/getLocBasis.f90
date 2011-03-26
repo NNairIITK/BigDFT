@@ -1097,7 +1097,7 @@ character(len=*),parameter:: subname='deallocateLinear'
   deallocate(lin%orbs%eval, stat=istat)
   call memocc(istat, iall, 'lin%orbs%eval', subname)
 
-  if(allocated(lin%wfds)) then
+  if(associated(lin%wfds)) then
       !iall=-product(shape(lin%wfds))*kind(lin%wfds)
       !deallocate(lin%wfds, stat=istat)
       !call memocc(istat, iall, 'lin%wfds', subname)
@@ -1137,19 +1137,19 @@ character(len=*),parameter:: subname='deallocateLinear'
       call memocc(istat, iall, 'lin%comms%ndspltLIN', subname)
   end if
 
-  if(allocated(lin%MPIComms)) then
+  if(associated(lin%MPIComms)) then
       iall=-product(shape(lin%MPIComms))*kind(lin%MPIComms)
       deallocate(lin%MPIComms, stat=istat)
       call memocc(istat, iall, 'lin%MPIComms', subname)
   end if
 
-  if(allocated(lin%procsInComm)) then
+  if(associated(lin%procsInComm)) then
       iall=-product(shape(lin%procsInComm))*kind(lin%procsInComm)
       deallocate(lin%procsInComm, stat=istat)
       call memocc(istat, iall, 'lin%procsInComm', subname)
   end if
 
-  if(allocated(lin%norbPerComm)) then
+  if(associated(lin%norbPerComm)) then
       iall=-product(shape(lin%norbPerComm))*kind(lin%norbPerComm)
       deallocate(lin%norbPerComm, stat=istat)
       call memocc(istat, iall, 'lin%norbPerComm', subname)
