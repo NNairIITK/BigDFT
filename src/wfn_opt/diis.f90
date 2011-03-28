@@ -38,8 +38,12 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,r
        & rhopot(1), 1)
 
   ! Do the mixing
+  print *, mix%iscf,mix%nfft,mix%nspden,mix%kind,mix%space,mix%useprec,mix%mffmem
+  print *, mix%diskCache, mix%n_index, mix%n_fftgr, mix%n_pulayit, mix%n_pawmix
+  print *,ntot,ucvol, MPI_COMM_WORLD, (nproc > 1)
   call ab6_mixing_eval(mix, rhopot, istep, ntot, ucvol, &
        & MPI_COMM_WORLD, (nproc > 1), ierr, errmess, resnrm = rpnrm)
+  print *,rpnrm
   if (ierr /= AB6_NO_ERROR) then
      if (iproc == 0) write(0,*) errmess
      call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
