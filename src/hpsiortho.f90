@@ -734,10 +734,14 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
     ii=0
     if (orbs%efermi == UNINITIALISED) then
        ! Take initial value at gamma point.
-       ef = orbs%eval(orbs%norbu)
-    else
-       ef=orbs%efermi
+       do iorb = 1, orbs%norbu
+          if (orbs%occup(iorb) < 1.0_gp) then
+             orbs%efermi = orbs%eval(iorb)
+             exit
+          end if
+       end do
     end if
+    ef=orbs%efermi
     factor=1.d0/(sqrt(pi)*wf)
     !print *,0,ef
     loop_fermi: do
