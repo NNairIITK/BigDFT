@@ -1,6 +1,6 @@
 subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, psi, rxyz, &
     rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, energy)
+    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, ebsMod, energy)
 !
 ! Purpose:
 ! ========
@@ -83,10 +83,11 @@ real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
 real(dp),dimension(lin%as%size_pkernelseq),intent(in):: pkernelseq
 real(8),dimension(3,atoms%nat),intent(in):: rxyz
 real(gp):: eion, edisp, eexctX, energy
+real(8):: ebsMod
 logical:: scpot
 
 ! Local variables
-real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, ekin_sum, epot_sum, eproj_sum, energybs
+real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, ekin_sum, epot_sum, eproj_sum, energybs, energyMod
 real(wp), dimension(:), pointer :: potential
 real(8),dimension(:),allocatable:: hpsi
 integer:: istat, iall
@@ -154,10 +155,12 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
   energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
+  energyMod=ebsMod-ehart+eexcu-vexcu-eexctX+eion+edisp
+
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
                   ekin_sum,epot_sum,eproj_sum
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-  if(iproc==0) write(*,*) 'total energy', energy
+  if(iproc==0) write(*,'(x,a,2es26.17)') 'total energy, modified energy', energy, energyMod
 
   !!if (iproc == 0) then
   !!   if (verbose > 0 .and. in%itrpmax==1) then

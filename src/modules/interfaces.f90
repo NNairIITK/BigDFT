@@ -1344,7 +1344,7 @@ module module_interfaces
 
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-        infoBasisFunctions, n3p)
+        infoBasisFunctions, n3p, ebsMod)
       use module_base
       use module_types
       integer,intent(in):: iproc, nproc, nspin, n3p
@@ -1365,6 +1365,7 @@ module module_interfaces
       real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
       real(8),dimension(orbs%npsidim),intent(out):: psi, psit
       integer,intent(out):: infoBasisFunctions
+      real(8),intent(out):: ebsMod
     end subroutine getLinearPsi
 
     subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
@@ -1464,7 +1465,7 @@ module module_interfaces
     
     subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, psi, rxyz, &
         rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-        proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, energy)
+        proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, ebsMod, energy)
       use module_base
       use module_types
       implicit none
@@ -1491,6 +1492,7 @@ module module_interfaces
       real(dp),dimension(lin%as%size_pkernelseq),intent(in):: pkernelseq
       real(8),dimension(3,atoms%nat),intent(in):: rxyz
       real(gp):: eion, edisp, eexctX, energy
+      real(8):: ebsMod
       logical:: scpot
     end subroutine potentialAndEnergySub
     

@@ -98,6 +98,7 @@ real(8):: fnoise
 integer:: infoBasisFunctions
 real(8),dimension(:),allocatable:: phi
 real(8),dimension(:,:),allocatable:: occupForInguess
+real(8):: ebsMod
 
 
   if(iproc==0) then
@@ -121,12 +122,12 @@ real(8),dimension(:,:),allocatable:: occupForInguess
   ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-      infoBasisFunctions, n3p)
+      infoBasisFunctions, n3p, ebsMod)
 
   ! Calculate the energy that we get with psi.
   call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, psi, rxyz, &
       rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, energy)
+      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, ebsMod, energy)
 
 
   ! Calculate the forces we get with psi.

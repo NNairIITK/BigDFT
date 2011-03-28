@@ -1,6 +1,6 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-    infoBasisFunctions, n3p)
+    infoBasisFunctions, n3p, ebsMod)
 !
 ! Purpose:
 ! ========
@@ -53,6 +53,7 @@ subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rx
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => getLinearPsi
+implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nspin, n3p
@@ -73,11 +74,13 @@ real(dp),dimension(:),pointer,intent(in):: pkernelseq
 real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
 real(8),dimension(orbs%npsidim),intent(out):: psi, psit
 integer,intent(out):: infoBasisFunctions
+real(8),intent(out):: ebsMod
 
 ! Local variables 
-integer:: istat 
+integer:: istat, iall 
 real(8),dimension(:),allocatable:: hphi, eval 
 real(8),dimension(:,:),allocatable:: HamSmall 
+real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork 
 real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace 
 real(wp),dimension(:),pointer:: potential 
@@ -88,12 +91,22 @@ character(len=*),parameter:: subname='getLinearPsi'
   call memocc(istat, hphi, 'hphi', subname)
   allocate(phiWork(max(size(phi),size(psi))), stat=istat)
   call memocc(istat, phiWork, 'phiWork', subname)
+  allocate(matrixElements(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+  call memocc(istat, matrixElements, 'matrixElements', subname)
   
   
   
   call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
       infoBasisFunctions)
+
+
+  call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+       nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+       rhopot(1),&
+       phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+  call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
   
@@ -122,6 +135,8 @@ character(len=*),parameter:: subname='getLinearPsi'
   call memocc(istat, eval, 'eval', subname)
   call diagonalizeHamiltonian(iproc, nproc, lin%orbs, HamSmall, eval)
   if(iproc==0) write(*,'(a)', advance='no') 'done.'
+
+  call modifiedBSEnergy(input%nspin, orbs, lin, HamSmall(1,1), matrixElements(1,1,1), ebsMod)
   
   if(iproc==0) write(*,'(a)', advance='no') ' Linear combinations... '
   call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
@@ -150,6 +165,9 @@ character(len=*),parameter:: subname='getLinearPsi'
   deallocate(eval, stat=istat)
   call memocc(istat, iall, 'eval', subname)
 
+  iall=-product(shape(matrixElements))*kind(matrixElements)
+  deallocate(matrixElements, stat=istat)
+  call memocc(istat, iall, 'matrixElements', subname)
 
 end subroutine getLinearPsi
 
@@ -1048,6 +1066,136 @@ integer:: nvctrp
   
 
 end subroutine buildWavefunction
+
+
+
+
+subroutine getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+!
+! Purpose:
+! ========
+!
+! Calling arguments:
+! ==================
+!
+use module_base
+use module_types
+use module_interfaces
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(locreg_descriptors),intent(in):: Glr
+type(linearParameters),intent(in):: lin
+real(8),dimension(lin%orbs%npsidim),intent(inout):: phi, hphi
+real(8),dimension(lin%orbs%norb,lin%orbs%norb,2),intent(out):: matrixElements
+
+! Local variables
+integer:: istart, jstart, nvctrp, iorb, jorb, istat, iall, ierr
+real(8):: ddot
+real(8),dimension(:),pointer:: phiWork
+character(len=*),parameter:: subname='getMatrixELements'
+
+
+  allocate(phiWork(lin%orbs%npsidim), stat=istat)
+  call memocc(istat, phiWork, 'phiWork', subname)
+
+
+  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+
+  ! Calculate <phi_i|H_j|phi_j>
+  nvctrp=sum(lin%comms%nvctr_par(iproc,1:lin%orbs%nkptsp))*lin%orbs%nspinor
+  jstart=1
+  do jorb=1,lin%orbs%norb
+      istart=1
+      do iorb=1,lin%orbs%norb
+          matrixElements(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
+          istart=istart+nvctrp
+      end do
+      jstart=jstart+nvctrp
+  end do
+  call mpi_allreduce(matrixElements(1,1,2), matrixElements(1,1,1), lin%orbs%norb**2, &
+      mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!if(iproc==0) then
+!!    write(*,*) 'matrix Elements'
+!!    do iorb=1,lin%orbs%norb
+!!        write(*,'(80es9.2)') (matrixElements(iorb,jorb,1), jorb=1,lin%orbs%norb)
+!!    end do
+!!end if
+
+
+  call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+
+  iall=-product(shape(phiWork))*kind(phiWork)
+  deallocate(phiWork)
+  call memocc(istat, iall, 'phiWork', subname)
+
+
+  !!! Calculate the modified band structure energy
+  !!tt=0.d0
+  !!do iorb=1,orbs%norb
+  !!    do jorb=1,orbsLIN%norb
+  !!        do korb=1,orbsLIN%norb
+  !!            tt=tt+HamSmall(korb,iorb)*HamSmall(jorb,iorb)*matrixElements(korb,jorb,1)
+  !!        end do
+  !!    end do
+  !!end do
+  !!if(present(ebs_mod)) then
+  !!    if(nspin==1) ebs_mod=2.d0*tt ! 2 for closed shell
+  !!end if
+
+
+
+end subroutine getMatrixElements
+
+
+
+
+
+subroutine modifiedBSEnergy(nspin, orbs, lin, HamSmall, matrixElements, ebsMod)
+!
+! Purpose:
+! ========
+!
+! Calling arguments:
+! ==================
+!
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: nspin
+type(orbitals_data),intent(in) :: orbs
+type(linearParameters),intent(in):: lin
+real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: HamSmall, matrixElements
+real(8),intent(out):: ebsMod
+
+! Local variables
+integer:: iorb, jorb, korb
+real(8):: tt
+
+  ! Calculate the modified band structure energy
+  tt=0.d0
+  do iorb=1,orbs%norb
+      do jorb=1,lin%orbs%norb
+          do korb=1,lin%orbs%norb
+              tt=tt+HamSmall(korb,iorb)*HamSmall(jorb,iorb)*matrixElements(korb,jorb)
+          end do
+      end do
+  end do
+  if(nspin==1) then
+      ebsMod=2.d0*tt ! 2 for closed shell
+  else
+      ebsMod=tt
+  end if
+
+
+
+end subroutine modifiedBSEnergy
+
 
 
 
