@@ -8,6 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
+!> Mix the electronic density or the potential using DIIS
 subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,rpnrm)
   use module_base
   use defs_basis, only: AB6_NO_ERROR
@@ -19,7 +20,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,r
   real(dp), dimension(npoints), intent(inout) :: rhopot
   real(gp), intent(out) :: rpnrm
   !local variables
-  integer :: ierr
+  integer :: ierr,ie
   character(len = 500) :: errmess
 
   ! Calculate the residue and put it in rhopot
@@ -41,7 +42,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,ntot,ucvol,r
        & MPI_COMM_WORLD, (nproc > 1), ierr, errmess, resnrm = rpnrm)
   if (ierr /= AB6_NO_ERROR) then
      if (iproc == 0) write(0,*) errmess
-     call MPI_ABORT(MPI_COMM_WORLD, ierr)
+     call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
   end if
   rpnrm = sqrt(rpnrm) / real(ntot, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)

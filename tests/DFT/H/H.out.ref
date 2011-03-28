@@ -21,18 +21,23 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.4)
+                           ggggg       i         BBBB                     (Ver 1.5.0)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- File 'myparameters' is missing... using default values:
-   Input guess: direct diagonalization of Hamiltonian
-   Orthogonalization method: Cholesky
 
- Performance options (file 'input.perf' not present):
- |   'debug' option disabled
- |   'fftcache' = 8192
+ --- (file: input.perf -- not present) -------------------------- Performance Options
+ |   debug                   !Option disabled
+ |   fftcache 8192           !Cache size for the FFT
+ |   accel NO                !Acceleration (NO, CUDAGPU, OCLGPU)
+ |   blas F                  !CUBLAS acceleration
+ |   projrad  15.00          !Radius of the projector as a function of the maxrad
+ |   exctxpar BC             !Exact exchange parallelisation scheme
+ |   ig_diag T               !Input guess: Direct diagonalization of Hamiltonian
+ |   ig_blocks 800 10987     !Input guess: Block size for orthonormalisation
+ |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
 
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data

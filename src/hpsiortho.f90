@@ -732,12 +732,17 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
 
  if (wf > 0.0_gp) then
     ii=0
-    ef=orbs%efermi
+    if (orbs%efermi == UNINITIALISED) then
+       ! Take initial value at gamma point.
+       ef = orbs%eval(orbs%norbu)
+    else
+       ef=orbs%efermi
+    end if
     factor=1.d0/(sqrt(pi)*wf)
     !print *,0,ef
     loop_fermi: do
        ii=ii+1
-       if (ii > 100000) stop 'error Fermilevel'
+       if (ii > 10000) stop 'error Fermilevel'
        electrons=0.d0
        dlectrons=0.d0
        do ikpt=1,orbs%nkpts

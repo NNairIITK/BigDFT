@@ -250,8 +250,7 @@ splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDFLAGS = 

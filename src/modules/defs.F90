@@ -76,6 +76,9 @@ module module_defs
   real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       ! Boltzmann constant in Ha/K
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass
 
+  !> Code constants.
+  real(gp), parameter :: UNINITIALISED = -123456789._gp
+
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real,mpiallred_double

@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.6],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.0],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -626,7 +626,7 @@ AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
 AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes")
 dnl Test for the developers' documentation.
 AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
-AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"no")
+AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],

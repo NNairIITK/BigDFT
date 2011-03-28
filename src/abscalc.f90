@@ -500,7 +500,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,&
           atoms%alat1,atoms%alat2,atoms%alat3,&
           hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,&
-          orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
+          orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,0,&
+          in%nspin,in%itrpmax,in%iscf,peakmem)
   end if
 
 

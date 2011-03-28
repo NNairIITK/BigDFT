@@ -434,7 +434,8 @@ program memguess
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
        atoms%alat1,atoms%alat2,atoms%alat3,&
        hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
-       orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
+       orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,&
+       output_grid,in%nspin,in%itrpmax,in%iscf,peakmem)
 
   !add the comparison between cuda hamiltonian and normal one if it is the case
 
