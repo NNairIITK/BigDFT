@@ -96,7 +96,6 @@ subroutine sqnormm_v(cplex,index,mpi_comm, mpi_summarize,mult,nfft,norm2,npot,ns
  call contract_int_ge_val(subrnm,'npot-index-mult',npot-index-mult,-1)
 #endif
 
- print *,"opt_storage",opt_storage
  do ii=1,mult
    ar=zero
    do ispden=1,min(nspden,2)
