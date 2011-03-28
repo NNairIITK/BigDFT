@@ -103,9 +103,9 @@
 #endif
 
 subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
-& f_fftgr,initialized,iscf,isecur,istep,&
-& i_rhor,i_vresid,i_vrespc,moved_atm_inside,mpi_comm,mpi_summarize,&
-& natom,nfft,nfftot,nspden,n_fftgr,n_index,opt_denpot,response,rhor,ucvol,vtrial,xred,errid,errmess)
+& f_fftgr,initialized,iscf,isecur,istep,i_rhor,i_vresid,i_vrespc,moved_atm_inside,&
+& natom,nfft,nfftot,nspden,n_fftgr,n_index,opt_denpot,response,rhor,ucvol,vtrial,xred,&
+& fnrm,fdot,user_data,errid,errmess)
 
  use defs_basis
  use defs_datatypes
@@ -121,18 +121,36 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: cplex,initialized,iscf,isecur,istep,moved_atm_inside,mpi_comm
+ integer,intent(in) :: cplex,initialized,iscf,isecur,istep,moved_atm_inside
  integer,intent(in) :: n_fftgr,n_index,natom,nfft,nfftot,nspden,opt_denpot,response
  integer,intent(out) :: dbl_nnsclo, errid
  character(len = 500), intent(out) :: errmess
- logical, intent(in) :: mpi_summarize
  real(dp),intent(in) :: etotal,ucvol
 !arrays
  integer,intent(inout) :: i_rhor(n_index),i_vresid(n_index),i_vrespc(n_index)
+ integer, intent(in) :: user_data(:)
  real(dp),intent(in) :: dtn_pc(3,natom),rhor(cplex*nfft,nspden)
  real(dp),intent(inout) :: f_atm(3,natom,n_fftgr)
  real(dp),intent(inout) :: f_fftgr(cplex*nfft,nspden,n_fftgr)
  real(dp),intent(inout) :: vtrial(cplex*nfft,nspden),xred(3,natom)
+
+ interface
+    function fdot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+      double precision, intent(in) :: x(*), y(*)
+      integer, intent(in) :: user_data(:)
+      
+      double precision :: fdot
+    end function fdot
+
+    function fnrm(x,cplex,nfft,nspden,opt_denpot,user_data)
+      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+      double precision, intent(in) :: x(*)
+      integer, intent(in) :: user_data(:)
+
+      double precision :: fnrm
+    end function fnrm
+ end interface
 
 !Local variables-------------------------------
 !mlinmin gives the maximum number of steps in the line minimization
@@ -197,7 +215,9 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
  end if
 
 !Compute actual residual resid_new (residual of f_fftgr(:,:,i_vrespc(1))
- call sqnormm_v(cplex,i_vrespc(1),mpi_comm,mpi_summarize,1,nfft,resid_new,n_fftgr,nspden,opt_denpot,f_fftgr)
+!!$ call sqnormm_v(cplex,i_vrespc(1),mpi_comm,mpi_summarize,1,nfft,resid_new,n_fftgr,nspden,opt_denpot,f_fftgr)
+ resid_new(1) = fnrm(f_fftgr(1,1,i_vrespc(1)),cplex,nfft,nspden,opt_denpot,user_data)
+
 
 !Save input residual and ilinmin for final printing
  resid_input=resid_new(1)
@@ -273,8 +293,8 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !  from vresid and vresid_old
    choice=2
    call aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
-&   f_atm,f_fftgr,i_rhor(2),i_vresid,moved_atm_inside,mpi_comm,mpi_summarize,&
-&   natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred)
+&   f_atm,f_fftgr,i_rhor(2),i_vresid,moved_atm_inside,&
+&   natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred,fdot,user_data)
    d_lambda=lambda_new-lambda_old
    dedv_old=dedv_old/d_lambda
    dedv_new=dedv_new/d_lambda
@@ -522,8 +542,8 @@ subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&
 !  Compute the approximate energy derivatives dedv_mix,dedv_new,dedv_old
    choice=3
    call aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
-&   f_atm,f_fftgr,i_rhor(2),i_vresid,moved_atm_inside,mpi_comm,mpi_summarize,&
-&   natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred)
+&   f_atm,f_fftgr,i_rhor(2),i_vresid,moved_atm_inside,&
+&   natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred,fdot,user_data)
 
    dedv_mix=dedv_mix/lambda_new
    dedv_new=dedv_new/lambda_new

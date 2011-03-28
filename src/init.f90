@@ -664,14 +664,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
      !add a small displacement in the eigenvalues
      do iorb=1,orbs%norb*orbs%nkpts
-        if (iorb <= orbs%norb) then
-           if (orbs%efermi == UNINITIALISED .and. orbs%occup(iorb) < 1.0_gp) then
-              orbs%efermi=orbs%eval(iorb)
-           end if
-        end if
         tt=builtin_rand(idum)
         orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
-        !use the first k-point to guess fermi energy input
      end do
 
      !correct the occupation numbers wrt fermi level
