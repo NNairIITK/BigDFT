@@ -788,4 +788,103 @@ module module_defs
       call ZHERK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
     end subroutine herk_double
 
+    function fnrm_denpot(x,cplex,nfft,nspden,opt_denpot,user_data)
+      use m_ab6_mixing
+      implicit none
+      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+      double precision, intent(in) :: x(*)
+      integer, intent(in) :: user_data(:)
+
+      integer :: ierr, ie, iproc, npoints, ishift
+      double precision :: fnrm_denpot, ar, nrm_local, dnrm2
+
+      ! In case of density, we use nscatterarr.
+      if (opt_denpot == AB6_MIXING_DENSITY) then
+         call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+         if (ierr /= 0) then
+            call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+         end if
+         npoints = cplex * user_data(2 * iproc + 1)
+         ishift  =         user_data(2 * iproc + 2)
+      else
+         npoints = cplex * nfft
+         ishift  = 0
+      end if
+
+      ! Norm on spin up and spin down
+      nrm_local = dnrm2(npoints * min(nspden,2), x(1 + ishift), 1)
+      nrm_local = nrm_local ** 2
+
+      if (nspden==4) then
+         ! Add the magnetisation
+         ar = dnrm2(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1)
+         ar = ar ** 2
+         if (user_data(1) == 0) then
+            if (cplex == 1) then
+               nrm_local = nrm_local + 2.d0 * ar
+            else
+               nrm_local = nrm_local + ar
+            end if
+         else
+            nrm_local = 0.5d0 * (nrm_local + ar)
+         end if
+      end if
+      
+      ! Summarize on processors
+      call MPI_ALLREDUCE(nrm_local, fnrm_denpot, 1, &
+           & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+      if (ierr /= 0) then
+         call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+      end if
+    end function fnrm_denpot
+
+    function fdot_denpot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+      use m_ab6_mixing
+      implicit none
+      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+      double precision, intent(in) :: x(*), y(*)
+      integer, intent(in) :: user_data(:)
+
+      integer :: ierr, ie, iproc, npoints, ishift
+      double precision :: fdot_denpot, ar, dot_local, ddot
+
+      ! In case of density, we use nscatterarr.
+      if (opt_denpot == AB6_MIXING_DENSITY) then
+         call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+         if (ierr /= 0) then
+            call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+         end if
+         npoints = cplex * user_data(2 * iproc + 1)
+         ishift  =         user_data(2 * iproc + 2)
+      else
+         npoints = cplex * nfft
+         ishift  = 0
+      end if
+
+      ! Norm on spin up and spin down
+      dot_local = ddot(npoints * min(nspden,2), x(1 + ishift), 1, y(1 + ishift), 1)
+
+      if (nspden==4) then
+         ! Add the magnetisation
+         ar = ddot(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1, &
+              & y(1 + cplex * nfft * 2 + ishift), 1)
+         if (user_data(1) == 0) then
+            if (cplex == 1) then
+               dot_local = dot_local + 2.d0 * ar
+            else
+               dot_local = dot_local + ar
+            end if
+         else
+            dot_local = 0.5d0 * (dot_local + ar)
+         end if
+      end if
+      
+      ! Summarize on processors
+      call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
+           & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+      if (ierr /= 0) then
+         call MPI_ABORT(MPI_COMM_WORLD, ierr, ie)
+      end if
+    end function fdot_denpot
+
 end module module_defs
