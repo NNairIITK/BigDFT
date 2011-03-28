@@ -563,7 +563,7 @@
                  & mix%n_atom,mix%nfft,nfftot,&
                  & mix%nspden,mix%n_fftgr,mix%n_index,mix%kind,&
                  & response_,potden,ucvol,arr,mix%xred, fnrm_default, &
-                 & fdot_default, user_data_, errid, errmess)
+                 & fdotn_default, user_data_, errid, errmess)
          end if
          if (mix%n_atom == 0) then
             deallocate(mix%xred, mix%dtn_pc)
@@ -646,4 +646,17 @@
            & nfft,1,1,nspden,opt_denpot,x,y)
       fdot_default = prod_resid(1)
     end function fdot_default
+
+    function fdotn_default(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+      double precision, intent(in) :: x(*), y(*)
+      integer, intent(in) :: user_data(:)
+
+      double precision :: fdotn_default
+      real(dp) :: prod_resid(1,1,1)
+
+      call dotprodm_vn(cplex,1,x,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
+           & 1,nfft,1,nspden,y)
+      fdotn_default = prod_resid(1,1,1)
+    end function fdotn_default
   end module m_ab6_mixing
