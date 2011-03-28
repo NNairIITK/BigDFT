@@ -333,7 +333,7 @@ while not EOF:
 print context_lines,
 
 if maximum > max_discrepancy:
-    start = start_failed
+    start = start_fail
     message = "failed    < "
 else:
     start = start_success
