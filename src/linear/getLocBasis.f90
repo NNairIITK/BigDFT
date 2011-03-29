@@ -242,7 +242,8 @@ call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 open(unit=99, file='input.lin')
 read(99,*) lin%nItMax
 read(99,*) lin%convCrit
-read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaSD, lin%startDIIS
+read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaSD
+read(99,*) lin%startWithSD, lin%startDIIS
 read(99,*) lin%nItPrecond
 read(99,*) lin%plotBasisFunctions
 if(lin%DIISHistMin>lin%DIISHistMax) then
@@ -260,18 +261,22 @@ do iat=1,at%ntypes
         repeat(' ', 6-len_trim(atomname)), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)))), &
          norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |'
 end do
-if(iproc==0) write(*,'(x,a)') '-----------------------------------------------------------------------------------'
-if(iproc==0) write(*,'(x,a)') '| maximal number | convergence | DIIS history | alpha SD | allow DIIS | iterations in  | plot  |'
-if(iproc==0) write(*,'(x,a)') '|  of iterations |  criterion  |  min   max   |          |            | preconditioner | basis |'
-if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,3x,a,i0,2x,a,x,es8.2,x,a,x,es10.3,x,a,a,i0,a,l,a)') '| ', &
+close(unit=99)
+if(iproc==0) write(*,'(x,a)') '---------------------------------------------------------'
+if(iproc==0) write(*,'(x,a)') '| maximal number | convergence | iterations in  | plot  |'
+if(iproc==0) write(*,'(x,a)') '|  of iterations |  criterion  | preconditioner | basis |'
+if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,a,l,a)') '| ', &
     repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)))), lin%nItMax, ' | ', lin%convCrit, ' | ', &
+      repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)))), lin%nItPrecond, '       |  ', &
+      lin%plotBasisFunctions, '   |'
+if(iproc==0) write(*,'(x,a)') '---------------------------------------------------------'
+if(iproc==0) write(*,'(x,a)') '| DIIS history | alpha SD |  start  | allow DIIS |'
+if(iproc==0) write(*,'(x,a)') '|  min   max   |          | with SD |            |'
+if(iproc==0) write(*,'(x,a,a,i0,3x,a,i0,2x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '| ', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)))), lin%DIISHistMin, &
     repeat(' ', 4-ceiling(log10(dble(lin%nItMax+1)))), lin%DIISHistMax, ' |', &
-    lin%alphaSD, '|', lin%startDIIS, '|', &
-      repeat(' ', 9-ceiling(log10(dble(lin%nItPrecond+1)))), lin%nItPrecond, '       |  ', &
-      lin%plotBasisFunctions, '   |'
-close(unit=99)
-if(iproc==0) write(*,'(x,a)') '------------------------------------------------------------------------------'
+    lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |'
+if(iproc==0) write(*,'(x,a)') '--------------------------------------------------'
 
 
 ! Assign to each atom its number of basis functions and count how many basis functions 
@@ -511,8 +516,9 @@ integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp
 real(8),dimension(:),allocatable:: hphiold, alpha, fnrmOldArr
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 real(8),dimension(:),pointer:: phiWork
-logical:: quiet, allowDIIS
+logical:: quiet, allowDIIS, startWithSD
 character(len=*),parameter:: subname='getLocalizedBasis'
+character(len=1):: message
 type(diis_objects):: diisLIN
 
 
@@ -524,8 +530,15 @@ type(diis_objects):: diisLIN
   icountSwitch=0
   icountDIISFailureTot=0
   icountDIISFailureCons=0
-  allowDIIS=.false.
   call initializeDIISParameters(lin%DIISHistMax)
+  if(lin%startWithSD) then
+      allowDIIS=.false.
+      diisLIN%switchSD=.false.
+      startWithSD=.true.
+  else
+      allowDIIS=.true.
+      startWithSD=.false.
+  end if
   
   
   if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
@@ -657,8 +670,13 @@ type(diis_objects):: diisLIN
               write(*,'(x,3(a,i0))') 'DIIS informations: history length=',diisLIN%idsx, ', consecutive failures=', &
                   icountDIISFailureCons, ', total failures=', icountDIISFailureTot
           else
-              write(*,'(x,a,es9.3,a,i0)') 'steepest descent informations: mean alpha=', meanAlpha, &
-              ', consecutive successes=', icountSDSatur
+              if(allowDIIS) then
+                  message='y'
+              else
+                  message='n'
+              end if
+              write(*,'(x,a,es9.3,a,i0,a,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
+              ', consecutive successes=', icountSDSatur, ', DIIS=', message
           end if
       end if
       if(.not. diisLIN%switchSD) call improveOrbitals()
@@ -711,11 +729,31 @@ contains
     !
 
 
-      ! Do SD anayway if the force is to large
+      ! Do SD anyway if the force is to large
       if(fnrmMax<lin%startDIIS .and. .not.allowDIIS) then
           allowDIIS=.true.
+          if(iproc==0) write(*,'(x,a)') 'The force is small enough to allow DIIS.'
+          ! This is to get the correct DIIS history 
+          ! (it is chosen as max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch).
+          icountSwitch=-1
+      else if(fnrmMax>lin%startDIIS .and. diisLIN%switchSD) then
+          allowDIIS=.false.
+          if(iproc==0) write(*,'(x,a)') 'The force is to large to allow DIIS.'
       end if    
-      if(allowDIIS) then
+      !if(.not.allowDIIS) then
+          if(startWithSD .and. diisLIN%idsx>0) then
+              call deallocate_diis_objects(diisLIN, subname)
+              diisLIN%idsx=0
+              diisLIN%switchSD=.false.
+              startWithSD=.false.
+          end if
+          if(.not.startWithSD .and. .not.allowDIIS .and. diisLIN%idsx>0) then
+              if(iproc==0) write(*,'(x,a,es10.3)') 'the force is too large, switch to SD with stepsize', alpha(1)
+              call deallocate_diis_objects(diisLIN, subname)
+              diisLIN%idsx=0
+              diisLIN%switchSD=.false.
+          end if
+      !else
           ! If we swicthed to SD in the previous iteration, reset this flag.
           if(diisLIN%switchSD) diisLIN%switchSD=.false.
 
@@ -732,7 +770,7 @@ contains
 
               ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
               ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
-              if(icountSDSatur>=10 .and. diisLIN%idsx==0) then
+              if(icountSDSatur>=10 .and. diisLIN%idsx==0 .and. allowDIIS) then
                   icountSwitch=icountSwitch+1
                   idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
                   if(iproc==0) write(*,'(x,a,i0)') 'switch to DIIS with new history length ', idsx
@@ -772,7 +810,7 @@ contains
                   diisLIN%switchSD=.true.
               end if
           end if
-      end if
+      !end if
 
     end subroutine DIISorSD
 

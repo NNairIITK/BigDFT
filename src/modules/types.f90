@@ -403,7 +403,7 @@ module module_types
     integer,dimension(:,:),pointer:: procsInComm
     integer:: ncomms
     type(arraySizes):: as
-    logical:: plotBasisFunctions, allowDIIS
+    logical:: plotBasisFunctions, startWithSD
   end type
 
 
