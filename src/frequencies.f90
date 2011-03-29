@@ -351,22 +351,7 @@ program frequencies
   end if
 
   !Deallocations
-  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
-  deallocate(atoms%ifrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
-  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
-  deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%iatype',subname)
-  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-  deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%natpol',subname)
-  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-  deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%atomnames',subname)
-  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-  deallocate(atoms%amu,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%amu',subname)
-  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+  call deallocate_atoms(atoms,subname)
 
   call free_restart_objects(rst,subname)
 

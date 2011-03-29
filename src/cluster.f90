@@ -106,7 +106,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
         in%inputPsiId=1
         if(iproc==0) then
            write(*,*)&
-                ' WARNING: Self-consistent cycle did not met convergence criteria'
+                ' WARNING: Self-consistent cycle did not meet convergence criteria'
         end if
         exit loop_cluster
      else if (in%inputPsiId == 0 .and. infocode==3) then
@@ -1147,7 +1147,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !if infocode is not zero but the last run has been done for nrepmax times
   DoLastRunThings= (in%last_run == 1 .and. infocode == 0) .or. DoLastRunThings
 
-  !analyse the possiblity to calculate Davidson treatment
+  !analyse the possibility to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
   DoDavidson= abs(in%norbv) > 0 .and. DoLastRunThings
 
@@ -1398,7 +1398,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,band_structure_eval,'band_structure_eval',subname)
      end if
 
-     !calculate davidson procedure for all the groups of k-points which are chosen
+     !calculate Davidson procedure for all the groups of k-points which are chosen
      ikpt=1
      do igroup=1,in%ngroups_kptv
 
@@ -1598,15 +1598,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      else
         call dcopy(n1i*n2i*n3i*in%nspin,rhopot,1,pot,1)
      end if
+
      i_all=-product(shape(nscatterarr))*kind(nscatterarr)
      deallocate(nscatterarr,stat=i_stat)
      call memocc(i_stat,i_all,'nscatterarr',subname)
+
      i_all=-product(shape(ngatherarr))*kind(ngatherarr)
      deallocate(ngatherarr,stat=i_stat)
      call memocc(i_stat,i_all,'ngatherarr',subname)
+
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot',subname)
+
      i_all=-product(shape(potxc))*kind(potxc)
      deallocate(potxc,stat=i_stat)
      call memocc(i_stat,i_all,'potxc',subname)
@@ -1771,6 +1775,11 @@ contains
     ! Free the libXC stuff if necessary.
     if (ixc < 0) then
        call libxc_functionals_end()
+    end if
+
+    !deallocate the mixing
+    if (in%itrpmax > 1) then
+       call ab6_mixing_deallocate(mix)
     end if
 
     !end of wavefunction minimisation

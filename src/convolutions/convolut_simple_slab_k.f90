@@ -206,10 +206,10 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
      fil(2,-i,:)=-fil(2,i,:)
   enddo
 
-!$omp parallel default (private) shared(x,y,ener,fil,c,n1,n2,n3)
   ener=0._wp
+!$omp parallel default (private) shared(x,y,ener,fil,c,n1,n2,n3)
 
-!$omp do
+!$omp do reduction(+:ener)
 
   do i3=0,n3
      ! (1/2) d^2/dx^2
@@ -248,7 +248,8 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
      
   enddo
 !$omp enddo
-!$omp do
+
+!$omp do reduction(+:ener)
   ! + (1/2) d^2/dz^2
   do i2=0,n2
      do i1=0,n1

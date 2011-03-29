@@ -21,14 +21,6 @@ endif
 
 if USE_OCL
 SUBDIRS += OpenCL
-endif
-
-if USE_CUDA_GPU
-SUBDIRS += CUDA
-endif
-
-if USE_OCL
-SUBDIRS += OpenCL
 oclrun_message = oclrun
 else
 oclrun_message =

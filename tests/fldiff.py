@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 21/03/2011
+# Date: 28/03/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -72,6 +72,20 @@ print max_discrepancy
 file1 = args[0]
 file2 = args[1]
 
+#Check if the output is a tty to print in colour
+start_fail = "\033[0;31m"
+start_success = "\033[0;32m"
+end = "\033[m"
+#if sys.stdout.isatty():
+#    start_fail = "\033[0;31m"
+#    start_success = "\033[0;32m"
+#    end = "\033[m"
+#else:
+#    start_fail = ""
+#    start_success = ""
+#    end = ""
+
+#Define a junk line
 if bigdft:
     #Test if the line should not be compared (bigdft output)
     def line_junk(line):
@@ -154,7 +168,7 @@ except ValueError:
     p1 = -1
     p2 = -1
 except IndexError:
-    sys.stdout.write("\033[0;31m"+"One file is blank!\n"+"\033[m")
+    sys.stdout.write(start_fail+"One file is blank!\n"+end)
     sys.exit(1)
 
 if p1 >= 0 and p2 >= 0 and p1 != p2:
@@ -205,18 +219,17 @@ if bigdft:
 t1 = tempfile.NamedTemporaryFile()
 for line in original1:
     t1.write(line)
-t1.close()
+t1.flush()
 t2 = tempfile.NamedTemporaryFile()
 for line in original2:
     t2.write(line)
-t2.close()
+t2.flush()
 
 #Generate comparison using the unix diff command
 compare = iter(commands.getoutput("diff -b -d %s %s" %(t1.name,t2.name)).splitlines(True))
 
-#Delete files
-os.unlink(t1.name)
-os.unlink(t2.name)
+t1.close()
+t2.close()
 
 try:
     line = compare.next()
@@ -320,13 +333,11 @@ while not EOF:
 print context_lines,
 
 if maximum > max_discrepancy:
-    start = "\033[0;31m"
+    start = start_fail
     message = "failed    < "
-    end = "\033[m"
 else:
-    start = "\033[0;32m"
+    start = start_success
     message = "succeeded < "
-    end = "\033[m"
 
 print "%sMax Discrepancy %s: %s (%s%s)%s" % (start,context_discrepancy,maximum,message,max_discrepancy,end)
 sys.exit(0)
