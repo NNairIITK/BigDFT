@@ -74,7 +74,7 @@
 #endif
 
 subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,multd,multp,&
-& nden,nfft,nfftot,npot,nspden,potarr,ucvol)
+& nden,nfft,npot,nspden,potarr)
 
  use defs_basis
  use defs_abitypes
@@ -89,10 +89,9 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: cpldot,cplex,id,ip,multd,multp,nden,nfft,nfftot,npot
+ integer,intent(in) :: cpldot,cplex,id,ip,multd,multp,nden,nfft,npot
  integer,intent(in) :: nspden,mpi_comm
  logical, intent(in) :: mpi_summarize
- real(dp),intent(in) :: ucvol
 !arrays
  real(dp),intent(in) :: denarr(cplex*nfft,nspden,nden)
  real(dp),intent(in) :: potarr(cplex*nfft,nspden,npot)
@@ -102,7 +101,7 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
 !scalars
  integer :: i1,i2,ierr,ir,jr
  real(dp) :: ai,ar,dim11,dim12,dim21,dim22,dim_dn,dim_up,dre11,dre12,dre21
- real(dp) :: dre22,dre_dn,dre_up,factor,pim11,pim12,pim21,pim22,pim_dn,pim_up
+ real(dp) :: dre22,dre_dn,dre_up,pim11,pim12,pim21,pim22,pim_dn,pim_up
  real(dp) :: pre11,pre12,pre21,pre22,pre_dn,pre_up
 !arrays
  real(dp) :: tsec(2)
@@ -346,9 +345,6 @@ subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,mul
      end if ! cpldot
    end if ! cplex
  end if ! nspden
-
- factor=ucvol/dble(nfftot)
- dot(:,:,:)=factor*dot(:,:,:)
 
 !XG030513 : MPIWF reduction (addition) on dot is needed here
  if (mpi_summarize) then

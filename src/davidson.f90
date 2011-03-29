@@ -659,7 +659,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   call memocc(i_stat,ew,'ew',subname)
 
 
-
   !itermax=... use the input variable instead
   iter=1
   davidson_loop: do 
@@ -899,7 +898,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
-	   !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
+           !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
            call Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,&
                 hamovr(8*ndimovrlp(ispin,ikpt-1)+1),&
                 v(ispsi),g(ispsi),hv(ispsi),hg(ispsi))
@@ -1041,13 +1040,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
               if (nspin ==1) then
                  write(*,'(1x,a)')'done. The refined eigenvalues are'
                  do iorb=1,nvirt
-                    write(*,'(1x,i3,(1pe21.14,1pe11.4))')iorb,(e(iorb,ikpt,j),j=1,2)
+                    write(*,'(1x,i3,(1pe21.14))')iorb,e(iorb,ikpt,1)
                  end do
               else if (ispin == 2) then
                  write(*,'(1x,a)')'done. The refined eigenvalues are'
                  do iorb=1,nvirt
-                    write(*,'(1x,i3,2(1pe21.14,1pe11.4))')&
-                         iorb,(e(iorb,ikpt,j),j=1,2),(e(iorb+orbsv%norbu,ikpt,j),j=1,2)
+                    write(*,'(1x,i3,2(1pe21.14))')&
+                         iorb,e(iorb,ikpt,1),e(iorb+orbsv%norbu,ikpt,1)
                  end do
               end if
            end if

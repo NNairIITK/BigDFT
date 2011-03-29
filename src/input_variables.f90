@@ -2687,10 +2687,13 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
   integer, intent(in):: iacceleration,iproc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr
+  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
 
   if (iacceleration == 1) then
-     call sg_init(GPUshare,useGPU,iproc,initerror)
+     call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
+     !initialize the id_proc per node
+     call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
+     call sg_init(GPUshare,useGPU,iproc,nproc_node,initerror)
      if (useGPU == 1) then
         iconv = 1
         iblas = 1
@@ -2717,7 +2720,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      if (.not. OCLconv) then
         call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
         !initialize the id_proc per node
-        call processor_id_per_node(iproc,mproc,GPU%id_proc)
+        call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
         call init_acceleration_OCL(GPU)
         if (iproc == 0) then
            write(*,*)' OpenCL convolutions activated'
@@ -2747,11 +2750,12 @@ subroutine release_material_acceleration(GPU)
 END SUBROUTINE release_material_acceleration
 
 
-subroutine processor_id_per_node(iproc,nproc,iproc_node)
+!> Give the number of MPI processes per node (nproc_node) and before iproc (iproc_node)
+subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   use module_base
   implicit none
   integer, intent(in) :: iproc,nproc
-  integer, intent(out) :: iproc_node
+  integer, intent(out) :: iproc_node,nproc_node
   !local variables
   character(len=*), parameter :: subname='processor_id_per_node'
   integer :: ierr,namelen,i_stat,i_all,jproc
@@ -2759,6 +2763,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node)
 
   if (nproc == 1) then
      iproc_node=0
+     nproc_node=1
   else
      allocate(nodename(0:nproc-1+ndebug),stat=i_stat)
      call memocc(i_stat,nodename,'nodename',subname)
@@ -2783,10 +2788,17 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node)
            iproc_node=iproc_node+1
         end if
      end do
+     nproc_node=iproc_node
+     do jproc=iproc,nproc-1
+        if (trim(nodename(jproc)) == trim(nodename(iproc))) then
+           nproc_node=nproc_node+1
+        end if
+     end do
      
      i_all=-product(shape(nodename))*kind(nodename)
      deallocate(nodename,stat=i_stat)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
+  print *,iproc,nproc,iproc_node,nproc_node
      
 END SUBROUTINE processor_id_per_node
