@@ -938,7 +938,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
 
            end if
-
+           
            !temporary, to be corrected with comms structure
            if (in%exctxpar == 'OP2P') eexctX = -99.0_gp
 
@@ -1541,7 +1541,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      if (associated(in%kptv)) then
         !dump the band structure eigenvalue on a file and deallocate it
-        
+        if (iproc == 0) then
+           open(unit=11,file='band_structure.dat',status='unknown')
+           do ikpt=1,in%nkptv
+              write(11,'(i5,3(f12.6),10000(1pe12.4))')ikpt,(in%kptv(i,ikpt),i=1,3),(band_structure_eval(i,ikpt),i=1,orbsv%norb)
+           end do
+           !tentative gnuplot string for the band structure file
+           print '(a,9999(a,i6,a))',"plot 'band_structure.dat' u 1:5 w l t ''",(",'' u 1:",5+i-1," w l t ''" ,i=2,orbsv%norb)
+           close(unit=11)
+        end if
         i_all=-product(shape(band_structure_eval))*kind(band_structure_eval)
         deallocate(band_structure_eval,stat=i_stat)
         call memocc(i_stat,i_all,'band_structure_eval',subname)
