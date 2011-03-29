@@ -729,88 +729,97 @@ contains
     !
 
 
-      ! Do SD anyway if the force is to large
+      ! First there are some checks whether the force is small enough to allow DIIS.
+
+      ! Decide whether the force is small eneough to allow DIIS
       if(fnrmMax<lin%startDIIS .and. .not.allowDIIS) then
           allowDIIS=.true.
           if(iproc==0) write(*,'(x,a)') 'The force is small enough to allow DIIS.'
           ! This is to get the correct DIIS history 
           ! (it is chosen as max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch).
-          icountSwitch=-1
-      else if(fnrmMax>lin%startDIIS .and. diisLIN%switchSD) then
+          icountSwitch=icountSwitch-1
+      else if(fnrmMax>lin%startDIIS .and. allowDIIS) then
           allowDIIS=.false.
-          if(iproc==0) write(*,'(x,a)') 'The force is to large to allow DIIS.'
+          if(iproc==0) write(*,'(x,a)') 'The force is too large to allow DIIS.'
       end if    
-      !if(.not.allowDIIS) then
-          if(startWithSD .and. diisLIN%idsx>0) then
-              call deallocate_diis_objects(diisLIN, subname)
-              diisLIN%idsx=0
-              diisLIN%switchSD=.false.
-              startWithSD=.false.
-          end if
-          if(.not.startWithSD .and. .not.allowDIIS .and. diisLIN%idsx>0) then
-              if(iproc==0) write(*,'(x,a,es10.3)') 'the force is too large, switch to SD with stepsize', alpha(1)
-              call deallocate_diis_objects(diisLIN, subname)
-              diisLIN%idsx=0
-              diisLIN%switchSD=.false.
-          end if
-      !else
-          ! If we swicthed to SD in the previous iteration, reset this flag.
-          if(diisLIN%switchSD) diisLIN%switchSD=.false.
 
-          ! Determine wheter the trace is decreasing (as it should) or increasing.
-          ! This is done by comparing the current value with diisLIN%energy_min, which is
-          ! the minimal value of the trace so far.
-          if(trH<=diisLIN%energy_min) then
-              ! Everything ok
-              diisLIN%energy_min=trH
-              diisLIN%switchSD=.false.
-              itBest=it
-              icountSDSatur=icountSDSatur+1
+      ! Switch to SD if the flag indicating that we should start with SD is true.
+      ! If this is the case, this flag is set to false, since this flag concerns only the beginning.
+      if(startWithSD .and. diisLIN%idsx>0) then
+          call deallocate_diis_objects(diisLIN, subname)
+          diisLIN%idsx=0
+          diisLIN%switchSD=.false.
+          startWithSD=.false.
+      end if
+
+      ! Decide whether we should switch from DIIS to SD in case we are using DIIS and it 
+      ! is not allowed.
+      if(.not.startWithSD .and. .not.allowDIIS .and. diisLIN%idsx>0) then
+          if(iproc==0) write(*,'(x,a,es10.3)') 'The force is too large, switch to SD with stepsize', alpha(1)
+          call deallocate_diis_objects(diisLIN, subname)
+          diisLIN%idsx=0
+          diisLIN%switchSD=.true.
+      end if
+
+      ! If we swicthed to SD in the previous iteration, reset this flag.
+      if(diisLIN%switchSD) diisLIN%switchSD=.false.
+
+      ! Now come some checks whether the trace is descreasing or not. This further decides
+      ! whether we should use DIIS or SD.
+
+      ! Determine wheter the trace is decreasing (as it should) or increasing.
+      ! This is done by comparing the current value with diisLIN%energy_min, which is
+      ! the minimal value of the trace so far.
+      if(trH<=diisLIN%energy_min) then
+          ! Everything ok
+          diisLIN%energy_min=trH
+          diisLIN%switchSD=.false.
+          itBest=it
+          icountSDSatur=icountSDSatur+1
+          icountDIISFailureCons=0
+
+          ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
+          ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
+          if(icountSDSatur>=10 .and. diisLIN%idsx==0 .and. allowDIIS) then
+              icountSwitch=icountSwitch+1
+              idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
+              if(iproc==0) write(*,'(x,a,i0)') 'switch to DIIS with new history length ', idsx
+              call initializeDIISParameters(idsx)
+              icountDIISFailureTot=0
               icountDIISFailureCons=0
-
-              ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
-              ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
-              if(icountSDSatur>=10 .and. diisLIN%idsx==0 .and. allowDIIS) then
-                  icountSwitch=icountSwitch+1
-                  idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
-                  if(iproc==0) write(*,'(x,a,i0)') 'switch to DIIS with new history length ', idsx
-                  call initializeDIISParameters(idsx)
-                  icountDIISFailureTot=0
-                  icountDIISFailureCons=0
-              end if
-          else
-              ! The trace is growing.
-              ! Count how many times this occurs and (if we are using DIIS) switch to SD after 3 
-              ! total failures or after 2 consecutive failures.
-              icountDIISFailureCons=icountDIISFailureCons+1
-              icountDIISFailureTot=icountDIISFailureTot+1
-              icountSDSatur=0
-              if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3) .and. diisLIN%idsx>0) then
-                  ! Switch back to SD. The initial step size is 1.d0.
-                  alpha=lin%alphaSD
-                  if(iproc==0) then
-                      if(icountDIISFailureCons>=2) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
-                          icountDIISFailureCons, ' times consecutievly. Switch to SD with stepsize', alpha(1)
-                      if(icountDIISFailureTot>=3) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
-                          icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
-                  end if
-                  ! Try to get back the orbitals of the best iteration. This is possible if
-                  ! these orbitals are still present in the DIIS history.
-                  if(it-itBest<diisLIN%idsx) then
-                     if(iproc==0) then
-                         if(iproc==0) write(*,'(x,a,i0,a)')  'Recover the orbitals from iteration ', &
-                             itBest, ' which are the best so far.'
-                     end if
-                     ii=modulo(diisLIN%mids-(it-itBest),diisLIN%mids)
-                     nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
-                     call dcopy(lin%orbs%norb*nvctrp, diisLIN%psidst(ii*nvctrp*lin%orbs%norb+1), 1, phi(1), 1)
-                  end if
-                  call deallocate_diis_objects(diisLIN, subname)
-                  diisLIN%idsx=0
-                  diisLIN%switchSD=.true.
-              end if
           end if
-      !end if
+      else
+          ! The trace is growing.
+          ! Count how many times this occurs and (if we are using DIIS) switch to SD after 3 
+          ! total failures or after 2 consecutive failures.
+          icountDIISFailureCons=icountDIISFailureCons+1
+          icountDIISFailureTot=icountDIISFailureTot+1
+          icountSDSatur=0
+          if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3) .and. diisLIN%idsx>0) then
+              ! Switch back to SD. The initial step size is 1.d0.
+              alpha=lin%alphaSD
+              if(iproc==0) then
+                  if(icountDIISFailureCons>=2) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
+                      icountDIISFailureCons, ' times consecutievly. Switch to SD with stepsize', alpha(1)
+                  if(icountDIISFailureTot>=3) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
+                      icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
+              end if
+              ! Try to get back the orbitals of the best iteration. This is possible if
+              ! these orbitals are still present in the DIIS history.
+              if(it-itBest<diisLIN%idsx) then
+                 if(iproc==0) then
+                     if(iproc==0) write(*,'(x,a,i0,a)')  'Recover the orbitals from iteration ', &
+                         itBest, ' which are the best so far.'
+                 end if
+                 ii=modulo(diisLIN%mids-(it-itBest),diisLIN%mids)
+                 nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+                 call dcopy(lin%orbs%norb*nvctrp, diisLIN%psidst(ii*nvctrp*lin%orbs%norb+1), 1, phi(1), 1)
+              end if
+              call deallocate_diis_objects(diisLIN, subname)
+              diisLIN%idsx=0
+              diisLIN%switchSD=.true.
+          end if
+      end if
 
     end subroutine DIISorSD
 

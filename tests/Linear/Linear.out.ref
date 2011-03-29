@@ -302,18 +302,22 @@
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  ********* Use the selfconsistent potential for the linear scaling version. *********
- ############################## Input parameters ##############################
+ ################################ Input parameters. ################################
  |           |    number of    |     prefactor for     |
  | atom type | basis functions | confinement potential |
  |     C     |         5       |       2.000E-07       |
  |     H     |         5       |       2.000E-07       |
- ------------------------------------------------------------------------------
- | maximal number | convergence | DIIS history | alpha SD | no. of iterations |
- |  of iterations |  criterion  |  min   max   |          | in preconditioner |
- |       600      |  1.000E-03  |    6    10   | 1.00E+00 |         8         |
- ------------------------------------------------------------------------------
+ ---------------------------------------------------------
+ | maximal number | convergence | iterations in  | plot  |
+ |  of iterations |  criterion  | preconditioner | basis |
+ |       600      |  1.000E-03  |        8       |   F   |
+ ---------------------------------------------------------
+ | DIIS history | alpha SD |  start  | allow DIIS |
+ |  min   max   |          | with SD |            |
+ |    6    10   | 1.00E-01 |    F    |  2.000E+02 |
+ --------------------------------------------------
  | Processes from 0 to 7 treat 5 orbitals. |
- ##############################################################################
+ ###################################################################################
  Wavefunctions memory occupation for root processor (Bytes): 3492480
   ~~~~~~~ Creating the variable wave function descriptors and testing them... ~~~~~~~
  Create 2 new MPI communicators:
@@ -486,7 +490,7 @@
  Hamiltonian application... done.
  ekin_sum,epot_sum,eproj_sum  1.22107532007E+01 -1.89328957134E+01  8.67655001419E-01
     ehart,   eexcu,    vexcu  3.73085407502E+01 -5.51421124119E+00 -7.21082582160E+00
- total energy  -14.9030281293780     
+ total energy, modified energy  -1.49030281293780220E+01  -1.49022102916791752E+01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=      13.999999962756
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
@@ -496,8 +500,8 @@
  average noise along y direction:   1.25105021E-04
  average noise along z direction:   1.47651905E-04
  total average noise            :   2.87614427E-04
- clean forces norm (Ha/Bohr): maxval=  4.348989647092E-04  fnrm2=  3.745077436547E-07
- raw forces:                  maxval=  5.694298292333E-04  fnrm2=  5.000584560390E-07
+ clean forces norm (Ha/Bohr): maxval=  4.348989647160E-04  fnrm2=  3.745077436608E-07
+ raw forces:                  maxval=  5.694298292417E-04  fnrm2=  5.000584560471E-07
  Force values for all atoms in x, y, z direction.
    1      C   2.42368E-04  2.91876E-04  2.12611E-04
    2      C   1.88442E-04 -6.45554E-05 -1.21312E-05
@@ -526,7 +530,7 @@
  total average noise            :   9.67927529E+00
  clean forces norm (Ha/Bohr): maxval=  1.027118013595E+01  fnrm2=  2.810658557513E+02
  raw forces:                  maxval=  1.369348582092E+01  fnrm2=  3.747542266759E+02
- CPU time/ELAPSED time for root process     0        94.04        93.77
+ CPU time/ELAPSED time for root process     0        92.46        92.23
  Final values of the Forces for each atom
      1      C -6.04093E-02  3.84684E-02  1.02615E+01
      2      C  1.32629E-02 -7.79906E-03  1.02712E+01
@@ -537,6 +541,6 @@
      7      H  8.18047E-03 -5.29132E-03 -3.42232E+00
      8      H  7.76185E-03 -5.19231E-03 -3.42237E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 8797 allocations and 8797 deallocations, remaining memory(B): 0
+ 8810 allocations and 8810 deallocations, remaining memory(B): 0
  memory occupation peak: 159 MB
  for the array  psir in the routine local_hamiltonian
