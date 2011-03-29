@@ -831,6 +831,7 @@ module module_defs
       end if
       
       ! Summarize on processors
+      fnrm_denpot = nrm_local
       call MPI_ALLREDUCE(nrm_local, fnrm_denpot, 1, &
            & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
       if (ierr /= 0) then
@@ -904,6 +905,7 @@ module module_defs
       end if
       
       ! Summarize on processors
+      fdot_denpot = dot_local
       call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
            & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
       if (ierr /= 0) then
