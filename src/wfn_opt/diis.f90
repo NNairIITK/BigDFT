@@ -22,7 +22,8 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   real(dp), dimension(npoints), intent(inout) :: rhopot
   real(gp), intent(out) :: rpnrm
   !local variables
-  integer :: ierr,ie,ii
+  integer :: ierr,ie,ii,i_stat,i_all
+  character(len = *), parameter :: subname = "mix_rhopot"
   character(len = 500) :: errmess
   integer, allocatable :: user_data(:)
 
@@ -41,7 +42,8 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
        & rhopot(1), 1)
 
   ! Store the scattering of rho in user_data
-  allocate(user_data(2 * nproc))
+  allocate(user_data(2 * nproc), stat = i_stat)
+  call memocc(i_stat,user_data,'user_data',subname)
   do ii = 1, nproc, 1
      user_data(1 + (ii - 1 ) * 2:ii * 2) = &
           & n1 * n2 * (/ nscatterarr(iproc, 2), nscatterarr(iproc, 4) /)
@@ -58,7 +60,9 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
 
-  deallocate(user_data)
+  i_all=-product(shape(user_data))*kind(user_data)
+  deallocate(user_data,stat=i_stat)
+  call memocc(i_stat,i_all,'user_data',subname)
 
   ! Copy new in vrespc
   call dcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)

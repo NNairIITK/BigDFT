@@ -819,7 +819,7 @@ module module_defs
          ! Add the magnetisation
          ar = dnrm2(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1)
          ar = ar ** 2
-         if (user_data(1) == 0) then
+         if (opt_denpot == 0) then
             if (cplex == 1) then
                nrm_local = nrm_local + 2.d0 * ar
             else
@@ -831,6 +831,7 @@ module module_defs
       end if
       
       ! Summarize on processors
+      fnrm_denpot = nrm_local
       call MPI_ALLREDUCE(nrm_local, fnrm_denpot, 1, &
            & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
       if (ierr /= 0) then
@@ -861,25 +862,50 @@ module module_defs
          ishift  = 0
       end if
 
-      ! Norm on spin up and spin down
-      dot_local = ddot(npoints * min(nspden,2), x(1 + ishift), 1, y(1 + ishift), 1)
+      if (opt_denpot == 0 .or. opt_denpot == 1) then
+         ! Norm on spin up and spin down
+         dot_local = ddot(npoints * min(nspden,2), x(1 + ishift), 1, y(1 + ishift), 1)
 
-      if (nspden==4) then
-         ! Add the magnetisation
-         ar = ddot(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1, &
-              & y(1 + cplex * nfft * 2 + ishift), 1)
-         if (user_data(1) == 0) then
-            if (cplex == 1) then
-               dot_local = dot_local + 2.d0 * ar
+         if (nspden==4) then
+            ! Add the magnetisation
+            ar = ddot(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1, &
+                 & y(1 + cplex * nfft * 2 + ishift), 1)
+            if (opt_denpot == 0) then
+               if (cplex == 1) then
+                  dot_local = dot_local + 2.d0 * ar
+               else
+                  dot_local = dot_local + ar
+               end if
             else
-               dot_local = dot_local + ar
+               dot_local = 0.5d0 * (dot_local + ar)
             end if
-         else
-            dot_local = 0.5d0 * (dot_local + ar)
+         end if
+      else
+         if(nspden==1)then
+            dot_local = ddot(npoints, x(1 + ishift), 1, y(1 + ishift), 1)
+         else if(nspden==2)then
+            ! This is the spin up contribution
+            dot_local = ddot(npoints, x(1 + ishift + nfft), 1, y(1 + ishift), 1)
+            ! This is the spin down contribution
+            dot_local = dot_local + ddot(npoints, x(1 + ishift ), 1, y(1 + ishift+ nfft), 1)
+         else if(nspden==4)then
+            !  \rho{\alpha,\beta} V^{\alpha,\beta} =
+            !  rho*(V^{11}+V^{22})/2$
+            !  + m_x Re(V^{12})- m_y Im{V^{12}}+ m_z(V^{11}-V^{22})/2
+            dot_local = 0.5d0 * (ddot(npoints, x(1 + ishift), 1, y(1 + ishift), 1) + &
+                 & dot(npoints, x(1 + ishift), 1, y(1 + ishift + nfft), 1))
+            dot_local = dot_local + 0.5d0 * ( &
+                 & ddot(npoints, x(1 + ishift + 3 * nfft), 1, y(1 + ishift), 1) - &
+                 & ddot(npoints, x(1 + ishift + 3 * nfft), 1, y(1 + ishift + nfft), 1))
+            dot_local = dot_local + &
+                 & ddot(npoints, x(1 + ishift + nfft), 1, y(1 + ishift + 2 * nfft), 1)
+            dot_local = dot_local - &
+                 & ddot(npoints, x(1 + ishift + 2 * nfft), 1, y(1 + ishift + 3 * nfft), 1)
          end if
       end if
       
       ! Summarize on processors
+      fdot_denpot = dot_local
       call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
            & MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
       if (ierr /= 0) then
