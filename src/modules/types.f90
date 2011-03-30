@@ -404,6 +404,7 @@ module module_types
     integer:: ncomms
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD
+    character(len=4):: getCoeff
   end type
 
 
