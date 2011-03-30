@@ -98,7 +98,6 @@ integer:: iorb, jorb
   call memocc(istat, coeff, 'coeff', subname)
   
   
-  
   call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
       infoBasisFunctions)
@@ -293,7 +292,7 @@ if(iproc==0) write(*,'(x,a)') '| DIIS history | alpha SD |  start  | allow DIIS 
 if(iproc==0) write(*,'(x,a)') '|  min   max   |          | with SD |            |'
 if(iproc==0) write(*,'(x,a,a,i0,3x,a,i0,2x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '| ', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)))), lin%DIISHistMin, &
-    repeat(' ', 4-ceiling(log10(dble(lin%nItMax+1)))), lin%DIISHistMax, ' |', &
+    repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMax+1)))), lin%DIISHistMax, ' |', &
     lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |'
 if(iproc==0) write(*,'(x,a)') '--------------------------------------------------'
 
@@ -662,7 +661,7 @@ type(diis_objects):: diisLIN
       gnrm=1.d3 ; gnrm_zero=1.d3
       call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
           lin%nItPrecond, hphi, at%nat, rxyz, at, it)
-  
+
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)
       meanAlpha=tt/dble(lin%orbs%norb)
@@ -1546,6 +1545,7 @@ istart=0
         iz0=nint(rxyz(3,iiAt)/hzh)
         cut=1.d0/lin%potentialPrefac(at%iatype(iiAt))
         cut=cut**.25d0
+!cut=8.d0
 
         jj=0
         !!open(unit=(iproc+1)*1000000+it*1000+iorb*10+7)
@@ -1573,7 +1573,8 @@ istart=0
                    else
 write(100+iproc,*) tt, cut
                        call random_number(tt2)
-                       phir(jj)=tt2*.002d0*exp(-(4.d0*lin%potentialPrefac(at%iatype(iiAt))*tt))
+                       !phir(jj)=tt2*.002d0*exp(-(4.d0*lin%potentialPrefac(at%iatype(iiAt))*tt))
+                       phir(jj)=0.d0
                    end if
                        
                    !!!if(iy==ix0 .and. iz==iz0) write((iproc+1)*1000000+it*1000+iorb*10+7,*) ix, phir(jj)
