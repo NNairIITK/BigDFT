@@ -79,13 +79,14 @@ real(8),intent(out):: ebsMod
 ! Local variables 
 integer:: istat, iall 
 real(8),dimension(:),allocatable:: hphi, eval 
-real(8),dimension(:,:),allocatable:: HamSmall 
+real(8),dimension(:,:),allocatable:: HamSmall , coeff
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork 
 real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace 
 real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
 
+integer:: iorb, jorb
   
   allocate(hphi(lin%orbs%npsidim), stat=istat) 
   call memocc(istat, hphi, 'hphi', subname)
@@ -93,6 +94,8 @@ character(len=*),parameter:: subname='getLinearPsi'
   call memocc(istat, phiWork, 'phiWork', subname)
   allocate(matrixElements(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
   call memocc(istat, matrixElements, 'matrixElements', subname)
+  allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, coeff, 'coeff', subname)
   
   
   
@@ -106,6 +109,10 @@ character(len=*),parameter:: subname='getLinearPsi'
        rhopot(1),&
        phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+!do iorb=1,lin%orbs%norb
+!    write(200+iproc,*) (coeff(iorb,jorb), jorb=1,orbs%norb)
+!end do
 
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
@@ -134,12 +141,19 @@ character(len=*),parameter:: subname='getLinearPsi'
   allocate(eval(lin%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
   call diagonalizeHamiltonian(iproc, nproc, lin%orbs, HamSmall, eval)
+!do iorb=1,lin%orbs%norb
+!    write(300+iproc,*) (HamSmall(iorb,jorb), jorb=1,orbs%norb)
+!end do
   if(iproc==0) write(*,'(a)', advance='no') 'done.'
 
-  call modifiedBSEnergy(input%nspin, orbs, lin, HamSmall(1,1), matrixElements(1,1,1), ebsMod)
+  !call modifiedBSEnergy(input%nspin, orbs, lin, HamSmall(1,1), matrixElements(1,1,1), ebsMod)
+  call modifiedBSEnergyModified(input%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
+write(*,*) '>> ebsMod', ebsMod
   
   if(iproc==0) write(*,'(a)', advance='no') ' Linear combinations... '
-  call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
+write(*,*) 'ATTENTION!'
+  !call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
+  call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
   
   call dcopy(orbs%npsidim, psi, 1, psit, 1)
   if(iproc==0) write(*,'(a)') 'done.'
@@ -168,6 +182,10 @@ character(len=*),parameter:: subname='getLinearPsi'
   iall=-product(shape(matrixElements))*kind(matrixElements)
   deallocate(matrixElements, stat=istat)
   call memocc(istat, iall, 'matrixElements', subname)
+
+  iall=-product(shape(coeff))*kind(coeff)
+  deallocate(coeff, stat=istat)
+  call memocc(istat, iall, 'coeff', subname)
 
 end subroutine getLinearPsi
 
@@ -221,6 +239,7 @@ integer,dimension(:),allocatable:: norbsPerType, norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20):: atomname
 logical:: written, fileExists
+real(8),dimension(:),pointer:: phiWork
 
 
 ! Allocate all local arrays.
@@ -301,10 +320,10 @@ do jproc=1,nproc-1
         !    ' orbitals, processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.'
         if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
             lin%orbs%norb_par(jproc-1), ' orbitals,', &
-            repeat(' ', 14-ceiling(log10(dble(jproc)))-ceiling(log10(dble(lin%orbs%norb_par(jproc-1)+1)))), '|'
+            repeat(' ', 3-ceiling(log10(dble(jproc)))-ceiling(log10(dble(lin%orbs%norb_par(jproc-1)+1)))), '|'
         if(iproc==0) write(*,'(x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
             lin%orbs%norb_par(jproc),' orbitals.', &
-            repeat(' ', 16-ceiling(log10(dble(jproc+1)))-ceiling(log10(dble(nproc)))-&
+            repeat(' ', 4-ceiling(log10(dble(jproc+1)))-ceiling(log10(dble(nproc)))-&
             ceiling(log10(dble(lin%orbs%norb_par(jproc)+1)))), '|'
         written=.true.
         exit
@@ -349,6 +368,16 @@ allocate(phi(lin%orbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
 call initRandomSeed(iproc, 1)
 call random_number(phi)
+!call randomWithinCutoff(iproc, lin%orbs, Glr, at, lin, input, rxyz, phi)
+!call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+!    .5d0*input%hy, .5d0*input%hz, 1)
+allocate(phiWork(lin%orbs%npsidim), stat=istat)
+call memocc(istat, phiWork, 'phiWork', subname)
+call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+iall=-product(shape(phiWork))*kind(phiWork)
+deallocate(phiWork, stat=istat)
+call memocc(istat, iall, 'phiWork', subname)
+
 
 !write(*,*) 'calling createInputGuess'
 !call createInputGuess(iproc, orbsLIN, Glr, input, at, rxyz, phi)
@@ -1130,6 +1159,57 @@ end subroutine buildWavefunction
 
 
 
+
+subroutine buildWavefunctionModified(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, coeff)
+!
+! Purpose:
+! =======
+!   Builds the physical orbitals psi as a linear combination of the basis functions phi. The coefficients
+!   for this linear combination are obtained by diagonalizing the Hamiltonian matrix HamSmall.
+!
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   ----------------
+!     iproc      process ID
+!     nproc      total number of processes
+!     orbs       type describing the physical orbitals psi
+!     orbsLIN    type describing the basis functions phi
+!     comms      type containing the communication parameters for the physical orbitals psi
+!     commsLIN   type containing the communication parameters for the basis functions phi
+!     phi        the basis functions 
+!     coeff      the coefficients for the linear combination
+!   Output arguments:
+!   -----------------
+!     psi        the physical orbitals 
+!
+
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer:: iproc, nproc
+type(orbitals_data), intent(in) :: orbs
+type(orbitals_data), intent(in) :: orbsLIN
+type(communications_arrays), intent(in) :: comms
+type(communications_arrays), intent(in) :: commsLIN
+real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
+real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
+real(8),dimension(orbsLIN%norb,orbs%norb):: coeff
+
+! Local variables
+integer:: nvctrp
+
+
+  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+  call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, coeff(1,1), &
+             orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
+  
+
+end subroutine buildWavefunctionModified
+
+
 subroutine getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
 !
 ! Purpose:
@@ -1260,6 +1340,54 @@ end subroutine modifiedBSEnergy
 
 
 
+subroutine modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
+!
+! Purpose:
+! ========
+!
+! Calling arguments:
+! ==================
+!
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: nspin
+type(orbitals_data),intent(in) :: orbs
+type(linearParameters),intent(in):: lin
+real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
+real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: matrixElements
+real(8),intent(out):: ebsMod
+
+! Local variables
+integer:: iorb, jorb, korb
+real(8):: tt
+
+  ! Calculate the modified band structure energy
+  tt=0.d0
+  do iorb=1,orbs%norb
+      do jorb=1,lin%orbs%norb
+          do korb=1,lin%orbs%norb
+              tt=tt+coeff(korb,iorb)*coeff(jorb,iorb)*matrixElements(korb,jorb)
+          end do
+      end do
+  end do
+  if(nspin==1) then
+      ebsMod=2.d0*tt ! 2 for closed shell
+  else
+      ebsMod=tt
+  end if
+
+
+
+end subroutine modifiedBSEnergyModified
+
+
+
+
+
+
 subroutine deallocateLinear(iproc, lin, phi)
 !
 ! Purpose:
@@ -1364,3 +1492,267 @@ character(len=*),parameter:: subname='deallocateLinear'
   end if
 
 end subroutine deallocateLinear
+
+
+
+
+
+!subroutine plotOrbitals(iproc, orbs, Glr, phi, nat, rxyz, onWhichAtom, hxh, hyh, hzh, it)
+subroutine randomWithinCutoff(iproc, orbs, Glr, at, lin, input, rxyz, phi)
+!
+! Plots the orbitals
+!
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer:: iproc
+type(orbitals_data), intent(inout) :: orbs
+type(locreg_descriptors), intent(in) :: Glr
+type(atoms_data),intent(in):: at
+type(linearParameters),intent(in):: lin
+type(input_variables), intent(in):: input
+real(8),dimension(3,at%nat):: rxyz
+real(8),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp):: phi
+
+integer:: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat
+real(8),dimension(:),allocatable:: phir
+real(8):: hx, hy, hz, hxh, hyh, hzh, kx, ky, kz, tt, tt2, cut
+type(workarr_sumrho) :: w
+type(workarr_locham):: w_lh
+
+
+allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+
+call initialize_work_arrays_sumrho(Glr,w)
+call initialize_work_arrays_locham(Glr, orbs%nspinor,w_lh)
+
+hx=input%hx
+hy=input%hy
+hz=input%hz
+hxh=.5d0*hx
+hyh=.5d0*hy
+hzh=.5d0*hz
+
+istart=0
+
+!write(*,*) 'write, orbs%nbasisp', orbs%norbp
+    orbLoop: do iorb=1,orbs%norbp
+        call daub_to_isf(Glr,w,phi(istart+1),phir(1))
+        iiAt=lin%onWhichAtom(iorb)
+        ix0=nint(rxyz(1,iiAt)/hxh)
+        iy0=nint(rxyz(2,iiAt)/hyh)
+        iz0=nint(rxyz(3,iiAt)/hzh)
+        cut=1.d0/lin%potentialPrefac(at%iatype(iiAt))
+        cut=cut**.25d0
+
+        jj=0
+        !!open(unit=(iproc+1)*1000000+it*1000+iorb*10+7)
+        !!open(unit=(iproc+1)*1000000+it*1000+iorb*10+8)
+        !!open(unit=(iproc+1)*1000000+it*1000+iorb*10+9)
+        do i3=1,Glr%d%n3i
+            do i2=1,Glr%d%n2i
+                do i1=1,Glr%d%n1i
+                   jj=jj+1
+                   ! z component of point jj
+                   iz=jj/(Glr%d%n2i*Glr%d%n1i)
+                   ! Subtract the 'lower' xy layers
+                   ii=jj-iz*(Glr%d%n2i*Glr%d%n1i)
+                   ! y component of point jj
+                   iy=ii/Glr%d%n1i
+                   ! Subtract the 'lower' y rows
+                   ii=ii-iy*Glr%d%n1i
+                   ! x component
+                   ix=ii
+
+                   tt=hxh**2*(ix-ix0)**2 + hyh**2*(iy-iy0)**2 + hzh**2*(iz-iz0)**2
+                   tt=sqrt(tt)
+                   if(tt<cut) then
+                       call random_number(phir(jj))
+                   else
+write(100+iproc,*) tt, cut
+                       call random_number(tt2)
+                       phir(jj)=tt2*.002d0*exp(-(4.d0*lin%potentialPrefac(at%iatype(iiAt))*tt))
+                   end if
+                       
+                   !!!if(iy==ix0 .and. iz==iz0) write((iproc+1)*1000000+it*1000+iorb*10+7,*) ix, phir(jj)
+                   !!!! Write along y-axis
+                   !!!if(ix==ix0 .and. iz==iz0) write((iproc+1)*1000000+it*1000+iorb*10+8,*) iy, phir(jj)
+                   !!!! Write along z-axis
+                   !!!if(ix==ix0 .and. iy==iy0) write((iproc+1)*1000000+it*1000+iorb*10+9,*) iz, phir(jj)
+
+
+                end do
+            end do
+        end do
+        !!close(unit=(iproc+1)*1000000+it*1000+iorb*10+7)
+        !!close(unit=(iproc+1)*1000000+it*1000+iorb*10+8)
+        !!close(unit=(iproc+1)*1000000+it*1000+iorb*10+9)
+
+        kx=orbs%kpts(1,orbs%iokpt(iorb))
+        ky=orbs%kpts(2,orbs%iokpt(iorb))
+        kz=orbs%kpts(3,orbs%iokpt(iorb))
+        call isf_to_daub(hx, hy, hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, phir(1), phi(istart+1), tt)
+
+        istart=istart+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor
+
+
+    end do orbLoop
+
+call deallocate_work_arrays_sumrho(w)
+call deallocate_work_arrays_locham(Glr, w_lh)
+deallocate(phir, stat=istat)
+
+
+end subroutine randomWithinCutoff
+
+
+
+
+
+
+subroutine optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+
+use module_base
+use module_types
+implicit none
+
+integer:: iproc
+type(orbitals_data):: orbs
+type(linearParameters):: lin
+real(8),dimension(lin%orbs%norb,lin%orbs%norb):: matrixElements
+real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
+
+
+integer:: it, iorb, jorb, k, l, istat, korb, ierr
+real(8):: tt, fnrm, ddot, dnrm2, meanAlpha, cosangle
+real(8),dimension(:,:),allocatable:: grad, gradOld, lagMat
+real(8),dimension(:),allocatable:: alpha
+
+
+
+! DO THIS ONLY ON ROOT PROCESS
+if(iproc==0) then
+    if(iproc==0) write(*,*) 'matrixElements'
+    do k=1,lin%orbs%norb
+        if(iproc==0) write(*,'(200f12.8)') (matrixElements(k,l), l=1,lin%orbs%norb)
+    end do
+    
+    
+    allocate(grad(lin%orbs%norb,orbs%norb), stat=istat)
+    allocate(gradOld(lin%orbs%norb,orbs%norb), stat=istat)
+    allocate(lagMat(orbs%norb,orbs%norb), stat=istat)
+    allocate(alpha(orbs%norb), stat=istat)
+    alpha=1.d-3
+    
+    call random_number(coeff)
+    ! Orthogonalize (Gram-Schmidt)
+    do iorb=1,orbs%norb
+        do jorb=1,iorb-1
+            tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+            call daxpy(lin%orbs%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
+        end do
+        tt=dnrm2(lin%orbs%norb, coeff(1,iorb), 1)
+        call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
+    end do
+    do iorb=1,orbs%norb
+        do jorb=1,iorb
+            tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+            if(iproc==0) write(*,'(a,2i6,es12.4)') 'iorb, jorb, tt', iorb, jorb, tt
+        end do
+    end do
+    
+    do it=1,100000
+        ! Calculate gradient
+        meanAlpha=0.d0
+        grad=0.d0
+        do iorb=1,orbs%norb
+            do l=1,lin%orbs%norb
+                do k=1,lin%orbs%norb
+                    grad(l,iorb)=grad(l,iorb)+coeff(k,iorb)*(matrixElements(k,l)+matrixElements(l,k))
+                end do
+            end do
+            if(it>1) then
+                cosangle=ddot(lin%orbs%norb, grad(1,iorb), 1, gradOld(1,iorb), 1)
+                cosangle=cosangle/dnrm2(lin%orbs%norb, grad(1,iorb), 1)
+                cosangle=cosangle/dnrm2(lin%orbs%norb, gradOld(1,iorb), 1)
+         !write(*,*) 'iorb, cosangle', iorb, cosangle
+                if(cosangle>.8d0) then
+                    alpha(iorb)=alpha(iorb)*1.05d0
+                else
+                    alpha(iorb)=alpha(iorb)*.5d0
+                end if
+            end if
+            call dcopy(lin%orbs%norb, grad(1,iorb), 1, gradOld(1,iorb), 1)
+            meanAlpha=meanAlpha+alpha(iorb)
+        end do
+        meanAlpha=meanAlpha/orbs%norb
+    
+    
+        ! Orthoconstraint on gradient
+        lagMat=0.d0
+        do iorb=1,orbs%norb
+            do jorb=1,orbs%norb
+                do k=1,lin%orbs%norb
+                    lagMat(iorb,jorb)=lagMat(iorb,jorb)+coeff(k,iorb)*grad(k,jorb)
+                end do
+            end do
+        end do
+        do iorb=1,orbs%norb
+            do k=1,lin%orbs%norb
+                do jorb=1,orbs%norb
+                    grad(k,iorb)=grad(k,iorb)-.5d0*(lagMat(iorb,jorb)*coeff(k,jorb)+lagMat(jorb,iorb)*coeff(k,jorb))
+                end do
+            end do
+        end do
+    
+        
+        ! Improve coefficients
+        fnrm=0.d0
+        do iorb=1,orbs%norb
+            fnrm=fnrm+dnrm2(lin%orbs%norb, grad(1,iorb), 1)
+            do l=1,lin%orbs%norb
+                coeff(l,iorb)=coeff(l,iorb)-alpha(iorb)*grad(l,iorb)
+            end do
+        end do
+    
+        ! Calculate the modified band structure energy
+        tt=0.d0
+        do iorb=1,orbs%norb
+            do jorb=1,lin%orbs%norb
+                do korb=1,lin%orbs%norb
+                    tt=tt+coeff(korb,iorb)*coeff(jorb,iorb)*matrixElements(korb,jorb)
+                end do
+            end do
+        end do
+    
+        ! multiply the energy with 2 due to closed-shell
+        if(iproc==0) write(*,'(a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', it, fnrm, meanAlpha, 2.d0*tt
+        if(iproc==0) write(99,'(i0,es12.4,3x,es10.3, es15.5)')  it, fnrm, meanAlpha, 2.d0*tt
+        
+        ! Orthogonalize (Gram-Schmidt)
+        do iorb=1,orbs%norb
+            do jorb=1,iorb-1
+                tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+                call daxpy(lin%orbs%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
+            end do
+            tt=dnrm2(lin%orbs%norb, coeff(1,iorb), 1)
+            call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
+        end do
+    !!do iorb=1,orbs%norb
+    !!    do jorb=1,iorb
+    !!        tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+    !!        if(iproc==0) write(*,'(a,2i6,es12.4)') 'iorb, jorb, tt', iorb, jorb, tt
+    !!    end do
+    !!end do
+        if(fnrm<1.d-10) exit
+    end do
+end if
+
+
+! NOW BROADCAST TO ALL PROCESSES
+call mpi_bcast(coeff(1,1), lin%orbs%norb*orbs%norb, mpi_double_precision, 0, mpi_comm_world, ierr)
+
+
+end subroutine optimizeCoefficients

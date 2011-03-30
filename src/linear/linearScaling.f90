@@ -113,9 +113,9 @@ real(8):: ebsMod
 
   ! The next subroutine will create the variable wave function descriptors.
   ! It is not used at the moment.
-  if(iproc==0) write(*,'(x,a)') ' ~~~~~~~ Creating the variable wave function descriptors and testing them... ~~~~~~~'
-  call initializeLocRegLIN(iproc, nproc, Glr, lin, at, input, rxyz, radii_cf)
-  if(iproc==0) write(*,'(x,a)') '~~~~~~~~~~~~~~~~~~~~~~~ Descriptors created and test passed. ~~~~~~~~~~~~~~~~~~~~~~~'
+  !!$if(iproc==0) write(*,'(x,a)') ' ~~~~~~~ Creating the variable wave function descriptors and testing them... ~~~~~~~'
+  !!$call initializeLocRegLIN(iproc, nproc, Glr, lin, at, input, rxyz, radii_cf)
+  !!$if(iproc==0) write(*,'(x,a)') '~~~~~~~~~~~~~~~~~~~~~~~ Descriptors created and test passed. ~~~~~~~~~~~~~~~~~~~~~~~'
 
 
   if(nproc==1) allocate(psit(size(psi)))
