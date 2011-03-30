@@ -108,7 +108,7 @@ integer:: iorb, jorb
        rhopot(1),&
        phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-!call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
 !do iorb=1,lin%orbs%norb
 !    write(200+iproc,*) (coeff(iorb,jorb), jorb=1,orbs%norb)
 !end do
@@ -145,14 +145,14 @@ integer:: iorb, jorb
 !end do
   if(iproc==0) write(*,'(a)', advance='no') 'done.'
 
-  call modifiedBSEnergy(input%nspin, orbs, lin, HamSmall(1,1), matrixElements(1,1,1), ebsMod)
-  !call modifiedBSEnergyModified(input%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
+  !call modifiedBSEnergy(input%nspin, orbs, lin, HamSmall(1,1), matrixElements(1,1,1), ebsMod)
+  call modifiedBSEnergyModified(input%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
 write(*,*) '>> ebsMod', ebsMod
   
   if(iproc==0) write(*,'(a)', advance='no') ' Linear combinations... '
 write(*,*) 'ATTENTION!'
-  call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
-  !call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
+  !call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
+  call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
   
   call dcopy(orbs%npsidim, psi, 1, psit, 1)
   if(iproc==0) write(*,'(a)') 'done.'
