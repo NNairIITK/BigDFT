@@ -120,14 +120,12 @@ integer:: iorb, jorb
        phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
 
   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-if(iproc==0) write(500+iproc,*) matrixElements
 
   if(trim(lin%getCoeff)=='min') then
       ! Initialize the coefficient vector at random. 
       call random_number(coeff)
       call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
   end if
-if(iproc==0) write(510+iproc,*) matrixElements
 
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
@@ -225,7 +223,6 @@ if(iproc==0) write(510+iproc,*) matrixElements
 !!!      call free_full_potential(nproc,potential,subname)
 
       call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-if(iproc==0) write(600+iproc,*) matrixElements
       call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
       call modifiedBSEnergyModified(input%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
   else
@@ -372,8 +369,8 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
 if(iproc==0) write(*,'(x,a)') '| DIIS history | alpha SD |  start  | allow DIIS |'
 if(iproc==0) write(*,'(x,a)') '|  min   max   |          | with SD |            |'
 if(iproc==0) write(*,'(x,a,a,i0,3x,a,i0,3x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '|', &
-    repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMin+1)))), lin%DIISHistMin, &
-    repeat(' ', 2-ceiling(log10(dble(lin%DIISHistMax+1)))), lin%DIISHistMax, ' |', &
+    repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)))), lin%DIISHistMin, &
+    repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)))), lin%DIISHistMax, ' |', &
     lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |'
 if(iproc==0) write(*,'(x,a)') '--------------------------------------------------'
 
@@ -1736,7 +1733,7 @@ real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
 
 ! Local variables
 integer:: it, iorb, jorb, k, l, istat, iall, korb, ierr
-real(8):: tt, fnrm, ddot, dnrm2, meanAlpha, cosangle
+real(8):: tt, fnrm, ddot, dnrm2, meanAlpha, cosangle, ebsMod
 real(8),dimension(:,:),allocatable:: grad, gradOld, lagMat
 real(8),dimension(:),allocatable:: alpha
 character(len=*),parameter:: subname='optimizeCoefficients'
@@ -1766,7 +1763,7 @@ processIf: if(iproc==0) then
     end do
     
     ! Initial step size
-    alpha=1.d-3
+    alpha=1.d-1
 
     ! The optimization loop
     iterLoop: do it=1,100000
@@ -1824,18 +1821,18 @@ processIf: if(iproc==0) then
         end do
     
         ! Calculate the modified band structure energy
-        tt=0.d0
+        ebsMod=0.d0
         do iorb=1,orbs%norb
             do jorb=1,lin%orbs%norb
                 do korb=1,lin%orbs%norb
-                    tt=tt+coeff(korb,iorb)*coeff(jorb,iorb)*matrixElements(korb,jorb)
+                    ebsMod=ebsMod+coeff(korb,iorb)*coeff(jorb,iorb)*matrixElements(korb,jorb)
                 end do
             end do
         end do
     
         ! Multiply the energy with a factor of 2 due to closed-shell
-        if(iproc==0) write(*,'(a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', it, fnrm, meanAlpha, 2.d0*tt
-        if(iproc==0) write(99,'(i0,es12.4,3x,es10.3, es15.5)')  it, fnrm, meanAlpha, 2.d0*tt
+        if(iproc==0) write(*,'(a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', it, fnrm, meanAlpha, 2.d0*ebsMod
+        !if(iproc==0) write(99,'(i0,es12.4,3x,es10.3, es15.5)')  it, fnrm, meanAlpha, 2.d0*ebsMod
         
         ! Orthogonalize (Gram-Schmidt)
         do iorb=1,orbs%norb
@@ -1847,8 +1844,8 @@ processIf: if(iproc==0) then
             call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
         end do
         if(fnrm<1.d-10) then
-            if(iproc==0) write(*,'(a,i0,a)') 'converged in ', it, ' iterations.'
-            if(iproc==0) write(*,'(a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, 2.d0*tt
+            if(iproc==0) write(*,'(x,a,i0,a)') 'converged in ', it, ' iterations.'
+            if(iproc==0) write(*,'(x,a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, 2.d0*ebsMod
             exit
         end if
     end do iterLoop
@@ -1915,3 +1912,90 @@ end if
 
 
 end subroutine checkLinearParameters
+
+
+
+
+
+
+
+
+subroutine plotOrbitals(iproc, orbs, Glr, phi, nat, rxyz, onWhichAtom, hxh, hyh, hzh, it)
+!
+! Plots the orbitals
+!
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer:: iproc
+type(orbitals_data), intent(inout) :: orbs
+type(locreg_descriptors), intent(in) :: Glr
+real(8),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp):: phi
+integer:: nat
+real(8),dimension(3,nat):: rxyz
+integer,dimension(orbs%norbp):: onWhichAtom
+real(8):: hxh, hyh, hzh
+integer:: it
+
+integer:: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat
+real(8),dimension(:),allocatable:: phir
+type(workarr_sumrho) :: w
+
+allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+
+call initialize_work_arrays_sumrho(Glr,w)
+
+istart=0
+   
+!write(*,*) 'write, orbs%nbasisp', orbs%norbp
+    orbLoop: do iorb=1,orbs%norbp
+        call daub_to_isf(Glr,w,phi(istart+1),phir(1))
+        iiAt=onWhichAtom(iorb)
+        ix0=nint(rxyz(1,iiAt)/hxh)
+        iy0=nint(rxyz(2,iiAt)/hyh)
+        iz0=nint(rxyz(3,iiAt)/hzh)
+
+        jj=0
+        open(unit=(iproc+1)*1000000+it*1000+iorb*10+7)
+        open(unit=(iproc+1)*1000000+it*1000+iorb*10+8)
+        open(unit=(iproc+1)*1000000+it*1000+iorb*10+9)
+        do i3=1,Glr%d%n3i
+            do i2=1,Glr%d%n2i
+                do i1=1,Glr%d%n1i
+                   jj=jj+1
+                   ! z component of point jj
+                   iz=jj/(Glr%d%n2i*Glr%d%n1i)
+                   ! Subtract the 'lower' xy layers
+                   ii=jj-iz*(Glr%d%n2i*Glr%d%n1i)
+                   ! y component of point jj
+                   iy=ii/Glr%d%n1i
+                   ! Subtract the 'lower' y rows
+                   ii=ii-iy*Glr%d%n1i
+                   ! x component
+                   ix=ii
+
+                   if(iy==ix0 .and. iz==iz0) write((iproc+1)*1000000+it*1000+iorb*10+7,*) ix, phir(jj)
+                   ! Write along y-axis
+                   if(ix==ix0 .and. iz==iz0) write((iproc+1)*1000000+it*1000+iorb*10+8,*) iy, phir(jj)
+                   ! Write along z-axis
+                   if(ix==ix0 .and. iy==iy0) write((iproc+1)*1000000+it*1000+iorb*10+9,*) iz, phir(jj)
+
+
+                end do
+            end do
+        end do
+        close(unit=(iproc+1)*1000000+it*1000+iorb*10+7)
+        close(unit=(iproc+1)*1000000+it*1000+iorb*10+8)
+        close(unit=(iproc+1)*1000000+it*1000+iorb*10+9)
+
+        istart=istart+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor
+
+    end do orbLoop
+
+call deallocate_work_arrays_sumrho(w)
+deallocate(phir, stat=istat)
+
+
+end subroutine plotOrbitals
