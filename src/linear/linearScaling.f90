@@ -79,10 +79,10 @@ real(dp),dimension(:),pointer,intent(in):: pkernelseq
 integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
 real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons 
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
-real(wp), dimension(lin%as%size_pot_ion),intent(in):: pot_ion
+real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
 !real(wp), dimension(lin%as%size_rhocore):: rhocore 
 real(wp), dimension(:),pointer,intent(in):: rhocore                  
-real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(in):: potxc
+real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
 character(len=3),intent(in):: PSquiet
 real(gp),intent(in):: eion, edisp, eexctX
 logical,intent(in):: scpot
@@ -122,7 +122,7 @@ real(8):: ebsMod
   ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-      infoBasisFunctions, n3p, ebsMod)
+      infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, ebsMod)
 
   ! Calculate the energy that we get with psi.
   call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, psi, rxyz, &

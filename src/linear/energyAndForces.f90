@@ -88,6 +88,7 @@ logical:: scpot
 
 ! Local variables
 real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, ekin_sum, epot_sum, eproj_sum, energybs, energyMod
+real(8):: energyMod2, ehartMod
 real(wp), dimension(:), pointer :: potential
 real(8),dimension(:),allocatable:: hpsi
 integer:: istat, iall
@@ -153,14 +154,18 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
 
 
   energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
+write(*,*) 'energybs', energybs
   energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
+  ! IS THIS CORRECT??
+  ehartMod=ebsMod-ekin_sum-eproj_sum
   energyMod=ebsMod-ehart+eexcu-vexcu-eexctX+eion+edisp
+  energyMod2=ebsMod-ehartMod+eexcu-vexcu-eexctX+eion+edisp
 
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
                   ekin_sum,epot_sum,eproj_sum
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-  if(iproc==0) write(*,'(x,a,2es26.17)') 'total energy, modified energy', energy, energyMod
+  if(iproc==0) write(*,'(x,a,3es26.17)') 'total energy, modified energy, modifiedEnergy2', energy, energyMod, energyMod2
 
   !!if (iproc == 0) then
   !!   if (verbose > 0 .and. in%itrpmax==1) then
