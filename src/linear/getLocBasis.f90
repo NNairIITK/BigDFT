@@ -1942,6 +1942,8 @@ integer:: it
 integer:: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat
 real(8),dimension(:),allocatable:: phir
 type(workarr_sumrho) :: w
+character(len=10):: c1, c2, c3
+character(len=50):: file1, file2, file3
 
 allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
 
@@ -1958,9 +1960,15 @@ istart=0
         iz0=nint(rxyz(3,iiAt)/hzh)
 
         jj=0
-        open(unit=(iproc+1)*1000000+it*1000+iorb*10+7)
-        open(unit=(iproc+1)*1000000+it*1000+iorb*10+8)
-        open(unit=(iproc+1)*1000000+it*1000+iorb*10+9)
+        write(c1,'(i0)') iproc
+        write(c2,'(i0)') iorb
+        write(c3,'(i0)') it
+        file1='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_x'
+        file2='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_y'
+        file3='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_z'
+        open(unit=101, file=trim(file1))
+        open(unit=102, file=trim(file2))
+        open(unit=103, file=trim(file3))
         do i3=1,Glr%d%n3i
             do i2=1,Glr%d%n2i
                 do i1=1,Glr%d%n1i
@@ -1976,19 +1984,19 @@ istart=0
                    ! x component
                    ix=ii
 
-                   if(iy==ix0 .and. iz==iz0) write((iproc+1)*1000000+it*1000+iorb*10+7,*) ix, phir(jj)
+                   if(iy==ix0 .and. iz==iz0) write(101,*) ix, phir(jj)
                    ! Write along y-axis
-                   if(ix==ix0 .and. iz==iz0) write((iproc+1)*1000000+it*1000+iorb*10+8,*) iy, phir(jj)
+                   if(ix==ix0 .and. iz==iz0) write(102,*) iy, phir(jj)
                    ! Write along z-axis
-                   if(ix==ix0 .and. iy==iy0) write((iproc+1)*1000000+it*1000+iorb*10+9,*) iz, phir(jj)
+                   if(ix==ix0 .and. iy==iy0) write(103,*) iz, phir(jj)
 
 
                 end do
             end do
         end do
-        close(unit=(iproc+1)*1000000+it*1000+iorb*10+7)
-        close(unit=(iproc+1)*1000000+it*1000+iorb*10+8)
-        close(unit=(iproc+1)*1000000+it*1000+iorb*10+9)
+        close(unit=101)
+        close(unit=102)
+        close(unit=103)
 
         istart=istart+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor
 
