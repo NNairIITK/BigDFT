@@ -1547,7 +1547,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               write(11,'(i5,3(f12.6),10000(1pe12.4))')ikpt,(in%kptv(i,ikpt),i=1,3),(band_structure_eval(i,ikpt),i=1,orbsv%norb)
            end do
            !tentative gnuplot string for the band structure file
-           print '(a,9999(a,i6,a))',"plot 'band_structure.dat' u 1:5 w l t ''",(",'' u 1:",5+i-1," w l t ''" ,i=2,orbsv%norb)
+           write(11,'(a,9999(a,i6,a))')"#plot 'band_structure.dat' u 1:5 w l t ''",(",'' u 1:",5+i-1," w l t ''" ,i=2,orbsv%norb)
            close(unit=11)
         end if
         i_all=-product(shape(band_structure_eval))*kind(band_structure_eval)
