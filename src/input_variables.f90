@@ -243,6 +243,7 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%ncong,in%idsx
   call check()
+  in%idsx = max(in%idsx, in%itermax)
   read(1,*,iostat=ierror) in%dispersion
   call check()
 
@@ -911,7 +912,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
            read(line(ii:),fmt=*,iostat=ierror) inputs%exctxpar
 
         else if (index(line,"accel") /= 0 .or. index(line,"ACCEL") /= 0) then
-            ii = index(line,"ACCEL")  + index(line,"ACCEL") + 5
+            ii = index(line,"accel")  + index(line,"ACCEL") + 5
            read(line(ii:),fmt=*,iostat=ierror) string
            if (string=="NO     ") then
               inputs%iacceleration=0
