@@ -250,8 +250,7 @@ splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDFLAGS = 
@@ -390,6 +389,8 @@ test_forces.o: $(mod_bigdft)
 $(mod_bigdft) : BigDFT_API.o
 
 $(modules_objects) : $(mpi_include)
+
+modules/defs.o: modules/base.o
 
 #BigDFT.o: \
 #	base.o \

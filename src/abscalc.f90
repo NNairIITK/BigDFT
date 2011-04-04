@@ -921,9 +921,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               enddo
            enddo
 
-           print *,"for replica ", ireplica,  "SHIFT " , shift_b2B
-
-
+           print '(a,i6,a,3(1x,f18.14))',"for replica ", ireplica,  "SHIFT " , shift_b2B
 
            rhopottmp=0.0_gp
            do iz_bB = 1,n3i_bB
