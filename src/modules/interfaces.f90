@@ -1344,7 +1344,8 @@ module module_interfaces
 
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-        infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, ebsMod)
+        infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+        ebsMod, coeff)
       use module_base
       use module_types
       !use Poisson_Solver
@@ -1376,6 +1377,7 @@ module module_interfaces
       integer,intent(out):: infoBasisFunctions
       character(len=3),intent(in):: PSquiet
       real(8),intent(out):: ebsMod
+      real(8),dimension(lin%orbs%norb,orbs%norb),intent(in out):: coeff
     end subroutine getLinearPsi
 
     subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
@@ -1473,9 +1475,9 @@ module module_interfaces
     end subroutine linearScaling
     
     
-    subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, psi, rxyz, &
+    subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, phi, psi, rxyz, rxyzParab, &
         rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-        proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, ebsMod, energy)
+        proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
       use module_base
       use module_types
       implicit none
@@ -1485,6 +1487,7 @@ module module_interfaces
       type(atoms_data):: atoms
       type(input_variables):: in
       type(linearParameters):: lin
+      real(8),dimension(lin%orbs%npsidim):: phi
       real(8),dimension(orbs%npsidim):: psi
       real(dp), dimension(lin%as%size_rhopot) :: rhopot
       integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -1501,7 +1504,9 @@ module module_interfaces
       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
       real(dp),dimension(lin%as%size_pkernelseq),intent(in):: pkernelseq
       real(8),dimension(3,atoms%nat),intent(in):: rxyz
+      real(8),dimension(3,atoms%nat),intent(in):: rxyzParab
       real(gp):: eion, edisp, eexctX, energy
+      real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
       real(8):: ebsMod
       logical:: scpot
     end subroutine potentialAndEnergySub

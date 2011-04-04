@@ -1,6 +1,6 @@
-subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, psi, rxyz, &
+subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, phi, psi, rxyz, rxyzParab, &
     rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, ebsMod, energy)
+    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
 !
 ! Purpose:
 ! ========
@@ -65,6 +65,7 @@ type(orbitals_data):: orbs
 type(atoms_data):: atoms
 type(input_variables):: in
 type(linearParameters):: lin
+real(8),dimension(lin%orbs%npsidim):: phi
 real(8),dimension(orbs%npsidim):: psi
 real(dp), dimension(lin%as%size_rhopot) :: rhopot
 integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -82,7 +83,9 @@ type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
 real(dp),dimension(lin%as%size_pkernelseq),intent(in):: pkernelseq
 real(8),dimension(3,atoms%nat),intent(in):: rxyz
+real(8),dimension(3,atoms%nat),intent(in):: rxyzParab
 real(gp):: eion, edisp, eexctX, energy
+real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
 real(8):: ebsMod
 logical:: scpot
 
@@ -90,7 +93,8 @@ logical:: scpot
 real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, ekin_sum, epot_sum, eproj_sum, energybs, energyMod
 real(8):: energyMod2, ehartMod
 real(wp), dimension(:), pointer :: potential
-real(8),dimension(:),allocatable:: hpsi
+real(8),dimension(:),allocatable:: hpsi, hphi
+real(8),dimension(:,:,:),allocatable:: matrixElements
 integer:: istat, iall
 character(len=*),parameter:: subname='potentialAndEnergy'
 
@@ -101,6 +105,10 @@ hzh=0.5d0*in%hz
 
 allocate(hpsi(orbs%npsidim), stat=istat)
 call memocc(istat, hpsi, 'hpsi', subname)
+allocate(hphi(lin%orbs%npsidim), stat=istat)
+call memocc(istat, hphi, 'hphi', subname)
+allocate(matrixElements(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+call memocc(istat, matrixElements, 'matrixElements', subname)
 
 
 if(iproc==0) write(*,'(x,a)') '-------------------------------------------------- Calculation of energy and forces.'
@@ -152,19 +160,36 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   !deallocate potential
   call free_full_potential(nproc,potential,subname)
 
-
   energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
   energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
+
+  ! Now calculate the modified band structure energy.
+  call HamiltonianApplicationConfinement(iproc,nproc,atoms,lin%orbs,lin,in%hx,in%hy,in%hz,rxyz,&
+       nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+       rhopot(1),&
+       phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU, rxyzParab, pkernel=pkernelseq)
+  call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+  if(trim(lin%getCoeff)=='diag') then
+      call modifiedBSEnergyModified(in%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
+  else if(trim(lin%getCoeff)=='min') then
+  
+      call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+      call modifiedBSEnergyModified(in%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
+  else
+      if(iproc==0) write(*,'(a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min' , &
+          & but we found '", lin%getCoeff, "'."
+      stop
+  end if
+
+
   ! IS THIS CORRECT??
-  ehartMod=ebsMod-ekin_sum-eproj_sum
   energyMod=ebsMod-ehart+eexcu-vexcu-eexctX+eion+edisp
-  energyMod2=ebsMod-ehartMod+eexcu-vexcu-eexctX+eion+edisp
 
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
                   ekin_sum,epot_sum,eproj_sum
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-  if(iproc==0) write(*,'(x,a,3es26.17)') 'total energy, modified energy, modifiedEnergy2', energy, energyMod, energyMod2
+  if(iproc==0) write(*,'(x,a,2es26.17)') 'total energy, modified energy', energy, energyMod
 
   !!if (iproc == 0) then
   !!   if (verbose > 0 .and. in%itrpmax==1) then
@@ -192,6 +217,15 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   iall=-product(shape(hpsi))*kind(hpsi)
   deallocate(hpsi, stat=istat)
   call memocc(istat, iall, 'hpsi', subname)
+
+  iall=-product(shape(hphi))*kind(hphi)
+  deallocate(hphi, stat=istat)
+  call memocc(istat, iall, 'hphi', subname)
+
+  iall=-product(shape(matrixElements))*kind(matrixElements)
+  deallocate(matrixElements, stat=istat)
+  call memocc(istat, iall, 'matrixElements', subname)
+
 
 
 end subroutine potentialAndEnergySub

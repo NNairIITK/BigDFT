@@ -1,6 +1,6 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-    infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, ebsMod)
+    infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, ebsMod, coeff)
 !
 ! Purpose:
 ! ========
@@ -84,11 +84,12 @@ real(8),dimension(orbs%npsidim),intent(out):: psi, psit
 integer,intent(out):: infoBasisFunctions
 character(len=3),intent(in):: PSquiet
 real(8),intent(out):: ebsMod
+real(8),dimension(lin%orbs%norb,orbs%norb),intent(in out):: coeff
 
 ! Local variables 
 integer:: istat, iall 
 real(8),dimension(:),allocatable:: hphi, eval 
-real(8),dimension(:,:),allocatable:: HamSmall , coeff
+real(8),dimension(:,:),allocatable:: HamSmall
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork 
 real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace 
@@ -104,8 +105,6 @@ integer:: iorb, jorb
   call memocc(istat, phiWork, 'phiWork', subname)
   allocate(matrixElements(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
   call memocc(istat, matrixElements, 'matrixElements', subname)
-  allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, coeff, 'coeff', subname)
   allocate(eval(lin%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
   
@@ -153,6 +152,7 @@ integer:: iorb, jorb
   if(trim(lin%getCoeff)=='diag') then
       if(iproc==0) write(*,'(a)', advance='no') ' Diagonalization... '
       call diagonalizeHamiltonian(iproc, nproc, lin%orbs, HamSmall, eval)
+      call dcopy(lin%orbs%norb*orbs%norb, HamSmall(1,1), 1, coeff(1,1), 1)
       !do iorb=1,lin%orbs%norb
       !    write(300+iproc,*) (HamSmall(iorb,jorb), jorb=1,orbs%norb)
       !end do
@@ -171,75 +171,76 @@ integer:: iorb, jorb
       stop
   end if
 
-  if(trim(lin%getCoeff)=='diag') then
-      call modifiedBSEnergy(input%nspin, orbs, lin, HamSmall(1,1), matrixElements(1,1,1), ebsMod)
-  else if(trim(lin%getCoeff)=='min') then
-
-     !! UPDATE POTENTIAL -- IS THIS CORRECT??
-     call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-     call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-     hxh=.5d0*input%hx
-     hyh=.5d0*input%hy
-     hzh=.5d0*input%hz
-     ! Potential from electronic charge density
-     call sumrho(iproc,nproc,orbs,Glr,input%ixc,hxh,hyh,hzh,psi,rhopot,&
-          Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,input%nspin,GPU,at%symObj,irrzon,phnons)
-
-     if(orbs%nspinor==4) then
-        !this wrapper can be inserted inside the poisson solver 
-        call PSolverNC(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
-             input%ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-     else
-        call XC_potential(at%geocode,'D',iproc,nproc,&
-             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,input%ixc,hxh,hyh,hzh,&
-             rhopot,eexcu,vexcu,input%nspin,rhocore,potxc)
-
-        call H_potential(at%geocode,'D',iproc,nproc,&
-             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
-             quiet=PSquiet) !optional argument
-
-        !sum the two potentials in rhopot array
-        !fill the other part, for spin, polarised
-        if (input%nspin == 2) then
-           call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
-                rhopot(1+Glr%d%n1i*Glr%d%n2i*n3p),1)
-        end if
-        !spin up and down together with the XC part
-        call axpy(Glr%d%n1i*Glr%d%n2i*n3p*input%nspin,1.0_dp,potxc(1,1,1,1),1,&
-             rhopot(1),1)
-     end if
-!!!  !allocate the potential in the full box
-!!!      call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-!!!           lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
-!!!
-      call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-           nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-           rhopot(1),&
-           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
-!!!
-!!!      !deallocate potential
-!!!      call free_full_potential(nproc,potential,subname)
-
-      call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-      call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
-      call modifiedBSEnergyModified(input%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
-  else
-      if(iproc==0) write(*,'(a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min' , &
-          & but we found '", lin%getCoeff, "'."
-      stop
-  end if
+!!!!  if(trim(lin%getCoeff)=='diag') then
+!!!!      call modifiedBSEnergy(input%nspin, orbs, lin, HamSmall(1,1), matrixElements(1,1,1), ebsMod)
+!!!!      call dcopy(lin%orbs%norb*orbs%norb, HamSmall(1,1), 1, coeff(1,1), 1)
+!!!!  else if(trim(lin%getCoeff)=='min') then
+!!!!
+!!!!     !! UPDATE POTENTIAL -- IS THIS CORRECT??
+!!!!     call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
+!!!!     call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+!!!!     hxh=.5d0*input%hx
+!!!!     hyh=.5d0*input%hy
+!!!!     hzh=.5d0*input%hz
+!!!!     ! Potential from electronic charge density
+!!!!     call sumrho(iproc,nproc,orbs,Glr,input%ixc,hxh,hyh,hzh,psi,rhopot,&
+!!!!          Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,input%nspin,GPU,at%symObj,irrzon,phnons)
+!!!!
+!!!!     if(orbs%nspinor==4) then
+!!!!        !this wrapper can be inserted inside the poisson solver 
+!!!!        call PSolverNC(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+!!!!             input%ixc,hxh,hyh,hzh,&
+!!!!             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+!!!!     else
+!!!!        call XC_potential(at%geocode,'D',iproc,nproc,&
+!!!!             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,input%ixc,hxh,hyh,hzh,&
+!!!!             rhopot,eexcu,vexcu,input%nspin,rhocore,potxc)
+!!!!
+!!!!        call H_potential(at%geocode,'D',iproc,nproc,&
+!!!!             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!!!             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+!!!!             quiet=PSquiet) !optional argument
+!!!!
+!!!!        !sum the two potentials in rhopot array
+!!!!        !fill the other part, for spin, polarised
+!!!!        if (input%nspin == 2) then
+!!!!           call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+!!!!                rhopot(1+Glr%d%n1i*Glr%d%n2i*n3p),1)
+!!!!        end if
+!!!!        !spin up and down together with the XC part
+!!!!        call axpy(Glr%d%n1i*Glr%d%n2i*n3p*input%nspin,1.0_dp,potxc(1,1,1,1),1,&
+!!!!             rhopot(1),1)
+!!!!     end if
+!!!!!!!  !allocate the potential in the full box
+!!!!!!!      call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+!!!!!!!           lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
+!!!!!!!
+!!!!      call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+!!!!           nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+!!!!           rhopot(1),&
+!!!!           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+!!!!!!!
+!!!!!!!      !deallocate potential
+!!!!!!!      call free_full_potential(nproc,potential,subname)
+!!!!
+!!!!      call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+!!!!      call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+!!!!      call modifiedBSEnergyModified(input%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
+!!!!  else
+!!!!      if(iproc==0) write(*,'(a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min' , &
+!!!!          & but we found '", lin%getCoeff, "'."
+!!!!      stop
+!!!!  end if
   
   call dcopy(orbs%npsidim, psi, 1, psit, 1)
   if(iproc==0) write(*,'(a)') 'done.'
   
   
-  if(trim(lin%getCoeff)/='min') then
-      ! Otherwise already done earlier.
+!!!  if(trim(lin%getCoeff)/='min') then
+!!!      ! Otherwise already done earlier.
       call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
       call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-  end if
+!!!  end if
   
   
   iall=-product(shape(phiWork))*kind(phiWork)
@@ -261,10 +262,6 @@ integer:: iorb, jorb
   iall=-product(shape(matrixElements))*kind(matrixElements)
   deallocate(matrixElements, stat=istat)
   call memocc(istat, iall, 'matrixElements', subname)
-
-  iall=-product(shape(coeff))*kind(coeff)
-  deallocate(coeff, stat=istat)
-  call memocc(istat, iall, 'coeff', subname)
 
 end subroutine getLinearPsi
 
@@ -627,6 +624,14 @@ character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(diis_objects):: diisLIN
 
+real(8),dimension(:,:),allocatable:: lagMult
+real(8),dimension(:,:,:),allocatable:: ovrlp
+integer:: jstart, jorb
+
+allocate(lagMult(lin%orbs%norb,lin%orbs%norb), stat=istat)
+lagMult=1.d-1
+allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+
 
   ! Allocate all local arrays
   call allocateLocalArrays()
@@ -646,7 +651,9 @@ type(diis_objects):: diisLIN
       startWithSD=.false.
   end if
   
-  
+!!! DEBUG  
+      call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
+!!! DEBUG  
   if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
 
   ! Assign the step size for SD iterations.
@@ -659,13 +666,13 @@ type(diis_objects):: diisLIN
           write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       endif
   
-  
+!!!if(it<=50) then  
       ! Orthonormalize the orbitals.
       if(iproc==0) then
           write(*,'(x,a)', advance='no') 'Orthonormalization... '
       end if
       call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
-
+!!!end  if
       ! Untranspose phi
       call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
   
@@ -679,6 +686,40 @@ type(diis_objects):: diisLIN
            rhopot(1),&
            phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel=pkernelseq)
   
+!!!!!! NEW
+!!!
+!!!if(it>50) then
+!!!  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+!!!  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+!!!  nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+!!!  istart=1
+!!!  do iorb=1,lin%orbs%norb
+!!!    jstart=1
+!!!    do jorb=1,lin%orbs%norb
+!!!      ovrlp(jorb,iorb,2)=ddot(nvctrp, phi(istart), 1, phi(jstart), 1)
+!!!      jstart=jstart+nvctrp*orbs%nspinor
+!!!    end do
+!!!    istart=istart+nvctrp*orbs%nspinor
+!!!  end do
+!!!  call mpi_allreduce(ovrlp(1,1,2), ovrlp(1,1,1), lin%orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!!  
+!!!  istart=1
+!!!  do iorb=1,lin%orbs%norb
+!!!    jstart=1
+!!!    do jorb=1,iorb-1
+!!!      call daxpy(nvctrp, lagMult(jorb,iorb), phi(jstart), 1, hphi(istart), 1)
+!!!      jstart=jstart+nvctrp
+!!!      lagMult(jorb,iorb)=lagMult(jorb,iorb)-1.d-3*(ovrlp(jorb,iorb,1))
+!!!    end do
+!!!    call daxpy(nvctrp, 2.d0*lagMult(iorb,iorb), phi(jstart), 1, hphi(istart), 1)
+!!!    lagMult(iorb,iorb)=lagMult(iorb,iorb)+1.d-3*(ovrlp(iorb,iorb,1))
+!!!    istart=istart+nvctrp
+!!!  end do
+!!!  call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+!!!  call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+!!!end if
+!!!
+!!!!!! NEW
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then

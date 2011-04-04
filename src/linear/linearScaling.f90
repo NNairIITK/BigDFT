@@ -95,10 +95,12 @@ real(8):: fnoise
 
 
 ! Local variables
-integer:: infoBasisFunctions
+integer:: infoBasisFunctions, istat, iall
 real(8),dimension(:),allocatable:: phi
-real(8),dimension(:,:),allocatable:: occupForInguess
+real(8),dimension(:,:),allocatable:: occupForInguess, coeff
 real(8):: ebsMod
+character(len=*),parameter:: subname='linearScaling'
+
 
 
   if(iproc==0) then
@@ -117,17 +119,19 @@ real(8):: ebsMod
   !!$call initializeLocRegLIN(iproc, nproc, Glr, lin, at, input, rxyz, radii_cf)
   !!$if(iproc==0) write(*,'(x,a)') '~~~~~~~~~~~~~~~~~~~~~~~ Descriptors created and test passed. ~~~~~~~~~~~~~~~~~~~~~~~'
 
+  allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, coeff, 'coeff', subname)
 
   if(nproc==1) allocate(psit(size(psi)))
   ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-      infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, ebsMod)
+      infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, ebsMod, coeff)
 
   ! Calculate the energy that we get with psi.
-  call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, psi, rxyz, &
+  call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
       rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, ebsMod, energy)
+      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
 
 
   ! Calculate the forces we get with psi.
@@ -136,6 +140,10 @@ real(8):: ebsMod
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi)
+
+  iall=-product(shape(coeff))*kind(coeff)
+  deallocate(coeff, stat=istat)
+  call memocc(istat, iall, 'coeff', subname)
 
 
 end subroutine linearScaling
