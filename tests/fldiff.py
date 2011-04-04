@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 28/03/2011
+# Date: 04/04/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -311,7 +311,7 @@ while not EOF:
                 print line2,
         elif (maximum < 99):
             print "%s the number of floating point differs" % context[:-1]
-            context_discrepancy = " (line %s)" % context.split(",")[0][4:]
+            context_discrepancy = " (line %s)" % context.split("c")[0].split(",")[0]
             context_lines = "\n"+context_discrepancy[1:]+"\n"+line1+line2
             maximum = 99
     #Add lines if necessary
