@@ -1163,7 +1163,7 @@ module module_interfaces
     end subroutine getLocalizedBasis
 
 
-    subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
+    subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess, coeff)
       use module_base
       use module_types
       implicit none
@@ -1176,6 +1176,7 @@ module module_interfaces
       type(input_variables), intent(in) :: input
       real(8),dimension(3,at%nat):: rxyz
       real(8),dimension(32,at%nat):: occupForInguess
+      real(8),dimension(:,:),allocatable,intent(out):: coeff
     end subroutine allocateAndInitializeLinear
 
 
@@ -1402,13 +1403,14 @@ module module_interfaces
     end subroutine local_hamiltonianConfinement
     
     
-    subroutine deallocateLinear(iproc, lin, phi)
+    subroutine deallocateLinear(iproc, lin, phi, coeff)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc
       type(linearParameters):: lin
       real(8),dimension(:),allocatable:: phi
+      real(8),dimension(:,:),allocatable:: coeff
     end subroutine deallocateLinear
     
     

@@ -111,7 +111,7 @@ character(len=*),parameter:: subname='linearScaling'
   allocate(occupForInguess(32,at%nat))
 
   ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
-  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
+  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess, coeff)
 
   ! The next subroutine will create the variable wave function descriptors.
   ! It is not used at the moment.
@@ -119,8 +119,6 @@ character(len=*),parameter:: subname='linearScaling'
   !!$call initializeLocRegLIN(iproc, nproc, Glr, lin, at, input, rxyz, radii_cf)
   !!$if(iproc==0) write(*,'(x,a)') '~~~~~~~~~~~~~~~~~~~~~~~ Descriptors created and test passed. ~~~~~~~~~~~~~~~~~~~~~~~'
 
-  allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, coeff, 'coeff', subname)
 
   if(nproc==1) allocate(psit(size(psi)))
   ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
@@ -139,11 +137,7 @@ character(len=*),parameter:: subname='linearScaling'
       irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, fxyz, fnoise)
 
   ! Deallocate all arrays related to the linear scaling version.
-  call deallocateLinear(iproc, lin, phi)
-
-  iall=-product(shape(coeff))*kind(coeff)
-  deallocate(coeff, stat=istat)
-  call memocc(istat, iall, 'coeff', subname)
+  call deallocateLinear(iproc, lin, phi, coeff)
 
 
 end subroutine linearScaling

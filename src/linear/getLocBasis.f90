@@ -171,76 +171,13 @@ integer:: iorb, jorb
       stop
   end if
 
-!!!!  if(trim(lin%getCoeff)=='diag') then
-!!!!      call modifiedBSEnergy(input%nspin, orbs, lin, HamSmall(1,1), matrixElements(1,1,1), ebsMod)
-!!!!      call dcopy(lin%orbs%norb*orbs%norb, HamSmall(1,1), 1, coeff(1,1), 1)
-!!!!  else if(trim(lin%getCoeff)=='min') then
-!!!!
-!!!!     !! UPDATE POTENTIAL -- IS THIS CORRECT??
-!!!!     call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-!!!!     call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-!!!!     hxh=.5d0*input%hx
-!!!!     hyh=.5d0*input%hy
-!!!!     hzh=.5d0*input%hz
-!!!!     ! Potential from electronic charge density
-!!!!     call sumrho(iproc,nproc,orbs,Glr,input%ixc,hxh,hyh,hzh,psi,rhopot,&
-!!!!          Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,input%nspin,GPU,at%symObj,irrzon,phnons)
-!!!!
-!!!!     if(orbs%nspinor==4) then
-!!!!        !this wrapper can be inserted inside the poisson solver 
-!!!!        call PSolverNC(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
-!!!!             input%ixc,hxh,hyh,hzh,&
-!!!!             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-!!!!     else
-!!!!        call XC_potential(at%geocode,'D',iproc,nproc,&
-!!!!             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,input%ixc,hxh,hyh,hzh,&
-!!!!             rhopot,eexcu,vexcu,input%nspin,rhocore,potxc)
-!!!!
-!!!!        call H_potential(at%geocode,'D',iproc,nproc,&
-!!!!             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-!!!!             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
-!!!!             quiet=PSquiet) !optional argument
-!!!!
-!!!!        !sum the two potentials in rhopot array
-!!!!        !fill the other part, for spin, polarised
-!!!!        if (input%nspin == 2) then
-!!!!           call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
-!!!!                rhopot(1+Glr%d%n1i*Glr%d%n2i*n3p),1)
-!!!!        end if
-!!!!        !spin up and down together with the XC part
-!!!!        call axpy(Glr%d%n1i*Glr%d%n2i*n3p*input%nspin,1.0_dp,potxc(1,1,1,1),1,&
-!!!!             rhopot(1),1)
-!!!!     end if
-!!!!!!!  !allocate the potential in the full box
-!!!!!!!      call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-!!!!!!!           lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
-!!!!!!!
-!!!!      call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-!!!!           nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-!!!!           rhopot(1),&
-!!!!           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
-!!!!!!!
-!!!!!!!      !deallocate potential
-!!!!!!!      call free_full_potential(nproc,potential,subname)
-!!!!
-!!!!      call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-!!!!      call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
-!!!!      call modifiedBSEnergyModified(input%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
-!!!!  else
-!!!!      if(iproc==0) write(*,'(a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min' , &
-!!!!          & but we found '", lin%getCoeff, "'."
-!!!!      stop
-!!!!  end if
   
   call dcopy(orbs%npsidim, psi, 1, psit, 1)
   if(iproc==0) write(*,'(a)') 'done.'
   
   
-!!!  if(trim(lin%getCoeff)/='min') then
-!!!      ! Otherwise already done earlier.
-      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-      call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-!!!  end if
+  call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
   
   
   iall=-product(shape(phiWork))*kind(phiWork)
@@ -268,7 +205,7 @@ end subroutine getLinearPsi
 
 
 
-subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess)
+subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess, coeff)
 !
 ! Purpose:
 ! ========
@@ -307,6 +244,7 @@ type(input_variables), intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(32,at%nat):: occupForInguess
 real(8),dimension(:),allocatable,intent(out):: phi
+real(8),dimension(:,:),allocatable,intent(out):: coeff
 
 ! Local variables
 integer:: jproc, istat, iorb, jorb, ierr, iat, ityp, iall, norb_tot
@@ -350,7 +288,7 @@ if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis funct
 do iat=1,at%ntypes
     read(99,*) atomname, norbsPerType(iat), lin%potentialPrefac(iat)
     if(iproc==0) write(*,'(x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomname), &
-        repeat(' ', 6-len_trim(atomname)), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)))), &
+        repeat(' ', 6-len_trim(atomname)), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)+1.d-10))), &
          norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |'
 end do
 close(unit=99)
@@ -358,16 +296,16 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
 if(iproc==0) write(*,'(x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
 if(iproc==0) write(*,'(x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
 if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
-    repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)))), lin%nItMax, ' | ', lin%convCrit, ' | ', &
-      repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)))), lin%nItPrecond, '       |   ', &
+    repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)+1.d-10))), lin%nItMax, ' | ', lin%convCrit, ' | ', &
+      repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       |   ', &
       lin%getCoeff, '    |  ', &
       lin%plotBasisFunctions, '   |'
 if(iproc==0) write(*,'(x,a)') '---------------------------------------------------------------------'
 if(iproc==0) write(*,'(x,a)') '| DIIS history | alpha SD |  start  | allow DIIS |'
 if(iproc==0) write(*,'(x,a)') '|  min   max   |          | with SD |            |'
 if(iproc==0) write(*,'(x,a,a,i0,3x,a,i0,3x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '|', &
-    repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)))), lin%DIISHistMin, &
-    repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)))), lin%DIISHistMax, ' |', &
+    repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
+    repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
     lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |'
 if(iproc==0) write(*,'(x,a)') '--------------------------------------------------'
 
@@ -455,6 +393,13 @@ call memocc(istat, iall, 'phiWork', subname)
 
 !write(*,*) 'calling createInputGuess'
 !call createInputGuess(iproc, orbsLIN, Glr, input, at, rxyz, phi)
+
+! Allocate the coefficients for the linear combinations of the  orbitals and initialize
+! them at random.
+allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, coeff, 'coeff', subname)
+call random_number(coeff)
+
 
 
 ! Deallocate all local arrays
@@ -1510,7 +1455,7 @@ end subroutine modifiedBSEnergyModified
 
 
 
-subroutine deallocateLinear(iproc, lin, phi)
+subroutine deallocateLinear(iproc, lin, phi, coeff)
 !
 ! Purpose:
 ! ========
@@ -1529,6 +1474,7 @@ implicit none
 integer,intent(in):: iproc
 type(linearParameters):: lin
 real(8),dimension(:),allocatable:: phi
+real(8),dimension(:,:),allocatable:: coeff
 
 ! Local variables
 integer:: istat, iall, iorb
@@ -1612,6 +1558,10 @@ character(len=*),parameter:: subname='deallocateLinear'
       deallocate(lin%norbPerComm, stat=istat)
       call memocc(istat, iall, 'lin%norbPerComm', subname)
   end if
+
+  iall=-product(shape(coeff))*kind(coeff)
+  deallocate(coeff, stat=istat)
+  call memocc(istat, iall, 'coeff', subname)
 
 end subroutine deallocateLinear
 
