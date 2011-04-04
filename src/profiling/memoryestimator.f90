@@ -1,16 +1,16 @@
-!!****f* BigDFT/MemoryEstimator
-!! FUNCTION
-!!   Estimation of the used memory
-!! COPYRIGHT
-!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2010
+!> @file
+!!  Routines to estimate the use of memory
+!! @author
+!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2011
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+
+!>   Estimation of the used memory
 subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
-     iatype,rxyz,radii_cf,crmult,frmult,norb,nkpt,nprojel,atomnames,output_grid,nspin,peakmem)
+     iatype,rxyz,radii_cf,crmult,frmult,norb,nspinor,nkpt,nprojel,atomnames,output_grid,nspin,itrpmax,iscf,peakmem)
 
   use module_base
   use Poisson_Solver
@@ -19,7 +19,8 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
 
   !Arguments
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel,output_grid,nkpt
+  integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel
+  integer, intent(in) :: output_grid,nkpt,nspinor,itrpmax,iscf
   integer, dimension(nat), intent(in) :: iatype
   character(len=20), dimension(ntypes), intent(in) :: atomnames
   real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
@@ -31,7 +32,7 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat
   integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,iat,i1,i2,i3
-  real(kind=8) :: omemwf,omemker,omemden,omempot,omemproj
+  real(kind=8) :: omemwf,omemker,omemden,omempot,omemproj,nden,npotden,npotham,narr
   real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha,tminamount
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
@@ -101,33 +102,35 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
   nvctrp=int((1.d0-eps_mach*tt) + tt)
 
-  if(nspin==4) then !quadruple size for complex spinors
-     norbp=norbp*4
-     nvctrp=nvctrp*4
-  end if
+  ! Multiply the size of one wavefunction per its spinor value.
+!!$  if(nspin==4) then !quadruple size for complex spinors
+  norbp=norbp ! do not multiply also the number of bands.
+  nvctrp=nvctrp*nspinor
+!!$  end if
 
   !wavefunction memory per orbitals
   omemwf=real(nvctrp*nproc*8,kind=8)
   
   if (geocode == 'P') then
      call F_FFT_dimensions(2*n1+2,2*n2+2,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
-     n01=n1
-     n02=n2
-     n03=n3
-     tt=1.d0
+     n01=2*n1+2
+     n02=2*n2+2
+     n03=2*n3+2
+!!$     tt=1.d0
   else if (geocode == 'S') then
      call S_FFT_dimensions(2*n1+2,2*n2+31,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
-     n01=n1
+     n01=2*n1+2
      n02=2*n2+31
-     n03=n3
-     tt=real(2*n2,kind=8)/real(n02,kind=8)
+     n03=2*n3+2
+!!$     tt=real(2*n2,kind=8)/real(n02,kind=8)
   else if (geocode == 'F') then
      call F_FFT_dimensions(2*n1+31,2*n2+31,2*n3+31,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=2*n1+31
      n02=2*n2+31
      n03=2*n3+31
-     tt=8.d0*real(n1*n2*n3,kind=8)/real(n01*n02*n03,kind=8)
+!!$     tt=8.d0*real(n1*n2*n3,kind=8)/real(n01*n02*n03,kind=8)
   end if
+  tt = 8.d0*real(n1*n2*n3,kind=8)/real(n01*n02*n03,kind=8)
 
   !density memory
   omemden=real(md3*md2/nproc,kind=8)*8.d0*real(md1*nspin,kind=8)
@@ -137,6 +140,36 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   omempot=real(n02*n03,kind=8)*8.d0*real(n01*nspin,kind=8)
   !memory of nonlocal pseudopotential arrays
   omemproj=real(nprojel,kind=8)*8.d0
+
+  ! pot_ion, rhopot, potxc
+  nden=3.d0
+  if (geocode == 'P') then
+     ! pot + work_arrays_locham(xy) + psir
+     npotham=1.d0+(3.d0)*nspinor
+     ! Rho_p + work_arrays_sumrho(x) + psir
+     npotden=1.d0+1.d0+1.d0
+  else if (geocode == 'S') then
+     ! pot + work_arrays_locham(xy) + psir
+     npotham=1.d0+(3.d0)*nspinor
+     ! Rho_p + work_arrays_sumrho(x) + psir
+     npotden=1.d0+1.d0+1.d0
+  else if (geocode == 'F') then
+     ! pot + work_arrays_locham(xy) + psir
+     npotham=1.d0+(2.d0 * tt / 8.d0 + .5d0)+1.d0
+     ! Rho_p + work_arrays_sumrho(cf) + psir
+     npotden=1.d0+(1.d0 * tt / 8.d0 + .5d0)+1.d0
+  end if
+  ! Mixing arrays.
+  if (itrpmax /= 1) then
+     if (mod(iscf, 10) == 1) narr = 5
+     if (mod(iscf, 10) == 2) narr = 2
+     if (mod(iscf, 10) == 3) narr = 3
+     if (mod(iscf, 10) == 4) narr = 5
+     if (mod(iscf, 10) == 5) narr = 10
+     if (mod(iscf, 10) == 6) narr = 10
+     if (mod(iscf, 10) == 7) narr = 1 + 2 * 7
+     nden = nden + narr
+  end if
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ Memory Estimation'
@@ -170,19 +203,21 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   write(*,'(1x,a)')&
        ' Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application'
   if (nproc > 1) then 
-     write(*,'(1x,a)')&
-       '      ~19*K         |     W+(~4)*U+D+K+P   |   ~12*D+K+W+P  |    ~W+(~5)*U+D+K+P '
+     write(*,'(1x,a,I0,a,I2,a,I0,a,I2,a)')&
+       '      ~19*K         |   W+~',nint(npotden),'*U+~',nint(nden),&
+       & '*D+K+P   |   ~12*D+K+W+P  |   W+~',nint(npotham),'*U+~',nint(nden),'*D+K+P '
      tmemker=19.d0*omemker
-     tmemden=omemwf+(3.d0+tt)*omempot+omemker+omemproj
+     tmemden=omemwf+nden*omemden+npotden*omempot+omemker+omemproj
      tmemps=12.d0*omemden+omemwf+omemker+omemproj
-     tmemha=(3.d0+2.d0*tt)*omempot+omemwf+omemker+omemproj
+     tmemha=nden*omemden+npotham*omempot+omemwf+omemker+omemproj
   else
-     write(*,'(1x,a)')&
-       '      ~11*K         |     ~W+(~3)*U+P      |   ~8*D+K+W+P   |       ~W+(~3)*U+P '
+     write(*,'(1x,a,I0,a,I2,a,I0,a,I2,a)')&
+       '      ~11*K         |   W+~',nint(npotden),'*U+~',nint(nden),&
+       & '*D+K+P   |   ~8*D+K+W+P   |   W+~',nint(npotham),'*U+~',nint(nden),'*D+K+P '
      tmemker=11.d0*omemker
-     tmemden=omemwf+(2.d0+tt)*omempot+omemker+omemproj
+     tmemden=omemwf+nden*omemden+(npotden-1.d0)*omempot+omemker+omemproj
      tmemps=8.d0*omemden+omemwf+omemker+omemproj
-     tmemha=(2.d0+2.d0*tt)*omempot+omemwf+omemker+omemproj
+     tmemha=nden*omemden+(npotham-1.d0)*omempot+omemwf+omemker+omemproj
   end if
   write(*,'(1x,4(1x,i8,a))')&
        mega(tmemker),'MB         | ',mega(tmemden),'MB          |',&
@@ -217,4 +252,3 @@ contains
   end function kappa
 
 END SUBROUTINE MemoryEstimator
-!!***

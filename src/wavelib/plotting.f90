@@ -1,13 +1,11 @@
-!!****f* BigDFT/plot_wf_old
-!! COPYRIGHT
-!!    Copyright (C) 2010 BigDFT group 
+!> @file
+!!  Routines to plot wavefunctions
+!! @author
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
 subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -77,14 +75,8 @@ subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE plot_wf_old
-!!***
 
 
-!!****f* BigDFT/plot_wf_cube
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -243,14 +235,8 @@ subroutine plot_wf_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
   call memocc(i_stat,i_all,'psir',subname)
 
 END SUBROUTINE plot_wf_cube
-!!***
 
 
-!!****f* BigDFT/plot_pot
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,pot)
   use module_base
   implicit none
@@ -298,14 +284,8 @@ subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,po
   close(iounit+2) 
 
 END SUBROUTINE plot_pot
-!!***
 
 
-!!****f* BigDFT/plot_pot_full
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
@@ -346,14 +326,8 @@ subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
 !  close(unit=23) 
 
 END SUBROUTINE plot_pot_full
-!!***
 
 
-!!****f* BigDFT/plot_cube_full
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
@@ -422,14 +396,8 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   close(22)
 
 END SUBROUTINE plot_cube_full
-!!***
 
 
-!!****f* BigDFT/plot_psifscf
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
   use module_base
   implicit none
@@ -479,14 +447,8 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
   enddo
 
 END SUBROUTINE plot_psifscf
-!!***
 
 
-!!****f* BigDFT/read_potfile
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   use module_base
   implicit none
@@ -537,14 +499,8 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,rho)
   close(22)
 
 END SUBROUTINE read_potfile
-!!***
 
 
-!!****f* BigDFT/plot_density_old
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
      alat1,alat2,alat3,ngatherarr,rho)
   use module_base
@@ -638,14 +594,8 @@ subroutine plot_density_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3
      call memocc(i_stat,i_all,'pot_ion',subname)
   end if
 END SUBROUTINE plot_density_old
-!!***
 
 
-!!****f* BigDFT/plot_density_cube_old
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine plot_density_cube_old(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
@@ -806,14 +756,8 @@ contains
   END SUBROUTINE cubefile_write
 
 END SUBROUTINE plot_density_cube_old
-!!***
 
 
-!!****f* BigDFT/read_density_cube_old
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine read_density_cube_old(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat, rxyz,  rho)
   use module_base
   use module_types
@@ -915,14 +859,9 @@ contains
   END SUBROUTINE cubefile_read
 
 END SUBROUTINE read_density_cube_old
-!!***
 
 
-!!****f* BigDFT/write_cube_fields
-!! FUNCTION
-!!   Write a (sum of two) field in the ISF basis in the cube format
-!! SOURCE
-!!
+!>   Write a (sum of two) field in the ISF basis in the cube format
 subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
   use module_base
@@ -995,7 +934,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   close(22)
 
   !average in x direction
-  open(unit=23,file=filename//'_avg_x',status='unknown')
+  open(unit=23,file=trim(filename)//'_avg_x',status='unknown')
   do i1=0,2*n1+1
      later_avg=0.0_dp
      do i3=0,2*n3+1
@@ -1010,7 +949,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   end do
   close(23)
   !average in y direction
-  open(unit=23,file=filename//'_avg_y',status='unknown')
+  open(unit=23,file=trim(filename)//'_avg_y',status='unknown')
   do i2=0,2*n2+1
      later_avg=0.0_dp
      do i3=0,2*n3+1
@@ -1025,7 +964,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   end do
   close(23)
   !average in z direction
-  open(unit=23,file=filename//'_avg_z',status='unknown')
+  open(unit=23,file=trim(filename)//'_avg_z',status='unknown')
   do i3=0,2*n3+1
      later_avg=0.0_dp
      do i2=0,2*n2+1
@@ -1041,20 +980,13 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   close(23)
 
 END SUBROUTINE write_cube_fields
-!!***
 
 
-!!****f* BigDFT/plot_density
-!! FUNCTION
-!!
-!! SOURCE
-!!
-subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
+subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -1065,8 +997,8 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ns
   !local variables
   character(len=*), parameter :: subname='plot_density'
   character(len=5) :: suffix
-  character(len=15) :: message
-  integer :: i_all,i_stat,ierr,ia,ib
+  character(len=65) :: message
+  integer :: i_all,i_stat,ierr,ia,ib,isuffix,fformat
   real(dp) :: a,b
   real(dp), dimension(:,:), pointer :: pot_ion
 
@@ -1090,58 +1022,90 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ns
      pot_ion => rho
   end if
 
+  ! Format = 1 -> cube (default)
+  ! Format = 2 -> ETSF
+  ! ...
+  fformat = 1
+  isuffix = index(filename, ".cube", back = .true.)
+  if (isuffix > 0) then
+     isuffix = isuffix - 1
+     fformat = 1
+  else
+     isuffix = index(filename, ".etsf", back = .true.)
+     if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
+     if (isuffix > 0) then
+        isuffix = isuffix - 1
+        fformat = 2
+     else
+        isuffix = len(filename)
+     end if
+  end if
+
   if (iproc == 0) then
 
      if (nspin /=2) then
-        suffix=''
         message='total spin'
-        a=1.0_dp
-        ia=1
-        b=0.0_dp
-        ib=1
-        call write_cube_fields(filename//trim(suffix),message,&
-             at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
-             a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+        if (fformat == 1) then
+           suffix=''
+           a=1.0_dp
+           ia=1
+           b=0.0_dp
+           ib=1
+           call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
+                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+        else
+           call write_etsf_density(filename(:isuffix),message,&
+                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                pot_ion, 1)
+        end if
      else
-        suffix='-up'
-        message='spin up'
-        a=1.0_dp
-        ia=1
-        b=0.0_dp
-        ib=2
-        call write_cube_fields(filename//trim(suffix),message,&
-             at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
-             a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+        if (fformat == 1) then
+           suffix='-up'
+           message='spin up'
+           a=1.0_dp
+           ia=1
+           b=0.0_dp
+           ib=2
+           call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
+                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
-        suffix='-down'
-        message='spin down'
-        a=0.0_dp
-        ia=1
-        b=1.0_dp
-        ib=2
-        call write_cube_fields(filename//trim(suffix),message,&
-             at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
-             a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+           suffix='-down'
+           message='spin down'
+           a=0.0_dp
+           ia=1
+           b=1.0_dp
+           ib=2
+           call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
+                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
-        suffix=''
-        message='total spin'
-        a=1.0_dp
-        ia=1
-        b=1.0_dp
-        ib=2
-        call write_cube_fields(filename//trim(suffix),message,&
-             at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
-             a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+           suffix=''
+           message='total spin'
+           a=1.0_dp
+           ia=1
+           b=1.0_dp
+           ib=2
+           call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
+                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
-        suffix='-u-d'
-        message='spin difference'
-        a=1.0_dp
-        ia=1
-        b=-1.0_dp
-        ib=2
-        call write_cube_fields(filename//trim(suffix),message,&
-             at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
-             a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+           suffix='-u-d'
+           message='spin difference'
+           a=1.0_dp
+           ia=1
+           b=-1.0_dp
+           ib=2
+           call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
+                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                a,pot_ion(1,ia),1,b,pot_ion(1,ib))
+        else
+           message = 'spin up, down, total, difference'
+           call write_etsf_density(filename(:isuffix),message,&
+                at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                pot_ion, 2)
+        end if
 
      end if
 
@@ -1155,14 +1119,82 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ns
   end if
 
 END SUBROUTINE plot_density
-!!***
 
 
-!!****f* BigDFT/plot_wf
-!! FUNCTION
-!!
-!! SOURCE
-!!
+!>  Read a density file using file format depending on the extension.
+subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
+     nat,rxyz,iatypes, znucl)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_density
+  implicit none
+  character(len=*), intent(in) :: filename
+  character(len=1), intent(in) :: geocode
+  integer, intent(out) :: nspin
+  integer, intent(out) ::  n1i,n2i,n3i
+  real(gp), intent(out) :: hxh,hyh,hzh
+  real(dp), dimension(:,:), pointer :: rho
+  real(gp), dimension(:,:), pointer, optional :: rxyz
+  integer, intent(out), optional ::  nat
+  integer, dimension(:), pointer, optional :: iatypes, znucl
+
+  character(len = *), parameter :: subname = "read_density"
+  integer :: isuffix,fformat,nat_read, i_stat, i_all
+  real(gp), dimension(:,:), pointer :: rxyz_read
+  integer, dimension(:), pointer :: iatypes_read, znucl_read
+
+  !check the arguments
+  if (.not.(present(rxyz) .and. present(nat) .and. present(iatypes) .and. present(znucl)) .and. &
+       & (present(rxyz) .or. present(nat) .or. present(iatypes) .or. present(znucl))) then
+     stop 'wrong usage of read_densityt, rxyz, znucl and iatypes should be present'
+  end if
+
+  ! Format = 1 -> cube (default)
+  ! Format = 2 -> ETSF
+  ! ...
+  fformat = 1
+  isuffix = index(filename, ".cube", back = .true.)
+  if (isuffix > 0) then
+     isuffix = isuffix - 1
+     fformat = 1
+  else
+     isuffix = index(filename, ".etsf", back = .true.)
+     if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
+     if (isuffix > 0) then
+        isuffix = isuffix - 1
+        fformat = 2
+     else
+        isuffix = len(filename)
+     end if
+  end if
+
+  if (fformat == 1) then
+     call read_cube(filename(1:isuffix),geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
+          nat_read,rxyz_read, iatypes_read, znucl_read)
+  else
+     call read_etsf(filename(1:isuffix),geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
+          nat_read,rxyz_read, iatypes_read, znucl_read)
+  end if
+
+  if (present(rxyz) .and. present(nat) .and. present(iatypes) .and. present(znucl)) then
+     rxyz => rxyz_read
+     iatypes => iatypes_read
+     znucl => znucl_read
+     nat=nat_read
+  else
+     i_all=-product(shape(rxyz_read))*kind(rxyz_read)
+     deallocate(rxyz_read,stat=i_stat)
+     call memocc(i_stat,i_all,'rxyz_read',subname)
+     i_all=-product(shape(iatypes_read))*kind(iatypes_read)
+     deallocate(iatypes_read,stat=i_stat)
+     call memocc(i_stat,i_all,'iatypes_read',subname)
+     i_all=-product(shape(znucl_read))*kind(znucl_read)
+     deallocate(znucl_read,stat=i_stat)
+     call memocc(i_stat,i_all,'znucl_read',subname)
+  end if
+END SUBROUTINE read_density
+
+
 subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -1211,37 +1243,41 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE plot_wf
-!!***
 
 
-!!****f* BigDFT/read_cube
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-     nat,rxyz)
+     nat,rxyz, iatypes, znucl)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: nspin
+  integer, intent(out) :: nspin
   integer, intent(out) ::  n1i,n2i,n3i
   real(gp), intent(out) :: hxh,hyh,hzh
   real(dp), dimension(:,:), pointer :: rho
-  real(gp), dimension(:,:), pointer, optional :: rxyz
-  integer, intent(out), optional ::  nat
+  real(gp), dimension(:,:), pointer   :: rxyz
+  integer, intent(out)   ::  nat
+  integer, dimension(:), pointer   :: iatypes, znucl
   !local variables
   character(len=*), parameter :: subname='read_cube'
   character(len=5) :: suffix
   character(len=15) :: message
-  integer :: i_all,i_stat,ia,nat_read
-  real(gp), dimension(:,:), pointer :: rxyz_read
+  integer :: ia
+  logical :: exists
 
-  !check the arguments
-  if (present(rxyz) .neqv. present(nat)) then
-     stop 'wrong usage of read_cube, both nat and rxyz should be present'
+  ! Test if we have up and down densities.
+  inquire(file=trim(filename)//"-up.cube",exist=exists)
+  if (exists) then
+     inquire(file=trim(filename)//"-down.cube",exist=exists)
+     if (.not.exists) then
+        write(*,*) "WARNING! found a -up.cube file, but no -down.cube..."
+        nspin = 1
+     else
+        nspin = 2
+     end if
+  else
+     nspin = 1
   end if
 
   if (nspin /=2) then
@@ -1250,7 +1286,7 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      ia=1
      !read the header of the file
      call read_cube_header(filename//trim(suffix),geocode,nspin,n1i,n2i,n3i,hxh,hyh,hzh,&
-          rho,nat_read,rxyz_read) 
+          rho,nat,rxyz, iatypes, znucl) 
      !fill the pointer which was just allocated
      call read_cube_field(filename//trim(suffix),geocode,n1i,n2i,n3i,rho)
 
@@ -1260,7 +1296,7 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      ia=1
      !read the header of the file (suppose that it is the same for spin up and down)
      call read_cube_header(filename//trim(suffix),geocode,nspin,n1i,n2i,n3i,hxh,hyh,hzh,&
-          rho,nat_read,rxyz_read) 
+          rho,nat,rxyz, iatypes, znucl) 
      !fill the pointer which was just allocated
      call read_cube_field(filename//trim(suffix),geocode,n1i,n2i,n3i,rho(1,ia))
     
@@ -1270,19 +1306,10 @@ subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      call read_cube_field(filename//trim(suffix),geocode,n1i,n2i,n3i,rho(1,ia)) 
   end if
 
-  if (present(rxyz) .and. present(nat)) then
-     rxyz => rxyz_read
-     nat=nat_read
-  else
-     i_all=-product(shape(rxyz_read))*kind(rxyz_read)
-     deallocate(rxyz_read,stat=i_stat)
-     call memocc(i_stat,i_all,'rxyz_read',subname)
-  end if
-
 contains
 
   subroutine read_cube_header(filename,geocode,nspin,n1i,n2i,n3i,hxh,hyh,hzh,rho,&
-       nat,rxyz)
+       nat,rxyz, iatypes, znucl)
     use module_base
     use module_types
     implicit none
@@ -1294,12 +1321,13 @@ contains
     real(dp), dimension(:,:), pointer :: rho
     integer, intent(out) :: nat
     real(gp), dimension(:,:), pointer :: rxyz
+    integer, dimension(:), pointer :: iatypes, znucl
     !local variables
     character(len=*), parameter :: subname='read_density_cube'
     integer :: n1t,n2t,n3t,n1,n2,n3,idum,iat,i_stat,i_all,j
     integer :: nl1,nl2,nl3,nbx,nby,nbz
     real(gp) :: dum1,dum2,dum3
-
+    integer, dimension(:), allocatable :: znucl_
 
     if (geocode /= 'F') then
        nl1=1
@@ -1321,7 +1349,7 @@ contains
        nby = 0
     end if
 
-    open(unit=22,file=trim(filename)//'.cube',status='old')
+    open(unit=22,file=trim(filename)//".cube",status='old')
     read(22,*)! 'CUBE file for charge density'
     read(22,*)! 'Case for '//trim(message)
 
@@ -1341,6 +1369,11 @@ contains
     !atomic positions
     allocate(rxyz(3,nat+ndebug),stat=i_stat)
     call memocc(i_stat,rxyz,'rxyz',subname)
+    allocate(iatypes(nat+ndebug),stat=i_stat)
+    call memocc(i_stat,rxyz,'rxyz',subname)
+    allocate(znucl_(nat+ndebug),stat=i_stat)
+    call memocc(i_stat,znucl_,'znucl_',subname)
+    znucl_(:) = -1
 
     if(associated(rho)) then
        i_all=-product(shape(rho))*kind(rho)
@@ -1353,22 +1386,37 @@ contains
 
     do iat=1,nat
        read(22,'(i5,4(f12.6))') idum , dum1 , (rxyz(j,iat),j=1,3)
+       do j = 1, nat, 1
+          if (znucl_(j) == idum .or. znucl_(j) == -1) then
+             znucl_(j) = idum
+             exit
+          end if
+       end do
+       iatypes(iat) = j
        ! write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
     end do
 
+    do j = 1, nat, 1
+       if (znucl_(j) == -1) then
+          exit
+       end if
+    end do
+    allocate(znucl(j-1+ndebug),stat=i_stat)
+    call memocc(i_stat,znucl,'znucl',subname)
+    znucl(1:j-1) = znucl_(1:j-1)
+
+    i_all=-product(shape(znucl_))*kind(znucl_)
+    deallocate(znucl_,stat=i_stat)
+    call memocc(i_stat,i_all,'znucl_',subname)
+
     close(22)
-    
-  end subroutine read_cube_header
+     
+  END SUBROUTINE read_cube_header
 
 END SUBROUTINE read_cube
-!!***
 
 
-!!****f* BigDFT/read_cube_field
-!! FUNCTION
-!!   Read a cube field which have been plotted previously by write_cube_fields
-!! SOURCE
-!!
+!>   Read a cube field which have been plotted previously by write_cube_fields
 subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   use module_base
   use module_types
@@ -1455,5 +1503,3 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
  ! write(14,*)rho
 
 END SUBROUTINE read_cube_field
-!!***
-

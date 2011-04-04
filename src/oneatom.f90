@@ -1,14 +1,14 @@
-!!****p* BigDFT/oneatom
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2010 ESRF, PoliTo
+!> @file
+!!  Program to do one atom calculation
+!! @author
+!!    Copyright (C) 2010-2011 ESRF, PoliTo
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+!> Compute one atom system
+!! @deprecated
 program oneatom
   use BigDFT_API
   use Poisson_Solver
@@ -34,12 +34,9 @@ program oneatom
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(gp), dimension(:,:), allocatable :: radii_cf
-  real(wp), dimension(:), pointer :: hpsi,psit,psi,psidst,hpsidst,proj
+  real(wp), dimension(:), pointer :: hpsi,psit,psi,proj,pot
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
-  ! arrays for DIIS convergence accelerator
-  real(wp), dimension(:,:,:), pointer :: ads
-
 
   !for the moment no need to have parallelism
   iproc=0
@@ -48,7 +45,7 @@ program oneatom
   !initalise the variables for the calculation
 
   call read_input_variables(iproc,'posinp', &
-       & "input.dft", "input.kpt", "input.geopt", "input.perf", in, atoms, rxyz)
+       & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", in, atoms, rxyz)
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)
@@ -166,7 +163,7 @@ program oneatom
   !transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,&
        psi,work=hpsi)
-  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi)
+  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi,in)
   !untranspose psi
   call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi,work=hpsi)
 
@@ -191,6 +188,10 @@ program oneatom
   !previous value of idsx_actual to control if switching has appeared
   idsx_actual_before=idsx_actual
 
+  !allocate the potential in the full box
+  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+       orbs%norb,orbs%norbp,ngatherarr,pot_ion,pot)
+  
   wfn_loop: do iter=1,in%itermax
 
      if (iproc == 0 .and. verbose > 0) then 
@@ -207,8 +208,7 @@ program oneatom
      endloop=endloop .or. ndiis_sd_sw > 2
 
      call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-          pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
+          nlpspd,proj,Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -309,6 +309,9 @@ program oneatom
      call memocc(i_stat,i_all,'kernel',subname)
   end if
 
+  !deallocate potential
+  call free_full_potential(nproc,pot,subname)
+
   i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)
   call memocc(i_stat,i_all,'pot_ion',subname)
@@ -324,13 +327,11 @@ program oneatom
 
 
 end program oneatom
-!!***
 
 
-!!****f* BigDFT/createPotential
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
@@ -702,13 +703,11 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
 
 
 END SUBROUTINE createPotential
-!!***
 
 
-!!****f* BigDFT/psi_from_gaussians
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   use module_base
@@ -848,13 +847,11 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 
   
 END SUBROUTINE psi_from_gaussians
-!!***
 
 
-!!****f* BigDFT/plot_wf_oneatom
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   use module_base
@@ -944,4 +941,4 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE plot_wf_oneatom
-!!***
+

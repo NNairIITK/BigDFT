@@ -1,9 +1,18 @@
+!> @file
+!!  Routines to apply the magic filter and an analysis wavelet transform
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 
+
+!> In 3d,            
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
+!! The input array y is not overwritten
 subroutine comb_shrink_hyb_c(n1,n2,n3,w1,w2,y,x)
-! In 3d,            
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
-! The input array y is not overwritten
 use module_base
 implicit none
 integer,intent(in) ::n1,n2,n3 
@@ -27,6 +36,7 @@ nt=(n1+1)*(n2+1)
 call comb_rot_shrink_hyb(nt,w2,x,n3)
 
 END SUBROUTINE comb_shrink_hyb_c
+
 
 subroutine comb_grow_c_simple(n1,n2,n3,w1,w2,x,y)
   use module_base

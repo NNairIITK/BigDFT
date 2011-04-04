@@ -1,6 +1,18 @@
-!!****f* BigDFT/FFT2d
-!! DESCRIPTION
-!!    CALCULATES THE DISCRETE FOURIERTRANSFORM F(I1,I2)=
+!> @file
+!!  Define routne FFT 2D
+!! @author
+!!  Copyright (C) Stefan Goedecker, Lausanne, Switzerland, August 1, 1991
+!!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
+!!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
+!!  Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
+!!  Copyright (C) 2002-2009 BigDFT group 
+!!  This file is distributed under the terms of the
+!!  GNU General Public License, see ~/COPYING file
+!!  or http://www.gnu.org/copyleft/gpl.txt .
+!!  For the list of contributors, see ~/AUTHORS 
+
+
+!> CALCULATES THE DISCRETE FOURIER TRANSFORM F(I1,I2)=
 !!    S_(j1,j2) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2)) R(j1,j2)
 !!    INPUT:
 !!        n1,n2:physical dimension of the transform. It must be a 
@@ -34,17 +46,6 @@
 !!       to a value so small, that not even a single one dimensional transform 
 !!       can be done in the workarray zw, the program stops with an error message.
 !!    On a vector machine ncache has to be put to 0 
-!! COPYRIGHT
-!!  Copyright (C) Stefan Goedecker, Lausanne, Switzerland, August 1, 1991
-!!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
-!!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
-!!  Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
-!!  Copyright (C) 2002-2009 BigDFT group 
-!!  This file is distributed under the terms of the
-!!  GNU General Public License, see ~/COPYING file
-!!  or http://www.gnu.org/copyleft/gpl.txt .
-!!  For the list of contributors, see ~/AUTHORS 
-!! SOURCE
 !!
 subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
 
@@ -171,4 +172,3 @@ subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
       endif
     return
 end subroutine fft2d
-!!***

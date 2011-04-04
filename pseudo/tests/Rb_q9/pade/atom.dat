@@ -1,0 +1,33 @@
+ Rb
+  PADE 
+  relativistic
+  35.0    10.0 80.0             rmax,aa,bb 
+       3.3d0   6.6d0		rcov,rprb
+    6    13			number of core and valence orbitals
+    4    0     2.00      0.00	n,l,zup,zdown   (for each valence orbital)
+    5    0     1.00      0.00			        
+    6    0     0.00      0.00			        
+    7    0     0.00      0.00			        
+    4    1     6.00      0.00		
+    5    1     0.00      0.00		
+    6    1     0.00      0.00			        
+    7    1     0.00      0.00			        
+    4    2     0.00      0.00		
+    5    2     0.00      0.00		
+    6    2     0.00      0.00			        
+    4    3     0.00      0.00			        
+    5    3     0.00      0.00			        
+
+
+
+griddimenmsions: aa determines initial stepsize ; the larger aa the closer the initial 
+		 step, aa will be slightly modified, so that one gridpoint matches
+		 rcov 
+                 bb determines the exponential increase of the stepsize; the larger bb
+		 the smaller the exponetial increase
+                 rmax might be modified: rmax=min(rmax,5*rprb)
+
+
+
+
+

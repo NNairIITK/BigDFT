@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.2)
+                           ggggg       i         BBBB                 (Ver 1.5-dev.4)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -30,11 +30,11 @@
  File 'myparameters' is missing... using default values:
    Input guess: direct diagonalization of Hamiltonian
    Orthogonalization method: Cholesky
- 
- Performance options (file 'input.perf' used):
+
+ Performance options (file 'input.perf' not present):
  |   'debug' option disabled
  |   'fftcache' = 8192
- 
+
  ---------------------------------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
@@ -68,8 +68,7 @@
             0.22302 -12.02694
  Total Number of Electrons       16
  Spin-polarized calculation
- Processes from 0 to 7 treat 2 orbitals 
- The occupation numbers are read from the file "occup.dat" (0 lines read)
+ Processes from 0 to 3 treat 4 orbitals 
  Total Number of Orbitals        16
  occup(1:16)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -79,80 +78,48 @@
        Extremes for the high resolution grid points:        14<21     14<21     14<21
  wavelet localization is ON
  ------------------------------------------------------------ Poisson Kernel Creation
- ------------------------------------------------------------ Poisson Kernel Creation
- ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=1270080  Kernel=1258432
+ Memory occ. per proc. (Bytes):  Density=2449440  Kernel=2516864
                                  Full Grid Arrays=8242408
  Load Balancing for Poisson Solver related operations:
- LB_density        : processors   0  -  6 work at 100%
-                     processor       7   works at  50%
-  LB_kernel        : processors   0  -  6 work at 100%
-                     processor       7   works at  79%
+ LB_density        : processors   0  -  2 work at 100%
+                     processor       3   works at  89%
+  LB_kernel        : processors   0  -  2 work at 100%
+                     processor       3   works at  89%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
- ------------------------------------------------------------ Poisson Kernel Creation
- ------------------------------------------------------------ Poisson Kernel Creation
- ------------------------------------------------------------ Poisson Kernel Creation
- ------------------------------------------------------------ Poisson Kernel Creation
- ------------------------------------------------------------ Poisson Kernel Creation
- ------------------------------------------------------------ Poisson Kernel Creation
- Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=9525600  Kernel=9797792
-                                 Full Grid Arrays=8242408
- Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=9525600  Kernel=9797792
-                                 Full Grid Arrays=8242408
- Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=9525600  Kernel=9797792
-                                 Full Grid Arrays=8242408
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        968 points=     22880
    Fine resolution grid: Number of segments=         52 points=       280
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Fe               1                   13
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   13
  Total number of components =                64688
  Percent of zero components =                   18
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=    1 Number of orbitals=    16 Sim. Box Dimensions=    35   35   35
- Estimation performed for 8 processors.
+ Estimation performed for 4 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     1 MB   205 KB
-              Poisson Solver Density (D):     2 MB   433 KB
+               Poisson Solver Kernel (K):     2 MB   410 KB
+              Poisson Solver Density (D):     4 MB   689 KB
      Single Wavefunction for one orbital:     0 MB   195 KB
-    All Wavefunctions for each processor:     1 MB   141 KB
-       Wavefunctions + DIIS per proc (W):     5 MB   702 KB
+    All Wavefunctions for each processor:     2 MB   281 KB
+       Wavefunctions + DIIS per proc (W):    11 MB   380 KB
      Nonlocal Pseudopotential Arrays (P):     0 MB   506 KB
     Arrays of full uncompressed grid (U):    15 MB   739 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
        ~19*K         |     W+(~4)*U+D+K+P   |   ~12*D+K+W+P  |    ~W+(~5)*U+D+K+P 
-        22MB         |        59MB          |       36MB     |            65MB
- The overall memory requirement needed for this calculation is thus: 65 MB
+        45MB         |        66MB          |       70MB     |            71MB
+ The overall memory requirement needed for this calculation is thus: 71 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 58 MB
- Wavefunctions memory occupation for root processor (Bytes): 397440
+ Wavefunctions memory occupation for root processor (Bytes): 794880
  ion-ion interaction energy  0.00000000000000E+00
  ----------------------------------------------------------- Ionic Potential Creation
- Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=9525600  Kernel=9797792
-                                 Full Grid Arrays=8242408
- Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=9525600  Kernel=9797792
-                                 Full Grid Arrays=8242408
- Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=9525600  Kernel=9797792
-                                 Full Grid Arrays=8242408
- Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=9525600  Kernel=9797792
-                                 Full Grid Arrays=8242408
- Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=9525600  Kernel=9797792
-                                 Full Grid Arrays=8242408
  total ionic charge, leaked charge           -16.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   101  101  101   proc    8 ... done.
+ PSolver, free  BC, dimensions:   101  101  101   proc    4 ... done.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 20 Atomic Input Orbitals
    of which 8 are semicore orbitals
@@ -160,88 +127,246 @@
           Put nvirt= 10
  WARNING: A bigger number of virtual orbitals may be needed for better convergence.
           Put nvirt= 10
- Processes from 0 to 3 treat 3 inguess orbitals 
- Processes from 4 to 7 treat 2 inguess orbitals 
+ Processes from 0 to 3 treat 5 inguess orbitals 
  Calculating AIO wavefunctions: 
  Generation of input wavefunction data for atom     Fe: 
    Elec. Configuration: [s] 1.00 1.00 , [p] 1.00 1.00 1.00 1.00 1.00 1.00 , d 1.00 1.00 1.00 1.00 1.00 1.00 0.00 0.00 0.00 0.00 , s 1.00 1.00 , ... done.
- Wavefunctions memory occupation for root processor (Bytes): 596160
+ Wavefunctions memory occupation for root processor (Bytes): 993600
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    1.20E-03
- Calculation of charge density... done. Total electronic charge=      15.999967536148
- PSolver, free  BC, dimensions:   101  101  101   proc    8 ... done.
- Exact exchange calculation:   6 %
- Exact exchange calculation:  11 %
- Exact exchange calculation:  17 %
- Exact exchange calculation:  22 %
- Exact exchange calculation:  28 %
- Exact exchange calculation:  33 %
- Exact exchange calculation:  39 %
- Exact exchange calculation:  44 %
- Exact exchange calculation:  50 %
- Exact exchange calculation:  56 %
- Exact exchange calculation:  61 %
- Exact exchange calculation:  67 %
- Exact exchange calculation:  72 %
- Exact exchange calculation:  78 %
- Exact exchange calculation:  83 %
- Exact exchange calculation:  89 %
- Exact exchange calculation:  94 %
- Exact exchange calculation: 100 %
- Hamiltonian application...Exact Exchange Energy: -3.08074093272E+00
+ Calculation of charge density... done. Total electronic charge=      15.999967536147
+ PSolver, free  BC, dimensions:   101  101  101   proc    4 ... done.
+ Hamiltonian application... Exact exchange calculation:  1% 
+ Exact exchange calculation:  2% 
+ Exact exchange calculation:  3% 
+ Exact exchange calculation:  4% 
+ Exact exchange calculation:  5% 
+ Exact exchange calculation:  5% 
+ Exact exchange calculation:  6% 
+ Exact exchange calculation:  7% 
+ Exact exchange calculation:  8% 
+ Exact exchange calculation:  9% 
+ Exact exchange calculation: 10% 
+ Exact exchange calculation: 11% 
+ Exact exchange calculation: 12% 
+ Exact exchange calculation: 13% 
+ Exact exchange calculation: 14% 
+ Exact exchange calculation: 15% 
+ Exact exchange calculation: 15% 
+ Exact exchange calculation: 16% 
+ Exact exchange calculation: 17% 
+ Exact exchange calculation: 18% 
+ Exact exchange calculation: 19% 
+ Exact exchange calculation: 20% 
+ Exact exchange calculation: 21% 
+ Exact exchange calculation: 22% 
+ Exact exchange calculation: 23% 
+ Exact exchange calculation: 24% 
+ Exact exchange calculation: 25% 
+ Exact exchange calculation: 25% 
+ Exact exchange calculation: 26% 
+ Exact exchange calculation: 27% 
+ Exact exchange calculation: 28% 
+ Exact exchange calculation: 29% 
+ Exact exchange calculation: 30% 
+ Exact exchange calculation: 31% 
+ Exact exchange calculation: 32% 
+ Exact exchange calculation: 33% 
+ Exact exchange calculation: 34% 
+ Exact exchange calculation: 35% 
+ Exact exchange calculation: 35% 
+ Exact exchange calculation: 36% 
+ Exact exchange calculation: 37% 
+ Exact exchange calculation: 38% 
+ Exact exchange calculation: 39% 
+ Exact exchange calculation: 40% 
+ Exact exchange calculation: 41% 
+ Exact exchange calculation: 42% 
+ Exact exchange calculation: 43% 
+ Exact exchange calculation: 44% 
+ Exact exchange calculation: 45% 
+ Exact exchange calculation: 45% 
+ Exact exchange calculation: 46% 
+ Exact exchange calculation: 47% 
+ Exact exchange calculation: 48% 
+ Exact exchange calculation: 49% 
+ Exact exchange calculation: 50% 
+ Exact exchange calculation: 51% 
+ Exact exchange calculation: 52% 
+ Exact exchange calculation: 53% 
+ Exact exchange calculation: 54% 
+ Exact exchange calculation: 55% 
+ Exact exchange calculation: 55% 
+ Exact exchange calculation: 56% 
+ Exact exchange calculation: 57% 
+ Exact exchange calculation: 58% 
+ Exact exchange calculation: 59% 
+ Exact exchange calculation: 60% 
+ Exact exchange calculation: 61% 
+ Exact exchange calculation: 62% 
+ Exact exchange calculation: 63% 
+ Exact exchange calculation: 64% 
+ Exact exchange calculation: 65% 
+ Exact exchange calculation: 65% 
+ Exact exchange calculation: 66% 
+ Exact exchange calculation: 67% 
+ Exact exchange calculation: 68% 
+ Exact exchange calculation: 69% 
+ Exact exchange calculation: 70% 
+ Exact exchange calculation: 71% 
+ Exact exchange calculation: 72% 
+ Exact exchange calculation: 73% 
+ Exact exchange calculation: 74% 
+ Exact exchange calculation: 75% 
+ Exact exchange calculation: 75% 
+ Exact exchange calculation: 76% 
+ Exact exchange calculation: 77% 
+ Exact exchange calculation: 78% 
+ Exact exchange calculation: 79% 
+ Exact exchange calculation: 80% 
+ Exact exchange calculation: 81% 
+ Exact exchange calculation: 82% 
+ Exact exchange calculation: 83% 
+ Exact exchange calculation: 84% 
+ Exact exchange calculation: 85% 
+ Exact exchange calculation: 85% 
+ Exact exchange calculation: 86% 
+ Exact exchange calculation: 87% 
+ Exact exchange calculation: 88% 
+ Exact exchange calculation: 89% 
+ Exact exchange calculation: 90% 
+ Exact exchange calculation: 91% 
+ Exact exchange calculation: 92% 
+ Exact exchange calculation: 93% 
+ Exact exchange calculation: 94% 
+ Exact exchange calculation: 95% 
+ Exact exchange calculation: 95% 
+ Exact exchange calculation: 96% 
+ Exact exchange calculation: 97% 
+ Exact exchange calculation: 98% 
+ Exact exchange calculation: 99% 
+ Exact exchange calculation:100% 
+Exact Exchange Energy: -3.08074093273E+00
  done. ekin_sum,eks:      67.2368749486      67.1769441307
  ekin_sum,epot_sum,eproj_sum  6.72368749486E+01 -6.99863510523E+01 -2.15327773296E+01
     ehart,   eexcu,    vexcu  1.05228491322E+02 -9.97170173143E+00 -1.29776453512E+01
- Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
- evale(   1,u)= -3.77935367778298E+00            evale(   1,d)= -3.56587442572683E+00
- evale(   2,u)= -2.51918550031899E+00            evale(   2,d)= -2.24397797071073E+00
- evale(   3,u)= -2.44281988818674E+00            evale(   3,d)= -2.23541555091234E+00
- evale(   4,u)= -2.44280113271548E+00            evale(   4,d)= -2.23539631024305E+00
- evale(   5,u)= -4.46173584833491E-01            evale(   5,d)= -2.90805001710593E-01
- evale(   6,u)= -4.46151832267971E-01    Last->  evale(   6,d)= -1.90802788593373E-01
- evale(   7,u)= -4.39575323016583E-01            evale(   7,d)= -8.89659511615384E-02
- evale(   8,u)= -4.02217681634795E-01            evale(   8,d)= -8.89440814291893E-02
- evale(   9,u)= -3.76019430172717E-01            evale(   9,d)= -8.60409377062290E-02
- evale(  10,u)= -2.25683441046358E-01  <-Last    evale(  10,d)= -3.21957542818892E-02
+ Input Wavefunctions Orthogonalization: 
+ Overlap Matrix... Direct diagonalization...
+ evale(   1,u)= -3.77935367778187E+00            evale(   1,d)= -3.56587442572571E+00
+ evale(   2,u)= -2.51918550031853E+00            evale(   2,d)= -2.24397797071027E+00
+ evale(   3,u)= -2.44281988818628E+00            evale(   3,d)= -2.23541555091189E+00
+ evale(   4,u)= -2.44280113271502E+00            evale(   4,d)= -2.23539631024260E+00
+ evale(   5,u)= -4.46173584833065E-01            evale(   5,d)= -2.90805001710172E-01
+ evale(   6,u)= -4.46151832267545E-01    Last->  evale(   6,d)= -1.90802788589976E-01
+ evale(   7,u)= -4.39575323016162E-01            evale(   7,d)= -8.89659511611137E-02
+ evale(   8,u)= -4.02217681634377E-01            evale(   8,d)= -8.89440814287652E-02
+ evale(   9,u)= -3.76019430172298E-01            evale(   9,d)= -8.60409377058260E-02
+ evale(  10,u)= -2.25683441043019E-01  <-Last    evale(  10,d)= -3.21957542814839E-02
  Building orthogonal Wavefunctions... done.
  expected accuracy in energy  5.99E-02
  expected accuracy in energy per orbital  3.75E-03
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      15.999967536137
- PSolver, free  BC, dimensions:   101  101  101   proc    8 ... done.
- Hamiltonian application... Exact exchange calculation:   9 %
- Exact exchange calculation:  18 %
- Exact exchange calculation:  27 %
- Exact exchange calculation:  36 %
- Exact exchange calculation:  45 %
- Exact exchange calculation:  55 %
- Exact exchange calculation:  64 %
- Exact exchange calculation:  73 %
- Exact exchange calculation:  82 %
- Exact exchange calculation:  91 %
- Exact exchange calculation: 100 %
+ Calculation of charge density... done. Total electronic charge=      15.999967536136
+ PSolver, free  BC, dimensions:   101  101  101   proc    4 ... done.
+ Hamiltonian application... Exact exchange calculation:  1% 
+ Exact exchange calculation:  3% 
+ Exact exchange calculation:  4% 
+ Exact exchange calculation:  5% 
+ Exact exchange calculation:  7% 
+ Exact exchange calculation:  8% 
+ Exact exchange calculation:  9% 
+ Exact exchange calculation: 11% 
+ Exact exchange calculation: 12% 
+ Exact exchange calculation: 13% 
+ Exact exchange calculation: 14% 
+ Exact exchange calculation: 16% 
+ Exact exchange calculation: 17% 
+ Exact exchange calculation: 18% 
+ Exact exchange calculation: 20% 
+ Exact exchange calculation: 21% 
+ Exact exchange calculation: 22% 
+ Exact exchange calculation: 24% 
+ Exact exchange calculation: 25% 
+ Exact exchange calculation: 26% 
+ Exact exchange calculation: 28% 
+ Exact exchange calculation: 29% 
+ Exact exchange calculation: 30% 
+ Exact exchange calculation: 32% 
+ Exact exchange calculation: 33% 
+ Exact exchange calculation: 34% 
+ Exact exchange calculation: 36% 
+ Exact exchange calculation: 37% 
+ Exact exchange calculation: 38% 
+ Exact exchange calculation: 39% 
+ Exact exchange calculation: 41% 
+ Exact exchange calculation: 42% 
+ Exact exchange calculation: 43% 
+ Exact exchange calculation: 45% 
+ Exact exchange calculation: 46% 
+ Exact exchange calculation: 47% 
+ Exact exchange calculation: 49% 
+ Exact exchange calculation: 50% 
+ Exact exchange calculation: 51% 
+ Exact exchange calculation: 53% 
+ Exact exchange calculation: 54% 
+ Exact exchange calculation: 55% 
+ Exact exchange calculation: 57% 
+ Exact exchange calculation: 58% 
+ Exact exchange calculation: 59% 
+ Exact exchange calculation: 61% 
+ Exact exchange calculation: 62% 
+ Exact exchange calculation: 63% 
+ Exact exchange calculation: 64% 
+ Exact exchange calculation: 66% 
+ Exact exchange calculation: 67% 
+ Exact exchange calculation: 68% 
+ Exact exchange calculation: 70% 
+ Exact exchange calculation: 71% 
+ Exact exchange calculation: 72% 
+ Exact exchange calculation: 74% 
+ Exact exchange calculation: 75% 
+ Exact exchange calculation: 76% 
+ Exact exchange calculation: 78% 
+ Exact exchange calculation: 79% 
+ Exact exchange calculation: 80% 
+ Exact exchange calculation: 82% 
+ Exact exchange calculation: 83% 
+ Exact exchange calculation: 84% 
+ Exact exchange calculation: 86% 
+ Exact exchange calculation: 87% 
+ Exact exchange calculation: 88% 
+ Exact exchange calculation: 89% 
+ Exact exchange calculation: 91% 
+ Exact exchange calculation: 92% 
+ Exact exchange calculation: 93% 
+ Exact exchange calculation: 95% 
+ Exact exchange calculation: 96% 
+ Exact exchange calculation: 97% 
+ Exact exchange calculation: 99% 
+ Exact exchange calculation:100% 
 Exact Exchange Energy: -3.08074060411E+00
  done. 1 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   6.72368890710E+01 -6.99863474949E+01 -2.15327794803E+01
  final ehart, eexcu,  vexcu   1.05228506059E+02 -9.97170094469E+00 -1.29776437727E+01
- FINAL iter,total energy,gnrm     1  -1.23424060530796041E+02  1.00E+10
+ FINAL iter,total energy,gnrm     1  -1.23424060530775151E+02  1.00E+10
  No convergence within the allowed number of minimization steps
- -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -3.78023354768658E+00              eval(   1,d)= -3.56587925614673E+00
- eval(   2,u)= -2.51919040729548E+00              eval(   2,d)= -2.24396693404700E+00
- eval(   3,u)= -2.44281624761648E+00              eval(   3,d)= -2.23541893362066E+00
- eval(   4,u)= -2.44279571267152E+00              eval(   4,d)= -2.23539935289891E+00
- eval(   5,u)= -4.46171568967781E-01              eval(   5,d)= -2.90804640611771E-01
- eval(   6,u)= -4.46149194343312E-01              eval(   6,d)= -1.90797603897860E-01
- eval(   7,u)= -4.38777013597640E-01
- eval(   8,u)= -4.02218887257587E-01
- eval(   9,u)= -3.76021110246078E-01
- eval(  10,u)= -2.25597493274443E-01
+ --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
+ Total magnetisation:  4.000000
+ e(   1,u)= -3.78023354768537E+00 1.0000      1.0000 e(   1,d)= -3.56587925614551E+00
+ e(   2,u)= -2.51919040729492E+00 1.0000      1.0000 e(   2,d)= -2.24396693404644E+00
+ e(   3,u)= -2.44281624761591E+00 1.0000      1.0000 e(   3,d)= -2.23541893362010E+00
+ e(   4,u)= -2.44279571267096E+00 1.0000      1.0000 e(   4,d)= -2.23539935289835E+00
+ e(   5,u)= -4.46171568967275E-01 1.0000      1.0000 e(   5,d)= -2.90804640611263E-01
+ e(   6,u)= -4.46149194342802E-01 1.0000      1.0000 e(   6,d)= -1.90797603894446E-01
+ e(   7,u)= -4.38777013597137E-01 1.0000
+ e(   8,u)= -4.02218887257082E-01 1.0000
+ e(   9,u)= -3.76021110245585E-01 1.0000
+ e(  10,u)= -2.25597493271097E-01 1.0000
   WARNING: Wavefunctions not converged after cycle           1
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      15.999967536137
- PSolver, free  BC, dimensions:   101  101  101   proc    8 ... done.
+ Calculation of charge density... done. Total electronic charge=      15.999967536136
+ PSolver, free  BC, dimensions:   101  101  101   proc    4 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
  average noise along x direction:  -3.04261960E-03
@@ -249,12 +374,12 @@ Exact Exchange Energy: -3.08074060411E+00
  average noise along z direction:  -5.64841705E-04
  total average noise            :   3.14573145E-03
  clean forces norm (Ha/Bohr): maxval=  0.000000000000E+00  fnrm2=  0.000000000000E+00
- raw forces:                  maxval=  3.145731448323E-03  fnrm2=  9.895626344969E-06
- CPU time/ELAPSED time for root process     0        22.74        22.72
+ raw forces:                  maxval=  3.145731448353E-03  fnrm2=  9.895626345156E-06
+ CPU time/ELAPSED time for root process     0       121.71       120.08
   WARNING: Self-consistent cycle did not met convergence criteria
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1253 allocations and 1253 deallocations, remaining memory(B): 0
- memory occupation peak: 254 MB
- for the array  cosinarr in the routine G_Poisson_Solver
+ 4567 allocations and 4567 deallocations, remaining memory(B): 0
+ memory occupation peak: 140 MB
+ for the array  zmpi1 in the routine G_Poisson_Solver

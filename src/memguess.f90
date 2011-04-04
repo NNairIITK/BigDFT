@@ -1,18 +1,15 @@
-!!****p* BigDFT/memguess
-!! FUNCTION
-!!  Test the input files and estimates the memory occupation versus the number
-!!  of processors
-!! AUTHOR
-!!    Luigi Genovese
-!! COPYRIGHT
-!!   Copyright (C) 2007-2010 BigDFT group
+!> @file
+!!   Program to guess the used memory by BigDFT
+!! @author
+!!   Copyright (C) 2007-2011 BigDFT group (LG)
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>  Test the input files and estimates the memory occupation versus the number
+!!  of processors
 program memguess
 
   use module_base
@@ -24,7 +21,8 @@ program memguess
   character(len=*), parameter :: subname='memguess'
   character(len=20) :: tatonam
   character(len=40) :: comment
-  logical :: optimise,GPUtest,atwf,convert=.false.
+  character(len=128) :: fileFrom, fileTo
+  logical :: optimise,GPUtest,atwf,convert=.false.,upgrade=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
@@ -41,7 +39,7 @@ program memguess
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
   real(wp), dimension(:), allocatable :: rhoexpo
-  real(wp), dimension(:,:), allocatable :: rhocoeff
+  real(wp), dimension(:,:), pointer :: rhocoeff
   real(kind=8), dimension(:,:), allocatable :: radii_cf
   logical, dimension(:,:,:), allocatable :: scorb
   real(kind=8), dimension(:), allocatable :: locrad
@@ -72,7 +70,9 @@ program memguess
      write(*,'(1x,a)')&
           '         <nrep> is the number of repeats'
      write(*,'(1x,a)')&
-          '"convert" converts input files older than 1.2 into actual format'
+          '"ugrade" ugrades input files older than 1.2 into actual format'
+     write(*,'(1x,a)')&
+          '"convert <from.[cube,etsf]> <to.[cube,etsf]>" converts file "from" to file "to" using the given formats'
      write(*,'(1x,a)')&
           '"atwf" <ng> calculates the atomic wavefunctions of the first atom in the gatom basis and write their expression '
      write(*,'(1x,a)')&
@@ -108,14 +108,20 @@ program memguess
            call getarg(4,tatonam)
            read(tatonam,*,iostat=ierror)norbgpu
         end if
+     else if (trim(tatonam)=='ugrade') then
+        upgrade=.true.
+        write(*,'(1x,a)')&
+             'ugrades the input.dat file in "input_convert.dft" (current version format)'
      else if (trim(tatonam)=='convert') then
         convert=.true.
-        write(*,'(1x,a)')&
-             'convert the input.dat file in the "input_convert.dft" (1.3 format)'
+        call getarg(3,fileFrom)
+        call getarg(4,fileTo)
+        write(*,'(1x,5a)')&
+             'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
      else if (trim(tatonam)=='atwf') then
         atwf=.true.
         write(*,'(1x,a)')&
-             'Perform the calculation of aomic wavefunction of the first atom'
+             'Perform the calculation of atomic wavefunction of the first atom'
         call getarg(3,tatonam)
         read(tatonam,*,iostat=ierror)ng
         write(*,'(1x,a,i0,a)')&
@@ -126,7 +132,7 @@ program memguess
         write(*,'(1x,a)')&
              'Indicate the number of processes after the executable'
         write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o", "convert" "GPUtest" or "atwf" ' 
+             'ERROR: The only second argument which is accepted are "y", "o", "upgrade", "convert", "GPUtest" or "atwf" ' 
         write(*,'(1x,a)')&
              '       (type "memguess" without arguments to have an help)'
         stop
@@ -160,6 +166,20 @@ program memguess
   call print_logo()
 
   if (convert) then
+     atoms%geocode = "P"
+     write(*,*) "Read density file..."
+     call read_density(trim(fileFrom), atoms%geocode, Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, &
+          & nspin, hx, hy, hz, rhocoeff, atoms%nat, rxyz, atoms%iatype, atoms%nzatom)
+     atoms%ntypes = size(atoms%nzatom) - ndebug
+     write(*,*) "Write new density file..."
+     call plot_density(trim(fileTo), 0, 1, Glr%d%n1i / 2 - 1, Glr%d%n2i / 2 - 1, &
+          & Glr%d%n3i / 2 - 1, Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, Glr%d%n3i, nspin, hx, hy, hz, &
+          & atoms, rxyz, norbsc_arr, rhocoeff)
+     write(*,*) "Done"
+     stop
+  end if
+
+  if (upgrade) then
      !initialize memory counting
      !call memocc(0,0,'count','start')
 
@@ -171,7 +191,7 @@ program memguess
      call dft_input_converter(in)
      write(*,*)' ...done'
   else
-     call read_input_variables(0, "posinp", "input.dft", "input.kpt", &
+     call read_input_variables(0, "posinp", "input.dft", "input.kpt","input.mix", &
           & "input.geopt", "input.perf", in, atoms, rxyz)
      !initialize memory counting
      !call memocc(0,0,'count','start')
@@ -414,7 +434,8 @@ program memguess
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
        atoms%alat1,atoms%alat2,atoms%alat3,&
        hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
-       orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
+       orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,&
+       output_grid,in%nspin,in%itrpmax,in%iscf,peakmem)
 
   !add the comparison between cuda hamiltonian and normal one if it is the case
 
@@ -438,17 +459,10 @@ program memguess
   call memocc(0,0,'count','stop')
 
 end program memguess
-!!***
-  
 
-!!****f* BigDFT/optimise_volume
-!! FUNCTION
-!!  Rotate the molecule via an orthogonal matrix in order to minimise the
+  
+!>  Rotate the molecule via an orthogonal matrix in order to minimise the
 !!  volume of the cubic cell
-!! AUTHOR
-!!    Stefan Goedecker, Luigi Genovese
-!! SOURCE
-!!
 subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   use module_base
   use module_types
@@ -554,16 +568,10 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   call memocc(i_stat,i_all,'txyz',subname)
 
 END SUBROUTINE optimise_volume
-!!***
 
-!!****f* BigDFT/shift_periodic_directions
-!! FUNCTION
-!!  Add a shift in the periodic directions such that the system
+
+!>  Add a shift in the periodic directions such that the system
 !!  uses as less as possible the modulo operation
-!! AUTHOR
-!!    Luigi Genovese
-!! SOURCE
-!!
 subroutine shift_periodic_directions(at,rxyz,radii_cf)
   use module_base
   use module_types
@@ -664,7 +672,7 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
   call memocc(i_stat,i_all,'txyz',subname)
 
 END SUBROUTINE shift_periodic_directions
-!!***
+
 
 subroutine calc_vol(geocode,nat,rxyz,vol)
   use module_base
@@ -1105,11 +1113,8 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 END SUBROUTINE compare_data_and_gflops
 
-!!****f* BigDFT/read_input_variables_old
-!! FUNCTION
-!!    Read the input variables in the file 'input.dat', old format.
-!! SOURCE
-!!
+
+!>    Read the input variables in the file 'input.dat', old format.
 subroutine read_input_variables_old(iproc,filename,in)
   use module_base
   use module_types
@@ -1297,14 +1302,9 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE read_input_variables_old
-!!***
 
 
-!!****f* BigDFT/dft_input_converter
-!! FUNCTION
-!!  Convert the format of input variables
-!! SOURCE
-!!
+!>  Convert the format of input variables
 subroutine dft_input_converter(in)
   use module_base
   use module_types
@@ -1398,4 +1398,3 @@ subroutine dft_input_converter(in)
    
   close(unit=1)
 END SUBROUTINE dft_input_converter
-!!***

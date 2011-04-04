@@ -30,7 +30,7 @@ program art90
   character(8)  :: accept 
   character(20) :: fname
   character(4)  :: scounter
-  real(kind=8) :: a1, b1, c1
+  real(kind=8)  :: a1, b1, c1, prod
 ! _________
   call CPU_TIME( t1 )
 
@@ -119,21 +119,32 @@ program art90
                                       ! that it falls back into its original state.
      
      allocate(del_pos(VECSIZE))       ! We compute the displacement.
-     del_pos =  pos - posref          
+
+     del_pos = pos - posref          
+     difpos  = sqrt( dot_product(del_pos,del_pos) )
+     del_pos = del_pos/difpos 
+
      a1 = dot_product(del_pos,projection) 
-     if ( a1 < 0.0d0 ) then
-        projection = -1.0d0 * projection
-        a1 = -1.0d0 * a1
-     end if
      b1 = dot_product(force,projection)
      c1 = dot_product(del_pos,force)
-     difpos  = sqrt( dot_product(del_pos,del_pos) )
-     !pos = pos + del_pos 
      deallocate(del_pos)
-                                      
-     pos = pos + PUSH_OVER * difpos * projection
 
-     call min_converge( success )             ! And we converge to the new minimum.
+     if ( abs(a1) < 0.1d0 ) then      ! pushing in the direction of projection (assuming sign ok) 
+        prod = 1.0d0
+        write(*,*) 'BART :WARNING'
+        write(*,*) 'BART :Projection and displacement vectors almost perpendicular to each other'
+        write(*,*) 'BART :Assuming projection points in right direction'
+     else                             ! just keep the sign of the dot product
+        if ( a1 > 0.0 ) then
+           prod =  1.0d0
+        else
+           prod = -1.0d0
+        end if 
+     end if 
+
+     pos = pos + prod * PUSH_OVER * difpos * projection
+
+     call min_converge( success )     ! And we converge to the new minimum.
      delta_e = total_energy - ref_energy 
      if ( iproc == 0 ) then
                                       ! We write the configuration in a min.... file.
@@ -176,11 +187,13 @@ program art90
                                       ! from the previous refconfig.
         accept = "REJECTED"
         if ( iproc == 0 ) then        ! Write
-           if (( total_energy - ref_energy ) > 1.0d-5 )  then
+
+        ! the exchange does not have any meaning without an geometric analysis. 
+           !if (( total_energy - ref_energy ) > 1.0d-5 )  then
                write(FLIST,*) conf_initial, conf_saddle, conf_final,'    rejected'
-           else  
-               write(FLIST,*) conf_initial, conf_saddle, conf_final,'    exchanged'
-           end if
+           !else  
+           !    write(FLIST,*) conf_initial, conf_saddle, conf_final,'    exchanged'
+           !end if
         end if
 
      end if If_bol

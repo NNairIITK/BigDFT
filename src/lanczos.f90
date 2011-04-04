@@ -1,15 +1,13 @@
-!!****f* BigDFT/lanczos
-!! FUNCTION
-!!   Lanczos diagonalization
-!! COPYRIGHT
-!!    Copyright (C) 2009 ESRF (AM, LG)
+!> @file
+!!  Lanczos diagonalisation used by XANES calculation
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group (AM, LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+!>   Lanczos diagonalization
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -49,6 +47,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   type(gaussian_basis), target ::  Gabsorber
   real(wp),   pointer  :: Gabs_coeffs(:)
+  real(wp), dimension(:), pointer  :: pot
   real(wp),  pointer, dimension(:,:)  :: dum_coeffs
   character(len=800) :: filename
   logical :: projeexists
@@ -75,7 +74,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
-  write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
+  write(filename,'(A,A,A,I1)') "gproje_", &
+       & trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
   
   inquire(FILE=trim(filename),EXIST=projeexists)
   
@@ -83,9 +83,10 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
+             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
 
      nullify( dum_coeffs  ) 
@@ -108,7 +109,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      
         if(iproc==0) then
            print *, "calculating  projection on pseudofunctions"
-           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+           print *, "for 1s of atom number ", in_iat_absorber, &
+                & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
            print *, "After application of a 2*L-pole  with L= ", in%L_absorber
         endif
            call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
@@ -132,6 +134,10 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
         
      endif
 
+  !allocate the potential in the full box
+  call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+
 
   ha%iproc=iproc
   ha%nproc=nproc
@@ -147,7 +153,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>potential
+  ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
@@ -189,6 +195,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
   endif
+
+
   
   call deallocate_comms(ha%comms,subname)
 
@@ -219,14 +227,9 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 END SUBROUTINE xabs_lanczos
-!!***
 
 
-!!****f* BigDFT/chebychev
-!! FUNCTION
-!!   Chebychev polynomials to calculate the density of states
-!! SOURCE
-!!
+!>   Chebychev polynomials to calculate the density of states
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
@@ -265,6 +268,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   type(gaussian_basis), target ::  Gabsorber
   real(wp), pointer :: Gabs_coeffs(:)
+  real(wp), dimension(:), pointer :: pot
   real(wp), pointer, dimension (:,:) :: dum_coeffs
   character(len=80) :: filename
   logical :: projeexists
@@ -306,9 +310,10 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
+             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
      
      nullify( dum_coeffs  ) 
@@ -330,7 +335,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   else
      if(iproc==0) then
         print *, "calculating  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", &
+             & at%atomnames(at%iatype(  in_iat_absorber ))," )"
         print *, "After application of a 2*L-pole  with L= ", in%L_absorber
      endif
      
@@ -355,6 +361,10 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      call memocc(i_stat,i_all,'coeffs',subname)
      
   endif
+
+  !allocate the potential in the full box
+  call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
   
   print *, "OK "
   !associate hamapp_arg pointers
@@ -372,7 +382,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>potential
+  ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
@@ -463,6 +473,10 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      endif
   endif
 
+  call free_full_potential(nproc,pot,subname)
+
+  nullify(ha%potential)
+
   !deallocate communication and orbitals descriptors
   call deallocate_comms(ha%comms,subname)
 
@@ -523,12 +537,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 END SUBROUTINE xabs_chebychev
 
 
-!!***
-!!****f* BigDFT/cg_spectra
-!! FUNCTION
-!!   finds the spectra solving  (H-omega)x=b
-!! SOURCE
-!!
+!>   finds the spectra solving  (H-omega)x=b
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -572,6 +581,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   type(gaussian_basis), target ::  Gabsorber
   real(wp),   pointer  :: Gabs_coeffs(:)
+  real(wp), dimension(:), pointer  :: pot
   real(wp),  pointer, dimension(:,:)  :: dum_coeffs
   character(len=800) :: filename
   logical :: projeexists
@@ -614,9 +624,10 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
+             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
 
      nullify( dum_coeffs  ) 
@@ -639,7 +650,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      
         if(iproc==0) then
            print *, "calculating  projection on pseudofunctions"
-           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", &
+                & at%atomnames(at%iatype(  in_iat_absorber ))," )"
            print *, "After application of a 2*L-pole  with L= ", in%L_absorber
         endif
            call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
@@ -663,6 +675,9 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
         
      endif
 
+     !allocate the potential in the full box
+     call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+          ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
 
   ha%iproc=iproc
   ha%nproc=nproc
@@ -678,7 +693,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>potential
+  ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
@@ -773,14 +788,13 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      call memocc(i_stat,i_all,'potentialclone',subname)
   endif
 
-
-
+  call free_full_potential(nproc,pot,subname)
 
   call deallocate_abscalc_input(in, subname)
 
 
-END subroutine xabs_cg
-!!***
+END SUBROUTINE xabs_cg
+
 
 subroutine dirac_hara (rho, E , V)
   use module_base
@@ -795,21 +809,13 @@ subroutine dirac_hara (rho, E , V)
   real(gp) Vcorr, rs, xk, EV,x
   integer i
 
-
-
   if(rho>1.0e-4) then
      rs = (3.0_gp / (4.0_gp*pi*rho)) ** (1.0_gp/3.0_gp)
   else
      rs=1000.0_gp
   endif
 
-
-
   Vcorr=V
-
-
-
-
 
   EV=E-Vcorr
   if(EV<=0) then
@@ -835,4 +841,4 @@ subroutine dirac_hara (rho, E , V)
   end do
   V=Vcorr
   return
-end subroutine dirac_hara
+END SUBROUTINE dirac_hara

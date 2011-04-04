@@ -1,0 +1,89 @@
+
+________________________
+
+   What is pseudo2.5?
+________________________
+
+
+Pseudo is a program to generate accurate, soft and transferable Goedecker-type pseudopotentials. 
+The analytic form of the potentials is optimized using a downhill simplex method for least square
+fitting of some empirical penalty function. Deviations from atomic all electron reference data are
+summed to build that penalty function. These data include eigenvalues, charge integrals and nodes of
+both, occupied and virtual orbitals, as well as excitation energies, i.e. energy differences between
+ground states of different electronic configurations, which may be treated in parallel using MPI.
+To improve the softness of the pseudowavefunctions for particular applications with BigDFTs wavelet
+basis set, the valence orbitals may be transformed to Daubechie wavelets with real space grids of
+various spacings. This allows to add the resulting deviation in the kinetic energy per orbital to
+the penalty function as a systematic measure for softness. 
+Note that this version of pseudo uses the libXC libraries for the exchange correlation functionals,
+supports spin polarized or relativistic LDA and GGA calculations and allows the inclusion of non-
+linear core corrections of a simple analytic form that may be fitted as well.
+
+
+
+____________________
+
+   How to Install
+____________________
+
+
+To compile pseudo from its sources, you need to specify your preffered fortran MPI compiler, flags,
+libraries and include paths in the corresponding Makefiles. For this, you may want to follow the
+output from running the configure scripts of another application. Pseudo does not come with its own
+configure files, but the libXC package and other software that uses libXC, such as ABINIT or BigDFT
+do so. 
+You will notice that this package contains several subdirectories that hold only some Makefiles and
+hardly any other files. These are examples for how to compile some different versions of the
+package, in serial or with MPI, with or without CUDA acceleration or even a standalone version that
+uses simple placeholder routines for MPI, libXC, BLAS and LAPACK.
+
+
+
+_________________
+
+   How to run
+_________________
+
+
+First, you will need to setup an input file for the all electron DFT calculation that will provide
+the reference data for the empirical penalty function of the fit. A short description of the
+program atom.f and its input file atom.dat is given in README.atom. More detailed information is
+found in the file README.atom.old from a previous version of said program. The program atom.f will
+generate all input files needed for fitting, except for an initial guess for the peudopotential.
+All output files include comments with some further explanations.
+Important in particular is the new input file input.dat, which contains keywords that have been read
+as command line arguments in previous versions of pseudo, as well as some input parameters for the
+wavelet transformation. 
+
+
+
+_______________________
+
+   More README files
+_______________________
+
+
+README.pseudo.inputs   gives an overview of the inpput files and methodology of pseudo. It also
+                       declares version changes that are important when taking a look at ...
+
+README.pseudo.old      ... from a previous version of the program, which explains in detail the
+                       analytical form of the pseudo potentials and empirical penalty function.
+                       It also contains some more hints for fitting.
+
+README.pseudo.parallel describes those features and input files that are suitable for parallel
+                       computations. This includes multiple electronic configureations, wavelet
+                       transformations and GPU acceleration.
+
+README.NLCC            gives some instructions for the usage of nonlinear core corrections. This
+                       feature is especially needful when generating pseudopotentials for spin
+                       polarized calculations.
+
+README.iXC             Explains which functionals from libXC are available and how they are
+                       requested with the iXC input variable.
+
+README.atom            Contains instructions for using the all electron program atom.f, which 
+                       generates the reference data needed by pseudo. More information about
+                       this program is found in the documentation of an earlier version, ... 
+
+README.atom.old        ... which should not be needed to use the updated version of atom.f. 
+

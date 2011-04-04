@@ -59,7 +59,7 @@ convolution_source = combined_shrink_simple.f90 \
 	$(GPU_INTERFACE) $(OCL_INTERFACE)
 endif
 
-AM_FCFLAGS = -I. -I$(srcdir) -I../modules -I../
+AM_FCFLAGS = -I. -I$(srcdir) -I../modules -I.. @LIBABINIT_INCLUDE@
 
 noinst_LIBRARIES = libconvolutions.a
 

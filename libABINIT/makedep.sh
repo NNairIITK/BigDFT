@@ -1,6 +1,6 @@
 #!/bin/bash
 
-except="BigDFT_API xc_f90_types_m libxc_funcs_m xc_f90_lib_m"
+except="BigDFT_API xc_f90_types_m libxc_funcs_m xc_f90_lib_m mpi"
 
 function adddep
 {

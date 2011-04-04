@@ -212,6 +212,7 @@ subroutine saddle_converge( ret, saddle_energy )
      eigen_min  = eigen_min_r               
      eigenvalue = eigenvalue_r              
      nsteps_after_eigen_min = nsteps_after_eigen_min_r 
+     delta_e = total_energy - ref_energy
 
      deallocate(direction_restart) 
      deallocate(diis_forces_restart)

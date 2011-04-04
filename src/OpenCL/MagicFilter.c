@@ -1,7 +1,5 @@
-#include "MagicFilter.h"
-#include "OpenCL_wrappers.h"
-
-/*
+//! @file
+/*!
   Magicfilter kernels share commons features. They are composed
   of one convolution and a transposition. Each work item is
   responsible for processing one element of the result matrix.
@@ -10,6 +8,18 @@
   elements, so each work item is responsible for loading 2 elements.
   The first kernel is commented.
 */
+//!
+//! @author
+//!    Copyright (C) 2009-2011 BigDFT group 
+//!    This file is distributed under the terms of the
+//!    GNU General Public License, see ~/COPYING file
+//!    or http://www.gnu.org/copyleft/gpl.txt .
+//!    For the list of contributors, see ~/AUTHORS 
+
+
+#include "MagicFilter.h"
+#include "OpenCL_wrappers.h"
+
 char * magicfilter_program="\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 #define FILT0   8.4334247333529341094733325815816e-7\n\
@@ -652,6 +662,70 @@ void FC_FUNC_(magicfilter_t_d,MAGICFILTER_T_D)(bigdft_command_queue *command_que
     magicfilter_generic((*command_queue)->kernels.magicfilter1d_t_kernel_d, (*command_queue)->command_queue, &n2, &ndat, out, tmp);
     ndat = n2 * n3;
     magicfilter_generic((*command_queue)->kernels.magicfilter1d_t_kernel_d, (*command_queue)->command_queue, &n1, &ndat, tmp, out);
+}
+
+void FC_FUNC_(magic_filter_3d_generic,MAGIC_FILTER_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out) {
+  cl_uint ndat;
+  cl_uint n1, n2, n3;
+  n1 = dimensions[0] * 2;
+  n2 = dimensions[1] * 2;
+  n3 = dimensions[2] * 2;
+  if( !periodic[0] ) n1 += 14;
+  if( !periodic[1] ) n2 += 14;
+  if( !periodic[2] ) n3 += 14;
+  ndat = n1 * n2;
+  if( periodic[2] ) {
+    magicfilter_generic((*command_queue)->kernels.magicfilter1d_kernel_d, (*command_queue)->command_queue,  &n3, &ndat, psi, tmp);
+  } else {
+    n3 += 15;
+    magicfilter_generic((*command_queue)->kernels.magicfiltergrow1d_kernel_d, (*command_queue)->command_queue, &n3, &ndat, psi, tmp);
+  }
+  ndat = n1 * n3;
+  if( periodic[1] ) {
+    magicfilter_generic((*command_queue)->kernels.magicfilter1d_kernel_d, (*command_queue)->command_queue,  &n2, &ndat, tmp, tmp_dot);
+  } else {
+    n2 += 15;
+    magicfilter_generic((*command_queue)->kernels.magicfiltergrow1d_kernel_d, (*command_queue)->command_queue, &n2, &ndat, tmp, tmp_dot);
+  }
+  ndat =  n2 * n3;
+  if( periodic[0] ) {
+    magicfilter_generic((*command_queue)->kernels.magicfilter1d_kernel_d, (*command_queue)->command_queue,  &n1, &ndat, tmp_dot, out);
+  } else {
+    n1 += 15;
+    magicfilter_generic((*command_queue)->kernels.magicfiltergrow1d_kernel_d, (*command_queue)->command_queue, &n1, &ndat, tmp_dot, out);
+  }
+}
+
+void FC_FUNC_(magic_filter_t_3d_generic,MAGIC_FILTER_T_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out) {
+  cl_uint ndat;
+  cl_uint n1, n2, n3;
+  n1 = dimensions[0] * 2;
+  n2 = dimensions[1] * 2;
+  n3 = dimensions[2] * 2;
+  if( !periodic[0] ) n1 += 14 + 15;
+  if( !periodic[1] ) n2 += 14 + 15;
+  if( !periodic[2] ) n3 += 14 + 15;
+  ndat = n1 * n2;
+  if( periodic[2] ) {
+    magicfilter_generic((*command_queue)->kernels.magicfilter1d_t_kernel_d, (*command_queue)->command_queue,  &n3, &ndat, psi, tmp);
+  } else {
+    n3 -= 15;
+    magicfilter_generic((*command_queue)->kernels.magicfiltershrink1d_kernel_d, (*command_queue)->command_queue,  &n3, &ndat, psi, tmp);
+  }
+  ndat = n1 * n3;
+  if( periodic[1] ) {
+    magicfilter_generic((*command_queue)->kernels.magicfilter1d_t_kernel_d, (*command_queue)->command_queue,  &n2, &ndat, tmp, tmp_dot);
+  } else {
+    n2 -= 15;
+    magicfilter_generic((*command_queue)->kernels.magicfiltershrink1d_kernel_d, (*command_queue)->command_queue,  &n2, &ndat, tmp, tmp_dot);
+  }
+  ndat = n2 * n3;
+  if( periodic[0] ) {
+    magicfilter_generic((*command_queue)->kernels.magicfilter1d_t_kernel_d, (*command_queue)->command_queue,  &n1, &ndat, tmp_dot, out);
+  } else {
+    n1 -= 15;
+    magicfilter_generic((*command_queue)->kernels.magicfiltershrink1d_kernel_d, (*command_queue)->command_queue,  &n1, &ndat, tmp_dot, out);
+  }
 }
 
 void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out, cl_mem *pot, double *epot) {

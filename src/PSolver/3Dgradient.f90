@@ -1,28 +1,26 @@
-!!****f* PSolver/wb_correction
-!! FUNCTION
-!! Calculates the White-Bird correction to the XC potential.
+!> @file
+!! Routines to calculate gradients of the electronic densities for GGA
+!! @author
+!! Copyright (C) 2002-2011 BigDFT group 
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~/COPYING file
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!! For the list of contributors, see ~/AUTHORS 
+
+
+!> Calculates the White-Bird correction to the XC potential.
 !! Since this correction strongly depends on the way of calculating the gradient
 !! It is based on a finite difference calculation of the gradient, corrected at the border
 !! (see the calc_gradient routine)
 !! Works either in parallel or in serial, by proper adjustation of the arguments
 !!
-!! COPYRIGHT
-!! Copyright (C) 2002-2010 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-!!
 !! INPUTS and OUTPUT
-!! f_i(n1,n2,n3,3,ispden) Three functions (depending on the fourth index) indicating the 
-!! derivative of rho*e_xc with respect to the three components of the gradient.
-!! Its dimensions are properly enlarged to allow another finite-difference calculation
-!! wbl, wbr indicates the point starting from which we have to calculate the WB correction
-!! The correction is then added to the wb_vxc array in the proper points
-!! n3grad is the effective dimension of interest
-!!
-!! SOURCE
-!!
+!! @param f_i(n1,n2,n3,3,ispden) Three functions (depending on the fourth index) indicating the 
+!!           derivative of rho*e_xc with respect to the three components of the gradient.
+!!           Its dimensions are properly enlarged to allow another finite-difference calculation
+!! @param wbl, wbr indicates the point starting from which we have to calculate the WB correction
+!!           The correction is then added to the wb_vxc array in the proper points
+!! @param n3grad is the effective dimension of interest
 subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
      wb_vxc)
  use module_base
@@ -534,12 +532,9 @@ subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
  end do
 
 END SUBROUTINE wb_correction
-!!***
 
 
-!!****f* BigDFT/calc_gradient
-!! FUNCTION
-!! Calculates the finite difference gradient.White-Bird correction to the XC potential.
+!> Calculates the finite difference gradient White-Bird correction to the XC potential.
 !! The gradient in point x is calculated by taking four point before and after x.
 !! The lack of points near the border is solved by ideally prolungating the input
 !! function outside the grid, by assigning the same value of the border point.
@@ -547,29 +542,24 @@ END SUBROUTINE wb_correction
 !! This routines works either in parallel or in serial by proper adjustation of the arguments.
 !!
 !! INPUTS 
-!! rhoinp(n1,n2,n3,nspden) input function
-!!      the dimension of rhoinp are more than needed because in the parallel case we must
-!!      take into account the points before and after the selected interval, 
-!!      of effective (third) dimension n3grad.
-!! hx,hy,hz grid spacing in the three directions
+!! @param rhoinp(n1,n2,n3,nspden) input function
+!!           the dimension of rhoinp are more than needed because in the parallel case we must
+!!           take into account the points before and after the selected interval, 
+!!           of effective (third) dimension n3grad.
+!! @param hx,hy,hz grid spacing in the three directions
 !! 
 !! OUTPUT
-!! gradient(n1,n2,n3grad,2*nspden-1,0:3) the square modulus of the gradient (index 0) 
-!! and the three components.
-!! In the spin-polarized case,
-!! Following ABINIT conventions:
-!!        gradient(i1,i2,i3,1,0:3) is the gradient of the spin up density
-!!        gradient(i1,i2,i3,2,0:3) is the gradient of the spin down density
-!!        gradient(i1,i2,i3,3,0:3) is the gradient of the total density
-!! of course gradient(i1,i2,i3,3,0) /= gradient(i1,i2,i3,2,0) + gradient(i1,i2,i3,2,0)
-!! since the modulus is non-linear
-!! The drivexc routine uses only the first part of this array (component 0)
-!! The rest of the array is defined for later use in the wb postprocessing routine.
-!!
-!! WARNING
-!!
-!! SOURCE
-!!
+!! @param gradient(n1,n2,n3grad,2*nspden-1,0:3) the square modulus of the gradient (index 0) 
+!!           and the three components.
+!!           In the spin-polarized case,
+!!           Following ABINIT conventions:\n
+!!           - gradient(i1,i2,i3,1,0:3) is the gradient of the spin up density
+!!           - gradient(i1,i2,i3,2,0:3) is the gradient of the spin down density
+!!           - gradient(i1,i2,i3,3,0:3) is the gradient of the total density
+!!           of course gradient(i1,i2,i3,3,0) /= gradient(i1,i2,i3,2,0) + gradient(i1,i2,i3,2,0)
+!!           since the modulus is non-linear
+!!           The drivexc routine uses only the first part of this array (component 0)
+!!           The rest of the array is defined for later use in the wb postprocessing routine.
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient)
  use module_base
@@ -1051,4 +1041,3 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
   call memocc(i_stat,i_all,'density',subname)
 
 END SUBROUTINE calc_gradient
-!!***

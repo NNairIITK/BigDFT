@@ -1,17 +1,16 @@
-!!****p* BigDFT/find_angles
-!! FUNCTION
-!!    Analyse atomic configurations
-!! COPYRIGHT
-!!    Copyright (C) 2010 BigDFT group
+!> @file
+!!  Routines to do atomic analysis configuration
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
 !! LAST CHANGE
 !!    14 Sep 2009
-!! SOURCE
-!!
+
+
+!>    Analyse atomic configurations
 program find_angles
  implicit none
  integer, parameter :: ntypes=4,nnmax=15,nseg=1800,nsegr=10000
@@ -367,7 +366,7 @@ print *,'nat',nat
 
 
 end program find_angles
-!!***
+
 
 subroutine read_pos(iunit,whichone,nat,pos,nrep)
   use BigDFT_API
@@ -449,6 +448,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   end if
 
 END SUBROUTINE read_pos
+
 
 function theta(A,O,B)
  implicit none

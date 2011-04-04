@@ -21,8 +21,7 @@ EXTRA_PROGRAMS = conv_check bench_conv bench_conv_quick bench_zgemm stream_check
 
 noinst_LIBRARIES = libbasef.a libbasec.a libOCL.a libStream.a
 
-libbasef_a_SOURCES = ../profiling/memory.f90 \
-                     ../modules/base.F90 \
+libbasef_a_SOURCES = ../modules/defs.F90 ../modules/base.f90 \
                      ../modules/cublas_fake.f90 $(mpi_source)
 
 libbasec_a_SOURCES = OpenCL_wrappers.c \
@@ -48,7 +47,7 @@ endif
 
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 

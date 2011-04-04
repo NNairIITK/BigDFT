@@ -1,6 +1,16 @@
+!> @file
+!!  Common convolutions
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> A analysis wavelet transformation where the size of the data is forced to shrink
+!! The input array y is overwritten
 subroutine analyse_shrink(n1,n2,n3,ww,y,x)
-  ! A analysis wavelet transformation where the size of the data is forced to shrink
-  ! The input array y is overwritten
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -22,9 +32,10 @@ subroutine analyse_shrink(n1,n2,n3,ww,y,x)
 
 END SUBROUTINE analyse_shrink
 
+
+!> A synthesis wavelet transformation where the size of the data is allowed to grow
+!! The input array x is not overwritten
 subroutine synthese_grow(n1,n2,n3,ww,x,y)
-  ! A synthesis wavelet transformation where the size of the data is allowed to grow
-  ! The input array x is not overwritten
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -45,7 +56,6 @@ subroutine synthese_grow(n1,n2,n3,ww,x,y)
   call  syn_rot_grow(n3,nt,ww,y)
 
 END SUBROUTINE synthese_grow
-
 
 
 subroutine ana_rot_shrink(n,ndat,x,y)
@@ -156,8 +166,7 @@ subroutine syn_rot_grow(n,ndat,x,y)
 END SUBROUTINE syn_rot_grow
 
 
-
-! Simple non-optimized version of the major convolution routines
+!> Simple non-optimized version of the major convolution routines
 subroutine convrot_grow(n1,ndat,x,y)
   use module_base
   implicit none
@@ -202,9 +211,8 @@ subroutine convrot_grow(n1,ndat,x,y)
 
 END SUBROUTINE convrot_grow
 
-! Simple non-optimized version of the major convolution routines
 
-
+!> Simple non-optimized version of the major convolution routines
 subroutine convrot_shrink(n1,ndat,x,y)
   use module_base
   implicit none
@@ -248,4 +256,3 @@ subroutine convrot_shrink(n1,ndat,x,y)
   enddo
 
 END SUBROUTINE convrot_shrink
-

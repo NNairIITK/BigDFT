@@ -1,13 +1,12 @@
-!!****f* BigDFT/psitransspi
-!! COPYRIGHT
+!> @file
+!!  Routines of transposition for wavefunctions
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
+ 
 subroutine psitransspi(nvctrp,orbs,psi,forward)
   use module_base
   use module_types
@@ -94,10 +93,9 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
   deallocate(tpsit,stat=i_stat)
   call memocc(i_stat,i_all,'tpsit',subname)
 END SUBROUTINE psitransspi
-!!***
 
 
-!transposition of the arrays, variable version (non homogeneous)
+!> Transposition of the arrays, variable version (non homogeneous)
 subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
      work,outadd) !optional
   use module_base
@@ -148,6 +146,7 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
 
 END SUBROUTINE transpose_v
 
+
 subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
      work,outadd) !optional
   use module_base
@@ -159,7 +158,7 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
   type(communications_arrays), intent(in) :: comms
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
   real(wp), dimension(:), pointer, optional :: work
-  real(wp), dimension(*), intent(out), optional :: outadd
+  real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
   !local variables
   integer :: ierr
 
@@ -282,6 +281,7 @@ subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
   end do
 END SUBROUTINE switch_waves_v
 
+
 subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
   use module_base
   use module_types
@@ -293,9 +293,8 @@ subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
   real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(out) :: psi
   !local variables
   integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
-  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt,iproc,ierr
+  integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
 
-  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   isorb=orbs%isorb+1
   isorbp=0
   ispsi=0
