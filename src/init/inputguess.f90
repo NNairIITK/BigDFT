@@ -72,12 +72,12 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
                 "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
            write(*,'(1x,a,i0)')'         Put nvirt= ',nvirte
         end if
-        if (nvirte < nvirt) then
-           nvirt=nvirte
-           if(iproc==0) write(*,'(1x,a,i3)')&
-                "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
-        end if
-        nvirt=min(nvirt,nvirte)
+        !if (nvirte < nvirt) then
+        !   nvirt=nvirte
+        !   if(iproc==0) write(*,'(1x,a,i3)')&
+        !        "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
+        !end if
+        !nvirt=min(nvirt,nvirte)
      end do
   end if
 
