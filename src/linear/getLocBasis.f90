@@ -113,33 +113,40 @@ integer:: iorb, jorb
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
       infoBasisFunctions)
 
-  call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-       nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-       rhopot(1),&
-       phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
-
-  call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+  if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
   if(trim(lin%getCoeff)=='min') then
+
+      if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
+      call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+           nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+           rhopot(1),&
+           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+      if(iproc==0) write(*,'(x,a)') 'done.'
+
+      call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+
       ! Initialize the coefficient vector at random. 
       call random_number(coeff)
+
+      if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
       call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+
+  else if(trim(lin%getCoeff)=='diag') then
+  
+      !allocate the potential in the full box
+      call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+           lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
+      
+      call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
+           nlpspd,proj,Glr,ngatherarr,potential,&
+           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+      if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
+      
+      !deallocate potential
+      call free_full_potential(nproc,potential,subname)
+
   end if
-
-
-  if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
-  
-  !allocate the potential in the full box
-  call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-       lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
-  
-  call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
-       nlpspd,proj,Glr,ngatherarr,potential,&
-       phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-  if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
-  
-  !deallocate potential
-  call free_full_potential(nproc,potential,subname)
   
   
   call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
@@ -147,20 +154,20 @@ integer:: iorb, jorb
   
   allocate(HamSmall(lin%orbs%norb,lin%orbs%norb), stat=istat)
   call memocc(istat, HamSmall, 'HamSmall', subname)
-  call transformHam(iproc, nproc, lin%orbs, lin%comms, phi, hphi, HamSmall)
   
   if(trim(lin%getCoeff)=='diag') then
+      call transformHam(iproc, nproc, lin%orbs, lin%comms, phi, hphi, HamSmall)
       if(iproc==0) write(*,'(a)', advance='no') ' Diagonalization... '
       call diagonalizeHamiltonian(iproc, nproc, lin%orbs, HamSmall, eval)
       call dcopy(lin%orbs%norb*orbs%norb, HamSmall(1,1), 1, coeff(1,1), 1)
       !do iorb=1,lin%orbs%norb
       !    write(300+iproc,*) (HamSmall(iorb,jorb), jorb=1,orbs%norb)
       !end do
-      if(iproc==0) write(*,'(a)', advance='no') 'done.'
+      if(iproc==0) write(*,'(a)') 'done.'
   end if
 
   
-  if(iproc==0) write(*,'(a)', advance='no') ' Linear combinations... '
+  if(iproc==0) write(*,'(x,a)', advance='no') 'Building linear combinations... '
   if(trim(lin%getCoeff)=='diag') then
       call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
   else if(trim(lin%getCoeff)=='min') then
@@ -1320,7 +1327,7 @@ processIf: if(iproc==0) then
         end do
     
         ! Multiply the energy with a factor of 2 due to closed-shell
-        if(iproc==0) write(*,'(a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', it, fnrm, meanAlpha, 2.d0*ebsMod
+        !if(iproc==0) write(*,'(a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', it, fnrm, meanAlpha, 2.d0*ebsMod
         !if(iproc==0) write(99,'(i0,es12.4,3x,es10.3, es15.5)')  it, fnrm, meanAlpha, 2.d0*ebsMod
         
         ! Orthogonalize (Gram-Schmidt)
@@ -1334,7 +1341,7 @@ processIf: if(iproc==0) then
         end do
         if(fnrm<1.d-10) then
             if(iproc==0) write(*,'(x,a,i0,a)') 'converged in ', it, ' iterations.'
-            if(iproc==0) write(*,'(x,a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, 2.d0*ebsMod
+            if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, 2.d0*ebsMod
             exit
         end if
     end do iterLoop

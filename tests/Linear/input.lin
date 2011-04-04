@@ -1,8 +1,9 @@
-600                  max number of iterations
-1.d-3                convergence criterion
-6   10  1.d-1        DIISHistMin, DIISHistMax, step size for SD
+100                  max number of iterations
+1.d-2                convergence criterion
+5  10  1.d0          DIISHistMin, DIISHistMax, step size for SD
 F   2.d2             start with SD, start criterion for DIIS
-8                    number of iterations in the preconditioner
+3                    number of iterations in the preconditioner
+min                  how to get the coefficients for the linear combination: 'diag' or 'min'
 F                    plot basis functions: true or false
-C  5  2.d-7          number of basis functions per atom, prefactor for confinement potential
-H  5  2.d-7          number of basis functions per atom, prefactor for confinement potential
+C  4  5.d-7          number of basis functions per atom, prefactor for confinement potential
+H  1  5.d-7          number of basis functions per atom, prefactor for confinement potential

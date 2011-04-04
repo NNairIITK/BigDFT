@@ -151,15 +151,15 @@
  evale(2)= -5.78544845902776E-01 <-
  evale(3)= -4.21203142765921E-01 <-
  evale(4)= -4.21156876076280E-01 <-
- evale(5)= -3.91299646088041E-01 <-
- evale(6)= -3.14288092270326E-01 <-
+ evale(5)= -3.91299646088042E-01 <-
+ evale(6)= -3.14288092270325E-01 <-
  evale(7)= -3.14230554414569E-01 <- Last InputGuess eval, H-L IG gap:  14.8524 eV
  evale(8)=  2.31585548016733E-01 <- First virtual eval
  evale(9)=  3.43287908573585E-01 <-
- evale(10)=  3.43411268559889E-01 <-
- evale(11)=  4.45259695396972E-01 <-
+ evale(10)=  3.43411268559890E-01 <-
+ evale(11)=  4.45259695396971E-01 <-
  evale(12)=  4.45441336265666E-01 <-
- evale(13)=  5.44028138655877E-01
+ evale(13)=  5.44028138655876E-01
  evale(14)=  5.65285964136507E-01
  Building orthogonal Wavefunctions... done.
  expected accuracy in energy  2.03E-04
@@ -172,7 +172,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.24059053732E+01 -1.81185183563E+01  1.09052528495E+00
     ehart,   eexcu,    vexcu  3.83881843660E+01 -5.58949099317E+00 -7.30970184549E+00
- iter,total energy,gnrm     1  -1.47266756600723454E+01  2.04E-01
+ iter,total energy,gnrm     1  -1.47266756600723738E+01  2.04E-01
  ---------------------------------------------------------------------------- iter= 2
  Calculation of charge density... done. Total electronic charge=      13.999999971267
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
@@ -190,7 +190,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.22323572978E+01 -1.88242951086E+01  8.70858667511E-01
     ehart,   eexcu,    vexcu  3.74321716060E+01 -5.51134167122E+00 -7.20699861039E+00
- iter,total energy,gnrm     3  -1.48942082584244417E+01  3.87E-02
+ iter,total energy,gnrm     3  -1.48942082584243991E+01  3.87E-02
  ---------------------------------------------------------------------------- iter= 4
  Calculation of charge density... done. Total electronic charge=      13.999999962172
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
@@ -199,7 +199,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.22403511684E+01 -1.89421719235E+01  8.52402841171E-01
     ehart,   eexcu,    vexcu  3.73115127703E+01 -5.51107839824E+00 -7.20671042696E+00
- iter,total energy,gnrm     4  -1.49019131038043255E+01  1.61E-02
+ iter,total energy,gnrm     4  -1.49019131038042900E+01  1.61E-02
  ---------------------------------------------------------------------------- iter= 5
  Calculation of charge density... done. Total electronic charge=      13.999999962614
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
@@ -208,7 +208,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.22242116942E+01 -1.89392378348E+01  8.66075985589E-01
     ehart,   eexcu,    vexcu  3.73138410407E+01 -5.51409419166E+00 -7.21067712553E+00
- iter,total energy,gnrm     5  -1.49028227102303319E+01  6.66E-03
+ iter,total energy,gnrm     5  -1.49028227102303390E+01  6.66E-03
  ---------------------------------------------------------------------------- iter= 6
  Calculation of charge density... done. Total electronic charge=      13.999999962734
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
@@ -217,7 +217,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.22164102752E+01 -1.89360792266E+01  8.66020698366E-01
     ehart,   eexcu,    vexcu  3.73093978786E+01 -5.51438610206E+00 -7.21105842813E+00
- iter,total energy,gnrm     6  -1.49029882538404692E+01  2.76E-03
+ iter,total energy,gnrm     6  -1.49029882538404905E+01  2.76E-03
  ---------------------------------------------------------------------------- iter= 7
  Calculation of charge density... done. Total electronic charge=      13.999999962755
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
@@ -226,25 +226,25 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.22124819957E+01 -1.89338189341E+01  8.67460026663E-01
     ehart,   eexcu,    vexcu  3.73091978106E+01 -5.51437869153E+00 -7.21104709601E+00
- iter,total energy,gnrm     7  -1.49030207661203633E+01  1.21E-03
+ iter,total energy,gnrm     7  -1.49030207661203349E+01  1.21E-03
  ---------------------------------------------------------------------------- iter= 8
- Calculation of charge density... done. Total electronic charge=      13.999999962751
+ Calculation of charge density... done. Total electronic charge=      13.999999962752
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights    2.87E-05  5.46E-04 -3.53E-03 -5.17E-03  4.16E-02  4.70E-02 -6.69E-01  1.59E+00 -4.21E-08
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.22109499813E+01 -1.89330307856E+01  8.67808361385E-01
     ehart,   eexcu,    vexcu  3.73087796945E+01 -5.51428580225E+00 -7.21092421534E+00
- iter,total energy,gnrm     8  -1.49030281725900267E+01  5.60E-04
+ iter,total energy,gnrm     8  -1.49030281725899982E+01  5.60E-04
  ---------------------------------------------------------------------------- iter= 9
- Calculation of charge density... done. Total electronic charge=      13.999999962746
+ Calculation of charge density... done. Total electronic charge=      13.999999962747
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
  DIIS weights   -9.63E-05 -1.60E-04  1.95E-03 -1.40E-04 -2.65E-02  7.76E-02  1.16E-02 -5.61E-01  1.50E+00 -6.41E-09
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.22105709997E+01 -1.89329725593E+01  8.67865515568E-01
     ehart,   eexcu,    vexcu  3.73085032221E+01 -5.51424130566E+00 -7.21086556906E+00
- iter,total energy,gnrm     9  -1.49030294510728112E+01  2.26E-04
+ iter,total energy,gnrm     9  -1.49030294510728183E+01  2.26E-04
  --------------------------------------------------------------------------- iter= 10
  Calculation of charge density... done. Total electronic charge=      13.999999962750
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
@@ -253,7 +253,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.22105907269E+01 -1.89329722976E+01  8.67822957899E-01
     ehart,   eexcu,    vexcu  3.73084779022E+01 -5.51423215308E+00 -7.21085349781E+00
- iter,total energy,gnrm    10  -1.49030296184978681E+01  8.07E-05
+ iter,total energy,gnrm    10  -1.49030296184979321E+01  8.07E-05
  --------------------------------------------------------------------------- iter= 11
  Calculation of charge density... done. Total electronic charge=      13.999999962752
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
@@ -262,7 +262,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.22106865744E+01 -1.89329814098E+01  8.67763655661E-01
     ehart,   eexcu,    vexcu  3.73085046576E+01 -5.51422999664E+00 -7.21085064067E+00
- iter,total energy,gnrm    11  -1.49030296416361381E+01  2.90E-05
+ iter,total energy,gnrm    11  -1.49030296416361239E+01  2.90E-05
  --------------------------------------------------------------------------- iter= 12
  Calculation of charge density... done. Total electronic charge=      13.999999962752
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
@@ -282,235 +282,201 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  1.22107720683E+01 -1.89330132461E+01  8.67735168712E-01
     ehart,   eexcu,    vexcu  3.73085303019E+01 -5.51423149954E+00 -7.21085261381E+00
- iter,total energy,gnrm    13  -1.49030296449354083E+01  3.86E-06
+ iter,total energy,gnrm    13  -1.49030296449353870E+01  3.86E-06
  --------------------------------------------------------------------------- iter= 14
- Calculation of charge density... done. Total electronic charge=      13.999999962752
+ Calculation of charge density... done. Total electronic charge=      13.999999962751
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
  Hamiltonian application... done. 14 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.22107778044E+01 -1.89330163866E+01  8.67734070507E-01
  final ehart, eexcu,  vexcu   3.73085318471E+01 -5.51423164792E+00 -7.21085280997E+00
- FINAL iter,total energy,gnrm    14  -1.49030296449758808E+01  3.86E-06
+ FINAL iter,total energy,gnrm    14  -1.49030296449759874E+01  3.86E-06
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -6.80306072431551E-01 2.0000
- e(   2)= -5.46667781501337E-01 2.0000
- e(   3)= -3.88318969903493E-01 2.0000
- e(   4)= -3.88260254280118E-01 2.0000
- e(   5)= -3.33424305816728E-01 2.0000
- e(   6)= -2.95168926298637E-01 2.0000
- e(   7)= -2.95105945618799E-01 2.0000
+ e(   1)= -6.80306072431584E-01 2.0000
+ e(   2)= -5.46667781501354E-01 2.0000
+ e(   3)= -3.88318969903518E-01 2.0000
+ e(   4)= -3.88260254280139E-01 2.0000
+ e(   5)= -3.33424305816763E-01 2.0000
+ e(   6)= -2.95168926298655E-01 2.0000
+ e(   7)= -2.95105945618816E-01 2.0000
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  ********* Use the selfconsistent potential for the linear scaling version. *********
  ################################ Input parameters. ################################
  |           |    number of    |     prefactor for     |
  | atom type | basis functions | confinement potential |
- |     C     |         5       |       2.000E-07       |
- |     H     |         5       |       2.000E-07       |
- ---------------------------------------------------------
- | maximal number | convergence | iterations in  | plot  |
- |  of iterations |  criterion  | preconditioner | basis |
- |       600      |  1.000E-03  |        8       |   F   |
- ---------------------------------------------------------
+ |     C     |         4       |       5.000E-07       |
+ |     H     |         1       |       5.000E-07       |
+ ---------------------------------------------------------------------
+ | maximal number | convergence | iterations in  | get coef- | plot  |
+ |  of iterations |  criterion  | preconditioner | ficients  | basis |
+ |       100      |  1.000E-02  |        3       |   min     |   F   |
+ ---------------------------------------------------------------------
  | DIIS history | alpha SD |  start  | allow DIIS |
  |  min   max   |          | with SD |            |
- |    6    10   | 1.00E-01 |    F    |  2.000E+02 |
+ |   5    10    | 1.00E+00 |    F    |  2.000E+02 |
  --------------------------------------------------
- | Processes from 0 to 7 treat 5 orbitals. |
+ | Processes from 0 to 5 treat 2 orbitals, |
+ | processes from 6 to 7 treat 1 orbitals. |
  ###################################################################################
- Wavefunctions memory occupation for root processor (Bytes): 3492480
-  ~~~~~~~ Creating the variable wave function descriptors and testing them... ~~~~~~~
- Create 2 new MPI communicators:
-   - Communicator 1 includes the processes 0 to 3.
-   - Communicator 2 includes the processes 4 to 7.
- Wavefunction memory occupation:
-   - process 0: 5062840 Bytes
-   - process 1: 5062840 Bytes
-   - process 2: 2537840 Bytes
-   - process 3: 2537760 Bytes
-   - process 4: 13080 Bytes
-   - process 5: 12960 Bytes
-   - process 6: 13080 Bytes
-   - process 7: 13160 Bytes
- Testing whether the transposition works...
-   Transposition test passed on all processes.
- ~~~~~~~~~~~~~~~~~~~~~~~ Descriptors created and test passed. ~~~~~~~~~~~~~~~~~~~~~~~
+ Wavefunctions memory occupation for root processor (Bytes): 1396912
  ======================== Creation of the basis functions... ========================
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     1  4.2690068E+02  9.8316796E+01  2698.7256660
+ iter, fnrm, fnrmMax, trace     1  2.6151626E+02  9.8866101E+01   938.8145389
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     2  7.9553409E+01  1.3116809E+01   294.5807236
+ iter, fnrm, fnrmMax, trace     2  4.7409702E+01  1.3402291E+01   104.7830284
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     3  9.6486947E+00  1.6879704E+00    38.6347939
+ iter, fnrm, fnrmMax, trace     3  5.7598901E+00  1.6763172E+00    12.3011745
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     4  3.3705362E+00  5.7639582E-01    15.8183722
+ iter, fnrm, fnrmMax, trace     4  2.0625963E+00  6.5281459E-01     4.5737549
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     5  1.8755808E+00  3.4142928E-01    10.8181673
+ iter, fnrm, fnrmMax, trace     5  1.5796334E+00  4.9737555E-01     2.3049186
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     6  1.4592672E+00  2.6499938E-01     8.1237096
+ iter, fnrm, fnrmMax, trace     6  1.3505785E+00  4.0428631E-01     0.8772289
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=7
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     7  1.1781804E+00  2.1161135E-01     6.6029471
+ iter, fnrm, fnrmMax, trace     7  1.3600777E+00  4.1840712E-01    -0.0470704
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=8
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     8  8.9513671E-01  1.6079394E-01     5.6640006
+ iter, fnrm, fnrmMax, trace     8  1.2407264E+00  3.7184759E-01    -0.7470854
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=9
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     9  6.9445949E-01  1.2559297E-01     5.1105344
+ iter, fnrm, fnrmMax, trace     9  1.2976610E+00  3.9183358E-01    -1.2289391
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=10
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    10  4.7271068E-01  8.8970385E-02     4.7346466
+ iter, fnrm, fnrmMax, trace    10  1.0164022E+00  3.3325311E-01    -1.6282585
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=11
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    11  4.0549564E-01  7.6694589E-02     4.5118922
+ iter, fnrm, fnrmMax, trace    11  8.2105502E-01  2.5560848E-01    -1.9009212
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=12
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    12  2.8677357E-01  5.5535509E-02     4.3816238
+ iter, fnrm, fnrmMax, trace    12  5.8628408E-01  1.8181625E-01    -2.0680466
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=13
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    13  1.6200817E-01  3.6224438E-02     4.2614968
+ iter, fnrm, fnrmMax, trace    13  3.6603163E-01  1.1918518E-01    -2.2207748
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=14
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    14  1.4608129E-01  3.2913966E-02     4.2026208
+ iter, fnrm, fnrmMax, trace    14  2.1668391E-01  6.6331921E-02    -2.2693569
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=15
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    15  1.0244237E-01  2.7272768E-02     4.1594224
+ iter, fnrm, fnrmMax, trace    15  1.6958847E-01  5.3811689E-02    -2.3054241
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=16
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    16  8.4506071E-02  2.3877252E-02     4.1335638
+ iter, fnrm, fnrmMax, trace    16  1.8045466E-01  6.1771668E-02    -2.3412765
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=17
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    17  8.2836444E-02  2.3352614E-02     4.1102621
+ iter, fnrm, fnrmMax, trace    17  1.1951363E-01  4.3906504E-02    -2.3627378
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=18
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    18  7.7295908E-02  2.2819974E-02     4.0942667
+ iter, fnrm, fnrmMax, trace    18  1.3678320E-01  4.8492448E-02    -2.3801759
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=19
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    19  7.2616361E-02  2.1886106E-02     4.0859192
+ iter, fnrm, fnrmMax, trace    19  2.6262898E-01  1.1206254E-01    -2.4128138
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=20
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    20  7.1832589E-02  2.2051456E-02     4.0734270
+ iter, fnrm, fnrmMax, trace    20  9.3814891E-02  3.6889599E-02    -2.4318578
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=21
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    21  7.7719204E-02  2.2784576E-02     4.0593364
+ iter, fnrm, fnrmMax, trace    21  1.2311608E-01  4.7043939E-02    -2.4461343
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=22
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    22  6.4255113E-02  2.0011511E-02     4.0480094
+ iter, fnrm, fnrmMax, trace    22  8.0098177E-02  3.3473591E-02    -2.4610988
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=23
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    23  7.8309304E-02  2.1936649E-02     4.0296107
+ iter, fnrm, fnrmMax, trace    23  5.6557897E-02  2.7007253E-02    -2.4701719
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=24
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    24  4.5717723E-02  1.2890367E-02     4.0166399
+ iter, fnrm, fnrmMax, trace    24  5.3870502E-02  2.5533916E-02    -2.4756962
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=25
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    25  3.4033186E-02  7.1420558E-03     4.0087819
+ iter, fnrm, fnrmMax, trace    25  4.6013241E-02  2.4458098E-02    -2.4804972
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=26
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    26  2.2937776E-02  5.0392284E-03     4.0058256
+ iter, fnrm, fnrmMax, trace    26  4.1690634E-02  2.1629893E-02    -2.4842819
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=27
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    27  1.7774554E-02  4.2004182E-03     4.0050415
+ iter, fnrm, fnrmMax, trace    27  3.2985862E-02  1.6144605E-02    -2.4865897
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=28
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    28  1.6307007E-02  3.8066355E-03     4.0045275
+ iter, fnrm, fnrmMax, trace    28  2.1257385E-02  1.0609091E-02    -2.4879074
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=29
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    29  1.4359079E-02  3.3792764E-03     4.0032068
+ iter, fnrm, fnrmMax, trace    29  2.5617789E-02  1.2108083E-02    -2.4889748
  DIIS informations: history length=10, consecutive failures=0, total failures=0
  ---------------------------------------------------------------------------- iter=30
  Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    30  1.1122701E-02  2.4598224E-03     4.0024203
- DIIS informations: history length=10, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=31
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    31  8.4154049E-03  1.9070031E-03     4.0020681
- DIIS informations: history length=10, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=32
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    32  7.1623934E-03  1.6645319E-03     4.0017502
- DIIS informations: history length=10, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=33
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    33  6.5072089E-03  1.5321675E-03     4.0014699
- DIIS informations: history length=10, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=34
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    34  5.6300748E-03  1.3583168E-03     4.0012468
- DIIS informations: history length=10, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=35
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    35  4.6282123E-03  1.0684646E-03     4.0010307
- DIIS informations: history length=10, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=36
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    36  3.9644194E-03  9.2633613E-04     4.0008680
- converged in 36 iterations.
- Final values for fnrm, fnrmMax, trace:   3.9644194E-03  9.2633613E-04   4.0008680
+ iter, fnrm, fnrmMax, trace    30  1.8236686E-02  9.4064789E-03    -2.4895442
+ converged in 30 iterations.
+ Final values for fnrm, fnrmMax, trace:   1.8236686E-02  9.4064789E-03  -2.4895442
  ============================= Basis functions created. =============================
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... done. Diagonalization... done. Linear combinations... done.
+ Hamiltonian application... done.
+ Optimizing coefficients... converged in 57 iterations.
+   Final values for fnrm, Energy:   4.82373E-11  -5.85269E+00
+ Building linear combinations... done.
  -------------------------------------------------- Calculation of energy and forces.
- Calculation of charge density... done. Total electronic charge=      13.999999962756
+ Calculation of charge density... done. Total electronic charge=      13.999999962670
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
  Hamiltonian application... done.
- ekin_sum,epot_sum,eproj_sum  1.22107532007E+01 -1.89328957134E+01  8.67655001419E-01
-    ehart,   eexcu,    vexcu  3.73085407502E+01 -5.51421124119E+00 -7.21082582160E+00
- total energy, modified energy  -1.49030281293780220E+01  -1.49022102916791752E+01
+ converged in 48 iterations.
+   Final values for fnrm, Energy:   6.54757E-11  -5.85538E+00
+ ekin_sum,epot_sum,eproj_sum  8.62897345856E+00 -1.16673680088E+01  5.47657000037E-01
+    ehart,   eexcu,    vexcu  3.73059052786E+01 -5.51441906180E+00 -7.21109724271E+00
+ total energy, modified energy  -1.49030055254933700E+01  -1.49012178143201339E+01
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      13.999999962756
+ Calculation of charge density... done. Total electronic charge=      13.999999962670
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   2.12766792E-04
- average noise along y direction:   1.25105021E-04
- average noise along z direction:   1.47651905E-04
- total average noise            :   2.87614427E-04
- clean forces norm (Ha/Bohr): maxval=  4.348989647160E-04  fnrm2=  3.745077436608E-07
- raw forces:                  maxval=  5.694298292417E-04  fnrm2=  5.000584560471E-07
+ average noise along x direction:  -4.94806170E-04
+ average noise along y direction:  -7.86157402E-04
+ average noise along z direction:  -2.02847689E-05
+ total average noise            :   9.29132972E-04
+ clean forces norm (Ha/Bohr): maxval=  1.583458084646E-03  fnrm2=  4.204320565547E-06
+ raw forces:                  maxval=  1.895210140516E-03  fnrm2=  5.213759191767E-06
  Force values for all atoms in x, y, z direction.
-   1      C   2.42368E-04  2.91876E-04  2.12611E-04
-   2      C   1.88442E-04 -6.45554E-05 -1.21312E-05
-   3      H  -7.30213E-05 -7.99441E-05 -3.91467E-05
-   4      H  -2.66690E-05 -1.38090E-04 -9.18422E-05
-   5      H  -1.27212E-04  6.18983E-05 -1.72744E-04
-   6      H  -6.99508E-05  1.00967E-05 -1.80127E-05
-   7      H   5.17630E-05 -3.22545E-05  8.22301E-05
-   8      H  -1.85720E-04 -4.90270E-05  3.90355E-05
+   1      C  -6.76486E-04  1.70197E-04  5.28767E-05
+   2      C   1.46941E-04 -1.48883E-03 -5.18768E-04
+   3      H  -1.24309E-04 -2.12786E-04  6.83100E-05
+   4      H   5.79806E-05  2.94559E-04  2.42488E-04
+   5      H   2.27370E-05  5.74752E-04 -4.47155E-04
+   6      H   1.71312E-04  2.11443E-04  1.52136E-04
+   7      H   2.07789E-04  8.44442E-05  3.69758E-04
+   8      H   1.94036E-04  3.66225E-04  8.03545E-05
  ************************ END OF THE LINEAR SCALING VERSION.  ************************
  ********** The program will now continue with the standard  cubic version. **********
  ********************* !!WARNING: What follows may be garbage!!  *********************
@@ -520,27 +486,27 @@
  Generation of input wavefunction data for atom      H:
    Elec. Configuration: s 1.00 , ... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      13.999999962756
+ Calculation of charge density... done. Total electronic charge=      13.999999962670
  PSolver, free  BC, dimensions:   137  129  127   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:  -2.22153873E-02
- average noise along y direction:   1.44755980E-02
- average noise along z direction:   9.67923897E+00
- total average noise            :   9.67927529E+00
- clean forces norm (Ha/Bohr): maxval=  1.027118013595E+01  fnrm2=  2.810658557513E+02
- raw forces:                  maxval=  1.369348582092E+01  fnrm2=  3.747542266759E+02
- CPU time/ELAPSED time for root process     0        92.46        92.23
+ average noise along x direction:  -1.40994876E-02
+ average noise along y direction:   1.37645308E-02
+ average noise along z direction:   9.65069873E+00
+ total average noise            :   9.65071884E+00
+ clean forces norm (Ha/Bohr): maxval=  1.023819855798E+01  fnrm2=  2.794027475374E+02
+ raw forces:                  maxval=  1.365008213988E+01  fnrm2=  3.725391229836E+02
+ CPU time/ELAPSED time for root process     0        25.51        25.47
  Final values of the Forces for each atom
-     1      C -6.04093E-02  3.84684E-02  1.02615E+01
-     2      C  1.32629E-02 -7.79906E-03  1.02712E+01
-     3      H  7.83850E-03 -5.08398E-03 -3.42178E+00
-     4      H  8.14417E-03 -5.30723E-03 -3.42181E+00
-     5      H  7.60318E-03 -4.82638E-03 -3.42192E+00
-     6      H  7.61831E-03 -4.96810E-03 -3.42245E+00
-     7      H  8.18047E-03 -5.29132E-03 -3.42232E+00
-     8      H  7.76185E-03 -5.19231E-03 -3.42237E+00
+     1      C -5.64749E-02  4.36800E-02  1.02336E+01
+     2      C  2.70854E-02 -1.41320E-02  1.02382E+01
+     3      H  4.73991E-03 -5.68760E-03 -3.41206E+00
+     4      H  4.57694E-03 -4.96276E-03 -3.41191E+00
+     5      H  4.68427E-03 -4.77058E-03 -3.41259E+00
+     6      H  5.27232E-03 -4.82014E-03 -3.41178E+00
+     7      H  5.16621E-03 -4.85910E-03 -3.41157E+00
+     8      H  4.94979E-03 -4.44786E-03 -3.41188E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 8810 allocations and 8810 deallocations, remaining memory(B): 0
- memory occupation peak: 159 MB
+ 4483 allocations and 4483 deallocations, remaining memory(B): 0
+ memory occupation peak: 109 MB
  for the array  psir in the routine local_hamiltonian
