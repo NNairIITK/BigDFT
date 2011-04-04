@@ -1344,10 +1344,12 @@ module module_interfaces
 
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-        infoBasisFunctions, n3p, ebsMod)
+        infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, ebsMod)
       use module_base
       use module_types
-      integer,intent(in):: iproc, nproc, nspin, n3p
+      !use Poisson_Solver
+      implicit none
+      integer,intent(in):: iproc, nproc, nspin, n3p, n3d
       type(locreg_descriptors),intent(in):: Glr
       type(orbitals_data),intent(in) :: orbs
       type(communications_arrays),intent(in) :: comms
@@ -1361,10 +1363,18 @@ module module_interfaces
       real(wp),dimension(nlpspd%nprojel),intent(in):: proj
       real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
       type(GPU_pointers),intent(inout):: GPU
+      integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
+      real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons 
+      real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
+      real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
+      !real(wp), dimension(lin%as%size_rhocore):: rhocore 
+      real(wp), dimension(:),pointer,intent(in):: rhocore                  
+      real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
       real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
       real(8),dimension(orbs%npsidim),intent(out):: psi, psit
       integer,intent(out):: infoBasisFunctions
+      character(len=3),intent(in):: PSquiet
       real(8),intent(out):: ebsMod
     end subroutine getLinearPsi
 
@@ -1449,10 +1459,10 @@ module module_interfaces
       integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
       real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
       real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
-      real(wp), dimension(lin%as%size_pot_ion),intent(in):: pot_ion
+      real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
       !real(wp), dimension(lin%as%size_rhocore):: rhocore 
       real(wp), dimension(:),pointer,intent(in):: rhocore
-      real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(in):: potxc
+      real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
       character(len=3),intent(in):: PSquiet
       real(gp),intent(in):: eion, edisp, eexctX
       logical,intent(in):: scpot
