@@ -243,7 +243,7 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%ncong,in%idsx
   call check()
-  in%idsx = max(in%idsx, in%itermax)
+  in%idsx = min(in%idsx, in%itermax)
   read(1,*,iostat=ierror) in%dispersion
   call check()
 
