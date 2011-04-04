@@ -2837,8 +2837,7 @@ class Declaration(Code):
             else:
                 #We use the implicit dictionary
                 arg = Variable(argument_lower,parent=self.parent,truename=argument,is_argument=True)
-                type_arg = arg.type_from_implicit(dict_implicit)
-                if type_arg == "":
+                if not arg.type_from_implicit(dict_implicit):
                     arg.display_information()
                     text = "\nArguments of the routine '%s':" % self.parent.name
                     for arg in arguments_lower:
@@ -2853,8 +2852,7 @@ class Declaration(Code):
             names = arg.get_dependencies()
             order = arg.order()
             #Add the declaration of the argument with order
-            if type_arg != "":
-                declarations.append((order,arg,type_arg))
+            declarations.append((order,arg))
             #For each variables which depend arguments, we add information
             for name in names:
                 #Find where some information about 'name' is stored
@@ -2901,9 +2899,12 @@ class Declaration(Code):
                     else:
                         message = self.message.fatal
                     if unfound_module:
+                        texte += "\n Unfound modules:"
+                        for unfound_module in unfound_modules:
+                            texte += " %s" % unfound_module
                         message("%s\n   " % texte \
-                                + " The module '%s' is not found and" % module \
-                                + " the argument '%s' depends on '%s' which could be in this module." \
+                                + " The modules '%s' are not found and" % module \
+                                + " the argument '%s' depends on '%s' which could be in these modules." \
                                 % (arg.name,name))
                     else:
                         message("%s\n[%s/%s:%s]:" % \
