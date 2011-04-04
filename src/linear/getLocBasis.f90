@@ -665,7 +665,7 @@ type(diis_objects):: diisLIN
           write(*,'(x,a)', advance='no') 'Orthonormalization... '
       end if
       call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
-  
+
       ! Untranspose phi
       call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
   

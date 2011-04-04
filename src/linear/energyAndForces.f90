@@ -154,7 +154,6 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
 
 
   energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
-write(*,*) 'energybs', energybs
   energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
   ! IS THIS CORRECT??
