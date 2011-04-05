@@ -397,7 +397,7 @@ program MINHOP
 
   !C continue since escaped
   !C  check whether new minimum
-  call hunt(earr(1,1),min(nlmin,nlminx),re_wpos,k_e_wpos)
+  call hunt_g(earr(1,1),min(nlmin,nlminx),re_wpos,k_e_wpos)
   if (re_wpos == earr(k_e_wpos,1)) then
      if (iproc == 0) write(67,'(a,i3,i3,i4,1x,1pe14.7)')  & 
           'npmin,nlmin,k_e_wpos,re_wpos=earr',npmin,nlmin,k_e_wpos,re_wpos
@@ -937,7 +937,7 @@ subroutine save_low_conf(nat,npmin,npminx,e_wpos,pos,elocmin,poslocmin)
 END SUBROUTINE save_low_conf
 
 
-subroutine hunt(xx,n,x,jlo)
+subroutine hunt_g(xx,n,x,jlo)
   implicit none
   !C x is in interval [xx(jlo),xx(jlow+1)[ ; xx(0)=-Infinity ; xx(n+1) = Infinity
   !Arguments
@@ -946,7 +946,7 @@ subroutine hunt(xx,n,x,jlo)
   !Local variables
   integer :: inc,jhi,jm
   logical :: ascnd
-  if (n.le.0) stop 'hunt'
+  if (n.le.0) stop 'hunt_g'
   if (n == 1) then
      if (x.ge.xx(1)) then
         jlo=1
@@ -997,7 +997,7 @@ subroutine hunt(xx,n,x,jlo)
      jhi=jm
   endif
   goto 3
-END SUBROUTINE hunt
+END SUBROUTINE hunt_g
 
 
 subroutine velopt(at,rxyz,ekinetic,vxyz)
