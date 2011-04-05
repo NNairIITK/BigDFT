@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 04/04/2011
+# Date: 05/04/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -204,24 +204,24 @@ if bigdft:
         print "Max Discrepancy: NaN"
         sys.exit(1)
 
-#Remove line_junk before comparing (not useful whih diff and the line number is wrong)
-#nojunk1 = list()
-#for line in original1:
-#    if not line_junk(line):
-#        nojunk1.append(line)
-#nojunk2 = list()
-#for line in original2:
-#    if not line_junk(line):
-#        nojunk2.append(line)
+#Remove line_junk before comparing (the line number is wrong)
+nojunk1 = list()
+for line in original1:
+    if not line_junk(line):
+        nojunk1.append(line)
+nojunk2 = list()
+for line in original2:
+    if not line_junk(line):
+        nojunk2.append(line)
 
 
 #Open 2 temproray files
 t1 = tempfile.NamedTemporaryFile()
-for line in original1:
+for line in nojunk1:
     t1.write(line)
 t1.flush()
 t2 = tempfile.NamedTemporaryFile()
-for line in original2:
+for line in nojunk2:
     t2.write(line)
 t2.flush()
 
