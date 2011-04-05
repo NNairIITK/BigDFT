@@ -45,6 +45,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 !  integer :: ncount0,ncount1,ncount2,ncount3,ncountmpi0,ncountmpi1,ncount_max,ncount_rate
 !  real(kind=8) :: stream_ptr
 
+  !call system_clock(ncount0,ncount_rate,ncount_max)
+
   call timing(iproc,'Rho_comput    ','ON')
 
   if (iproc==0 .and. verbose >= 1) then
@@ -63,6 +65,9 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
        & (ixc < 0 .and. libxc_functionals_isgga()))
   
+!  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
+!             (ixc < 0 .and. libxc_functionals_isgga()), have_mpi2,rsflag
+
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
      nrhotot=0
@@ -80,6 +85,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      rho_p => rho
   end if
 
+  !call system_clock(ncount1,ncount_rate,ncount_max)
 !!$  if (OCLconv) then
 !!$     allocate(rho_p_OCL(max(nrho,1),nspin),stat=i_stat)
 !!$     call memocc(i_stat,rho_p_OCL,'rho_p_OCL',subname)
@@ -104,8 +110,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      end if
 
      !for each of the orbitals treated by the processor build the partial densities
+     !call system_clock(ncount2,ncount_rate,ncount_max)
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
           nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
+     !call system_clock(ncount3,ncount_rate,ncount_max)
   end if
 
 !!$  if (OCLconv) then
@@ -146,10 +154,17 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
                MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         end do
      else
+       !  call system_clock(ncountmpi0,ncount_rate,ncount_max)
        !  call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
        !       MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
          call mpiallred(rho_p(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
                MPI_SUM,MPI_COMM_WORLD,ierr)
+       !  call system_clock(ncountmpi1,ncount_rate,ncount_max)
+       !  write(*,'(A,4(1X,f6.3))') 'TIMING:ARED'
+       !             real(ncount1-ncount0)/real(ncount_rate),&
+       !             real(ncount2-ncount1)/real(ncount_rate),&
+       !             real(ncount3-ncount2)/real(ncount_rate),&
+       !             real(ncountmpi1-ncountmpi0)/real(ncount_rate)
          !stop 'rsflag active in sumrho.f90, check MPI2 implementation'
      end if
      call timing(iproc,'Rho_commun    ','OF')
@@ -174,6 +189,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
         end do
      end if
   end if
+  !call system_clock(ncount2,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:SR2',real(ncount2-ncount1)/real(ncount_rate)
   ! Check
   tt=0.d0
   i3off=lr%d%n1i*lr%d%n2i*nscatterarr(iproc,4)
@@ -244,6 +261,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   call memocc(i_stat,i_all,'tmred',subname)
 
   call timing(iproc,'Rho_comput    ','OF')
+
+  !call system_clock(ncount3,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:SR3',real(ncount3-ncount2)/real(ncount_rate)
+  !write(*,*) 'TIMING:SR',real(ncount3-ncount0)/real(ncount_rate)
 END SUBROUTINE sumrho
 !!***
 
