@@ -42,6 +42,9 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
        ftrig1,ftrig2,ftrig3,cosinarr
   integer, dimension(:), allocatable :: after1,now1,before1, & 
        after2,now2,before2,after3,now3,before3
+  !integer :: ncount0,ncount1,ncount_max,ncount_rate
+
+  !call system_clock(ncount0,ncount_rate,ncount_max)
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -254,8 +257,6 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   !$omp end critical
   !$omp end parallel
 
-  !call system_clock(ncount2,ncount_rate,ncount_max)
-  !write(*,*) 'TIMING:2 ', real(ncount2-ncount1)/real(ncount_rate)
 
   !Interprocessor data transposition
   !input: I1,J2,j3,jp3,(Jp2)
@@ -577,6 +578,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
      call memocc(i_stat,i_all,'zmpi1',subname)
   end if
   call timing(iproc,'PSolv_comput  ','OF')
+  !call system_clock(ncount1,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:PS ', real(ncount1-ncount0)/real(ncount_rate)
 END SUBROUTINE G_PoissonSolver
 
 
