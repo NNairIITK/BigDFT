@@ -27,13 +27,15 @@ character(len=*):: filterCode
 ! Local variables
 integer:: i
 real(8):: fac, fac2, prefac1, prefac2a, hgrid2, hgrid3, x02, x03
+real(8):: scale
 
+scale=1.d0
 
 prefac1=-.5d0/hgrid**2
 !fac=dble(max(100-int(dble(it)/2.d0),1))*parabPrefac
 !fac2=dble(max(100-int(dble(it)/2.d0),1))*parabPrefac*hgrid
-fac=parabPrefac
-fac2=parabPrefac*hgrid
+fac=parabPrefac*scale
+fac2=parabPrefac*hgrid*scale
 hgrid2=hgrid**2
 hgrid3=hgrid**3
 x02=x0**2

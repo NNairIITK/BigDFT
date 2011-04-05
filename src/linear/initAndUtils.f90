@@ -72,35 +72,44 @@ read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaSD
 read(99,*) lin%startWithSD, lin%startDIIS
 read(99,*) lin%nItPrecond
 read(99,*) lin%getCoeff
+read(99,*) lin%nItCoeff, lin%convCritCoeff
 read(99,*) lin%plotBasisFunctions
 call checkLinearParameters(iproc, lin)
-if(iproc==0) write(*,'(x,a)') '################################ Input parameters. ################################'
-if(iproc==0) write(*,'(x,a,9x,a,3x,a,3x,a,4x,a,4x,a)') '| ', ' | ', 'number of', ' | ', 'prefactor for', ' |'
-if(iproc==0) write(*,'(x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis functions', ' | ', &
+if(iproc==0) write(*,'(x,a)') '################################# Input parameters #################################'
+if(iproc==0) write(*,'(x,a)') '>>>> General parameters.'
+if(iproc==0) write(*,'(4x,a,9x,a,3x,a,3x,a,4x,a,4x,a)') '| ', ' | ', 'number of', ' | ', 'prefactor for', ' |'
+if(iproc==0) write(*,'(4x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis functions', ' | ', &
     'confinement potential', ' |'
 do iat=1,at%ntypes
     read(99,*) atomname, norbsPerType(iat), lin%potentialPrefac(iat)
-    if(iproc==0) write(*,'(x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomname), &
+    if(iproc==0) write(*,'(4x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomname), &
         repeat(' ', 6-len_trim(atomname)), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)+1.d-10))), &
          norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |'
 end do
 close(unit=99)
-if(iproc==0) write(*,'(x,a)') '---------------------------------------------------------------------'
-if(iproc==0) write(*,'(x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
-if(iproc==0) write(*,'(x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
-if(iproc==0) write(*,'(x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
+if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------'
+if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
+if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
+if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
+if(iproc==0) write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
     repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)+1.d-10))), lin%nItMax, ' | ', lin%convCrit, ' | ', &
       repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       |   ', &
       lin%getCoeff, '    |  ', &
       lin%plotBasisFunctions, '   |'
-if(iproc==0) write(*,'(x,a)') '---------------------------------------------------------------------'
-if(iproc==0) write(*,'(x,a)') '| DIIS history | alpha SD |  start  | allow DIIS |'
-if(iproc==0) write(*,'(x,a)') '|  min   max   |          | with SD |            |'
-if(iproc==0) write(*,'(x,a,a,i0,3x,a,i0,3x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '|', &
+if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------'
+if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha SD |  start  | allow DIIS |'
+if(iproc==0) write(*,'(4x,a)') '|  min   max   |          | with SD |            |'
+if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
     lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |'
-if(iproc==0) write(*,'(x,a)') '--------------------------------------------------'
+if(iproc==0) write(*,'(4x,a)') '--------------------------------------------------'
+if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the coefficients.'
+if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence |'
+if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  |'
+if(iproc==0) write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a)') '| ', &
+    repeat(' ', 9-ceiling(log10(dble(lin%nItCoeff+1)+1.d-10))), lin%nItCoeff, ' | ', lin%convCritCoeff, ' | '
+if(iproc==0) write(*,'(4x,a)') '--------------------------------'
 
 
 ! Assign to each atom its number of basis functions and count how many basis functions 
@@ -119,14 +128,15 @@ norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%orbs)
 written=.false.
+if(iproc==0) write(*,'(x,a)') '>>>> Partition of the basis functions among the processes.'
 do jproc=1,nproc-1
     if(lin%orbs%norb_par(jproc)<lin%orbs%norb_par(jproc-1)) then
         !if(iproc==0) write(*,'(x,a,5(i0,a))') '#| Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), &
         !    ' orbitals, processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.'
-        if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+        if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
             lin%orbs%norb_par(jproc-1), ' orbitals,', &
             repeat(' ', 3-ceiling(log10(dble(jproc)))-ceiling(log10(dble(lin%orbs%norb_par(jproc-1)+1)))), '|'
-        if(iproc==0) write(*,'(x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+        if(iproc==0) write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
             lin%orbs%norb_par(jproc),' orbitals.', &
             repeat(' ', 4-ceiling(log10(dble(jproc+1)))-ceiling(log10(dble(nproc)))-&
             ceiling(log10(dble(lin%orbs%norb_par(jproc)+1)))), '|'
@@ -135,11 +145,11 @@ do jproc=1,nproc-1
     end if
 end do
 if(.not.written) then
-    if(iproc==0) write(*,'(x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+    if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
         ' treat ',lin%orbs%norbp,' orbitals. |'!, &
         !repeat(' ', 15-ceiling(log10(dble(nproc)))-ceiling(log10(dble(lin%orbs%norbp+1)))), '|'
 end if
-if(iproc==0) write(*,'(x,a)') '###################################################################################'
+if(iproc==0) write(*,'(x,a)') '####################################################################################'
 
 
 ! Decide which orbital is centered in which atom.
@@ -575,6 +585,7 @@ real(8):: hxh, hyh, hzh
 integer:: it
 
 integer:: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat
+integer:: unit1, unit2, unit3
 real(8),dimension(:),allocatable:: phir
 type(workarr_sumrho) :: w
 character(len=10):: c1, c2, c3
@@ -585,6 +596,10 @@ allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
 call initialize_work_arrays_sumrho(Glr,w)
 
 istart=0
+
+unit1=10*iproc+7
+unit2=10*iproc+8
+unit3=10*iproc+9
 
 !write(*,*) 'write, orbs%nbasisp', orbs%norbp
     orbLoop: do iorb=1,orbs%norbp
@@ -601,9 +616,9 @@ istart=0
         file1='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_x'
         file2='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_y'
         file3='orbs_'//trim(c1)//'_'//trim(c2)//'_'//trim(c3)//'_z'
-        open(unit=101, file=trim(file1))
-        open(unit=102, file=trim(file2))
-        open(unit=103, file=trim(file3))
+        open(unit=unit1, file=trim(file1))
+        open(unit=unit2, file=trim(file2))
+        open(unit=unit3, file=trim(file3))
         do i3=1,Glr%d%n3i
             do i2=1,Glr%d%n2i
                 do i1=1,Glr%d%n1i
@@ -619,19 +634,19 @@ istart=0
                    ! x component
                    ix=ii
 
-                   if(iy==ix0 .and. iz==iz0) write(101,*) ix, phir(jj)
+                   if(iy==ix0 .and. iz==iz0) write(unit1,*) ix, phir(jj)
                    ! Write along y-axis
-                   if(ix==ix0 .and. iz==iz0) write(102,*) iy, phir(jj)
+                   if(ix==ix0 .and. iz==iz0) write(unit2,*) iy, phir(jj)
                    ! Write along z-axis
-                   if(ix==ix0 .and. iy==iy0) write(103,*) iz, phir(jj)
+                   if(ix==ix0 .and. iy==iy0) write(unit3,*) iz, phir(jj)
 
 
                 end do
             end do
         end do
-        close(unit=101)
-        close(unit=102)
-        close(unit=103)
+        close(unit=unit1)
+        close(unit=unit2)
+        close(unit=unit3)
 
         istart=istart+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor
 

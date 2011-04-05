@@ -2258,7 +2258,7 @@ END SUBROUTINE dimension_ovrlpFixedNorb
 !!   Uses wavefunctions in their transposed form
 !! SOURCE
 !!
-subroutine orthoconstraintNotSymmetric(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
+subroutine orthoconstraintNotSymmetric(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum,lagMatDiag)
   use module_base
   use module_types
   implicit none
@@ -2269,6 +2269,7 @@ subroutine orthoconstraintNotSymmetric(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprs
   real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(in) :: psi
   real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(out) :: hpsi
   real(dp), intent(out) :: scprsum
+  real(dp),dimension(orbs%norb),intent(out):: lagMatDiag
   !local variables
   character(len=*), parameter :: subname='orthoconstraintNotSymmetric'
   integer :: i_stat,i_all,ierr,iorb,ise,jorb
@@ -2339,11 +2340,15 @@ integer:: istart, jstart
      call timing(iproc,'LagrM_comput  ','ON')
   end if
 
-!!! Lagrange multiplier matrix
-!!!write(*,*) 'Lagrange multiplier matrix'
-!!!do iorb=1,norb
-!!!    if(iproc==0) write(*,'(80f8.4)') (alag(norb*jorb+iorb), jorb=0,norb-1)
-!!!end do
+  ! Copy the diagonal of the matrix
+  do iorb=1,orbs%norb
+      lagMatDiag(iorb)=alag((iorb-1)*orbs%norb+iorb)
+  end do
+!! Lagrange multiplier matrix
+!if(iproc==0) write(*,*) 'Lagrange multiplier matrix'
+!do iorb=1,norb
+!    if(iproc==0) write(*,'(80f8.4)') (alag(norb*jorb+iorb), jorb=0,norb-1)
+!end do
 
 
   !now each processors knows all the overlap matrices for each k-point
@@ -2382,8 +2387,7 @@ integer:: istart, jstart
            occ=real(orbs%kwgts(ikpt),dp)
            if(nspinor == 1) then
               do iorb=1,norb
-                 scprsum=scprsum+&
-                      occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
+                 scprsum=scprsum+occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
               enddo
            else if (nspinor == 4 .or. nspinor == 2) then
               !not sure about the imaginary part of the diagonal (should be zero if H is hermitian)

@@ -296,10 +296,10 @@ real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum
 real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
 integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp
-real(8),dimension(:),allocatable:: hphiold, alpha, fnrmOldArr
+real(8),dimension(:),allocatable:: hphiold, alpha, fnrmOldArr, lagMatDiag
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 real(8),dimension(:),pointer:: phiWork
-logical:: quiet, allowDIIS, startWithSD
+logical:: quiet, allowDIIS, startWithSD, adapt
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(diis_objects):: diisLIN
@@ -312,6 +312,7 @@ allocate(lagMult(lin%orbs%norb,lin%orbs%norb), stat=istat)
 lagMult=1.d-1
 allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
 
+allocate(lagMatDiag(lin%orbs%norb), stat=istat)
 
   ! Allocate all local arrays
   call allocateLocalArrays()
@@ -331,13 +332,11 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
       startWithSD=.false.
   end if
   
-!!! DEBUG  
-      call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
-!!! DEBUG  
   if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
 
   ! Assign the step size for SD iterations.
   alpha=lin%alphaSD
+  adapt=.false.
   iterLoop: do it=1,lin%nItMax
       fnrmMax=0.d0
       fnrm=0.d0
@@ -346,13 +345,12 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
           write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       endif
   
-!!!if(it<=50) then  
       ! Orthonormalize the orbitals.
       if(iproc==0) then
           write(*,'(x,a)', advance='no') 'Orthonormalization... '
       end if
       call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
-!!!end  if
+
       ! Untranspose phi
       call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
   
@@ -366,40 +364,6 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
            rhopot(1),&
            phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel=pkernelseq)
   
-!!!!!! NEW
-!!!
-!!!if(it>50) then
-!!!  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-!!!  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
-!!!  nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
-!!!  istart=1
-!!!  do iorb=1,lin%orbs%norb
-!!!    jstart=1
-!!!    do jorb=1,lin%orbs%norb
-!!!      ovrlp(jorb,iorb,2)=ddot(nvctrp, phi(istart), 1, phi(jstart), 1)
-!!!      jstart=jstart+nvctrp*orbs%nspinor
-!!!    end do
-!!!    istart=istart+nvctrp*orbs%nspinor
-!!!  end do
-!!!  call mpi_allreduce(ovrlp(1,1,2), ovrlp(1,1,1), lin%orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-!!!  
-!!!  istart=1
-!!!  do iorb=1,lin%orbs%norb
-!!!    jstart=1
-!!!    do jorb=1,iorb-1
-!!!      call daxpy(nvctrp, lagMult(jorb,iorb), phi(jstart), 1, hphi(istart), 1)
-!!!      jstart=jstart+nvctrp
-!!!      lagMult(jorb,iorb)=lagMult(jorb,iorb)-1.d-3*(ovrlp(jorb,iorb,1))
-!!!    end do
-!!!    call daxpy(nvctrp, 2.d0*lagMult(iorb,iorb), phi(jstart), 1, hphi(istart), 1)
-!!!    lagMult(iorb,iorb)=lagMult(iorb,iorb)+1.d-3*(ovrlp(iorb,iorb,1))
-!!!    istart=istart+nvctrp
-!!!  end do
-!!!  call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-!!!  call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
-!!!end if
-!!!
-!!!!!! NEW
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
@@ -407,7 +371,13 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
       end if
       call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
       call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-      call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH)
+      call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH, lagMatDiag)
+!!if(iproc==0) then
+!!    write(*,*) 'lagMatDiag'
+!!    do iorb=1,lin%orbs%norb
+!!        write(*,*) lagMatDiag(iorb)
+!!    end do
+!!end if
   
   
       ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
@@ -451,8 +421,20 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
   
       ! Untranspose hphi.
       call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+
   
+      ! Adapt the preconditioning constant
+      if(fnrmMax<1.d-9) then
+          if(.not.adapt .and. iproc==0) then
+              write(*,'(x,a)') 'Adapting the preconditioning constant from now on'
+              adapt=.true.
+          end if
+          do iorb=1,lin%orbs%norb
+              lin%orbs%eval(iorb)=lagMatDiag(iorb)
+          end do
+      end if
   
+
       ! Precondition the gradient
       if(iproc==0) then
           write(*,'(a)') 'preconditioning. '
@@ -466,8 +448,8 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
       meanAlpha=tt/dble(lin%orbs%norb)
   
       ! Write some informations to the screen.
-      if(iproc==0) write(*,'(x,a,i6,2es15.7,f14.7)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
-      if(iproc==0) write(1000,'(i6,2es15.7,f15.7,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
+      if(iproc==0) write(*,'(x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
+      if(iproc==0) write(1000,'(i6,2es15.7,f18.10,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
       if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
           if(it>=lin%nItMax) then
               if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
@@ -1233,6 +1215,7 @@ real(8):: tt, fnrm, ddot, dnrm2, meanAlpha, cosangle, ebsMod
 real(8),dimension(:,:),allocatable:: grad, gradOld, lagMat
 real(8),dimension(:),allocatable:: alpha
 character(len=*),parameter:: subname='optimizeCoefficients'
+logical:: converged
 
 
 allocate(grad(lin%orbs%norb,orbs%norb), stat=istat)
@@ -1261,8 +1244,10 @@ processIf: if(iproc==0) then
     ! Initial step size
     alpha=1.d-1
 
+    converged=.false.
+
     ! The optimization loop
-    iterLoop: do it=1,100000
+    iterLoop: do it=1,lin%nItCoeff
 
         ! Calculate the gradient.
         meanAlpha=0.d0
@@ -1327,7 +1312,7 @@ processIf: if(iproc==0) then
         end do
     
         ! Multiply the energy with a factor of 2 due to closed-shell
-        !if(iproc==0) write(*,'(a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', it, fnrm, meanAlpha, 2.d0*ebsMod
+        if(iproc==0) write(*,'(x,a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', it, fnrm, meanAlpha, 2.d0*ebsMod
         !if(iproc==0) write(99,'(i0,es12.4,3x,es10.3, es15.5)')  it, fnrm, meanAlpha, 2.d0*ebsMod
         
         ! Orthogonalize (Gram-Schmidt)
@@ -1339,12 +1324,19 @@ processIf: if(iproc==0) then
             tt=dnrm2(lin%orbs%norb, coeff(1,iorb), 1)
             call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
         end do
-        if(fnrm<1.d-10) then
+        if(fnrm<lin%convCritCoeff) then
             if(iproc==0) write(*,'(x,a,i0,a)') 'converged in ', it, ' iterations.'
             if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, 2.d0*ebsMod
+            converged=.true.
             exit
         end if
     end do iterLoop
+
+    if(.not.converged) then
+        if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
+            ' iterations! Exiting loop due to limitations of iterations.'
+        if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, 2.d0*ebsMod
+    end if
 end if processIf
 
 
@@ -1368,3 +1360,538 @@ deallocate(alpha, stat=istat)
 call memocc(istat, iall, 'alpha', subname)
 
 end subroutine optimizeCoefficients
+
+
+
+
+
+
+
+subroutine getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
+    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, coeff, &
+    infoBasisFunctions)
+!
+! Purpose:
+! ========
+!   Calculates the localized basis functions phi. These basis functions are obtained by adding a
+!   quartic potential centered on the atoms to the ordinary Hamiltonian. The eigenfunctions are then
+!   determined by minimizing the trace until the gradient norm is below the convergence criterion.
+!
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   ----------------
+!     iproc           process ID
+!     nproc           total number of processes
+!     at              type containing the paraneters for the atoms
+!     orbs            type describing the physical orbitals psi
+!     Glr             type describing the localization region
+!     input           type containing some very general parameters
+!     lin             type containing parameters for the linear version
+!     rxyz            the atomic positions
+!     nspin           npsin==1 -> closed shell; npsin==2 -> spin polarized
+!     nlpsp           ???
+!     proj            ???
+!     nscatterarr     ???
+!     ngatherarr      ???
+!     rhopot          the charge density
+!     GPU             parameters for GPUs
+!     pkernelseq      ???
+!     rxyzParab       the center of the confinement potential (at the moment identical rxyz)
+!     n3p             ???
+!  Input/Output arguments
+!  ---------------------
+!     phi             the localized basis functions. It is assumed that they have been initialized
+!                     somewhere else
+!   Output arguments
+!   ----------------
+!     hphi            the modified Hamiltonian applied to phi
+!     trH             the trace of the Hamiltonian
+!     infoBasisFunctions  indicates wheter the basis functions converged to the specified limit (value is 0)
+!                         or whether the iteration stopped due to the iteration limit (value is -1). This info
+!                         is returned by 'getLocalizedBasis'
+!
+! Calling arguments:
+!   Input arguments
+!   Output arguments
+!    phi   the localized basis functions
+!
+use module_base
+use module_types
+use module_interfaces, except_this_one => getLocalizedBasis
+!  use Poisson_Solver
+!use allocModule
+implicit none
+
+! Calling arguments
+integer:: iproc, nproc, infoBasisFunctions
+type(atoms_data), intent(in) :: at
+type(orbitals_data):: orbs
+type(locreg_descriptors), intent(in) :: Glr
+type(input_variables):: input
+type(linearParameters):: lin
+real(8),dimension(3,at%nat):: rxyz, rxyzParabola
+integer:: nspin
+type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+real(dp), dimension(*), intent(inout) :: rhopot
+type(GPU_pointers), intent(inout) :: GPU
+real(dp), dimension(:), pointer :: pkernelseq
+real(8),dimension(lin%orbs%npsidim):: phi, hphi
+real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
+real(8):: trH
+
+! Local variables
+real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum
+real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax
+integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
+integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp
+real(8),dimension(:),allocatable:: hphiold, alpha, fnrmOldArr
+real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
+real(8),dimension(:),pointer:: phiWork
+logical:: quiet, allowDIIS, startWithSD
+character(len=*),parameter:: subname='getLocalizedBasis'
+character(len=1):: message
+type(diis_objects):: diisLIN
+
+real(8),dimension(:,:),allocatable:: lagMult
+real(8),dimension(:,:,:),allocatable:: ovrlp
+integer:: jstart, jorb, lorb, korb, kstart, lstart
+real(8),dimension(:),allocatable:: phiGrad
+
+allocate(lagMult(lin%orbs%norb,lin%orbs%norb), stat=istat)
+lagMult=1.d-1
+allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+
+  allocate(phiGrad(lin%orbs%npsidim), stat=istat)
+
+  ! Allocate all local arrays
+  call allocateLocalArrays()
+  
+  ! Initialize the DIIS parameters 
+  icountSDSatur=0
+  icountSwitch=0
+  icountDIISFailureTot=0
+  icountDIISFailureCons=0
+  call initializeDIISParameters(lin%DIISHistMax)
+  if(lin%startWithSD) then
+      allowDIIS=.false.
+      diisLIN%switchSD=.false.
+      startWithSD=.true.
+  else
+      allowDIIS=.true.
+      startWithSD=.false.
+  end if
+  
+  if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
+
+  ! Assign the step size for SD iterations.
+  alpha=lin%alphaSD
+  iterLoop: do it=1,lin%nItMax
+      fnrmMax=0.d0
+      fnrm=0.d0
+  
+      if (iproc==0) then
+          write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
+      endif
+  
+      ! Orthonormalize the orbitals.
+      if(iproc==0) then
+          write(*,'(x,a)', advance='no') 'Orthonormalization... '
+      end if
+      call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
+
+      ! Untranspose phi
+      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  
+  
+      ! Calculate the unconstrained gradient.
+      if(iproc==0) then
+          write(*,'(a)', advance='no') 'Hamiltonian application... '
+      end if
+      call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+           nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+           rhopot(1),&
+           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel=pkernelseq)
+  
+      ! Calculate the modified gradient
+      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+      !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+      nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+      lstart=1
+      do lorb=1,lin%orbs%norb
+          ! Apply H_l to all orbitals (also those not centered on atom lin%onWhichAtom(lorb).
+          ! CAN BE IMPROVED IF SEVERAL BASIS FUNCTIONS ARE CENTERD ON THE SAME ATOM
+          call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+               nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+               rhopot(1),&
+               phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, &
+               pkernel=pkernelseq, centralAtom=lin%onWhichAtom(lorb))
+          call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+          kstart=1
+          do korb=1,lin%orbs%norb
+              do iorb=1,orbs%norb
+                  tt=coeff(lorb,iorb)*coeff(korb,iorb)
+                  call daxpy(nvctrp, tt, hphi(kstart), 1, phiGrad(lstart), 1)
+              end do
+              kstart=kstart+nvctrp
+          end do  
+          call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+          lstart=lstart+nvctrp
+      end do
+
+
+      ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
+      if(iproc==0) then
+          write(*,'(a)', advance='no') 'orthoconstraint... '
+      end if
+      !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+      !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+      call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH)
+  
+  
+      ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
+      ! of the previous iteration (fnrmOvrlpArr).
+      nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+      istart=1
+      do iorb=1,lin%orbs%norb
+          if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphiold(istart), 1)
+          fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphi(istart), 1)
+          istart=istart+nvctrp*orbs%nspinor
+      end do
+      call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+      call mpi_allreduce(fnrmOvrlpArr(1,2), fnrmOvrlpArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+  
+      ! Keep the gradient for the next iteration.
+      if(it>1) then
+          call dcopy(lin%orbs%norb, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
+      end if
+  
+      ! Determine the gradient norm and its maximal component. In addition, adapt the
+      ! step size for the steepest descent minimization (depending on the angle 
+      ! between the current gradient and the one from the previous iteration).
+      ! This is of course only necessary if we are using steepest descent and not DIIS.
+      do iorb=1,lin%orbs%norb
+          fnrm=fnrm+fnrmArr(iorb,1)
+          if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
+          if(it>1 .and. diisLIN%idsx==0 .and. .not.diisLIN%switchSD) then
+          ! Adapt step size for the steepest descent minimization.
+              tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
+              if(tt>.7d0) then
+                  alpha(iorb)=alpha(iorb)*1.05d0
+              else
+                  alpha(iorb)=alpha(iorb)*.5d0
+              end if
+          end if
+      end do
+      fnrm=sqrt(fnrm)
+      fnrmMax=sqrt(fnrmMax)
+      ! Copy the gradient (will be used in the next iteration to adapt the step size).
+      call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
+  
+      ! Untranspose hphi.
+      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+  
+  
+      ! Precondition the gradient
+      if(iproc==0) then
+          write(*,'(a)') 'preconditioning. '
+      end if
+      gnrm=1.d3 ; gnrm_zero=1.d3
+      call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+          lin%nItPrecond, hphi, at%nat, rxyz, at, it)
+
+      ! Determine the mean step size for steepest descent iterations.
+      tt=sum(alpha)
+      meanAlpha=tt/dble(lin%orbs%norb)
+  
+      ! Write some informations to the screen.
+      if(iproc==0) write(*,'(x,a,i6,2es15.7,f14.7)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
+      if(iproc==0) write(1000,'(i6,2es15.7,f15.7,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
+      if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
+          if(it>=lin%nItMax) then
+              if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
+                  ' iterations! Exiting loop due to limitations of iterations.'
+              if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              infoBasisFunctions=1
+          else
+              if(iproc==0) then
+                  write(*,'(x,a,i0,a,2es15.7,f12.7)') 'converged in ', it, ' iterations.'
+                  write (*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
+              end if
+              infoBasisFunctions=0
+          end if
+          if(iproc==0) write(*,'(x,a)') '============================= Basis functions created. ============================='
+          call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+          if(lin%plotBasisFunctions) then
+              call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+                  .5d0*input%hy, .5d0*input%hz, 1)
+          end if
+          exit iterLoop
+      end if
+  
+  
+      call DIISorSD()
+      if(iproc==0) then
+          if(diisLIN%idsx>0) then
+              write(*,'(x,3(a,i0))') 'DIIS informations: history length=',diisLIN%idsx, ', consecutive failures=', &
+                  icountDIISFailureCons, ', total failures=', icountDIISFailureTot
+          else
+              if(allowDIIS) then
+                  message='y'
+              else
+                  message='n'
+              end if
+              write(*,'(x,a,es9.3,a,i0,a,a)') 'steepest descent informations: mean alpha=', meanAlpha, &
+              ', consecutive successes=', icountSDSatur, ', DIIS=', message
+          end if
+      end if
+      if(.not. diisLIN%switchSD) call improveOrbitals()
+  
+  
+  end do iterLoop
+
+
+  call deallocateLocalArrays()
+
+contains
+
+    subroutine initializeDIISParameters(idsxHere)
+    ! Purpose:
+    ! ========
+    !   Initializes all parameters needed for the DIIS procedure.
+    !
+    ! Calling arguments
+    !   idsx    DIIS history length
+    !
+    implicit none
+    
+    ! Calling arguments
+    integer:: idsxHere
+
+      diisLIN%switchSD=.false.
+      diisLIN%idiistol=0
+      diisLIN%mids=1
+      diisLIN%ids=0
+      diisLIN%idsx=idsxHere
+      diisLIN%energy_min=1.d10
+      diisLIN%energy_old=1.d10
+      diisLIN%energy=1.d10
+      diisLIN%alpha=2.d0
+      call allocate_diis_objects(diisLIN%idsx, lin%orbs%npsidim, 1, diisLIN, subname) ! 1 for k-points
+
+    end subroutine initializeDIISParameters
+
+
+    subroutine DIISorSD()
+    !
+    ! Purpose:
+    ! ========
+    !   This subroutine decides whether one should use DIIS or variable step size
+    !   steepest descent to improve the orbitals. In the beginning we start with DIIS
+    !   with history length lin%DIISHistMax. If DIIS becomes unstable, we switch to
+    !   steepest descent. If the steepest descent iterations are successful, we switch
+    !   back to DIIS, but decrease the DIIS history length by one. However the DIIS
+    !   history length is limited to be larger or equal than lin%DIISHistMin.
+    !
+
+
+      ! First there are some checks whether the force is small enough to allow DIIS.
+
+      ! Decide whether the force is small eneough to allow DIIS
+      if(fnrmMax<lin%startDIIS .and. .not.allowDIIS) then
+          allowDIIS=.true.
+          if(iproc==0) write(*,'(x,a)') 'The force is small enough to allow DIIS.'
+          ! This is to get the correct DIIS history 
+          ! (it is chosen as max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch).
+          icountSwitch=icountSwitch-1
+      else if(fnrmMax>lin%startDIIS .and. allowDIIS) then
+          allowDIIS=.false.
+          if(iproc==0) write(*,'(x,a)') 'The force is too large to allow DIIS.'
+      end if    
+
+      ! Switch to SD if the flag indicating that we should start with SD is true.
+      ! If this is the case, this flag is set to false, since this flag concerns only the beginning.
+      if(startWithSD .and. diisLIN%idsx>0) then
+          call deallocate_diis_objects(diisLIN, subname)
+          diisLIN%idsx=0
+          diisLIN%switchSD=.false.
+          startWithSD=.false.
+      end if
+
+      ! Decide whether we should switch from DIIS to SD in case we are using DIIS and it 
+      ! is not allowed.
+      if(.not.startWithSD .and. .not.allowDIIS .and. diisLIN%idsx>0) then
+          if(iproc==0) write(*,'(x,a,es10.3)') 'The force is too large, switch to SD with stepsize', alpha(1)
+          call deallocate_diis_objects(diisLIN, subname)
+          diisLIN%idsx=0
+          diisLIN%switchSD=.true.
+      end if
+
+      ! If we swicthed to SD in the previous iteration, reset this flag.
+      if(diisLIN%switchSD) diisLIN%switchSD=.false.
+
+      ! Now come some checks whether the trace is descreasing or not. This further decides
+      ! whether we should use DIIS or SD.
+
+      ! Determine wheter the trace is decreasing (as it should) or increasing.
+      ! This is done by comparing the current value with diisLIN%energy_min, which is
+      ! the minimal value of the trace so far.
+      if(trH<=diisLIN%energy_min) then
+          ! Everything ok
+          diisLIN%energy_min=trH
+          diisLIN%switchSD=.false.
+          itBest=it
+          icountSDSatur=icountSDSatur+1
+          icountDIISFailureCons=0
+
+          ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
+          ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
+          if(icountSDSatur>=10 .and. diisLIN%idsx==0 .and. allowDIIS) then
+              icountSwitch=icountSwitch+1
+              idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
+              if(idsx>0) then
+                  if(iproc==0) write(*,'(x,a,i0)') 'switch to DIIS with new history length ', idsx
+                  call initializeDIISParameters(idsx)
+                  icountDIISFailureTot=0
+                  icountDIISFailureCons=0
+              end if
+          end if
+      else
+          ! The trace is growing.
+          ! Count how many times this occurs and (if we are using DIIS) switch to SD after 3 
+          ! total failures or after 2 consecutive failures.
+          icountDIISFailureCons=icountDIISFailureCons+1
+          icountDIISFailureTot=icountDIISFailureTot+1
+          icountSDSatur=0
+          if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3) .and. diisLIN%idsx>0) then
+              ! Switch back to SD. The initial step size is 1.d0.
+              alpha=lin%alphaSD
+              if(iproc==0) then
+                  if(icountDIISFailureCons>=2) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
+                      icountDIISFailureCons, ' times consecutievly. Switch to SD with stepsize', alpha(1)
+                  if(icountDIISFailureTot>=3) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
+                      icountDIISFailureTot, ' times in total. Switch to SD with stepsize', alpha(1)
+              end if
+              ! Try to get back the orbitals of the best iteration. This is possible if
+              ! these orbitals are still present in the DIIS history.
+              if(it-itBest<diisLIN%idsx) then
+                 if(iproc==0) then
+                     if(iproc==0) write(*,'(x,a,i0,a)')  'Recover the orbitals from iteration ', &
+                         itBest, ' which are the best so far.'
+                 end if
+                 ii=modulo(diisLIN%mids-(it-itBest),diisLIN%mids)
+                 nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+                 call dcopy(lin%orbs%norb*nvctrp, diisLIN%psidst(ii*nvctrp*lin%orbs%norb+1), 1, phi(1), 1)
+              end if
+              call deallocate_diis_objects(diisLIN, subname)
+              diisLIN%idsx=0
+              diisLIN%switchSD=.true.
+          end if
+      end if
+
+    end subroutine DIISorSD
+
+
+    subroutine improveOrbitals()
+    !
+    ! Purpose:
+    ! ========
+    !   This subroutine improves the basis functions by following the gradient 
+    ! For DIIS 
+    if (diisLIN%idsx > 0) then
+       diisLIN%mids=mod(diisLIN%ids,diisLIN%idsx)+1
+       diisLIN%ids=diisLIN%ids+1
+    end if
+
+    ! Follow the gradient using steepest descent.
+    ! The same, but transposed
+    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+    
+    ! steepest descent
+    if(diisLIN%idsx==0) then
+        istart=1
+        nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+        do iorb=1,lin%orbs%norb
+            call daxpy(nvctrp*orbs%nspinor, -alpha(iorb), hphi(istart), 1, phi(istart), 1)
+            istart=istart+nvctrp*orbs%nspinor
+        end do
+    else
+        ! DIIS
+        quiet=.true. ! less output
+        call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, hphi, phi, quiet)
+    end if
+    end subroutine improveOrbitals
+
+
+
+    subroutine allocateLocalArrays()
+    !
+    ! Purpose:
+    ! ========
+    !   This subroutine allocates all local arrays.
+    !
+
+      allocate(hphiold(lin%orbs%npsidim), stat=istat)
+      call memocc(istat, hphiold, 'hphiold', subname)
+
+      allocate(alpha(lin%orbs%norb), stat=istat)
+      call memocc(istat, alpha, 'alpha', subname)
+
+      allocate(fnrmArr(lin%orbs%norb,2), stat=istat)
+      call memocc(istat, fnrmArr, 'fnrmArr', subname)
+
+      allocate(fnrmOldArr(lin%orbs%norb), stat=istat)
+      call memocc(istat, fnrmOldArr, 'fnrmOldArr', subname)
+
+      allocate(fnrmOvrlpArr(lin%orbs%norb,2), stat=istat)
+      call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
+
+      allocate(phiWork(size(phi)), stat=istat)
+      call memocc(istat, phiWork, 'phiWork', subname)
+      
+    
+
+    end subroutine allocateLocalArrays
+
+
+    subroutine deallocateLocalArrays()
+    !
+    ! Purpose:
+    ! ========
+    !   This subroutine deallocates all local arrays.
+    !
+
+      iall=-product(shape(hphiold))*kind(hphiold)
+      deallocate(hphiold, stat=istat)
+      call memocc(istat, iall, 'hphiold', subname)
+      
+      iall=-product(shape(alpha))*kind(alpha)
+      deallocate(alpha, stat=istat)
+      call memocc(istat, iall, 'alpha', subname)
+
+      iall=-product(shape(fnrmArr))*kind(fnrmArr)
+      deallocate(fnrmArr, stat=istat)
+      call memocc(istat, iall, 'fnrmArr', subname)
+
+      iall=-product(shape(fnrmOldArr))*kind(fnrmOldArr)
+      deallocate(fnrmOldArr, stat=istat)
+      call memocc(istat, iall, 'fnrmOldArr', subname)
+
+      iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
+      deallocate(fnrmOvrlpArr, stat=istat)
+      call memocc(istat, iall, 'fnrmOvrlpArr', subname)
+
+      iall=-product(shape(phiWork))*kind(phiWork)
+      deallocate(phiWork, stat=istat)
+      call memocc(istat, iall, 'phiWork', subname)
+      
+      ! if diisLIN%idsx==0, these arrays have already been deallocated
+      if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN,subname)
+
+    end subroutine deallocateLocalArrays
+
+
+end subroutine getLocalizedBasisNew

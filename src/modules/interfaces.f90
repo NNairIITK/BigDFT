@@ -393,7 +393,7 @@ module module_interfaces
 
      subroutine HamiltonianApplicationConfinement(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel,orbsocc,psirocc)
+          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel,orbsocc,psirocc,centralAtom)
        use module_base
        use module_types
        implicit none
@@ -412,10 +412,11 @@ module module_interfaces
        real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
-     real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
+       real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
        real(dp), dimension(*), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
+       integer,intent(in),optional:: centralAtom
      END SUBROUTINE HamiltonianApplicationConfinement
 
      subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
@@ -1382,7 +1383,7 @@ module module_interfaces
     end subroutine getLinearPsi
 
     subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
-         nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at)
+         nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at, centralAtom)
       use module_base
       use module_types
       use libxc_functionals
@@ -1400,6 +1401,7 @@ module module_interfaces
     integer:: nat
     real(8),dimension(3,nat):: rxyz
     type(atoms_data), intent(in) :: at
+    integer,intent(in),optional:: centralAtom
     end subroutine local_hamiltonianConfinement
     
     

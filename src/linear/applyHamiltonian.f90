@@ -1,7 +1,7 @@
 subroutine HamiltonianApplicationConfinement(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola,&
-     pkernel,orbsocc,psirocc) ! optional
+     pkernel,orbsocc,psirocc,centralAtom) ! optional
 !
 ! Purpose:
 ! ========
@@ -34,6 +34,9 @@ subroutine HamiltonianApplicationConfinement(iproc,nproc,at,orbs,lin,hx,hy,hz,rx
 !     pkernel         ???
 !     orbsocc         ???
 !     psirocc         ???
+!     centralAtom     optional; specifies on which atom the confinement potential
+!                       shall be centered. If not present, the 'default' (i.e. the one
+!                       in lin%onWhichAtom(iorb)) is taken.
 !   Output arguments
 !   ----------------
 !     hpsi            the Hamiltonian applied to the wave functions
@@ -44,6 +47,7 @@ subroutine HamiltonianApplicationConfinement(iproc,nproc,at,orbs,lin,hx,hy,hz,rx
 !
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => HamiltonianApplicationConfinement
 use libxc_functionals
 implicit none
 
@@ -67,6 +71,7 @@ real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
 real(dp), dimension(*), optional :: pkernel
 type(orbitals_data), intent(in), optional :: orbsocc
 real(wp), dimension(:), pointer, optional :: psirocc
+integer,intent(in),optional:: centralAtom
 
 ! Local variables
 character(len=*),parameter:: subname='HamiltonianApplicationConfinement'
@@ -183,8 +188,13 @@ integer,parameter::lupfil=14
   else if (OCLconv) then
      call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   else
-     call local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum, &
-       at%nat, rxyzParabola, at)
+     if(.not.present(centralAtom)) then
+         call local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum, &
+           at%nat, rxyzParabola, at)
+     else
+         call local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum, &
+           at%nat, rxyzParabola, at, centralAtom)
+     end if
      !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
 
@@ -287,7 +297,7 @@ END SUBROUTINE HamiltonianApplicationConfinement
 
 
 subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
-     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at)
+     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at, centralAtom)
 !
 ! Purpose:
 ! ========
@@ -334,6 +344,7 @@ subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
   real(wp),dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp),intent(out):: hpsi
   real(8),dimension(3,nat),intent(in):: rxyz 
   type(atoms_data),intent(in):: at
+  integer,intent(in),optional:: centralAtom
   !local variables
   character(len=*),parameter:: subname='local_hamiltonian'
   integer:: i_all ,i_stat, iorb, npot, nsoffset, oidx, ispot
@@ -391,9 +402,15 @@ subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
      select case(lr%geocode)
      case('F')
 
-        call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, &
-             lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lr%bounds%ibyyzz_r) !optional
+        if(.not.present(centralAtom)) then
+            call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+                 pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, &
+                 lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lr%bounds%ibyyzz_r) !optional
+        else
+            call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+                 pot(nsoffset),epot, rxyz(1,centralAtom), hxh, hyh, hzh, &
+                 lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lr%bounds%ibyyzz_r) !optional
+        end if
           
      case('P') 
         !here the hybrid BC act the same way
