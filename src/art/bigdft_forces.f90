@@ -67,8 +67,8 @@ subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_, my_
   nproc = nproc_
   me = me_
                                       ! Read inputs.
-  call read_input_variables( me_, "posinp", "input.dft",  &
-       & "input.kpt", "input.geopt", "input.perf", in, at, rxyz )
+  call read_input_variables( me_, "posinp", "input.dft", "input.kpt", &
+                           & "input.mix", "input.geopt", "input.perf", in, at, rxyz )
 
                                       ! Transfer at data to ART variables.
   nat = at%nat

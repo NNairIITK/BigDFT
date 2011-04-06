@@ -163,7 +163,7 @@ subroutine apply_diis( diter, saddle_energy )
       end if 
       if ( iproc == 0 ) then          ! REPORT DIIS 
         write (*,'(a,3I5,x,2F11.4,2x,(1p,e14.5,0p),x,L1)') 'BART DIIS:',  &
-        &  pas, diter, maxter, n_deltaGdiis, factor_diis*INCREMENT, solution(maxter+1),
+        &  pas, diter, maxter, n_deltaGdiis, factor_diis*INCREMENT, solution(maxter+1), &
         &  rejected_step 
       end if
 
