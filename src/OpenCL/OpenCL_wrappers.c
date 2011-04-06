@@ -37,6 +37,7 @@ void FC_FUNC_(ocl_build_programs,OCL_BUILD_PROGRAMS)(cl_context * context) {
     build_uncompress_programs(context);
     build_initialize_programs(context);
     build_reduction_programs(context);
+    build_fft_programs(context);
 }
 
 void create_kernels(struct bigdft_kernels *kernels){
@@ -47,6 +48,7 @@ void create_kernels(struct bigdft_kernels *kernels){
     create_uncompress_kernels(kernels);
     create_initialize_kernels(kernels);
     create_reduction_kernels(kernels);
+    create_fft_kernels(kernels);
 }
 
 void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * context) {
@@ -253,6 +255,7 @@ void FC_FUNC_(ocl_clean_command_queue,OCL_CLEAN_COMMAND_QUEUE)(bigdft_command_qu
   clean_wavelet_kernels(&((*command_queue)->kernels));
   clean_uncompress_kernels(&((*command_queue)->kernels));
   clean_reduction_kernels(&((*command_queue)->kernels));
+  clean_fft_kernels(&((*command_queue)->kernels));
   clReleaseCommandQueue((*command_queue)->command_queue);
   free(*command_queue);
 }
@@ -266,6 +269,7 @@ void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_context *context){
   clean_wavelet_programs();
   clean_uncompress_programs();
   clean_reduction_programs();
+  clean_fft_programs();
   for(i=0;i<event_number;i++){
     clReleaseEvent(event_list[i].e);
   }

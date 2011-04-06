@@ -17,7 +17,7 @@ SOURCES_CONV_CHECK =
 SOURCES_SHARED =
 
 
-EXTRA_PROGRAMS = conv_check bench_conv bench_conv_quick bench_zgemm stream_check
+EXTRA_PROGRAMS = conv_check conv_check_fft bench_conv bench_conv_quick bench_zgemm stream_check
 
 noinst_LIBRARIES = libbasef.a libbasec.a libOCL.a libStream.a
 
@@ -36,6 +36,7 @@ libbasec_a_SOURCES = OpenCL_wrappers.c \
                      Reduction.c \
                      Preconditioner.c \
                      Density.c \
+                     fft.c \
                      Benchmark.c
 libOCL_a_SOURCES = $(libbasec_a_SOURCES)
 libStream_a_SOURCES = Stream.c
@@ -55,6 +56,9 @@ AM_CFLAGS = -Wall -Werror
 conv_check_SOURCES = conv_check.f90 
 conv_check_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a
 conv_check_LDFLAGS = -lrt
+conv_check_fft_SOURCES = conv_check_fft.f90 
+conv_check_fft_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a
+conv_check_fft_LDFLAGS = -lrt
 stream_check_SOURCES = StreamCheck.c
 stream_check_LDADD = libOCL.a libStream.a
 stream_check_LDFLAGS = -lrt
@@ -83,3 +87,7 @@ bench_zg: bench_zgemm
 check_conv: conv_check
 	echo 1 128 128 16384 16384 100 > fort.1
 	./conv_check
+
+check_conv_fft: conv_check_fft
+	echo 1 16 16 256 256 100 > fort.1
+	./conv_check_fft

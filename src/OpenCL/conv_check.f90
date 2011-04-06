@@ -238,7 +238,7 @@ program conv_check
            call ocl_release_mem_object(work_GPU)
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(GPUtime,n1*ndat,2,ntimes)
+           call print_time(GPUtime,n1*ndat,32,ntimes)
 
  
            write(*,'(a,i6,i6)')'CPU Convolutions, dimensions:',n1,ndat

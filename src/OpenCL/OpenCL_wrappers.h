@@ -85,6 +85,7 @@ struct bigdft_kernels {
   cl_kernel benchmark_flops_kernel_d;
   cl_kernel benchmark_mops_kernel_d;
   cl_kernel transpose_kernel_d;
+  cl_kernel fft_kernel_d;
 };
 
 struct _bigdft_command_queue {
@@ -103,6 +104,7 @@ void create_wavelet_kernels(struct bigdft_kernels * kernels);
 void create_uncompress_kernels(struct bigdft_kernels * kernels);
 void create_initialize_kernels(struct bigdft_kernels * kernels);
 void create_reduction_kernels(struct bigdft_kernels * kernels);
+void create_fft_kernels(struct bigdft_kernels * kernels);
 /** Compiles magicfilter programs in the given context. */
 void build_magicfilter_programs(cl_context * context);
 void build_reduction_programs(cl_context * context);
@@ -111,6 +113,7 @@ void build_kinetic_programs(cl_context * context);
 void build_wavelet_programs(cl_context * context);
 void build_uncompress_programs(cl_context * context);
 void build_initialize_programs(cl_context * context);
+void build_fft_programs(cl_context * context);
 /** Releases magicfilter kernels. */
 void clean_magicfilter_kernels(struct bigdft_kernels * kernels);
 void clean_benchmark_kernels(struct bigdft_kernels * kernels);
@@ -119,6 +122,7 @@ void clean_wavelet_kernels(struct bigdft_kernels * kernels);
 void clean_uncompress_kernels(struct bigdft_kernels * kernels);
 void clean_initialize_kernels(struct bigdft_kernels * kernels);
 void clean_reduction_kernels(struct bigdft_kernels * kernels);
+void clean_fft_kernels(struct bigdft_kernels * kernels);
 /** Releases magicfilter programs. */
 void clean_magicfilter_programs();
 void clean_benchmark_programs();
@@ -127,6 +131,7 @@ void clean_initialize_programs();
 void clean_wavelet_programs();
 void clean_uncompress_programs();
 void clean_reduction_programs();
+void clean_fft_programs();
 
 /** Returns the first device available in a given context. */
 cl_device_id oclGetFirstDev(cl_context cxGPUContext);
@@ -849,4 +854,6 @@ void FC_FUNC_(ocl_daub_to_isf,OCL_DAUB_TO_ISF)(bigdft_command_queue *command_que
                                           cl_mem *work, cl_mem *kinres);
 void FC_FUNC_(magic_filter_t_3d_generic,MAGIC_FILTER_T_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out);
 void FC_FUNC_(magic_filter_3d_generic,MAGIC_FILTER_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out);
+void FC_FUNC_(fft1d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
+void FC_FUNC_(fft3d_d,FFT3D_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp);
 #endif
