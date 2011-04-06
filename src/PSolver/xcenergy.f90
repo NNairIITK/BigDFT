@@ -211,7 +211,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc,order
-  real(dp) :: eexcuLOC,vexcuLOC
+  real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rho_G
   real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci
@@ -389,7 +389,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vexcuLOC=0.0_dp
   end if
    
-  !the value of the shift depends on the distributed i/o or not
+  !the value of the shift depends of the distributed i/o or not
   if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
      !copy the relevant part of vxci on the output potxc
      call dcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
@@ -421,10 +421,23 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   !if rhocore is associated we then remove it from the charge density
+  !and subtract its contribution from the evaluation of the XC potential integral vexcu
   if (associated(rhocore)) then
      !at this stage the density is not anymore spin-polarised
      !sum the complete core density for non-spin polarised calculations
      call axpy(m1*m3*nxc,-1.0_wp,rhocore(1+m1*m3*i3xcsh_fake),1,rho(1),1)
+     vexcuRC=0.0_gp
+     do i=1,nxc*m3*m1
+        vexcuRC=vexcuRC+rhocore(i)*potxc(i)
+     end do
+     if (nspin==2) then
+        do i=1,nxc*m3*m1
+           vexcuRC=vexcuRC+rhocore(i)*potxc(i+m1*m3*nxc)
+        end do
+     end if
+     vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+     !subtract this value from the vexcu
+     vexcuLOC=vexcuLOC-vexcuRC
   end if
 
   call timing(iproc,'Exchangecorr  ','OF')
