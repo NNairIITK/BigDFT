@@ -2281,6 +2281,7 @@ subroutine orthoconstraintNotSymmetric(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprs
 
 integer:: istart, jstart
 
+
   !separate the orthogonalisation procedure for up and down orbitals 
   !and for different k-points
   call timing(iproc,'LagrM_comput  ','ON')

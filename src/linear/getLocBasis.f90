@@ -185,6 +185,16 @@ integer:: iorb, jorb
   
   call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
   call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
+
+
+!!!! THIS IS A TEST !!!!
+    call  getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
+    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
+    infoBasisFunctions)
+    !call  getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
+    !proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
+    !infoBasisFunctions)
+!!!!!!!!!!!!!!!!!!!!!!!!
   
   
   iall=-product(shape(phiWork))*kind(phiWork)
@@ -1418,7 +1428,7 @@ subroutine getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, n
 !
 use module_base
 use module_types
-use module_interfaces, except_this_one => getLocalizedBasis
+use module_interfaces, except_this_one => getLocalizedBasisNew
 !  use Poisson_Solver
 !use allocModule
 implicit none
@@ -1458,14 +1468,21 @@ type(diis_objects):: diisLIN
 
 real(8),dimension(:,:),allocatable:: lagMult
 real(8),dimension(:,:,:),allocatable:: ovrlp
-integer:: jstart, jorb, lorb, korb, kstart, lstart
-real(8),dimension(:),allocatable:: phiGrad
+integer:: jstart, jorb, lorb, korb, kstart, lstart, lorb2, centralAt, jproc, centralAtPrev
+real(8),dimension(:),allocatable:: phiGrad, hphi2, phiGradold, lagMatDiag
+real(8):: ebsMod, tt2, matEl
+!real(8),dimension(:,:),allocatable:: coeff
+
+!allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat) ; if(istat/=0) stop 'ERROR in allocating coeff'
 
 allocate(lagMult(lin%orbs%norb,lin%orbs%norb), stat=istat)
 lagMult=1.d-1
 allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+allocate(lagMatDiag(lin%orbs%norb), stat=istat)
 
-  allocate(phiGrad(lin%orbs%npsidim), stat=istat)
+  allocate(phiGrad(lin%orbs%npsidim), stat=istat) ; if(istat/=0) stop 'ERROR in allocating phiGrad'
+  allocate(hphi2(lin%orbs%npsidim), stat=istat)
+  allocate(phiGradold(lin%orbs%npsidim), stat=istat)
 
   ! Allocate all local arrays
   call allocateLocalArrays()
@@ -1518,30 +1535,56 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
   
       ! Calculate the modified gradient
       call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
-      !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
       nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
       lstart=1
-      do lorb=1,lin%orbs%norb
-          ! Apply H_l to all orbitals (also those not centered on atom lin%onWhichAtom(lorb).
-          ! CAN BE IMPROVED IF SEVERAL BASIS FUNCTIONS ARE CENTERD ON THE SAME ATOM
-          call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-               nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-               rhopot(1),&
-               phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, &
-               pkernel=pkernelseq, centralAtom=lin%onWhichAtom(lorb))
-          call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
-          kstart=1
-          do korb=1,lin%orbs%norb
-              do iorb=1,orbs%norb
-                  tt=coeff(lorb,iorb)*coeff(korb,iorb)
-                  call daxpy(nvctrp, tt, hphi(kstart), 1, phiGrad(lstart), 1)
-              end do
-              kstart=kstart+nvctrp
-          end do  
-          call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
-          lstart=lstart+nvctrp
+      phiGrad=0.d0
+      ebsMod=0.d0
+      lorb=0
+      centralAtPrev=-1
+      do jproc=0,nproc-1
+          do lorb2=1,lin%orbs%norb_par(jproc)
+              lorb=lorb+1
+              if(iproc==jproc) centralAt=lin%onWhichAtom(lorb2)
+              call mpi_bcast(centralAt, 1, mpi_integer, jproc, mpi_comm_world, ierr)
+         !if(iproc==0) write(*,*) 'lorb, centralAt', lorb, centralAt
+              ! Apply H_l to all orbitals (also those not centered on atom lin%onWhichAtom(lorb).
+              ! CAN BE IMPROVED IF SEVERAL BASIS FUNCTIONS ARE CENTERD ON THE SAME ATOM
+              if(centralAt/=centralAtPrev) then ! otherwise we have the same Hamiltonian and hence the same hphi2
+                  call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+                  call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+                       nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+                       rhopot(1),&
+                       phi(1),hphi2(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, &
+                       pkernel=pkernelseq, centralAtom=centralAt)
+                  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+              end if
+              centralAtPrev=centralAt
+              call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi2, work=phiWork)
+              kstart=1
+              do korb=1,lin%orbs%norb
+                  do iorb=1,orbs%norb
+                      tt=coeff(lorb,iorb)*coeff(korb,iorb)
+                      call daxpy(nvctrp, tt, hphi2(kstart), 1, phiGrad(lstart), 1)
+                      call daxpy(nvctrp, tt, hphi(kstart), 1, phiGrad(lstart), 1)
+                      !matEl=ddot(nvctrp, phi(kstart), 1, phiGrad(lstart), 1)
+                      matEl=ddot(nvctrp, phi(kstart), 1, hphi(lstart), 1)
+                      tt2=matEl
+                      call mpi_allreduce(tt2, matEl, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+                      ebsMod=ebsMod+tt*matEl
+                  end do
+                  kstart=kstart+nvctrp
+              end do  
+              call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi2, work=phiWork)
+              lstart=lstart+nvctrp
+          end do
       end do
-
+!!!!!!! DEBUG
+!!phiGrad=hphi
+!!!!!!!!!!!!!
+!!do iorb=1,orbs%norb
+!!    write(*,*) 'iproc, ddot', iproc, ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,iorb), 1)
+!!end do
 
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
@@ -1549,7 +1592,9 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
       end if
       !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
       !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-      call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH)
+      !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
+      !call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH, lagMatDiag)
+      call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, phiGrad, trH, lagMatDiag)
   
   
       ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
@@ -1557,8 +1602,10 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
       nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
       istart=1
       do iorb=1,lin%orbs%norb
-          if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphiold(istart), 1)
-          fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphi(istart), 1)
+          !if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphiold(istart), 1)
+          !fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphi(istart), 1)
+          if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, phiGrad(istart), 1, phiGradold(istart), 1)
+          fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, phiGrad(istart), 1, phiGrad(istart), 1)
           istart=istart+nvctrp*orbs%nspinor
       end do
       call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
@@ -1588,11 +1635,17 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
       end do
       fnrm=sqrt(fnrm)
       fnrmMax=sqrt(fnrmMax)
+!! ATTENTION
+!alpha=lin%alphaSD
+!!!!!!!!!!!!
+
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
-      call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
+      !call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
+      call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, phiGrad(1), 1, phiGradold(1), 1)
   
       ! Untranspose hphi.
-      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+      !call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
   
   
       ! Precondition the gradient
@@ -1600,16 +1653,18 @@ allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
           write(*,'(a)') 'preconditioning. '
       end if
       gnrm=1.d3 ; gnrm_zero=1.d3
+      !call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+      !    lin%nItPrecond, hphi, at%nat, rxyz, at, it)
       call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
-          lin%nItPrecond, hphi, at%nat, rxyz, at, it)
+          lin%nItPrecond, phiGrad, at%nat, rxyz, at, it)
 
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)
       meanAlpha=tt/dble(lin%orbs%norb)
   
       ! Write some informations to the screen.
-      if(iproc==0) write(*,'(x,a,i6,2es15.7,f14.7)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
-      if(iproc==0) write(1000,'(i6,2es15.7,f15.7,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
+      if(iproc==0) write(*,'(x,a,i6,2es15.7,2f14.7)') 'iter, fnrm, fnrmMax, trace, ebsMod', it, fnrm, fnrmMax, trH, ebsMod
+      if(iproc==0) write(1000,'(i6,2es15.7,2f15.7,es12.4)') it, fnrm, fnrmMax, trH, ebsMod, meanAlpha
       if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
           if(it>=lin%nItMax) then
               if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
@@ -1808,20 +1863,23 @@ contains
 
     ! Follow the gradient using steepest descent.
     ! The same, but transposed
-    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+    !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
     
     ! steepest descent
     if(diisLIN%idsx==0) then
         istart=1
         nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
         do iorb=1,lin%orbs%norb
-            call daxpy(nvctrp*orbs%nspinor, -alpha(iorb), hphi(istart), 1, phi(istart), 1)
+            !call daxpy(nvctrp*orbs%nspinor, -alpha(iorb), hphi(istart), 1, phi(istart), 1)
+            call daxpy(nvctrp*orbs%nspinor, -alpha(iorb), phiGrad(istart), 1, phi(istart), 1)
             istart=istart+nvctrp*orbs%nspinor
         end do
     else
         ! DIIS
         quiet=.true. ! less output
-        call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, hphi, phi, quiet)
+        !call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, hphi, phi, quiet)
+        call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, phiGrad, phi, quiet)
     end if
     end subroutine improveOrbitals
 

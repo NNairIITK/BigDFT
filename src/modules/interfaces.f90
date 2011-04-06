@@ -1164,6 +1164,34 @@ module module_interfaces
     end subroutine getLocalizedBasis
 
 
+    subroutine getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
+        proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, coeff, &
+        infoBasisFunctions)
+      use module_base
+      use module_types
+      implicit none
+      integer:: iproc, nproc, infoBasisFunctions
+      type(atoms_data), intent(in) :: at
+      type(orbitals_data):: orbs
+      type(locreg_descriptors), intent(in) :: Glr
+      type(input_variables):: input
+      type(linearParameters):: lin
+      real(8),dimension(3,at%nat):: rxyz, rxyzParabola
+      integer:: nspin
+      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+      real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+      real(dp), dimension(*), intent(inout) :: rhopot
+      type(GPU_pointers), intent(inout) :: GPU
+      real(dp), dimension(:), pointer :: pkernelseq
+      real(8),dimension(lin%orbs%npsidim):: phi, hphi
+      real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
+      real(8):: trH
+    end subroutine getLocalizedBasisNew
+
+
+
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess, coeff)
       use module_base
       use module_types
