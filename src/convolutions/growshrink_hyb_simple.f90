@@ -1,3 +1,13 @@
+!> @file
+!! Simple convolution routines
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 subroutine comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
      ,w1,w2,xc,xf,y)
 use module_base
@@ -18,13 +28,12 @@ call comb_rot_grow_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w2,y)
 END SUBROUTINE comb_grow_all_hybrid
 
 
-
+!> In one dimesnion,    
+!! with optimised cycles
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!! the size of the data is allowed to grow
 subroutine comb_rot_grow_1(n1,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y)
-! In one dimesnion,    
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-!  the size of the data is allowed to grow
 use module_base
 implicit none
 integer, intent(in) :: n1,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -103,12 +112,12 @@ enddo
 END SUBROUTINE comb_rot_grow_1
 
 
+!> In one dimesnion,    
+!! with optimised cycles
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!! the size of the data is allowed to grow
 subroutine comb_rot_grow_2(n1,n2,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y)
-! In one dimesnion,    
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-!  the size of the data is allowed to grow
 use module_base
 implicit none
 integer,intent(in)::n1,n2
@@ -167,13 +176,13 @@ END SUBROUTINE comb_rot_grow_2
 
 
 
+!> In one dimesnion,    
+!! with optimised cycles
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!! then adds the result to y.
+!! The size of the data is allowed to grow
 subroutine  comb_rot_grow_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y)
-! In one dimesnion,    
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-! then adds the result to y.
-! The size of the data is allowed to grow
 use module_base
 implicit none
 integer,intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
@@ -213,14 +222,13 @@ enddo
 END SUBROUTINE comb_rot_grow_3
 
 
-
+!> In one dimesnion,    
+!! with optimised cycles
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!! then adds the result to y.
+!! The size of the data is allowed to grow
 subroutine  comb_rot_grow(n1,ndat,x,y)
-! In one dimesnion,    
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-! then adds the result to y.
-! The size of the data is allowed to grow
 use module_base
 implicit none
 integer,intent(in) :: n1,ndat
@@ -250,11 +258,11 @@ enddo
 END SUBROUTINE comb_rot_grow
 
 
+!> In 3d,            
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
+!! The input array y is not overwritten
 subroutine comb_shrink_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,xc,xf)
-! In 3d,            
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
-! The input array y is not overwritten
 use module_base
 implicit none
 integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -286,11 +294,10 @@ integer nt
 END SUBROUTINE comb_shrink_hyb
 
 
-
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_hyb_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
 use module_base
 implicit none
 integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -324,10 +331,10 @@ enddo
 END SUBROUTINE comb_rot_shrink_hyb_1
 
 
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_hyb_2(ndat,x,y,nfl,nfu,n1)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
 use module_base
 implicit none
 integer, parameter:: lowfil2=-14,lupfil2=16
@@ -366,10 +373,10 @@ enddo
 END SUBROUTINE comb_rot_shrink_hyb_2
 
 
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_hyb_3(ndat,x,y,nfl,nfu,n1)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
 use module_base
 implicit none
 integer, parameter :: lowfil2=-14,lupfil2=16
@@ -417,10 +424,10 @@ enddo
 END SUBROUTINE comb_rot_shrink_hyb_3
 
 
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_hyb(ndat,x,y,n1)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
 use module_base
 implicit none
 integer, parameter :: lowfil2=-14,lupfil2=16

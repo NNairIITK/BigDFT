@@ -33,9 +33,9 @@
 #include "s_gpu.h"
 #include <stdio.h>
 
-void sg_init__ ( int *GPUshare, int *useGPU, int *iproc, int *error )
+void sg_init__ ( int *GPUshare, int *useGPU, int *iproc, int *nproc_node, int *error )
 {
-	*error = sg_init ( GPUshare, useGPU, *iproc );
+	*error = sg_init ( GPUshare, useGPU, *iproc, *nproc_node );
 }
 
 //=========================
@@ -214,9 +214,9 @@ void sg_recv_mem_instantaneously__ ( void *dest,
 
 // ================  one underscore support
 
-void sg_init_ ( int *GPUshare, int *useGPU, int *iproc, int *error )
+void sg_init_ ( int *GPUshare, int *useGPU, int *iproc, int *nproc_node, int *error )
 {
-	*error = sg_init ( GPUshare, useGPU, *iproc );
+	*error = sg_init ( GPUshare, useGPU, *iproc, *nproc_node );
 }
 
 //=========================

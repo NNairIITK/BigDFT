@@ -1,19 +1,18 @@
-!!****f* BigDFT/sumrho
-!! FUNCTION
-!!    Calculate the electronic density (rho)
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!> @file
+!!  Routines to calculate electronic density from wavefunctions
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+
+!> Calculates the charge density by summing the square of all orbitals
+!! Input: psi
+!! Output: rho
 subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      & nscatterarr,nspin,GPU,symObj,irrzon,phnons)
-  ! Calculates the charge density by summing the square of all orbitals
-  ! Input: psi
-  ! Output: rho
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
   use libxc_functionals
@@ -266,15 +265,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   !write(*,*) 'TIMING:SR3',real(ncount3-ncount2)/real(ncount_rate)
   !write(*,*) 'TIMING:SR',real(ncount3-ncount0)/real(ncount_rate)
 END SUBROUTINE sumrho
-!!***
 
 
-!!****f* BigDFT/local_partial_density
-!! FUNCTION
-!!   Here starts the routine for building partial density inside the localisation region
+!>   Here starts the routine for building partial density inside the localisation region
 !!   This routine should be treated as a building-block for the linear scaling code
-!! SOURCE
-!!
 subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   use module_base
@@ -369,13 +363,8 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE local_partial_density
-!!***
 
 
-!!****f* BigDFT/partial_density
-!! FUNCTION
-!! SOURCE
-!!
 subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p)
   use module_base
@@ -476,13 +465,8 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   end if
 
 END SUBROUTINE partial_density
-!!***
 
 
-!!****f* BigDFT/partial_density_free
-!! FUNCTION
-!! SOURCE
-!!
 subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p,&
      ibyyzz_r) 
@@ -593,13 +577,8 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
 !  call system_clock(ncount1,ncount_rate,ncount_max)
 !  write(*,*) 'TIMING:PDF',real(ncount1-ncount0)/real(ncount_rate)
 END SUBROUTINE partial_density_free
-!!***
 
 
-!!****f* BigDFT/symmetrise_density
-!! FUNCTION
-!! SOURCE
-!!
 subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho,&
      symObj,irrzon,phnons)
   use module_base!, only: gp,dp,wp,ndebug,memocc
@@ -796,4 +775,3 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
   call memocc(i_stat,i_all,'rhog',subname)
 
 END SUBROUTINE symmetrise_density
-!!***

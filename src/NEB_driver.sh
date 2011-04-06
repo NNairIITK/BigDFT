@@ -1,11 +1,11 @@
 #!/bin/bash --noprofile
 
-#############################################
-# Copyright (C) 2009 Damien Caliste (DC)    #
-# This file is distributed under the terms  #
-# of the GNU General Public License.        #
-# See http://www.gnu.org/copyleft/gpl.txt . #
-#############################################
+###############################################
+# Copyright (C) 2009-2011 Damien Caliste (DC) #
+# This file is distributed under the terms    #
+# of the GNU General Public License.          #
+# See http://www.gnu.org/copyleft/gpl.txt .   #
+###############################################
 
 # Compute the forces for all the current replica.
 # INPUTS:

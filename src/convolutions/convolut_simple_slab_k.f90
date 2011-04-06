@@ -1,9 +1,19 @@
+!> @file
+!!  Non-optimized convolution routines for kinetic operator
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Applies the modified kinetic energy operator onto x to get y. 
+!! Works for the slab BC.
+!! Modified kinetic energy operator:
+!! A=-1/2 exp(Ikr) Delta exp(-Ikr)+C
+!! where k=(k1,k2,k3); r=(x,y,z)
 subroutine convolut_kinetic_slab_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
-! Applies the modified kinetic energy operator onto x to get y. 
-! Works for the slab BC.
-! Modified kinetic energy operator:
-! A=-1/2 exp(Ikr) Delta exp(-Ikr)+C
-! where k=(k1,k2,k3); r=(x,y,z)
 
   use module_base
   implicit none
@@ -125,13 +135,14 @@ subroutine convolut_kinetic_slab_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
 !$omp end parallel  
 END SUBROUTINE convolut_kinetic_slab_c_k
 
+
+!> Applies the modified kinetic energy operator onto x to get y. 
+!! Computes the kinetic energy too.
+!! Works for the slab BC.
+!! Modified kinetic energy operator:
+!! A=-1/2 exp(Ikr) Delta exp(-Ikr)
+!! where k=(k1,k2,k3); r=(x,y,z)
 subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
-! Applies the modified kinetic energy operator onto x to get y. 
-! Computes the kinetic energy too.
-! Works for the slab BC.
-! Modified kinetic energy operator:
-! A=-1/2 exp(Ikr) Delta exp(-Ikr)
-! where k=(k1,k2,k3); r=(x,y,z)
 
   use module_base
   implicit none
@@ -195,11 +206,10 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
      fil(2,-i,:)=-fil(2,i,:)
   enddo
 
-!$omp parallel default (private) shared(x,y,ener,fil,c,n1,n2,n3)
   ener=0._wp
+!$omp parallel default (private) shared(x,y,ener,fil,c,n1,n2,n3)
 
-!$omp do
-
+!$omp do reduction(+:ener)
 
   do i3=0,n3
      ! (1/2) d^2/dx^2
@@ -238,7 +248,8 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
      
   enddo
 !$omp enddo
-!$omp do
+
+!$omp do reduction(+:ener)
   ! + (1/2) d^2/dz^2
   do i2=0,n2
      do i1=0,n1

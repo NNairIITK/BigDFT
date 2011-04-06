@@ -6,6 +6,7 @@ aclocal.m4
 autom4te.cache
 config/*
 configure
+libXC/configure.bak
 config.status
 config.h
 config.h.in

@@ -1,14 +1,14 @@
-!!****p* BigDFT/oneatom
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2010 ESRF, PoliTo
+!> @file
+!!  Program to do one atom calculation
+!! @author
+!!    Copyright (C) 2010-2011 ESRF, PoliTo
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+!> Compute one atom system
+!! @deprecated
 program oneatom
   use BigDFT_API
   use Poisson_Solver
@@ -34,12 +34,9 @@ program oneatom
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(gp), dimension(:,:), allocatable :: radii_cf
-  real(wp), dimension(:), pointer :: hpsi,psit,psi,psidst,hpsidst,proj,pot
+  real(wp), dimension(:), pointer :: hpsi,psit,psi,proj,pot
   real(dp), dimension(:), pointer :: pkernel,pot_ion
   real(gp), dimension(:,:), pointer :: rxyz
-  ! arrays for DIIS convergence accelerator
-  real(wp), dimension(:,:,:), pointer :: ads
-
 
   !for the moment no need to have parallelism
   iproc=0
@@ -330,13 +327,11 @@ program oneatom
 
 
 end program oneatom
-!!***
 
 
-!!****f* BigDFT/createPotential
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
@@ -708,13 +703,11 @@ subroutine createPotential(geocode,iproc,nproc,at,rxyz,&
 
 
 END SUBROUTINE createPotential
-!!***
 
 
-!!****f* BigDFT/psi_from_gaussians
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   use module_base
@@ -854,13 +847,11 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
 
   
 END SUBROUTINE psi_from_gaussians
-!!***
 
 
-!!****f* BigDFT/plot_wf_oneatom
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   use module_base
@@ -950,4 +941,4 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE plot_wf_oneatom
-!!***
+

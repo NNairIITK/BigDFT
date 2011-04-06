@@ -399,7 +399,7 @@
     subroutine ab6_mixing_eval(mix, arr, istep, nfftot, ucvol, &
          & mpi_comm, mpi_summarize, errid, errmess, &
          & reset, isecur, pawarr, pawopt, response, etotal, potden, &
-         & resnrm)
+         & resnrm, fnrm, fdot, user_data)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -411,9 +411,9 @@
 
       type(ab6_mixing_object), intent(inout) :: mix
       integer, intent(in) :: istep, nfftot, mpi_comm
+      logical, intent(in) :: mpi_summarize
       real(dp), intent(in) :: ucvol
       real(dp), intent(inout) :: arr(mix%space * mix%nfft,mix%nspden)
-      logical, intent(in) :: mpi_summarize
       integer, intent(out) :: errid
       character(len = 500), intent(out) :: errmess
 
@@ -423,9 +423,30 @@
       real(dp), intent(in), optional :: etotal
       real(dp), intent(in), optional :: potden(mix%space * mix%nfft,mix%nspden)
       real(dp), intent(out), optional :: resnrm
+      optional :: fnrm, fdot
+      integer, intent(in), optional :: user_data(:)
+
+      interface
+         function fdot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+           integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+           double precision, intent(in) :: x(*), y(*)
+           integer, intent(in) :: user_data(:)
+
+           double precision :: fdot
+         end function fdot
+
+         function fnrm(x,cplex,nfft,nspden,opt_denpot,user_data)
+           integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+           double precision, intent(in) :: x(*)
+           integer, intent(in) :: user_data(:)
+
+           double precision :: fnrm
+         end function fnrm
+      end interface
 
       integer :: moveAtm, dbl_nnsclo, initialized, isecur_
       integer :: usepaw, pawoptmix_, response_
+      integer :: user_data_(2)
       real(dp) :: resnrm_
 
       ! Argument checkings.
@@ -451,6 +472,14 @@
               & '  Moving atoms is used, but no xred or dtn_pc attributes provided.'
          return
       end if
+      if ((present(fnrm) .or. present(fdot) .or. present(user_data)) .and. &
+           & .not. (present(fnrm) .and. present(fdot) .and. present(user_data))) then
+         errid = AB6_ERROR_MIXING_ARG
+         write(errmess, '(a,a,a,a)' )ch10,&
+              & ' ab6_mixing_eval: ERROR -',ch10,&
+              & '  Passing optional norm and dot product routines without user_data argument.'
+         return
+      end if
       errid = AB6_NO_ERROR
 
       ! Miscellaneous
@@ -469,6 +498,13 @@
       response_ = 0
       if (present(response)) response_ = response
 
+      ! Norm and dot products.
+      if (.not. present(user_data)) then
+         user_data_(1) = 0
+         if (mpi_summarize) user_data_(1) = 1
+         user_data_(2) = mpi_comm
+      end if
+
       ! Do the mixing.
       resnrm_ = 0.d0
       if (mix%iscf == AB6_MIXING_EIG) then
@@ -480,11 +516,17 @@
            & mix%iscf == AB6_MIXING_ANDERSON .or. &
            & mix%iscf == AB6_MIXING_ANDERSON_2 .or. &
            & mix%iscf == AB6_MIXING_PULAY) then
-         call scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
-              & mix%i_vrespc,mix%i_vtrial, &
-              & mpi_comm,mpi_summarize,mix%nfft,mix%n_pawmix,mix%nspden, &
-              & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr, &
-              & resnrm_, arr, errid, errmess)
+         if (present(user_data)) then
+            call scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
+                 & mix%i_vrespc,mix%i_vtrial, mix%nfft,mix%n_pawmix,mix%nspden, &
+                 & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr, &
+                 & resnrm_, arr, fnrm, fdot, user_data, errid, errmess)
+         else
+            call scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
+                 & mix%i_vrespc,mix%i_vtrial, mix%nfft,mix%n_pawmix,mix%nspden, &
+                 & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr, &
+                 & resnrm_, arr, fnrm_default, fdot_default, user_data_, errid, errmess)
+         end if
          !  Change atomic positions
          if((istep==1 .or. mix%iscf==AB6_MIXING_SIMPLE) .and. mix%n_atom > 0)then
             !    GAF: 2009-06-03
@@ -506,12 +548,23 @@
          if (mix%n_atom == 0) then
             allocate(mix%xred(3,0), mix%dtn_pc(3,0))
          end if
-         call scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
-              & mix%f_fftgr,initialized,mix%iscf,isecur_,istep,&
-              & mix%i_rhor,mix%i_vresid,mix%i_vrespc,moveAtm,&
-              & mpi_comm,mpi_summarize,mix%n_atom,mix%nfft,nfftot,&
-              & mix%nspden,mix%n_fftgr,mix%n_index,mix%kind,&
-              & response_,potden,ucvol,arr,mix%xred, errid, errmess)
+         if (present(user_data)) then
+            call scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
+                 & mix%f_fftgr,initialized,mix%iscf,isecur_,istep,&
+                 & mix%i_rhor,mix%i_vresid,mix%i_vrespc,moveAtm,&
+                 & mix%n_atom,mix%nfft,nfftot,&
+                 & mix%nspden,mix%n_fftgr,mix%n_index,mix%kind,&
+                 & response_,potden,ucvol,arr,mix%xred, &
+                 & fnrm, fdot, user_data, errid, errmess)
+         else
+            call scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
+                 & mix%f_fftgr,initialized,mix%iscf,isecur_,istep,&
+                 & mix%i_rhor,mix%i_vresid,mix%i_vrespc,moveAtm,&
+                 & mix%n_atom,mix%nfft,nfftot,&
+                 & mix%nspden,mix%n_fftgr,mix%n_index,mix%kind,&
+                 & response_,potden,ucvol,arr,mix%xred, fnrm_default, &
+                 & fdotn_default, user_data_, errid, errmess)
+         end if
          if (mix%n_atom == 0) then
             deallocate(mix%xred, mix%dtn_pc)
          end if
@@ -567,4 +620,43 @@
 
       call nullify_(mix)
     end subroutine ab6_mixing_deallocate
+
+    function fnrm_default(x,cplex,nfft,nspden,opt_denpot,user_data)
+      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+      double precision, intent(in) :: x(*)
+      integer, intent(in) :: user_data(:)
+
+      double precision :: fnrm_default
+      real(dp) :: resid_new(1)
+
+      call sqnormm_v(cplex,1,user_data(2),(user_data(1) /= 0),1,&
+           & nfft,resid_new,1,nspden,opt_denpot,x)
+      fnrm_default = resid_new(1)
+    end function fnrm_default
+
+    function fdot_default(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+      double precision, intent(in) :: x(*), y(*)
+      integer, intent(in) :: user_data(:)
+
+      double precision :: fdot_default
+      real(dp) :: prod_resid(1)
+
+      call dotprodm_v(cplex,1,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
+           & nfft,1,1,nspden,opt_denpot,x,y)
+      fdot_default = prod_resid(1)
+    end function fdot_default
+
+    function fdotn_default(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+      double precision, intent(in) :: x(*), y(*)
+      integer, intent(in) :: user_data(:)
+
+      double precision :: fdotn_default
+      real(dp) :: prod_resid(1,1,1)
+
+      call dotprodm_vn(cplex,1,x,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
+           & 1,nfft,1,nspden,y)
+      fdotn_default = prod_resid(1,1,1)
+    end function fdotn_default
   end module m_ab6_mixing

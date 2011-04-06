@@ -1,19 +1,17 @@
-!!****p* BigDFT/rotate_posinp
-!! FUNCTION
-!!  Rotates the molecular structure in the input file posinp.xyz and 
-!!  writes the result in the file rot_posinp.xyz
-!!  Comparing the BigDFT energies of the original and rotated configuration 
-!!  can help to estimate the accuracy the the chosen parameter set( hgrid, crmult etc).
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!> @file
+!!  Program to rotate atomic coordinates 
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>  Rotates the molecular structure in the input file posinp.xyz and 
+!!  writes the result in the file rot_posinp.xyz
+!!  Comparing the BigDFT energies of the original and rotated configuration 
+!!  can help to estimate the accuracy the the chosen parameter set( hgrid, crmult etc).
 PROGRAM rotate_posinp
 
    implicit real*8 (a-h,o-z)
@@ -108,4 +106,3 @@ PROGRAM rotate_posinp
    close(unit=9)
 
 END PROGRAM rotate_posinp
-!!***

@@ -59,6 +59,7 @@
     public :: memocc_set_verbosity
     public :: memocc_set_debug
     public :: memocc_set_memory_limit
+    public :: d_nan,r_nan
 
   contains
 

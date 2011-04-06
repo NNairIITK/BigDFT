@@ -1,16 +1,14 @@
-!!****f* BigDFT/inputguess_gaussian_orbitals
-!! FUNCTION
-!!   Generate the input guess via the inguess_generator
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 (LG) BigDFT group
+!> @file
+!!  Routines to generate the input guess
+!! @author
+!!    Copyright (C) 2007-2011 (LG) BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>   Generate the input guess via the inguess_generator
 subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
      orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
   use module_base
@@ -74,12 +72,12 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
                 "WARNING: A bigger number of virtual orbitals may be needed for better convergence."
            write(*,'(1x,a,i0)')'         Put nvirt= ',nvirte
         end if
-        if (nvirte < nvirt) then
-           nvirt=nvirte
-           if(iproc==0) write(*,'(1x,a,i3)')&
-                "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
-        end if
-        nvirt=min(nvirt,nvirte)
+        !if (nvirte < nvirt) then
+        !   nvirt=nvirte
+        !   if(iproc==0) write(*,'(1x,a,i3)')&
+        !        "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
+        !end if
+        !nvirt=min(nvirt,nvirte)
      end do
   end if
 
@@ -144,14 +142,9 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   call memocc(i_stat,i_all,'iorbtolr',subname)
 
 END SUBROUTINE inputguess_gaussian_orbitals
-!!***
 
 
-!!****f* BigDFT/count_atomic_shells
-!! FUNCTION
-!!   Count the number of atomic shells
-!! SOURCE
-!!
+!>   Count the number of atomic shells
 subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occup,nl)
   use module_base
   implicit none
@@ -192,14 +185,9 @@ subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occu
   end do
 
 END SUBROUTINE count_atomic_shells
-!!***
 
 
-!!****f* BigDFT/readAtomicOrbitals
-!! FUNCTION
-!!   Read atomic orbitals
-!! SOURCE
-!!
+!>   Read atomic orbitals
 subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
   use module_base
   use module_types
@@ -275,15 +263,9 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
   if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
 
 END SUBROUTINE readAtomicOrbitals
-!!***
 
 
-!!****f* BigDFT/AtomicOrbitals
-!! FUNCTION
-!!   Generate atomic orbitals
-!!
-!! SOURCE
-!!
+!>   Generate atomic orbitals
 subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
      nspin,eks,scorb,G,gaucoeff,iorbtolr)
   use module_base
@@ -727,16 +709,10 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 !  end if
 
 END SUBROUTINE AtomicOrbitals
-!!***
 
 
-!!****f* BigDFT/atomkin
-!! FUNCTION
-!!   Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
+!>   Calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
 !!   the output psiatn is a normalized version of psiat
-!!
-!! SOURCE
-!!
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   use module_base
   implicit none
@@ -798,15 +774,8 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   enddo
 
 END SUBROUTINE atomkin
-!!***
 
 
-!!****f* BigDFT/calc_coeff_inguess
-!! FUNCTION
-!!
-!!
-!! SOURCE
-!!
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   use module_base
   implicit none
@@ -912,15 +881,8 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   endif
 
 END SUBROUTINE calc_coeff_inguess
-!!***
 
 
-!!****f* BigDFT/iguess_generator
-!! FUNCTION
-!!   
-!!
-!! SOURCE
-!!
 subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
      nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb)
   use module_base
@@ -1123,15 +1085,10 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
   call memocc(i_stat,i_all,'alps',subname)
 
 END SUBROUTINE iguess_generator
-!!***
 
 
-!!****f* BigDFT/gatom
-!! FUNCTION
-!!  Calculates the solution of the radial Schroedinger equation for a given
+!>  Calculates the solution of the radial Schroedinger equation for a given
 !!  pseudoptential.
-!! SOURCE
-!!
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg)
@@ -1148,7 +1105,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
-  if (nintp.ne.n_int) stop 'n_int><nintp'
+  if (nintp.ne.n_int) stop 'n_int/=nintp'
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l
@@ -1486,15 +1443,8 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
   end if
 
 END SUBROUTINE gatom
-!!***
 
 
-!!****f* BigDFT/resid
-!! FUNCTION
-!!
-!!
-!! SOURCE
-!!
 subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
                  ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
                  potgrd,xcgrd,noproj)
@@ -1591,14 +1541,8 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
 !  end do
 
 END SUBROUTINE resid
-!!***
 
 
-!!****f* BigDFT/crtvh
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
@@ -1680,15 +1624,8 @@ subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
   end do loop_j
 
 END SUBROUTINE crtvh
-!!***
 
 
-!!****f* BigDFT/wave
-!! FUNCTION
-!!   
-!!
-!! SOURCE
-!!
 function wave(ng,ll,xp,psi,r)
   use module_base, only: gp
   implicit none
@@ -1707,13 +1644,11 @@ function wave(ng,ll,xp,psi,r)
      wave=wave*r**ll
   endif
 end function wave
-!!***
 
 
-!!****f* BigDFT/emuxc
-!! FUNCTION
+
+!>
 !!
-!! SOURCE
 !!
 function emuxc(rho)
   use module_base, only: gp
@@ -1750,14 +1685,10 @@ function emuxc(rho)
     emuxc=top/(bot*bot)
   end if
 end function emuxc
-!!***
 
 
-!!****f* BigDFT/gamma_restricted
-!! FUNCTION
-!!   Restricted version of the Gamma function
-!!
-!! SOURCE
+
+!>   Restricted version of the Gamma function
 !!
 function gamma_restricted(x)
   use module_base, only: gp
@@ -1786,15 +1717,8 @@ function gamma_restricted(x)
      stop 'wrong argument for gamma_restricted'
   end if
 end function gamma_restricted
-!!***
 
 
-!!****f* BigDFT/psitospi0
-!! FUNCTION
-!!   
-!!
-!! SOURCE
-!!
 !  call psitospi0(iproc,nproc,norbe,norbep,norbsc,&
 !       wfd%nvctr_c,wfd%nvctr_f,nspin,spinsgne,psi)
 subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,&
@@ -1866,15 +1790,9 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,&
   end if
 
 END SUBROUTINE psitospi0
-!!***
 
 
-!!****f* BigDFT/at_occnums
-!! FUNCTION
-!!  Calculate the occupation number for any of the orbitals
-!!
-!! SOURCE
-!!
+!>  Calculate the occupation number for any of the orbitals
 subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
   use module_base
   implicit none
@@ -1990,14 +1908,9 @@ subroutine at_occnums(ipolres,nspin,nspinor,nmax,lmax,nelecmax,eleconf,occupIG)
      end do
   end do
 END SUBROUTINE at_occnums
-!!***
 
 
-!!****f* BigDFT/print_eleconf
-!! FUNCTION
-!!   Print the electronic configuration, with the semicore orbitals
-!! SOURCE
-!!
+!>   Print the electronic configuration, with the semicore orbitals
 subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   use module_base
   implicit none
@@ -2085,14 +1998,10 @@ subroutine print_eleconf(nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   write(*,'(2x,a,1x,a,1x,a)',advance='no')' Elec. Configuration:',trim(string),'...'
 
 END SUBROUTINE print_eleconf
-!!***
 
-!!****f* BigDFT/write_fraction_string
-!! FUNCTION
-!!  Control whether the occupation number can be rounded by a shell-dependent fraction 
+
+!>  Control whether the occupation number can be rounded by a shell-dependent fraction 
 !!  denominator
-!! SOURCE
-!!
 subroutine write_fraction_string(l,occ,string,nstring)
   use module_base
   implicit none
@@ -2125,14 +2034,9 @@ subroutine write_fraction_string(l,occ,string,nstring)
   end if
 
 END SUBROUTINE write_fraction_string
-!!***
 
 
-!!****f* BigDFT/read_fraction_string
-!! FUNCTION
-!!  Here the fraction is indicated by the ':' or '/'
-!! SOURCE
-!!
+!>  Here the fraction is indicated by the ':' or '/'
 subroutine read_fraction_string(string,occ,ierror)
   use module_base
   implicit none
@@ -2156,14 +2060,9 @@ subroutine read_fraction_string(string,occ,ierror)
   !Value by defaut
   if (ierror /= 0) occ = huge(1_gp)
 END SUBROUTINE read_fraction_string
-!!***
 
 
-!!****f* BigDFT/read_fraction_string_old
-!! FUNCTION
-!!  Here the fraction is indicated by the :
-!! SOURCE
-!!
+!>  Here the fraction is indicated by the :
 subroutine read_fraction_string_old(l,string,occ)
   use module_base
   implicit none
@@ -2187,14 +2086,9 @@ subroutine read_fraction_string_old(l,string,occ)
      read(string,*)occ
   end if
 END SUBROUTINE read_fraction_string_old
-!!***
 
 
-!!****f* BigDFT/read_eleconf
-!! FUNCTION
-!!   Read the electronic configuration, with the semicore orbitals
-!! SOURCE
-!!
+!>   Read the electronic configuration, with the semicore orbitals
 subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   use module_base
   implicit none
@@ -2290,4 +2184,3 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   end do
 
 END SUBROUTINE read_eleconf
-!!***

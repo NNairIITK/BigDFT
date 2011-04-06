@@ -1,53 +1,45 @@
-!!****f* BigDFT/createKernel
-!! FUNCTION
-!!    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
-!!    calculating the convolution with the kernel expressed in the interpolating scaling
-!!    function basis. The kernel pointer is unallocated on input, allocated on output.
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2002-2007 BigDFT group 
+!> @file
+!!    Routines to create the kernel for Poisson solver
+!! @author
+!!    Copyright (C) 2002-2011 BigDFT group  (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!> Allocate a pointer which corresponds to the zero-padded FFT slice needed for
+!! calculating the convolution with the kernel expressed in the interpolating scaling
+!! function basis. The kernel pointer is unallocated on input, allocated on output.
 !! SYNOPSIS
-!!    geocode  Indicates the boundary conditions (BC) of the problem:
-!!            'F' free BC, isolated systems.
-!!                The program calculates the solution as if the given density is
-!!                "alone" in R^3 space.
-!!            'S' surface BC, isolated in y direction, periodic in xz plane                
-!!                The given density is supposed to be periodic in the xz plane,
-!!                so the dimensions in these direction mus be compatible with the FFT
-!!                Beware of the fact that the isolated direction is y!
-!!            'P' periodic BC.
-!!                The density is supposed to be periodic in all the three directions,
-!!                then all the dimensions must be compatible with the FFT.
-!!                No need for setting up the kernel.
-!!    iproc,nproc number of process, number of processes
-!!    n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
-!!    itype_scf   order of the interpolating scaling functions used in the decomposition
-!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
-!!                be equal in the three directions
-!!    kernel      pointer for the kernel FFT. Unallocated on input, allocated on output.
-!!                Its dimensions are equivalent to the region of the FFT space for which the
-!!                kernel is injective. This will divide by two each direction, 
-!!                since the kernel for the zero-padded convolution is real and symmetric.
+!!    @param geocode  Indicates the boundary conditions (BC) of the problem:
+!!              - 'F' free BC, isolated systems.
+!!                    The program calculates the solution as if the given density is
+!!                    "alone" in R^3 space.
+!!              - 'S' surface BC, isolated in y direction, periodic in xz plane                
+!!                    The given density is supposed to be periodic in the xz plane,
+!!                    so the dimensions in these direction mus be compatible with the FFT
+!!                    Beware of the fact that the isolated direction is y!
+!!              - 'P' periodic BC.
+!!                    The density is supposed to be periodic in all the three directions,
+!!                    then all the dimensions must be compatible with the FFT.
+!!                    No need for setting up the kernel.
+!!    @param iproc,nproc number of process, number of processes
+!!    @param n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
+!!    @param itype_scf   order of the interpolating scaling functions used in the decomposition
+!!    @param hx,hy,hz grid spacings. For the isolated BC case for the moment they are supposed to 
+!!                    be equal in the three directions
+!!    @param kernel   pointer for the kernel FFT. Unallocated on input, allocated on output.
+!!                    Its dimensions are equivalent to the region of the FFT space for which the
+!!                    kernel is injective. This will divide by two each direction, 
+!!                    since the kernel for the zero-padded convolution is real and symmetric.
 !!
-!! WARNING
+!! @warning
 !!    Due to the fact that the kernel dimensions are unknown before the calling, the kernel
 !!    must be declared as pointer in input of this routine.
 !!    To avoid that, one can properly define the kernel dimensions by adding 
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
-!!
-!! AUTHOR
-!!    Luigi Genovese
-!! CREATION DATE
-!!    February 2007
-!!
-!! SOURCE
-!!
 subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,&
      quiet) !optional arguments
   use module_base, only: ndebug
@@ -215,4 +207,3 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
   call timing(iproc,'PSolvKernel   ','OF')
 
 END SUBROUTINE createKernel
-!!***

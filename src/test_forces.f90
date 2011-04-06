@@ -1,21 +1,22 @@
-!!****p* BigDFT/test_forces
-!! FUNCTION
-!!    Runs BigDFT and test whether the forces are the 
+!> @file
+!!   Contains a routine to test forces
+!! @author
+!!    Copyright (C) 2005-2011 BigDFT group (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!>    Runs BigDFT and test whether the forces are the 
 !!    derivative of the energy.
 !!    Performs the integration of the calculated forces over
 !!    some random displacement and compare the result with the 
 !!    difference of the energy between the final and the initial 
 !!    position
-!! WARNING
+!! @deprecated
+!! @todo
 !!    Date: 10/07; THIS PROGRAM MUST BE COMPLETELY CHANGED
-!! AUTHOR
-!!    Luigi Genovese
-!! COPYRIGHT
-!!    Copyright (C) 2005-2008 CEA
-!! CREATION DATE
-!!    09/2006
-!! SOURCE
-!!
 program test_forces
 
   use module_base
@@ -163,7 +164,6 @@ program test_forces
      call memocc(i_stat,i_all,'keyv',subname)
      
 
-
      FxdRx=0.d0
      FydRy=0.d0
      FzdRz=0.d0
@@ -222,4 +222,3 @@ program test_forces
 
 
 end program test_forces
-!!***

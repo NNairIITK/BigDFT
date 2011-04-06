@@ -1,7 +1,17 @@
+!> @file
+!!  Simple routines combining magic filters and analysis wavelet transforms
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
   use module_base
   implicit none
   integer, parameter :: lowfil2=-14,lupfil2=16
@@ -41,12 +51,13 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
 !    tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
 !    write(10,*) tel, 1.d-6*nflop/tel
-  END SUBROUTINE comb_rot_shrink_loc
+END SUBROUTINE comb_rot_shrink_loc
 
+
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -83,13 +94,13 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
     !tel=dble(ncount1-ncount0)/dble(ncount_rate)
     !write(20,*) tel, 1.d-6*nflop/tel
 
-end
+END SUBROUTINE comb_rot_shrink_loc_1
 
 
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
   use module_base
   implicit none
   integer, parameter:: lowfil2=-14,lupfil2=16
@@ -131,4 +142,4 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
     !tel=dble(ncount1-ncount0)/dble(ncount_rate)
     !write(20,*) tel, 1.d-6*nflop/tel
        
-end
+END SUBROUTINE comb_rot_shrink_loc_2

@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft test_forces memguess NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft test_forces memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -67,9 +67,10 @@ sub_dirs_libconfig=
 endif
 
 if HAVE_ETSF_IO
-etsf_files = wavelib/plotting-etsf.f90
+etsf_files = wavelib/plotting-etsf.f90 \
+	wavelib/i-o-etsf.f90
 else
-etsf_files = wavelib/plotting-etsf.fake.f90
+etsf_files = wavelib/etsf_fake.f90
 endif
 
 
@@ -243,6 +244,14 @@ bigdft_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_opt)
 
+splsad_SOURCES = splinedsaddle.f90
+splsad_LDFLAGS =
+splsad_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_opt)
+
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDFLAGS = 
 rism_LDADD = libbigdft.a \
@@ -380,6 +389,8 @@ test_forces.o: $(mod_bigdft)
 $(mod_bigdft) : BigDFT_API.o
 
 $(modules_objects) : $(mpi_include)
+
+modules/defs.o: modules/base.o
 
 #BigDFT.o: \
 #	base.o \

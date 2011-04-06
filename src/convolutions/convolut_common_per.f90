@@ -1,15 +1,15 @@
-!!****f* BigDFT/analyse_per
-!! FUNCTION
-!!   Analysis wavelet transformation in periodic BC
-!!   The input array y is NOT overwritten
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!> @file
+!!  Common convolutions
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+
+!>   Analysis wavelet transformation in periodic BC
+!!   The input array y is NOT overwritten
 subroutine analyse_per(n1,n2,n3,ww,y,x)
   use module_base
   implicit none
@@ -31,12 +31,11 @@ subroutine analyse_per(n1,n2,n3,ww,y,x)
   call  ana_rot_per(n3,nt,ww,x)
 
 END SUBROUTINE analyse_per
-!!***
 
 
+!> Analysis wavelet transformation  in periodic BC
+!! The input array y is overwritten
 subroutine analyse_per_self(n1,n2,n3,y,x)
-  ! Analysis wavelet transformation  in periodic BC
-  ! The input array y is overwritten
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -58,9 +57,9 @@ subroutine analyse_per_self(n1,n2,n3,y,x)
 END SUBROUTINE analyse_per_self
 
 
+!> A synthesis wavelet transformation  in periodic BC
+!! The input array x is not overwritten
 subroutine synthese_per(n1,n2,n3,ww,x,y)
-  ! A synthesis wavelet transformation  in periodic BC
-  ! The input array x is not overwritten
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -83,9 +82,9 @@ subroutine synthese_per(n1,n2,n3,ww,x,y)
 END SUBROUTINE synthese_per
 
 
+!> A synthesis wavelet transformation in periodic BC
+!! The input array x is  overwritten
 subroutine synthese_per_self(n1,n2,n3,x,y)
-  ! A synthesis wavelet transformation in periodic BC
-  ! The input array x is  overwritten
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -107,9 +106,9 @@ subroutine synthese_per_self(n1,n2,n3,x,y)
 END SUBROUTINE synthese_per_self
 
 
-! Applies the magic filter matrix in periodic BC ( no transposition)
-! The input array x is not overwritten
-! this routine is modified to accept the GPU convolution if it is the case
+!> Applies the magic filter matrix in periodic BC ( no transposition)
+!! The input array x is not overwritten
+!! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_per(n1,n2,n3,x,y,ww)
   use module_base
   implicit none
@@ -134,9 +133,9 @@ subroutine convolut_magic_n_per(n1,n2,n3,x,y,ww)
 END SUBROUTINE convolut_magic_n_per
 
 
-! Applies the magic filter matrix in periodic BC ( no transposition)
-! The input array x is overwritten in the usual case
-! this routine is modified to accept the GPU convolution if it is the case
+!> Applies the magic filter matrix in periodic BC ( no transposition)
+!! The input array x is overwritten in the usual case
+!! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_per_self(n1,n2,n3,x,y)
   use module_base
   implicit none
@@ -161,9 +160,9 @@ subroutine convolut_magic_n_per_self(n1,n2,n3,x,y)
 END SUBROUTINE convolut_magic_n_per_self
 
 
-! Applies the magic filter matrix transposed in periodic BC 
-! The input array x is overwritten
-! this routine is modified to accept the GPU convolution if it is the case
+!> Applies the magic filter matrix transposed in periodic BC 
+!! The input array x is overwritten
+!! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_t_per_self(n1,n2,n3,x,y)
   use module_base
   implicit none
@@ -188,12 +187,9 @@ subroutine convolut_magic_t_per_self(n1,n2,n3,x,y)
 END SUBROUTINE convolut_magic_t_per_self
 
 
-
-
-
-! Applies the magic filter matrix transposed  in periodic BC
-! The input array x is not overwritten
-! this routine is modified to accept the GPU convolution if it is the case
+!> Applies the magic filter matrix transposed  in periodic BC
+!! The input array x is not overwritten
+!! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_t_per(n1,n2,n3,x,y)
   use module_base
   implicit none
@@ -224,4 +220,3 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
   call memocc(i_stat,i_all,'ww',subname)
 
 END SUBROUTINE convolut_magic_t_per
-

@@ -1,28 +1,20 @@
-!!****m* fft3d/module_fft_sg
-!! DESCRIPTION
-!!   3-dimensional complex-complex FFT routine: 
+!>  @file 
+!!  @brief 3-dimensional complex-complex FFT routines
+!!
 !!   When compared to the best vendor implementations on RISC architectures 
 !!   it gives close to optimal performance (perhaps loosing 20 percent in speed)
 !!   and it is significanly faster than many not so good vendor implementations 
 !!   as well as other portable FFT's. 
 !!   On all vector machines tested so far (Cray, NEC, Fujitsu) is 
 !!   was significantly faster than the vendor routines
-!!   The theoretical background is described in :
+!!   The theoretical background is described in :\n
 !!   1) S. Goedecker: Rotating a three-dimensional array in optimal
 !!   positions for vector processing: Case study for a three-dimensional Fast
-!!   Fourier Transform, Comp. Phys. Commun. \underline{76}, 294 (1993)
+!!   Fourier Transform, Comp. Phys. Commun. 76, 294 (1993)
 !!   Citing of this reference is greatly appreciated if the routines are used 
 !!   for scientific work.
 !!
-!! NOTES
-!!   Presumably good compiler flags:
-!!   IBM, serial power 2: xlf -qarch=pwr2 -O2 -qmaxmem=-1
-!!   with OpenMP: IBM: xlf_r -qfree -O4 -qarch=pwr3 -qtune=pwr3 -qsmp=omp -qmaxmem=-1 ; 
-!!                     a.out
-!!   DEC: f90 -O3 -arch ev67 -pipeline
-!!   with OpenMP: DEC: f90 -O3 -arch ev67 -pipeline -omp -lelan ; 
-!!                     prun -N1 -c4 a.out
-!! COPYRIGHT
+!! @author
 !!   Copyright (C) Stefan Goedecker, Lausanne, Switzerland, August 1, 1991
 !!   Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
 !!   Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
@@ -33,6 +25,15 @@
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
+!!
+!! @warning
+!!   Presumably good compiler flags:
+!!   IBM, serial power 2: xlf -qarch=pwr2 -O2 -qmaxmem=-1
+!!   with OpenMP: IBM: xlf_r -qfree -O4 -qarch=pwr3 -qtune=pwr3 -qsmp=omp -qmaxmem=-1 ; 
+!!                     a.out
+!!   DEC: f90 -O3 -arch ev67 -pipeline
+!!   with OpenMP: DEC: f90 -O3 -arch ev67 -pipeline -omp -lelan ; 
+!!                     prun -N1 -c4 a.out
 !!
 !! PERFORMANCE AND THE NCACHE
 !!  The most important feature for performance is the right choice of 
@@ -51,33 +52,32 @@
 !!  can be done in the workarray zw, the program stops with an error 
 !!  message.
 !!
-!! SOURCE
-!!
+
+!> Module which contains parameters for FFT3D
 module module_fft_sg
    
    implicit none
 
-   ! Maximum number of points for FFT (should be same number in fft3d routine)
+   !< Maximum number of points for FFT (should be same number in fft3d routine)
    integer, parameter :: nfft_max=2097152
-   ! Number of factors in the decomposition
+   !< Number of factors in the decomposition
    integer, parameter :: n_factors = 7
    integer :: i_d,j_d
 
-! some reasonable values of ncache: 
-!   IBM/RS6000/590: 16*1024 ; IBM/RS6000/390: 3*1024 ; 
-!   IBM/PwPC: 1*1024 ; SGI/MIPS/R8000: 16*1024 ; DEC/Alpha/EV5 and EV6 6*1024
-!   But if you care about performance find the optimal value of ncache yourself!
-!       On all vector machines: ncache=0
+!! @warning
+!!   some reasonable values of ncache: 
+!!   IBM/RS6000/590: 16*1024 ; IBM/RS6000/390: 3*1024 ; 
+!!   IBM/PwPC: 1*1024 ; SGI/MIPS/R8000: 16*1024 ; DEC/Alpha/EV5 and EV6 6*1024
+!!   But if you care about performance find the optimal value of ncache yourself!
+!!       On all vector machines: ncache=0
 
-   integer :: ncache = 8*1024
-   !To have all available dimensions, ncache should be a multiple of 4*nfft_max (T.D.)
+   integer :: ncache = 8*1024  !< To have all available dimensions, ncache should be a multiple of 4*nfft_max (T.D.)
    !integer, parameter :: ncache = (4*nfft_max)
    !Vectorial computer
    !integer, parameter :: ncache = 0
 
 
-   integer, parameter :: ndata = 304
-   !Multiple of 3,5,4,6,7,8 (and 2) with certain restrictions
+   integer, parameter :: ndata = 304  !< Multiple of 3,5,4,6,7,8 (and 2) with certain restrictions
    integer, dimension(ndata), parameter :: i_data = (/   &
        3,      4,      5,      6,      7,      8,      9,     12,  &
       14,     15,     16,     18,     20,     21,     24,     25,  &
@@ -277,13 +277,9 @@ module module_fft_sg
    2097152, 8,   8,   8,   8,   8,   8,   8    /  
 
 end module module_fft_sg
-!!***
 
 
-!!****f* fft3d/set_cache_size
-!! FUNCTION
-!!   Set the cache size for the FFT.
-!! SOURCE
+!>  Set the cache size for the FFT.
 !!
 subroutine set_cache_size(nc)
   use module_fft_sg
@@ -293,13 +289,9 @@ subroutine set_cache_size(nc)
   !Local variables
   ncache = nc
 end subroutine set_cache_size
-!!***
 
 
-!!****f* fft3d/fourier_dim
-!! FUNCTION
-!!   Give a number n_next > n compatible for the FFT
-!! SOURCE
+!>  Give a number n_next > n compatible for the FFT
 !!
 subroutine fourier_dim(n,n_next)
   use module_fft_sg
@@ -318,13 +310,9 @@ subroutine fourier_dim(n,n_next)
   write(unit=*,fmt=*) "fourier_dim: ",n," is bigger than ",i_data(ndata)
   stop
 end subroutine fourier_dim
-!!***
 
 
-!!****f* fft3d/dimensions_fft
-!! FUNCTION
-!!   Give the dimensions of fft arrays
-!! SOURCE
+!>  Give the dimensions of fft arrays
 !!
 subroutine dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
    implicit none
@@ -348,7 +336,7 @@ subroutine dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd
    nd1b=n1b+1
    nd3b=n3b+1
 end subroutine dimensions_fft
-!!***
+
 
 !1-dim complex-complex FFT routine
 !the array in input is the first part, the output is the inzee
@@ -383,11 +371,10 @@ subroutine fft_1d_ctoc(isign,nfft,n,zinout,inzee)
 end subroutine fft_1d_ctoc
 
 
-!!****f* fft3d/FFT
-!! FUNCTION
-!!  Calculates the discrete fourier transform F(I1,I2,I3)=
-!!  S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
-!! DESCRIPTION
+!> @brief Calculates the discrete Fourier transform
+!!
+!! F(I1,I2,I3)= S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+!!
 !!  with optimal performance on vector computer, workstations and 
 !!  multiprocessor shared memory computers using OpenMP compiler directives
 !!   INPUT:
@@ -417,7 +404,7 @@ end subroutine fft_1d_ctoc
 !!   The input data are always overwritten independently of the 
 !!  value of inzee.
 !! 
-!! SOURCE
+!!
 !!
 subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 
@@ -687,13 +674,11 @@ subroutine FFT(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 
    deallocate(trig)
 end subroutine FFT
-!!***
 
 
-!!****f* fft3d/FFT_for
-!! DESCRIPTION
-!!  Calculates the discrete Fourier transform F(I1,I2,I3)=
-!!  S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+!> @brief Calculates the discrete Fourier transform 
+!!
+!! F(I1,I2,I3) = S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
 !!  with optimal performance on vector computer, workstations and 
 !!  multiprocessor shared memory computers using OpenMP compiler directives
 !!   INPUT:
@@ -722,7 +707,7 @@ end subroutine FFT
 !!      inzee on output is in general different from inzee on input
 !!   The input data are always overwritten independently of the 
 !!  value of inzee.
-!! SOURCE
+!!
 !!
 subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
 
@@ -1134,14 +1119,10 @@ contains
     end subroutine z1_to_z3
 
 end subroutine fft_for
-!!***
 
 
-!!****f* fft3d/FFT_back
-!! FUNCTION
-!!  Calculates the discrete fourier transform F(I1,I2,I3)=
-!!  S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
-!! SOURCE
+!> Calculates the discrete fourier transform 
+!! F(I1,I2,I3) = S_(j1,j2,j3) EXP(i_sign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
 !!
 subroutine FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,y,z1,z3,inzee)
 
@@ -1606,14 +1587,12 @@ contains
    end subroutine z3_to_y
 
 end subroutine fft_back
-!!***
 
 
-!!****f* fft3d/ctrig_sg
-!! SIDE EFFECTS
+!> ctrig_sg
+!! @warning
 !!  Different factorizations affect the performance
 !!  Factoring 64 as 4*4*4 might for example be faster on some machines than 8*8.
-!! SOURCE
 !!
 subroutine ctrig_sg(n,ntrig,trig,after,before,now,i_sign,ic)
 
@@ -1688,11 +1667,9 @@ subroutine ctrig_sg(n,ntrig,trig,after,before,now,i_sign,ic)
    end if
 
 end subroutine ctrig_sg
-!!***
 
 
-!!****f* fft3d/fftstp_sg
-!! SOURCE
+!> fftstp_sg
 !!
 subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,ntrig,trig,after,now,before,i_sign)
 
@@ -3264,11 +3241,9 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,ntrig,trig,after,now,before,i_sign)
    end if !end of now
 
 end subroutine fftstp_sg
-!!***
 
 
-!!****f* fft3d/fftrot_sg
-!! SOURCE
+!> fftrot_sg
 !!
 subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,ntrig,trig,after,now,before,i_sign)
 
@@ -4836,4 +4811,4 @@ subroutine fftrot_sg(mm,nfft,m,nn,n,zin,zout,ntrig,trig,after,now,before,i_sign)
   end if
 
 end subroutine fftrot_sg
-!!***
+

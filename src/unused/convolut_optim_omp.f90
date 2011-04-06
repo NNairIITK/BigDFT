@@ -1,3 +1,13 @@
+!> @file
+!!  Kinetic convolution routines (unused)
+!! @deprecated
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
 subroutine convolut_kinetic(n1,n2,n3,hgrid,x,y)
   !use module_profile
   !   applies the kinetic energy operator onto x to get y

@@ -1,7 +1,15 @@
+!> @file
+!!  Routines related to the kernel
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 
-subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)	
-  ! hits the input array x with the kernel
-  ! ((-1/2\Delta+C)_{ij})^{-1}
+!> hits the input array x with the kernel
+!! @f$ ((-1/2\Delta+C)_{ij})^{-1} @f$
+subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)
   implicit none
   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
   real*8,intent(in)::kern_k1(0:n1)
@@ -53,12 +61,10 @@ subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)
 END SUBROUTINE hit_with_kernel
 
 
-
-
+!> construct the kernel (-1/2 d^2/dx^2)_{ij}
+!! at a real space grid with grid size hgrid
+!! and then fourier transform it to momentum space
 subroutine make_kernel(n1,hgrid,kern)
-  ! construct the kernel (-1/2 d^2/dx^2)_{ij}
-  ! at a real space grid with grid size hgrid
-  ! and then fourier transform it to momentum space
   implicit none
   integer,intent(in)::n1
   real*8,intent(in)::hgrid

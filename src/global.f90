@@ -1,15 +1,14 @@
-!!****p* MINHOP
-!!
-!! DESCRIPTION
-!!  Main program fro the minima hopping
-!!  New modified version 17th Nov 2009 Sandip De  
-!! COPYRIGHT
-!!    Copyright (C) 2008 UNIBAS
+!> @file
+!!  Minima hopping program
+!! @author
+!!    New modified version 17th Nov 2009 Sandip De  
+!!    Copyright (C) 2008-2011 UNIBAS
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
-!!
-!! SOURCE
-!!
+
+
+!> MINHOP
+!!  Main program fro the minima hopping
 program MINHOP
 
   use module_base
@@ -586,9 +585,9 @@ program MINHOP
 contains
 
 
+  !> Does a MD run with the atomic positiosn rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
        nproc,iproc,atoms,rst,inputs_md)!  &
-    ! Does a MD run with the atomic positiosn rxyz
     use module_base
     use module_types
     use module_interfaces
@@ -724,7 +723,6 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     endif
     
   END SUBROUTINE mdescape
-  
   
 
   subroutine soften(nsoften,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
@@ -879,14 +877,11 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     !        deallocate(wpos,fxyz)
   END SUBROUTINE soften
 
-
 end program MINHOP
-!!***
 
 
-
+!> Inserts the energy re_wpos at position k_e_wpos and shifts up all other energies
 subroutine insert(nlminx,nlmin,k_e_wpos,re_wpos,earr)
-  ! inserts the energy re_wpos at position k_e_wpos and shifts up all other energies
   implicit real*8 (a-h,o-z)
   dimension earr(0:nlminx,2)
   do k=nlmin-1,k_e_wpos+1,-1
@@ -899,8 +894,8 @@ subroutine insert(nlminx,nlmin,k_e_wpos,re_wpos,earr)
 END SUBROUTINE insert
 
 
+!> C save configuration if it is among the lowest ones in energy
 subroutine save_low_conf(nat,npmin,npminx,e_wpos,pos,elocmin,poslocmin)
-  !C save configuration if it is among the lowest ones in energy
   implicit real*8 (a-h,o-z)
   dimension elocmin(npminx)
   dimension pos(3,nat),poslocmin(3,nat,npminx)
@@ -937,9 +932,9 @@ subroutine save_low_conf(nat,npmin,npminx,e_wpos,pos,elocmin,poslocmin)
 END SUBROUTINE save_low_conf
 
 
+!> C x is in interval [xx(jlo),xx(jlow+1)[ ; xx(0)=-Infinity ; xx(n+1) = Infinity
 subroutine hunt_g(xx,n,x,jlo)
   implicit none
-  !C x is in interval [xx(jlo),xx(jlow+1)[ ; xx(0)=-Infinity ; xx(n+1) = Infinity
   !Arguments
   integer :: jlo,n
   real(kind=8) :: x,xx(n)
@@ -1000,8 +995,8 @@ subroutine hunt_g(xx,n,x,jlo)
 END SUBROUTINE hunt_g
 
 
+!>  assigns initial velocities for the MD escape part
 subroutine velopt(at,rxyz,ekinetic,vxyz)
-  !     assigns initial velocities for the MD escape part
   use module_base
   use module_types
   use ab6_symmetry
@@ -1055,6 +1050,7 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
 END SUBROUTINE velopt
 
 
+!> create a random displacement vector without translational and angular moment
 subroutine randdist(nat,rxyz,vxyz)
   use module_base
   implicit none
@@ -1064,7 +1060,6 @@ subroutine randdist(nat,rxyz,vxyz)
   !local variables
   integer :: i,idum=0
   real(kind=4) :: tt,builtin_rand
-  ! create a random displacement vector without translational and angular moment
   do i=1,3*nat
      !call random_number(tt)
      !add built-in random number generator
@@ -1077,8 +1072,8 @@ subroutine randdist(nat,rxyz,vxyz)
 END SUBROUTINE randdist
 
 
+!>  generates 3*nat random numbers distributed according to  exp(-.5*vxyz**2)
 subroutine gausdist(nat,rxyz,vxyz)
-  !C  generates 3*nat random numbers distributed according to  exp(-.5*vxyz**2)
   implicit real*8 (a-h,o-z)
   real s1,s2
   !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
@@ -1107,8 +1102,8 @@ subroutine gausdist(nat,rxyz,vxyz)
 END SUBROUTINE gausdist
 
 
+!>  generates n random numbers distributed according to  exp(-x)
 subroutine expdist(nat,rxyz,vxyz)
-  !C  generates n random numbers distributed according to  exp(-x)
   implicit real*8 (a-h,o-z)
   real ss
   !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
@@ -1609,7 +1604,7 @@ end function round
 !END SUBROUTINE rdposout
 
 
-!routine for adjusting the dimensions with the center of mass in the middle
+!> routine for adjusting the dimensions with the center of mass in the middle
 subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
   use module_base
   implicit none

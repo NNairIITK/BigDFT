@@ -1,20 +1,17 @@
-!!****f* art/utils
-!! FUNCTION
-!!   This contains a series of utilities that could be used by a number
-!!   of program. They suppose very little.
-!!   The subroutine convert_to_chain takes an integer and transforms it into a
-!!   chain of character.
-!!
-!! COPYRIGHT
+!> @file
+!!  This contains a series of utilities that could be used by a number
+!!  of program. They suppose very little.
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
+
+
+!> The subroutine convert_to_chain takes an integer and transforms it into a
+!! chain of character.
 subroutine convert_to_chain(init_number,chain)
   implicit none
   !Arguments
@@ -44,14 +41,10 @@ subroutine convert_to_chain(init_number,chain)
 
   write(*,*) 'Chain :', init_number, chain
 END SUBROUTINE     
-!!***
 
 
-!!****f* art/center
-!! FUNCTION
-!!   The subroutine center places the center of mass of a 3D vector at (0,0,0)
-!!
-!! SOURCE
+
+!>   The subroutine center places the center of mass of a 3D vector at (0,0,0)
 !! 
 subroutine center(vector,vecsize)
   implicit none
@@ -90,15 +83,11 @@ subroutine center(vector,vecsize)
     z(i) = z(i) - ztotal
   end do
 END SUBROUTINE
-!!***
 
 
-!!****f* BigDFT/displacement
-!! FUNCTION
-!!   This subroutine computes the distance between two configurations and 
+
+!>   This subroutine computes the distance between two configurations and 
 !!   the number of particles having moved by more than a THRESHOLD
-!!
-!! SOURCE
 !!
 subroutine displacement(posa, posb, delr,npart)
   use defs
@@ -145,15 +134,13 @@ subroutine displacement(posa, posb, delr,npart)
   delr = sqrt(delr2)
 
 END SUBROUTINE
-!!***
 
 
-!!****f* art/store
-!! FUNCTION
-!!   Subroutine store
+
+!>   Subroutine store
 !!   This subroutine stores the configurations at minima and activated points
 !!   By definition, it uses pos, box and scala
-!! SOURCE
+!!
 !! 
 subroutine store(fname)
   use defs
@@ -197,4 +184,4 @@ subroutine store(fname)
   close(XYZ)
   
 END SUBROUTINE store
-!!***
+
