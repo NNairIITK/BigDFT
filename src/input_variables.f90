@@ -874,7 +874,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%norbpInguess=5
   !Block size used for the orthonormalization
   inputs%bsLow=300
-  inputs%bsLow=800
+  inputs%bsUp=800
   !Orthogonalization method
   inputs%methOrtho=0
   !Tolerance criterion for input guess

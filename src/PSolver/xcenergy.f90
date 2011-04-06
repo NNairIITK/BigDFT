@@ -434,6 +434,8 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         do i=1,nxc*m3*m1
            vexcuRC=vexcuRC+rhocore(i)*potxc(i+m1*m3*nxc)
         end do
+        !divide the results per two because of the spin multiplicity
+        vexcuRC=0.5*vexcuRC
      end if
      vexcuRC=vexcuRC*real(hx*hy*hz,gp)
      !subtract this value from the vexcu
