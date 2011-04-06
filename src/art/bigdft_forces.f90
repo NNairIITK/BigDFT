@@ -1,7 +1,5 @@
-!!****m* art/bigdft_forces
-!! FUNCTION
-!!   Module which contains information for bigdft run inside art
-!!
+!> @file
+!! @author
 !! COPYRIGHT
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group
@@ -9,8 +7,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+!> ART Module bigdft_forces
+!! Module which contains information for bigdft run inside art
 module bigdft_forces
 
   use module_base!, only : gp,wp,dp,bohr2ang
@@ -39,14 +38,10 @@ module bigdft_forces
   public :: bigdft_finalise
 
 contains
-!!***
 
 
-!!****f* bigdft_forces/bigdft_init
-!! FUNCTION
-!!   Routine to initialize all BigDFT stuff
-!! SOURCE
-!!
+!> ART bigdft_init
+!! Routine to initialize all BigDFT stuff
 subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_, my_gnrm )
 
   implicit none
@@ -110,14 +105,10 @@ subroutine bigdft_init( nat, typa, posa, const_, boxl, boxtype, nproc_, me_, my_
   call init_restart_objects(me, in%iacceleration, at, rst, subname)
 
   END SUBROUTINE bigdft_init
-!!***
 
 
-!!****f* bigdft_forces/calcforce
-!! FUNCTION
-!!   Calculation of forces
-!! SOURCE
-!!
+!> ART calcforce
+!! Calculation of forces with call_bigdft
 subroutine calcforce( nat, posa, boxl, forca, energy, evalf_number, conv )
 
   implicit none
@@ -186,7 +177,6 @@ subroutine calcforce( nat, posa, boxl, forca, energy, evalf_number, conv )
   boxl(1) = at%alat1 * bohr2ang
   boxl(2) = at%alat2 * bohr2ang
   boxl(3) = at%alat3 * bohr2ang
-
                                       ! zero forces for blocked atoms:
                                       ! This was already done in clean_forces (forces.f90).
                                       ! But, up to now, ART only works with totally frozen atoms
@@ -207,14 +197,10 @@ subroutine calcforce( nat, posa, boxl, forca, energy, evalf_number, conv )
   deallocate(fcart)
 
 END SUBROUTINE calcforce
-!!***
 
 
-!!****f* bigdft_forces/mingeo
-!! FUNCTION
-!!   Minimise geometry
-!! SOURCE
-!!
+!> ART mingeo
+!! Minimise geometry with geopt subroutine. 
 subroutine mingeo( nat, boxl, posa, evalf_number, total_energy, success )
 
   implicit none
@@ -297,14 +283,10 @@ subroutine mingeo( nat, boxl, posa, evalf_number, total_energy, success )
   deallocate(fcart)
 
 END SUBROUTINE mingeo
-!!***
 
 
-!!****f* bigdft_forces/bigdft_finalise
-!! FUNCTION
-!!   Routine to finalise all BigDFT stuff
-!! SOURCE
-!!
+!> ART bigdft_finalise
+!! Routine to finalise all BigDFT stuff
 subroutine bigdft_finalise ( )
 
   implicit none
@@ -320,14 +302,10 @@ subroutine bigdft_finalise ( )
   call memocc( 0, 0, 'count', 'stop' )  ! finalize memory counting.
 
 END SUBROUTINE bigdft_finalise
-!!***
 
-!!****f* bigdft_forces/center_f
-!! FUNCTION
-!!   Removes the net force taking into account the blocked atoms
-!!
-!! SOURCE
-!!
+
+!> ART center_f
+!! Removes the net force taking into account the blocked atoms
 subroutine center_f( vector, natoms )
 
   implicit none
@@ -360,7 +338,7 @@ subroutine center_f( vector, natoms )
   enddo 
 
   if (iproc==0) then 
-     write(*,'(a,1x,1pe24.17)') 'CENTER: 1) net force over free region ', sqrt(xtotal**2 + ytotal**2 + ztotal**2)
+     write(*,'(a,1x,1p,e24.17,0p)') 'CENTER: 1) net force over free region ', sqrt(xtotal**2 + ytotal**2 + ztotal**2)
   end if 
 
   ! The average is only over the degrees of freedom in each direction 
@@ -369,9 +347,9 @@ subroutine center_f( vector, natoms )
   ztotal = ztotal / natoms_f
 
   if (iproc==0) then 
-     write(*,'(a,1x,1pe24.17)') 'CENTER: 1) residual force along x(pa)=', xtotal  
-     write(*,'(a,1x,1pe24.17)') 'CENTER: 1) residual force along y(pa)=', ytotal  
-     write(*,'(a,1x,1pe24.17)') 'CENTER: 1) residual force along z(pa)=', ztotal  
+     write(*,'(a,1x,1p,e24.17,0p)') 'CENTER: 1) residual force along x(pa)=', xtotal  
+     write(*,'(a,1x,1p,e24.17,0p)') 'CENTER: 1) residual force along y(pa)=', ytotal  
+     write(*,'(a,1x,1p,e24.17,0p)') 'CENTER: 1) residual force along z(pa)=', ztotal  
   end if
 
   ! Do over free atoms 
@@ -384,6 +362,5 @@ subroutine center_f( vector, natoms )
   end do 
 
 END SUBROUTINE center_f
-!!***
+
 END MODULE bigdft_forces
-!!***

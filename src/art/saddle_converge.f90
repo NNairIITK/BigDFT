@@ -1,23 +1,20 @@
-!!****f* art/saddle_converge
-!! FUNCTION
-!!   This subroutine bring the configuration to a saddle point. It does that
-!!   by first pushing the configuration outside of the harmonic well, using
-!!   the initial direction selected in find_saddle. Once outside the harmonic
-!!   well, as defined by the appearance of a negative eigenvalue (or
-!!   reasonnable size) the configuration follows the direction corresponding
-!!   to this eigenvalue until the force components parallel and perpdendicular
-!!   to the eigendirection become close to zero.
-!!
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) Normand Mousseau, June 2001
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+!> ART saddle_converge
+!!   This subroutine brings the configuration to a saddle point. It does that
+!!   by first pushing the configuration outside of the harmonic well, using
+!!   the initial direction selected in find_saddle. Once outside the harmonic
+!!   well, as defined by the appearance of a negative eigenvalue (or
+!!   reasonnable size) the configuration follows the direction corresponding
+!!   to this eigenvalue until the force components parallel and perpendicular
+!!   to the eigendirection become close to zero.
 subroutine saddle_converge( ret, saddle_energy )
 
   use defs
@@ -150,9 +147,7 @@ subroutine saddle_converge( ret, saddle_energy )
         if ( kter >= KTER_MIN ) then  ! eigenvalues only after a few steps.
 
            if ( .not. setup_initial ) then
-              !if ( iproc==0 ) write(*,*) "BART: INIT LANCZOS"  !debug
               call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
-              !if ( iproc==0 ) write(*,*) "BART: END  LANCZOS"  !debug
               new_projection = .false.
            else
               call check_min( 'I' ) 
@@ -182,7 +177,7 @@ subroutine saddle_converge( ret, saddle_energy )
                                       ! an inflection the event is killed.
      if ( eigenvalue > EIGEN_THRESH ) then
         saddle_energy = current_energy ! For the report.
-        ret = 80000 + kter 
+        ret = 90000 + kter 
         return
      end if
      
@@ -290,18 +285,13 @@ subroutine saddle_converge( ret, saddle_energy )
   call deallocate_activation ()
 
 END SUBROUTINE saddle_converge
-!!***
 
 
-!!****f* saddle_converge/force_projection
-!! FUNCTION
+!> ART force_projection
 !!   It calculates: 
 !!    the magnitude the force in the direction of some 'direction' (F_par),
 !!    the force vector perpendicular to that 'direction' (F_perp_V) and its
 !!    magnitude(F_perp), and the norm of the total force (norm_F).
-!!
-!! SOURCE
-!! 
 subroutine force_projection ( F_par, F_perp_V, F_perp, norm_F, ref_F, direction )
 
   use defs , only : VECSIZE
@@ -328,14 +318,9 @@ subroutine force_projection ( F_par, F_perp_V, F_perp, norm_F, ref_F, direction 
   norm_F = sqrt( F_par*F_par + F_perp2 ) 
 
 END SUBROUTINE force_projection
-!!***
 
 
-!!****f* saddle_converge/write_step
-!! FUNCTION
-!!
-!! SOURCE
-!! 
+!> ART write_step
 subroutine write_step ( stage, it, a1, energy )
 
   use defs
@@ -346,8 +331,8 @@ subroutine write_step ( stage, it, a1, energy )
   !Arguments
   character(len=1), intent(in) :: stage
   integer,          intent(in) :: it
-  real(kind=8),          intent(in) :: a1
-  real(kind=8),          intent(in) :: energy         
+  real(kind=8),     intent(in) :: a1
+  real(kind=8),     intent(in) :: energy         
 
   !Local variables
   integer :: ierror
@@ -370,15 +355,9 @@ subroutine write_step ( stage, it, a1, energy )
   end if
 
 END SUBROUTINE write_step
-!!***
 
 
-!!****f* saddle_converge/end_report
-!! FUNCTION
-!!   It calculates: 
-!!     
-!! SOURCE
-!! 
+!> ART end_report
 subroutine end_report ( success, ret, saddle_energy )
 
   use defs
@@ -402,7 +381,12 @@ subroutine end_report ( success, ret, saddle_energy )
   character(len=4)  :: scounter
   character(len=20) :: fname
 ! __________________
-  
+
+  ! We reject saddle points found in the very close vicinity of the reference
+  ! configuration  
+ 
+  if ( ret < 90000 .and. delta_e < delta_thr .and. delr < delr_thr ) ret = 80000 + pas
+ 
   if ( ret < 80000 ) then 
      If_diis: if ( USE_DIIS .and. ftot < EXITTHRESH ) then
 
@@ -411,7 +395,7 @@ subroutine end_report ( success, ret, saddle_energy )
 
         If_check: if ( DIIS_CHECK_EIGENVEC ) then
                                          ! Lanczos several times.
-           new_projection = .true.
+           new_projection = .false.
            !if ( iproc == 0 ) write(*,*) "BART: INIT LANCZOS"  !debug
            Do_lanc: do i = 1, 4
               call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
@@ -443,6 +427,7 @@ subroutine end_report ( success, ret, saddle_energy )
         end if
 
      else 
+        ! We lost the eigenvector, eigenvalue negative
         ret = 70000 + pas 
      end if If_diis
   end if
@@ -490,4 +475,3 @@ subroutine end_report ( success, ret, saddle_energy )
   end if
 
 END SUBROUTINE end_report 
-!!***

@@ -1,17 +1,14 @@
-!!****m* art/lanczos_defs
-!! FUNCTION
-!!   Module to use lanczos inside art
-!!
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+!>  ART Module lanczos_defs
+!!  to use lanczos inside art
 module lanczos_defs
 
   implicit none
@@ -28,15 +25,10 @@ module lanczos_defs
   real(kind=8), dimension(:), allocatable :: old_projection, projection 
   logical :: LANCZOS_MIN, IN_MINIMUN
 
-end module lanczos_defs
-!!***
+END MODULE lanczos_defs
 
 
-!!****f* art_lanczos/lanczos
-!! FUNCTION
-!!   Lanczos routine to determine lowest frequencies
-!! SOURCE
-!!
+!>   Lanczos routine to determine lowest frequencies
 subroutine lanczos( maxvec, new_projection, produit )
 
   use defs
@@ -224,16 +216,9 @@ subroutine lanczos( maxvec, new_projection, produit )
   call MPI_Bcast(projection,nat,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
 
 END SUBROUTINE lanczos
-!!***
 
-!!***
-
-!!****f* art_lanczos/center
-!! FUNCTION
-!!   It places the center of mass of a 3D vector at (0,0,0) 
-!!
-!! SOURCE
-!!
+!> ART center
+!! It places the center of mass of a 3D vector at (0,0,0) 
 subroutine center( vector, vecsize )
 
   use defs, only : natoms, constr
@@ -281,4 +266,3 @@ subroutine center( vector, vecsize )
   end do
 
 END SUBROUTINE center
-

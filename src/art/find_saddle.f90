@@ -1,14 +1,13 @@
-!!****m* art/saddles
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
+
+!> ART Module saddles 
 module saddles
 
   implicit none
@@ -44,12 +43,10 @@ module saddles
   integer :: nsteps_after_eigen_min 
   real(kind=8) :: eigen_min
 
-end module saddles
-!!***
+END MODULE saddles
 
 
-!!****f* find_saddle/find_saddle
-!! FUNCTION
+!> ART find_saddle
 !!   This subroutine initiates the random displacement at the start
 !!   of the ART algorithm. 
 !!   After a random escape direction has been selected, the routine call 
@@ -64,9 +61,6 @@ end module saddles
 !!   For large cells, it is preferable to use a local initial
 !!   displacement to prevent the creation of many trajectories
 !!   at the same time in different sections of the cell.
-!!
-!! SOURCE
-!! 
 subroutine find_saddle( success, saddle_energy )
 
   use defs
@@ -122,16 +116,12 @@ subroutine find_saddle( success, saddle_energy )
   call end_report( success, ret, saddle_energy )
 
 END SUBROUTINE find_saddle
-!!***
 
 
-!!****f* find_saddle/local_move
-!! FUNCTION
+!> ART local_move
 !!   The initial random direction is taken from a restricted space based on 
 !!   the local bonding environment. For this, we need to know the list of neighbours
 !!   and the cut-off of the potential. Other approaches could be used also.
-!! SOURCE
-!! 
 subroutine local_move( )
 
   use defs
@@ -231,14 +221,10 @@ subroutine local_move( )
    call center_and_norm ( INITSTEPSIZE )
 
 END SUBROUTINE local_move
-!!***
 
 
-!!****f* find_saddle/global_move
-!! FUNCTION
+!> ART global_move
 !!   The initial random direction is taken from the full 3N-dimensional space
-!! SOURCE
-!!
 subroutine global_move( )
 
   use defs
@@ -285,12 +271,9 @@ subroutine global_move( )
   call center_and_norm ( INITSTEPSIZE )
 
 END SUBROUTINE global_move
-!!***
 
 
-!!****f* find_sanddle/symmetry_break
-!! SOURCE
-!! 
+!> ART symmetry_break
 subroutine symmetry_break( )
 
   use defs
@@ -337,12 +320,9 @@ subroutine symmetry_break( )
   call center_and_norm ( sym_break_dist )
 
 END SUBROUTINE symmetry_break
-!!***
 
 
-!!****f* find_sanddle/list_of_atoms
-!! SOURCE
-!! 
+!> ART list_of_atoms
 subroutine list_of_atoms ( ) 
 
   use defs
@@ -458,12 +438,9 @@ subroutine list_of_atoms ( )
   call center_and_norm ( INITSTEPSIZE )
 
 END SUBROUTINE list_of_atoms 
-!!***
 
 
-!!****f* find_sanddle/list_and_local
-!! SOURCE
-!! 
+!> ART list_and_local
 subroutine list_and_local () 
 
   use defs
@@ -616,12 +593,9 @@ subroutine list_and_local ()
    call center_and_norm ( INITSTEPSIZE )
 
 END SUBROUTINE list_and_local  
-!!***
 
 
-!!****f* find_sanddle/center_and_norm
-!! SOURCE
-!! 
+!> ART center_and_norm
 subroutine center_and_norm ( step )
 
   use defs

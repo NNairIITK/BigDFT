@@ -1,16 +1,13 @@
-!!****f* art/initialize_potential
-!! FUNCTION
-!!   Initialize the potential
-!!
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+!> ART initialize_potential
 subroutine initialize_potential( )
 
   use defs
@@ -26,13 +23,11 @@ subroutine initialize_potential( )
 
   call bigdft_init( nat_test, typa, posa, const_, boxref_, boundary, nproc, iproc, my_gnrm )
 
-  call geopt_set_verbosity(0)
                                       ! test nat_test and nat
   if ( nat_test /= NATOMS ) then
      write(*,*) "Different number of atoms"
      call end_art()
   end if
-     
 
   if ( .not. restart ) then                
                                       ! transfer.
@@ -54,14 +49,9 @@ subroutine initialize_potential( )
   deallocate(const_)
 
 END SUBROUTINE initialize_potential
-!!***
 
 
-!!****f* bart/finalise_potential
-!! FUNCTION
-!!   Finalize the potential
-!! SOURCE
-!!
+!> ART finalise_potential
 subroutine finalise_potential( )
 
   use bigdft_forces
@@ -71,4 +61,3 @@ subroutine finalise_potential( )
   call bigdft_finalise( )
 
 END SUBROUTINE finalise_potential
-!!***

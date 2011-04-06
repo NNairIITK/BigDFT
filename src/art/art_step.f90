@@ -1,14 +1,14 @@
-!!****m* art/diis_def
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
+
+!> ART Module diis_defs
+!! with the DIIS global arrays
 module diis_defs
 
   implicit none
@@ -18,15 +18,11 @@ module diis_defs
   real(kind=8), dimension(:),   allocatable :: previous_norm
   integer :: maxter
 
-end module diis_defs
-!!***
+END MODULE diis_defs
 
 
-!!****f* art_step/allocate_activation
-!! FUNCTION
-!! SOURCE
-!! 
-!!***
+!> ART allocate_activation
+!! Allocation of ART-DIIS arrays
 subroutine allocate_activation ()
 
   use defs
@@ -44,14 +40,10 @@ subroutine allocate_activation ()
   maxter = 0
 
 END SUBROUTINE allocate_activation
-!!***
 
 
-!!****f* art_step/deallocate_activation
-!! FUNCTION
-!! SOURCE
-!! 
-!!***
+!> ART deallocate_activation 
+!! Deallocation of ART-DIIS arrays
 subroutine deallocate_activation ()
 
   use diis_defs
@@ -62,13 +54,9 @@ subroutine deallocate_activation ()
   deallocate(previous_norm)
 
 END SUBROUTINE deallocate_activation
-!!***
 
 
-!!****f* art_step/apply_diis
-!! FUNCTION
-!! SOURCE
-!! 
+!> ART apply_diis
 subroutine apply_diis( diter, saddle_energy )
 
   use defs
@@ -79,19 +67,22 @@ subroutine apply_diis( diter, saddle_energy )
   implicit none
 
   !Arguments
-  integer, intent(inout) :: diter
-  real(kind=8), intent(out)   :: saddle_energy 
+  integer, intent(inout)    :: diter
+  real(kind=8), intent(out) :: saddle_energy 
 
   !Local variables
   integer :: ierror, i, j
   real(kind=8) :: a1, smallest_error, invse
-  real(kind=8) :: costheta, degtheta, n_deltaGdiis, n_deltaref, sumpos, sumneg
+  real(kind=8) :: n_deltaGdiis
   real(kind=8), dimension(3) :: boxl
-  real(kind=8), dimension(VECSIZE) :: deltaGdiis, deltaref
+  real(kind=8), dimension(VECSIZE) :: deltaGdiis
   real(kind=8), dimension(:),   allocatable :: solution
   real(kind=8), dimension(:,:), allocatable :: error_vector
   logical :: new_projection 
   logical :: rejected_step
+
+  ! real(kind=8) :: costheta, n_deltaref,  degtheta, sumpos, sumneg ! For Farkas' Tests.
+  ! real(kind=8), dimension(VECSIZE) :: deltaref ! For Farkas' Tests.
   !_______________________
   boxl = box * scala
 
@@ -101,7 +92,7 @@ subroutine apply_diis( diter, saddle_energy )
   if ( .not. restart ) then 
      ! We start with two configurations given by the last two lanczos steps :
      ! * They were saved as previous_*(1 & 2 ,:) in apply_lanczos. 
-     maxter = 2 ! Initialization of maxter
+     maxter = 2                       ! Initialization of maxter
   else
      restart = .false.
   end if
@@ -109,23 +100,29 @@ subroutine apply_diis( diter, saddle_energy )
   While_diis: do 
 
     ! Test of While_diis loop 
-    if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (diter > maxdiis) ) then
+    if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. &
+       & (diter > maxdiis) .or. (delta_e < delta_thr .and. delr < delr_thr) ) then
        saddle_energy = total_energy
        end_activation = .true.  
        exit
     end if
 
+    ! We test a solution until either it is accepted or we do not have memory.
     do_rejected: do 
+      ! "To avoid the effect of the size of the error vectors, we rescale them
+      !  for the purpose of solving the DIIS equations so that the smallest error
+      !  has unit length" Farkas,Schlegel. Phys.Chem.Chem.Phys.2002,4,11-15
       smallest_error = minval(previous_norm, MASK = previous_norm > 0.0)
       invse = DIIS_STEP/(smallest_error)
       do i = 1, maxter
          error_vector(i,:) = previous_forces(i,:)*invse
       end do
 
+                                      ! Let's calculate the coefficients
       allocate(solution(maxter+1))
       call get_solution( maxter, error_vector, solution )
 
-      ! The solution that interests us is made of two parts
+                                      ! The solution that interests us is made of two parts
       pos(:)   = 0.0d0
       force(:) = 0.0d0
       do i = 1, maxter
@@ -135,7 +132,7 @@ subroutine apply_diis( diter, saddle_energy )
                                       ! the DIIS_step 
       pos(:) = pos(:) + force(:)
                                       ! Let's be sure about frozen atoms
-      Do i = 1, natoms
+      do i = 1, natoms
          if ( constr(i) .ne. 0 ) then 
             pos(i)          = previous_pos(1,i)
             pos(i+natoms)   = previous_pos(1,i+natoms)
@@ -143,40 +140,38 @@ subroutine apply_diis( diter, saddle_energy )
          end if
       end do  
       
-      if ( ITERATIVE ) then
+      ! Can we accept this DIIS_step ?
+      ! ----------------------
 
-         ! Evaluation of DIIS_step
-         !deltaref(:) = DIIS_STEP* previous_forces(maxter,:)
-         deltaGdiis(:)=  pos(:) - previous_pos(maxter,:) 
-         n_deltaGdiis = sqrt(dot_product( deltaGdiis,deltaGdiis ))
-         !n_deltaref   = sqrt(dot_product( deltaref,deltaref ))
-         !costheta= dot_product(deltaGdiis,deltaref)/(n_deltaGdiis * n_deltaref)
-         !degtheta= acos(costheta)*360/(8.d0*atan(1.d0))
-         !sumpos = sum ( solution, MASK = solution > 0.0 ) 
-         !sumneg = sum ( solution, MASK = solution < 0.0 )
+      deltaGdiis(:)=  pos(:) - previous_pos(maxter,:) 
+      n_deltaGdiis = sqrt(dot_product( deltaGdiis,deltaGdiis ))
 
-         !if ( n_deltaGdiis/n_deltaref > 15.0d0 .or.       &
-         !   & sumpos > 15.0d0 .or. solution(maxter+1) < 1.0E-08 ) then 
-         !  rejected_step = .true.    
-         if ( solution(maxter+1) < 1.0E-08 .or. n_deltaGdiis > factor_diis*INCREMENT) then
-            rejected_step = .true.
-         else
-            rejected_step = .false.
-         end if 
-         if ( iproc == 0 ) then       ! REPORT DIIS 
-           write (*,'(a,3I5,x,3F11.4,x,(1x,1pe14.5),x,L1)') 'BART DIIS:',  &
-           &  pas, diter, maxter, n_deltaGdiis, 0.0d0, 0.0d0,   &
-           &  solution(maxter+1), rejected_step 
-         end if
-      else 
+      !deltaref(:) = DIIS_STEP* previous_forces(maxter,:)
+      !n_deltaref   = sqrt(dot_product( deltaref,deltaref ))
+      !costheta= dot_product(deltaGdiis,deltaref)/(n_deltaGdiis * n_deltaref)
+      !degtheta= acos(costheta)*360/(8.d0*atan(1.d0))
+      !sumpos = sum ( solution, MASK = solution > 0.0 ) 
+      !sumneg = sum ( solution, MASK = solution < 0.0 )
+      !if ( n_deltaGdiis/n_deltaref > 15.0d0 .or.       &
+      !   & sumpos > 15.0d0 .or. solution(maxter+1) < 1.0E-08 ) then 
+      !  rejected_step = .true.    
+
+      if ( solution(maxter+1) < 1.0E-08 .or. n_deltaGdiis > factor_diis*INCREMENT) then
+         rejected_step = .true.
+      else
          rejected_step = .false.
+      end if 
+      if ( iproc == 0 ) then          ! REPORT DIIS 
+        write (*,'(a,3I5,x,2F11.4,2x,(1p,e14.5,0p),x,L1)') 'BART DIIS:',  &
+        &  pas, diter, maxter, n_deltaGdiis, factor_diis*INCREMENT, solution(maxter+1),
+        &  rejected_step 
       end if
 
       deallocate(solution)
 
       If_rejected: if ( rejected_step ) then 
 
-         ! we reduce the history by one.
+         ! If the step is rejected we reduce the memory by one.
          do i = 1, maxter - 1
             previous_forces(i,:) = previous_forces(i+1,:)
             previous_pos(i,:)    = previous_pos(i+1,:)
@@ -187,34 +182,41 @@ subroutine apply_diis( diter, saddle_energy )
          previous_norm(maxter)     = 0.d0
          maxter = maxter - 1
   
-         if ( maxter < 2 ) then
-         
-            ! These two lines are not really neccesary
-            force(:) = previous_forces(1,:) 
-            pos(:)   = previous_pos(1,:) 
-            eigenvalue = 0.0d0
+         if ( maxter < 2 ) then   ! DIIS does not have memory to continue
 
-            ! If we have accepted at least one DIIS step, we check the
-            ! projection vector.
-            if ( diter > 1 ) then
-               new_projection = .false.
-               !if ( iproc == 0 ) write(*,*) "BART: INIT LANCZOS"  !debug
+            if ( .not. ITERATIVE ) then         
+
+               ! If not ITERATIVE, we can not continue with this event. 
+               end_activation = .true. 
+               if ( iproc == 0 ) write(*,*) 'BART: DIIS Failed, no memory'
+
+            else if ( diter > 1 ) then
+
+               ! If we have accepted at least one DIIS step, we check the
+               ! projection vector up to four times if the resulting lowest 
+               ! eigenvalue is positive at each iteration.
+
+               new_projection = .false.   ! Let's start with the last projection.  
+
                Do_lanc: do i = 1, 4
                   call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
                   if ( eigenvalue < 0.0d0 ) exit Do_lanc
                end do Do_lanc                         
-               !if ( iproc == 0 ) write(*,*) "BART: END  LANCZOS"  !debug
-
-               fpar = dot_product( force, projection )
-               if ( fpar > 0.0d0 ) projection = -1.0d0 * projection
+                                      ! Orientation of the projection vector                               
+               fpar = dot_product( force, projection )               
+               if ( fpar > 0.0d0 ) projection = -1.0d0 * projection  
+            else  
+                                      ! This is the projection vector for the second 
+                                      ! trial step when we called DIIS            
+               new_projection = .false.       
+               call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
             end if
 
-            if ( eigenvalue > 0.0 ) end_activation = .true.  
-            return ! c'est la fin.
+            return ! c'est la fin. If ITERATIVE Let's try again with Lanczos.
 
          end if ! if (maxter<2)
 
-      else  ! else of If_rejected 
+      else ! else of If_rejected. The solution is accepted. 
          
          ! Now the force is evaluted for our new pos configuration. 
          call calcforce( NATOMS, pos, boxl, force, total_energy, evalf_number, .false. )
@@ -253,7 +255,7 @@ subroutine apply_diis( diter, saddle_energy )
          call write_step ( 'D', diter, a1, total_energy )
 
          if ( SAVE_CONF_INT ) call save_intermediate( 'D' ) 
-                                     ! For restart ( restart.f90 )
+                                      ! For restart ( restart.f90 )
          if ( write_restart_file ) then 
             state_restart = 4 
             if ( iproc == 0 ) then 
@@ -275,13 +277,10 @@ subroutine apply_diis( diter, saddle_energy )
   end do While_diis
 
 END SUBROUTINE apply_diis
-!!***
 
 
-!!****f* art_step/get_solution
-!! FUNCTION
-!! SOURCE
-!! 
+!> ART get_solution 
+!! of DIIS coefficients
 subroutine get_solution( maxter, error_vector, solution )
 
   use defs, only: DIIS_MEMORY, VECSIZE, iproc
@@ -295,7 +294,7 @@ subroutine get_solution( maxter, error_vector, solution )
   ! Local variables for Lapack.
   integer :: ierror, i, j
   integer :: i_err, lwork, n, nrhs
-  integer, dimension(:),   allocatable :: interchanges
+  integer,      dimension(:),   allocatable :: interchanges
   real(kind=8), dimension(:),   allocatable :: work
   real(kind=8), dimension(:,:), allocatable :: matrice
   !_______________________
@@ -344,15 +343,11 @@ subroutine get_solution( maxter, error_vector, solution )
   deallocate(matrice)
 
 END SUBROUTINE get_solution
-!!***
 
 
-!!****f* art_step/apply_lanczos
-!! FUNCTION
-!!   It calculates: 
-!!     
-!! SOURCE
-!! 
+!> ART apply_lanczos
+!! It is the loop over the hyperplanes. Once we decide to switch to DIIS we set up
+!! the first two vectors of the memory.
 subroutine  apply_lanczos ( liter, saddle_energy )
 
   use defs
@@ -362,12 +357,11 @@ subroutine  apply_lanczos ( liter, saddle_energy )
   implicit none
 
   !Arguments
-  integer, intent(inout) :: liter 
+  integer,      intent(inout) :: liter  ! # lanczos steps
   real(kind=8), intent(out)   :: saddle_energy 
 
   !Local variables
-  real(kind=8) :: current_energy              ! Accept energy.
-  logical :: get_proj
+  logical      :: get_proj
   !_______________________ 
 
   if ( .not. restart ) then 
@@ -393,22 +387,16 @@ subroutine  apply_lanczos ( liter, saddle_energy )
   While_lanczos: do
        
       ! Test of While_lanczos loop 
-      if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (liter > 80) &
-         & .or. (eigenvalue > 0.0) ) then
+      if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (liter > 280) .or. (eigenvalue > 0.0) ) then
          saddle_energy = total_energy
          end_activation = .true.  
          exit
       end if
 
       if ( USE_DIIS ) then 
-                                      ! We look for an inflection in the
-                                      ! eigenvalue.
-         eigen_min = min( eigen_min, eigenvalue )
-         if ( eigenvalue == eigen_min ) nsteps_after_eigen_min = 0 
-         if ( eigenvalue > eigen_min ) & 
-             nsteps_after_eigen_min = nsteps_after_eigen_min + 1 
-
-         if ( ((ftot < DIIS_FORCE_THRESHOLD) .and. (liter > 2)) .or. &
+                                      ! Criteria for calling DIIS:
+         if ( (ftot < DIIS_FORCE_THRESHOLD .and. (.not. ITERATIVE) ) .or. &
+              (ftot < DIIS_FORCE_THRESHOLD .and. liter > 2 .and. ITERATIVE) .or. &
               (nsteps_after_eigen_min >= INFLECTION .and. ITERATIVE) ) then
 
             ! If  previous_forces(1,:) is .ne. 0.0d0 is a restart
@@ -427,9 +415,10 @@ subroutine  apply_lanczos ( liter, saddle_energy )
                pas = pas + 1
                liter = liter + 1
             end if
-                       
-            if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) &
-               & .or. (eigenvalue > 0.0) ) then
+            
+            ! if after this last lanczos step the criteria to end the activation are fulfilled
+            ! we end here.          
+            if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (eigenvalue > 0.0) ) then
                end_activation = .true.  
                exit
             else 
@@ -451,15 +440,11 @@ subroutine  apply_lanczos ( liter, saddle_energy )
   end do While_lanczos 
 
 END SUBROUTINE apply_lanczos
-!!***
 
 
-!!****f* art_step/lanczos_step
-!! FUNCTION
-!!   It calculates: 
-!!     
-!! SOURCE
-!! 
+!> ART lanczos_step
+!! We move from one hyperplane to the next one. We relax the position in it.
+!! Finally we get the eigenvector at the relaxed configuration.
 subroutine lanczos_step ( current_energy, liter, get_proj ) 
 
   use defs 
@@ -483,13 +468,13 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
   real(kind=8), dimension(VECSIZE) :: perp_force_b ! ...& for evaluation.  
 
   real(kind=8), dimension(3) :: boxl
-  real(kind=8) :: step                        ! This is the step in the hyperplane. 
+  real(kind=8) :: step                       ! This is the step in the hyperplane. 
   real(kind=8) :: ftot_b                     ! ...& for evaluation.
   real(kind=8) :: fpar_b                     ! ...& for evaluation. 
   real(kind=8) :: fperp_b                    ! ...& for evaluation.
   real(kind=8) :: current_fperp              ! fperp as a criteria of minimization.
 
-  logical :: new_projection 
+  logical      :: new_projection 
   real(kind=8) :: a1
   !_______________________
   boxl = box * scala                  ! We compute at constant volume.
@@ -554,9 +539,7 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
   if ( get_proj ) then
                                       ! Lanczos call, we start from the
       new_projection = .false.        ! previous direction each time.
-      !if ( iproc == 0 ) write(*,*) "BART: INIT LANCZOS"  !debug
       call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
-      !if ( iproc == 0 ) write(*,*) "BART: END  LANCZOS"  !debug
   end if
                                       ! Debug
   !if ( iproc == 0 ) then                
@@ -567,6 +550,11 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
   delta_e = current_energy - ref_energy
                                       ! Magnitude of the displacement (utils.f90).
   call displacement( posref, pos, delr, npart )
+                                      ! We look for an inflection in the
+                                      ! eigenvalue.
+  eigen_min = min( eigen_min, eigenvalue )
+  if ( eigenvalue == eigen_min ) nsteps_after_eigen_min = 0 
+  if ( eigenvalue > eigen_min  ) nsteps_after_eigen_min = nsteps_after_eigen_min + 1 
                                       ! Write 
   call write_step ( 'L', liter, a1, current_energy )
 
@@ -581,4 +569,3 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
      end if
   end if
 END SUBROUTINE lanczos_step
-!!***

@@ -1,10 +1,15 @@
-!!****f* art/initialize
-!! FUNCTION
+!> @file
+!! @author
+!!    Copyright (C) 2001 Normand Mousseau
+!!    Copyright (C) 2010 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+!> ART initialize
 !!   Initialization of art method
-!! 
-!! DESCRIPTION
-!!   then relaxes it into a local minimum with or without volume optimization
-!!   depending on the compilation flags. 
+!!   It relaxes it into a local minimum without volume optimization
 !! 
 !!   The initial configuration is a "reference configuration", it will be the reference 
 !!   configuration until a new event is accepted. 
@@ -26,16 +31,6 @@
 !! 
 !!     The NATOMS lines are the atomic species and coordinates in Angstroems
 !! 
-!! COPYRIGHT
-!!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010 BigDFT group 
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!! 
-!! SOURCE
-!!
 subroutine initialize()
 
   use defs
@@ -126,4 +121,3 @@ subroutine initialize()
   end if If_ne
 
 END SUBROUTINE initialize
-!!***

@@ -1,17 +1,14 @@
-!!****m* art/defs
-!! FUNCTION
-!!   This module defines all variables used accross the program ART
-!!
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+!> ART Module defs
+!! This module defines almost all variables used accross the program ART
 module defs
 
   implicit none
@@ -125,7 +122,14 @@ module defs
                                             ! lower than factor_diis*INCREMENT
   integer      :: maxdiis                   ! max allowed diis steps per call 
   logical      :: SAVE_CONF_INT             ! Save the configuration at every step?
+  !__________________
+ 
+  ! Development :
+  ! if delta_e < delta_thr .and. delr < delr_thr => end_activation = .true.                              
   
+  real(kind=8) :: delta_thr                 ! default = 0.0 
+  real(kind=8) :: delr_thr                  ! default = 0.0
+  !__________________
   character(len=20) :: LOGFILE
   character(len=20) :: EVENTSLIST
   character(len=20) :: REFCONFIG
@@ -138,5 +142,4 @@ module defs
 
   include 'mpif.h'
 
-end module defs
-!!***
+END MODULE defs

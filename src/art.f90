@@ -1,16 +1,14 @@
-!! FUNCTION
-!!   Main program to use BigDFT with art nouveau method
-!!
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) Normand Mousseau, June 2001
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+!> ART Program art90
+!! Main program to use BigDFT with art nouveau method
 program art90
 
   use defs 
@@ -237,13 +235,9 @@ program art90
   call end_art( )
 
 END PROGRAM art90
-!!***
 
 
-!!****f* art/end_art( )
-!! FUNCTION
-!! SOURCE
-!!
+!> ART end_art
 subroutine end_art( )
 
   use defs

@@ -1,21 +1,17 @@
-!!****f* BigDFT/utils
-!! FUNCTION 
-!!    This file contains a series of utilities that could be used by a
-!!    number of program. They suppose very little.
-!!
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!****f* BigDFT/print_event
-!! FUNCTION
+
+!!    This file contains a series of utilities that could be used by a
+!!    number of programs. They suppose very little.
+
+!> ART print_event
 !!    This subroutine prints the initial details for an event
-!! SOURCE
-!!
 subroutine print_event( ievent_current, temperat )
 
   use defs
@@ -44,15 +40,11 @@ subroutine print_event( ievent_current, temperat )
   close(FLOG)
 
 END SUBROUTINE print_event
-!!***
 
 
-!!****f* BigDFT/displacement
-!! FUNCTION
+!> ART displacement
 !!    It computes the distance between two configurations and 
 !!    the number of particles having moved by more than a THRESHOLD
-!! SOURCE
-!!
 subroutine displacement( posa, posb, delr, npart )
 
   use defs
@@ -100,16 +92,11 @@ subroutine displacement( posa, posb, delr, npart )
   delr = sqrt(delr2)
 
 END SUBROUTINE displacement
-!!***
 
 
-!!****f* BigDFT/store
-!! FUNCTION
-!!    Subroutine store
+!> ART store
 !!    This subroutine stores the configurations at minima and activated points
 !!    By definition, it uses pos, box and scala
-!! SOURCE
-!! 
 subroutine store( fname )
 
   use defs
@@ -160,9 +147,9 @@ subroutine store( fname )
      open(unit=XYZ,file=fnamexyz,status='unknown',action='write',iostat=ierror)
      write(XYZ,*) NATOMS , 'angstroem' 
      if (boundary == 'P') then
-        write(XYZ,'(a,3(1x,1pe24.17))')'periodic', (boxl(i),i=1,3)
+        write(XYZ,'(a,3(1x,1p,e24.17,0p))')'periodic', (boxl(i),i=1,3)
      else if (boundary == 'S') then
-        write(XYZ,'(a,3(1x,1pe24.17))')'surface',(boxl(i),i=1,3)
+        write(XYZ,'(a,3(1x,1p,e24.17,0p))')'surface',(boxl(i),i=1,3)
      else
         write(XYZ,*)'free'
      end if
@@ -173,11 +160,9 @@ subroutine store( fname )
   end if
 
 END SUBROUTINE store
-!!***
 
 
-!!****f* BigDFT/save_intermediate
-!! FUNCTION
+!> ART save_intermediate
 !!    It saves the configuration at every step in xyz format.
 !!    The name of the file will look like this example:
 !!    p_1001_05_030_K.xyz
@@ -185,8 +170,6 @@ END SUBROUTINE store
 !!    05  :: the attempt
 !!    030 :: the step
 !!    K is the argument 'stage' ( K= basin activation, L=lanczos, D= DIIS )
-!! SOURCE
-!! 
 subroutine save_intermediate( stage )
 
   use defs
@@ -231,9 +214,9 @@ subroutine save_intermediate( stage )
      write(XYZ,*) NATOMS,  'angstroem' 
 
      if (boundary == 'P') then
-        write(XYZ,'(a,3(1x,1pe24.17))') 'periodic', (boxl(i),i=1,3)
+        write(XYZ,'(a,3(1x,1p,e24.17,0p))') 'periodic', (boxl(i),i=1,3)
      else if (boundary == 'S') then
-        write(XYZ,'(a,3(1x,1pe24.17))') 'surface',  (boxl(i),i=1,3)
+        write(XYZ,'(a,3(1x,1p,e24.17,0p))') 'surface',  (boxl(i),i=1,3)
      else
         write(XYZ,*)'free'
      end if
@@ -250,15 +233,10 @@ subroutine save_intermediate( stage )
   end if
 
 END SUBROUTINE save_intermediate
-!!***
 
 
-!!****f* BigDFT/convert_to_chain
-!! FUNCTION
-!!    The subroutine convert_to_chain takes an integer and transforms it into a
-!!    chain of character. 
-!! SOURCE
-!!
+!> ART convert_to_chain
+!!    It takes an integer and transforms it into a chain of character. 
 subroutine convert_to_chain( init_number, length, chain )
 
   implicit none
@@ -312,16 +290,12 @@ subroutine convert_to_chain( init_number, length, chain )
   end do 
 
 END SUBROUTINE convert_to_chain
-!!***
 
 
+!> ART write_refconfig
 ! THIS IS NOT NECESSARY IN BIGDFT
-!!!****f* BigDFT/write_refconfig
-!!! FUNCTION
 !!!    This subroutine writes the atomic positions and others to a "refconfig" file
 !!!    which will be used a the reference point until a new events gets accepted.
-!!! SOURCE
-!!!
 !subroutine write_refconfig( )
 !
 !  use defs
@@ -344,10 +318,9 @@ END SUBROUTINE convert_to_chain
 !  close(FREFCONFIG)
 !
 !END SUBROUTINE write_refconfig
-!!!!***
 
 
-!  TEMPORAL
+!> ART print_proj
 subroutine print_proj( repetitions, stage, projection, eigenvalue, DEL_LANCZOS )
 
   use defs
@@ -386,9 +359,9 @@ subroutine print_proj( repetitions, stage, projection, eigenvalue, DEL_LANCZOS )
      write(XYZ,*) NATOMS,  'angstroem' 
 
      if (boundary == 'P') then
-        write(XYZ,'(a,3(1x,1pe24.17),2x,a,2x,F12.6)')'periodic', (boxl(i),i=1,3),'#', eigenvalue
+        write(XYZ,'(a,3(1x,1p,e24.17,0p),2x,a,2x,F12.6)')'periodic', (boxl(i),i=1,3),'#', eigenvalue
      else if (boundary == 'S') then
-        write(XYZ,'(a,3(1x,1pe24.17),2x,a,2x,F12.6)')'surface',  (boxl(i),i=1,3),'#', eigenvalue
+        write(XYZ,'(a,3(1x,1p,e24.17,0p),2x,a,2x,F12.6)')'surface',  (boxl(i),i=1,3),'#', eigenvalue
      else
         write(XYZ,*)'free ',' # ', eigenvalue
      end if
@@ -407,5 +380,3 @@ subroutine print_proj( repetitions, stage, projection, eigenvalue, DEL_LANCZOS )
   deallocate(pc)
 
 END SUBROUTINE print_proj 
-!!***
-

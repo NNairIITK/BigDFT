@@ -1,16 +1,14 @@
-!!****f* art/read_parameters
-!! FUNCTION
-!!   Read the parameters defining the run 
-!!
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+!> ART read_parameters
+!! Read the parameters defining the simulation 
 subroutine read_parameters( )
 
   use defs
@@ -38,7 +36,23 @@ subroutine read_parameters( )
   else
      read(temporary,*) my_gnrm 
   end if
+  !__________________
+  ! if delta_e < delta_thr .and. delr < delr_thr => end_activation = .true. 
+  ! Set up them to zero if you dont want to use these criteria.
+  call getenv('delta_threshold',temporary)
+  if (temporary .eq. '') then
+     delta_thr = 0.0d0
+  else
+     read(temporary,*) delta_thr  
+  end if
 
+  call getenv('delr_threshold',temporary)
+  if (temporary .eq. '') then
+     delr_thr = 0.0d0
+  else
+     read(temporary,*) delr_thr  
+  end if
+  !__________________
   call getenv('Inflection', temporary)
   if (temporary .eq. '') then
      write(*,*) 'Error: Inflection is not defined'
@@ -471,14 +485,11 @@ subroutine read_parameters( )
   IN_MINIMUN = .False. 
   
 END SUBROUTINE read_parameters
-!!***
 
 
-!!****f* read_parameters/write_parameters
-!! FUNCTION
-!!   Write the parameters defining the run 
-!! SOURCE
-!!
+!>  ART write_parameters
+!! * Define and open the log.file 
+!! * Write in it the parameters defining the simulation
 subroutine write_parameters( )
 
   use defs
@@ -606,13 +617,9 @@ subroutine write_parameters( )
   end if
 
 END SUBROUTINE write_parameters
-!!***
 
-
-!!****f* read_parameters/timestamp
-!! FUNCTION
-!! SOURCE
-!!
+!> ART timestamp
+!! it stamps the time at the beggining and at the final of the simulation
 subroutine timestamp (str)
    
   use defs, only : FLOG 
@@ -643,5 +650,4 @@ subroutine timestamp (str)
   
 1000 format(2a,a1,2x,i2,a1,a3,a1,i4,2x,i2,a1,i2.2,a1,i2.2)
     
-end subroutine timestamp
-!!***
+END SUBROUTINE timestamp

@@ -1,18 +1,16 @@
-!!****f* art/min_converge
-!! FUNCTION
-!!   Minimizes the energy at constant volume. 
-!!   This minimization is done with only a minimal knowledge of the 
-!!   physics of the problem so that it is portable
-!!   
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+!> ART min_converge
+!!   Minimizes the energy at constant volume. 
+!!   This minimization is done with only a minimal knowledge of the 
+!!   physics of the problem so that it is portable
 subroutine min_converge ( success )
 
   use defs
@@ -55,13 +53,9 @@ subroutine min_converge ( success )
   end if 
 
 END SUBROUTINE min_converge
-!!***
 
 
-!!****f* art/check_min
-!! FUNCTION
-!! SOURCE
-!!
+!> ART check_min
 subroutine check_min( stage )
 
   use defs
@@ -133,4 +127,3 @@ subroutine check_min( stage )
   IN_MINIMUN = .False.
  
 END SUBROUTINE check_min
-!!***

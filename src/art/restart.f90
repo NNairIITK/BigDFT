@@ -1,19 +1,15 @@
-!!****f* art/restart_states
-!! FUNCTION
-!!   This subroutine is used to restart an event during the activation. It uses the files:
-!!     restart.dat
-!!   It then continues the event where it stopped. 
-!!
-!! COPYRIGHT
+!> @file
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
+
+!> ART restart_states
+!!   This subroutine is used to restart an event during the activation. It uses the files:
+!!   restartfile 
 subroutine restart_states( istatus, ieventcurrent, iterations, iatp )
 
   use defs
@@ -99,15 +95,10 @@ subroutine restart_states( istatus, ieventcurrent, iterations, iatp )
   end if
 
 END SUBROUTINE restart_states 
-!!***
 
 
-!!****f* restart/save_state
-!! FUNCTION
-!!   saves the status for a restart
-!!
-!! SOURCE
-!!
+!> ART save_state
+!!   Saves the status for a restart
 subroutine save_state( istatus, iter, direction )
 
   use defs
@@ -140,14 +131,10 @@ subroutine save_state( istatus, iter, direction )
   close(FRESTART)
 
 END SUBROUTINE save_state
-!!***
 
-!!****f* restart/save_state2
-!! FUNCTION
-!!   saves the status for a restart
-!!
-!! SOURCE
-!!
+
+!> ART save_state2
+!!   Saves the status for a restart
 subroutine save_state2( istatus, iter, direction, maxter, pf, px, pn, &
                         eigen_min, eigenvalue, nsteps_after_eigen_min   )
 
@@ -203,4 +190,3 @@ subroutine save_state2( istatus, iter, direction, maxter, pf, px, pn, &
   close(FRESTART)
 
 END SUBROUTINE save_state2
-!!***
