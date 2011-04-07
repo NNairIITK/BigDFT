@@ -151,15 +151,163 @@ __local double2 (*tmp)[BUFFER_DEPTH];\n\
 \n\
   if(il<n)\n\
     out[jg*n+il] = tmp_in[il][jl];\n\
-}";
+}\n\
+inline void radix2_2(size_t il, size_t jl, size_t offset, uint N, uint A, uint B, __local double2 in[FFT_LENGTH][BUFFER_DEPTH], __local double2 out[FFT_LENGTH][BUFFER_DEPTH]) {\n\
+   double2 tmp,tmp2, val,w;\n\
+   int a,b,r,r2;\n\
+   b = jl / (2*A);\n\
+   r = jl % (2*A);\n\
+   r2 = (jl+offset) % (2*A);\n\
+   a = r % A;\n\
+\n\
+  val = in[A*b+a][il];\n\
+  tmp2.x = tmp.x = val.x;\n\
+  tmp2.y = tmp.y = val.y;\n\
+  val = in[(N/2)+A*b+a][il];\n\
+  w.x = cos((TWOPI/(A*2))*r);\n\
+  w.y = sin((TWOPI/(A*2))*r);\n\
+  tmp.x += val.x * w.x;\n\
+  tmp.x += val.y * w.y;\n\
+  tmp.y -= val.x * w.y;\n\
+  tmp.y += val.y * w.x;\n\
+  w.x = cos((TWOPI/(A*2))*r2);\n\
+  w.y = sin((TWOPI/(A*2))*r2);\n\
+  tmp2.x += val.x * w.x;\n\
+  tmp2.x += val.y * w.y;\n\
+  tmp2.y -= val.x * w.y;\n\
+  tmp2.y += val.y * w.x;\n\
+  out[jl][il]=tmp;\n\
+  out[jl+offset][il]=tmp2;\n\
+   \n\
+}\n\
+__kernel void fftKernel_test_2_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 (*tmp_in)[BUFFER_DEPTH];\n\
+__local double2 (*tmp_out)[BUFFER_DEPTH];\n\
+__local double2 (*tmp)[BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1)*2;\n\
+  size_t jl2 = jl+1;\n\
+  size_t jg = get_global_id(1)*2;\n\
+  size_t jlt = il;\n\
+  size_t ilt = jl;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1)*2 - ndat ) : jg;\n\
+  jgt = jg - jl + il;\n\
+  tmp1[jl][il] = jl < n ? psi[jgt + ( jl ) * ndat] : 0.0;\n\
+  tmp1[jl2][il] = jl2 < n ? psi[jgt + ( jl2 ) * ndat] : 0.0;\n\
+  \n\
+  unsigned int A,B;\n\
+  unsigned int j;\n\
+  A=1;\n\
+  B=FFT_LENGTH;\n\
+  tmp_in=tmp1;\n\
+  tmp_out=tmp2;\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+//  #pragma unroll\n\
+//  for(j=0;j<4;j++){\n\
+    radix2_2(il, jl, 1, n, 1, 8, tmp_in, tmp_out);\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    radix2_2(il, (jl/4)*4+((jl/2)%2), 2, n, 2, 4, tmp_out, tmp_in);\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    radix2_2(il, (jl/8)*8+((jl/2)%4), 4, n, 4, 2, tmp_in, tmp_out);\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+    radix2_2(il, jl/2, 8, n, 8, 1, tmp_out, tmp_in);\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+//  }\n\
+\n\
+  if(il<n){\n\
+    out[jg*n+il] = tmp_in[il][jl];\n\
+    out[(jg+1)*n+il] = tmp_in[il][jl2];\n\
+  }\n\
+}\n\
+#undef LINE_NUMBER\n\
+#define LINE_NUMBER 8\n\
+#undef BUFFER_DEPTH\n\
+#define BUFFER_DEPTH LINE_NUMBER+1\n\
+__kernel void fftKernel_test_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 (*tmp_in)[BUFFER_DEPTH];\n\
+__local double2 (*tmp_out)[BUFFER_DEPTH];\n\
+__local double2 (*tmp)[BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < n ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  unsigned int A,B;\n\
+  unsigned int j;\n\
+  A=1;\n\
+  B=FFT_LENGTH;\n\
+  tmp_in=tmp1;\n\
+  tmp_out=tmp2;\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  #pragma unroll\n\
+  for(j=0;j<4;j++){\n\
+    B /= 2;\n\
+    radix2m(jlt, ilt, n, A, B, tmp_in, tmp_out);\n\
+    tmp = tmp_in; tmp_in = tmp_out; tmp_out = tmp;\n\
+    A *= 2;\n\
+    barrier(CLK_LOCAL_MEM_FENCE);\n\
+  }\n\
+\n\
+  if(il<n)\n\
+    out[jg*n+il] = tmp_in[il][jl];\n\
+}\n\
+";
 
+
+inline void fft_test_2_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+    cl_int ciErrNum;
+    int FFT_LENGTH=16;
+    int LINE_NUMBER=16;
+    assert(*n==FFT_LENGTH);
+    size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER/2;
+    cl_uint i = 0;
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j*2,*ndat)/2};
+    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
+}
+
+inline void fft_test_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+    cl_int ciErrNum;
+    int FFT_LENGTH=16;
+    int LINE_NUMBER=16;
+    assert(*n==FFT_LENGTH);
+    size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER;
+    cl_uint i = 0;
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
+    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+    size_t localWorkSize[] = { block_size_i,block_size_j };
+    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
+    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+    oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
+}
 
 inline void fft_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
-#define FFT_LENGTH 16
-#define BUFFER_DEPTH 16
+    int FFT_LENGTH=16;
+    int LINE_NUMBER=8;
     assert(*n==FFT_LENGTH);
-    size_t block_size_i=FFT_LENGTH, block_size_j=BUFFER_DEPTH;
+    size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER;
     cl_uint i = 0;
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
@@ -191,7 +339,7 @@ cl_program fftProgram;
 
 void create_fft_kernels(struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
-    kernels->fft_kernel_d=clCreateKernel(fftProgram,"fftKernel_d",&ciErrNum);
+    kernels->fft_kernel_d=clCreateKernel(fftProgram,"fftKernel_test_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_d kernel!");
 }
 
