@@ -26,6 +26,72 @@ char * fft_program="\n\
   tmp.y += val.y * w.x;\
   out[jl][il]=tmp;\
 } \n\
+#define radix3m(il,jl,N,A,B,in,out) \
+{ \
+  double2 tmp,val,w;\
+  int a,b,p,r;\
+  b = jl / (3*A);\
+  r = jl % (3*A);\
+  a = r % A;\
+  val = in[A*b+a][il];\
+  tmp.x = val.x;\
+  tmp.y = val.y;\
+  val = in[(N/3)+A*b+a][il];\
+  w.x = cos((TWOPI/(A*3))*r);\
+  w.y = sin((TWOPI/(A*3))*r);\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/3)*2+A*b+a][il];\
+  w.x = cos((TWOPI/(A*3))*r*2);\
+  w.y = sin((TWOPI/(A*3))*r*2);\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  out[jl][il]=tmp;\
+} \n\
+#define radix5m(il,jl,N,A,B,in,out) \
+{ \
+  double2 tmp,val,w;\
+  int a,b,p,r;\
+  b = jl / (5*A);\
+  r = jl % (5*A);\
+  a = r % A;\
+  val = in[A*b+a][il];\
+  tmp.x = val.x;\
+  tmp.y = val.y;\
+  val = in[(N/5)+A*b+a][il];\
+  w.x = cos((TWOPI/(A*5))*r);\
+  w.y = sin((TWOPI/(A*5))*r);\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/5)*2+A*b+a][il];\
+  w.x = cos((TWOPI/(A*5))*r*2);\
+  w.y = sin((TWOPI/(A*5))*r*2);\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/5)*3+A*b+a][il];\
+  w.x = cos((TWOPI/(A*5))*r*3);\
+  w.y = sin((TWOPI/(A*5))*r*3);\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/5)*4+A*b+a][il];\
+  w.x = cos((TWOPI/(A*5))*r*4);\
+  w.y = sin((TWOPI/(A*5))*r*4);\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  out[jl][il]=tmp;\
+} \n\
 inline void radix2(size_t il, size_t jl, uint N, uint A, uint B, __local double2 in[FFT_LENGTH][BUFFER_DEPTH], __local double2 out[FFT_LENGTH][BUFFER_DEPTH]) {\n\
    double2 tmp, val,w;\n\
    int a,b,r;\n\
@@ -92,7 +158,7 @@ inline void radix16(size_t il, size_t jl, uint N, uint A, uint B, __local double
    \n\
 }\n\
 \n\
-__kernel void fftKernel_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+__kernel void fftKernel_test_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
 \n\
 __local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
 __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
@@ -228,7 +294,7 @@ __local double2 (*tmp)[BUFFER_DEPTH];\n\
 #define LINE_NUMBER 8\n\
 #undef BUFFER_DEPTH\n\
 #define BUFFER_DEPTH LINE_NUMBER+1\n\
-__kernel void fftKernel_test_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+__kernel void fftKernel_16_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
 \n\
 __local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
 __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
@@ -244,26 +310,313 @@ __local double2 (*tmp)[BUFFER_DEPTH];\n\
   ptrdiff_t jgt = get_group_id(1);\n\
   jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
   jgt = jg - jl + jlt;\n\
-  tmp1[ilt][jlt] = ilt < n ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  tmp1[ilt][jlt] = ilt < 16 ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
   \n\
   unsigned int A,B;\n\
   unsigned int j;\n\
   A=1;\n\
-  B=FFT_LENGTH;\n\
+  B=16;\n\
   tmp_in=tmp1;\n\
   tmp_out=tmp2;\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
   #pragma unroll\n\
   for(j=0;j<4;j++){\n\
     B /= 2;\n\
-    radix2m(jlt, ilt, n, A, B, tmp_in, tmp_out);\n\
+    radix2m(jlt, ilt, 16, A, B, tmp_in, tmp_out);\n\
     tmp = tmp_in; tmp_in = tmp_out; tmp_out = tmp;\n\
     A *= 2;\n\
     barrier(CLK_LOCAL_MEM_FENCE);\n\
   }\n\
 \n\
-  if(il<n)\n\
+  if(il<16)\n\
     out[jg*n+il] = tmp_in[il][jl];\n\
+}\n\
+__kernel void fftKernel_15_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < 15 ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix3m(jlt, ilt, 15, 1, 5, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix5m(jlt, ilt, 15, 3, 1, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+  if(il<15)\n\
+    out[jg*n+il] = tmp1[il][jl];\n\
+}\n\
+#undef FFT_LENGTH\n\
+#define FFT_LENGTH 32\n\
+#undef LINE_NUMBER\n\
+#define LINE_NUMBER 4\n\
+#undef BUFFER_DEPTH\n\
+#define BUFFER_DEPTH LINE_NUMBER+1\n\
+__kernel void fftKernel_18_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < 18 ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, 18, 1, 9, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix3m(jlt, ilt, 18, 2, 3, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix3m(jlt, ilt, 18, 6, 1, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+  if(il<18)\n\
+    out[jg*n+il] = tmp2[il][jl];\n\
+}\n\
+__kernel void fftKernel_20_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+  const uint fftl=20;\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < fftl ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 1, 10, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 2, 5, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix5m(jlt, ilt, fftl, 4, 1, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+  if(il<fftl)\n\
+    out[jg*n+il] = tmp2[il][jl];\n\
+}\n\
+__kernel void fftKernel_24_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+  const uint fftl=24;\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < fftl ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 1, 12, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 2, 6, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 4, 3, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix3m(jlt, ilt, fftl, 8, 1, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+  if(il<fftl)\n\
+    out[jg*n+il] = tmp1[il][jl];\n\
+}\n\
+__kernel void fftKernel_30_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+  const uint fftl=30;\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < fftl ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 1, 15, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix3m(jlt, ilt, fftl, 2, 5, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix5m(jlt, ilt, fftl, 6, 1, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+  if(il<fftl)\n\
+    out[jg*n+il] = tmp2[il][jl];\n\
+}\n\
+__kernel void fftKernel_32_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+  const uint fftl=32;\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < fftl ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 1, 16, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 2, 8, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 4, 4, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 8, 2, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 16, 1, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+  if(il<fftl)\n\
+    out[jg*n+il] = tmp2[il][jl];\n\
+}\n\
+#undef FFT_LENGTH\n\
+#define FFT_LENGTH 48\n\
+#undef LINE_NUMBER\n\
+#define LINE_NUMBER 2\n\
+#undef BUFFER_DEPTH\n\
+#define BUFFER_DEPTH LINE_NUMBER+1\n\
+__kernel void fftKernel_48_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+  const uint fftl=48;\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < fftl ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 1, 24, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 2, 12, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 4, 6, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 8, 3, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix3m(jlt, ilt, fftl, 16, 1, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+  if(il<fftl)\n\
+    out[jg*n+il] = tmp2[il][jl];\n\
+}\n\
+#undef FFT_LENGTH\n\
+#define FFT_LENGTH 64\n\
+#undef LINE_NUMBER\n\
+#define LINE_NUMBER 2\n\
+#undef BUFFER_DEPTH\n\
+#define BUFFER_DEPTH LINE_NUMBER+1\n\
+__kernel void fftKernel_64_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+  const uint fftl=64;\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < fftl ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 1, 32, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 2, 16, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 4, 8, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 8, 4, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 16, 2, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 32, 1, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+  if(il<fftl)\n\
+    out[jg*n+il] = tmp1[il][jl];\n\
+}\n\
+#undef FFT_LENGTH\n\
+#define FFT_LENGTH 128\n\
+#undef LINE_NUMBER\n\
+#define LINE_NUMBER 1\n\
+#undef BUFFER_DEPTH\n\
+#define BUFFER_DEPTH LINE_NUMBER\n\
+__kernel void fftKernel_128_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+  const uint fftl=128;\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = il;//jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = 0;//il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < fftl ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 1, 64, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 2, 32, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 4, 16, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 8, 8, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 16, 4, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 32, 2, tmp2, tmp1);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+  radix2m(jlt, ilt, fftl, 64, 1, tmp1, tmp2);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+\n\
+  if(il<fftl)\n\
+    out[jg*n+il] = tmp2[il][jl];\n\
 }\n\
 ";
 
@@ -304,9 +657,9 @@ inline void fft_test_generic(cl_kernel kernel, cl_command_queue command_queue, c
 
 inline void fft_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
-    int FFT_LENGTH=16;
-    int LINE_NUMBER=8;
-    assert(*n==FFT_LENGTH);
+    int FFT_LENGTH=128;
+    int LINE_NUMBER=1;
+//    assert(*n==FFT_LENGTH);
     size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER;
     cl_uint i = 0;
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
@@ -339,7 +692,7 @@ cl_program fftProgram;
 
 void create_fft_kernels(struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;
-    kernels->fft_kernel_d=clCreateKernel(fftProgram,"fftKernel_test_d",&ciErrNum);
+    kernels->fft_kernel_d=clCreateKernel(fftProgram,"fftKernel_128_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create fftKernel_d kernel!");
 }
 
