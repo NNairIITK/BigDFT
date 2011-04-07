@@ -1,7 +1,7 @@
 !> @file
 !!  Routines related to system properties
 !! @author
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -709,7 +709,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
               read(91,'(a100)',iostat=ierror)string
               if (ierror /= 0) exit parse_inocc !file ends
               read(string,*,iostat=ierror)jat
-              if (ierror /=0) stop 'error reading line'
+              if (ierror /=0) stop 'Error reading line'
               if (jat==iat ) then
                  found=.true.
                  exit parse_inocc
