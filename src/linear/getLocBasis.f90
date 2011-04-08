@@ -162,7 +162,7 @@ end do
 !!!!!! THIS IS A TEST !!!!
  call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
  if(iproc==0) write(*,'(a,es15.6)') 'ebsMod from sub', ebsMod
- do it=1,6
+ do it=1,8
    call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
           proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
           infoBasisFunctions)
@@ -185,22 +185,22 @@ end do
    call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
    if(iproc==0) write(*,'(a,es15.6)') 'ebsMod from sub', ebsMod
 
-   !allocate the potential in the full box
-   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-            orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
-   call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
-        nlpspd,proj,Glr,ngatherarr,potential,&
-        phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-   !deallocate potential
-   call free_full_potential(nproc,potential,subname)
-   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements2)
-if(iproc==0) write(*,*) 'matrix elements for ordinary Hamiltonian'
-do iorb=1,lin%orbs%norb
-    if(iproc==0) write(*,'(100f7.3)') (matrixElements2(iorb,jorb,1), jorb=1,lin%orbs%norb)
-end do
-   call optimizeCoefficients(iproc, orbs, lin, matrixElements2, coeff)
-   call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements2, ebsMod)
-   if(iproc==0) write(*,'(x,a,es18.10)') 'ebsMod with normal H', ebsMod
+!!!   !allocate the potential in the full box
+!!!   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+!!!            orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
+!!!   call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
+!!!        nlpspd,proj,Glr,ngatherarr,potential,&
+!!!        phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+!!!   !deallocate potential
+!!!   call free_full_potential(nproc,potential,subname)
+!!!   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements2)
+!!!if(iproc==0) write(*,*) 'matrix elements for ordinary Hamiltonian'
+!!!do iorb=1,lin%orbs%norb
+!!!    if(iproc==0) write(*,'(100f7.3)') (matrixElements2(iorb,jorb,1), jorb=1,lin%orbs%norb)
+!!!end do
+!!!   call optimizeCoefficients(iproc, orbs, lin, matrixElements2, coeff)
+!!!   call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements2, ebsMod)
+!!!   if(iproc==0) write(*,'(x,a,es18.10)') 'ebsMod with normal H', ebsMod
 
    !! ONLY FOR DEBUGGING
    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
