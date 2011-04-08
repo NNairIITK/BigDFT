@@ -9,8 +9,7 @@
 
 
 !>   Estimation of the used memory
-subroutine MemoryEstimator(geocode,nproc,idsx,lr,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
-     iatype,rxyz,radii_cf,crmult,frmult,norb,nspinor,nkpt,nprojel,atomnames,output_grid,nspin,itrpmax,iscf,peakmem)
+subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
 
   use module_base
   use module_types
@@ -19,94 +18,28 @@ subroutine MemoryEstimator(geocode,nproc,idsx,lr,alat1,alat2,alat3,hx,hy,hz,nat,
   implicit none
 
   !Arguments
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: nproc,idsx,nat,ntypes,norb,nspin,nprojel
-  integer, intent(in) :: output_grid,nkpt,nspinor,itrpmax,iscf
-  integer, dimension(nat), intent(in) :: iatype
+  integer, intent(in) :: nproc,idsx,nat,norb,nspin,nprojel
+  integer, intent(in) :: nkpt,nspinor,itrpmax,iscf
   type(locreg_descriptors), intent(in) :: lr
-  character(len=20), dimension(ntypes), intent(in) :: atomnames
-  real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(ntypes,3), intent(in) ::  radii_cf
   real(kind=8), intent(out) :: peakmem
   !Local variables
   character(len=*), parameter :: subname='MemoryEstimator'
   real(kind=8), parameter :: eps_mach=1.d-12
-  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat,n1,n2,n3
-  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,iat,i1,i2,i3
+  integer :: norbp,nvctrp,n1,n2,n3
+  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3
   integer(kind=8) :: mworkham, mworkrho
   real(kind=8) :: omemwf,omemker,omemden,omempot,omemproj,nden,npotden,npotham,narr
   real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha,tminamount
-  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   n1=lr%d%n1
   n2=lr%d%n2
   n3=lr%d%n3
 
-  ! determine localization region for all orbitals
-  allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_c,'logrid_c',subname)
-  allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid_f,'logrid_f',subname)
-
-  ! coarse grid quantities
-  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
-       radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
-  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,nseg_c,nvctr_c)
-
-  ! fine grid quantities
-  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
-       radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
-  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,nvctr_f)
-
-! Create the file grid.xyz to visualize the grid of functions
-  if (output_grid==1) then
-     open(unit=22,file='grid.xyz',status='unknown')
-     write(22,*) nvctr_c+nvctr_f+nat,' atomic'
-     if (geocode=='F') then
-        write(22,*)'complete simulation grid with low and high resolution points'
-     else if (geocode =='S') then
-        write(22,'(a,2x,3(1x,1pe24.17))')'surface',alat1,alat2,alat3
-     else if (geocode =='P') then
-        write(22,'(a,2x,3(1x,1pe24.17))')'periodic',alat1,alat2,alat3
-     end if
-     do iat=1,nat
-        write(22,'(a6,2x,3(1x,e12.5),3x)') &
-             trim(atomnames(iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
-     enddo
-     do i3=0,n3  
-        do i2=0,n2  
-           do i1=0,n1
-              if (logrid_c(i1,i2,i3))&
-                   write(22,'(a4,2x,3(1x,e10.3))') &
-                   '  g ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
-           enddo
-        enddo
-     end do
-     do i3=0,n3 
-        do i2=0,n2 
-           do i1=0,n1
-              if (logrid_f(i1,i2,i3))&
-                   write(22,'(a4,2x,3(1x,e10.3))') &
-                   '  G ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
-           enddo
-        enddo
-     enddo
-     close(22)
-  endif
-
   !here we must add the estimation for the projectors
-
-  i_all=-product(shape(logrid_c))*kind(logrid_c)
-  deallocate(logrid_c,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_c',subname)
-  i_all=-product(shape(logrid_f))*kind(logrid_f)
-  deallocate(logrid_f,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_f',subname)
 
   tt=dble(norb * nkpt)/dble(nproc)
   norbp=int((1.d0-eps_mach*tt) + tt)
-  tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
+  tt=dble(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)/dble(nproc)
   nvctrp=int((1.d0-eps_mach*tt) + tt)
 
   ! Multiply the size of one wavefunction per its spinor value.
@@ -118,17 +51,17 @@ subroutine MemoryEstimator(geocode,nproc,idsx,lr,alat1,alat2,alat3,hx,hy,hz,nat,
   !wavefunction memory per orbitals
   omemwf=real(nvctrp*nproc*8,kind=8)
   
-  if (geocode == 'P') then
+  if (lr%geocode == 'P') then
      call F_FFT_dimensions(2*n1+2,2*n2+2,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=2*n1+2
      n02=2*n2+2
      n03=2*n3+2
-  else if (geocode == 'S') then
+  else if (lr%geocode == 'S') then
      call S_FFT_dimensions(2*n1+2,2*n2+31,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=2*n1+2
      n02=2*n2+31
      n03=2*n3+2
-  else if (geocode == 'F') then
+  else if (lr%geocode == 'F') then
      call F_FFT_dimensions(2*n1+31,2*n2+31,2*n3+31,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=2*n1+31
      n02=2*n2+31
@@ -222,7 +155,7 @@ subroutine MemoryEstimator(geocode,nproc,idsx,lr,alat1,alat2,alat3,hx,hy,hz,nat,
   write(*,'(1x,a,i0,a)')&
        'The overall memory requirement needed for this calculation is thus: ',&
        mega(peakmem),' MB'
-  tminamount=real(3*(nvctr_c+7*nvctr_f)*8,kind=8)+3.d0*real(n01*n02,kind=8)+&
+  tminamount=real(3*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*8,kind=8)+3.d0*real(n01*n02,kind=8)+&
        (3.d0+2.d0*tt)*omempot+omemproj
   write(*,'(1x,a)')&
        'By reducing the DIIS history and/or increasing the number of processors the amount of'
