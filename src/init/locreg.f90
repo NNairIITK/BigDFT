@@ -343,7 +343,7 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   call memocc(i_stat,logrid_c,'logrid_c',subname)
   allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid_f,'logrid_f',subname)
-
+  
   call wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
 
   !allocate and calculate kinetic bounds

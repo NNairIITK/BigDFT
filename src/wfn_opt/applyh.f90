@@ -539,17 +539,18 @@ END SUBROUTINE realspaceINPLACE
 !!   to all distributed orbitals
 !!
 !!
-subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
+subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors),intent(in) :: lr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
@@ -583,7 +584,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      do iat=1,at%nat
         istart_c=1
         call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-             n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+             lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
 
         !apply the projector to all the orbitals belonging to the processor
         ispsi=ispsi_k

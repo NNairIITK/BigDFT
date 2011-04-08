@@ -400,7 +400,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
-  call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
+  call createProjectorsArrays(iproc,Glr,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
@@ -1326,7 +1326,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !refill projectors for tails, davidson
      refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
 
-     call nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,atoms,rxyz,&
+     call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,&
           orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
 
      if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
@@ -1424,7 +1424,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            ! Calculate all projectors, or allocate array for on-the-fly calculation
            call timing(iproc,'CrtProjectors ','ON')
-           call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbsv,&
+           call createProjectorsArrays(iproc,Glr,rxyz,atoms,orbsv,&
                 radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj) 
            call timing(iproc,'CrtProjectors ','OF') 
 

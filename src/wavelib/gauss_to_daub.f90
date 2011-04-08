@@ -274,12 +274,12 @@ END SUBROUTINE gauss_to_daub
 !!    For the list of contributors, see ~/AUTHORS 
 !!
 subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
-     nmax,n_left,n_right,c,& 
+     nstart,nmax,n_left,n_right,c,& 
      ww,nwork,periodic)      !added work arrays ww with dimension nwork
   use module_base
   implicit none
   logical, intent(in) :: periodic
-  integer, intent(in) :: n_gau,nmax,nwork,ncplx
+  integer, intent(in) :: n_gau,nmax,nwork,ncplx,nstart
   real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a,kval
   real(wp), dimension(0:nwork,2,ncplx), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
@@ -329,10 +329,12 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx,factor,gau_cen,gau_a,n_gau,&!no err,
      call fold_tail
   else
      ! non-periodic: the Gaussian is bounded by the cell borders
-     lefts( 0)=max(i0-right_t,   0)
-     rights(0)=min(i0+right_t,nmax)
+     lefts( 0)=max(i0-right_t,nstart)
+     rights(0)=min(i0+right_t,nmax+nstart)
 
      call gauss_to_scf
+    
+      n_left = n_left - nstart
      
      !loop for each complex component
      do icplx=1,ncplx

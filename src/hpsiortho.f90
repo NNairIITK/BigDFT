@@ -148,7 +148,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   eproj_sum=0.0_gp
   !apply the projectors following the strategy (On-the-fly calculation or not)
   if (DistProjApply) then
-     call applyprojectorsonthefly(iproc,orbs,at,lr%d%n1,lr%d%n2,lr%d%n3,&
+     call applyprojectorsonthefly(iproc,orbs,at,lr,&
           rxyz,hx,hy,hz,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   else if(orbs%norbp > 0) then
      !apply the projectors  k-point of the processor

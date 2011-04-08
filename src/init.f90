@@ -178,13 +178,14 @@ END SUBROUTINE createWavefunctionsDescriptors
 !>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
 !!
 !!
-subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
+subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
+  type(locreg_descriptors),intent(in) :: lr
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -193,7 +194,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   real(wp), dimension(:), pointer :: proj
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
+  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
   integer :: iat,i_stat,i_all,iseg
   logical, dimension(:,:,:), allocatable :: logrid
   
@@ -205,6 +206,12 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   call memocc(i_stat,nlpspd%nboxp_c,'nlpspd%nboxp_c',subname)
   allocate(nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,nlpspd%nboxp_f,'nlpspd%nboxp_f',subname)
+
+
+  ! define the region dimensions
+    n1 = lr%d%n1
+    n2 = lr%d%n2
+    n3 = lr%d%n3
 
   ! determine localization region for all projectors, but do not yet fill the descriptor arrays
   allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
