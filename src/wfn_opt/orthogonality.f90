@@ -126,18 +126,17 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
 END SUBROUTINE orthogonalize
 
 
-subroutine check_closed_shell(nspin,orbs,lcs)
+subroutine check_closed_shell(orbs,lcs)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: nspin
   type(orbitals_data), intent(in) :: orbs
   logical, intent(out) :: lcs
   !local variables
   integer :: iorb
   lcs=.true.
   do iorb=orbs%norb*orbs%nkpts,1,-1
-     if ( orbs%occup(iorb) /= real(3-nspin,gp)) then
+     if ( orbs%occup(iorb) /= real(3-orbs%nspin,gp)) then
         lcs=.false.
         exit
      end if
@@ -264,7 +263,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
         !calculate the scprsum if the k-point is associated to this processor
         !the scprsum always coincide with the trace of the hamiltonian
         if (orbs%ikptproc(ikpt) == iproc) then
-           occ=real(orbs%kwgts(ikpt),dp)*real(3-nspin,gp)
+           occ=real(orbs%kwgts(ikpt),dp)*real(3-orbs%nspin,gp)
            if (nspinor == 4) occ=real(orbs%kwgts(ikpt),dp)
            if(nspinor == 1) then
               do iorb=1,norb

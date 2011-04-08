@@ -978,7 +978,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
                 (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
               !write this warning only if the system is closed shell
-              call check_closed_shell(in%nspin,orbs,lcs)
+              call check_closed_shell(orbs,lcs)
               if (lcs) then
                  write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
                       'ERROR: inconsistency between gradient and energy',tt,energybs,trH
@@ -1060,7 +1060,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                    & ' energy, delta:',diis%energy-diis%energy_min
            else
               !write this warning only if the system is closed shell
-              call check_closed_shell(in%nspin,orbs,lcs)
+              call check_closed_shell(orbs,lcs)
               if (lcs) then
                  if ( energy > diis%energy_min) write( *,'(1x,a,2(1pe19.12))')&
                       'WARNING: Found an energy value lower than the FINAL energy, delta:',energy,diis%energy_min
@@ -1418,7 +1418,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            wkptv(:) = real(1.0, gp) / real(nkptv, gp)
 
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-                & orbs%nspinor,nkptv,in%kptv(1,ikpt),wkptv,orbsv)
+                & orbs%nspin,orbs%nspinor,nkptv,in%kptv(1,ikpt),wkptv,orbsv)
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
 
@@ -1440,7 +1440,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         else
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-                & orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+                & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
 

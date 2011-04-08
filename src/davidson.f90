@@ -284,7 +284,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
           (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
-        call check_closed_shell(in%nspin,orbsv,lcs)
+        call check_closed_shell(orbsv,lcs)
         if (lcs) then
            write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
                 'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
