@@ -97,7 +97,8 @@ real(wp),dimension(:),pointer:: potential
 character(len=*),parameter:: subname='getLinearPsi' 
 
 real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu
-integer:: iorb, jorb
+integer:: iorb, jorb, it, istart
+character(len=11):: procName, orbNumber, orbName
   
   allocate(hphi(lin%orbs%npsidim), stat=istat) 
   call memocc(istat, hphi, 'hphi', subname)
@@ -112,6 +113,14 @@ integer:: iorb, jorb
   call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
       infoBasisFunctions)
+write(procName,'(i0)') iproc
+do iorb=1,lin%orbs%norbp
+  write(orbNumber,'(i0)') iorb
+  orbName='orb_'//trim(procName)//'_'//trim(orbNumber)
+  istart=1
+  call plot_wfSquare_cube(orbName, at, Glr, input%hx, input%hy, input%hz, rxyz, phi(istart), 'comment')
+  istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+end do
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
@@ -131,6 +140,36 @@ integer:: iorb, jorb
 
       if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
       call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+!!!! THIS IS A TEST !!!!
+ call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
+ if(iproc==0) write(*,'(a,es15.6)') 'ebsMod from sub', ebsMod
+ do it=1,50
+    call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
+        proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
+        infoBasisFunctions)
+  call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+       nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+       rhopot(1),&
+       phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+  call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+  call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+ call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
+ if(iproc==0) write(*,'(a,es15.6)') 'ebsMod from sub', ebsMod
+  call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
+!! ONLY FOR DEBUGGING
+!allocate the potential in the full box
+call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+         orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
+call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
+call HamiltonianApplication(iproc,nproc,at,orbs,input%hx,input%hy,input%hz,rxyz,&
+     nlpspd,proj,Glr,ngatherarr,potential,&
+     psi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+if(iproc==0) write(*,'(x,a,es18.10)') 'ebs', ekin_sum+epot_sum+eproj_sum
+!deallocate potential
+call free_full_potential(nproc,potential,subname)
+!! ONLY FOR DEBUGGING
+ end do
+!!!!!!!!!!!!!!!!!!!!!!!!
 
   else if(trim(lin%getCoeff)=='diag') then
   
@@ -187,14 +226,6 @@ integer:: iorb, jorb
   call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
 
 
-!!!! THIS IS A TEST !!!!
-    call  getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
-    infoBasisFunctions)
-    !call  getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-    !proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
-    !infoBasisFunctions)
-!!!!!!!!!!!!!!!!!!!!!!!!
   
   
   iall=-product(shape(phiWork))*kind(phiWork)
@@ -1252,7 +1283,7 @@ processIf: if(iproc==0) then
     end do
     
     ! Initial step size
-    alpha=1.d-1
+    alpha=5.d-3
 
     converged=.false.
 
@@ -1504,6 +1535,10 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   
   if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
 
+  ! The basis functions phi are provided in direct (i.e. not transposed) form, but the loop iterLoop
+  !  expects them to be transposed.
+  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+
   ! Assign the step size for SD iterations.
   alpha=lin%alphaSD
   iterLoop: do it=1,lin%nItMax
@@ -1664,7 +1699,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(x,a,i6,2es15.7,2f14.7)') 'iter, fnrm, fnrmMax, trace, ebsMod', it, fnrm, fnrmMax, trH, ebsMod
-      if(iproc==0) write(1000,'(i6,2es15.7,2f15.7,es12.4)') it, fnrm, fnrmMax, trH, ebsMod, meanAlpha
+      if(iproc==0) write(2000,'(i6,2es15.7,2f15.7,es12.4)') it, fnrm, fnrmMax, trH, ebsMod, meanAlpha
       if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
           if(it>=lin%nItMax) then
               if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &

@@ -186,6 +186,8 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   ! IS THIS CORRECT??
   energyMod=ebsMod-ehart+eexcu-vexcu-eexctX+eion+edisp
 
+  if(iproc==0) write(*,'(x,a,2es26.17)') 'energybs, ebsMod', energybs, ebsMod
+
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
                   ekin_sum,epot_sum,eproj_sum
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu

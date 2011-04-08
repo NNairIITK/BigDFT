@@ -354,7 +354,7 @@ subroutine plot_cube_full(nexpo,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   hzh=.5_gp*hz
 
   open(unit=22,file=trim(orbname)//'.cube',status='unknown')
-  write(22,*)orbname
+  write(22,*) trim(orbname)
   write(22,*)'CUBE file for orbital wavefunction'
   !number of atoms
 !  if (at%geocode=='P') then
@@ -1503,3 +1503,167 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
  ! write(14,*)rho
 
 END SUBROUTINE read_cube_field
+
+
+
+
+
+
+subroutine plot_wfSquare_cube(orbname,at,lr,hx,hy,hz,rxyz,psi,comment)
+  use module_base
+  use module_types
+  implicit none
+!HU  character(len=10) :: orbname,comment 
+  character(len=10) :: comment
+  character(len=11) :: orbname
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
+  !local variables
+  character(len=*), parameter :: subname='plot_wf'
+  integer :: nw1,nw2,i_stat,i_all,i,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+  integer :: nxc,nxf,nl1,nl2,nl3,n1i,n2i,n3i
+  real(gp) :: rx, ry, rz
+  real(wp), dimension(0:3) :: scal
+  real(wp), dimension(:), allocatable :: psir,w1,w2,x_c_psifscf,x_f_psig
+
+  rx=rxyz(1,1)
+  ry=rxyz(2,1)
+  rz=rxyz(3,1)
+
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
+  n1i=lr%d%n1i
+  n2i=lr%d%n2i
+  n3i=lr%d%n3i
+  nfl1=lr%d%nfl1
+  nfl2=lr%d%nfl2
+  nfl3=lr%d%nfl3
+  nfu1=lr%d%nfu1
+  nfu2=lr%d%nfu2
+  nfu3=lr%d%nfu3
+
+  do i=0,3
+     scal(i)=1.d0
+  enddo
+
+  select case(lr%geocode)
+  case('F')
+     !dimension of the work arrays
+     ! shrink convention: nw1>nw2
+     nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
+          (n1+1)*(2*n2+31)*(2*n3+31),&
+          2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+          2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+     nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+          4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+          (n1+1)*(n2+1)*(2*n3+31),&
+          (2*n1+31)*(n2+1)*(n3+1))
+     nxc=(n1+1)*(n2+1)*(n3+1)!(2*n1+2)*(2*n2+2)*(2*n3+2)
+     nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+  case('S')
+     !dimension of the work arrays
+     nw1=1
+     nw2=1
+     nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
+     nxf=1
+  case('P')
+     !dimension of the work arrays, fully periodic case
+     nw1=1
+     nw2=1
+     nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
+     nxf=1
+  end select
+  !work arrays
+  allocate(x_c_psifscf(nxc+ndebug),stat=i_stat)
+  call memocc(i_stat,x_c_psifscf,'x_c_psifscf',subname)
+  allocate(x_f_psig(nxf+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f_psig,'x_f_psig',subname)
+  allocate(w1(nw1+ndebug),stat=i_stat)
+  call memocc(i_stat,w1,'w1',subname)
+  allocate(w2(nw2+ndebug),stat=i_stat)
+  call memocc(i_stat,w2,'w2',subname)
+
+  allocate(psir(n1i*n2i*n3i+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
+  !initialisation
+  if (lr%geocode == 'F') then
+     call razero(nxc,x_c_psifscf)
+     call razero(nxf,x_f_psig)
+     call razero(n1i*n2i*n3i,psir)
+  end if
+  select case(lr%geocode)
+  case('F')
+     call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+          lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1), &
+          scal,psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,x_f_psig)
+
+     call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,&
+          x_c_psifscf,x_f_psig,  & 
+          psir(1),lr%bounds%kb%ibyz_c,lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
+          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f)
+     
+  case('P')
+     call uncompress_per(n1,n2,n3,lr%wfd%nseg_c,&
+          lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+          lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),&
+          psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,psir(1))
+
+     call convolut_magic_n_per_self(2*n1+1,2*n2+1,2*n3+1,&
+          x_c_psifscf,psir(1))
+     
+  case('S')
+     call uncompress_slab(n1,n2,n3,lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+          lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg(1,lr%wfd%nseg_c+1),&
+          lr%wfd%keyv(lr%wfd%nseg_c+1),   &
+          psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,psir(1))
+
+     call convolut_magic_n_slab_self(2*n1+1,2*n2+15,2*n3+1,x_c_psifscf,psir(1))
+  end select
+
+  i_all=-product(shape(x_c_psifscf))*kind(x_c_psifscf)
+  deallocate(x_c_psifscf,stat=i_stat)
+  call memocc(i_stat,i_all,'x_c_psifscf',subname)
+  i_all=-product(shape(x_f_psig))*kind(x_f_psig)
+  deallocate(x_f_psig,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f_psig',subname)
+  i_all=-product(shape(w1))*kind(w1)
+  deallocate(w1,stat=i_stat)
+  call memocc(i_stat,i_all,'w1',subname)
+  i_all=-product(shape(w2))*kind(w2)
+  deallocate(w2,stat=i_stat)
+  call memocc(i_stat,i_all,'w2',subname)
+
+  if (lr%geocode /= 'F') then
+     nl1=1
+     nl3=1
+  else
+     nl1=14
+     nl3=14
+  end if
+  !value of the buffer in the y direction
+  if (lr%geocode == 'P') then
+     nl2=1
+  else
+     nl2=14
+  end if
+
+
+  !call plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,psir)
+!HU  call plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+!HU       nl1,nl2,nl3,orbname,psir,comment)
+  call plot_cube_full(2,at,rxyz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+       nl1,nl2,nl3,orbname,psir,comment)
+
+  i_all=-product(shape(psir))*kind(psir)
+  deallocate(psir,stat=i_stat)
+  call memocc(i_stat,i_all,'psir',subname)
+
+END SUBROUTINE plot_wfSquare_cube

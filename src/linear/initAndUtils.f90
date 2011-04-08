@@ -181,9 +181,9 @@ call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 ! Allocate phi and initialize it at random
 allocate(phi(lin%orbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
-call initRandomSeed(iproc, 1)
-call random_number(phi)
-!call randomWithinCutoff(iproc, lin%orbs, Glr, at, lin, input, rxyz, phi)
+!call initRandomSeed(iproc, 1)
+!call random_number(phi)
+call randomWithinCutoff(iproc, lin%orbs, Glr, at, lin, input, rxyz, phi)
 !call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
 !    .5d0*input%hy, .5d0*input%hz, 1)
 allocate(phiWork(lin%orbs%npsidim), stat=istat)
@@ -518,7 +518,7 @@ istart=0
                    if(tt<cut) then
                        call random_number(phir(jj))
                    else
-write(100+iproc,*) tt, cut
+!write(100+iproc,*) tt, cut
                        call random_number(tt2)
                        !phir(jj)=tt2*.002d0*exp(-(4.d0*lin%potentialPrefac(at%iatype(iiAt))*tt))
                        phir(jj)=0.d0
@@ -657,4 +657,3 @@ deallocate(phir, stat=istat)
 
 
 end subroutine plotOrbitals
-
