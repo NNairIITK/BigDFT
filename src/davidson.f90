@@ -609,7 +609,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      do iorb=1,orbsv%norb
         !e(:,1,1) = <psi|H|psi> / <psi|psi>
         e(iorb,ikpt,1)=e(iorb,ikpt,1)/e(iorb,ikpt,2)
-        if(iproc==0) write(*,'(1x,i3,2(1x,1pe21.14))')&
+        if(iproc==0) write(*,'(1x,i3,1x,1pe21.14,1x,1pe12.5)')&
              iorb,e(iorb,ikpt,2),e(iorb,ikpt,1)
      end do
   end do

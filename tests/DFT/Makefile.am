@@ -103,7 +103,7 @@ report:
         esac ; \
         case $* in \
           Ca2.out*) prec="4.e-10" ;; \
-          Davidson-SiH4.out*) prec="4.e-9" ;; \
+          Davidson-SiH4.out*) prec="1.e-8" ;; \
           NaCl.out*) prec="2.e-8" ;; \
           SiBulk.out*) prec="2.e-7" ;; \
           SiH4.out*) prec="1.5e-9" ;; \
