@@ -17,6 +17,12 @@ else
 libs_ocl=
 endif
 
+if USE_DGEMMSY
+libs_dgemmsy=dgemmsy/libdgemmsy.a
+else
+libs_dgemmsy=
+endif
+
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
 AM_FCFLAGS = -I../../src/modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
@@ -25,7 +31,7 @@ conv_check_SOURCES = ../../src/CUDA/conv_check.f90  ../../src/modules/defs.F90 .
 conv_check_LDFLAGS = 
 conv_check_LDADD = ../../src/libbigdft.a \
 	../../src/PSolver/libpoissonsolver.a \
-	../../src/CUDA/libGPU.a $(libs_ocl)
+	../../src/CUDA/libGPU.a $(libs_ocl) $(libs_dgemmsy)
 
 check:
 	echo 1 64 64 2048 2048 2 > fort.1
