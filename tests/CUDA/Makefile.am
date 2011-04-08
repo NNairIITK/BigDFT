@@ -8,19 +8,19 @@ endif
 if USE_MPI
 mpi_source =
 else
-mpi_source = ../../src/MPIfake.f90
+mpi_source = $(top_builddir)/src/MPIfake.f90
 endif
 
 if USE_OCL
-libs_ocl=../../src/OpenCL/libOCL.a
+libs_ocl = $(top_builddir)/src/OpenCL/libOCL.a
 else
-libs_ocl=
+libs_ocl =
 endif
 
 if USE_DGEMMSY
-libs_dgemmsy=../../src/dgemmsy/libdgemmsy.a
+libs_dgemmsy = $(top_builddir)/src/dgemmsy/libdgemmsy.a
 else
-libs_dgemmsy=
+libs_dgemmsy =
 endif
 
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
@@ -29,9 +29,9 @@ AM_FCFLAGS = -I../../src/modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUD
 
 conv_check_SOURCES = ../../src/CUDA/conv_check.f90  ../../src/modules/defs.F90 ../../src/modules/base.f90 $(mpi_source)
 conv_check_LDFLAGS = 
-conv_check_LDADD = ../../src/libbigdft.a \
-	../../src/PSolver/libpoissonsolver.a \
-	../../src/CUDA/libGPU.a $(libs_ocl) $(libs_dgemmsy)
+conv_check_LDADD = $(top_builddir)/src/libbigdft.a \
+	$(top_builddir)/src/PSolver/libpoissonsolver.a \
+	$(top_builddir)/src/CUDA/libGPU.a $(libs_ocl) $(libs_dgemmsy)
 
 check:
 	echo 1 64 64 2048 2048 2 > fort.1
