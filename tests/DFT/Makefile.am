@@ -24,14 +24,13 @@ TESTDIRS = C \
 	  NH3 \
 	  NaCl \
 	  Ca2 \
-	  Mn2 \
 	  H2O-CP2K \
 	  SiBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
 	  TiMix \
-	  O2-Spin \
-	  FeHyb 
+	  O2-Spin
+
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
   TESTDIRS += GPU
@@ -39,8 +38,9 @@ endif
 if USE_OCL
   TESTDIRS += OCL
 else
-#Add H  and Graphene only if we do not use OCL (see README)
-  TESTDIRS += H Graphene
+#Add H (box too small) and Graphene (different algorithm) only if we do not use OCL (see README)
+#OCL not implemented with spin=4 (Fehyb and Mn2)
+  TESTDIRS += H Graphene FeHyb Mn2
 endif
 
 # Give here the pseudo-potentials used by each test.

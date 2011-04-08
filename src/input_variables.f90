@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Display the logo of BigDFT 
+!> Display the logo of BigDFT 
 subroutine print_logo()
   use module_base
   implicit none
@@ -147,20 +147,31 @@ subroutine read_input_parameters(iproc, &
      end if
   end do
 
-  !stop the code if it is trying to run GPU with non-periodic boundary conditions
+  ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
-     write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     if (iproc==0) write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+  end if
+
+  ! Stop the code if it is trying to run GPU with spin=4
+  if (inputs%nspin == 4 .and. (GPUconv .or. OCLconv)) then
+     if (iproc==0) write(*,'(1x,a)') 'GPU calculation not implemented with non-collinear spin'
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
 
   ! Stop code for unproper input variables combination.
   if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym) then
-     if (iproc==0) write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-     stop 'Forces are not implemented with symmetry support, disable symmetry please (T)'
+     if (iproc==0) then
+         write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+         write(*,'(1x,a)')  'Forces are not implemented with symmetry support, disable symmetry please (T)'
+     end if
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
-     stop 'Gaussian projection is not implemented with k-point support'
+     if (iproc==0) write(*,'(1x,a)') 'Gaussian projection is not implemented with k-point support'
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
+
 END SUBROUTINE read_input_parameters
 
 
@@ -214,7 +225,7 @@ subroutine dft_input_variables(iproc,filename,in)
   inquire(file=trim(filename),exist=exists)
   if (.not.exists) then
       if (iproc == 0) write(*,*) "The file 'input.dft' does not exist!"
-      stop
+      call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   ! Open the file
@@ -264,7 +275,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. input_psi_validate(in%inputPsiId) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
      call input_psi_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
@@ -277,7 +288,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. output_wf_format_validate(in%output_wf_format) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
      call output_wf_format_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
   ! Setup out grid parameters.
   if (in%output_grid >= 0) then
@@ -291,7 +302,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. output_grid_validate(in%output_grid, in%output_grid_format) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_grid (', in%output_grid, ').'
      call output_grid_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   ! Tail treatment.
@@ -337,14 +348,14 @@ subroutine dft_input_variables(iproc,filename,in)
 !     !if (iproc==0) then
 !        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
 !     !end if
-!     stop
+!     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
 !  end if
 ! 
   close(unit=1,iostat=ierror)
 
   if (in%nspin/=4 .and. in%nspin/=2 .and. in%nspin/=1) then
      write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   !define whether there should be a last_run after geometry optimization
@@ -460,7 +471,7 @@ contains
        !if (iproc == 0) 
             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
-       stop
+            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
     end if
   END SUBROUTINE check
 
@@ -563,7 +574,7 @@ contains
        !if (iproc == 0) 
             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
-       stop
+            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
     end if
   END SUBROUTINE check
 
