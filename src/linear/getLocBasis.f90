@@ -90,7 +90,7 @@ real(8),dimension(lin%orbs%norb,orbs%norb),intent(in out):: coeff
 integer:: istat, iall 
 real(8),dimension(:),allocatable:: hphi, eval 
 real(8),dimension(:,:),allocatable:: HamSmall
-real(8),dimension(:,:,:),allocatable:: matrixElements
+real(8),dimension(:,:,:),allocatable:: matrixElements, matrixElements2
 real(8),dimension(:),pointer:: phiWork 
 real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace 
 real(wp),dimension(:),pointer:: potential 
@@ -108,16 +108,18 @@ character(len=11):: procName, orbNumber, orbName
   call memocc(istat, matrixElements, 'matrixElements', subname)
   allocate(eval(lin%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
+
+  allocate(matrixElements2(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
   
   
   call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
       infoBasisFunctions)
 write(procName,'(i0)') iproc
+istart=1
 do iorb=1,lin%orbs%norbp
   write(orbNumber,'(i0)') iorb
   orbName='orb_'//trim(procName)//'_'//trim(orbNumber)
-  istart=1
   call plot_wfSquare_cube(orbName, at, Glr, input%hx, input%hy, input%hz, rxyz, phi(istart), 'comment')
   istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
 end do
@@ -134,42 +136,102 @@ end do
       if(iproc==0) write(*,'(x,a)') 'done.'
 
       call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+if(iproc==0) write(*,*) 'INITIAL matrix elements for confinement potential'
+do iorb=1,lin%orbs%norb
+    if(iproc==0) write(*,'(100f7.3)') (matrixElements(iorb,jorb,1), jorb=1,lin%orbs%norb)
+end do
+   !allocate the potential in the full box
+   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+            orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
+   call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
+        nlpspd,proj,Glr,ngatherarr,potential,&
+        phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+   !deallocate potential
+   call free_full_potential(nproc,potential,subname)
+   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements2)
+if(iproc==0) write(*,*) 'INITIAL matrix elements for ordinary Hamiltonian'
+do iorb=1,lin%orbs%norb
+    if(iproc==0) write(*,'(100f7.3)') (matrixElements2(iorb,jorb,1), jorb=1,lin%orbs%norb)
+end do
 
       ! Initialize the coefficient vector at random. 
       call random_number(coeff)
 
       if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
       call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
-!!!! THIS IS A TEST !!!!
+!!!!!! THIS IS A TEST !!!!
  call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
  if(iproc==0) write(*,'(a,es15.6)') 'ebsMod from sub', ebsMod
- do it=1,50
-    call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-        proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
-        infoBasisFunctions)
-  call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-       nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-       rhopot(1),&
-       phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
-  call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-  call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
- call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
- if(iproc==0) write(*,'(a,es15.6)') 'ebsMod from sub', ebsMod
-  call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
-!! ONLY FOR DEBUGGING
-!allocate the potential in the full box
-call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-         orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
-call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-call HamiltonianApplication(iproc,nproc,at,orbs,input%hx,input%hy,input%hz,rxyz,&
-     nlpspd,proj,Glr,ngatherarr,potential,&
-     psi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-if(iproc==0) write(*,'(x,a,es18.10)') 'ebs', ekin_sum+epot_sum+eproj_sum
-!deallocate potential
-call free_full_potential(nproc,potential,subname)
-!! ONLY FOR DEBUGGING
+ do it=1,6
+   call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
+          proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
+          infoBasisFunctions)
+   call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+         nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+         rhopot(1),&
+         phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+
+if(iproc==0) write(*,'(a)') 'coefficients...'
+do iorb=1,lin%orbs%norb
+    if(iproc==0) write(*,'(100f7.3)') (coeff(iorb,jorb), jorb=1,orbs%norb)
+end do
+if(iproc==0) write(*,*) 'matrix elements for confinement potential'
+do iorb=1,lin%orbs%norb
+    if(iproc==0) write(*,'(100f7.3)') (matrixElements(iorb,jorb,1), jorb=1,lin%orbs%norb)
+end do
+
+   call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+   call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
+   if(iproc==0) write(*,'(a,es15.6)') 'ebsMod from sub', ebsMod
+
+   !allocate the potential in the full box
+   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+            orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
+   call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
+        nlpspd,proj,Glr,ngatherarr,potential,&
+        phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+   !deallocate potential
+   call free_full_potential(nproc,potential,subname)
+   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements2)
+if(iproc==0) write(*,*) 'matrix elements for ordinary Hamiltonian'
+do iorb=1,lin%orbs%norb
+    if(iproc==0) write(*,'(100f7.3)') (matrixElements2(iorb,jorb,1), jorb=1,lin%orbs%norb)
+end do
+   call optimizeCoefficients(iproc, orbs, lin, matrixElements2, coeff)
+   call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements2, ebsMod)
+   if(iproc==0) write(*,'(x,a,es18.10)') 'ebsMod with normal H', ebsMod
+
+   !! ONLY FOR DEBUGGING
+   call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+   call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
+   call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+   !allocate the potential in the full box
+   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+            orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
+   call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
+   call HamiltonianApplication(iproc,nproc,at,orbs,input%hx,input%hy,input%hz,rxyz,&
+        nlpspd,proj,Glr,ngatherarr,potential,&
+        psi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+   if(iproc==0) write(*,'(x,a,es18.10)') 'ebs', ekin_sum+epot_sum+eproj_sum
+   !deallocate potential
+   call free_full_potential(nproc,potential,subname)
+   !! ONLY FOR DEBUGGING
  end do
-!!!!!!!!!!!!!!!!!!!!!!!!
+ !!!! This subroutine expects the orbitals to be in transposed form.
+ !!!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+ !!!call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
+ !!!    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
+ !!!    infoBasisFunctions)
+
+ !!!call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+ !!!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+ !!!     rhopot(1),&
+ !!!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+ !!!call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+ !!!if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
+ !!!call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   else if(trim(lin%getCoeff)=='diag') then
   
@@ -404,6 +466,9 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
            nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
            rhopot(1),&
            phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel=pkernelseq)
+! Plot the gradients
+call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+    .5d0*input%hy, .5d0*input%hz, 500+it)
   
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
@@ -1501,7 +1566,7 @@ real(8),dimension(:,:),allocatable:: lagMult
 real(8),dimension(:,:,:),allocatable:: ovrlp
 integer:: jstart, jorb, lorb, korb, kstart, lstart, lorb2, centralAt, jproc, centralAtPrev
 real(8),dimension(:),allocatable:: phiGrad, hphi2, phiGradold, lagMatDiag
-real(8):: ebsMod, tt2, matEl
+real(8):: ebsMod, tt2, matEl, ebsMod2, matEl2, tt3
 !real(8),dimension(:,:),allocatable:: coeff
 
 !allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat) ; if(istat/=0) stop 'ERROR in allocating coeff'
@@ -1575,6 +1640,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       lstart=1
       phiGrad=0.d0
       ebsMod=0.d0
+      ebsMod2=0.d0
       lorb=0
       centralAtPrev=-1
       do jproc=0,nproc-1
@@ -1585,28 +1651,34 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
          !if(iproc==0) write(*,*) 'lorb, centralAt', lorb, centralAt
               ! Apply H_l to all orbitals (also those not centered on atom lin%onWhichAtom(lorb).
               ! CAN BE IMPROVED IF SEVERAL BASIS FUNCTIONS ARE CENTERD ON THE SAME ATOM
-              if(centralAt/=centralAtPrev) then ! otherwise we have the same Hamiltonian and hence the same hphi2
-                  call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-                  call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-                       nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-                       rhopot(1),&
-                       phi(1),hphi2(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, &
-                       pkernel=pkernelseq, centralAtom=centralAt)
-                  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-              end if
+              !!if(centralAt/=centralAtPrev) then ! otherwise we have the same Hamiltonian and hence the same hphi2
+              !!         !if(iproc==0) write(*,*) 'lorb',lorb
+              !!         !if(iproc==0) write(*,*) '--------------------------------------'
+              !!    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+              !!    call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+              !!         nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+              !!         rhopot(1),&
+              !!         phi(1),hphi2(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, &
+              !!         pkernel=pkernelseq, centralAtom=centralAt)
+              !!    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+              !!end if
               centralAtPrev=centralAt
               call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi2, work=phiWork)
               kstart=1
               do korb=1,lin%orbs%norb
                   do iorb=1,orbs%norb
                       tt=coeff(lorb,iorb)*coeff(korb,iorb)
-                      call daxpy(nvctrp, tt, hphi2(kstart), 1, phiGrad(lstart), 1)
+                      !call daxpy(nvctrp, tt, hphi2(kstart), 1, phiGrad(lstart), 1)
                       call daxpy(nvctrp, tt, hphi(kstart), 1, phiGrad(lstart), 1)
                       !matEl=ddot(nvctrp, phi(kstart), 1, phiGrad(lstart), 1)
                       matEl=ddot(nvctrp, phi(kstart), 1, hphi(lstart), 1)
+                      matEl2=ddot(nvctrp, phi(kstart), 1, hphi2(lstart), 1)
                       tt2=matEl
                       call mpi_allreduce(tt2, matEl, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+                      tt3=matEl2
+                      call mpi_allreduce(tt3, matEl2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
                       ebsMod=ebsMod+tt*matEl
+                      ebsMod2=ebsMod2+tt*matEl2
                   end do
                   kstart=kstart+nvctrp
               end do  
@@ -1614,6 +1686,16 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
               lstart=lstart+nvctrp
           end do
       end do
+
+      ! Plot the gradients
+      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
+      call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+          .5d0*input%hy, .5d0*input%hz, 1000+it)
+      call plotOrbitals(iproc, lin%orbs, Glr, phiGrad, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+          .5d0*input%hy, .5d0*input%hz, 2000+it)
+      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
+
+
 !!!!!!! DEBUG
 !!phiGrad=hphi
 !!!!!!!!!!!!!
@@ -1698,7 +1780,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       meanAlpha=tt/dble(lin%orbs%norb)
   
       ! Write some informations to the screen.
-      if(iproc==0) write(*,'(x,a,i6,2es15.7,2f14.7)') 'iter, fnrm, fnrmMax, trace, ebsMod', it, fnrm, fnrmMax, trH, ebsMod
+      if(iproc==0) write(*,'(x,a,i6,2es13.5,f17.10,4x,2f17.10)') 'iter, fnrm, fnrmMax, trace, ebsMod, ebsMod2', it, fnrm, fnrmMax, trH, ebsMod, ebsMod2
       if(iproc==0) write(2000,'(i6,2es15.7,2f15.7,es12.4)') it, fnrm, fnrmMax, trH, ebsMod, meanAlpha
       if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
           if(it>=lin%nItMax) then

@@ -403,13 +403,15 @@ subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
      case('F')
 
         if(.not.present(centralAtom)) then
+!write(*,'(a,i0,a,i0,a)') 'calling with lin%onWhichAtom(iorb)=',lin%onWhichAtom(iorb), '  (iproc=',iproc,')'
             call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                  pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, &
                  lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lr%bounds%ibyyzz_r) !optional
         else
+!write(*,'(a,i0,a,i0,a)') 'calling with centralAtom=',centralAtom, '  (iproc=',iproc,')'
             call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                  pot(nsoffset),epot, rxyz(1,centralAtom), hxh, hyh, hzh, &
-                 lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lr%bounds%ibyyzz_r) !optional
+                 lin%potentialPrefac(at%iatype(centralAtom)), lr%bounds%ibyyzz_r) !optional
         end if
           
      case('P') 
