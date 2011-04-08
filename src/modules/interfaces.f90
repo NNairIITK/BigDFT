@@ -204,15 +204,17 @@ module module_interfaces
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
      END SUBROUTINE write_atomic_file
 
-     subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
+     subroutine MemoryEstimator(geocode,nproc,idsx,lr,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
           iatype,rxyz,radii_cf,crmult,frmult,norb,nspinor,nkpt,nprojel,atomnames,output_grid,nspin,itrpmax,iscf,peakmem)
        use module_base
+       use module_types
        implicit none
        !Arguments
        character(len=1), intent(in) :: geocode
-       integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel
+       integer, intent(in) :: nproc,idsx,nat,ntypes,norb,nspin,nprojel
        integer, intent(in) :: output_grid,nkpt,nspinor,itrpmax,iscf
        integer, dimension(nat), intent(in) :: iatype
+       type(locreg_descriptors), intent(in) :: lr
        character(len=20), dimension(ntypes), intent(in) :: atomnames
        real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
        real(kind=8), dimension(3,nat), intent(in) :: rxyz

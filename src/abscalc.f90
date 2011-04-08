@@ -497,7 +497,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation
   if (iproc==0 .and. verbose > 0) then
-     call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,&
+     call MemoryEstimator(atoms%geocode,nproc,idsx,Glr,&
           atoms%alat1,atoms%alat2,atoms%alat3,&
           hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,&
           orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,0,&

@@ -9,19 +9,21 @@
 
 
 !>   Estimation of the used memory
-subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
+subroutine MemoryEstimator(geocode,nproc,idsx,lr,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
      iatype,rxyz,radii_cf,crmult,frmult,norb,nspinor,nkpt,nprojel,atomnames,output_grid,nspin,itrpmax,iscf,peakmem)
 
   use module_base
+  use module_types
   use Poisson_Solver
 
   implicit none
 
   !Arguments
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel
+  integer, intent(in) :: nproc,idsx,nat,ntypes,norb,nspin,nprojel
   integer, intent(in) :: output_grid,nkpt,nspinor,itrpmax,iscf
   integer, dimension(nat), intent(in) :: iatype
+  type(locreg_descriptors), intent(in) :: lr
   character(len=20), dimension(ntypes), intent(in) :: atomnames
   real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
@@ -30,11 +32,16 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   !Local variables
   character(len=*), parameter :: subname='MemoryEstimator'
   real(kind=8), parameter :: eps_mach=1.d-12
-  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat
+  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat,n1,n2,n3
   integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,iat,i1,i2,i3
+  integer(kind=8) :: mworkham, mworkrho
   real(kind=8) :: omemwf,omemker,omemden,omempot,omemproj,nden,npotden,npotham,narr
   real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha,tminamount
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
 
   ! determine localization region for all orbitals
   allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
@@ -116,19 +123,16 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
      n01=2*n1+2
      n02=2*n2+2
      n03=2*n3+2
-!!$     tt=1.d0
   else if (geocode == 'S') then
      call S_FFT_dimensions(2*n1+2,2*n2+31,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=2*n1+2
      n02=2*n2+31
      n03=2*n3+2
-!!$     tt=real(2*n2,kind=8)/real(n02,kind=8)
   else if (geocode == 'F') then
      call F_FFT_dimensions(2*n1+31,2*n2+31,2*n3+31,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=2*n1+31
      n02=2*n2+31
      n03=2*n3+31
-!!$     tt=8.d0*real(n1*n2*n3,kind=8)/real(n01*n02*n03,kind=8)
   end if
   tt = 8.d0*real(n1*n2*n3,kind=8)/real(n01*n02*n03,kind=8)
 
@@ -141,24 +145,15 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   !memory of nonlocal pseudopotential arrays
   omemproj=real(nprojel,kind=8)*8.d0
 
+  ! Work arrays.
+  call memspace_work_arrays_sumrho(lr, mworkrho)
+  call memspace_work_arrays_locham(lr, nspinor, mworkham)
   ! pot_ion, rhopot, potxc
   nden=3.d0
-  if (geocode == 'P') then
-     ! pot + work_arrays_locham(xy) + psir
-     npotham=1.d0+(3.d0)*nspinor
-     ! Rho_p + work_arrays_sumrho(x) + psir
-     npotden=1.d0+1.d0+1.d0
-  else if (geocode == 'S') then
-     ! pot + work_arrays_locham(xy) + psir
-     npotham=1.d0+(3.d0)*nspinor
-     ! Rho_p + work_arrays_sumrho(x) + psir
-     npotden=1.d0+1.d0+1.d0
-  else if (geocode == 'F') then
-     ! pot + work_arrays_locham(xy) + psir
-     npotham=1.d0+(2.d0 * tt / 8.d0 + .5d0)+1.d0
-     ! Rho_p + work_arrays_sumrho(cf) + psir
-     npotden=1.d0+(1.d0 * tt / 8.d0 + .5d0)+1.d0
-  end if
+  ! In Hamiltonian application: pot + psir + work arrays
+  npotham=1.d0+nspinor+real(mworkham * 8 * nspinor, kind=8) / omempot
+  ! In sumrho: Rho_p + psir + work arrays
+  npotden=1.d0+1.d0+real(mworkrho * 8, kind=8) / omempot
   ! Mixing arrays.
   if (itrpmax /= 1) then
      if (mod(iscf, 10) == 1) narr = 5
@@ -212,8 +207,8 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
      tmemha=nden*omemden+npotham*omempot+omemwf+omemker+omemproj
   else
      write(*,'(1x,a,I0,a,I2,a,I0,a,I2,a)')&
-       '      ~11*K         |   W+~',nint(npotden),'*U+~',nint(nden),&
-       & '*D+K+P   |   ~8*D+K+W+P   |   W+~',nint(npotham),'*U+~',nint(nden),'*D+K+P '
+       '      ~11*K         |   W+~',nint(npotden - 1.d0),'*U+~',nint(nden),&
+       & '*D+K+P   |   ~8*D+K+W+P   |   W+~',nint(npotham - 1.d0),'*U+~',nint(nden),'*D+K+P '
      tmemker=11.d0*omemker
      tmemden=omemwf+nden*omemden+(npotden-1.d0)*omempot+omemker+omemproj
      tmemps=8.d0*omemden+omemwf+omemker+omemproj
