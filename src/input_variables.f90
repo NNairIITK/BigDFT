@@ -1768,7 +1768,7 @@ contains
 END SUBROUTINE parse_extra_info
 
 
-!>    Read atomic positions of ascii files.
+!> Read atomic positions of ascii files.
 subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   use module_base
   use module_types
@@ -1891,21 +1891,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
      atoms%alat2 = real(alat3,gp)
      atoms%alat3 = real(alat6,gp)
   end if
-  if (atoms%geocode == 'S') then
-     atoms%alat2 = 0.0_gp
-  else if (atoms%geocode == 'F') then
-     atoms%alat1 = 0.0_gp
-     atoms%alat2 = 0.0_gp
-     atoms%alat3 = 0.0_gp
-  end if
   
-  !reduced coordinates are possible only with periodic units
-  if (reduced .and. atoms%geocode /= 'P') then
-     if (iproc==0) write(*,'(1x,a)')&
-          'ERROR: Reduced coordinates are only allowed with fully periodic BC'
-  end if
-
-  !convert the values of the cell sizes in bohr
+  !Convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
      atoms%alat1 = atoms%alat1 / bohr2ang
@@ -1979,6 +1966,14 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         iat = iat + 1
      end if
   enddo
+
+  if (atoms%geocode == 'S') then
+     atoms%alat2 = 0.0_gp
+  else if (atoms%geocode == 'F') then
+     atoms%alat1 = 0.0_gp
+     atoms%alat2 = 0.0_gp
+     atoms%alat3 = 0.0_gp
+  end if
 
   !now that ntypes is determined allocate atoms%atomnames and copy the values
   allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
