@@ -18,7 +18,7 @@ libs_ocl=
 endif
 
 if USE_DGEMMSY
-libs_dgemmsy=../../dgemmsy/libdgemmsy.a
+libs_dgemmsy=../../src/dgemmsy/libdgemmsy.a
 else
 libs_dgemmsy=
 endif
