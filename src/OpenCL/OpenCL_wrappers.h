@@ -94,6 +94,9 @@ struct _bigdft_command_queue {
 };
 typedef struct _bigdft_command_queue * bigdft_command_queue;
 
+extern cl_uint fft_size;
+void FC_FUNC_(customize_fft,CUSTOMIZE_FFT)(cl_uint *fft);
+
 /** Creates all bigdft kernels*/
 void create_kernels(struct bigdft_kernels *kernels);
 /** Creates magicfilter kernels. to be called after building the magicfilter programs. */
@@ -105,6 +108,7 @@ void create_uncompress_kernels(struct bigdft_kernels * kernels);
 void create_initialize_kernels(struct bigdft_kernels * kernels);
 void create_reduction_kernels(struct bigdft_kernels * kernels);
 void create_fft_kernels(struct bigdft_kernels * kernels);
+void create_fft_generated_kernels(struct bigdft_kernels * kernels, unsigned int fft_size);
 /** Compiles magicfilter programs in the given context. */
 void build_magicfilter_programs(cl_context * context);
 void build_reduction_programs(cl_context * context);
@@ -114,6 +118,7 @@ void build_wavelet_programs(cl_context * context);
 void build_uncompress_programs(cl_context * context);
 void build_initialize_programs(cl_context * context);
 void build_fft_programs(cl_context * context);
+void build_fft_generated_programs(cl_context * context, unsigned int fft_size);
 /** Releases magicfilter kernels. */
 void clean_magicfilter_kernels(struct bigdft_kernels * kernels);
 void clean_benchmark_kernels(struct bigdft_kernels * kernels);

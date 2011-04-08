@@ -37,6 +37,7 @@ libbasec_a_SOURCES = OpenCL_wrappers.c \
                      Preconditioner.c \
                      Density.c \
                      fft.c \
+                     fft_generator.cpp \
                      Benchmark.c
 libOCL_a_SOURCES = $(libbasec_a_SOURCES)
 libStream_a_SOURCES = Stream.c
@@ -58,7 +59,7 @@ conv_check_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libb
 conv_check_LDFLAGS = -lrt
 conv_check_fft_SOURCES = conv_check_fft.f90 
 conv_check_fft_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a
-conv_check_fft_LDFLAGS = -lrt
+conv_check_fft_LDFLAGS = -lrt -lstdc++
 stream_check_SOURCES = StreamCheck.c
 stream_check_LDADD = libOCL.a libStream.a
 stream_check_LDFLAGS = -lrt
