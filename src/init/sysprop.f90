@@ -33,7 +33,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      nspinor=1
   end if
 
-  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,nspinor, &
+  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor, &
        & in%nkpt,in%kpt,in%wkpt,orbs)
 
   !distribution of wavefunction arrays between processors
@@ -781,11 +781,11 @@ END SUBROUTINE atomic_occupation_numbers
 
 !>    Define the descriptors of the orbitals from a given norb
 !!    It uses the cubic strategy for partitioning the orbitals
-subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wkpt,orbs)
+subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt
+  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
   integer, intent(in) :: nspinor
   type(orbitals_data), intent(out) :: orbs
   real(gp), dimension(nkpt), intent(in) :: wkpt
@@ -816,7 +816,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
      if (maxval(abs(orbs%kpts)) > 0._gp) orbs%nspinor=2
      !nspinor=2 !fake, used for testing with gamma
   end if
-
+  orbs%nspin = nspin
 
   !initialise the array
   do jproc=0,nproc-1
