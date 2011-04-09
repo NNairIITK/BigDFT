@@ -95,7 +95,7 @@ real(8):: energyMod2, ehartMod
 real(wp), dimension(:), pointer :: potential
 real(8),dimension(:),allocatable:: hpsi, hphi
 real(8),dimension(:,:,:),allocatable:: matrixElements
-integer:: istat, iall
+integer:: istat, iall, infoCoeff
 character(len=*),parameter:: subname='potentialAndEnergy'
 
 
@@ -174,7 +174,7 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
       call modifiedBSEnergyModified(in%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
   else if(trim(lin%getCoeff)=='min') then
   
-      call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+      call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff, infoCoeff)
       call modifiedBSEnergyModified(in%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
   else
       if(iproc==0) write(*,'(a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min' , &

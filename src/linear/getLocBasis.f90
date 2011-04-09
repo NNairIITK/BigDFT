@@ -87,7 +87,7 @@ real(8),intent(out):: ebsMod
 real(8),dimension(lin%orbs%norb,orbs%norb),intent(in out):: coeff
 
 ! Local variables 
-integer:: istat, iall 
+integer:: istat, iall, infoCoeff
 real(8),dimension(:),allocatable:: hphi, eval 
 real(8),dimension(:,:),allocatable:: HamSmall
 real(8),dimension(:,:,:),allocatable:: matrixElements, matrixElements2
@@ -140,35 +140,48 @@ end do
       ! Initialize the coefficient vector at random. 
       call random_number(coeff)
 
-      if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
-      call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+      !if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
+      call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff, infoCoeff)
+      call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
+      if(iproc==0) write(*,'(x,a)') 'after initial guess:'
+      if(infoBasisFunctions==0) then
+          if(iproc==0) write(*,'(3x,a)') '- basis functions converged'
+      else
+          if(iproc==0) write(*,'(3x,a)') '- WARNING: basis functions not converged!'
+      end if
+      if(infoCoeff==0) then
+          if(iproc==0) write(*,'(3x,a)') '- coefficients converged'
+      else
+          if(iproc==0) write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+      end if
+      if(iproc==0) write(*,'(3x,a,es16.8)') '- modified band structure energy', ebsMod
+      ! Do a self consistency cycle to optimize the basis functions and coefficients.
+      do it=1,lin%nItSCC
+          call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
+                 proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
+                 infoBasisFunctions)
+          call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+                nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+                rhopot(1),&
+                phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+          call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+     
+          call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff, infoCoeff)
+          call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
 
- do it=1,lin%nItSCC
-   call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-          proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
-          infoBasisFunctions)
-   call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-         nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-         rhopot(1),&
-         phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
-   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-
-   call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
- end do
- !!!! This subroutine expects the orbitals to be in transposed form.
- !!!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
- !!!call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
- !!!    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
- !!!    infoBasisFunctions)
-
- !!!call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
- !!!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
- !!!     rhopot(1),&
- !!!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
- !!!call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
- !!!if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
- !!!call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
-!!!!!!!!!!!!!!!!!!!!!!!!!!
+          if(iproc==0) write(*,'(x,a,i0,a)') 'after iteration ', it, ':'
+          if(infoBasisFunctions==0) then
+              if(iproc==0) write(*,'(3x,a)') '- basis functions converged'
+          else
+              if(iproc==0) write(*,'(3x,a)') '- WARNING: basis functions not converged!'
+          end if
+          if(infoCoeff==0) then
+              if(iproc==0) write(*,'(3x,a)') '- coefficients converged'
+          else
+              if(iproc==0) write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+          end if
+          if(iproc==0) write(*,'(3x,a,es16.8)') '- modified band structure energy', ebsMod
+      end do
 
   else if(trim(lin%getCoeff)=='diag') then
   
@@ -1221,7 +1234,7 @@ end subroutine modifiedBSEnergyModified
 
 
 
-subroutine optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
+subroutine optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff, infoCoeff)
 !
 ! Purpose:
 ! ========
@@ -1241,6 +1254,7 @@ subroutine optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
 !   Output arguments:
 !   -----------------
 !     coeff            the optimized coefficients 
+!     infoCoeff        if infoCoeff=0, the optimization converged
 use module_base
 use module_types
 implicit none
@@ -1251,6 +1265,7 @@ type(orbitals_data):: orbs
 type(linearParameters):: lin
 real(8),dimension(lin%orbs%norb,lin%orbs%norb):: matrixElements
 real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
+integer,intent(out):: infoCoeff
 
 ! Local variables
 integer:: it, iorb, jorb, k, l, istat, iall, korb, ierr
@@ -1288,6 +1303,8 @@ processIf: if(iproc==0) then
     alpha=5.d-3
 
     converged=.false.
+
+    if(iproc==0) write(*,'(x,a)') '============================== optmizing coefficients =============================='
 
     ! The optimization loop
     iterLoop: do it=1,lin%nItCoeff
@@ -1371,6 +1388,7 @@ processIf: if(iproc==0) then
             if(iproc==0) write(*,'(x,a,i0,a)') 'converged in ', it, ' iterations.'
             if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, 2.d0*ebsMod
             converged=.true.
+            infoCoeff=0
             exit
         end if
     end do iterLoop
@@ -1379,12 +1397,17 @@ processIf: if(iproc==0) then
         if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
             ' iterations! Exiting loop due to limitations of iterations.'
         if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, 2.d0*ebsMod
+        infoCoeff=-1
     end if
+
+    if(iproc==0) write(*,'(x,a)') '===================================================================================='
+
 end if processIf
 
 
 ! Now broadcast the result to all processes
 call mpi_bcast(coeff(1,1), lin%orbs%norb*orbs%norb, mpi_double_precision, 0, mpi_comm_world, ierr)
+call mpi_bcast(infoCoeff, 1, mpi_integer, 0, mpi_comm_world, ierr)
 
 iall=-product(shape(grad))*kind(grad)
 deallocate(grad, stat=istat)
@@ -1576,31 +1599,15 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
       lstart=1
       phiGrad=0.d0
-      ebsMod=0.d0
-      ebsMod2=0.d0
+      !ebsMod=0.d0
+      !ebsMod2=0.d0
       lorb=0
-      centralAtPrev=-1
+      !centralAtPrev=-1
       do jproc=0,nproc-1
           do lorb2=1,lin%orbs%norb_par(jproc)
               lorb=lorb+1
-              if(iproc==jproc) centralAt=lin%onWhichAtom(lorb2)
-              call mpi_bcast(centralAt, 1, mpi_integer, jproc, mpi_comm_world, ierr)
-         !if(iproc==0) write(*,*) 'lorb, centralAt', lorb, centralAt
-              ! Apply H_l to all orbitals (also those not centered on atom lin%onWhichAtom(lorb).
-              ! CAN BE IMPROVED IF SEVERAL BASIS FUNCTIONS ARE CENTERD ON THE SAME ATOM
-              !!if(centralAt/=centralAtPrev) then ! otherwise we have the same Hamiltonian and hence the same hphi2
-              !!         !if(iproc==0) write(*,*) 'lorb',lorb
-              !!         !if(iproc==0) write(*,*) '--------------------------------------'
-              !!    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-              !!    call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-              !!         nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-              !!         rhopot(1),&
-              !!         phi(1),hphi2(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, &
-              !!         pkernel=pkernelseq, centralAtom=centralAt)
-              !!    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-              !!end if
-              centralAtPrev=centralAt
-              call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi2, work=phiWork)
+              !if(iproc==jproc) centralAt=lin%onWhichAtom(lorb2)
+              !call mpi_bcast(centralAt, 1, mpi_integer, jproc, mpi_comm_world, ierr)
               kstart=1
               do korb=1,lin%orbs%norb
                   do iorb=1,orbs%norb
@@ -1608,18 +1615,18 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
                       !call daxpy(nvctrp, tt, hphi2(kstart), 1, phiGrad(lstart), 1)
                       call daxpy(nvctrp, tt, hphi(kstart), 1, phiGrad(lstart), 1)
                       !matEl=ddot(nvctrp, phi(kstart), 1, phiGrad(lstart), 1)
-                      matEl=ddot(nvctrp, phi(kstart), 1, hphi(lstart), 1)
-                      matEl2=ddot(nvctrp, phi(kstart), 1, hphi2(lstart), 1)
-                      tt2=matEl
-                      call mpi_allreduce(tt2, matEl, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-                      tt3=matEl2
-                      call mpi_allreduce(tt3, matEl2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-                      ebsMod=ebsMod+tt*matEl
-                      ebsMod2=ebsMod2+tt*matEl2
+                      !!matEl=ddot(nvctrp, phi(kstart), 1, hphi(lstart), 1)
+                      !!matEl2=ddot(nvctrp, phi(kstart), 1, hphi2(lstart), 1)
+                      !!tt2=matEl
+                      !!call mpi_allreduce(tt2, matEl, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+                      !!tt3=matEl2
+                      !!call mpi_allreduce(tt3, matEl2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+                      !!ebsMod=ebsMod+tt*matEl
+                      !!ebsMod2=ebsMod2+tt*matEl2
                   end do
                   kstart=kstart+nvctrp
               end do  
-              call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi2, work=phiWork)
+              !!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi2, work=phiWork)
               lstart=lstart+nvctrp
           end do
       end do
@@ -1633,21 +1640,14 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
 
 
-!!!!!!! DEBUG
-!!phiGrad=hphi
-!!!!!!!!!!!!!
-!!do iorb=1,orbs%norb
-!!    write(*,*) 'iproc, ddot', iproc, ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,iorb), 1)
-!!end do
 
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
           write(*,'(a)', advance='no') 'orthoconstraint... '
       end if
-      !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
-      !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-      !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
-      !call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH, lagMatDiag)
+
+      ! This subroutine also calculates the modified band structure energy, which is the trace of
+      ! the Lagrange multiplier matrix and willt hus be contained in trH.
       call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, phiGrad, trH, lagMatDiag)
   
   
@@ -1689,9 +1689,6 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       end do
       fnrm=sqrt(fnrm)
       fnrmMax=sqrt(fnrmMax)
-!! ATTENTION
-!alpha=lin%alphaSD
-!!!!!!!!!!!!
 
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
       !call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
@@ -1717,8 +1714,9 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       meanAlpha=tt/dble(lin%orbs%norb)
   
       ! Write some informations to the screen.
-      if(iproc==0) write(*,'(x,a,i6,2es13.5,f17.10,4x,2f17.10)') 'iter, fnrm, fnrmMax, trace, ebsMod, ebsMod2', it, fnrm, fnrmMax, trH, ebsMod, ebsMod2
-      if(iproc==0) write(2000,'(i6,2es15.7,2f15.7,es12.4)') it, fnrm, fnrmMax, trH, ebsMod, meanAlpha
+      !if(iproc==0) write(*,'(x,a,i6,2es13.5,f17.10,4x,f17.10)') 'iter, fnrm, fnrmMax, trace, ebsMod', it, fnrm, fnrmMax, trH, ebsMod
+      if(iproc==0) write(*,'(x,a,i6,2es13.5,f17.10,4x,f17.10)') 'iter, fnrm, fnrmMax, ebsMod', it, fnrm, fnrmMax, trH
+      if(iproc==0) write(2000,'(i6,2es15.7,f15.7,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
       if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
           if(it>=lin%nItMax) then
               if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
