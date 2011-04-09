@@ -136,33 +136,14 @@ end do
       if(iproc==0) write(*,'(x,a)') 'done.'
 
       call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-if(iproc==0) write(*,*) 'INITIAL matrix elements for confinement potential'
-do iorb=1,lin%orbs%norb
-    if(iproc==0) write(*,'(100f7.3)') (matrixElements(iorb,jorb,1), jorb=1,lin%orbs%norb)
-end do
-   !allocate the potential in the full box
-   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-            orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
-   call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
-        nlpspd,proj,Glr,ngatherarr,potential,&
-        phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-   !deallocate potential
-   call free_full_potential(nproc,potential,subname)
-   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements2)
-if(iproc==0) write(*,*) 'INITIAL matrix elements for ordinary Hamiltonian'
-do iorb=1,lin%orbs%norb
-    if(iproc==0) write(*,'(100f7.3)') (matrixElements2(iorb,jorb,1), jorb=1,lin%orbs%norb)
-end do
 
       ! Initialize the coefficient vector at random. 
       call random_number(coeff)
 
       if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
       call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
-!!!!!! THIS IS A TEST !!!!
- call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
- if(iproc==0) write(*,'(a,es15.6)') 'ebsMod from sub', ebsMod
- do it=1,8
+
+ do it=1,lin%nItSCC
    call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
           proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
           infoBasisFunctions)
@@ -172,51 +153,7 @@ end do
          phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
    call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
 
-if(iproc==0) write(*,'(a)') 'coefficients...'
-do iorb=1,lin%orbs%norb
-    if(iproc==0) write(*,'(100f7.3)') (coeff(iorb,jorb), jorb=1,orbs%norb)
-end do
-if(iproc==0) write(*,*) 'matrix elements for confinement potential'
-do iorb=1,lin%orbs%norb
-    if(iproc==0) write(*,'(100f7.3)') (matrixElements(iorb,jorb,1), jorb=1,lin%orbs%norb)
-end do
-
    call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff)
-   call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
-   if(iproc==0) write(*,'(a,es15.6)') 'ebsMod from sub', ebsMod
-
-!!!   !allocate the potential in the full box
-!!!   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-!!!            orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
-!!!   call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
-!!!        nlpspd,proj,Glr,ngatherarr,potential,&
-!!!        phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-!!!   !deallocate potential
-!!!   call free_full_potential(nproc,potential,subname)
-!!!   call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements2)
-!!!if(iproc==0) write(*,*) 'matrix elements for ordinary Hamiltonian'
-!!!do iorb=1,lin%orbs%norb
-!!!    if(iproc==0) write(*,'(100f7.3)') (matrixElements2(iorb,jorb,1), jorb=1,lin%orbs%norb)
-!!!end do
-!!!   call optimizeCoefficients(iproc, orbs, lin, matrixElements2, coeff)
-!!!   call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements2, ebsMod)
-!!!   if(iproc==0) write(*,'(x,a,es18.10)') 'ebsMod with normal H', ebsMod
-
-   !! ONLY FOR DEBUGGING
-   call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-   call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
-   call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-   !allocate the potential in the full box
-   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-            orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
-   call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-   call HamiltonianApplication(iproc,nproc,at,orbs,input%hx,input%hy,input%hz,rxyz,&
-        nlpspd,proj,Glr,ngatherarr,potential,&
-        psi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-   if(iproc==0) write(*,'(x,a,es18.10)') 'ebs', ekin_sum+epot_sum+eproj_sum
-   !deallocate potential
-   call free_full_potential(nproc,potential,subname)
-   !! ONLY FOR DEBUGGING
  end do
  !!!! This subroutine expects the orbitals to be in transposed form.
  !!!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
@@ -1687,13 +1624,13 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
           end do
       end do
 
-      ! Plot the gradients
-      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
-      call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-          .5d0*input%hy, .5d0*input%hz, 1000+it)
-      call plotOrbitals(iproc, lin%orbs, Glr, phiGrad, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-          .5d0*input%hy, .5d0*input%hz, 2000+it)
-      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
+      !!! Plot the gradients
+      !!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
+      !!call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+      !!    .5d0*input%hy, .5d0*input%hz, 1000+it)
+      !!call plotOrbitals(iproc, lin%orbs, Glr, phiGrad, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+      !!    .5d0*input%hy, .5d0*input%hz, 2000+it)
+      !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
 
 
 !!!!!!! DEBUG
