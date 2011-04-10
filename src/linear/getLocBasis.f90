@@ -1638,6 +1638,9 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       ! This subroutine also calculates the modified band structure energy, which is the trace of
       ! the Lagrange multiplier matrix and willt hus be contained in trH.
       call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, phiGrad, trH, lagMatDiag)
+
+      ! Double the band structure energy if we have a closed shell system.
+      trH=trH*dble(nspin)
   
   
       ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
@@ -1645,9 +1648,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
       istart=1
       do iorb=1,lin%orbs%norb
-          !if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphiold(istart), 1)
-          !fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphi(istart), 1)
-          if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, phiGrad(istart), 1, phiGradold(istart), 1)
+          if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, phiGrad(istart), 1, phiGradOld(istart), 1)
           fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, phiGrad(istart), 1, phiGrad(istart), 1)
           istart=istart+nvctrp*orbs%nspinor
       end do
@@ -1680,11 +1681,9 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       fnrmMax=sqrt(fnrmMax)
 
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
-      !call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
       call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, phiGrad(1), 1, phiGradold(1), 1)
   
-      ! Untranspose hphi.
-      !call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+      ! Untranspose phiGrad.
       call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
   
   
