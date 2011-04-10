@@ -66,7 +66,7 @@ end if
 allocate(lin%potentialPrefac(at%ntypes), stat=istat)
 call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 open(unit=99, file='input.lin')
-read(99,*) lin%nItMax
+read(99,*) lin%nItInguess, lin%nItBasis
 read(99,*) lin%convCrit
 read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaSD
 read(99,*) lin%startWithSD, lin%startDIIS
@@ -98,8 +98,11 @@ if(iproc==0) write(*,'(4x,a)') '----------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
 if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
-if(iproc==0) write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
-    repeat(' ', 9-ceiling(log10(dble(lin%nItMax+1)+1.d-10))), lin%nItMax, ' | ', lin%convCrit, ' | ', &
+if(iproc==0) write(*,'(4x,a)') '| inguess   SCC  | '
+if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
+    repeat(' ', 5-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), lin%nItInguess, &
+    repeat(' ', 4-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
+      ' | ', lin%convCrit, ' | ', &
       repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       |   ', &
       lin%getCoeff, '    |  ', &
       lin%plotBasisFunctions, '   |'

@@ -112,15 +112,18 @@ character(len=11):: procName, orbNumber, orbName
   allocate(matrixElements2(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
   
   
+  ! Optimize the localized basis functions by minimizing the trace of <phi|H|phi>.
   call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
       infoBasisFunctions)
+
+! 3D plot of the basis functions
 write(procName,'(i0)') iproc
 istart=1
 do iorb=1,lin%orbs%norbp
   write(orbNumber,'(i0)') iorb
   orbName='orb_'//trim(procName)//'_'//trim(orbNumber)
-  call plot_wfSquare_cube(orbName, at, Glr, input%hx, input%hy, input%hz, rxyz, phi(istart), 'comment')
+  call plot_wfSquare_cube(orbName, at, Glr, input%hx, input%hy, input%hz, rxyz, phi(istart), 'comment   ')
   istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
 end do
 
@@ -135,12 +138,16 @@ end do
            phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
       if(iproc==0) write(*,'(x,a)') 'done.'
 
+      ! Calculate the matrix elements <phi|H|phi>.
       call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
 
       ! Initialize the coefficient vector at random. 
       call random_number(coeff)
 
       !if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
+      ! Calculate the coefficients which minimize the modified band structure energy
+      ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H_l|phi_l>
+      ! for the given basis functions.
       call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff, infoCoeff)
       call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
       if(iproc==0) write(*,'(x,a)') 'after initial guess:'
@@ -155,7 +162,10 @@ end do
           if(iproc==0) write(*,'(3x,a)') '- WARNING: coefficients not converged!'
       end if
       if(iproc==0) write(*,'(3x,a,es16.8)') '- modified band structure energy', ebsMod
-      ! Do a self consistency cycle to optimize the basis functions and coefficients.
+
+      ! Now improve the basis functions by minimizing the modified band structure energy
+      ! There is a minimization with respect to both the coefficients c and the basis functions phi,
+      ! i.e. we do a kind of a self consistency cycle.
       do it=1,lin%nItSCC
           call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
                  proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
@@ -218,7 +228,10 @@ end do
   end if
 
   
-  if(iproc==0) write(*,'(x,a)', advance='no') 'Building linear combinations... '
+  if(iproc==0) then
+      write(*,'(x,a)', advance='no') '------------------------------------- Building linear combinations... '
+      
+  end if
   if(trim(lin%getCoeff)=='diag') then
       call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
   else if(trim(lin%getCoeff)=='min') then
@@ -390,7 +403,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   ! Assign the step size for SD iterations.
   alpha=lin%alphaSD
   adapt=.false.
-  iterLoop: do it=1,lin%nItMax
+  iterLoop: do it=1,lin%nItInguess
       fnrmMax=0.d0
       fnrm=0.d0
   
@@ -506,8 +519,8 @@ call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
       if(iproc==0) write(1000,'(i6,2es15.7,f18.10,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
-      if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
-          if(it>=lin%nItMax) then
+      if(fnrmMax<lin%convCrit .or. it>=lin%nItInguess) then
+          if(it>=lin%nItInguess) then
               if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
@@ -1525,20 +1538,12 @@ type(diis_objects):: diisLIN
 real(8),dimension(:,:),allocatable:: lagMult
 real(8),dimension(:,:,:),allocatable:: ovrlp
 integer:: jstart, jorb, lorb, korb, kstart, lstart, lorb2, centralAt, jproc, centralAtPrev
-real(8),dimension(:),allocatable:: phiGrad, hphi2, phiGradold, lagMatDiag
+real(8),dimension(:),allocatable:: phiGrad, phiGradold, lagMatDiag
 real(8):: ebsMod, tt2, matEl, ebsMod2, matEl2, tt3
-!real(8),dimension(:,:),allocatable:: coeff
 
-!allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat) ; if(istat/=0) stop 'ERROR in allocating coeff'
 
-allocate(lagMult(lin%orbs%norb,lin%orbs%norb), stat=istat)
-lagMult=1.d-1
-allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
 allocate(lagMatDiag(lin%orbs%norb), stat=istat)
 
-  allocate(phiGrad(lin%orbs%npsidim), stat=istat) ; if(istat/=0) stop 'ERROR in allocating phiGrad'
-  allocate(hphi2(lin%orbs%npsidim), stat=istat)
-  allocate(phiGradold(lin%orbs%npsidim), stat=istat)
 
   ! Allocate all local arrays
   call allocateLocalArrays()
@@ -1566,7 +1571,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
 
   ! Assign the step size for SD iterations.
   alpha=lin%alphaSD
-  iterLoop: do it=1,lin%nItMax
+  iterLoop: do it=1,lin%nItBasis
       fnrmMax=0.d0
       fnrm=0.d0
   
@@ -1599,34 +1604,18 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
       lstart=1
       phiGrad=0.d0
-      !ebsMod=0.d0
-      !ebsMod2=0.d0
       lorb=0
-      !centralAtPrev=-1
       do jproc=0,nproc-1
           do lorb2=1,lin%orbs%norb_par(jproc)
               lorb=lorb+1
-              !if(iproc==jproc) centralAt=lin%onWhichAtom(lorb2)
-              !call mpi_bcast(centralAt, 1, mpi_integer, jproc, mpi_comm_world, ierr)
               kstart=1
               do korb=1,lin%orbs%norb
                   do iorb=1,orbs%norb
                       tt=coeff(lorb,iorb)*coeff(korb,iorb)
-                      !call daxpy(nvctrp, tt, hphi2(kstart), 1, phiGrad(lstart), 1)
                       call daxpy(nvctrp, tt, hphi(kstart), 1, phiGrad(lstart), 1)
-                      !matEl=ddot(nvctrp, phi(kstart), 1, phiGrad(lstart), 1)
-                      !!matEl=ddot(nvctrp, phi(kstart), 1, hphi(lstart), 1)
-                      !!matEl2=ddot(nvctrp, phi(kstart), 1, hphi2(lstart), 1)
-                      !!tt2=matEl
-                      !!call mpi_allreduce(tt2, matEl, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-                      !!tt3=matEl2
-                      !!call mpi_allreduce(tt3, matEl2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-                      !!ebsMod=ebsMod+tt*matEl
-                      !!ebsMod2=ebsMod2+tt*matEl2
                   end do
                   kstart=kstart+nvctrp
               end do  
-              !!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi2, work=phiWork)
               lstart=lstart+nvctrp
           end do
       end do
@@ -1717,8 +1706,8 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       !if(iproc==0) write(*,'(x,a,i6,2es13.5,f17.10,4x,f17.10)') 'iter, fnrm, fnrmMax, trace, ebsMod', it, fnrm, fnrmMax, trH, ebsMod
       if(iproc==0) write(*,'(x,a,i6,2es13.5,f17.10,4x,f17.10)') 'iter, fnrm, fnrmMax, ebsMod', it, fnrm, fnrmMax, trH
       if(iproc==0) write(2000,'(i6,2es15.7,f15.7,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
-      if(fnrmMax<lin%convCrit .or. it>=lin%nItMax) then
-          if(it>=lin%nItMax) then
+      if(fnrmMax<lin%convCrit .or. it>=lin%nItBasis) then
+          if(it>=lin%nItBasis) then
               if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, fnrmMax, trace: ', fnrm, fnrmMax, trH
@@ -1962,6 +1951,11 @@ contains
       allocate(phiWork(size(phi)), stat=istat)
       call memocc(istat, phiWork, 'phiWork', subname)
       
+      allocate(phiGrad(lin%orbs%npsidim), stat=istat)
+      call memocc(istat, phiGrad, 'phiGrad', subname)
+
+      allocate(phiGradOld(lin%orbs%npsidim), stat=istat)
+      call memocc(istat, phiGradOld, 'phiGradOld', subname)
     
 
     end subroutine allocateLocalArrays
@@ -1997,6 +1991,14 @@ contains
       iall=-product(shape(phiWork))*kind(phiWork)
       deallocate(phiWork, stat=istat)
       call memocc(istat, iall, 'phiWork', subname)
+
+      iall=-product(shape(phiGrad))*kind(phiGrad)
+      deallocate(phiGrad, stat=istat)
+      call memocc(istat, iall, 'phiGrad', subname)
+
+      iall=-product(shape(phiGradOld))*kind(phiGradOld)
+      deallocate(phiGradOld, stat=istat)
+      call memocc(istat, iall, 'phiGradOld', subname)
       
       ! if diisLIN%idsx==0, these arrays have already been deallocated
       if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN,subname)
