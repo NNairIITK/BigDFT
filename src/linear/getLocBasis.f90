@@ -92,7 +92,7 @@ real(8),dimension(:),allocatable:: hphi, eval
 real(8),dimension(:,:),allocatable:: HamSmall
 real(8),dimension(:,:,:),allocatable:: matrixElements, matrixElements2
 real(8),dimension(:),pointer:: phiWork 
-real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace 
+real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace , lastAlpha
 real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
 
@@ -115,7 +115,7 @@ character(len=11):: procName, orbNumber, orbName
   ! Optimize the localized basis functions by minimizing the trace of <phi|H|phi>.
   call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
-      infoBasisFunctions)
+      lastAlpha, infoBasisFunctions)
 
 ! 3D plot of the basis functions
 write(procName,'(i0)') iproc
@@ -148,7 +148,7 @@ end do
       ! Calculate the coefficients which minimize the modified band structure energy
       ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H_l|phi_l>
       ! for the given basis functions.
-      call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff, infoCoeff)
+      call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
       call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
       if(iproc==0) write(*,'(x,a)') 'after initial guess:'
       if(infoBasisFunctions==0) then
@@ -169,14 +169,14 @@ end do
       do it=1,lin%nItSCC
           call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
                  proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
-                 infoBasisFunctions)
+                 lastAlpha, infoBasisFunctions)
           call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
                 nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
                 rhopot(1),&
                 phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
           call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
      
-          call optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff, infoCoeff)
+          call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
           call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
 
           if(iproc==0) write(*,'(x,a,i0,a)') 'after iteration ', it, ':'
@@ -284,7 +284,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
-    infoBasisFunctions)
+    lastAlpha, infoBasisFunctions)
 !
 ! Purpose:
 ! ========
@@ -355,7 +355,7 @@ real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
 real(8),dimension(lin%orbs%npsidim):: phi, hphi
-real(8):: trH
+real(8):: trH, lastAlpha
 
 ! Local variables
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum
@@ -429,9 +429,9 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
            nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
            rhopot(1),&
            phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel=pkernelseq)
-! Plot the gradients
-call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-    .5d0*input%hy, .5d0*input%hz, 500+it)
+!!! Plot the gradients
+!!call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+!!    .5d0*input%hy, .5d0*input%hz, 500+it)
   
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
@@ -476,6 +476,7 @@ call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d
           if(it>1 .and. diisLIN%idsx==0 .and. .not.diisLIN%switchSD) then
           ! Adapt step size for the steepest descent minimization.
               tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
+              !if(tt>.7d0) then
               if(tt>.7d0) then
                   alpha(iorb)=alpha(iorb)*1.05d0
               else
@@ -562,6 +563,8 @@ call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d
   
   end do iterLoop
 
+  ! Store the mean alpha.
+  lastAlpha=meanAlpha
 
   call deallocateLocalArrays()
 
@@ -1247,7 +1250,7 @@ end subroutine modifiedBSEnergyModified
 
 
 
-subroutine optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff, infoCoeff)
+subroutine optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
 !
 ! Purpose:
 ! ========
@@ -1263,6 +1266,7 @@ subroutine optimizeCoefficients(iproc, orbs, lin, matrixElements, coeff, infoCoe
 !     iproc            process ID
 !     orbs             type describing the physical orbitals psi
 !     lin              type containing parameters for the linear version
+!     nspin            nspin==1 -> closed shell, npsin==2 -> open shell
 !     matrixElements   contains the matrix elements <phi_k|H_l|phi_l>
 !   Output arguments:
 !   -----------------
@@ -1273,11 +1277,11 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer:: iproc
-type(orbitals_data):: orbs
-type(linearParameters):: lin
-real(8),dimension(lin%orbs%norb,lin%orbs%norb):: matrixElements
-real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
+integer,intent(in):: iproc, nspin
+type(orbitals_data),intent(in):: orbs
+type(linearParameters),intent(in):: lin
+real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: matrixElements
+real(8),dimension(lin%orbs%norb,orbs%norb),intent(inout):: coeff
 integer,intent(out):: infoCoeff
 
 ! Local variables
@@ -1384,8 +1388,12 @@ processIf: if(iproc==0) then
             end do
         end do
     
-        ! Multiply the energy with a factor of 2 due to closed-shell
-        if(iproc==0) write(*,'(x,a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', it, fnrm, meanAlpha, 2.d0*ebsMod
+        ! Multiply the energy with a factor of 2 if we have a  closed-shell system.
+        if(nspin==1) then
+            ebsMod=2.d0*ebsMod
+        end if
+        if(iproc==0) write(*,'(x,a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', &
+            it, fnrm, meanAlpha, ebsMod
         !if(iproc==0) write(99,'(i0,es12.4,3x,es10.3, es15.5)')  it, fnrm, meanAlpha, 2.d0*ebsMod
         
         ! Orthogonalize (Gram-Schmidt)
@@ -1399,7 +1407,7 @@ processIf: if(iproc==0) then
         end do
         if(fnrm<lin%convCritCoeff) then
             if(iproc==0) write(*,'(x,a,i0,a)') 'converged in ', it, ' iterations.'
-            if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, 2.d0*ebsMod
+            if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, ebsMod
             converged=.true.
             infoCoeff=0
             exit
@@ -1409,7 +1417,7 @@ processIf: if(iproc==0) then
     if(.not.converged) then
         if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
             ' iterations! Exiting loop due to limitations of iterations.'
-        if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, 2.d0*ebsMod
+        if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, ebsMod
         infoCoeff=-1
     end if
 
@@ -1448,7 +1456,7 @@ end subroutine optimizeCoefficients
 
 subroutine getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, coeff, &
-    infoBasisFunctions)
+    lastAlpha, infoBasisFunctions)
 !
 ! Purpose:
 ! ========
@@ -1503,27 +1511,29 @@ use module_interfaces, except_this_one => getLocalizedBasisNew
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, infoBasisFunctions
-type(atoms_data), intent(in) :: at
-type(orbitals_data):: orbs
-type(locreg_descriptors), intent(in) :: Glr
-type(input_variables):: input
-type(linearParameters):: lin
-real(8),dimension(3,at%nat):: rxyz, rxyzParabola
-integer:: nspin
-type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-real(dp), dimension(*), intent(inout) :: rhopot
-type(GPU_pointers), intent(inout) :: GPU
-real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(lin%orbs%npsidim):: phi, hphi
-real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
-real(8):: trH
+integer,intent(in):: iproc, nproc
+type(atoms_data),intent(in) :: at
+type(orbitals_data),intent(in):: orbs
+type(locreg_descriptors),intent(in) :: Glr
+type(input_variables),intent(in):: input
+type(linearParameters),intent(in):: lin
+real(8),dimension(3,at%nat),intent(in):: rxyz, rxyzParabola
+integer,intent(in):: nspin
+type(nonlocal_psp_descriptors),intent(in):: nlpspd
+real(wp), dimension(nlpspd%nprojel),intent(in):: proj
+integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcs
+integer, dimension(0:nproc-1,2),intent(in):: ngatherarr 
+real(dp), dimension(*),intent(inout):: rhopot
+type(GPU_pointers),intent(inout):: GPU
+real(dp), dimension(:),pointer:: pkernelseq
+real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
+real(8),dimension(lin%orbs%npsidim),intent(out):: hphi
+real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
+real(8),intent(out):: trH, lastAlpha
+integer,intent(out):: infoBasisFunctions
 
 ! Local variables
-real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum
+real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, trHOld
 real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
 integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp
@@ -1570,7 +1580,8 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
 
   ! Assign the step size for SD iterations.
-  alpha=lin%alphaSD
+  !alpha=lin%alphaSD
+  alpha=lastAlpha
   iterLoop: do it=1,lin%nItBasis
       fnrmMax=0.d0
       fnrm=0.d0
@@ -1640,7 +1651,9 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, phiGrad, trH, lagMatDiag)
 
       ! Double the band structure energy if we have a closed shell system.
-      trH=trH*dble(nspin)
+      if(nspin==1) then
+          trH=trH*2.d0
+      end if
   
   
       ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
@@ -1670,9 +1683,10 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
           if(it>1 .and. diisLIN%idsx==0 .and. .not.diisLIN%switchSD) then
           ! Adapt step size for the steepest descent minimization.
               tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
-              if(tt>.7d0) then
+              !if(tt>.7d0) then
+              if(tt>.7d0 .and. trH<trHOld) then
                   alpha(iorb)=alpha(iorb)*1.05d0
-              else
+              else if(alpha(iorb)>=1.d-5) then
                   alpha(iorb)=alpha(iorb)*.5d0
               end if
           end if
@@ -1682,6 +1696,8 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
 
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
       call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, phiGrad(1), 1, phiGradold(1), 1)
+      ! Store the currect value of the modified band structure energy.
+      trHOld=trH
   
       ! Untranspose phiGrad.
       call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
@@ -1694,8 +1710,10 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       gnrm=1.d3 ; gnrm_zero=1.d3
       !call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
       !    lin%nItPrecond, hphi, at%nat, rxyz, at, it)
-      call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
-          lin%nItPrecond, phiGrad, at%nat, rxyz, at, it)
+
+  !!! ATTENTION  
+      !call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+      !    lin%nItPrecond, phiGrad, at%nat, rxyz, at, it)
 
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)
@@ -1748,6 +1766,9 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   
   end do iterLoop
 
+
+  ! Store the mean alpha.
+  lastAlpha=meanAlpha
 
   call deallocateLocalArrays()
 

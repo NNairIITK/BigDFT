@@ -29,11 +29,11 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(locreg_descriptors), intent(in):: Glr
-type(orbitals_data), intent(in):: orbs
-type(atoms_data), intent(in):: at
-type(linearParameters):: lin
-type(input_variables), intent(in):: input
+type(locreg_descriptors),intent(in):: Glr
+type(orbitals_data),intent(in):: orbs
+type(atoms_data),intent(in):: at
+type(linearParameters),intent(inout):: lin
+type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(32,at%nat):: occupForInguess
 real(8),dimension(:),allocatable,intent(out):: phi
@@ -98,11 +98,11 @@ if(iproc==0) write(*,'(4x,a)') '----------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
 if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
-if(iproc==0) write(*,'(4x,a)') '| inguess   SCC  | '
+if(iproc==0) write(*,'(4x,a)') '| inguess   SCC  |             |                |           |       |'
 if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
     repeat(' ', 5-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), lin%nItInguess, &
     repeat(' ', 4-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
-      ' | ', lin%convCrit, ' | ', &
+      '| ', lin%convCrit, ' | ', &
       repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       |   ', &
       lin%getCoeff, '    |  ', &
       lin%plotBasisFunctions, '   |'
@@ -351,9 +351,9 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc
-type(linearParameters):: lin
-real(8),dimension(:),allocatable:: phi
-real(8),dimension(:,:),allocatable:: coeff
+type(linearParameters),intent(inout):: lin
+real(8),dimension(:),allocatable,intent(inout):: phi
+real(8),dimension(:,:),allocatable,intent(inout):: coeff
 
 ! Local variables
 integer:: istat, iall, iorb
