@@ -56,7 +56,7 @@ AM_CFLAGS = -Wall -Werror
 
 conv_check_SOURCES = conv_check.f90 
 conv_check_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a
-conv_check_LDFLAGS = -lrt
+conv_check_LDFLAGS = -lrt -lstdc++
 conv_check_fft_SOURCES = conv_check_fft.f90 
 conv_check_fft_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a libbasef.a
 conv_check_fft_LDFLAGS = -lrt -lstdc++

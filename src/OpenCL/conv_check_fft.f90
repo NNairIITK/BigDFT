@@ -189,7 +189,7 @@ program conv_check_fft
            call nanosec(tsc1);
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(CPUtime,n1*ndat,2.5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
+           call print_time(CPUtime,n1*ndat,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
 
           write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,ndat
 
@@ -209,13 +209,13 @@ program conv_check_fft
            call ocl_release_mem_object(work_GPU)
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(GPUtime,n1*ndat,2.5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
+           call print_time(GPUtime,n1*ndat,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
 
            call compare_2D_cplx_results_t(ndat, n1, v_cuda_str(1,1,1,i3), psi_cuda, maxdiff, 3.d-7)
 !           call compare_2D_cplx_results(n1, ndat, psi_in, psi_cuda, maxdiff, 3.d-7)
 !           call compare_2D_cplx_results_t(ndat, n1, v_cuda, psi_cuda, maxdiff, 3.d-7)
 
-           call compare_time(CPUtime,GPUtime,n1*ndat,2.5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
+           call compare_time(CPUtime,GPUtime,n1*ndat,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
  
            do i=1,ndat
               do i1=1,n1
@@ -237,7 +237,7 @@ program conv_check_fft
            call nanosec(tsc1);
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(CPUtime,n1*ndat,2.5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
+           call print_time(CPUtime,n1*ndat,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
 
 
            write(*,'(a,i6,i6,i6)')'GPU 3D FFT, dimensions:',n1,n1,n1
@@ -260,10 +260,10 @@ program conv_check_fft
            call ocl_release_mem_object(work2_GPU)
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(GPUtime,n1*ndat*3,2.5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
+           call print_time(GPUtime,n1*ndat*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
 
            call compare_3D_cplx_results(n1, n1, n1, v_cuda_str(1,1,1,i3), psi_cuda, maxdiff, 3.d-7)
-           call compare_time(CPUtime,GPUtime,n1*ndat*3,2.5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
+           call compare_time(CPUtime,GPUtime,n1*ndat*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
          
 
         end do

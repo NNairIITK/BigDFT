@@ -4,19 +4,46 @@
 #include <sstream>
 #include <vector>
 #include <malloc.h>
+#include <math.h>
 #include "fft_generator.h"
+#define TWOPI 3.14159265358979323846264338327950288419716939937510*2
 
 extern "C" char * generate_fft_program(cl_uint fft_size){
-  unsigned int available_rad[] = {2,3,5};
+  unsigned int available_rad[] = {2,3,5,7,11};
   std::vector<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
   std::vector<unsigned int> radixes;
+  std::vector<double> sines, cosines;
   std::stringstream program;
   char* output;
   unsigned int buffer_length;
   unsigned int buffer_width;
+  cl_uint i;
+  cl_uint fft_size_o=fft_size;
+  for(i=0; i<fft_size; i++){
+    sines.push_back(sin(TWOPI*i/(double)fft_size));
+    cosines.push_back(cos(TWOPI*i/(double)fft_size));
+  }
+
   program<<"\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 #define TWOPI 3.14159265358979323846264338327950288419716939937510*2\n\
+";
+
+  program<< std::showpoint<<std::scientific;
+  program.precision(40);
+  program<<"__constant double sinar["<<fft_size<<"] = { "<<sines[0];
+  for(i=1; i<fft_size; i++){
+    program<<" ,\n"<<sines[i];
+  }
+  program<<"\n};\n";
+
+  program<<"__constant double cosar["<<fft_size<<"] = { "<<cosines[0];
+  for(i=1; i<fft_size; i++){
+    program<<" ,\n"<<cosines[i];
+  }
+  program<<"\n};\n";
+
+  program<<"\
 #define radix2m(il,jl,N,A,B,in,out) \
 { \
   double2 tmp,val,w;\
@@ -29,8 +56,8 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   tmp.x = val.x;\
   tmp.y = val.y;\
   val = in[(N/2)+A*b+a][il];\
-  w.x = cos((TWOPI/(A*2))*r);\
-  w.y = sin((TWOPI/(A*2))*r);\
+  w.x = cosar[r*(N/(2*A))];\
+  w.y = sinar[r*(N/(2*A))];\
   tmp.x += val.x * w.x;\
   tmp.x += val.y * w.y;\
   tmp.y -= val.x * w.y;\
@@ -48,15 +75,48 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   tmp.x = val.x;\
   tmp.y = val.y;\
   val = in[(N/3)+A*b+a][il];\
-  w.x = cos((TWOPI/(A*3))*r);\
-  w.y = sin((TWOPI/(A*3))*r);\
+  w.x = cosar[r*(N/(3*A))];\
+  w.y = sinar[r*(N/(3*A))];\
   tmp.x += val.x * w.x;\
   tmp.x += val.y * w.y;\
   tmp.y -= val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/3)*2+A*b+a][il];\
-  w.x = cos((TWOPI/(A*3))*r*2);\
-  w.y = sin((TWOPI/(A*3))*r*2);\
+  w.x = cosar[(r*(2*N/(3*A)))%N];\
+  w.y = sinar[(r*(2*N/(3*A)))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  out[jl][il]=tmp;\
+}\n\
+#define radix4m(il,jl,N,A,B,in,out) \
+{ \
+  double2 tmp,val,w;\
+  int a,b,p,r;\
+  b = jl / (4*A);\
+  r = jl % (4*A);\
+  a = r % A;\
+  val = in[A*b+a][il];\
+  tmp.x = val.x;\
+  tmp.y = val.y;\
+  val = in[(N/4)+A*b+a][il];\
+  w.x = cosar[r*(N/(4*A))];\
+  w.y = sinar[r*(N/(4*A))];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/4)*2+A*b+a][il];\
+  w.x = cosar[r*(2*N/(4*A))%N];\
+  w.y = sinar[r*(2*N/(4*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/4)*3+A*b+a][il];\
+  w.x = cosar[r*(3*N/(4*A))%N];\
+  w.y = sinar[r*(3*N/(4*A))%N];\
   tmp.x += val.x * w.x;\
   tmp.x += val.y * w.y;\
   tmp.y -= val.x * w.y;\
@@ -74,29 +134,165 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   tmp.x = val.x;\
   tmp.y = val.y;\
   val = in[(N/5)+A*b+a][il];\
-  w.x = cos((TWOPI/(A*5))*r);\
-  w.y = sin((TWOPI/(A*5))*r);\
+  w.x = cosar[r*(N/(5*A))];\
+  w.y = sinar[r*(N/(5*A))];\
   tmp.x += val.x * w.x;\
   tmp.x += val.y * w.y;\
   tmp.y -= val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/5)*2+A*b+a][il];\
-  w.x = cos((TWOPI/(A*5))*r*2);\
-  w.y = sin((TWOPI/(A*5))*r*2);\
+  w.x = cosar[r*(2*N/(5*A))%N];\
+  w.y = sinar[r*(2*N/(5*A))%N];\
   tmp.x += val.x * w.x;\
   tmp.x += val.y * w.y;\
   tmp.y -= val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/5)*3+A*b+a][il];\
-  w.x = cos((TWOPI/(A*5))*r*3);\
-  w.y = sin((TWOPI/(A*5))*r*3);\
+  w.x = cosar[r*(3*N/(5*A))%N];\
+  w.y = sinar[r*(3*N/(5*A))%N];\
   tmp.x += val.x * w.x;\
   tmp.x += val.y * w.y;\
   tmp.y -= val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/5)*4+A*b+a][il];\
-  w.x = cos((TWOPI/(A*5))*r*4);\
-  w.y = sin((TWOPI/(A*5))*r*4);\
+  w.x = cosar[r*(4*N/(5*A))%N];\
+  w.y = sinar[r*(4*N/(5*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  out[jl][il]=tmp;\
+}\n\
+#define radix7m(il,jl,N,A,B,in,out) \
+{ \
+  double2 tmp,val,w;\
+  int a,b,p,r;\
+  b = jl / (7*A);\
+  r = jl % (7*A);\
+  a = r % A;\
+  val = in[A*b+a][il];\
+  tmp.x = val.x;\
+  tmp.y = val.y;\
+  val = in[(N/7)+A*b+a][il];\
+  w.x = cosar[r*(N/(7*A))];\
+  w.y = sinar[r*(N/(7*A))];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/7)*2+A*b+a][il];\
+  w.x = cosar[r*(2*N/(7*A))%N];\
+  w.y = sinar[r*(2*N/(7*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/7)*3+A*b+a][il];\
+  w.x = cosar[r*(3*N/(7*A))%N];\
+  w.y = sinar[r*(3*N/(7*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/7)*4+A*b+a][il];\
+  w.x = cosar[r*(4*N/(7*A))%N];\
+  w.y = sinar[r*(4*N/(7*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/7)*5+A*b+a][il];\
+  w.x = cosar[r*(5*N/(7*A))%N];\
+  w.y = sinar[r*(5*N/(7*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/7)*6+A*b+a][il];\
+  w.x = cosar[r*(6*N/(7*A))%N];\
+  w.y = sinar[r*(6*N/(7*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  out[jl][il]=tmp;\
+}\n\
+#define radix11m(il,jl,N,A,B,in,out) \
+{ \
+  double2 tmp,val,w;\
+  int a,b,p,r;\
+  b = jl / (11*A);\
+  r = jl % (11*A);\
+  a = r % A;\
+  val = in[A*b+a][il];\
+  tmp.x = val.x;\
+  tmp.y = val.y;\
+  val = in[(N/11)+A*b+a][il];\
+  w.x = cosar[r*(N/(11*A))];\
+  w.y = sinar[r*(N/(11*A))];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/11)*2+A*b+a][il];\
+  w.x = cosar[r*(2*N/(11*A))%N];\
+  w.y = sinar[r*(2*N/(11*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/11)*3+A*b+a][il];\
+  w.x = cosar[r*(3*N/(11*A))%N];\
+  w.y = sinar[r*(3*N/(11*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/11)*4+A*b+a][il];\
+  w.x = cosar[r*(4*N/(11*A))%N];\
+  w.y = sinar[r*(4*N/(11*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/11)*5+A*b+a][il];\
+  w.x = cosar[r*(5*N/(11*A))%N];\
+  w.y = sinar[r*(5*N/(11*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/11)*6+A*b+a][il];\
+  w.x = cosar[r*(6*N/(11*A))%N];\
+  w.y = sinar[r*(6*N/(11*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/11)*7+A*b+a][il];\
+  w.x = cosar[r*(7*N/(11*A))%N];\
+  w.y = sinar[r*(7*N/(11*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/11)*8+A*b+a][il];\
+  w.x = cosar[r*(8*N/(11*A))%N];\
+  w.y = sinar[r*(8*N/(11*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/11)*9+A*b+a][il];\
+  w.x = cosar[r*(9*N/(11*A))%N];\
+  w.y = sinar[r*(9*N/(11*A))%N];\
+  tmp.x += val.x * w.x;\
+  tmp.x += val.y * w.y;\
+  tmp.y -= val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/11)*10+A*b+a][il];\
+  w.x = cosar[r*(10*N/(11*A))%N];\
+  w.y = sinar[r*(10*N/(11*A))%N];\
   tmp.x += val.x * w.x;\
   tmp.x += val.y * w.y;\
   tmp.y -= val.x * w.y;\
@@ -108,6 +304,8 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   buffer_length = (fft_size / 16) * 16 + (fft_size % 16 ? 16 : 0);
 //  std::cout<<"buffer length : "<<buffer_length<<std::endl;
   buffer_width = (128/buffer_length) & (~1);
+  if( buffer_width < 1 )
+    buffer_width = 1;
 //  std::cout<<"buffer width : "<<buffer_width<<std::endl;
 
   program<<"#undef FFT_LENGTH\n\
@@ -121,7 +319,6 @@ __kernel void fftKernel_"<<fft_size<<"_d(uint n, uint ndat, __global const doubl
 __local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
 __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
 \n\
-  const uint fftl="<<fft_size<<";\n\
   size_t il = get_local_id(0);\n\
   size_t jl = get_local_id(1);\n\
   size_t jg = get_global_id(1);\n\
@@ -130,7 +327,7 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
   ptrdiff_t jgt = get_group_id(1);\n\
   jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
   jgt = jg - jl + jlt;\n\
-  tmp1[ilt][jlt] = ilt < fftl ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  tmp1[ilt][jlt] = ilt < "<<fft_size<<" ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
   \n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
 ";
@@ -143,14 +340,14 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
   std::vector<unsigned int>::iterator it;
 //  std::cout<<"radixes : "<<std::endl;
   for( it = available_radixes.begin(); it < available_radixes.end(); it++ ){
-    while(fft_size % *it == 0){
-      fft_size /= *it;
+    while(fft_size_o % *it == 0){
+      fft_size_o /= *it;
       radixes.push_back(*it);
 //      std::cout<<*it<<std::endl;
     }
   }
-  if(fft_size != 1){
-    std::cerr<<"Invalid FFT size : "<<fft_size<<" is irreducible!"<<std::endl;
+  if(fft_size_o != 1){
+    std::cerr<<"Invalid FFT size : "<<fft_size_o<<" is irreducible!"<<std::endl;
     return NULL;
   }
   
@@ -160,7 +357,7 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
 
   for( it = radixes.begin(); it < radixes.end(); it++){
      B/=*it;
-     program<<"  radix"<<*it<<"m(jlt, ilt, fftl, "<<A<<", "<<B<<", "<<in<<", "<<out<<");\n\
+     program<<"  radix"<<*it<<"m(jlt, ilt, "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out<<");\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
 ";
      A*=*it;
@@ -168,7 +365,7 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
   }
 
   program<<"\n\
-  if(il<fftl)\n\
+  if(il<"<<fft_size<<")\n\
     out[jg*n+il] = "<<in<<"[il][jl];\n\
 }\n\
 "; 

@@ -678,6 +678,8 @@ inline void fft_generated_generic(cl_kernel kernel, cl_command_queue command_que
     cl_int ciErrNum;
     int FFT_LENGTH=(*n / 16) * 16 + (*n % 16 ? 16 : 0);
     int LINE_NUMBER=(128/FFT_LENGTH) & (~1);
+    if( LINE_NUMBER<1 )
+       LINE_NUMBER=1;
     size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER;
     cl_uint i = 0;
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
@@ -761,6 +763,7 @@ void build_fft_generated_programs(cl_context * context, cl_uint fft){
     cl_int ciErrNum = CL_SUCCESS;
     char * code;
     code = generate_fft_program(fft);
+    printf("%s",code);
     fftProgram = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(fftProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
