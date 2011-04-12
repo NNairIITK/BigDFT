@@ -1293,6 +1293,7 @@ character(len=*),parameter:: subname='optimizeCoefficients'
 logical:: converged
 
 
+! Allocate all local arrays.
 allocate(grad(lin%orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, grad, 'grad', subname)
 allocate(gradOld(lin%orbs%norb,orbs%norb), stat=istat)
@@ -1302,11 +1303,13 @@ call memocc(istat, lagMat, 'lagMat', subname)
 allocate(alpha(orbs%norb), stat=istat)
 call memocc(istat, alpha, 'alpha', subname)
 
-! Do everything only on the root and then broadcast to all processes.
+! Do everything only on the root process and then broadcast to all processes.
+! Maybe this part can be parallelized later, but at the moment it is not necessary since
+! it is fast enough.
 processIf: if(iproc==0) then
     
 
-    ! Orthogonalize (Gram-Schmidt)
+    ! Orthonormalize the coefficient vectors (Gram-Schmidt).
     do iorb=1,orbs%norb
         do jorb=1,iorb-1
             tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
@@ -1316,17 +1319,19 @@ processIf: if(iproc==0) then
         call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
     end do
     
-    ! Initial step size
+    ! Initial step size for the optimization
     alpha=5.d-3
 
+    ! Flag which checks convergence.
     converged=.false.
 
     if(iproc==0) write(*,'(x,a)') '============================== optmizing coefficients =============================='
 
-    ! The optimization loop
+    ! The optimization loop.
     iterLoop: do it=1,lin%nItCoeff
 
-        ! Calculate the gradient.
+        ! Calculate the gradient grad. At the same time we determine whether the step size shall be increased
+        ! or decreased (depending on gradient feedback).
         meanAlpha=0.d0
         grad=0.d0
         do iorb=1,orbs%norb
@@ -1351,7 +1356,8 @@ processIf: if(iproc==0) then
         meanAlpha=meanAlpha/orbs%norb
     
     
-        ! Orthoconstraint on gradient
+        ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
+        ! multiplier matrix.
         lagMat=0.d0
         do iorb=1,orbs%norb
             do jorb=1,orbs%norb
@@ -1360,6 +1366,8 @@ processIf: if(iproc==0) then
                 end do
             end do
         end do
+
+        ! Now apply the orthoconstraint.
         do iorb=1,orbs%norb
             do k=1,lin%orbs%norb
                 do jorb=1,orbs%norb
@@ -1369,7 +1377,7 @@ processIf: if(iproc==0) then
         end do
     
         
-        ! Improve the coefficients.
+        ! Improve the coefficients by (steepet descent).
         fnrm=0.d0
         do iorb=1,orbs%norb
             fnrm=fnrm+dnrm2(lin%orbs%norb, grad(1,iorb), 1)
@@ -1378,7 +1386,7 @@ processIf: if(iproc==0) then
             end do
         end do
     
-        ! Calculate the modified band structure energy
+        ! Calculate the modified band structure energy.
         ebsMod=0.d0
         do iorb=1,orbs%norb
             do jorb=1,lin%orbs%norb
@@ -1388,15 +1396,15 @@ processIf: if(iproc==0) then
             end do
         end do
     
-        ! Multiply the energy with a factor of 2 if we have a  closed-shell system.
+        ! Multiply the energy with a factor of 2 if we have a closed-shell system.
         if(nspin==1) then
             ebsMod=2.d0*ebsMod
         end if
+
         if(iproc==0) write(*,'(x,a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', &
             it, fnrm, meanAlpha, ebsMod
-        !if(iproc==0) write(99,'(i0,es12.4,3x,es10.3, es15.5)')  it, fnrm, meanAlpha, 2.d0*ebsMod
         
-        ! Orthogonalize (Gram-Schmidt)
+        ! Orthonormalize the coefficient vectors (Gram-Schmidt).
         do iorb=1,orbs%norb
             do jorb=1,iorb-1
                 tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
@@ -1405,6 +1413,8 @@ processIf: if(iproc==0) then
             tt=dnrm2(lin%orbs%norb, coeff(1,iorb), 1)
             call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
         end do
+
+        ! Check for convergence.
         if(fnrm<lin%convCritCoeff) then
             if(iproc==0) write(*,'(x,a,i0,a)') 'converged in ', it, ' iterations.'
             if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, ebsMod
@@ -1412,6 +1422,7 @@ processIf: if(iproc==0) then
             infoCoeff=0
             exit
         end if
+
     end do iterLoop
 
     if(.not.converged) then
@@ -1430,6 +1441,8 @@ end if processIf
 call mpi_bcast(coeff(1,1), lin%orbs%norb*orbs%norb, mpi_double_precision, 0, mpi_comm_world, ierr)
 call mpi_bcast(infoCoeff, 1, mpi_integer, 0, mpi_comm_world, ierr)
 
+
+! Deallocate all local arrays.
 iall=-product(shape(grad))*kind(grad)
 deallocate(grad, stat=istat)
 call memocc(istat, iall, 'grad', subname)
@@ -1460,10 +1473,10 @@ subroutine getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, n
 !
 ! Purpose:
 ! ========
-!   Calculates the localized basis functions phi. These basis functions are obtained by adding a
-!   quartic potential centered on the atoms to the ordinary Hamiltonian. The eigenfunctions are then
-!   determined by minimizing the trace until the gradient norm is below the convergence criterion.
-!
+!   This subroutine minimizes the modified band structure energy by optimizing the basis functions phi.
+!   This energy is given by ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H_l|phi_l>.
+!   The coefficients c are kept fixed during the optimization in this subroutine.
+! 
 ! Calling arguments:
 ! ==================
 !   Input arguments:
@@ -1498,10 +1511,6 @@ subroutine getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, n
 !                         or whether the iteration stopped due to the iteration limit (value is -1). This info
 !                         is returned by 'getLocalizedBasis'
 !
-! Calling arguments:
-!   Input arguments
-!   Output arguments
-!    phi   the localized basis functions
 !
 use module_base
 use module_types
@@ -1711,9 +1720,32 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       !call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
       !    lin%nItPrecond, hphi, at%nat, rxyz, at, it)
 
-  !!! ATTENTION  
-      !call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
-      !    lin%nItPrecond, phiGrad, at%nat, rxyz, at, it)
+      call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+          lin%nItPrecond, phiGrad, at%nat, rxyz, at, it)
+
+!!! THIS IS A TEST !!!!!!!!!!!!!!!!!
+!call dcopy(lin%orbs%npsidim, phiGrad(1), 1, hphi(1), 1)
+!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+!nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+!lstart=1
+!phiGrad=0.d0
+!lorb=0
+!do jproc=0,nproc-1
+!    do lorb2=1,lin%orbs%norb_par(jproc)
+!        lorb=lorb+1
+!        kstart=1
+!        do korb=1,lin%orbs%norb
+!            do iorb=1,orbs%norb
+!                tt=coeff(lorb,iorb)*coeff(korb,iorb)
+!                call daxpy(nvctrp, tt, hphi(kstart), 1, phiGrad(lstart), 1)
+!            end do
+!            kstart=kstart+nvctrp
+!        end do  
+!        lstart=lstart+nvctrp
+!    end do
+!end do
+!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)
