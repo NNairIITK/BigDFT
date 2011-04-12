@@ -1062,8 +1062,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               !write this warning only if the system is closed shell
               call check_closed_shell(orbs,lcs)
               if (lcs) then
-                 if ( energy > diis%energy_min) write( *,'(1x,a,2(1pe19.12))')&
-                      'WARNING: Found an energy value lower than the FINAL energy, delta:',energy,diis%energy_min
+                 if ( energy > diis%energy_min) write( *,'(1x,a,2(1pe9.2))')&
+                      'WARNING: Found an energy value lower than the FINAL energy, delta:',energy-diis%energy_min
               end if
            end if
         end if

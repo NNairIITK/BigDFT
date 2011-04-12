@@ -19,7 +19,7 @@ PROGRAM rotate_posinp
    character(len=5) atomname(natx)
    character(len=12) units
    character(len=20) extra(natx) 
-   character(len=100) line,line2
+   character(len=120) line,line2
    dimension pos(3,natx),pos_s(3)
    parameter(PI=3.141592654d0)       
 
@@ -92,12 +92,16 @@ PROGRAM rotate_posinp
       pos(3,iat)=pos(3,iat)+pos_s(3)
    end do
 
+   write(*,*) 'scaling factor=?'
+   read(*,*) scale
+
    write(*,*) 'writing atomic positions to file rot_posinp'
    open(unit=9,file='rotate_posinp.xyz',status='unknown')
    write(9,*) nat, units
    write(9,'(a100)') line2
    do iat=1,nat
-      write(9,'(a5,3x,3(1x,e17.10),4x,a)') atomname(iat),pos(1,iat),pos(2,iat),pos(3,iat),extra(iat)
+      write(9,'(a5,3x,3(1x,e17.10),4x,a)') atomname(iat),   & 
+            pos(1,iat)*scale,pos(2,iat)*scale,pos(3,iat)*scale,extra(iat)
    end do
    close(unit=9)
 
