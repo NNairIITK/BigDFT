@@ -28,11 +28,10 @@ program conv_check_fft
   real(wp), dimension(:,:,:,:), allocatable :: psi_k_in_a, psi_k_out_a, pot_a
   real(wp), dimension(:,:,:,:), allocatable :: psi_in_s,psi_out_t,psi_in_t,psi_gemm,psi_gemmsy,psi_cuda_gemm
   !local variables
-  character(len=*), parameter :: subname='conv_check'
+  character(len=*), parameter :: subname='conv_check_fft'
   character(len=50) :: chain
-  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max,it0,it1,ndim,itimes
+  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,i1_max,i_max,it0,it1,ndim,itimes
   integer :: count_rate,count_max,l,ierror,i1s,i1e
-  integer :: n1s,n1e,ndats,ndate,nvctr_cf,nseg,iseg
   real(wp) :: tt,scale
   real(gp) :: v,p,CPUtime,GPUtime,comp,ekin
   real(gp), dimension(3) :: hgridh
@@ -61,21 +60,19 @@ program conv_check_fft
 !!!  call getarg(1,chain)
 !!!  read(unit=chain,fmt=*) n1
 !!!  call getarg(2,chain)
-!!!  read(unit=chain,fmt=*) ndat
+!!!  read(unit=chain,fmt=*) n2*n3
 
-  read(unit=1,fmt=*,iostat=ierror) ndim,n1s,n1e,ndats,ndate,ntimes
+  read(unit=2,fmt=*,iostat=ierror) n1,n2,n3,ntimes
   if (ierror /= 0) then
      write(*,*) "In a file 'fort.1', put a line with:"
-     write(*,*) "ndim n1s n1e ndats ndate ntimes"
+     write(*,*) "n1 n2 n3 ntimes"
      write(*,*) "where:"
-     write(*,*) "- ndim (1 or 3) is the dimension of the real space"
-     write(*,*) "       1 do convolution from n1s to n1e (ntimes * (ndate-ndats+1))"
-     write(*,*) "       3 do convolution n1=(from n1s to n1e), n2=ndats, n3=ndate"
+     write(*,*) "- n1 n2 n3 are the dimensions of the real space"
      write(*,*) "- ntimes is the number of convolutions"
      stop
   end if
 
-  call customize_fft(n1s);
+  call customize_fft((/n1,n2,n3/));
   call ocl_create_gpu_context(context)
   call ocl_build_programs(context)
   call ocl_create_command_queue(queue,context)
@@ -128,150 +125,139 @@ program conv_check_fft
 
   ekin=0.0_wp
   
-  !one dimensional case
-  if (ndim == 1) then
-     do ndat=ndats,ndate
-        do n1=n1s,n1e
-           !set of one-dimensional convolutions
-           !allocate arrays
-           allocate(psi_in(2,n1,ndat,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_in,'psi_in',subname)
-           allocate(psi_out(2,ndat,n1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_out,'psi_out',subname)
+   !allocate arrays
+   allocate(psi_in(2,n1,n2*n3,1+ndebug),stat=i_stat)
+   call memocc(i_stat,psi_in,'psi_in',subname)
+   allocate(psi_out(2,n2*n3,n1,1+ndebug),stat=i_stat)
+   call memocc(i_stat,psi_out,'psi_out',subname)
 
-           allocate(psi_cuda(2,n1,ndat,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-           allocate(psi_cuda_str(2,ndat,n1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_cuda_str,'psi_cuda_str',subname)
-           allocate(v_cuda(2,ndat,n1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,v_cuda,'v_cuda',subname)
-           allocate(v_cuda_str(2,n1,ndat,2+ndebug),stat=i_stat)
-           call memocc(i_stat,v_cuda_str,'v_cuda_str',subname)
-           allocate(psi_cuda_l(2,n1,ndat,1+ndebug),stat=i_stat)
-           call memocc(i_stat,psi_cuda_l,'psi_cuda_l',subname)
-           allocate(v_cuda_l(2,ndat,n1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,v_cuda_l,'v_cuda_l',subname)
+   allocate(psi_cuda(2,n1,n2*n3,1+ndebug),stat=i_stat)
+   call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+   allocate(psi_cuda_str(2,n2*n3,n1,1+ndebug),stat=i_stat)
+   call memocc(i_stat,psi_cuda_str,'psi_cuda_str',subname)
+   allocate(v_cuda(2,n2*n3,n1,1+ndebug),stat=i_stat)
+   call memocc(i_stat,v_cuda,'v_cuda',subname)
+   allocate(v_cuda_str(2,n1,n2*n3,2+ndebug),stat=i_stat)
+   call memocc(i_stat,v_cuda_str,'v_cuda_str',subname)
+   allocate(psi_cuda_l(2,n1,n2*n3,1+ndebug),stat=i_stat)
+   call memocc(i_stat,psi_cuda_l,'psi_cuda_l',subname)
+   allocate(v_cuda_l(2,n2*n3,n1,1+ndebug),stat=i_stat)
+   call memocc(i_stat,v_cuda_l,'v_cuda_l',subname)
 
-           !initialise array
-           sigma2=0.25d0*((n1*hx)**2)
-           do i=1,ndat
-              do i1=1,n1
-                 do i2=1,2
-                   x=hx*real(i1-n1/2-1,kind=8)
-                   !tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
-                   r2=x**2
-                   arg=0.5d0*r2/sigma2
-                   tt=dexp(-arg)
-                   call random_number(tt)
-                   psi_in(i2,i1,i,1)=tt
-                 end do
-              end do
-           end do
-
-           !the input and output arrays must be reverted in this implementation
-           do i=1,ndat
-              do i1=1,n1
-                 do i2=1,2
-                   v_cuda_str(i2,i1,i,1)=real(psi_in(i2,i1,i,1),kind=8)
-                   v_cuda_str(i2,i1,i,2)=0.0
-                   v_cuda(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
-                   v_cuda_l(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
-                 end do
-              end do
-           end do
-
- 
-          write(*,'(a,i6,i6)')'CPU FFT, dimensions:',n1,ndat
-
-           call nanosec(tsc0);
-           i3=1
-           call fft_1d_ctoc(-1,ndat,n1,v_cuda_str,i3)
-           call nanosec(tsc1);
-
-           CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(CPUtime,n1*ndat,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
-
-          write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,ndat
-
-           call ocl_create_write_buffer(context, 2*n1*ndat*8, psi_GPU)
-           call ocl_create_read_buffer(context, 2*n1*ndat*8, work_GPU)
-           call ocl_enqueue_write_buffer(queue, work_GPU, 2*n1*ndat*8, psi_in)!v_cuda)!
-
-           call nanosec(tsc0);
-           do i=1,ntimes
-              call fft1d_d(queue,n1,ndat,work_GPU,psi_GPU)
-           end do
-           call ocl_finish(queue);
-           call nanosec(tsc1);
-
-           call ocl_enqueue_read_buffer(queue, psi_GPU, 2*n1*ndat*8, psi_cuda)
-           call ocl_release_mem_object(psi_GPU)
-           call ocl_release_mem_object(work_GPU)
-
-           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(GPUtime,n1*ndat,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
-
-           call compare_2D_cplx_results_t(ndat, n1, v_cuda_str(1,1,1,i3), psi_cuda, maxdiff, 3.d-7)
-!           call compare_2D_cplx_results(n1, ndat, psi_in, psi_cuda, maxdiff, 3.d-7)
-!           call compare_2D_cplx_results_t(ndat, n1, v_cuda, psi_cuda, maxdiff, 3.d-7)
-
-           call compare_time(CPUtime,GPUtime,n1*ndat,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
- 
-           do i=1,ndat
-              do i1=1,n1
-                 do i2=1,2
-                   v_cuda_str(i2,i1,i,1)=real(psi_in(i2,i1,i,1),kind=8)
-                   v_cuda_str(i2,i1,i,2)=0.0
-                   v_cuda(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
-                   v_cuda_l(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
-                 end do
-              end do
-           end do
-
- 
-          write(*,'(a,i6,i6,i6)')'CPU 3D FFT, dimensions:',n1,n1,n1
-
-           call nanosec(tsc0);
-           i3=1
-           call FFT(n1,n1,n1,n1,n1,n1,v_cuda_str,-1,i3)
-           call nanosec(tsc1);
-
-           CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(CPUtime,n1*ndat,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
-
-
-           write(*,'(a,i6,i6,i6)')'GPU 3D FFT, dimensions:',n1,n1,n1
-
-           call ocl_create_read_write_buffer(context, 2*n1*n1*n1*8, psi_GPU)
-           call ocl_create_read_buffer(context, 2*n1*n1*n1*8, work_GPU)
-           call ocl_create_read_write_buffer(context, 2*n1*n1*n1*8, work2_GPU)
-           call ocl_enqueue_write_buffer(queue, work_GPU, 2*n1*n1*n1*8, psi_in)!v_cuda)!
-
-           call nanosec(tsc0);
-           do i=1,ntimes
-              call fft3d_d(queue,(/n1,n1,n1/),work_GPU,psi_GPU,work2_GPU)
-           end do
-           call ocl_finish(queue);
-           call nanosec(tsc1);
-
-           call ocl_enqueue_read_buffer(queue, psi_GPU, 2*n1*n1*n1*8, psi_cuda)
-           call ocl_release_mem_object(psi_GPU)
-           call ocl_release_mem_object(work_GPU)
-           call ocl_release_mem_object(work2_GPU)
-
-           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
-           call print_time(GPUtime,n1*ndat*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
-
-           call compare_3D_cplx_results(n1, n1, n1, v_cuda_str(1,1,1,i3), psi_cuda, maxdiff, 3.d-7)
-           call compare_time(CPUtime,GPUtime,n1*ndat*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
-         
-
+   !initialise array
+   sigma2=0.25d0*((n1*hx)**2)
+   do i=1,n2*n3
+      do i1=1,n1
+        do i2=1,2
+          x=hx*real(i1-n1/2-1,kind=8)
+          !tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
+          r2=x**2
+          arg=0.5d0*r2/sigma2
+          tt=dexp(-arg)
+          call random_number(tt)
+          psi_in(i2,i1,i,1)=tt
         end do
-     end do
-    
-  else 
-     print *,'wrong ndim',ndim
-  end if
+      end do
+   end do
+
+   !the input and output arrays must be reverted in this implementation
+   do i=1,n2*n3
+      do i1=1,n1
+        do i2=1,2
+          v_cuda_str(i2,i1,i,1)=real(psi_in(i2,i1,i,1),kind=8)
+          v_cuda_str(i2,i1,i,2)=0.0
+          v_cuda(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
+          v_cuda_l(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
+        end do
+      end do
+   end do
+
+
+  write(*,'(a,i6,i6)')'CPU FFT, dimensions:',n1,n2*n3
+
+   call nanosec(tsc0);
+   i3=1
+   call fft_1d_ctoc(-1,n2*n3,n1,v_cuda_str,i3)
+   call nanosec(tsc1);
+
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   call print_time(CPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
+
+  write(*,'(a,i6,i6)')'GPU FFT, dimensions:',n1,n2*n3
+
+   call ocl_create_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
+   call ocl_create_read_buffer(context, 2*n1*n2*n3*8, work_GPU)
+   call ocl_enqueue_write_buffer(queue, work_GPU, 2*n1*n2*n3*8, psi_in)!v_cuda)!
+
+   call nanosec(tsc0);
+   do i=1,ntimes
+      call fft1d_d(queue,n1,n2*n3,work_GPU,psi_GPU)
+   end do
+   call ocl_finish(queue);
+   call nanosec(tsc1);
+
+   call ocl_enqueue_read_buffer(queue, psi_GPU, 2*n1*n2*n3*8, psi_cuda)
+   call ocl_release_mem_object(psi_GPU)
+   call ocl_release_mem_object(work_GPU)
+
+   GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   call print_time(GPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
+
+   call compare_2D_cplx_results_t(n2*n3, n1, v_cuda_str(1,1,1,i3), psi_cuda, maxdiff, 3.d-7)
+!           call compare_2D_cplx_results(n1, n2*n3, psi_in, psi_cuda, maxdiff, 3.d-7)
+!           call compare_2D_cplx_results_t(n2*n3, n1, v_cuda, psi_cuda, maxdiff, 3.d-7)
+
+   call compare_time(CPUtime,GPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
+
+   do i=1,n2*n3
+      do i1=1,n1
+        do i2=1,2
+          v_cuda_str(i2,i1,i,1)=real(psi_in(i2,i1,i,1),kind=8)
+          v_cuda_str(i2,i1,i,2)=0.0
+          v_cuda(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
+          v_cuda_l(i2,i,i1,1)=real(psi_in(i2,i1,i,1),kind=8)
+        end do
+      end do
+   end do
+
+
+  write(*,'(a,i6,i6,i6)')'CPU 3D FFT, dimensions:',n1,n2,n3
+
+   call nanosec(tsc0);
+   i3=1
+   call FFT(n1,n2,n3,n1,n2,n3,v_cuda_str,-1,i3)
+   call nanosec(tsc1);
+
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   call print_time(CPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
+
+
+   write(*,'(a,i6,i6,i6)')'GPU 3D FFT, dimensions:',n1,n2,n3
+
+   call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
+   call ocl_create_read_buffer(context, 2*n1*n2*n3*8, work_GPU)
+   call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, work2_GPU)
+   call ocl_enqueue_write_buffer(queue, work_GPU, 2*n1*n2*n3*8, psi_in)!v_cuda)!
+
+   call nanosec(tsc0);
+   do i=1,ntimes
+      call fft3d_d(queue,(/n1,n2,n3/),work_GPU,psi_GPU,work2_GPU)
+   end do
+   call ocl_finish(queue);
+   call nanosec(tsc1);
+
+   call ocl_enqueue_read_buffer(queue, psi_GPU, 2*n1*n2*n3*8, psi_cuda)
+   call ocl_release_mem_object(psi_GPU)
+   call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(work2_GPU)
+
+   GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
+
+   call compare_3D_cplx_results(n1, n2, n3, v_cuda_str(1,1,1,i3), psi_cuda, maxdiff, 3.d-7)
+   call compare_time(CPUtime,GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
+ 
+
   call print_event_list
   call ocl_clean_command_queue(queue)
   call ocl_clean(context)

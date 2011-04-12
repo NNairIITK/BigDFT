@@ -90,5 +90,5 @@ check_conv: conv_check
 	./conv_check
 
 check_conv_fft: conv_check_fft
-	echo 1 16 16 256 256 100 > fort.1
+	echo 64 70 84 100 > fort.2
 	./conv_check_fft

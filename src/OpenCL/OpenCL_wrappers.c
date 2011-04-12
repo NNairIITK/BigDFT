@@ -37,10 +37,7 @@ void FC_FUNC_(ocl_build_programs,OCL_BUILD_PROGRAMS)(cl_context * context) {
     build_uncompress_programs(context);
     build_initialize_programs(context);
     build_reduction_programs(context);
-    if(fft_size != 0)
-      build_fft_generated_programs(context,fft_size);
-    else
-      build_fft_programs(context);
+    build_fft_programs(context);
 }
 
 void create_kernels(struct bigdft_kernels *kernels){
@@ -51,10 +48,7 @@ void create_kernels(struct bigdft_kernels *kernels){
     create_uncompress_kernels(kernels);
     create_initialize_kernels(kernels);
     create_reduction_kernels(kernels);
-    if(fft_size != 0)
-      create_fft_generated_kernels(kernels,fft_size);
-    else
-      create_fft_kernels(kernels);
+    create_fft_kernels(kernels);
 }
 
 void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * context) {
