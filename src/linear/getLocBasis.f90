@@ -1,6 +1,7 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-    infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, ebsMod, coeff)
+    infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+    i3s, i3xcsh, fion, fdisp, fxyz, fnoise, ebsMod, coeff)
 !
 ! Purpose:
 ! ========
@@ -57,18 +58,19 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nspin, n3p, n3d
+integer,intent(in):: iproc, nproc, nspin, n3p, n3d, i3s, i3xcsh
 type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in) :: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
 type(linearParameters),intent(in):: lin
 type(input_variables),intent(in):: input
-real(8),dimension(3,at%nat),intent(in):: rxyz, rxyzParab
-integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
+real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
+real(8),dimension(3,at%nat),intent(inout):: rxyzParab
+integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
-real(wp),dimension(nlpspd%nprojel),intent(in):: proj
+real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
 type(GPU_pointers),intent(inout):: GPU
 integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
@@ -85,6 +87,8 @@ integer,intent(out):: infoBasisFunctions
 character(len=3),intent(in):: PSquiet
 real(8),intent(out):: ebsMod
 real(8),dimension(lin%orbs%norb,orbs%norb),intent(in out):: coeff
+real(8),dimension(3,at%nat),intent(out):: fxyz
+real(8):: fnoise
 
 ! Local variables 
 integer:: istat, iall, infoCoeff
@@ -95,6 +99,10 @@ real(8),dimension(:),pointer:: phiWork
 real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace , lastAlpha
 real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
+
+real(8),dimension(:),allocatable:: rhopotCorrect
+integer,dimension(:,:),allocatable :: nscatterarrCorrect ,ngatherarrCorrect
+real(kind=8),dimension(:), pointer :: projCorrect
 
 real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu
 integer:: iorb, jorb, it, istart
@@ -116,6 +124,10 @@ character(len=11):: procName, orbNumber, orbName
   call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
       lastAlpha, infoBasisFunctions)
+
+!!! TEST
+call optimizeWithShifts()
+!!!!!!!!
 
 ! 3D plot of the basis functions
 write(procName,'(i0)') iproc
@@ -272,6 +284,86 @@ end do
   iall=-product(shape(matrixElements))*kind(matrixElements)
   deallocate(matrixElements, stat=istat)
   call memocc(istat, iall, 'matrixElements', subname)
+
+
+
+contains
+
+  subroutine optimizeWithShifts()
+
+    ! Initialize the coefficient vector at random. 
+    call random_number(coeff)
+    allocate(nscatterarrCorrect(0:nproc-1,4+ndebug),stat=istat)
+    !call memocc(i_stat,nscatterarrCorrect,'nscatterarrCorrect',subname)
+    !allocate array for the communications of the potential
+    allocate(ngatherarrCorrect(0:nproc-1,2+ndebug),stat=istat)
+    !call memocc(i_stat,ngatherarrCorrect,'ngatherarrCorrect',subname)
+    allocate(projCorrect(nlpspd%nprojel+ndebug),stat=istat)
+    !call memocc(i_stat,projCorrect,'projCorrect',subname)
+    allocate(rhopotCorrect(size(rhopot)), stat=istat)
+    !call memocc(i_stat,rhopot,'rhopot',subname)
+
+    nscatterarrCorrect=nscatterarr
+    ngatherarrCorrect=ngatherarr
+    projCorrect=proj
+    rhopotCorrect=rhopot
+
+    do it=1,10
+        nscatterarr=nscatterarrCorrect
+        ngatherarr=ngatherarrCorrect
+        proj=projCorrect
+        rhopot=rhopotCorrect
+        ! The subroutine getLocalizedBasis expects phi to be transposed.
+        call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+        call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
+            nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
+            lastAlpha, infoBasisFunctions)
+        if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
+        call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+             nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+             rhopot(1),&
+             phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+        if(iproc==0) write(*,'(x,a)') 'done.'
+
+        ! Calculate the matrix elements <phi|H|phi>.
+        call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+
+
+        !if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
+        ! Calculate the coefficients which minimize the modified band structure energy
+        ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H_l|phi_l>
+        ! for the given basis functions.
+        call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
+        call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
+        if(iproc==0) write(*,'(x,a)') 'after initial guess:'
+        if(infoBasisFunctions==0) then
+            if(iproc==0) write(*,'(3x,a)') '- basis functions converged'
+        else
+            if(iproc==0) write(*,'(3x,a)') '- WARNING: basis functions not converged!'
+        end if
+        if(infoCoeff==0) then
+            if(iproc==0) write(*,'(3x,a)') '- coefficients converged'
+        else
+            if(iproc==0) write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+        end if
+        if(iproc==0) write(*,'(3x,a,es16.8)') '- modified band structure energy', ebsMod
+
+        call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+        call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
+        call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+        call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
+
+        call calculateForcesSub(iproc, nproc, n3p, i3s, i3xcsh, Glr, orbs, at, input, lin, nlpspd, proj, &
+            ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, fxyz, fnoise)
+
+        !rxyzParab=rxyzParab-1.d-1*fxyz
+        rxyzParab=rxyzParab+1.d-1*fxyz
+
+    end do
+    
+  end subroutine optimizeWithShifts
+
+
 
 end subroutine getLinearPsi
 
@@ -1658,6 +1750,9 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       ! This subroutine also calculates the modified band structure energy, which is the trace of
       ! the Lagrange multiplier matrix and willt hus be contained in trH.
       call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, phiGrad, trH, lagMatDiag)
+!! THIS IS A TEST !!!!!!!!!!!!!!
+!! call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH, lagMatDiag)
+!! THIS IS A TEST !!!!!!!!!!!!!!
 
       ! Double the band structure energy if we have a closed shell system.
       if(nspin==1) then
@@ -1720,32 +1815,36 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       !call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
       !    lin%nItPrecond, hphi, at%nat, rxyz, at, it)
 
-      call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
-          lin%nItPrecond, phiGrad, at%nat, rxyz, at, it)
+!!!!! ATTENTION !!!!!!
+      !!call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+      !!    lin%nItPrecond, phiGrad, at%nat, rxyz, at, it)
+      !!!call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+      !!!    lin%nItPrecond, hphi, at%nat, rxyz, at, it)
+!!!!!!!!!!!!!!!!!!!!!!
 
-!!! THIS IS A TEST !!!!!!!!!!!!!!!!!
-!call dcopy(lin%orbs%npsidim, phiGrad(1), 1, hphi(1), 1)
-!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
-!nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
-!lstart=1
-!phiGrad=0.d0
-!lorb=0
-!do jproc=0,nproc-1
-!    do lorb2=1,lin%orbs%norb_par(jproc)
-!        lorb=lorb+1
-!        kstart=1
-!        do korb=1,lin%orbs%norb
-!            do iorb=1,orbs%norb
-!                tt=coeff(lorb,iorb)*coeff(korb,iorb)
-!                call daxpy(nvctrp, tt, hphi(kstart), 1, phiGrad(lstart), 1)
-!            end do
-!            kstart=kstart+nvctrp
-!        end do  
-!        lstart=lstart+nvctrp
-!    end do
-!end do
-!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!! THIS IS A TEST !!!!!!!!!!!!!!!!!
+!!!call dcopy(lin%orbs%npsidim, phiGrad(1), 1, hphi(1), 1)
+!!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+!!nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+!!lstart=1
+!!phiGrad=0.d0
+!!lorb=0
+!!do jproc=0,nproc-1
+!!    do lorb2=1,lin%orbs%norb_par(jproc)
+!!        lorb=lorb+1
+!!        kstart=1
+!!        do korb=1,lin%orbs%norb
+!!            do iorb=1,orbs%norb
+!!                tt=coeff(lorb,iorb)*coeff(korb,iorb)
+!!                call daxpy(nvctrp, tt, hphi(kstart), 1, phiGrad(lstart), 1)
+!!            end do
+!!            kstart=kstart+nvctrp
+!!        end do  
+!!        lstart=lstart+nvctrp
+!!    end do
+!!end do
+!!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phiGrad, work=phiWork)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)
@@ -1916,7 +2015,8 @@ contains
           icountSDSatur=0
           if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3) .and. diisLIN%idsx>0) then
               ! Switch back to SD. The initial step size is 1.d0.
-              alpha=lin%alphaSD
+              !alpha=lin%alphaSD
+              alpha=meanAlpha
               if(iproc==0) then
                   if(icountDIISFailureCons>=2) write(*,'(x,a,i0,a,es10.3)') 'DIIS failed ', &
                       icountDIISFailureCons, ' times consecutievly. Switch to SD with stepsize', alpha(1)
@@ -1972,6 +2072,14 @@ contains
         ! DIIS
         quiet=.true. ! less output
         !call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, hphi, phi, quiet)
+! TEST !!!!!!!!
+nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+istart=1
+do iorb=1,lin%orbs%norb
+  call dscal(nvctrp, alpha(iorb), phiGrad(istart), 1)
+  istart=istart+nvctrp*orbs%nspinor
+end do
+!!!!!!!!!!!!!!!
         call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, phiGrad, phi, quiet)
     end if
     end subroutine improveOrbitals

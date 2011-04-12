@@ -67,7 +67,8 @@ type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
 type(linearParameters),intent(in out):: lin
 type(input_variables),intent(in):: input
-real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
+real(8),dimension(3,at%nat),intent(inout):: rxyz
+real(8),dimension(3,at%nat),intent(in):: fion, fdisp
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
@@ -124,7 +125,8 @@ character(len=*),parameter:: subname='linearScaling'
   ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-      infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, ebsMod, coeff)
+      infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      i3s, i3xcsh, fion, fdisp, fxyz, fnoise, ebsMod, coeff)
 
   ! Calculate the energy that we get with psi.
   call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &

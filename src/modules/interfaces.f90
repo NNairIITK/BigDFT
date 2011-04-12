@@ -1378,31 +1378,32 @@ module module_interfaces
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
         infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-        ebsMod, coeff)
+        i3s, i3xcsh, fion, fdisp, fxyz, fnoise, ebsMod, coeff)
       use module_base
       use module_types
       !use Poisson_Solver
       implicit none
-      integer,intent(in):: iproc, nproc, nspin, n3p, n3d
+      integer,intent(in):: iproc, nproc, nspin, n3p, n3d, i3s, i3xcsh
       type(locreg_descriptors),intent(in):: Glr
       type(orbitals_data),intent(in) :: orbs
       type(communications_arrays),intent(in) :: comms
       type(atoms_data),intent(in):: at
       type(linearParameters),intent(in):: lin
       type(input_variables),intent(in):: input
-      real(8),dimension(3,at%nat),intent(in):: rxyz, rxyzParab
-      integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
+      real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
+      real(8),dimension(3,at%nat),intent(inout):: rxyzParab
+      integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+      integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
-      real(wp),dimension(nlpspd%nprojel),intent(in):: proj
+      real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
       type(GPU_pointers),intent(inout):: GPU
-      integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
-      real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons 
+      integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
+      real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
       real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
       real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
       !real(wp), dimension(lin%as%size_rhocore):: rhocore 
-      real(wp), dimension(:),pointer,intent(in):: rhocore                  
+      real(wp), dimension(:),pointer,intent(in):: rhocore
       real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
       real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
@@ -1411,6 +1412,8 @@ module module_interfaces
       character(len=3),intent(in):: PSquiet
       real(8),intent(out):: ebsMod
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in out):: coeff
+      real(8),dimension(3,at%nat),intent(out):: fxyz
+      real(8):: fnoise
     end subroutine getLinearPsi
 
     subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
@@ -1485,7 +1488,8 @@ module module_interfaces
       type(atoms_data),intent(in):: at
       type(linearParameters),intent(in out):: lin
       type(input_variables),intent(in):: input
-      real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
+      real(8),dimension(3,at%nat),intent(inout):: rxyz
+      real(8),dimension(3,at%nat),intent(in):: fion, fdisp
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
       integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
@@ -1508,6 +1512,8 @@ module module_interfaces
       real(8),dimension(:),pointer,intent(out):: psit
       real(8),intent(out):: energy
       real(8),dimension(3,at%nat),intent(out):: fxyz
+      !real(8),intent(out):: fnoise
+      real(8):: fnoise
     end subroutine linearScaling
     
     
