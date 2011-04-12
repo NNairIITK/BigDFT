@@ -20,7 +20,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   type(orbitals_data), intent(out) :: orbs
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
-  character(len=*), parameter :: subname='orbitals_descriptors'
+  character(len=*), parameter :: subname='system_properties'
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty
 
@@ -779,8 +779,8 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
 END SUBROUTINE atomic_occupation_numbers
 
 
-!>    Define the descriptors of the orbitals from a given norb
-!!    It uses the cubic strategy for partitioning the orbitals
+!> Define the descriptors of the orbitals from a given norb
+!! It uses the cubic strategy for partitioning the orbitals
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
   use module_base
   use module_types
