@@ -676,9 +676,19 @@ inline void fft_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uin
 
 inline void fft_generated_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     cl_int ciErrNum;
+    cl_uint shared_size_used=0;
+    if(*n <= 64)
+       shared_size_used=512;
+    else if(*n <= 256)
+       shared_size_used=1024;
     int FFT_LENGTH=(*n / 16) * 16 + (*n % 16 ? 16 : 0);
-    int LINE_NUMBER=(128/FFT_LENGTH) & (~1);
-    if( LINE_NUMBER<1 )
+    int LINE_LIMIT=(shared_size_used/FFT_LENGTH) & (~3);
+    int LINE_NUMBER = 1;
+    while( LINE_LIMIT /= 2 )
+      LINE_NUMBER *= 2;
+    if( LINE_NUMBER > FFT_LENGTH )
+       LINE_NUMBER = FFT_LENGTH;
+    if( LINE_NUMBER < 1 )
        LINE_NUMBER=1;
     size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER;
     cl_uint i = 0;

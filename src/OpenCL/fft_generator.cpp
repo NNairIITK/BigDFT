@@ -17,6 +17,7 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   char* output;
   unsigned int buffer_length;
   unsigned int buffer_width;
+  unsigned int buffer_limit;
   cl_uint i;
   cl_uint fft_size_o=fft_size;
   for(i=0; i<fft_size; i++){
@@ -300,13 +301,20 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   out[jl][il]=tmp;\
 }\n\
 ";
-
+  cl_uint shared_size_used=0;
+  if(fft_size <= 64)
+    shared_size_used=512;
+  else if(fft_size <= 256)
+    shared_size_used=1024;
   buffer_length = (fft_size / 16) * 16 + (fft_size % 16 ? 16 : 0);
-//  std::cout<<"buffer length : "<<buffer_length<<std::endl;
-  buffer_width = (128/buffer_length) & (~1);
+  buffer_limit = (shared_size_used/buffer_length);
+  buffer_width = 1;
+  while( buffer_limit /= 2 )
+    buffer_width *= 2;
+  if( buffer_width > buffer_length)
+    buffer_width = buffer_length;
   if( buffer_width < 1 )
     buffer_width = 1;
-//  std::cout<<"buffer width : "<<buffer_width<<std::endl;
 
   program<<"#undef FFT_LENGTH\n\
 #define FFT_LENGTH "<<buffer_length<<"\n\
