@@ -379,6 +379,7 @@ iaseg0=1
      jaj=keyav_f(iaseg0)
      length = jb1-jb0
      iaoff = jb0-keyag_f_lin(iaseg0)
+     !print *,ibseg,jb0,iaseg0,keyag_f_lin(iaseg0),maseg_f
      do i=0,length
         scpr1=scpr1+real(apsi_f(1,jaj+iaoff+i),dp)*real(bpsi_f(1,jbj+i),dp)
         scpr2=scpr2+real(apsi_f(2,jaj+iaoff+i),dp)*real(bpsi_f(2,jbj+i),dp)
@@ -597,7 +598,7 @@ END SUBROUTINE waxpy
 
 
 SUBROUTINE hunt(xx,n,x,jlo)
-
+  implicit none
   integer jlo,n
   integer x,xx(n)
   integer inc,jhi,jm
@@ -606,37 +607,45 @@ SUBROUTINE hunt(xx,n,x,jlo)
   ascnd=xx(n).ge.xx(1)
   
   if(jlo.le.0.or.jlo.gt.n)then
+
       jlo=0
       jhi=n+1
   
       call locate(xx,n,x,jlo)
        
-  else      
+  else
       inc=1
      if(x.ge.xx(jlo).eqv.ascnd)then
         jhi=jlo+inc
-        do while(x.ge.xx(jhi).eqv.ascnd)
-            if(jhi.gt.n)then
-               jhi=n+1
-               exit
-            else
-               jlo=jhi
-               inc=inc+inc
-               jhi=jlo+inc
-            endif
+        do while((x.ge.xx(min(jhi,n)).eqv.ascnd) .and. (jhi <= n))
+           !if(jhi.gt.n)then
+           !    jhi=n+1
+           !    exit
+           ! else
+           jlo=jhi
+           inc=inc+inc
+           jhi=jlo+inc
+           ! endif
         end do
+        if(jhi.gt.n)then
+           jhi=n+1
+        end if
+        !print *, 'here',jlo,jhi,x,xx(min(jhi,n)),ascnd
      else
         jhi=jlo
         jlo=jhi-inc
-        do while(x.lt.xx(jlo).eqv.ascnd)
-            if(jlo.lt.1)then
-               jlo=0
-            else
-               jhi=jlo
-               inc=inc+inc
-               jlo=jhi-inc
-            endif
+        do while(x.lt.xx(max(jlo,1)).eqv.ascnd .and. jlo >= 1)
+           !if(jlo.lt.1)then
+           !    jlo=0
+           ! else
+           jhi=jlo
+           inc=inc+inc
+           jlo=jhi-inc
+           ! endif
         enddo
+        if(jlo.lt.1)then
+           jlo=0
+        end if
      endif
      call locate(xx,n,x,jlo)
   endif    
@@ -644,7 +653,7 @@ END SUBROUTINE hunt
 
 
 SUBROUTINE locate(xx,n,x,j)
-
+  implicit none
   integer j,n
   integer x,xx(n)
   integer jl,jm,ju
@@ -652,7 +661,7 @@ SUBROUTINE locate(xx,n,x,j)
   jl=0
   ju=n+1
 
-  do while(ju-jl.gt.1)
+  do while(ju-jl > 1)
     jm=(ju+jl)/2
     if((xx(n).ge.xx(1)).eqv.(x.ge.xx(jm)))then
       jl=jm

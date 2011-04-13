@@ -436,8 +436,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         if (etot > etotprev+anoise) then
 
            if (iproc.eq.0 .and. parmin%verbosity > 0) &
-                & write(16,*) 'switching back to SD:etot,etotprev',it,etot,etotprev
-           if (iproc.eq.0) write(*,*) ' switching back to SD:etot,etotprev',it,etot,etotprev
+                & write(16,'(a,i5,2(1pe20.12))') 'switching back to SD:etot,etotprev',it,etot,etotprev
+           if (iproc.eq.0) write(*,'(a,i5,2(1pe20.12))') ' switching back to SD:etot,etotprev',it,etot,etotprev
            do iat=1,at%nat
               rxyz(1,iat)=tpos(1,iat)
               rxyz(2,iat)=tpos(2,iat)
@@ -660,10 +660,11 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   redo_sd: do
      if (ncount_bigdft.gt.in%ncount_cluster_x) then 
         if (iproc.eq.0) then
-           write(*,*) 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
+           write(*,'(a,i6,i6,i6)') 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
            if (parmin%verbosity > 0) then
-              write(16,*) 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
-              write(16,*) 'SDCG exited before the geometry optimization converged because more than ', & 
+              write(16,'(a,i6,i6,i6)') &
+                   'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
+              write(16,'(a,i6,a)') 'SDCG exited before the geometry optimization converged because more than ', & 
                    in%ncount_cluster_x,' wavefunction optimizations were required'
            end if
         end if
