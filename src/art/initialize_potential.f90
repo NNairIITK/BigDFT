@@ -1,14 +1,14 @@
-!!****f* bart/initialize_potential
-!! FUNCTION
-!!   Initialize the potential
-!! COPYRIGHT
+!> @file
+!!  Routines to initialize the potential
+!! @author
 !!   Copyright (C) 2010 BigDFT group, Normand Mousseau
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+
+!>   Initialize the potential
 subroutine initialize_potential()
 
   use defs
@@ -32,14 +32,9 @@ subroutine initialize_potential()
   pos(:) = posa(:)
 
 END SUBROUTINE initialize_potential
-!!***
 
 
-!!****f* bart/finalise_potential
-!! FUNCTION
-!!   Finalize the potential
-!! SOURCE
-!!
+!>   Finalize the potential
 subroutine finalise_potential()
 
   use bigdft_forces
@@ -48,4 +43,3 @@ subroutine finalise_potential()
   
   call bigdft_finalise()
 END SUBROUTINE finalise_potential
-!!***

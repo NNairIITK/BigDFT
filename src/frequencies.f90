@@ -1,24 +1,20 @@
-!!****p* BigDFT/frequencies
-!!
-!! DESCRIPTION
-!!  Calculate vibrational frequencies by frozen phonon approximation.
-!!  Use a file 'frequencies.res' to restart calculations.
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2010 CEA, UNIBAS
+!> @file
+!!  Routines to do frequencies calculation by finite difference
+!! @author
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! TODO
+!! @todo
 !!  Add higher order for finite difference
 !!  Maybe possibility to use Lanczos to determine lowest frequencies
-!!  Zero-point energy
-!!  Vibrational entropy
-!!
-!! SOURCE
-!!
+!!  Indicate correct formulae for entropy
+
+
+!>  Calculate vibrational frequencies by frozen phonon approximation.
+!!  Use a file 'frequencies.res' to restart calculations.
 program frequencies
 
   use module_base
@@ -28,7 +24,13 @@ program frequencies
 
   implicit none
 
+  !Parameters
   character(len=*), parameter :: subname='frequencies'
+  !if |freq1-freq2|<tol_freq, freq1 and freq2 are identical
+  real(gp), parameter :: tol_freq=1.d-11
+  !Temperature (300K)
+  real(gp), parameter :: Temperature=300.0_gp
+
   character(len=4) :: cc
   !File unit
   integer, parameter :: u_hessian=20
@@ -45,7 +47,9 @@ program frequencies
   real(gp), dimension(:,:), pointer :: rxyz
   ! hessian, eigenvectors
   real(gp), dimension(:,:), allocatable :: hessian,vector_l,vector_r
-  real(gp), dimension(:), allocatable :: eigen_r,eigen_i
+  real(gp), dimension(:), allocatable :: eigen_r,eigen_i,sort_work
+  !Array to sort eigenvalues
+  integer, dimension(:), allocatable :: iperm
   !Array which indicates moves to calculate for a given direction
   integer, dimension(:), allocatable :: kmoves
   ! logical: .true. if already calculated
@@ -53,7 +57,7 @@ program frequencies
   real(gp), dimension(:,:), allocatable :: energies
   real(gp), dimension(:,:,:), allocatable :: forces
   real(gp), dimension(3) :: freq_step
-  real(gp) :: zpenergy
+  real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy
   integer :: k,km,ii,jj,ik,imoves,order,n_order
   logical :: exists
  
@@ -135,7 +139,7 @@ program frequencies
   call frequencies_read_restart(atoms%nat,n_order,imoves,moves,energies,forces,freq_step,atoms%amu,etot)
   !Message
   if (iproc == 0) then
-     write(*,'(1x,a,i6,a,i6,a)') '=F=> There are', imoves, ' moves already calculated over', &
+     write(*,'(1x,a,i0,a,i0,a)') '=F=> There are ', imoves, ' moves already calculated over ', &
                                  n_order*3*atoms%nat,' frequencies.'
      write(*,*)
   end if
@@ -155,23 +159,11 @@ program frequencies
   if (iproc == 0) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
 
   if (iproc == 0) then
-!!$     sumx=0.d0
-!!$     sumy=0.d0
-!!$     sumz=0.d0
      write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
      do iat=1,atoms%nat
         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
              iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(i+3*(iat-1)),i=1,3)
-!!$        sumx=sumx+fxyz(1 + 3*(iat-1))
-!!$        sumy=sumy+fxyz(2 + 3*(iat-1))
-!!$        sumz=sumz+fxyz(3 + 3*(iat-1))
      end do
-!!$     if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-!!$        write(*,'(1x,a)')'the sum of the forces is'
-!!$        write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-!!$        write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-!!$        write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-!!$     end if
   end if
 
   if (iproc == 0) then
@@ -235,10 +227,6 @@ program frequencies
            call frequencies_write_restart(iproc,km,i,iat,rpos,etot,fpos(:,km))
            moves(km,ii) = .true.
            call restart_inputs(inputs)
-           if (iproc == 0) then
-              write(*,'(1x,a,81("="))') '=F '
-              write(*,*)
-           end if
         end do
         ! Build the Hessian
         do jat=1,atoms%nat
@@ -288,13 +276,26 @@ program frequencies
   call memocc(i_stat,vector_r,'vector_r',subname)
   allocate(vector_l(3*atoms%nat,3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,vector_l,'vector_l',subname)
+  allocate(sort_work(3*atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,sort_work,'sort_work',subname)
+  allocate(iperm(3*atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,iperm,'iperm',subname)
 
   !Diagonalise the hessian matrix
   call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
+  !Sort eigenvalues in ascending order (use abinit routine sort_dp)
+  sort_work=eigen_r
+  do i=1,3*atoms%nat
+     iperm(i)=i
+  end do
+  call sort_dp(3*atoms%nat,sort_work,iperm,tol_freq)
 
   if (iproc == 0) then
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(1:3*atoms%nat)
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(1:3*atoms%nat)
+     write(*,*)
+     write(*,'(1x,a,81("="))') '=F '
+     write(*,*)
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r(iperm(3*atoms%nat:1:-1))
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i(iperm(3*atoms%nat:1:-1))
      do i=1,3*atoms%nat
         if (eigen_r(i)<0.0_dp) then
            eigen_r(i)=-sqrt(-eigen_r(i))
@@ -302,46 +303,56 @@ program frequencies
            eigen_r(i)= sqrt( eigen_r(i))
        end if
      end do
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(1:3*atoms%nat)
-     write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(1:3*atoms%nat)*Ha_cmm1
-     !Build frequencies.xyz
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r(iperm(3*atoms%nat:1:-1))
+     write(*,'(1x,a,1x,100(f13.2))')    '=F: frequencies (cm-1)      =',eigen_r(iperm(3*atoms%nat:1:-1))*Ha_cmm1
+     !Build frequencies.xyz in descending order
      open(unit=15,file='frequencies.xyz',status="unknown")
-     do i=1,3*atoms%nat
-         write(15,'(1x,i0,1x,1pe20.10,a)') atoms%nat,eigen_r(i)
+     do i=3*atoms%nat,1,-1
+         write(15,'(1x,i0,1x,1pe20.10,a)') atoms%nat,eigen_r(iperm(i))
          write(15,'(1x,a)') 'Frequency'
          do iat=1,atoms%nat
             ity=atoms%iatype(iat)
             do j=1,3
                 write(15,'(1x,a,1x,100(1pe20.10))') &
-                  atoms%atomnames(ity),vector_l(3*(iat-1)+j,i)
+                  atoms%atomnames(ity),vector_l(3*(iat-1)+j,iperm(i))
             end do
          end do
          !Blank line
          write(15,*)
      end do
      close(unit=15)
-     zpenergy = 0.5_gp*sum(eigen_r(1:3*atoms%nat))
-     write(*,'(1x,a,1x,1pe20.10)') '=F: Zero-point energy (Hartree)   =',zpenergy
-     write(*,'(1x,a,1x,f13.2)')    '=F: Zero-point energy (cm-1)      =',zpenergy*Ha_cmm1
+     !Vibrational entropy of the molecule
+     ! See : http://www.codessa-pro.com/descriptors/thermodynamic/entropy.htm)
+     !       http://www.ncsu.edu/chemistry/franzen/public_html/CH795N/lecture/XIV/XIV.html
+     !Zero-point energy
+     zpenergy = 0.0_gp
+     vibrational_energy=0.0_gp
+     vibrational_entropy=0.0_gp
+     !iperm: ascending order
+     !Remove almost zero frequencies
+     do i=6,3*atoms%nat
+        freq_exp=exp(eigen_r(iperm(i))*Ha_K/Temperature)
+        freq2_exp=exp(-eigen_r(iperm(i))*Ha_K/(2.0_gp*Temperature))
+        zpenergy=zpenergy+0.5_gp*eigen_r(iperm(i))
+        vibrational_energy=vibrational_entropy+eigen_r(iperm(i))*(0.5_gp+1.0_gp/(freq_exp-1.0_gp))
+        vibrational_entropy=vibrational_entropy + eigen_r(iperm(i))*freq2_exp/(1.0_gp-freq2_exp) - log(1.0_gp-freq2_exp)
+     end do
+     !Multiply by 1/kT
+     vibrational_entropy=vibrational_entropy*Ha_K/Temperature
+     total_energy=energies(1,0)+vibrational_energy
+     write(*,'(1x,a,81("="))') '=F '
+     write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a)') &
+          '=F: Zero-point energy   =', zpenergy*Ha_cmm1, 'cm-1',zpenergy,'Hartree'
+     write(*,'(1x,a,1pe22.10,a,0pf5.1,a)') &
+          '=F: Vibrational entropy =', vibrational_entropy,' at ',Temperature,'K'
+     write(*,'(1x,a,f13.2,1x,a,5x,1pe20.10,1x,a,0pf5.1,a)') &
+          '=F: Vibrational  energy =', vibrational_energy*Ha_cmm1, 'cm-1',vibrational_energy,'Hartree at ',Temperature,'K'
+     write(*,'(1x,a,1pe22.10,1x,a,0pf5.1,a)') &
+          '=F: Total energy        =', total_energy,'Hartree at ',Temperature,'K'
   end if
 
   !Deallocations
-  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
-  deallocate(atoms%ifrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
-  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
-  deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%iatype',subname)
-  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-  deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%natpol',subname)
-  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-  deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%atomnames',subname)
-  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-  deallocate(atoms%amu,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%amu',subname)
-  if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
+  call deallocate_atoms(atoms,subname)
 
   call free_restart_objects(rst,subname)
 
@@ -367,6 +378,14 @@ program frequencies
   i_all=-product(shape(vector_r))*kind(vector_r)
   deallocate(vector_r,stat=i_stat)
   call memocc(i_stat,i_all,'vector_r',subname)
+
+  i_all=-product(shape(iperm))*kind(iperm)
+  deallocate(iperm,stat=i_stat)
+  call memocc(i_stat,i_all,'iperm',subname)
+  i_all=-product(shape(sort_work))*kind(sort_work)
+  deallocate(sort_work,stat=i_stat)
+  call memocc(i_stat,i_all,'sort_work',subname)
+  
   i_all=-product(shape(moves))*kind(moves)
   deallocate(moves,stat=i_stat)
   call memocc(i_stat,i_all,'moves',subname)
@@ -561,9 +580,9 @@ contains
 
 
 END PROGRAM frequencies
-!!***
 
 
+!> Integrate forces (not used)
 subroutine integrate_forces(iproc,energies,forces,n_moves,nat)
 
   use module_base

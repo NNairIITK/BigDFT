@@ -189,7 +189,7 @@ contains
     implicit none
 
     integer :: i
-    character(len=500) :: message
+!   character(len=500) :: message
 
 #if defined HAVE_LIBXC
     do i = 1, 2
@@ -233,7 +233,7 @@ contains
 !Local variables-------------------------------
 
     logical :: libxc_functionals_isgga
-    character(len=500) :: message
+!   character(len=500) :: message
 
 ! *************************************************************************
 
@@ -272,8 +272,8 @@ contains
 
 !Local variables-------------------------------
 
-    logical :: libxc_functionals_needexctX
-    character(len=500) :: message
+!   logical :: libxc_functionals_needexctX
+!   character(len=500) :: message
 
 ! *************************************************************************
 
@@ -374,7 +374,7 @@ contains
     integer  :: i, ipts
     real(dp) :: rhotmp(nspden), exctmp, sigma(3), vsigma(3), vxctmp(nspden)
     real(dp) :: lrhotmp(nspden), tautmp(nspden), vxclrhotmp(nspden), vxctautmp(nspden)
-   character(len=500) :: message
+!  character(len=500) :: message
 
 ! *************************************************************************
 

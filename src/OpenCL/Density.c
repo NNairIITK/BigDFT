@@ -1,3 +1,14 @@
+//! @file
+//!  Wrappers for OpenCL
+//!
+//! @author
+//!    Copyright (C) 2009-2011 BigDFT group 
+//!    This file is distributed under the terms of the
+//!    GNU General Public License, see ~/COPYING file
+//!    or http://www.gnu.org/copyleft/gpl.txt .
+//!    For the list of contributors, see ~/AUTHORS 
+
+
 #include "OpenCL_wrappers.h"
 
 
@@ -27,7 +38,6 @@ void FC_FUNC_(ocl_locden,OCL_LOCDEN)(bigdft_command_queue *command_queue,
                                      cl_uint *dimensions,
                                      cl_uint *periodic,
                                      double *hfac,
-                                     cl_uint *iaddjmp,
                                      cl_uint *nseg_c, cl_uint *nvctr_c, cl_mem *keyg_c, cl_mem *keyv_c, 
                                      cl_uint *nseg_f, cl_uint *nvctr_f, cl_mem *keyg_f, cl_mem *keyv_f,
                                      cl_mem *psi_c, cl_mem *psi_f,
@@ -40,8 +50,7 @@ void FC_FUNC_(ocl_locden,OCL_LOCDEN)(bigdft_command_queue *command_queue,
                  psi_c, psi_f, out);
    syn_self_d_generic_(command_queue, dimensions, periodic, out, psi);
    magicfilter_den_d_generic_(command_queue, dimensions, periodic, work, psi, out);
-   cl_uint offset=0;
    cl_uint ndat = (dimensions[0]*2 + (periodic[0]?0:14+15)) * (dimensions[1]*2 + (periodic[1]?0:14+15)) * (dimensions[2]*2 + (periodic[2]?0:14+15));
-   axpy_offset_self_d_(command_queue, &ndat, hfac, &offset, out, iaddjmp, pot);
+   axpy_self_d_(command_queue, &ndat, hfac, out, pot);
 }
  

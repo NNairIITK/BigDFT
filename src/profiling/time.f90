@@ -1,14 +1,14 @@
-!!****m* BigDFT/timeData
-!! FUNCTION
-!!    Contains variables used a timing for BigDFT
-!! COPYRIGHT
+!> @file
+!!  Define routines for timing
+!! @author
 !!    Copyright (C) 2010, BigDFT group (Luigi Genovese)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+
+!>    Contains variables used a timing for BigDFT
 module timeData
 
   implicit none
@@ -21,10 +21,9 @@ module timeData
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
   character(len=10), dimension(ncat) :: pcnames !names of the partial counters, to be assigned
 end module timeData
-!!***
 
 
-!the same timing routine but with system_clock (in case of a supported specs)
+!> The same timing routine but with system_clock (in case of a supported specs)
 subroutine timing(iproc,category,action)
   use timeData
 
@@ -43,27 +42,27 @@ subroutine timing(iproc,category,action)
   real(kind=8) :: pc,total_pc,total
 
   character(len=14), dimension(ncat), parameter :: cats = (/ &
-       'ReformatWaves '    ,  &  !  Reformatting of input waves
-       'CrtDescriptors'    ,  &  !  Calculation of descriptor arrays
-       'CrtLocPot     '    ,  &  !  Calculation of local potential
-       'CrtProjectors '    ,  &  !  Calculation of projectors
-       'ApplyLocPotKin'    ,  &  !  Application of PSP, kinetic energy
-       'ApplyProj     '    ,  &  !  Application of nonlocal PSP
-       'Precondition  '    ,  &  !  Precondtioning
-       'Rho_comput    '    ,  &  !  Calculation of charge density (sumrho) computation
-       'Rho_commun    '    ,  &  !  Calculation of charge density (sumrho) communication
-       'Un-TransSwitch'    ,  &  !  Transposition of wavefunction, computation
-       'Un-TransComm  '    ,  &  !  Transposition of wavefunction, communication
-       'GramS_comput  '    ,  &  !  Gram Schmidt computation        
-       'GramS_commun  '    ,  &  !  Gram Schmidt communication
-       'LagrM_comput  '    ,  &  !  Lagrange Multipliers computation
-       'LagrM_commun  '    ,  &  !  Lagrange Multipliers communication
-       'Diis          '    ,  &  !
-       'PSolv_comput  '    ,  &  !
-       'PSolv_commun  '    ,  &  !
-       'PSolvKernel   '    ,  &  !
-       'Exchangecorr  '    ,  &  !
-       'Forces        '    ,  &  !
+       'ReformatWaves '    ,  &  !< Reformatting of input waves
+       'CrtDescriptors'    ,  &  !< Calculation of descriptor arrays
+       'CrtLocPot     '    ,  &  !< Calculation of local potential
+       'CrtProjectors '    ,  &  !< Calculation of projectors
+       'ApplyLocPotKin'    ,  &  !< Application of PSP, kinetic energy
+       'ApplyProj     '    ,  &  !< Application of nonlocal PSP
+       'Precondition  '    ,  &  !< Precondtioning
+       'Rho_comput    '    ,  &  !< Calculation of charge density (sumrho) computation
+       'Rho_commun    '    ,  &  !< Calculation of charge density (sumrho) communication
+       'Un-TransSwitch'    ,  &  !< Transposition of wavefunction, computation
+       'Un-TransComm  '    ,  &  !< Transposition of wavefunction, communication
+       'GramS_comput  '    ,  &  !< Gram Schmidt computation        
+       'GramS_commun  '    ,  &  !< Gram Schmidt communication
+       'LagrM_comput  '    ,  &  !< Lagrange Multipliers computation
+       'LagrM_commun  '    ,  &  !< Lagrange Multipliers communication
+       'Diis          '    ,  &  
+       'PSolv_comput  '    ,  &  
+       'PSolv_commun  '    ,  &  
+       'PSolvKernel   '    ,  &  
+       'Exchangecorr  '    ,  &  
+       'Forces        '    ,  &  
        'Tail          '    ,  &
        'Loewdin_comput'    ,  &
        'Loewdin_commun'    ,  &
@@ -73,7 +72,7 @@ subroutine timing(iproc,category,action)
        'GS/Chol_commun'    ,  &
        'Input_comput  '    ,  &
        'Input_commun  '    ,  &
-       'Davidson      '    /)    !
+       'Davidson      '    /)
 
   !first of all, read the time
   call system_clock(itime,count_rate,count_max)
@@ -160,7 +159,8 @@ subroutine timing(iproc,category,action)
            total_pc=0.d0
            do i=1,ncounters
               pc=100.d0*timesum(i)/sum(timesum(1:ncounters))
-              if (timesum(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
+!!              if (timesum(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
+              write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
               total_pc=total_pc+pc
            enddo
            write(60,'(70("-"))')
@@ -287,7 +287,8 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      total_pc=0.d0
      do i=1,ncat
         pc=100.d0*timetot(i)/timetot(ncat+1)!real(total,kind=8)
-        if (timetot(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
+!!        if (timetot(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
+        write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
         total_pc=total_pc+pc
      enddo
      write(60,'(70("-"))')

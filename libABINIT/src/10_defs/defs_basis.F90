@@ -8,7 +8,7 @@
 !! physical constants.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2010 ABINIT group (HM, XG,XW)
+!! Copyright (C) 2000-2011 ABINIT group (HM, XG,XW)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -24,7 +24,7 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
 module defs_basis
@@ -41,8 +41,8 @@ module defs_basis
  integer, parameter :: i8b=selected_int_kind(18)
 
 !nb of bytes related to default simple-precision real/complex subtypes
-!(= 4 for many machine architectures, = 8 for Cray T3E for instance)
-! integer, parameter :: sp=kind(1.0)          ! Single precision should not be used
+!(= 4 for many machine architectures, = 8 for e.g. Cray)
+ integer, parameter :: sp=kind(1.0)          ! Single precision should not be used
  integer, parameter :: spc=kind((1.0,1.0))
 
 !nb of bytes related to default double-precision real/complex subtypes
@@ -53,7 +53,6 @@ module defs_basis
 
 !nb of bytes related to GW arrays, that can be tuned from sp to dp independently
 !of other variables in ABINIT. Presently single precision is the default.
-
 #if defined HAVE_GW_DPC
  integer, parameter :: gwp=kind(1.0d00)
  integer, parameter :: gwpc=kind((1.0_dp,1.0_dp))
@@ -82,12 +81,13 @@ module defs_basis
  !integer, parameter :: integer_not_used=0
  !logical, parameter :: logical_not_used=.true.
 
-!UNIX unit numbers : standard input, standard output, ab_out, and a number
-!for temporary access to a file.
- integer, parameter :: std_in=5,ab_in=5  ! generally, the number 5 is directly used
- integer, parameter :: std_out=6         ! generally, the number 6 is directly used
+!UNIX unit numbers : standard input, standard output, ab_out, and a number for temporary access to a file.
+ integer, parameter :: std_in=5,ab_in=5  ! Please, use these named constants instead of write(6,*),
+ integer, parameter :: std_out=6         ! it makes the code more readable and easier to change.
+ integer, parameter :: std_err=0         
  integer, parameter :: ab_out=7
- integer, parameter :: ab_xml_out = 50  ! this unit is used to print output into an XML file
+ integer, parameter :: dev_null=-1       ! Fake unit number used to skip the printing in wrtout.
+ integer, parameter :: ab_xml_out = 50   ! this unit is used to print output into an XML file
  integer, parameter :: tmp_unit=9,tmp_unit2=10
 
 !The 3x3 identity matrix
@@ -145,6 +145,8 @@ module defs_basis
 !Real precision
  real(dp), parameter :: greatest_real = huge(one)
  real(dp), parameter :: smallest_real = -greatest_real
+ !real(dp), parameter :: tol1= 0.1_dp
+ !real(dp), parameter :: tol2= 0.01_dp
  real(dp), parameter :: tol3= 0.001_dp
  real(dp), parameter :: tol4= 0.0001_dp
  real(dp), parameter :: tol5= 0.00001_dp
@@ -195,6 +197,7 @@ module defs_basis
  real(dp), parameter :: InvFineStruct=137.035999679_dp  ! Inverse of fine structure constant
  real(dp), parameter :: Sp_Lt=2.99792458d8/2.1876912633d6 ! speed of light in atomic units
  real(dp), parameter :: Time_Sec=2.418884326505D-17 !  Atomic unit of time, in seconds
+ real(dp), parameter :: BField_Tesla=0.0 ! Atomic unit of induction field, in Tesla.
 
 !Complex constants
  complex(dpc), parameter :: czero=(0._dp,0._dp)
@@ -208,14 +211,18 @@ module defs_basis
  integer, parameter :: abinit_comm_serial = -12345
 
  ! Error codes used by the bindings.
- integer, parameter, public :: AB6_NO_ERROR                = 0
- integer, parameter, public :: AB6_ERROR_OBJ               = 1
- integer, parameter, public :: AB6_ERROR_ARG               = 2
- integer, parameter, public :: AB6_ERROR_INVARS_ATT        = 3
- integer, parameter, public :: AB6_ERROR_INVARS_ID         = 4
- integer, parameter, public :: AB6_ERROR_INVARS_SIZE       = 5
- integer, parameter, public :: AB6_ERROR_SYM_NOT_PRIMITIVE = 6
- integer, parameter, public :: AB6_ERROR_SYM_BRAVAIS_XRED  = 7
+ integer, parameter, public :: AB6_NO_ERROR                 =  0
+ integer, parameter, public :: AB6_ERROR_OBJ                =  1
+ integer, parameter, public :: AB6_ERROR_ARG                =  2
+ integer, parameter, public :: AB6_ERROR_INVARS_ATT         =  3
+ integer, parameter, public :: AB6_ERROR_INVARS_ID          =  4
+ integer, parameter, public :: AB6_ERROR_INVARS_SIZE        =  5
+ integer, parameter, public :: AB6_ERROR_SYM_NOT_PRIMITIVE  =  6
+ integer, parameter, public :: AB6_ERROR_SYM_BRAVAIS_XRED   =  7
+ integer, parameter, public :: AB6_ERROR_MIXING_ARG         =  8
+ integer, parameter, public :: AB6_ERROR_MIXING_CONVERGENCE =  9
+ integer, parameter, public :: AB6_ERROR_MIXING_INTERNAL    = 10
+ integer, parameter, public :: AB6_ERROR_MIXING_INC_NNSLOOP = 11
 
 ! Values of optdriver corresponding to the different run-levels. 
  integer, parameter, public :: RUNL_GSTATE     = 0
@@ -229,12 +236,13 @@ module defs_basis
  integer, parameter, public :: RUNL_BSE        = 99 !9
 
 ! Flags defining the method used for performing IO (input variable accesswff)
- integer, parameter, public :: IO_MODE_FORTRAN = 0
- integer, parameter, public :: IO_MODE_MPI     = 1
- integer, parameter, public :: IO_MODE_NETCDF  = 2 ! Only for legacy code, should not be used for new implementations.
- integer, parameter, public :: IO_MODE_ETSF    = 3
+ integer, parameter, public :: IO_MODE_FORTRAN_MASTER = -1
+ integer, parameter, public :: IO_MODE_FORTRAN        =  0
+ integer, parameter, public :: IO_MODE_MPI            =  1
+ integer, parameter, public :: IO_MODE_NETCDF         =  2 ! Only for legacy code, should not be used for new implementations.
+ integer, parameter, public :: IO_MODE_ETSF           =  3
 
-CONTAINS  !=========================================================================================================================
+CONTAINS  !==============================================================================
 !!***
 
 !!****f* defs_basis/get_reclen
@@ -314,6 +322,71 @@ function get_reclen(str) result(rcl)
  END SELECT
 
 end function get_reclen
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* defs_basis/print_kinds
+!! NAME
+!! print_kinds
+!!
+!! FUNCTION
+!! Prints info on the basic data types, e.g. kind, precision...
+!!
+!! INPUTS
+!!   unit = Unit number for output file.
+!!
+!! OUTPUT
+!!   Only printing.
+!!
+!! PARENTS
+!!      abinit,leave_new
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+ subroutine print_kinds(unit)
+
+ !Arguments ------------------------------------
+
+ integer,optional,intent(in) :: unit
+
+ !Local variables-------------------------------
+ integer :: my_unt
+ !character(len=500) :: msg
+ ! *********************************************************************
+
+ my_unt=std_out; if (PRESENT(unit)) my_unt = unit
+
+ write(my_unt,'(a)')' DATA TYPE INFORMATION: '
+
+ write(my_unt,'(a,/,2(a,i6,/),2(a,e14.8,/),a,e14.8)')&
+& ' REAL:      Data type name: REAL(DP) ',&
+& '            Kind value: ',KIND(0.0_dp),&
+& '            Precision:  ',PRECISION(0.0_dp),&
+& '            Smallest nonnegligible quantity relative to 1: ',EPSILON(0.0_dp),&
+& '            Smallest positive number:                      ',TINY(0.0_dp),&
+& '            Largest representable number:                  ',HUGE(0.0_dp)
+
+ write(my_unt,'(a,/,2(a,i0,/),a,i0)')&
+  ' INTEGER:   Data type name: INTEGER(default) ', &
+& '            Kind value: ',KIND(0),              &
+& '            Bit size:   ',BIT_SIZE(0),          &
+  '            Largest representable number: ',HUGE(0)
+
+ write(my_unt,'(a,/,a,i0)')&
+& ' LOGICAL:   Data type name: LOGICAL ',&
+& '            Kind value: ',KIND(.TRUE.)
+
+ write(my_unt,'(2a,i0)')&
+& ' CHARACTER: Data type name: CHARACTER ',&
+& '            Kind value: ',KIND('C')
+
+end subroutine print_kinds
+
+!----------------------------------------------------------------------
 
 end module defs_basis
 !!***
+

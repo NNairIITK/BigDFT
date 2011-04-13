@@ -1,16 +1,14 @@
-!!****f* BigDFT/check_gaussian_expansion
-!! FUNCTION
-!!  Control the accuracy of the expansion in gaussian
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group (LG)
+!> @file
+!!  Routines to check the accuracy of the gaussian expansion
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>  Control the accuracy of the expansion in gaussian
 subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
@@ -64,8 +62,9 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   call memocc(i_stat,i_all,'workpsi',subname)
 
 END SUBROUTINE check_gaussian_expansion
-!!***
 
+
+!> Parse the output of CP2K to read the basis set information
 subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
      CP2K,wfn_cp2k)
   use module_base
@@ -94,7 +93,6 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
   real(gp), dimension(:,:,:), allocatable :: contcoeff,expo
   real(wp), dimension(:,:,:,:), allocatable :: cimu
 
-  !parse the output of CP2K to read the basis set information
 
   if (iproc==0) write(*,'(1x,a)',advance='no')&
        'Reading Basis Set information and wavefunctions coefficients...'
@@ -423,6 +421,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
 
 END SUBROUTINE parse_cp2k_files
 
+
 subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
   use module_base
   use module_types
@@ -568,6 +567,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
 END SUBROUTINE gaussians_to_wavelets
 
+
 subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
   use module_base
   use module_types
@@ -603,11 +603,11 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
      end if
      totnorm=0.0_dp
      do ispinor=1,orbs%nspinor,ncplx
-        !print *,'start',ispinor,ncplx,iorb,orbs%nspinor
+        !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
         call gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,&
              wfn_gau(1,ispinor,iorb),psi(1,ispinor,iorb))
-        !print *,'end',ispinor,ncplx,iorb,orbs%nspinor
+        !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         call wnrm_wrap(ncplx,lr%wfd%nvctr_c,lr%wfd%nvctr_f,psi(1,ispinor,iorb),scpr) 
         totnorm=totnorm+scpr
      end do
@@ -740,6 +740,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                  end do
               end do
               nterms=nterms+nterm*ng
+              !print *,'nterms',nterms,nterms_max
            end if
            icoeff=icoeff+1
         end do
@@ -766,12 +767,11 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   deallocate(work,stat=i_stat)
   call memocc(i_stat,i_all,'work',subname)
 
-
-
 END SUBROUTINE gaussians_to_wavelets_orb
 
-!accumulate 3d wavefunction in complex form from a tensor produc decomposition
-!universal routine which should be used for all gautowav operations
+
+!> Accumulate 3d wavefunction in complex form from a tensor produc decomposition
+!! universal routine which should be used for all gautowav operations
 subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   use module_base
   use module_types
@@ -785,7 +785,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
   real(wp) :: re_cmplx_prod,im_cmplx_prod
-!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+  !!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
 
   !the filling of the wavefunction should be different if ncplx==1 or 2
   !split such as to avoid intensive call to if statements
@@ -815,7 +815,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
      end do
 
      if (nvctr /=  lr%wfd%nvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
      !!$  end if
@@ -847,7 +847,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /= lr%wfd%nvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
      !!$  end if
@@ -872,7 +872,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /=  lr%wfd%nvctr_c) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_c ',nvctr,lr%wfd%nvctr_c
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_c ',nvctr,lr%wfd%nvctr_c
         stop
      end if
      !!$  end if
@@ -904,7 +904,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
         end do
      end do
      if (nvctr /= lr%wfd%nvctr_f) then
-        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr >< nvctr_f ',nvctr,lr%wfd%nvctr_f
+        write(*,'(1x,a,i0,1x,i0)')' ERROR: nvctr /= nvctr_f ',nvctr,lr%wfd%nvctr_f
         stop 
      end if
      !!$  end if
@@ -958,6 +958,7 @@ subroutine wfn_from_tensprod(lr,ncplx,nterm,wx,wy,wz,psi)
 
 END SUBROUTINE wfn_from_tensprod
 
+
 subroutine segments_to_grid(keyv,keyg,grid,i0,i1,i2,i3,jj)
   use module_base
   use module_types
@@ -979,7 +980,6 @@ subroutine segments_to_grid(keyv,keyg,grid,i0,i1,i2,i3,jj)
   i0=ii-i2*(grid%n1+1)
   i1=i0+j1-j0
 END SUBROUTINE segments_to_grid
-
 
 
 !temporary creation, better to put in standby
@@ -1187,6 +1187,7 @@ END SUBROUTINE segments_to_grid
 !!!END SUBROUTINE sumrho_gaussians
 
 
+!> Parse the output of CP2K to read the basis set information
 subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hx,hy,hz,psi,eks)
@@ -1225,7 +1226,6 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   real(gp), dimension(:,:,:), allocatable :: contcoeff,expo
   real(wp), dimension(:,:,:,:), allocatable :: cimu
 
-  !parse the output of CP2K to read the basis set information
 
   if (iproc==0) write(*,'(1x,a)',advance='no')&
        'Reading Basis Set information and wavefunctions coefficients...'
@@ -1616,7 +1616,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 
 END SUBROUTINE gautowav
 
-!calculate the shift between the spherical harmonics of CP2K and the one of BigDFT
+
+!> Calculate the shift between the spherical harmonics of CP2K and the one of BigDFT
 function myshift(symbol)
   implicit none
   character(len=5), intent(in) :: symbol
@@ -1666,6 +1667,7 @@ function myshift(symbol)
 
 end function myshift
 
+
 logical function myorbital(iorb,norbe,iproc,nproc)
   implicit none
   integer, intent(in) :: iorb,norbe,iproc,nproc
@@ -1684,9 +1686,10 @@ logical function myorbital(iorb,norbe,iproc,nproc)
 
 end function myorbital
 
-! returns an input guess orbital that is a Gaussian centered at a Wannier center
-! exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
-! in the arrays psi_c, psi_f
+
+!> Returns an input guess orbital that is a Gaussian centered at a Wannier center
+!! @f$ exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 )) @f$
+!! in the arrays psi_c, psi_f
 subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
      nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f)

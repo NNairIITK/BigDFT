@@ -1,15 +1,14 @@
-!!****m* BigDFT/lanczos_interface
-!! FUNCTION
-!!   Interface for routines which handle diagonalization
-!! COPYRIGHT
-!!    Copyright (C) 2009-2010 BigDFT group
+!> @file
+!!    Define routines for Lanczos diagonalization
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>   Interface for routines which handle diagonalization
 module lanczos_interface
   use module_base
   use module_types
@@ -584,13 +583,9 @@ contains
     endif
 
    END SUBROUTINE EP_GramSchmidt_interna
-!!***
 
-!!****f* lanczos_interface/hit_with_kernel_spectra
-!! FUNCTION
-!!   Hits the input array x with the kernel ((-1/2\Delta+C)_{ij})^{-1}
-!! SOURCE
-!!
+
+!>   Hits the input array x with the kernel @f$((-1/2\Delta+C)_{ij})^{-1}@f$
    subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
      n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,ene, gamma )
      use module_base
@@ -686,13 +681,11 @@ contains
      call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
 
    END SUBROUTINE hit_with_kernel_spectra
-!!***
 
 
-!!****f* lanczos_interface/wscal_f_spectra
-!! FUNCTION
-!!   Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
-!! SOURCE
+
+!>   Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
+!!
 !!
   subroutine wscal_f_spectra(mvctr_f,psi_f,hx,hy,hz,ene, gamma)
     use module_base
@@ -730,15 +723,13 @@ contains
     enddo
     
   END SUBROUTINE wscal_f_spectra
-!!***
 
 
-!!****f* lanczos_interface/prec_fft_fast_spectra
-!! FUNCTION
-!!   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
+
+!>   Solves ((KE-ene)**2+gamma**2*I)*xx=yy by FFT in a cubic box 
 !!   x_c is the right hand side on input and the solution on output
 !!   This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
-!! SOURCE : adapted from prec_fft_fast
+!! : adapted from prec_fft_fast
 !! 
   subroutine prec_fft_fast_spectra(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        ene, gamma,hx,hy,hz,hpsi,&
@@ -778,7 +769,7 @@ contains
     call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
     
   END SUBROUTINE prec_fft_fast_spectra
-!!***
+
 
 
   subroutine EP_precondition(p,i, ene, gamma)
@@ -899,7 +890,7 @@ contains
 
 
 
- end subroutine EP_precondition
+ END SUBROUTINE EP_precondition
 
   
   subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
@@ -935,7 +926,6 @@ contains
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
          ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-         ha%ndimpot, &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
          ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
     call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
@@ -945,7 +935,6 @@ contains
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
          ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-         ha%ndimpot, &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
          ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
     call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
@@ -993,7 +982,7 @@ contains
 
 
    return 
- END subroutine EP_Moltiplica4spectra
+ END SUBROUTINE EP_Moltiplica4spectra
   
 
   subroutine EP_Moltiplica(p,i)
@@ -1032,7 +1021,6 @@ contains
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
          ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-         ha%ndimpot, &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
          ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
     if(  ha%iproc ==0 ) write(*,*)" done "

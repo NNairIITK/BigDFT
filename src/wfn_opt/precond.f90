@@ -1,16 +1,15 @@
-!!****f* BigDFT/preconditionall
-!! FUNCTION
-!!    Calls the preconditioner for each orbital treated by the processor
-!! COPYRIGHT
-!!    Copyright (C) 2005-2010 BigDFT group 
+!> @file
+!!   Routines to precondition wavefunctions
+!! @author
+!!    Copyright (C) 2005-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
-subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
+ 
+
+!>    Calls the preconditioner for each orbital treated by the processor
+subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
   use module_types
   implicit none
@@ -18,11 +17,11 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
-  real(dp), intent(out) :: gnrm
+  real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
-  integer :: iorb,inds,ncplx
-  real(wp) :: cprecr,scpr,eval_zero
+  integer :: iorb,inds,ncplx,ikpt,jorb
+  real(wp) :: cprecr,scpr,evalmax,eval_zero
   real(gp) :: kx,ky,kz
 
   ! Preconditions all orbitals belonging to iproc
@@ -30,21 +29,41 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
   ! norm of gradient
   gnrm=0.0_dp
+  !norm of gradient of unoccupied orbitals
+  gnrm_zero=0.0_dp
 
+
+  !commented out, never used
+!   evalmax=orbs%eval(orbs%isorb+1)
+!   do iorb=1,orbs%norbp
+!     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
+!   enddo
+!   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
+!        MPI_MAX,MPI_COMM_WORLD,ierr)
+
+
+  if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
-     ! define zero energy for preconditioning 
-     eval_zero=max(orbs%eval(orbs%norb),0.d0)  !  Non-spin pol
-     if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then    !spin-pol
-        eval_zero=max(orbs%eval(orbs%norbu),0.d0)  !up orbital
-     else if (orbs%spinsgn(orbs%isorb+iorb) < 0.0_gp) then
-        eval_zero=max(orbs%eval(orbs%norbu+orbs%norbd),0.d0)  !down orbital
+     !if it is the first orbital or the k-point has changed calculate the max
+     if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
+        !the eval array contains all the values
+        !take the max for all k-points
+        !one may think to take the max per k-point
+        evalmax=orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+1)
+        do jorb=1,orbs%norb
+           evalmax=max(orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+jorb),evalmax)
+        enddo
+        eval_zero=evalmax
+        ikpt=orbs%iokpt(iorb)
      end if
+
      !indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      !k-point values, if present
      kx=orbs%kpts(1,orbs%iokpt(iorb))
      ky=orbs%kpts(2,orbs%iokpt(iorb))
      kz=orbs%kpts(3,orbs%iokpt(iorb))
+!       print *, iorb, orbs%kpts(1,orbs%iokpt(iorb)), orbs%kpts(2,orbs%iokpt(iorb)), orbs%kpts(3,orbs%iokpt(iorb))
 
      !real k-point different from Gamma still not implemented
      if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
@@ -57,23 +76,16 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
         !the nrm2 function can be replaced here by ddot
         scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
-        !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
-        gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        else
+           !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
+           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        end if
 
-        if (scpr /= 0.0_wp) then
-           !value of the cpreconditioner
-           !cprecr=-(orbs%eval(orbs%isorb+iorb)-eval_zero)+.10d0
-           !write(*,*) 'cprecr:',iorb,cprecr,orbs%eval(orbs%isorb+iorb)
-           select case(lr%geocode)
-           case('F')
-              cprecr=-orbs%eval(orbs%isorb+iorb)
-           case('S')
-              cprecr=0.5_wp
-           case('P')
-              cprecr=0.5_wp
-           end select
-           
+       if (scpr /= 0.0_wp) then
 
+          call cprecr_from_eval(lr%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)          
            !cases with no CG iterations, diagonal preconditioning
            !for Free BC it is incorporated in the standard procedure
            if (ncong == 0 .and. lr%geocode /= 'F') then
@@ -100,14 +112,35 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
 
         end if
 
+!     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
+!     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
      end do
   enddo
 
 END SUBROUTINE preconditionall
-!!***
 
 
-!routine used for the k-points, eventually to be used for all cases
+! > This function has been created also for the GPU-ported routines
+subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  real(gp), intent(in) :: eval,eval_zero
+  real(gp), intent(out) :: cprecr
+
+  select case(geocode)
+  case('F')
+     cprecr=sqrt(.2d0**2+min(0.d0,eval)**2)
+  case('S')
+     cprecr=sqrt(0.2d0**2+(eval-eval_zero)**2)
+  case('P')
+     cprecr=sqrt(0.2d0**2+(eval-eval_zero)**2)
+  end select
+
+END SUBROUTINE cprecr_from_eval
+
+
+!> Routine used for the k-points, eventually to be used for all cases
 subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
      hx,hy,hz,kx,ky,kz,x)
   use module_base
@@ -144,6 +177,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
 
+  !this operation should be rewritten in a better way
   r=b-d ! r=b-Ax
 
   call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,d,rmr_new)
@@ -191,6 +225,7 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
 
 END SUBROUTINE precondition_residue
 
+
 subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
   use module_base
   use module_types
@@ -208,7 +243,7 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
      do idx=1,ncplx
         call wscalv_wrap(wfd%nvctr_c,wfd%nvctr_f,scal,x(1,idx))
      end do
-  else if (geocode == 'P' .and. .not. hybrid_on) then
+  else if ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'S') then
      do idx=1,ncplx
         ! x=D^{-1/2}x'
         call wscal_per_self(wfd%nvctr_c,wfd%nvctr_f,scal,x(1,idx),&
@@ -237,7 +272,8 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
   logical :: noscal
   integer :: idx
 
-  noscal = ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'F')
+  noscal = ((geocode == 'P' .and. .not. hybrid_on) .or. &
+       geocode == 'F' .or. geocode == 'S')
 
   if (noscal) then
      call dcopy(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,b(1,1),1) 
@@ -371,7 +407,8 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
               !	Arrays psifscf and ww serve as work arrays for the Fourier
               fac=1.0_gp/scal(0)**2
               call prec_fft_c(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nseg_c,&
-                   lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                   lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keyg,lr%wfd%keyv, &
                    cprecr,hx,hy,hz,x(1,idx),&
                    w%psifscf(1),w%psifscf(lr%d%n1+2),&
                    w%psifscf(lr%d%n1+lr%d%n2+3),w%ww(1),w%ww(nd1b*nd2*nd3*4+1),&
@@ -393,6 +430,14 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
      call wscal_init_per(scal,hx,hy,hz,cprecr)
     
      do idx=1,ncplx
+
+        !recently added
+        !	scale the r.h.s. that is also the scaled input guess :
+        !	b'=D^{-1/2}b
+        call wscal_per_self(lr%wfd%nvctr_c,lr%wfd%nvctr_f,scal,&
+             x(1,idx),x(lr%wfd%nvctr_c+1,idx))
+        !end of that
+
         !b=x
         call dcopy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,x(1,idx),1,b(1,idx),1) 
         
@@ -403,11 +448,16 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
              cprecr,hx,hy,hz,x(1,idx),&
              w%psifscf(1),w%psifscf(lr%d%n1+2),w%ww(1),&
              w%ww(2*((lr%d%n1+1)/2+1)*(lr%d%n2+1)*(lr%d%n3+1)+1))
+
+        !we will probably have to rescale x by fac=1.0_gp/scal(0)**2
+        call dscal(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,1.0_gp/scal(0)**2,x(1,idx),1)
+        
      end do
 
   end if
   
 END SUBROUTINE precondition_preconditioner
+
 
 subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   use module_base
@@ -532,6 +582,7 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   end if
 
 END SUBROUTINE allocate_work_arrays
+
 
 subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
   use module_base
@@ -702,6 +753,7 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
 
 END SUBROUTINE deallocate_work_arrays
 
+
 subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
      cprecr,x,y,w,scal)! y:=Ax
   use module_base
@@ -763,22 +815,23 @@ subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
      end if
   else if (lr%geocode == 'S') then
      if (ncplx == 1) then
-        call apply_hp_slab_sd(lr%d%n1,lr%d%n2,lr%d%n3,&
+        call apply_hp_slab_sd_scal(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
              lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
              cprecr,hx,hy,hz,x,y,w%psifscf,w%ww,w%modul1,w%modul3,&
-             w%af,w%bf,w%cf,w%ef)
+             w%af,w%bf,w%cf,w%ef,scal)
      else
         call apply_hp_slab_k(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
              lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-             cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww) 
+             cprecr,hx,hy,hz,kx,ky,kz,x,y,w%psifscf,w%ww,scal) 
 
      end if
    end if
 END SUBROUTINE precond_locham
 
-! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
+
+!> ypsi = @f$(1/2) \nabla^2 xpsi + cprecr xpsi@f$
 subroutine calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
@@ -943,6 +996,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
 END SUBROUTINE prec_diag
 
+
 subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
   use module_base
   implicit none
@@ -1038,13 +1092,8 @@ subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
 END SUBROUTINE precond_proper
 
 
-!!****f* BigDFT/precong
-!! FUNCTION
-!!   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
+!>   Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 !!   hpsi is the right hand side on input and the solution on output
-!!
-!! SOURCE
-!!
 subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
@@ -1291,4 +1340,3 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call memocc(i_stat,i_all,'x_f3',subname)
      
 END SUBROUTINE precong
-!!***

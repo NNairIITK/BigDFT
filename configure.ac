@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.1],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.0],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -40,7 +40,10 @@ dnl is set.
 AC_PROG_FC([], [Fortran 90])
 #	       ABI_PROG_FC()
 
-dnl Defining fortran language for tests.
+dnl Fortran 77 (to be removed)
+AC_PROG_F77([], [Fortran 77])
+
+dnl Defining Fortran language for tests.
 AC_LANG(Fortran)
 AC_FC_SRCEXT(f90)
 
@@ -220,6 +223,35 @@ if test x"$ac_build_bin_minima_hopping" = "xyes" ; then
 fi
 AM_CONDITIONAL(USE_MINIMA_HOPPING, test "$ac_build_bin_minima_hopping" = "yes")
 
+dnl Use the dgemmsy
+ac_use_dgemmsy="no"
+AC_ARG_ENABLE(dgemmsy, AS_HELP_STRING([--enable-dgemmsy], [Use dgemmsy (disabled by default).]),
+                         ac_use_dgemmsy=$enableval, ac_use_dgemmsy="no")
+if test x"$ac_use_dgemmsy" = "xyes" ; then
+  AC_LANG_PUSH(C)
+
+  CPPFLAGS_SVG=$CPPFLAGS
+  CPPFLAGS="$CPPFLAGS -msse3"
+  AC_CHECK_HEADER([pmmintrin.h],
+                  [ac_use_dgemmsy="yes"],
+                  [ac_use_dgemmsy="no"])
+  CPPFLAGS=$CPPFLAGS_SVG
+  AC_LANG_POP(C)
+  if test "$ac_use_dgemmsy" = "no"; then
+    AC_MSG_WARN(["No SSE header found, dgemmsy disabled."])
+  fi
+fi
+AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
+
+
+dnl build the pseudo generation (build the executables atom and pseudo)
+AC_MSG_CHECKING([for pseudo generation])
+ac_build_bin_pseudo="no"
+AC_ARG_ENABLE(pseudo, AS_HELP_STRING([--enable-pseudo], [Compile the pseudo code (not compiled by default).]),
+                         ac_build_bin_pseudo=$enableval, ac_build_bin_pseudo="no")
+AM_CONDITIONAL(BUILD_BINARIES_PSEUDO, test "$ac_build_bin_pseudo" = "yes")
+AC_MSG_RESULT([$ac_build_bin_pseudo])
+
 
 dnl Use the GPU computing (only NVIDIA cards with CUDA libraries)
 AC_MSG_CHECKING([for GPU computing with CUDA libraries])
@@ -313,10 +345,61 @@ dnl      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
 fi
 AM_CONDITIONAL(USE_OCL, test "$ac_use_ocl" = "yes")
 
-if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" ; then
+if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" -o "$ac_use_dgemmsy" = "yes"; then
   dnl Instead of second underscoring, test the compiler behaviour.
   AC_FC_WRAPPERS()
 fi
+
+dnl Use ETSF_IO
+ac_use_etsfio=no
+AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
+AC_ARG_WITH(etsf-io-path, AS_HELP_STRING([--with-etsf-io-path], [Give the path of the ETSF_IO installation (default = /usr).]),
+            ac_etsfio_dir=$withval, ac_etsfio_dir=)
+AC_ARG_WITH(netcdf-path, AS_HELP_STRING([--with-netcdf-path], [Give the path to NetCDF (required by ETSF_IO) (default = /usr).]),
+            ac_netcdf_dir=$withval, ac_netcdf_dir=)
+AC_ARG_WITH(netcdf-libs, AS_HELP_STRING([--with-netcdf-libs], [Give the library to link with NetCDF (required by ETSF_IO) (default = -lnetcdff -lnetcdf).]),
+            ac_netcdf_libs=$withval, ac_netcdf_libs="-lnetcdff -lnetcdf")
+if test "$etsfio" = "yes" ; then
+   LDFLAGS_SVG="$LDFLAGS"
+   LIBS_SVG="$LIBS"
+   FCFLAGS_SVG="$FCFLAGS"
+   if test -n "$ac_etsfio_dir" ; then
+      LDFLAGS="$LDFLAGS -L$ac_etsfio_dir/lib"
+      FCFLAGS="$FCFLAGS -I$ac_etsfio_dir/include"
+   fi
+   if test -n "$ac_netcdf_dir" -a x"$ac_netcdf_dir" != x"$ac_etsfio_dir" ; then
+      LDFLAGS="$LDFLAGS -L$ac_netcdf_dir/lib"
+      FCFLAGS="$FCFLAGS -I$ac_netcdf_dir/include"
+   fi
+   LIBS="$LIBS -letsf_io $ac_netcdf_libs"
+   AC_MSG_CHECKING([for ETSF_IO library])
+   AC_LINK_IFELSE([[
+program main
+  use etsf_io
+  
+  type(etsf_groups_flags) :: groups
+  type(etsf_dims) :: dims
+  logical :: lstat
+  type(etsf_io_low_error) :: error_data
+
+  call etsf_io_data_init("test", groups, dims, "test", "", lstat, error_data)
+end]], ac_use_etsfio=yes, ac_use_etsfio=no)
+   AC_MSG_RESULT([$ac_use_etsfio])
+   LIBS="$LIBS_SVG"
+   FCFLAGS="$FCFLAGS_SVG"
+   if test "$ac_use_etsfio" = "yes"; then
+      ac_etsfio_incs=""
+      if test -n "$ac_etsfio_dir" ; then
+         ac_etsfio_incs=$ac_etsfio_incs" -I$ac_etsfio_dir/include"
+      fi
+      if test -n "$ac_netcdf_dir" -a x"$ac_netcdf_dir" != x"$ac_etsfio_dir" ; then
+         ac_etsfio_incs=$ac_etsfio_incs" -I$ac_netcdf_dir/include"
+      fi
+      AC_SUBST(LIBETSFIO_INCLUDE, $ac_etsfio_incs)
+      LIBETSFIO_LIBS="-letsf_io $ac_netcdf_libs"
+   fi
+fi
+AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
 
 dnl Test libraries required for benching.
 AC_LANG_PUSH(C++)
@@ -440,6 +523,8 @@ ac_build_libxc="no"
 if test "$internallibxc" = "yes" ; then
   ac_build_libxc="yes"
   ac_use_libxc="yes"
+  ac_libxc_dir="$top_builddir"/libXC/src
+  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libXC/src)
   AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libXC/src)
   LDFLAGS="$LDFLAGS -L\$(top_builddir)/libXC/src"
 else
@@ -453,6 +538,7 @@ else
     AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
     if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
       ac_use_libxc="yes"
+      AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
       AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
     fi
   fi
@@ -508,7 +594,6 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
     ac_build_libsgpu="yes"
     ac_use_libsgpu="yes"
     AC_SUBST(LIBSGPU_INCLUDE, "-I\$(top_srcdir)"/S_GPU/src)
-    LDFLAGS="$LDFLAGS -L\$(top_builddir)/S_GPU/src/.libs"
   else
     if test -n "$ac_libsgpu_dir" ; then
       LDFLAGS="$LDFLAGS -L$ac_libsgpu_dir/lib"
@@ -525,20 +610,27 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   if test x"$ac_use_libsgpu" = x"yes" ; then
     AC_DEFINE([HAVE_LIBSGPU], [1], [use S_GPU in BigDFT.])
     if test "$internalsgpu" = "yes" ; then
-      LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a"
+      LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a -lstdc++"
     else
-      LIBSGPU_LIBS="-ls_gpu"
+      LIBSGPU_LIBS="-ls_gpu -lstdc++"
     fi
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
-LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBS"
+LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS"
 
 dnl Test for the documentation.
-AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
+AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
 AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes")
+dnl Test for the developers' documentation.
+AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
+AC_ARG_ENABLE(devel-doc,
+              AS_HELP_STRING([--enable-devel-doc],
+                             [compile documentation for developers using Doxygen.]),
+              ac_devel_doc=$withval, ac_devel_doc="no")
+AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],
@@ -557,6 +649,7 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 libABINIT/src/Makefile
+config/Doxyfile
 src/Makefile
 src/modules/Makefile
 src/modules/configure.inc
@@ -565,10 +658,14 @@ src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
+src/dgemmsy/Makefile
 src/convolutions-c/Makefile
 src/art/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
+pseudo/Makefile
+pseudo/src/Makefile
+pseudo/tests/Makefile
 doc/Makefile
 tests/Makefile
 tests/fft/Makefile
@@ -579,34 +676,20 @@ tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
+tests/SPLSAD/Makefile
 tests/DFT/Makefile
-tests/DFT/C/Makefile
-tests/DFT/Ca2/Makefile
-tests/DFT/H/Makefile
-tests/DFT/H2-spin/Makefile
-tests/DFT/Li+/Makefile
-tests/DFT/Mn2/Makefile
-tests/DFT/NaCl/Makefile
-tests/DFT/SiH4/Makefile
-tests/DFT/NH3/Makefile
-tests/DFT/H2O-CP2K/Makefile
-tests/DFT/SiBulk/Makefile
-tests/DFT/H2O-slab/Makefile
-tests/DFT/Davidson-SiH4/Makefile
-tests/DFT/FeHyb/Makefile
-tests/DFT/Graphene/Makefile
-tests/DFT/GPU/Makefile
-tests/DFT/OCL/Makefile
 tests/OpenCL/Makefile
 tests/CUDA/Makefile
+tests/ETSF_IO/Makefile
 ])
 
 # Call libXC ./configure script recursively.
 # Call S_GPU ./configure script recursively.
-ac_configure_args=$ac_configure_args" --enable-fortran"
 AC_CONFIG_SUBDIRS([libXC S_GPU])
 
+
 AC_OUTPUT
+
 
 echo "
 BigDFT configure summary:
@@ -616,6 +699,8 @@ Basics:
   Fortran90 compiler:        $FC
   Fortran90 compiler name:   $fc_type
   Fortran90 flags:           $FCFLAGS
+  Fortran77 compiler:        $F77
+  Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
   Linked libraries:          $LIBS
 
@@ -625,6 +710,9 @@ Build:
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (cluster...):$ac_build_bin_cluster
   Minima hopping binary:     $ac_build_bin_minima_hopping
+  atom and pseudo binaries:  $ac_build_bin_pseudo
+  User documentation:        $ac_have_pdflatex
+  Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
 
 Options:
   Debug version:             $ac_use_debug		
@@ -638,6 +726,7 @@ Options:
    | NVidia Cuda Compiler:   $NVCC
    | Cuda flags:             $CUDA_FLAGS
   With OpenCL support:       $ac_use_ocl
+  With dgemmsy support:      $ac_use_dgemmsy
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
@@ -647,6 +736,8 @@ Options:
   With libS_GPU:             $ac_use_libsgpu
    | internal built:         $ac_build_libsgpu
    | include dir.:           $LIBSGPU_INCLUDE
+  With ETSF_IO:              $ac_use_etsfio
+   | include dir.:           $LIBETSFIO_INCLUDE
 
 Installation paths:
   Source code location:      ${srcdir}

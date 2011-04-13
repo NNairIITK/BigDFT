@@ -1,7 +1,16 @@
+!> @file
+!!  Simple convolution routines
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!>  Forward wavelet transform, analysis, periodic
 subroutine ana_rot_per_old(right,nt,c,cd_1)
-  !
-  !      forward wavelet transform, analysis, periodic
-  !
+
   use module_base
   implicit none
   integer, intent(in) :: right,nt
@@ -57,10 +66,10 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
 
 END SUBROUTINE ana_rot_per_old
 
+
+!> Backward wavelet transform, synthesis, periodic
 subroutine syn_rot_per_old(right1,nt,cd,c1)
-  !
-  !     backward wavelet transform, synthesis, periodic
-  !
+
   use module_base
   implicit none
   integer, intent(in) :: right1,nt
@@ -114,4 +123,3 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   !       syn_rot_per_old:  nt*len_2*(2*m_2+1)*8 flops
 
 END SUBROUTINE syn_rot_per_old
-

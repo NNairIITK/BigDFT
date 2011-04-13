@@ -1,7 +1,16 @@
+!> @file
+!!  Optimized convolution routines
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!>  Forward wavelet transform, analysis, periodic
 subroutine ana_rot_per_old(right,nt,c,cd_1)
-  !
-  !      forward wavelet transform, analysis, periodic
-  !
+  
   use module_base
   implicit none
   integer, intent(in) :: right,nt
@@ -36,7 +45,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
        0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
        -0.0033824159510050025955_wp , 0.0_wp /
 
-!write(*,*) 'ana_rot_per_old EXECUTED',right,nt,c(0,1),c(right,nt)
+!   write(*,*) 'ana_rot_per_old EXECUTED',right,nt,c(0,1),c(right,nt)
 
   lenc=right+1
   len_2=lenc/2
@@ -57,7 +66,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
 !$omp parallel default (private) shared(nt,len_2,ch,cg,mod_my,c,cd_1)
 !$  ithread = omp_get_thread_num()
 
-!$omp do
+!$omp do schedule(static,1)
   do it=1,nt-11,12
      do i=0,len_2-1
         i2=2*i
@@ -186,10 +195,9 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
 END SUBROUTINE ana_rot_per_old
 
 
+!> Backward wavelet transform, synthesis, periodic
 subroutine syn_rot_per_old(right1,nt,cd,c1)
-  !
-  !     backward wavelet transform, synthesis, periodic
-  !
+
   use module_base
   implicit none
   integer, intent(in) :: right1,nt
@@ -247,7 +255,7 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
 !$  ithread = omp_get_thread_num()
 
 
-!$omp do
+!$omp do schedule(static,1)
   do it=1,nt-11,12
      do i=0,len_2-1
 
@@ -377,7 +385,3 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   call memocc(i_stat,i_all,'mod_my',subname)
 
 END SUBROUTINE syn_rot_per_old
-
-
-
-

@@ -1,16 +1,14 @@
-!!****f* BigDFT/IonicEnergyandForces
-!! DESCRIPTION
-!!    Calculte the ionic contribution to the energy and the forces
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group (LG)
+!> @file
+!!  Routines for the ionic energy contribution
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>    Calculte the ionic contribution to the energy and the forces
 subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      rxyz,eion,fion,psoffset,nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
   use module_base
@@ -453,14 +451,8 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
      end if
   end if
 END SUBROUTINE IonicEnergyandForces
-!!***
 
 
-!!****f* BigDFT/createIonicPotential
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
      correct_offset)
@@ -947,7 +939,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      end if
 
      !here put nproc=1 
-     call plot_density(at%geocode,'potion_corr.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
+     call plot_density('potion_corr.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
           at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr(ind))
 
 
@@ -1041,16 +1033,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   call timing(iproc,'CrtLocPot     ','OF')
 
 END SUBROUTINE createIonicPotential
-!!***
 
 
-!!****f* BigDFT/ind_position
-!! FUNCTION
-!!   Determine the index in which the potential must be inserted, following the BC
+!>   Determine the index in which the potential must be inserted, following the BC
 !!   Determine also whether the index is inside or outside the box for free BC
-!!
-!! SOURCE
-!!
 subroutine ind_positions(periodic,i,n,j,go)
   implicit none
   logical, intent(in) :: periodic
@@ -1071,14 +1057,8 @@ subroutine ind_positions(periodic,i,n,j,go)
   end if
 
 END SUBROUTINE ind_positions
-!!***
 
 
-!!****f* BigDFT/sum_erfcr
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   use module_base
   implicit none
@@ -1113,7 +1093,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
      if (r == 0.0_gp) then
         potxyz = potxyz - charge*2.0_wp/(sqrt(pi)*real(sq2rl,wp))
      else
-        call derf(derf_val,r/sq2rl)
+        call derf_ab(derf_val,r/sq2rl)
         potxyz = potxyz - charge*real(derf_val/r,wp)
      end if
 
@@ -1122,14 +1102,8 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   end do
 
 END SUBROUTINE sum_erfcr
-!!***
 
 
-!!****f* BigDFT/ext_buffers
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine ext_buffers(periodic,nl,nr)
   implicit none
   logical, intent(in) :: periodic
@@ -1143,14 +1117,8 @@ subroutine ext_buffers(periodic,nl,nr)
      nr=15
   end if
 END SUBROUTINE ext_buffers
-!!***
 
 
-!!****f* BigDFT/CounterIonPotential
-!! FUNCTION
-!!
-!! SOURCE
-!!
 subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
   use module_base
@@ -1172,7 +1140,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nelec
-  integer :: norb,norbu,norbd,iunit
+  integer :: norb,norbu,norbd,iunit,norbuempty,norbdempty
   real(kind=8) :: pi,rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(wp) :: maxdiff
@@ -1198,7 +1166,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   !read the specifications of the counter ions from pseudopotentials
   call read_system_variables('input.occup',iproc,in,at,radii_cf,nelec,&
-       norb,norbu,norbd,iunit)
+       norb,norbu,norbd,norbuempty,norbdempty,iunit)
 
   pi=4.d0*atan(1.d0)
   ! Ionic charge (must be calculated for the PS active processes)
@@ -1399,5 +1367,4 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   call timing(iproc,'CrtLocPot     ','OF')
 
-end subroutine CounterIonPotential
-!!***
+END SUBROUTINE CounterIonPotential

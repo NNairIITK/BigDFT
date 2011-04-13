@@ -1,5 +1,5 @@
-#include "OpenCL_wrappers.h"
-/*
+//! @file
+/*!
   Matrix multiplication kernels written here share a common basic design.
   Each work item computes 1 (or 2 elements in bloc design) element of
   the result matrix. Local work size is 16*16 elements. Both arrays are 
@@ -13,6 +13,16 @@
   gemmsy is also commented.
   Matrix are stored in column.
 */
+//! @author
+//!    Copyright (C) 2009-2011 BigDFT group 
+//!    This file is distributed under the terms of the
+//!    GNU General Public License, see ~/COPYING file
+//!    or http://www.gnu.org/copyleft/gpl.txt .
+//!    For the list of contributors, see ~/AUTHORS 
+
+
+#include "OpenCL_wrappers.h"
+
 char * dgemm_program="\
 //size is supposed to be 16*16\n\
 #define BUFFER_SIZE 16\n\
@@ -1465,6 +1475,30 @@ void FC_FUNC_(dot_d,DOT_D)(bigdft_command_queue *command_queue, cl_uint *ndat, c
   }
   clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
 }
+
+void FC_FUNC_(dot_d_async,DOT_D_ASYNC)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *x, cl_mem *y, cl_mem *work1, cl_mem *work2, cl_double *out) {
+  if(*ndat==0){
+   *out = 0.0;
+   return;
+  }
+  cl_uint n = *ndat;
+  dot_generic((*command_queue)->kernels.dot_kernel_d, (*command_queue)->command_queue, &n, x, y, work1);
+  cl_mem *input=work1;
+  cl_mem *output=work2;
+  cl_mem *tmp;
+  n = shrRoundUp(1024,n)/1024;
+  if(n>1) {
+    do {
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
+      tmp = input;
+      input = output;
+      output = tmp;
+      n = shrRoundUp(1024,n)/1024;
+    } while(n>1);
+  }
+  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_FALSE, 0, sizeof(cl_double), out, 0, NULL, NULL);
+}
+
 
 void create_reduction_kernels(struct bigdft_kernels * kernels){
     cl_int ciErrNum = CL_SUCCESS;

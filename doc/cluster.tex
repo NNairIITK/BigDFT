@@ -27,7 +27,7 @@ Universit\"{a}t Basel, Switzerland \\
 The molecule is covered by a global grid of dimensions { \color{red} 0:n1, 0:n2, 0:n3}.
 The values $n_1,n_2,n_3$ are not input values but are calculated by the program as described below.
 The input parameter is the grid spacing { \color{red} hgrid}. 
-The real space location of a grid point (i1,i2,i3) is (i1*hgrid,i2*hgrid,i3*hgrid). 
+The real space location of a grid point (i1,i2,i3) is (i1*hgrid, i2*hgrid, i3*hgrid). 
 The molecule is shifted by the program such that it is covered by this grid. There 
 are three types of grid points. 
 In addition there are local grids for the individual orbitals whose dimension 
@@ -69,7 +69,7 @@ that can be visualized with V\_SIM.
 The picture below shows a global grid for a silicon cluster
 
 \vspace{3cm}
-\begin{figure}[h]             % produce figure
+\begin{figure}[ht]             % produce figure
 \begin{center}
 \setlength{\unitlength}{1cm}
 \includegraphics[width=0.5\textwidth]{figrid.pdf}
@@ -79,14 +79,16 @@ in black.}
 \end{center}
 \end{figure}
 
-\pagebreak \noindent
+\pagebreak 
+
+\noindent
 Since not all grid points carry scaling functions and wavelets and since 
 the coarse and fine resolution domains are irregular, the expansion 
 coefficients of the wavefunctions are stored in compressed form. First the 
-3-dim grid is mapped onto an 1-dim array of length (n1+1)*(n2+1)*(n3+1). Then grid points 
+3-dim grid is mapped onto an 1-dim array of length (n1+1) * (n2+1) * (n3+1). Then grid points 
 carrying no basis functions are eliminated by compressing the data as shown below.
 
-\begin{figure}[h]             % produce figure
+\begin{figure}[ht]             % produce figure
 \begin{center}
 \setlength{\unitlength}{1cm}
 \includegraphics[width=0.5\textwidth]{compress.pdf}
@@ -124,25 +126,25 @@ vector elements of all the orbitals is contained in the arrays {\color{red} nseg
 of the number of electrons for a (non)-spinpolarized calculation.
 
 \begin{verbatim}
-  do iorb=1,norb
-      mseg_c=nseg(2*iorb-1)-nseg(2*iorb-2)   ! number of coarse segments
-      mseg_f=nseg(2*iorb  )-nseg(2*iorb-1)   ! number of fine segments
-      iseg_c=nseg(2*iorb-2)+1                ! starting adress for coarse segments
-      iseg_f=nseg(2*iorb-1)+1                ! starting adress for fine segments
-      mvctr_c= nvctr(2*iorb-1)-nvctr(2*iorb-2)      ! number of coarse vector elements
-      mvctr_f=(nvctr(2*iorb  )-nvctr(2*iorb-1))/7   ! number of fine vector elements/7
-      ipsi_c=nvctr(2*iorb-2)+1              ! starting address for coarse coefficients 
-      ipsi_f=nvctr(2*iorb-1)+1              ! starting address for fine coefficients
-      nl1=nbox_c(1,1,iorb) ; nu1=nbox_c(2,1,iorb)   ! local gridsize
-      nl2=nbox_c(1,2,iorb) ; nu2=nbox_c(2,2,iorb)
-      nl3=nbox_c(1,3,iorb) ; nu3=nbox_c(2,3,iorb)
+do iorb=1,norb
+   mseg_c=nseg(2*iorb-1)-nseg(2*iorb-2)   !number of coarse segments
+   mseg_f=nseg(2*iorb  )-nseg(2*iorb-1)   !number of fine segments
+   iseg_c=nseg(2*iorb-2)+1                !starting adress for coarse seg.
+   iseg_f=nseg(2*iorb-1)+1                !starting adress for fine seg.
+   mvctr_c= nvctr(2*iorb-1)-nvctr(2*iorb-2)    !# of coarse vector elem.
+   mvctr_f=(nvctr(2*iorb  )-nvctr(2*iorb-1))/7 !# of fine vector elem./7
+   ipsi_c=nvctr(2*iorb-2)+1            !starting address for coarse coef.
+   ipsi_f=nvctr(2*iorb-1)+1            !starting address for fine coef.
+   nl1=nbox_c(1,1,iorb) ; nu1=nbox_c(2,1,iorb)   ! local gridsize
+   nl2=nbox_c(1,2,iorb) ; nu2=nbox_c(2,2,iorb)
+   nl3=nbox_c(1,3,iorb) ; nu3=nbox_c(2,3,iorb)
 
-!  call a routine that acts on a single orbital
-      call singleorbital(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  &
-                         mseg_c,mvctr_c,keyg(1,iseg_c),keyv(iseg_c),   &
-            		 mseg_f,mvctr_f,keyg(1,iseg_f),keyv(iseg_f),   &
-                         psi(ipsi_c),psi(ipsi_f),...............)
-
+!   call a routine that acts on a single orbital
+   call singleorbital(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  &
+              mseg_c,mvctr_c,keyg(1,iseg_c),keyv(iseg_c),   &
+              mseg_f,mvctr_f,keyg(1,iseg_f),keyv(iseg_f),   &
+              psi(ipsi_c),psi(ipsi_f),...............)
+end do
 \end{verbatim}
 
 For the projectors there is not one individual decriptor array (keyg, keyv) for 

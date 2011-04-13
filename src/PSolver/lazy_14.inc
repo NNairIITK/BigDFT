@@ -1,9 +1,11 @@
-!!****h* PSolver/lazy_14
-!! FUNCTION
-!!   Filters for interpolating scaling functions (order 14)
-!!
-!! SOURCE
-!!
+!> @file
+!!  Include file for Filters for interpolating scaling functions (order 14)
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 integer, parameter :: m=16
 real(kind=8), dimension(-m:m) :: ch = (/ &
      0.d0,0.d0,0.d0,0.0000275373458862304687D0,0.D0,-0.000423073768615722656D0,0.D0,&
@@ -33,5 +35,5 @@ do i=-m,m-1
    cg(i+1)=cht(-i)*(-1.d0)**(i+1)
    cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
 enddo
-!!***
+
 

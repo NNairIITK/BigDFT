@@ -1,55 +1,49 @@
-!!****m* BigDFT/minimization
-!! FUNCTION
-!!   Define the type parameterminimization
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!> @file
+!!  Routines to do geometry optimisation
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!> Define the type parameterminimization
 module minpar
   implicit none
 
   type parameterminimization
-     !general parameters for all methods
-     character(10)::approach
-     integer::iter
-     integer::iflag
-     integer::history
-     !parameters for print information
+     !>general parameters for all methods
+     character (len=10) :: approach
+     integer :: iter
+     integer :: iflag
+     integer :: history
+     !>parameters for print information
      integer :: verbosity
-     INTEGER:: MSAVE
-     INTEGER:: MP
-     INTEGER:: LP
-     INTEGER:: MAXFEV
-     INTEGER:: FINSTEP
-     DOUBLE PRECISION:: ALPHA 
-     DOUBLE PRECISION:: GTOL
-     DOUBLE PRECISION:: XTOL
-     DOUBLE PRECISION:: FTOL
-     DOUBLE PRECISION:: STPMIN
-     DOUBLE PRECISION:: STPMAX
-     LOGICAL:: DIAGCO
-     LOGICAL:: IWRITE
+     integer :: MSAVE
+     integer :: MP
+     integer :: LP
+     integer :: MAXFEV
+     integer :: FINSTEP
+     double precision :: ALPHA 
+     double precision :: GTOL
+     double precision :: XTOL
+     double precision :: FTOL
+     double precision :: STPMIN
+     double precision :: STPMAX
+     logical :: DIAGCO
+     logical :: IWRITE
   end type parameterminimization
 
   type(parameterminimization) :: parmin
 
-
 end module minpar
-!!***
 
-!!****f* BigDFT/geopt_init
-!! FUNCTION
-!!   Geometry optimization, parametrisation routine.
-!! SOURCE
-!!
+
+!>   Geometry optimization, parametrisation routine.
 subroutine geopt_init()
   use minpar
+  implicit none
 
   parmin%approach  = 'unknown'
   parmin%iter      = 0
@@ -67,27 +61,20 @@ subroutine geopt_init()
   parmin%DIAGCO=.FALSE.
   parmin%IWRITE=.FALSE.
 
-
 END SUBROUTINE geopt_init
-!!***
 
-!!****f* BigDFT/geopt_set_verbosity
-!! FUNCTION
-!!   Geometry optimization, parametrisation routine.
-!! SOURCE
-!!
+
+!>   Geometry optimization, parametrisation routine.
 subroutine geopt_set_verbosity(verbosity_)
   use minpar
-
+  implicit none
+  !Arguments
+  integer, intent(in) :: verbosity_
   parmin%verbosity = verbosity_
 END SUBROUTINE geopt_set_verbosity
-!!***
 
-!!****f* BigDFT/geopt
-!! FUNCTION
-!!   Geometry optimization
-!! SOURCE
-!!
+
+!>   Geometry optimization
 subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
@@ -165,6 +152,11 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
      if (iproc ==0) write(*,*) '# ENTERING VSSD'
      call vstepsd(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 
+  else if(trim(parmin%approach)=='FIRE') then
+
+     if (iproc ==0) write(*,*) '# ENTERING FIRE'
+     call fire(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft,fail)
+
   else if(trim(parmin%approach)=='DIIS') then
  
      if (iproc ==0) write(*,*) '# ENTERING DIIS'
@@ -182,14 +174,9 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
 END SUBROUTINE geopt
-!!***
 
 
-!!****f* BigDFT/ab6md
-!! FUNCTION
-!!  Molecular Dynamics
-!! SOURCE
-!!
+!>  Molecular Dynamics
 subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -218,7 +205,6 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   if (ncount_bigdft == 0) then
      call scfloop_init(nproc, at, in, rst)
   end if
-
 
   ! Prepare the objects used by ABINIT.
   allocate(amass(at%nat))
@@ -288,16 +274,15 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   fail = (iexit == 0)
 END SUBROUTINE ab6md
-!!***
 
 
+!> MODIFIED version for refined time limit on restart of global.f90.
+!! Only difference: Calls routine CPUtime(tt)
 subroutine timeleft(tt)
   use module_base
   implicit none
   real(gp), intent(out) :: tt
   !local variables
-  ! MODIFIED version for refined time limit on restart of global.f90.
-  ! Only difference: Calls routine CPUtime(tt)
   integer :: ierr
   real(kind=4) :: tcpu
   real(gp) :: timelimit
@@ -311,11 +296,7 @@ subroutine timeleft(tt)
 END SUBROUTINE timeleft
 
 
-!!****f* BigDFT/conjgrad
-!! FUNCTION
-!!  Conjugate gradient method
-!! SOURCE
-!!
+!>  Conjugate gradient method
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   use module_base
   use module_types
@@ -334,7 +315,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode, nitsd
   real(gp) :: anoise,fluct,avbeta,avnum,fnrm,etotprev,beta0,beta
-  real(gp) :: y0,y1,tt,sumx,sumy,sumz,oben1,oben2,oben,unten,rlambda,tetot,fmax,tmp!,eprev
+  real(gp) :: y0,y1,tt,oben1,oben2,oben,unten,rlambda,tetot,fmax,tmp!,eprev
   real(gp), dimension(:,:), allocatable :: tpos,gpf,hh
 !  logical::check
   integer::check
@@ -433,7 +414,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         avbeta=avbeta+beta/in%betax
         avnum=avnum+1._gp
-
+        !if (iproc ==0)print *,'beta,avbeta,avnum',beta,avbeta,avnum 
         !C new gradient
         do iat=1,at%nat
            gpf(1,iat)=fxyz(1,iat)
@@ -588,8 +569,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   !!        write(6,*) 'CG finished',it,fnrm,etot
   if (iproc == 0) then
      if (parmin%verbosity > 0) &
-          & write(16,*) 'average CG stepsize in terms of betax',avbeta/avnum,iproc
-     write(*,*) 'average CG stepsize in terms of betax',avbeta/avnum,iproc
+          & write(16,'(1x,a,f8.5,i5)') 'average CG stepsize in terms of betax',avbeta/avnum,iproc
+     write(*,'(1x,a,f8.5,i5)') 'average CG stepsize in terms of betax',avbeta/avnum,iproc
   end if
 
  call close_and_deallocate
@@ -598,6 +579,7 @@ contains
 
   subroutine close_and_deallocate
     use module_base
+    implicit none
     !    Close the file
     !close(unit=16)
     i_all=-product(shape(tpos))*kind(tpos)
@@ -612,14 +594,9 @@ contains
   END SUBROUTINE close_and_deallocate
 
 END SUBROUTINE conjgrad
-!!***
 
 
-!!****f* BigDFT/steepdes
-!! FUNCTION
-!!  Steepest descent method
-!! SOURCE
-!!
+!>  Steepest descent method
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
      fnrm,fnoise,in,forcemax_sw,nitsd,fluct)
   use module_base
@@ -642,7 +619,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   character(len=*), parameter :: subname='steepdes'
   logical :: care,move_this_coordinate
   integer :: nsatur,iat,itot,itsd,i_stat,i_all,infocode,nbeqbx,i,ixyz,nr
-  real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
+  real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise
   real(gp) :: fmax,de1,de2,df1,df2,beta,etotprev
   real(gp), allocatable, dimension(:,:) :: tpos
   character*4 fn4
@@ -881,15 +858,15 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   call memocc(i_stat,i_all,'tpos',subname)
 
 END SUBROUTINE steepdes
-!!***
 
 
+!> Variable step steepest descent
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
-! variable step steepest descent
   use module_base
   use module_types
   use minpar
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   real(gp), intent(inout) :: etot
@@ -903,12 +880,12 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   character(len=*), parameter :: subname='vstepsd'  
   integer :: iat,i_all,i_stat,infocode, nitsd,itsd
   real(gp) :: anoise,fluct,fnrm,fnrmold,beta,betaxx,betalast,betalastold
-  real(gp) :: etotold,fmax,scpr,curv,tt,sumx,sumy,sumz,etotprev
+  real(gp) :: etotold,fmax,scpr,curv,tt,etotprev
   real(gp), dimension(:,:), allocatable :: posold,ffold
-  logical reset!,check
-  integer check
-  character*4 fn4
-  character*40 comment
+  logical :: reset!,check
+  integer :: check
+  character(len=4) :: fn4
+  character(len=40) :: comment
 
   check=0
   etotprev=etot
@@ -1089,6 +1066,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
 END SUBROUTINE vstepsd
 
+
 subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
   use module_base
   implicit none
@@ -1104,7 +1082,8 @@ subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
     check=0
   endif
 
-end subroutine convcheck
+END SUBROUTINE convcheck
+
 
 subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
   use module_base
@@ -1163,6 +1142,7 @@ subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
 !!!  fnrm=t1+t2+t3
 END SUBROUTINE fnrmandforcemax_old
 
+
 subroutine updatefluctsum(nat,fnoise,fluct)
   use module_base
   use module_types
@@ -1177,10 +1157,10 @@ subroutine updatefluctsum(nat,fnoise,fluct)
      fluct=.8d0*fluct+.2d0*fnoise
    endif
 
-end subroutine updatefluctsum
+END SUBROUTINE updatefluctsum
 
 
-!should we evaluate the translational force also with blocked atoms?
+!> Should we evaluate the translational force also with blocked atoms?
 subroutine transforce(at,fxyz,sumx,sumy,sumz)
   use module_base
   use module_types
@@ -1203,7 +1183,8 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
   end do
 END SUBROUTINE transforce
 
-!should we evaluate the translational force also with blocked atoms?
+
+!> Should we evaluate the translational force also with blocked atoms?
 subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   use module_base
   use module_types
@@ -1232,12 +1213,8 @@ subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
 END SUBROUTINE transforce_forfluct
 
 
-!!****f* BigDFT/rundiis
-!! FUNCTION
-!!  DIIS relax. Original source from ART from N. Mousseau.
+!>  DIIS relax. Original source from ART from N. Mousseau.
 !!  Adaptations to BigDFT by D. Caliste.
-!! SOURCE
-!!
 subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -1257,14 +1234,14 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp), dimension(:,:), allocatable  :: previous_pos
   real(gp), dimension(:,:), allocatable :: product_matrix
   integer :: lter, maxter, i, i_err, n, nrhs, lwork, infocode, j, i_stat, i_all
-  real(gp) :: sumx, sumy, sumz,  fluct, fmax, fnrm,fnoise,etotprev
+  real(gp) :: fluct, fmax, fnrm,fnoise,etotprev
   character(len = 4) :: fn4
   character(len = 40) :: comment
   ! Local variables for Lapack.
   integer, dimension(:), allocatable :: interchanges
-  real(8), dimension(:), allocatable :: work
-  real(8), dimension(:), allocatable :: solution
-  real(8), dimension(:,:), allocatable :: matrice
+  real(kind=8), dimension(:), allocatable :: work
+  real(kind=8), dimension(:), allocatable :: solution
+  real(kind=8), dimension(:,:), allocatable :: matrice
   !logical :: check
   integer :: check
   check=0
@@ -1432,13 +1409,11 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   fail = (ncount_bigdft>in%ncount_cluster_x-1)
 END SUBROUTINE rundiis
-!!***
 
- 
-!! Driver for the LBFGS routine found on the Nocedal Homepage
-!! The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
-!! This is helpfull when we are looking for the source of problems during BFGS runs
 
+!>   Driver for the LBFGS routine found on the Nocedal Homepage
+!!   The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
+!!   This is helpfull when we are looking for the source of problems during BFGS runs
 subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail) 
   use module_base
   use module_types
@@ -1457,22 +1432,22 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   real(gp), dimension(3*at%nat), intent(out) :: fxyz
 
   real(gp), dimension(3*at%nat):: txyz, sxyz
-  real(gp) :: fluct,fnrm, alpha, fnoise
-  real(gp) ::sumx,sumy,sumz,fmax
+  real(gp) :: fluct,fnrm, fnoise
+  real(gp) :: fmax
 !  logical :: check
   integer :: check
   integer :: infocode,i,ixyz,iat,nitsd
   real(gp) :: fnormmax_sw,etotprev
-  character*4 fn4
-  character*40 comment
+  character(len=4) :: fn4
+  character(len=40) :: comment
   logical :: move_this_coordinate
 
   integer:: n,nr,ndim
   integer:: NWORK
   real(gp),allocatable:: X(:),G(:),DIAG(:),W(:)
-  real(gp):: F,EPS,T1,T2!,XTOL,GTOL,,STPMIN,STPMAX
+  real(gp):: F,EPS!,XTOL,GTOL,,STPMIN,STPMAX
   real(gp), dimension(3*at%nat) :: rxyz0,rxyzwrite
-  INTEGER:: IPRINT(2),IFLAG,ICALL,M,J
+  INTEGER:: IPRINT(2),IFLAG,ICALL,M
   character(len=*), parameter :: subname='bfgs'
   integer :: i_stat,i_all
 
@@ -1490,7 +1465,6 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   txyz=0._gp
   sxyz=0._gp
   
-
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
   call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fnrm,fnoise,in,&
@@ -1509,54 +1483,53 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   endif
 
 
-    !Make a list of all degrees of freedom that should be passed to bfgs
-    n=3*at%nat
-    nr=0
-    do i=1,3*at%nat
-        iat=(i-1)/3+1
-        ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
-    enddo
-    if(iproc==0) write(*,*) 'DOF: n,nr ',n,nr
-      NDIM=nr
-      NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
+  !Make a list of all degrees of freedom that should be passed to bfgs
+  n=3*at%nat
+  nr=0
+  do i=1,3*at%nat
+     iat=(i-1)/3+1
+     ixyz=mod(i-1,3)+1
+     if(move_this_coordinate(at%ifrztyp(iat),ixyz)) nr=nr+1
+  enddo
+  if(iproc==0) write(*,*) 'DOF: n,nr ',n,nr
+     NDIM=nr
+     NWORK=NDIM*(2*parmin%MSAVE +1)+2*parmin%MSAVE
       
-      allocate(X(NDIM),stat=i_stat)
-      call memocc(i_stat,X,'X',subname)
-      allocate(G(NDIM),stat=i_stat)
-      call memocc(i_stat,G,'G',subname)
-      allocate(DIAG(NDIM),stat=i_stat)
-      call memocc(i_stat,DIAG,'DIAG',subname)
-      allocate(W(NWORK),stat=i_stat)
-      call memocc(i_stat,W,'W',subname)
+     allocate(X(NDIM),stat=i_stat)
+     call memocc(i_stat,X,'X',subname)
+     allocate(G(NDIM),stat=i_stat)
+     call memocc(i_stat,G,'G',subname)
+     allocate(DIAG(NDIM),stat=i_stat)
+     call memocc(i_stat,DIAG,'DIAG',subname)
+     allocate(W(NWORK),stat=i_stat)
+     call memocc(i_stat,W,'W',subname)
 
+     call atomic_copymoving_forward(at,n,rxyz,nr,X)
 
-      call atomic_copymoving_forward(at,n,rxyz,nr,X)
-
-      N=nr
-      M=parmin%MSAVE
-      IPRINT(1)= 1
-      IPRINT(2)= 0
-      F=etot
+     N=nr
+     M=parmin%MSAVE
+     IPRINT(1)= 1
+     IPRINT(2)= 0
+     F=etot
 !     We do not wish to provide the diagonal matrices Hk0, and 
 !     therefore set DIAGCO to FALSE.
 
-      EPS=0.0_gp
-      ICALL=0
-      IFLAG=0
+     EPS=0.0_gp
+     ICALL=0
+     IFLAG=0
 
  20   CONTINUE
-              if (parmin%IWRITE) then
-              if (iproc == 0) then
+        if (parmin%IWRITE) then
+           if (iproc == 0) then
               write(fn4,'(i4.4)') ncount_bigdft
               write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
               call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
-              endif
-              parmin%IWRITE=.false.
-              endif
-              rxyzwrite=rxyz
+           endif
+           parmin%IWRITE=.false.
+        endif
+        rxyzwrite=rxyz
 
-              if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
    if (iproc==0.and.ICALL.ne.0.and.parmin%verbosity > 0) & 
               &write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),2x,a,I3,2x,a,1pe8.2E1)')&
               &ncount_bigdft,ICALL,"GEOPT_BFGS",etot,etot-etotprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct&
@@ -1631,8 +1604,7 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
       deallocate(W,stat=i_stat)
       call memocc(i_stat,i_all,'W',subname)
 
-      return 
-    END subroutine lbfgsdriver
+END SUBROUTINE lbfgsdriver
 
 
 subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
@@ -1652,8 +1624,9 @@ subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
         endif
     enddo
     if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
-end subroutine atomic_copymoving_forward
-!*****************************************************************************************
+END SUBROUTINE atomic_copymoving_forward
+
+
 subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
     use module_types
     implicit none
@@ -1671,12 +1644,13 @@ subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
         endif
     enddo
     if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
-end subroutine atomic_copymoving_backward
+END SUBROUTINE atomic_copymoving_backward
 
 
-!     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A  TABOO file
+!>     This file contains the LBFGS algorithm and supporting routines
+!!@todo     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A TABOO file
+
 !     ----------------------------------------------------------------------
-!     This file contains the LBFGS algorithm and supporting routines
 !
 !     ****************
 !     LBFGS SUBROUTINE
@@ -2106,10 +2080,10 @@ end subroutine atomic_copymoving_backward
 !     FORMATS
 !     -------
 !
- 200  FORMAT(/' IFLAG= -1 ',/' LINE SEARCH FAILED. SEE'&
-               ' DOCUMENTATION OF ROUTINE MCSRCH',/' ERROR RETURN'&
+ 200  FORMAT(/' IFLAG= -1 ',/' LINE SEARCH FAILED. SEE',/&
+               ' DOCUMENTATION OF ROUTINE MCSRCH',/' ERROR RETURN',/&
                ' OF LINE SEARCH: INFO= ',I2,/&
-               ' POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT',/,&
+               ' POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT',/&
                ' OR INCORRECT TOLERANCES')
  235  FORMAT(/' IFLAG= -2',/' THE',I5,'-TH DIAGONAL ELEMENT OF THE',/,&
             ' INVERSE HESSIAN APPROXIMATION IS NOT POSITIVE')
@@ -2246,8 +2220,6 @@ end subroutine atomic_copymoving_backward
 !      return
 !!
 !!        code for both increments equal to 1
-!!
-!!
 !!        clean-up loop
 !!
 !   20 m = mod(n,4)
@@ -2299,8 +2271,6 @@ end subroutine atomic_copymoving_backward
 !      return
 !!
 !!        code for both increments equal to 1
-!!
-!!
 !!        clean-up loop
 !!
 !   20 m = mod(n,5)
@@ -2863,6 +2833,159 @@ end subroutine atomic_copymoving_backward
 !
       END
 
+
+!! Implementation of the damped MD based geometry optimizer FIRE, PRL 97, 170201 (2006)
+!! The MD-Integrator is the common velocity verlet, all masses are equal to 1.d0
+!! Implemented in August 2010, Maximilian Amsler, Basel University 
+!! Suggestion for maximal timestep as tmax=2*pi*sqrt(alphaVSSD)*1.2d-1
+!! Choose the initial timestep as tinit=tmax*0.5d0
+subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail) 
+  use module_base
+  use module_types
+  use minpar
+
+  implicit none
+  integer, intent(in) :: nproc,iproc
+  integer, intent(inout) :: ncount_bigdft
+  type(atoms_data), intent(inout) :: at
+  type(input_variables), intent(inout) :: in
+  type(restart_objects), intent(inout) :: rst
+  real(gp), intent(inout) :: etot
+  real(gp), dimension(3*at%nat), intent(inout) :: rxyz
+  logical, intent(inout) :: fail
+  real(gp), dimension(3*at%nat), intent(inout) :: fxyz
+
+  real(gp) :: fluct,fnrm,  fnoise
+  real(gp) :: fmax,vmax
+  integer :: check
+  integer :: infocode,iat
+  character(len=4) :: fn4
+  character(len=40) :: comment
+
+  character(len=*), parameter :: subname='fire'
+
+!Fire parameters:
+  real(gp):: alpha,P,finc,fdec,falpha,alphastart,dt,dtmax,vnrm
+  real(gp):: velcur(3*at%nat), velpred(3*at%nat),poscur(3*at%nat),pospred(3*at%nat),fcur(3*at%nat),fpred(3*at%nat),mass(3*at%nat)
+  real(gp):: ecur,epred,eprev,anoise
+  integer:: Nmin,nstep,it
+
+  check=0
+!Set FIRE parameters
+  Nmin=5
+  finc=1.1_gp
+  fdec=0.5_gp
+  alphastart=0.25_gp
+  anoise=1.e-8_gp
+
+
+  alpha=alphastart
+  falpha=0.99_gp
+  nstep=1
+  dt=in%dtinit
+
+  dtmax=in%dtmax
+
+  fail=.false.
+  fnrm=1.e10_gp
+  velcur=0.0_gp
+  poscur=rxyz
+  fcur=fxyz
+  mass=1.0_gp
+  ecur=etot
+  epred=etot
+
+
+  Big_loop: do it=1,in%ncount_cluster_x-1
+     do iat=1,3*at%nat
+        pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
+     enddo
+
+     in%inputPsiId=1
+     in%output_grid=0
+     in%output_wf=.false.
+     call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,fnoise,rst,infocode)
+     ncount_bigdft=ncount_bigdft+1
+     call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
+   !  call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+
+     do iat=1,3*at%nat
+        velpred(iat)=velcur(iat)+0.5_gp*dt*(fpred(iat))/mass(iat)+0.5_gp*dt*fcur(iat)/mass(iat)
+     enddo
+     P=dot_product(fpred,velpred)
+     call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
+
+     if (iproc == 0) then
+        write(fn4,'(i4.4)') ncount_bigdft
+        write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
+        call  write_atomic_file('posout_'//fn4,epred,pospred,at,trim(comment))
+     endif
+     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+     if (iproc==0.and.parmin%verbosity > 0) & 
+         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
+         &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+         &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
+     if (iproc==0.and.parmin%verbosity > 0) & 
+         write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
+         &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+         &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
+         eprev=epred
+     if (iproc==0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
+                             'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
+     call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+     if (ncount_bigdft >= in%ncount_cluster_x-1) then
+         !Too many iterations
+         exit Big_loop
+     end if
+     close(16)
+     open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
+
+     if(check.gt.5) then
+        if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
+        !Exit from the loop (the calculation is finished).
+        exit Big_loop
+     endif
+
+!Update variables
+     fcur=fpred
+     poscur=pospred
+!Normal verlet velocity update
+!  velcur=velpred
+
+!!FIRE Update
+     call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
+     fnrm=sqrt(fnrm)
+     call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
+     vnrm=sqrt(vnrm)
+!Modified velocity update, suggested by Alireza
+!  velcur(:)=(1.0_gp-alpha)*velpred(:)+fpred(:)*min(alpha*vnrm/fnrm,2.0_gp*in%betax)!alpha*fpred(:)/fnrm*vnrm
+!Original FIRE velocitiy update
+     velcur(:)=(1.0_gp-alpha)*velpred(:)+alpha*fpred(:)/fnrm*vnrm
+     if(P.gt.-anoise*vnrm .and. nstep.gt.Nmin) then
+        dt=min(dt*finc,dtmax)
+!        alpha=max(alpha*falpha,0.1_gp) !Limit the decrease of alpha
+        alpha=alpha*falpha
+     elseif(P.le.-anoise*vnrm) then
+        nstep=0
+        dt=dt*fdec
+        velcur=0.d0
+        alpha=alphastart
+     endif
+     nstep=nstep+1
+
+     if (iproc==0) write(10,*) epred, vnrm*0.5d0
+   end do Big_loop
+
+
+        
+! Output the final energy, atomic positions and forces
+   etot = epred
+   rxyz = pospred
+   fxyz = fpred
+
+END SUBROUTINE fire
 
 
 

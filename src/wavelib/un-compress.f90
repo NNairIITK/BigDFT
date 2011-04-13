@@ -1,15 +1,14 @@
-!!****f* BigDFT/compress
-!! FUNCTION
-!!    Compresses a psig wavefunction into psi_c,psi_f form
-!! COPYRIGHT
+!> @file
+!!  Routines of compression and uncompression of the wavefunctions
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
+
+
+!> Compresses a psig wavefunction into psi_c,psi_f form
 subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
@@ -73,14 +72,13 @@ subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, &
   !$omp end parallel
 
 END SUBROUTINE compress
-!!***
 
 
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
 subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psig)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-  ! into fine scaling functions (psifscf)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -202,7 +200,8 @@ subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 
 END SUBROUTINE fill_random
 
-! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
+
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
 subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
@@ -265,7 +264,8 @@ subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 
 END SUBROUTINE uncompress_forstandard_short
 
-! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
+
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
 subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
@@ -378,8 +378,8 @@ subroutine uncompress_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      enddo
   enddo
 
-
 END SUBROUTINE uncompress_f
+
 
 subroutine compress_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
@@ -420,7 +420,7 @@ subroutine compress_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 END SUBROUTINE compress_f
 
 
-! Compresses a psig wavefunction into psi_c,psi_f form
+!> Compresses a psig wavefunction into psi_c,psi_f form
 subroutine compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
@@ -486,8 +486,9 @@ subroutine compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 
 END SUBROUTINE compress_forstandard
 
-! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
-! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
+
+!> Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
+!! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
 subroutine compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psifscf,psi_c,psi_f,psig)
@@ -556,8 +557,9 @@ subroutine compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp end parallel
 END SUBROUTINE compress_per
 
-! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
-! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
+
+!> Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
+!! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
 subroutine compress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psifscf,psi_c,psi_f,psig,scal)
@@ -627,6 +629,7 @@ subroutine compress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp end parallel
 END SUBROUTINE compress_per_scal
 
+
 subroutine compress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psifscf,psi_c,psi_f,scal)
@@ -690,14 +693,14 @@ subroutine compress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp enddo
 
   !$omp end parallel
-end subroutine compress_scal
+END SUBROUTINE compress_scal
 
 
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
 subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psifscf,scal)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-  ! into fine scaling functions (psifscf)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -764,13 +767,14 @@ subroutine uncompress_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !psig=1.d0/sqrt(real(8*(n1+1)*(n2+1)*(n3+1),wp))
 
 
-end subroutine uncompress_scal
+END SUBROUTINE uncompress_scal
 
+
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
 subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psifscf,psig,scal)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-  ! into fine scaling functions (psifscf)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -842,11 +846,12 @@ subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 
 END SUBROUTINE uncompress_per_scal
 
+
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
 subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psifscf,psig)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-  ! into fine scaling functions (psifscf)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -917,11 +922,12 @@ subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 
 END SUBROUTINE uncompress_per
 
+
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
 subroutine uncompress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psig,scal)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-  ! into fine scaling functions (psifscf)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -989,6 +995,7 @@ subroutine uncompress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 
 END SUBROUTINE uncompress_sd_scal
 
+
 subroutine compress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psig,psi_c,psi_f,scal)
@@ -1055,11 +1062,11 @@ subroutine compress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 END SUBROUTINE compress_sd_scal
 
 
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
 subroutine uncompress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psig)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-  ! into fine scaling functions (psifscf)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -1126,6 +1133,7 @@ subroutine uncompress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 
 END SUBROUTINE uncompress_sd
 
+
 subroutine compress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psig,psi_c,psi_f)
@@ -1191,7 +1199,6 @@ subroutine compress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 END SUBROUTINE compress_sd
 
 
-
 subroutine uncompress_c(hpsi,x_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
   use module_base
   implicit none
@@ -1207,7 +1214,6 @@ subroutine uncompress_c(hpsi,x_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
   call razero((n1+1)*(n2+1)*(n3+1),x_c)
   !$omp parallel default(private) &
   !$omp shared(hpsi,x_c,keyv_c,keyg_c,n1,n2,n3,nseg_c)
-  
   
   !$omp do
   do iseg=1,nseg_c
@@ -1231,6 +1237,7 @@ subroutine uncompress_c(hpsi,x_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
   !$omp end parallel
   
 END SUBROUTINE uncompress_c
+
 
 subroutine compress_c(hpsi,y_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
   use module_base
@@ -1267,8 +1274,140 @@ subroutine compress_c(hpsi,y_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
 END SUBROUTINE compress_c
 
 
-! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
-! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
+!> Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
+!! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
+subroutine compress_slab_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
+     psifscf,psi_c,psi_f,psig,scal)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  real(wp), dimension(0:7), intent(in) :: scal
+  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2)), intent(in) :: psifscf
+  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  real(wp), dimension(nvctr_c), intent(out) :: psi_c
+  real(wp), dimension(7,nvctr_f), intent(out) :: psi_f
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+
+  ! decompose wavelets into coarse scaling functions and wavelets
+
+  call analyse_slab_self(n1,n2,n3,psifscf,psig)
+
+  ! coarse part
+  do iseg=1,nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)*scal(0)
+     enddo
+  enddo
+
+  ! fine part
+  do iseg=1,nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)*scal(1)
+        psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)*scal(2)
+        psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)*scal(3)
+        psi_f(4,i-i0+jj)=psig(i,1,i2,1,i3,2)*scal(4)
+        psi_f(5,i-i0+jj)=psig(i,2,i2,1,i3,2)*scal(5)
+        psi_f(6,i-i0+jj)=psig(i,1,i2,2,i3,2)*scal(6)
+        psi_f(7,i-i0+jj)=psig(i,2,i2,2,i3,2)*scal(7)
+     enddo
+  enddo
+
+END SUBROUTINE compress_slab_scal
+
+
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
+subroutine uncompress_slab_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
+     psi_c,psi_f,psifscf,psig,scal)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  real(wp), dimension(0:7), intent(in) :: scal
+  real(wp), dimension(nvctr_c), intent(in) :: psi_c
+  real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
+  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2)), intent(out) :: psifscf
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+
+  ! coarse part
+  do iseg=1,nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)*scal(0)
+     enddo
+  enddo
+
+  ! fine part
+  do iseg=1,nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)*scal(1)
+        psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)*scal(2)
+        psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)*scal(3)
+        psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)*scal(4)
+        psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)*scal(5)
+        psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)*scal(6)
+        psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)*scal(7)
+     enddo
+  enddo
+
+  ! calculate fine scaling functions
+  
+  call synthese_slab_self(n1,n2,n3,psig,psifscf)
+
+END SUBROUTINE uncompress_slab_scal
+
+
+!> Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
+!! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
 subroutine compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psifscf,psi_c,psi_f,psig)
@@ -1331,11 +1470,11 @@ subroutine compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 END SUBROUTINE compress_slab
 
 
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
 subroutine uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psifscf,psig)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-  ! into fine scaling functions (psifscf)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -1397,10 +1536,9 @@ subroutine uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 END SUBROUTINE uncompress_slab
 
 
-
-! Compresses a wavefunction that is given in terms of scfunctions (y_c)
-! and wavelets (y_f) into 
-! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
+!> Compresses a wavefunction that is given in terms of scfunctions (y_c)
+!! and wavelets (y_f) into 
+!! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
 subroutine compress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      y_c,y_f,psi_c,psi_f,min1,min2,min3,max1,max2,max3)
@@ -1461,12 +1599,12 @@ subroutine compress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 END SUBROUTINE compress_per_f
 
 
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
+!! in addition, calculates the wavelet coefficient array x_f
 subroutine uncompress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,x_c,x_f,x_f1,x_f2,x_f3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-  ! into fine scaling functions (psifscf)
-  ! in addition, calculates the wavelet coefficient array x_f
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -1538,12 +1676,12 @@ subroutine uncompress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
 END SUBROUTINE uncompress_per_f
 
 
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
+!! in addition, calculates the wavelet coefficient array x_f
 subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,x_c,x_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-  ! into fine scaling functions (psifscf)
-  ! in addition, calculates the wavelet coefficient array x_f
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -1603,5 +1741,3 @@ subroutine uncompress_per_f_short(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   enddo
 
 END SUBROUTINE uncompress_per_f_short
-
-

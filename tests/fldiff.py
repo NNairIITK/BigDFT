@@ -6,14 +6,18 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 28/06/2010
+
+# Use diff because difflib has some troubles (TD)
+# Date: 28/03/2011
 #----------------------------------------------------------------------------
 
-import difflib
+#import difflib
+import commands
 import getopt
 import os
 import re
 import sys
+import tempfile
 
 #Check the version of python
 version = map(int,sys.version_info[0:3])
@@ -68,6 +72,20 @@ print max_discrepancy
 file1 = args[0]
 file2 = args[1]
 
+#Check if the output is a tty to print in colour
+start_fail = "\033[0;31m"
+start_success = "\033[0;32m"
+end = "\033[m"
+#if sys.stdout.isatty():
+#    start_fail = "\033[0;31m"
+#    start_success = "\033[0;32m"
+#    end = "\033[m"
+#else:
+#    start_fail = ""
+#    start_success = ""
+#    end = ""
+
+#Define a junk line
 if bigdft:
     #Test if the line should not be compared (bigdft output)
     def line_junk(line):
@@ -75,6 +93,7 @@ if bigdft:
         return re_version.search(line) \
             or " |" in line \
             or "CPU time" in line \
+			or "SP-TIMINGS" in line \
             or "Load" in line \
             or "memory" in line \
             or "MB" in line \
@@ -82,7 +101,11 @@ if bigdft:
             or "Processes" in line \
             or "allocation" in line \
             or "~W" in line \
-            or "for the array" in line
+            or "for the array" in line \
+            or "WRITING WAVES" in line \
+            or "READING WAVES" in line \
+            or "average CG stepsize" in line \
+            or "GPU data" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
     def line_junk(line):
@@ -114,13 +137,13 @@ end_line = "MEMORY CONSUMPTION REPORT"
 
 #Read the first file
 try:
-    original1 = open(file1).read().replace('\r','').splitlines(1)
+    original1 = open(file1).read().replace('\r','').splitlines(True)
 except IOError:
     sys.stderr.write("The file '%s' does not exist!\n" % file1)
     sys.exit(1)
 #Read the second file
 try:
-    original2 = open(file2).read().replace('\r','').splitlines(1)
+    original2 = open(file2).read().replace('\r','').splitlines(True)
 except IOError:
     sys.stderr.write("The file '%s' does not exist!\n" % file2)
     sys.exit(1)
@@ -145,7 +168,7 @@ except ValueError:
     p1 = -1
     p2 = -1
 except IndexError:
-    sys.stdout.write("\033[0;31m"+"One file is blank!\n"+"\033[m")
+    sys.stdout.write(start_fail+"One file is blank!\n"+end)
     sys.exit(1)
 
 if p1 >= 0 and p2 >= 0 and p1 != p2:
@@ -181,14 +204,34 @@ if bigdft:
         print "Max Discrepancy: NaN"
         sys.exit(1)
 
+#Remove line_junk before comparing (not useful whih diff and the line number is wrong)
+#nojunk1 = list()
+#for line in original1:
+#    if not line_junk(line):
+#        nojunk1.append(line)
+#nojunk2 = list()
+#for line in original2:
+#    if not line_junk(line):
+#        nojunk2.append(line)
 
-#Compare both files
-compare = difflib.unified_diff(original1,original2,n=0)
+
+#Open 2 temproray files
+t1 = tempfile.NamedTemporaryFile()
+for line in original1:
+    t1.write(line)
+t1.flush()
+t2 = tempfile.NamedTemporaryFile()
+for line in original2:
+    t2.write(line)
+t2.flush()
+
+#Generate comparison using the unix diff command
+compare = iter(commands.getoutput("diff -b -d %s %s" %(t1.name,t2.name)).splitlines(True))
+
+t1.close()
+t2.close()
 
 try:
-    #The 2 first lines are irrelevant
-    compare.next()
-    compare.next()
     line = compare.next()
     EOF = False
 except StopIteration:
@@ -196,16 +239,12 @@ except StopIteration:
     EOF = True
 
 while not EOF:
-    if line[0] != "@":
-        #Trouble
-        print "Trouble:",line,
-        sys.exit(1)
     #A new context is detected
     context = line
     print_context = False
     left = list()
     line = compare.next()
-    while line[0] == "-":
+    while line[0] == "<":
         left.append(line)
         try:
             line = compare.next()
@@ -214,7 +253,9 @@ while not EOF:
             EOF = True
             break
     right = list()
-    while line[0] == "+":
+    if line[0] == "-":
+        line = compare.next()
+    while line[0] == ">":
         right.append(line)
         try:
             line = compare.next()
@@ -232,7 +273,7 @@ while not EOF:
         i2 += 1
         line1 = left[i1]
         line2 = right[i2]
-        #We avoid some lines
+        #We avoid some lines (try before to be more robust)
         if line_junk(line1) or line_junk(line2):
             continue
         floats1 = list()
@@ -241,9 +282,9 @@ while not EOF:
         floats2 = list()
         for (one,two) in re_float.findall(line2):
             floats2.append(float(one))
-        #Replace all floating point by XXX
-        new1 = re_float.sub('XXX',line1[2:])
-        new2 = re_float.sub('XXX',line2[2:])
+        #Replace all floating point by XXX and ' ' characters
+        new1 = re_float.sub('XXX',line1[2:]).replace(' ','')
+        new2 = re_float.sub('XXX',line2[2:]).replace(' ','')
         if new1 != new2 and i1 == 0:
             #For the first difference, we display the context
             print context,
@@ -257,7 +298,7 @@ while not EOF:
             for i in range(n):
                 tt = abs(floats1[i]-floats2[i])
                 if maximum < tt:
-                    context_discrepancy = " (line %s)" % context.split(",")[0][4:]
+                    context_discrepancy = " (line %s)" % context.split("c")[0].split(",")[0]
                     context_lines = "\n"+context_discrepancy[1:]+"\n"+line1+line2
                     maximum = max(maximum,tt)
                 if tt > max_discrepancy:
@@ -292,13 +333,11 @@ while not EOF:
 print context_lines,
 
 if maximum > max_discrepancy:
-    start = "\033[0;31m"
+    start = start_fail
     message = "failed    < "
-    end = "\033[m"
 else:
-    start = "\033[0;32m"
+    start = start_success
     message = "succeeded < "
-    end = "\033[m"
 
 print "%sMax Discrepancy %s: %s (%s%s)%s" % (start,context_discrepancy,maximum,message,max_discrepancy,end)
 sys.exit(0)

@@ -1,14 +1,13 @@
-!!****f* BigDFT/comb_grow_all_hybrid
-!!
-!! COPYRIGHT
+!> @file
+!!  Routines to apply synthesis and magic filters
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+!!    For the list of contributors, see ~/AUTHORS
+
+
 subroutine comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
      ,w1,w2,xc,xf,y,gb)
    use module_base
@@ -29,20 +28,14 @@ subroutine comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
    call comb_rot_grow_ib_3(n1,n2,n3,                    nfl3,nfu3,w2,y,gb%ibxxyy_f)
 
 END SUBROUTINE comb_grow_all_hybrid
-!!***
 
 
-!!****f* BigDFT/comb_rot_grow_ib_3
-!! FUNCTION
-!!   In one dimension,    
+!>   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   then adds the result to y.
 !!   The size of the data is allowed to grow
-!!
-!! SOURCE
-!!
 subroutine  comb_rot_grow_ib_3(n1,n2,n3,nfl3,nfu3,x,y,ibxxyy)
    use module_base
    implicit none
@@ -94,19 +87,13 @@ subroutine  comb_rot_grow_ib_3(n1,n2,n3,nfl3,nfu3,x,y,ibxxyy)
 !$omp end parallel
 
 END SUBROUTINE comb_rot_grow_ib_3
-!!***
 
 
-!!****f* BigDFT/comb_rot_grow_ib_2
-!! FUNCTION
-!!   In one dimension,    
+!>   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
-!!
-!! SOURCE
-!!
 subroutine comb_rot_grow_ib_2(n1,n2,nfl2,nfu2,nfl3,nfu3,x,y,ibzxx,ibxxyy)
 use module_base
 implicit none
@@ -177,19 +164,13 @@ enddo
 !$omp enddo
 !$omp end parallel
 END SUBROUTINE comb_rot_grow_ib_2
-!!***
 
 
-!!****f* BigDFT/comb_rot_grow_ib_1
-!! FUNCTION
-!!   In one dimension,    
+!>   In one dimension,    
 !!   with optimised cycles
 !!   Applies synthesis wavelet transformation 
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
-!!
-!! SOURCE
-!!
 subroutine comb_rot_grow_ib_1(n1,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ibyz,ibzxx)
 use module_base
 implicit none
@@ -280,16 +261,15 @@ enddo
 !$omp enddo
 !$omp end parallel
 END SUBROUTINE comb_rot_grow_ib_1
-!!***
 
 
+!> In one dimension,    
+!! with optimised cycles
+!! Applies synthesis wavelet transformation 
+!! then convolves with magic filter
+!! then adds the result to y.
+!! The size of the data is allowed to grow
 subroutine  comb_rot_grow(n1,ndat,x,y)
-! In one dimension,    
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-! then adds the result to y.
-! The size of the data is allowed to grow
 use module_base
 implicit none
 integer,intent(in) :: n1,ndat
@@ -388,16 +368,11 @@ enddo
 END SUBROUTINE comb_rot_grow
 
 
-
-
-
-
-
+!> In 3d,            
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
+!! The input array y is not overwritten
 subroutine comb_shrink_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,xc,xf,sb)
-! In 3d,            
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
-! The input array y is not overwritten
 use module_base
 use module_types
 implicit none
@@ -431,10 +406,11 @@ integer nt
    
 END SUBROUTINE comb_shrink_hyb
 
+
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_hyb_1_ib(ndat,n1,nfl1,nfu1,x,y,ib)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
 use module_base
 implicit none
 integer, intent(in) :: ndat,nfl1,nfu1,n1
@@ -471,11 +447,10 @@ enddo
 END SUBROUTINE comb_rot_shrink_hyb_1_ib
 
 
-
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_hyb_2_ib(ndat,x,y,nfl,nfu,n1,ib)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
 use module_base
 implicit none
 integer, parameter:: lowfil2=-14,lupfil2=16
@@ -520,10 +495,10 @@ enddo
 END SUBROUTINE comb_rot_shrink_hyb_2_ib
 
 
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_hyb_3_ib(ndat,x,y,nfl,nfu,n1,ib)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
 use module_base
 implicit none
 integer, parameter :: lowfil2=-14,lupfil2=16
@@ -576,10 +551,10 @@ enddo
 END SUBROUTINE comb_rot_shrink_hyb_3_ib
 
 
+!> In one dimension,    
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
 subroutine comb_rot_shrink_hyb(ndat,x,y,n1)
-! In one dimension,    
-! Applies the magic filter transposed, then analysis wavelet transformation.
-! The size of the data is forced to shrink
 use module_base
 implicit none
 integer, parameter :: lowfil2=-14,lupfil2=16

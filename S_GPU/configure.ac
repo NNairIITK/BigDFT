@@ -312,6 +312,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+src/CUDA/Makefile
 examples/Makefile
 examples/c/Makefile
 examples/c/simple/Makefile

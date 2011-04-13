@@ -21,8 +21,7 @@ EXTRA_PROGRAMS = conv_check bench_conv bench_conv_quick bench_zgemm stream_check
 
 noinst_LIBRARIES = libbasef.a libbasec.a libOCL.a libStream.a
 
-libbasef_a_SOURCES = ../profiling/memory.f90 \
-                     ../modules/base.F90 \
+libbasef_a_SOURCES = ../modules/defs.F90 ../modules/base.f90 \
                      ../modules/cublas_fake.f90 $(mpi_source)
 
 libbasec_a_SOURCES = OpenCL_wrappers.c \
@@ -48,7 +47,7 @@ endif
 
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@
 AM_CFLAGS = -Wall -Werror
 
@@ -69,16 +68,16 @@ bench_zgemm_LDADD = libbasec.a
 bench_zgemm_LDFLAGS = -lrt
 
 stream: stream_check
-	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' ./stream_check
+	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='$(srcdir)/profile.conf' ./stream_check
 
 bench: bench_conv
-	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' ./bench_conv
+	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='$(srcdir)/profile.conf' ./bench_conv
 
 bench_quick: bench_conv_quick
-	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' ./bench_conv_quick
+	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='$(srcdir)/profile.conf' ./bench_conv_quick
 
 bench_zg: bench_zgemm
-	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='profile.conf' ./bench_zgemm
+	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='$(srcdir)/profile.conf' ./bench_zgemm
 
 check_conv: conv_check
 	echo 1 128 128 16384 16384 100 > fort.1

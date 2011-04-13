@@ -1,19 +1,18 @@
-!!****f* BigDFT/sumrho
-!! FUNCTION
-!!    Calculate the electronic density (rho)
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!> @file
+!!  Routines to calculate electronic density from wavefunctions
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+
+!> Calculates the charge density by summing the square of all orbitals
+!! Input: psi
+!! Output: rho
 subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      & nscatterarr,nspin,GPU,symObj,irrzon,phnons)
-  ! Calculates the charge density by summing the square of all orbitals
-  ! Input: psi
-  ! Output: rho
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
   use libxc_functionals
@@ -39,10 +38,13 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   real(dp) :: charge,tt
   real(dp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
-!!$  real(dp), dimension(:,:), allocatable :: rho_p_OCL
-!!$  real(dp), dimension(:,:), allocatable :: psi_OCL
+!!  real(dp), dimension(:,:), allocatable :: rho_p_OCL
+!!  real(dp), dimension(:,:), allocatable :: psi_OCL
 
+!  integer :: ncount0,ncount1,ncount2,ncount3,ncountmpi0,ncountmpi1,ncount_max,ncount_rate
 !  real(kind=8) :: stream_ptr
+
+  !call system_clock(ncount0,ncount_rate,ncount_max)
 
   call timing(iproc,'Rho_comput    ','ON')
 
@@ -60,7 +62,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
   !flag for toggling the REDUCE_SCATTER stategy
   rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-       & (ixc < 0 .and. libxc_functionals_isgga())) .and. .not. have_mpi2
+       & (ixc < 0 .and. libxc_functionals_isgga()))
+  
+!  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
+!             (ixc < 0 .and. libxc_functionals_isgga()), have_mpi2,rsflag
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
@@ -79,6 +84,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      rho_p => rho
   end if
 
+  !call system_clock(ncount1,ncount_rate,ncount_max)
 !!$  if (OCLconv) then
 !!$     allocate(rho_p_OCL(max(nrho,1),nspin),stat=i_stat)
 !!$     call memocc(i_stat,rho_p_OCL,'rho_p_OCL',subname)
@@ -86,6 +92,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 !!$     call memocc(i_stat,psi_OCL,'psi_OCL',subname)
 !!$     call dcopy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, psi, 1, psi_OCL, 1)
 !!$  end if
+
 
   !switch between GPU/CPU treatment of the density
   if (GPUconv) then
@@ -102,8 +109,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      end if
 
      !for each of the orbitals treated by the processor build the partial densities
+     !call system_clock(ncount2,ncount_rate,ncount_max)
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
           nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
+     !call system_clock(ncount3,ncount_rate,ncount_max)
   end if
 
 !!$  if (OCLconv) then
@@ -132,6 +141,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
           rho_p,symObj,irrzon,phnons)
   end if
 
+  !write(*,*) 'iproc,TIMING:SR1',iproc,real(ncount1-ncount0)/real(ncount_rate)
   !the density must be communicated to meet the shape of the poisson solver
   if (nproc > 1) then
      call timing(iproc,'Rho_comput    ','OF')
@@ -143,8 +153,17 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
                MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         end do
      else
-         call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
-              MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+       !  call system_clock(ncountmpi0,ncount_rate,ncount_max)
+       !  call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
+       !       MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+         call mpiallred(rho_p(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
+               MPI_SUM,MPI_COMM_WORLD,ierr)
+       !  call system_clock(ncountmpi1,ncount_rate,ncount_max)
+       !  write(*,'(A,4(1X,f6.3))') 'TIMING:ARED'
+       !             real(ncount1-ncount0)/real(ncount_rate),&
+       !             real(ncount2-ncount1)/real(ncount_rate),&
+       !             real(ncount3-ncount2)/real(ncount_rate),&
+       !             real(ncountmpi1-ncountmpi0)/real(ncount_rate)
          !stop 'rsflag active in sumrho.f90, check MPI2 implementation'
      end if
      call timing(iproc,'Rho_commun    ','OF')
@@ -169,6 +188,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
         end do
      end if
   end if
+  !call system_clock(ncount2,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:SR2',real(ncount2-ncount1)/real(ncount_rate)
   ! Check
   tt=0.d0
   i3off=lr%d%n1i*lr%d%n2i*nscatterarr(iproc,4)
@@ -240,16 +261,14 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
   call timing(iproc,'Rho_comput    ','OF')
 
+  !call system_clock(ncount3,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:SR3',real(ncount3-ncount2)/real(ncount_rate)
+  !write(*,*) 'TIMING:SR',real(ncount3-ncount0)/real(ncount_rate)
 END SUBROUTINE sumrho
-!!***
 
 
-!!****f* BigDFT/local_partial_density
-!! FUNCTION
-!!   Here starts the routine for building partial density inside the localisation region
+!>   Here starts the routine for building partial density inside the localisation region
 !!   This routine should be treated as a building-block for the linear scaling code
-!! SOURCE
-!!
 subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   use module_base
@@ -267,7 +286,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,orbs%nspinor)), intent(inout) :: rho_p
   !local variables
   character(len=*), parameter :: subname='local_partial_density'
-  integer :: iorb,i_stat,i_all
+  integer :: iorb,i_stat,i_all,ii
   integer :: oidx,sidx,nspinn,npsir,ncomplex
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
@@ -296,9 +315,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   end if
 
   do iorb=1,orbs%norbp
-
      !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
-
      hfac=orbs%kwgts(orbs%iokpt(iorb))*(orbs%occup(orbs%isorb+iorb)/(hxh*hyh*hzh))
      spinval=orbs%spinsgn(orbs%isorb+iorb)
 
@@ -346,13 +363,8 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE local_partial_density
-!!***
 
 
-!!****f* BigDFT/partial_density
-!! FUNCTION
-!! SOURCE
-!!
 subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p)
   use module_base
@@ -368,15 +380,15 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg
   real(gp) :: hfac2
   real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
-!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+!!!  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
   !sum different slices by taking into account the overlap
   i3sg=0
 !$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
 !$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg)
   i3s=0
   hfac2=2.0_gp*hfac
-!$  ithread=omp_get_thread_num()
-!$  nthread=omp_get_num_threads()
+!!!  ithread=omp_get_thread_num()
+!!!  nthread=omp_get_num_threads()
 
   !case without bounds
   i1s=1
@@ -405,8 +417,8 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
         !j3=modulo(i3-1,n3i)+1 
         j3=i3
         i3s=i3s+1
-!$  if(mod(i3s,nthread) .eq. ithread) then
-
+!!  if(mod(i3s,nthread) .eq. ithread) then
+        !$omp do
         do i2=1,n2i
            if (npsir == 1) then
               do i1=i1s,i1e
@@ -436,10 +448,10 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
               end do
            end if
         end do
-!$  end if
-
+        !$omp enddo
+!!  end if
 !$omp critical
-        i3sg=max(i3sg,i3s)
+    i3sg=max(i3sg,i3s)
 !$omp end critical
 
      end do
@@ -453,13 +465,8 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   end if
 
 END SUBROUTINE partial_density
-!!***
 
 
-!!****f* BigDFT/partial_density_free
-!! FUNCTION
-!! SOURCE
-!!
 subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p,&
      ibyyzz_r) 
@@ -477,15 +484,18 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3,i3sg
   real(gp) :: hfac2
   real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
-!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+!  integer :: ncount0,ncount1,ncount_rate,ncount_max
+!!!  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
   !sum different slices by taking into account the overlap
   i3sg=0
 !$omp parallel default(private) shared(n1i,nproc,rsflag,nspinn,nscatterarr,spinsgn) &
 !$omp shared(n2i,npsir,hfac,psir,rho_p,n3i,i3sg,ibyyzz_r)
   i3s=0
-!$   ithread=omp_get_thread_num()
-!$   nthread=omp_get_num_threads()
+!!!   ithread=omp_get_thread_num()
+!!!   nthread=omp_get_num_threads()
   hfac2=2.0_gp*hfac
+
+!  call system_clock(ncount0,ncount_rate,ncount_max)
 
   !case without bounds
   i1s=1
@@ -514,8 +524,8 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
         !j3=modulo(i3-1,n3i)+1 
         j3=i3
         i3s=i3s+1
-!$    if(mod(i3s,nthread) .eq. ithread) then
-
+!!!    if(mod(i3s,nthread) .eq. ithread) then
+     !$omp do
         do i2=1,n2i
               i1s=ibyyzz_r(1,i2-15,j3-15)+1
               i1e=ibyyzz_r(2,i2-15,j3-15)+1
@@ -547,7 +557,8 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
               end do
            end if
         end do
-!$    end if
+     !$omp enddo
+!!!    end if
 
 !$omp critical
         i3sg=max(i3sg,i3s)
@@ -563,14 +574,11 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      stop
   end if
 
+!  call system_clock(ncount1,ncount_rate,ncount_max)
+!  write(*,*) 'TIMING:PDF',real(ncount1-ncount0)/real(ncount_rate)
 END SUBROUTINE partial_density_free
-!!***
 
 
-!!****f* BigDFT/symmetrise_density
-!! FUNCTION
-!! SOURCE
-!!
 subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho,&
      symObj,irrzon,phnons)
   use module_base!, only: gp,dp,wp,ndebug,memocc
@@ -767,4 +775,3 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
   call memocc(i_stat,i_all,'rhog',subname)
 
 END SUBROUTINE symmetrise_density
-!!***

@@ -1,18 +1,16 @@
-!!****f* BigDFT/apply_hp_sd
-!! FUNCTION
-!!   Applies the operator (KE+cprecr*I)*x=y
-!!   array x is input, array y is output
-!! See also the optimized version (apply_hp_sd_optim)
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2010 BigDFT group 
+!> @file
+!!  New convolution routines
+!! @author
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!> Applies the operator (KE+cprecr*I)*x=y
+!! array x is input, array y is output
+!! See also the optimized version (apply_hp_sd_optim)
 subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e)
   use module_base
@@ -51,14 +49,10 @@ subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
        psig_out,y(1),y(nvctr_c+1))
 END SUBROUTINE apply_hp_sd
-!!***
 
 
-!!****f* BigDFT/apply_hp_scal
-!! FUNCTION
-!!   See also the optimized version (apply_hp_scal_optim)
-!! SOURCE
-!!
+
+!>   See also the optimized version (apply_hp_scal_optim)
 subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e,scal)
   use module_base
@@ -98,15 +92,11 @@ subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
        psig_out,y(1),y(nvctr_c+1),scal)
 END SUBROUTINE apply_hp_scal
-!!***
 
 
-!!****f* BigDFT/convolut_kinetic_per_sdc
-!! FUNCTION
-!!   Applies the kinetic energy operator onto x to get y. Works for periodic BC
+
+!>   Applies the kinetic energy operator onto x to get y. Works for periodic BC
 !!   See also the optimized version (convolut_kinteic_per_sdc_optim)
-!! SOURCE
-!!
 subroutine convolut_kinetic_per_sdc(n1,n2,n3,x,y,cprecr,modul1,modul2,modul3,a,b,c,e)
   use module_base
   implicit none
@@ -260,7 +250,7 @@ subroutine convolut_kinetic_per_sdc(n1,n2,n3,x,y,cprecr,modul1,modul2,modul3,a,b
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'z:',tel,1.d-6*mflop3/tel
 
 END SUBROUTINE convolut_kinetic_per_sdc
-!!***
+
 
 
 subroutine prepare_sdc(n1,n2,n3,modul1,modul2,modul3,a,b,c,e,hx,hy,hz)

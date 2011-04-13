@@ -1,12 +1,32 @@
+//! @file
+//!  Magic filter (??)
+//!
+//! @author
+//!    Copyright (C) 2009-2011 BigDFT group 
+//!    This file is distributed under the terms of the
+//!    GNU General Public License, see ~/COPYING file
+//!    or http://www.gnu.org/copyleft/gpl.txt .
+//!    For the list of contributors, see ~/AUTHORS 
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <thread_engine.h>
+#include <time.h>
 #define CACHE_SIZE 6291456
 #define NB_SYB 2
 #define NB_CORE 8
 
 void rdtsc_(long long unsigned int * t) {
   rdtscll(*t);
+}
+
+void nanosec_(long long unsigned int * t){
+  struct timespec time;
+  clock_gettime(CLOCK_REALTIME, &time);
+  *t = time.tv_sec;
+  *t *= 1000000000;
+  *t += time.tv_nsec;
 }
 
 const double filt[] = { 8.4334247333529341094733325815816e-7,

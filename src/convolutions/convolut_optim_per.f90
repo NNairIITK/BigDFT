@@ -1,14 +1,12 @@
-!!****f* BigDFT/ana_rot_per
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2010 BigDFT group 
+!> @file
+!!  Optimzed convolution routines
+!! @author
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
 subroutine ana_rot_per(n,ndat,x,y)
   use module_base
   implicit none
@@ -144,7 +142,7 @@ subroutine ana_rot_per(n,ndat,x,y)
 !write(*,*) 'elapsed time on ana rot per',(iend_test-istart_test)/(1.d0*count_rate_test)
 
 END SUBROUTINE ana_rot_per
-!!***
+
 
 
 subroutine syn_rot_per(n,ndat,x,y)
@@ -675,7 +673,7 @@ contains
        enddo
     enddo
 !$omp  end do
-  end subroutine conv_kin_y
+  END SUBROUTINE conv_kin_y
 
 
   subroutine conv_kin_x(x,y,ndat)
@@ -745,7 +743,7 @@ contains
        enddo
     enddo
 !$omp  end do
-  end subroutine conv_kin_x
+  END SUBROUTINE conv_kin_x
 
   subroutine conv_kin_z(x,y,ndat)
     implicit none
@@ -815,7 +813,7 @@ contains
        enddo
     enddo
 !$omp  end do
-  end subroutine conv_kin_z
+  END SUBROUTINE conv_kin_z
 
 
 

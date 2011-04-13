@@ -1,19 +1,34 @@
-There are two programs:
-- cluster (file BigDFT.f90)
-- memguess (file memguess.f90) to estimate the necessary memory
-  ex: memguess nproc
+/*! @mainpage BigDFT Package developer documentation
+ The BigDFT project is an electronic structure calculations based on wavelet basis set.
 
-cluster and memguess read the input files (input.dat, posinp and psppar.<name of atom>) in the corresponding directory.
-
-BigDFT.f90 performs a geometry optimization using a conjugate gradient algorithm and calls
-the routine cluster (cluster_all.f90).
-
-The file cluster_all.f90 contains the routine cluster and all routines called by ABINIT as BigDFT is interfaced.
-
-Sub-directories:
-
-- "profiling" contains routines to profile times and memories
-- "PSolver" contains all routines for the different Poisson solver (isolated systems, surfaces, 3D periodic)
-- "convolutions" contains the routine performing the convolution
-
-Change here
+ Binaries:
+ - <b> abscalc     </b>
+ - <b> bart        </b>
+ - <b> bigdft      </b>
+ - <b> frequencies </b>
+ - <b> MDanalysis  </b>
+ - <b> memguess    </b>
+ - <b> NEB         </b>
+ - <b> oneatom     </b>
+ - <b> rism        </b>
+ - <b> test_forces </b>
+ 
+ Sub-directories:
+ - <b>  art </b>                ART method from Normand Mousseau
+ - <b>  convolutions </b>       Convolutions for the Daubechies functions
+ - <b>  convolutions-c </b>     Convolutions using C routines
+ - <b>  CUDA </b>               Routines for the GPU part based on CUDA library from NVIDIA.
+                                3D convolutions are coded.
+ - <b>  init </b>               Initialization routines
+ - <b>  lib </b>                Contains routines for the compilation (only fft)
+ - <b>  modules </b>            Main modules of BigDFT package
+ - <b>  OpenCL </b>             Routines for OpenCL acceleration
+ - <b>  profiling </b>          Routines to profile the code (time and memory)
+ - <b>  PSolver </b>            Contains Poisson solver routines
+                                which can be compiled standalone as a library.
+                                There are also the routines to build and manipulate
+                                the interpolating scaling functions.
+ - <b>  unused </b>             Contains deprecated routines (not documented)
+ - <b>  wavelib </b>            Basic routines for wavelets
+ - <b>  wfn_opt </b>            Wavefunction optimization
+*/

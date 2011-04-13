@@ -1,15 +1,14 @@
-!!****p* MINHOP
-!!
-!! DESCRIPTION
-!!  Main program fro the minima hopping
-!!  New modified version 17th Nov 2009 Sandip De  
-!! COPYRIGHT
-!!    Copyright (C) 2008 UNIBAS
+!> @file
+!!  Minima hopping program
+!! @author
+!!    New modified version 17th Nov 2009 Sandip De  
+!!    Copyright (C) 2008-2011 UNIBAS
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
-!!
-!! SOURCE
-!!
+
+
+!> MINHOP
+!!  Main program fro the minima hopping
 program MINHOP
 
   use module_base
@@ -75,13 +74,10 @@ program MINHOP
 
   if (iproc == 0) write(67,'(a,3(1x,1pe11.4))') 'beta1,beta2,beta3',beta1,beta2,beta3
   if (iproc == 0) write(67,'(a,2(1x,1pe11.4))') 'alpha1,alpha2',alpha1,alpha2
-  ratio=-log(alpha2)/log(alpha1)
-  if (iproc == 0) write(67,'(a,2(1x,1pe10.3))') 'predicted fraction accepted, rejected', & 
-       ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)
-  tt= beta2**ratio*beta3
-  if (iproc == 0) write(67,'(a,2(1x,1pe11.4))') 'critical ratio (.ge. 1)',tt
-  if (tt.lt.0.999999999999999d0) stop 'incompatible alpha s, beta s'
+  !if (iproc == 0) write(67,'(a,2(1x,1pe10.3))') 'predicted fraction accepted, rejected', & 
+  !     ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)
   if (iproc == 0) write(67,*) 'mdmin',mdmin
+  accepted=0.0d0
 
 
   call cpu_time(tcpu1)
@@ -236,18 +232,6 @@ program MINHOP
   count_soft=0.d0
   count_md=0.d0
   nputback=0
-
-!!$  do iat=1,atoms%nat
-!!$     if (atoms%geocode == 'P') then
-!!$        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
-!!$        pos(2,iat)=modulo(pos(2,iat),atoms%alat2)
-!!$        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
-!!$     else if (atoms%geocode == 'S') then
-!!$        pos(1,iat)=modulo(pos(1,iat),atoms%alat1)
-!!$        pos(3,iat)=modulo(pos(3,iat),atoms%alat3)
-!!$     end if
-!!$  end do
-
 
   inputs_opt%inputPsiId=0
   call init_restart_objects(iproc,inputs_opt%iacceleration,atoms,rst,subname)
@@ -412,7 +396,7 @@ program MINHOP
 
   !C continue since escaped
   !C  check whether new minimum
-  call hunt(earr(1,1),min(nlmin,nlminx),re_wpos,k_e_wpos)
+  call hunt_g(earr(1,1),min(nlmin,nlminx),re_wpos,k_e_wpos)
   if (re_wpos == earr(k_e_wpos,1)) then
      if (iproc == 0) write(67,'(a,i3,i3,i4,1x,1pe14.7)')  & 
           'npmin,nlmin,k_e_wpos,re_wpos=earr',npmin,nlmin,k_e_wpos,re_wpos
@@ -515,9 +499,9 @@ program MINHOP
      write(67,*) 'writing final results'
      write(*,*) '# writing final results'
      write(67,*) ' found in total ',nlmin,' minima'
-     write(67,*) ' Accepeted ',accepted,' minima'
+     write(67,*) ' Accepted ',accepted,' minima'
      write(*,*) '#found in total ',nlmin,' minima'
-     write(*,*) '#Accepeted ',accepted,' minima'
+     write(*,*) '#Accepted ',accepted,' minima'
      call winter(atoms,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, & 
            earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
   endif
@@ -601,9 +585,9 @@ program MINHOP
 contains
 
 
+  !> Does a MD run with the atomic positiosn rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
        nproc,iproc,atoms,rst,inputs_md)!  &
-    ! Does a MD run with the atomic positiosn rxyz
     use module_base
     use module_types
     use module_interfaces
@@ -676,7 +660,6 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
        enmin1=en0000
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
        inputs_md%inputPsiId=1
-       if (istep > 2) inputs_md%itermax=50
        call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,fnoise,rst,infocode)
 
        if (iproc == 0) then
@@ -740,7 +723,6 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     endif
     
   END SUBROUTINE mdescape
-  
   
 
   subroutine soften(nsoften,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
@@ -895,14 +877,11 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     !        deallocate(wpos,fxyz)
   END SUBROUTINE soften
 
-
 end program MINHOP
-!!***
 
 
-
+!> Inserts the energy re_wpos at position k_e_wpos and shifts up all other energies
 subroutine insert(nlminx,nlmin,k_e_wpos,re_wpos,earr)
-  ! inserts the energy re_wpos at position k_e_wpos and shifts up all other energies
   implicit real*8 (a-h,o-z)
   dimension earr(0:nlminx,2)
   do k=nlmin-1,k_e_wpos+1,-1
@@ -915,8 +894,8 @@ subroutine insert(nlminx,nlmin,k_e_wpos,re_wpos,earr)
 END SUBROUTINE insert
 
 
+!> C save configuration if it is among the lowest ones in energy
 subroutine save_low_conf(nat,npmin,npminx,e_wpos,pos,elocmin,poslocmin)
-  !C save configuration if it is among the lowest ones in energy
   implicit real*8 (a-h,o-z)
   dimension elocmin(npminx)
   dimension pos(3,nat),poslocmin(3,nat,npminx)
@@ -953,16 +932,16 @@ subroutine save_low_conf(nat,npmin,npminx,e_wpos,pos,elocmin,poslocmin)
 END SUBROUTINE save_low_conf
 
 
-subroutine hunt(xx,n,x,jlo)
+!> C x is in interval [xx(jlo),xx(jlow+1)[ ; xx(0)=-Infinity ; xx(n+1) = Infinity
+subroutine hunt_g(xx,n,x,jlo)
   implicit none
-  !C x is in interval [xx(jlo),xx(jlow+1)[ ; xx(0)=-Infinity ; xx(n+1) = Infinity
   !Arguments
   integer :: jlo,n
   real(kind=8) :: x,xx(n)
   !Local variables
   integer :: inc,jhi,jm
   logical :: ascnd
-  if (n.le.0) stop 'hunt'
+  if (n.le.0) stop 'hunt_g'
   if (n == 1) then
      if (x.ge.xx(1)) then
         jlo=1
@@ -1013,11 +992,11 @@ subroutine hunt(xx,n,x,jlo)
      jhi=jm
   endif
   goto 3
-END SUBROUTINE hunt
+END SUBROUTINE hunt_g
 
 
+!>  assigns initial velocities for the MD escape part
 subroutine velopt(at,rxyz,ekinetic,vxyz)
-  !     assigns initial velocities for the MD escape part
   use module_base
   use module_types
   use ab6_symmetry
@@ -1071,6 +1050,7 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
 END SUBROUTINE velopt
 
 
+!> create a random displacement vector without translational and angular moment
 subroutine randdist(nat,rxyz,vxyz)
   use module_base
   implicit none
@@ -1080,7 +1060,6 @@ subroutine randdist(nat,rxyz,vxyz)
   !local variables
   integer :: i,idum=0
   real(kind=4) :: tt,builtin_rand
-  ! create a random displacement vector without translational and angular moment
   do i=1,3*nat
      !call random_number(tt)
      !add built-in random number generator
@@ -1093,8 +1072,8 @@ subroutine randdist(nat,rxyz,vxyz)
 END SUBROUTINE randdist
 
 
+!>  generates 3*nat random numbers distributed according to  exp(-.5*vxyz**2)
 subroutine gausdist(nat,rxyz,vxyz)
-  !C  generates 3*nat random numbers distributed according to  exp(-.5*vxyz**2)
   implicit real*8 (a-h,o-z)
   real s1,s2
   !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
@@ -1123,8 +1102,8 @@ subroutine gausdist(nat,rxyz,vxyz)
 END SUBROUTINE gausdist
 
 
+!>  generates n random numbers distributed according to  exp(-x)
 subroutine expdist(nat,rxyz,vxyz)
-  !C  generates n random numbers distributed according to  exp(-x)
   implicit real*8 (a-h,o-z)
   real ss
   !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
@@ -1625,7 +1604,7 @@ end function round
 !END SUBROUTINE rdposout
 
 
-!routine for adjusting the dimensions with the center of mass in the middle
+!> routine for adjusting the dimensions with the center of mass in the middle
 subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
   use module_base
   implicit none

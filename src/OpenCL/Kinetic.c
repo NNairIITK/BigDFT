@@ -1,3 +1,14 @@
+//! @file
+//!  Kinetic kernel in OpenCL
+//!
+//! @author
+//!    Copyright (C) 2009-2011 BigDFT group 
+//!    This file is distributed under the terms of the
+//!    GNU General Public License, see ~/COPYING file
+//!    or http://www.gnu.org/copyleft/gpl.txt .
+//!    For the list of contributors, see ~/AUTHORS 
+
+
 #include "Initialize.h"
 #include "Kinetic.h"
 #include "Kinetic_k.h"
@@ -232,6 +243,210 @@ y[jg*2*n + 2*ig + 1] = tmp_y[j2*(2*FILTER_WIDTH+1) + 2*i2 + 1] + tt1_2 * scale_1
 x[jg*2*n + 2*ig] = tmp_o[0];\n\
 x[jg*2*n + 2*ig + 1] = tmp_o[1];\n\
 }\n\
+__kernel void kinetic_k1dKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double * x_in_r, __global const double * x_in_i, __global double * x_r, __global double * x_i, __global const double * y_in_r, __global const double * y_in_i, __global double * y_r, __global double * y_i, __local double * tmp_r, __local double * tmp_i, __local double * tmp_y_r, __local double * tmp_y_i ) {\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+const size_t j2t = 4*j2 + i2/8;\n\
+const size_t i2t = i2 - 8 * (i2 / 8);\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2t;\n\
+jgt = jg - j2 + i2t;\n\
+tmp_y_r[i2t * (FILTER_WIDTH + 1) + j2t] = y_in_r[jgt+igt*ndat];\n\
+tmp_y_i[i2t * (FILTER_WIDTH + 1) + j2t] = y_in_i[jgt+igt*ndat];\n\
+igt -= FILTER_WIDTH/2;\n\
+if ( igt < 0 ) {\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in_r[jgt + ( n + igt ) * ndat];\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in_i[jgt + ( n + igt ) * ndat];\n\
+} else {\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in_r[jgt + igt * ndat];\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in_i[jgt + igt * ndat];\n\
+}\n\
+igt += FILTER_WIDTH;\n\
+if ( igt >= n ) {\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in_r[jgt + ( igt - n ) * ndat];\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in_i[jgt + ( igt - n ) * ndat];\n\
+} else {\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in_r[jgt +  igt * ndat];\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in_i[jgt +  igt * ndat];\n\
+}\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+__local double * tmp_o_r = tmp_r + j2*(2 * FILTER_WIDTH + 1) + FILTER_WIDTH/2 + i2;\n\
+__local double * tmp_o_i = tmp_i + j2*(2 * FILTER_WIDTH + 1) + FILTER_WIDTH/2 + i2;\n\
+double tt1_1=0;\n\
+tt1_1 += (tmp_o_r[14] + tmp_o_r[-14]) * -6.924474940639200152025730585882e-18;\n\
+tt1_1 += (tmp_o_r[13] + tmp_o_r[-13]) *  2.70800493626319438269856689037647576e-13;\n\
+tt1_1 += (tmp_o_r[12] + tmp_o_r[-12]) * -5.813879830282540547959250667e-11;\n\
+tt1_1 += (tmp_o_r[11] + tmp_o_r[-11]) * -1.05857055496741470373494132287e-8;\n\
+tt1_1 += (tmp_o_r[10] + tmp_o_r[-10]) * -3.7230763047369275848791496973044e-7;\n\
+tt1_1 += (tmp_o_r[ 9] + tmp_o_r[ -9]) *  2.0904234952920365957922889447361e-6;\n\
+tt1_1 += (tmp_o_r[ 8] + tmp_o_r[ -8]) * -0.2398228524507599670405555359023135e-4;\n\
+tt1_1 += (tmp_o_r[ 7] + tmp_o_r[ -7]) *  0.45167920287502235349480037639758496e-3;\n\
+tt1_1 += (tmp_o_r[ 6] + tmp_o_r[ -6]) * -0.409765689342633823899327051188315485e-2;\n\
+tt1_1 += (tmp_o_r[ 5] + tmp_o_r[ -5]) *  0.02207029188482255523789911295638968409e0;\n\
+tt1_1 += (tmp_o_r[ 4] + tmp_o_r[ -4]) * -0.0822663999742123340987663521e0;\n\
+tt1_1 += (tmp_o_r[ 3] + tmp_o_r[ -3]) *  0.2371780582153805636239247476e0;\n\
+tt1_1 += (tmp_o_r[ 2] + tmp_o_r[ -2]) * -0.6156141465570069496314853949e0;\n\
+tt1_1 += (tmp_o_r[ 1] + tmp_o_r[ -1]) *  2.2191465938911163898794546405e0;\n\
+tt1_1 +=  tmp_o_r[ 0]                 * -3.5536922899131901941296809374e0;\n\
+double tt1_2=0;\n\
+tt1_2 += (tmp_o_i[14] + tmp_o_i[-14]) * -6.924474940639200152025730585882e-18;\n\
+tt1_2 += (tmp_o_i[13] + tmp_o_i[-13]) *  2.70800493626319438269856689037647576e-13;\n\
+tt1_2 += (tmp_o_i[12] + tmp_o_i[-12]) * -5.813879830282540547959250667e-11;\n\
+tt1_2 += (tmp_o_i[11] + tmp_o_i[-11]) * -1.05857055496741470373494132287e-8;\n\
+tt1_2 += (tmp_o_i[10] + tmp_o_i[-10]) * -3.7230763047369275848791496973044e-7;\n\
+tt1_2 += (tmp_o_i[ 9] + tmp_o_i[ -9]) *  2.0904234952920365957922889447361e-6;\n\
+tt1_2 += (tmp_o_i[ 8] + tmp_o_i[ -8]) * -0.2398228524507599670405555359023135e-4;\n\
+tt1_2 += (tmp_o_i[ 7] + tmp_o_i[ -7]) *  0.45167920287502235349480037639758496e-3;\n\
+tt1_2 += (tmp_o_i[ 6] + tmp_o_i[ -6]) * -0.409765689342633823899327051188315485e-2;\n\
+tt1_2 += (tmp_o_i[ 5] + tmp_o_i[ -5]) *  0.02207029188482255523789911295638968409e0;\n\
+tt1_2 += (tmp_o_i[ 4] + tmp_o_i[ -4]) * -0.0822663999742123340987663521e0;\n\
+tt1_2 += (tmp_o_i[ 3] + tmp_o_i[ -3]) *  0.2371780582153805636239247476e0;\n\
+tt1_2 += (tmp_o_i[ 2] + tmp_o_i[ -2]) * -0.6156141465570069496314853949e0;\n\
+tt1_2 += (tmp_o_i[ 1] + tmp_o_i[ -1]) *  2.2191465938911163898794546405e0;\n\
+tt1_2 +=  tmp_o_i[ 0]                   * -3.5536922899131901941296809374e0;\n\
+double tt2_1=0;\n\
+tt2_1 += (tmp_o_r[14] - tmp_o_r[-14]) * -1.585464751677102510097179e-19;\n\
+tt2_1 += (tmp_o_r[13] - tmp_o_r[-13]) *  1.240078536096648534547439e-14;\n\
+tt2_1 += (tmp_o_r[12] - tmp_o_r[-12]) * -7.252206916665149851135592e-13;\n\
+tt2_1 += (tmp_o_r[11] - tmp_o_r[-11]) * -9.697184925637300947553069e-10;\n\
+tt2_1 += (tmp_o_r[10] - tmp_o_r[-10]) * -7.207948238588481597101904e-8;\n\
+tt2_1 += (tmp_o_r[ 9] - tmp_o_r[ -9]) *  3.993810456408053712133667e-8;\n\
+tt2_1 += (tmp_o_r[ 8] - tmp_o_r[ -8]) *  2.451992111053665419191564e-7;\n\
+tt2_1 += (tmp_o_r[ 7] - tmp_o_r[ -7]) *  0.00007667706908380351933901775e0;\n\
+tt2_1 += (tmp_o_r[ 6] - tmp_o_r[ -6]) * -0.001031530213375445369097965e0;\n\
+tt2_1 += (tmp_o_r[ 5] - tmp_o_r[ -5]) *  0.006958379116450707495020408e0;\n\
+tt2_1 += (tmp_o_r[ 4] - tmp_o_r[ -4]) * -0.03129014783948023634381564e0;\n\
+tt2_1 += (tmp_o_r[ 3] - tmp_o_r[ -3]) *  0.1063640682894442760934532e0;\n\
+tt2_1 += (tmp_o_r[ 2] - tmp_o_r[ -2]) * -0.3032593514765938346887962e0;\n\
+tt2_1 += (tmp_o_r[ 1] - tmp_o_r[ -1]) *  0.8834460460908270942785856e0;\n\
+double tt2_2=0;\n\
+tt2_2 += (tmp_o_i[14] - tmp_o_i[-14]) * -1.585464751677102510097179e-19;\n\
+tt2_2 += (tmp_o_i[13] - tmp_o_i[-13]) *  1.240078536096648534547439e-14;\n\
+tt2_2 += (tmp_o_i[12] - tmp_o_i[-12]) * -7.252206916665149851135592e-13;\n\
+tt2_2 += (tmp_o_i[11] - tmp_o_i[-11]) * -9.697184925637300947553069e-10;\n\
+tt2_2 += (tmp_o_i[10] - tmp_o_i[-10]) * -7.207948238588481597101904e-8;\n\
+tt2_2 += (tmp_o_i[ 9] - tmp_o_i[ -9]) *  3.993810456408053712133667e-8;\n\
+tt2_2 += (tmp_o_i[ 8] - tmp_o_i[ -8]) *  2.451992111053665419191564e-7;\n\
+tt2_2 += (tmp_o_i[ 7] - tmp_o_i[ -7]) *  0.00007667706908380351933901775e0;\n\
+tt2_2 += (tmp_o_i[ 6] - tmp_o_i[ -6]) * -0.001031530213375445369097965e0;\n\
+tt2_2 += (tmp_o_i[ 5] - tmp_o_i[ -5]) *  0.006958379116450707495020408e0;\n\
+tt2_2 += (tmp_o_i[ 4] - tmp_o_i[ -4]) * -0.03129014783948023634381564e0;\n\
+tt2_2 += (tmp_o_i[ 3] - tmp_o_i[ -3]) *  0.1063640682894442760934532e0;\n\
+tt2_2 += (tmp_o_i[ 2] - tmp_o_i[ -2]) * -0.3032593514765938346887962e0;\n\
+tt2_2 += (tmp_o_i[ 1] - tmp_o_i[ -1]) *  0.8834460460908270942785856e0;\n\
+y_r[jg*n + ig] = tmp_y_r[j2*(FILTER_WIDTH+1) + i2] + tt1_1 * scale_1 - tt2_2 * scale_2;\n\
+y_i[jg*n + ig] = tmp_y_i[j2*(FILTER_WIDTH+1) + i2] + tt1_2 * scale_1 + tt2_1 * scale_2;\n\
+x_r[jg*n + ig] = tmp_o_r[0];\n\
+x_i[jg*n + ig] = tmp_o_i[0];\n\
+}\n\
+__kernel void kinetic_k1d_fKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double * x_in_r, __global const double * x_in_i, __global double * x_r, __global double * x_i, __global const double * y_in_r, __global const double * y_in_i, __global double * y_r, __global double * y_i, __local double * tmp_r, __local double * tmp_i, __local double * tmp_y_r, __local double * tmp_y_i ) {\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+const size_t j2t = 4*j2 + i2/8;\n\
+const size_t i2t = i2 - 8 * (i2 / 8);\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2t;\n\
+jgt = jg - j2 + i2t;\n\
+tmp_y_r[i2t * (FILTER_WIDTH + 1) + j2t] = y_in_r[jgt+igt*ndat];\n\
+tmp_y_i[i2t * (FILTER_WIDTH + 1) + j2t] = y_in_i[jgt+igt*ndat];\n\
+igt -= FILTER_WIDTH/2;\n\
+if ( igt < 0 ) {\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t] = 0.0;\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t] = 0.0;\n\
+} else {\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in_r[jgt + igt * ndat];\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t] = x_in_i[jgt + igt * ndat];\n\
+}\n\
+igt += FILTER_WIDTH;\n\
+if ( igt >= n ) {\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = 0.0;\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = 0.0;\n\
+} else {\n\
+  tmp_r[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in_r[jgt +  igt * ndat];\n\
+  tmp_i[i2t * (2 * FILTER_WIDTH + 1) + j2t + FILTER_WIDTH] = x_in_i[jgt +  igt * ndat];\n\
+}\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+__local double * tmp_o_r = tmp_r + j2*(2 * FILTER_WIDTH + 1) + FILTER_WIDTH/2 + i2;\n\
+__local double * tmp_o_i = tmp_i + j2*(2 * FILTER_WIDTH + 1) + FILTER_WIDTH/2 + i2;\n\
+double tt1_1=0;\n\
+tt1_1 += (tmp_o_r[14] + tmp_o_r[-14]) * -6.924474940639200152025730585882e-18;\n\
+tt1_1 += (tmp_o_r[13] + tmp_o_r[-13]) *  2.70800493626319438269856689037647576e-13;\n\
+tt1_1 += (tmp_o_r[12] + tmp_o_r[-12]) * -5.813879830282540547959250667e-11;\n\
+tt1_1 += (tmp_o_r[11] + tmp_o_r[-11]) * -1.05857055496741470373494132287e-8;\n\
+tt1_1 += (tmp_o_r[10] + tmp_o_r[-10]) * -3.7230763047369275848791496973044e-7;\n\
+tt1_1 += (tmp_o_r[ 9] + tmp_o_r[ -9]) *  2.0904234952920365957922889447361e-6;\n\
+tt1_1 += (tmp_o_r[ 8] + tmp_o_r[ -8]) * -0.2398228524507599670405555359023135e-4;\n\
+tt1_1 += (tmp_o_r[ 7] + tmp_o_r[ -7]) *  0.45167920287502235349480037639758496e-3;\n\
+tt1_1 += (tmp_o_r[ 6] + tmp_o_r[ -6]) * -0.409765689342633823899327051188315485e-2;\n\
+tt1_1 += (tmp_o_r[ 5] + tmp_o_r[ -5]) *  0.02207029188482255523789911295638968409e0;\n\
+tt1_1 += (tmp_o_r[ 4] + tmp_o_r[ -4]) * -0.0822663999742123340987663521e0;\n\
+tt1_1 += (tmp_o_r[ 3] + tmp_o_r[ -3]) *  0.2371780582153805636239247476e0;\n\
+tt1_1 += (tmp_o_r[ 2] + tmp_o_r[ -2]) * -0.6156141465570069496314853949e0;\n\
+tt1_1 += (tmp_o_r[ 1] + tmp_o_r[ -1]) *  2.2191465938911163898794546405e0;\n\
+tt1_1 +=  tmp_o_r[ 0]                 * -3.5536922899131901941296809374e0;\n\
+double tt1_2=0;\n\
+tt1_2 += (tmp_o_i[14] + tmp_o_i[-14]) * -6.924474940639200152025730585882e-18;\n\
+tt1_2 += (tmp_o_i[13] + tmp_o_i[-13]) *  2.70800493626319438269856689037647576e-13;\n\
+tt1_2 += (tmp_o_i[12] + tmp_o_i[-12]) * -5.813879830282540547959250667e-11;\n\
+tt1_2 += (tmp_o_i[11] + tmp_o_i[-11]) * -1.05857055496741470373494132287e-8;\n\
+tt1_2 += (tmp_o_i[10] + tmp_o_i[-10]) * -3.7230763047369275848791496973044e-7;\n\
+tt1_2 += (tmp_o_i[ 9] + tmp_o_i[ -9]) *  2.0904234952920365957922889447361e-6;\n\
+tt1_2 += (tmp_o_i[ 8] + tmp_o_i[ -8]) * -0.2398228524507599670405555359023135e-4;\n\
+tt1_2 += (tmp_o_i[ 7] + tmp_o_i[ -7]) *  0.45167920287502235349480037639758496e-3;\n\
+tt1_2 += (tmp_o_i[ 6] + tmp_o_i[ -6]) * -0.409765689342633823899327051188315485e-2;\n\
+tt1_2 += (tmp_o_i[ 5] + tmp_o_i[ -5]) *  0.02207029188482255523789911295638968409e0;\n\
+tt1_2 += (tmp_o_i[ 4] + tmp_o_i[ -4]) * -0.0822663999742123340987663521e0;\n\
+tt1_2 += (tmp_o_i[ 3] + tmp_o_i[ -3]) *  0.2371780582153805636239247476e0;\n\
+tt1_2 += (tmp_o_i[ 2] + tmp_o_i[ -2]) * -0.6156141465570069496314853949e0;\n\
+tt1_2 += (tmp_o_i[ 1] + tmp_o_i[ -1]) *  2.2191465938911163898794546405e0;\n\
+tt1_2 +=  tmp_o_i[ 0]                   * -3.5536922899131901941296809374e0;\n\
+double tt2_1=0;\n\
+tt2_1 += (tmp_o_r[14] - tmp_o_r[-14]) * -1.585464751677102510097179e-19;\n\
+tt2_1 += (tmp_o_r[13] - tmp_o_r[-13]) *  1.240078536096648534547439e-14;\n\
+tt2_1 += (tmp_o_r[12] - tmp_o_r[-12]) * -7.252206916665149851135592e-13;\n\
+tt2_1 += (tmp_o_r[11] - tmp_o_r[-11]) * -9.697184925637300947553069e-10;\n\
+tt2_1 += (tmp_o_r[10] - tmp_o_r[-10]) * -7.207948238588481597101904e-8;\n\
+tt2_1 += (tmp_o_r[ 9] - tmp_o_r[ -9]) *  3.993810456408053712133667e-8;\n\
+tt2_1 += (tmp_o_r[ 8] - tmp_o_r[ -8]) *  2.451992111053665419191564e-7;\n\
+tt2_1 += (tmp_o_r[ 7] - tmp_o_r[ -7]) *  0.00007667706908380351933901775e0;\n\
+tt2_1 += (tmp_o_r[ 6] - tmp_o_r[ -6]) * -0.001031530213375445369097965e0;\n\
+tt2_1 += (tmp_o_r[ 5] - tmp_o_r[ -5]) *  0.006958379116450707495020408e0;\n\
+tt2_1 += (tmp_o_r[ 4] - tmp_o_r[ -4]) * -0.03129014783948023634381564e0;\n\
+tt2_1 += (tmp_o_r[ 3] - tmp_o_r[ -3]) *  0.1063640682894442760934532e0;\n\
+tt2_1 += (tmp_o_r[ 2] - tmp_o_r[ -2]) * -0.3032593514765938346887962e0;\n\
+tt2_1 += (tmp_o_r[ 1] - tmp_o_r[ -1]) *  0.8834460460908270942785856e0;\n\
+double tt2_2=0;\n\
+tt2_2 += (tmp_o_i[14] - tmp_o_i[-14]) * -1.585464751677102510097179e-19;\n\
+tt2_2 += (tmp_o_i[13] - tmp_o_i[-13]) *  1.240078536096648534547439e-14;\n\
+tt2_2 += (tmp_o_i[12] - tmp_o_i[-12]) * -7.252206916665149851135592e-13;\n\
+tt2_2 += (tmp_o_i[11] - tmp_o_i[-11]) * -9.697184925637300947553069e-10;\n\
+tt2_2 += (tmp_o_i[10] - tmp_o_i[-10]) * -7.207948238588481597101904e-8;\n\
+tt2_2 += (tmp_o_i[ 9] - tmp_o_i[ -9]) *  3.993810456408053712133667e-8;\n\
+tt2_2 += (tmp_o_i[ 8] - tmp_o_i[ -8]) *  2.451992111053665419191564e-7;\n\
+tt2_2 += (tmp_o_i[ 7] - tmp_o_i[ -7]) *  0.00007667706908380351933901775e0;\n\
+tt2_2 += (tmp_o_i[ 6] - tmp_o_i[ -6]) * -0.001031530213375445369097965e0;\n\
+tt2_2 += (tmp_o_i[ 5] - tmp_o_i[ -5]) *  0.006958379116450707495020408e0;\n\
+tt2_2 += (tmp_o_i[ 4] - tmp_o_i[ -4]) * -0.03129014783948023634381564e0;\n\
+tt2_2 += (tmp_o_i[ 3] - tmp_o_i[ -3]) *  0.1063640682894442760934532e0;\n\
+tt2_2 += (tmp_o_i[ 2] - tmp_o_i[ -2]) * -0.3032593514765938346887962e0;\n\
+tt2_2 += (tmp_o_i[ 1] - tmp_o_i[ -1]) *  0.8834460460908270942785856e0;\n\
+y_r[jg*n + ig] = tmp_y_r[j2*(FILTER_WIDTH+1) + i2] + tt1_1 * scale_1 - tt2_2 * scale_2;\n\
+y_i[jg*n + ig] = tmp_y_i[j2*(FILTER_WIDTH+1) + i2] + tt1_2 * scale_1 + tt2_1 * scale_2;\n\
+x_r[jg*n + ig] = tmp_o_r[0];\n\
+x_i[jg*n + ig] = tmp_o_i[0];\n\
+}\n\
 ";
 
 inline void kinetic_k_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_uint *ndat, double *scale1, double *scale2, cl_mem *x_in, cl_mem *x_out, cl_mem *y_in, cl_mem *y_out) {
@@ -257,6 +472,36 @@ inline void kinetic_k_generic(cl_kernel kernel, cl_command_queue command_queue, 
   oclErrorCheck(ciErrNum,"Failed to enqueue kinetic_k kernel!");
 } 
 
+inline void kinetic_k_generic_2(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_uint *ndat, double *scale1, double *scale2, cl_mem *x_in_r, cl_mem *x_in_i, cl_mem *x_out_r, cl_mem *x_out_i, cl_mem *y_in_r, cl_mem *y_in_i, cl_mem *y_out_r, cl_mem *y_out_i) {
+  int FILTER_WIDTH = 32;
+  cl_int ciErrNum;
+  assert(*n>=FILTER_WIDTH);
+  size_t block_size_i=FILTER_WIDTH;
+  size_t block_size_j=8;
+  size_t localWorkSize[] = { block_size_i, block_size_j };
+  size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat) };
+  cl_uint i=0;
+  clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
+  clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
+  clSetKernelArg(kernel, i++,sizeof(*scale1), (void*)scale1);
+  clSetKernelArg(kernel, i++,sizeof(*scale2), (void*)scale2);
+  clSetKernelArg(kernel, i++,sizeof(*x_in_r), (void*)x_in_r);
+  clSetKernelArg(kernel, i++,sizeof(*x_in_i), (void*)x_in_i);
+  clSetKernelArg(kernel, i++,sizeof(*x_out_r), (void*)x_out_r);
+  clSetKernelArg(kernel, i++,sizeof(*x_out_i), (void*)x_out_i);
+  clSetKernelArg(kernel, i++,sizeof(*y_in_r), (void*)y_in_r);
+  clSetKernelArg(kernel, i++,sizeof(*y_in_i), (void*)y_in_i);
+  clSetKernelArg(kernel, i++,sizeof(*y_out_r), (void*)y_out_r);
+  clSetKernelArg(kernel, i++,sizeof(*y_out_i), (void*)y_out_i);
+  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i+FILTER_WIDTH+1), NULL);
+  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i+FILTER_WIDTH+1), NULL);
+  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i+1), NULL);
+  clSetKernelArg(kernel, i++,sizeof(double)*block_size_j*(block_size_i+1), NULL);
+  ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  oclErrorCheck(ciErrNum,"Failed to enqueue kinetic_k_2 kernel!");
+} 
+
+
 
 cl_program kineticProgram;
 cl_program kinetic_kProgram;
@@ -264,11 +509,15 @@ cl_program kinetic_kProgram;
 void create_kinetic_kernels(struct bigdft_kernels * kernels) {
     cl_int ciErrNum=CL_SUCCESS;
     kernels->kinetic1d_kernel_d=clCreateKernel(kineticProgram,"kinetic1dKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kinetic_k1dKernel_d kernel!");
+    oclErrorCheck(ciErrNum,"Failed to create kinetic1dKernel_d kernel!");
     kernels->kinetic1d_f_kernel_d=clCreateKernel(kineticProgram,"kinetic1d_fKernel_d",&ciErrNum);
-    oclErrorCheck(ciErrNum,"Failed to create kinetic_k1dKernel_d kernel!");
+    oclErrorCheck(ciErrNum,"Failed to create kinetic1d_fKernel_d kernel!");
     kernels->kinetic_k1d_kernel_d=clCreateKernel(kinetic_kProgram,"kinetic_k1dKernel_d",&ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create kinetic_k1dKernel_d kernel!");
+    kernels->kinetic_k1d_kernel_d_2=clCreateKernel(kinetic_kProgram,"kinetic_k1dKernel_d_2",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kinetic_k1dKernel_d_2 kernel!");
+    kernels->kinetic_k1d_f_kernel_d_2=clCreateKernel(kinetic_kProgram,"kinetic_k1d_fKernel_d_2",&ciErrNum);
+    oclErrorCheck(ciErrNum,"Failed to create kinetic_k1d_fKernel_d_2 kernel!");
 }
 
 void build_kinetic_programs(cl_context * context){
@@ -336,6 +585,42 @@ void FC_FUNC_(kinetic_stable_d,KINETIC_STABLE_D)(bigdft_command_queue *command_q
   kinetic_generic((*command_queue)->kernels.kinetic1d_kernel_d, (*command_queue)->command_queue, &n1, &ng, &scale, tmp_x, work_x, tmp_y, work_y);
 }
 
+void FC_FUNC_(kinetic_k_d_generic,KINETIC_K_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, double *h, double *k, cl_mem *x_r, cl_mem *x_i, cl_mem *y_r, cl_mem *y_i, cl_mem *work_x_r, cl_mem *work_x_i, cl_mem *work_y_r, cl_mem *work_y_i){
+  double scale_1, scale_2;
+  cl_uint ng;
+  cl_uint n1 = dimensions[0] * 2;             
+  cl_uint n2 = dimensions[1] * 2;
+  cl_uint n3 = dimensions[2] * 2;
+  if( !periodic[0] ) n1 += 2*7;
+  if( !periodic[1] ) n2 += 2*7;
+  if( !periodic[2] ) n3 += 2*7;
+  scale_1 = -0.5 / ( h[2] * h[2] );
+  scale_2 = k[2] / h[2];
+  ng = n1 * n2;
+  if( periodic[2] ) {
+    kinetic_k_generic_2((*command_queue)->kernels.kinetic_k1d_kernel_d_2, (*command_queue)->command_queue, &n3, &ng, &scale_1, &scale_2, x_r, x_i, work_x_r, work_x_i, y_r, y_i, work_y_r, work_y_i);
+  } else {
+    kinetic_k_generic_2((*command_queue)->kernels.kinetic_k1d_f_kernel_d_2, (*command_queue)->command_queue, &n3, &ng, &scale_1, &scale_2, x_r, x_i, work_x_r, work_x_i, y_r, y_i, work_y_r, work_y_i);
+  }
+  scale_1 = -0.5 / ( h[1] * h[1] );
+  scale_2 = k[1] / h[1];
+  ng = n1 * n3;
+  if( periodic[1] ) {
+    kinetic_k_generic_2((*command_queue)->kernels.kinetic_k1d_kernel_d_2, (*command_queue)->command_queue, &n2, &ng, &scale_1, &scale_2, work_x_r, work_x_i, x_r, x_i, work_y_r, work_y_i, y_r, y_i);
+  } else {
+    kinetic_k_generic_2((*command_queue)->kernels.kinetic_k1d_f_kernel_d_2, (*command_queue)->command_queue, &n2, &ng, &scale_1, &scale_2, work_x_r, work_x_i, x_r, x_i, work_y_r, work_y_i, y_r, y_i);
+  }
+  scale_1 = -0.5 / ( h[0] * h[0] );
+  scale_2 = k[0] / h[0];
+  ng = n2 * n3;
+  if( periodic[0] ) {
+    kinetic_k_generic_2((*command_queue)->kernels.kinetic_k1d_kernel_d_2, (*command_queue)->command_queue, &n1, &ng, &scale_1, &scale_2, x_r, x_i, work_x_r, work_x_i, y_r, y_i, work_y_r, work_y_i);
+  } else {
+    kinetic_k_generic_2((*command_queue)->kernels.kinetic_k1d_f_kernel_d_2, (*command_queue)->command_queue, &n1, &ng, &scale_1, &scale_2, x_r, x_i, work_x_r, work_x_i, y_r, y_i, work_y_r, work_y_i);
+  }
+}
+ 
+
 void FC_FUNC_(kinetic_d_generic,KINETIC_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, double *h, cl_mem *x, cl_mem *y, cl_mem *work_x, cl_mem *work_y) {
   double scale;
   cl_uint ng;
@@ -397,6 +682,10 @@ void clean_kinetic_kernels(struct bigdft_kernels * kernels){
   ciErrNum = clReleaseKernel(kernels->kinetic1d_f_kernel_d);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
   ciErrNum = clReleaseKernel(kernels->kinetic_k1d_kernel_d);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(kernels->kinetic_k1d_kernel_d_2);
+  oclErrorCheck(ciErrNum,"Failed to release kernel!");
+  ciErrNum = clReleaseKernel(kernels->kinetic_k1d_f_kernel_d_2);
   oclErrorCheck(ciErrNum,"Failed to release kernel!");
 }
 

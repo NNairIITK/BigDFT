@@ -1,3 +1,12 @@
+!> @file
+!! Simple routines of convolutions
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
 
 subroutine ana_rot_per(n,ndat,x,y)
   use module_base
