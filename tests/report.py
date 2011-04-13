@@ -22,6 +22,8 @@ def callback(pattern,dirname,names):
 #List of files
 files = []
 os.path.walk(".",callback,"*.report")
+#Sort files
+files.sort()
 
 #Check if the output is a tty to print in colour
 if sys.stdout.isatty():

@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 29/04/2010
+# Date: 01/04/2011
 #--------------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -99,6 +99,9 @@
 # Fortran_Type      inherited of the class Declaration to handle fortran types.
 # Fortran_Interface inherited of the class Fortran_Type to handle declaration of interfaces.
 #
+# The class Include is a special class to handle the include statement.
+# abilint gives an ersatz of 'mpif.f' file for commodity.
+
 # The class Variable is created to have all information for a given variable.
 # A structure has a 'dict_vars' dictionary.
 #
@@ -165,8 +168,6 @@ abilint_start = "!This section has been created automatically by the script Abil
                 + "!Do not modify the following lines by hand.\n"
 abilint_end =  "!End of the abilint section\n"
 
-#i# use_before = abilint_start + "#ifdef HAVE_FORTRAN_INTERFACES\n"
-#i# notuse_before = abilint_start + "#ifndef HAVE_FORTRAN_INTERFACES\n"
 use_before = abilint_start
 notuse_before = abilint_start
 
@@ -565,7 +566,7 @@ class Project:
                     self.dirs.append(dd)
                     self.dirsfiles[dd] = list()
                 #Add all files in this sub-directory
-                self.add(dd,["*"],pat_file,exclude,read_only,File_Class)
+                self.add(dd,pat_dir,pat_file,exclude,read_only,File_Class)
                 self.message.write(" <--- add dir %s]\n" % dd)
             elif os.path.isfile(dd):
                 self.add_file(dir,file,read_only=read_only,File_Class=File_Class)
@@ -634,6 +635,7 @@ class Project:
         "Analyze all the project except the files which contain exclude"
         self.message.section("Analyze all the project...")
         for file in self.files.values():
+            #print file.name
             if exclude not in file.name:
                 file.analyze(self)
         self.message.done()
@@ -683,8 +685,10 @@ class Project:
             module.analyze_variables(self)
         #Do for each routine stored in self.routines
         for (name,routine) in self.routines.items():
-            self.message.write("(%s/%s <%s>)" % (routine.dir,routine.file,name))
-            routine.analyze_variables(self)
+            if not isinstance(routine,Generic_Routine):
+                #Analyze only for not Generic_Routine
+                self.message.write("(%s/%s <%s>)" % (routine.dir,routine.file,name))
+                routine.analyze_variables(self)
         self.message.done()
     #
     def backup(self):
@@ -987,14 +991,16 @@ class Project:
         #First test if there are routines with the same name
         if self.message_interfaces:
             self.message.fatal("\n"+self.message_interfaces)
-        #Directory where the interface files are stored
-        dir_module = "%s/%s" % (self.ROOT,dir_mod)
         #Do for each directory
         for dir in self.dirs:
             main = os.path.basename(dir)
             #exclude contains the excluded directories
             if main in exclude:
                 continue
+            #Directory where the interface files are stored
+            dir_module = "%s/src/%s" % (self.ROOT,main)
+            if ( not os.path.exists(dir_module) ):
+                dir_module = "%s/%s" % (self.ROOT,dir_mod)
             module = "%s%s" % (prefix,main)
             file_module = "%s.F90" % module
             pfile = self.add_file(dir_module,file_module,create=True)
@@ -1140,7 +1146,7 @@ class Structure:
             self.lower = self.name.lower()
         self.parent = parent
         if parent:
-            #Add self in child paren/t
+            #Add self in child parent
             self.message = self.parent.message
             #Add to parent's children (if it exists)
             parent.children.append(self)
@@ -1323,7 +1329,7 @@ class File_F90(File):
                     struct = Function(parent=self)
                 struct.analyze(line,iter_code,project)
             else:
-                self.message.fatal("\n'%s'\n--> No detected routine!\n" % line \
+                self.message.fatal("\n'%s'\n--> No detected routine (File F90 analysis)!\n" % line \
                         + "This part of code can not be parsed as Fortran file:\n" \
                         + "Analysis Error in %s/%s\n" % (self.dir,self.file))
         self.message.write("]\n",verbose=10)
@@ -1816,7 +1822,7 @@ class Module(Code):
                 #Include directive
                 struct = Include(project,parent=self,line=line)
             else:
-                self.message.fatal("\n%s\n--> No detected routine!\n" % line \
+                self.message.fatal("\n%s\n--> No detected routine (Structure analysis)!\n" % line \
                         + "This part of code can not be parsed as Fortran file:\n" \
                         + "Analysis Error in %s/%s:<%s>\n" % (self.dir,self.file,self.name))
     #
@@ -1915,9 +1921,6 @@ class Routine(Module):
                     self.message.warning_no_interface(self.dir,self.file,self.name,called)
                     continue
             modules.add(routine.module)
-            if isinstance(routine,Generic_Routine):
-                #Use generic routine
-                generic_routines = True
             if isinstance(routine,Function):
                 functions.append(routine)
         #Remove main (for the program "optic" which has some subroutines !!!)
@@ -2370,9 +2373,14 @@ class Use(Code):
         self.code = self.re_empty_preproc.sub('',self.code)
         #Add preprocessing commands, comments and implicit none
         if modules or else_modules:
-            text_use = "\n\n" + use_before
+            text_use = ""
             #Add modules
             for module in modules:
+                #Special and ugly
+                if "contract" in module:
+                    text_use += "#if defined DEBUG_CONTRACT\n"
+                if "cuda" in module:
+                    text_use += "#if defined HAVE_GPU_CUDA\n"
                 if prefix in module:
                     if module == self.parent.module and self.parent.has_interface:
                         #We except the given subroutine
@@ -2380,16 +2388,26 @@ class Use(Code):
                                % (self.parent.module,self.parent.name)
                     else:
                         text_use += indent + "use %s\n" % module
+                if "contract" in module:
+                    text_use += "#endif\n"
+                if "cuda" in module:
+                    text_use += "#endif\n"
             if else_modules:
                 text_use += "#else\n"
                 for name in else_modules:
                     text_use += indent + "use %s\n" % name
-            text_use += use_after + "\n"
+            if text_use != "":
+                text_use = "\n\n" + use_before + text_use + use_after + "\n"
             #Add text_use inside use statements
             self.code += text_use
         else:
             #Be sure to have 2 \n
             self.code += (2-self.code[-2:].count("\n"))*"\n"
+
+        # MG Add CPP variable with the name of the procedure.
+        #self.code += "\n #undef ABI_FUNC \n #def ABI_FUNC " + str(self.parent.name) 
+        #print self.code + "\n #undef ABI_FUNC \n #define ABI_FUNC " + str(self.parent.name) 
+
         #Remove multiple \n
         self.code = self.re_multi_n.sub('\n\n',self.code)
     #
@@ -2411,6 +2429,7 @@ class Use(Code):
                 #Add this module
                 self.modules.add(res.groupdict()["name"].lower())
                 while self.re_continuation.search(line):
+                    #print line,res.groupdict()["name"].lower()
                     line = iter_code.next()
                     self.add_code(line)
                 comments=""
@@ -2534,7 +2553,7 @@ class Declaration(Code):
     #Detect declarations
     re_declaration = re.compile('^[ \t]*' \
         + '(allocatable|character|common|complex|data|dimension|double|end[ ]+type|equivalence|external|'\
-        + 'integer|intrinsic|logical|parameter|private|public|real|save|type)', re.IGNORECASE)
+        + 'integer|intrinsic|logical|optional|parameter|private|public|real|save|type)', re.IGNORECASE)
     #Detect "type " or "type," or "type::"
     re_def_type = re.compile('^[ \t]*type[ ]*(?![(])',re.IGNORECASE)
     #Detect digits only (1.2d0 or 1.3e-4 etc.)
@@ -2818,8 +2837,7 @@ class Declaration(Code):
             else:
                 #We use the implicit dictionary
                 arg = Variable(argument_lower,parent=self.parent,truename=argument,is_argument=True)
-                type_arg = arg.type_from_implicit(dict_implicit)
-                if type_arg == "":
+                if not arg.type_from_implicit(dict_implicit):
                     arg.display_information()
                     text = "\nArguments of the routine '%s':" % self.parent.name
                     for arg in arguments_lower:
@@ -2835,7 +2853,7 @@ class Declaration(Code):
             order = arg.order()
             #Add the declaration of the argument with order
             declarations.append((order,arg))
-            #For each variables which depend on arguments, we add information
+            #For each variables which depend arguments, we add information
             for name in names:
                 #Find where some information about 'name' is stored
                 has_name = False
@@ -2881,9 +2899,12 @@ class Declaration(Code):
                     else:
                         message = self.message.fatal
                     if unfound_module:
+                        texte += "\n Unfound modules:"
+                        for unfound_module in unfound_modules:
+                            texte += " %s" % unfound_module
                         message("%s\n   " % texte \
-                                + " The module '%s' is not found and" % module \
-                                + " the argument '%s' depends on '%s' which could be in this module." \
+                                + " The modules '%s' are not found and" % module \
+                                + " the argument '%s' depends on '%s' which could be in these modules." \
                                 % (arg.name,name))
                     else:
                         message("%s\n[%s/%s:%s]:" % \
@@ -3430,7 +3451,8 @@ class Fortran_Type(Declaration):
         return order
 
 
-#Class to handle the fortran interfaces inside declarations
+#Class to handle the fortran interfaces inside declarations (interface itself is not a child but
+#defined functions in the interface do
 class Fortran_Interface(Fortran_Type):
     "Class to handle a fortran interface"
     #Detect the name of the interface
@@ -3462,7 +3484,10 @@ class Fortran_Interface(Fortran_Type):
             self.lower = self.name.lower()
             self.generic = True
         else:
+            #Declare only interfaces for the compiler
             self.generic = False
+            #Defined children
+            self.children = list()
         in_interface = 1
         #Detect subroutines, functions or 'module procedure'
         for line in iter_code:
@@ -3482,6 +3507,8 @@ class Fortran_Interface(Fortran_Type):
             elif "module" in line_lower and "procedure" in line_lower:
                 name = self.re_module_procedure.match(line_lower).groupdict()['name']
                 struct = Routine(parent=self,name=name,implicit=dict_implicit)
+                #Add as child (generic routine)
+                self.children.append(struct)
                 #If continuation mark, iterate
                 while self.re_continuation.search(line):
                     line = iter_code.next()
@@ -3491,7 +3518,7 @@ class Fortran_Interface(Fortran_Type):
                 #We have finished
                 break
             else:
-                self.message.fatal("\n'%s'\n--> No detected routine!\n" % line \
+                self.message.fatal("\n'%s'\n--> No detected routine (Interface analysis)!\n" % line \
                         + "This part of code can not be parsed as Fortran file:\n" \
                                    + "Analysis Error in %s/%s:<%s>\n" % (self.dir,self.file,self.name))
         if in_interface:
@@ -3507,6 +3534,16 @@ class Fortran_Interface(Fortran_Type):
             for child in self.children:
                 children[child.lower] = child
             return children
+    #
+    def update(self,decl,truename=None):
+        "We do not need to analyze generic interface"
+        if self.generic:
+            pass
+        else:
+            #Not implemented: error
+                self.message.fatal("\n--> Not implemented for function interface!\n" \
+                        + "This part of code can not be parsed as Fortran file:\n" \
+                        + "Analysis Error in %s/%s\n" % (self.dir,self.file))
 
 
 class Include(Code):
@@ -3711,7 +3748,7 @@ class Message:
 
 #Header of the interface module.
 head_interface = \
-"""!!****m* bigdft/%(name)s
+"""!!****m* BigDFT/%(name)s
 !! NAME
 !! %(name)s
 !!
@@ -3720,7 +3757,7 @@ head_interface = \
 !! %(description)s
 !!
 !! COPYRIGHT
-!! Copyright (C) 2008 bigdft group
+!! Copyright (C) 2008-2011 BigDFT group
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~bigdft/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -3744,7 +3781,7 @@ head_dependencies = \
 """#Dependencies of the directory %(dir)s
 #
 #COPYRIGHT
-#Copyright (C) 2008 bigdft group
+#Copyright (C) 2008-2011 BigDFT group
 #This file is distributed under the terms of the
 #GNU General Public License, see ~abinit/COPYING
 #or http://www.gnu.org/copyleft/gpl.txt .
@@ -3858,7 +3895,7 @@ if __name__ == "__main__":
     NEW = args[1]
     #Create the project and read all files
     bigdft = Project(OLD,name="BigDFT",\
-                     pat_dir=["src"],pat_file=["*.F90","*.f90", "*.inc"],\
+                     pat_dir=["src","src/*"],pat_file=["*.F90","*.f90", "*.inc"],\
                      logfile="abilint.log",\
                      exclude=bigdft_exclude,given_include=bigdft_include,\
                      File_Class=bigdft_File_Class)

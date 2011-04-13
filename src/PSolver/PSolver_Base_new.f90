@@ -36,11 +36,15 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   real(kind=8), dimension(:,:,:,:), allocatable :: zmpi2
   !cache work array
   real(kind=8), dimension(:,:,:), allocatable :: zw
+  real(kind=8), dimension(:,:,:,:), allocatable :: zw1
   !FFT work arrays
   real(kind=8), dimension(:,:), allocatable :: btrig1,btrig2,btrig3, &
        ftrig1,ftrig2,ftrig3,cosinarr
   integer, dimension(:), allocatable :: after1,now1,before1, & 
        after2,now2,before2,after3,now3,before3
+  !integer :: ncount0,ncount1,ncount_max,ncount_rate
+
+  !call system_clock(ncount0,ncount_rate,ncount_max)
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -129,10 +133,10 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   call memocc(i_stat,now3,'now3',subname)
   allocate(before3(7+ndebug),stat=i_stat)
   call memocc(i_stat,before3,'before3',subname)
-  allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
-  call memocc(i_stat,zw,'zw',subname)
-  allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
-  call memocc(i_stat,zt,'zt',subname)
+  !allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
+  !call memocc(i_stat,zw,'zw',subname)
+  !allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
+  !call memocc(i_stat,zt,'zt',subname)
   allocate(zmpi2(2,n1,md2/nproc,nd3+ndebug),stat=i_stat)
   call memocc(i_stat,zmpi2,'zmpi2',subname)
   !also for complex input this should be eliminated
@@ -185,10 +189,22 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   !put to zero the zw array
   !this should not be done at each time since the
   !array is refilled always the same way
-  zw=0.0_dp
+  !zw=0.0_dp
   !call razero(4*(ncache/4),zw)
 
   !different loop if halfft or not (output part)
+
+  !$omp parallel default(shared)&
+  !$omp private(ma,mb,nfft,inzee,zw,zt)
+  !$omp critical
+    allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
+    call memocc(i_stat,zw,'zw',subname)
+    allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
+    call memocc(i_stat,zt,'zt',subname)
+    zw=0.0_dp
+    call razero(4*(ncache/4),zw)
+  !$omp end critical
+  !$omp do schedule(static,1)
   do j2=1,md2/nproc
      !this condition ensures that we manage only the interesting part for the FFT
      if (iproc*(md2/nproc)+j2 <= n2dim) then
@@ -196,7 +212,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            ma=i1
            mb=min(i1+(lot-1),n1dim)
            nfft=mb-ma+1
-           
+
            if (halffty) then
               !inserting real data into complex array of half lenght
               call halfill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1))
@@ -206,7 +222,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            else
               call P_fill_upcorn(md1,md3,lot,nfft,n3,zf(1,i1,1,j2),zw(1,1,1))
            end if
-                      
+
            !performing FFT
            !input: I1,I3,J2,(Jp2)
            inzee=1
@@ -214,8 +230,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
               call fftstp_sg(lot,nfft,n3dim,lot,n3dim,zw(1,1,inzee),zw(1,1,3-inzee), &
                    ntrig,btrig3,after3(i),now3(i),before3(i),1)
               inzee=3-inzee
-           enddo
-           
+           enddo          
+          
            !output: I1,i3,J2,(Jp2)
            !exchanging components
            !input: I1,i3,J2,(Jp2)
@@ -225,10 +241,22 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            else
               call scramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw(1,1,inzee),zmpi2)
            end if
+
            !output: I1,J2,i3,(Jp2)
         end do
      end if
   end do
+  !$omp enddo
+  !$omp critical
+    i_all=-product(shape(zw))*kind(zw)
+    deallocate(zw,stat=i_stat)
+    call memocc(i_stat,i_all,'zw',subname)
+    i_all=-product(shape(zt))*kind(zt)
+    deallocate(zt,stat=i_stat)
+    call memocc(i_stat,i_all,'zt',subname)
+  !$omp end critical
+  !$omp end parallel
+
 
   !Interprocessor data transposition
   !input: I1,J2,j3,jp3,(Jp2)
@@ -248,6 +276,18 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   !output: I1,J2,j3,Jp2,(jp3)
   
   !now each process perform complete convolution of its planes
+
+  !$omp parallel default(shared)&
+  !$omp private(nfft,Jp2stb,J2stb,Jp2stf,J2stf,ma,mb,inzee,zt,zw,lot)
+  !$omp critical
+    allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
+    call memocc(i_stat,zw,'zw',subname)
+    allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
+    call memocc(i_stat,zt,'zt',subname)
+    zw=0.0_dp
+    call razero(4*(ncache/4),zw)
+  !$omp end critical
+  !$omp do schedule(static,1)
   do j3=1,nd3/nproc
      !this condition ensures that we manage only the interesting part for the FFT
      if (iproc*(nd3/nproc)+j3 <= n3/2+1) then
@@ -255,45 +295,40 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
       J2stb=1
       Jp2stf=1
       J2stf=1
-        
         ! transform along x axis
         lot=ncache/(4*n1)
         if (lot < 1) then  
-           write(6,*) & 
-                'convolxc_off:ncache has to be enlarged to be able to hold at' // &  
-                'least one 1-d FFT of this size even though this will' // & 
+           write(6,*)&
+                'convolxc_off:ncache has to be enlarged to be able to hold at' //&
+                'least one 1-d FFT of this size even though this will' //&
                 'reduce the performance for shorter transform lengths'
            stop
         endif
-       
         do j=1,n2dim,lot
            ma=j
            mb=min(j+(lot-1),n2dim)
            nfft=mb-ma+1
-
            !reverse index ordering, leaving the planes to be transformed at the end
            !input: I1,J2,j3,Jp2,(jp3)
            if (nproc > 1) then
               call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
                    n1,n1dim,md2,nd3,nproc,zmpi1,zw(1,1,1))
            else
-              call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,n1dim,&
-                   md2,nd3,nproc,zmpi2,zw(1,1,1))
+              call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
+                   n1,n1dim,md2,nd3,nproc,zmpi2,zw(1,1,1))
            endif
            !output: J2,Jp2,I1,j3,(jp3)
-
            !performing FFT
            !input: I2,I1,j3,(jp3)
            inzee=1
            do i=1,ic1-1
-              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
                    ntrig,btrig1,after1(i),now1(i),before1(i),1)
               inzee=3-inzee
            enddo
-
            !storing the last step into zt array
            i=ic1
-           call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
+           call fftstp_sg(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1),&
                 ntrig,btrig1,after1(i),now1(i),before1(i),1)           
            !output: I2,i1,j3,(jp3)
         end do
@@ -301,9 +336,9 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
         !transform along y axis
         lot=ncache/(4*n2)
         if (lot < 1) then  
-           write(6,*) & 
-                'convolxc_off:ncache has to be enlarged to be able to hold at' // &  
-                'least one 1-d FFT of this size even though this will' // & 
+           write(6,*)&
+                'convolxc_off:ncache has to be enlarged to be able to hold at' //&
+                'least one 1-d FFT of this size even though this will' //&
                 'reduce the performance for shorter transform lengths'
            stop
         endif
@@ -312,23 +347,19 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            ma=j
            mb=min(j+(lot-1),n1)
            nfft=mb-ma+1
-
            !reverse ordering 
            !input: I2,i1,j3,(jp3)
            call G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
            !output: i1,I2,j3,(jp3)
-           
            !performing FFT
            !input: i1,I2,j3,(jp3)
            inzee=1
            do i=1,ic2
-              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
                    ntrig,btrig2,after2(i),now2(i),before2(i),1)
               inzee=3-inzee
            enddo
            !output: i1,i2,j3,(jp3)
-
-
            !Multiply with kernel in fourier space
            i3=iproc*(nd3/nproc)+j3
            if (geocode == 'P') then
@@ -337,23 +368,19 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            else
               call multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee))
            end if
-
            !TRANSFORM BACK IN REAL SPACE
-           
            !transform along y axis
            !input: i1,i2,j3,(jp3)
            do i=1,ic2
-              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee),&
                    ntrig,ftrig2,after2(i),now2(i),before2(i),-1)
               inzee=3-inzee
            end do
-
            !reverse ordering
            !input: i1,I2,j3,(jp3)
            call G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt,zw(1,1,inzee),zt(1,1,j))
            !output: I2,i1,j3,(jp3)
         end do
-        
         !transform along x axis
         !input: I2,i1,j3,(jp3)
         lot=ncache/(4*n1)
@@ -364,28 +391,38 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
 
            !performing FFT
            i=1
-           call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
+           call fftstp_sg(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1),&
                 ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
-           
            inzee=1
            do i=2,ic1
-              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+              call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
                    ntrig,ftrig1,after1(i),now1(i),before1(i),-1)
               inzee=3-inzee
            enddo
            !output: I2,I1,j3,(jp3)
-
            !reverse ordering
            !input: J2,Jp2,I1,j3,(jp3)
            if (nproc == 1) then
-              call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi2)
+              call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
+                   n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi2)
            else
-              call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi1)
+              call G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
+                   n1dim,md2,nd3,nproc,zw(1,1,inzee),zmpi1)
            endif
            ! output: I1,J2,j3,Jp2,(jp3)
         end do
      endif
   end do
+  !$omp enddo
+  !$omp critical
+    i_all=-product(shape(zw))*kind(zw)
+    deallocate(zw,stat=i_stat)
+    call memocc(i_stat,i_all,'zw',subname)
+    i_all=-product(shape(zt))*kind(zt)
+    deallocate(zt,stat=i_stat)
+    call memocc(i_stat,i_all,'zt',subname)
+  !$omp end critical
+  !$omp end parallel
 
   !Interprocessor data transposition
   !input: I1,J2,j3,Jp2,(jp3)
@@ -408,6 +445,18 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   !transform along z axis
   !input: I1,J2,i3,(Jp2)
   lot=ncache/(4*n3dim)
+
+  !$omp parallel default(shared)&
+  !$omp private(nfft,ma,mb,inzee,zt,zw)
+  !$omp critical
+    allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
+    call memocc(i_stat,zw,'zw',subname)
+    allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
+    call memocc(i_stat,zt,'zt',subname)
+    zw=0.0_dp
+    call razero(4*(ncache/4),zw)
+  !$omp end critical
+  !$omp do schedule(static,1)
   do j2=1,md2/nproc
      !this condition ensures that we manage only the interesting part for the FFT
      if (iproc*(md2/nproc)+j2 <= n2dim) then
@@ -451,6 +500,16 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
         end do
      endif
   end do
+  !$omp enddo
+  !$omp critical
+    i_all=-product(shape(zw))*kind(zw)
+    deallocate(zw,stat=i_stat)
+    call memocc(i_stat,i_all,'zw',subname)
+    i_all=-product(shape(zt))*kind(zt)
+    deallocate(zt,stat=i_stat)
+    call memocc(i_stat,i_all,'zt',subname)
+  !$omp end critical
+  !$omp end parallel
 
   !De-allocations  
   i_all=-product(shape(btrig1))*kind(btrig1)
@@ -501,12 +560,12 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   i_all=-product(shape(zmpi2))*kind(zmpi2)
   deallocate(zmpi2,stat=i_stat)
   call memocc(i_stat,i_all,'zmpi2',subname)
-  i_all=-product(shape(zw))*kind(zw)
-  deallocate(zw,stat=i_stat)
-  call memocc(i_stat,i_all,'zw',subname)
-  i_all=-product(shape(zt))*kind(zt)
-  deallocate(zt,stat=i_stat)
-  call memocc(i_stat,i_all,'zt',subname)
+  !i_all=-product(shape(zw))*kind(zw)
+  !deallocate(zw,stat=i_stat)
+  !call memocc(i_stat,i_all,'zw',subname)
+  !i_all=-product(shape(zt))*kind(zt)
+  !deallocate(zt,stat=i_stat)
+  !call memocc(i_stat,i_all,'zt',subname)
   if (halffty) then
      i_all=-product(shape(cosinarr))*kind(cosinarr)
      deallocate(cosinarr,stat=i_stat)
@@ -519,6 +578,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
      call memocc(i_stat,i_all,'zmpi1',subname)
   end if
   call timing(iproc,'PSolv_comput  ','OF')
+  !call system_clock(ncount1,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:PS ', real(ncount1-ncount0)/real(ncount_rate)
 END SUBROUTINE G_PoissonSolver
 
 
@@ -920,7 +981,8 @@ subroutine G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt,zw,zt)
 END SUBROUTINE G_unswitch_downcorn
 
 
-subroutine G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,n1dim,md2,nd3,nproc,zw,zmpi1)
+subroutine G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
+    n1dim,md2,nd3,nproc,zw,zmpi1)
   implicit none
   integer, intent(in) :: j3,nfft,lot,n1,md2,nd3,nproc,n1dim
   integer, intent(inout) :: Jp2stf,J2stf
