@@ -88,6 +88,9 @@ struct bigdft_kernels {
   cl_kernel fft_kernel_d0_d;
   cl_kernel fft_kernel_d1_d;
   cl_kernel fft_kernel_d2_d;
+  cl_kernel fft_kernel_d0_r_d;
+  cl_kernel fft_kernel_d1_r_d;
+  cl_kernel fft_kernel_d2_r_d;
 };
 
 struct _bigdft_command_queue {

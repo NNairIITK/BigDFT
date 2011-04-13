@@ -229,7 +229,8 @@ program conv_check_fft
    call nanosec(tsc1);
 
    CPUtime=real(tsc1-tsc0,kind=8)*1d-9
-   call print_time(CPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),1)
+   call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
+     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
 
 
    write(*,'(a,i6,i6,i6)')'GPU 3D FFT, dimensions:',n1,n2,n3
@@ -255,8 +256,48 @@ program conv_check_fft
    call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
 
    call compare_3D_cplx_results(n1, n2, n3, v_cuda_str(1,1,1,i3), psi_cuda, maxdiff, 3.d-7)
-   call compare_time(CPUtime,GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
+   call compare_time(CPUtime,GPUtime,n1*n2*n3,5 * (log(real(n1,kind=8))+&
+     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
  
+  write(*,'(a,i6,i6,i6)')'CPU 3D Reverse FFT, dimensions:',n1,n2,n3
+
+   call nanosec(tsc0);
+   i3=1
+   call FFT(n1,n2,n3,n1,n2,n3,v_cuda_str,1,i3)
+   call nanosec(tsc1);
+
+   CPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   call print_time(CPUtime,n1*n2*n3,5 *( log(real(n1,kind=8))+&
+     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),1)
+
+
+   write(*,'(a,i6,i6,i6)')'GPU 3D Reverse FFT, dimensions:',n1,n2,n3
+
+   call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)
+   call ocl_create_read_buffer(context, 2*n1*n2*n3*8, work_GPU)
+   call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, work2_GPU)
+   call ocl_enqueue_write_buffer(queue, work_GPU, 2*n1*n2*n3*8, psi_cuda)!v_cuda)!
+
+   call nanosec(tsc0);
+   do i=1,ntimes
+      call fft3d_r_d(queue,(/n1,n2,n3/),work_GPU,psi_GPU,work2_GPU)
+   end do
+   call ocl_finish(queue);
+   call nanosec(tsc1);
+
+   call ocl_enqueue_read_buffer(queue, psi_GPU, 2*n1*n2*n3*8, psi_cuda)
+   call ocl_release_mem_object(psi_GPU)
+   call ocl_release_mem_object(work_GPU)
+   call ocl_release_mem_object(work2_GPU)
+
+   GPUtime=real(tsc1-tsc0,kind=8)*1d-9
+   call print_time(GPUtime,n1*n2*n3*3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
+
+   call compare_3D_cplx_results(n1, n2, n3, psi_in, psi_cuda, maxdiff, 3.d-7)
+   call compare_time(CPUtime,GPUtime,n1*n2*n3,5 * (log(real(n1,kind=8))+&
+     log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
+ 
+
 
   call print_event_list
   call ocl_clean_command_queue(queue)

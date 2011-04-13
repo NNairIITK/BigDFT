@@ -45,7 +45,7 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   program<<"\n};\n";
 
   program<<"\
-#define radix2m(il,jl,N,A,B,in,out) \
+#define radix2m(il,jl,N,A,B,in,out,sign,div) \
 { \
   double2 tmp,val,w;\
   int a,b,p,r;\
@@ -60,12 +60,14 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   w.x = cosar[r*(N/(2*A))];\
   w.y = sinar[r*(N/(2*A))];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.x div;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
+  tmp.y div;\
   out[jl][il]=tmp;\
 }\n\
-#define radix3m(il,jl,N,A,B,in,out) \
+#define radix3m(il,jl,N,A,B,in,out,sign,div) \
 { \
   double2 tmp,val,w;\
   int a,b,p,r;\
@@ -79,19 +81,21 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   w.x = cosar[r*(N/(3*A))];\
   w.y = sinar[r*(N/(3*A))];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/3)*2+A*b+a][il];\
   w.x = cosar[(r*(2*N/(3*A)))%N];\
   w.y = sinar[(r*(2*N/(3*A)))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.x div;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
+  tmp.y div;\
   out[jl][il]=tmp;\
 }\n\
-#define radix4m(il,jl,N,A,B,in,out) \
+#define radix4m(il,jl,N,A,B,in,out,sign,div) \
 { \
   double2 tmp,val,w;\
   int a,b,p,r;\
@@ -105,26 +109,28 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   w.x = cosar[r*(N/(4*A))];\
   w.y = sinar[r*(N/(4*A))];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/4)*2+A*b+a][il];\
   w.x = cosar[r*(2*N/(4*A))%N];\
   w.y = sinar[r*(2*N/(4*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/4)*3+A*b+a][il];\
   w.x = cosar[r*(3*N/(4*A))%N];\
   w.y = sinar[r*(3*N/(4*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.x div;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
+  tmp.y div;\
   out[jl][il]=tmp;\
 }\n\
-#define radix5m(il,jl,N,A,B,in,out) \
+#define radix5m(il,jl,N,A,B,in,out,sign,div) \
 { \
   double2 tmp,val,w;\
   int a,b,p,r;\
@@ -138,33 +144,35 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   w.x = cosar[r*(N/(5*A))];\
   w.y = sinar[r*(N/(5*A))];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/5)*2+A*b+a][il];\
   w.x = cosar[r*(2*N/(5*A))%N];\
   w.y = sinar[r*(2*N/(5*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/5)*3+A*b+a][il];\
   w.x = cosar[r*(3*N/(5*A))%N];\
   w.y = sinar[r*(3*N/(5*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/5)*4+A*b+a][il];\
   w.x = cosar[r*(4*N/(5*A))%N];\
   w.y = sinar[r*(4*N/(5*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.x div;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
+  tmp.y div;\
   out[jl][il]=tmp;\
 }\n\
-#define radix7m(il,jl,N,A,B,in,out) \
+#define radix7m(il,jl,N,A,B,in,out,sign,div) \
 { \
   double2 tmp,val,w;\
   int a,b,p,r;\
@@ -178,47 +186,49 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   w.x = cosar[r*(N/(7*A))];\
   w.y = sinar[r*(N/(7*A))];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/7)*2+A*b+a][il];\
   w.x = cosar[r*(2*N/(7*A))%N];\
   w.y = sinar[r*(2*N/(7*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/7)*3+A*b+a][il];\
   w.x = cosar[r*(3*N/(7*A))%N];\
   w.y = sinar[r*(3*N/(7*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/7)*4+A*b+a][il];\
   w.x = cosar[r*(4*N/(7*A))%N];\
   w.y = sinar[r*(4*N/(7*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/7)*5+A*b+a][il];\
   w.x = cosar[r*(5*N/(7*A))%N];\
   w.y = sinar[r*(5*N/(7*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/7)*6+A*b+a][il];\
   w.x = cosar[r*(6*N/(7*A))%N];\
   w.y = sinar[r*(6*N/(7*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.x div;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
+  tmp.y div;\
   out[jl][il]=tmp;\
 }\n\
-#define radix11m(il,jl,N,A,B,in,out) \
+#define radix11m(il,jl,N,A,B,in,out,sign,div) \
 { \
   double2 tmp,val,w;\
   int a,b,p,r;\
@@ -232,72 +242,74 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   w.x = cosar[r*(N/(11*A))];\
   w.y = sinar[r*(N/(11*A))];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/11)*2+A*b+a][il];\
   w.x = cosar[r*(2*N/(11*A))%N];\
   w.y = sinar[r*(2*N/(11*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/11)*3+A*b+a][il];\
   w.x = cosar[r*(3*N/(11*A))%N];\
   w.y = sinar[r*(3*N/(11*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/11)*4+A*b+a][il];\
   w.x = cosar[r*(4*N/(11*A))%N];\
   w.y = sinar[r*(4*N/(11*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/11)*5+A*b+a][il];\
   w.x = cosar[r*(5*N/(11*A))%N];\
   w.y = sinar[r*(5*N/(11*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/11)*6+A*b+a][il];\
   w.x = cosar[r*(6*N/(11*A))%N];\
   w.y = sinar[r*(6*N/(11*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/11)*7+A*b+a][il];\
   w.x = cosar[r*(7*N/(11*A))%N];\
   w.y = sinar[r*(7*N/(11*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/11)*8+A*b+a][il];\
   w.x = cosar[r*(8*N/(11*A))%N];\
   w.y = sinar[r*(8*N/(11*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/11)*9+A*b+a][il];\
   w.x = cosar[r*(9*N/(11*A))%N];\
   w.y = sinar[r*(9*N/(11*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
   val = in[(N/11)*10+A*b+a][il];\
   w.x = cosar[r*(10*N/(11*A))%N];\
   w.y = sinar[r*(10*N/(11*A))%N];\
   tmp.x += val.x * w.x;\
-  tmp.x += val.y * w.y;\
-  tmp.y -= val.x * w.y;\
+  tmp.x += sign val.y * w.y;\
+  tmp.x div;\
+  tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
+  tmp.y div;\
   out[jl][il]=tmp;\
 }\n\
 ";
@@ -365,7 +377,7 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
 
   for( it = radixes.begin(); it < radixes.end(); it++){
      B/=*it;
-     program<<"  radix"<<*it<<"m(jlt, ilt, "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out<<");\n\
+     program<<"  radix"<<*it<<"m(jlt, ilt, "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out<<",+,);\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
 ";
      A*=*it;
@@ -374,10 +386,52 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
 
   program<<"\n\
   if(il<"<<fft_size<<")\n\
-    out[jg*n+il] = "<<in<<"[il][jl];\n\
+    out[jg*"<<fft_size<<"+il] = "<<in<<"[il][jl];\n\
 }\n\
 "; 
- 
+  program<<"__kernel void fftKernel_"<<fft_size<<"_r_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+\n\
+__local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
+__local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
+\n\
+  size_t il = get_local_id(0);\n\
+  size_t jl = get_local_id(1);\n\
+  size_t jg = get_global_id(1);\n\
+  size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
+  size_t jlt = il%LINE_NUMBER;\n\
+  ptrdiff_t jgt = get_group_id(1);\n\
+  jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  jgt = jg - jl + jlt;\n\
+  tmp1[ilt][jlt] = ilt < "<<fft_size<<" ? psi[jgt + ( ilt ) * ndat] : 0.0;\n\
+  \n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+";
+
+  A=1;
+  B=fft_size;
+
+  in = "tmp1";
+  out = "tmp2";
+
+  for( it = radixes.begin(); it < radixes.end(); it++){
+     B/=*it;
+     if(it == radixes.end()-1)
+       program<<"  radix"<<*it<<"m(jlt, ilt, "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out<<",-,*="<<1/(double)fft_size<<");\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+";
+     else
+       program<<"  radix"<<*it<<"m(jlt, ilt, "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out<<",-,);\n\
+  barrier(CLK_LOCAL_MEM_FENCE);\n\
+";
+     A*=*it;
+     tmp=out; out=in; in=tmp;
+  }
+
+  program<<"\n\
+  if(il<"<<fft_size<<")\n\
+    out[jg*"<<fft_size<<"+il] = "<<in<<"[il][jl];\n\
+}\n\
+";
   output = (char *)malloc((program.str().size()+1)*sizeof(char));
   strcpy(output, program.str().c_str());
   return output;
