@@ -66,7 +66,7 @@ contains
     call memocc(0,me,'count','start')
 
     call read_input_variables(me_, "posinp", "input.dft", "input.kpt", &
-         & "input.geopt", "input.perf", in, at, rxyz)
+         & "input.geopt", "input.perf","input.tddft", in, at, rxyz)
 
     ! Transfer at data to ART variables
     nat = at%nat

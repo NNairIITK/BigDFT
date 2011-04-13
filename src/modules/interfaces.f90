@@ -121,12 +121,12 @@ module module_interfaces
        real(gp), dimension(3), intent(out) :: shift
      END SUBROUTINE system_size
 
-     subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, file_geopt, file_perf, inputs,atoms,rxyz)
+     subroutine read_input_variables(iproc,posinp, file_dft, file_kpt, file_geopt, file_perf, file_tddft,inputs,atoms,rxyz)
        use module_base
        use module_types
        implicit none
        character(len=*), intent(in) :: posinp
-       character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf
+       character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf,file_tddft
        integer, intent(in) :: iproc
        type(input_variables), intent(out) :: inputs
        type(atoms_data), intent(out) :: atoms
@@ -149,6 +149,15 @@ module module_interfaces
        character(len=*), intent(in) :: filename
        type(input_variables), intent(inout) :: in
      END SUBROUTINE geopt_input_variables
+
+     subroutine tddft_input_variables(filename,in)
+       use module_base
+       use module_types
+       implicit none
+       character(len=*), intent(in) :: filename
+       type(input_variables), intent(inout) :: in
+     END SUBROUTINE tddft_input_variables
+
 
      subroutine kpt_input_variables(iproc,filename,in,atoms)
        use module_base

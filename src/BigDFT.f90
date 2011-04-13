@@ -77,7 +77,7 @@ program BigDFT
 
      ! Read all input files.
      call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt", "input.geopt", "input.perf", inputs, atoms, rxyz)
+          & "input.dft", "input.kpt", "input.geopt", "input.perf","input.tddft", inputs, atoms, rxyz)
      if (iproc == 0) then
         call print_general_parameters(inputs,atoms)
      end if

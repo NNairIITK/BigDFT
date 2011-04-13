@@ -33,7 +33,7 @@ program rism
 
   !initalise the varaibles for the calculation
   call read_input_variables(iproc,'posinp', &
-       & "input.dft", "input.kpt", "input.geopt", "input.perf", in, atoms, rxyz)
+       & "input.dft", "input.kpt", "input.geopt", "input.perf","input.tddft", in, atoms, rxyz)
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)

@@ -66,6 +66,9 @@ module module_types
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
 
+     ! tddft vaiables from *.tddft
+     character(len=10) :: tddft_approach
+
      ! variable for material acceleration
      ! values 0: traditional CPU calculation
      !        1: CUDA acceleration with CUBLAS

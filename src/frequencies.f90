@@ -70,7 +70,7 @@ program frequencies
   !call memocc(0,iproc,'count','start')
 
   call read_input_variables(iproc, "posinp", "input.dft", "input.kpt", &
-       & "input.geopt", "input.perf", inputs, atoms, rxyz)
+       & "input.geopt", "input.perf","input.tddft", inputs, atoms, rxyz)
 
   ! Read all input files.
   inquire(file="input.freq",exist=exists)

@@ -63,7 +63,7 @@ END SUBROUTINE print_logo
 !! SOURCE
 !!
 subroutine read_input_variables(iproc,posinp, &
-     & file_dft, file_kpt, file_geopt, file_perf, inputs,atoms,rxyz)
+     & file_dft, file_kpt, file_geopt, file_perf,file_tddft, inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
@@ -72,7 +72,7 @@ subroutine read_input_variables(iproc,posinp, &
 
   !Arguments
   character(len=*), intent(in) :: posinp
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf
+  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf,file_tddft
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: inputs
   type(atoms_data), intent(out) :: atoms
@@ -96,6 +96,8 @@ subroutine read_input_variables(iproc,posinp, &
   call kpt_input_variables(iproc,file_kpt,inputs,atoms)
   ! Read geometry optimisation option
   call geopt_input_variables(file_geopt,inputs)
+  ! Read tddft variables
+  call tddft_input_variables(file_tddft,inputs)
 
   ! Shake atoms if required.
   if (inputs%randdis > 0.d0) then
@@ -155,6 +157,8 @@ subroutine default_input_variables(inputs)
   call frequencies_input_variables_default(inputs)
   ! Default values for geopt.
   call geopt_input_variables_default(inputs)  
+  ! Default values for tddft
+  call tddft_input_variables_default(inputs)
 END SUBROUTINE default_input_variables
 
 !!****f* BigDFT/dft_input_variables
@@ -337,7 +341,6 @@ subroutine geopt_input_variables_default(in)
 END SUBROUTINE geopt_input_variables_default
 !!***
 
-
 !!****f* BigDFT/geopt_input_variables
 !! FUNCTION
 !!    Read the input variables needed for the geometry optimisation
@@ -441,6 +444,72 @@ contains
 
 END SUBROUTINE geopt_input_variables
 !!***
+
+!!****f* BigDFT/tddft_input_variables_default
+!! FUNCTION
+!!    Assign default values for TDDFT variables
+!! SOURCE
+!!
+subroutine tddft_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  in%tddft_approach='TDA'
+
+END SUBROUTINE tddft_input_variables_default
+!!***
+
+subroutine tddft_input_variables(filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='tddft_input_variables'
+  character(len = 6) :: type
+  integer :: iline, ierror
+
+
+  inquire(file=trim(filename),exist=exists)
+
+  if (.not. exists) then
+     write(*,*) "The file 'input.tddft' does not present!"
+           stop
+  end if
+
+ ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+  read(1,*,iostat=ierror) in%tddft_approach
+  call check()
+  if (trim(in%tddft_approach) == "TDA") then
+  read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
+  call check()
+  end if
+
+  close(unit=1,iostat=ierror)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE tddft_input_variables
+
 
 subroutine update_symmetries(in, atoms, rxyz)
   use module_base

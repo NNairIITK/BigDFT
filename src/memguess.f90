@@ -172,7 +172,7 @@ program memguess
      write(*,*)' ...done'
   else
      call read_input_variables(0, "posinp", "input.dft", "input.kpt", &
-          & "input.geopt", "input.perf", in, atoms, rxyz)
+          & "input.geopt", "input.perf","input.tddft", in, atoms, rxyz)
      !initialize memory counting
      !call memocc(0,0,'count','start')
   end if
