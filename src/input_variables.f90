@@ -54,6 +54,19 @@ subroutine print_logo()
        '                                  The Journal of Chemical Physics 129, 014109 (2008)'
 END SUBROUTINE print_logo
 !!***
+subroutine standard_inputfile_names(inputs)
+  use module_types
+  implicit none
+  type(input_variables), intent(out) :: inputs
+
+  inputs%file_dft='input.dft'
+  inputs%file_geopt='input.geopt'
+  inputs%file_kpt='input.kpt'
+  inputs%file_perf='input.perf'
+  inputs%file_tddft='input.tddft'
+  inputs%file_mix='input.mix'
+  
+end subroutine standard_inputfile_names
 
 !!****f* BigDFT/read_input_variables
 !! FUNCTION
@@ -62,8 +75,7 @@ END SUBROUTINE print_logo
 !!    Initialize memocc
 !! SOURCE
 !!
-subroutine read_input_variables(iproc,posinp, &
-     & file_dft, file_kpt, file_geopt, file_perf,file_tddft, inputs,atoms,rxyz)
+subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
@@ -72,9 +84,8 @@ subroutine read_input_variables(iproc,posinp, &
 
   !Arguments
   character(len=*), intent(in) :: posinp
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_perf,file_tddft
   integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !Local variables
@@ -88,16 +99,16 @@ subroutine read_input_variables(iproc,posinp, &
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
   ! Read performance input variables (if given)
-  call perf_input_variables(iproc,file_perf,inputs)
+  call perf_input_variables(iproc,trim(inputs%file_perf),inputs)
   ! Read dft input variables
-  call dft_input_variables(iproc,file_dft,inputs)
+  call dft_input_variables(iproc,trim(inputs%file_dft),inputs)
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
-  call kpt_input_variables(iproc,file_kpt,inputs,atoms)
+  call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
   ! Read geometry optimisation option
-  call geopt_input_variables(file_geopt,inputs)
+  call geopt_input_variables(trim(inputs%file_geopt),inputs)
   ! Read tddft variables
-  call tddft_input_variables(file_tddft,inputs)
+  call tddft_input_variables(trim(inputs%file_tddft),inputs)
 
   ! Shake atoms if required.
   if (inputs%randdis > 0.d0) then
@@ -145,7 +156,7 @@ subroutine default_input_variables(inputs)
   use module_types
   implicit none
 
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
 
   ! Default values.
   nullify(inputs%kpt)

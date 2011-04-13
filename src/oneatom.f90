@@ -46,9 +46,8 @@ program oneatom
   nproc=1
 
   !initalise the variables for the calculation
-
-  call read_input_variables(iproc,'posinp', &
-       & "input.dft", "input.kpt", "input.geopt", "input.perf","input.tddft", in, atoms, rxyz)
+  call standard_inputfile_names(in)
+  call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)

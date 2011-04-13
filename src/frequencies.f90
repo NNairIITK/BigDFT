@@ -69,8 +69,9 @@ program frequencies
   ! Initialize memory counting
   !call memocc(0,iproc,'count','start')
 
-  call read_input_variables(iproc, "posinp", "input.dft", "input.kpt", &
-       & "input.geopt", "input.perf","input.tddft", inputs, atoms, rxyz)
+  !standard names
+  call standard_inputfile_names(inputs)
+  call read_input_variables(iproc, "posinp", inputs, atoms, rxyz)
 
   ! Read all input files.
   inquire(file="input.freq",exist=exists)

@@ -26,6 +26,9 @@ module module_types
 !! SOURCE
 !!
   type, public :: input_variables
+     !strings of the input files
+     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix
+     !miscellaneous variables
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
      integer :: norbv,nvirt,nplot

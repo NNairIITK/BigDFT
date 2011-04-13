@@ -75,8 +75,9 @@ program abscalc_main
      if (iproc==0) call print_logo()
 
      ! Read all input files.
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt", "input.geopt", "input.perf","input.tddft",inputs, atoms, rxyz)
+     !standard names
+     call standard_inputfile_names(inputs)
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 
      !Initialize memory counting
      !call memocc(0,iproc,'count','start')
