@@ -181,9 +181,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
         !copy the partial density onto the partial potential space to pass it to PSolver
         call dcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
         !partial potential term for each partial density
-        if (iproc == 0 .and. verbose > 1) then
-           write(*,*)'Poisson Solver application: orbitals (virt,occ):',iorba,iorbi
-        end if
+!        if (iproc == 0 .and. verbose > 1) then
+!           write(*,*)'Poisson Solver application: orbitals (virt,occ):',iorba,iorbi
+!        end if
         call H_potential(geocode,'D',iproc,nproc,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
              v_ias(1,1,1),pkernel,rho_ias,ehart,0.0_dp,.false.,&
@@ -388,9 +388,18 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
            do imulti = 1, 2*nmulti
               write(6,30) imulti, ha2ev*omega(imulti),(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
-30            format(t2,i2,2x,f9.4,12x,1pe10.3) 
+30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
            end do
 
+! Extracting the excitation energies and Oscillator strength to plot absorption spectra
+           open(unit=9, file='td_spectra.txt')
+           write(9,'(a4)')'2  #(results in eV)' 
+           do imulti = 1, min(100,2*nmulti) 
+              write(9,'(f9.4,5x,1pe10.3)') ha2ev*omega(imulti), (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+           end do
+           close(unit=9)
+     
+ 
            write(6,10)
 
            do imulti = 1,2*nmulti
@@ -404,11 +413,23 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
                  do iorba = 1, orbsvirt%norb
                     jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
                     if ((Kbig(jmulti,imulti) .gt. 5.D-02.or. Kbig(jmulti,imulti) .lt.-5.D-02)) then 
-                       write(6,60) iorbi, iorba,  abs(Kbig(jmulti,imulti))
-60                     format (i3,'----->',i3,2x,' Coeff (Abs. value)=',1pe12.5) 
+                       write(6,60) iorbi, iorba,  (Kbig(jmulti,imulti))
+60                     format (i4,'----->',i3,2x,' Coeff )=',1pe12.5) 
                     end if
                  end do
               end do
+
+              write(6,70)
+
+             do iorbi = 1, orbsocc%norb
+                 do iorba = 1, orbsvirt%norb
+                    jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
+                    if ((Kbig(jmulti+nmulti,imulti) .gt. 5.D-02.or. Kbig(jmulti+nmulti,imulti) .lt.-5.D-02)) then
+                       write(6,60) iorbi, iorba,  (Kbig(jmulti+nmulti,imulti))
+                    end if
+                 end do
+              end do
+
            end do
 
            write(6,40)

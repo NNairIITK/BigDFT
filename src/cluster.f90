@@ -1451,18 +1451,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,psivirt,'psivirt',subname)
 
         if (in%norbv < 0) then
-
            call direct_minimization(iproc,nproc,n1i,n2i,in,atoms,&
                 orbs,orbsv,nvirt,Glr,comms,commsv,&
                 hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
                 pkernelseq,psi,psivirt,ngatherarr,GPU)
-
         else if (in%norbv > 0) then
            call davidson(iproc,nproc,n1i,n2i,in,atoms,&
                 orbs,orbsv,nvirt,Glr,comms,commsv,&
                 hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
                 pkernelseq,psi,psivirt,ngatherarr,GPU)
-
         end if
 
         if (atoms%geocode == 'F' .and. .false.) then

@@ -144,7 +144,7 @@ subroutine check_closed_shell(orbs,lcs)
 END SUBROUTINE check_closed_shell
 
 
-!>   Orthogonality routine, for all the orbitals
+!>   Orthogonality constraint routine, for all the orbitals
 !!   Uses wavefunctions in their transposed form
 subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   use module_base

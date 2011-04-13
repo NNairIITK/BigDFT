@@ -330,8 +330,8 @@ END SUBROUTINE deallocate_work_arrays_locham
 
 !>   Transforms a wavefunction written in Daubechies basis into a 
 !!   real space wavefunction in interpolating scaling functions on a finer grid
-!!   does the job for all supported BC
-!!
+!!   does the job for all supported BC. Saves the results on the work arrays
+!!   which are reused in the isf_to_daub_kinetic routine
 !!
 subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   use module_base
@@ -911,6 +911,87 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
   end select
 
-
-
 END SUBROUTINE daub_to_isf
+
+!>   Transforms a wavefunction written in real space basis into a 
+!!   wavefunction in Daubechies form
+!!   does the job for all supported BC
+!!   Warning: the psir is destroyed for some BCs (slab and periodic)
+subroutine isf_to_daub(lr,w,psir,psi)
+  use module_base
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(in) :: lr
+  type(workarr_sumrho), intent(inout) :: w
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i), intent(in) :: psir
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(out) :: psi
+  !local variables
+  integer :: i,i_f,iseg_f
+  real(wp), dimension(0:3) :: scal
+
+  do i=0,3
+     scal(i)=1.0_wp
+  enddo
+
+  !starting point for the fine degrees, to avoid boundary problems
+  i_f=min(1,lr%wfd%nvctr_f)
+  iseg_f=min(1,lr%wfd%nseg_f)
+
+  select case(lr%geocode)
+  case('F')
+     call comb_shrink(lr%d%n1,lr%d%n2,lr%d%n3,&
+          lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
+          w%w1,w%w2,psir,&
+          lr%bounds%kb%ibxy_c,lr%bounds%sb%ibzzx_c,lr%bounds%sb%ibyyzz_c,&
+          lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
+          w%x_c,w%x_f)
+     
+     call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
+          lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+          lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+          lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
+          scal,w%x_c,w%x_f,psi(1),psi(lr%wfd%nvctr_c+i_f))
+  case('S')
+
+     call convolut_magic_t_slab_self(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+          psir(1),w%x_c(1))
+     
+     call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+          lr%wfd%keyg(1,1),lr%wfd%keyv(1),   & 
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+          lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
+          w%x_c(1),psi(1),psi(lr%wfd%nvctr_c+i_f),psir(1))
+
+  case('P')
+     
+     if (lr%hybrid_on) then
+
+        call comb_shrink_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
+             w%w2,w%w1,psir(1),w%x_c(1),w%x_f(1),lr%bounds%sb)
+
+        call compress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+             lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), & 
+             w%x_c(1),w%x_f(1),psi(1),psi(lr%wfd%nvctr_c+i_f),&
+             lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3)
+     else
+
+        call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+             psir(1),w%x_c(1))
+        call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+             lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),& 
+             w%x_c(1),psi(1),psi(lr%wfd%nvctr_c+i_f),psir(1))
+     end if
+        
+  end select
+
+END SUBROUTINE isf_to_daub

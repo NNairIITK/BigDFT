@@ -485,7 +485,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
               do i1=max(ml1,-n1/2-1),min(mu1,n1+n1/2+1)
                  j1=modulo(i1,n1+1)
                  dx=real(i1,gp)*hx-rxyz(1,iat)
-                 if (dx**2+(dy2+dz2) <= rad**2) then 
+                 if (dx**2+(dy2+dz2)-eps_mach <= rad**2) then 
                     logrid(j1,j2,j3)=.true.
                  endif
               enddo
