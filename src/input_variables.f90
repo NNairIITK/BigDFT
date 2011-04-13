@@ -911,13 +911,13 @@ subroutine perf_input_variables(iproc,filename,inputs)
            read(line(ii:),fmt=*,iostat=ierror) inputs%exctxpar
 
         else if (index(line,"accel") /= 0 .or. index(line,"ACCEL") /= 0) then
-            ii = index(line,"ACCEL")  + index(line,"ACCEL") + 5
+            ii = index(line,"ACCEL")  + index(line,"ACCEL") + 6
            read(line(ii:),fmt=*,iostat=ierror) string
            if (string=="NO     ") then
               inputs%iacceleration=0
            else if (string=="CUDAGPU") then
               inputs%iacceleration=1
-           else  if (string=="OCLGPU ") then
+           else  if (string=="OCLGPU") then
               inputs%iacceleration=2
            else
               write(*,'(1x,3a)') "input.perf: Unknown acceleration '",trim(string),"'"
@@ -2799,6 +2799,6 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      deallocate(nodename,stat=i_stat)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
-  print *,iproc,nproc,iproc_node,nproc_node
+  !print *,iproc,nproc,iproc_node,nproc_node
      
 END SUBROUTINE processor_id_per_node

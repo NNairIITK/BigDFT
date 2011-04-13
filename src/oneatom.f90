@@ -869,9 +869,11 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   character(len=*), parameter :: subname='plot_wf'
   integer :: i_stat,i_all
   integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3,i1,i2,i3,nu1,nu2,nu3,iat
-  real(gp) :: x,y,z
+  real(gp) :: x,y,z,maxval
   type(workarr_sumrho) :: w
-  real(wp), dimension(:,:,:), allocatable :: psir
+  real(wp), dimension(:), allocatable :: psi2
+  real(wp), dimension(:,:,:), allocatable :: psir,psir2
+
 
   n1=lr%d%n1
   n2=lr%d%n2
@@ -911,8 +913,54 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   if (lr%geocode == 'F') then
      call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
- 
+
+  allocate(psi2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+ndebug),stat=i_stat)
+  call memocc(i_stat,psi2,'psi2',subname)
+  allocate(psir2(-nl1:2*n1+1+nu1,-nl2:2*n2+1+nu2,-nl3:2*n3+1+nu3+ndebug),stat=i_stat)
+  call memocc(i_stat,psir2,'psir2',subname)
+
+  print *,'normDaub',dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1),1,psi(1),1)
+  
   call daub_to_isf(lr,w,psi,psir)
+
+  print *,'normISF',dot(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir(-nl1,-nl2,-nl3),1)
+
+  call dcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
+  call isf_to_daub(lr,w,psir2,psi2)
+  !psir2 is destroyed
+  call dcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
+
+  print *,'normDaub2',dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi2(1),1,psi2(1),1)
+
+  call daub_to_isf(lr,w,psi2,psir)
+
+  print *,'normISF2',dot(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir(-nl1,-nl2,-nl3),1)
+
+  maxval=0.0_wp
+  do i3=-nl3,2*n3+1+nu3
+     do i2=-nl2,2*n2+1+nu2
+        do i1=-nl1,2*n1+1+nu1
+           maxval=max(maxval,abs(psir(i1,i2,i3)-psir2(i1,i2,i3)))
+         end do
+     end do
+  end do
+  print *,'maxvalISF',maxval
+
+  maxval=0.0_wp
+  do i3=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+     maxval=max(maxval,abs(psi(i3)-psi2(i3)))
+  end do
+  print *,'maxvalDaub',maxval
+
+  i_all=-product(shape(psir2))*kind(psir2)
+  deallocate(psir2,stat=i_stat)
+  call memocc(i_stat,i_all,'psir2',subname)
+
+  i_all=-product(shape(psi2))*kind(psi2)
+  deallocate(psi2,stat=i_stat)
+  call memocc(i_stat,i_all,'psi2',subname)
+
+  stop
 
   do iat=1,at%nat
 
