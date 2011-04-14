@@ -8,13 +8,23 @@
 #include "fft_generator.h"
 #define TWOPI 3.14159265358979323846264338327950288419716939937510*2
 
-extern "C" char * generate_fft_program(cl_uint fft_size){
+extern cl_uint use_constant_memory;
+
+void sincos_access(std::stringstream &program, const char* index){
+  if(use_constant_memory)
+    program<<"  w.x = cosar["<<index<<"];\
+  w.y = sinar["<<index<<"];";
+  else
+    program<<"  w = as_double2(read_imageui(cosat,smplr,(int2)("<<index<<",0)));";
+}
+
+extern "C" fft_code * generate_fft_program(cl_uint fft_size){
   unsigned int available_rad[] = {2,3,5,7,11};
   std::vector<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
   std::vector<unsigned int> radixes;
   std::vector<double> sines, cosines;
   std::stringstream program;
-  char* output;
+  fft_code* output = (fft_code*)malloc(sizeof(fft_code));
   unsigned int buffer_length;
   unsigned int buffer_width;
   unsigned int buffer_limit;
@@ -29,21 +39,29 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 #define TWOPI 3.14159265358979323846264338327950288419716939937510*2\n\
 ";
-
   program<< std::showpoint<<std::scientific;
   program.precision(40);
-  program<<"__constant double sinar["<<fft_size<<"] = { "<<sines[0];
-  for(i=1; i<fft_size; i++){
-    program<<" ,\n"<<sines[i];
-  }
-  program<<"\n};\n";
+  if(use_constant_memory){
+    output->cossin=NULL;
+    program<<"__constant double sinar["<<fft_size<<"] = { "<<sines[0];
+    for(i=1; i<fft_size; i++){
+      program<<" ,\n"<<sines[i];
+    }
+    program<<"\n};\n";
 
-  program<<"__constant double cosar["<<fft_size<<"] = { "<<cosines[0];
-  for(i=1; i<fft_size; i++){
-    program<<" ,\n"<<cosines[i];
+    program<<"__constant double cosar["<<fft_size<<"] = { "<<cosines[0];
+    for(i=1; i<fft_size; i++){
+      program<<" ,\n"<<cosines[i];
+    }
+    program<<"\n};\n";
+  } else {
+    output->cossin = (double *)malloc(fft_size*sizeof(double)*2);
+    for(i=0; i<fft_size; i++){
+      output->cossin[2*i]=cosines[i];
+      output->cossin[2*i+1]=sines[i];
+    }
+    program<<"const sampler_t smplr = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n";
   }
-  program<<"\n};\n";
-
   program<<"\
 #define radix2m(il,jl,N,A,B,in,out,sign,div) \
 { \
@@ -56,10 +74,9 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   val = in[A*b+a][il];\
   tmp.x = val.x;\
   tmp.y = val.y;\
-  val = in[(N/2)+A*b+a][il];\
-  w.x = cosar[r*(N/(2*A))];\
-  w.y = sinar[r*(N/(2*A))];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/2)+A*b+a][il];";
+  sincos_access(program,"r*(N/(2*A))");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.x div;\
   tmp.y += sign - val.x * w.y;\
@@ -77,17 +94,15 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   val = in[A*b+a][il];\
   tmp.x = val.x;\
   tmp.y = val.y;\
-  val = in[(N/3)+A*b+a][il];\
-  w.x = cosar[r*(N/(3*A))];\
-  w.y = sinar[r*(N/(3*A))];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/3)+A*b+a][il];";
+  sincos_access(program,"r*(N/(3*A))");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
-  val = in[(N/3)*2+A*b+a][il];\
-  w.x = cosar[(r*(2*N/(3*A)))%N];\
-  w.y = sinar[(r*(2*N/(3*A)))%N];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/3)*2+A*b+a][il];";
+  sincos_access(program,"r*(2*N/(3*A))%N");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.x div;\
   tmp.y += sign - val.x * w.y;\
@@ -140,31 +155,27 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   val = in[A*b+a][il];\
   tmp.x = val.x;\
   tmp.y = val.y;\
-  val = in[(N/5)+A*b+a][il];\
-  w.x = cosar[r*(N/(5*A))];\
-  w.y = sinar[r*(N/(5*A))];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/5)+A*b+a][il];";
+  sincos_access(program,"r*(N/(5*A))");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
-  val = in[(N/5)*2+A*b+a][il];\
-  w.x = cosar[r*(2*N/(5*A))%N];\
-  w.y = sinar[r*(2*N/(5*A))%N];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/5)*2+A*b+a][il];";
+  sincos_access(program,"r*(2*N/(5*A))%N");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
-  val = in[(N/5)*3+A*b+a][il];\
-  w.x = cosar[r*(3*N/(5*A))%N];\
-  w.y = sinar[r*(3*N/(5*A))%N];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/5)*3+A*b+a][il];";
+  sincos_access(program,"r*(3*N/(5*A))%N");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
-  val = in[(N/5)*4+A*b+a][il];\
-  w.x = cosar[r*(4*N/(5*A))%N];\
-  w.y = sinar[r*(4*N/(5*A))%N];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/5)*4+A*b+a][il];";
+  sincos_access(program,"r*(4*N/(5*A))%N");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.x div;\
   tmp.y += sign - val.x * w.y;\
@@ -182,45 +193,39 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
   val = in[A*b+a][il];\
   tmp.x = val.x;\
   tmp.y = val.y;\
-  val = in[(N/7)+A*b+a][il];\
-  w.x = cosar[r*(N/(7*A))];\
-  w.y = sinar[r*(N/(7*A))];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/7)+A*b+a][il];";
+  sincos_access(program,"r*(N/(7*A))");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
-  val = in[(N/7)*2+A*b+a][il];\
-  w.x = cosar[r*(2*N/(7*A))%N];\
-  w.y = sinar[r*(2*N/(7*A))%N];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/7)*2+A*b+a][il];";
+  sincos_access(program,"r*(2*N/(7*A))%N");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
-  val = in[(N/7)*3+A*b+a][il];\
-  w.x = cosar[r*(3*N/(7*A))%N];\
-  w.y = sinar[r*(3*N/(7*A))%N];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/7)*3+A*b+a][il];";
+  sincos_access(program,"r*(3*N/(7*A))%N");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
-  val = in[(N/7)*4+A*b+a][il];\
-  w.x = cosar[r*(4*N/(7*A))%N];\
-  w.y = sinar[r*(4*N/(7*A))%N];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/7)*4+A*b+a][il];";
+  sincos_access(program,"r*(4*N/(7*A))%N");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
-  val = in[(N/7)*5+A*b+a][il];\
-  w.x = cosar[r*(5*N/(7*A))%N];\
-  w.y = sinar[r*(5*N/(7*A))%N];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/7)*5+A*b+a][il];";
+  sincos_access(program,"r*(5*N/(7*A))%N");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.y += sign - val.x * w.y;\
   tmp.y += val.y * w.x;\
-  val = in[(N/7)*6+A*b+a][il];\
-  w.x = cosar[r*(6*N/(7*A))%N];\
-  w.y = sinar[r*(6*N/(7*A))%N];\
-  tmp.x += val.x * w.x;\
+  val = in[(N/7)*6+A*b+a][il];";
+  sincos_access(program,"r*(6*N/(7*A))%N");
+program<<"  tmp.x += val.x * w.x;\
   tmp.x += sign val.y * w.y;\
   tmp.x div;\
   tmp.y += sign - val.x * w.y;\
@@ -334,12 +339,15 @@ extern "C" char * generate_fft_program(cl_uint fft_size){
 #define LINE_NUMBER "<<buffer_width<<"\n\
 #undef BUFFER_DEPTH\n\
 #define BUFFER_DEPTH LINE_NUMBER+"<<(buffer_width>1?1:0)<<"\n\
-__kernel void fftKernel_"<<fft_size<<"_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+__kernel void fftKernel_"<<fft_size<<"_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out";
+  if(!use_constant_memory)
+    program<<", __read_only image2d_t cosat";
+  program<<"){\n\
 \n\
 __local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
 __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
-\n\
-  size_t il = get_local_id(0);\n\
+\n";
+  program<<"  size_t il = get_local_id(0);\n\
   size_t jl = get_local_id(1);\n\
   size_t jg = get_global_id(1);\n\
   size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
@@ -389,12 +397,15 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
     out[jg*"<<fft_size<<"+il] = "<<in<<"[il][jl];\n\
 }\n\
 "; 
-  program<<"__kernel void fftKernel_"<<fft_size<<"_r_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out){\n\
+  program<<"__kernel void fftKernel_"<<fft_size<<"_r_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out";
+  if(!use_constant_memory)
+    program<<", __read_only image2d_t cosat";
+  program<<"){\n\
 \n\
 __local double2 tmp1[FFT_LENGTH][BUFFER_DEPTH];\n\
 __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
-\n\
-  size_t il = get_local_id(0);\n\
+\n";
+  program<<"  size_t il = get_local_id(0);\n\
   size_t jl = get_local_id(1);\n\
   size_t jg = get_global_id(1);\n\
   size_t ilt = jl+(il/LINE_NUMBER)*LINE_NUMBER;\n\
@@ -432,7 +443,8 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
     out[jg*"<<fft_size<<"+il] = "<<in<<"[il][jl];\n\
 }\n\
 ";
-  output = (char *)malloc((program.str().size()+1)*sizeof(char));
-  strcpy(output, program.str().c_str());
+
+  output->code = (char *)malloc((program.str().size()+1)*sizeof(char));
+  strcpy(output->code, program.str().c_str());
   return output;
 }

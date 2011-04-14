@@ -72,8 +72,8 @@ program conv_check_fft
      stop
   end if
 
-  call customize_fft((/n1,n2,n3/));
   call ocl_create_gpu_context(context)
+  call customize_fft((/n1,n2,n3/));
   call ocl_build_programs(context)
   call ocl_create_command_queue(queue,context)
   call init_event_list

@@ -674,7 +674,9 @@ inline void fft_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uin
     oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
 }
 
-inline void fft_generated_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
+cl_uint use_constant_memory=1;
+
+inline void fft_generated_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out,cl_mem *cosi){
     cl_int ciErrNum;
     cl_uint shared_size_used=0;
     if(*n <= 64)
@@ -696,6 +698,9 @@ inline void fft_generated_generic(cl_kernel kernel, cl_command_queue command_que
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
+    if(!use_constant_memory){
+      ciErrNum = clSetKernelArg(kernel, i++,sizeof(*cosi), (void*)cosi);
+    }
     size_t localWorkSize[] = { block_size_i,block_size_j };
     size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -708,22 +713,26 @@ void FC_FUNC_(customize_fft,CUSTOMIZE_FFT)(cl_uint *dimensions) {
   fft_size[2] = dimensions[2];
 }
 
+cl_mem cossind0;
+cl_mem cossind1;
+cl_mem cossind2;
+
 void FC_FUNC_(fft1d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     if(fft_size[0] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_d, (*command_queue)->command_queue, n, ndat, psi, out);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind0);
     else if(fft_size[1] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_d, (*command_queue)->command_queue, n, ndat, psi, out);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind1);
     else if(fft_size[2] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_d, (*command_queue)->command_queue, n, ndat, psi, out);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind2);
 }
 
 void FC_FUNC_(fft1d_r_d,FFT1D_R_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
     if(fft_size[0] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_d, (*command_queue)->command_queue, n, ndat, psi, out);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind0);
     else if(fft_size[1] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, (*command_queue)->command_queue, n, ndat, psi, out);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind1);
     else if(fft_size[2] == *n)
-      fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_r_d, (*command_queue)->command_queue, n, ndat, psi, out);
+      fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_r_d, (*command_queue)->command_queue, n, ndat, psi, out, &cossind2);
 }
 
 void FC_FUNC_(fft3d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp){
@@ -732,13 +741,13 @@ void FC_FUNC_(fft3d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *dim
     cl_uint n3 = dimensions[2];
     cl_uint ndat = n1 * n2;
     assert(fft_size[2]==n3);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_d, (*command_queue)->command_queue, &n3, &ndat, psi, out);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_d, (*command_queue)->command_queue, &n3, &ndat, psi, out, &cossind2);
     ndat = n1 * n3;
     assert(fft_size[1]==n2);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_d, (*command_queue)->command_queue, &n2, &ndat, out, tmp);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_d, (*command_queue)->command_queue, &n2, &ndat, out, tmp, &cossind1);
     ndat = n2 * n3;
     assert(fft_size[0]==n1);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_d, (*command_queue)->command_queue, &n1, &ndat, tmp, out);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_d, (*command_queue)->command_queue, &n1, &ndat, tmp, out, &cossind0);
 }
 
 void FC_FUNC_(fft3d_r_d,FFT1D_R_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp){
@@ -747,13 +756,13 @@ void FC_FUNC_(fft3d_r_d,FFT1D_R_D)(bigdft_command_queue *command_queue, cl_uint 
     cl_uint n3 = dimensions[2];
     cl_uint ndat = n1 * n2;
     assert(fft_size[2]==n3);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_r_d, (*command_queue)->command_queue, &n3, &ndat, psi, out);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d2_r_d, (*command_queue)->command_queue, &n3, &ndat, psi, out, &cossind2);
     ndat = n1 * n3;
     assert(fft_size[1]==n2);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, (*command_queue)->command_queue, &n2, &ndat, out, tmp);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d1_r_d, (*command_queue)->command_queue, &n2, &ndat, out, tmp, &cossind1);
     ndat = n2 * n3;
     assert(fft_size[0]==n1);
-    fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_d, (*command_queue)->command_queue, &n1, &ndat, tmp, out);
+    fft_generated_generic((*command_queue)->kernels.fft_kernel_d0_r_d, (*command_queue)->command_queue, &n1, &ndat, tmp, out, &cossind0);
 }
 
 cl_program fftProgramd0;
@@ -794,11 +803,12 @@ void create_fft_kernels(struct bigdft_kernels * kernels){
 
 void build_fft_programs(cl_context * context){
     cl_int ciErrNum = CL_SUCCESS;
+    cl_image_format format = { CL_RGBA, CL_UNSIGNED_INT32 };
+    fft_code * c;
     if(fft_size[0]!=0){
-      char * code;
-      code = generate_fft_program(fft_size[0]);
-      printf("%s\n",code);
-      fftProgramd0 = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
+      c = generate_fft_program(fft_size[0]);
+      printf("%s\n",c->code);
+      fftProgramd0 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd0!");
       ciErrNum = clBuildProgram(fftProgramd0, 0, NULL, "-cl-mad-enable", NULL, NULL);
       if (ciErrNum != CL_SUCCESS)
@@ -809,12 +819,19 @@ void build_fft_programs(cl_context * context){
 	  fprintf(stderr,"%s\n",cBuildLog);
           exit(1);
       }
+      if(!use_constant_memory) {
+        cossind0 = clCreateImage2D(*context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[0],1,0,c->cossin,&ciErrNum);
+        if (ciErrNum != CL_SUCCESS)
+          fprintf(stderr,"Error %d: Failed to allocate image buffer cossind0!\n",ciErrNum);
+      }
+      if(c->cossin) free(c->cossin);
+      free(c->code);
+      free(c);
     }
     if(fft_size[1]!=0){
-      char * code;
-      code = generate_fft_program(fft_size[1]);
-      printf("%s\n",code);
-      fftProgramd1 = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
+      c = generate_fft_program(fft_size[1]);
+      printf("%s\n",c->code);
+      fftProgramd1 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd1!");
       ciErrNum = clBuildProgram(fftProgramd1, 0, NULL, "-cl-mad-enable", NULL, NULL);
       if (ciErrNum != CL_SUCCESS)
@@ -825,12 +842,19 @@ void build_fft_programs(cl_context * context){
 	  fprintf(stderr,"%s\n",cBuildLog);
           exit(1);
       }
+      if(!use_constant_memory) {
+        cossind1 = clCreateImage2D(*context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[1],1,0,c->cossin,&ciErrNum);
+        if (ciErrNum != CL_SUCCESS)
+          fprintf(stderr,"Error %d: Failed to allocate image buffer cossind1!\n",ciErrNum);
+      }
+      if(c->cossin) free(c->cossin);
+      free(c->code);
+      free(c);
     }
     if(fft_size[2]!=0){
-      char * code;
-      code = generate_fft_program(fft_size[2]);
-      printf("%s\n",code);
-      fftProgramd2 = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
+      c = generate_fft_program(fft_size[2]);
+      printf("%s\n",c->code);
+      fftProgramd2 = clCreateProgramWithSource(*context,1,(const char**) &(c->code), NULL, &ciErrNum);
       oclErrorCheck(ciErrNum,"Failed to create programd1!");
       ciErrNum = clBuildProgram(fftProgramd2, 0, NULL, "-cl-mad-enable", NULL, NULL);
       if (ciErrNum != CL_SUCCESS)
@@ -841,6 +865,14 @@ void build_fft_programs(cl_context * context){
 	  fprintf(stderr,"%s\n",cBuildLog);
           exit(1);
       }
+      if(!use_constant_memory) {
+        cossind2 = clCreateImage2D(*context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR , &format,fft_size[2],1,0,c->cossin,&ciErrNum);
+        if (ciErrNum != CL_SUCCESS)
+          fprintf(stderr,"Error %d: Failed to allocate image buffer cossind2!\n",ciErrNum);
+      }
+      if(c->cossin) free(c->cossin);
+      free(c->code);
+      free(c);
     }
 }
 
@@ -869,14 +901,26 @@ void clean_fft_kernels(struct bigdft_kernels * kernels){
 void clean_fft_programs(){
   cl_int ciErrNum;
   if(fft_size[0]!=0){
+    if(!use_constant_memory){
+      ciErrNum = clReleaseMemObject (cossind0);
+      oclErrorCheck(ciErrNum,"Failed to release buffer!");
+    }
     ciErrNum = clReleaseProgram(fftProgramd0);
     oclErrorCheck(ciErrNum,"Failed to release program!");
   }
   if(fft_size[1]!=0){
+    if(!use_constant_memory){
+      ciErrNum = clReleaseMemObject (cossind1);
+      oclErrorCheck(ciErrNum,"Failed to release buffer!");
+    }
     ciErrNum = clReleaseProgram(fftProgramd1);
     oclErrorCheck(ciErrNum,"Failed to release program!");
   }
   if(fft_size[2]!=0){
+    if(!use_constant_memory){
+      ciErrNum = clReleaseMemObject (cossind2);
+      oclErrorCheck(ciErrNum,"Failed to release buffer!");
+    }
     ciErrNum = clReleaseProgram(fftProgramd2);
     oclErrorCheck(ciErrNum,"Failed to release program!");
   }
