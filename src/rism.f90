@@ -33,10 +33,9 @@ program rism
   nproc=1
 
   !initalise the varaibles for the calculation
-  !the centers may be more than the original atoms
-  !the pseudopotential for the dummy centers have to be provided
-  call read_input_variables(iproc,'centers', &
-       & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", in, atoms, rxyz)
+  !standard names
+  call standard_inputfile_names(in)
+  call read_input_variables(iproc,'posinp',in,atoms,rxyz)
   write(gridformat, "(A)") ""
   select case (in%output_grid_format)
      case (OUTPUT_GRID_FORMAT_ETSF)

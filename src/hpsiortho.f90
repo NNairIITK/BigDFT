@@ -368,12 +368,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
-!!$  if (OCLconv) then
-!!$     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,hpsi_OCL,'hpsi_OCL',subname)
-!!$     call dcopy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, hpsi, 1, hpsi_OCL, 1)
-!!$  end if
-
   if (GPUconv) then
      call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
           hpsi,gnrm,gnrm_zero,GPU)
@@ -384,20 +378,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   end if
 
-!!$  if (OCLconv) then
-!!$     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
-!!$          hpsi_OCL,gnrm,GPU)
-!!$     maxdiff=0.0_wp
-!!$     do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
-!!$        maxdiff=max(maxdiff,abs(hpsi(i)-hpsi_OCL(i)))
-!!$     end do
-!!$     print *,''
-!!$     print *,'maxdiff',maxdiff
-!!$     i_all=-product(shape(hpsi_OCL))*kind(hpsi_OCL)
-!!$     deallocate(hpsi_OCL,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
-!!$
-!!$  end if
   !sum over all the partial residues
   if (nproc > 1) then
      !tt=gnrm
