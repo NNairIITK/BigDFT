@@ -508,9 +508,12 @@ istart=0
         !!open(unit=(iproc+1)*1000000+it*1000+iorb*10+7)
         !!open(unit=(iproc+1)*1000000+it*1000+iorb*10+8)
         !!open(unit=(iproc+1)*1000000+it*1000+iorb*10+9)
-        do i3=1,Glr%d%n3i
-            do i2=1,Glr%d%n2i
-                do i1=1,Glr%d%n1i
+        !do i3=1,Glr%d%n3i
+        do i3=1+15,Glr%d%n3i-15
+            !do i2=1,Glr%d%n2i
+            do i2=1+15,Glr%d%n2i-15
+                !do i1=1,Glr%d%n1i
+                do i1=1+15,Glr%d%n1i-15
                    jj=jj+1
                    ! z component of point jj
                    iz=jj/(Glr%d%n2i*Glr%d%n1i)
@@ -613,6 +616,7 @@ unit3=10*iproc+9
 
 !write(*,*) 'write, orbs%nbasisp', orbs%norbp
     orbLoop: do iorb=1,orbs%norbp
+        phir=0.d0
         call daub_to_isf(Glr,w,phi(istart+1),phir(1))
         iiAt=onWhichAtom(iorb)
         ix0=nint(rxyz(1,iiAt)/hxh)
@@ -643,7 +647,7 @@ unit3=10*iproc+9
                    ii=ii-iy*Glr%d%n1i
                    ! x component
                    ix=ii
-
+!if(phir(jj)>1.d0) write(*,'(a,3i7,es15.6)') 'WARNING: ix, iy, iz, phir(jj)', ix, iy, iz, phir(jj)
                    if(iy==ix0 .and. iz==iz0) write(unit1,*) ix, phir(jj)
                    ! Write along y-axis
                    if(ix==ix0 .and. iz==iz0) write(unit2,*) iy, phir(jj)

@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
     infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    i3s, i3xcsh, fion, fdisp, fxyz, fnoise, ebsMod, coeff)
+    i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
 !
 ! Purpose:
 ! ========
@@ -88,7 +88,7 @@ character(len=3),intent(in):: PSquiet
 real(8),intent(out):: ebsMod
 real(8),dimension(lin%orbs%norb,orbs%norb),intent(in out):: coeff
 real(8),dimension(3,at%nat),intent(out):: fxyz
-real(8):: fnoise
+real(8):: eion, edisp, fnoise
 
 ! Local variables 
 integer:: istat, iall, infoCoeff
@@ -99,6 +99,8 @@ real(8),dimension(:),pointer:: phiWork
 real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace , lastAlpha
 real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
+real(8):: energy
+logical:: scpot
 
 real(8),dimension(:),allocatable:: rhopotCorrect
 integer,dimension(:,:),allocatable :: nscatterarrCorrect ,ngatherarrCorrect
@@ -126,28 +128,55 @@ character(len=11):: procName, orbNumber, orbName
       lastAlpha, infoBasisFunctions)
 
 !!! TEST
-call optimizeWithShifts()
+!call optimizeWithShifts()
+
+!!$call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
+!!$    rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+!!$    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+!!$write(*,*) 'ebsModhere1', ebsMod
+!!$if(iproc==0) write(*,*) 'energy here1', energy
+!!$call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
+!!$    rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+!!$    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+!!$if(iproc==0) write(*,*) 'energy here2', energy
+!!$write(*,*) 'ebsModhere2', ebsMod
+!!$return
 !!!!!!!!
 
-! 3D plot of the basis functions
-write(procName,'(i0)') iproc
-istart=1
-do iorb=1,lin%orbs%norbp
-  write(orbNumber,'(i0)') iorb
-  orbName='orb_'//trim(procName)//'_'//trim(orbNumber)
-  call plot_wfSquare_cube(orbName, at, Glr, input%hx, input%hy, input%hz, rxyz, phi(istart), 'comment   ')
-  istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-end do
+!!! 3D plot of the basis functions
+!!write(procName,'(i0)') iproc
+!!istart=1
+!!do iorb=1,lin%orbs%norbp
+!!  write(orbNumber,'(i0)') iorb
+!!  orbName='orb_'//trim(procName)//'_'//trim(orbNumber)
+!!  call plot_wfSquare_cube(orbName, at, Glr, input%hx, input%hy, input%hz, rxyz, phi(istart), 'comment   ')
+!!  istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+!!end do
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
   if(trim(lin%getCoeff)=='min') then
 
       if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
-      call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-           nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-           rhopot(1),&
-           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+      !call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+      !     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+      !     rhopot(1),&
+      !     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+
+!!! TEST !!!!
+!allocate the potential in the full box
+call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+     lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
+
+call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
+     nlpspd,proj,Glr,ngatherarr,potential,&
+     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
+
+!deallocate potential
+call free_full_potential(nproc,potential,subname)
+!!! TEST !!!!
+
       if(iproc==0) write(*,'(x,a)') 'done.'
 
       ! Calculate the matrix elements <phi|H|phi>.
@@ -179,13 +208,32 @@ end do
       ! There is a minimization with respect to both the coefficients c and the basis functions phi,
       ! i.e. we do a kind of a self consistency cycle.
       do it=1,lin%nItSCC
-          call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-                 proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
-                 lastAlpha, infoBasisFunctions)
-          call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-                nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-                rhopot(1),&
-                phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+          !call getLocalizedBasisNew(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
+          !       proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, coeff, &
+          !       lastAlpha, infoBasisFunctions)
+call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
+    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
+    lastAlpha, infoBasisFunctions)
+          !call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+          !      nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+          !      rhopot(1),&
+          !      phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+
+!!! TEST !!!!
+!allocate the potential in the full box
+call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+     lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
+
+call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
+     nlpspd,proj,Glr,ngatherarr,potential,&
+     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
+
+!deallocate potential
+call free_full_potential(nproc,potential,subname)
+!!! TEST !!!!
+
           call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
      
           call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
@@ -203,6 +251,9 @@ end do
               if(iproc==0) write(*,'(3x,a)') '- WARNING: coefficients not converged!'
           end if
           if(iproc==0) write(*,'(3x,a,es16.8)') '- modified band structure energy', ebsMod
+    !!! TEST
+    call optimizeWithShifts()
+    !!! TEST
       end do
 
   else if(trim(lin%getCoeff)=='diag') then
@@ -292,7 +343,7 @@ contains
   subroutine optimizeWithShifts()
 
     ! Initialize the coefficient vector at random. 
-    call random_number(coeff)
+    !call random_number(coeff)
     allocate(nscatterarrCorrect(0:nproc-1,4+ndebug),stat=istat)
     !call memocc(i_stat,nscatterarrCorrect,'nscatterarrCorrect',subname)
     !allocate array for the communications of the potential
@@ -307,59 +358,79 @@ contains
     ngatherarrCorrect=ngatherarr
     projCorrect=proj
     rhopotCorrect=rhopot
+    scpot=.true.
 
-    do it=1,10
+    do it=1,1
         nscatterarr=nscatterarrCorrect
         ngatherarr=ngatherarrCorrect
         proj=projCorrect
         rhopot=rhopotCorrect
         ! The subroutine getLocalizedBasis expects phi to be transposed.
-        call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-        call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
-            nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
-            lastAlpha, infoBasisFunctions)
-        if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
-        call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-             nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-             rhopot(1),&
-             phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
-        if(iproc==0) write(*,'(x,a)') 'done.'
-
-        ! Calculate the matrix elements <phi|H|phi>.
-        call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-
-
-        !if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
-        ! Calculate the coefficients which minimize the modified band structure energy
-        ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H_l|phi_l>
-        ! for the given basis functions.
-        call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
-        call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
-        if(iproc==0) write(*,'(x,a)') 'after initial guess:'
-        if(infoBasisFunctions==0) then
-            if(iproc==0) write(*,'(3x,a)') '- basis functions converged'
-        else
-            if(iproc==0) write(*,'(3x,a)') '- WARNING: basis functions not converged!'
-        end if
-        if(infoCoeff==0) then
-            if(iproc==0) write(*,'(3x,a)') '- coefficients converged'
-        else
-            if(iproc==0) write(*,'(3x,a)') '- WARNING: coefficients not converged!'
-        end if
-        if(iproc==0) write(*,'(3x,a,es16.8)') '- modified band structure energy', ebsMod
+        !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+        !call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
+        !    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
+        !    lastAlpha, infoBasisFunctions)
+!!!        if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
+!!!        call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+!!!             nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+!!!             rhopot(1),&
+!!!             phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+!!!        if(iproc==0) write(*,'(x,a)') 'done.'
+!!!
+!!!        ! Calculate the matrix elements <phi|H|phi>.
+!!!        call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+!!!
+!!!
+!!!        !if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
+!!!        ! Calculate the coefficients which minimize the modified band structure energy
+!!!        ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H_l|phi_l>
+!!!        ! for the given basis functions.
+!!!        call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
+!!!        call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
+!!!        if(iproc==0) write(*,'(x,a)') 'after initial guess:'
+!!!        if(infoBasisFunctions==0) then
+!!!            if(iproc==0) write(*,'(3x,a)') '- basis functions converged'
+!!!        else
+!!!            if(iproc==0) write(*,'(3x,a)') '- WARNING: basis functions not converged!'
+!!!        end if
+!!!        if(infoCoeff==0) then
+!!!            if(iproc==0) write(*,'(3x,a)') '- coefficients converged'
+!!!        else
+!!!            if(iproc==0) write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+!!!        end if
+!!!        if(iproc==0) write(*,'(3x,a,es16.8)') '- modified band structure energy', ebsMod
 
         call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
         call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
         call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
         call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
 
+        call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
+            rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+            proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+        if(iproc==0) write(*,*) 'energy', energy
         call calculateForcesSub(iproc, nproc, n3p, i3s, i3xcsh, Glr, orbs, at, input, lin, nlpspd, proj, &
-            ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, fxyz, fnoise)
+            ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 
-        !rxyzParab=rxyzParab-1.d-1*fxyz
-        rxyzParab=rxyzParab+1.d-1*fxyz
+        !rxyzParab=rxyzParab-1.d0*fxyz
+        !rxyzParab=rxyzParab+1.d0*fxyz
+        !rxyzParab=rxyzParab+5.d0*fxyz
 
     end do
+    nscatterarr=nscatterarrCorrect
+    ngatherarr=ngatherarrCorrect
+    proj=projCorrect
+    rhopot=rhopotCorrect
+
+    deallocate(nscatterarrCorrect,stat=istat)
+    !call memocc(i_stat,nscatterarrCorrect,'nscatterarrCorrect',subname)
+    !allocate array for the communications of the potential
+    deallocate(ngatherarrCorrect,stat=istat)
+    !call memocc(i_stat,ngatherarrCorrect,'ngatherarrCorrect',subname)
+    deallocate(projCorrect,stat=istat)
+    !call memocc(i_stat,projCorrect,'projCorrect',subname)
+    deallocate(rhopotCorrect, stat=istat)
+    !call memocc(i_stat,rhopot,'rhopot',subname)
     
   end subroutine optimizeWithShifts
 
@@ -1401,15 +1472,15 @@ call memocc(istat, alpha, 'alpha', subname)
 processIf: if(iproc==0) then
     
 
-    ! Orthonormalize the coefficient vectors (Gram-Schmidt).
-    do iorb=1,orbs%norb
-        do jorb=1,iorb-1
-            tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-            call daxpy(lin%orbs%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
-        end do
-        tt=dnrm2(lin%orbs%norb, coeff(1,iorb), 1)
-        call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
-    end do
+    !!! Orthonormalize the coefficient vectors (Gram-Schmidt).
+    !!do iorb=1,orbs%norb
+    !!    do jorb=1,iorb-1
+    !!        tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+    !!        call daxpy(lin%orbs%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
+    !!    end do
+    !!    tt=dnrm2(lin%orbs%norb, coeff(1,iorb), 1)
+    !!    call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
+    !!end do
     
     ! Initial step size for the optimization
     alpha=5.d-3
@@ -1421,6 +1492,22 @@ processIf: if(iproc==0) then
 
     ! The optimization loop.
     iterLoop: do it=1,lin%nItCoeff
+
+        if (iproc==0) then
+            write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
+        endif
+
+
+        ! Orthonormalize the coefficient vectors (Gram-Schmidt).
+        do iorb=1,orbs%norb
+            do jorb=1,iorb-1
+                tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+                call daxpy(lin%orbs%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
+            end do
+            tt=dnrm2(lin%orbs%norb, coeff(1,iorb), 1)
+            call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
+        end do
+
 
         ! Calculate the gradient grad. At the same time we determine whether the step size shall be increased
         ! or decreased (depending on gradient feedback).
@@ -1469,18 +1556,11 @@ processIf: if(iproc==0) then
         end do
     
         
-        ! Improve the coefficients by (steepet descent).
+        ! Calculate the modified band structure energy and the gradient norm.
+        ebsMod=0.d0
         fnrm=0.d0
         do iorb=1,orbs%norb
             fnrm=fnrm+dnrm2(lin%orbs%norb, grad(1,iorb), 1)
-            do l=1,lin%orbs%norb
-                coeff(l,iorb)=coeff(l,iorb)-alpha(iorb)*grad(l,iorb)
-            end do
-        end do
-    
-        ! Calculate the modified band structure energy.
-        ebsMod=0.d0
-        do iorb=1,orbs%norb
             do jorb=1,lin%orbs%norb
                 do korb=1,lin%orbs%norb
                     ebsMod=ebsMod+coeff(korb,iorb)*coeff(jorb,iorb)*matrixElements(korb,jorb)
@@ -1493,19 +1573,10 @@ processIf: if(iproc==0) then
             ebsMod=2.d0*ebsMod
         end if
 
-        if(iproc==0) write(*,'(x,a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', &
-            it, fnrm, meanAlpha, ebsMod
+        !if(iproc==0) write(*,'(x,a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', &
+        if(iproc==0) write(*,'(x,a,es11.2,es22.13,es10.2)') 'fnrm, band structure energy, mean alpha', &
+            fnrm, ebsMod, meanAlpha
         
-        ! Orthonormalize the coefficient vectors (Gram-Schmidt).
-        do iorb=1,orbs%norb
-            do jorb=1,iorb-1
-                tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-                call daxpy(lin%orbs%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
-            end do
-            tt=dnrm2(lin%orbs%norb, coeff(1,iorb), 1)
-            call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
-        end do
-
         ! Check for convergence.
         if(fnrm<lin%convCritCoeff) then
             if(iproc==0) write(*,'(x,a,i0,a)') 'converged in ', it, ' iterations.'
@@ -1514,6 +1585,14 @@ processIf: if(iproc==0) then
             infoCoeff=0
             exit
         end if
+
+        ! Improve the coefficients (by steepet descent).
+        do iorb=1,orbs%norb
+            do l=1,lin%orbs%norb
+                coeff(l,iorb)=coeff(l,iorb)-alpha(iorb)*grad(l,iorb)
+            end do
+        end do
+    
 
     end do iterLoop
 

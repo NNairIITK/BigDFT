@@ -71,7 +71,8 @@ real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
+!integer,dimension(0:nproc-1,2),intent(in):: ngatherarr
+integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in out):: rhopot
@@ -126,7 +127,7 @@ character(len=*),parameter:: subname='linearScaling'
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
       infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      i3s, i3xcsh, fion, fdisp, fxyz, fnoise, ebsMod, coeff)
+      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
 
   ! Calculate the energy that we get with psi.
   call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
@@ -136,7 +137,7 @@ character(len=*),parameter:: subname='linearScaling'
 
   ! Calculate the forces we get with psi.
   call calculateForcesSub(iproc, nproc, n3p, i3s, i3xcsh, Glr, orbs, at, input, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
-      irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, fxyz, fnoise)
+      irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi, coeff)

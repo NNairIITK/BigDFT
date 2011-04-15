@@ -236,7 +236,7 @@ end subroutine potentialAndEnergySub
 
 
 subroutine calculateForcesSub(iproc, nproc, n3p, i3s, i3xcsh, Glr, orbs, atoms, in, lin, nlpspd, proj, &
-    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, fxyz, fnoise)
+    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 ! Purpose:
 ! ========
 !   Calculates the forces we get with psi. It is copied from cluster, with an additional
@@ -301,12 +301,14 @@ real(8),dimension(3,atoms%nat),intent(in):: rxyz, fion, fdisp
 real(8),dimension(3,atoms%nat),intent(out):: fxyz
 real(8),intent(out):: fnoise
 real(8),dimension(orbs%npsidim),intent(in):: psi
+real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
+real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
 
 ! Local variables
 integer:: jproc, i_stat, i_all, iat, ierr, j
 real(8):: hxh, hyh, hzh, ehart_fake
 real(kind=8), dimension(:), allocatable :: rho
-real(gp), dimension(:,:), allocatable :: gxyz
+real(gp), dimension(:,:), allocatable :: gxyz, fxyzConf
 real(kind=8), dimension(:,:,:,:), allocatable :: pot
 character(len=*),parameter:: subname='calculateForcesSub'
 logical:: refill_proj
@@ -416,6 +418,13 @@ logical:: refill_proj
        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
     enddo
 
+!!!!! TEST !!!
+!!  call timing(iproc,'Forces        ','OF')
+!!  call confinementCorrection()
+!!  fxyz=fxyz+fxyzConf
+!!  call timing(iproc,'Forces        ','ON')
+!!!!!!!!!!!!!!
+
     !i_all=-product(shape(fion))*kind(fion)
     !deallocate(fion,stat=i_stat)
     !call memocc(i_stat,i_all,'fion',subname)
@@ -446,6 +455,169 @@ logical:: refill_proj
   end if
 
   call timing(iproc,'Forces        ','OF')
+
+
+
+
+!!contains
+!!
+!!
+!!  subroutine confinementCorrection
+!!  implicit none
+!!  integer:: ix, iy, iz, ist, istart, jstart, istat, iall, iorb, iiAt, ii, jj, jx, jy, jz, jx0, jy0, jz0
+!!  integer:: jorb, nvctrp, korb, lorb, lproc
+!!  real(8):: dx, dy, dz, dr2, prefac, tt, phirsq, ttmax, ttmax2, jj2, dnrm2, kx, ky, kz, ddot
+!!  real(8),dimension(:),allocatable:: phir, hphirx, hphiry, hphirz, hphix, hphiy, hphiz
+!!  real(8),dimension(:,:),allocatable:: gxyz
+!!  real(8),dimension(:,:,:),allocatable:: matx, maty, matz
+!!  type(workarr_sumrho):: w
+!!  type(workarr_locham):: w_lh
+!!  real(8),dimension(:),pointer:: phiWork
+!!
+!!
+!!    allocate(phiWork(max(size(phi),size(psi))), stat=istat)
+!!    call memocc(istat, phiWork, 'phiWork', subname)
+!!
+!!    !write(*,*) 'Glr%d%n1,Glr%d%n2,Glr%d%n3', Glr%d%n1,Glr%d%n2,Glr%d%n3
+!!    !write(*,*) 'Glr%d%n1i,Glr%d%n2i,Glr%d%n3i', Glr%d%n1i,Glr%d%n2i,Glr%d%n3i
+!!    allocate(fxyzConf(3,atoms%nat), stat=istat)
+!!    allocate(gxyz(3,atoms%nat), stat=istat)
+!!    fxyzConf=0.d0
+!!    gxyz=0.d0
+!!
+!!    allocate(matx(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+!!    allocate(maty(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+!!    allocate(matz(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+!!    matx=0.d0
+!!    maty=0.d0
+!!    matz=0.d0
+!!
+!!    allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+!!    allocate(hphirx(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+!!    allocate(hphiry(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+!!    allocate(hphirz(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+!!    allocate(hphix(lin%orbs%npsidim), stat=istat)
+!!    allocate(hphiy(lin%orbs%npsidim), stat=istat)
+!!    allocate(hphiz(lin%orbs%npsidim), stat=istat)
+!!    hphix=0.d0
+!!    hphiy=0.d0
+!!    hphiz=0.d0
+!!    call initialize_work_arrays_sumrho(Glr,w)
+!!    istart=1
+!!    orbLoop: do iorb=1,lin%orbs%norbp
+!!      call deallocate_work_arrays_sumrho(w)
+!!      call initialize_work_arrays_sumrho(Glr,w)
+!!      phir=0.d0
+!!      call daub_to_isf(Glr,w,phi(istart+1),phir(1))
+!!      iiAt=lin%onWhichAtom(iorb)
+!!      prefac=lin%potentialPrefac(atoms%iatype(iiAt))
+!!
+!!      dr2=0.d0
+!!      ist=0
+!!      !do iz=1,Glr%d%n3i
+!!      do iz=1+15,Glr%d%n3i-15
+!!        !do iy=1,Glr%d%n2i
+!!        do iy=1+15,Glr%d%n2i-15
+!!          !do ix=1,Glr%d%n1i
+!!          do ix=1+15,Glr%d%n1i-15
+!!            ist=ist+1
+!!            dx=hxh*ix-rxyz(1,iiAt)
+!!            dy=hyh*iy-rxyz(2,iiAt)
+!!            dz=hzh*iz-rxyz(3,iiAt)
+!!            !dr2=dr2+dx**2+dy**2+dz**2
+!!            dr2=dx**2+dy**2+dz**2
+!!            tt=4.d0*prefac*dr2
+!!            !phirsq=phir(ist)*phir(ist)
+!!            !gxyz(1,iiAt)=gxyz(1,iiAt)+tt*phirsq*dx
+!!            !gxyz(2,iiAt)=gxyz(2,iiAt)+tt*phirsq*dy
+!!            !gxyz(3,iiAt)=gxyz(3,iiAt)+tt*phirsq*dz
+!!            hphirx(ist)=tt*phir(ist)*dx
+!!            hphiry(ist)=tt*phir(ist)*dy
+!!            hphirz(ist)=tt*phir(ist)*dz
+!!          end do
+!!        end do
+!!      end do
+!!      kx=lin%orbs%kpts(1,lin%orbs%iokpt(iorb))
+!!      ky=lin%orbs%kpts(2,lin%orbs%iokpt(iorb))
+!!      kz=lin%orbs%kpts(3,lin%orbs%iokpt(iorb))
+!!      call initialize_work_arrays_locham(Glr,orbs%nspinor,w_lh)
+!!      call isf_to_daub(in%hx, in%hy, in%hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, hphirx(1), hphix(istart), tt)
+!!      call isf_to_daub(in%hx, in%hy, in%hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, hphiry(1), hphiy(istart), tt)
+!!      call isf_to_daub(in%hx, in%hy, in%hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, hphirz(1), hphiz(istart), tt)
+!!      call deallocate_work_arrays_locham(Glr,w_lh)
+!!
+!!      istart=istart+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor
+!!    end do orbLoop
+!!
+!!    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+!!    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphix, work=phiWork)
+!!    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphiy, work=phiWork)
+!!    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphiz, work=phiWork)
+!!
+!!    nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+!!    jstart=1
+!!    do jorb=1,lin%orbs%norb
+!!        istart=1
+!!        do iorb=1,lin%orbs%norb
+!!            matx(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphix(jstart), 1)
+!!            maty(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphiy(jstart), 1)
+!!            matz(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphiz(jstart), 1)
+!!            istart=istart+nvctrp
+!!        end do
+!!        jstart=jstart+nvctrp
+!!    end do
+!!    call mpi_allreduce(matx(1,1,2), matx(1,1,1), lin%orbs%norb**2, mpi_double_precision, &
+!!        mpi_sum, mpi_comm_world, ierr)
+!!    call mpi_allreduce(maty(1,1,2), maty(1,1,1), lin%orbs%norb**2, mpi_double_precision, &
+!!        mpi_sum, mpi_comm_world, ierr)
+!!    call mpi_allreduce(matz(1,1,2), matz(1,1,1), lin%orbs%norb**2, mpi_double_precision, &
+!!        mpi_sum, mpi_comm_world, ierr)
+!!
+!!    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+!!
+!!
+!!    gxyz=0.d0
+!!    do iat=1,atoms%nat
+!!        do iorb=1,orbs%norb
+!!            do korb=1,lin%orbs%norb
+!!                do lproc=0,nproc-1
+!!                    do lorb=1,lin%orbs%norb_par(lproc)
+!!                        if(iproc==lproc) then
+!!                            if(lin%onWhichAtom(lorb)==iat) then
+!!                                gxyz(1,iat)=gxyz(1,iat)+coeff(korb,iorb)*coeff(lorb,iorb)*matx(korb,lorb,1)
+!!                                gxyz(2,iat)=gxyz(2,iat)+coeff(korb,iorb)*coeff(lorb,iorb)*maty(korb,lorb,1)
+!!                                gxyz(3,iat)=gxyz(3,iat)+coeff(korb,iorb)*coeff(lorb,iorb)*matz(korb,lorb,1)
+!!                            end if
+!!                        end if
+!!                    end do
+!!                end do
+!!            end do
+!!        end do
+!!    end do
+!!
+!!    fxyzConf=0.d0
+!!    call mpi_allreduce(gxyz(1,1), fxyzConf(1,1), 3*atoms%nat, mpi_double_precision, &
+!!        mpi_sum, mpi_comm_world, ierr)
+!!
+!!
+!!    if(iproc==0) write(*,*) 'OLD FORCES'
+!!    do iat=1,atoms%nat
+!!      if(iproc==0) write(*,'(3es15.6)') fxyz(1,iat), fxyz(2,iat), fxyz(3,iat)
+!!    end do
+!!
+!!    if(iproc==0) write(*,*) 'NEW FORCES'
+!!    do iat=1,atoms%nat
+!!      if(iproc==0) write(*,'(3es15.6)') fxyzConf(1,iat), fxyzConf(2,iat), fxyzConf(3,iat)
+!!    end do
+!!
+!!    call deallocate_work_arrays_sumrho(w)
+!!
+!!    iall=-product(shape(phiWork))*kind(phiWork)
+!!    deallocate(phiWork, stat=istat)
+!!    call memocc(istat, iall, 'phiWork', subname)
+!!
+!!  end subroutine confinementCorrection
+
 
 end subroutine calculateForcesSub
 
