@@ -49,9 +49,9 @@ subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   read(79,*)ngc
 
   allocate(rhocxp((ngc*(ngc+1)/2)+ndebug),stat=i_stat)
-  call memocc(i_stat,rhovxp,'rhocxp',subname)
+  call memocc(i_stat,rhocxp,'rhocxp',subname)
   allocate(rhocc((ngc*(ngc+1)/2),4+ndebug),stat=i_stat)
-  call memocc(i_stat,rhovc,'rhocc',subname)
+  call memocc(i_stat,rhocc,'rhocc',subname)
 
   chc=0.0_gp
   do ig=1,(ngc*(ngc+1))/2
