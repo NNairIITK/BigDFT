@@ -84,7 +84,7 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size){
     }
   }
   if(fft_size_o != 1){
-    std::cerr<<"Invalid FFT size : "<<fft_size_o<<" is irreducible!"<<std::endl;
+    std::cerr<<"Invalid FFT size : "<<fft_size_o<<" is irreductible!"<<std::endl;
     return NULL;
   }
   std::list <unsigned int> uniq_radixes = radixes;
@@ -218,7 +218,7 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
   for( it = radixes.begin(); it != radixes.end(); it++){
      B/=*it;
      if(it == --(radixes.end()))
-       program<<"  radix"<<*it<<"m(jlt, ilt, "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out<<",-,*="<<1/(double)fft_size<<");\n\
+       program<<"  radix"<<*it<<"m(jlt, ilt, "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out<<",-,*="<<(double)1/(double)fft_size<<");\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
 ";
      else
