@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <list>
 #include <malloc.h>
 #include <math.h>
 #include "fft_generator.h"
@@ -18,10 +19,51 @@ void sincos_access(std::stringstream &program, const char* index){
     program<<"  w = as_double2(read_imageui(cosat,smplr,(int2)("<<index<<",0)));";
 }
 
+void generate_radix(std::stringstream &program, unsigned int radix_size){
+  program<<"#define radix"<<radix_size<<"m(il,jl,N,A,B,in,out,sign,div)\
+  { \
+  double2 tmp,val,w;\
+  int a,b,p,r;\
+  b = jl / ("<<radix_size<<"*A);\
+  r = jl % ("<<radix_size<<"*A);\
+  a = r % A;\
+  val = in[A*b+a][il];\
+  tmp.x = val.x;\
+  tmp.y = val.y;\
+  val = in[(N/"<<radix_size<<")+A*b+a][il];";
+  if(use_constant_memory)
+    program<<"  w.x = cosar[r*(N/("<<radix_size<<"*A))];\
+  w.y = sinar[r*(N/("<<radix_size<<"*A))];";
+  else
+    program<<"  w = as_double2(read_imageui(cosat,smplr,(int2)(r*(N/("<<radix_size<<"*A)),0)));";
+  
+  for(int i=2; i<radix_size;i++){
+    program<<"  tmp.x += val.x * w.x;\
+  tmp.x += sign val.y * w.y;\
+  tmp.y += sign - val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  val = in[(N/"<<radix_size<<")*"<<i<<"+A*b+a][il];";
+    if(use_constant_memory)
+      program<<"  w.x = cosar[r*("<<i<<"*N/("<<radix_size<<"*A))%N];\
+  w.y = sinar[r*("<<i<<"*N/("<<radix_size<<"*A))%N];";
+    else
+      program<<"  w = as_double2(read_imageui(cosat,smplr,(int2)(r*("<<i<<"*N/("<<radix_size<<"*A))%N,0)));";
+  }
+
+  program<<"  tmp.x += val.x * w.x;\
+  tmp.x += sign val.y * w.y;\
+  tmp.x div;\
+  tmp.y += sign - val.x * w.y;\
+  tmp.y += val.y * w.x;\
+  tmp.y div;\
+  out[jl][il]=tmp;\
+}\n";
+}
+
 extern "C" fft_code * generate_fft_program(cl_uint fft_size){
-  unsigned int available_rad[] = {2,3,5,7,11};
-  std::vector<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
-  std::vector<unsigned int> radixes;
+  unsigned int available_rad[] = {2,3,5,7,11,13,17,19,23,29,31};
+  std::list<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
+  std::list<unsigned int> radixes;
   std::vector<double> sines, cosines;
   std::stringstream program;
   fft_code* output = (fft_code*)malloc(sizeof(fft_code));
@@ -34,6 +76,19 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size){
     sines.push_back(sin(TWOPI*i/(double)fft_size));
     cosines.push_back(cos(TWOPI*i/(double)fft_size));
   }
+  std::list<unsigned int>::iterator it;
+  for( it = available_radixes.begin(); it != available_radixes.end(); it++ ){
+    while(fft_size_o % *it == 0){
+      fft_size_o /= *it;
+      radixes.push_back(*it);
+    }
+  }
+  if(fft_size_o != 1){
+    std::cerr<<"Invalid FFT size : "<<fft_size_o<<" is irreducible!"<<std::endl;
+    return NULL;
+  }
+  std::list <unsigned int> uniq_radixes = radixes;
+  uniq_radixes.unique();
 
   program<<"\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
@@ -62,262 +117,10 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size){
     }
     program<<"const sampler_t smplr = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;\n";
   }
-  program<<"\
-#define radix2m(il,jl,N,A,B,in,out,sign,div) \
-{ \
-  double2 tmp,val,w;\
-  int a,b,p,r;\
-  b = jl / (2*A);\
-  r = jl % (2*A);\
-/*  p = r / A;*/\
-  a = r % A;\
-  val = in[A*b+a][il];\
-  tmp.x = val.x;\
-  tmp.y = val.y;\
-  val = in[(N/2)+A*b+a][il];";
-  sincos_access(program,"r*(N/(2*A))");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.x div;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  tmp.y div;\
-  out[jl][il]=tmp;\
-}\n\
-#define radix3m(il,jl,N,A,B,in,out,sign,div) \
-{ \
-  double2 tmp,val,w;\
-  int a,b,p,r;\
-  b = jl / (3*A);\
-  r = jl % (3*A);\
-  a = r % A;\
-  val = in[A*b+a][il];\
-  tmp.x = val.x;\
-  tmp.y = val.y;\
-  val = in[(N/3)+A*b+a][il];";
-  sincos_access(program,"r*(N/(3*A))");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/3)*2+A*b+a][il];";
-  sincos_access(program,"r*(2*N/(3*A))%N");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.x div;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  tmp.y div;\
-  out[jl][il]=tmp;\
-}\n\
-#define radix4m(il,jl,N,A,B,in,out,sign,div) \
-{ \
-  double2 tmp,val,w;\
-  int a,b,p,r;\
-  b = jl / (4*A);\
-  r = jl % (4*A);\
-  a = r % A;\
-  val = in[A*b+a][il];\
-  tmp.x = val.x;\
-  tmp.y = val.y;\
-  val = in[(N/4)+A*b+a][il];\
-  w.x = cosar[r*(N/(4*A))];\
-  w.y = sinar[r*(N/(4*A))];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/4)*2+A*b+a][il];\
-  w.x = cosar[r*(2*N/(4*A))%N];\
-  w.y = sinar[r*(2*N/(4*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/4)*3+A*b+a][il];\
-  w.x = cosar[r*(3*N/(4*A))%N];\
-  w.y = sinar[r*(3*N/(4*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.x div;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  tmp.y div;\
-  out[jl][il]=tmp;\
-}\n\
-#define radix5m(il,jl,N,A,B,in,out,sign,div) \
-{ \
-  double2 tmp,val,w;\
-  int a,b,p,r;\
-  b = jl / (5*A);\
-  r = jl % (5*A);\
-  a = r % A;\
-  val = in[A*b+a][il];\
-  tmp.x = val.x;\
-  tmp.y = val.y;\
-  val = in[(N/5)+A*b+a][il];";
-  sincos_access(program,"r*(N/(5*A))");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/5)*2+A*b+a][il];";
-  sincos_access(program,"r*(2*N/(5*A))%N");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/5)*3+A*b+a][il];";
-  sincos_access(program,"r*(3*N/(5*A))%N");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/5)*4+A*b+a][il];";
-  sincos_access(program,"r*(4*N/(5*A))%N");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.x div;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  tmp.y div;\
-  out[jl][il]=tmp;\
-}\n\
-#define radix7m(il,jl,N,A,B,in,out,sign,div) \
-{ \
-  double2 tmp,val,w;\
-  int a,b,p,r;\
-  b = jl / (7*A);\
-  r = jl % (7*A);\
-  a = r % A;\
-  val = in[A*b+a][il];\
-  tmp.x = val.x;\
-  tmp.y = val.y;\
-  val = in[(N/7)+A*b+a][il];";
-  sincos_access(program,"r*(N/(7*A))");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/7)*2+A*b+a][il];";
-  sincos_access(program,"r*(2*N/(7*A))%N");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/7)*3+A*b+a][il];";
-  sincos_access(program,"r*(3*N/(7*A))%N");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/7)*4+A*b+a][il];";
-  sincos_access(program,"r*(4*N/(7*A))%N");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/7)*5+A*b+a][il];";
-  sincos_access(program,"r*(5*N/(7*A))%N");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/7)*6+A*b+a][il];";
-  sincos_access(program,"r*(6*N/(7*A))%N");
-program<<"  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.x div;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  tmp.y div;\
-  out[jl][il]=tmp;\
-}\n\
-#define radix11m(il,jl,N,A,B,in,out,sign,div) \
-{ \
-  double2 tmp,val,w;\
-  int a,b,p,r;\
-  b = jl / (11*A);\
-  r = jl % (11*A);\
-  a = r % A;\
-  val = in[A*b+a][il];\
-  tmp.x = val.x;\
-  tmp.y = val.y;\
-  val = in[(N/11)+A*b+a][il];\
-  w.x = cosar[r*(N/(11*A))];\
-  w.y = sinar[r*(N/(11*A))];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/11)*2+A*b+a][il];\
-  w.x = cosar[r*(2*N/(11*A))%N];\
-  w.y = sinar[r*(2*N/(11*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/11)*3+A*b+a][il];\
-  w.x = cosar[r*(3*N/(11*A))%N];\
-  w.y = sinar[r*(3*N/(11*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/11)*4+A*b+a][il];\
-  w.x = cosar[r*(4*N/(11*A))%N];\
-  w.y = sinar[r*(4*N/(11*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/11)*5+A*b+a][il];\
-  w.x = cosar[r*(5*N/(11*A))%N];\
-  w.y = sinar[r*(5*N/(11*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/11)*6+A*b+a][il];\
-  w.x = cosar[r*(6*N/(11*A))%N];\
-  w.y = sinar[r*(6*N/(11*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/11)*7+A*b+a][il];\
-  w.x = cosar[r*(7*N/(11*A))%N];\
-  w.y = sinar[r*(7*N/(11*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/11)*8+A*b+a][il];\
-  w.x = cosar[r*(8*N/(11*A))%N];\
-  w.y = sinar[r*(8*N/(11*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/11)*9+A*b+a][il];\
-  w.x = cosar[r*(9*N/(11*A))%N];\
-  w.y = sinar[r*(9*N/(11*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  val = in[(N/11)*10+A*b+a][il];\
-  w.x = cosar[r*(10*N/(11*A))%N];\
-  w.y = sinar[r*(10*N/(11*A))%N];\
-  tmp.x += val.x * w.x;\
-  tmp.x += sign val.y * w.y;\
-  tmp.x div;\
-  tmp.y += sign - val.x * w.y;\
-  tmp.y += val.y * w.x;\
-  tmp.y div;\
-  out[jl][il]=tmp;\
-}\n\
-";
+
+  for( it = uniq_radixes.begin(); it != uniq_radixes.end(); it++ )
+    generate_radix(program,*it);
+
   cl_uint shared_size_used=0;
   if(fft_size <= 64)
     shared_size_used=512;
@@ -365,25 +168,13 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
   A=1;
   B=fft_size;
 
-  std::vector<unsigned int>::iterator it;
-//  std::cout<<"radixes : "<<std::endl;
-  for( it = available_radixes.begin(); it < available_radixes.end(); it++ ){
-    while(fft_size_o % *it == 0){
-      fft_size_o /= *it;
-      radixes.push_back(*it);
-//      std::cout<<*it<<std::endl;
-    }
-  }
-  if(fft_size_o != 1){
-    std::cerr<<"Invalid FFT size : "<<fft_size_o<<" is irreducible!"<<std::endl;
-    return NULL;
-  }
+
   
   std::string in, out, tmp;
   in = "tmp1";
   out = "tmp2";
 
-  for( it = radixes.begin(); it < radixes.end(); it++){
+  for( it = radixes.begin(); it != radixes.end(); it++){
      B/=*it;
      program<<"  radix"<<*it<<"m(jlt, ilt, "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out<<",+,);\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
@@ -424,9 +215,9 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
   in = "tmp1";
   out = "tmp2";
 
-  for( it = radixes.begin(); it < radixes.end(); it++){
+  for( it = radixes.begin(); it != radixes.end(); it++){
      B/=*it;
-     if(it == radixes.end()-1)
+     if(it == --(radixes.end()))
        program<<"  radix"<<*it<<"m(jlt, ilt, "<<fft_size<<", "<<A<<", "<<B<<", "<<in<<", "<<out<<",-,*="<<1/(double)fft_size<<");\n\
   barrier(CLK_LOCAL_MEM_FENCE);\n\
 ";
