@@ -1,5 +1,5 @@
 !> @file
-!!  Routines to calculate the lcoal part of atomic forces
+!!  Routines to calculate the local part of atomic forces
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the

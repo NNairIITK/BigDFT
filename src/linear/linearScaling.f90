@@ -1,4 +1,4 @@
-subroutine linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, fion, fdisp, radii_cf, &
+subroutine linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, fion, fdisp, radii_cf, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
     eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
 !
@@ -60,7 +60,7 @@ use module_interfaces, exceptThisOne => linearScaling
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, n3d, n3p, i3s, i3xcsh
+integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
 type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in) :: comms
@@ -136,7 +136,7 @@ character(len=*),parameter:: subname='linearScaling'
 
 
   ! Calculate the forces we get with psi.
-  call calculateForcesSub(iproc, nproc, n3p, i3s, i3xcsh, Glr, orbs, at, input, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
+  call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
       irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 
   ! Deallocate all arrays related to the linear scaling version.

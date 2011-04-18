@@ -468,6 +468,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,&
        in%nvacancy,in%correct_offset)
+write(*,*) 'iproc, psoffset', iproc, psoffset
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
@@ -1128,7 +1129,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
             lin%as%size_irrzon(3)=size(irrzon,3)
 
             ! This is the main routine that does everything related to the linear scaling version.
-            call linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, atoms, in, lin, rxyz, &
+            call linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, atoms, in, lin, rxyz, &
                 fion, fdisp, radii_cf, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, &
                 phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, psi, psit, &
                 energy, fxyz)

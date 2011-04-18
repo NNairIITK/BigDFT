@@ -1475,13 +1475,13 @@ module module_interfaces
       type(linearParameters),intent(in out):: lin
     end subroutine orbitalsCommunicatorsWithGroups
     
-    subroutine linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, fion, fdisp, radii_cf, &
+    subroutine linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, fion, fdisp, radii_cf, &
         nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
         eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, n3d, n3p, i3s, i3xcsh
+      integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
       type(locreg_descriptors),intent(in) :: Glr
       type(orbitals_data),intent(in):: orbs
       type(communications_arrays),intent(in) :: comms
@@ -1556,16 +1556,17 @@ module module_interfaces
     
     
 
-    subroutine calculateForcesSub(iproc, nproc, n3p, i3s, i3xcsh, Glr, orbs, atoms, in, lin, nlpspd, proj, &
+    subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
         ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, n3p, i3s, i3xcsh
+      integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
       type(locreg_descriptors),intent(in):: Glr
       type(orbitals_data),intent(in):: orbs
       type(atoms_data),intent(in):: atoms
       type(input_variables),intent(in):: in
+      type(communications_arrays),intent(in):: comms
       type(linearParameters),intent(in):: lin
       type(nonlocal_psp_descriptors),intent(in) :: nlpspd
       real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
@@ -1578,7 +1579,7 @@ module module_interfaces
       real(8),dimension(3,atoms%nat),intent(in):: rxyz, fion, fdisp
       real(8),dimension(3,atoms%nat),intent(out):: fxyz
       real(8),intent(out):: fnoise
-      real(8),dimension(orbs%npsidim),intent(in):: psi
+      real(8),dimension(orbs%npsidim),intent(inout):: psi
       real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
     end subroutine calculateForcesSub

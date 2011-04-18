@@ -409,7 +409,7 @@ contains
             rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
             proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
         if(iproc==0) write(*,*) 'energy', energy
-        call calculateForcesSub(iproc, nproc, n3p, i3s, i3xcsh, Glr, orbs, at, input, lin, nlpspd, proj, &
+        call calculateForcesSub(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, proj, &
             ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 
         !rxyzParab=rxyzParab-1.d0*fxyz
@@ -1585,6 +1585,14 @@ processIf: if(iproc==0) then
             infoCoeff=0
             exit
         end if
+  
+        if(it==lin%nItCoeff) then
+            if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
+                ' iterations! Exiting loop due to limitations of iterations.'
+            if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, ebsMod
+            infoCoeff=-1
+            exit
+        end if
 
         ! Improve the coefficients (by steepet descent).
         do iorb=1,orbs%norb
@@ -1596,12 +1604,21 @@ processIf: if(iproc==0) then
 
     end do iterLoop
 
-    if(.not.converged) then
-        if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
-            ' iterations! Exiting loop due to limitations of iterations.'
-        if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, ebsMod
-        infoCoeff=-1
-    end if
+    !!if(.not.converged) then
+    !!    if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
+    !!        ' iterations! Exiting loop due to limitations of iterations.'
+    !!    if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, ebsMod
+    !!    infoCoeff=-1
+    !!    ! Orthonormalize the coefficient vectors (Gram-Schmidt).
+    !!    do iorb=1,orbs%norb
+    !!        do jorb=1,iorb-1
+    !!            tt=ddot(lin%orbs%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+    !!            call daxpy(lin%orbs%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
+    !!        end do
+    !!        tt=dnrm2(lin%orbs%norb, coeff(1,iorb), 1)
+    !!        call dscal(lin%orbs%norb, 1/tt, coeff(1,iorb), 1)
+    !!    end do
+    !!end if
 
     if(iproc==0) write(*,'(x,a)') '===================================================================================='
 
