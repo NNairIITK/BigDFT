@@ -53,6 +53,19 @@ subroutine print_logo()
   write(*,'(1x,a)')&
        '                                  The Journal of Chemical Physics 129, 014109 (2008)'
 END SUBROUTINE print_logo
+subroutine standard_inputfile_names(inputs)
+  use module_types
+  implicit none
+  type(input_variables), intent(out) :: inputs
+
+  inputs%file_dft='input.dft'
+  inputs%file_geopt='input.geopt'
+  inputs%file_kpt='input.kpt'
+  inputs%file_perf='input.perf'
+  inputs%file_tddft='input.tddft'
+  inputs%file_mix='input.mix'
+  
+end subroutine standard_inputfile_names
 
 
 !>    Do all initialisation for all different files of BigDFT. 
@@ -60,8 +73,7 @@ END SUBROUTINE print_logo
 !!    Initialize memocc
 !! @todo
 !!   Should be better for debug purpose to read input.perf before
-subroutine read_input_variables(iproc,posinp, &
-     & file_dft, file_kpt, file_mix, file_geopt, file_perf, inputs,atoms,rxyz)
+subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
@@ -70,9 +82,8 @@ subroutine read_input_variables(iproc,posinp, &
 
   !Arguments
   character(len=*), intent(in) :: posinp
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
   integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
 
@@ -80,16 +91,14 @@ subroutine read_input_variables(iproc,posinp, &
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
   ! Read all parameters and update atoms and rxyz.
-  call read_input_parameters(iproc, file_dft, file_kpt, file_mix, &
-       & file_geopt, file_perf, inputs, atoms, rxyz)
+  call read_input_parameters(iproc,inputs, atoms, rxyz)
 END SUBROUTINE read_input_variables
 
 
 !>    Do initialisation for all different calculation parameters of BigDFT. 
 !!    Set default values if not any. Atomic informations are updated  by
 !!    symmetries if necessary and by geometry input parameters.
-subroutine read_input_parameters(iproc, &
-     & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
+subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_parameters
@@ -97,9 +106,8 @@ subroutine read_input_parameters(iproc, &
   implicit none
 
   !Arguments
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
   integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !Local variables
@@ -109,17 +117,19 @@ subroutine read_input_parameters(iproc, &
   ! Default for inputs
   call default_input_variables(inputs)
   ! Read performance input variables (if given)
-  call perf_input_variables(iproc,file_perf,inputs)
+  call perf_input_variables(iproc,trim(inputs%file_perf),inputs)
   ! Read dft input variables
-  call dft_input_variables(iproc,file_dft,inputs)
+  call dft_input_variables(iproc,trim(inputs%file_dft),inputs)
   ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
-  call kpt_input_variables(iproc,file_kpt,inputs,atoms)
+  call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
   ! Mixing input variables (if given)
-  call mix_input_variables(file_mix,inputs)
+  call mix_input_variables(trim(inputs%file_mix),inputs)
   ! Read geometry optimisation option
-  call geopt_input_variables(file_geopt,inputs)
+  call geopt_input_variables(trim(inputs%file_geopt),inputs)
+  ! Read tddft variables
+  call tddft_input_variables(trim(inputs%file_tddft),inputs)
 
   ! Shake atoms if required.
   if (inputs%randdis > 0.d0) then
@@ -182,7 +192,7 @@ subroutine default_input_variables(inputs)
   use module_types
   implicit none
 
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
 
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
@@ -199,6 +209,8 @@ subroutine default_input_variables(inputs)
   call geopt_input_variables_default(inputs) 
   ! Default values for mixing procedure
   call mix_input_variables_default(inputs) 
+  ! Default values for tddft
+  call tddft_input_variables_default(inputs)
 
 END SUBROUTINE default_input_variables
 
@@ -403,7 +415,6 @@ subroutine geopt_input_variables_default(in)
 
 END SUBROUTINE geopt_input_variables_default
 
-
 !>    Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
@@ -579,6 +590,73 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE geopt_input_variables
+
+!!****f* BigDFT/tddft_input_variables_default
+!! FUNCTION
+!!    Assign default values for TDDFT variables
+!! SOURCE
+!!
+subroutine tddft_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  in%tddft_approach='NONE'
+
+END SUBROUTINE tddft_input_variables_default
+!!***
+
+subroutine tddft_input_variables(filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='tddft_input_variables'
+  character(len = 6) :: type
+  integer :: iline, ierror
+
+
+  inquire(file=trim(filename),exist=exists)
+
+  if (.not. exists) then
+     !write(*,*) "The file 'input.tddft' does not exists!"
+     !      stop
+     return
+  end if
+
+ ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+  read(1,*,iostat=ierror) in%tddft_approach
+  call check()
+  if (trim(in%tddft_approach) == "TDA") then
+  read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
+  call check()
+  end if
+
+  close(unit=1,iostat=ierror)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE tddft_input_variables
+
 
 
 !>    Calculate symmetries and update
@@ -929,7 +1007,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
               inputs%iacceleration=0
            else if (string=="CUDAGPU") then
               inputs%iacceleration=1
-           else  if (string=="OCLGPU ") then
+           else  if (string=="OCLGPU") then
               inputs%iacceleration=2
            else
               write(*,'(1x,3a)') "input.perf: Unknown acceleration '",trim(string),"'"
@@ -2806,5 +2884,4 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      deallocate(nodename,stat=i_stat)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
-
 END SUBROUTINE processor_id_per_node

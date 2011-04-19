@@ -428,11 +428,11 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      call axpy(m1*m3*nxc,-1.0_wp,rhocore(1+m1*m3*i3xcsh_fake),1,rho(1),1)
      vexcuRC=0.0_gp
      do i=1,nxc*m3*m1
-        vexcuRC=vexcuRC+rhocore(i)*potxc(i)
+        vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i)
      end do
      if (nspin==2) then
         do i=1,nxc*m3*m1
-           vexcuRC=vexcuRC+rhocore(i)*potxc(i+m1*m3*nxc)
+           vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
         end do
         !divide the results per two because of the spin multiplicity
         vexcuRC=0.5*vexcuRC
