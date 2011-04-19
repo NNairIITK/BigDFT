@@ -246,10 +246,10 @@
  Deviation from normalization of the imported orbitals    5.14E-01
  Orthogonality to occupied psi... done. first  Hamiltonian application... done.
       sqnorm                Rayleigh quotient
-   1  9.99999999999999E-01  5.90870305306329E-01
-   2  1.00000000000000E+00  3.42771568664463E-01
-   3  9.99999999999998E-01  5.23480679691411E-01
-   4  1.00000000000000E+00  3.83732438619252E-01
+   1  9.99999999999999E-01  5.90870E-01
+   2  1.00000000000000E+00  3.42772E-01
+   3  9.99999999999998E-01  5.23481E-01
+   4  1.00000000000000E+00  3.83732E-01
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ iter= 1
  |gradient|=gnrm and exit criterion   1.32322E+00  1.00000E-02
  Orthogonality of gradients to occupied psi... done. Preconditioning... done.

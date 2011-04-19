@@ -210,24 +210,38 @@ module module_interfaces
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
      END SUBROUTINE write_atomic_file
 
-     subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
-          iatype,rxyz,radii_cf,crmult,frmult,norb,nspinor,nkpt,nprojel,atomnames,output_grid,nspin,itrpmax,iscf,peakmem)
+     subroutine MemoryEstimator(nproc,idsx,lr,nat,norb,nspinor,nkpt,nprojel,nspin,itrpmax,iscf,peakmem)
        use module_base
+       use module_types
        implicit none
        !Arguments
-       character(len=1), intent(in) :: geocode
-       integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel
-       integer, intent(in) :: output_grid,nkpt,nspinor,itrpmax,iscf
-       integer, dimension(nat), intent(in) :: iatype
-       character(len=20), dimension(ntypes), intent(in) :: atomnames
-       real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
-       real(kind=8), dimension(3,nat), intent(in) :: rxyz
-       real(kind=8), dimension(ntypes,3), intent(in) ::  radii_cf
+       integer, intent(in) :: nproc,idsx,nat,norb,nspin,nprojel
+       integer, intent(in) :: nkpt,nspinor,itrpmax,iscf
+       type(locreg_descriptors), intent(in) :: lr
        real(kind=8), intent(out) :: peakmem
      END SUBROUTINE MemoryEstimator
 
+     subroutine check_closed_shell(orbs,lcs)
+       use module_base
+       use module_types
+       implicit none
+       type(orbitals_data), intent(in) :: orbs
+       logical, intent(out) :: lcs
+     END SUBROUTINE check_closed_shell
+
+     subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
+       integer, intent(in) :: nspinor
+       type(orbitals_data), intent(out) :: orbs
+       real(gp), dimension(nkpt), intent(in) :: wkpt
+       real(gp), dimension(3,nkpt), intent(in) :: kpt
+     END SUBROUTINE orbitals_descriptors
+
      subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-          crmult,frmult,Glr)
+          crmult,frmult,Glr,output_grid)
        use module_base
        use module_types
        implicit none
@@ -238,6 +252,7 @@ module module_interfaces
        real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
        type(locreg_descriptors), intent(inout) :: Glr
+       logical, intent(in), optional :: output_grid
      END SUBROUTINE createWavefunctionsDescriptors
 
      subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&

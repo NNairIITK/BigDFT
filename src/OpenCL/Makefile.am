@@ -21,8 +21,9 @@ EXTRA_PROGRAMS = conv_check bench_conv bench_conv_quick bench_zgemm stream_check
 
 noinst_LIBRARIES = libbasef.a libbasec.a libOCL.a libStream.a
 
-libbasef_a_SOURCES = ../modules/defs.F90 ../modules/base.f90 \
-                     ../modules/cublas_fake.f90 $(mpi_source)
+libbasef_a_SOURCES = $(mpi_source)
+libbasef_a_LIBADD = ../modules/defs.o ../modules/base.o \
+                     ../modules/cublas_fake.o
 
 libbasec_a_SOURCES = OpenCL_wrappers.c \
                      MagicFilter.c \
