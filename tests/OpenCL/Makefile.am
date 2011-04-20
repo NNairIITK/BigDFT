@@ -38,6 +38,6 @@ conv_check.out: conv_check
 	./conv_check > conv_check.out
 
 OpenCL.report: conv_check.out
-	awk -f $(srcdir)/conv_check.awk $< | tee OpenCL.report
+	awk -f $(top_srcdir)/tests/conv_check.awk $< | tee OpenCL.report
 
 check: $(my_tests)

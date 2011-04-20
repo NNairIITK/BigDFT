@@ -1,6 +1,7 @@
 
 if USE_CUDA_GPU
-check_PROGRAMS = conv_check 
+check_PROGRAMS = conv_check
+my_tests = CUDA.report
 else
 check_PROGRAMS = 
 endif
@@ -33,6 +34,11 @@ conv_check_LDADD = $(top_builddir)/src/libbigdft.a \
 	$(top_builddir)/src/PSolver/libpoissonsolver.a \
 	$(top_builddir)/src/CUDA/libGPU.a $(libs_ocl) $(libs_dgemmsy)
 
-check:
+conv_check.out: conv_check
 	echo 1 64 64 2048 2048 2 > fort.1
-	./conv_check
+	./conv_check > conv_check.out
+
+CUDA.report: conv_check.out
+	awk -f $(top_srcdir)/tests/conv_check.awk $< | tee CUDA.report
+
+check: $(my_tests)
