@@ -39,6 +39,6 @@ conv_check.out: conv_check
 	./conv_check > conv_check.out
 
 CUDA.report: conv_check.out
-	awk -f $(top_srcdir)/tests/conv_check.awk $< | tee CUDA.report
+	awk -f $(srcdir)/conv_check.awk $< | tee CUDA.report
 
 check: $(my_tests)
