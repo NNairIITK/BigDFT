@@ -64,8 +64,8 @@ AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
 
 libbasef_a_SOURCES = ../profiling/memory.f90 ../modules/base.F90 ../convolutions/interface_ocl_fake.f90 $(mpi_source)
 
-conv_check_SOURCES = conv_check.f90
-conv_check_LDFLAGS = 
+conv_check_SOURCES = conv_check.f90 timing.c
+conv_check_LDFLAGS =  -lrt
 conv_check_LDADD = ../libbigdft.a \
 	../PSolver/libpoissonsolver.a \
 	libGPU.a libbasef.a $(libs_ocl)

@@ -27,9 +27,7 @@ void generate_radix_macro(std::stringstream &program, unsigned int radix_size){
   b = jl / ("<<radix_size<<"*A);\
   r = jl % ("<<radix_size<<"*A);\
   a = r % A;\
-  val = in[A*b+a][il];\
-  tmp.x = val.x;\
-  tmp.y = val.y;\
+  tmp = in[A*b+a][il];\
   val = in[(N/"<<radix_size<<")+A*b+a][il];";
   if(use_constant_memory)
     program<<"  w.x = cosar[r*(N/("<<radix_size<<"*A))];\
@@ -60,8 +58,88 @@ void generate_radix_macro(std::stringstream &program, unsigned int radix_size){
 }\n";
 }
 
-void generate_cosin_tables(std::stringstream &program, cl_uint fft_size, fft_code* output){
+void generate_radix_no_shared(std::stringstream &program, unsigned int radix_size, unsigned int fft_size, std::string &sign, std::stringstream &div){
+  unsigned int A=1,B;
+  unsigned int order1[16]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+  unsigned int order2[16];
+  unsigned int *order,*order_in,*order_out;
+  unsigned int index;
+  order_out = order2;
+  order_in = order1;
+  order = order1;
+  program<<"  double2 tmp1,tmp2,val,w;\n\
+  double2 tmp["<<radix_size<<"];\n";
+/*  for(int i=0; i<radix_size;i+=2){
+    program<<"  tmp1 = tmp2 = psi["<<i<<"*ndat];\n\
+  val = psi["<<i+1<<"*ndat];\n\
+  tmp1 += val;\n\
+  tmp2 -= val;\n\
+  tmp["<<order[i]<<"] = tmp1;\n\
+  tmp["<<order[i+1]<<"] = tmp2;\n";
+  }
+  A*=2;*/
+  for(A=1,B=16/2;A<radix_size;A*=2,B/=2){
+    for(int j=0;j<2;j++){
+      for(int i=0; i<8;i++){
+       order_out[j+i*2] = order_in[j*8+i];
+      }
+    }
+    order = order_out;
+    order_out = order_in;
+    order_in = order;
+    for(int i=0; i<radix_size;i+=2){
+      if(A==1)
+        program<<"  tmp1 = tmp2 = psi["<<order[i]<<"*ndat];\n\
+  val = psi["<<order[i+1]<<"*ndat];\n";
+      else
+        program<<"  tmp1 = tmp2 = tmp["<<order[i]<<"];\n\
+  val = tmp["<<order[i+1]<<"];\n";
+      program<<"  tmp1 += val;\n";
+      if(A*2==radix_size) program<<"  tmp1.x "<<div.str()<<";\n";
+      if(A*2==radix_size) program<<"  tmp1.y "<<div.str()<<";\n";
+      index = order[i+1]%(B)*(fft_size/(B*2));
+      if(index == 0) {
+        program<<"  tmp2 -= val;\n";
+      } else if(index == fft_size/4) {
+        program<<"  val = tmp2 - val;\n";
+        program<<"  tmp2.x = "<<sign<<" val.y;\n";
+        program<<"  tmp2.y = "<<sign<<" - val.x;\n";
+      } else{
+        program<<"  val = tmp2 - val;\n";
+        program<<"  w.x = cosar["<<index<<"];\n\
+  w.y = sinar["<<index<<"];\n\
+  tmp2.x = val.x * w.x;\n\
+  tmp2.x += "<<sign<<" val.y * w.y;\n\
+  tmp2.y = "<<sign<<" - val.x * w.y;\n\
+  tmp2.y += val.y * w.x;\n";
+      }
+      if(A*2==radix_size) program<<"  tmp2.x "<<div.str()<<";\n";
+      if(A*2==radix_size) program<<"  tmp2.y "<<div.str()<<";\n";
+      program<<"  tmp["<<order[i]<<"]=tmp1;\n\
+  tmp["<<order[i+1]<<"]=tmp2;\n";
+    }
+  }
+  for(int j=0;j<2;j++){
+    for(int i=0; i<8;i++){
+     order_out[j+i*2] = order_in[j*8+i];
+    }
+  }
+  order = order_out;
+  order_out = order_in;
+  order_in = order;
 
+  for(int i=0; i<2; i++){
+    for(int j=0; j<2; j++){
+      for(int k=0; k<2; k++){
+        for(int l=0; l<2; l++){
+          program<<"  out[jg*"<<fft_size<<"+"<<((l*2+k)*2+j)*2+i<<"]=tmp["<<((i*2+j)*2+k)*2+l<<"];\n";
+          //program<<"  out["<<((l*2+k)*2+j)*2+i<<"*ndat]=tmp["<<((i*2+j)*2+k)*2+l<<"];\n";
+        }
+      }
+    }
+  }
+}
+void generate_cosin_tables(std::stringstream &program, cl_uint fft_size, fft_code* output){
   program<<"\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 ";
@@ -166,6 +244,34 @@ __local double2 tmp2[FFT_LENGTH][BUFFER_DEPTH];\n\
 }\n";
 }
 
+
+void generate_kernel_no_shared(std::stringstream &program, cl_uint fft_size, std::list<unsigned int> &radixes, bool reverse){
+  if( reverse )
+    program<<"__kernel void fftKernel_"<<fft_size<<"_r_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out";
+  else
+    program<<"__kernel void fftKernel_"<<fft_size<<"_d(uint n, uint ndat, __global const double2 *psi, __global double2 *out";
+  if(!use_constant_memory)
+    program<<", __read_only image2d_t cosat";
+  program<<"){\n\
+  size_t jg = get_global_id(1);\n\
+  jg  = get_group_id(1) == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+  psi = &psi[jg];\n\
+  //out = &out[jg];\n";
+  std::string sign;
+  std::stringstream div;
+  div<<std::showpoint<<std::scientific;
+  div.precision(20);
+  if( reverse ){
+    sign = "-";
+    div<<"*="<<(double)1/(double)fft_size;
+  } else {
+    sign = "+";
+    div<<"";
+  }
+  generate_radix_no_shared(program, 16, fft_size, sign, div);
+  program<<"}\n";
+}
+
 void generate_radixes(cl_uint fft_size, std::list<unsigned int> &available_radixes, std::list<unsigned int> &radixes, std::list <unsigned int> &uniq_radixes){
   cl_uint fft_size_o=fft_size;
   std::list<unsigned int>::iterator it;
@@ -189,6 +295,7 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size){
   std::list<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
   std::list<unsigned int> radixes;
   std::list<unsigned int> uniq_radixes;
+  std::list<unsigned int>::iterator it;
   std::stringstream program;
   fft_code* output = (fft_code*)malloc(sizeof(fft_code));
 
@@ -196,7 +303,6 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size){
 
   generate_cosin_tables(program, fft_size, output);
 
-  std::list<unsigned int>::iterator it;
   for( it = uniq_radixes.begin(); it != uniq_radixes.end(); it++ )
     generate_radix_macro(program,*it);
 
@@ -204,6 +310,27 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size){
 
   generate_kernel(program,fft_size,radixes,false);
   generate_kernel(program,fft_size,radixes,true);
+ 
+  output->code = (char *)malloc((program.str().size()+1)*sizeof(char));
+  strcpy(output->code, program.str().c_str());
+  return output;
+}
+
+extern "C" fft_code * generate_fft_program_no_shared(cl_uint fft_size){
+  unsigned int available_rad[] = {16};
+  std::list<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
+  std::list<unsigned int> radixes;
+  std::list<unsigned int> uniq_radixes;
+  std::list<unsigned int>::iterator it;
+  std::stringstream program;
+  fft_code* output = (fft_code*)malloc(sizeof(fft_code));
+
+  generate_radixes(fft_size, available_radixes, radixes, uniq_radixes);
+
+  generate_cosin_tables(program, fft_size, output);
+
+  generate_kernel_no_shared(program,fft_size,radixes,false);
+  generate_kernel_no_shared(program,fft_size,radixes,true);
  
   output->code = (char *)malloc((program.str().size()+1)*sizeof(char));
   strcpy(output->code, program.str().c_str());

@@ -203,7 +203,8 @@ program conv_check_fft
    GPUtime=real(tsc1-tsc0,kind=8)*1d-9
    call print_time(GPUtime,n1*n2*n3,5 * log(real(n1,kind=8))/log(real(2,kind=8)),ntimes)
 
-   call compare_2D_cplx_results_t(n2*n3, n1, v_cuda_str(1,1,1,i3), psi_cuda, maxdiff, 3.d-7)
+!   call compare_2D_cplx_results( n1, n2*n3, v_cuda_str(1,1,1,i3), psi_cuda, maxdiff, 3.d-7)
+   call compare_2D_cplx_results_t( n1, n2*n3,  psi_cuda, v_cuda_str(1,1,1,i3), maxdiff, 3.d-7)
 !           call compare_2D_cplx_results(n1, n2*n3, psi_in, psi_cuda, maxdiff, 3.d-7)
 !           call compare_2D_cplx_results_t(n2*n3, n1, v_cuda, psi_cuda, maxdiff, 3.d-7)
 
