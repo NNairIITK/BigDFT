@@ -616,9 +616,7 @@ subroutine tddft_input_variables(filename,in)
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='tddft_input_variables'
-  character(len = 6) :: type
   integer :: iline, ierror
-
 
   inquire(file=trim(filename),exist=exists)
 
