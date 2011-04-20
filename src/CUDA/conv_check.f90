@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Program test for the convolution in GPU
-program conv_check
+!> Program test for the convolution in GPU with CUDA
+program conv_check_cuda
   use module_base
   implicit none
   integer  :: n1,n2,n3
@@ -37,7 +37,6 @@ program conv_check
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
 
- 
 !!!  !Use arguments
 !!!  call getarg(1,chain)
 !!!  read(unit=chain,fmt=*) n1
@@ -581,7 +580,6 @@ program conv_check
            allocate(psi_cuda((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda,'psi_cuda',subname)
 
-
            
            write(*,'(a,3(i6))')'CPU Uncompress, dimensions:',n1,n1,n1
 
@@ -772,14 +770,12 @@ program conv_check
            call memocc(i_stat,i_all,'psi_cuda',subname)
 
 
-
            i_all=-product(shape(keyg))
            deallocate(keyg,stat=i_stat)
            call memocc(i_stat,i_all,'keyg',subname)
            i_all=-product(shape(keyv))
            deallocate(keyv,stat=i_stat)
            call memocc(i_stat,i_all,'keyv',subname)
-
 
 
         end do
@@ -831,18 +827,18 @@ contains
              tt11=tt11+x(j,i*12+11)*fil(l)
              tt12=tt12+x(j,i*12+12)*fil(l)
           enddo
-          y(i*12+1 ,i1)=tt1;	 ekin=ekin+tt1*x(i1,i*12+1)
-          y(i*12+2 ,i1)=tt2;	 ekin=ekin+tt2*x(i1,i*12+2)
-          y(i*12+3 ,i1)=tt3;	 ekin=ekin+tt3*x(i1,i*12+3)
-          y(i*12+4 ,i1)=tt4;	 ekin=ekin+tt4*x(i1,i*12+4)
-          y(i*12+5 ,i1)=tt5;	 ekin=ekin+tt5*x(i1,i*12+5)
-          y(i*12+6 ,i1)=tt6;	 ekin=ekin+tt6*x(i1,i*12+6)
-          y(i*12+7 ,i1)=tt7;	 ekin=ekin+tt7*x(i1,i*12+7)
-          y(i*12+8 ,i1)=tt8;	 ekin=ekin+tt8*x(i1,i*12+8)
-          y(i*12+9 ,i1)=tt9 ;	 ekin=ekin+tt9 *x(i1,i*12+9 )
-          y(i*12+10,i1)=tt10;	 ekin=ekin+tt10*x(i1,i*12+10)
-          y(i*12+11,i1)=tt11;	 ekin=ekin+tt11*x(i1,i*12+11)
-          y(i*12+12,i1)=tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
+          y(i*12+1 ,i1)=tt1;     ekin=ekin+tt1*x(i1,i*12+1)
+          y(i*12+2 ,i1)=tt2;     ekin=ekin+tt2*x(i1,i*12+2)
+          y(i*12+3 ,i1)=tt3;     ekin=ekin+tt3*x(i1,i*12+3)
+          y(i*12+4 ,i1)=tt4;     ekin=ekin+tt4*x(i1,i*12+4)
+          y(i*12+5 ,i1)=tt5;     ekin=ekin+tt5*x(i1,i*12+5)
+          y(i*12+6 ,i1)=tt6;     ekin=ekin+tt6*x(i1,i*12+6)
+          y(i*12+7 ,i1)=tt7;     ekin=ekin+tt7*x(i1,i*12+7)
+          y(i*12+8 ,i1)=tt8;     ekin=ekin+tt8*x(i1,i*12+8)
+          y(i*12+9 ,i1)=tt9 ;    ekin=ekin+tt9 *x(i1,i*12+9 )
+          y(i*12+10,i1)=tt10;    ekin=ekin+tt10*x(i1,i*12+10)
+          y(i*12+11,i1)=tt11;    ekin=ekin+tt11*x(i1,i*12+11)
+          y(i*12+12,i1)=tt12;    ekin=ekin+tt12*x(i1,i*12+12)
        enddo
     enddo
     !$omp end do
@@ -861,4 +857,4 @@ contains
     !$omp end do
   END SUBROUTINE conv_kin_x
 
-end program conv_check
+end program conv_check_cuda
