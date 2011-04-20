@@ -1295,6 +1295,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
    integer :: nprojelat ! total number of elements
    integer :: isx,isy,isz,iex,iey,iez
    integer :: iseg,jseg,Gseg,Gvctr
+   integer :: nl1,nl2,nl3,nu1,nu2,nu3 ! bounds of projectors around atom iatom
    real(gp) :: hhx,hhy,hhz   !reals to shorten name of variables
    integer,dimension(1:2,1:2,1:3) :: bounds
    logical,dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3) :: logrid
@@ -1307,7 +1308,8 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 
 !Determine the number of projectors with components in locreg
 ! and also which atoms have such projectors and number of atoms
-   call  number_of_projectors_in_locreg(atoms,Glr,Llr,nlpspd,mproj,projflg,natp)
+   call  number_of_projectors_in_locreg(atoms,cpmult,fpmult,Glr,hx,hy,hz,Llr,nlpspd,&
+&        mproj,projflg,natp,radii_cf,rxyz)
 
    Lnlpspd%nproj = mproj
 
@@ -1339,9 +1341,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      end do
 
 !    Now we can determine the number of segments and elements of coarse grid
-     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nlpspd%nboxp_c(1,1,iatom),&
-&                     nlpspd%nboxp_c(2,1,iatom),nlpspd%nboxp_c(1,2,iatom),nlpspd%nboxp_c(2,2,iatom),&
-&                     nlpspd%nboxp_c(1,3,iatom),nlpspd%nboxp_c(2,3,iatom),0,1,1,&
+     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,1,&
 &                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(atoms%iatype(iatom),3),cpmult,hhx,hhy,hhz,logrid)
 
      call number_of_projector_elements_in_locreg(iatom,1,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_c,mvctr_c)
@@ -1349,7 +1349,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      Lnlpspd%nseg_p(2*iat-1) = mseg_c
      Lnlpspd%nvctr_p(2*iat-1) = mvctr_c 
 
-     print *,'radii:',radii_cf(atoms%iatype(iatom),3),radii_cf(1,3)
+     print *,'radii:',radii_cf(atoms%iatype(iatom),3),radii_cf(1,3)*cpmult
      do i1=40,41
      do i2=40,41
      do i3=40,53
@@ -1359,9 +1359,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      end do
 
 ! Do the same for fine grid
-     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nlpspd%nboxp_f(1,1,iatom),&
-&                     nlpspd%nboxp_f(2,1,iatom),nlpspd%nboxp_f(1,2,iatom),nlpspd%nboxp_f(2,2,iatom),&
-&                     nlpspd%nboxp_f(1,3,iatom),nlpspd%nboxp_f(2,3,iatom),0,1,1,&
+     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,1,&
 &                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(atoms%iatype(iatom),2),fpmult,hhx,hhy,hhz,logrid)
 
      call number_of_projector_elements_in_locreg(iatom,2,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_f,mvctr_f)
@@ -1455,7 +1453,8 @@ END SUBROUTINE nlpspd_to_locreg
 !!         
 !! SOURCE:
 !!
-subroutine number_of_projectors_in_locreg(atoms,Glr,Llr,nlpspd,mproj,projflg,natp)
+subroutine number_of_projectors_in_locreg(atoms,cpmult,fpmult,Glr,hx,hy,hz,Llr,nlpspd,&
+&          mproj,projflg,natp,radii_cf,rxyz)
 
   use module_base
   use module_types
@@ -1465,68 +1464,235 @@ subroutine number_of_projectors_in_locreg(atoms,Glr,Llr,nlpspd,mproj,projflg,nat
   !#######################################
   ! Subroutine Scalar Arguments
   !#######################################
+  real(gp),intent(in) :: cpmult,fpmult,hx,hy,hz  ! grid descriptions
   type(atoms_data),intent(in) :: atoms        ! atoms descriptor
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
   type(nonlocal_psp_descriptors),intent(in) :: nlpspd  ! global descriptors for the projectors
   integer,intent(out) :: mproj  ! number of projectors
-  integer,intent(out) :: natp   ! number of atoms havin projectors in region
+  integer,intent(out) :: natp   ! number of atoms having projectors in region
   !#######################################
   ! Subroutine Array Arguments
   !#######################################
   integer,dimension(atoms%nat),intent(out) :: projflg ! flag which is equal to the number of projectors with components inside locreg for each atom
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz !atomic positions
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf  ! radii of the different atom types
   !#######################################
   ! Local Variables
   !#######################################
-  integer :: iatom            ! integer for loop
-  integer :: bound(1:2,1:3)   ! bound of locreg
-  integer :: nproj            ! temporary number of projectors
-
-! bounds of the localization region
-  !lower bound
-  bound(1,1) = Llr%ns1 - Glr%ns1
-  bound(1,2) = Llr%ns2 - Glr%ns2
-  bound(1,3) = Llr%ns3 - Glr%ns3
-
-  !upper bound (PEIODICITY?? for overlaps, always in simulation box, for locreg needed??)
-  bound(2,1) = Llr%ns1 + Llr%d%n1 - Glr%ns1
-  bound(2,2) = Llr%ns2 + Llr%d%n2 - Glr%ns2
-  bound(2,3) = Llr%ns3 + Llr%d%n3 - Glr%ns3 
+  integer :: iatom,ii,izone                 ! integer for loop
+  integer :: bound(1:2,1:3)           ! bound of locreg
+  integer :: nproj                    ! temporary number of projectors
+  integer :: i_stat                   ! allocation error
+  logical :: intersect                ! logical for intersect of projector with locreg
+  character(len=*), parameter :: subname='number_of_projectors_in_locreg'
 
   projflg = 0
   mproj = 0
   natp = 0
   do iatom=1,atoms%nat
+!       check if projector of atom iatom overlap the locreg (coarse grid)        
+        call check_projector_intersect_with_locreg(atoms,cpmult,hx,hy,hz,Llr,radii_cf,rxyz,intersect)
 
-! check if projector of atom iatom overlap the locreg (coarse grid)
-     if(nlpspd%nboxp_c(1,1,iatom) < bound(2,1) .and. nlpspd%nboxp_c(2,1,iatom) > bound(1,1) .and. &
-&       nlpspd%nboxp_c(1,2,iatom) < bound(2,2) .and. nlpspd%nboxp_c(2,2,iatom) > bound(1,2) .and. &
-&       nlpspd%nboxp_c(1,3,iatom) < bound(2,3) .and. nlpspd%nboxp_c(2,3,iatom) > bound(1,3)) then
-        
-        call numb_proj(atoms%iatype(iatom),atoms%ntypes,atoms%psppar,atoms%npspcode,nproj)
-        mproj = mproj + nproj
-        if(nproj > 0) then
-           projflg(iatom) = nproj
-           natp = natp + 1
-        end if
-     end if
-
-! check if projector of atom iatom overlap the locreg (fine grid)
-! Only have to do it if the atom is not yet selected
-     if (projflg(iatom) .eq. 0) then
-
-        if(nlpspd%nboxp_f(1,1,iatom) < bound(2,1) .and. nlpspd%nboxp_f(2,1,iatom) > bound(1,1) .and. &
-&          nlpspd%nboxp_f(1,2,iatom) < bound(2,2) .and. nlpspd%nboxp_f(2,2,iatom) > bound(1,2) .and.&
-&          nlpspd%nboxp_f(1,3,iatom) < bound(2,3) .and. nlpspd%nboxp_f(2,3,iatom) > bound(1,3)) then
-          
+        if(intersect) then
            call numb_proj(atoms%iatype(iatom),atoms%ntypes,atoms%psppar,atoms%npspcode,nproj)
            mproj = mproj + nproj
-           if(nproj > 0) projflg(iatom) = nproj
-        end if
+           if(nproj > 0) then
+              projflg(iatom) = nproj
+              natp = natp + 1
+           end if
+        end if        
+
+! Only have to do it if the atom is not yet selected
+     if (projflg(iatom) .eq. 0) then
+!         check if projector of atom iatom overlap the locreg (fine grid)
+          call check_projector_intersect_with_locreg(Llr,intersect)
+
+          if(intersect) then        
+             call numb_proj(atoms%iatype(iatom),atoms%ntypes,atoms%psppar,atoms%npspcode,nproj)
+             mproj = mproj + nproj
+             if(nproj > 0) projflg(iatom) = nproj
+          end if
      end if        
   end do
 
 END SUBROUTINE number_of_projectors_in_locreg
+!%***
+
+!#############################################################################################################################################
+!!****f* BigDFT/fracture_projector
+!#############################################################################################################################################
+!! FUNCTION: Returns the limits of the various folded projector zones.
+!!           
+!! WARNING: 
+!!         
+!! SOURCE:
+!!
+subroutine fracture_projector(Glr,natom,nboxp,nzones,pbox)
+
+  use module_base
+  use module_types
+ 
+  implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  integer,intent(in) :: natom   !number of atoms
+  integer,intent(in) :: nzones  !number of zones
+  type(locreg_descriptors),intent(in) :: Glr ! global region descriptor
+  !#######################################
+  ! Subroutine Array Arguments
+  !#######################################
+  integer,dimension(2,3),intent(in) :: nboxp           ! Limits of the projector box
+  integer,dimension(2,3,nzones),intent(out) :: pbox    ! Limits of the projector box
+  !#######################################
+  ! Local Variables
+  !#######################################
+  integer :: izone             !integer for loops
+  integer :: box(2,3,2)        !two possible starting and ending points in X,Y,Z
+  
+! Find limits in X
+  box(1,1,2) = -99
+  box(2,1,2) = -99
+  if(nboxp(1,1) < 0) then
+    box(1,1,1) = Glr%ns1
+    box(2,1,1) = nboxp(2,1)
+    box(1,1,2) = modulo(nboxp(1,1),Glr%d%n1+1)
+    box(2,1,2) = Glr%ns1 + Glr%d%n1    
+  else if (nboxp(2,1) > Glr%d%n1) then
+    box(1,1,1) = Glr%ns1
+    box(2,1,1) = modulo(nboxp(2,1),Glr%d%n1+1)
+    box(1,1,2) = nboxp(1,1)
+    box(2,1,2) = Glr%ns1 + Glr%d%n1
+  else
+    box(1,1,1) = nboxp(1,1)
+    box(2,1,1) = nboxp(2,1)
+  end if
+
+!Find limits in Y
+  box(1,2,2) = -99
+  box(2,2,2) = -99
+  if(nboxp(1,2) < 0) then
+    box(1,2,1) = Glr%ns2
+    box(2,2,1) = nboxp(2,1)
+    box(1,2,2) = modulo(nboxp(1,2),Glr%d%n2+1)
+    box(2,2,2) = Glr%ns2 + Glr%d%n2    
+  else if (nboxp(2,2) > Glr%d%n2) then
+    box(1,2,1) = Glr%ns2
+    box(2,2,1) = modulo(nboxp(2,2),Glr%d%n2+1)
+    box(1,2,2) = nboxp(1,2)
+    box(2,2,2) = Glr%ns2 + Glr%d%n2
+  else
+    box(1,2,1) = nboxp(1,2)
+    box(2,2,1) = nboxp(2,2)
+  end if
+
+! Find limits in Z
+  box(1,3,2) = -99
+  box(2,3,2) = -99
+  if(nboxp(1,3) < 0) then
+    box(1,3,1) = Glr%ns3
+    box(2,3,1) = nboxp(2,3)
+    box(1,3,2) = modulo(nboxp(1,3),Glr%d%n3+1)
+    box(2,3,2) = Glr%ns3 + Glr%d%n3    
+  else if (nboxp(2,3) > Glr%d%n3) then
+    box(1,3,1) = Glr%ns3
+    box(2,3,1) = modulo(nboxp(2,3),Glr%d%n3+1)
+    box(1,3,2) = nboxp(1,3)
+    box(2,3,2) = Glr%ns3 + Glr%d%n3
+  else
+    box(1,3,1) = nboxp(1,3)
+    box(2,3,2) = nboxp(2,3)
+  end if
+
+  !Limits of first zone (trivial)
+  pbox(1,1,1) = box(1,1,1)
+  pbox(2,1,1) = box(2,1,1)
+  pbox(1,2,1) = box(1,2,1)
+  pbox(2,2,1) = box(2,2,1)
+  pbox(1,3,1) = box(1,3,1)
+  pbox(2,3,1) = box(2,3,1)
+  izone = 1
+
+  !Limits of second zone (Translate X if you must)
+  if (box(1,1,2) > 0) then
+    izone = izone + 1
+    pbox(1,1,izone) = box(1,1,2)
+    pbox(2,1,izone) = box(2,1,2)
+    pbox(1,2,izone) = box(1,2,1)
+    pbox(2,2,izone) = box(2,2,1)
+    pbox(1,3,izone) = box(1,3,1)
+    pbox(2,3,izone) = box(2,3,1)
+  end if
+
+  !Limits of third zone (Translate Y if you must)
+  if (box(1,2,2) > 0) then
+    izone = izone + 1
+    pbox(1,1,izone) = box(1,1,1)
+    pbox(2,1,izone) = box(2,1,1)
+    pbox(1,2,izone) = box(1,2,2)
+    pbox(2,2,izone) = box(2,2,2)
+    pbox(1,3,izone) = box(1,3,1)
+    pbox(2,3,izone) = box(2,3,1)
+  end if
+  
+  !Limits of fourth zone (Translate Z if you must)
+  if (box(1,3,2) > 0) then
+    izone = izone + 1
+    pbox(1,1,izone) = box(1,1,1)
+    pbox(2,1,izone) = box(2,1,1)
+    pbox(1,2,izone) = box(1,2,1)
+    pbox(2,2,izone) = box(2,2,1)
+    pbox(1,3,izone) = box(1,3,2)
+    pbox(2,3,izone) = box(2,3,2)
+  end if
+
+  !Limits of fifth zone (Translate X + Y if you must)
+  if (box(1,1,2) > 0 .and. box(1,2,2) > 0) then
+    izone = izone + 1
+    pbox(1,1,izone) = box(1,1,2)
+    pbox(2,1,izone) = box(2,1,2)
+    pbox(1,2,izone) = box(1,2,2)
+    pbox(2,2,izone) = box(2,2,2)
+    pbox(1,3,izone) = box(1,3,1)
+    pbox(2,3,izone) = box(2,3,1)
+  end if
+
+  !Limits of sixth zone (Translate X + Z if you must)
+  if (box(1,1,2) > 0 .and. box(1,3,2) > 0) then
+    izone = izone + 1
+    pbox(1,1,izone) = box(1,1,2)
+    pbox(2,1,izone) = box(2,1,2)
+    pbox(1,2,izone) = box(1,2,1)
+    pbox(2,2,izone) = box(2,2,1)
+    pbox(1,3,izone) = box(1,3,2)
+    pbox(2,3,izone) = box(2,3,2)
+  end if 
+  
+  !Limits of seventh zone (Translate Y + Z if you must)
+  if (box(1,2,2) > 0 .and. box(1,3,2) > 0) then
+    izone = izone + 1
+    pbox(1,1,izone) = box(1,1,1)
+    pbox(2,1,izone) = box(2,1,1)
+    pbox(1,2,izone) = box(1,2,2)
+    pbox(2,2,izone) = box(2,2,2)
+    pbox(1,3,izone) = box(1,3,2)
+    pbox(2,3,izone) = box(2,3,2)
+  end if
+
+  !Limits of eigth zone (Translate X + Y + Z if you must)
+  if (box(1,1,2) > 0 .and. box(1,2,2) > 0 .and. box(1,3,2) > 0) then
+    izone = izone + 1
+    pbox(1,1,izone) = box(1,1,2)
+    pbox(2,1,izone) = box(2,1,2)
+    pbox(1,2,izone) = box(1,2,2)
+    pbox(2,2,izone) = box(2,2,2)
+    pbox(1,3,izone) = box(1,3,2)
+    pbox(2,3,izone) = box(2,3,2)
+  end if
+
+END SUBROUTINE fracture_projector
 !%***
 
 !#############################################################################################################################################
@@ -1835,7 +2001,7 @@ END SUBROUTINE allocate_Lnlpspd
 
 
 !#############################################################################################################################################
-!!****f* BigDFT/allocate_Lnlpspd
+!!****f* BigDFT/allocate_projd
 !#############################################################################################################################################
 !! FUNCTION: allocates the keyg_p and keyv_p descriptors for the projectors
 !!          

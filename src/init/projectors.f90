@@ -1072,7 +1072,7 @@ subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,
   nu2=floor(real(cymax/hy,kind=8) + eps_mach)  
   nu3=floor(real(czmax/hz,kind=8) + eps_mach)  
 
-  !for non-free BC the projectors are allowed to be also outside the box
+  !for non-free BC the projectors are not allowed to be also outside the box
   if (geocode == 'F') then
      if (nl1 < 0)   stop 'nl1: projector region outside cell'
      if (nl2 < 0)   stop 'nl2: projector region outside cell'

@@ -241,6 +241,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
         nu1=nlpspd%nboxp_c(2,1,iat)
         nu2=nlpspd%nboxp_c(2,2,iat)
         nu3=nlpspd%nboxp_c(2,3,iat)
+
         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
 
@@ -258,6 +259,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
         nu1=nlpspd%nboxp_f(2,1,iat)
         nu2=nlpspd%nboxp_f(2,2,iat)
         nu3=nlpspd%nboxp_f(2,3,iat)
+
         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         iseg=nlpspd%nseg_p(2*iat-1)+1
