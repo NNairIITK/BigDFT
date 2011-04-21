@@ -1,58 +1,6 @@
 #include "OpenCL_wrappers.h"
 #include "fft_generator.h"
 
-inline void fft_test_2_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
-    cl_int ciErrNum;
-    int FFT_LENGTH=16;
-    int LINE_NUMBER=16;
-    assert(*n==FFT_LENGTH);
-    size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER/2;
-    cl_uint i = 0;
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j*2,*ndat)/2};
-    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-    oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
-}
-
-
-inline void fft_test_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
-    cl_int ciErrNum;
-    int FFT_LENGTH=16;
-    int LINE_NUMBER=16;
-    assert(*n==FFT_LENGTH);
-    size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER;
-    cl_uint i = 0;
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-    oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
-}
-
-inline void fft_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out){
-    cl_int ciErrNum;
-    int FFT_LENGTH=128;
-    int LINE_NUMBER=1;
-//    assert(*n==FFT_LENGTH);
-    size_t block_size_i=FFT_LENGTH, block_size_j=LINE_NUMBER;
-    cl_uint i = 0;
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*psi), (void*)psi);
-    ciErrNum = clSetKernelArg(kernel, i++,sizeof(*out), (void*)out);
-    size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n), shrRoundUp(block_size_j,*ndat)};
-    ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-    oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
-}
-
 cl_uint use_constant_memory=1;
 
 inline void fft_generated_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out,cl_mem *cosi){
@@ -88,7 +36,7 @@ inline void fft_generated_generic(cl_kernel kernel, cl_command_queue command_que
 
 inline void fft_generated_no_shared_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out,cl_mem *cosi){
     cl_int ciErrNum;
-    size_t block_size_i=1, block_size_j=128;
+    size_t block_size_i=1, block_size_j=64;
     cl_uint i = 0;
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
     ciErrNum = clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);

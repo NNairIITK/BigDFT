@@ -58,6 +58,113 @@ void generate_radix_macro(std::stringstream &program, unsigned int radix_size){
 }\n";
 }
 
+void decompose_radix(unsigned int radix_size, std::list<unsigned int> &sub_radixes){
+  std::list<unsigned int>::iterator it;
+  unsigned int available_rad[] = {2};
+  std::list<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
+
+  for( it = available_radixes.begin(); it != available_radixes.end(); it++ ){
+    while(radix_size % *it == 0){
+      radix_size /= *it;
+      sub_radixes.push_back(*it);
+    }
+  }
+  if(radix_size != 1){
+    std::cerr<<"Invalid FFT size : "<<radix_size<<" is irreductible!"<<std::endl;
+    exit(1);
+  }
+
+}
+
+void generate_radix_no_shared_generic(std::stringstream &program, unsigned int radix_size, unsigned int fft_size, unsigned int &A, unsigned int &B, std::string &in, std::string &out, bool transpose, unsigned int stride, std::string &sign, std::stringstream &div){
+  std::list<unsigned int> sub_radixes;
+  unsigned int *order1 = new unsigned int[radix_size];
+  unsigned int *order2 = new unsigned int[radix_size];
+  unsigned int *order,*order_in,*order_out;
+  unsigned int index;
+  std::list<unsigned int>::iterator it;
+
+  order_out = order2; order_in = order1; order = order1;
+
+  decompose_radix(radix_size, sub_radixes);
+
+  for(int i=0; i<radix_size; i++)
+    order1[i] = i;
+  program<<"  double2 cossin,val,t;\n\
+  double2 tmp["<<radix_size<<"];\n\
+  double2 tmp_val["<<sub_radixes.back()<<"];\n";
+
+  for(it = sub_radixes.begin(); it != sub_radixes.end(); it++, A *= *it ){
+    B /= *it;
+    for(int j=0; j<*it; j++){
+      for(int i=0; i<radix_size/(*it); i++){
+        order_out[j + i * *it] = order_in[j*radix_size/(*it) + i];
+      }
+    }
+    order = order_out; order_out = order_in; order_in = order;
+    for(int i=0; i < radix_size; i += *it){
+      for(int j=0; j < *it; j++){
+        if(it == sub_radixes.begin())
+          program<<"  t = "<<in<<"["<<order[i]<<"*ndat];\n";
+        else
+          program<<"  t = tmp["<<order[i]<<"];\n";
+        for(int k=1; k < *it; k++){
+          index = (k*j*fft_size/(*it))%fft_size;
+          program<<"  cossin.x = cosar["<<index<<"];\n";
+          program<<"  cossin.y = sinar["<<index<<"];\n";
+          if(it == sub_radixes.begin())
+            program<<"  val = "<<in<<"["<<order[i+k]<<"*ndat];\n";
+          else
+            program<<"  val = tmp["<<order[i+k]<<"];\n";
+          program<<"  t.x += val.x * cossin.x;\n";
+          program<<"  t.x += "<<sign<<" val.y * cossin.y;\n";
+          program<<"  t.y += "<<sign<<" - val.x * cossin.y;\n";
+          program<<"  t.y += val.y * cossin.x;\n";
+        }
+        index = (order[i+j]*j)%(B)*(fft_size/(B*(*it)));
+        program<<"  cossin.x = cosar["<<index<<"];\n";
+        program<<"  cossin.y = sinar["<<index<<"];\n";
+        program<<"  tmp_val["<<j<<"].x = t.x * cossin.x;\n";
+        program<<"  tmp_val["<<j<<"].x += "<<sign<<" t.y * cossin.y;\n";
+        program<<"  tmp_val["<<j<<"].y = "<<sign<<" - t.x * cossin.y;\n";
+        program<<"  tmp_val["<<j<<"].y += t.y * cossin.x;\n";
+      }
+      for(int j=0; j < *it; j++){
+        if(B==1) program<<"  tmp_val["<<j<<"].x "<<div.str()<<";\n";
+        if(B==1) program<<"  tmp_val["<<j<<"].y "<<div.str()<<";\n";
+        program<<"  tmp["<<order[i+j]<<"] = tmp_val["<<j<<"];\n";
+      }
+    }
+  }
+  unsigned int *digits = new unsigned int[sub_radixes.size()];
+  std::list<unsigned int>::reverse_iterator rit;
+  for(int i=0; i < sub_radixes.size(); i++)
+    digits[i] = 0;
+  for(int i=0; i < radix_size; i++){
+    int j;
+    order[i] = 0;
+    unsigned int radix_remainder = radix_size;
+    for(rit = sub_radixes.rbegin(), j=0; rit != sub_radixes.rend(); rit++, j++){
+      radix_remainder /= *rit;
+      order[i] += digits[j]*radix_remainder;
+    }
+    for(rit = sub_radixes.rbegin(), j=0; rit != sub_radixes.rend(); rit++, j++){
+      digits[j]++;
+      if(digits[j] != *rit){
+        break;
+      }
+      else
+        digits[j]=0;
+    }
+  }
+  for(int i=0;i <radix_size; i++){
+    program<<"  "<<out<<"[jg*"<<fft_size<<"+"<<order[i]<<"] = tmp["<<i<<"];\n";
+  }
+  delete[] order1;
+  delete[] order2;
+  delete[] digits;
+}
+
 void generate_radix_no_shared(std::stringstream &program, unsigned int radix_size, unsigned int fft_size, std::string &sign, std::stringstream &div){
   unsigned int A=1,B;
   unsigned int order1[16]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
@@ -69,24 +176,13 @@ void generate_radix_no_shared(std::stringstream &program, unsigned int radix_siz
   order = order1;
   program<<"  double2 tmp1,tmp2,val,w;\n\
   double2 tmp["<<radix_size<<"];\n";
-/*  for(int i=0; i<radix_size;i+=2){
-    program<<"  tmp1 = tmp2 = psi["<<i<<"*ndat];\n\
-  val = psi["<<i+1<<"*ndat];\n\
-  tmp1 += val;\n\
-  tmp2 -= val;\n\
-  tmp["<<order[i]<<"] = tmp1;\n\
-  tmp["<<order[i+1]<<"] = tmp2;\n";
-  }
-  A*=2;*/
   for(A=1,B=16/2;A<radix_size;A*=2,B/=2){
     for(int j=0;j<2;j++){
       for(int i=0; i<8;i++){
        order_out[j+i*2] = order_in[j*8+i];
       }
     }
-    order = order_out;
-    order_out = order_in;
-    order_in = order;
+    order = order_out; order_out = order_in; order_in = order;
     for(int i=0; i<radix_size;i+=2){
       if(A==1)
         program<<"  tmp1 = tmp2 = psi["<<order[i]<<"*ndat];\n\
@@ -119,14 +215,6 @@ void generate_radix_no_shared(std::stringstream &program, unsigned int radix_siz
   tmp["<<order[i+1]<<"]=tmp2;\n";
     }
   }
-  for(int j=0;j<2;j++){
-    for(int i=0; i<8;i++){
-     order_out[j+i*2] = order_in[j*8+i];
-    }
-  }
-  order = order_out;
-  order_out = order_in;
-  order_in = order;
 
   for(int i=0; i<2; i++){
     for(int j=0; j<2; j++){
@@ -259,6 +347,8 @@ void generate_kernel_no_shared(std::stringstream &program, cl_uint fft_size, std
   //out = &out[jg];\n";
   std::string sign;
   std::stringstream div;
+  std::string in="psi";
+  std::string out="out";
   div<<std::showpoint<<std::scientific;
   div.precision(20);
   if( reverse ){
@@ -268,7 +358,9 @@ void generate_kernel_no_shared(std::stringstream &program, cl_uint fft_size, std
     sign = "+";
     div<<"";
   }
-  generate_radix_no_shared(program, 16, fft_size, sign, div);
+  unsigned int A=1, B=fft_size;
+  generate_radix_no_shared_generic(program, 16, fft_size, A, B, in, out, true, 0, sign, div);
+//  generate_radix_no_shared(program, 16, fft_size, sign, div);
   program<<"}\n";
 }
 
