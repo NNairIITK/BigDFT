@@ -184,7 +184,8 @@ high_level = cluster.f90 \
 	lanczos_base.f90 \
 	lanczos.f90 \
 	scfloop_API.f90 \
-	esatto.f90
+	esatto.f90 \
+	tddft.f90
 
 #objects which can be compiled only with module_base
 low_level = init/projectors.f90  \

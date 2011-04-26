@@ -695,7 +695,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
        psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
-  if (input%itrpmax > 1) then
+  if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
      !use the eval array of orbse structure to save the original values
      allocate(orbse%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,orbse%eval,'orbse%eval',subname)
