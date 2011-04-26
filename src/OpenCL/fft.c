@@ -46,7 +46,7 @@ inline void fft_generated_no_shared_generic(cl_kernel kernel, cl_command_queue c
       ciErrNum = clSetKernelArg(kernel, i++,sizeof(*cosi), (void*)cosi);
     }
     size_t localWorkSize[] = { block_size_i,block_size_j };
-    size_t globalWorkSize[] ={ *n/16, shrRoundUp(block_size_j,*ndat)};
+    size_t globalWorkSize[] ={ *n/ *n, shrRoundUp(block_size_j,*ndat)};
     ciErrNum = clEnqueueNDRangeKernel  (command_queue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
     oclErrorCheck(ciErrNum,"Failed to enqueue fft kernel!");
 }

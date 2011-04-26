@@ -60,7 +60,7 @@ void generate_radix_macro(std::stringstream &program, unsigned int radix_size){
 
 void decompose_radix(unsigned int radix_size, std::list<unsigned int> &sub_radixes){
   std::list<unsigned int>::iterator it;
-  unsigned int available_rad[] = {2};
+  unsigned int available_rad[] = {2,3,5};
   std::list<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
 
   for( it = available_radixes.begin(); it != available_radixes.end(); it++ ){
@@ -121,7 +121,7 @@ void generate_radix_no_shared_generic(std::stringstream &program, unsigned int r
           program<<"  t.y += "<<sign<<" - val.x * cossin.y;\n";
           program<<"  t.y += val.y * cossin.x;\n";
         }
-        index = (order[i+j]*j)%(B)*(fft_size/(B*(*it)));
+        index = (order[i+j]%(B))*j*(fft_size/(B*(*it)));
         program<<"  cossin.x = cosar["<<index<<"];\n";
         program<<"  cossin.y = sinar["<<index<<"];\n";
         program<<"  tmp_val["<<j<<"].x = t.x * cossin.x;\n";
@@ -349,6 +349,7 @@ void generate_kernel_no_shared(std::stringstream &program, cl_uint fft_size, std
   std::stringstream div;
   std::string in="psi";
   std::string out="out";
+  std::list<unsigned int>::iterator it;
   div<<std::showpoint<<std::scientific;
   div.precision(20);
   if( reverse ){
@@ -359,7 +360,8 @@ void generate_kernel_no_shared(std::stringstream &program, cl_uint fft_size, std
     div<<"";
   }
   unsigned int A=1, B=fft_size;
-  generate_radix_no_shared_generic(program, 16, fft_size, A, B, in, out, true, 0, sign, div);
+  for( it=radixes.begin(); it!=radixes.end(); it++)
+    generate_radix_no_shared_generic(program, *it, fft_size, A, B, in, out, true, 0, sign, div);
 //  generate_radix_no_shared(program, 16, fft_size, sign, div);
   program<<"}\n";
 }
@@ -409,7 +411,7 @@ extern "C" fft_code * generate_fft_program(cl_uint fft_size){
 }
 
 extern "C" fft_code * generate_fft_program_no_shared(cl_uint fft_size){
-  unsigned int available_rad[] = {16};
+  unsigned int available_rad[] = {15,16};
   std::list<unsigned int> available_radixes (available_rad, available_rad + sizeof(available_rad) / sizeof(unsigned int) );
   std::list<unsigned int> radixes;
   std::list<unsigned int> uniq_radixes;
