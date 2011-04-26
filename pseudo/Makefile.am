@@ -1,5 +1,4 @@
 EXTRA_DIST = \
-	tests \
 	doc
 
 SUBDIRS = \

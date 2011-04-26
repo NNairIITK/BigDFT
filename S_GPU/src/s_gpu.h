@@ -103,7 +103,7 @@ extern "C"
   In fortran this function has an additional argument ierr at the end of the argument list. ierr is an integer and has the same meaning as the return value of the routine in C. 
 
    */
-  int sg_init ( int *GPUshare, int *useGPU, int iproc );
+  int sg_init ( int *GPUshare, int *useGPU, int iproc, int nproc_node );
 
   /** 
    * Freed all memory and data structures used by sgpu.

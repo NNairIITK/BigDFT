@@ -1,12 +1,15 @@
-!>  Naive subroutine which performs a direct minimization of the energy 
-!!  for a given hamiltonian
+!> @file
+!!  Routines to do diagonalisation with Davidson algorithm
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Naive subroutine which performs a direct minimization of the energy 
+!!  for a given hamiltonian
 subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
           hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
@@ -281,7 +284,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
           (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
-        call check_closed_shell(in%nspin,orbsv,lcs)
+        call check_closed_shell(orbsv,lcs)
         if (lcs) then
            write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
                 'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
@@ -349,11 +352,6 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
 END SUBROUTINE direct_minimization
 
 
-subroutine jacobi_davidson
-END SUBROUTINE jacobi_davidson
-
-
-
 !> Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
 !!   under orthogonality constraints to occupied orbitals psi. The nvirt input
 !!   variable gives the number of unoccupied orbitals for which the exit criterion
@@ -365,42 +363,34 @@ END SUBROUTINE jacobi_davidson
 !!   _________
 !!   (parallel)
 !!
-!!   (transpose psi, v is already transposed)
-!!   orthogonality of v to psi
-!!   orthogonalize v
-!!   (retranspose v)
-!!   Hamilton(v) --> hv
-!!   transpose v and hv
-!!   Rayleigh quotients  e
-!!   do
-!!      gradients g= e*v -hv
-!!      exit condition gnrm
-!!      orthogonality of g to psi
-!!      (retranspose g)
-!!      preconditioning of g
-!!      (transpose g again)
-!!      orthogonality of g to psi
-!!      (retranspose g)
-!!      Hamilton(g) --> hg
-!!      (transpose g and hg)
-!!      subspace matrices H and S
-!!      DSYGV(H,e,S)  --> H
-!!      update v with eigenvectors H
-!!      orthogonality of v to psi
-!!      orthogonalize v
-!!      (retranspose v)
-!!      Hamilton(v) --> hv
-!!      (transpose v and hv)
-!!   end do
-!!   (retranspose v and psi)
-!!
-!! @author Alexander Willand
-!!    Copyright (C) 2007-2011 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
+!!   (transpose psi, v is already transposed)\n
+!!   orthogonality of v to psi\n
+!!   orthogonalize v\n
+!!   (retranspose v)\n
+!!   Hamilton(v) --> hv\n
+!!   transpose v and hv\n
+!!   Rayleigh quotients  e\n
+!!   do\n
+!!      gradients g= e*v -hv\n
+!!      exit condition gnrm\n
+!!      orthogonality of g to psi\n
+!!      (retranspose g)\n
+!!      preconditioning of g\n
+!!      (transpose g again)\n
+!!      orthogonality of g to psi\n
+!!      (retranspose g)\n
+!!      Hamilton(g) --> hg\n
+!!      (transpose g and hg)\n
+!!      subspace matrices H and S\n
+!!      DSYGV(H,e,S)  --> H\n
+!!      update v with eigenvectors H\n
+!!      orthogonality of v to psi\n
+!!      orthogonalize v\n
+!!      (retranspose v)\n
+!!      Hamilton(v) --> hv\n
+!!      (transpose v and hv)\n
+!!   end do\n
+!!   (retranspose v and psi)\n
 subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      orbs,orbsv,nvirt,lr,comms,commsv,&
      hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
@@ -565,6 +555,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*n3p,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        orbs%norb,orbs%norbp,ngatherarr,rhopot,pot)
 
+  !experimental: add parabolic potential to the hamiltonian
+  !call add_parabolic_potential(at%geocode,at%nat,lr%d%n1i,lr%d%n2i,lr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
+
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
        nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
        pkernel,orbs,psirocc) ! optional arguments
@@ -616,7 +609,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      do iorb=1,orbsv%norb
         !e(:,1,1) = <psi|H|psi> / <psi|psi>
         e(iorb,ikpt,1)=e(iorb,ikpt,1)/e(iorb,ikpt,2)
-        if(iproc==0) write(*,'(1x,i3,2(1x,1pe21.14))')&
+        if(iproc==0) write(*,'(1x,i3,1x,1pe21.14,1x,1pe12.5)')&
              iorb,e(iorb,ikpt,2),e(iorb,ikpt,1)
      end do
   end do
@@ -662,7 +655,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   
   allocate(ew(2*orbsv%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ew,'ew',subname)
-
 
 
   !itermax=... use the input variable instead
@@ -720,7 +712,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            end do
         end if
      end do
-     !should we divide by nvrit or by orbsv%norb?
+     !should we divide by nvirt or by orbsv%norb?
      gnrm=dsqrt(gnrm/real(orbsv%norb,dp))
 
      if(iproc == 0)write(*,'(1x,a,2(1x,1pe12.5))')&
@@ -744,46 +736,48 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
-     if(msg)write(*,'(1x,a)')"squared norm of all gradients after projection"
-
      call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
-     ispsi=1
-     do ikptp=1,orbsv%nkptsp
-        ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
-        if (nvctrp == 0) cycle
 
-        nspinor=orbsv%nspinor
-        do iorb=1,orbsv%norb
-           e(iorb,ikpt,2)= nrm2(nvctrp*nspinor,g(ispsi+nvctrp*nspinor*(iorb-1)),1)**2
+     if(msg) then
+        write(*,'(1x,a)')"squared norm of all gradients after projection"
+        ispsi=1
+        do ikptp=1,orbsv%nkptsp
+           ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
+           nvctrp=commsv%nvctr_par(iproc,ikptp)
+           if (nvctrp == 0) cycle
+           
+           nspinor=orbsv%nspinor
+           do iorb=1,orbsv%norb
+              e(iorb,ikpt,2)= nrm2(nvctrp*nspinor,g(ispsi+nvctrp*nspinor*(iorb-1)),1)**2
+           end do
+           
+           ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
         end do
-
-        ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
-     end do
-
-     if(nproc > 1)then
-        !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
-     end if
-
-     gnrm=0._dp
-     do ikpt=1,orbsv%nkpts
-        do iorb=1,nvirt
-           tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
-           if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
-           gnrm=gnrm+tt
-        end do
-        if (nspin == 2) then
+        
+        if(nproc > 1)then
+           !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
+           call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+        end if
+        
+        gnrm=0._dp
+        do ikpt=1,orbsv%nkpts
            do iorb=1,nvirt
-              tt=real(e(iorb+orbsv%norbu,ikpt,2)*orbsv%kwgts(ikpt),dp)
+              tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
               if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
               gnrm=gnrm+tt
            end do
-        end if
-     end do
-     gnrm=sqrt(gnrm/real(orbsv%norb,dp))
-
-     if(msg)write(*,'(1x,a,2(1x,1pe21.14))')"gnrm of all ",gnrm
+           if (nspin == 2) then
+              do iorb=1,nvirt
+                 tt=real(e(iorb+orbsv%norbu,ikpt,2)*orbsv%kwgts(ikpt),dp)
+                 if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
+                 gnrm=gnrm+tt
+              end do
+           end if
+        end do
+        gnrm=sqrt(gnrm/real(orbsv%norb,dp))
+        
+        write(*,'(1x,a,2(1x,1pe21.14))')"gnrm of all ",gnrm
+     end if
 
      if (iproc==0)write(*,'(1x,a)',advance='no')'Preconditioning...'
 
@@ -849,41 +843,40 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
-
-     if(msg)write(*,'(1x,a)')"Norm of all preconditioned gradients"
-
      call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
-
-     ispsi=1
-     do ikptp=1,orbsv%nkptsp
-        ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
-        if (nvctrp == 0) cycle
-
-        nspinor=orbsv%nspinor
-        do iorb=1,orbsv%norb
-           e(iorb,ikpt,2)=nrm2(nvctrp*nspinor,g(ispsi+nvctrp*nspinor*(iorb-1)),1)**2
+     if(msg) then
+        write(*,'(1x,a)')"Norm of all preconditioned gradients"
+        ispsi=1
+        do ikptp=1,orbsv%nkptsp
+           ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
+           nvctrp=commsv%nvctr_par(iproc,ikptp)
+           if (nvctrp == 0) cycle
+           
+           nspinor=orbsv%nspinor
+           do iorb=1,orbsv%norb
+              e(iorb,ikpt,2)=nrm2(nvctrp*nspinor,g(ispsi+nvctrp*nspinor*(iorb-1)),1)**2
+           end do
+           ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
         end do
-        ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
-     end do
-     
-     if(nproc > 1)then
+        
+        if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
-     end if
-
-     gnrm=0.0_dp
-     do ikpt=1,orbsv%nkpts
-        do iorb=1,orbsv%norb
-           tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
-           if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
-           gnrm=gnrm+tt
+           call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
+        end if
+        
+        gnrm=0.0_dp
+        do ikpt=1,orbsv%nkpts
+           do iorb=1,orbsv%norb
+              tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
+              if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
+              gnrm=gnrm+tt
+           end do
         end do
-     end do
-     gnrm=sqrt(gnrm/real(orbsv%norb,dp))
+        gnrm=sqrt(gnrm/real(orbsv%norb,dp))
 
-     if(msg)write(*,'(1x,a,2(1x,1pe21.14))')"gnrm of all",gnrm
-
+        write(*,'(1x,a,2(1x,1pe21.14))')"gnrm of all",gnrm
+     end if
+     
      if(iproc==0)write(*,'(1x,a)',advance="no")"Expanding subspace matrices..."
 
      !                 <vi | hvj>      <vi | hgj-n>                   <vi | vj>      <vi | gj-n>
@@ -904,7 +897,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
-	   !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
+           !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
            call Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,&
                 hamovr(8*ndimovrlp(ispin,ikpt-1)+1),&
                 v(ispsi),g(ispsi),hv(ispsi),hg(ispsi))
@@ -980,7 +973,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
            do iorb=1,norb
               e(iorb+ise,ikpt,1)=ew(iorb)
-              e(iorb+ise,ikpt,2)=ew(iorb+norb)
+              if (msg) e(iorb+ise,ikpt,2)=ew(iorb+norb)
            end do
            ise=norb
 
@@ -1046,13 +1039,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
               if (nspin ==1) then
                  write(*,'(1x,a)')'done. The refined eigenvalues are'
                  do iorb=1,nvirt
-                    write(*,'(1x,i3,(1pe21.14,1pe11.4))')iorb,(e(iorb,ikpt,j),j=1,2)
+                    write(*,'(1x,i3,(1pe21.14))')iorb,e(iorb,ikpt,1)
                  end do
               else if (ispin == 2) then
                  write(*,'(1x,a)')'done. The refined eigenvalues are'
                  do iorb=1,nvirt
-                    write(*,'(1x,i3,2(1pe21.14,1pe11.4))')&
-                         iorb,(e(iorb,ikpt,j),j=1,2),(e(iorb+orbsv%norbu,ikpt,j),j=1,2)
+                    write(*,'(1x,i3,2(1pe21.14))')&
+                         iorb,e(iorb,ikpt,1),e(iorb+orbsv%norbu,ikpt,1)
                  end do
               end if
            end if
@@ -1256,10 +1249,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 END SUBROUTINE davidson
 
 
-
 !>   Generate upper triangular matrix in the subspace of Davidson algorithm
-!!
-!!
 subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
   use module_base
   implicit none
@@ -1378,7 +1368,6 @@ subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
 END SUBROUTINE Davidson_subspace_hamovr
 
 
-
 subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
   use module_base
   implicit none
@@ -1429,6 +1418,7 @@ subroutine update_psivirt(norb,nspinor,ncplx,nvctrp,hamovr,v,g,work)
 
 END SUBROUTINE update_psivirt
 
+
 subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nspin,psivirt)
   use module_base
   use module_types
@@ -1446,7 +1436,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   character(len=*), parameter :: subname='psivirt_from_gaussians'
   logical ::  randinp
   integer :: iorb,icoeff,i_all,i_stat,nwork,info,jorb,ikpt,korb
-  integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f
+  integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f,jcoeff
   real(wp) :: rfreq,gnrm_fake
   real(wp), dimension(:,:,:), allocatable :: gaucoeffs
   real(gp), dimension(:), allocatable :: work,ev
@@ -1488,8 +1478,23 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
            end do
         end do
      else
-        write(*,*)'ERROR, not enough gaussian coefficients',G%ncoeff,orbs%norb
-        stop
+        do iorb=1,orbs%norbp
+           !orbital at the net of k-point
+           ikpt=(orbs%isorb+iorb-1)/orbs%norb+1
+           korb=orbs%isorb+iorb-(ikpt-1)*orbs%norb
+           !choose the coefficients which are associated to this orbital
+           jcoeff=modulo(korb-1,G%ncoeff)+1
+           do icoeff=1,G%ncoeff
+              if (icoeff==jcoeff) then
+                 gaucoeffs(icoeff,1,iorb)=1.0_gp!cos(real(korb+icoeff,wp))
+                 if (orbs%nspinor == 4) then
+                    gaucoeffs(icoeff,3,iorb)=sin(real(korb+icoeff,wp))
+                 end if
+              end if
+           end do
+        end do
+        !write(*,*)'ERROR, not enough gaussian coefficients',G%ncoeff,orbs%norb
+        !stop
      end if
 !!$     !fill randomly the gaussian coefficients for the orbitals considered
 !!$     do icoeff=1,G%ncoeff !reversed loop
@@ -1596,7 +1601,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
   call memocc(i_stat,i_all,'gbd_occ',subname)
 
   !add random background to the wavefunctions
-  if (randinp) then
+  if (randinp .and. G%ncoeff >= orbs%norb) then
      !call razero(orbs%npsidim,psivirt)
      do iorb=1,orbs%norbp
         jorb=iorb+orbs%isorb
@@ -1659,6 +1664,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 
   
 END SUBROUTINE psivirt_from_gaussians
+
 
 subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
   use module_base
@@ -1904,3 +1910,68 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
 
 
 END SUBROUTINE write_eigen_objects
+
+subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rxyz,pot)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: n1i,n2i,n3i,nat
+  real(gp), intent(in) :: rlimit,hxh,hyh,hzh
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(wp), dimension(n1i*n2i*n3i), intent(inout) :: pot
+  !local variables
+  logical :: perx,pery,perz
+  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,i,i1,i2,i3,isx,iex,isy,iey,isz,iez
+  integer :: iat,ind
+  real(gp) :: x,y,z,r2,rx,ry,rz
+  real(gp), dimension(3) :: cxyz
+
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+  !calculate the center of the molecule
+  call razero(3,cxyz)
+  do iat=1,nat
+     do i=1,3
+        cxyz(i)=cxyz(i)+rxyz(i,iat)
+     end do
+  end do
+  do i=1,3
+     cxyz(i)=cxyz(i)/real(nat,gp)
+  end do
+  
+  rx=cxyz(1) 
+  ry=cxyz(2)
+  rz=cxyz(3)
+
+  isx=-nbl1
+  isy=-nbl2
+  isz=-nbl3
+
+  iex=n1i-nbl1-1
+  iey=n2i-nbl2-1
+  iez=n3i-nbl3-1
+
+  do i3=isz,iez
+     z=real(i3,gp)*hzh-rz
+     do i2=isy,iey
+        y=real(i2,gp)*hyh-ry
+        do i1=isx,iex
+           x=real(i1,gp)*hxh-rx
+           r2=x**2+y**2+z**2
+           !add the parabolic correction to the potential
+           if (r2 > rlimit**2) then
+              ind=i1+1+nbl1+(i2+nbl2)*n1i+(i3+nbl3)*n1i*n2i
+              pot(ind)=pot(ind)+0.1_gp*(sqrt(r2)-rlimit)**2
+           endif
+        enddo
+     enddo
+  enddo
+
+end subroutine add_parabolic_potential

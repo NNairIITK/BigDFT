@@ -1,4 +1,14 @@
-!create the localisation region information for cubic code
+!> @file
+!!  Routines to creat localisation region
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Create the localisation region information for cubic code
 subroutine create_Glr(geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,wfd,bounds,Glr)
   use module_base
   use module_types
@@ -31,8 +41,9 @@ subroutine create_Glr(geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   end if
 END SUBROUTINE create_Glr
 
-!determine a set of localisation regions from the centers and the radii.
-!cut in cubes the global reference system
+
+!> Determine a set of localisation regions from the centers and the radii.
+!! cut in cubes the global reference system
 subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
   use module_base
   use module_types
@@ -253,6 +264,7 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
 
 END SUBROUTINE determine_locreg
 
+
 subroutine draw_locregs(nlr,hx,hy,hz,Llr)
   use module_base
   use module_types
@@ -323,8 +335,9 @@ subroutine draw_locregs(nlr,hx,hy,hz,Llr)
   close(unit=22)  
 END SUBROUTINE draw_locregs
 
+
+!> Calculates the bounds arrays needed for convolutions
 subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
-  !calculates the bounds arrays needed for convolutions
   use module_base
   use module_types
   implicit none
@@ -406,21 +419,20 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
 END SUBROUTINE locreg_bounds
 
 
-
-!pass from the global wavefunction for a set of orbitals to the local wavefunctions
-!for all the orbitals
-!INPUTS
-! nlr           number of localisation regions contained by the compressed form
-! nvctr_c,f     compressed elements of the global function
-! nseglr     array of compressed elements for each localisation region
-!               number of segments of keymask array
-! nvctr_tot   number of components of the distributed wavefunction
-! nseg_tot      total number of segments for the mask array
-! keymask       array of masking element for each localisation region           
-! psi           global wavefunctions with distributed orbitals
-!OUTPUTS
-! psiloc        wavefunctions of all the localisation regions 
-! ncount        array of elements to be sent to each processor for MPI_ALLTOALLV procedure
+!> Pass from the global wavefunction for a set of orbitals to the local wavefunctions
+!! for all the orbitals
+!! INPUTS
+!! @param nlr           number of localisation regions contained by the compressed form
+!! @param nvctr_c,f     compressed elements of the global function
+!! @param nseglr        array of compressed elements for each localisation region
+!!                      number of segments of keymask array
+!! @param nvctr_tot     number of components of the distributed wavefunction
+!! @param nseg_tot      total number of segments for the mask array
+!! @param keymask       array of masking element for each localisation region           
+!! @param psi           global wavefunctions with distributed orbitals
+!! OUTPUTS
+!! @param psiloc        wavefunctions of all the localisation regions 
+!! @param ncount        array of elements to be sent to each processor for MPI_ALLTOALLV procedure
 subroutine rhoswitch_waves(nlr,norbp,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,nseglr,keymask,&
      ncount,psi,psiloc)
   use module_base
@@ -468,18 +480,16 @@ END SUBROUTINE rhoswitch_waves
 !!   and the limits of a given localisation region
 !!   it also returns an array which is used to mask the compressed wavefunction into the new one
 !! INPUTS
-!!   ilocreg               localisation region to be considered
-!!   nlocreg               total number of localisation regions
-!!   n1,n2,n3              original dimensions of the global box
-!!   lrlims                array of limits of the localisation regions (global system coordinates)
-!!   wfdg                  global wavefunction descriptors structure
+!!   @param ilocreg        localisation region to be considered
+!!   @param nlocreg        total number of localisation regions
+!!   @param n1,n2,n3       original dimensions of the global box
+!!   @param lrlims         array of limits of the localisation regions (global system coordinates)
+!!   @param wfdg           global wavefunction descriptors structure
 !! OUTPUT
-!!   wfdl                  local wavefunction descriptors structure in local system coordinates
-!!   keymask               mask array for traducing the wavefunction in compressed form
+!!   @param wfdl           local wavefunction descriptors structure in local system coordinates
+!!   @param keymask        mask array for traducing the wavefunction in compressed form
 !!                         to the wavefunction in compressed form for the local system
-!!   ncountlocreg          array of elements for each localisation region
-!!
-!! 
+!!   @param ncountlocreg   array of elements for each localisation region
 subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocreg)
   use module_base
   use module_types
@@ -566,7 +576,6 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
 END SUBROUTINE loc_wfd
 
 
-
 subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,keyv,&
      nseg_loc,keymask)
   implicit none
@@ -625,6 +634,7 @@ subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,ke
   end if
 
 END SUBROUTINE build_keymask
+
 
 subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
      nseg_loc,nvctr_loc,keyg_loc,keyv_loc)!,keymask)
@@ -770,7 +780,8 @@ subroutine num_segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,key
     
 END SUBROUTINE num_segkeys_loc
 
-!conversion of the global bounds into a given localisation region
+
+!> Conversion of the global bounds into a given localisation region
 subroutine make_bounds_loc(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,bounds,bounds_loc)
   use module_base
@@ -805,7 +816,8 @@ subroutine make_bounds_loc(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
 END SUBROUTINE make_bounds_loc
 
-!convert the kinetic bounds
+
+!> Convert the kinetic bounds
 subroutine kb_conversion(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,kb,kb_loc)
   use module_base
   use module_types
@@ -857,7 +869,8 @@ subroutine kb_conversion(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,kb,kb_loc)
   
 END SUBROUTINE kb_conversion
 
-!convert the shrink bounds
+
+!> Convert the shrink bounds
 subroutine sb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,sb,sb_loc)
   use module_base
@@ -918,7 +931,7 @@ subroutine sb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 END SUBROUTINE sb_conversion
 
 
-!convert the grow bounds
+!> Convert the grow bounds
 subroutine gb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,gb,gb_loc)
   use module_base
@@ -978,16 +991,16 @@ subroutine gb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 END SUBROUTINE gb_conversion
 
 
-!with this subroutine we should convert a bound array from its global version to 
-!the version which is compatible for a given localisation region
+!> With this subroutine we should convert a bound array from its global version to 
+!! the version which is compatible for a given localisation region
 !! INPUTS
-!!   nl2,nu2,nl3,nu3  limits of the global bounds array in the orthogonal directions
-!!   nl1_loc          lower limit of the local bounds array in the interested direction
-!!   i1s,i1e,i2s,i2e
-!!   i3s,i3e          limits of the localisation region in the global system coordinates
-!!   ib               global bounds array
+!!   @param nl2,nu2,nl3,nu3  limits of the global bounds array in the orthogonal directions
+!!   @param nl1_loc          lower limit of the local bounds array in the interested direction
+!!   @param i1s,i1e,i2s,i2e
+!!   @param i3s,i3e          limits of the localisation region in the global system coordinates
+!!   @param ib               global bounds array
 !! OUTPUT
-!!   ib_loc           local bounds array
+!!   @param ib_loc           local bounds array
 subroutine bound_conversion(nl2,nu2,nl3,nu3,nl1_loc,i1s,i1e,i2s,i2e,i3s,i3e,ib,ib_loc)
   implicit none
   integer, intent(in) :: nl1_loc,nl2,nu2,nl3,nu3,i1s,i1e,i2s,i2e,i3s,i3e
@@ -1021,4 +1034,3 @@ subroutine bound_conversion(nl2,nu2,nl3,nu3,nl1_loc,i1s,i1e,i2s,i2e,i3s,i3e,ib,i
   end if
 
 END SUBROUTINE bound_conversion
-

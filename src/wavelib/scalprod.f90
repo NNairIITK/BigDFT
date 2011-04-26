@@ -1,12 +1,14 @@
-!>    Wrapper for simplifying the call
-!!
+!> @file
+!! Routines to do scalar products
 !! @author
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
+
+
+!>    Wrapper for simplifying the call
 subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   use module_base
   implicit none
@@ -30,8 +32,7 @@ subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
 END SUBROUTINE wnrm_wrap
 
 
-
-! calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
+!> calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
 subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   use module_base
   implicit none
@@ -42,66 +43,60 @@ subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   real(dp), intent(out) :: scpr
   !local variables
   integer :: i
-  real(dp) :: pc,pf1,pf2,pf3,pf4,pf5,pf6,pf7
   real(dp) :: scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
-!!!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+!!!    integer :: ncount0,ncount2,ncount_rate,ncount_max
+!!!    real(gp) :: tel
 
-   scpr=0.0_dp
-!!!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
-   scpr0=0.0_dp
-!!!$    ithread=omp_get_thread_num()
-!!!$    nthread=omp_get_num_threads()
-!!!$  if (ithread .eq. 0) then
+!!!  !dee
+!!!    open(unit=97,file='time_wnrm',status='unknown',position='append')
+!!!    call system_clock(ncount0,ncount_rate,ncount_max)
+
+    scpr=0.0_dp
+    scpr0=0.0_dp
+    scpr1=0.0_dp
+    scpr2=0.0_dp
+    scpr3=0.0_dp
+    scpr4=0.0_dp
+    scpr5=0.0_dp
+    scpr6=0.0_dp
+    scpr7=0.0_dp
+
+!$omp parallel default(private)&
+!$omp shared(mvctr_c,mvctr_f,psi_c,psi_f,scpr) firstprivate(scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7)
+
+!$omp do schedule(static)
  do i=1,mvctr_c
-    !scpr0=scpr0+psi_c(i)**2
-    pc=real(psi_c(i),dp)
-    scpr0=scpr0+pc**2
+    scpr0=scpr0+real(psi_c(i),dp)**2
  enddo
-!!!$  endif
-!!!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
- scpr1=0.0_dp
- scpr2=0.0_dp
- scpr3=0.0_dp
- scpr4=0.0_dp
- scpr5=0.0_dp
- scpr6=0.0_dp
- scpr7=0.0_dp
-
+!$omp end do nowait
+!$omp do schedule(guided)
  do i=1,mvctr_f
-!     scpr1=scpr1+psi_f(1,i)**2
-!     scpr2=scpr2+psi_f(2,i)**2
-!     scpr3=scpr3+psi_f(3,i)**2
-!     scpr4=scpr4+psi_f(4,i)**2
-!     scpr5=scpr5+psi_f(5,i)**2
-!     scpr6=scpr6+psi_f(6,i)**2
-!     scpr7=scpr7+psi_f(7,i)**2
-    pf1=real(psi_f(1,i),dp)
-    pf2=real(psi_f(2,i),dp)
-    pf3=real(psi_f(3,i),dp)
-    pf4=real(psi_f(4,i),dp)
-    pf5=real(psi_f(5,i),dp)
-    pf6=real(psi_f(6,i),dp)
-    pf7=real(psi_f(7,i),dp)
-    scpr1=scpr1+pf1**2
-    scpr2=scpr2+pf2**2
-    scpr3=scpr3+pf3**2
-    scpr4=scpr4+pf4**2
-    scpr5=scpr5+pf5**2
-    scpr6=scpr6+pf6**2
-    scpr7=scpr7+pf7**2
- enddo
- scpr0=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
-!!!$  endif
-!!!$omp critical
-   scpr=scpr+scpr0
-!!!$omp end critical
-!!!$omp end parallel
+    scpr1=scpr1+real(psi_f(1,i),dp)**2
+    scpr2=scpr2+real(psi_f(2,i),dp)**2
+    scpr3=scpr3+real(psi_f(3,i),dp)**2
+    scpr4=scpr4+real(psi_f(4,i),dp)**2
+    scpr5=scpr5+real(psi_f(5,i),dp)**2
+    scpr6=scpr6+real(psi_f(6,i),dp)**2
+    scpr7=scpr7+real(psi_f(7,i),dp)**2
+enddo
+!$omp end do
+    scpr0=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
 
+!$omp critical 
+    scpr=scpr+scpr0
+!$omp end critical
+
+!$omp end parallel
+
+!!!    call system_clock(ncount2,ncount_rate,ncount_max)
+!!!    tel=dble(ncount2-ncount0)/dble(ncount_rate)
+!!!    write(97,*) 'wnrm:',tel
+!!!    close(97)
 
 END SUBROUTINE wnrm
 
 
-!wrapper for simplifying the call
+!> wrapper for simplifying the call
 subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
   use module_base
   implicit none
@@ -117,7 +112,8 @@ subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
   
 END SUBROUTINE wscal_wrap
 
-! multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
+
+!> multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
 subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   use module_base
   implicit none
@@ -127,13 +123,13 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   real(wp), dimension(7,mvctr_f), intent(inout) :: psi_f
   !local variables
   integer :: i
-!$omp parallel default(private) shared(mvctr_c,mvctr_f,scal,psi_c,psi_f)
-!$omp do
+!!!$omp parallel default(private) shared(mvctr_c,mvctr_f,scal,psi_c,psi_f)
+!!!$omp do
   do i=1,mvctr_c
      psi_c(i)=psi_c(i)*scal
   enddo
-!$omp enddo
-!$omp do
+!!!$omp enddo
+!!!$omp do
   do i=1,mvctr_f
      psi_f(1,i)=psi_f(1,i)*scal
      psi_f(2,i)=psi_f(2,i)*scal
@@ -143,12 +139,13 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
      psi_f(6,i)=psi_f(6,i)*scal
      psi_f(7,i)=psi_f(7,i)*scal
   enddo
-!$omp enddo
-!$omp end parallel
+!!!$omp enddo
+!!!$omp end parallel
 
 END SUBROUTINE wscal
 
-!wrapper for simplifying the call
+
+!> wrapper for simplifying the call
 subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
   use module_base
   implicit none
@@ -165,7 +162,7 @@ subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
 END SUBROUTINE wscalv_wrap
 
 
-! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
+!> multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   use module_base
   implicit none
@@ -175,13 +172,13 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   real(wp), dimension(7,mvctr_f), intent(inout) :: psi_f
   !local variables
   integer :: i
-!$omp parallel default(private) shared(mvctr_c,mvctr_f,scal,psi_c,psi_f)
-!$omp do
+!!!$omp parallel default(private) shared(mvctr_c,mvctr_f,scal,psi_c,psi_f)
+!!!$omp do
   do i=1,mvctr_c
      psi_c(i)=psi_c(i)*scal(0)           !  1 1 1
   enddo
-!$omp enddo
-!$omp do
+!!!$omp enddo
+!!!$omp do
   do i=1,mvctr_f
      psi_f(1,i)=psi_f(1,i)*scal(1)       !  2 1 1
      psi_f(2,i)=psi_f(2,i)*scal(1)       !  1 2 1
@@ -191,11 +188,12 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
      psi_f(6,i)=psi_f(6,i)*scal(2)       !  1 2 2
      psi_f(7,i)=psi_f(7,i)*scal(3)       !  2 2 2
   enddo
-!$omp enddo
-!$omp end parallel
+!!!$omp enddo
+!!!$omp end parallel
 END SUBROUTINE wscalv
 
-! initializes a wavefunction to zero
+
+!> initializes a wavefunction to zero
 subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   use module_base
   implicit none
@@ -207,13 +205,13 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
 
 ! seems to be never called
 !write(*,*) ' i am in wzero'
-!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f)
-!$omp do
+!!!$omp parallel default(private) shared(mvctr_c,mvctr_f,psi_c,psi_f)
+!!!$omp do
   do i=1,mvctr_c
      psi_c(i)=0.0_wp
   enddo
-!$omp enddo
-!$omp do
+!!!$omp enddo
+!!!$omp do
   do i=1,mvctr_f
      psi_f(1,i)=0.0_wp
      psi_f(2,i)=0.0_wp
@@ -223,14 +221,15 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
      psi_f(6,i)=0.0_wp
      psi_f(7,i)=0.0_wp
   enddo
-!$omp enddo
-!$omp end parallel
+!!!$omp enddo
+!!!$omp end parallel
 END SUBROUTINE wzero
 
 
-!wrapper of wpdot to avoid boundary problems in absence of wavelets
-!and to perform scalar product for complex wavefunctions and projectors
-!NOTE: if the wavefunctions are complex, so should be the projectors
+!> wrapper of wpdot to avoid boundary problems in absence of wavelets
+!! and to perform scalar product for complex wavefunctions and projectors
+!! @warning
+!! if the wavefunctions are complex, so should be also the projectors
 subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,scpr)
   use module_base
@@ -281,12 +280,13 @@ subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi, 
 
 END SUBROUTINE wpdot_wrap
 
-! this function must be generalized for the linear scaling code
-! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
-! Warning: the subroutine assumes that bpsi has only one segment along each line,
-! whereas apsi can have several segments. This assumption is true if bpsi is a projector 
-! To be more precise, it is assumed that the segments of bpsi are always contained inside
-! the segments of apsi, no matter whether they are in the same line or not.
+!> This function must be generalized for the linear scaling code
+!! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
+!! @warning
+!!  The subroutine assumes that bpsi has only one segment along each line,
+!!  whereas apsi can have several segments. This assumption is true if bpsi is a projector 
+!!  To be more precise, it is assumed that the segments of bpsi are always contained inside
+!!  the segments of apsi, no matter whether they are in the same line or not.
 subroutine wpdot(  &
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,scpr)
@@ -307,76 +307,24 @@ subroutine wpdot(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f
   real(dp), intent(out) :: scpr
   !local variables
-  integer :: iaseg,ibseg,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,i
-  real(dp) :: pac,paf1,paf2,paf3,paf4,paf5,paf6,paf7,pbc,pbf1,pbf2,pbf3,pbf4,pbf5,pbf6,pbf7
+  integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
-!!!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
-  !  integer :: ncount0,ncount2,ncount_rate,ncount_max
-  !  real(gp) :: tel
+  integer :: iaseg0,iter
+  integer, dimension(maseg_c) :: keyag_c_lin!linear version of second inidces of keyag_c
+  integer, dimension(maseg_f) :: keyag_f_lin!linear version of second inidces of keyag_f
+!!!    integer :: ncount0,ncount2,ncount_rate,ncount_max
+!!!    real(gp) :: tel
 
 
-  !dee
-  !  open(unit=97,file='time_wpdot',status='unknown')
-  !  call system_clock(ncount0,ncount_rate,ncount_max)
+!!!  !dee
+!!!    open(unit=97,file='time_wpdot',status='unknown',position='append')
+!!!    call system_clock(ncount0,ncount_rate,ncount_max)
+
+  keyag_c_lin = keyag_c(1,:)!speed up access in hunt subroutine by consecutive arrangement in memory
+  keyag_f_lin = keyag_f(1,:)!speed up access in hunt subroutine by consecutive arrangement in memory
 
   scpr=0.0_dp
-
-  !dee
-!!!$omp parallel default (private) &
-!!!$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
-!!!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyav_f)&
-!!!$omp shared (apsi_f,scpr)
-!!!$    ithread=omp_get_thread_num()
-!!!$    nthread=omp_get_num_threads()
-    scpr0=0.0_dp
-
-!!!$  if (ithread .eq. 0) then
-!  llc=0
-  !coarse part
-  ibseg=1
-  !for each segment of the first function
-  loop_jac: do iaseg=1,maseg_c
-     jaj=keyav_c(iaseg)          ! starting point of segment iaseg of first function [compressed form]
-     ja0=keyag_c(1,iaseg)        ! starting point of segment iaseg of first function [uncompressed form]
-     ja1=keyag_c(2,iaseg)        ! ending point of segment iaseg of first function [uncompressed form]
-
-     !control if it intersects a segment of the second function
-     loop_jbc: do
-        jb1=keybg_c(2,ibseg)     ! ending point of segment of second fonction [uncompressed]
-        jb0=keybg_c(1,ibseg)     ! starting point of segment of second fonction [uncompressed]
-        if (jb1 < ja0) then !not yet there increase the count
-           ibseg=ibseg+1
-           if (ibseg > mbseg_c) exit loop_jac !function b ended
-           cycle loop_jbc ! next segment
-        end if
-        if (jb0 > ja1) exit loop_jbc  !we went through, don't increase count, exit inner loop
-
-        jbj=keybv_c(ibseg)        ! starting point of segment of second fonction [compressed]
-        if (ja0 .gt. jb0) then 
-           iaoff=0
-           iboff=ja0-jb0             ! length not overlapping
-           length=min(ja1,jb1)-ja0   ! length of overlap
-        else
-           iaoff=jb0-ja0
-           iboff=0
-           length=min(ja1,jb1)-jb0
-        endif
-        !write(*,*) 'ja0,ja1,jb0,jb1',ja0,ja1,jb0,jb1,length
-        !write(*,'(5(a,i5))') 'C:from ',jaj+iaoff,' to ',jaj+iaoff+length,' and from ',jbj+iboff,' to ',jbj+iboff+length
-        do i=0,length
-!           llc=llc+1
-           pac=real(apsi_c(jaj+iaoff+i),dp)
-           pbc=real(bpsi_c(jbj+iboff+i),dp)
-           scpr0=scpr0+pac*pbc
-        enddo
-        ibseg=ibseg+1
-        
-        if (ibseg > mbseg_c) exit loop_jac !function b ended 
-     end do loop_jbc
-  enddo loop_jac
-!!!$  endif
-!$  if (ithread .eq. 1  .or. nthread .eq. 1) then
-
+  scpr0=0.0_dp
   scpr1=0.0_dp
   scpr2=0.0_dp
   scpr3=0.0_dp
@@ -384,89 +332,86 @@ subroutine wpdot(  &
   scpr5=0.0_dp
   scpr6=0.0_dp
   scpr7=0.0_dp
-!  llf=0
-  ! fine part
-  !add possibility of zero fine segments for the projectors
-  ibseg=1
- ! write(*,*)'scpr0',scpr0
-  
-  if (mbseg_f /= 0) then
 
-     loop_jaf: do iaseg=1,maseg_f
-        jaj=keyav_f(iaseg)
-        ja0=keyag_f(1,iaseg)
-        ja1=keyag_f(2,iaseg)
+!$omp parallel default (private) firstprivate(scpr0,scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7)&
+!$omp shared (maseg_c,keyav_c,keyag_c,keyag_c_lin,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
+!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,keybg_f,keyag_f,keyag_f_lin,keyav_f)&
+!$omp shared (apsi_f,scpr)
+!!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
 
-        loop_jbf: do
-           jb1=keybg_f(2,ibseg)
-           jb0=keybg_f(1,ibseg)
-           if (jb1 < ja0) then
-              ibseg=ibseg+1
-              if (ibseg > mbseg_f) exit loop_jbf
-              cycle loop_jbf
-           end if
-           if (jb0 > ja1) exit loop_jbf
+  iaseg0=1 
 
-           jbj=keybv_f(ibseg)
-           if (ja0 .gt. jb0) then 
-              iaoff=0
-              iboff=ja0-jb0
-              length=min(ja1,jb1)-ja0
-           else
-              iaoff=jb0-ja0
-              iboff=0
-              length=min(ja1,jb1)-jb0
-           endif
-           do i=0,length
-!              llf=llf+1
-              paf1=real(apsi_f(1,jaj+iaoff+i),dp)
-              pbf1=real(bpsi_f(1,jbj+iboff+i),dp)
-              paf2=real(apsi_f(2,jaj+iaoff+i),dp)
-              pbf2=real(bpsi_f(2,jbj+iboff+i),dp)
-              paf3=real(apsi_f(3,jaj+iaoff+i),dp)
-              pbf3=real(bpsi_f(3,jbj+iboff+i),dp)
-              paf4=real(apsi_f(4,jaj+iaoff+i),dp)
-              pbf4=real(bpsi_f(4,jbj+iboff+i),dp)
-              paf5=real(apsi_f(5,jaj+iaoff+i),dp)
-              pbf5=real(bpsi_f(5,jbj+iboff+i),dp)
-              paf6=real(apsi_f(6,jaj+iaoff+i),dp)
-              pbf6=real(bpsi_f(6,jbj+iboff+i),dp)
-              paf7=real(apsi_f(7,jaj+iaoff+i),dp)
-              pbf7=real(bpsi_f(7,jbj+iboff+i),dp)
+!coarse part
 
-              scpr1=scpr1+paf1*pbf1
-              scpr2=scpr2+paf2*pbf2
-              scpr3=scpr3+paf3*pbf3
-              scpr4=scpr4+paf4*pbf4
-              scpr5=scpr5+paf5*pbf5
-              scpr6=scpr6+paf6*pbf6
-              scpr7=scpr7+paf7*pbf7
-           enddo
-           ibseg=ibseg+1
-           if (ibseg > mbseg_f) exit loop_jaf
-        end do loop_jbf
-     enddo loop_jaf
-  end if
- scpr0=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
-!!!$  endif
-  !print *,'nvctr_f',llf,mavctr_f,mbvctr_f
+!$omp do schedule(static)
+   do ibseg=1,mbseg_c
+     jbj=keybv_c(ibseg)
+     jb0=keybg_c(1,ibseg)
+     jb1=keybg_c(2,ibseg)
+    
+     call hunt(keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
+     
+     jaj=keyav_c(iaseg0)
+     length = jb1-jb0
+     iaoff = jb0-keyag_c_lin(iaseg0)!jb0-ja0
+        do i=0,length
+           scpr0=scpr0+real(apsi_c(jaj+iaoff+i),dp)*real(bpsi_c(jbj+i),dp)
+        enddo
 
-!!!$omp critical 
+   enddo
+!$omp end do nowait
+
+
+! fine part
+
+iaseg0=1
+
+!$omp do schedule(static)
+   do ibseg=1,mbseg_f
+     jbj=keybv_f(ibseg)
+     jb0=keybg_f(1,ibseg)
+     jb1=keybg_f(2,ibseg)
+
+
+     call hunt(keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
+     
+     jaj=keyav_f(iaseg0)
+     length = jb1-jb0
+     iaoff = jb0-keyag_f_lin(iaseg0)
+     !print *,ibseg,jb0,iaseg0,keyag_f_lin(iaseg0),maseg_f
+     do i=0,length
+        scpr1=scpr1+real(apsi_f(1,jaj+iaoff+i),dp)*real(bpsi_f(1,jbj+i),dp)
+        scpr2=scpr2+real(apsi_f(2,jaj+iaoff+i),dp)*real(bpsi_f(2,jbj+i),dp)
+        scpr3=scpr3+real(apsi_f(3,jaj+iaoff+i),dp)*real(bpsi_f(3,jbj+i),dp)
+        scpr4=scpr4+real(apsi_f(4,jaj+iaoff+i),dp)*real(bpsi_f(4,jbj+i),dp)
+        scpr5=scpr5+real(apsi_f(5,jaj+iaoff+i),dp)*real(bpsi_f(5,jbj+i),dp)
+        scpr6=scpr6+real(apsi_f(6,jaj+iaoff+i),dp)*real(bpsi_f(6,jbj+i),dp)
+        scpr7=scpr7+real(apsi_f(7,jaj+iaoff+i),dp)*real(bpsi_f(7,jbj+i),dp)
+     enddo
+
+   enddo
+!$omp end do !!!implicit barrier 
+
+   scpr0=scpr0+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
+
+!$omp critical 
    scpr=scpr+scpr0
-!!!$omp end critical
+!$omp end critical
 
-!!!$omp end parallel
-  !        write(*,*) 'llc,llf',llc,llf
-  !  call system_clock(ncount2,ncount_rate,ncount_max)
-  !  tel=dble(ncount2-ncount0)/dble(ncount_rate)
-  !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'wpdot:',tel
-  !  close(97)
+!$omp end parallel
+
+!!!    call system_clock(ncount2,ncount_rate,ncount_max)
+!!!    tel=dble(ncount2-ncount0)/dble(ncount_rate)
+!!!    write(97,*) 'wpdot:',tel
+!!!    close(97)
 
 END SUBROUTINE wpdot
 
-!wrapper of waxpy for complex Ax+y and for no fine grid cases
-!WARNING: in complex cases, it acts with y = Conj(A) *x +y, with the complex conjugate
-!         if the a function is complex, so should be the b function
+
+!> wrapper of waxpy for complex Ax+y and for no fine grid cases
+!! @warning
+!!   in complex cases, it acts with y = Conj(A) *x +y, with the complex conjugate
+!!   if the a function is complex, so should be the b function
 subroutine waxpy_wrap(ncplx,scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi)
   use module_base
@@ -547,8 +492,8 @@ subroutine waxpy_wrap(ncplx,scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,b
 END SUBROUTINE waxpy_wrap
 
 
-! rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
-! The update is only done in the localization region of apsi
+!> rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
+!! The update is only done in the localization region of apsi
 subroutine waxpy(  & 
      scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f, & 
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f)
@@ -569,118 +514,166 @@ subroutine waxpy(  &
   real(wp), dimension(mavctr_c), intent(inout) :: apsi_c
   real(wp), dimension(7,mavctr_f), intent(inout) :: apsi_f
   !local variables
-  integer :: iaseg,ibseg,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,i
-  !  integer :: ncount0,ncount2,ncount_rate,ncount_max
-  !  real(gp) :: tel 
+  integer :: ibseg,iaseg0,jaj,ja0,jb1,jb0,jbj,iaoff,length,i
   real(wp) :: scprwp
-!!!$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+  integer, dimension(maseg_c) :: keyag_c_lin!linear version of second inidces of keyag_c
+  integer, dimension(maseg_f) :: keyag_f_lin!linear version of second inidces of keyag_f
+!!!    integer :: ncount0,ncount2,ncount_rate,ncount_max
+!!!    real(gp) :: tel 
 
-  !dee
-  !  open(unit=97,file='time_waxpy',status='unknown')
-  !  call system_clock(ncount0,ncount_rate,ncount_max)
+!!!!dee
+!!!    open(unit=97,file='time_waxpy',status='unknown',position='append')
+!!!    call system_clock(ncount0,ncount_rate,ncount_max)
+
+    keyag_c_lin = keyag_c(1,:)!speed up access in hunt subroutine by consecutive arrangement in memory
+    keyag_f_lin = keyag_f(1,:)!speed up access in hunt subroutine by consecutive arrangement in memory
+
 
   scprwp=real(scpr,wp)
-  !dee
-!!!$omp parallel default (private) &
-!!!$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,mbseg_f,maseg_f)&
-!!!$omp shared (keyav_f,keyag_f,keybg_f,keybv_f,scprwp,bpsi_c,bpsi_f)&
-!!!$omp shared (apsi_f,apsi_c,keybv_c)
-!!!$   ithread=omp_get_thread_num()
-!!!$   nthread=omp_get_num_threads()
-  !        llc=0
-  ! coarse part
-  ibseg=1
 
-!!!$  if (ithread .eq. 0) then
-     loop_jac: do iaseg=1,maseg_c
-        jaj=keyav_c(iaseg)
-        ja0=keyag_c(1,iaseg)
-        ja1=keyag_c(2,iaseg)
+!$omp parallel default (private) &
+!$omp shared (maseg_c,keyav_c,keyag_c,keyag_c_lin,keybg_c,mbseg_c,mbseg_f,maseg_f)&
+!$omp shared (keyav_f,keyag_f,keyag_f_lin,keybg_f,keybv_f,scprwp,bpsi_c,bpsi_f)&
+!$omp shared (apsi_f,apsi_c,keybv_c)
+!!!!$omp shared (ncount0,ncount2,ncount_rate,ncount_max,tel)
+  
+iaseg0=1
 
-        loop_jbc: do
-           jb1=keybg_c(2,ibseg)
-           jb0=keybg_c(1,ibseg)
-           if (jb1 < ja0) then
-              ibseg=ibseg+1
-              if (ibseg > mbseg_c) exit loop_jac
-              cycle loop_jbc
-           end if
-           if (jb0 > ja1) exit loop_jbc
+! coarse part
 
-           jbj=keybv_c(ibseg)
-           if (ja0 .gt. jb0) then 
-              iaoff=0
-              iboff=ja0-jb0
-              length=min(ja1,jb1)-ja0
-           else
-              iaoff=jb0-ja0
-              iboff=0
-              length=min(ja1,jb1)-jb0
-           endif
-           do i=0,length
-              !          llc=llc+1
-              apsi_c(jaj+iaoff+i)=apsi_c(jaj+iaoff+i)+scprwp*bpsi_c(jbj+iboff+i) 
-           enddo
-           ibseg=ibseg+1
-           if (ibseg > mbseg_c) exit loop_jac
-        end do loop_jbc
-     enddo loop_jac
-!!!$  endif
+!$omp do schedule(static) 
+   do ibseg=1,mbseg_c
+     jbj=keybv_c(ibseg)
+     jb0=keybg_c(1,ibseg)
+     jb1=keybg_c(2,ibseg)
+    
+     call hunt(keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
 
-  !        llf=0
-  ! fine part
-  ibseg=1
-!!!  if (ithread .eq. 1 .or. nthread .eq. 1) then
-     if (mbseg_f /= 0) then
-        loop_jaf: do iaseg=1,maseg_f
-           jaj=keyav_f(iaseg)
-           ja0=keyag_f(1,iaseg)
-           ja1=keyag_f(2,iaseg)
+     jaj=keyav_c(iaseg0)
+     length = jb1-jb0
+     iaoff = jb0-keyag_c_lin(iaseg0)
 
-           loop_jbf: do
-              jb1=keybg_f(2,ibseg)
-              jb0=keybg_f(1,ibseg)
-              if (jb1 < ja0) then
-                 ibseg=ibseg+1
-                 if (ibseg > mbseg_f) exit loop_jbf
-                 cycle loop_jbf
-              end if
-              if (jb0 > ja1) exit loop_jbf
+        do i=0,length
+           apsi_c(jaj+iaoff+i)=apsi_c(jaj+iaoff+i)+scprwp*bpsi_c(jbj+i)
+        enddo
+   enddo
+!$omp end do nowait
 
-              jbj=keybv_f(ibseg)
-              if (ja0 .gt. jb0) then 
-                 iaoff=0
-                 iboff=ja0-jb0
-                 length=min(ja1,jb1)-ja0
-              else
-                 iaoff=jb0-ja0
-                 iboff=0
-                 length=min(ja1,jb1)-jb0
-              endif
-              do i=0,length
-                 !          llf=llf+1
-                 apsi_f(1,jaj+iaoff+i)=apsi_f(1,jaj+iaoff+i)+scprwp*bpsi_f(1,jbj+iboff+i)
-                 apsi_f(2,jaj+iaoff+i)=apsi_f(2,jaj+iaoff+i)+scprwp*bpsi_f(2,jbj+iboff+i)
-                 apsi_f(3,jaj+iaoff+i)=apsi_f(3,jaj+iaoff+i)+scprwp*bpsi_f(3,jbj+iboff+i)
-                 apsi_f(4,jaj+iaoff+i)=apsi_f(4,jaj+iaoff+i)+scprwp*bpsi_f(4,jbj+iboff+i)
-                 apsi_f(5,jaj+iaoff+i)=apsi_f(5,jaj+iaoff+i)+scprwp*bpsi_f(5,jbj+iboff+i)
-                 apsi_f(6,jaj+iaoff+i)=apsi_f(6,jaj+iaoff+i)+scprwp*bpsi_f(6,jbj+iboff+i)
-                 apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+scprwp*bpsi_f(7,jbj+iboff+i)
-              enddo
-              ibseg=ibseg+1
-              if (ibseg > mbseg_f) exit loop_jaf
-           end do loop_jbf
-        enddo loop_jaf
-     end if
-!  endif
-  !        write(*,*) 'waxpy,llc,llf',llc,llf
-!!!$omp end parallel
+! fine part
 
-  !  call system_clock(ncount2,ncount_rate,ncount_max)
-  !  tel=dble(ncount2-ncount0)/dble(ncount_rate)
-  !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'waxpy:',tel
-  !  close(97)
+   iaseg0=1
 
+!$omp do schedule(static)
+          do ibseg=1,mbseg_f
+             jbj=keybv_f(ibseg)
+             jb0=keybg_f(1,ibseg)
+             jb1=keybg_f(2,ibseg)
+        
+             call hunt(keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
+             
+             jaj=keyav_f(iaseg0)
+             length = jb1-jb0
+             iaoff = jb0-keyag_f_lin(iaseg0)
+             do i=0,length
+                apsi_f(1,jaj+iaoff+i)=apsi_f(1,jaj+iaoff+i)+scprwp*bpsi_f(1,jbj+i)
+                apsi_f(2,jaj+iaoff+i)=apsi_f(2,jaj+iaoff+i)+scprwp*bpsi_f(2,jbj+i)
+                apsi_f(3,jaj+iaoff+i)=apsi_f(3,jaj+iaoff+i)+scprwp*bpsi_f(3,jbj+i)
+                apsi_f(4,jaj+iaoff+i)=apsi_f(4,jaj+iaoff+i)+scprwp*bpsi_f(4,jbj+i)
+                apsi_f(5,jaj+iaoff+i)=apsi_f(5,jaj+iaoff+i)+scprwp*bpsi_f(5,jbj+i)
+                apsi_f(6,jaj+iaoff+i)=apsi_f(6,jaj+iaoff+i)+scprwp*bpsi_f(6,jbj+i)
+                apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+scprwp*bpsi_f(7,jbj+i)
+             enddo
+          enddo 
+!$omp end do
+!$omp end parallel
+
+!!!    call system_clock(ncount2,ncount_rate,ncount_max)
+!!!    tel=dble(ncount2-ncount0)/dble(ncount_rate)
+!!!    write(97,*) 'waxpy:',tel    
+!!!    close(97)
 
 END SUBROUTINE waxpy
 
+
+
+SUBROUTINE hunt(xx,n,x,jlo)
+  implicit none
+  integer jlo,n
+  integer x,xx(n)
+  integer inc,jhi,jm
+  logical ascnd
+  
+  ascnd=xx(n).ge.xx(1)
+  
+  if(jlo.le.0.or.jlo.gt.n)then
+
+      jlo=0
+      jhi=n+1
+  
+      call locate(xx,n,x,jlo)
+       
+  else
+      inc=1
+     if(x.ge.xx(jlo).eqv.ascnd)then
+        jhi=jlo+inc
+        do while((x.ge.xx(min(jhi,n)).eqv.ascnd) .and. (jhi <= n))
+           !if(jhi.gt.n)then
+           !    jhi=n+1
+           !    exit
+           ! else
+           jlo=jhi
+           inc=inc+inc
+           jhi=jlo+inc
+           ! endif
+        end do
+        if(jhi.gt.n)then
+           jhi=n+1
+        end if
+        !print *, 'here',jlo,jhi,x,xx(min(jhi,n)),ascnd
+     else
+        jhi=jlo
+        jlo=jhi-inc
+        do while(x.lt.xx(max(jlo,1)).eqv.ascnd .and. jlo >= 1)
+           !if(jlo.lt.1)then
+           !    jlo=0
+           ! else
+           jhi=jlo
+           inc=inc+inc
+           jlo=jhi-inc
+           ! endif
+        enddo
+        if(jlo.lt.1)then
+           jlo=0
+        end if
+     endif
+     call locate(xx,n,x,jlo)
+  endif    
+END SUBROUTINE hunt
+
+
+SUBROUTINE locate(xx,n,x,j)
+  implicit none
+  integer j,n
+  integer x,xx(n)
+  integer jl,jm,ju
+
+  jl=0
+  ju=n+1
+
+  do while(ju-jl > 1)
+    jm=(ju+jl)/2
+    if((xx(n).ge.xx(1)).eqv.(x.ge.xx(jm)))then
+      jl=jm
+    else
+      ju=jm
+    endif
+  end do
+  
+  if(x.eq.xx(1))then
+    j=1
+  else if(x.eq.xx(n))then
+    j=n!-1
+  else
+    j=jl
+  endif
+END SUBROUTINE locate

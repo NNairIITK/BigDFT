@@ -1,11 +1,14 @@
-!>   Calculates the local forces acting on the atoms belonging to iproc
+!> @file
+!!  Routines to calculate the lcoal part of atomic forces
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>   Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
   use module_base
@@ -152,12 +155,9 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 END SUBROUTINE local_forces
 
 
-
 !>  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !!  belonging to iproc and adds them to the force array
-!   recalculate the projectors at the end if refill flag is .true.
-!!
-!!
+!!   recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      orbs,nlpspd,proj,wfd,psi,fsep,refill)
   use module_base
@@ -476,10 +476,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 END SUBROUTINE nonlocal_forces
 
 
-
 !>   Calculates the coefficient of derivative of projectors
-!!
-!!
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)
   implicit none
   integer, intent(in) :: l,i,m,nterm_max
@@ -2816,11 +2813,11 @@ end if
 END SUBROUTINE calc_coeff_derproj
 
 
-!!Eliminate the translational forces before calling this subroutine!!!
-!Main subroutine: Input is nat (number of atoms), rat0 (atomic positions) and fat (forces on atoms)
-!The atomic positions will be returned untouched
-!In fat, the rotational forces will be eliminated with respect to the center of mass. 
-!All atoms are treated equally (same atomic mass) 
+!> Eliminate the translational forces before calling this subroutine!!!
+!! Main subroutine: Input is nat (number of atoms), rat0 (atomic positions) and fat (forces on atoms)
+!! The atomic positions will be returned untouched
+!! In fat, the rotational forces will be eliminated with respect to the center of mass. 
+!! All atoms are treated equally (same atomic mass) 
 subroutine elim_torque_reza(nat,rat0,fat)
   use module_base
   implicit none
@@ -2902,6 +2899,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
 
 END SUBROUTINE elim_torque_reza
 
+
 subroutine cross(a,b,c)
   use module_base
   implicit none
@@ -2912,6 +2910,7 @@ subroutine cross(a,b,c)
   c(2)=a(3)*b(1)-b(3)*a(1)
   c(3)=a(1)*b(2)-b(1)*a(2)
 END SUBROUTINE cross
+
 
 subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   use module_base
@@ -2956,6 +2955,7 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   
 END SUBROUTINE moment_of_inertia
 
+
 subroutine normalizevector(n,v)
   use module_base
   implicit none
@@ -2991,7 +2991,6 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   !my variables
   real(gp):: fmax1,t1,t2,t3,fnrm1
   real(gp):: fmax2,fnrm2
-
 
   !The maximum force and force norm is computed prior to modification of the forces
   fmax1=0._gp

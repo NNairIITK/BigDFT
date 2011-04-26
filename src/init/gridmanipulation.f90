@@ -1,13 +1,16 @@
-!>   Calculates the overall size of the simulation cell 
-!!   and shifts the atoms such that their position is the most symmetric possible.
-!!   Assign these values to the global localisation region descriptor.
+!> @file
+!!  Routines to manipulate the grid
 !! @author
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>   Calculates the overall size of the simulation cell 
+!!   and shifts the atoms such that their position is the most symmetric possible.
+!!   Assign these values to the global localisation region descriptor.
 subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
   use module_base
   use module_types
@@ -20,7 +23,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
   real(gp), intent(inout) :: hx,hy,hz
   type(locreg_descriptors), intent(out) :: Glr
   real(gp), dimension(3), intent(out) :: shift
-  !local variables
+  !Local variables
   integer, parameter :: lupfil=14
   real(gp), parameter ::eps_mach=1.e-12_gp
   integer :: iat,j,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
@@ -242,6 +245,9 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
 
+  !OCL convolutions not compatible with hybrid boundary conditions
+  if (OCLConv) Glr%hybrid_on = .false.
+
   if (Glr%hybrid_on) then
      if (iproc == 0) write(*,*)'wavelet localization is ON'
   else
@@ -251,11 +257,8 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shif
 END SUBROUTINE system_size
 
 
-
 !>   Here the dimensions should be corrected in order to 
 !!   allow the fft for the preconditioner and for Poisson Solver
-!!
-!!
 subroutine correct_grid(a,h,n)
   use module_base
   use Poisson_Solver
@@ -299,10 +302,7 @@ subroutine correct_grid(a,h,n)
 END SUBROUTINE correct_grid
 
 
-
 !>   Calculates the length of the keys describing a wavefunction data structure
-!!
-!!
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   implicit none
   integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3
@@ -356,10 +356,7 @@ nend=nend+nendi
 END SUBROUTINE num_segkeys
 
 
-
 !>   Calculates the keys describing a wavefunction data structure
-!!
-!!
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   !implicit real(kind=8) (a-h,o-z)
   implicit none
@@ -408,10 +405,8 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
 END SUBROUTINE segkeys
 
 
-
 !>   set up an array logrid(i1,i2,i3) that specifies whether the grid point
 !!   i1,i2,i3 is the center of a scaling function/wavelet
-!!
 subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
   use module_base
@@ -490,7 +485,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
               do i1=max(ml1,-n1/2-1),min(mu1,n1+n1/2+1)
                  j1=modulo(i1,n1+1)
                  dx=real(i1,gp)*hx-rxyz(1,iat)
-                 if (dx**2+(dy2+dz2) <= rad**2) then 
+                 if (dx**2+(dy2+dz2)-eps_mach <= rad**2) then 
                     logrid(j1,j2,j3)=.true.
                  endif
               enddo
@@ -504,10 +499,6 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
 END SUBROUTINE fill_logrid
 
 
-
-!>
-!!
-!!
 subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -584,5 +575,3 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   end do
 
 END SUBROUTINE make_bounds
-
-

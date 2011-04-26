@@ -1,13 +1,14 @@
-!>    Calculate the array of the core density for the atom iat
+!> @file
+!!  Exact-exchange routines
 !! @author
 !!    Copyright (C) 2002-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! Author:
-!!    Luigi Genovese
-!! 
+
+
+!>    Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore)
   use module_base
@@ -48,9 +49,9 @@ subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   read(79,*)ngc
 
   allocate(rhocxp((ngc*(ngc+1)/2)+ndebug),stat=i_stat)
-  call memocc(i_stat,rhovxp,'rhocxp',subname)
+  call memocc(i_stat,rhocxp,'rhocxp',subname)
   allocate(rhocc((ngc*(ngc+1)/2),4+ndebug),stat=i_stat)
-  call memocc(i_stat,rhovc,'rhocc',subname)
+  call memocc(i_stat,rhocc,'rhocc',subname)
 
   chc=0.0_gp
   do ig=1,(ngc*(ngc+1))/2
@@ -144,23 +145,22 @@ END SUBROUTINE calc_rhocore_iat
 
 
 !> Given a charge density, calculates the exchange-correlation potential
-!!
 !! SYNOPSIS
-!!    geocode  Indicates the boundary conditions (BC) of the problem, useful for gradients
-!!            'F' free BC, isolated systems.
+!!   @param  geocode  Indicates the boundary conditions (BC) of the problem, useful for gradients
+!!          - 'F' free BC, isolated systems.
 !!                The program calculates the solution as if the given density is
 !!                "alone" in R^3 space.
-!!            'S' surface BC, isolated in y direction, periodic in xz plane                
+!!          - 'S' surface BC, isolated in y direction, periodic in xz plane                
 !!                The given density is supposed to be periodic in the xz plane,
 !!                so the dimensions in these direction mus be compatible with the FFT
 !!                Beware of the fact that the isolated direction is y!
-!!            'P' periodic BC.
+!!          - 'P' periodic BC.
 !!                The density is supposed to be periodic in all the three directions,
 !!                then all the dimensions must be compatible with the FFT.
-!!    datacode Indicates the distribution of the data of the input/output array:
-!!            'G' global data. Each process has the whole array of the density 
+!!    @param datacode Indicates the distribution of the data of the input/output array:
+!!          - 'G' global data. Each process has the whole array of the density 
 !!                and the whole array of the potential
-!!            'D' distributed data. Each process has only the needed part of the density
+!!          - 'D' distributed data. Each process has only the needed part of the density
 !!                and of the potential. 
 !!                The data distribution is such that each processor
 !!                has the xy planes needed for the calculation AND 
@@ -168,27 +168,26 @@ END SUBROUTINE calc_rhocore_iat
 !!                gradient, needed for XC part, and for the White-Bird correction, which
 !!                may lead up to 8 planes more on each side. 
 !!                Due to this fact, the information between the processors may overlap.
-!!    nproc       number of processors
-!!    iproc       label of the process,from 0 to nproc-1
-!!    n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
+!!    @param nproc       number of processors
+!!    @param iproc       label of the process,from 0 to nproc-1
+!!    @param n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
 !!                datacode is in 'G' or in 'D' position.
-!!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
+!!    @param ixc         eXchange-Correlation code. Indicates the XC functional to be used 
 !!                for calculating XC energies and potential. 
 !!                ixc=0 indicates that no XC terms are computed. 
 !!                The XC functional codes follow the ABINIT convention.
-!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
+!!    @param hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
 !!                be equal in the three directions
-!!    rho         Main input array. it represents the density values on the grid points
-!!    potxc       Main output array, the values on the grid points of the XC potential
-!!    exc,vxc     XC energy and integral of $\rho V_{xc}$ respectively
-!!    nspin       Value of the spin-polarisation
+!!    @param rho         Main input array. it represents the density values on the grid points
+!!    @param potxc       Main output array, the values on the grid points of the XC potential
+!!    @param exc,vxc     XC energy and integral of $\rho V_{xc}$ respectively
+!!    @param nspin       Value of the spin-polarisation
 !! @warning
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-!! 
 subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rho,exc,vxc,nspin,rhocore,potxc,dvxcdrho)
   use module_base
@@ -212,7 +211,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc,order
-  real(dp) :: eexcuLOC,vexcuLOC
+  real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rho_G
   real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci
@@ -390,7 +389,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vexcuLOC=0.0_dp
   end if
    
-  !the value of the shift depends on the distributed i/o or not
+  !the value of the shift depends of the distributed i/o or not
   if ((datacode=='G' .and. nproc == 1) .or. datacode == 'D') then
      !copy the relevant part of vxci on the output potxc
      call dcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
@@ -422,10 +421,25 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   !if rhocore is associated we then remove it from the charge density
+  !and subtract its contribution from the evaluation of the XC potential integral vexcu
   if (associated(rhocore)) then
      !at this stage the density is not anymore spin-polarised
      !sum the complete core density for non-spin polarised calculations
      call axpy(m1*m3*nxc,-1.0_wp,rhocore(1+m1*m3*i3xcsh_fake),1,rho(1),1)
+     vexcuRC=0.0_gp
+     do i=1,nxc*m3*m1
+        vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i)
+     end do
+     if (nspin==2) then
+        do i=1,nxc*m3*m1
+           vexcuRC=vexcuRC+rhocore(i+m1*m3*i3xcsh_fake)*potxc(i+m1*m3*nxc)
+        end do
+        !divide the results per two because of the spin multiplicity
+        vexcuRC=0.5*vexcuRC
+     end if
+     vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+     !subtract this value from the vexcu
+     vexcuLOC=vexcuLOC-vexcuRC
   end if
 
   call timing(iproc,'Exchangecorr  ','OF')
@@ -556,7 +570,6 @@ END SUBROUTINE XC_potential
 !!    The dimensions of pot_ion must be compatible with geocode, datacode,
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
-!!
 subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nspden)
 
@@ -832,7 +845,6 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 END SUBROUTINE xc_energy_new
 
 
-
 !>    Calculate the XC terms from the given density in a distributed way.
 !!    it assign also the proper part of the density to the zf array 
 !!    which will be used for the core of the FFT procedure.
@@ -887,11 +899,6 @@ END SUBROUTINE xc_energy_new
 !!    The dimensions of pot_ion must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
-!! Author:
-!!    Luigi Genovese
-!! CREATION DATE
-!!    February 2007
-!!
 subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
 
@@ -1316,12 +1323,9 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 END SUBROUTINE xc_energy
 
 
-
 !> Correct the XC potential with the White-Bird formula, to be used for the 
 !! GGA case. Works either in parallel of in serial, by proper change of the 
 !! arguments.
-!!
-!!
 subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,hx,hy,hz,dvxcdgr,wb_vxc)
   use module_base
   implicit none
@@ -1419,4 +1423,3 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   call memocc(i_stat,i_all,'f_i',subname)
 
 END SUBROUTINE vxcpostprocessing
-

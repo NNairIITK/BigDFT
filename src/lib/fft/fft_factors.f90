@@ -1,5 +1,15 @@
-!Build the possible number to perform an FFT
-!using radix of 3,4,5,6,8
+!> @file
+!!  Tool routine for FFT
+!! @author
+!!    Copyright (C) 2008-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Build the possible number to perform an FFT
+!! using radix of 3,4,5,6,8
 program fft_factors
 
   implicit none

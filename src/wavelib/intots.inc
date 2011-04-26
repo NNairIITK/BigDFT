@@ -1,6 +1,13 @@
-!> @f$VALINTS(N_GAU)=INT(X^(2*N_GAU) EXP(-X^2) dx)@f$ 
-!! FROM -INFINITY TO INFINITY    
-!! THE TOTAL SQUARED NORM OF SCFUNCTION EXPANSION COEFFICIENTS SHOULD BE EQUAL TO IT
+!> @file
+!! @f$VALINTS(N_GAU)=INT(X^(2*N_GAU) EXP(-X^2) dx)@f$ 
+!! from @f$-\infty@f$ TO @f$\infty@f$
+!! The total squared norm of scfunction expansion coefficients should be equal to it
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 
   real(gp), parameter :: valints(0:6) = (/& 
        1.7724538509055160272981674834_gp,0.8862269254527580136490837417_gp,&

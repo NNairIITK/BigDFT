@@ -1,12 +1,12 @@
-!> BigDFT/psitransspi
-!!
+!> @file
+!!  Routines of transposition for wavefunctions
 !! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
+ 
 subroutine psitransspi(nvctrp,orbs,psi,forward)
   use module_base
   use module_types
@@ -95,8 +95,7 @@ subroutine psitransspi(nvctrp,orbs,psi,forward)
 END SUBROUTINE psitransspi
 
 
-
-!transposition of the arrays, variable version (non homogeneous)
+!> Transposition of the arrays, variable version (non homogeneous)
 subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
      work,outadd) !optional
   use module_base
@@ -147,6 +146,7 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
 
 END SUBROUTINE transpose_v
 
+
 subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
      work,outadd) !optional
   use module_base
@@ -158,7 +158,7 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
   type(communications_arrays), intent(in) :: comms
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: psi
   real(wp), dimension(:), pointer, optional :: work
-  real(wp), dimension(*), intent(out), optional :: outadd
+  real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
   !local variables
   integer :: ierr
 
@@ -280,6 +280,7 @@ subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
      ispsi=ispsi+orbs%nspinor*nvctr*norbp_kpt
   end do
 END SUBROUTINE switch_waves_v
+
 
 subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
   use module_base

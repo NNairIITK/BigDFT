@@ -1,13 +1,15 @@
-!>  Test the input files and estimates the memory occupation versus the number
-!!  of processors
-!!
-!! @author Luigi Genovese
-!!   Copyright (C) 2007-2011 BigDFT group
+!> @file
+!!   Program to guess the used memory by BigDFT
+!! @author
+!!   Copyright (C) 2007-2011 BigDFT group (LG)
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Test the input files and estimates the memory occupation versus the number
+!!  of processors
 program memguess
 
   use module_base
@@ -189,8 +191,9 @@ program memguess
      call dft_input_converter(in)
      write(*,*)' ...done'
   else
-     call read_input_variables(0, "posinp", "input.dft", "input.kpt","input.mix", &
-          & "input.geopt", "input.perf", in, atoms, rxyz)
+     !standard names
+     call standard_inputfile_names(in)
+     call read_input_variables(0, "posinp", in, atoms, rxyz)
      !initialize memory counting
      !call memocc(0,0,'count','start')
   end if
@@ -294,7 +297,7 @@ program memguess
 
   ! Build and print the communicator scheme.
   call createWavefunctionsDescriptors(0,hx,hy,hz,&
-       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr)
+       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
   if (GPUtest .and. .not. GPUconv) then
@@ -315,7 +318,7 @@ program memguess
      norbd=0
      nspinor=1
 
-     call orbitals_descriptors(0,nproc,norb,norbu,norbd,nspinor, &
+     call orbitals_descriptors(0,nproc,norb,norbu,norbd,in%nspin,nspinor, &
           & in%nkpt,in%kpt,in%wkpt,orbstst)
      allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
      call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
@@ -429,10 +432,9 @@ program memguess
   call deallocate_proj_descr(nlpspd,subname)
   call deallocate_atoms_scf(atoms,subname) 
 
-  call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-       atoms%alat1,atoms%alat2,atoms%alat3,&
-       hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
-       orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
+  call MemoryEstimator(nproc,in%idsx,Glr,&
+       atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+       in%nspin,in%itrpmax,in%iscf,peakmem)
 
   !add the comparison between cuda hamiltonian and normal one if it is the case
 
@@ -458,13 +460,8 @@ program memguess
 end program memguess
 
   
-
 !>  Rotate the molecule via an orthogonal matrix in order to minimise the
 !!  volume of the cubic cell
-!!
-!! @author Stefan Goedecker, Luigi Genovese
-!!
-!!
 subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   use module_base
   use module_types
@@ -574,10 +571,6 @@ END SUBROUTINE optimise_volume
 
 !>  Add a shift in the periodic directions such that the system
 !!  uses as less as possible the modulo operation
-!!
-!! @author Luigi Genovese
-!!
-!!
 subroutine shift_periodic_directions(at,rxyz,radii_cf)
   use module_base
   use module_types
@@ -1119,9 +1112,8 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 END SUBROUTINE compare_data_and_gflops
 
+
 !>    Read the input variables in the file 'input.dat', old format.
-!!
-!!
 subroutine read_input_variables_old(iproc,filename,in)
   use module_base
   use module_types
@@ -1311,10 +1303,7 @@ contains
 END SUBROUTINE read_input_variables_old
 
 
-
 !>  Convert the format of input variables
-!!
-!!
 subroutine dft_input_converter(in)
   use module_base
   use module_types
@@ -1408,4 +1397,3 @@ subroutine dft_input_converter(in)
    
   close(unit=1)
 END SUBROUTINE dft_input_converter
-

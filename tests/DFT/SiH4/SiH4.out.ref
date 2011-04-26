@@ -26,34 +26,40 @@
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
- Reading atomic input positions from file:posinp.ascii
- File 'myparameters' is missing... using default values:
-   Input guess: direct diagonalization of Hamiltonian
-   Orthogonalization method: Cholesky
 
- Performance options (file 'input.perf' not present):
- |   'debug' option disabled
- |   'fftcache' = 8192
+ --- (file: input.perf -- not present) -------------------------- Performance Options
+ |   debug                   !Option disabled
+ |   fftcache 8192           !Cache size for the FFT
+ |   accel                   !Acceleration (NO, CUDAGPU, OCLGPU)
+ |   blas F                  !CUBLAS acceleration
+ |   projrad  15.00          !Radius of the projector as a function of the maxrad
+ |   exctxpar BC             !Exact exchange parallelisation scheme
+ |   ig_diag T               !Input guess: Direct diagonalization of Hamiltonian
+ |   ig_blocks 800 11116     !Input guess: Block size for orthonormalisation
+ |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
 
- ---------------------------------------------------------------- Input atomic system
+ --- (file: posinp.ascii) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
  Bound. C.= F             | No fixed atom            | N. sym.   = free BC     
  N. types =     2         |                          | Sp. group = free BC     
  N. atoms =     5         |                          | Virt. orb.= none        
  Types    = 'Si', 'H'     |                          | Plot dens.= none        
                           |                          | Spin pol. = no          
- ------------------------------------------------------------- Geopt Input Parameters
+ --- (file: input.geopt) ------------------------------------- Geopt Input Parameters
        Generic param.              Geo. optim.                MD param.
        Max. steps=      5 | Fluct. in forces=1.0E+00 |           ionmov=     -1
         algorithm=SDCG    |   Max. in forces=0.0E+00 |            dtion=     0.
  random at.displ.=0.0E+00 |   steep. descent=4.0E+00 |
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=     11 |    Fine Wfs.= 8.00 | Max. N. Iter.=   10x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Input wf. policy=    0 (LCAO          ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
      Si          4      10            1.80603  0.43563  0.93364         X              
@@ -98,7 +104,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -141,7 +147,8 @@
  Hamiltonian application... done. ekin_sum,eks:       5.0237812704       5.0225194919
  ekin_sum,epot_sum,eproj_sum  5.02378127043E+00 -7.89137339235E+00  8.74950283601E-01
     ehart,   eexcu,    vexcu  1.12186349378E+01 -2.67140759016E+00 -3.44314794589E+00
- Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
+ Input Wavefunctions Orthogonalization: 
+ Overlap Matrix... Direct diagonalization...
  evale(1)= -4.98848660956293E-01 <-
  evale(2)= -2.96722074331401E-01 <-
  evale(3)= -2.96722074331391E-01 <-
@@ -264,12 +271,14 @@
  Begin of minimization using  SDCG      
  # ENTERING CG
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=     11 |    Fine Wfs.= 8.00 | Max. N. Iter.=   10x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
      Si          4      10            1.80603  0.43563  0.93364         X              
@@ -314,7 +323,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -380,12 +389,14 @@
  FORCES norm(Ha/Bohr): maxval=   9.34089E-05 fnrm=   3.40476E-08 fluct=   2.12286E-05
     1     1  GEOPT_SD    -6.26982277971635E+00  -6.27E+00  9.341E-05  1.85E-04  2.12E-05  2.12E-05  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=     11 |    Fine Wfs.= 8.00 | Max. N. Iter.=   10x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
      Si          4      10            1.80603  0.43563  0.93364         X              
@@ -430,7 +441,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -514,12 +525,14 @@
  FORCES norm(Ha/Bohr): maxval=   2.63275E-05 fnrm=   1.79348E-09 fluct=   2.09812E-05
     2     2  GEOPT_SD    -6.26982286428925E+00  -8.46E-08  2.633E-05  4.23E-05  2.10E-05  2.10E-05  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=     11 |    Fine Wfs.= 8.00 | Max. N. Iter.=   10x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
      Si          4      10            1.80603  0.43563  0.93364         X              
@@ -564,7 +577,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -639,12 +652,14 @@
  FORCES norm(Ha/Bohr): maxval=   5.55306E-06 fnrm=   9.40823E-11 fluct=   2.16478E-05
     3     3  GEOPT_SD    -6.26982286774313E+00  -3.45E-09  5.553E-06  9.70E-06  2.16E-05  2.16E-05  b/b0= 1.00E+0  nsat= 0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=     11 |    Fine Wfs.= 8.00 | Max. N. Iter.=   10x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
      Si          4      10            1.80603  0.43563  0.93364         X              
@@ -689,7 +704,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -762,12 +777,14 @@
  raw forces:                  maxval=  4.420538223198E-05  fnrm2=  2.674442866971E-09
  CPU time/ELAPSED time for root process     0         5.14         5.13
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=     11 |    Fine Wfs.= 8.00 | Max. N. Iter.=   10x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
      Si          4      10            1.80603  0.43563  0.93364         X              
@@ -812,7 +829,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -887,12 +904,14 @@
     5     1  GEOPT_CG    -6.26982286869421E+00  -9.51E-10  4.227E-06  7.92E-06  2.22E-05  2.22E-05  b/b0= 7.48E-1
  FORCES norm(Ha/Bohr): maxval=   4.22680E-06 fnrm=   6.28015E-11 fluct=   2.21978E-05
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=     11 |    Fine Wfs.= 8.00 | Max. N. Iter.=   10x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
      Si          4      10            1.80603  0.43563  0.93364         X              
@@ -937,7 +956,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22
@@ -1010,12 +1029,14 @@
  raw forces:                  maxval=  2.038941037407E-05  fnrm2=  1.369418622045E-09
  CPU time/ELAPSED time for root process     0         5.12         5.11
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
- ------------------------------------------------------------------- Input Parameters
+ --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   F
         XC id=     11 |    Fine Wfs.= 8.00 | Max. N. Iter.=   10x10 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Input wf. policy=    1 (wvl. in mem.  ) |  Output wf. policy=     0 (none        )
+ Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
      Si          4      10            1.80603  0.43563  0.93364         X              
@@ -1060,7 +1081,7 @@
  Type    Name Number of atoms Number of projectors
     1      Si               1                    5
     2       H               4                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    5
  Total number of components =               163790
  Percent of zero components =                   22

@@ -1,3 +1,12 @@
+!> @file
+!!  Daubechies ??
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
        integer, parameter :: N=8
        real(wp), parameter :: W(-N:N) = (/0.0_wp,&
          2.72734492911979659657715313017228e-6_wp,&
@@ -16,3 +25,4 @@
        -0.00001290557201342060969516786758559028_wp,&
        8.4334247333529341094733325815816e-7_wp&
        /)
+

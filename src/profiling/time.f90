@@ -1,13 +1,14 @@
-!>    Contains variables used a timing for BigDFT
-!!
+!> @file
+!!  Define routines for timing
 !! @author
 !!    Copyright (C) 2010, BigDFT group (Luigi Genovese)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
+
+
+!>    Contains variables used a timing for BigDFT
 module timeData
 
   implicit none
@@ -22,8 +23,7 @@ module timeData
 end module timeData
 
 
-
-!the same timing routine but with system_clock (in case of a supported specs)
+!> The same timing routine but with system_clock (in case of a supported specs)
 subroutine timing(iproc,category,action)
   use timeData
 
@@ -42,27 +42,27 @@ subroutine timing(iproc,category,action)
   real(kind=8) :: pc,total_pc,total
 
   character(len=14), dimension(ncat), parameter :: cats = (/ &
-       'ReformatWaves '    ,  &  !  Reformatting of input waves
-       'CrtDescriptors'    ,  &  !  Calculation of descriptor arrays
-       'CrtLocPot     '    ,  &  !  Calculation of local potential
-       'CrtProjectors '    ,  &  !  Calculation of projectors
-       'ApplyLocPotKin'    ,  &  !  Application of PSP, kinetic energy
-       'ApplyProj     '    ,  &  !  Application of nonlocal PSP
-       'Precondition  '    ,  &  !  Precondtioning
-       'Rho_comput    '    ,  &  !  Calculation of charge density (sumrho) computation
-       'Rho_commun    '    ,  &  !  Calculation of charge density (sumrho) communication
-       'Un-TransSwitch'    ,  &  !  Transposition of wavefunction, computation
-       'Un-TransComm  '    ,  &  !  Transposition of wavefunction, communication
-       'GramS_comput  '    ,  &  !  Gram Schmidt computation        
-       'GramS_commun  '    ,  &  !  Gram Schmidt communication
-       'LagrM_comput  '    ,  &  !  Lagrange Multipliers computation
-       'LagrM_commun  '    ,  &  !  Lagrange Multipliers communication
-       'Diis          '    ,  &  !
-       'PSolv_comput  '    ,  &  !
-       'PSolv_commun  '    ,  &  !
-       'PSolvKernel   '    ,  &  !
-       'Exchangecorr  '    ,  &  !
-       'Forces        '    ,  &  !
+       'ReformatWaves '    ,  &  !< Reformatting of input waves
+       'CrtDescriptors'    ,  &  !< Calculation of descriptor arrays
+       'CrtLocPot     '    ,  &  !< Calculation of local potential
+       'CrtProjectors '    ,  &  !< Calculation of projectors
+       'ApplyLocPotKin'    ,  &  !< Application of PSP, kinetic energy
+       'ApplyProj     '    ,  &  !< Application of nonlocal PSP
+       'Precondition  '    ,  &  !< Precondtioning
+       'Rho_comput    '    ,  &  !< Calculation of charge density (sumrho) computation
+       'Rho_commun    '    ,  &  !< Calculation of charge density (sumrho) communication
+       'Un-TransSwitch'    ,  &  !< Transposition of wavefunction, computation
+       'Un-TransComm  '    ,  &  !< Transposition of wavefunction, communication
+       'GramS_comput  '    ,  &  !< Gram Schmidt computation        
+       'GramS_commun  '    ,  &  !< Gram Schmidt communication
+       'LagrM_comput  '    ,  &  !< Lagrange Multipliers computation
+       'LagrM_commun  '    ,  &  !< Lagrange Multipliers communication
+       'Diis          '    ,  &  
+       'PSolv_comput  '    ,  &  
+       'PSolv_commun  '    ,  &  
+       'PSolvKernel   '    ,  &  
+       'Exchangecorr  '    ,  &  
+       'Forces        '    ,  &  
        'Tail          '    ,  &
        'Loewdin_comput'    ,  &
        'Loewdin_commun'    ,  &
@@ -72,7 +72,7 @@ subroutine timing(iproc,category,action)
        'GS/Chol_commun'    ,  &
        'Input_comput  '    ,  &
        'Input_commun  '    ,  &
-       'Davidson      '    /)    !
+       'Davidson      '    /)
 
   !first of all, read the time
   call system_clock(itime,count_rate,count_max)

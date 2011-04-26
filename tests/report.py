@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 18/12/2010
+# Date: 28/03/2011
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -19,9 +19,21 @@ def callback(pattern,dirname,names):
         if fnmatch.fnmatch(name,pattern):
             files.append(os.path.join(dirname,name))
 
-#Liste of files
+#List of files
 files = []
 os.path.walk(".",callback,"*.report")
+#Sort files
+files.sort()
+
+#Check if the output is a tty to print in colour
+if sys.stdout.isatty():
+    start_fail = "\033[0;31m"
+    start_success = "\033[0;32m"
+    end = "\033[m"
+else:
+    start_fail = ""
+    start_success = ""
+    end = ""
 
 Exit = 0
 print "Final report:"
@@ -34,14 +46,12 @@ for file in files:
     if discrepancy:
         discrepancy = float(discrepancy[0])
         if discrepancy <= max_discrepancy:
-            start = "\033[0;32m"
+            start = start_success
             state = "%7.1e < (%7.1e) succeeded" % (discrepancy,max_discrepancy)
-            end = "\033[m"
         else:
-            start = "\033[0;31m"
+            start = start_fail
             state = "%7.1e > (%7.1e)    failed" % (discrepancy,max_discrepancy)
-            end = "\033[m"
             Exit = 1
-        print "%s%-20s %-28s %s%s" % (start,dir,fic,state,end)
+        print "%s%-23s %-28s %s%s" % (start,dir,fic,state,end)
 #Error code
 sys.exit(Exit)

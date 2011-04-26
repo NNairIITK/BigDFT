@@ -1,12 +1,14 @@
-!>   Module to handle diagonalization scheme
-!!
+!> @file
+!!  Routine to handle Lanczos diagonalisation
 !! @author
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>   Module to handle diagonalization scheme
 module lanczos_base
   use module_base
   implicit none
@@ -901,22 +903,22 @@ contains
        subroutine EP_initialize_start()
        END SUBROUTINE 
        subroutine EP_normalizza(i)
-         integer :: i
+         integer, intent(in) :: i
        END SUBROUTINE 
        subroutine EP_Moltiplica4spectra(i,j, ene, gamma)
          use module_base
-         integer :: i,j
+         integer, intent(in) :: i,j
          real(gp) :: ene, gamma
        END SUBROUTINE 
        real(kind=8) function EP_scalare(i,j)
-         integer :: i,j
+         integer, intent(in) :: i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
-         integer :: i,j
-         real(kind=8) :: a
+         integer, intent(in) :: i,j
+         real(kind=8), intent(in) :: a
        END SUBROUTINE 
        subroutine EP_copy(i,j)
-         integer :: i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE
        subroutine EP_multbyfact(j, fact)
          use module_base
@@ -1010,4 +1012,3 @@ contains
   END function LB_cg
 
 END MODULE lanczos_base
-

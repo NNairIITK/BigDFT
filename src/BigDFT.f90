@@ -1,11 +1,14 @@
-!>  Main program to calculate electronic structures
+!> @file
+!! BigDFT package performing ab initio calculation based on wavelets
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!>  Main program to calculate electronic structures
 program BigDFT
 
   use module_base
@@ -13,11 +16,10 @@ program BigDFT
   use module_interfaces
   use ab6_symmetry
 
-  !as a general policy, we'll have "implicit none" by assuming the same
-  !name convention as "implicit real(kind=8) (a-h,o-z)"
+  implicit none     !< As a general policy, we will have "implicit none" by assuming the same
+                    !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
-  implicit none
-  character(len=*), parameter :: subname='BigDFT'
+  character(len=*), parameter :: subname='BigDFT' !< Use by memocc routine (timing)
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
   integer :: ncount_bigdft
   real(gp) :: etot,sumx,sumy,sumz,fnoise
@@ -73,8 +75,9 @@ program BigDFT
      if (iproc==0) call print_logo()
 
      ! Read all input files.
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt","input.mix","input.geopt", "input.perf", inputs, atoms, rxyz)
+     !standard names
+     call standard_inputfile_names(inputs)
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      if (iproc == 0) then
         call print_general_parameters(inputs,atoms)
      end if
@@ -123,12 +126,12 @@ program BigDFT
            sumy=sumy+fxyz(2,iat)
            sumz=sumz+fxyz(3,iat)
         enddo
-!!$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-!!$           write(*,'(1x,a)')'the sum of the forces is'
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-!!$        end if
+!$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
+!$$           write(*,'(1x,a)')'the sum of the forces is'
+!$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+!$$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+!$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+!$$        end if
      endif
 
      call deallocate_atoms(atoms,subname) 
@@ -150,6 +153,9 @@ program BigDFT
   enddo !loop over iconfig
 
   deallocate(arr_posinp)
+
+  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   call MPI_FINALIZE(ierr)
 

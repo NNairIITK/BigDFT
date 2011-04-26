@@ -1,17 +1,14 @@
-!*****************************************************************************************
-!!****p* BigDFT/BigDFT
-!! FUNCTION
-!!  Main program to calculate electronic structures
-!!
-!! COPYRIGHT
+!> @file
+!! Contains routines for the executable splined_saddle
+!! @author
 !!    Copyright (C) 2007-2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>  Program splined_saddle ??
 program splined_saddle
 
   use module_base
@@ -81,8 +78,9 @@ program splined_saddle
      if (iproc==0) call print_logo()
 
      ! Read all input files.
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", inputs, atoms, rxyz)
+     !standard names
+     call standard_inputfile_names(inputs)
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      !-----------------------------------------------------------
      !-----------------------------------------------------------
      if (iproc == 0) then
@@ -175,60 +173,61 @@ program splined_saddle
   call MPI_FINALIZE(ierr)
 
 end program splined_saddle
-!!***
-!*****************************************************************************************
+
+
+!> Module minimization_sp for splined saddle
 module minimization_sp
     type parameterminimization_sp
         !general parameters for all methods
         integer::ifile=6
         character(10)::approach='unknown'
-        real(8)::fmaxtol=-1.d0
-        real(8)::eps=1.d-5
+        real(kind=8)::fmaxtol=-1.d0
+        real(kind=8)::eps=1.d-5
         integer::iter=0
         integer::iflag=0
         logical::converged
-        real(8)::epotitm1
-        real(8)::avgalpha
-        real(8)::avgnum
+        real(kind=8)::epotitm1
+        real(kind=8)::avgalpha
+        real(kind=8)::avgnum
         integer::iprint=1
 
         !parameters for SD and SDDIIS
-        real(8)::alpha=-1.d0
-        real(8)::alphax=-1.d0
+        real(kind=8)::alpha=-1.d0
+        real(kind=8)::alphax=-1.d0
         integer::maxforcecall=10000
-        real(8)::anoise=-1.d0
+        real(kind=8)::anoise=-1.d0
 
         !parameters for SD
         integer::itsd
         integer::nitsd=-1
         integer::nsatur=-1
         integer::isatur
-        real(8)::alphamin=-1.d0
-        real(8)::alphamax=-1.d0
-        real(8)::fnrmtolsatur=-1.d0
-        real(8)::epotitm2
-        real(8)::fnrmitm1
-        real(8)::fnrmitm2
+        real(kind=8)::alphamin=-1.d0
+        real(kind=8)::alphamax=-1.d0
+        real(kind=8)::fnrmtolsatur=-1.d0
+        real(kind=8)::epotitm2
+        real(kind=8)::fnrmitm1
+        real(kind=8)::fnrmitm2
         logical::sdsaturated
         logical::sdminimum
         logical::care
 
         !parameters for FIRE
-        real(8)::dt=-1.d0
-        real(8)::dtmax=-1.d0
-        real(8)::finc=-1.d0
-        real(8)::fdec=-1.d0
-        real(8)::falpha=-1.d0
-        real(8)::alphastart=-1.d0
+        real(kind=8)::dt=-1.d0
+        real(kind=8)::dtmax=-1.d0
+        real(kind=8)::finc=-1.d0
+        real(kind=8)::fdec=-1.d0
+        real(kind=8)::falpha=-1.d0
+        real(kind=8)::alphastart=-1.d0
         integer::ndowntol=-1
         integer::itfire=0
 
         !parameters for DIIS
         integer::idsx
         integer, allocatable::ipiv(:)
-        real(8), allocatable::a(:,:,:),b(:)
-        real(8)::emin
-        real(8)::fnrmlowest
+        real(kind=8), allocatable::a(:,:,:),b(:)
+        real(kind=8)::emin
+        real(kind=8)::fnrmlowest
         logical::diisminimum
         logical::diisdivergence
         integer::itdiis
@@ -241,47 +240,49 @@ module minimization_sp
 
         !parameters for line search routine
         integer::maxfev=20
-        real(8)::ftol=1.d-4
-        real(8)::gtol=9.d-1
-        real(8)::stpmin=1.d-20
-        real(8)::stpmax=1.d+20
-        !real(8)::xtol=epsilon(xtol)
+        real(kind=8)::ftol=1.d-4
+        real(kind=8)::gtol=9.d-1
+        real(kind=8)::stpmin=1.d-20
+        real(kind=8)::stpmax=1.d+20
+        !real(kind=8)::xtol=epsilon(xtol)
         integer::info
     end type parameterminimization_sp
 end module minimization_sp
-!*****************************************************************************************
+
+
+!> Module used by the program splined_saddle
 module modulesplinedsaddle
     type parametersplinedsaddle 
         !integer, parameter::npmax=20
         !integer::napmax=50
-        real(8)::s(0:200)
-        real(8)::h(200)
-        real(8)::c(0:200)
-        real(8)::y(0:200)
-        real(8)::e1(200-1)
-        real(8)::e2(200-2)
-        real(8)::cv(0:50)
-        real(8)::ex(0:50)
-        real(8)::exd(0:50)
-        real(8)::sv(0:50)
-        real(8)::e1v(49)
-        real(8)::e2v(48)
-        real(8)::hv(50)
-        real(8)::a(50)
-        real(8)::b(50)
-        real(8)::tmax
-        real(8)::htol=1.d-6  !1.d-6
-        real(8)::vdtol=1.d-5  !1.d-10
-        real(8)::exends(2)
-        real(8)::exends_b(2)
+        real(kind=8)::s(0:200)
+        real(kind=8)::h(200)
+        real(kind=8)::c(0:200)
+        real(kind=8)::y(0:200)
+        real(kind=8)::e1(200-1)
+        real(kind=8)::e2(200-2)
+        real(kind=8)::cv(0:50)
+        real(kind=8)::ex(0:50)
+        real(kind=8)::exd(0:50)
+        real(kind=8)::sv(0:50)
+        real(kind=8)::e1v(49)
+        real(kind=8)::e2v(48)
+        real(kind=8)::hv(50)
+        real(kind=8)::a(50)
+        real(kind=8)::b(50)
+        real(kind=8)::tmax
+        real(kind=8)::htol=1.d-6  !1.d-6
+        real(kind=8)::vdtol=1.d-5  !1.d-10
+        real(kind=8)::exends(2)
+        real(kind=8)::exends_b(2)
         integer::ifile=6
         integer::ns=2
         integer::ns2=0  !45
         integer::npv
         integer::ncount_ll
         integer::ncount
-        real(8)::time_ll
-        real(8)::time
+        real(kind=8)::time_ll
+        real(kind=8)::time
         logical::granot
         character(20)::hybrid
         character(20)::doneb
@@ -291,7 +292,8 @@ module modulesplinedsaddle
         character(10)::typintpol
     end type parametersplinedsaddle
 end module modulesplinedsaddle
-!*****************************************************************************************
+
+
 subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,ncount_bigdft)
     use module_base
     use module_interfaces, except_this_one => geopt
@@ -305,7 +307,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     type(input_variables)::ll_inputs
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
-    real(8), allocatable::fends(:,:),x_bigdft(:)
+    real(kind=8), allocatable::fends(:,:),x_bigdft(:)
     real(gp), dimension(:,:), allocatable :: rxyz_2
     real(gp), dimension(:,:), allocatable :: x,f,xneb,fneb,rxyz_tmp,x_t
     integer :: np,np_neb,np_t,iat,ifile
@@ -313,7 +315,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     real(gp) ::epot_sp,ratsp(3,atoms%nat),fatsp(3,atoms%nat),fnoise
     character(len=20) :: tatonam
     integer::n,nr,istat,infocode,ixyz,i,mm1,mm2,mm3
-    real(8)::fnrm,fnrm1,fnrm2,tt1,tt2,tt3,time1,time2
+    real(kind=8)::fnrm,fnrm1,fnrm2,tt1,tt2,tt3,time1,time2
     type(parametersplinedsaddle)::pnow
     !character(50)::ssm
     character(len=20)::filename
@@ -334,7 +336,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         ixyz=mod(i-1,3)+1
         if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) nr=nr+1
     enddo
-    if(iproc==0) write(*,*) 'DOF: n,nr ',n,nr
+    if(iproc==0) write(*,'(a,i0,1x,i0)') 'DOF: n,nr ',n,nr
     !---------------------------------------------------------------------------
     call readinputsplsad(iproc,np,np_neb,parmin,parmin_neb,pnow)
     if(iproc==0)    then
@@ -524,15 +526,16 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     deallocate(fends,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating fends.'
     deallocate(x_bigdft,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating x_bigdft.'
 end subroutine givemesaddle
-!*****************************************************************************************
+
+
 subroutine change_np(n,np1,x1,atoms,np2,x2)
     use module_types
     !use modulesplinedsaddle, only:parametersplinedsaddle
     !use energyandforces, only:calenergyforces
     implicit none
     integer::n,np1,np2,i,ip,mp,iat,ixyz
-    real(8)::x1(n,0:np1),x2(n,0:np2)
-    real(8)::s(0:100),h(100),y(0:100),e1(200-1),e2(200-2),c(0:200),tt,dt,ed_tt,edd_tt
+    real(kind=8)::x1(n,0:np1),x2(n,0:np2)
+    real(kind=8)::s(0:100),h(100),y(0:100),e1(200-1),e2(200-2),c(0:200),tt,dt,ed_tt,edd_tt
     type(atoms_data), intent(inout) :: atoms
     logical::move_this_coordinate
     !x_t(1:n,0:np)=x(1:n,0:np)
@@ -570,7 +573,8 @@ subroutine change_np(n,np1,x1,atoms,np2,x2)
     !allocate(f(n,0:np+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating f'
     !call dmemocc(n*(np+1),n*(np+1+ndeb2),f,'f')
 end subroutine change_np
-!*****************************************************************************************
+
+
 subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces, except_this_one => geopt
@@ -579,9 +583,9 @@ subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     !use energyandforces, only:calenergyforces
     implicit none
     integer::n,nr,np,i,ip,istat,npv,nproc,iproc,mp,lp,iat,ixyz,iter,ncount_bigdft,infocode
-    real(8)::x(n,0:np),fends(n,2),time1,time2 !,f(n,0:np),calnorm
-    real(8)::ed_tt,edd_tt,tarr(100),diff,dt,proj,epot,fnrm,fnoise
-    real(8), allocatable::xt(:),ft(:)
+    real(kind=8)::x(n,0:np),fends(n,2),time1,time2 !,f(n,0:np),calnorm
+    real(kind=8)::ed_tt,edd_tt,tarr(100),diff,dt,proj,epot,fnrm,fnoise
+    real(kind=8), allocatable::xt(:),ft(:)
     type(atoms_data), intent(inout) :: atoms
     type(input_variables), intent(inout) :: ll_inputs
     type(restart_objects), intent(inout) :: rst
@@ -660,7 +664,8 @@ subroutine improvepeak(n,nr,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     deallocate(xt,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating xt.'
     deallocate(ft,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating ft.'
 end subroutine improvepeak
-!*****************************************************************************************
+
+
 subroutine pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces, except_this_one => geopt
@@ -669,15 +674,15 @@ subroutine pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
     !use energyandforces, only:calenergyforces
     implicit none
     integer::n,np,i,ip,istat,npv,nproc,iproc,mp,ncount_bigdft,ixyz,iat,icycle,ncycle
-    real(8)::x(n,0:np),fends(n,2) !,f(n,0:np),calnorm
+    real(kind=8)::x(n,0:np),fends(n,2) !,f(n,0:np),calnorm
     type(atoms_data), intent(inout) :: atoms
     type(input_variables), intent(inout) :: ll_inputs
     type(restart_objects), intent(inout) :: rst
-    real(8)::tt,t1,t2,ed_tt,edd_tt,dt
-    real(8), allocatable::xt(:),ft(:)
+    real(kind=8)::tt,t1,t2,ed_tt,edd_tt,dt
+    real(kind=8), allocatable::xt(:),ft(:)
     type(parametersplinedsaddle)::pnow,pold
-    real(8)::ttmin,ttmax,emin,e1,e2,exo(0:100),exn(0:100),area,areatot
-    real(8)::s_t(0:100)
+    real(kind=8)::ttmin,ttmax,emin,e1,e2,exo(0:100),exn(0:100),area,areatot
+    real(kind=8)::s_t(0:100)
     integer, parameter::ndeb1=0,ndeb2=0
     logical::move_this_coordinate
     if(mod(np+pnow%ns2,2)==0) then
@@ -798,7 +803,8 @@ subroutine pickbestanchors2(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
     deallocate(xt,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating xt.'
     deallocate(ft,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating ft.'
 end subroutine pickbestanchors2
-!*****************************************************************************************
+
+
 subroutine pickbestanchors(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces, except_this_one => geopt
@@ -807,12 +813,12 @@ subroutine pickbestanchors(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
     !use energyandforces, only:calenergyforces
     implicit none
     integer::n,np,i,ip,istat,npv,nproc,iproc,mp,ncount_bigdft,ixyz,iat
-    real(8)::x(n,0:np),fends(n,2) !,f(n,0:np),calnorm
+    real(kind=8)::x(n,0:np),fends(n,2) !,f(n,0:np),calnorm
     type(atoms_data), intent(inout) :: atoms
     type(input_variables), intent(inout) :: ll_inputs
     type(restart_objects), intent(inout) :: rst
-    real(8)::ed_tt,edd_tt,tarr(100),diff,dt
-    real(8), allocatable::xt(:),ft(:)
+    real(kind=8)::ed_tt,edd_tt,tarr(100),diff,dt
+    real(kind=8), allocatable::xt(:),ft(:)
     type(parametersplinedsaddle)::pnow,pold
     integer, parameter::ndeb1=0,ndeb2=0
     logical::move_this_coordinate
@@ -859,7 +865,8 @@ subroutine pickbestanchors(n,np,x,fends,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
     deallocate(xt,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating xt.'
     deallocate(ft,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating ft.'
 end subroutine pickbestanchors
-!*****************************************************************************************
+
+
 subroutine readinputsplsad(iproc,np,np_neb,parmin,parmin_neb,pnow)
     use minimization_sp, only:parameterminimization_sp
     use modulesplinedsaddle, only:parametersplinedsaddle
@@ -1001,7 +1008,8 @@ subroutine readinputsplsad(iproc,np,np_neb,parmin,parmin_neb,pnow)
         write(*,*) '-----------------------------------------------------------'
     endif
 end subroutine readinputsplsad
-!*****************************************************************************************
+
+
 subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces, except_this_one => geopt
@@ -1015,10 +1023,10 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::n,nr,np,ip,icall,istat,it,nwork
-    real(8)::x(n,0:np),f(n,0:np)
-    real(8)::fnrm,fspmax,fnrmtot
-    real(8), allocatable::work(:)
-    real(8), allocatable::xa(:,:),fa(:,:)
+    real(kind=8)::x(n,0:np),f(n,0:np)
+    real(kind=8)::fnrm,fspmax,fnrmtot
+    real(kind=8), allocatable::work(:)
+    real(kind=8), allocatable::xa(:,:),fa(:,:)
     type(parameterminimization_sp)::parmin
     type(parametersplinedsaddle)::pnow,pold
     integer, parameter::ndeb1=0,ndeb2=0
@@ -1207,13 +1215,14 @@ subroutine neb(n,nr,np,x,f,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bi
     write(*         ,'(a,1x,a)') 'end of minimization_sp using ',parmin%approach
     endif
 end subroutine neb
-!*****************************************************************************************
+
+
 subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::n,nr,i,iat,ixyz,ir
-    real(8)::x(n),xa(nr)
+    real(kind=8)::x(n),xa(nr)
     logical::move_this_coordinate
     ir=0
     do i=1,3*atoms%nat
@@ -1226,13 +1235,14 @@ subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
     enddo
     if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
 end subroutine atomic_copymoving_forward
-!*****************************************************************************************
+
+
 subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::n,nr,i,iat,ixyz,ir
-    real(8)::x(n),xa(nr)
+    real(kind=8)::x(n),xa(nr)
     logical::move_this_coordinate
     ir=0
     do i=1,3*atoms%nat
@@ -1245,13 +1255,14 @@ subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
     enddo
     if(ir/=nr) stop 'ERROR: inconsistent number of relaxing DOF'
 end subroutine atomic_copymoving_backward
-!*****************************************************************************************
+
+
 subroutine calmaxforcecomponentsub(atoms,f,fnrm,fspmax)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::i,iat,ixyz
-    real(8)::f(3*atoms%nat),fnrm,fspmax
+    real(kind=8)::f(3*atoms%nat),fnrm,fspmax
     logical::move_this_coordinate
     fspmax=0.d0
     fnrm=0.d0
@@ -1265,13 +1276,14 @@ subroutine calmaxforcecomponentsub(atoms,f,fnrm,fspmax)
     enddo
     fnrm=sqrt(fnrm)
 end subroutine calmaxforcecomponentsub
-!*****************************************************************************************
+
+
 subroutine calmaxforcecomponentanchors(atoms,np,f,fnrm,fspmax)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::np,i,ip,iat,ixyz
-    real(8)::f(3*atoms%nat,1:np-1),fnrm,fspmax
+    real(kind=8)::f(3*atoms%nat,1:np-1),fnrm,fspmax
     logical::move_this_coordinate
     fspmax=0.d0
     fnrm=0.d0
@@ -1287,11 +1299,12 @@ subroutine calmaxforcecomponentanchors(atoms,np,f,fnrm,fspmax)
     enddo
     fnrm=sqrt(fnrm)
 end subroutine calmaxforcecomponentanchors
-!*****************************************************************************************
+
+
 !subroutine testwrite(nat,np,ratall)
 !    implicit none
 !    integer::nat,iat,np,ip
-!    real(8)::ratall(3,nat,0:np)
+!    real(kind=8)::ratall(3,nat,0:np)
 !    do ip=0,np
 !    write(99,*) nat
 !    write(99,*) 
@@ -1301,7 +1314,8 @@ end subroutine calmaxforcecomponentanchors
 !    enddo
 !    close(99)
 !end subroutine testwrite
-!*****************************************************************************************
+
+
 subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces, except_this_one => geopt
@@ -1314,9 +1328,9 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::n,np,i,ip,istat,infocode
-    real(8)::x(n,0:np),f(n,0:np),fnoise
-    real(8)::tt,t1,t2,springcons,fnrmtot,time1,time2
-    real(8), allocatable::tang(:,:),x_bigdft(:)
+    real(kind=8)::x(n,0:np),f(n,0:np),fnoise
+    real(kind=8)::tt,t1,t2,springcons,fnrmtot,time1,time2
+    real(kind=8), allocatable::tang(:,:),x_bigdft(:)
     type(parametersplinedsaddle)::pnow
     logical::move_this_coordinate
     integer::iat,ixyz
@@ -1364,7 +1378,8 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
     enddo
     deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
 end subroutine nebforce
-!*****************************************************************************************
+
+
 subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
     iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft,fatsp)
     use module_base
@@ -1379,10 +1394,10 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::n,nr,np,i,ip,icall,istat,it,nwork
-    real(8)::x(n,0:np),f(n,0:np),fends(n,2),etmax,xtmax(n),fatsp(n)
-    real(8)::fspmax,fspnrm,barrier1,barrier2
-    real(8), allocatable::work(:)
-    real(8), allocatable::xa(:,:),fa(:,:),xold(:,:) !,fsp(:)
+    real(kind=8)::x(n,0:np),f(n,0:np),fends(n,2),etmax,xtmax(n),fatsp(n)
+    real(kind=8)::fspmax,fspnrm,barrier1,barrier2
+    real(kind=8), allocatable::work(:)
+    real(kind=8), allocatable::xa(:,:),fa(:,:),xold(:,:) !,fsp(:)
     type(parameterminimization_sp)::parmin
     type(parametersplinedsaddle)::pnow,pold
     integer, parameter::ndeb1=0,ndeb2=0
@@ -1617,18 +1632,19 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,fends,pnow,nproc, &
         write(*         ,'(a,1x,a)') 'end of minimization_sp using ',parmin%approach
     endif
 end subroutine splinedsaddle
-!*****************************************************************************************
+
+
 subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     !use minimization, only:parameterminimization
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,info,i,j,l,mx
-    real(8)::x(nr),f(nr),epot,work(nwork)
+    real(kind=8)::x(nr),f(nr),epot,work(nwork)
     integer, allocatable::ipiv(:)
     !type(parameterminimization)::parmin
     type(parameterminimization_sp)::parmin
-    real(8)::DDOT,tt1,tt2,de,fnrm,calnorm,fmax,calmaxforcecomponent
-    real(8), save::epotold,alpha,alphamax
+    real(kind=8)::DDOT,tt1,tt2,de,fnrm,calnorm,fmax,calmaxforcecomponent
+    real(kind=8), save::epotold,alpha,alphamax
     logical, save::reset
     if(nwork/=nr*nr+3*nr+3*nr*nr+2*nr) then
         stop 'ERROR: size of work array is insufficient.'
@@ -1735,13 +1751,14 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     alpha=min(alphamax,alpha*1.1d0)
     x(1:nr)=x(1:nr)+alpha*work(iw3:iw3-1+nr)
 end subroutine bfgs_splsad
-!*****************************************************************************************
+
+
 subroutine reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow,atoms,ncount_bigdft)
     use modulesplinedsaddle, only:parametersplinedsaddle
     use module_types
     implicit none
     integer::iproc,icall,n,np,ncount_bigdft
-    real(8)::x(n,0:np),etmax,fspnrm,fspmax,cbh1,cbh2
+    real(kind=8)::x(n,0:np),etmax,fspnrm,fspmax,cbh1,cbh2
     type(parametersplinedsaddle)::pnow
     type(atoms_data), intent(inout) :: atoms
     character(25), parameter::frt1='(a,2i5,2es24.15,a,2f15.5)'
@@ -1757,7 +1774,8 @@ subroutine reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow
         call writeanchorpoints(n,np,x,filename,atoms)
     endif
 end subroutine reportcalvmaxanchorforces
-!*****************************************************************************************
+
+
 subroutine testparmin(iproc,it,parmin,str)
     use minimization_sp, only:parameterminimization_sp
     implicit none
@@ -1775,7 +1793,8 @@ subroutine testparmin(iproc,it,parmin,str)
         write(*,'(a,2i4,5l4,1x,a)') 'ALIREZA ',it,ii,l2,l3,l4,l5,l6,str
     endif
 end subroutine testparmin
-!*****************************************************************************************
+
+
 subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces, except_this_one => geopt
@@ -1788,10 +1807,10 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::n,np,i,ip,istat,infocode,mp
-    real(8)::x(n,0:np),f(n,0:np),fnoise,epotarr(0:100)
+    real(kind=8)::x(n,0:np),f(n,0:np),fnoise,epotarr(0:100)
     type(parametersplinedsaddle)::pnow
-    real(8)::tt,fnrm,fnrmmax,time1,time2
-    real(8), allocatable::tang(:,:),x_bigdft(:),f_t(:,:)
+    real(kind=8)::tt,fnrm,fnrmmax,time1,time2
+    real(kind=8), allocatable::tang(:,:),x_bigdft(:),f_t(:,:)
     logical::move_this_coordinate
     integer::iat,ixyz
     integer, parameter::ndeb1=0,ndeb2=0
@@ -1840,7 +1859,8 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     deallocate(f_t,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating f_t.'
     deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
 end subroutine perpendicularforce
-!*****************************************************************************************
+
+
 subroutine calvmaxanchorforces(istep,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,ftmax, &
     nproc,iproc,atoms,rst,inputs,ll_inputs,ncount_bigdft)
     use module_base
@@ -1855,12 +1875,12 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,f
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::n,np,mp,i,ip,j,infocode
-    real(8)::x(n,0:np),xold(n,0:np),fends(n,2),f(n,0:np),xtmax(n),ftmax(n)
+    real(kind=8)::x(n,0:np),xold(n,0:np),fends(n,2),f(n,0:np),xtmax(n),ftmax(n)
     integer::istat,istep
     type(parametersplinedsaddle)::pnow,pold
     !type(parameterminimization_sp)::parmin
-    real(8)::etmax,tt,fnoise,time1,time2
-    real(8), allocatable::dd(:,:,:)
+    real(kind=8)::etmax,tt,fnoise,time1,time2
+    real(kind=8), allocatable::dd(:,:,:)
     integer, parameter::ndeb1=0,ndeb2=0
     !----------------------------------------
     allocate(dd(n,n,np-1+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating dd.'
@@ -1912,15 +1932,16 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,fends,etmax,f,xtmax,pnow,pold,f
     !stop
     deallocate(dd,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating dd.'
 end subroutine calvmaxanchorforces
-!*****************************************************************************************
+
+
 !subroutine projectoutperpendicularforce(n,nr,np,x,f,pnow)
 !    use modulesplinedsaddle, only:parametersplinedsaddle
 !    implicit none
 !    integer::n,nr,np,npv,nflat,ip,i,istat,mp
-!    real(8)::x(n,0:np),f(n,0:np),t1,t2,dt,t,mydot,tt,epot
+!    real(kind=8)::x(n,0:np),f(n,0:np),t1,t2,dt,t,mydot,tt,epot
 !    type(parametersplinedsaddle)::pnow
-!    real(8), allocatable::tang(:)
-!    real(8), allocatable::ft(:)
+!    real(kind=8), allocatable::tang(:)
+!    real(kind=8), allocatable::ft(:)
 !    allocate(ft(n),stat=istat);if(istat/=0) stop 'ERROR: failure allocating ft.'
 !    allocate(tang(n),stat=istat);if(istat/=0) stop 'ERROR: failure allocating tang.'
 !    do ip=1,np-1
@@ -1943,12 +1964,13 @@ end subroutine calvmaxanchorforces
 !    deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
 !    deallocate(ft,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating ft.'
 !end subroutine projectoutperpendicularforce
-!*****************************************************************************************
+
+
 subroutine checkpathway(iproc,istep,n,np,x,xold,pnow)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::iproc,istep,n,np,ip,i
-    real(8)::x(n,0:np),xold(n,0:np),dmax
+    real(kind=8)::x(n,0:np),xold(n,0:np),dmax
     type(parametersplinedsaddle)::pnow
     dmax=0.d0
     do ip=1,np-1
@@ -1964,16 +1986,17 @@ subroutine checkpathway(iproc,istep,n,np,x,xold,pnow)
         pnow%do_fill_ex_exd=.false.
     endif
 end subroutine checkpathway
-!*****************************************************************************************
+
+
 !subroutine caltmax(n,np,x,etmax,xt,ft,pnow,pold)
 !    use modulesplinedsaddle, only:parametersplinedsaddle
 !    implicit none
 !    integer::n,np,mparr(2),iepotmax
-!    real(8)::x(n,0:np),xt(n),ft(n)
+!    real(kind=8)::x(n,0:np),xt(n),ft(n)
 !    type(parametersplinedsaddle)::pnow,pold
-!    real(8)::dt,epotmax,etmax,calnorm,zbrent,tl,tr,t1,t2
+!    real(kind=8)::dt,epotmax,etmax,calnorm,zbrent,tl,tr,t1,t2
 !    integer::istat,i,ip,mp,npv
-!    real(8), allocatable::xall(:,:)
+!    real(kind=8), allocatable::xall(:,:)
 !    npv=pnow%ns*np
 !    allocate(xall(n,npv-1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating xall.'
 !    pnow%ex(0)=pnow%exends(1)
@@ -2012,7 +2035,8 @@ end subroutine checkpathway
 !    !write(*,*) 'brent tmax',pnow%tmax
 !    deallocate(xall,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating xall.'
 !end subroutine caltmax
-!*****************************************************************************************
+
+
 subroutine caltmax2(istep,n,np,x,xold,fends,epot,xt,ft,pnow,pold,nproc,iproc,atoms, &
         rst,ll_inputs,ncount_bigdft)
     use module_base
@@ -2028,13 +2052,13 @@ subroutine caltmax2(istep,n,np,x,xold,fends,epot,xt,ft,pnow,pold,nproc,iproc,ato
     integer::istep,n,np,ip,mp,mpv,iter,npv,ipv,ibad,ibadold
     character(len=20)::filename
     character(len=3)::fn
-    real(8)::x(n,0:np),xold(n,0:np),fends(n,2),xt(n),ft(n)
+    real(kind=8)::x(n,0:np),xold(n,0:np),fends(n,2),xt(n),ft(n)
     type(parametersplinedsaddle)::pnow,pold
-    real(8)::epot,alpha,oneisideal,vdold,vdtol
+    real(kind=8)::epot,alpha,oneisideal,vdold,vdtol
     character(32), parameter::frt =  '(3i5,e24.15,e15.6,e13.5,4e12.4)'
     character(37), parameter::frt2='(a,3i5,es24.15,es15.6,es13.5,4es12.4)'
     integer, save::iii=-1
-    real(8)::fnrm,vd,vdd,vdc,vddc,vq,vdq,vddq
+    real(kind=8)::fnrm,vd,vdd,vdc,vddc,vq,vdq,vddq
     npv=np+pnow%ns2
     if(istep==0) npv=min(2*(np+pnow%ns2),30)
     pnow%granot=.true.
@@ -2057,7 +2081,7 @@ subroutine caltmax2(istep,n,np,x,xold,fends,epot,xt,ft,pnow,pold,nproc,iproc,ato
     !--------------------------------------------------------
     call checkpathway(iproc,istep,n,np,x,xold,pnow)
     !pnow%do_fill_ex_exd=.true.
-1358 continue
+!1358 continue
     !if(istep<3 .or. pnow%do_fill_ex_exd .or. pold%npv>np+pnow%ns2) then
     if(istep<1 .or. pnow%do_fill_ex_exd) then
         call fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms, &
@@ -2224,13 +2248,14 @@ subroutine caltmax2(istep,n,np,x,xold,fends,epot,xt,ft,pnow,pold,nproc,iproc,ato
     !if(iproc==0) &
     !write(54,'(3i5,e24.15,7e15.6)') istep,iter,npv,epot,vd,ft(1:2),vddq,alpha,pnow%tmax,pnow%tmax/pnow%s(np)
 end subroutine caltmax2
-!*****************************************************************************************
+
+
 subroutine polish_sv(npv,pnow)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::npv,ipv,lpvarr(100),lpvn,mpv
     type(parametersplinedsaddle)::pnow
-    real(8)::diff
+    real(kind=8)::diff
     lpvn=0
     do ipv=1,npv-1
         !ipv=ipv+1
@@ -2255,13 +2280,14 @@ subroutine polish_sv(npv,pnow)
         pnow%hv(ipv)=pnow%sv(ipv)-pnow%sv(ipv-1)
     enddo
 end subroutine polish_sv
-!*****************************************************************************************
+
+
 subroutine write_v_of_t(iproc,istep,npv,pnow,icall,fn)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::iproc,istep,npv,mpv,ipv
     type(parametersplinedsaddle)::pnow
-    real(8)::vc,vdc,vddc,dt,t
+    real(kind=8)::vc,vdc,vddc,dt,t
     !character(100)::text
     character(8)::filename
     character(*)::fn
@@ -2286,12 +2312,13 @@ subroutine write_v_of_t(iproc,istep,npv,pnow,icall,fn)
     enddo
     if(iproc==0) close(2010)
 end subroutine write_v_of_t
-!*****************************************************************************************
+
+
 subroutine ffdfdd_hermite(n,s,h,e,ed,t,m,v,vd,vdd)
     implicit none
     integer::n,m
-    real(8)::s(0:n),h(n),e(0:n),ed(0:n),t,v,vd,vdd
-    real(8)::tt,a0,a1,a2,a3,hminv
+    real(kind=8)::s(0:n),h(n),e(0:n),ed(0:n),t,v,vd,vdd
+    real(kind=8)::tt,a0,a1,a2,a3,hminv
     if(m<1 .or. m>n) stop 'ERROR: inconsistency in cubic Hermite spline m<1 .or. m>n'
     a0=e(m-1)
     a1=ed(m-1)*h(m)
@@ -2303,13 +2330,14 @@ subroutine ffdfdd_hermite(n,s,h,e,ed,t,m,v,vd,vdd)
     vd=(a1+tt*(2.d0*a2+tt*3.d0*a3))*hminv
     vdd=((2.d0*a2+tt*6.d0*a3))*hminv**2
 end subroutine ffdfdd_hermite
-!*****************************************************************************************
+
+
 subroutine fdd_quadratic(n,s,h,e,t,m,vd,vdd)
     implicit none
     integer::n,m
-    real(8)::s(0:n),h(n),e(0:n),t,vd,vdd
-    !real(8)::avg,w1,w2
-    real(8)::f0,f1,f2,h1,h2,a0,a1,a2,t1
+    real(kind=8)::s(0:n),h(n),e(0:n),t,vd,vdd
+    !real(kind=8)::avg,w1,w2
+    real(kind=8)::f0,f1,f2,h1,h2,a0,a1,a2,t1
     h1=h(m)
     h2=h(m+1)
     t1=s(m)
@@ -2323,13 +2351,14 @@ subroutine fdd_quadratic(n,s,h,e,t,m,vd,vdd)
     !vdd=a1+t*a2*2.d0
     vdd=a2*2.d0
 end subroutine fdd_quadratic
-!*****************************************************************************************
+
+
 subroutine calv_quadratic(iproc,istep,npv,pnow,mpv,vdc,vddc)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::iproc,istep,npv,mpv
     type(parametersplinedsaddle)::pnow
-    real(8)::vdc,vddc
+    real(kind=8)::vdc,vddc
     character(100)::text
     if(mpv==npv) mpv=npv-1
     call fdd_quadratic(npv,pnow%sv,pnow%hv,pnow%ex,pnow%tmax,mpv,vdc,vddc)
@@ -2339,13 +2368,14 @@ subroutine calv_quadratic(iproc,istep,npv,pnow,mpv,vdc,vddc)
         write(*         ,'(i4,1x,a,i3)') istep,trim(text),npv
     endif
 end subroutine calv_quadratic
-!*****************************************************************************************
+
+
 subroutine calv_hermite(iproc,istep,npv,pnow,mpv,vc,vdc,vddc)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::iproc,istep,npv,mpv
     type(parametersplinedsaddle)::pnow
-    real(8)::vc,vdc,vddc
+    real(kind=8)::vc,vdc,vddc
     character(100)::text
     call ffdfdd_hermite(npv,pnow%sv,pnow%hv,pnow%ex,pnow%exd,pnow%tmax,mpv,vc,vdc,vddc)
     text='Not enough number of points for maximization, vddc_hermite>0'
@@ -2354,14 +2384,15 @@ subroutine calv_hermite(iproc,istep,npv,pnow,mpv,vc,vdc,vddc)
         write(*         ,'(i4,1x,a,i3)') istep,trim(text),npv
     endif
 end subroutine calv_hermite
-!*****************************************************************************************
+
+
 subroutine guessinitialtmax_hermite(npv,pnow)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::npv,ipvt,istat,iroot,nroot,npvt
     type(parametersplinedsaddle)::pnow
-    real(8)::p1,p2,p3,t1,t2,hi,discriminant,v,vcmax,roots(50)
-    real(8), allocatable::svt(:),hvt(:),ext(:),exdt(:),e1vt(:),e2vt(:),cvt(:)
+    real(kind=8)::p1,p2,p3,t1,t2,hi,discriminant,v,vcmax,roots(50)
+    real(kind=8), allocatable::svt(:),hvt(:),ext(:),exdt(:),e1vt(:),e2vt(:),cvt(:)
     integer, parameter::ndeb1=0,ndeb2=0
     npvt=npv  !10*npv
     allocate(svt(0:npvt+ndeb1),hvt(npvt+ndeb1),ext(0:npvt+ndeb1),exdt(0:npvt+ndeb1), &
@@ -2445,13 +2476,14 @@ subroutine guessinitialtmax_hermite(npv,pnow)
     deallocate(svt,hvt,ext,exdt,e1vt,e2vt,cvt,stat=istat)
     if(istat/=0) stop 'ERROR: failure deallocating one of svt,hvt,ext,e1vt,e2vt,cvt.'
 end subroutine guessinitialtmax_hermite
-!*****************************************************************************************
+
+
 subroutine calvcubic(iproc,istep,npv,pnow,mpv,vc,vdc,vddc)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::iproc,istep,npv,mpv
     type(parametersplinedsaddle)::pnow
-    real(8)::vc,vdc,vddc
+    real(kind=8)::vc,vdc,vddc
     character(100)::text
     call factor_cubic(npv,pnow%hv,pnow%e1v,pnow%e2v)
     call inter_cubic(npv,pnow%ex,pnow%hv,pnow%e1v,pnow%e2v,pnow%cv)
@@ -2462,13 +2494,14 @@ subroutine calvcubic(iproc,istep,npv,pnow,mpv,vc,vdc,vddc)
         write(*         ,'(i4,1x,a,i3)') istep,trim(text),npv
     endif
 end subroutine calvcubic
-!*****************************************************************************************
+
+
 subroutine calvquintic(iproc,istep,npv,pnow,mpv,vq,vdq,vddq)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::iproc,istep,npv,mpv
     type(parametersplinedsaddle)::pnow
-    real(8)::vq,vdq,vddq
+    real(kind=8)::vq,vdq,vddq
     character(100)::text
     call factor_inter_quintic(npv,pnow%hv,pnow%ex,pnow%exd,pnow%a,pnow%b)
     call ffdfdd_quintic(npv,pnow%sv,pnow%hv,pnow%ex,pnow%exd,pnow%a(mpv),pnow%b(mpv), &
@@ -2479,7 +2512,8 @@ subroutine calvquintic(iproc,istep,npv,pnow,mpv,vq,vdq,vddq)
         write(*         ,'(i4,1x,a,i3)') istep,trim(text),npv
     endif
 end subroutine calvquintic
-!*****************************************************************************************
+
+
 subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces, except_this_one => geopt
@@ -2492,10 +2526,10 @@ subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,
     type(restart_objects), intent(inout) :: rst
     integer, intent(inout) :: ncount_bigdft
     integer::istep,n,np,ip,mp,istat,i,npv,infocode
-    real(8)::x(n,0:np),fends(n,2),xt(n),ft(n),dt
+    real(kind=8)::x(n,0:np),fends(n,2),xt(n),ft(n),dt
     type(parametersplinedsaddle)::pnow,pold
-    real(8)::t1,tt,fnoise,time1,time2
-    real(8), allocatable::tang(:),x_bigdft(:)
+    real(kind=8)::t1,tt,fnoise,time1,time2
+    real(kind=8), allocatable::tang(:),x_bigdft(:)
     logical::move_this_coordinate
     integer::iat,ixyz
     integer, parameter::ndeb1=0,ndeb2=0
@@ -2625,15 +2659,16 @@ subroutine fill_ex_exd(istep,n,np,x,fends,npv,pnow,pold,xt,ft,nproc,iproc,atoms,
     deallocate(x_bigdft)
     deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
 end subroutine fill_ex_exd
-!*****************************************************************************************
+
+
 subroutine estimate_sv(iproc,istep,np,npv,pnow,pold)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::iproc,istep,np,npv,ip,mp,icycle,ncycle
     type(parametersplinedsaddle)::pnow,pold
-    real(8)::dt,tt,t1,t2
-    !real(8)::el,er,edl,edr
-    real(8)::ttmin,ttmax,emin,e1,e2,exo(0:100),exn(0:100),area,areatot
+    real(kind=8)::dt,tt,t1,t2
+    !real(kind=8)::el,er,edl,edr
+    real(kind=8)::ttmin,ttmax,emin,e1,e2,exo(0:100),exn(0:100),area,areatot
     pnow%sv(0)=0.d0
     pnow%sv(npv)=pnow%s(np)
     if(istep>0) then
@@ -2870,7 +2905,8 @@ subroutine estimate_sv(iproc,istep,np,npv,pnow,pold)
         enddo
     endif
 end subroutine estimate_sv
-!*****************************************************************************************
+
+
 !subroutine epot_along_traj(istep,n,nr,np,x,npv,pnow,nproc,iproc,atoms,rst,inputs,ncount_bigdft)
 !    use module_base
 !    use module_interfaces, except_this_one => geopt
@@ -2883,12 +2919,12 @@ end subroutine estimate_sv
 !    type(restart_objects), intent(inout) :: rst
 !    integer, intent(inout) :: ncount_bigdft
 !    integer::istep,n,nr,np,mpv,istat,i,npv,mp,ip,infocode
-!    real(8)::x(n,0:np),epot,dt,t,vc,vq,t1,t2,fnoise
+!    real(kind=8)::x(n,0:np),epot,dt,t,vc,vq,t1,t2,fnoise
 !    type(parametersplinedsaddle)::pnow
 !    character(3)::fn
 !    character(20)::filename
-!    real(8), allocatable::xt(:)
-!    real(8), allocatable::ft(:),x_bigdft(:)
+!    real(kind=8), allocatable::xt(:)
+!    real(kind=8), allocatable::ft(:),x_bigdft(:)
 !    logical::move_this_coordinate
 !    integer::iat,ixyz
 !    integer, parameter::ndeb1=0,ndeb2=0
@@ -2947,12 +2983,13 @@ end subroutine estimate_sv
 !    deallocate(xt,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating xt.'
 !    deallocate(ft,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating ft.'
 !end subroutine epot_along_traj
-!*****************************************************************************************
+
+
 subroutine insertpoint(npv,epot,vd,mpv,np,pnow)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::npv,mpv,np,ip,lpv
-    real(8)::epot,vd
+    real(kind=8)::epot,vd
     type(parametersplinedsaddle)::pnow
     if(pnow%tmax-pnow%sv(mpv-1)<(pnow%sv(mpv)-pnow%tmax)) then
         lpv=mpv-1
@@ -2995,14 +3032,15 @@ subroutine insertpoint(npv,epot,vd,mpv,np,pnow)
         npv=npv+1
     endif
 end subroutine insertpoint
-!*****************************************************************************************
+
+
 subroutine guessinitialtmax_cubic(npv,pnow)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::npv,ipvt,istat,iroot,nroot,npvt
     type(parametersplinedsaddle)::pnow
-    real(8)::p1,p2,p3,t1,t2,hi,discriminant,vc,vcmax,roots(50)
-    real(8), allocatable::svt(:),hvt(:),ext(:),e1vt(:),e2vt(:),cvt(:)
+    real(kind=8)::p1,p2,p3,t1,t2,hi,discriminant,vc,vcmax,roots(50)
+    real(kind=8), allocatable::svt(:),hvt(:),ext(:),e1vt(:),e2vt(:),cvt(:)
     integer, parameter::ndeb1=0,ndeb2=0
     npvt=npv  !10*npv
     allocate(svt(0:npvt+ndeb1),hvt(npvt+ndeb1),ext(0:npvt+ndeb1),e1vt(npvt-1+ndeb1),e2vt(npvt-2+ndeb1),cvt(0:npvt+ndeb1),stat=istat)
@@ -3071,14 +3109,15 @@ subroutine guessinitialtmax_cubic(npv,pnow)
     deallocate(svt,hvt,ext,e1vt,e2vt,cvt,stat=istat)
     if(istat/=0) stop 'ERROR: failure deallocating one of svt,hvt,ext,e1vt,e2vt,cvt.'
 end subroutine guessinitialtmax_cubic
-!*****************************************************************************************
+
+
 subroutine guessinitialtmax_quintic(npv,pnow,iproc)
     use modulesplinedsaddle, only:parametersplinedsaddle
     implicit none
     integer::npv,mpv,ipvt,istat,iroot,nroot,npvt,iproc
     type(parametersplinedsaddle)::pnow
-    real(8)::p1,p2,p3,t1,t2,hi,discriminant,t,dt,vc,vcmax,vddq,roots(50)
-    real(8), allocatable::svt(:),hvt(:),ext(:),e1vt(:),e2vt(:),cvt(:)
+    real(kind=8)::p1,p2,p3,t1,t2,hi,discriminant,t,dt,vc,vcmax,vddq,roots(50)
+    real(kind=8), allocatable::svt(:),hvt(:),ext(:),e1vt(:),e2vt(:),cvt(:)
     integer, parameter::ndeb1=0,ndeb2=0
     npvt=10*npv
     allocate(svt(0:npvt+ndeb1),hvt(npvt+ndeb1),ext(0:npvt+ndeb1),e1vt(npvt-1+ndeb1),e2vt(npvt-2+ndeb1),cvt(0:npvt+ndeb1),stat=istat)
@@ -3149,13 +3188,14 @@ subroutine guessinitialtmax_quintic(npv,pnow,iproc)
     deallocate(svt,hvt,ext,e1vt,e2vt,cvt,stat=istat)
     if(istat/=0) stop 'ERROR: failure deallocating one of svt,hvt,ext,e1vt,e2vt,cvt.'
 end subroutine guessinitialtmax_quintic
-!*****************************************************************************************
+
+
 subroutine factor_inter_quintic(n,h,y,d,a,b)
     implicit none
     integer::n,i,j,k,info
     integer, parameter::kl=2,ku=2
-    real(8)::h(n),y(0:n),d(0:n),a(n),b(n),t1,t2,t3,t4
-    real(8), allocatable::c(:),v(:,:)
+    real(kind=8)::h(n),y(0:n),d(0:n),a(n),b(n),t1,t2,t3,t4
+    real(kind=8), allocatable::c(:),v(:,:)
     integer, allocatable::ipiv(:)
     integer, parameter::ndeb1=0,ndeb2=0
     allocate(c(2*n+ndeb1),v(2*kl+ku+1,2*n+ndeb1),ipiv(2*n+ndeb1))
@@ -3225,14 +3265,15 @@ subroutine factor_inter_quintic(n,h,y,d,a,b)
     enddo
     deallocate(c,v,ipiv)
 end subroutine factor_inter_quintic
-!*****************************************************************************************
+
+
 subroutine ffdfdd_quintic(n,s,h,y,d,a,b,i,t,v,vd,vdd)
     implicit none
     integer::n,i
-    real(8)::y(0:n),d(0:n),s(0:n),h(n),a,b,t,v,vd,vdd
-    real(8)::p5,p4,p3,p2,p1,p0,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10
-    real(8)::t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26
-    real(8)::tt,f1,fd1,f2,fd2
+    real(kind=8)::y(0:n),d(0:n),s(0:n),h(n),a,b,t,v,vd,vdd
+    real(kind=8)::p5,p4,p3,p2,p1,p0,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10
+    real(kind=8)::t11,t12,t13,t14,t15,t16,t17,t18,t19,t20,t21,t22,t23,t24,t25,t26
+    real(kind=8)::tt,f1,fd1,f2,fd2
     t0=-y(i) + y(i-1)
     t1=2.d0*s(i) + s(i-1)
     t2=s(i) + 2.d0*s(i-1)
@@ -3280,11 +3321,12 @@ subroutine ffdfdd_quintic(n,s,h,y,d,a,b,i,t,v,vd,vdd)
     !write(91,'(7e20.10)') abs(y(i-1)-f1),abs(d(i-1)-fd1),abs(y(i)-f2),abs(d(i)-fd2),s(i-1),t,s(i)
 
 end subroutine ffdfdd_quintic
-!*****************************************************************************************
+
+
 subroutine calindex(np,s,t,ip,strcall)
     implicit none
     integer::np,ip
-    real(8)::s(0:np),t
+    real(kind=8)::s(0:np),t
     character(*)::strcall
     character(100)::strprt
     do ip=1,np
@@ -3297,22 +3339,23 @@ subroutine calindex(np,s,t,ip,strcall)
         stop
     endif
 end subroutine calindex
-!*****************************************************************************************
+
+
 subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::n,np,mp,istat,i,info,ip,j,jp
-    real(8)::x(n,0:np),e1(np-1),e2(np-2),h(np),s(0:np),dd(n,n,np-1),tmax
-    real(8), allocatable::ainv(:,:)
-    real(8), allocatable::cd1(:)
-    real(8), allocatable::cd2(:)
-    !real(8), allocatable::cd3(:)
-    !real(8), allocatable::cd4(:)
-    real(8), allocatable::c(:)
-    real(8), allocatable::ddt(:)
-    real(8), allocatable::yi(:)
-    real(8), allocatable::yj(:)
+    real(kind=8)::x(n,0:np),e1(np-1),e2(np-2),h(np),s(0:np),dd(n,n,np-1),tmax
+    real(kind=8), allocatable::ainv(:,:)
+    real(kind=8), allocatable::cd1(:)
+    real(kind=8), allocatable::cd2(:)
+    !real(kind=8), allocatable::cd3(:)
+    !real(kind=8), allocatable::cd4(:)
+    real(kind=8), allocatable::c(:)
+    real(kind=8), allocatable::ddt(:)
+    real(kind=8), allocatable::yi(:)
+    real(kind=8), allocatable::yj(:)
     logical::move_this_coordinate
     integer::ixyz,iat,jxyz,jat
     integer, parameter::ndeb1=0,ndeb2=0
@@ -3406,15 +3449,16 @@ subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
     deallocate(yj,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating yj.'
     deallocate(ainv,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating ainv.'
 end subroutine prepdd
-!*****************************************************************************************
+
+
 subroutine prepcd3cd4(np,h,mp,ainv,i,j,yi,yj,cd1,cd2)
     implicit none
     integer::np,mp,istat,i,j,ip,jp
-    real(8)::h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),ainv(np-1,np-1)
-    real(8)::t1,t2,t3,t4,t5,t6,t7,t8,t9,tt1,tt2,delta
-    real(8), allocatable::ainvd(:,:)
-    real(8)::hip,hipp1,yip,yipp1,yipm1
-    real(8)::ainvdmpip,ainvdmpipp1,ainvdmpipm1,ainvdmpm1ip,ainvdmpm1ipp1,ainvdmpm1ipm1
+    real(kind=8)::h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),ainv(np-1,np-1)
+    real(kind=8)::t1,t2,t3,t4,t5,t6,t7,t8,t9,tt1,tt2,delta
+    real(kind=8), allocatable::ainvd(:,:)
+    real(kind=8)::hip,hipp1,yip,yipp1,yipm1
+    real(kind=8)::ainvdmpip,ainvdmpipp1,ainvdmpipm1,ainvdmpm1ip,ainvdmpm1ipp1,ainvdmpm1ipm1
     integer, parameter::ndeb1=0,ndeb2=0
     allocate(ainvd(0:np,0:np+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating ainvd.'
     call dmemocc((np+1)*(np+1),(np+1)*(np+1+ndeb1),ainvd,'ainvd')
@@ -3478,12 +3522,13 @@ subroutine prepcd3cd4(np,h,mp,ainv,i,j,yi,yj,cd1,cd2)
     enddo
     deallocate(ainvd,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating ainvd.'
 end subroutine prepcd3cd4
-!*****************************************************************************************
+
+
 subroutine prepcd1cd2(np,h,mp,yi,yj,cd1,cd2,ainv)
     implicit none
     integer::np,mp,istat,ip,jp
-    real(8)::h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),ainv(np-1,np-1),t1,t2,t3,t4
-    real(8), allocatable::ainvd(:,:)
+    real(kind=8)::h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),ainv(np-1,np-1),t1,t2,t3,t4
+    real(kind=8), allocatable::ainvd(:,:)
     integer, parameter::ndeb1=0,ndeb2=0
     allocate(ainvd(0:np,0:np+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating ainvd.'
     call dmemocc((np+1)*(np+1),(np+1)*(np+1+ndeb1),ainvd,'ainvd')
@@ -3537,7 +3582,8 @@ subroutine prepcd1cd2(np,h,mp,yi,yj,cd1,cd2,ainv)
     !    endif
     !endif
 end subroutine prepcd1cd2
-!*****************************************************************************************
+
+
 subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs,ncount_bigdft)
     use module_base
     use module_interfaces, except_this_one => geopt
@@ -3551,8 +3597,8 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     integer, intent(inout) :: ncount_bigdft
     integer::n,np,mp,i,istat,infocode
     type(parametersplinedsaddle)::pnow
-    real(8)::tt,ett,x(n,0:np),epot,xt(n),ft(n),t1,fnoise,time1,time2
-    real(8), allocatable::tang(:),x_bigdft(:)
+    real(kind=8)::tt,ett,x(n,0:np),epot,xt(n),ft(n),t1,fnoise,time1,time2
+    real(kind=8), allocatable::tang(:),x_bigdft(:)
     logical::move_this_coordinate
     integer::ixyz,iat
     integer, parameter::ndeb1=0,ndeb2=0
@@ -3590,13 +3636,14 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     deallocate(x_bigdft)
     deallocate(tang,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating tang.'
 end subroutine func
-!*****************************************************************************************
+
+
 subroutine equalarclengthparametrization(atoms,n,np,x,s,h)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::n,np
-    real(8)::x(n,0:np),s(0:np),h(np),tt
+    real(kind=8)::x(n,0:np),s(0:np),h(np),tt
     integer::i,ip,ixyz,iat
     logical::move_this_coordinate
     s(0)=0.d0
@@ -3614,25 +3661,27 @@ subroutine equalarclengthparametrization(atoms,n,np,x,s,h)
     enddo
     !snpinv=1.d0/s(np);h(1:np)=h(1:np)*snpinv;s(1:np)=s(1:np)*snpinv
 end subroutine equalarclengthparametrization
-!*****************************************************************************************
+
+
 subroutine factor_cubic(np,h,e1,e2)
     implicit none
     integer::np
     integer::ip,info
-    real(8)::h(np),e1(np-1),e2(np-2) 
+    real(kind=8)::h(np),e1(np-1),e2(np-2) 
     do ip=1,np-2;e1(ip)=2.d0*(h(ip+1)+h(ip));e2(ip)=h(ip+1);enddo
     e1(np-1)=2.d0*(h(np)+h(np-1)) !+h(np)
     !e1(1)=e1(1)+h(1)
     call dpttrf(np-1,e1,e2,info)
     if(info/=0) write(*,*) 'ERROR: factorization failed: info,np',info,np
 end subroutine factor_cubic
-!*****************************************************************************************
+
+
 subroutine inter_cubic(np,y,h,e1,e2,c)
     implicit none
     integer::np
     integer::ip,info
-    real(8)::y(0:np),h(np),e1(np-1),e2(np-2),c(0:np)
-    !real(8)::tt,dt,b(4),ipiv(4),hi,bt0,btn,p0,p1,p2,p3
+    real(kind=8)::y(0:np),h(np),e1(np-1),e2(np-2),c(0:np)
+    !real(kind=8)::tt,dt,b(4),ipiv(4),hi,bt0,btn,p0,p1,p2,p3
     do ip=1,np-1;c(ip)=(y(ip+1)-y(ip))/h(ip+1)-(y(ip)-y(ip-1))/h(ip);enddo
     !write(*,*) c(1:np-1)
     call dpttrs(np-1,1,e1,e2,c(1),np-1,info)
@@ -3641,14 +3690,15 @@ subroutine inter_cubic(np,y,h,e1,e2,c)
     if(info/=0) write(*,*) 'ERROR: solution of dpttrs failed: info',info
     c(0)=0.d0;c(np)=0.d0
 end subroutine inter_cubic
-!*****************************************************************************************
+
+
 subroutine qdq(np,s,mp,tmax,c,h,i,j,yi,yj,cd1,cd2,dd)
     implicit none
     integer::np,mp,i,j,ip,istat
-    real(8)::s(0:np),tmax,c(0:np),h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),dd(np-1)
-    real(8)::p0,p1,p2,p3,delta,t1,t2,t3,t4,t5,t6,t7
-    real(8), allocatable::sd1(:)
-    real(8), allocatable::sd2(:)
+    real(kind=8)::s(0:np),tmax,c(0:np),h(np),yi(0:np),yj(0:np),cd1(np-1),cd2(np-1),dd(np-1)
+    real(kind=8)::p0,p1,p2,p3,delta,t1,t2,t3,t4,t5,t6,t7
+    real(kind=8), allocatable::sd1(:)
+    real(kind=8), allocatable::sd2(:)
     integer, parameter::ndeb1=0,ndeb2=0
     allocate(sd1(np-1+ndeb1),stat=istat);if(istat/=0) stop 'ERROR: failure allocating sd1.'
     call dmemocc(np-1,np-1+ndeb1,sd1,'sd1')
@@ -3678,11 +3728,12 @@ subroutine qdq(np,s,mp,tmax,c,h,i,j,yi,yj,cd1,cd2,dd)
     deallocate(sd1,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating sd1.'
     deallocate(sd2,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating sd2.'
 end subroutine qdq
-!*****************************************************************************************
+
+
 subroutine calsd1sd2(np,mp,yi,h,sd1,sd2)
     implicit none
     integer::np,mp,ip
-    real(8)::yi(0:np),h(np),sd1(np-1),sd2(np-1)
+    real(kind=8)::yi(0:np),h(np),sd1(np-1),sd2(np-1)
     do ip=1,mp-1
         sd1(ip)=(yi(ip)-yi(ip-1))/h(ip)-(yi(ip+1)-yi(ip))/h(ip+1)
     enddo
@@ -3694,22 +3745,24 @@ subroutine calsd1sd2(np,mp,yi,h,sd1,sd2)
     if(mp>1) sd2(mp-1)=(yi(mp-1)-yi(mp-2))/h(mp-1)
     if(mp<np) sd2(mp:np-1)=0.d0
 end subroutine calsd1sd2
-!*****************************************************************************************
+
+
 function delta(i,j)
     implicit none
     integer::i,j
-    real(8)::delta
+    real(kind=8)::delta
     if(i==j) then
         delta=1.d0
     else
         delta=0.d0
     endif
 end function delta
-!*****************************************************************************************
+
+
 subroutine ffdfdd_cubic(np,y,s,mp,hmp,t,c,f,fd,fdd)
     implicit none
     integer::np,mp
-    real(8)::y(0:np),s(0:np),hmp,c(0:np),t,p0,p1,p2,p3,f,fd,fdd
+    real(kind=8)::y(0:np),s(0:np),hmp,c(0:np),t,p0,p1,p2,p3,f,fd,fdd
     if(mp<1 .or. mp>np) stop 'ERROR: invalid mp in cubic evaluation'
     !hmp=s(mp)-s(mp-1)
     p3=(c(mp)-c(mp-1))/hmp
@@ -3721,12 +3774,13 @@ subroutine ffdfdd_cubic(np,y,s,mp,hmp,t,c,f,fd,fdd)
     fd=(3.d0*p3*t+2.d0*p2)*t+p1
     fdd=6.d0*p3*t+2.d0*p2
 end subroutine ffdfdd_cubic
-!*****************************************************************************************
+
+
 subroutine caltangentupwind(n,np,x,ex,tang)
     implicit none
     integer::n,np,ip
-    real(8)::x(n,0:np),ex(0:np),tang(n,0:np)
-    real(8)::tmp1,tmp2,e1,e2
+    real(kind=8)::x(n,0:np),ex(0:np),tang(n,0:np)
+    real(kind=8)::tmp1,tmp2,e1,e2
     do ip=1,np-1
         if(ex(ip+1)>ex(ip) .and. ex(ip)>ex(ip-1)) then
             tang(1:n,ip)=x(1:n,ip+1)-x(1:n,ip)
@@ -3750,18 +3804,20 @@ subroutine caltangentupwind(n,np,x,ex,tang)
         call normalizevector2(n,tang(1,ip))
     enddo
 end subroutine caltangentupwind
-!*****************************************************************************************
+
+
 subroutine normalizevector2(n,v)
     implicit none
     integer::n,i
-    real(8)::v(n),vnrm
+    real(kind=8)::v(n),vnrm
     vnrm=0.d0
     do i=1,n
         vnrm=vnrm+v(i)**2
     enddo
     vnrm=sqrt(vnrm);v(1:n)=v(1:n)/vnrm
 end subroutine normalizevector2
-!*****************************************************************************************
+
+
 subroutine initminimize(parmin)
     use minimization_sp, only:parameterminimization_sp
     implicit none
@@ -3802,7 +3858,8 @@ subroutine initminimize(parmin)
         call imemocc(parmin%idsx+1,parmin%idsx+1+ndeb1,parmin%ipiv,'parmin%ipiv')
     endif
 end subroutine initminimize
-!*******************************************************************************
+
+
 subroutine finalminimize(parmin)
     use minimization_sp, only:parameterminimization_sp
     implicit none
@@ -3823,18 +3880,20 @@ subroutine finalminimize(parmin)
         if(istat/=0) stop 'ERROR: failure deallocating parmin%ipiv.'
     endif
 end subroutine finalminimize
-!*******************************************************************************
+
+
 subroutine checkconvergence(parmin,fspmax)
     use minimization_sp, only:parameterminimization_sp
     implicit none
     !integer::iproc
-    real(8)::fspmax
+    real(kind=8)::fspmax
     type(parameterminimization_sp)::parmin
     if(fspmax<parmin%fmaxtol) then
         parmin%converged=.true.
     endif
 end subroutine checkconvergence
-!*******************************************************************************
+
+
 !routine for moving atomic positions, takes into account the 
 !frozen atoms and the size of the cell
 !synopsis: xyzo=xyzi
@@ -3870,14 +3929,15 @@ subroutine atomic_copycoord(atoms,xyzi,xyzo)
      end if
   end do
 end subroutine atomic_copycoord
-!*******************************************************************************
+
+
 subroutine initsdminimum(n,nr,x,parmin,nwork,work)
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::n,nr,nwork
     !integer::ip,ii
-    !real(8)::x(n*(np-1)),work(nwork)
-    real(8)::x(n),work(nwork)
+    !real(kind=8)::x(n*(np-1)),work(nwork)
+    real(kind=8)::x(n),work(nwork)
     type(parameterminimization_sp)::parmin
     if(parmin%alphax<0.d0) stop 'ERROR: alphax<0, maybe it is not set.'
     if(parmin%alphamin<0.d0) parmin%alphamin=1.d-1*parmin%alphax
@@ -3904,16 +3964,17 @@ subroutine initsdminimum(n,nr,x,parmin,nwork,work)
     work(nr+1:2*nr)=0.d0
     !write(*,'(a,i,e)') 'nsatur,fnrmtolsatur',parmin%nsatur,parmin%fnrmtolsatur
 end subroutine initsdminimum
-!*******************************************************************************
+
+
 subroutine fire(iproc,nr,x,epot,f,work,parmin)
     !use minimization, only:parameterminimization
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::iproc,nr
-    real(8)::x(nr),epot,f(nr),de,DDOT,fnrm,fmax,vnrm,dt,p,calnorm
-    real(8)::tt,calmaxforcecomponent,vnrmmax
-    real(8)::work(3*nr) !1:nr velocities, nr+1:2*nr previous force
-    real(8), save::epotold,alpha
+    real(kind=8)::x(nr),epot,f(nr),de,DDOT,fnrm,fmax,vnrm,dt,p,calnorm
+    real(kind=8)::tt,calmaxforcecomponent,vnrmmax
+    real(kind=8)::work(3*nr) !1:nr velocities, nr+1:2*nr previous force
+    real(kind=8), save::epotold,alpha
     integer, save::ndown
     type(parameterminimization_sp)::parmin
     if(parmin%iflag==0) then
@@ -4005,14 +4066,15 @@ subroutine fire(iproc,nr,x,epot,f,work,parmin)
     endif
     work(nr+1:2*nr)=f(1:nr)
 end subroutine fire
-!*******************************************************************************
+
+
 subroutine sdminimum(iproc,n,nr,x,f,epot,parmin,nwork,work)
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::iproc,n,nr,nwork
-    real(8)::x(n),f(n),epot,work(nwork),calmaxforcecomponent,calnorm,fmax,fnrm
+    real(kind=8)::x(n),f(n),epot,work(nwork),calmaxforcecomponent,calnorm,fmax,fnrm
     type(parameterminimization_sp)::parmin
-    real(8)::de1,de2,df1,df2
+    real(kind=8)::de1,de2,df1,df2
     logical::xmoved
     if(parmin%iflag==0) call initsdminimum(n,nr,x,parmin,nwork,work)
     fnrm=calnorm(nr,f);fmax=calmaxforcecomponent(nr,f)
@@ -4110,12 +4172,13 @@ subroutine sdminimum(iproc,n,nr,x,f,epot,parmin,nwork,work)
     endif
     endif
 end subroutine sdminimum
-!*******************************************************************************
+
+
 subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::n,nr,nwork,i,info,id,jd,iproc
-    real(8)::x(n),f(n),epot,work(nwork),fnrm,dnrm2,ddot,fmax,calmaxforcecomponent
+    real(kind=8)::x(n),f(n),epot,work(nwork),fnrm,dnrm2,ddot,fmax,calmaxforcecomponent
     type(parameterminimization_sp)::parmin
     character(28), parameter::frt1='(a10,i4,e23.15,e11.3,2e12.5)'
     if(parmin%iflag==0) then
@@ -4205,35 +4268,39 @@ subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
     parmin%epotitm1=epot
     parmin%itdiis=parmin%itdiis+1
 end subroutine diisminimum
-!*******************************************************************************
+
+
 function mydot(n,v1,v2)
     implicit none
     integer::n,i
-    real(8)::v1(n),v2(n),mydot
+    real(kind=8)::v1(n),v2(n),mydot
     mydot=0.d0;do i=1,n;mydot=mydot+v1(i)*v2(i);enddo
 end function mydot
-!*******************************************************************************
+
+
 function calmaxforcecomponent(n,v)
     implicit none
     integer::n,i
-    real(8)::v(n),calmaxforcecomponent
+    real(kind=8)::v(n),calmaxforcecomponent
     calmaxforcecomponent=0.d0
     do i=1,n;calmaxforcecomponent=max(calmaxforcecomponent,abs(v(i)));enddo
 end function calmaxforcecomponent
-!*******************************************************************************
+
+
 function calnorm(n,v)
     implicit none
     integer::n,i
-    real(8)::v(n),calnorm
+    real(kind=8)::v(n),calnorm
     calnorm=0.d0
     do i=1,n;calnorm=calnorm+v(i)**2;enddo;calnorm=sqrt(calnorm)
 end function calnorm
-!*******************************************************************************
+
+
 subroutine writepathway(n,np,x,filename,atoms)
     use module_types
     implicit none
     integer::n,np,jp,iat
-    real(8)::x(n,0:np),ed_tt,edd_tt,dtt,tt,xyz(3)
+    real(kind=8)::x(n,0:np),ed_tt,edd_tt,dtt,tt,xyz(3)
     integer::istat,ip,i
     type(atoms_data), intent(in) :: atoms
     character(len=10) :: name
@@ -4241,13 +4308,13 @@ subroutine writepathway(n,np,x,filename,atoms)
     !integer::istep
     !character(1)::fn
     character(*)::filename
-    real(8), allocatable::xt(:)
-    real(8), allocatable::s(:)
-    real(8), allocatable::h(:)
-    real(8), allocatable::e1(:)
-    real(8), allocatable::e2(:)
-    real(8), allocatable::y(:)
-    real(8), allocatable::c(:)
+    real(kind=8), allocatable::xt(:)
+    real(kind=8), allocatable::s(:)
+    real(kind=8), allocatable::h(:)
+    real(kind=8), allocatable::e1(:)
+    real(kind=8), allocatable::e2(:)
+    real(kind=8), allocatable::y(:)
+    real(kind=8), allocatable::c(:)
     logical::move_this_coordinate
     integer::ixyz
     integer, parameter::ndeb1=0,ndeb2=0
@@ -4320,12 +4387,13 @@ subroutine writepathway(n,np,x,filename,atoms)
     deallocate(e2,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating e2.'
     deallocate(c,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating c.'
 end subroutine writepathway
-!*****************************************************************************************
+
+
 subroutine writeanchorpoints(n,np,x,filename,atoms)
     use module_types
     implicit none
     integer::n,np,iat
-    real(8)::x(n,0:np),xyz(3)
+    real(kind=8)::x(n,0:np),xyz(3)
     integer::ip,i
     type(atoms_data), intent(in) :: atoms
     character(len=10) :: name
@@ -4363,12 +4431,13 @@ subroutine writeanchorpoints(n,np,x,filename,atoms)
     close(1389)
     !-------------------------------------------------------------------------------------------
 end subroutine writeanchorpoints
-!*****************************************************************************************
+
+
 subroutine readanchorpoints(n,np,x,filename,atoms)
     use module_types
     implicit none
     integer::n,np,ip,iat,i
-    real(8)::x(n,0:100),xyz(3)
+    real(kind=8)::x(n,0:100),xyz(3)
     type(atoms_data), intent(in) :: atoms
     !integer::i
     character(len=10) :: tname
@@ -4395,13 +4464,14 @@ subroutine readanchorpoints(n,np,x,filename,atoms)
     close(1390)
     !-------------------------------------------------------------------------------------------
 end subroutine readanchorpoints
-!*****************************************************************************************
+
+
 subroutine initializepoints(atoms,n,x1,x2,np,x)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::n,np,ip,i,iat,ixyz
-    real(8)::x1(n),x2(n),x(n,0:np),dt,t,tt
+    real(kind=8)::x1(n),x2(n),x(n,0:np),dt,t,tt
     logical::move_this_coordinate
     dt=1.d0/np
     !linear interpolation between the two ends.
@@ -4434,12 +4504,13 @@ subroutine initializepoints(atoms,n,x1,x2,np,x)
     x(1:n,np)=x2(1:n)
     !---------------------------------------------
 end subroutine initializepoints
-!*****************************************************************************************
+
+
 subroutine dmemocc(n1,n2,v,chv)
     use module_base
     implicit none
     integer::n1,n2,i
-    real(8)::v(n2)
+    real(kind=8)::v(n2)
     character(*)::chv
     if(n1>n2) then
         write(777,'(2a)') 'ERROR: n1>n2 while allocating ',chv
@@ -4452,7 +4523,8 @@ subroutine dmemocc(n1,n2,v,chv)
         enddo
     endif
 end subroutine dmemocc
-!*****************************************************************************************
+
+
 subroutine imemocc(n1,n2,v,chv)
     use module_base
     implicit none
@@ -4469,4 +4541,3 @@ subroutine imemocc(n1,n2,v,chv)
         enddo
     endif
 end subroutine imemocc
-!*****************************************************************************************

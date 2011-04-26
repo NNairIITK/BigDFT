@@ -1,12 +1,13 @@
-!>   Lanczos diagonalization
-!!
+!> @file
+!!  Lanczos diagonalisation used by XANES calculation
 !! @author
-!!    Copyright (C) 2009 ESRF (AM, LG)
+!!    Copyright (C) 2009-2011 BigDFT group (AM, LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+!>   Lanczos diagonalization
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -54,7 +55,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   if(iproc==0) print *, " IN ROUTINE LANCZOS "
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -73,7 +74,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
-  write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
+  write(filename,'(A,A,A,I1)') "gproje_", &
+       & trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
   
   inquire(FILE=trim(filename),EXIST=projeexists)
   
@@ -81,9 +83,10 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
+             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
 
      nullify( dum_coeffs  ) 
@@ -106,7 +109,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      
         if(iproc==0) then
            print *, "calculating  projection on pseudofunctions"
-           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+           print *, "for 1s of atom number ", in_iat_absorber, &
+                & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
            print *, "After application of a 2*L-pole  with L= ", in%L_absorber
         endif
            call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
@@ -225,10 +229,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 END SUBROUTINE xabs_lanczos
 
 
-
 !>   Chebychev polynomials to calculate the density of states
-!!
-!!
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
@@ -280,7 +281,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   Pi=acos(-1.0_gp)
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -309,9 +310,10 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
+             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
      
      nullify( dum_coeffs  ) 
@@ -333,7 +335,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   else
      if(iproc==0) then
         print *, "calculating  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", &
+             & at%atomnames(at%iatype(  in_iat_absorber ))," )"
         print *, "After application of a 2*L-pole  with L= ", in%L_absorber
      endif
      
@@ -534,10 +537,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 END SUBROUTINE xabs_chebychev
 
 
-
 !>   finds the spectra solving  (H-omega)x=b
-!!
-!!
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -597,7 +597,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   if(iproc==0) print *, " IN ROUTINE xabs_cg "
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -624,9 +624,10 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      
      if(iproc==0) then
         print *, "reading  precalculated  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        print *," from file " , filename
+        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
+             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
+        print '(a,a20)'," from file " , trim(filename)
      endif
 
      nullify( dum_coeffs  ) 
@@ -649,7 +650,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      
         if(iproc==0) then
            print *, "calculating  projection on pseudofunctions"
-           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", &
+                & at%atomnames(at%iatype(  in_iat_absorber ))," )"
            print *, "After application of a 2*L-pole  with L= ", in%L_absorber
         endif
            call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
@@ -807,21 +809,13 @@ subroutine dirac_hara (rho, E , V)
   real(gp) Vcorr, rs, xk, EV,x
   integer i
 
-
-
   if(rho>1.0e-4) then
      rs = (3.0_gp / (4.0_gp*pi*rho)) ** (1.0_gp/3.0_gp)
   else
      rs=1000.0_gp
   endif
 
-
-
   Vcorr=V
-
-
-
-
 
   EV=E-Vcorr
   if(EV<=0) then

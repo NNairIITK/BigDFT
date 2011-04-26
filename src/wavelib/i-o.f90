@@ -1,12 +1,12 @@
-!> BigDFT/reformatonewave
-!!
+!> @file
+!!  Routines to reformat wavefunctions
 !! @author
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! 
+ 
 subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
      rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
   use module_base
@@ -37,7 +37,7 @@ subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old
   pery=(at%geocode == 'P')
   perz=(at%geocode /= 'F')
 
-  !buffers realted to periodicity
+  !buffers related to periodicity
   !WARNING: the boundary conditions are not assumed to change between new and old
   call ext_buffers_coarse(perx,nb1)
   call ext_buffers_coarse(pery,nb2)
@@ -207,9 +207,8 @@ subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old
 END SUBROUTINE reformatonewave
 
 
-
-!calculates the minimum difference between two coordinates
-!knowing that there could have been a modulo operation
+!> Calculates the minimum difference between two coordinates
+!! knowing that there could have been a modulo operation
 function mindist(periodic,alat,r,r_old)
   use module_base
   implicit none
@@ -239,6 +238,7 @@ function mindist(periodic,alat,r,r_old)
   end if
 
 end function mindist
+
 
 subroutine ext_buffers_coarse(periodic,nb)
   implicit none
@@ -349,10 +349,10 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      if (iproc == 0) then
         write(*,*) 'wavefunctions need reformatting'
         if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,*) &
-             'because hgrid_old >< hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-        if (nvctr_c_old /= wfd%nvctr_c) write(*,*) 'because nvctr_c_old >< nvctr_c',&
+             'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+        if (nvctr_c_old /= wfd%nvctr_c) write(*,*) 'because nvctr_c_old /= nvctr_c',&
              nvctr_c_old,wfd%nvctr_c
-        if (nvctr_f_old /= wfd%nvctr_f) write(*,*) 'because nvctr_f_old >< nvctr_f',&
+        if (nvctr_f_old /= wfd%nvctr_f) write(*,*) 'because nvctr_f_old /= nvctr_f',&
              nvctr_f_old,wfd%nvctr_f
         if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
              write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
@@ -398,20 +398,21 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
 END SUBROUTINE readonewave
 
+
 subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
      nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f, & 
-     psi_c,psi_f,norb,eval)
+     psi_c,psi_f,eval)
   use module_base
   implicit none
   logical, intent(in) :: useFormattedOutput
-  integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,norb
+  integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz
+  real(wp), intent(in) :: eval
   integer, dimension(nseg_c), intent(in) :: keyv_c
   integer, dimension(nseg_f), intent(in) :: keyv_f
   integer, dimension(2,nseg_c), intent(in) :: keyg_c
   integer, dimension(2,nseg_f), intent(in) :: keyg_f
-  real(wp), dimension(norb), intent(in) :: eval
   real(wp), dimension(nvctr_c), intent(in) :: psi_c
   real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
   real(gp), dimension(3,nat), intent(in) :: rxyz
@@ -420,7 +421,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
   real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
 
   if (useFormattedOutput) then
-     write(unitwf,*) iorb,eval(iorb)
+     write(unitwf,*) iorb,eval
      write(unitwf,*) hx,hy,hz
      write(unitwf,*) n1,n2,n3
      do iat=1,nat
@@ -428,7 +429,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      enddo
      write(unitwf,*) nvctr_c, nvctr_f
   else
-     write(unitwf) iorb,eval(iorb)
+     write(unitwf) iorb,eval
      write(unitwf) hx,hy,hz
      write(unitwf) n1,n2,n3
      do iat=1,nat
@@ -486,6 +487,5 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
   enddo
 
   if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
-
 
 END SUBROUTINE writeonewave

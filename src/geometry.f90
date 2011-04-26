@@ -1,46 +1,46 @@
-!>   Define the type parameterminimization
+!> @file
+!!  Routines to do geometry optimisation
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!> Define the type parameterminimization
 module minpar
   implicit none
 
   type parameterminimization
-     !general parameters for all methods
-     character(10)::approach
-     integer::iter
-     integer::iflag
-     integer::history
-     !parameters for print information
+     !>general parameters for all methods
+     character (len=10) :: approach
+     integer :: iter
+     integer :: iflag
+     integer :: history
+     !>parameters for print information
      integer :: verbosity
-     INTEGER:: MSAVE
-     INTEGER:: MP
-     INTEGER:: LP
-     INTEGER:: MAXFEV
-     INTEGER:: FINSTEP
-     DOUBLE PRECISION:: ALPHA 
-     DOUBLE PRECISION:: GTOL
-     DOUBLE PRECISION:: XTOL
-     DOUBLE PRECISION:: FTOL
-     DOUBLE PRECISION:: STPMIN
-     DOUBLE PRECISION:: STPMAX
-     LOGICAL:: DIAGCO
-     LOGICAL:: IWRITE
+     integer :: MSAVE
+     integer :: MP
+     integer :: LP
+     integer :: MAXFEV
+     integer :: FINSTEP
+     double precision :: ALPHA 
+     double precision :: GTOL
+     double precision :: XTOL
+     double precision :: FTOL
+     double precision :: STPMIN
+     double precision :: STPMAX
+     logical :: DIAGCO
+     logical :: IWRITE
   end type parameterminimization
 
   type(parameterminimization) :: parmin
-
 
 end module minpar
 
 
 !>   Geometry optimization, parametrisation routine.
-!!
-!!
 subroutine geopt_init()
   use minpar
   implicit none
@@ -64,10 +64,7 @@ subroutine geopt_init()
 END SUBROUTINE geopt_init
 
 
-
 !>   Geometry optimization, parametrisation routine.
-!!
-!!
 subroutine geopt_set_verbosity(verbosity_)
   use minpar
   implicit none
@@ -77,10 +74,7 @@ subroutine geopt_set_verbosity(verbosity_)
 END SUBROUTINE geopt_set_verbosity
 
 
-
 !>   Geometry optimization
-!!
-!!
 subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
@@ -182,10 +176,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 END SUBROUTINE geopt
 
 
-
 !>  Molecular Dynamics
-!!
-!!
 subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -285,14 +276,13 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 END SUBROUTINE ab6md
 
 
-
+!> MODIFIED version for refined time limit on restart of global.f90.
+!! Only difference: Calls routine CPUtime(tt)
 subroutine timeleft(tt)
   use module_base
   implicit none
   real(gp), intent(out) :: tt
   !local variables
-  ! MODIFIED version for refined time limit on restart of global.f90.
-  ! Only difference: Calls routine CPUtime(tt)
   integer :: ierr
   real(kind=4) :: tcpu
   real(gp) :: timelimit
@@ -307,8 +297,6 @@ END SUBROUTINE timeleft
 
 
 !>  Conjugate gradient method
-!!
-!!
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   use module_base
   use module_types
@@ -448,8 +436,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         if (etot > etotprev+anoise) then
 
            if (iproc.eq.0 .and. parmin%verbosity > 0) &
-                & write(16,*) 'switching back to SD:etot,etotprev',it,etot,etotprev
-           if (iproc.eq.0) write(*,*) ' switching back to SD:etot,etotprev',it,etot,etotprev
+                & write(16,'(a,i5,2(1pe20.12))') 'switching back to SD:etot,etotprev',it,etot,etotprev
+           if (iproc.eq.0) write(*,'(a,i5,2(1pe20.12))') ' switching back to SD:etot,etotprev',it,etot,etotprev
            do iat=1,at%nat
               rxyz(1,iat)=tpos(1,iat)
               rxyz(2,iat)=tpos(2,iat)
@@ -608,10 +596,7 @@ contains
 END SUBROUTINE conjgrad
 
 
-
 !>  Steepest descent method
-!!
-!!
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
      fnrm,fnoise,in,forcemax_sw,nitsd,fluct)
   use module_base
@@ -675,10 +660,11 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
   redo_sd: do
      if (ncount_bigdft.gt.in%ncount_cluster_x) then 
         if (iproc.eq.0) then
-           write(*,*) 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
+           write(*,'(a,i6,i6,i6)') 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
            if (parmin%verbosity > 0) then
-              write(16,*) 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
-              write(16,*) 'SDCG exited before the geometry optimization converged because more than ', & 
+              write(16,'(a,i6,i6,i6)') &
+                   'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
+              write(16,'(a,i6,a)') 'SDCG exited before the geometry optimization converged because more than ', & 
                    in%ncount_cluster_x,' wavefunction optimizations were required'
            end if
         end if
@@ -875,9 +861,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
 END SUBROUTINE steepdes
 
 
-
+!> Variable step steepest descent
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
-! variable step steepest descent
   use module_base
   use module_types
   use minpar
@@ -1082,6 +1067,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
 
 END SUBROUTINE vstepsd
 
+
 subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
   use module_base
   implicit none
@@ -1098,6 +1084,7 @@ subroutine convcheck(fnrm,fmax,fluctfrac_fluct,forcemax,check)
   endif
 
 END SUBROUTINE convcheck
+
 
 subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
   use module_base
@@ -1174,7 +1161,7 @@ subroutine updatefluctsum(nat,fnoise,fluct)
 END SUBROUTINE updatefluctsum
 
 
-!should we evaluate the translational force also with blocked atoms?
+!> Should we evaluate the translational force also with blocked atoms?
 subroutine transforce(at,fxyz,sumx,sumy,sumz)
   use module_base
   use module_types
@@ -1198,7 +1185,7 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
 END SUBROUTINE transforce
 
 
-!should we evaluate the translational force also with blocked atoms?
+!> Should we evaluate the translational force also with blocked atoms?
 subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
   use module_base
   use module_types
@@ -1229,8 +1216,6 @@ END SUBROUTINE transforce_forfluct
 
 !>  DIIS relax. Original source from ART from N. Mousseau.
 !!  Adaptations to BigDFT by D. Caliste.
-!!
-!!
 subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -1427,12 +1412,9 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 END SUBROUTINE rundiis
 
 
- 
 !>   Driver for the LBFGS routine found on the Nocedal Homepage
 !!   The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
 !!   This is helpfull when we are looking for the source of problems during BFGS runs
-!!
-!!
 subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail) 
   use module_base
   use module_types
@@ -1666,9 +1648,10 @@ subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
 END SUBROUTINE atomic_copymoving_backward
 
 
-!     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A  TABOO file
+!>     This file contains the LBFGS algorithm and supporting routines
+!!@todo     LUIGI: PLEASE CUT OUT THIS PART AND PUT IN A TABOO file
+
 !     ----------------------------------------------------------------------
-!     This file contains the LBFGS algorithm and supporting routines
 !
 !     ****************
 !     LBFGS SUBROUTINE
@@ -2914,94 +2897,96 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
   epred=etot
 
 
-  do it=1,in%ncount_cluster_x-1
-    do iat=1,3*at%nat
-    pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
-    enddo
+  Big_loop: do it=1,in%ncount_cluster_x-1
+     do iat=1,3*at%nat
+        pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
+     enddo
 
+     in%inputPsiId=1
+     in%output_grid=0
+     in%output_wf=.false.
+     call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,fnoise,rst,infocode)
+     ncount_bigdft=ncount_bigdft+1
+     call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
+   !  call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
-  in%inputPsiId=1
-  in%output_grid=0
-  in%output_wf=.false.
-  call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,fnoise,rst,infocode)
-  fxyz=fpred
-  ncount_bigdft=ncount_bigdft+1
-  call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
-!  call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+     do iat=1,3*at%nat
+        velpred(iat)=velcur(iat)+0.5_gp*dt*(fpred(iat))/mass(iat)+0.5_gp*dt*fcur(iat)/mass(iat)
+     enddo
+     P=dot_product(fpred,velpred)
+     call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
 
-  do iat=1,3*at%nat
-  velpred(iat)=velcur(iat)+0.5_gp*dt*(fpred(iat))/mass(iat)+0.5_gp*dt*fcur(iat)/mass(iat)
-  enddo
-  P=dot_product(fpred,velpred)
-  call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
+     if (iproc == 0) then
+        write(fn4,'(i4.4)') ncount_bigdft
+        write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
+        call  write_atomic_file('posout_'//fn4,epred,pospred,at,trim(comment))
+     endif
+     if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
+     if (iproc==0.and.parmin%verbosity > 0) & 
+         write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
+         &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+         &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
+     if (iproc==0.and.parmin%verbosity > 0) & 
+         write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
+         &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
+         &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
+         &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
+         eprev=epred
+     if (iproc==0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
+                             'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
+     call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+     if (ncount_bigdft >= in%ncount_cluster_x-1) then
+         !Too many iterations
+         exit Big_loop
+     end if
+     close(16)
+     open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
 
-   if (iproc == 0) then
-     write(fn4,'(i4.4)') ncount_bigdft
-     write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
-     call  write_atomic_file('posout_'//fn4,epred,pospred,at,trim(comment))
-   endif
-   if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
-   if (iproc==0.and.parmin%verbosity > 0) & 
-       write(16,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
-       &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
-       &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
-       &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P
-   if (iproc==0.and.parmin%verbosity > 0) & 
-       write(* ,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2), & 
-       &2x,a6,es7.2e1,2x,a3,es7.2e1,2x,a6,es8.2,2x,a6,I5,2x,a2,es9.2)') &
-       &ncount_bigdft,it,"GEOPT_FIRE",epred,epred-eprev,fmax,sqrt(fnrm),fluct*in%frac_fluct,fluct, &
-       &"alpha=",alpha, "dt=",dt, "vnrm=",sqrt(vnrm), "nstep=",nstep,"P=",P 
-       eprev=epred
-   if (iproc==0.and.parmin%verbosity > 0) write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
-                           'FORCES norm(Ha/Bohr): maxval=',fmax,'fnrm2=',fnrm,'fluct=', fluct
-   call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
-   if (ncount_bigdft >= in%ncount_cluster_x-1) goto 50
-   close(16)
-   open(unit=16,file='geopt.mon',status='unknown',position='APPEND')
-
-    if(check.gt.5) then
-      if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
-      goto 50
-    endif
+     if(check.gt.5) then
+        if(iproc==0)  write(16,'(a,i0,a)') "   FIRE converged in ",it," iterations"
+        !Exit from the loop (the calculation is finished).
+        exit Big_loop
+     endif
 
 !Update variables
-  fcur=fpred
-  poscur=pospred
+     fcur=fpred
+     poscur=pospred
 !Normal verlet velocity update
 !  velcur=velpred
 
 !!FIRE Update
-  call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
-  fnrm=sqrt(fnrm)
-  call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
-  vnrm=sqrt(vnrm)
+     call fnrmandforcemax(fpred,fnrm,fmax,at%nat)
+     fnrm=sqrt(fnrm)
+     call fnrmandforcemax(velpred,vnrm,vmax,at%nat)
+     vnrm=sqrt(vnrm)
 !Modified velocity update, suggested by Alireza
 !  velcur(:)=(1.0_gp-alpha)*velpred(:)+fpred(:)*min(alpha*vnrm/fnrm,2.0_gp*in%betax)!alpha*fpred(:)/fnrm*vnrm
 !Original FIRE velocitiy update
-  velcur(:)=(1.0_gp-alpha)*velpred(:)+alpha*fpred(:)/fnrm*vnrm
-       if(P.gt.-anoise*vnrm .and. nstep.gt.Nmin) then
-         dt=min(dt*finc,dtmax)
-!         alpha=max(alpha*falpha,0.1_gp) !Limit the decrease of alpha
-         alpha=alpha*falpha
-       elseif(P.le.-anoise*vnrm) then
-         nstep=0
-         dt=dt*fdec
-         velcur=0.d0
-         alpha=alphastart
-       endif
-       nstep=nstep+1
+     velcur(:)=(1.0_gp-alpha)*velpred(:)+alpha*fpred(:)/fnrm*vnrm
+     if(P.gt.-anoise*vnrm .and. nstep.gt.Nmin) then
+        dt=min(dt*finc,dtmax)
+!        alpha=max(alpha*falpha,0.1_gp) !Limit the decrease of alpha
+        alpha=alpha*falpha
+     elseif(P.le.-anoise*vnrm) then
+        nstep=0
+        dt=dt*fdec
+        velcur=0.d0
+        alpha=alphastart
+     endif
+     nstep=nstep+1
 
-if (iproc==0) write(10,*) epred, vnrm*0.5d0
-enddo
+     if (iproc==0) write(10,*) epred, vnrm*0.5d0
+   end do Big_loop
 
 
- 50  CONTINUE
         
-! Output the final energy.
-etot = epred
+! Output the final energy, atomic positions and forces
+   etot = epred
+   rxyz = pospred
+   fxyz = fpred
 
-      return 
-      END
+END SUBROUTINE fire
 
 
 

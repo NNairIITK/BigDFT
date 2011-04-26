@@ -1,11 +1,14 @@
-!> module for XANES calculation
+!> @file
+!!  Routines to do XANES calculation
 !! @author
-!!    Copyright (C) 2009 BigDFT group
+!!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!> module for XANES calculation
 module esatto
   use module_base
   use module_interfaces

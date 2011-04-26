@@ -17,29 +17,30 @@ PSPS = psppar.H \
        HGH-K/psppar.Ti
 
 # Give here the list of existing tests
-TESTDIRS = H \
-	  C \
+TESTDIRS = C \
 	  Li+ \
 	  H2-spin \
 	  SiH4 \
 	  NH3 \
 	  NaCl \
 	  Ca2 \
-	  Mn2 \
 	  H2O-CP2K \
 	  SiBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
-	  Graphene \
 	  TiMix \
-	  O2-Spin \
-	  FeHyb 
+	  O2-Spin
+
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
   TESTDIRS += GPU
 endif
 if USE_OCL
   TESTDIRS += OCL
+else
+#Add H (box too small) and Graphene (different algorithm) only if we do not use OCL (see README)
+#OCL not implemented with spin=4 (Fehyb and Mn2)
+  TESTDIRS += H Graphene FeHyb Mn2
 endif
 
 # Give here the pseudo-potentials used by each test.
@@ -49,7 +50,7 @@ Li+.psp: psppar.Li
 H2-spin.psp: HGH/psppar.H
 SiH4.psp: HGH-K/psppar.H HGH-K/psppar.Si
 NH3.psp: HGH-K/psppar.N HGH-K/psppar.H
-TiMix.psp: HGH-K/psppar.Ti
+TiMix.psp: HGH-K/psppar.Ti HGH/psppar.Na
 NaCl.psp: HGH/psppar.Na HGH/psppar.Cl
 Ca2.psp: psppar.Ca
 Mn2.psp: psppar.Mn
@@ -102,10 +103,10 @@ report:
         esac ; \
         case $* in \
           Ca2.out*) prec="4.e-10" ;; \
-          Davidson-SiH4.out*) prec="4.e-9" ;; \
+          Davidson-SiH4.out*) prec="1.e-8" ;; \
           NaCl.out*) prec="2.e-8" ;; \
-          SiBulk.out*) prec="5.e-10" ;; \
-          SiH4.out*) prec="1.e-9" ;; \
+          SiBulk.out*) prec="2.e-7" ;; \
+          SiH4.out*) prec="1.5e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
@@ -124,17 +125,37 @@ $(PSPS):
 
 %.post-in: ;
 
-%.in:
+in_message:
+	@if test -n "$(run_ocl)" ; then \
+	  echo "==============================================" ; \
+	  echo "Will generate a 'input.perf' file to force OCL" ; \
+	  echo "==============================================" ; \
+	fi
+
+%.in: in_message
 	@dir=`basename $@ .in` ; \
         if ! test x"$(srcdir)" = x"." ; then \
           if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
           for i in $(srcdir)/$$dir/* ; do cp -f $$i $$dir; done ; \
         fi ; \
+	if ! test -f $(srcdir)/$$dir/input.perf ; then \
+	  rm -f $$dir/input.perf ; \
+	  if test -n "$(run_ocl)" ; then \
+	    echo "ACCEL OCLGPU" > $$dir/input.perf ; \
+	  fi ; \
+	fi ; \
         cd $$dir && $(MAKE) -f ../Makefile $$dir".psp" $$dir".post-in"; \
         echo "Input prepared in "$$dir" dir. make $$dir.run available"
 	touch $@
 
-%.run: %.in
+run_message:
+	@if test -n "$(run_parallel)" ; then \
+	  echo "==============================================" ; \
+	  echo "Will run tests in parallel with '$$run_parallel'" ; \
+	  echo "==============================================" ; \
+	fi
+
+%.run: %.in run_message
 	@dir=`basename $@ .run` ; \
         runs="$(srcdir)/$$dir/*.ref" ; \
 	tgts=`for r in $$runs ; do echo $$(basename $$r .ref)".out"; done` ; \
@@ -149,11 +170,11 @@ $(PSPS):
         cd $$dir && $(MAKE) -f ../Makefile $$tgts
 	touch $@
 
-%.recheck:
+%.recheck: %.in
 	@dir=`basename $@ .recheck` ; \
         reps="$$dir/*.report" ; \
 	for r in $$reps ; do \
-	  if grep -qs "failed" $$r ; then \
+	  if ! grep -qs "succeeded" $$r ; then \
 	    target=` basename $$r .report` ; \
 	    $(MAKE) $*".in" && rm -f $*".in" ; \
 	    rm -f $$dir/$$target".out" $$dir/$$target".report" ; \
@@ -173,3 +194,35 @@ EXTRA_DIST = \
 	inguess.dat \
         $(TESTDIRS) \
         GPU OCL
+
+# Avoid copying in dist the builddir files.
+distdir: $(DISTFILES)
+	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
+	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
+	list='$(DISTFILES)'; \
+	  dist_files=`for file in $$list; do echo $$file; done | \
+	  sed -e "s|^$$srcdirstrip/||;t" \
+	      -e "s|^$$topsrcdirstrip/|$(top_builddir)/|;t"`; \
+	case $$dist_files in \
+	  */*) $(MKDIR_P) `echo "$$dist_files" | \
+			   sed '/\//!d;s|^|$(distdir)/|;s,/[^/]*$$,,' | \
+			   sort -u` ;; \
+	esac; \
+	for file in $$dist_files; do \
+	  d=$(srcdir); \
+	  if test -d $$d/$$file; then \
+	    dir=`echo "/$$file" | sed -e 's,/[^/]*$$,,'`; \
+	    if test -d "$(distdir)/$$file"; then \
+	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
+	    fi; \
+	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then \
+	      cp -fpR $(srcdir)/$$file "$(distdir)$$dir" || exit 1; \
+	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
+	    fi; \
+	    cp -fpR $$d/$$file "$(distdir)$$dir" || exit 1; \
+	  else \
+	    test -f "$(distdir)/$$file" \
+	    || cp -p $$d/$$file "$(distdir)/$$file" \
+	    || exit 1; \
+	  fi; \
+	done

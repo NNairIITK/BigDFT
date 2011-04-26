@@ -98,7 +98,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5029
  Percent of zero components =                    0
@@ -142,7 +142,8 @@
  Hamiltonian application... done. ekin_sum,eks:       9.6040976138       9.6028876549
  ekin_sum,epot_sum,eproj_sum  9.60409761377E+00 -1.40676877862E+01  1.07666182568E+00
     ehart,   eexcu,    vexcu  1.76811706472E+01 -3.65076843963E+00 -4.72901105492E+00
- Input Wavefunctions Orthogonalization: Overlap Matrix... Direct diagonalization...
+ Input Wavefunctions Orthogonalization: 
+ Overlap Matrix... Direct diagonalization...
  evale(1)= -8.07926940185955E-01 <-
  evale(2)= -4.50759692173289E-01 <-
  evale(3)= -4.50181171988568E-01 <-
@@ -314,7 +315,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5029
  Percent of zero components =                    0
@@ -343,7 +344,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27696   27699
+    nvctr_c_old /= nvctr_c   27696   27699
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999311029
@@ -493,7 +494,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5027
  Percent of zero components =                    0
@@ -522,7 +523,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27699   27716
+    nvctr_c_old /= nvctr_c   27699   27716
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999305768
@@ -681,7 +682,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 4997
  Percent of zero components =                    0
@@ -710,7 +711,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27716   27721
+    nvctr_c_old /= nvctr_c   27716   27721
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999322220
@@ -869,7 +870,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5016
  Percent of zero components =                    0
@@ -898,7 +899,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27721   27709
+    nvctr_c_old /= nvctr_c   27721   27709
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999329699
@@ -1039,7 +1040,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5014
  Percent of zero components =                    0
@@ -1068,7 +1069,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27709   27707
+    nvctr_c_old /= nvctr_c   27709   27707
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999328421
@@ -1200,7 +1201,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5004
  Percent of zero components =                    0
@@ -1229,7 +1230,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27707   27704
+    nvctr_c_old /= nvctr_c   27707   27704
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999328150
@@ -1361,7 +1362,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 4997
  Percent of zero components =                    0
@@ -1390,7 +1391,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27704   27707
+    nvctr_c_old /= nvctr_c   27704   27707
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999328162
@@ -1522,7 +1523,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 5006
  Percent of zero components =                    0
@@ -1551,7 +1552,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   27707   27705
+    nvctr_c_old /= nvctr_c   27707   27705
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999328355
@@ -1674,7 +1675,7 @@
  Type    Name Number of atoms Number of projectors
     1       N               1                    1
     2       H               3                    0
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                    1
  Total number of components =                 4998
  Percent of zero components =                    0
@@ -1703,7 +1704,7 @@
  PSolver, free  BC, dimensions:   109  107   95   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_f_old >< nvctr_f     707     708
+    nvctr_f_old /= nvctr_f     707     708
  Reformatting... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999328382

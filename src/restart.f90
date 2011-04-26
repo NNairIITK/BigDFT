@@ -1,11 +1,14 @@
-!>  Copy old wavefunctions from psi to psi_old
+!> @file
+!!  Routines to do restart
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
+!>  Copy old wavefunctions from psi to psi_old
 subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
      n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
@@ -75,10 +78,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
 END SUBROUTINE copy_old_wavefunctions
 
 
-
 !>   Reformat wavefunctions if the mesh have changed (in a restart)
-!!
-!!
 subroutine reformatmywaves(iproc,orbs,at,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
      hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
@@ -147,13 +147,13 @@ subroutine reformatmywaves(iproc,orbs,at,&
          'The wavefunctions need reformatting because:                                 '
         if (hx /= hx_old .or. hy /= hy_old .or. hz /= hz_old) then 
            write(*,"(4x,a,6(1pe20.12))") &
-                '  hgrid_old >< hgrid  ',hx_old,hy_old,hz_old,hx,hy,hz
+                '  hgrid_old /= hgrid  ',hx_old,hy_old,hz_old,hx,hy,hz
         else if (wfd_old%nvctr_c /= wfd%nvctr_c) then
            write(*,"(4x,a,2i8)") &
-                'nvctr_c_old >< nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+                'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
         else if (wfd_old%nvctr_f /= wfd%nvctr_f)  then
            write(*,"(4x,a,2i8)") &
-                'nvctr_f_old >< nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+                'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
         else if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 )  then  
            write(*,"(4x,a,6i5)") &
                 'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
@@ -171,13 +171,13 @@ subroutine reformatmywaves(iproc,orbs,at,&
 !         'The wavefunctions need reformatting because:                                 '
 !        if (hgrid_old.ne.hgrid) then 
 !           write(100+iproc,"(4x,a,1pe20.12)") &
-!                '  hgrid_old >< hgrid  ',hgrid_old, hgrid
+!                '  hgrid_old /= hgrid  ',hgrid_old, hgrid
 !        else if (wfd_old%nvctr_c.ne.wfd%nvctr_c) then
 !           write(100+iproc,"(4x,a,2i8)") &
-!                'nvctr_c_old >< nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+!                'nvctr_c_old /= nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
 !        else if (wfd_old%nvctr_f.ne.wfd%nvctr_f)  then
 !           write(100+iproc,"(4x,a,2i8)") &
-!                'nvctr_f_old >< nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+!                'nvctr_f_old /= nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
 !        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
 !           write(100+iproc,"(4x,a,6i5)") &
 !                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
@@ -272,11 +272,8 @@ subroutine reformatmywaves(iproc,orbs,at,&
 END SUBROUTINE reformatmywaves
 
 
-
 !>  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !!  have changed
-!!
-!!
 subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
   use module_base
@@ -362,8 +359,6 @@ END SUBROUTINE readmywaves
 
 
 !>   Write all my wavefunctions in files by calling writeonewave
-!!
-!!
 subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   use module_types
   use module_base
@@ -383,6 +378,7 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
+  if (iproc == 0) write(*,"(1x,A,A)") "Write wavefunctions to file: ", trim(filename)
   isuffix = index(filename, ".etsf", back = .true.)
   if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
   if (isuffix > 0) then
@@ -408,7 +404,8 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
         call writeonewave(99,(isuffix <= 0),iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 
              wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
              wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
-             psi(1,iorb),psi(wfd%nvctr_c+1,iorb),orbs%norb,orbs%eval)
+             psi(1,iorb),psi(wfd%nvctr_c+1,iorb), &
+             orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb))
         close(99)
 
      enddo
@@ -417,7 +414,7 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
      write(*,'(a,i4,2(1x,e10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+     write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
 
 END SUBROUTINE writemywaves
-

@@ -1,14 +1,15 @@
-!>   A analysis wavelet transformation where the size of the data is forced to shrink
-!!   The input array y is overwritten
-!!
+!> @file
+!!  Common convolutions
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!!
+
+
+!>   A analysis wavelet transformation where the size of the data is forced to shrink
+!!   The input array y is overwritten
 subroutine analyse_shrink(n1,n2,n3,ww,y,x)
   use module_base
   implicit none
@@ -32,11 +33,8 @@ subroutine analyse_shrink(n1,n2,n3,ww,y,x)
 END SUBROUTINE analyse_shrink
 
 
-
 !>   A synthesis wavelet transformation where the size of the data is allowed to grow
 !!   The input array x is not overwritten
-!!
-!!
 subroutine synthese_grow(n1,n2,n3,ww,x,y)
   use module_base
   implicit none
@@ -60,11 +58,8 @@ subroutine synthese_grow(n1,n2,n3,ww,x,y)
 END SUBROUTINE synthese_grow
 
 
-
 !>   An analysis wavelet transformation where the size of the data is forced to shrink
 !!   The input array y is not overwritten
-!!
-!!
 subroutine analyse_slab(n1,n2,n3,ww,y,x)
   implicit none
   !Arguments
@@ -88,11 +83,8 @@ subroutine analyse_slab(n1,n2,n3,ww,y,x)
 END SUBROUTINE analyse_slab
 
 
-
 !>   A synthesis wavelet transformation where the size of the data is allowed to grow
 !!   The input array x is not overwritten
-!!
-!!
 subroutine synthese_slab(n1,n2,n3,ww,x,y)
   implicit real(kind=8) (a-h,o-z)
   real(kind=8) :: x(0:n1,2,0:n2,2,0:n3,2)
@@ -112,11 +104,8 @@ subroutine synthese_slab(n1,n2,n3,ww,x,y)
 END SUBROUTINE synthese_slab
 
 
-
 !>  A analysis wavelet transformation where the size of the data is forced to shrink
 !!  The input array y is overwritten
-!!
-!!
 subroutine analyse_slab_self(n1,n2,n3,y,x)
   implicit none
   integer,intent(in)::n1,n2,n3
@@ -136,11 +125,8 @@ subroutine analyse_slab_self(n1,n2,n3,y,x)
 END SUBROUTINE analyse_slab_self
 
 
-
 !>   A synthesis wavelet transformation where the size of the data is allowed to grow
 !!   The input array x is overwritten
-!!
-!!
 subroutine synthese_slab_self(n1,n2,n3,x,y)
   implicit none
   integer,intent(in)::n1,n2,n3
@@ -160,12 +146,9 @@ subroutine synthese_slab_self(n1,n2,n3,x,y)
 END SUBROUTINE synthese_slab_self
 
 
-
 !>   Applies the magic filter matrix in slabwise BC ( no transposition)
 !!   The input array x is overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
-!!
-!!
 subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
   use module_base
   implicit none
@@ -214,12 +197,9 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
 END SUBROUTINE convolut_magic_n_slab_self
 
 
-
 !>   Applies the magic filter matrix in periodic BC ( no transposition)
 !!   The input array x is not overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
-!!
-!!
 subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
   use module_base
   implicit none
@@ -269,12 +249,9 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
 END SUBROUTINE convolut_magic_n_slab
 
 
-
 !>   Applies the magic filter matrix transposed in periodic BC 
 !!   The input array x is overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
-!!
-!!
 subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
   use module_base
   implicit none
@@ -324,10 +301,7 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
 END SUBROUTINE convolut_magic_t_slab_self
 
 
-
 !>   Applies the kinetic energy operator onto x to get y. Works for periodic BC
-!!
-!!
 subroutine convolut_kinetic_slab_sdc(n1,n2,n3,x,y,cprecr,modul1,modul3,a,b,c,e)
   use module_base
   implicit none
@@ -482,10 +456,7 @@ subroutine convolut_kinetic_slab_sdc(n1,n2,n3,x,y,cprecr,modul1,modul3,a,b,c,e)
 END SUBROUTINE convolut_kinetic_slab_sdc
 
 
-
 !> BigDFT/prepare_sdc_slab
-!!
-!!
 subroutine prepare_sdc_slab(n1,n3,modul1,modul3,a,b,c,e,hx,hy,hz)
   use module_base
   implicit none
@@ -589,4 +560,3 @@ subroutine prepare_sdc_slab(n1,n3,modul1,modul3,a,b,c,e,hx,hy,hz)
      e(-i,:)=e(i,:)
   enddo
 END SUBROUTINE prepare_sdc_slab
-

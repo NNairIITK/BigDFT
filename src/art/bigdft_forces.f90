@@ -1,13 +1,14 @@
-!>   Module which contains information for bigdft run inside art
-!!
+!> @file
+!!   Information to interface BigDFT with ART
 !! @author
 !!   Copyright (C) 2010 BigDFT group, Normand Mousseau
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!!
-!!
+
+
+!>   Module which contains information for BigDFT run inside art
 module bigdft_forces
 
   use module_base!, only : gp,wp,dp,bohr2ang
@@ -36,10 +37,7 @@ module bigdft_forces
 contains
 
 
-
 !>   Routine to initialize all BigDFT stuff
-!!
-!!
   subroutine bigdft_init(nat,typa,posa,boxl, nproc_, me_)
 
     implicit none
@@ -62,8 +60,9 @@ contains
     ! Initialize memory counting
     call memocc(0,me,'count','start')
 
-    call read_input_variables(me_, "posinp", "input.dft", "input.kpt","input.mix", &
-         & "input.geopt", "input.perf", in, at, rxyz)
+    !standard names
+    call standard_inputfile_names(in)
+    call read_input_variables(me_, "posinp",in, at, rxyz)
 
     ! Transfer at data to ART variables
     nat = at%nat
@@ -93,10 +92,7 @@ contains
   END SUBROUTINE bigdft_init
 
 
-
 !>   Calculation of forces
-!!
-!!
   subroutine calcforce(nat,posa,boxl,forca,energy)
 
     implicit none
@@ -145,10 +141,7 @@ contains
   END SUBROUTINE calcforce
 
 
-
 !>   Minimise geometry
-!!
-!!
   subroutine mingeo(nat, boxl, posa, evalf_number, forca, total_energy)
 
     implicit none
@@ -197,10 +190,7 @@ contains
   END SUBROUTINE mingeo
 
 
-
 !>   Routine to finalise all BigDFT stuff
-!!
-!!
   subroutine bigdft_finalise()
 
     implicit none
@@ -217,4 +207,3 @@ contains
 
 
 end module bigdft_forces
-

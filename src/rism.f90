@@ -1,11 +1,13 @@
-!> BigDFT/rism
+!> @file
+!!  Program RISM
 !! @author
-!!    Copyright (C) 2010 ESRF, CEA
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
+
+
 program rism
   use BigDFT_API
   implicit none
@@ -24,22 +26,23 @@ program rism
   real(gp), dimension(:,:), allocatable :: radii_cf
   real(gp), dimension(:,:), pointer :: rxyz
   real(dp), dimension(:,:), pointer :: rho,pot,pot_ion
-  character(len=5) :: fformat
+  character(len=5) :: gridformat
 
   !for the moment no need to have parallelism
   iproc=0
   nproc=1
 
   !initalise the varaibles for the calculation
-  !the centers may be more than the original atoms
-  !the pseudopotential for the dummy centers have to be provided
-  call read_input_variables(iproc,'centers', &
-       & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", in, atoms, rxyz)
-  if (abs(in%output_grid) > 10) then
-     write(fformat, "(A)") ".etsf"
-  else
-     write(fformat, "(A)") ".cube"
-  end if
+  !standard names
+  call standard_inputfile_names(in)
+  call read_input_variables(iproc,'posinp',in,atoms,rxyz)
+  write(gridformat, "(A)") ""
+  select case (in%output_grid_format)
+     case (OUTPUT_GRID_FORMAT_ETSF)
+        write(gridformat, "(A)") ".etsf"
+     case (OUTPUT_GRID_FORMAT_CUBE)
+        write(gridformat, "(A)") ".bin"
+  end select
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)
@@ -76,14 +79,14 @@ program rism
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
 
   !read the files from the .cubes on the disk
-  call read_density('electronic_density' // fformat,atoms%geocode,&
+  call read_density('electronic_density' // gridformat,atoms%geocode,&
        n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho)
 
-  call read_density('hartree_potential' // fformat,atoms%geocode,&
+  call read_density('hartree_potential' // gridformat,atoms%geocode,&
        n1i,n2i,n3i,nspin,hxh,hyh,hzh,pot)
 
   !not needed for the moment
-  call read_density('ionic_potential' // fformat,atoms%geocode,&
+  call read_density('ionic_potential' // gridformat,atoms%geocode,&
        n1i,n2i,n3i,nspin,hxh,hyh,hzh,pot_ion)
 
   !also extract the number of atoms and the positions
@@ -191,13 +194,13 @@ subroutine assign_atomic_radii(nat,iatlr,nlr,radii)
 
 END SUBROUTINE assign_atomic_radii
 
+
 !>   Calculate atomic charges using Lee, York and Yang method 
 !!   But with a basis similar to Blochl one 
 !!   Refs: J.Chem.Phys. 102(19),7549 (1995)
 !!         J.Chem.Phys. 103(17),7422 (1995) 
 !!   use a basis of error functions centered on the atoms, with atom-defined radii
 !!   and also short-range functions are allowed, as well as dummy atoms
-!!
 subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngatherarr,&
      hxh,hyh,hzh,n3p,i3s,rho,pot,C)
   use module_base
@@ -242,7 +245,7 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
         nullify(Gocc)
      end if
      nbasis=nlr+Gpswf%ncoeff
-     call gaussian_rism_basis_new(nlr,radii,rxyz,Glongr)
+     !call gaussian_rism_basis_new(nlr,radii,rxyz,Glongr)
   else
      nbasis=nlr
   end if
@@ -510,10 +513,6 @@ subroutine atomic_charges(iproc,nproc,rxyz,iatlr,radii,atoms,nlr,nelec,lr,ngathe
 END SUBROUTINE atomic_charges
 
 
-
-
-!>
-!!
 subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
   use module_base
   implicit none
@@ -565,9 +564,6 @@ subroutine two_center_two_electrons_analytic(nlr,nat,iatlr,radii,rxyz,H)
 END SUBROUTINE two_center_two_electrons_analytic
 
 
-!>
-!!
-!!
 subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,rhoarr)
   use module_base
@@ -663,7 +659,7 @@ subroutine calculate_rho_longrange(iproc,nproc,at,nlr,iatlr,radii,rxyz,hxh,hyh,h
 END SUBROUTINE calculate_rho_longrange
 
 
-!erf(r/(sqrt(2)rl)/r
+!> erf(r/(sqrt(2)rl)/r
 function erfor(r,rl)
   use module_base
   implicit none
@@ -685,9 +681,8 @@ function erfor(r,rl)
 
 end function erfor
   
+
 !>   Gaussian basis associated to the long-range term of rism calculation
-!!
-!!
 subroutine gaussian_rism_basis(nat,radii,rxyz,G)
   use module_base
   use module_types
@@ -756,7 +751,7 @@ subroutine gaussian_rism_basis(nat,radii,rxyz,G)
 END SUBROUTINE gaussian_rism_basis
 
 
-!calculate the second part, by expressing the atomic wavefunctions on a real grid
+!> calculate the second part, by expressing the atomic wavefunctions on a real grid
 subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,ngatherarr,&
      rho,rhoarr)
   use module_base
@@ -882,7 +877,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
   isorb=ncoeff_par(iproc,2)
 
   !fake orbitals descriptor to calculate the wavelet expansion
-  call orbitals_descriptors(0,1,ncoeff_par(iproc,1),ncoeff_par(iproc,1),0,1,1,&
+  call orbitals_descriptors(0,1,ncoeff_par(iproc,1),ncoeff_par(iproc,1),0,1,1,1,&
        (/0.0_gp,0.0_gp,0.0_gp/),(/1.0_gp /),orbspswf)
 
   !allocate the wavefunctions in wavelets and in gaussians
