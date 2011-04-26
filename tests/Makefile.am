@@ -7,7 +7,8 @@ SUBDIRS = \
 	  H2-freq \
 	  NEB \
 	  XabsCheb \
-	  SPLSAD
+	  SPLSAD \
+	  Linear
 
 
 #This will run the automatic tests also for minima hopping

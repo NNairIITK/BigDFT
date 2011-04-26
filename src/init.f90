@@ -364,6 +364,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:,:), pointer :: psigau
+type(orbitals_data):: orbsLIN
+type(communications_arrays):: commsLIN
+real(8),dimension(:),allocatable:: phi, hphi
+real(8),dimension(:,:),allocatable:: HamSmall
+real(8),dimension(:),allocatable:: eval
+integer:: istat
+real(8),dimension(:),pointer:: phiWorkPointer
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -631,6 +638,9 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,nspin,&
        orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
 
+
+
+
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,pot,&
        psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
@@ -744,5 +754,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,i_all,'psigau',subname)
 
   call deallocate_orbs(orbse,subname)
-     
+
+
+
 END SUBROUTINE input_wf_diag

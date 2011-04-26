@@ -224,7 +224,17 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
-	$(DGEMMSY_INTERFACE)
+        linear/filterModule.f90 \
+        linear/getLocBasis.f90 \
+        linear/applyHamiltonian.f90 \
+        linear/precondLinear.f90 \
+        linear/locReg.f90 \
+        linear/transposition.f90 \
+        linear/linearScaling.f90 \
+        linear/energyAndForces.f90 \
+        linear/convolutions.f90 \
+        linear/initAndUtils.f90 \
+	$(DGEMMSY_INTERFACE)  
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \

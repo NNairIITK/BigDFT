@@ -111,6 +111,7 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
   !local variables
   integer :: ierr
 
+
   call timing(iproc,'Un-TransSwitch','ON')
 
   if (nproc > 1) then
@@ -123,6 +124,7 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
   
      call switch_waves_v(nproc,orbs,&
           wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,psi,work)
+
 
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
@@ -207,6 +209,7 @@ subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
   !local variables
   integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4,ikptsp
   integer :: isorb,isorbp,ispsi,norbp_kpt,ikpt
+
 
   isorb=orbs%isorb+1
   isorbp=0

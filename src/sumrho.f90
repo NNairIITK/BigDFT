@@ -291,6 +291,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir
+real(8):: dnrm2
 
   call initialize_work_arrays_sumrho(lr,w)
 

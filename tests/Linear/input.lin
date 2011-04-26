@@ -1,0 +1,12 @@
+100  0               max number of iterations for the inguess basis functions, max number for the optimization of the basis functions
+1.d-2                convergence criterion
+0  8  1.d-1          DIISHistMin, DIISHistMax, step size for SD
+F   2.d2             start with SD, start criterion for DIIS
+5                    number of iterations in the preconditioner
+min                  getCoeff: diag or min
+2000 1.d-5           max number of iterations in the minimization of the coefficients, convergence criterion
+0                    number of iterations in the selfconsistency cycle to optimize coefficients and basis functions.
+T                    plot basis functions: true or false
+C  4  1.d-6          number of basis functions per atom, prefactor for confinement potential
+H  1  1.d-6          number of basis functions per atom, prefactor for confinement potential
+

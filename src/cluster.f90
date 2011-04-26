@@ -249,6 +249,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
   real(gp), allocatable :: wkptv(:)
+  type(linearParameters):: lin
 
   ! ----------------------------------
 
@@ -567,7 +568,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end if
 
   !all the input formats need to allocate psi except the LCAO input_guess
-  if (inputpsi /= 0) then
+  ! WARNING: at the momemt the linear scaling version allocates psi in the same
+  ! way as the LCAO input guess, so it is not necessary to allocate it here.
+  ! Maybe to bve changed later.
+  !if (inputpsi /= 0) then
+  if (inputpsi /= 0 .and. inputpsi/=100) then
      allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
   end if
@@ -688,7 +693,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      if (nvirt > norbv) then
         nvirt = norbv
      end if
-  case(INPUT_PSI_MEMORY_WVL)
+  case(INPUT_PSI_LINEAR)
+     ! Do also the normal cubic case at the moment to avoid changes in the code (allocating etc.) and
+     ! to get the selfconsistent potential.
+     nspin=in%nspin
+     call input_wf_diag(iproc,nproc, atoms,&
+          orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+          nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
+     if (nvirt > norbv) then
+        nvirt = norbv
+     end if
+
+1  case(INPUT_PSI_MEMORY_WVL)
      !these parts should be reworked for the non-collinear spin case
 
      !restart from previously calculated wavefunctions, in memory
@@ -762,7 +779,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end select
 
   !all the input format need first_orthon except the LCAO input_guess
-  if (inputpsi /= 0 .and. inputpsi /=-1000) then
+  ! WARNING: at the momemt the linear scaling version does not need first_orthon.
+  ! hpsi and psit have been allocated during the LCAO input guess.
+  ! Maybe to be changed later.
+  !if (inputpsi /= 0 .and. inputpsi /=-1000) then
+  if (inputpsi /= 0 .and. inputpsi/=100 .and. inputpsi /=-1000) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
   end if
@@ -946,6 +967,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
                 orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
 
+
            call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
                 nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
                 in%nspin,GPU,pkernel=pkernelseq)
@@ -962,6 +984,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               exit wfn_loop 
            endif
 
+
            !evaluate the functional of the wavefucntions and put it into the diis structure
            !the energy values is printed out here
            call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,hx,hy,hz,in%ncong,in%iscf,&
@@ -972,6 +995,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            idsx_actual_before=diis%idsx
 
            call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in)
+           !if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
+           !     iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
 
            if (in%inputPsiId == 0) then
               if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
@@ -999,6 +1024,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !flush all writings on standart output
            call flush(6)
         end do wfn_loop
+
+
+
 
         if (iproc == 0) then 
            if (verbose > 1) write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
@@ -1041,6 +1069,47 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
              comms,psi,hpsi,psit,evsum,.true.) !never deallocate psit and hpsi
+
+
+        ! Here we try to reproduce the above result with the linear scaling version, i.e. we take the selfconsistent potential
+        ! for all calculations.
+        ! ATTENTION: This will overwrite some results of the cubic run made so far, in particular psi and psit.
+        !            In addition we calculate the forces for the linear scaling version. This will somehow overwrite
+        !            some values taht are needed for the usual forces calculation later on, so these forces are 
+        !            completely garbage.
+        linearIf: if(inputpsi==100) then
+            lin%as%size_rhopot=size(rhopot)
+            lin%as%size_potxc(1)=size(potxc,1)
+            lin%as%size_potxc(2)=size(potxc,2)
+            lin%as%size_potxc(3)=size(potxc,3)
+            lin%as%size_potxc(4)=size(potxc,4)
+            lin%as%size_rhocore=size(rhocore)
+            lin%as%size_pot_ion=size(pot_ion)
+            lin%as%size_pkernel=size(pkernel)
+            lin%as%size_pkernelseq=size(pkernelseq)
+            lin%as%size_phnons(1)=size(phnons,1)
+            lin%as%size_phnons(2)=size(phnons,2)
+            lin%as%size_phnons(3)=size(phnons,3)
+            lin%as%size_irrzon(1)=size(irrzon,1)
+            lin%as%size_irrzon(2)=size(irrzon,2)
+            lin%as%size_irrzon(3)=size(irrzon,3)
+
+            ! This is the main routine that does everything related to the linear scaling version.
+            call linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, atoms, in, lin, rxyz, &
+                fion, fdisp, radii_cf, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, &
+                phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, psi, psit, &
+                energy, fxyz)
+
+
+            if(iproc==0) write(*,'(x,a)') '************************ END OF THE LINEAR SCALING VERSION. &
+                & ************************'
+            if(iproc==0) write(*,'(x,a)') '********** The program will now continue with the standard &
+                & cubic version. **********'
+            if(iproc==0) write(*,'(x,a)') '********************* !!WARNING: What follows may be garbage!! & 
+                & *********************'
+
+        end if linearIf
+
 
         !exit if the infocode is correct
         if (infocode == 0) then
@@ -1341,7 +1410,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      deallocate(gxyz,stat=i_stat)
      call memocc(i_stat,i_all,'gxyz',subname)
 
-     !clean the center mass shift and the torque in isolated directions
      call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
 
      call timing(iproc,'Forces        ','OF')
@@ -1501,7 +1569,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !perform here the mulliken charge and density of states
   !localise them on the basis of gatom of a number of atoms
-  if (in%gaussian_help .and. DoLastRunThings) then
+  !if (in%gaussian_help .and. DoLastRunThings) then
+  if (in%gaussian_help .and. DoLastRunThings .and. .not.in%inputPsiId==100) then
      !here one must check if psivirt should have been kept allocated
      if (.not. DoDavidson) then
         orbsv%norb=0
@@ -1741,5 +1810,8 @@ contains
          write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
 
   END SUBROUTINE deallocate_before_exiting
+
+
+
 
 END SUBROUTINE cluster

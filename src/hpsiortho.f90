@@ -205,6 +205,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      eproj_sum=wrkallred(3,1) 
   endif
 
+
+
   !up to this point, the value of the potential energy is 
   !only taking into account the local potential part
   !whereas it should consider also the value coming from the 
@@ -339,7 +341,15 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   end if
 
   !transpose the hpsi wavefunction
+!rr=sum(hpsi(1:(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp))
+!call mpi_allreduce(rr, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!write(*,*) 'BEFORE TRANSPOSITION: iproc, tt', iproc, tt
+
   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+!rr=sum(hpsi(1:sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb))
+!call mpi_allreduce(rr, tt, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!write(*,*) 'AFTER TRANSPOSITION: iproc, tt', iproc, tt
+
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
