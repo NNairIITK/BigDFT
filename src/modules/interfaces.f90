@@ -413,21 +413,17 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psirocc
      END SUBROUTINE HamiltonianApplication
 
-     subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
-          ncong,iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,nspin,GPU,input)
+     subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,input)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
-       real(gp), intent(in) :: hx,hy,hz
+       integer, intent(in) :: iproc,nproc,idsx,iter,nspin
        type(locreg_descriptors), intent(in) :: lr
        type(communications_arrays), intent(in) :: comms
        type(orbitals_data), intent(in) :: orbs
        type(input_variables), intent(in) :: input
        type(diis_objects), intent(inout) :: diis
-       real(dp), intent(inout) :: gnrm,gnrm_zero,scprsum
        real(wp), dimension(:), pointer :: psi,psit,hpsi
-       type(GPU_pointers), intent(inout) :: GPU
      END SUBROUTINE hpsitopsi
 
      subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&

@@ -314,7 +314,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
-  integer :: ierr,ikpt,iorb,i_all,i_stat
+  integer :: ierr,ikpt,iorb,i_all,i_stat,k
   real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
@@ -474,30 +474,21 @@ end subroutine calculate_energy_and_gradient
 
 !>   Operations after h|psi> 
 !!   (transposition, orthonormalisation, inverse transposition)
-subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
-     ncong,iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,nspin,GPU,input)
+subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,input)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
   implicit none
-  integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
-  real(gp), intent(in) :: hx,hy,hz
+  integer, intent(in) :: iproc,nproc,idsx,iter,nspin
   type(locreg_descriptors), intent(in) :: lr
   type(communications_arrays), intent(in) :: comms
   type(orbitals_data), intent(in) :: orbs
   type(input_variables), intent(in) :: input
   type(diis_objects), intent(inout) :: diis
-  real(dp), intent(inout) :: gnrm,gnrm_zero,trH
   real(wp), dimension(:), pointer :: psi,psit,hpsi
-  type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
-  !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
   integer :: ierr,iorb,k,i_stat,i_all,nzeroorbs
-
-
-!OCL  real(wp) :: maxdiff
-!OCL  integer, dimension(3) :: periodic
 
   !adjust the save variables for DIIS/SD switch
   if (iter == 1) then
@@ -545,28 +536,28 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           'done.'
   end if
 
-  if(orbs%nspinor==4) then
-     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
-     call memocc(i_stat,mom_vec,'mom_vec',subname)
-
-     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
-          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
-     !only the root process has the correct array
-     if(iproc==0 .and. verbose > 0) then
-        write(*,'(1x,a)')&
-             'Magnetic polarization per orbital'
-        write(*,'(1x,a)')&
-             '  iorb    m_x       m_y       m_z'
-        do iorb=1,orbs%norb
-           write(*,'(1x,i5,3f10.5)') &
-                iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
-        end do
-     end if
-
-     i_all=-product(shape(mom_vec))*kind(mom_vec)
-     deallocate(mom_vec,stat=i_stat)
-     call memocc(i_stat,i_all,'mom_vec',subname)
-  end if
+!!$  if(orbs%nspinor==4) then
+!!$     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,mom_vec,'mom_vec',subname)
+!!$
+!!$     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
+!!$          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
+!!$     !only the root process has the correct array
+!!$     if(iproc==0 .and. verbose > 0) then
+!!$        write(*,'(1x,a)')&
+!!$             'Magnetic polarization per orbital'
+!!$        write(*,'(1x,a)')&
+!!$             '  iorb    m_x       m_y       m_z'
+!!$        do iorb=1,orbs%norb
+!!$           write(*,'(1x,i5,3f10.5)') &
+!!$                iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
+!!$        end do
+!!$     end if
+!!$
+!!$     i_all=-product(shape(mom_vec))*kind(mom_vec)
+!!$     deallocate(mom_vec,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'mom_vec',subname)
+!!$  end if
 
   call diis_or_sd(iproc,idsx,orbs%nkptsp,diis)
 

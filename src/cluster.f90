@@ -963,7 +963,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            endif
 
            !evaluate the functional of the wavefucntions and put it into the diis structure
-           !the energy values should be printed out here
+           !the energy values is printed out here
            call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,hx,hy,hz,in%ncong,in%iscf,&
                 ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,eexctX,eion,edisp,&
                 psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
@@ -971,8 +971,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !control the previous value of idsx_actual
            idsx_actual_before=diis%idsx
 
-           call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
-                iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
+           call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in)
 
            if (in%inputPsiId == 0) then
               if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
