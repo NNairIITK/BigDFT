@@ -312,14 +312,26 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   real(gp), intent(out) :: gnrm,gnrm_zero,energy
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   !local variables
+  character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
-  integer :: ierr,ikpt,iorb
+  integer :: ierr,ikpt,iorb,i_all,i_stat
   real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
+  real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   !band structure energy calculated with occupation numbers
   energybs=ekin+epot+eproj !the potential energy contains also exctX
   !this is the Kohn-Sham energy
   energyKS=energybs-ehart+exc-evxc-eexctX+eion+edisp
+
+  !calculate orbital poloarisation directions
+  if(orbs%nspinor==4) then
+     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
+     call memocc(i_stat,mom_vec,'mom_vec',subname)
+
+     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
+          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
+  end if
+
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
@@ -418,6 +430,24 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   end if
   call timing(iproc,'Precondition  ','OF')
 
+  if (orbs%nspinor == 4) then
+     !only the root process has the correct array
+     if(iproc==0 .and. verbose > 0) then
+        write(*,'(1x,a)')&
+             'Magnetic polarization per orbital'
+        write(*,'(1x,a)')&
+             '  iorb    m_x       m_y       m_z'
+        do iorb=1,orbs%norb
+           write(*,'(1x,i5,3f10.5)') &
+                iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
+        end do
+     end if
+     i_all=-product(shape(mom_vec))*kind(mom_vec)
+     deallocate(mom_vec,stat=i_stat)
+     call memocc(i_stat,i_all,'mom_vec',subname)
+  end if
+
+
   !write the energy information
   if (iproc == 0) then
      if (verbose > 0 .and. iscf<1) then
@@ -464,7 +494,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   character(len=*), parameter :: subname='hpsitopsi'
   !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
   integer :: ierr,iorb,k,i_stat,i_all,nzeroorbs
-  real(wp), dimension(:,:,:), allocatable :: mom_vec
+
 
 !OCL  real(wp) :: maxdiff
 !OCL  integer, dimension(3) :: periodic
@@ -481,84 +511,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      diis%ids=diis%ids+1
   end if
 
-  !comments for the calculation of the gradient started
-!  if (iproc==0 .and. verbose > 1) then
-!     write(*,'(1x,a)',advance='no')&
-!          'done,  orthoconstraint...'
-!  end if
-!
-!  !transpose the hpsi wavefunction
-!  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
-!
-!  if (nproc == 1) then
-!     !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
-!     psit => psi
-!     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psit)
-!  end if
-!
-!  ! Apply  orthogonality constraints to all orbitals belonging to iproc
-!  !takes also into account parallel k-points distribution
-!  !here the orthogonality with respect to other occupied functions should be 
-!  !passed as an optional argument
-!  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
-!
-!  !add the trace of the hamiltonian to the value of the energy
-!  diis%energy=diis%energy+trH
   diis%energy_min=min(diis%energy_min,diis%energy)
 
-  !retranspose the hpsi wavefunction
-!  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
-!
-!  call timing(iproc,'Precondition  ','ON')
-!  if (iproc==0 .and. verbose > 1) then
-!     write(*,'(1x,a)',advance='no')&
-!          'done,  preconditioning...'
-!  end if
-!
-!  !Preconditions all orbitals belonging to iproc
-!  !and calculate the partial norm of the residue
-!  !switch between CPU and GPU treatment
-!  if (GPUconv) then
-!     call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
-!          hpsi,gnrm,gnrm_zero,GPU)
-!  else if (OCLconv) then
-!     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
-!          hpsi,gnrm,gnrm_zero,GPU)
-!  else
-!     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
-!  end if
-!
-!  !sum over all the partial residues
-!  if (nproc > 1) then
-!     !tt=gnrm
-!     !call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
-!     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-!     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-!  endif
-!  !count the number of orbitals which have zero occupation number
-!  !assume that this is the same for all k-points, which is not true in general
-!  nzeroorbs=0
-!  do iorb=1,orbs%norb*orbs%nkpts
-!     if (orbs%occup(iorb) == 0.0_gp) then
-!        nzeroorbs=nzeroorbs+1
-!     end if
-!  end do
-!  if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
-!
-!  gnrm=sqrt(gnrm/real(orbs%norb-nzeroorbs,dp))
-!
-!  if (nzeroorbs /= 0) then
-!     gnrm_zero=sqrt(gnrm_zero/real(nzeroorbs,dp))
-!  else
-!     gnrm_zero=0.0_gp
-!  end if
-!
-!  if (iproc==0 .and. verbose > 1) then
-!     write(*,'(1x,a)')&
-!          'done.'
-!  end if
-!  call timing(iproc,'Precondition  ','OF')
-!
   !transpose the hpsi wavefunction
   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,&
        hpsi,work=psi)
