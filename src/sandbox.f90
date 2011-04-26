@@ -1481,7 +1481,7 @@ subroutine number_of_projectors_in_locreg(atoms,cpmult,fpmult,Glr,hx,hy,hz,Llr,n
 !       check if projector of atom iatom overlap the locreg (coarse grid)        
         call check_projector_intersect_with_locreg(atoms,cpmult,Glr,hx,hy,hz,iatom,Llr,&
 &            radii_cf(atoms%iatype(iatom),3),rxyz,intersect)
-        print *,intersect
+
         if(intersect) then
            call numb_proj(atoms%iatype(iatom),atoms%ntypes,atoms%psppar,atoms%npspcode,nproj)
            mproj = mproj + nproj
