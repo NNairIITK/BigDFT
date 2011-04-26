@@ -1131,6 +1131,36 @@ module module_interfaces
       real(wp), dimension(:), pointer :: pot
     END SUBROUTINE free_full_potential
 
+    subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(locreg_descriptors), intent(in) :: Glr
+      type(communications_arrays), intent(in) :: comms
+      logical, dimension(orbs%norb*orbs%nkpts), intent(in) :: mask_array
+      real(wp), dimension(orbs%npsidim), intent(in) :: psi
+      type(orbitals_data), intent(out) :: orbs_as
+      type(communications_arrays), intent(out) :: comms_as
+      real(wp), dimension(:), pointer :: psi_as
+    END SUBROUTINE select_active_space
+
+    subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
+         ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+      real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp
+      type(orbitals_data), intent(in) :: orbs
+      type(communications_arrays), intent(in) :: comms
+      type(locreg_descriptors), intent(in) :: lr
+      type(GPU_pointers), intent(in) :: GPU
+      real(gp), intent(out) :: gnrm,gnrm_zero,energy
+      real(wp), dimension(:), pointer :: psi,psit,hpsi
+    end subroutine calculate_energy_and_gradient
+    
   end interface
 
 end module module_interfaces

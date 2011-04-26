@@ -427,7 +427,7 @@ subroutine mix_input_variables_default(in)
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%iscf=7
+  in%iscf=0
   in%Tel=0.0_gp
   in%norbsempty=0
   in%alphadiis=2.d0

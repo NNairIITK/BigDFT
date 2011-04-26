@@ -292,6 +292,155 @@ subroutine free_full_potential(nproc,pot,subname)
 
 END SUBROUTINE free_full_potential
 
+!> Extract the energy (the quantity which has to be minimised by the wavefunction)
+!! and calculate the corresponding gradient.
+!! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
+!! depending of the functional we want to calculate. The gradient wrt the wavefucntion
+!! Is the put in hpsi accordingly to the functional
+subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
+     ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => calculate_energy_and_gradient
+  implicit none
+  integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+  real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp
+  type(orbitals_data), intent(in) :: orbs
+  type(communications_arrays), intent(in) :: comms
+  type(locreg_descriptors), intent(in) :: lr
+  type(GPU_pointers), intent(in) :: GPU
+  real(gp), intent(out) :: gnrm,gnrm_zero,energy
+  real(wp), dimension(:), pointer :: psi,psit,hpsi
+  !local variables
+  logical :: lcs
+  integer :: ierr,ikpt,iorb
+  real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
+
+  !band structure energy calculated with occupation numbers
+  energybs=ekin+epot+eproj !the potential energy contains also exctX
+  !this is the Kohn-Sham energy
+  energyKS=energybs-ehart+exc-evxc-eexctX+eion+edisp
+
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)',advance='no')&
+          'done,  orthoconstraint...'
+  end if
+
+  !transpose the hpsi wavefunction
+  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+
+  if (nproc == 1) then
+     !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
+     psit => psi
+     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psit)
+  end if
+
+  ! Apply  orthogonality constraints to all orbitals belonging to iproc
+  !takes also into account parallel k-points distribution
+  !here the orthogonality with respect to other occupied functions should be 
+  !passed as an optional argument
+  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
+
+  !retranspose the hpsi wavefunction
+  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+
+  !after having calcutated the trace of the hamiltonian, the functional have to be defined
+  !new value without the trace, to be added in hpsitopsi
+  if (iscf >1) then
+     energy=trH
+  else
+     energy=trH-ehart+exc-evxc-eexctX+eion+edisp
+  end if
+
+  !check that the trace of the hamiltonian is compatible with the 
+  !band structure energy 
+  !this can be done only if the occupation numbers are all equal
+  tt=(energybs-trH)/trH
+  if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+       (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
+     !write this warning only if the system is closed shell
+     call check_closed_shell(orbs,lcs)
+     if (lcs) then
+        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+             'ERROR: inconsistency between gradient and energy',tt,energybs,trH
+     end if
+  endif
+
+  call timing(iproc,'Precondition  ','ON')
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)',advance='no')&
+          'done,  preconditioning...'
+  end if
+
+  !Preconditions all orbitals belonging to iproc
+  !and calculate the partial norm of the residue
+  !switch between CPU and GPU treatment
+  if (GPUconv) then
+     call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+          hpsi,gnrm,gnrm_zero,GPU)
+  else if (OCLconv) then
+     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+          hpsi,gnrm,gnrm_zero,GPU)
+  else
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+  end if
+
+  !sum over all the partial residues
+  if (nproc > 1) then
+     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+  endif
+
+  !count the number of orbitals which have zero occupation number
+  !weight this with the corresponding k point weight
+  rzeroorbs=0.0_gp
+  do ikpt=1,orbs%nkpts
+     do iorb=1,orbs%norb
+        if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
+           rzeroorbs=rzeroorbs+orbs%kwgts(ikpt)
+        end if
+     end do
+  end do
+  !commented out, the kwgts sum already to one
+  !if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
+
+  gnrm=sqrt(gnrm/(real(orbs%norb,gp)-rzeroorbs))
+
+  if (rzeroorbs /= 0.0_gp) then
+     gnrm_zero=sqrt(gnrm_zero/rzeroorbs)
+  else
+     gnrm_zero=0.0_gp
+  end if
+
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)')&
+          'done.'
+  end if
+  call timing(iproc,'Precondition  ','OF')
+
+  !write the energy information
+  if (iproc == 0) then
+     if (verbose > 0 .and. iscf<1) then
+        write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+             ekin,epot,eproj
+        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,exc,evxc
+     end if
+     if (iscf > 1) then
+        if (gnrm_zero == 0.0_gp) then
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+        else
+           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
+        end if
+     else
+        if (gnrm_zero == 0.0_gp) then
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energyKS,gnrm
+        else
+           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
+        end if
+     end if
+  endif
+
+end subroutine calculate_energy_and_gradient
 
 !>   Operations after h|psi> 
 !!   (transposition, orthonormalisation, inverse transposition)
@@ -332,83 +481,84 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      diis%ids=diis%ids+1
   end if
 
-  if (iproc==0 .and. verbose > 1) then
-     write(*,'(1x,a)',advance='no')&
-          'done,  orthoconstraint...'
-  end if
-
-  !transpose the hpsi wavefunction
-  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
-
-  if (nproc == 1) then
-     !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
-     psit => psi
-     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psit)
-  end if
-
-  ! Apply  orthogonality constraints to all orbitals belonging to iproc
-  !takes also into account parallel k-points distribution
-  !here the orthogonality with respect to other occupied functions should be 
-  !passed as an optional argument
-  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
-
-  !add the trace of the hamiltonian to the value of the energy
-  diis%energy=diis%energy+trH
+  !comments for the calculation of the gradient started
+!  if (iproc==0 .and. verbose > 1) then
+!     write(*,'(1x,a)',advance='no')&
+!          'done,  orthoconstraint...'
+!  end if
+!
+!  !transpose the hpsi wavefunction
+!  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+!
+!  if (nproc == 1) then
+!     !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
+!     psit => psi
+!     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psit)
+!  end if
+!
+!  ! Apply  orthogonality constraints to all orbitals belonging to iproc
+!  !takes also into account parallel k-points distribution
+!  !here the orthogonality with respect to other occupied functions should be 
+!  !passed as an optional argument
+!  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
+!
+!  !add the trace of the hamiltonian to the value of the energy
+!  diis%energy=diis%energy+trH
   diis%energy_min=min(diis%energy_min,diis%energy)
 
   !retranspose the hpsi wavefunction
-  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
-
-  call timing(iproc,'Precondition  ','ON')
-  if (iproc==0 .and. verbose > 1) then
-     write(*,'(1x,a)',advance='no')&
-          'done,  preconditioning...'
-  end if
-
-  !Preconditions all orbitals belonging to iproc
-  !and calculate the partial norm of the residue
-  !switch between CPU and GPU treatment
-  if (GPUconv) then
-     call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
-          hpsi,gnrm,gnrm_zero,GPU)
-  else if (OCLconv) then
-     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
-          hpsi,gnrm,gnrm_zero,GPU)
-  else
-     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
-  end if
-
-  !sum over all the partial residues
-  if (nproc > 1) then
-     !tt=gnrm
-     !call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-  endif
-  !count the number of orbitals which have zero occupation number
-  !assume that this is the same for all k-points, which is not true in general
-  nzeroorbs=0
-  do iorb=1,orbs%norb*orbs%nkpts
-     if (orbs%occup(iorb) == 0.0_gp) then
-        nzeroorbs=nzeroorbs+1
-     end if
-  end do
-  if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
-
-  gnrm=sqrt(gnrm/real(orbs%norb-nzeroorbs,dp))
-
-  if (nzeroorbs /= 0) then
-     gnrm_zero=sqrt(gnrm_zero/real(nzeroorbs,dp))
-  else
-     gnrm_zero=0.0_gp
-  end if
-
-  if (iproc==0 .and. verbose > 1) then
-     write(*,'(1x,a)')&
-          'done.'
-  end if
-  call timing(iproc,'Precondition  ','OF')
-
+!  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+!
+!  call timing(iproc,'Precondition  ','ON')
+!  if (iproc==0 .and. verbose > 1) then
+!     write(*,'(1x,a)',advance='no')&
+!          'done,  preconditioning...'
+!  end if
+!
+!  !Preconditions all orbitals belonging to iproc
+!  !and calculate the partial norm of the residue
+!  !switch between CPU and GPU treatment
+!  if (GPUconv) then
+!     call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+!          hpsi,gnrm,gnrm_zero,GPU)
+!  else if (OCLconv) then
+!     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+!          hpsi,gnrm,gnrm_zero,GPU)
+!  else
+!     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+!  end if
+!
+!  !sum over all the partial residues
+!  if (nproc > 1) then
+!     !tt=gnrm
+!     !call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+!     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+!     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+!  endif
+!  !count the number of orbitals which have zero occupation number
+!  !assume that this is the same for all k-points, which is not true in general
+!  nzeroorbs=0
+!  do iorb=1,orbs%norb*orbs%nkpts
+!     if (orbs%occup(iorb) == 0.0_gp) then
+!        nzeroorbs=nzeroorbs+1
+!     end if
+!  end do
+!  if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
+!
+!  gnrm=sqrt(gnrm/real(orbs%norb-nzeroorbs,dp))
+!
+!  if (nzeroorbs /= 0) then
+!     gnrm_zero=sqrt(gnrm_zero/real(nzeroorbs,dp))
+!  else
+!     gnrm_zero=0.0_gp
+!  end if
+!
+!  if (iproc==0 .and. verbose > 1) then
+!     write(*,'(1x,a)')&
+!          'done.'
+!  end if
+!  call timing(iproc,'Precondition  ','OF')
+!
   !transpose the hpsi wavefunction
   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,&
        hpsi,work=psi)
@@ -466,7 +616,104 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
 
   call diis_or_sd(iproc,idsx,orbs%nkptsp,diis)
 
+  !previous value already fulfilled
+  diis%energy_old=diis%energy
+
 END SUBROUTINE hpsitopsi
+
+!>Choose among the wavefunctions a subset of them
+!! Rebuild orbital descriptors for the new space and allocate the psi_as wavefunction
+!! By hypothesis the work array is big enough to contain both wavefunctions
+subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => select_active_space
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: Glr
+  type(communications_arrays), intent(in) :: comms
+  logical, dimension(orbs%norb*orbs%nkpts), intent(in) :: mask_array
+  real(wp), dimension(orbs%npsidim), intent(in) :: psi
+  type(orbitals_data), intent(out) :: orbs_as
+  type(communications_arrays), intent(out) :: comms_as
+  real(wp), dimension(:), pointer :: psi_as
+  !local variables
+  character(len=*), parameter :: subname='select_active_space'
+  integer :: iorb,ikpt,norb_as,norbu_as,norbd_as,icnt,ikptp,ispsi,ispsi_as
+  integer :: i_all,i_stat,nvctrp
+    
+  !count the number of orbitals of the active space
+  norbu_as=-1
+  norbd_as=-1
+  do ikpt=1,orbs%nkpts
+     icnt=0
+     do iorb=1,orbs%norbu
+        if (mask_array(iorb+(ikpt-1)*orbs%norb)) icnt=icnt+1
+     end do
+     if (norbu_as /= icnt .and. norbu_as /= -1) then
+        write(*,*)'ERROR(select_active_space): the mask array should define always the same norbu'
+        stop
+     end if
+     norbu_as=icnt
+     icnt=0
+     do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
+        if (mask_array(iorb+(ikpt-1)*orbs%norb)) icnt=icnt+1
+     end do
+     if (norbd_as /= icnt .and. norbd_as /= -1) then
+        write(*,*)'ERROR(select_active_space): the mask array should define always the same norbd'
+        stop
+     end if
+     norbd_as=icnt
+  end do
+
+  !allocate the descriptors of the active space
+  call orbitals_descriptors(iproc,nproc,norbu_as+norbd_as,norbu_as,norbd_as, &
+       & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbs_as)
+  !allocate communications arrays for virtual orbitals
+  call orbitals_communicators(iproc,nproc,Glr,orbs_as,comms_as)  
+  !allocate array of the eigenvalues
+  allocate(orbs_as%eval(orbs_as%norb*orbs_as%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs_as%eval,'orbs_as%eval',subname)
+
+  !fill the orbitals array with the values and the wavefunction in transposed form
+  icnt=0
+  do iorb=1,orbs%nkpts*orbs%norb
+     if (mask_array(iorb)) then
+        icnt=icnt+1
+        orbs_as%eval(icnt)=orbs%eval(iorb)
+     end if
+  end do
+  if (icnt/=orbs_as%norb*orbs_as%nkpts) stop 'ERROR(select_active_space): icnt/=orbs_as%norb*orbs_as%nkpts'
+
+  allocate(psi_as(orbs_as%npsidim+ndebug),stat=i_stat)
+  call memocc(i_stat,psi_as,'psi_as',subname)
+
+  ispsi=1
+  do ikptp=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikptp
+     nvctrp=comms%nvctr_par(iproc,ikptp) 
+     !this should be identical in both the distributions
+     if (nvctrp /= comms_as%nvctr_par(iproc,ikptp)) then
+        write(*,*)'ERROR(select_active_space): the component distrbution is not identical'
+        stop
+     end if
+     
+     !put all the orbitals which match the active space
+     ispsi=1
+     ispsi_as=1
+     do iorb=1,orbs%norb
+        if (mask_array(iorb+(ikpt-1)*orbs%norb)) then
+           call dcopy(nvctrp,psi(ispsi),1,psi_as(ispsi_as),1)
+           ispsi_as=ispsi_as+nvctrp*orbs_as%nspinor
+        end if
+        ispsi=ispsi+nvctrp*orbs%nspinor
+     end do
+  end do
+
+
+end subroutine select_active_space
+
 
 
 !>   First orthonormalisation

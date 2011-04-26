@@ -258,12 +258,18 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
         exit wfn_loop 
      endif
 
+     !evaluate the functional of the wavefucntions and put it into the diis structure
+     !the energy values should be printed out here
+     call calculate_energy_and_gradient(iter,iproc,nproc,orbsv,commsv,GPU,lr,hx,hy,hz,in%ncong,in%iscf,&
+          ekin_sum,epot_sum,eproj_sum,0.0_gp,0.0_gp,0.0_gp,eexctX,0.0_gp,0.0_gp,&
+          psivirt,psitvirt,hpsivirt,gnrm,gnrm_zero,diis%energy)
+
      !control the previous value of idsx_actual
      idsx_actual_before=diis%idsx
-     !previous value
-     diis%energy_old=diis%energy
-     !new value without the trace, to be added in hpsitopsi
-     diis%energy=0.0_gp
+     !!previous value
+     !diis%energy_old=diis%energy
+     !!new value without the trace, to be added in hpsitopsi
+     !diis%energy=0.0_gp
 
      call hpsitopsi(iproc,nproc,orbsv,hx,hy,hz,lr,commsv,in%ncong,&
           iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
@@ -281,22 +287,22 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
              work=psiw,outadd=psivirt(1))
      end if
 
-     tt=(energybs-scprsum)/scprsum
-     if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
-          (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
-        call check_closed_shell(orbsv,lcs)
-        if (lcs) then
-           write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-                'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
-        end if
-     endif
-     if (iproc.eq.0) then
-        if (verbose > 0) then
-           write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-                ekin_sum,epot_sum,eproj_sum
-        end if
-        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total "energy",gnrm',iter,energy,gnrm
-     endif
+     !tt=(energybs-scprsum)/scprsum
+     !if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+     !     (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
+     !   call check_closed_shell(orbsv,lcs)
+     !   if (lcs) then
+     !      write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+     !           'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
+     !   end if
+     !endif
+     !if (iproc.eq.0) then
+     !   if (verbose > 0) then
+     !      write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+     !           ekin_sum,epot_sum,eproj_sum
+     !   end if
+     !   write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total "energy",gnrm',iter,energy,gnrm
+     !endif
 
   end do wfn_loop
   if (iter == in%itermax+100 .and. iproc == 0 ) &
