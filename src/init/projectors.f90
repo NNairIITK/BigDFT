@@ -218,15 +218,16 @@ END SUBROUTINE localize_projectors
 
 
 !>   Fill the proj array with the PSP projectors or their derivatives, following idir value
-subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
+subroutine fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3,idir
+  integer, intent(in) :: iproc,idir
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors),intent(in) :: lr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !Local variables
@@ -255,7 +256,7 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir
      do iat=1,at%nat
         !this routine is defined to uniformise the call for on-the-fly application
         call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-             n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+             lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
      enddo
      if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
      ! projector part finished
@@ -277,15 +278,16 @@ END SUBROUTINE fill_projectors
 
 
 subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
-     n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+     lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iat,idir,n1,n2,n3,ikpt
+  integer, intent(in) :: iat,idir,ikpt
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors),intent(in) :: lr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   integer, intent(inout) :: istart_c,iproj,nwarnings
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
@@ -318,7 +320,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
      do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
         if (at%psppar(l,i,ityp) /= 0.0_gp) then
            call projector(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
-                at%psppar(l,0,ityp),rxyz(1,iat),n1,n2,n3,&
+                at%psppar(l,0,ityp),rxyz(1,iat),lr,&
                 hx,hy,hz,kx,ky,kz,ncplx,&
                 mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                 nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
@@ -361,14 +363,16 @@ subroutine deallocate_proj_descr(nlpspd,subname)
 END SUBROUTINE deallocate_proj_descr
 
 
-subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
+subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,lr,&
      hx,hy,hz,kx,ky,kz,ncplx,&
      mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,nwarnings)
   use module_base
+  use module_types
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=20), intent(in) :: atomname
-  integer, intent(in) :: iat,idir,l,i,n1,n2,n3,mbvctr_c,mbvctr_f,mseg_c,mseg_f,ncplx
+  integer, intent(in) :: iat,idir,l,i,mbvctr_c,mbvctr_f,mseg_c,mseg_f,ncplx
+  type(locreg_descriptors),intent(in) :: lr
   real(gp), intent(in) :: hx,hy,hz,gau_a,kx,ky,kz
   !integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
@@ -417,8 +421,8 @@ subroutine projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,n1,n2,n3,&
            lz(iterm)=lxyz_arr(3,iterm,idir)
         end do
      end if
-
-     call crtproj(geocode,nterm,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx,&
+     
+     call crtproj(geocode,nterm,lr,hx,hy,hz,kx,ky,kz,ncplx,&
           gau_a,factors,rx,ry,rz,lx,ly,lz,&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c))
 
@@ -487,33 +491,45 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
 END SUBROUTINE numb_proj
 
 
-!>  Returns the compressed form of a Gaussian projector 
-!!  @f$ x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 )) @f$
-!!  in the arrays proj_c, proj_f
-subroutine crtproj(geocode,nterm,n1,n2,n3, & 
+!>   Returns the compressed form of a Gaussian projector 
+!!   @f$ x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 )) @f$
+!!   in the arrays proj_c, proj_f
+subroutine crtproj(geocode,nterm,lr, & 
      hx,hy,hz,kx,ky,kz,ncplx,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj)
   use module_base
+  use module_types
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: nterm,n1,n2,n3,mvctr_c,mvctr_f,mseg_c,mseg_f,ncplx
+  integer, intent(in) :: nterm,mvctr_c,mvctr_f,mseg_c,mseg_f,ncplx
   real(gp), intent(in) :: hx,hy,hz,gau_a,rx,ry,rz,kx,ky,kz
   integer, dimension(nterm), intent(in) :: lx,ly,lz
   real(gp), dimension(nterm), intent(in) :: fac_arr
   integer, dimension(mseg_c+mseg_f), intent(in) :: keyv_p
   integer, dimension(2,mseg_c+mseg_f), intent(in) :: keyg_p
   real(wp), dimension((mvctr_c+7*mvctr_f)*ncplx), intent(out) :: proj
+  type(locreg_descriptors), intent(in) :: lr
   !Local variables
   character(len=*), parameter :: subname='crtproj'
   integer, parameter :: nw=65536
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
+  integer :: ns1,ns2,ns3,n1,n2,n3
   integer :: mvctr,i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
+  integer :: counter !test
   real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp) :: factor,err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
 !$  integer :: ithread,nthread,omp_get_thread_num,omp_get_num_threads
+
+  ! rename region boundaries
+  ns1 = lr%ns1
+  ns2 = lr%ns2
+  ns3 = lr%ns3
+  n1  = lr%d%n1
+  n2  = lr%d%n2
+  n3  = lr%d%n3
 
   allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
   call memocc(i_stat,work,'work',subname)
@@ -536,16 +552,16 @@ subroutine crtproj(geocode,nterm,n1,n2,n3, &
 
      factor=fac_arr(iterm)
      n_gau=lx(iterm) 
-     call gauss_to_daub_k(hx,kx*hx,ncplx,factor,rx,gau_a,n_gau,n1,ml1,mu1,&
+     call gauss_to_daub_k(hx,kx*hx,ncplx,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
           wprojx(1,0,1,iterm),work,nw,perx) 
      
      n_gau=ly(iterm) 
-     call gauss_to_daub_k(hy,ky*hy,ncplx,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,&
+     call gauss_to_daub_k(hy,ky*hy,ncplx,1.d0,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
           wprojy(1,0,1,iterm),work,nw,pery) 
 
      n_gau=lz(iterm) 
-     call gauss_to_daub_k(hz,kz*hz,ncplx,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,&
-          wprojz(1,0,1,iterm),work,nw,perz) 
+     call gauss_to_daub_k(hz,kz*hz,ncplx,1.d0,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
+          wprojz(1,0,1,iterm),work,nw,perz)
 
   end do
   !the filling of the projector should be different if ncplx==1 or 2
@@ -1033,7 +1049,7 @@ subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,
   nu2=floor(real(cymax/hy,kind=8) + eps_mach)  
   nu3=floor(real(czmax/hz,kind=8) + eps_mach)  
 
-  !for non-free BC the projectors are allowed to be also outside the box
+  !for non-free BC the projectors are not allowed to be also outside the box
   if (geocode == 'F') then
      if (nl1 < 0)   stop 'nl1: projector region outside cell'
      if (nl2 < 0)   stop 'nl2: projector region outside cell'

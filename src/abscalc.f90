@@ -490,7 +490,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   call timing(iproc,'CrtDescriptors','OF')
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
-  call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
+  call createProjectorsArrays(iproc,Glr,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
 

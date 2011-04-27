@@ -229,7 +229,7 @@ END SUBROUTINE wzero
 !> wrapper of wpdot to avoid boundary problems in absence of wavelets
 !! and to perform scalar product for complex wavefunctions and projectors
 !! @warning
-!! is the wavefunctions are complex, so should be also the projectors
+!! if the wavefunctions are complex, so should be also the projectors
 subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,scpr)
   use module_base
@@ -279,7 +279,6 @@ subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi, 
   end if
 
 END SUBROUTINE wpdot_wrap
-
 
 !> This function must be generalized for the linear scaling code
 !! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)

@@ -255,15 +255,16 @@ module module_interfaces
        logical, intent(in), optional :: output_grid
      END SUBROUTINE createWavefunctionsDescriptors
 
-     subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
+     subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
           radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,n1,n2,n3
+       integer, intent(in) :: iproc
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
        real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
+       type(locreg_descriptors),intent(in) :: lr
        real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
        real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
        type(nonlocal_psp_descriptors), intent(out) :: nlpspd
@@ -503,7 +504,7 @@ module module_interfaces
        real(kind=8), dimension(3,at%nat), intent(out) :: floc
      END SUBROUTINE local_forces
 
-     subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
+     subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
           orbs,nlpspd,proj,wfd,psi,fsep,refill)
        use module_base
        use module_types
@@ -513,8 +514,9 @@ module module_interfaces
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
        logical, intent(in) :: refill
-       integer, intent(in) :: iproc,n1,n2,n3
+       integer, intent(in) :: iproc
        real(gp), intent(in) :: hx,hy,hz
+       type(locreg_descriptors) :: lr
        type(orbitals_data), intent(in) :: orbs
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
