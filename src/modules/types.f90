@@ -25,10 +25,12 @@ module module_types
   integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, dimension(9), parameter :: input_psi_values = &
+  integer, parameter :: INPUT_PSI_LINEAR       = 100
+  integer, dimension(10), parameter :: input_psi_values = &
        & (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        & INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
-       & INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS /)
+       & INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
+       & INPUT_PSI_LINEAR /)
 
   !> Output wf parameters.
   integer, parameter :: WF_FORMAT_NONE   = 0
@@ -268,6 +270,9 @@ module module_types
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
+  integer,dimension(:,:,:,:),pointer:: nvctr_parLIN
+  integer, dimension(:), pointer :: ncntdLIN,ncnttLIN,ndspldLIN,ndspltLIN
+
   end type communications_arrays
 
 
@@ -359,6 +364,56 @@ module module_types
      !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp) :: hpsi
      type(GPU_pointers), pointer :: GPU
   end type lanczos_args
+
+
+!> Contains the dimensions of some arrays.
+  type,public:: arraySizes
+      integer:: size_rhopot
+      integer,dimension(4):: size_potxc
+      integer:: size_rhocore
+      integer:: size_pot_ion
+      integer,dimension(3):: size_phnons
+      integer,dimension(3):: size_irrzon
+      integer:: size_pkernel
+      integer:: size_pkernelseq
+  end type
+
+
+!!!!> Contains all parameters related to the linear scaling version.
+!!!  type,public:: linearParameters
+!!!    integer:: DIISHistMin, DIISHistMax, nItMax, nItPrecond
+!!!    real(8):: convCrit, alphaSD
+!!!    real(8),dimension(:),allocatable:: potentialPrefac
+!!!    type(orbitals_data):: orbs
+!!!    type(communications_arrays):: comms
+!!!    type(locreg_descriptors):: lr
+!!!    type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfds
+!!!    integer,dimension(:),allocatable:: onWhichAtom
+!!!    integer,dimension(:),allocatable:: MPIComms, norbPerComm
+!!!    integer,dimension(:,:),allocatable:: procsInComm
+!!!    integer:: ncomms
+!!!    type(arraySizes):: as
+!!!  end type
+!> Contains all parameters related to the linear scaling version.
+  type,public:: linearParameters
+    integer:: DIISHistMin, DIISHistMax, nItInguess, nItBasis, nItPrecond, nItCoeff, nItSCC
+    real(8):: convCrit, alphaSD, startDIIS, convCritCoeff
+    real(8),dimension(:),pointer:: potentialPrefac
+    type(orbitals_data):: orbs
+    type(communications_arrays):: comms
+    type(locreg_descriptors):: lr
+    type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
+    integer,dimension(:),pointer:: onWhichAtom
+    integer,dimension(:),pointer:: MPIComms, norbPerComm
+    integer,dimension(:,:),pointer:: procsInComm
+    integer:: ncomms
+    type(arraySizes):: as
+    logical:: plotBasisFunctions, startWithSD
+    character(len=4):: getCoeff
+  end type
+
+
+
 
 
 !> Contains the arguments needed for the diis procedure

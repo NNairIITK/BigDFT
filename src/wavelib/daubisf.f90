@@ -450,6 +450,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   real(wp), dimension(0:3) :: scal
   real(gp), dimension(3) :: hgridh
 
+
   !control whether the k points are to be used
   !real k-point different from Gamma still not implemented
   usekpts = kx**2+ky**2+kz**2 > 0.0_gp .or. nspinor == 2
