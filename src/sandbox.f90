@@ -52,13 +52,17 @@ program sandbox
   integer,dimension(3,nlr) :: outofzone
   real(gp), dimension(3,2) :: cxyz
 !  real(gp), dimension(nlr),parameter :: locrad=(/16.0, 16.0 /)
-  real(wp),dimension(nlr),parameter :: locrad=(/ 2.565213453, 2.565213453  /) !it has dimension nlr-1, because the last element of Llr is overlap
+  real(wp),dimension(nlr),parameter :: locrad=(/ 3.0, 3.0  /)
+!  real(wp),dimension(nlr),parameter :: locrad=(/ 2.565213453, 2.565213453  /) 
   real(wp), dimension(:),allocatable :: lpsi    ! local projection of |Psi>
   real(wp), dimension(:),allocatable :: lhpsi   ! local projection of H|Psi>
   real(wp), dimension(:),allocatable :: lppsi   ! local projection of H|Psi>
   real(wp), dimension(:),allocatable :: ppsi   ! local projection of H|Psi>
   real(wp), dimension(:), pointer :: Lproj
-  type(locreg_descriptors), dimension(nlr) :: Llr
+  real(wp),dimension(:,:),allocatable :: overlap1
+  real(wp),dimension(:,:),allocatable :: koverlap
+  real(wp),dimension(:,:),allocatable :: poverlap
+  type(locreg_descriptors), dimension(nlr) :: Llr 
   type(locreg_descriptors), allocatable :: Olr(:)
   real(wp), dimension(:), pointer :: potential
   real :: sum_pot !debug
@@ -71,9 +75,8 @@ program sandbox
   nproc=1
 
   !initalise the variables for the calculation
-
-  call read_input_variables(iproc,'posinp', &
-       & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", in, atoms, rxyz)
+  call standard_inputfile_names(in)
+  call read_input_variables(iproc,'posinp', in, atoms, rxyz)
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)
@@ -194,7 +197,6 @@ program sandbox
   print *,'Global statistics:',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
    
 ! First, determine the localisation regions
-! NOTE: we only pass nlr-1 as the dimension of Llr, while it is nrl 
   call determine_locreg2(nlr,rxyz,locrad,in%hx,in%hy,in%hz,Glr,Llr,outofzone)
 
   print *,'Outside determine_locreg2'
@@ -228,6 +230,19 @@ program sandbox
 !    Plot an overlap region
      call draw_locregs(1,in%hx,in%hy,in%hz,Olr(1))
 
+! Allocate overlaps accumulators
+     allocate(overlap1(orbs%norb,orbs%norb),stat=i_stat)
+     call memocc(i_stat,overlap1,'overlap1',subname)
+     call razero(orbs%norb*orbs%norb,overlap1)
+
+     allocate(koverlap(orbs%norb,orbs%norb),stat=i_stat)
+     call memocc(i_stat,koverlap,'koverlap',subname)
+     call razero(orbs%norb*orbs%norb,koverlap)
+
+     allocate(poverlap(orbs%norb,orbs%norb),stat=i_stat)
+     call memocc(i_stat,poverlap,'poverlap',subname)
+     call razero(orbs%norb*orbs%norb,poverlap)    
+
 ! Third, transform the wavefunction to overlap regions
      do ilr=1,isovrlp
        print *,'Treating overlap region (ilr):',ilr
@@ -241,31 +256,39 @@ program sandbox
        call psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,isovrlp,orbs,psi)
 
 ! Calculate overlap in localization region using ddot
-     write(*,'(A26)') 'Overlap matrix with ddot:'
+!     write(*,'(A26)') 'Overlap matrix with ddot:'
+!     do iorb=1,orbs%norb
+!        do jorb=iorb,orbs%norb
+!           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
+!                dot(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f,lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)+1),1,&
+!                lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(jorb-1)+1),1)
+!        end do
+!     end do
+
+ !Calculate the overlap
      do iorb=1,orbs%norb
         do jorb=iorb,orbs%norb
-           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
-                dot(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f,lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)+1),1,&
-                lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(jorb-1)+1),1)
+         overlap1(iorb,jorb) = overlap1(iorb,jorb) + dot(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f,lpsi((Olr(ilr)%wfd%nvctr_c&
+                  +7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)+1),1,lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(jorb-1)+1),1)
         end do
      end do
 
 ! Calculate overlap in localization region using wpdot
-     write(*,'(A27)')'Overlap matrix with wpdot:'
-     fmin = min(Olr(ilr)%wfd%nseg_f,1)  ! checks if there is some fine_grid in the region, if not, do not shift keyv
-     do iorb=1,orbs%norb
-        do jorb=iorb,orbs%norb
-           call wpdot(Olr(ilr)%wfd%nvctr_c,Olr(ilr)%wfd%nvctr_f,Olr(ilr)%wfd%nseg_c,Olr(ilr)%wfd%nseg_f,&
-&                  Olr(ilr)%wfd%keyv(1),Olr(ilr)%wfd%keyv(Olr(ilr)%wfd%nseg_c+fmin),Olr(ilr)%wfd%keyg(1,1),&
-&                  Olr(ilr)%wfd%keyg(1,Olr(ilr)%wfd%nseg_c+fmin),lpsi(1+(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)),&
-&                  lpsi(Olr(ilr)%wfd%nvctr_c+fmin+(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)),&
-&                  Olr(ilr)%wfd%nvctr_c,Olr(ilr)%wfd%nvctr_f,Olr(ilr)%wfd%nseg_c,Olr(ilr)%wfd%nseg_f,&
-&                  Olr(ilr)%wfd%keyv(1),Olr(ilr)%wfd%keyv(Olr(ilr)%wfd%nseg_c+fmin),Olr(ilr)%wfd%keyg(1,1),&
-&                  Olr(ilr)%wfd%keyg(1,Olr(ilr)%wfd%nseg_c+fmin),lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(jorb-1)+1),&
-&                  lpsi(Olr(ilr)%wfd%nvctr_c+(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(jorb-1)+fmin),scpr)
-           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,scpr
-        end do
-     end do
+!     write(*,'(A27)')'Overlap matrix with wpdot:'
+!     fmin = min(Olr(ilr)%wfd%nseg_f,1)  ! checks if there is some fine_grid in the region, if not, do not shift keyv
+!     do iorb=1,orbs%norb
+!        do jorb=iorb,orbs%norb
+!           call wpdot(Olr(ilr)%wfd%nvctr_c,Olr(ilr)%wfd%nvctr_f,Olr(ilr)%wfd%nseg_c,Olr(ilr)%wfd%nseg_f,&
+!&                  Olr(ilr)%wfd%keyv(1),Olr(ilr)%wfd%keyv(Olr(ilr)%wfd%nseg_c+fmin),Olr(ilr)%wfd%keyg(1,1),&
+!&                  Olr(ilr)%wfd%keyg(1,Olr(ilr)%wfd%nseg_c+fmin),lpsi(1+(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)),&
+!&                  lpsi(Olr(ilr)%wfd%nvctr_c+fmin+(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)),&
+!&                  Olr(ilr)%wfd%nvctr_c,Olr(ilr)%wfd%nvctr_f,Olr(ilr)%wfd%nseg_c,Olr(ilr)%wfd%nseg_f,&
+!&                  Olr(ilr)%wfd%keyv(1),Olr(ilr)%wfd%keyv(Olr(ilr)%wfd%nseg_c+fmin),Olr(ilr)%wfd%keyg(1,1),&
+!&                  Olr(ilr)%wfd%keyg(1,Olr(ilr)%wfd%nseg_c+fmin),lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(jorb-1)+1),&
+!&                  lpsi(Olr(ilr)%wfd%nvctr_c+(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(jorb-1)+fmin),scpr)
+!           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,scpr
+!        end do
+!     end do
 
 ! Plot the orbitals that are inside the overlap region
 ! plot first orbital
@@ -301,15 +324,15 @@ program sandbox
 
   !calculate scalar product between wavefunctions
   !this scheme works only in sequential
-     write(*,*)' '
-     write(*,'(A34)') 'Kinetic overlap matrix with ddot:'
-     do iorb=1,orbs%norb
-        do jorb=iorb,orbs%norb
-           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
-                dot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(iorb-1)+1),1,&
-                hpsi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
-        end do
-     end do
+  !   write(*,*)' '
+  !   write(*,'(A34)') 'Kinetic overlap matrix with ddot:'
+  !   do iorb=1,orbs%norb
+  !      do jorb=iorb,orbs%norb
+  !         write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
+  !              dot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(iorb-1)+1),1,&
+  !              hpsi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
+  !      end do
+  !   end do
 
 ! Now transform hpsi to overlap region
      allocate(lhpsi(ldim+ndebug), stat=i_stat)
@@ -317,12 +340,12 @@ program sandbox
 
      call psi_to_locreg(Glr,ilr,ldim,Olr,lhpsi,isovrlp,orbs,hpsi)
 
-     write(*,'(A51)') 'Kinetic overlap matrix with ddot and localization:'
+!     write(*,'(A51)') 'Kinetic overlap matrix with ddot and localization:'
      do iorb=1,orbs%norb
         do jorb=iorb,orbs%norb
-           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
-               dot(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f,lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)+1),1,&
-               lhpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(jorb-1)+1),1)
+           koverlap(iorb,jorb) = koverlap(iorb,jorb) + dot(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f,&
+           lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)+1),1,&
+           lhpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(jorb-1)+1),1)
         end do
      end do
 
@@ -357,25 +380,27 @@ program sandbox
           rxyz,in%hx,in%hy,in%hz,Glr%wfd,nlpspd,proj,psi,ppsi,eproj_sum)
 
 ! Calculate dotprod: <Psi_a|p><p|Psi_b>
-   write(*,'(A37)') 'NL-Operator overlap matrix with ddot:'
-   do iorb=1,orbs%norb
-      do jorb=iorb,orbs%norb
-         write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
-             dot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(iorb-1)+1),1,&
-             ppsi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
-      end do
-   end do
+   if(ilr == 1) then
+     write(*,'(A37)') 'NL-Operator overlap matrix with ddot:'
+     do iorb=1,orbs%norb
+        do jorb=iorb,orbs%norb
+           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
+               dot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(iorb-1)+1),1,&
+               ppsi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
+        end do
+     end do
+   end if
 
 
 ! Fill and Apply the projectors on the wavefunctions
   call apply_local_projectors(atoms,in,Olr(ilr),Lnlpspd,Lproj,orbs,projflg,lpsi,rxyz,lppsi)
 
 ! Calculate dotprod: <Psi_a|p><p|Psi_b>
- write(*,'(A54)') 'NL-Operator overlap matrix with ddot and localization:'
+! write(*,'(A54)') 'NL-Operator overlap matrix with ddot and localization:'
      do iorb=1,orbs%norb
         do jorb=iorb,orbs%norb
-           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
-               dot(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f,lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)+1),1,&
+           poverlap(iorb,jorb) = poverlap(iorb,jorb) + dot(Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f,&
+               lpsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(iorb-1)+1),1,&
                lppsi((Olr(ilr)%wfd%nvctr_c+7*Olr(ilr)%wfd%nvctr_f)*(jorb-1)+1),1)
         end do
      end do
@@ -397,6 +422,43 @@ program sandbox
      call memocc(i_stat,i_all,'ppsi',subname)
 
    end do ! ilr
+
+! Write total overlap of wavefunction for localisation regions
+     write(*,'(A26)') 'Overlap matrix with ddot:'
+     do iorb=1,orbs%norb
+        do jorb=iorb,orbs%norb
+           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,overlap1(iorb,jorb)
+        end do
+     end do
+
+     write(*,'(A34)') 'Kinetic overlap matrix with ddot:'
+     do iorb=1,orbs%norb
+        do jorb=iorb,orbs%norb
+           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
+                dot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(iorb-1)+1),1,&
+                hpsi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
+        end do
+     end do
+
+     write(*,'(A51)') 'Kinetic overlap matrix with ddot and localization:'
+     do iorb=1,orbs%norb
+        do jorb=iorb,orbs%norb
+           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,koverlap(iorb,jorb)
+        end do
+     end do
+
+     write(*,'(A54)') 'NL-Operator overlap matrix with ddot and localization:'
+       do iorb=1,orbs%norb
+        do jorb=iorb,orbs%norb
+           write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,poverlap(iorb,jorb)
+        end do
+     end do
+
+     deallocate(overlap1,stat=i_stat)
+     call memocc(i_stat,orbs%norb*orbs%norb,'overlap1',subname)
+
+     deallocate(koverlap,stat=i_stat)
+     call memocc(i_stat,orbs%norb*orbs%norb,'koverlap',subname)
   end if   !isovrlp
 
   stop  !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<------------------------------------------------------------------
