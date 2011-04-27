@@ -47,6 +47,7 @@ character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20):: atomname
 logical:: written, fileExists
 real(8),dimension(:),pointer:: phiWork
+real :: ttreal
 
 
 ! Allocate all local arrays.
@@ -136,7 +137,7 @@ end do
 norb=lin%orbs%norb
 norbu=norb
 norbd=0
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%orbs)
+call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%orbs)
 written=.false.
 if(iproc==0) write(*,'(x,a)') '>>>> Partition of the basis functions among the processes.'
 do jproc=1,nproc-1
@@ -191,7 +192,8 @@ call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 ! Allocate phi and initialize it at random
 allocate(phi(lin%orbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
-call initRandomSeed(iproc, 1)
+!call initRandomSeed(iproc, 1)
+call initRandomSeed(0, 1)
 !call random_number(phi)
 call randomWithinCutoff(iproc, lin%orbs, Glr, at, lin, input, rxyz, phi)
 !call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
@@ -211,8 +213,12 @@ call memocc(istat, iall, 'phiWork', subname)
 ! them at random.
 allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, coeff, 'coeff', subname)
-call random_number(coeff)
-
+do iorb=1,orbs%norb
+   do jorb=1,lin%orbs%norb
+      call random_number(ttreal)
+      coeff(jorb,iorb)=real(ttreal,kind=8)
+   end do
+end do
 
 
 ! Deallocate all local arrays
@@ -475,6 +481,7 @@ real(8),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp)::
 integer:: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat
 real(8),dimension(:),allocatable:: phir
 real(8):: hx, hy, hz, hxh, hyh, hzh, kx, ky, kz, tt, tt2, cut
+real :: ttreal
 type(workarr_sumrho) :: w
 type(workarr_locham):: w_lh
 
@@ -493,6 +500,12 @@ hzh=.5d0*hz
 
 istart=0
 
+!call the random number as many times as the number of orbitals before
+!so that to associate unambiguously a random number to a  component-orbital pair
+do ii=1,orbs%isorb*orbs%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+   call random_number(ttreal)
+end do
+
 !write(*,*) 'write, orbs%nbasisp', orbs%norbp
     orbLoop: do iorb=1,orbs%norbp
         call daub_to_isf(Glr,w,phi(istart+1),phir(1))
@@ -502,7 +515,7 @@ istart=0
         iz0=nint(rxyz(3,iiAt)/hzh)
         cut=1.d0/lin%potentialPrefac(at%iatype(iiAt))
         cut=cut**.25d0
-!cut=8.d0
+!cut=80000.d0
 
         jj=0
         !!open(unit=(iproc+1)*1000000+it*1000+iorb*10+7)
@@ -529,12 +542,14 @@ istart=0
                    tt=hxh**2*(ix-ix0)**2 + hyh**2*(iy-iy0)**2 + hzh**2*(iz-iz0)**2
                    tt=sqrt(tt)
                    if(tt<cut) then
-                       call random_number(phir(jj))
+                      call random_number(ttreal)
+                      
+                      phir(jj)=1.0d0!real(ttreal,kind=8)
                    else
-!write(100+iproc,*) tt, cut
-                       call random_number(tt2)
-                       !phir(jj)=tt2*.002d0*exp(-(4.d0*lin%potentialPrefac(at%iatype(iiAt))*tt))
-                       phir(jj)=0.d0
+                      !write(100+iproc,*) tt, cut
+                      call random_number(ttreal)
+                      !phir(jj)=tt2*.002d0*exp(-(4.d0*lin%potentialPrefac(at%iatype(iiAt))*tt))
+                      phir(jj)=0.d0
                    end if
                        
                    !!!if(iy==ix0 .and. iz==iz0) write((iproc+1)*1000000+it*1000+iorb*10+7,*) ix, phir(jj)
