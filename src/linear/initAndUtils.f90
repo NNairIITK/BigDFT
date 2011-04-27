@@ -211,14 +211,18 @@ call memocc(istat, iall, 'phiWork', subname)
 
 ! Allocate the coefficients for the linear combinations of the  orbitals and initialize
 ! them at random.
+! Do this only on the root, since the calculations to determine coeff are not yet parallelized.
 allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, coeff, 'coeff', subname)
-do iorb=1,orbs%norb
-   do jorb=1,lin%orbs%norb
-      call random_number(ttreal)
-      coeff(jorb,iorb)=real(ttreal,kind=8)
-   end do
-end do
+call initRandomSeed(0, 1)
+if(iproc==0) then
+    do iorb=1,orbs%norb
+       do jorb=1,lin%orbs%norb
+          call random_number(ttreal)
+          coeff(jorb,iorb)=real(ttreal,kind=8)
+       end do
+    end do
+end if
 
 
 ! Deallocate all local arrays
@@ -498,11 +502,14 @@ hxh=.5d0*hx
 hyh=.5d0*hy
 hzh=.5d0*hz
 
+! Initialize phi to zero.
+phi=0.d0
+
 istart=0
 
-!call the random number as many times as the number of orbitals before
-!so that to associate unambiguously a random number to a  component-orbital pair
-do ii=1,orbs%isorb*orbs%nspinor*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+!!call the random number as many times as the number of orbitals before
+!!so that to associate unambiguously a random number to a  component-orbital pair
+do ii=1,orbs%isorb*orbs%nspinor*(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i)
    call random_number(ttreal)
 end do
 
@@ -522,29 +529,30 @@ end do
         !!open(unit=(iproc+1)*1000000+it*1000+iorb*10+8)
         !!open(unit=(iproc+1)*1000000+it*1000+iorb*10+9)
         !do i3=1,Glr%d%n3i
-        do i3=1+15,Glr%d%n3i-15
+        do i3=-14,Glr%d%n3i-15
             !do i2=1,Glr%d%n2i
-            do i2=1+15,Glr%d%n2i-15
+            do i2=-14,Glr%d%n2i-15
                 !do i1=1,Glr%d%n1i
-                do i1=1+15,Glr%d%n1i-15
-                   jj=jj+1
-                   ! z component of point jj
-                   iz=jj/(Glr%d%n2i*Glr%d%n1i)
-                   ! Subtract the 'lower' xy layers
-                   ii=jj-iz*(Glr%d%n2i*Glr%d%n1i)
-                   ! y component of point jj
-                   iy=ii/Glr%d%n1i
-                   ! Subtract the 'lower' y rows
-                   ii=ii-iy*Glr%d%n1i
-                   ! x component
-                   ix=ii
+                do i1=-14,Glr%d%n1i-15
+                  jj=jj+1
+                  ! ! z component of point jj
+                  ! iz=jj/(Glr%d%n2i*Glr%d%n1i)
+                  ! ! Subtract the 'lower' xy layers
+                  ! ii=jj-iz*(Glr%d%n2i*Glr%d%n1i)
+                  ! y component of point jj
+                  ! iy=ii/Glr%d%n1i
+                  ! ! Subtract the 'lower' y rows
+                  ! ii=ii-iy*Glr%d%n1i
+                  ! ! x component
+                  ! ix=ii
 
-                   tt=hxh**2*(ix-ix0)**2 + hyh**2*(iy-iy0)**2 + hzh**2*(iz-iz0)**2
+                   tt=hxh**2*(i1-ix0)**2 + hyh**2*(i2-iy0)**2 + hzh**2*(i3-iz0)**2
                    tt=sqrt(tt)
                    if(tt<cut) then
                       call random_number(ttreal)
                       
-                      phir(jj)=1.0d0!real(ttreal,kind=8)
+                      !phir(jj)=1.0d0!real(ttreal,kind=8)
+                      phir(jj)=real(ttreal,kind=8)
                    else
                       !write(100+iproc,*) tt, cut
                       call random_number(ttreal)
@@ -569,7 +577,7 @@ end do
         kx=orbs%kpts(1,orbs%iokpt(iorb))
         ky=orbs%kpts(2,orbs%iokpt(iorb))
         kz=orbs%kpts(3,orbs%iokpt(iorb))
-        call isf_to_daub(hx, hy, hz, kx, ky, kz, orbs%nspinor, Glr, w_lh, phir(1), phi(istart+1), tt)
+        call isf_to_daub(Glr, w, phir(1), phi(istart+1))
 
         istart=istart+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor
 
