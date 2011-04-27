@@ -71,9 +71,9 @@ program sandbox
   nproc=1
 
   !initalise the variables for the calculation
-
-  call read_input_variables(iproc,'posinp', &
-       & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", in, atoms, rxyz)
+  !standard names
+  call standard_inputfile_names(in)
+  call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)
@@ -474,11 +474,16 @@ program sandbox
         exit wfn_loop 
      endif
 
-     !control the previous value of idsx_actual
-     idsx_actual_before=idsx_actual
+     !evaluate the functional of the wavefucntions and put it into the diis structure
+     !the energy values is printed out here
+     call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,in%hx,in%hy,in%hz,in%ncong,in%iscf,&
+          ekin_sum,epot_sum,eproj_sum,0.0_gp,0.0_gp,0.0_gp,0.0_gp,0.0_gp,0.0_gp,&
+          psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
 
-     call hpsitopsi(iproc,nproc,orbs,in%hx,in%hy,in%hz,Glr,comms,in%ncong,&
-          iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
+     !control the previous value of idsx_actual
+     idsx_actual_before=diis%idsx
+
+     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%nspin,in)
 
      write(itername,'(i4.4)')iter
      call plot_wf_sandbox('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
@@ -489,13 +494,13 @@ program sandbox
         write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
              'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
-     if (iproc.eq.0) then
-        if (verbose > 0) then
-           write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-                ekin_sum,epot_sum,eproj_sum
-        end if
-        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total "energy",gnrm',iter,energy,gnrm
-     endif
+!!$     if (iproc.eq.0) then
+!!$        if (verbose > 0) then
+!!$           write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!!$                ekin_sum,epot_sum,eproj_sum
+!!$        end if
+!!$        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total "energy",gnrm',iter,energy,gnrm
+!!$     endif
 
   end do wfn_loop
   if (iter == in%itermax .and. iproc == 0 ) &
