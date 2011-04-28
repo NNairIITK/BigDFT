@@ -90,10 +90,11 @@ void generate_radix_no_shared_generic(std::stringstream &program, unsigned int r
 
   for(int i=0; i<radix_size; i++)
     order1[i] = i;
-  program<<"  double2 cossin,val,t;\n\
+  program<<"{  double2 cossin,val,t;\n\
   double2 tmp["<<radix_size<<"];\n\
   double2 tmp_val["<<sub_radixes.back()<<"];\n";
-
+  for(int i=0; i < radix_size; i++)
+    program<<"  tmp["<<i<<"] = "<<in<<"[("<<i<<"+ig*"<<radix_size<<")*ndat];\n";
   for(it = sub_radixes.begin(); it != sub_radixes.end(); it++, A *= *it ){
     B /= *it;
     for(int j=0; j<*it; j++){
@@ -104,18 +105,12 @@ void generate_radix_no_shared_generic(std::stringstream &program, unsigned int r
     order = order_out; order_out = order_in; order_in = order;
     for(int i=0; i < radix_size; i += *it){
       for(int j=0; j < *it; j++){
-        if(it == sub_radixes.begin())
-          program<<"  t = "<<in<<"["<<order[i]<<"*ndat];\n";
-        else
-          program<<"  t = tmp["<<order[i]<<"];\n";
+        program<<"  t = tmp["<<order[i]<<"];\n";
         for(int k=1; k < *it; k++){
           index = (k*j*fft_size/(*it))%fft_size;
           program<<"  cossin.x = cosar["<<index<<"];\n";
           program<<"  cossin.y = sinar["<<index<<"];\n";
-          if(it == sub_radixes.begin())
-            program<<"  val = "<<in<<"["<<order[i+k]<<"*ndat];\n";
-          else
-            program<<"  val = tmp["<<order[i+k]<<"];\n";
+          program<<"  val = tmp["<<order[i+k]<<"];\n";
           program<<"  t.x += val.x * cossin.x;\n";
           program<<"  t.x += "<<sign<<" val.y * cossin.y;\n";
           program<<"  t.y += "<<sign<<" - val.x * cossin.y;\n";
@@ -158,8 +153,12 @@ void generate_radix_no_shared_generic(std::stringstream &program, unsigned int r
     }
   }
   for(int i=0;i <radix_size; i++){
-    program<<"  "<<out<<"[jg*"<<fft_size<<"+"<<order[i]<<"] = tmp["<<i<<"];\n";
+    if( transpose )
+      program<<"  "<<out<<"[jg*"<<fft_size<<"+ig+"<<order[i]*B<<"] = tmp["<<i<<"];\n";
+    else
+      program<<"  "<<out<<"[jg+(ig+"<<order[i]*B<<")*ndat] = tmp["<<i<<"];\n";
   }
+  program<<"  }\n";
   delete[] order1;
   delete[] order2;
   delete[] digits;
@@ -342,6 +341,7 @@ void generate_kernel_no_shared(std::stringstream &program, cl_uint fft_size, std
     program<<", __read_only image2d_t cosat";
   program<<"){\n\
   size_t jg = get_global_id(1);\n\
+  size_t ig = get_global_id(0);\n\
   jg  = get_group_id(1) == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
   psi = &psi[jg];\n\
   //out = &out[jg];\n";
@@ -354,14 +354,20 @@ void generate_kernel_no_shared(std::stringstream &program, cl_uint fft_size, std
   div.precision(20);
   if( reverse ){
     sign = "-";
-    div<<"*="<<(double)1/(double)fft_size;
   } else {
     sign = "+";
-    div<<"";
   }
+  div<<"";
   unsigned int A=1, B=fft_size;
-  for( it=radixes.begin(); it!=radixes.end(); it++)
-    generate_radix_no_shared_generic(program, *it, fft_size, A, B, in, out, true, 0, sign, div);
+  bool transpose = false;
+  for( it=radixes.begin(); it!=radixes.end(); it++){
+    if (it == --(radixes.end())){
+      if( reverse)
+        div<<"*="<<(double)1/(double)fft_size;
+      transpose = true;
+    }
+    generate_radix_no_shared_generic(program, *it, fft_size, A, B, in, out, transpose, 0, sign, div);
+  }
 //  generate_radix_no_shared(program, 16, fft_size, sign, div);
   program<<"}\n";
 }

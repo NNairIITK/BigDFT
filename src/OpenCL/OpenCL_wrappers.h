@@ -85,6 +85,7 @@ struct bigdft_kernels {
   cl_kernel benchmark_flops_kernel_d;
   cl_kernel benchmark_mops_kernel_d;
   cl_kernel transpose_kernel_d;
+  cl_kernel notranspose_kernel_d;
   cl_kernel fft_kernel_d0_d;
   cl_kernel fft_kernel_d1_d;
   cl_kernel fft_kernel_d2_d;
@@ -431,6 +432,14 @@ void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(bigdft_command_qu
  */
 void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out, cl_mem *pot, cl_double *epot);
 
+/** Benchmark to evaluate the throughput of the copy mechanism used in the convolutions.
+ *  @param command_queue used to process the convolution.
+ *  @param n size of the first dimension.
+ *  @param ndat size of the second dimension.
+ *  @param psi input buffer of size ndat * n * sizeof(double), stored in column major order.
+ *  @param out output buffer of size ndat * n * sizeof(double), stored in column major order.
+ */
+void FC_FUNC_(notranspose_d,NOTRANSPOSE_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
 /** Benchmark to evaluate the throughput of the transposition mechanism used in the convolutions.
  *  @param command_queue used to process the convolution.
  *  @param n size of the first dimension.
