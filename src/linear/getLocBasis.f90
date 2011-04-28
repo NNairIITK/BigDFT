@@ -183,14 +183,14 @@ call free_full_potential(nproc,potential,subname)
       ! Calculate the matrix elements <phi|H|phi>.
       call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
 
-      ! Initialize the coefficient vector at random. 
-      do iorb=1,orbs%norb
-         do jorb=1,lin%orbs%norb
-            call random_number(ttreal)
-            coeff(jorb,iorb)=real(ttreal,kind=8)
-         end do
-      end do
-      !call random_number(coeff)
+      !!! Initialize the coefficient vector at random. 
+      !!do iorb=1,orbs%norb
+      !!   do jorb=1,lin%orbs%norb
+      !!      call random_number(ttreal)
+      !!      coeff(jorb,iorb)=real(ttreal,kind=8)
+      !!   end do
+      !!end do
+      !!!call random_number(coeff)
 
       !if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
       ! Calculate the coefficients which minimize the modified band structure energy
@@ -732,7 +732,8 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       end if
       if(.not. diisLIN%switchSD) call improveOrbitals()
   
-  
+     !flush the standard output
+      call flush(6) 
   end do iterLoop
 
   ! Store the mean alpha.
