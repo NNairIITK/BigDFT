@@ -75,8 +75,9 @@ program sandbox
   nproc=1
 
   !initalise the variables for the calculation
+  !standard names
   call standard_inputfile_names(in)
-  call read_input_variables(iproc,'posinp', in, atoms, rxyz)
+  call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)
@@ -181,6 +182,37 @@ program sandbox
              psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
      end do
   end do
+
+
+! ########################################
+!  Added by me to have kinetic part 
+! ########################################
+! Fake Eigenvalues for orbitals
+     orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
+! #################
+!  Kinetic part
+! #################
+
+  !allocate the potential in the full box
+     call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3pi,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+          orbs%norb,orbs%norbp,ngatherarr,pot_ion,potential)
+
+  !put in hpsi the kinetic operator (pot_ion = 0d.0)
+     call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
+         nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,&
+         eproj_sum,in%nspin,GPU)
+
+  !calculate scalar product between wavefunctions
+  !this scheme works only in sequential
+  !   write(*,*)' '
+  !   write(*,'(A34)') 'Kinetic overlap matrix with ddot:'
+  !   do iorb=1,orbs%norb
+  !      do jorb=iorb,orbs%norb
+  !         write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
+  !              dot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(iorb-1)+1),1,&
+  !              hpsi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
+  !      end do
+  !   end do
  
 !#######################################################################################################################
 ! Test the overlap calculation of wavefunctions defined in different localisation regions
@@ -305,35 +337,9 @@ program sandbox
      allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,orbs%eval,'eval',subname)
 
-! Fake Eigenvalues for orbitals
-     orbs%eval(1:orbs%norb*orbs%nkpts)=-0.5d0
-
-
-! #################
-!  Kinetic part
-! #################
-
-  !allocate the potential in the full box
-     call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3pi,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
-          orbs%norb,orbs%norbp,ngatherarr,pot_ion,potential)
-
-  !put in hpsi the kinetic operator (pot_ion = 0d.0)
-     call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-         nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,&
-         eproj_sum,in%nspin,GPU)
-
-  !calculate scalar product between wavefunctions
-  !this scheme works only in sequential
-  !   write(*,*)' '
-  !   write(*,'(A34)') 'Kinetic overlap matrix with ddot:'
-  !   do iorb=1,orbs%norb
-  !      do jorb=iorb,orbs%norb
-  !         write(*,'(2(i4),1x,1pe19.12)')iorb,jorb,&
-  !              dot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(iorb-1)+1),1,&
-  !              hpsi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*(jorb-1)+1),1)
-  !      end do
-  !   end do
-
+! ########################
+!  Kinetic Part
+! ########################
 ! Now transform hpsi to overlap region
      allocate(lhpsi(ldim+ndebug), stat=i_stat)
      call memocc(i_stat,lhpsi,'lhpsi',subname)
@@ -536,11 +542,16 @@ program sandbox
         exit wfn_loop 
      endif
 
-     !control the previous value of idsx_actual
-     idsx_actual_before=idsx_actual
+     !evaluate the functional of the wavefucntions and put it into the diis structure
+     !the energy values is printed out here
+     call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,in%hx,in%hy,in%hz,in%ncong,in%iscf,&
+          ekin_sum,epot_sum,eproj_sum,0.0_gp,0.0_gp,0.0_gp,0.0_gp,0.0_gp,0.0_gp,&
+          psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
 
-     call hpsitopsi(iproc,nproc,orbs,in%hx,in%hy,in%hz,Glr,comms,in%ncong,&
-          iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
+     !control the previous value of idsx_actual
+     idsx_actual_before=diis%idsx
+
+     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%nspin,in)
 
      write(itername,'(i4.4)')iter
      call plot_wf_sandbox('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
@@ -551,13 +562,13 @@ program sandbox
         write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
              'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
-     if (iproc.eq.0) then
-        if (verbose > 0) then
-           write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-                ekin_sum,epot_sum,eproj_sum
-        end if
-        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total "energy",gnrm',iter,energy,gnrm
-     endif
+!!$     if (iproc.eq.0) then
+!!$        if (verbose > 0) then
+!!$           write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+!!$                ekin_sum,epot_sum,eproj_sum
+!!$        end if
+!!$        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total "energy",gnrm',iter,energy,gnrm
+!!$     endif
 
   end do wfn_loop
   if (iter == in%itermax .and. iproc == 0 ) &

@@ -318,7 +318,7 @@ subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
   !fill the projectors if the strategy is a distributed calculation
   if (.not. DistProjApply) then
      !calculate the wavelet expansion of projectors
-     call fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
+     call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
   end if
 
 END SUBROUTINE createProjectorsArrays

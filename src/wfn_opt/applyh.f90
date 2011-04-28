@@ -274,7 +274,7 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
                  do ispinor=1,nspinor
                     do i1=i1s,i1e
                        !the local potential is always real
-                       tt=0.d0 !pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)*psir(i1,i2,i3,ispinor)
+                       tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
                        psir(i1,i2,i3,ispinor)=tt
                     end do
