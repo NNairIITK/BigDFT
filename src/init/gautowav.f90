@@ -567,7 +567,6 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
 END SUBROUTINE gaussians_to_wavelets
 
-
 subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
   use module_base
   use module_types
@@ -586,10 +585,76 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
 
   if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Writing wavefunctions in wavelet form...'
-  
+
   normdev=0.0_dp
   tt=0.0_dp
   do iorb=1,orbs%norbp
+     !features of the k-point ikpt
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+     !evaluate the complexity of the k-point
+     if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+        ncplx=1
+     else
+        ncplx=2
+     end if
+     totnorm=0.0_dp
+     do ispinor=1,orbs%nspinor,ncplx
+        !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
+        !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
+        call gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,&
+             wfn_gau(1,ispinor,iorb),psi(1,ispinor,iorb))
+        !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
+        call wnrm_wrap(ncplx,lr%wfd%nvctr_c,lr%wfd%nvctr_f,psi(1,ispinor,iorb),scpr)
+        totnorm=totnorm+scpr
+     end do
+     !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx
+     do ispinor=1,orbs%nspinor
+        call wscal_wrap(lr%wfd%nvctr_c,lr%wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),&
+             psi(1,ispinor,iorb))
+     end do
+     tt=max(tt,abs(1.0_dp-totnorm))
+     !print *,'iorb,norm',totnorm
+  end do
+
+  if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+  !renormalize the orbitals
+  !calculate the deviation from 1 of the orbital norm
+  if (nproc > 1) then
+     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  else
+     normdev=tt
+  end if
+  if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
+       'Deviation from normalization of the imported orbitals',normdev
+
+END SUBROUTINE gaussians_to_wavelets_new
+
+
+subroutine gaussians_to_wavelets_new2(iproc,nproc,lr,orbs,norbp,hx,hy,hz,G,wfn_gau,psi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,norbp
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: lr
+  type(orbitals_data), intent(in) :: orbs
+  type(gaussian_basis), intent(in) :: G
+  real(wp), dimension(G%ncoeff,orbs%nspinor,orbs%norbp), intent(in) :: wfn_gau
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
+  !local variables
+  integer :: iorb,ierr,ispinor,ncplx
+  real(dp) :: normdev,tt,scpr,totnorm
+  real(gp) :: kx,ky,kz
+
+  if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
+       'Writing wavefunctions in wavelet form...'
+  
+  normdev=0.0_dp
+  tt=0.0_dp
+  do iorb=1,norbp
      !features of the k-point ikpt
      kx=orbs%kpts(1,orbs%iokpt(iorb))
      ky=orbs%kpts(2,orbs%iokpt(iorb))
@@ -631,7 +696,8 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
   if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
        'Deviation from normalization of the imported orbitals',normdev
 
-END SUBROUTINE gaussians_to_wavelets_new
+END SUBROUTINE gaussians_to_wavelets_new2
+
 
 
 subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)

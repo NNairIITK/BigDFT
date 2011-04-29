@@ -885,9 +885,9 @@ character(len=*),parameter:: subname='orbitalsCommunicatorsWithGroups'
 END SUBROUTINE orbitalsCommunicatorsWithGroups
 
 
-determine a set of localisation regions from the centers and the radii.
+!determine a set of localisation regions from the centers and the radii.
 !cut in cubes the global reference system
-subroutine determine_locreg2(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outofzone)
+subroutine determine_locreg_periodic(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outofzone)
   use module_base
   use module_types
   implicit none
@@ -1092,7 +1092,7 @@ subroutine determine_locreg2(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outofzone)
   !after all localisation regions are determined draw them
   !call draw_locregs(nlr,hx,hy,hz,Llr)
 
-END SUBROUTINE determine_locreg2
+END SUBROUTINE determine_locreg_periodic
 
 
 !#############################################################################################################################################
@@ -1784,3 +1784,52 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr,outofzone
 
 END SUBROUTINE get_overlap_region_periodic
 !%***
+
+
+
+
+subroutine assignToLocreg(iproc, nlr, Localnorb, orbse)
+use module_base
+use module_types
+implicit none
+
+integer,intent(in):: nlr,iproc
+integer,dimension(nlr),intent(in):: Localnorb
+type(orbitals_data),intent(inout):: orbse
+
+! Local variables
+integer:: jproc, iiOrb, iorb, jorb, jat
+
+
+  ! There are four counters:
+  !   jproc: indicates which MPI process is handling the basis function which is being treated
+  !   jat: counts the atom numbers
+  !   jorb: counts the orbitals handled by a given process
+  !   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
+  jproc=0
+  jat=1
+  jorb=0
+  iiOrb=0
+
+  do iorb=1,orbse%norb
+
+      ! Switch to the next MPI process if the numbers of orbitals for a given
+      ! MPI process is reached.
+      if(jorb==orbse%norb_par(jproc)) then
+          jproc=jproc+1
+          jorb=0
+      end if
+
+      ! Switch to the next atom if the number of basis functions for this atom is reached.
+      if(iiOrb==Localnorb(jat)) then
+          jat=jat+1
+          iiOrb=0
+      end if
+      jorb=jorb+1
+      iiOrb=iiOrb+1
+      if(iproc==jproc) orbse%inWhichLocreg(jorb)=jat
+  end do
+
+
+
+end subroutine assignToLocreg

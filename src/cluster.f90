@@ -686,6 +686,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   case(INPUT_PSI_LCAO)
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
+write(*,*) 'in cluster: size(rhopot)', size(rhopot)
      call input_wf_diag(iproc,nproc, atoms,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&

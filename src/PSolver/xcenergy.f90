@@ -273,7 +273,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      call timing(iproc,'Exchangecorr  ','OF')
      return
   end if
-
+  
   !if rhocore is associated we should add it on the charge density
   if (associated(rhocore)) then
      if (nspin == 1) then
@@ -358,7 +358,8 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (istart+1 <= m2) then 
      if(datacode=='G' .and. &
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
-        !allocation of an auxiliary array for avoiding the shift 
+        !allocation of an auxiliary array for avoiding the shift
+        print *,'inside the datacode:' 
         call xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              ixc,hx,hy,hz,rho_G,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin)
@@ -637,7 +638,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho,nspden,&
           real(hx,dp),real(hy,dp),real(hz,dp),gradient)
   end if
-
+  
   !Allocations
   allocate(exci(m1,m3,nwb+ndebug),stat=i_stat)
   call memocc(i_stat,exci,'exci',subname)
@@ -665,9 +666,10 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   npts=m1*m3*nwb
   !let us apply ABINIT routines
   !case with gradient
+
   if (ixc >= 11 .and. ixc <= 16) then
      if (order**2 <= 1 .or. ixc == 16) then
-        if (ixc /= 13) then             
+        if (ixc /= 13) then 
            call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
                 vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 grho2_updn=gradient,vxcgr=dvxcdgr) 
@@ -677,7 +679,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                 grho2_updn=gradient) 
         end if
      else if (order /= 3) then
-        if (ixc /= 13) then             
+        if (ixc /= 13) then 
            call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
                 vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
@@ -687,7 +689,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                 dvxc=dvxci,grho2_updn=gradient) 
         end if
      else if (order == 3) then
-        if (ixc /= 13) then             
+        if (ixc /= 13) then
            call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
                 vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
@@ -697,7 +699,6 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                 dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
         end if
      end if
-
      !cases without gradient
   else if (ixc >= 0) then
      if (order**2 <=1 .or. ixc >= 31 .and. ixc<=34) then
@@ -711,8 +712,9 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),vxci,&
              ndvxc,ngr2,nd2vxc,nvxcdgr,&
              dvxc=dvxci)
-        end if
+     end if
      !case with libXC, with and without gradient
+  
   else if (ixc < 0) then
      !here the abinit wrapper is used, but we can pass to the 
      !libXC routines by eliminating one step

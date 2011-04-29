@@ -246,7 +246,7 @@ module module_types
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi
-     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
+     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,inwhichlocreg!,ikptsp
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -569,6 +569,9 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
     deallocate(orbs%ikptproc,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%ikptproc',subname)
+    i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
+    deallocate(orbs%inwhichlocreg,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
 
     !contradictory: needed for component distribution and allocated for
     !               orbital distribution. Better to deal with scalars

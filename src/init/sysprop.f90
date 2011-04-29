@@ -957,6 +957,12 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !put a default value for the fermi energy
   orbs%efermi = UNINITIALISED
 
+  ! allocate inwhichlocreg
+  allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)
+  call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
+  ! default for inwhichlocreg
+  orbs%inwhichlocreg = 1
+
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
