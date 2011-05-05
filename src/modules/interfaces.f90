@@ -1377,13 +1377,13 @@ module module_interfaces
 
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-        infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+        infoBasisFunctions, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
         i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
       use module_base
       use module_types
       !use Poisson_Solver
       implicit none
-      integer,intent(in):: iproc, nproc, nspin, n3p, n3d, i3s, i3xcsh
+      integer,intent(in):: iproc, nproc, nspin, n3p, n3pi, n3d, i3s, i3xcsh
       type(locreg_descriptors),intent(in):: Glr
       type(orbitals_data),intent(in) :: orbs
       type(communications_arrays),intent(in) :: comms
@@ -1475,9 +1475,9 @@ module module_interfaces
       type(linearParameters),intent(in out):: lin
     end subroutine orbitalsCommunicatorsWithGroups
     
-    subroutine linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, fion, fdisp, radii_cf, &
-        nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-        eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
+    subroutine linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, &
+        fion, fdisp, radii_cf, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, &
+        pkernel, pot_ion, rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
       use module_base
       use module_types
       implicit none

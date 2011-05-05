@@ -480,6 +480,7 @@ type(workarr_locham):: w_lh
 
 
 allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+phi=0.d0
 
 call initialize_work_arrays_sumrho(Glr,w)
 call initialize_work_arrays_locham(Glr, orbs%nspinor,w_lh)

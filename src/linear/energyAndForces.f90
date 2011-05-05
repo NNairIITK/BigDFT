@@ -423,7 +423,7 @@ logical:: refill_proj
   call timing(iproc,'Forces        ','OF')
   !!call confinementCorrection()
   !!fxyz=fxyz+fxyzConf
-  call pulayCorrection()
+  !call pulayCorrection()
   call timing(iproc,'Forces        ','ON')
 !!!!!!!!!!!!
 
@@ -632,13 +632,15 @@ contains
 subroutine pulayCorrection()
 implicit none
 
-real(8),dimension(:),allocatable:: dpsix, dpsiy, dpsiz, drhox, drhoy, drhoz, dpot_ionx, dpot_iony, dpot_ionz, dpotx, dpoty, dpotz
-real(8),dimension(:,:,:,:),allocatable:: dpotxcx, dpotxcy, dpotxcz
+real(8),dimension(:),allocatable:: dpsix, dpsiy, dpsiz, drhox, drhoy, drhoz, dpot_ionx, dpot_iony, dpot_ionz
+real(8),dimension(:),allocatable:: dpotx, dpoty, dpotz, rho, pot
+real(8),dimension(:,:,:,:),allocatable:: dpotxcx, dpotxcy, dpotxcz, potxc
 real(8),dimension(:,:,:),allocatable:: ovrlpx, ovrlpy, ovrlpz
 integer,dimension(:,:),allocatable:: ndimovrlp
 real(8),dimension(:),pointer:: psiWork
 integer:: iorb, jorb, istat, nvctrp, istart, jstart, ierr, i
 real(8):: tt, tt2, ddot, deexcux, dvexcux, deexcuy, dvexcuy, deexcuz, dvexcuz, dehartx, deharty, dehartz, psoffset
+real(8):: eexcu, vexcu, ehart
 real(8),dimension(:),pointer:: rhocore
 character(len=3),parameter:: PSquiet='yes'
 
@@ -665,6 +667,8 @@ allocate(drhoy(lin%as%size_rhopot), stat=istat)
 call memocc(istat, drhoy, 'drhoy', subname)
 allocate(drhoz(lin%as%size_rhopot), stat=istat)
 call memocc(istat, drhoz, 'drhoz', subname)
+allocate(rho(lin%as%size_rhopot), stat=istat)
+call memocc(istat, rho, 'rho', subname)
 
 allocate(dpotx(lin%as%size_rhopot), stat=istat)
 call memocc(istat, dpotx, 'dpotx', subname)
@@ -672,6 +676,8 @@ allocate(dpoty(lin%as%size_rhopot), stat=istat)
 call memocc(istat, dpoty, 'dpoty', subname)
 allocate(dpotz(lin%as%size_rhopot), stat=istat)
 call memocc(istat, dpotz, 'dpotz', subname)
+allocate(pot(lin%as%size_rhopot), stat=istat)
+call memocc(istat, pot, 'pot', subname)
 
 allocate(dpotxcx(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
 call memocc(istat, dpotxcx, 'dpotxcx', subname)
@@ -679,6 +685,8 @@ allocate(dpotxcy(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),
 call memocc(istat, dpotxcy, 'dpotxcy', subname)
 allocate(dpotxcz(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
 call memocc(istat, dpotxcz, 'dpotxcz', subname)
+allocate(potxc(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
+call memocc(istat, potxc, 'potxc', subname)
 
 allocate(dpot_ionx(lin%as%size_pot_ion),stat=i_stat)
 call memocc(i_stat,dpot_ionx,'dpot_ionx',subname)
@@ -813,6 +821,26 @@ call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, dpsiz, work=psiWork)
 !!!!!!!!!!!!!!
 
 
+call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rho,&
+     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+if(orbs%nspinor==4) then
+   !this wrapper can be inserted inside the poisson solver 
+   stop 'not yet implemented!!!'
+   !!call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+   !!     in%ixc,hxh,hyh,hzh,&
+   !!     rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+else
+    ! rhocore is not associated... not used?
+    call XC_potential(atoms%geocode,'D',iproc,nproc,&
+         Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
+         rho,eexcu,vexcu,in%nspin,rhocore,potxc)
+
+     call H_potential(atoms%geocode,'D',iproc,nproc,&
+          Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+          rho,pkernel,pot,ehart,0.0_dp,.false.,&
+          quiet=PSquiet) !optional argument
+end if
+
 do iat=1,atoms%nat
 
     ! First calculate the charge density.
@@ -865,9 +893,14 @@ do iat=1,atoms%nat
          ! IS THIS CORRECT?
          psoffset=0.d0
 
+         !call createIonicPotentialModified(atoms%geocode,iproc,nproc,atoms,lin, iat, rxyz,&
+         !hxh,hyh,hzh,in%elecfield,Glr%d%n1,Glr%d%n2,Glr%d%n3,n3pi,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,pkernel, &
+         !drhox, drhoy, drhoz, dpotx, dpoty, dpotz, dpot_ionx, dpot_iony, dpot_ionz, &
+         !psoffset,in%nvacancy,&
+         !in%correct_offset)
          call createIonicPotentialModified(atoms%geocode,iproc,nproc,atoms,lin, iat, rxyz,&
          hxh,hyh,hzh,in%elecfield,Glr%d%n1,Glr%d%n2,Glr%d%n3,n3pi,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,pkernel, &
-         drhox, drhoy, drhoz, dpotx, dpoty, dpotz, dpot_ionx, dpot_iony, dpot_ionz, &
+         rho, rho, rho, pot, pot, pot, dpot_ionx, dpot_iony, dpot_ionz, &
          psoffset,in%nvacancy,&
          in%correct_offset)
 
@@ -1132,7 +1165,7 @@ subroutine createIonicPotentialModified(geocode,iproc,nproc,at,lin, iiAt, rxyz,&
      charges_mpi(1)=tt2
      charges_mpi(2)=potleakedy
      call mpiallred(charges_mpi(1),2,MPI_SUM,MPI_COMM_WORLD,ierr)
-     tt1_tot=charges_mpi(1)
+     tt2_tot=charges_mpi(1)
      potleakedy_tot=charges_mpi(2)
 
      charges_mpi(1)=tt3
@@ -1145,18 +1178,18 @@ subroutine createIonicPotentialModified(geocode,iproc,nproc,at,lin, iiAt, rxyz,&
      potleakedx_tot=potleakedx
 
      tt2_tot=tt
-     potleakedy_tot=potleakedx
+     potleakedy_tot=potleakedy
 
      tt3_tot=tt
-     potleakedz_tot=potleakedx
+     potleakedz_tot=potleakedy
   end if
 
   if (iproc == 0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
        'x: total ionic charge, leaked charge ',tt1_tot,potleakedx_tot
   if (iproc == 0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
-       'x: total ionic charge, leaked charge ',tt2_tot,potleakedy_tot
+       'y: total ionic charge, leaked charge ',tt2_tot,potleakedy_tot
   if (iproc == 0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
-       'x: total ionic charge, leaked charge ',tt3_tot,potleakedz_tot
+       'z: total ionic charge, leaked charge ',tt3_tot,potleakedz_tot
 
   if (.not. htoobig) then
      call timing(iproc,'CrtLocPot     ','OF')

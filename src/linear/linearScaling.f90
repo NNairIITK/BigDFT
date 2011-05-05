@@ -126,7 +126,7 @@ character(len=*),parameter:: subname='linearScaling'
   ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-      infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      infoBasisFunctions, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
 
   ! Calculate the energy that we get with psi.
@@ -136,8 +136,8 @@ character(len=*),parameter:: subname='linearScaling'
 
 
   ! Calculate the forces we get with psi.
-  call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
-      irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+  call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
+      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi, coeff)

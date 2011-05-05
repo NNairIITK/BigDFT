@@ -1,6 +1,6 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-    infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+    infoBasisFunctions, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
     i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
 !
 ! Purpose:
@@ -58,7 +58,7 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nspin, n3p, n3d, i3s, i3xcsh
+integer,intent(in):: iproc, nproc, nspin, n3p, n3pi, n3d, i3s, i3xcsh
 type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in) :: orbs
 type(communications_arrays),intent(in) :: comms
@@ -109,6 +109,7 @@ real(kind=8),dimension(:), pointer :: projCorrect
 real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu
 integer:: iorb, jorb, it, istart
 character(len=11):: procName, orbNumber, orbName
+character(len=30):: filename
   
   allocate(hphi(lin%orbs%npsidim), stat=istat) 
   call memocc(istat, hphi, 'hphi', subname)
@@ -122,10 +123,40 @@ character(len=11):: procName, orbNumber, orbName
   allocate(matrixElements2(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
   
   
+!!! Read orbitals
+!!write(procName,'(i0)') iproc
+!!filename='phi1_proc='//procName
+!!open(unit=2000+iproc, file=trim(filename))
+!!read(2000+iproc,*) phi
+!!close(unit=2000+iproc)
+
+!!call shiftBasisFunctions()
+!!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+
+!!write(procName,'(i0)') iproc
+!!filename='phiShift_proc='//procName
+!!open(unit=2000+iproc, file=trim(filename))
+!!write(2000+iproc,*) phi
+!!close(unit=2000+iproc)
+
+
+
   ! Optimize the localized basis functions by minimizing the trace of <phi|H|phi>.
   call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
       lastAlpha, infoBasisFunctions)
+
+!!! Write orbitals
+!!if(lin%nItInguess==0) then
+!!    call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+!!end if
+!!write(procName,'(i0)') iproc
+!!filename='phi2_proc='//procName
+!!open(unit=2000+iproc, file=trim(filename))
+!!write(2000+iproc,*) phi
+!!close(unit=2000+iproc)
+
+
 
 !!! TEST
 !call optimizeWithShifts()
@@ -409,7 +440,7 @@ contains
             rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
             proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
         if(iproc==0) write(*,*) 'energy', energy
-        call calculateForcesSub(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, proj, &
+        call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, proj, &
             ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 
         !rxyzParab=rxyzParab-1.d0*fxyz
@@ -434,6 +465,55 @@ contains
     
   end subroutine optimizeWithShifts
 
+
+
+
+
+  subroutine shiftBasisFunctions
+  implicit none
+
+  integer:: istart, iorb, i1, i2, i3
+  real(8),dimension(:,:,:,:,:,:),allocatable:: psig, psigOld
+
+    allocate(psig(0:Glr%d%n1,2,0:Glr%d%n2,2,0:Glr%d%n3,2), stat=istat)
+    allocate(psigOld(0:Glr%d%n1,2,0:Glr%d%n2,2,0:Glr%d%n3,2), stat=istat)
+    istart=1
+    do iorb=1,lin%orbs%norbp
+        if(lin%onWhichAtom(iorb)==3) then
+            ! Expand the wave function to the full box (but still scaling functions / wavelets)
+            call uncompress(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%wfd%nseg_c, Glr%wfd%nvctr_c, &
+               Glr%wfd%keyg(1,1), Glr%wfd%keyv(1), Glr%wfd%nseg_f, Glr%wfd%nvctr_f, &
+               Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+               Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
+               phi(istart), phi(istart+Glr%wfd%nvctr_c), psig)  
+            psigOld=psig
+            do i3=0,Glr%d%n3
+                do i2=0,Glr%d%n2
+                    do i1=0,Glr%d%n1
+                        psig(i1,1,i2,1,i3,1)=psigOld(i1+0,1,i2,1,i3,1)
+                        psig(i1,2,i2,1,i3,1)=psigOld(i1+0,2,i2,1,i3,1)
+                        psig(i1,1,i2,2,i3,1)=psigOld(i1+0,1,i2,2,i3,1)
+                        psig(i1,2,i2,2,i3,1)=psigOld(i1+0,2,i2,2,i3,1)
+                        psig(i1,1,i2,1,i3,2)=psigOld(i1+0,1,i2,1,i3,2)
+                        psig(i1,2,i2,1,i3,2)=psigOld(i1+0,2,i2,1,i3,2)
+                        psig(i1,1,i2,2,i3,2)=psigOld(i1+0,1,i2,2,i3,2)
+                        psig(i1,2,i2,2,i3,2)=psigOld(i1+0,2,i2,2,i3,2)
+                    end do
+                end do
+            end do
+            call compress(Glr%d%n1, Glr%d%n2, Glr%d%n3, 0, Glr%d%n1, 0, Glr%d%n2,0, Glr%d%n3, &
+                Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg(1,1), Glr%wfd%keyv(1),  &
+                Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+                Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
+                psig, phi(istart), phi(istart+Glr%wfd%nvctr_c))
+        end if
+        istart=istart+Glr%wfd%nvctr_c
+    end do
+
+    deallocate(psig, stat=istat)
+    deallocate(psigOld, stat=istat)
+  end subroutine shiftBasisFunctions
+   
 
 
 end subroutine getLinearPsi
