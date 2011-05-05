@@ -198,12 +198,12 @@ call initRandomSeed(0, 1)
 call randomWithinCutoff(iproc, lin%orbs, Glr, at, lin, input, rxyz, phi)
 !call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
 !    .5d0*input%hy, .5d0*input%hz, 1)
-allocate(phiWork(lin%orbs%npsidim), stat=istat)
-call memocc(istat, phiWork, 'phiWork', subname)
-call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-iall=-product(shape(phiWork))*kind(phiWork)
-deallocate(phiWork, stat=istat)
-call memocc(istat, iall, 'phiWork', subname)
+!!allocate(phiWork(lin%orbs%npsidim), stat=istat)
+!!call memocc(istat, phiWork, 'phiWork', subname)
+!!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+!!iall=-product(shape(phiWork))*kind(phiWork)
+!!deallocate(phiWork, stat=istat)
+!!call memocc(istat, iall, 'phiWork', subname)
 
 
 !write(*,*) 'calling createInputGuess'

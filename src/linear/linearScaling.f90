@@ -97,11 +97,17 @@ real(8):: fnoise
 
 
 ! Local variables
-integer:: infoBasisFunctions, istat, iall
+integer:: infoBasisFunctions, istat, iall, itSCC, nitSCC, i, ierr
 real(8),dimension(:),allocatable:: phi
 real(8),dimension(:,:),allocatable:: occupForInguess, coeff
-real(8):: ebsMod
+real(8):: ebsMod, alpha, pnrm
 character(len=*),parameter:: subname='linearScaling'
+real(8),dimension(:),allocatable:: rhopotOld
+
+integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+real(8),dimension(:),allocatable:: phiTemp
+real(wp),dimension(:),allocatable:: projTemp
+
 
 
 
@@ -123,16 +129,62 @@ character(len=*),parameter:: subname='linearScaling'
 
 
   if(nproc==1) allocate(psit(size(psi)))
-  ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
-  call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
-      nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-      infoBasisFunctions, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
+  nitSCC=100
+  alpha=.1d0
+  allocate(rhopotOld(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), stat=istat)
+  call memocc(istat, rhopotOld, 'rhopotOld', subname)
+  do itSCC=1,nitSCC
+      ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
+      call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
+          nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
+          infoBasisFunctions, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
 
-  ! Calculate the energy that we get with psi.
-  call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
-      rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+      ! Calculate the energy that we get with psi.
+      call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
+      call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
+          rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+          proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+!! TEST
+  ! Calculate the forces we get with psi.
+  allocate(nscatterarrTemp(0:nproc-1,4), stat=istat)
+  call memocc(istat, nscatterarrTemp, 'nscatterarrTemp', subname)
+  allocate(phiTemp(size(phi)), stat=istat)
+  call memocc(istat, phiTemp, 'phiTemp', subname)
+  allocate(projTemp(nlpspd%nprojel), stat=istat)
+  call memocc(istat, projTemp, 'projTemp', subname)
+  projTemp=proj
+  nscatterarrTemp=nscatterarr
+  phiTemp=phi
+  call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
+      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+  proj=projTemp
+  nscatterarr=nscatterarrTemp
+  phi=phiTemp
+  iall=-product(shape(nscatterarrTemp))*kind(nscatterarrTemp)
+  deallocate(nscatterarrTemp, stat=istat)
+  call memocc(istat, iall, 'nscatterarrTemp', subname)
+  iall=-product(shape(phiTemp))*kind(phiTemp)
+  deallocate(phiTemp, stat=istat)
+  call memocc(istat, iall, 'phiTemp', subname)
+  iall=-product(shape(projTemp))*kind(projTemp)
+  deallocate(projTemp, stat=istat)
+  call memocc(istat, iall, 'projTemp', subname)
+!! TEST
+
+      ! Mix the potential
+      pnrm=0.d0
+      do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
+          pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
+          rhopot(i)=(1.d0-alpha)*rhopotOld(i)+alpha*rhopot(i)
+      end do
+      call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
+      pnrm=sqrt(pnrm)/(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin)
+      if(iproc==0) write(*,'(a,3x,i0,es15.5)') 'it, mean POT difference', itSCC, pnrm
+  end do
+  iall=-product(shape(rhopotOld))*kind(rhopotOld)
+  deallocate(rhopotOld, stat=istat)
+  call memocc(istat, iall, 'rhopotOld', subname)
 
 
   ! Calculate the forces we get with psi.

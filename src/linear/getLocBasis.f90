@@ -653,6 +653,10 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   ! Assign the step size for SD iterations.
   alpha=lin%alphaSD
   adapt=.false.
+
+  ! Untranspose phi
+  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+
   iterLoop: do it=1,lin%nItInguess
       fnrmMax=0.d0
       fnrm=0.d0
