@@ -55,7 +55,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   if(iproc==0) print *, " IN ROUTINE LANCZOS "
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -281,7 +281,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   Pi=acos(-1.0_gp)
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -597,7 +597,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   if(iproc==0) print *, " IN ROUTINE xabs_cg "
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&

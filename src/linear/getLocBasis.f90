@@ -110,6 +110,7 @@ real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu
 integer:: iorb, jorb, it, istart
 character(len=11):: procName, orbNumber, orbName
 character(len=30):: filename
+real :: ttreal
   
   allocate(hphi(lin%orbs%npsidim), stat=istat) 
   call memocc(istat, hphi, 'hphi', subname)
@@ -213,8 +214,14 @@ call free_full_potential(nproc,potential,subname)
       ! Calculate the matrix elements <phi|H|phi>.
       call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
 
-      ! Initialize the coefficient vector at random. 
-      call random_number(coeff)
+      !!! Initialize the coefficient vector at random. 
+      !!do iorb=1,orbs%norb
+      !!   do jorb=1,lin%orbs%norb
+      !!      call random_number(ttreal)
+      !!      coeff(jorb,iorb)=real(ttreal,kind=8)
+      !!   end do
+      !!end do
+      !!!call random_number(coeff)
 
       !if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
       ! Calculate the coefficients which minimize the modified band structure energy
@@ -701,6 +708,8 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
           fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphi(istart), 1)
           istart=istart+nvctrp*orbs%nspinor
       end do
+      !in case mpiallred is used
+      !call mpiallred(fnrmArr(1,1),lin%orbs%norb,mpi_sum,mpi_comm_world, ierr) 
       call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
       call mpi_allreduce(fnrmOvrlpArr(1,2), fnrmOvrlpArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
   
@@ -803,7 +812,8 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       end if
       if(.not. diisLIN%switchSD) call improveOrbitals()
   
-  
+     !flush the standard output
+      call flush(6) 
   end do iterLoop
 
   ! Store the mean alpha.

@@ -24,14 +24,13 @@ TESTDIRS = C \
 	  NH3 \
 	  NaCl \
 	  Ca2 \
-	  Mn2 \
 	  H2O-CP2K \
 	  SiBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
 	  TiMix \
-	  O2-Spin \
-	  FeHyb 
+	  O2-Spin
+
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
   TESTDIRS += GPU
@@ -39,8 +38,9 @@ endif
 if USE_OCL
   TESTDIRS += OCL
 else
-#Add H only if we do not use OCL 
-  TESTDIRS += H Graphene
+#Add H (box too small) and Graphene (different algorithm) only if we do not use OCL (see README)
+#OCL not implemented with spin=4 (Fehyb and Mn2)
+  TESTDIRS += H Graphene FeHyb Mn2
 endif
 
 # Give here the pseudo-potentials used by each test.
@@ -103,7 +103,7 @@ report:
         esac ; \
         case $* in \
           Ca2.out*) prec="4.e-10" ;; \
-          Davidson-SiH4.out*) prec="4.e-9" ;; \
+          Davidson-SiH4.out*) prec="1.e-8" ;; \
           NaCl.out*) prec="2.e-8" ;; \
           SiBulk.out*) prec="2.e-7" ;; \
           SiH4.out*) prec="1.5e-9" ;; \
@@ -125,7 +125,14 @@ $(PSPS):
 
 %.post-in: ;
 
-%.in:
+in_message:
+	@if test -n "$(run_ocl)" ; then \
+	  echo "==============================================" ; \
+	  echo "Will generate a 'input.perf' file to force OCL" ; \
+	  echo "==============================================" ; \
+	fi
+
+%.in: in_message
 	@dir=`basename $@ .in` ; \
         if ! test x"$(srcdir)" = x"." ; then \
           if [ ! -d $$dir ] ; then mkdir $$dir ; fi ; \
@@ -141,7 +148,14 @@ $(PSPS):
         echo "Input prepared in "$$dir" dir. make $$dir.run available"
 	touch $@
 
-%.run: %.in
+run_message:
+	@if test -n "$(run_parallel)" ; then \
+	  echo "==============================================" ; \
+	  echo "Will run tests in parallel with '$$run_parallel'" ; \
+	  echo "==============================================" ; \
+	fi
+
+%.run: %.in run_message
 	@dir=`basename $@ .run` ; \
         runs="$(srcdir)/$$dir/*.ref" ; \
 	tgts=`for r in $$runs ; do echo $$(basename $$r .ref)".out"; done` ; \
@@ -180,3 +194,35 @@ EXTRA_DIST = \
 	inguess.dat \
         $(TESTDIRS) \
         GPU OCL
+
+# Avoid copying in dist the builddir files.
+distdir: $(DISTFILES)
+	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
+	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
+	list='$(DISTFILES)'; \
+	  dist_files=`for file in $$list; do echo $$file; done | \
+	  sed -e "s|^$$srcdirstrip/||;t" \
+	      -e "s|^$$topsrcdirstrip/|$(top_builddir)/|;t"`; \
+	case $$dist_files in \
+	  */*) $(MKDIR_P) `echo "$$dist_files" | \
+			   sed '/\//!d;s|^|$(distdir)/|;s,/[^/]*$$,,' | \
+			   sort -u` ;; \
+	esac; \
+	for file in $$dist_files; do \
+	  d=$(srcdir); \
+	  if test -d $$d/$$file; then \
+	    dir=`echo "/$$file" | sed -e 's,/[^/]*$$,,'`; \
+	    if test -d "$(distdir)/$$file"; then \
+	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
+	    fi; \
+	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then \
+	      cp -fpR $(srcdir)/$$file "$(distdir)$$dir" || exit 1; \
+	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
+	    fi; \
+	    cp -fpR $$d/$$file "$(distdir)$$dir" || exit 1; \
+	  else \
+	    test -f "$(distdir)/$$file" \
+	    || cp -p $$d/$$file "$(distdir)/$$file" \
+	    || exit 1; \
+	  fi; \
+	done

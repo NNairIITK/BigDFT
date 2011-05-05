@@ -402,17 +402,17 @@ END SUBROUTINE readonewave
 subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
      nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f, & 
-     psi_c,psi_f,norb,eval)
+     psi_c,psi_f,eval)
   use module_base
   implicit none
   logical, intent(in) :: useFormattedOutput
-  integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,norb
+  integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz
+  real(wp), intent(in) :: eval
   integer, dimension(nseg_c), intent(in) :: keyv_c
   integer, dimension(nseg_f), intent(in) :: keyv_f
   integer, dimension(2,nseg_c), intent(in) :: keyg_c
   integer, dimension(2,nseg_f), intent(in) :: keyg_f
-  real(wp), dimension(norb), intent(in) :: eval
   real(wp), dimension(nvctr_c), intent(in) :: psi_c
   real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
   real(gp), dimension(3,nat), intent(in) :: rxyz
@@ -421,7 +421,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
   real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
 
   if (useFormattedOutput) then
-     write(unitwf,*) iorb,eval(iorb)
+     write(unitwf,*) iorb,eval
      write(unitwf,*) hx,hy,hz
      write(unitwf,*) n1,n2,n3
      do iat=1,nat
@@ -429,7 +429,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      enddo
      write(unitwf,*) nvctr_c, nvctr_f
   else
-     write(unitwf) iorb,eval(iorb)
+     write(unitwf) iorb,eval
      write(unitwf) hx,hy,hz
      write(unitwf) n1,n2,n3
      do iat=1,nat

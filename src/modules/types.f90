@@ -64,6 +64,9 @@ module module_types
 
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
+     !strings of the input files
+     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix
+     !miscellaneous variables
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
@@ -104,6 +107,8 @@ module module_types
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
      real(gp) :: dtinit,dtmax !for FIRE
+     ! tddft vaiables from *.tddft
+     character(len=10) :: tddft_approach
 
      !> variable for material acceleration
      !! values 0: traditional CPU calculation
@@ -239,7 +244,7 @@ module module_types
 !> All the parameters which are important for describing the orbitals
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
+     integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
      real(wp), dimension(:), pointer :: eval

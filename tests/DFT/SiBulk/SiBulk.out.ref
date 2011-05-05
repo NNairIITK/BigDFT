@@ -141,7 +141,7 @@
  Hamiltonian application... done. ekin_sum,eks:      11.5176089078      11.1353757265
  ekin_sum,epot_sum,eproj_sum  1.15176089078E+01 -1.78297591274E+01  8.02024138048E+00
     ehart,   eexcu,    vexcu  1.83669130365E+00 -9.43309408114E+00 -1.23007510856E+01
- Input Wavefunctions Orthogonalization: 
+ Input Wavefunctions Orthogonalization:
  Overlap Matrix... Direct diagonalization...
  evale(1)= -1.83333171773499E-01
  evale(2)= -3.18683462725229E-02

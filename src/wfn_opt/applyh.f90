@@ -193,12 +193,11 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
   real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
   real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
   real(gp) :: epot_p
-  
+ 
   !the Tail treatment is allowed only in the Free BC case
   if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
 
   epot=0.0_wp
-
 !$omp parallel default(private)&
 !$omp shared(pot,psir,n1,n2,n3,epot,ibyyzz_r,nl1,nl2,nl3,nbuf,nspinor)
   !case without bounds
@@ -221,7 +220,6 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
                  i1s=max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf)
                  i1e=min(ibyyzz_r(2,i2,i3)-14,2*n1+16-2*nbuf)
               end if
-              
               !here we put the branchments wrt to the spin
               if (nspinor == 4) then
                  do i1=i1s,i1e
@@ -518,17 +516,18 @@ END SUBROUTINE realspaceINPLACE
 
 !>   Calculate on-the fly each projector for each atom, then applies the projectors 
 !!   to all distributed orbitals
-subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
+subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      rxyz,hx,hy,hz,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors),intent(in) :: lr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
@@ -562,7 +561,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      do iat=1,at%nat
         istart_c=1
         call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-             n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+             lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
 
         !apply the projector to all the orbitals belonging to the processor
         ispsi=ispsi_k

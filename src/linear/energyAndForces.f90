@@ -385,7 +385,7 @@ logical:: refill_proj
   !refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
   refill_proj=.false.  !! IS THIS CORRECT??
 
-  call nonlocal_forces(iproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,in%hx,in%hy,in%hz,atoms,rxyz,&
+  call nonlocal_forces(iproc,Glr,in%hx,in%hy,in%hz,atoms,rxyz,&
        orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
 
   if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'

@@ -191,8 +191,9 @@ program memguess
      call dft_input_converter(in)
      write(*,*)' ...done'
   else
-     call read_input_variables(0, "posinp", "input.dft", "input.kpt","input.mix", &
-          & "input.geopt", "input.perf", in, atoms, rxyz)
+     !standard names
+     call standard_inputfile_names(in)
+     call read_input_variables(0, "posinp", in, atoms, rxyz)
      !initialize memory counting
      !call memocc(0,0,'count','start')
   end if
@@ -296,7 +297,7 @@ program memguess
 
   ! Build and print the communicator scheme.
   call createWavefunctionsDescriptors(0,hx,hy,hz,&
-       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr)
+       atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
   if (GPUtest .and. .not. GPUconv) then
@@ -317,7 +318,7 @@ program memguess
      norbd=0
      nspinor=1
 
-     call orbitals_descriptors(0,nproc,norb,norbu,norbd,nspinor, &
+     call orbitals_descriptors(0,nproc,norb,norbu,norbd,in%nspin,nspinor, &
           & in%nkpt,in%kpt,in%wkpt,orbstst)
      allocate(orbstst%eval(orbstst%norbp+ndebug),stat=i_stat)
      call memocc(i_stat,orbstst%eval,'orbstst%eval',subname)
@@ -431,10 +432,9 @@ program memguess
   call deallocate_proj_descr(nlpspd,subname)
   call deallocate_atoms_scf(atoms,subname) 
 
-  call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-       atoms%alat1,atoms%alat2,atoms%alat3,&
-       hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
-       orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
+  call MemoryEstimator(nproc,in%idsx,Glr,&
+       atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+       in%nspin,in%itrpmax,in%iscf,peakmem)
 
   !add the comparison between cuda hamiltonian and normal one if it is the case
 

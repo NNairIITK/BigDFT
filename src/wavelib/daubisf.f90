@@ -330,8 +330,8 @@ END SUBROUTINE deallocate_work_arrays_locham
 
 !>   Transforms a wavefunction written in Daubechies basis into a 
 !!   real space wavefunction in interpolating scaling functions on a finer grid
-!!   does the job for all supported BC
-!!
+!!   does the job for all supported BC. Saves the results on the work arrays
+!!   which are reused in the isf_to_daub_kinetic routine
 !!
 subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   use module_base
@@ -750,15 +750,12 @@ subroutine memspace_work_arrays_sumrho(lr,memwork)
   type(locreg_descriptors), intent(in) :: lr
   integer(kind=8), intent(out) :: memwork
   !local variables
-  integer :: n1,n2,n3,n1i,n2i,n3i,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer :: nw1,nw2,nxc,nxf
 
   n1=lr%d%n1
   n2=lr%d%n2
   n3=lr%d%n3
-  n1i=lr%d%n1i
-  n2i=lr%d%n2i
-  n3i=lr%d%n3i
   nfl1=lr%d%nfl1
   nfl2=lr%d%nfl2
   nfl3=lr%d%nfl3
@@ -915,48 +912,23 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
   end select
 
-
-
 END SUBROUTINE daub_to_isf
 
-
-
-
-
-
-
-
-
-
-subroutine isf_to_daub(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
+!>   Transforms a wavefunction written in real space basis into a 
+!!   wavefunction in Daubechies form
+!!   does the job for all supported BC
+!!   Warning: the psir is destroyed for some BCs (slab and periodic)
+subroutine isf_to_daub(lr,w,psir,psi)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: nspinor
-  real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
   type(locreg_descriptors), intent(in) :: lr
-  type(workarr_locham), intent(inout) :: w
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
-  real(gp), intent(out) :: ekin
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(out) :: hpsi
+  type(workarr_sumrho), intent(inout) :: w
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i), intent(in) :: psir
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(out) :: psi
   !local variables
-  logical :: usekpts
-  integer :: idx,i,i_f,iseg_f
-  real(gp) :: ekino
+  integer :: i,i_f,iseg_f
   real(wp), dimension(0:3) :: scal
-  real(gp), dimension(3) :: hgridh
-
-
-!write(*,*) 'in subroutine isf_to_daub'
-
-  !control whether the k points are to be used
-  !real k-point different from Gamma still not implemented
-  usekpts = kx**2+ky**2+kz**2 > 0.0_gp .or. nspinor == 2
-
-  hgridh(1)=hx*.5_gp
-  hgridh(2)=hy*.5_gp
-  hgridh(3)=hz*.5_gp
-
 
   do i=0,3
      scal(i)=1.0_wp
@@ -966,203 +938,61 @@ subroutine isf_to_daub(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   i_f=min(1,lr%wfd%nvctr_f)
   iseg_f=min(1,lr%wfd%nseg_f)
 
-
-  ekin=0.0_gp
-
-if(lr%geocode/='F') stop 'isf_to_daub not implemented for geocode/=F'
   select case(lr%geocode)
   case('F')
-
-     !here kpoints cannot be used (for the moment, to be activated for the 
-     !localisation region scheme
-     if (usekpts) stop 'K points not allowed for Free BC locham'
-
-     do idx=1,nspinor
-        call comb_shrink(lr%d%n1,lr%d%n2,lr%d%n3,&
-             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
-             w%w1,w%w2,psir(1,idx),&
-             lr%bounds%kb%ibxy_c,lr%bounds%sb%ibzzx_c,lr%bounds%sb%ibyyzz_c,&
-             lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
-             w%y_c(1,idx),w%y_f(1,idx))
-
-        !call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
-        !     lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-        !     hx,&        !here the grid spacings are supposed to be equal
-        !     lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
-        !     lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
-        !     w%x_c(1,idx),w%x_f(1,idx),&
-        !     w%y_c(1,idx),w%y_f(1,idx),ekino, &
-        !     w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
-        !ekin=ekin+ekino
-
-        !call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
-        !     lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-        !     lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-        !     lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
-        !     lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-        !     lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
-        !     scal,w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx))
-
-
-        call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
-             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-             lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
-             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
-             scal,w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx))
-     end do
-
+     call comb_shrink(lr%d%n1,lr%d%n2,lr%d%n3,&
+          lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
+          w%w1,w%w2,psir,&
+          lr%bounds%kb%ibxy_c,lr%bounds%sb%ibzzx_c,lr%bounds%sb%ibyyzz_c,&
+          lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
+          w%x_c,w%x_f)
+     
+     call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
+          lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+          lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+          lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
+          scal,w%x_c,w%x_f,psi(1),psi(lr%wfd%nvctr_c+i_f))
   case('S')
 
-     if (usekpts) then
-        !first calculate the proper arrays then transpose them before passing to the
-        !proper routine
-        do idx=1,nspinor
-           call convolut_magic_t_slab_self(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
-                psir(1,idx),w%y_c(1,idx))
-        end do
-
-        !Transposition of the work arrays (use psir as workspace)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
-             w%x_c,psir,.true.)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
-             w%y_c,psir,.true.)
-
-        ! compute the kinetic part and add  it to psi_out
-        ! the kinetic energy is calculated at the same time
-        ! do this thing for both components of the spinors
-        do idx=1,nspinor,2
-           call convolut_kinetic_slab_T_k(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
-                hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kx,ky,kz)
-        ekin=ekin+ekino        
-        end do
-
-        !re-Transposition of the work arrays (use psir as workspace)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
-             w%y_c,psir,.false.)
-
-        do idx=1,nspinor
-           call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keyg(1,1),lr%wfd%keyv(1),   & 
-                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
-                w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
-        end do
-        
-     else
-        do idx=1,nspinor
-           call convolut_magic_t_slab_self(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
-                psir(1,idx),w%y_c(1,idx))
-
-           ! compute the kinetic part and add  it to psi_out
-           ! the kinetic energy is calculated at the same time
-           call convolut_kinetic_slab_T(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
-                hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
-           ekin=ekin+ekino
-
-           call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keyg(1,1),lr%wfd%keyv(1),   & 
-                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
-                w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
-        end do
-     end if
+     call convolut_magic_t_slab_self(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+          psir(1),w%x_c(1))
+     
+     call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+          lr%wfd%keyg(1,1),lr%wfd%keyv(1),   & 
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+          lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
+          w%x_c(1),psi(1),psi(lr%wfd%nvctr_c+i_f),psir(1))
 
   case('P')
      
      if (lr%hybrid_on) then
 
-        !here kpoints cannot be used, such BC are used in general to mimic the Free BC
-        if (usekpts) stop 'K points not allowed for hybrid BC locham'
+        call comb_shrink_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
+             w%w2,w%w1,psir(1),w%x_c(1),w%x_f(1),lr%bounds%sb)
 
-        !here the grid spacing is not halved
-        hgridh(1)=hx
-        hgridh(2)=hy
-        hgridh(3)=hz
-
-        do idx=1,nspinor
-           call comb_shrink_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
-                w%w2,w%w1,psir(1,idx),w%y_c(1,idx),w%y_f(1,idx),lr%bounds%sb)
-
-           call convolut_kinetic_hyb_T(lr%d%n1,lr%d%n2,lr%d%n3, &
-                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-                hgridh,w%x_c(1,idx),w%x_f(1,idx),w%y_c(1,idx),w%y_f(1,idx),ekino,&
-                w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),lr%bounds%kb%ibyz_f,&
-                lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
-           ekin=ekin+ekino
-
-           call compress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
-                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), & 
-                w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),&
-                lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3)
-        end do
+        call compress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+             lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), & 
+             w%x_c(1),w%x_f(1),psi(1),psi(lr%wfd%nvctr_c+i_f),&
+             lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3)
      else
 
-        if (usekpts) then
-           !first calculate the proper arrays then transpose them before passing to the
-           !proper routine
-           do idx=1,nspinor
-              call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   psir(1,idx),w%y_c(1,idx))
-           end do
-
-           !Transposition of the work arrays (use psir as workspace)
-           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                w%x_c,psir,.true.)
-           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                w%y_c,psir,.true.)
-
-
-           ! compute the kinetic part and add  it to psi_out
-           ! the kinetic energy is calculated at the same time
-           do idx=1,nspinor,2
-              !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
-              call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kx,ky,kz)
-              ekin=ekin+ekino
-           end do
-
-           !Transposition of the work arrays (use psir as workspace)
-           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                w%y_c,psir,.false.)
-
-           do idx=1,nspinor
-              call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                   lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
-                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),&
-                   w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
-           end do
-        else
-           !first calculate the proper arrays then transpose them before passing to the
-           !proper routine
-           do idx=1,nspinor
-              call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   psir(1,idx),w%y_c(1,idx))
-              ! compute the kinetic part and add  it to psi_out
-              ! the kinetic energy is calculated at the same time
-              call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
-              ekin=ekin+ekino
-
-              call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                   lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
-                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),& 
-                   w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
-           end do
-        end if
+        call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+             psir(1),w%x_c(1))
+        call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+             lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+             lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),& 
+             w%x_c(1),psi(1),psi(lr%wfd%nvctr_c+i_f),psir(1))
      end if
-
+        
   end select
 
 END SUBROUTINE isf_to_daub

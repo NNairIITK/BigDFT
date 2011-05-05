@@ -1,7 +1,7 @@
 !> @file
 !!  Routines related to system properties
 !! @author
-!!    Copyright (C) 2010 BigDFT group
+!!    Copyright (C) 2010-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -20,7 +20,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   type(orbitals_data), intent(out) :: orbs
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
-  character(len=*), parameter :: subname='orbitals_descriptors'
+  character(len=*), parameter :: subname='system_properties'
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty
 
@@ -33,7 +33,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      nspinor=1
   end if
 
-  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,nspinor, &
+  call orbitals_descriptors(iproc, nproc,norb,norbu,norbd,in%nspin,nspinor, &
        & in%nkpt,in%kpt,in%wkpt,orbs)
 
   !distribution of wavefunction arrays between processors
@@ -740,7 +740,7 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
               read(91,'(a100)',iostat=ierror)string
               if (ierror /= 0) exit parse_inocc !file ends
               read(string,*,iostat=ierror)jat
-              if (ierror /=0) stop 'error reading line'
+              if (ierror /=0) stop 'Error reading line'
               if (jat==iat ) then
                  found=.true.
                  exit parse_inocc
@@ -810,13 +810,13 @@ subroutine atomic_occupation_numbers(filename,ityp,nspin,at,nmax,lmax,nelecmax,n
 END SUBROUTINE atomic_occupation_numbers
 
 
-!>    Define the descriptors of the orbitals from a given norb
-!!    It uses the cubic strategy for partitioning the orbitals
-subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wkpt,orbs)
+!> Define the descriptors of the orbitals from a given norb
+!! It uses the cubic strategy for partitioning the orbitals
+subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt
+  integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
   integer, intent(in) :: nspinor
   type(orbitals_data), intent(out) :: orbs
   real(gp), dimension(nkpt), intent(in) :: wkpt
@@ -847,7 +847,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
      if (maxval(abs(orbs%kpts)) > 0._gp) orbs%nspinor=2
      !nspinor=2 !fake, used for testing with gamma
   end if
-
+  orbs%nspin = nspin
 
   !initialise the array
   do jproc=0,nproc-1
@@ -955,7 +955,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,nkpt,kpt,wk
   end do
 
   !put a default value for the fermi energy
-  orbs%efermi=-.1_gp
+  orbs%efermi = UNINITIALISED
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)

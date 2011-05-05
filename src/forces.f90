@@ -157,8 +157,8 @@ END SUBROUTINE local_forces
 
 !>  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !!  belonging to iproc and adds them to the force array
-!!  recalculate the projectors at the end if refill flag is .true.
-subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
+!!   recalculate the projectors at the end if refill flag is .true.
+subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      orbs,nlpspd,proj,wfd,psi,fsep,refill)
   use module_base
   use module_types
@@ -168,8 +168,9 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   logical, intent(in) :: refill
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
@@ -257,7 +258,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
               !calculate projectors
               istart_c=1
               call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-                   n1,n2,n3,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+                   lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
 
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
@@ -303,7 +304,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
      do idir=0,3
 
         if (idir /= 0) then !for the first run the projectors are already allocated
-           call fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
+           call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
         end if
         !apply the projectors  k-point of the processor
         !starting k-point
@@ -365,7 +366,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,at,rxyz,&
 
      !restore the projectors in the proj array (for on the run forces calc., tails or so)
      if (refill) then 
-        call fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
+        call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
      end if
 
   end if

@@ -78,10 +78,12 @@ CLEANFILES = *~ *.bak *.mod *.il *.d *.pc* ifc* funcs_*.c funcs.h \
 	libxc.f90 libxc_funcs.f90 xc_funcs.h *_s.c *_s.f90
 
 lda.o: xc_funcs.h xc.h xc_s.h
+util.h: xc_funcs.h 
 xc_funcs.h: get_funcs.pl
 	$(srcdir)/get_funcs.pl $(srcdir) $(top_builddir)
 
 libxc_funcs.f90: xc_funcs.h
+libxc_master.o: libxc_funcs.o
 libxc.f90: libxc_master.F90 xc_funcs.h
 	@FCCPP@                       @CPPFLAGS@ $(AM_CPPFLAGS) $(srcdir)/libxc_master.F90 > $(top_builddir)/src/libxc.f90
 	@if [ "@F90_ACCEPTS_LINE_NUMBERS@" = "no" ]; then \

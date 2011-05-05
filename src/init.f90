@@ -12,7 +12,7 @@
 !!   Calculates also the bounds arrays needed for convolutions
 !!   Refers this information to the global localisation region descriptor
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-     crmult,frmult,Glr)
+     crmult,frmult,Glr,output_grid)
   use module_base
   use module_types
   implicit none
@@ -23,10 +23,12 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(locreg_descriptors), intent(inout) :: Glr
+  logical, intent(in), optional :: output_grid
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-  integer :: i_all,i_stat
+  integer :: i_all,i_stat,i1,i2,i3,iat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  logical :: my_output_grid
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   !assign the dimensions to improve (a little) readability
@@ -119,6 +121,44 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
           & Glr%wfd%keyv(Glr%wfd%nseg_c+1))
   end if
 
+! Create the file grid.xyz to visualize the grid of functions
+  my_output_grid = .false.
+  if (present(output_grid)) my_output_grid = output_grid
+  if (my_output_grid) then
+     open(unit=22,file='grid.xyz',status='unknown')
+     write(22,*) Glr%wfd%nvctr_c+Glr%wfd%nvctr_f+atoms%nat,' atomic'
+     if (atoms%geocode=='F') then
+        write(22,*)'complete simulation grid with low and high resolution points'
+     else if (atoms%geocode =='S') then
+        write(22,'(a,2x,3(1x,1pe24.17))')'surface',atoms%alat1,atoms%alat2,atoms%alat3
+     else if (atoms%geocode =='P') then
+        write(22,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%alat1,atoms%alat2,atoms%alat3
+     end if
+     do iat=1,atoms%nat
+        write(22,'(a6,2x,3(1x,e12.5),3x)') &
+             trim(atoms%atomnames(atoms%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+     enddo
+     do i3=0,n3  
+        do i2=0,n2  
+           do i1=0,n1
+              if (logrid_c(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
+                   '  g ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+           enddo
+        enddo
+     end do
+     do i3=0,n3 
+        do i2=0,n2 
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
+                   '  G ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+           enddo
+        enddo
+     enddo
+     close(22)
+  endif
+
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
   call memocc(i_stat,i_all,'logrid_c',subname)
@@ -178,13 +218,14 @@ END SUBROUTINE createWavefunctionsDescriptors
 
 
 !>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
-subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
+subroutine createProjectorsArrays(iproc,lr,rxyz,at,orbs,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
+  type(locreg_descriptors),intent(in) :: lr
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -193,7 +234,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   real(wp), dimension(:), pointer :: proj
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
+  integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
   integer :: iat,i_stat,i_all,iseg
   logical, dimension(:,:,:), allocatable :: logrid
   
@@ -205,6 +246,12 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   call memocc(i_stat,nlpspd%nboxp_c,'nlpspd%nboxp_c',subname)
   allocate(nlpspd%nboxp_f(2,3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,nlpspd%nboxp_f,'nlpspd%nboxp_f',subname)
+
+
+  ! define the region dimensions
+    n1 = lr%d%n1
+    n2 = lr%d%n2
+    n3 = lr%d%n3
 
   ! determine localization region for all projectors, but do not yet fill the descriptor arrays
   allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
@@ -234,6 +281,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
         nu1=nlpspd%nboxp_c(2,1,iat)
         nu2=nlpspd%nboxp_c(2,2,iat)
         nu3=nlpspd%nboxp_c(2,3,iat)
+
         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
 
@@ -251,6 +299,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
         nu1=nlpspd%nboxp_f(2,1,iat)
         nu2=nlpspd%nboxp_f(2,2,iat)
         nu3=nlpspd%nboxp_f(2,3,iat)
+
         call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         iseg=nlpspd%nseg_p(2*iat-1)+1
@@ -269,7 +318,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   !fill the projectors if the strategy is a distributed calculation
   if (.not. DistProjApply) then
      !calculate the wavelet expansion of projectors
-     call fill_projectors(iproc,n1,n2,n3,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
+     call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
   end if
 
 END SUBROUTINE createProjectorsArrays
@@ -665,7 +714,7 @@ real(8),dimension(:),pointer:: phiWorkPointer
   call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
        psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
-  if (input%itrpmax > 1) then
+  if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
      !use the eval array of orbse structure to save the original values
      allocate(orbse%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,orbse%eval,'orbse%eval',subname)
@@ -674,14 +723,8 @@ real(8),dimension(:),pointer:: phiWorkPointer
 
      !add a small displacement in the eigenvalues
      do iorb=1,orbs%norb*orbs%nkpts
-        if (iorb <= orbs%norb) then
-           if (orbs%efermi == -.1_gp .and. orbs%occup(iorb) < 1.0_gp) then
-              orbs%efermi=orbs%eval(iorb)
-           end if
-        end if
         tt=builtin_rand(idum)
         orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
-        !use the first k-point to guess fermi energy input
      end do
 
      !correct the occupation numbers wrt fermi level

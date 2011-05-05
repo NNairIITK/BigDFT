@@ -586,7 +586,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,lr,orbs,hx,hy,hz,G,wfn_gau,psi)
 
   if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Writing wavefunctions in wavelet form...'
-
+  
   normdev=0.0_dp
   tt=0.0_dp
   do iorb=1,orbs%norbp
@@ -724,17 +724,17 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
                     n_gau=lx(i)
                     !print *,'x',gau_a,nterm,ncplx,kx,ky,kz,ml1,mu1,lr%d%n1
                     call gauss_to_daub_k(hx,kx*hx,ncplx,fac_arr(i),rx,gau_a,n_gau,&
-                         lr%d%n1,ml1,mu1,&
+                         lr%ns1,lr%d%n1,ml1,mu1,&
                          wx(1,0,1,iterm),work,nw,perx) 
                     n_gau=ly(i)
                     !print *,'y',ml2,mu2,lr%d%n2
                     call gauss_to_daub_k(hy,ky*hy,ncplx,wfn_gau(icoeff),ry,gau_a,n_gau,&
-                         lr%d%n2,ml2,mu2,&
+                         lr%ns2,lr%d%n2,ml2,mu2,&
                          wy(1,0,1,iterm),work,nw,pery) 
                     n_gau=lz(i) 
                     !print *,'z',ml3,mu3,lr%d%n3
                     call gauss_to_daub_k(hz,kz*hz,ncplx,G%psiat(iexpo+ig-1),rz,gau_a,n_gau,&
-                         lr%d%n3,ml3,mu3,&
+                         lr%ns3,lr%d%n3,ml3,mu3,&
                          wz(1,0,1,iterm),work,nw,perz)
                     iterm=iterm+1
                  end do
@@ -750,7 +750,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
 
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-  !accumulate wavefuncton
+  !accumulate wavefunction
   call wfn_from_tensprod(lr,ncplx,nterms,wx,wy,wz,psi)
 !psi=1.d0
   i_all=-product(shape(wx))*kind(wx)

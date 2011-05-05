@@ -1,4 +1,4 @@
-!> @file
+ !> @file
 !!  Interface routines to do convolutions in GPU with CUDA
 !! @author 
 !!    Copyright (C) 2010-2011 BigDFT group
@@ -367,9 +367,6 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
              GPU%psi(iorb),&
              GPU%keys,GPU%r,GPU%rhopot,GPU%d,GPU%work1,GPU%work2,GPU%work3,&
              0.5_wp,ncong,tab_stream_ptr(iorb))
-
-
-
 
      call sg_gpu_recv_mem(hpsi(1,inds,iorb),&
           GPU%psi(iorb),&

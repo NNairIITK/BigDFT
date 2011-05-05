@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft test_forces memguess splsad NEB frequencies MDanalysis rism oneatom $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft test_forces memguess splsad NEB frequencies MDanalysis rism oneatom sandbox $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -184,7 +184,8 @@ high_level = cluster.f90 \
 	lanczos_base.f90 \
 	lanczos.f90 \
 	scfloop_API.f90 \
-	esatto.f90
+	esatto.f90 \
+	tddft.f90
 
 #objects which can be compiled only with module_base
 low_level = init/projectors.f90  \
@@ -260,8 +261,7 @@ splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDFLAGS = 
@@ -269,7 +269,17 @@ rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_opt)
+	$(libs_cuda) \
+	$(libs_ocl)
+
+sandbox_SOURCES = sandbox.f90
+sandbox_LDFLAGS = 
+sandbox_LDADD = libbigdft.a \
+        PSolver/libpoissonsolver.a \
+        $(LMPI) \
+        @MPI_LIBS@ \
+        $(libs_opt)
+
  
 oneatom_SOURCES = oneatom.f90
 oneatom_LDFLAGS = 
@@ -385,7 +395,7 @@ lanczos.o : lanczos_base.o lanczos_interface.o
 
 BigDFT_API.o : scfloop_API.o
 
-distances.o global.o rism.o oneatom.o : BigDFT_API.o
+distances.o global.o rism.o sandbox.o : BigDFT_API.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
@@ -400,6 +410,8 @@ test_forces.o: $(mod_bigdft)
 $(mod_bigdft) : BigDFT_API.o
 
 $(modules_objects) : $(mpi_include)
+
+modules/defs.o: modules/base.o
 
 #BigDFT.o: \
 #	base.o \

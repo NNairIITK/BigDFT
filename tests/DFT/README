@@ -5,7 +5,10 @@ Davidson-SiH4/: tests Kohn-Sham eigenvalue calculations
 FeHyb/:         tests the hybrid functional.
 GPU/:           tests DFT calculationw with GPU code (CUDA)
 Graphene/:      tests k points with surface
-H/:             tests the hydrogen in a periodic box.
+                (Note: The box is too small for OpenCL version)
+H/:             tests the hydrogen in a periodic box
+                (Note: for OpenCL, the reference is not valid since wavelet localization is OFF but
+                the calculation is correct)
 H2O-CP2K/:      tests import wavefunctions from a gaussian basis set
 H2O-slab/:      tests the calculation of dipolar surfaces.
 H2-spin/:       uses the spin in the calculation of hydrogen atom.

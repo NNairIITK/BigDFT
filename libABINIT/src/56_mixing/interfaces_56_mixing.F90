@@ -30,14 +30,13 @@ module interfaces_56_mixing
 interface
  subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&  
   &  f_atm,f_fftgr,i_rhor2,i_vresid,moved_atm_inside,&  
-  &  mpi_comm,mpi_summarize,natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred)
+  &  natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred,fdot,user_data)
   use defs_basis
   implicit none
   integer,intent(in) :: choice
   integer,intent(in) :: cplex
   integer,intent(in) :: i_rhor2
   integer,intent(in) :: moved_atm_inside
-  integer,intent(in) :: mpi_comm
   integer,intent(in) :: n_fftgr
   integer,intent(in) :: natom
   integer,intent(in) :: nfft
@@ -46,13 +45,23 @@ interface
   real(dp),intent(out) :: dedv_mix
   real(dp),intent(out) :: dedv_new
   real(dp),intent(out) :: dedv_old
-  logical, intent(in) :: mpi_summarize
   real(dp),intent(in) :: ucvol
   integer,intent(in) :: i_vresid(3)
+  integer, intent(in) :: user_data(:)
   real(dp),intent(in) :: f_atm(3,natom,n_fftgr)
   real(dp),intent(in) :: f_fftgr(cplex*nfft,nspden,n_fftgr)
   real(dp),intent(in) :: rhor(cplex*nfft,nspden)
   real(dp),intent(in) :: xred(3,natom)
+
+  interface
+     function fdot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+       integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+       double precision, intent(in) :: x(*), y(*)
+       integer, intent(in) :: user_data(:)
+
+       double precision :: fdot
+     end function fdot
+  end interface
  end subroutine aprxdr
 end interface
 
@@ -82,7 +91,7 @@ end interface
 
 interface
  subroutine dotprodm_vn(cplex,cpldot,denarr,dot,id,ip,mpi_comm, mpi_summarize,multd,multp,&  
-  &  nden,nfft,nfftot,npot,nspden,potarr,ucvol)
+  &  nden,nfft,npot,nspden,potarr)
   use defs_basis
   implicit none
   integer,intent(in) :: cpldot
@@ -94,11 +103,9 @@ interface
   integer,intent(in) :: multp
   integer,intent(in) :: nden
   integer,intent(in) :: nfft
-  integer,intent(in) :: nfftot
   integer,intent(in) :: npot
   integer,intent(in) :: nspden
   logical, intent(in) :: mpi_summarize
-  real(dp),intent(in) :: ucvol
   real(dp),intent(in) :: denarr(cplex*nfft,nspden,nden)
   real(dp),intent(out) :: dot(cpldot,multp,multd)
   real(dp),intent(in) :: potarr(cplex*nfft,nspden,npot)
@@ -133,8 +140,9 @@ end interface
 interface
  subroutine scfcge(cplex,dbl_nnsclo,dtn_pc,etotal,f_atm,&  
   &  f_fftgr,initialized,iscf,isecur,istep,&  
-  &  i_rhor,i_vresid,i_vrespc,moved_atm_inside,mpi_comm,mpi_summarize,&  
-  &  natom,nfft,nfftot,nspden,n_fftgr,n_index,opt_denpot,response,rhor,ucvol,vtrial,xred,errid,errmess)
+  &  i_rhor,i_vresid,i_vrespc,moved_atm_inside,&  
+  &  natom,nfft,nfftot,nspden,n_fftgr,n_index,opt_denpot,response,rhor,ucvol,vtrial,xred,&
+  & fnrm,fdot,user_data,errid,errmess)
   use defs_basis
   implicit none
   integer,intent(in) :: cplex
@@ -145,7 +153,6 @@ interface
   integer,intent(in) :: isecur
   integer,intent(in) :: istep
   integer,intent(in) :: moved_atm_inside
-  integer,intent(in) :: mpi_comm
   integer,intent(in) :: n_fftgr
   integer,intent(in) :: n_index
   integer,intent(in) :: natom
@@ -154,9 +161,9 @@ interface
   integer,intent(in) :: nspden
   integer,intent(in) :: opt_denpot
   integer,intent(in) :: response
+  integer, intent(in) :: user_data(:)
   character(len = 500), intent(out) :: errmess
   real(dp),intent(in) :: etotal
-  logical, intent(in) :: mpi_summarize
   real(dp),intent(in) :: ucvol
   real(dp),intent(in) :: dtn_pc(3,natom)
   real(dp),intent(inout) :: f_atm(3,natom,n_fftgr)
@@ -167,6 +174,24 @@ interface
   real(dp),intent(in) :: rhor(cplex*nfft,nspden)
   real(dp),intent(inout) :: vtrial(cplex*nfft,nspden)
   real(dp),intent(inout) :: xred(3,natom)
+
+  interface
+     function fdot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+       integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+       double precision, intent(in) :: x(*), y(*)
+       integer, intent(in) :: user_data(:)
+
+       double precision :: fdot
+     end function fdot
+
+     function fnrm(x,cplex,nfft,nspden,opt_denpot,user_data)
+       integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+       double precision, intent(in) :: x(*)
+       integer, intent(in) :: user_data(:)
+
+       double precision :: fnrm
+     end function fnrm
+  end interface
  end subroutine scfcge
 end interface
 
@@ -188,15 +213,14 @@ end interface
 
 interface
  subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&  
-  &  mpi_comm,mpi_summarize,nfft,npawmix,nspden,n_fftgr,&  
-  &  n_index,opt_denpot,pawoptmix,usepaw,vpaw,vresid,vtrial,errid,errmess)
+  &  nfft,npawmix,nspden,n_fftgr,&  
+  &  n_index,opt_denpot,pawoptmix,usepaw,vpaw,vresid,vtrial,fnrm,fdot,user_data,errid,errmess)
   use defs_basis
   implicit none
   integer,intent(in) :: cplex
   integer,intent(out) :: errid
   integer,intent(in) :: iscf
   integer,intent(in) :: istep
-  integer,intent(in) :: mpi_comm
   integer,intent(in) :: n_fftgr
   integer,intent(in) :: n_index
   integer,intent(in) :: nfft
@@ -206,14 +230,31 @@ interface
   integer,intent(in) :: pawoptmix
   integer,intent(in) :: usepaw
   character(len = 500), intent(out) :: errmess
-  logical, intent(in) :: mpi_summarize
   real(dp),intent(out) :: vresid
   real(dp),intent(inout) :: f_fftgr(cplex*nfft,nspden,n_fftgr)
   real(dp),intent(inout) :: f_paw(npawmix,n_fftgr*usepaw)
+  integer, intent(in) :: user_data(:)
   integer,intent(inout) :: i_vrespc(n_index)
   integer,intent(inout) :: i_vtrial(n_index)
   real(dp),intent(inout) :: vpaw(npawmix*usepaw)
   real(dp),intent(inout) :: vtrial(cplex*nfft,nspden)
+  interface
+     function fdot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+       integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+       double precision, intent(in) :: x(*), y(*)
+       integer, intent(in) :: user_data(:)
+
+       double precision :: fdot
+     end function fdot
+
+     function fnrm(x,cplex,nfft,nspden,opt_denpot,user_data)
+       integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+       double precision, intent(in) :: x(*)
+       integer, intent(in) :: user_data(:)
+
+       double precision :: fnrm
+     end function fnrm
+  end interface
  end subroutine scfopt
 end interface
 

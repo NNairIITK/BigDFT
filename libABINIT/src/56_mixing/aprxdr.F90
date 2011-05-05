@@ -65,7 +65,7 @@
 
 subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
 &  f_atm,f_fftgr,i_rhor2,i_vresid,moved_atm_inside,&
-&  mpi_comm,mpi_summarize,natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred)
+&  natom,nfft,nfftot,nspden,n_fftgr,rhor,ucvol,xred,fdot,user_data)
 
  use defs_basis
  use defs_abitypes
@@ -81,15 +81,25 @@ subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
 !Arguments ------------------------------------
 !scalars
  integer,intent(in) :: choice,cplex,i_rhor2,moved_atm_inside,n_fftgr,natom,nfft
- integer,intent(in) :: mpi_comm,nfftot,nspden
- logical, intent(in) :: mpi_summarize
+ integer,intent(in) :: nfftot,nspden
  real(dp),intent(in) :: ucvol
  real(dp),intent(out) :: dedv_mix,dedv_new,dedv_old
 !arrays
  integer,intent(in) :: i_vresid(3)
+ integer, intent(in) :: user_data(:)
  real(dp),intent(in) :: f_atm(3,natom,n_fftgr)
  real(dp),intent(in) :: f_fftgr(cplex*nfft,nspden,n_fftgr)
  real(dp),intent(in) :: rhor(cplex*nfft,nspden),xred(3,natom)
+
+ interface
+    function fdot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+      double precision, intent(in) :: x(*), y(*)
+      integer, intent(in) :: user_data(:)
+      
+      double precision :: fdot
+    end function fdot
+ end interface
 
 !Local variables-------------------------------
 !scalars
@@ -109,19 +119,25 @@ subroutine aprxdr(cplex,choice,dedv_mix,dedv_new,dedv_old,&
 
 !call dotprod_vn(cplex,1,ddens,dedv_old,nfft,nfftot,nspden,1,vresid,ucvol)
 !Dot product ddens(:,:,1) f_fftgr(:,:,i_vresid(2))
- call dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(2),mpi_comm,mpi_summarize,1,1,1,&
-& nfft,nfftot,n_fftgr,nspden,f_fftgr,ucvol)
+!!$ call dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(2),mpi_comm,mpi_summarize,1,1,1,&
+!!$& nfft,n_fftgr,nspden,f_fftgr)
+ dedv_temp(1) = fdot(ddens(1,1,1), f_fftgr(1,1,i_vresid(2)), &
+      & cplex, nfft, nspden, 2, user_data) * ucvol / dble(nfftot)
  dedv_old = dedv_temp(1)
 
 !Dot product ddens(:,:,1) f_fftgr(:,:,i_vresid(1))
- call dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(1),mpi_comm,mpi_summarize,1,1,1,&
-& nfft,nfftot,n_fftgr,nspden,f_fftgr,ucvol)
+!!$ call dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(1),mpi_comm,mpi_summarize,1,1,1,&
+!!$& nfft,nfftot,n_fftgr,nspden,f_fftgr,ucvol)
+ dedv_temp(1) = fdot(ddens(1,1,1), f_fftgr(1,1,i_vresid(1)), &
+      & cplex, nfft, nspden, 2, user_data) * ucvol / dble(nfftot)
  dedv_new= dedv_temp(1)
 
  if(choice==3)then
 !  Dot product ddens(:,:,1) f_fftgr(:,:,i_vresid(3))
-   call dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(3),mpi_comm,mpi_summarize,1,1,1,&
-&   nfft,nfftot,n_fftgr,nspden,f_fftgr,ucvol)
+!!$   call dotprodm_vn(cplex,1,ddens,dedv_temp,1,i_vresid(3),mpi_comm,mpi_summarize,1,1,1,&
+!!$&   nfft,nfftot,n_fftgr,nspden,f_fftgr,ucvol)
+   dedv_temp(1) = fdot(ddens(1,1,1), f_fftgr(1,1,i_vresid(3)), &
+        & cplex, nfft, nspden, 2, user_data) * ucvol / dble(nfftot)
    dedv_mix = dedv_temp(1)
  end if
 
