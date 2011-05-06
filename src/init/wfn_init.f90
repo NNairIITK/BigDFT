@@ -1143,7 +1143,7 @@ END SUBROUTINE psitospi
 
 !>  Generates an input guess for the wavefunctions. 
 !! To do this, the eigenvectors of the Hamiltonian are found by an iterative procedure.
-!!  This gives us an guess for the orbitals in the basis of atomic orbitals. These eigenfunctions are the transformed to the
+!!  This gives a guess for the orbitals in the basis of atomic orbitals. These eigenfunctions are then transformed to the
 !!  wavelet basis.
 !!
 !! Calling arguments

@@ -940,7 +940,7 @@ subroutine determine_locreg_periodic(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outofzone)
         write(*,*)'of the simulation box.'
      end if
      if (iey - isy >= Glr%d%n2 - 14) then
-        write(*,*)'Width of direction z :',(iey - isy)*hy,' of localization region:',ilr
+        write(*,*)'Width of direction y :',(iey - isy)*hy,' of localization region:',ilr
         write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n2*hy,'.'
         write(*,*)'Increasing the simulation box is recommended. The code will use the width'
         write(*,*)'of the simulation box.'
@@ -1450,9 +1450,9 @@ subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr,outofzone)
      if(outofzone(ii,blr) > 0) bzones = bzones * 2
   end do
 
-write(*,*)'azones,bzones',azones,bzones
-write(*,*)'outofzone',alr,':',outofzone(:,alr)
-write(*,*)'outofzone',blr,':',outofzone(:,blr)
+!write(*,*)'azones,bzones',azones,bzones
+!write(*,*)'outofzone',alr,':',outofzone(:,alr)
+!write(*,*)'outofzone',blr,':',outofzone(:,blr)
 
 !allocate astart and aend
   allocate(astart(3,azones),stat=i_stat)
@@ -1785,27 +1785,24 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr,outofzone
 END SUBROUTINE get_overlap_region_periodic
 !%***
 
-
-
-
-subroutine assignToLocreg(iproc, nlr, Localnorb, orbse)
-use module_base
-use module_types
-implicit none
-
-integer,intent(in):: nlr,iproc
-integer,dimension(nlr),intent(in):: Localnorb
-type(orbitals_data),intent(inout):: orbse
-
-! Local variables
-integer:: jproc, iiOrb, iorb, jorb, jat
+subroutine assignToLocreg(iproc, natom, nlr, nspin, Localnorb, orbse)
+  use module_base
+  use module_types
+  implicit none
+  
+  integer,intent(in):: nlr,iproc,nspin,natom
+  integer,dimension(nlr),intent(in):: Localnorb
+  type(orbitals_data),intent(inout):: orbse
+  
+  ! Local variables
+  integer:: jproc, iiOrb, iorb, jorb, jat
 
 
   ! There are four counters:
   !   jproc: indicates which MPI process is handling the basis function which is being treated
   !   jat: counts the atom numbers
   !   jorb: counts the orbitals handled by a given process
-  !   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
+  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
   jproc=0
   jat=1
   jorb=0
@@ -1821,15 +1818,16 @@ integer:: jproc, iiOrb, iorb, jorb, jat
       end if
 
       ! Switch to the next atom if the number of basis functions for this atom is reached.
-      if(iiOrb==Localnorb(jat)) then
+      if(iiOrb==Localnorb(jat)/nspin) then
           jat=jat+1
           iiOrb=0
+      end if
+      if(jat > natom) then
+        jat = 1
       end if
       jorb=jorb+1
       iiOrb=iiOrb+1
       if(iproc==jproc) orbse%inWhichLocreg(jorb)=jat
   end do
-
-
 
 end subroutine assignToLocreg

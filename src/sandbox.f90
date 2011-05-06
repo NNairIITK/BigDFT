@@ -69,7 +69,7 @@ program sandbox
   integer :: ii    ! debug  
   type(nonlocal_psp_descriptors) :: Lnlpspd
   type(atoms_data) :: Latoms
-
+  real(gp) :: eproj
   !for the moment no need to have parallelism
   iproc=0
   nproc=1
@@ -285,7 +285,7 @@ program sandbox
        call memocc(i_stat,lpsi,'lpsi',subname)
  
        ! Project the wavefunction inside the overlap region
-!       call psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,isovrlp,orbs,psi)
+       call psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,isovrlp,orbs,psi)
 
 ! Calculate overlap in localization region using ddot
 !     write(*,'(A26)') 'Overlap matrix with ddot:'
@@ -365,8 +365,8 @@ program sandbox
 
 ! Need to restrict non-local projectors to overlap region
 ! First make the descriptors
-!  call nlpspd_to_locreg(in,iproc,Glr,Olr(ilr),rxyz,atoms,orbs,&
-!&       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,Lnlpspd,projflg)
+  call nlpspd_to_locreg(in,iproc,Glr,Olr(ilr),rxyz,atoms,orbs,&
+&       radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,nlpspd,Lnlpspd,projflg)
 
 ! Allocate Lproj and Lppsi
   allocate(Lproj(Lnlpspd%nprojel+ndebug),stat=i_stat)
@@ -399,7 +399,7 @@ program sandbox
 
 
 ! Fill and Apply the projectors on the wavefunctions
-!  call apply_local_projectors(atoms,in,Olr(ilr),Lnlpspd,Lproj,orbs,projflg,lpsi,rxyz,lppsi)
+  call apply_local_projectors(atoms,in%hx,in%hy,in%hz,Olr(ilr),Lnlpspd,Lproj,orbs,projflg,lpsi,rxyz,lppsi,eproj)
 
 ! Calculate dotprod: <Psi_a|p><p|Psi_b>
 ! write(*,'(A54)') 'NL-Operator overlap matrix with ddot and localization:'

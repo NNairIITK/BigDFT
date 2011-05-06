@@ -314,7 +314,6 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
   mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
   mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
   jseg_c=nlpspd%nseg_p(2*iat-2)+1
-
   !decide the loop bounds
   do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
      do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)

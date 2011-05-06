@@ -11,7 +11,7 @@
 !> Application of the Hamiltonian
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc,projflg)
   use module_base
   use module_types
   use libxc_functionals
@@ -33,6 +33,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(dp), dimension(*), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
+  integer,dimension(at%nat),intent(in),optional :: projflg
   !local variables
   real(gp), dimension(2,orbs%norbp) :: ekin
   real(gp), dimension(2,orbs%norbp) :: epot
@@ -150,10 +151,10 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !here the localisation region should be changed, temporary only for cubic approach
   eproj_sum=0.0_gp
   !apply the projectors following the strategy (On-the-fly calculation or not)
-  if (DistProjApply) then
+  if (DistProjApply .and. .not.present(projflg)) then
      call applyprojectorsonthefly(iproc,orbs,at,lr,&
           rxyz,hx,hy,hz,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
-  else if(orbs%norbp > 0) then
+  else if(orbs%norbp > 0 .and. .not.present(projflg)) then
      !apply the projectors  k-point of the processor
      !starting k-point
      ikpt=orbs%iokpt(1)
@@ -181,6 +182,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
      if (istart_ck-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
      if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
+  
+  else if(orbs%norbp > 0 .and. present(projflg)) then
+     call apply_local_projectors(at,hx,hy,hz,lr,nlpspd,proj,orbs,projflg,psi,rxyz,hpsi,eproj_sum)
   end if
 
   if(OCLconv .and. ASYNCconv) then
