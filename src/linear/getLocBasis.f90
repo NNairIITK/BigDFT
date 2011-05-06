@@ -495,7 +495,7 @@ real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum
 real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
 integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp, nit
-real(8),dimension(:),allocatable:: hphiold, alpha, fnrmOldArr, lagMatDiag
+real(8),dimension(:),allocatable:: hphiold, alpha, fnrmOldArr, lagMatDiag, alphaDIIS
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 real(8),dimension(:),pointer:: phiWork
 logical:: quiet, allowDIIS, startWithSD, adapt
@@ -535,6 +535,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
 
   ! Assign the step size for SD iterations.
   alpha=lin%alphaSD
+  alphaDIIS=lin%alphaDIIS
   adapt=.false.
 
   ! Untranspose phi
@@ -878,6 +879,12 @@ contains
     else
         ! DIIS
         quiet=.true. ! less output
+        istart=1
+        nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+        do iorb=1,lin%orbs%norb
+            call dscal(nvctrp, alphaDIIS(iorb), hphi(istart), 1)
+            istart=istart+nvctrp*orbs%nspinor
+        end do
         call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, hphi, phi, quiet)
     end if
     end subroutine improveOrbitals
@@ -896,6 +903,9 @@ contains
 
       allocate(alpha(lin%orbs%norb), stat=istat)
       call memocc(istat, alpha, 'alpha', subname)
+
+      allocate(alphaDIIS(lin%orbs%norb), stat=istat)
+      call memocc(istat, alphaDIIS, 'alphaDIIS', subname)
 
       allocate(fnrmArr(lin%orbs%norb,2), stat=istat)
       call memocc(istat, fnrmArr, 'fnrmArr', subname)
@@ -928,6 +938,10 @@ contains
       iall=-product(shape(alpha))*kind(alpha)
       deallocate(alpha, stat=istat)
       call memocc(istat, iall, 'alpha', subname)
+
+      iall=-product(shape(alphaDIIS))*kind(alphaDIIS)
+      deallocate(alphaDIIS, stat=istat)
+      call memocc(istat, iall, 'alphaDIIS', subname)
 
       iall=-product(shape(fnrmArr))*kind(fnrmArr)
       deallocate(fnrmArr, stat=istat)

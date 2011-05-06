@@ -69,7 +69,7 @@ call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 open(unit=99, file='input.lin')
 read(99,*) lin%nItBasisFirst, lin%nItBasis
 read(99,*) lin%convCrit
-read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaSD
+read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
 read(99,*) lin%startWithSD, lin%startDIIS
 read(99,*) lin%nItPrecond
 read(99,*) lin%getCoeff
@@ -107,13 +107,13 @@ if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| '
       lin%getCoeff, '    |  ', &
       lin%plotBasisFunctions, '   |'
 if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha SD |  start  | allow DIIS |'
-if(iproc==0) write(*,'(4x,a)') '|  min   max   |          | with SD |            |'
-if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '|', &
+if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS |'
+if(iproc==0) write(*,'(4x,a)') '|  min   max   |            |          | with SD |            |'
+if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
-    lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |'
-if(iproc==0) write(*,'(4x,a)') '--------------------------------------------------'
+    lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |'
+if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the coefficients.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence |'
 if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  |'
