@@ -164,34 +164,35 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
 
-  ! Now calculate the modified band structure energy.
-  call HamiltonianApplicationConfinement(iproc,nproc,atoms,lin%orbs,lin,in%hx,in%hy,in%hz,rxyz,&
-       nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-       rhopot(1),&
-       phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU, rxyzParab, pkernel=pkernelseq)
-  call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-  if(trim(lin%getCoeff)=='diag') then
-      call modifiedBSEnergyModified(in%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
-  else if(trim(lin%getCoeff)=='min') then
-  
-      call optimizeCoefficients(iproc, orbs, lin, in%nspin, matrixElements, coeff, infoCoeff)
-      call modifiedBSEnergyModified(in%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
-  else
-      if(iproc==0) write(*,'(a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min' , &
-          & but we found '", lin%getCoeff, "'."
-      stop
-  end if
+  !! NOT NECESSARY??? 
+  !!!!! Now calculate the modified band structure energy.
+  !!!!call HamiltonianApplicationConfinement(iproc,nproc,atoms,lin%orbs,lin,in%hx,in%hy,in%hz,rxyz,&
+  !!!!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+  !!!!     rhopot(1),&
+  !!!!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU, rxyzParab, pkernel=pkernelseq)
+  !!!!call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+  !!!!if(trim(lin%getCoeff)=='diag') then
+  !!!!    call modifiedBSEnergyModified(in%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
+  !!!!else if(trim(lin%getCoeff)=='min') then
+  !!!!
+  !!!!    call optimizeCoefficients(iproc, orbs, lin, in%nspin, matrixElements, coeff, infoCoeff)
+  !!!!    call modifiedBSEnergyModified(in%nspin, orbs, lin, coeff(1,1), matrixElements(1,1,1), ebsMod)
+  !!!!else
+  !!!!    if(iproc==0) write(*,'(a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min' , &
+  !!!!        & but we found '", lin%getCoeff, "'."
+  !!!!    stop
+  !!!!end if
 
 
-  ! IS THIS CORRECT??
-  energyMod=ebsMod-ehart+eexcu-vexcu-eexctX+eion+edisp
+  !!!!! IS THIS CORRECT??
+  !!!!energyMod=ebsMod-ehart+eexcu-vexcu-eexctX+eion+edisp
 
   if(iproc==0) write(*,'(x,a,2es26.17)') 'energybs, ebsMod', energybs, ebsMod
 
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
                   ekin_sum,epot_sum,eproj_sum
   if(iproc==0) write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-  if(iproc==0) write(*,'(x,a,2es26.17)') 'total energy, modified energy', energy, energyMod
+  if(iproc==0) write(*,'(x,a,es26.17)') 'total energy', energy
 
   !!if (iproc == 0) then
   !!   if (verbose > 0 .and. in%itrpmax==1) then

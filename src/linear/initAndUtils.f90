@@ -67,14 +67,14 @@ end if
 allocate(lin%potentialPrefac(at%ntypes), stat=istat)
 call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
 open(unit=99, file='input.lin')
-read(99,*) lin%nItInguess, lin%nItBasis
+read(99,*) lin%nItBasisFirst, lin%nItBasis
 read(99,*) lin%convCrit
 read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaSD
 read(99,*) lin%startWithSD, lin%startDIIS
 read(99,*) lin%nItPrecond
 read(99,*) lin%getCoeff
 read(99,*) lin%nItCoeff, lin%convCritCoeff
-read(99,*) lin%nItSCC
+read(99,*) lin%nItSCC, lin%alphaMix
 read(99,*) lin%plotBasisFunctions
 call checkLinearParameters(iproc, lin)
 if(iproc==0) write(*,'(x,a)') '################################# Input parameters #################################'
@@ -90,19 +90,18 @@ do iat=1,at%ntypes
 end do
 close(unit=99)
 if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '|  number of iterations in the   |'
-if(iproc==0) write(*,'(4x,a)') '|     selfconsistency cycle      |'
-if(iproc==0) write(*,'(4x,a)') '| basis functions / coefficients |'
-if(iproc==0) write(*,'(4x,a,a,i0,16x,a)') '|', repeat(' ', 16-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
-     lin%nItSCC, '|'
-if(iproc==0) write(*,'(4x,a)') '----------------------------------'
+if(iproc==0) write(*,'(4x,a)') '|  number of iterations in the   | alpha mix |'
+if(iproc==0) write(*,'(4x,a)') '|     selfconsistency cycle      |           |'
+if(iproc==0) write(*,'(4x,a,a,i0,16x,a,x,es9.3,x,a)') '|', repeat(' ', 16-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
+     lin%nItSCC, '|', lin%alphaMix, '|'
+if(iproc==0) write(*,'(4x,a)') '----------------------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
 if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
-if(iproc==0) write(*,'(4x,a)') '| inguess   SCC  |             |                |           |       |'
-if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
-    repeat(' ', 5-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), lin%nItInguess, &
-    repeat(' ', 4-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
+if(iproc==0) write(*,'(4x,a)') '|  first   else  |             |                |           |       |'
+if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
+    repeat(' ', 5-ceiling(log10(dble(lin%nItBasisFirst+1)+1.d-10))), lin%nItBasisFirst, &
+    repeat(' ', 5-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
       '| ', lin%convCrit, ' | ', &
       repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       |   ', &
       lin%getCoeff, '    |  ', &

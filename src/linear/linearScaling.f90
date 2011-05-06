@@ -97,10 +97,10 @@ real(8):: fnoise
 
 
 ! Local variables
-integer:: infoBasisFunctions, istat, iall, itSCC, nitSCC, i, ierr
+integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr
 real(8),dimension(:),allocatable:: phi
 real(8),dimension(:,:),allocatable:: occupForInguess, coeff
-real(8):: ebsMod, alpha, pnrm
+real(8):: ebsMod, alpha, pnrm, tt
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld
 
@@ -129,7 +129,7 @@ real(wp),dimension(:),allocatable:: projTemp
 
 
   if(nproc==1) allocate(psit(size(psi)))
-  nitSCC=100
+  nitSCC=lin%nitSCC
   alpha=.1d0
   allocate(rhopotOld(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotOld, 'rhopotOld', subname)
@@ -137,7 +137,7 @@ real(wp),dimension(:),allocatable:: projTemp
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-          infoBasisFunctions, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+          infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
 
       ! Calculate the energy that we get with psi.
@@ -145,42 +145,64 @@ real(wp),dimension(:),allocatable:: projTemp
       call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
           rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
-!! TEST
-  ! Calculate the forces we get with psi.
-  allocate(nscatterarrTemp(0:nproc-1,4), stat=istat)
-  call memocc(istat, nscatterarrTemp, 'nscatterarrTemp', subname)
-  allocate(phiTemp(size(phi)), stat=istat)
-  call memocc(istat, phiTemp, 'phiTemp', subname)
-  allocate(projTemp(nlpspd%nprojel), stat=istat)
-  call memocc(istat, projTemp, 'projTemp', subname)
-  projTemp=proj
-  nscatterarrTemp=nscatterarr
-  phiTemp=phi
-  call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
-  proj=projTemp
-  nscatterarr=nscatterarrTemp
-  phi=phiTemp
-  iall=-product(shape(nscatterarrTemp))*kind(nscatterarrTemp)
-  deallocate(nscatterarrTemp, stat=istat)
-  call memocc(istat, iall, 'nscatterarrTemp', subname)
-  iall=-product(shape(phiTemp))*kind(phiTemp)
-  deallocate(phiTemp, stat=istat)
-  call memocc(istat, iall, 'phiTemp', subname)
-  iall=-product(shape(projTemp))*kind(projTemp)
-  deallocate(projTemp, stat=istat)
-  call memocc(istat, iall, 'projTemp', subname)
-!! TEST
+
+      !!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ! Calculate the forces we get with psi.
+        allocate(nscatterarrTemp(0:nproc-1,4), stat=istat)
+        call memocc(istat, nscatterarrTemp, 'nscatterarrTemp', subname)
+        allocate(phiTemp(size(phi)), stat=istat)
+        call memocc(istat, phiTemp, 'phiTemp', subname)
+        allocate(projTemp(nlpspd%nprojel), stat=istat)
+        call memocc(istat, projTemp, 'projTemp', subname)
+        projTemp=proj
+        nscatterarrTemp=nscatterarr
+        phiTemp=phi
+        call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
+            proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+        proj=projTemp
+        nscatterarr=nscatterarrTemp
+        phi=phiTemp
+        iall=-product(shape(nscatterarrTemp))*kind(nscatterarrTemp)
+        deallocate(nscatterarrTemp, stat=istat)
+        call memocc(istat, iall, 'nscatterarrTemp', subname)
+        iall=-product(shape(phiTemp))*kind(phiTemp)
+        deallocate(phiTemp, stat=istat)
+        call memocc(istat, iall, 'phiTemp', subname)
+        iall=-product(shape(projTemp))*kind(projTemp)
+        deallocate(projTemp, stat=istat)
+        call memocc(istat, iall, 'projTemp', subname)
+      !!!  TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! Mix the potential
-      pnrm=0.d0
-      do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
-          pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
-          rhopot(i)=(1.d0-alpha)*rhopotOld(i)+alpha*rhopot(i)
-      end do
-      call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
-      pnrm=sqrt(pnrm)/(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin)
-      if(iproc==0) write(*,'(a,3x,i0,es15.5)') 'it, mean POT difference', itSCC, pnrm
+      call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+
+      ! Write some informations
+      call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy)
+      !!pnrm=0.d0
+      !!tt=1.d0-lin%alphaMix
+      !!!do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
+      !!do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
+      !!    pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
+      !!    rhopot(i)=tt*rhopotOld(i)+lin%alphaMix*rhopot(i)
+      !!end do
+      !!call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
+      !!pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+      !!if(iproc==0) then
+      !!    write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
+      !!    write(*,'(x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
+      !!    if(infoBasisFunctions<0) then
+      !!        write(*,'(3x,a)') '- WARNING: basis functions not converged!'
+      !!    else
+      !!        write(*,'(3x,a,i0,a)') '- basis functions converged in ', infoBasisFunctions, ' iterations.'
+      !!    end if
+      !!    if(infoCoeff<0) then
+      !!        write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+      !!    else
+      !!        write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+      !!    end if
+      !!    write(*,'(3x,a,3x,i0,es11.2,es27.17)') 'it, Delta POT, energy ', itSCC, pnrm, energy
+      !!    write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
+      !!end if
   end do
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
   deallocate(rhopotOld, stat=istat)
@@ -196,3 +218,103 @@ real(wp),dimension(:),allocatable:: projTemp
 
 
 end subroutine linearScaling
+
+
+
+
+subroutine mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+!
+! Purpose:
+! ========
+!   Mixes the potential in order to get a self consistent potential.
+!
+! Calling arguments:
+! ==================
+!   Input arguments
+!   ---------------
+!
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, n3p
+type(locreg_descriptors),intent(in) :: Glr
+type(input_variables),intent(in):: input
+type(linearParameters),intent(in):: lin
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in):: rhopotOld
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in out):: rhopot
+real(8),intent(out):: pnrm
+
+! Local variables
+integer:: i, ierr
+real(8):: tt
+
+
+  pnrm=0.d0
+  tt=1.d0-lin%alphaMix
+  !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
+  do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
+      pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
+      rhopot(i)=tt*rhopotOld(i)+lin%alphaMix*rhopot(i)
+  end do
+  call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
+  pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+  !!if(iproc==0) then
+  !!    write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
+  !!    write(*,'(x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
+  !!    if(infoBasisFunctions<0) then
+  !!        write(*,'(3x,a)') '- WARNING: basis functions not converged!'
+  !!    else
+  !!        write(*,'(3x,a,i0,a)') '- basis functions converged in ', infoBasisFunctions, ' iterations.'
+  !!    end if
+  !!    if(infoCoeff<0) then
+  !!        write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+  !!    else
+  !!        write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+  !!    end if
+  !!    write(*,'(3x,a,3x,i0,es11.2,es27.17)') 'it, Delta POT, energy ', itSCC, pnrm, energy
+  !!    write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
+  !!end if
+
+end subroutine mixPotential
+
+
+
+
+subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy)
+!
+! Purpose:
+! ========
+!   Print a short summary of some values calculated during the last iteration in the self
+!   consistency cycle.
+! 
+! Calling arguments:
+! ==================
+!   Input arguments
+!   ---------------
+!
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, itSCC, infoBasisFunctions, infoCoeff
+real(8),intent(in):: pnrm, energy
+
+  if(iproc==0) then
+      write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
+      write(*,'(x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
+      if(infoBasisFunctions<0) then
+          write(*,'(3x,a)') '- WARNING: basis functions not converged!'
+      else
+          write(*,'(3x,a,i0,a)') '- basis functions converged in ', infoBasisFunctions, ' iterations.'
+      end if
+      if(infoCoeff<0) then
+          write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+      else
+          write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+      end if
+      write(*,'(3x,a,3x,i0,es11.2,es27.17)') 'it, Delta POT, energy ', itSCC, pnrm, energy
+      write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
+  end if
+
+end subroutine printSummary

@@ -1159,11 +1159,11 @@ module module_interfaces
 
     subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
         proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
-        lastAlpha, infoBasisFunctions)
+        itSCC, lastAlpha, infoBasisFunctions)
       use module_base
       use module_types
       implicit none
-      integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions
+      integer:: iproc, nproc, idsxMin, idsxMax, infoBasisFunctions, itSCC
       type(atoms_data), intent(in) :: at
       type(orbitals_data):: orbs
       type(locreg_descriptors), intent(in) :: Glr
@@ -1397,13 +1397,13 @@ module module_interfaces
 
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-        infoBasisFunctions, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+        infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
         i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
       use module_base
       use module_types
       !use Poisson_Solver
       implicit none
-      integer,intent(in):: iproc, nproc, nspin, n3p, n3pi, n3d, i3s, i3xcsh
+      integer,intent(in):: iproc, nproc, nspin, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
       type(locreg_descriptors),intent(in):: Glr
       type(orbitals_data),intent(in) :: orbs
       type(communications_arrays),intent(in) :: comms
@@ -1428,7 +1428,7 @@ module module_interfaces
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
       real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
       real(8),dimension(orbs%npsidim),intent(out):: psi, psit
-      integer,intent(out):: infoBasisFunctions
+      integer,intent(out):: infoBasisFunctions, infoCoeff
       character(len=3),intent(in):: PSquiet
       real(8),intent(out):: ebsMod
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in out):: coeff
