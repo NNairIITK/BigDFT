@@ -178,31 +178,6 @@ real(wp),dimension(:),allocatable:: projTemp
 
       ! Write some informations
       call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy)
-      !!pnrm=0.d0
-      !!tt=1.d0-lin%alphaMix
-      !!!do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
-      !!do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
-      !!    pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
-      !!    rhopot(i)=tt*rhopotOld(i)+lin%alphaMix*rhopot(i)
-      !!end do
-      !!call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
-      !!pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-      !!if(iproc==0) then
-      !!    write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
-      !!    write(*,'(x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
-      !!    if(infoBasisFunctions<0) then
-      !!        write(*,'(3x,a)') '- WARNING: basis functions not converged!'
-      !!    else
-      !!        write(*,'(3x,a,i0,a)') '- basis functions converged in ', infoBasisFunctions, ' iterations.'
-      !!    end if
-      !!    if(infoCoeff<0) then
-      !!        write(*,'(3x,a)') '- WARNING: coefficients not converged!'
-      !!    else
-      !!        write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
-      !!    end if
-      !!    write(*,'(3x,a,3x,i0,es11.2,es27.17)') 'it, Delta POT, energy ', itSCC, pnrm, energy
-      !!    write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
-      !!end if
   end do
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
   deallocate(rhopotOld, stat=istat)
@@ -260,22 +235,6 @@ real(8):: tt
   end do
   call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
   pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
-  !!if(iproc==0) then
-  !!    write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
-  !!    write(*,'(x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
-  !!    if(infoBasisFunctions<0) then
-  !!        write(*,'(3x,a)') '- WARNING: basis functions not converged!'
-  !!    else
-  !!        write(*,'(3x,a,i0,a)') '- basis functions converged in ', infoBasisFunctions, ' iterations.'
-  !!    end if
-  !!    if(infoCoeff<0) then
-  !!        write(*,'(3x,a)') '- WARNING: coefficients not converged!'
-  !!    else
-  !!        write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
-  !!    end if
-  !!    write(*,'(3x,a,3x,i0,es11.2,es27.17)') 'it, Delta POT, energy ', itSCC, pnrm, energy
-  !!    write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
-  !!end if
 
 end subroutine mixPotential
 

@@ -584,12 +584,6 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
       call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
       call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH, lagMatDiag)
-!!if(iproc==0) then
-!!    write(*,*) 'lagMatDiag'
-!!    do iorb=1,lin%orbs%norb
-!!        write(*,*) lagMatDiag(iorb)
-!!    end do
-!!end if
   
   
       ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
@@ -705,7 +699,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       end if
       if(.not. diisLIN%switchSD) call improveOrbitals()
   
-     !flush the standard output
+     ! Flush the standard output
       call flush(6) 
   end do iterLoop
 
