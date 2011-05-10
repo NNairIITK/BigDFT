@@ -1,4 +1,4 @@
-subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, phi, psi, rxyz, rxyzParab, &
+subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, nlr, Llr, Glr, orbs, atoms, in, lin, phi, psi, rxyz, rxyzParab, &
     rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
     proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
 !
@@ -59,7 +59,8 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, n3d, n3p
+integer:: iproc, nproc, nlr, n3d, n3p
+type(locreg_descriptors),dimension(nlr),intent(in):: LLr
 type(locreg_descriptors) :: Glr
 type(orbitals_data):: orbs
 type(atoms_data):: atoms
@@ -116,8 +117,13 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   !calculate the self-consistent potential
   if (scpot) then
      ! Potential from electronic charge density
-     call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
-          Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+     !call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
+     !     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+     call sumrhoLinear(iproc,nproc,nlr,lin%orbs,Glr,Llr,in%ixc,hxh,hyh,hzh,&
+       psi,rhopot,&
+       & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,in%nspin,GPU, &
+       & atoms%symObj, irrzon, phnons)
+
 
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 

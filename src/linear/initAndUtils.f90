@@ -1,4 +1,5 @@
-subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess, coeff)
+subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess, coeff, &
+    nlr, Llr, outofzone)
 !
 ! Purpose:
 ! ========
@@ -38,6 +39,11 @@ real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(32,at%nat):: occupForInguess
 real(8),dimension(:),allocatable,intent(out):: phi
 real(8),dimension(:,:),allocatable,intent(out):: coeff
+! new
+integer,intent(out):: nlr
+type(locreg_descriptors),dimension(:),pointer,intent(out):: Llr
+integer,dimension(:,:),pointer,intent(out):: outofzone
+
 
 ! Local variables
 integer:: jproc, istat, iorb, jorb, ierr, iat, ityp, iall, norb_tot
@@ -48,6 +54,8 @@ character(len=20):: atomname
 logical:: written, fileExists
 real(8),dimension(:),pointer:: phiWork
 real :: ttreal
+! new
+real(gp),dimension(:),allocatable:: locrad
 
 
 ! Allocate all local arrays.
@@ -222,6 +230,69 @@ if(iproc==0) then
        end do
     end do
 end if
+
+
+
+
+!! ###########################################################
+!!                       new part
+
+nlr=at%nat
+!allocate the array of localisation regions
+allocate(Llr(nlr+ndebug),stat=istat)
+!call memocc(istat,Llr,'Llr',subname)
+allocate(outofzone(3,nlr),stat=istat)
+call memocc(istat,outofzone,'outofzone',subname)
+allocate(locrad(nlr+ndebug),stat=istat)
+call memocc(istat,locrad,'locrad',subname)
+
+! For now, set locrad by hand HERE
+locrad = 3000.0
+!print *,'locrad',locrad
+
+! Write some physical information on the Glr
+if(iproc==0) then
+    write(*,'(x,a24,3i4)')'Global region n1,n2,n3:',Glr%d%n1,Glr%d%n2,Glr%d%n3
+    write(*,'(x,a27,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*input%hx,Glr%d%n2*input%hy,Glr%d%n3*input%hz
+    write(*,'(x,a17,f12.2)')'Global volume: ',Glr%d%n1*input%hx*Glr%d%n2*input%hy*Glr%d%n3*input%hz
+    write(*,'(x,a,4i10)')'Global statistics:',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
+end if
+
+ call determine_locreg_periodic(iproc,nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, Llr, outofzone)
+ call mpi_barrier(mpi_comm_world, ierr)
+
+!!! Calculate the dimension of the total wavefunction
+!!   npsidim = 0
+!!   do ilr = 1, nlr
+!!      call count_atomic_shells(lmax+1,noccmax,nelecmax,input%nspin,orbse%nspinor,at%aocc(1,ilr),occup,nmoments)
+!!      norbe=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))*input%nspin
+!!      Localnorb(ilr)=norbe
+!!      npsidim = npsidim +(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*norbe*orbse%nspinor
+!!   end do
+!!   orbse%npsidim=npsidim
+
+! Determine inwhichlocreg
+    do iat=1,at%nat
+        write(*,'(a,2i4,i7)') 'iproc, iat, norbsPerAtom(iat)', iproc, iat, norbsPerAtom(iat)
+    end do
+    call mpi_barrier(mpi_comm_world, ierr)
+    ! Initialize, can maybe done somewhere else
+    allocate(lin%orbs%inWhichLocregP(lin%orbs%norbp), stat=istat)
+    call memocc(istat, lin%orbs%inWhichLocregP, 'lin%orbs%inWhichLocregP', subname)
+    lin%orbs%inWhichLocregP=0
+    call assignToLocregP(iproc, nlr, norbsPerAtom, lin%orbs)
+    
+    do iorb=1,lin%orbs%norbp
+        write(*,'(a,2i5,i8)') 'iproc, iorb, iwl', iproc, iorb, lin%orbs%inWhichLocregP(iorb)
+    end do
+
+
+iall=-product(shape(locrad))*kind(locrad)
+deallocate(locrad, stat=istat)
+call memocc(istat, iall, 'locrad', subname)
+
+
+!! ###########################################################
 
 
 ! Deallocate all local arrays

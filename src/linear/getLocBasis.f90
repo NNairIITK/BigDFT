@@ -1,4 +1,4 @@
-subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
+subroutine getLinearPsi(iproc, nproc, nspin, nlr, LLr, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
     i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
@@ -61,7 +61,8 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nspin, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
+integer,intent(in):: iproc, nproc, nspin, nlr, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
+type(locreg_descriptors),dimension(nlr),intent(in):: LLr
 type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in) :: orbs
 type(communications_arrays),intent(in) :: comms
@@ -128,7 +129,7 @@ real :: ttreal
   
 
   ! Optimize the localized basis functions by minimizing the trace of <phi|H|phi>.
-  call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
+  call getLocalizedBasis(iproc, nproc, nlr, Llr, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
       itSCC, lastAlpha, infoBasisFunctions)
 
@@ -260,99 +261,99 @@ real :: ttreal
 
 contains
 
-  subroutine optimizeWithShifts()
-
-    ! Initialize the coefficient vector at random. 
-    !call random_number(coeff)
-    allocate(nscatterarrCorrect(0:nproc-1,4+ndebug),stat=istat)
-    !call memocc(i_stat,nscatterarrCorrect,'nscatterarrCorrect',subname)
-    !allocate array for the communications of the potential
-    allocate(ngatherarrCorrect(0:nproc-1,2+ndebug),stat=istat)
-    !call memocc(i_stat,ngatherarrCorrect,'ngatherarrCorrect',subname)
-    allocate(projCorrect(nlpspd%nprojel+ndebug),stat=istat)
-    !call memocc(i_stat,projCorrect,'projCorrect',subname)
-    allocate(rhopotCorrect(size(rhopot)), stat=istat)
-    !call memocc(i_stat,rhopot,'rhopot',subname)
-
-    nscatterarrCorrect=nscatterarr
-    ngatherarrCorrect=ngatherarr
-    projCorrect=proj
-    rhopotCorrect=rhopot
-    scpot=.true.
-
-    do it=1,1
-        nscatterarr=nscatterarrCorrect
-        ngatherarr=ngatherarrCorrect
-        proj=projCorrect
-        rhopot=rhopotCorrect
-        ! The subroutine getLocalizedBasis expects phi to be transposed.
-        !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-        !call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
-        !    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
-        !    lastAlpha, infoBasisFunctions)
-!!!        if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
-!!!        call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-!!!             nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-!!!             rhopot(1),&
-!!!             phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
-!!!        if(iproc==0) write(*,'(x,a)') 'done.'
-!!!
-!!!        ! Calculate the matrix elements <phi|H|phi>.
-!!!        call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-!!!
-!!!
-!!!        !if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
-!!!        ! Calculate the coefficients which minimize the modified band structure energy
-!!!        ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H_l|phi_l>
-!!!        ! for the given basis functions.
-!!!        call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
-!!!        call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
-!!!        if(iproc==0) write(*,'(x,a)') 'after initial guess:'
-!!!        if(infoBasisFunctions==0) then
-!!!            if(iproc==0) write(*,'(3x,a)') '- basis functions converged'
-!!!        else
-!!!            if(iproc==0) write(*,'(3x,a)') '- WARNING: basis functions not converged!'
-!!!        end if
-!!!        if(infoCoeff==0) then
-!!!            if(iproc==0) write(*,'(3x,a)') '- coefficients converged'
-!!!        else
-!!!            if(iproc==0) write(*,'(3x,a)') '- WARNING: coefficients not converged!'
-!!!        end if
-!!!        if(iproc==0) write(*,'(3x,a,es16.8)') '- modified band structure energy', ebsMod
-
-        call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-        call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
-        call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-        call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-
-        call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
-            rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-            proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
-        if(iproc==0) write(*,*) 'energy', energy
-        call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, proj, &
-            ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
-
-        !rxyzParab=rxyzParab-1.d0*fxyz
-        !rxyzParab=rxyzParab+1.d0*fxyz
-        !rxyzParab=rxyzParab+5.d0*fxyz
-
-    end do
-    nscatterarr=nscatterarrCorrect
-    ngatherarr=ngatherarrCorrect
-    proj=projCorrect
-    rhopot=rhopotCorrect
-
-    deallocate(nscatterarrCorrect,stat=istat)
-    !call memocc(i_stat,nscatterarrCorrect,'nscatterarrCorrect',subname)
-    !allocate array for the communications of the potential
-    deallocate(ngatherarrCorrect,stat=istat)
-    !call memocc(i_stat,ngatherarrCorrect,'ngatherarrCorrect',subname)
-    deallocate(projCorrect,stat=istat)
-    !call memocc(i_stat,projCorrect,'projCorrect',subname)
-    deallocate(rhopotCorrect, stat=istat)
-    !call memocc(i_stat,rhopot,'rhopot',subname)
-    
-  end subroutine optimizeWithShifts
+!!!$$  subroutine optimizeWithShifts()
+!!!$$
+!!!$$    ! Initialize the coefficient vector at random. 
+!!!$$    !call random_number(coeff)
+!!!$$    allocate(nscatterarrCorrect(0:nproc-1,4+ndebug),stat=istat)
+!!!$$    !call memocc(i_stat,nscatterarrCorrect,'nscatterarrCorrect',subname)
+!!!$$    !allocate array for the communications of the potential
+!!!$$    allocate(ngatherarrCorrect(0:nproc-1,2+ndebug),stat=istat)
+!!!$$    !call memocc(i_stat,ngatherarrCorrect,'ngatherarrCorrect',subname)
+!!!$$    allocate(projCorrect(nlpspd%nprojel+ndebug),stat=istat)
+!!!$$    !call memocc(i_stat,projCorrect,'projCorrect',subname)
+!!!$$    allocate(rhopotCorrect(size(rhopot)), stat=istat)
+!!!$$    !call memocc(i_stat,rhopot,'rhopot',subname)
+!!!$$
+!!!$$    nscatterarrCorrect=nscatterarr
+!!!$$    ngatherarrCorrect=ngatherarr
+!!!$$    projCorrect=proj
+!!!$$    rhopotCorrect=rhopot
+!!!$$    scpot=.true.
+!!!$$
+!!!$$    do it=1,1
+!!!$$        nscatterarr=nscatterarrCorrect
+!!!$$        ngatherarr=ngatherarrCorrect
+!!!$$        proj=projCorrect
+!!!$$        rhopot=rhopotCorrect
+!!!$$        ! The subroutine getLocalizedBasis expects phi to be transposed.
+!!!$$        !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+!!!$$        !call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
+!!!$$        !    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
+!!!$$        !    lastAlpha, infoBasisFunctions)
+!!!$$!!!        if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
+!!!$$!!!        call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+!!!$$!!!             nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+!!!$$!!!             rhopot(1),&
+!!!$$!!!             phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParab, pkernel=pkernelseq)
+!!!$$!!!        if(iproc==0) write(*,'(x,a)') 'done.'
+!!!$$!!!
+!!!$$!!!        ! Calculate the matrix elements <phi|H|phi>.
+!!!$$!!!        call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
+!!!$$!!!
+!!!$$!!!
+!!!$$!!!        !if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
+!!!$$!!!        ! Calculate the coefficients which minimize the modified band structure energy
+!!!$$!!!        ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H_l|phi_l>
+!!!$$!!!        ! for the given basis functions.
+!!!$$!!!        call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
+!!!$$!!!        call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
+!!!$$!!!        if(iproc==0) write(*,'(x,a)') 'after initial guess:'
+!!!$$!!!        if(infoBasisFunctions==0) then
+!!!$$!!!            if(iproc==0) write(*,'(3x,a)') '- basis functions converged'
+!!!$$!!!        else
+!!!$$!!!            if(iproc==0) write(*,'(3x,a)') '- WARNING: basis functions not converged!'
+!!!$$!!!        end if
+!!!$$!!!        if(infoCoeff==0) then
+!!!$$!!!            if(iproc==0) write(*,'(3x,a)') '- coefficients converged'
+!!!$$!!!        else
+!!!$$!!!            if(iproc==0) write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+!!!$$!!!        end if
+!!!$$!!!        if(iproc==0) write(*,'(3x,a,es16.8)') '- modified band structure energy', ebsMod
+!!!$$
+!!!$$        call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+!!!$$        call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
+!!!$$        call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+!!!$$        call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
+!!!$$
+!!!$$        call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
+!!!$$            rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+!!!$$            proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+!!!$$        if(iproc==0) write(*,*) 'energy', energy
+!!!$$        call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, proj, &
+!!!$$            ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+!!!$$
+!!!$$        !rxyzParab=rxyzParab-1.d0*fxyz
+!!!$$        !rxyzParab=rxyzParab+1.d0*fxyz
+!!!$$        !rxyzParab=rxyzParab+5.d0*fxyz
+!!!$$
+!!!$$    end do
+!!!$$    nscatterarr=nscatterarrCorrect
+!!!$$    ngatherarr=ngatherarrCorrect
+!!!$$    proj=projCorrect
+!!!$$    rhopot=rhopotCorrect
+!!!$$
+!!!$$    deallocate(nscatterarrCorrect,stat=istat)
+!!!$$    !call memocc(i_stat,nscatterarrCorrect,'nscatterarrCorrect',subname)
+!!!$$    !allocate array for the communications of the potential
+!!!$$    deallocate(ngatherarrCorrect,stat=istat)
+!!!$$    !call memocc(i_stat,ngatherarrCorrect,'ngatherarrCorrect',subname)
+!!!$$    deallocate(projCorrect,stat=istat)
+!!!$$    !call memocc(i_stat,projCorrect,'projCorrect',subname)
+!!!$$    deallocate(rhopotCorrect, stat=istat)
+!!!$$    !call memocc(i_stat,rhopot,'rhopot',subname)
+!!!$$    
+!!!$$  end subroutine optimizeWithShifts
 
 
 
@@ -414,7 +415,7 @@ end subroutine getLinearPsi
 
 
 
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
+subroutine getLocalizedBasis(iproc, nproc, nlr, Llr, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
     itScc, lastAlpha, infoBasisFunctions)
 !
@@ -472,7 +473,8 @@ use module_interfaces, except_this_one => getLocalizedBasis
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, infoBasisFunctions, itSCC
+integer:: iproc, nproc, nlr, infoBasisFunctions, itSCC
+type(locreg_descriptors),dimension(nlr),intent(in):: LLr
 type(atoms_data), intent(in) :: at
 type(orbitals_data):: orbs
 type(locreg_descriptors), intent(in) :: Glr
@@ -1548,7 +1550,11 @@ processIf: if(iproc==0) then
     
         
         ! Calculate the modified band structure energy and the gradient norm.
-        if(it>1) ebsModOld=ebsMod
+        if(it>1) then
+            ebsModOld=ebsMod
+        else
+            ebsModOld=1.d10
+        end if
         ebsMod=0.d0
         fnrm=0.d0
         do iorb=1,orbs%norb
