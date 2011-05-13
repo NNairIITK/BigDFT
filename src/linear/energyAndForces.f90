@@ -117,12 +117,12 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   !calculate the self-consistent potential
   if (scpot) then
      ! Potential from electronic charge density
-     !call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
-     !     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
-     call sumrhoLinear(iproc,nproc,nlr,lin%orbs,Glr,Llr,in%ixc,hxh,hyh,hzh,&
-       psi,rhopot,&
-       & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,in%nspin,GPU, &
-       & atoms%symObj, irrzon, phnons)
+     call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
+          Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+     !call sumrhoLinear(iproc,nproc,nlr,lin%orbs,Glr,Llr,in%ixc,hxh,hyh,hzh,&
+     !  psi,rhopot,&
+     !  & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,in%nspin,GPU, &
+     !  & atoms%symObj, irrzon, phnons)
 
 
      if(orbs%nspinor==4) then

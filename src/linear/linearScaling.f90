@@ -103,11 +103,12 @@ integer,dimension(:,:),pointer :: outofzone
 
 ! Local variables
 integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr
-real(8),dimension(:),allocatable:: phi
-real(8),dimension(:,:),allocatable:: occupForInguess, coeff
+real(8),dimension(:),allocatable:: phi, phid
+real(8),dimension(:,:),allocatable:: occupForInguess, coeff, coeffd
 real(8):: ebsMod, alpha, pnrm, tt
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld
+type(linearParameters):: lind
 
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(8),dimension(:),allocatable:: phiTemp
@@ -124,8 +125,8 @@ real(wp),dimension(:),allocatable:: projTemp
   allocate(occupForInguess(32,at%nat))
 
   ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
-  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess, coeff, &
-      nlr, Llr, outofzone)
+  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
+      input, rxyz, occupForInguess, coeff, coeffd, nlr, Llr, outofzone)
 
   ! The next subroutine will create the variable wave function descriptors.
   ! It is not used at the moment.
@@ -141,10 +142,10 @@ real(wp),dimension(:),allocatable:: projTemp
   call memocc(istat, rhopotOld, 'rhopotOld', subname)
   do itSCC=1,nitSCC
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
-      call getLinearPsi(iproc, nproc, input%nspin, nlr, LLr, Glr, orbs, comms, at, lin, rxyz, rxyz, &
-          nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
+      call getLinearPsi(iproc, nproc, input%nspin, nlr, LLr, Glr, orbs, comms, at, lin, lind, rxyz, rxyz, &
+          nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, &
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
+          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd)
 
       ! Calculate the energy that we get with psi.
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)

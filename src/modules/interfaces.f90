@@ -1215,8 +1215,8 @@ module module_interfaces
 
 
 
-    subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess, coeff, &
-          nlr, Llr, outofzone)
+    subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
+          input, rxyz, occupForInguess, coeff, coeffd, nlr, Llr, outofzone)
       use module_base
       use module_types
       implicit none
@@ -1225,11 +1225,12 @@ module module_interfaces
       type(orbitals_data),intent(in):: orbs
       type(atoms_data),intent(in):: at
       type(linearParameters),intent(inout):: lin
+      type(linearParameters),intent(inout):: lind
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(in):: rxyz
       real(8),dimension(32,at%nat):: occupForInguess
-      real(8),dimension(:),allocatable,intent(out):: phi
-      real(8),dimension(:,:),allocatable,intent(out):: coeff
+      real(8),dimension(:),allocatable,intent(out):: phi, phid
+      real(8),dimension(:,:),allocatable,intent(out):: coeff, coeffd
       ! new
       integer,intent(out):: nlr
       type(locreg_descriptors),dimension(:),pointer,intent(out):: Llr
@@ -1401,10 +1402,10 @@ module module_interfaces
     end subroutine apply_potentialConfinement
 
 
-    subroutine getLinearPsi(iproc, nproc, nspin, nlr, Llr, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
-        nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
+    subroutine getLinearPsi(iproc, nproc, nspin, nlr, Llr, Glr, orbs, comms, at, lin, lind, rxyz, rxyzParab, &
+        nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-        i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
+        i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd)
       use module_base
       use module_types
       !use Poisson_Solver
@@ -1415,7 +1416,7 @@ module module_interfaces
       type(orbitals_data),intent(in) :: orbs
       type(communications_arrays),intent(in) :: comms
       type(atoms_data),intent(in):: at
-      type(linearParameters),intent(in):: lin
+      type(linearParameters),intent(in):: lin, lind
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
       real(8),dimension(3,at%nat),intent(inout):: rxyzParab
@@ -1434,11 +1435,13 @@ module module_interfaces
       real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
       real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
+      real(8),dimension(lind%orbs%npsidim),intent(inout):: phid
       real(8),dimension(orbs%npsidim),intent(out):: psi, psit
       integer,intent(out):: infoBasisFunctions, infoCoeff
       character(len=3),intent(in):: PSquiet
       real(8),intent(out):: ebsMod
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in out):: coeff
+      real(8),dimension(lind%orbs%norb,orbs%norb),intent(in out):: coeffd
       real(8),dimension(3,at%nat),intent(out):: fxyz
       real(8):: eion, edisp, fnoise
     end subroutine getLinearPsi
@@ -1815,6 +1818,33 @@ module module_interfaces
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       real(wp), dimension(orbs%npsidim), intent(in) :: psi
     end subroutine local_partial_densityLinear
+
+
+   subroutine createDerivativeBasis(n1,n2,n3, &
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+     hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+     w_c, w_f, w_f1, w_f2, w_f3, x_c, x_f, y_c, y_f, z_c, z_f)
+     use module_base
+     !use filterModule
+     implicit none
+     integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+     real(gp), intent(in) :: hgrid
+     integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+     integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+     integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+     real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: w_c
+     real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: w_f
+     real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: w_f1
+     real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(in) :: w_f2
+     real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: w_f3
+     real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: x_c
+     real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: x_f
+     real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
+     real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
+     real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: z_c
+     real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: z_f
+    end subroutine createDerivativeBasis
+
 
     
   end interface
