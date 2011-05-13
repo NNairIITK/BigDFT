@@ -149,21 +149,37 @@ allocate(phiWorkd(max(size(phid),size(psi))), stat=istat)
 call memocc(istat, phiWorkd, 'phiWorkd', subname)
 call transpose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
 nvctrp=lind%comms%nvctr_par(iproc,1) ! 1 for k-point
-allocate(ovrlp(lind%orbs%norb,lind%orbs%norb,2))
-ist=1
-do iorb=1,lind%orbs%norb
-  jst=1
-  do jorb=1,lind%orbs%norb
-      ovrlp(jorb,iorb,2)=ddot(nvctrp, phid(jst), 1, phid(ist), 1)
-      jst=jst+nvctrp
-  end do
-  ist=ist+nvctrp
-end do
-call mpi_allreduce(ovrlp(1,1,2), ovrlp(1,1,1), lind%orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-!do iorb=1,lind%orbs%norb
-!      if(iproc==0) write(*,'(100f8.3)') (ovrlp(iorb,jorb,1), jorb=1,lind%orbs%norb)
-!end do
-call orthogonalize(iproc, nproc, lind%orbs, lind%comms, Glr%wfd, phid, input)
+!!allocate(ovrlp(lind%orbs%norb,lind%orbs%norb,2))
+!!ist=1
+!!do iorb=1,lind%orbs%norb
+!!  jst=1
+!!  do jorb=1,lind%orbs%norb
+!!      ovrlp(jorb,iorb,2)=ddot(nvctrp, phid(jst), 1, phid(ist), 1)
+!!      jst=jst+nvctrp
+!!  end do
+!!  ist=ist+nvctrp
+!!end do
+!!call mpi_allreduce(ovrlp(1,1,2), ovrlp(1,1,1), lind%orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!do iorb=1,lind%orbs%norb
+!!      if(iproc==0) write(*,'(100f8.3)') (ovrlp(iorb,jorb,1), jorb=1,lind%orbs%norb)
+!!end do
+!call orthogonalize(iproc, nproc, lind%orbs, lind%comms, Glr%wfd, phid, input)
+call orthonormalizeOnlyDerivatives(iproc, nproc, lin, lind, phid)
+!!ovrlp=0.d0
+!!ist=1
+!!do iorb=1,lind%orbs%norb
+!!  jst=1
+!!  do jorb=1,lind%orbs%norb
+!!      ovrlp(jorb,iorb,2)=ddot(nvctrp, phid(jst), 1, phid(ist), 1)
+!!      jst=jst+nvctrp
+!!  end do
+!!  ist=ist+nvctrp
+!!end do
+!!call mpi_allreduce(ovrlp(1,1,2), ovrlp(1,1,1), lind%orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+!!if(iproc==0) write(*,*) '====================================================================================='
+!!do iorb=1,lind%orbs%norb
+!!      if(iproc==0) write(*,'(200es10.2)') (ovrlp(iorb,jorb,1), jorb=1,lind%orbs%norb)
+!!end do
 call untranspose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
 iall=-product(shape(phiWorkd))*kind(phiWorkd)
 deallocate(phiWorkd, stat=istat)
@@ -2372,6 +2388,7 @@ real(8),dimension(lind%orbs%npsidim),intent(out):: phid
 
 ! Local variables
 integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iorb, jproc, ierr
+integer:: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f, istLoc, istRoot
 real(8),dimension(0:3),parameter:: scal=1.d0
 real(8),dimension(:),allocatable:: w_f1, w_f2, w_f3, phiLoc, phiRoot
 real(8),dimension(:,:,:),allocatable:: w_c, phix_c, phiy_c, phiz_c
@@ -2435,6 +2452,20 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
   ist1_f=1+Glr%wfd%nvctr_c
   ist2_c=1
   ist2_f=1+Glr%wfd%nvctr_c
+
+  ! These are the starting indices in phiLoc:
+  ! ist0: start index of the orginal phi
+  ist0_c=1
+  ist0_f=ist0_c+Glr%wfd%nvctr_c
+  ! istx: start index of the derivative with respect to x
+  istx_c=1+lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  istx_f=istx_c+Glr%wfd%nvctr_c
+  ! isty: start index of the derivative with respect to y
+  isty_c=1+lin%orbs%norbp*2*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  isty_f=isty_c+Glr%wfd%nvctr_c
+  ! istz: start index of the derivative with respect to z
+  istz_c=1+lin%orbs%norbp*3*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  istz_f=istz_c+Glr%wfd%nvctr_c
   do iorb=1,lin%orbs%norbp
       ! Uncompress the wavefunction.
       call uncompress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, & 
@@ -2451,9 +2482,9 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
            w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
 
       ! Copy phi to phiLoc
-      call dcopy(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist2_c), 1)
-      ist2_c = ist2_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-      ist2_f = ist2_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+      call dcopy(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
+      ist0_c = ist0_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+      ist0_f = ist0_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
 
       ! Compress the x wavefunction.
       call compress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, &
@@ -2461,9 +2492,9 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
            Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv, &
            Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
            Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
-           scal, phix_c, phix_f, phiLoc(ist2_c), phiLoc(ist2_f))
-      ist2_c = ist2_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-      ist2_f = ist2_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+           scal, phix_c, phix_f, phiLoc(istx_c), phiLoc(istx_f))
+      istx_c = istx_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+      istx_f = istx_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
 
       ! Compress the y wavefunction.
       call compress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, &
@@ -2471,9 +2502,9 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
            Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv, &
            Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
            Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
-           scal, phiy_c, phiy_f, phiLoc(ist2_c), phiLoc(ist2_f))
-      ist2_c = ist2_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-      ist2_f = ist2_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+           scal, phiy_c, phiy_f, phiLoc(isty_c), phiLoc(isty_f))
+      isty_c = isty_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+      isty_f = isty_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
 
       ! Compress the z wavefunction.
       call compress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, &
@@ -2481,9 +2512,9 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
            Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv, &
            Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
            Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
-           scal, phiz_c, phiz_f, phiLoc(ist2_c), phiLoc(ist2_f))
-      ist2_c = ist2_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-      ist2_f = ist2_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+           scal, phiz_c, phiz_f, phiLoc(istz_c), phiLoc(istz_f))
+      istz_c = istz_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
+      istz_f = istz_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
 
       ist1_c = ist1_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
       ist1_f = ist1_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
@@ -2504,14 +2535,56 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
       allocate(phiRoot(lind%orbs%norb*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)), stat=istat)
       call memocc(istat, phiRoot, 'phiRoot', subname)
   !end if
+
+  ! Gather the original phi
+  istLoc=1
+  istRoot=1
   displs(0)=1
   do jproc=0,nproc-1
       if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
-      recvcounts(jproc)=4*lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-      ! if(iproc==0) write(*,'(a,i4,2i6)') 'jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+      recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+      if(iproc==0) write(*,'(a,i4,2i6)') '0: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
   end do
-  call mpi_gatherv(phiLoc(1), 4*lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, &
-       phiRoot(1), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+  call mpi_gatherv(phiLoc(istLoc), lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, &
+       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+
+  ! Gather the derivatives with respect to x
+  istLoc=lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
+  istRoot=lin%orbs%norb*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
+  displs(0)=1
+  do jproc=0,nproc-1
+      if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
+      recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+      if(iproc==0) write(*,'(a,i4,2i6)') 'x: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  end do
+  call mpi_gatherv(phiLoc(istLoc), lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, &
+       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+
+  ! Gather the derivatives with respect to y
+  istLoc=2*lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
+  istRoot=2*lin%orbs%norb*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
+  displs(0)=1
+  do jproc=0,nproc-1
+      if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
+      recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+      if(iproc==0) write(*,'(a,i4,2i6)') 'y: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  end do
+  call mpi_gatherv(phiLoc(istLoc), lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, &
+       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+
+  ! Gather the derivatives with respect to z
+  istLoc=3*lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
+  istRoot=3*lin%orbs%norb*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
+  displs(0)=1
+  do jproc=0,nproc-1
+      if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
+      recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+       if(iproc==0) write(*,'(a,i4,2i6)') 'z: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  end do
+  call mpi_gatherv(phiLoc(istLoc), lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, &
+       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+
+
   displs(0)=1
   do jproc=0,nproc-1
       if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
@@ -2546,13 +2619,52 @@ end subroutine getDerivativeBasisFunctions
 
 
 
-subroutine orthonormalizeOnlyDerivatives
+subroutine orthonormalizeOnlyDerivatives(iproc, nproc, lin, lind, phid)
 !
 use module_base
+use module_defs
 use module_types
 implicit none
 
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(in):: lin, lind
+real(8),dimension(lind%orbs%npsidim),intent(inout):: phid
 
+! Local varibles
+integer:: iorb, jorb, ist, jst, nvctrp, ierr
+real(8):: tt, ddot, dnrm2
+
+
+! Orthogonalize the derivative basis functions to the original ones.
+nvctrp=lind%comms%nvctr_par(iproc,1) ! 1 for k-point
+ist=1
+do iorb=1,lin%orbs%norb
+    jst=lin%orbs%norb*nvctrp+1
+    do jorb=lin%orbs%norb+1,4*lin%orbs%norb
+        tt=ddot(nvctrp, phid(ist), 1, phid(jst), 1)
+        call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+        call daxpy(nvctrp, -tt, phid(ist), 1, phid(jst), 1)
+        jst=jst+nvctrp
+    end do
+    ist=ist+nvctrp 
+end do
+
+! Now orthonormalize the derivative basis functions.
+ist=lin%orbs%norb*nvctrp+1
+do iorb=lin%orbs%norb+1,4*lin%orbs%norb
+    jst=lin%orbs%norb*nvctrp+1
+    do jorb=lin%orbs%norb+1,iorb-1
+        tt=ddot(nvctrp, phid(ist), 1, phid(jst), 1)
+        call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+        call daxpy(nvctrp, -tt, phid(jst), 1, phid(ist), 1)
+        jst=jst+nvctrp
+    end do
+    tt=ddot(nvctrp, phid(ist), 1, phid(ist), 1)
+    call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+    call dscal(nvctrp, 1.d0/sqrt(tt), phid(ist), 1)
+    ist=ist+nvctrp
+end do
 
 
 end subroutine orthonormalizeOnlyDerivatives
