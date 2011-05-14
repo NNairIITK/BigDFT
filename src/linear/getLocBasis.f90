@@ -121,6 +121,7 @@ real :: ttreal
 
 integer:: nvctrp, ist, jst, ierr
 real(8),dimension(:,:,:),allocatable:: ovrlp
+real(8):: tt1, tt2
   
   allocate(hphi(lin%orbs%npsidim), stat=istat) 
   call memocc(istat, hphi, 'hphi', subname)
@@ -149,7 +150,7 @@ allocate(phiWorkd(max(size(phid),size(psi))), stat=istat)
 call memocc(istat, phiWorkd, 'phiWorkd', subname)
 call transpose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
 nvctrp=lind%comms%nvctr_par(iproc,1) ! 1 for k-point
-!!allocate(ovrlp(lind%orbs%norb,lind%orbs%norb,2))
+allocate(ovrlp(lind%orbs%norb,lind%orbs%norb,2))
 !!ist=1
 !!do iorb=1,lind%orbs%norb
 !!  jst=1
@@ -165,21 +166,31 @@ nvctrp=lind%comms%nvctr_par(iproc,1) ! 1 for k-point
 !!end do
 !call orthogonalize(iproc, nproc, lind%orbs, lind%comms, Glr%wfd, phid, input)
 call orthonormalizeOnlyDerivatives(iproc, nproc, lin, lind, phid)
-!!ovrlp=0.d0
-!!ist=1
-!!do iorb=1,lind%orbs%norb
-!!  jst=1
-!!  do jorb=1,lind%orbs%norb
-!!      ovrlp(jorb,iorb,2)=ddot(nvctrp, phid(jst), 1, phid(ist), 1)
-!!      jst=jst+nvctrp
-!!  end do
-!!  ist=ist+nvctrp
-!!end do
-!!call mpi_allreduce(ovrlp(1,1,2), ovrlp(1,1,1), lind%orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-!!if(iproc==0) write(*,*) '====================================================================================='
-!!do iorb=1,lind%orbs%norb
-!!      if(iproc==0) write(*,'(200es10.2)') (ovrlp(iorb,jorb,1), jorb=1,lind%orbs%norb)
-!!end do
+ovrlp=0.d0
+ist=1
+do iorb=1,lind%orbs%norb
+  jst=1
+  do jorb=1,lind%orbs%norb
+      ovrlp(jorb,iorb,2)=ddot(nvctrp, phid(jst), 1, phid(ist), 1)
+      jst=jst+nvctrp
+  end do
+  ist=ist+nvctrp
+end do
+call mpi_allreduce(ovrlp(1,1,2), ovrlp(1,1,1), lind%orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+if(iproc==0) write(*,*) '====================================================================================='
+tt1=0.d0
+tt2=0.d0
+do iorb=1,lind%orbs%norb
+      if(iproc==0) write(*,'(200es10.2)') (ovrlp(iorb,jorb,1), jorb=1,lind%orbs%norb)
+      do jorb=1,lind%orbs%norb
+          if(iorb==jorb) then
+              tt1=tt1+abs(ovrlp(jorb,iorb,1))
+          else
+              tt2=tt2+abs(ovrlp(jorb,iorb,1))
+          end if
+      end do
+end do
+if(iproc==0) write(*,*) 'tt1, tt2', tt1, tt2
 call untranspose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
 iall=-product(shape(phiWorkd))*kind(phiWorkd)
 deallocate(phiWorkd, stat=istat)
@@ -2632,39 +2643,130 @@ type(linearParameters),intent(in):: lin, lind
 real(8),dimension(lind%orbs%npsidim),intent(inout):: phid
 
 ! Local varibles
-integer:: iorb, jorb, ist, jst, nvctrp, ierr
+integer:: iorb, jorb, ist, jst, nvctrp, ierr, istat, iall, lwork, info
+
 real(8):: tt, ddot, dnrm2
+real(8),dimension(:),allocatable:: work, eval
+real(8),dimension(:,:),allocatable:: ovrlp, A, phidTemp
+real(8),dimension(:,:,:),allocatable:: tempArr
+character(len=*),parameter:: subname='orthonormalizeOnlyDerivatives'
 
 
+allocate(ovrlp(lin%orbs%norb+1:4*lin%orbs%norb,1:lin%orbs%norb), stat=istat)
+call memocc(istat, ovrlp, 'ovrlp', subname)
 ! Orthogonalize the derivative basis functions to the original ones.
 nvctrp=lind%comms%nvctr_par(iproc,1) ! 1 for k-point
-ist=1
-do iorb=1,lin%orbs%norb
-    jst=lin%orbs%norb*nvctrp+1
+allocate(A(nvctrp,lin%orbs%norb+1:4*lin%orbs%norb), stat=istat)
+call memocc(istat, A, 'A', subname)
+! Overlap matrix
+call dgemm('t', 'n', 3*lin%orbs%norb, lin%orbs%norb, nvctrp, 1.d0, phid(lin%orbs%norb*nvctrp+1), &
+     nvctrp, phid(1), nvctrp, 0.d0, ovrlp(lin%orbs%norb+1,1), 3*lin%orbs%norb) 
+! MPI
+call mpiallred(ovrlp(lin%orbs%norb+1,1), 3*lin%orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+! The components to be projected out
+call dgemm('n', 't', nvctrp, 3*lin%orbs%norb, lin%orbs%norb, 1.d0, phid(1), &
+     nvctrp, ovrlp(lin%orbs%norb+1,1), 3*lin%orbs%norb, 0.d0, A(1,lin%orbs%norb+1), nvctrp)
+! Project out
+call daxpy(3*lin%orbs%norb*nvctrp, -1.d0, A(1,lin%orbs%norb+1), 1, phid(lin%orbs%norb*nvctrp+1), 1)
+
+
+!§! Orthogonalize the derivative basis functions to the original ones.
+!§nvctrp=lind%comms%nvctr_par(iproc,1) ! 1 for k-point
+!§ist=1
+!§do iorb=1,lin%orbs%norb
+!§    jst=lin%orbs%norb*nvctrp+1
+!§    do jorb=lin%orbs%norb+1,4*lin%orbs%norb
+!§        tt=ddot(nvctrp, phid(ist), 1, phid(jst), 1)
+!§        call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+!§        call daxpy(nvctrp, -tt, phid(ist), 1, phid(jst), 1)
+!§        jst=jst+nvctrp
+!§    end do
+!§    ist=ist+nvctrp 
+!§end do
+
+iall=-product(shape(ovrlp))*kind(ovrlp)
+deallocate(ovrlp, stat=istat)
+call memocc(istat, iall, 'ovrlp', subname)
+
+allocate(ovrlp(lin%orbs%norb+1:4*lin%orbs%norb,lin%orbs%norb+1:4*lin%orbs%norb), stat=istat)
+call memocc(istat, ovrlp, 'ovrlp', subname)
+
+! Calculate the overlap matrix
+call dsyrk('l', 't', 3*lin%orbs%norb, nvctrp, 1.d0, phid(lin%orbs%norb*nvctrp+1), nvctrp, &
+     0.d0, ovrlp(lin%orbs%norb+1,lin%orbs%norb+1), 3*lin%orbs%norb)
+! MPI
+call mpiallred(ovrlp(lin%orbs%norb+1,lin%orbs%norb+1), 9*lin%orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+
+
+allocate(eval(lin%orbs%norb+1:4*lin%orbs%norb), stat=istat)
+call memocc(istat, eval, 'eval', subname)
+
+! Diagonalize overlap matrix.
+allocate(work(1), stat=istat)
+call memocc(istat, work, 'work', subname)
+call dsyev('v', 'l', 3*lin%orbs%norb, ovrlp(lin%orbs%norb+1,lin%orbs%norb+1), 3*lin%orbs%norb, eval, &
+     work, -1, info)
+lwork=work(1)
+iall=-product(shape(work))*kind(work)
+deallocate(work, stat=istat)
+call memocc(istat, iall, 'work', subname)
+allocate(work(lwork), stat=istat)
+call memocc(istat, work, 'work', subname)
+call dsyev('v', 'l', 3*lin%orbs%norb, ovrlp(lin%orbs%norb+1,lin%orbs%norb+1), 3*lin%orbs%norb, eval, &
+     work, lwork, info)
+
+! Calculate S^{-1/2}. 
+! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
+! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
+allocate(tempArr(lin%orbs%norb+1:4*lin%orbs%norb,lin%orbs%norb+1:4*lin%orbs%norb,2), stat=istat)
+call memocc(istat, tempArr, 'tempArr', subname)
+do iorb=lin%orbs%norb+1,4*lin%orbs%norb
     do jorb=lin%orbs%norb+1,4*lin%orbs%norb
-        tt=ddot(nvctrp, phid(ist), 1, phid(jst), 1)
-        call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-        call daxpy(nvctrp, -tt, phid(ist), 1, phid(jst), 1)
-        jst=jst+nvctrp
+        tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
     end do
-    ist=ist+nvctrp 
 end do
 
-! Now orthonormalize the derivative basis functions.
-ist=lin%orbs%norb*nvctrp+1
-do iorb=lin%orbs%norb+1,4*lin%orbs%norb
-    jst=lin%orbs%norb*nvctrp+1
-    do jorb=lin%orbs%norb+1,iorb-1
-        tt=ddot(nvctrp, phid(ist), 1, phid(jst), 1)
-        call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-        call daxpy(nvctrp, -tt, phid(jst), 1, phid(ist), 1)
-        jst=jst+nvctrp
-    end do
-    tt=ddot(nvctrp, phid(ist), 1, phid(ist), 1)
-    call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-    call dscal(nvctrp, 1.d0/sqrt(tt), phid(ist), 1)
-    ist=ist+nvctrp
-end do
+! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
+! This will give S^{-1/2}.
+call dgemm('n', 't', 3*lin%orbs%norb, 3*lin%orbs%norb, 3*lin%orbs%norb, 1.d0, ovrlp(lin%orbs%norb+1,lin%orbs%norb+1), &
+     3*lin%orbs%norb, tempArr(lin%orbs%norb+1,lin%orbs%norb+1,1), 3*lin%orbs%norb, 0.d0, &
+     tempArr(lin%orbs%norb+1,lin%orbs%norb+1,2), 3*lin%orbs%norb)
+
+! Now calculate the orthonormal orbitals by applying S^{-1/2} to the orbitals.
+! This requires the use of a temporary variable phidTemp.
+allocate(phidTemp(nvctrp,lin%orbs%norb+1:4*lin%orbs%norb), stat=istat)
+call memocc(istat, phidTemp, 'phidTemp', subname)
+call dgemm('n', 'n', nvctrp, 3*lin%orbs%norb, 3*lin%orbs%norb, 1.d0, phid(lin%orbs%norb*nvctrp+1), &
+     nvctrp, tempArr(lin%orbs%norb+1,lin%orbs%norb+1,2),  3*lin%orbs%norb, 0.d0, &
+     phidTemp(1,lin%orbs%norb+1), nvctrp)
+
+! Now copy the orbitals from the temporary variable to phid.
+call dcopy(3*lin%orbs%norb*nvctrp, phidTemp(1,lin%orbs%norb+1), 1, phid(lin%orbs%norb*nvctrp+1), 1)
+
+
+
+
+
+
+
+!! Now orthonormalize the derivative basis functions.
+!ist=lin%orbs%norb*nvctrp+1
+!do iorb=lin%orbs%norb+1,4*lin%orbs%norb
+!    jst=lin%orbs%norb*nvctrp+1
+!    do jorb=lin%orbs%norb+1,iorb-1
+!        tt=ddot(nvctrp, phid(ist), 1, phid(jst), 1)
+!        call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+!        call daxpy(nvctrp, -tt, phid(jst), 1, phid(ist), 1)
+!        jst=jst+nvctrp
+!    end do
+!    tt=ddot(nvctrp, phid(ist), 1, phid(ist), 1)
+!    call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
+!    call dscal(nvctrp, 1.d0/sqrt(tt), phid(ist), 1)
+!    ist=ist+nvctrp
+!end do
+!write(100+iproc,*) phid
+!!write(200+iproc,*) phid
+!call mpi_barrier(mpi_comm_world, ierr)
 
 
 end subroutine orthonormalizeOnlyDerivatives
