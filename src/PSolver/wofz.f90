@@ -280,9 +280,11 @@ subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
      u1   = -factor*(xsum*yabs + ysum*xabs) + 1.0_dp
      v1   =  factor*(xsum*xabs - ysum*yabs)
      !MODIFICATION: the exponent is corrected, yabs disappears
+
      daux = fac**2
      daux = exp(-daux)
      daux = daux**(q**2)
+
      !daux =  exp(-xquad-yabs**2)
      u2   =  daux*dcos(yquadmod)
      v2   = -daux*dsin(yquadmod)
@@ -367,7 +369,6 @@ subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
   !
   !  evaluation of w(z) in the other quadrants
   !
-
   if (jm < 0) then
 
      if (a) then
@@ -381,13 +382,16 @@ subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
         !against overflow, taking into account the modification
         if (xquad-yabs**2 > rmaxexp) then
            flag = .true.
-           !print *,'bbb',xi,yi,yquad,xquad,rmaxgoni,rmaxexp
            return
         end if
-
-        daux = fac**2
-        daux = exp(-daux)
-        w1 = 2.0_dp*daux**(q**2)
+        !daux = fac**2
+        !daux = exp(-daux)
+        !w1 = 2.0_dp*daux**(q**2)
+        !avoid floating point exceptions
+        daux = real(q,kind=8)*fac
+        daux = daux*daux
+        daux = dexp(-daux)
+        w1 = 2.0_dp*daux    
         !w1 =  2*dexp(xquad-yabs**2)
         u2  =  w1*dcos(yquadmod)
         v2  = -w1*dsin(yquadmod)
@@ -401,5 +405,4 @@ subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
   else
      if (q < 0) v = -v
   end if
-
 END SUBROUTINE wofz_mod

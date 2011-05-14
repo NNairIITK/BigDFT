@@ -287,7 +287,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      
   norbv=abs(in%norbv)
   nvirt=in%nvirt
-
   hx=in%hx
   hy=in%hy
   hz=in%hz
@@ -846,7 +845,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           & AB6_MIXING_REAL_SPACE, 1, in%nspin, 0, &
           & ierr, errmess, useprec = .false.)
   end if
-  if (in%itrpmax >1) call ab6_mixing_eval_allocate(mix)
+  if (in%itrpmax >1) then
+     call ab6_mixing_eval_allocate(mix)
+     !stop if the iscf is not compatible 
+     if (in%iscf == 0) then
+        write(*,*)'ERROR: the iscf code is not compatible with the mixing routines'
+        stop
+     end if
+  end if
   endlooprp=.false.
 
   !if we are in the last_run case, validate the last_run only for the last cycle
@@ -889,7 +895,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               ! Potential from electronic charge density
               call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
                    n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
-
               !here the density can be mixed
               if (mix%kind == AB6_MIXING_DENSITY .and. in%itrpmax>1) then
                  call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
@@ -1424,12 +1429,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 pkernelseq,psi,psivirt,ngatherarr,GPU)
         else if (in%norbv > 0) then
            call davidson(iproc,nproc,n1i,n2i,in,atoms,&
-                orbs,orbsv,nvirt,Glr,comms,commsv,&
+                orbs,orbsv,in%nvirt,Glr,comms,commsv,&
                 hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
                 pkernelseq,psi,psivirt,ngatherarr,GPU)
         end if
 
-        if (atoms%geocode == 'F' .and. .false.) then
+        !start the Casida's treatment 
+        if (in%tddft_approach=='TDA') then
+
+           !this could have been calculated before
            ! Potential from electronic charge density
            call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
                 n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
@@ -1448,7 +1456,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 rhopot,eexcu,vexcu,in%nspin,rhocore,potxc,dvxcdrho)
 
            !select the active space if needed
-
 
            call tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,ngatherarr(0,1),&
                 Glr,orbs,orbsv,i3s+i3xcsh,dvxcdrho,pkernelseq,psi,psivirt)
