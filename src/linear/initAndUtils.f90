@@ -52,6 +52,7 @@ integer:: norb, norbu, norbd
 integer,dimension(:),allocatable:: norbsPerType, norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20):: atomname
+character(len=20),dimension(:),allocatable:: atomNames
 logical:: written, fileExists
 real(8),dimension(:),pointer:: phiWork
 real :: ttreal
@@ -62,85 +63,13 @@ real(gp),dimension(:),allocatable:: locrad
 ! Allocate all local arrays.
 allocate(norbsPerType(at%ntypes), stat=istat)
 call memocc(istat, norbsPerType, 'norbsPerType', subname)
+allocate(atomNames(at%ntypes), stat=istat)
+call memocc(istat, atomNames, 'atomNames', subname)
 allocate(norbsPerAtom(at%nat), stat=istat)
 call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 
 ! Read in all parameters related to the linear scaling version and print them.
-inquire(file='input.lin', exist=fileExists)
-if(.not. fileExists) then
-    if(iproc==0) write(*,'(x,a)') "ERROR: the file 'input.lin' must be present for the linear &
-        & scaling version!"
-    call mpi_barrier(mpi_comm_world, ierr)
-    stop
-end if
-allocate(lin%potentialPrefac(at%ntypes), stat=istat)
-call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
-open(unit=99, file='input.lin')
-read(99,*) lin%nItBasisFirst, lin%nItBasis
-read(99,*) lin%convCrit
-read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
-read(99,*) lin%startWithSD, lin%startDIIS
-read(99,*) lin%nItPrecond
-read(99,*) lin%getCoeff
-read(99,*) lin%nItCoeff, lin%convCritCoeff
-read(99,*) lin%nItSCC, lin%alphaMix
-read(99,*) lin%useDerivativeBasisFunctions
-read(99,*) lin%plotBasisFunctions
-call checkLinearParameters(iproc, lin)
-!! Copy this to lind -- EXERIMENTAL
-lind%nItBasisFirst=lin%nItBasisFirst; lind%nItBasis=lind%nItBasis
-lind%convCrit=lin%convCrit
-lind%DIISHistMin=lin%DIISHistMin; lind%DIISHistMax=lin%DIISHistMax; lind%alphaDIIS=lin%alphaDIIS; lind%alphaSD=lin%alphaSD
-lind%startWithSD=lin%startWithSD; lind%startDIIS=lin%startDIIS
-lind%nItPrecond=lin%nItPrecond
-lind%getCoeff=lin%getCoeff
-lind%nItCoeff=lin%nItCoeff; lind%convCritCoeff=lin%convCritCoeff
-lind%nItSCC=lin%nItSCC; lind%alphaMix=lin%alphaMix
-lind%plotBasisFunctions=lin%plotBasisFunctions
-if(iproc==0) write(*,'(x,a)') '################################# Input parameters #################################'
-if(iproc==0) write(*,'(x,a)') '>>>> General parameters.'
-if(iproc==0) write(*,'(4x,a,9x,a,3x,a,3x,a,4x,a,4x,a)') '| ', ' | ', 'number of', ' | ', 'prefactor for', ' |'
-if(iproc==0) write(*,'(4x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis functions', ' | ', &
-    'confinement potential', ' |'
-do iat=1,at%ntypes
-    read(99,*) atomname, norbsPerType(iat), lin%potentialPrefac(iat)
-    if(iproc==0) write(*,'(4x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomname), &
-        repeat(' ', 6-len_trim(atomname)), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(iat)+1)+1.d-10))), &
-         norbsPerType(iat), '|', lin%potentialPrefac(iat), ' |'
-end do
-close(unit=99)
-if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '|  number of iterations in the   | alpha mix | use the derivative |'
-if(iproc==0) write(*,'(4x,a)') '|     selfconsistency cycle      |           |  basis functions   |'
-if(iproc==0) write(*,'(4x,a,a,i0,16x,a,x,es9.3,x,a,8x,l,10x,a)') '|', repeat(' ', 16-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
-     lin%nItSCC, '|', lin%alphaMix, '|', lin%useDerivativeBasisFunctions, '|'
-if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------'
-if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
-if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
-if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
-if(iproc==0) write(*,'(4x,a)') '|  first   else  |             |                |           |       |'
-if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
-    repeat(' ', 5-ceiling(log10(dble(lin%nItBasisFirst+1)+1.d-10))), lin%nItBasisFirst, &
-    repeat(' ', 5-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
-      '| ', lin%convCrit, ' | ', &
-      repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       |   ', &
-      lin%getCoeff, '    |  ', &
-      lin%plotBasisFunctions, '   |'
-if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS |'
-if(iproc==0) write(*,'(4x,a)') '|  min   max   |            |          | with SD |            |'
-if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '|', &
-    repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
-    repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
-    lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |'
-if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------'
-if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the coefficients.'
-if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence |'
-if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  |'
-if(iproc==0) write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a)') '| ', &
-    repeat(' ', 9-ceiling(log10(dble(lin%nItCoeff+1)+1.d-10))), lin%nItCoeff, ' | ', lin%convCritCoeff, ' | '
-if(iproc==0) write(*,'(4x,a)') '--------------------------------'
-
+call readLinearParameters(iproc, lin, lind, at, atomNames, norbsPerType)
 
 ! Assign to each atom its number of basis functions and count how many basis functions 
 ! we have in total.
@@ -151,38 +80,13 @@ do iat=1,at%nat
     lin%orbs%norb=lin%orbs%norb+norbsPerAtom(iat)
 end do
 
-
 ! Distribute the orbitals among the processors.
 norb=lin%orbs%norb
 norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%orbs)
-written=.false.
-if(iproc==0) write(*,'(x,a)') '>>>> Partition of the basis functions among the processes.'
-do jproc=1,nproc-1
-    if(lin%orbs%norb_par(jproc)<lin%orbs%norb_par(jproc-1)) then
-        !if(iproc==0) write(*,'(x,a,5(i0,a))') '#| Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), &
-        !    ' orbitals, processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.'
-        if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
-            lin%orbs%norb_par(jproc-1), ' orbitals,', &
-            repeat(' ', 3-ceiling(log10(dble(jproc)))-ceiling(log10(dble(lin%orbs%norb_par(jproc-1)+1)))), '|'
-        if(iproc==0) write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
-            lin%orbs%norb_par(jproc),' orbitals.', &
-            repeat(' ', 4-ceiling(log10(dble(jproc+1)))-ceiling(log10(dble(nproc)))-&
-            ceiling(log10(dble(lin%orbs%norb_par(jproc)+1)))), '|'
-        written=.true.
-        exit
-    end if
-end do
-if(.not.written) then
-    if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
-        ' treat ',lin%orbs%norbp,' orbitals. |'!, &
-        !repeat(' ', 15-ceiling(log10(dble(nproc)))-ceiling(log10(dble(lin%orbs%norbp+1)))), '|'
-end if
-if(iproc==0) write(*,'(x,a)') '-----------------------------------------------'
 
-
-! Number of basis functions if the derivative is includede
+! Number of basis functions if the derivative is included.
 lind%orbs%norb=4*lin%orbs%norb
 
 ! Distribute the orbitals among the processors.
@@ -190,35 +94,16 @@ norb=lind%orbs%norb
 norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lind%orbs)
-written=.false.
-if(iproc==0) write(*,'(x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
-do jproc=1,nproc-1
-    if(lind%orbs%norb_par(jproc)<lind%orbs%norb_par(jproc-1)) then
-        !if(iproc==0) write(*,'(x,a,5(i0,a))') '#| Processes from 0 to ',jproc-1,' treat ',lin%orbs%norb_par(jproc-1), &
-        !    ' orbitals, processes from ',jproc,' to ',nproc-1,' treat ',lin%orbs%norb_par(jproc),' orbitals.'
-        if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
-            lind%orbs%norb_par(jproc-1), ' orbitals,', &
-            repeat(' ', 3-ceiling(log10(dble(jproc)))-ceiling(log10(dble(lind%orbs%norb_par(jproc-1)+1)))), '|'
-        if(iproc==0) write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
-            lind%orbs%norb_par(jproc),' orbitals.', &
-            repeat(' ', 4-ceiling(log10(dble(jproc+1)))-ceiling(log10(dble(nproc)))-&
-            ceiling(log10(dble(lind%orbs%norb_par(jproc)+1)))), '|'
-        written=.true.
-        exit
-    end if
-end do
-if(.not.written) then
-    if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
-        ' treat ',lind%orbs%norbp,' orbitals. |'!, &
-        !repeat(' ', 15-ceiling(log10(dble(nproc)))-ceiling(log10(dble(lin%orbs%norbp+1)))), '|'
-end if
-if(iproc==0) write(*,'(x,a)') '####################################################################################'
+
+! Write all parameters related to the linear scaling version to the screen.
+call writeLinearParameters(iproc, nproc, at, lin, lind, atomNames, norbsPerType)
 
 
 ! Decide which orbital is centered in which atom.
 allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
 call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
 call assignOrbitalsToAtoms(iproc, at%nat, lin, norbsPerAtom)
+
 
 ! The same for the basis including the derivatives.
 allocate(lind%onWhichAtom(lind%orbs%norbp), stat=istat)
@@ -230,8 +115,6 @@ norbsPerAtom=norbsPerAtom/4  ! Undo this..
 !!    write(*,'(a,2i7,i10)') 'iproc, iorb, lind%onWhichAtom(iorb)', iproc, iorb, lind%onWhichAtom(iorb)
 !!end do
 
-
-!write(*,'(a,i2,3x,200i4)') 'iproc, lin%onWhichAtom', iproc, lin%onWhichAtom
 
 
 ! lin%orbs%isorb is the 'first' orbital for a given MPI process.
@@ -270,18 +153,10 @@ call orbitals_communicators(iproc,nproc,Glr,lind%orbs,lind%comms)
 ! Allocate phi and initialize it at random
 allocate(phi(lin%orbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
-!call initRandomSeed(iproc, 1)
 call initRandomSeed(0, 1)
-!call random_number(phi)
 call randomWithinCutoff(iproc, lin%orbs, Glr, at, lin, input, rxyz, phi)
 !call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
 !    .5d0*input%hy, .5d0*input%hz, 1)
-!!allocate(phiWork(lin%orbs%npsidim), stat=istat)
-!!call memocc(istat, phiWork, 'phiWork', subname)
-!!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-!!iall=-product(shape(phiWork))*kind(phiWork)
-!!deallocate(phiWork, stat=istat)
-!!call memocc(istat, iall, 'phiWork', subname)
 
 
 !write(*,*) 'calling createInputGuess'
@@ -387,12 +262,211 @@ allocate(Llr(nlr+ndebug),stat=istat)
 iall=-product(shape(norbsPerType))*kind(norbsPerType)
 deallocate(norbsPerType, stat=istat)
 call memocc(istat, iall, 'norbsPerType', subname)
+
+iall=-product(shape(atomNames))*kind(atomNames)
+deallocate(atomNames, stat=istat)
+call memocc(istat, iall, 'atomNames', subname)
+
 iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
 deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
 
 end subroutine allocateAndInitializeLinear
+
+
+
+
+subroutine readLinearParameters(iproc, lin, lind, at, atomNames, norbsPerType)
+use module_base
+use module_types
+implicit none
+
+integer,intent(in):: iproc
+type(linearParameters):: lin, lind
+type(atoms_data),intent(in):: at
+character(len=20),dimension(at%ntypes):: atomNames
+integer,dimension(at%ntypes):: norbsPerType
+
+! Local variables
+integer:: istat, itype, ierr
+logical:: fileExists
+character(len=*),parameter:: subname='readLinearParameters'
+
+
+inquire(file='input.lin', exist=fileExists)
+if(.not. fileExists) then
+    if(iproc==0) write(*,'(x,a)') "ERROR: the file 'input.lin' must be present for the linear &
+        & scaling version!"
+    call mpi_barrier(mpi_comm_world, ierr)
+    stop
+end if
+allocate(lin%potentialPrefac(at%ntypes), stat=istat)
+call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
+open(unit=99, file='input.lin')
+read(99,*) lin%nItBasisFirst, lin%nItBasis
+read(99,*) lin%convCrit
+read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
+read(99,*) lin%startWithSD, lin%startDIIS
+read(99,*) lin%nItPrecond
+read(99,*) lin%getCoeff
+read(99,*) lin%nItCoeff, lin%convCritCoeff
+read(99,*) lin%nItSCC, lin%alphaMix
+read(99,*) lin%useDerivativeBasisFunctions
+read(99,*) lin%plotBasisFunctions
+call checkLinearParameters(iproc, lin)
+do itype=1,at%ntypes
+    read(99,*) atomNames(itype), norbsPerType(itype), lin%potentialPrefac(itype)
+end do
+close(unit=99)
+
+! Copy the contents from lin to lind.
+! Do not copy everything, but only some parts. Maybe this amount can even be reduced.
+lind%nItBasisFirst=lin%nItBasisFirst; lind%nItBasis=lind%nItBasis
+lind%convCrit=lin%convCrit
+lind%DIISHistMin=lin%DIISHistMin; lind%DIISHistMax=lin%DIISHistMax; lind%alphaDIIS=lin%alphaDIIS; lind%alphaSD=lin%alphaSD
+lind%startWithSD=lin%startWithSD; lind%startDIIS=lin%startDIIS
+lind%nItPrecond=lin%nItPrecond
+lind%getCoeff=lin%getCoeff
+lind%nItCoeff=lin%nItCoeff; lind%convCritCoeff=lin%convCritCoeff
+lind%nItSCC=lin%nItSCC; lind%alphaMix=lin%alphaMix
+lind%plotBasisFunctions=lin%plotBasisFunctions
+
+
+
+end subroutine readLinearParameters
+
+
+
+
+subroutine writeLinearParameters(iproc, nproc, at, lin, lind, atomNames, norbsPerType)
+!
+! Purpose:
+! ========
+!   Write all parameters concerning the linear scaling version to the screen.
+!
+! Calling arguments:
+! ==================
+use module_base
+use module_types
+implicit none
+
+integer,intent(in):: iproc, nproc
+type(atoms_data),intent(in):: at
+type(linearParameters),intent(in):: lin, lind
+character(len=20),dimension(at%ntypes),intent(in):: atomNames
+integer,dimension(at%ntypes),intent(in):: norbsPerType
+
+! Local variables
+integer:: itype, jproc, len1, len2, space1, space2
+logical:: written
+
+
+if(iproc==0) write(*,'(x,a)') '################################# Input parameters #################################'
+if(iproc==0) write(*,'(x,a)') '>>>> General parameters.'
+if(iproc==0) write(*,'(4x,a,9x,a,3x,a,3x,a,4x,a,4x,a)') '| ', ' | ', 'number of', ' | ', 'prefactor for', ' |'
+if(iproc==0) write(*,'(4x,a,a,a,a,a,a,a)') '| ', 'atom type', ' | ', 'basis functions', ' | ', &
+    'confinement potential', ' |'
+do itype=1,at%ntypes
+    if(iproc==0) write(*,'(4x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a)') '| ', trim(atomNames(itype)), &
+        repeat(' ', 6-len_trim(atomNames(itype))), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(itype)+1)+1.d-10))), &
+         norbsPerType(itype), '|', lin%potentialPrefac(itype), ' |'
+end do
+close(unit=99)
+if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------'
+if(iproc==0) write(*,'(4x,a)') '|  number of iterations in the   | alpha mix | use the derivative |'
+if(iproc==0) write(*,'(4x,a)') '|     selfconsistency cycle      |           |  basis functions   |'
+if(iproc==0) write(*,'(4x,a,a,i0,16x,a,x,es9.3,x,a,8x,l,10x,a)') '|', repeat(' ', 16-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
+     lin%nItSCC, '|', lin%alphaMix, '|', lin%useDerivativeBasisFunctions, '|'
+if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------'
+if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
+if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
+if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
+if(iproc==0) write(*,'(4x,a)') '|  first   else  |             |                |           |       |'
+if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
+    repeat(' ', 5-ceiling(log10(dble(lin%nItBasisFirst+1)+1.d-10))), lin%nItBasisFirst, &
+    repeat(' ', 5-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
+      '| ', lin%convCrit, ' | ', &
+      repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       |   ', &
+      lin%getCoeff, '    |  ', &
+      lin%plotBasisFunctions, '   |'
+if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------'
+if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS |'
+if(iproc==0) write(*,'(4x,a)') '|  min   max   |            |          | with SD |            |'
+if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '|', &
+    repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
+    repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
+    lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |'
+if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------'
+if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the coefficients.'
+if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence |'
+if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  |'
+if(iproc==0) write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a)') '| ', &
+    repeat(' ', 9-ceiling(log10(dble(lin%nItCoeff+1)+1.d-10))), lin%nItCoeff, ' | ', lin%convCritCoeff, ' | '
+if(iproc==0) write(*,'(4x,a)') '--------------------------------'
+
+
+
+written=.false.
+if(iproc==0) write(*,'(x,a)') '>>>> Partition of the basis functions among the processes.'
+do jproc=1,nproc-1
+    if(lin%orbs%norb_par(jproc)<lin%orbs%norb_par(jproc-1)) then
+        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%orbs%norb_par(jproc-1)+1.d-5)))
+        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
+             ceiling(log10(dble(lin%orbs%norb_par(jproc)+1.d-5)))
+        if(len1>=len2) then
+            space1=1
+            space2=1+len1-len2
+        else
+            space1=1+len2-len1
+            space2=1
+        end if
+        if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+            lin%orbs%norb_par(jproc-1), ' orbitals,', repeat(' ', space1), '|'
+        if(iproc==0) write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+            lin%orbs%norb_par(jproc),' orbitals.', repeat(' ', space2), '|'
+        written=.true.
+        exit
+    end if
+end do
+if(.not.written) then
+    if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+        ' treat ',lin%orbs%norbp,' orbitals. |'!, &
+end if
+if(iproc==0) write(*,'(x,a)') '-----------------------------------------------'
+
+
+written=.false.
+if(iproc==0) write(*,'(x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
+do jproc=1,nproc-1
+    if(lind%orbs%norb_par(jproc)<lind%orbs%norb_par(jproc-1)) then
+        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lind%orbs%norb_par(jproc-1)+1.d-5)))
+        len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
+             ceiling(log10(dble(lind%orbs%norb_par(jproc)+1.d-5)))
+        if(len1>=len2) then
+            space1=1
+            space2=1+len1-len2
+        else
+            space1=1+len2-len1
+            space2=1
+        end if
+        if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+            lind%orbs%norb_par(jproc-1), ' orbitals,', repeat(' ', space1), '|'
+        if(iproc==0) write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+            lind%orbs%norb_par(jproc),' orbitals.', repeat(' ', space2), '|'
+        written=.true.
+        exit
+    end if
+end do
+if(.not.written) then
+    if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+        ' treat ',lind%orbs%norbp,' orbitals. |'!, &
+end if
+if(iproc==0) write(*,'(x,a)') '####################################################################################'
+
+
+end subroutine writeLinearParameters
+
 
 
 
