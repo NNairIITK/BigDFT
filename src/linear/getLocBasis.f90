@@ -100,7 +100,7 @@ real(8):: eion, edisp, fnoise
 integer:: istat, iall 
 real(8),dimension(:),allocatable:: hphi, eval , hphid
 real(8),dimension(:,:),allocatable:: HamSmall, HamSmalld
-real(8),dimension(:,:,:),allocatable:: matrixElements, matrixElements2, matrixElementsd
+real(8),dimension(:,:,:),allocatable:: matrixElements, matrixElementsd
 real(8),dimension(:),pointer:: phiWork, phiWorkd
 real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace , lastAlpha
 real(wp),dimension(:),pointer:: potential 
@@ -123,158 +123,93 @@ integer:: nvctrp, ist, jst, ierr
 real(8),dimension(:,:,:),allocatable:: ovrlp
 real(8):: tt1, tt2
   
-  allocate(hphi(lin%orbs%npsidim), stat=istat) 
-  call memocc(istat, hphi, 'hphi', subname)
-  allocate(phiWork(max(size(phi),size(psi))), stat=istat)
-  call memocc(istat, phiWork, 'phiWork', subname)
-  allocate(matrixElements(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
-  call memocc(istat, matrixElements, 'matrixElements', subname)
+  if(.not.lin%useDerivativeBasisFunctions) then
+      allocate(hphi(lin%orbs%npsidim), stat=istat) 
+      call memocc(istat, hphi, 'hphi', subname)
+      allocate(matrixElements(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
+      call memocc(istat, matrixElements, 'matrixElements', subname)
+      allocate(HamSmall(lin%orbs%norb,lin%orbs%norb), stat=istat)
+      call memocc(istat, HamSmall, 'HamSmall', subname)
+      allocate(phiWork(max(size(phi),size(psi))), stat=istat)
+      call memocc(istat, phiWork, 'phiWork', subname)
+  else
+      allocate(hphid(lind%orbs%npsidim), stat=istat) 
+      call memocc(istat, hphid, 'hphid', subname)
+      allocate(matrixElementsd(lind%orbs%norb,lind%orbs%norb,2), stat=istat)
+      call memocc(istat, matrixElementsd, 'matrixElementsd', subname)
+      allocate(HamSmalld(lin%orbs%norb,lin%orbs%norb), stat=istat)
+      call memocc(istat, HamSmalld, 'HamSmalld', subname)
+      allocate(phiWorkd(max(size(phid),size(psi))), stat=istat)
+      call memocc(istat, phiWorkd, 'phiWorkd', subname)
+  end if
   allocate(eval(lin%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
 
-  allocate(hphid(lind%orbs%npsidim), stat=istat) 
-  call memocc(istat, hphid, 'hphid', subname)
-
-  allocate(matrixElements2(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
   
 
   ! Optimize the localized basis functions by minimizing the trace of <phi|H|phi>.
   call getLocalizedBasis(iproc, nproc, nlr, Llr, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
-      nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trace, rxyzParab, &
+      nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trace, rxyzParab, &
       itSCC, lastAlpha, infoBasisFunctions)
 
-!! EXPERIMENTAL !!
-call getDerivativeBasisFunctions(iproc, nproc, input%hx, Glr, lin, lind, phi, phid)
-! Orthonormalize
-allocate(phiWorkd(max(size(phid),size(psi))), stat=istat)
-call memocc(istat, phiWorkd, 'phiWorkd', subname)
-call transpose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
-nvctrp=lind%comms%nvctr_par(iproc,1) ! 1 for k-point
-allocate(ovrlp(lind%orbs%norb,lind%orbs%norb,2))
-!!ist=1
-!!do iorb=1,lind%orbs%norb
-!!  jst=1
-!!  do jorb=1,lind%orbs%norb
-!!      ovrlp(jorb,iorb,2)=ddot(nvctrp, phid(jst), 1, phid(ist), 1)
-!!      jst=jst+nvctrp
-!!  end do
-!!  ist=ist+nvctrp
-!!end do
-!!call mpi_allreduce(ovrlp(1,1,2), ovrlp(1,1,1), lind%orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-!!do iorb=1,lind%orbs%norb
-!!      if(iproc==0) write(*,'(100f8.3)') (ovrlp(iorb,jorb,1), jorb=1,lind%orbs%norb)
-!!end do
-!call orthogonalize(iproc, nproc, lind%orbs, lind%comms, Glr%wfd, phid, input)
-call orthonormalizeOnlyDerivatives(iproc, nproc, lin, lind, phid)
-ovrlp=0.d0
-ist=1
-do iorb=1,lind%orbs%norb
-  jst=1
-  do jorb=1,lind%orbs%norb
-      ovrlp(jorb,iorb,2)=ddot(nvctrp, phid(jst), 1, phid(ist), 1)
-      jst=jst+nvctrp
-  end do
-  ist=ist+nvctrp
-end do
-call mpi_allreduce(ovrlp(1,1,2), ovrlp(1,1,1), lind%orbs%norb**2, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,*) '====================================================================================='
-tt1=0.d0
-tt2=0.d0
-do iorb=1,lind%orbs%norb
-      if(iproc==0) write(*,'(200es10.2)') (ovrlp(iorb,jorb,1), jorb=1,lind%orbs%norb)
-      do jorb=1,lind%orbs%norb
-          if(iorb==jorb) then
-              tt1=tt1+abs(ovrlp(jorb,iorb,1))
-          else
-              tt2=tt2+abs(ovrlp(jorb,iorb,1))
-          end if
-      end do
-end do
-if(iproc==0) write(*,*) 'tt1, tt2', tt1, tt2
-call untranspose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
-iall=-product(shape(phiWorkd))*kind(phiWorkd)
-deallocate(phiWorkd, stat=istat)
-call memocc(istat, iall, 'phiWorkd', subname)
+  if(lin%useDerivativeBasisFunctions) then
+      ! Create the derivative basis functions.
+      call getDerivativeBasisFunctions(iproc, nproc, input%hx, Glr, lin, lind, phi, phid)
 
-!call plotOrbitals(iproc, lind%orbs, Glr, phid, at%nat, rxyz, lind%onWhichAtom, .5d0*input%hx, &
-!    .5d0*input%hy, .5d0*input%hz, 1)
-!write(100+iproc,*) phi
-!write(110+iproc,*) phid
+      ! Orthonormalize
+      call transpose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
+      call orthonormalizeOnlyDerivatives(iproc, nproc, lin, lind, phid)
+      call untranspose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
+  end if
+
 
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
   if(trim(lin%getCoeff)=='min') then
 
-      if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
-      !allocate the potential in the full box
-      call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-           lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
-      
-      call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
-           nlpspd,proj,Glr,ngatherarr,potential,&
-           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-      if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
-      
-      !deallocate potential
-      call free_full_potential(nproc,potential,subname)
+      if(.not.lin%useDerivativeBasisFunctions) then
+          if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
+          !allocate the potential in the full box
+          call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+               lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
+          
+          call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
+               nlpspd,proj,Glr,ngatherarr,potential,&
+               phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+          if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
+          
+          !deallocate potential
+          call free_full_potential(nproc,potential,subname)
 
-!! EXPERIMENTAL !!
-if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
-!allocate the potential in the full box
-call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-     lind%orbs%norb,lind%orbs%norbp,ngatherarr,rhopot,potential)
+          ! Calculate the matrix elements <phi|H|phi>.
+          call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
 
-call HamiltonianApplication(iproc,nproc,at,lind%orbs,input%hx,input%hy,input%hz,rxyz,&
-     nlpspd,proj,Glr,ngatherarr,potential,&
-     phid(1),hphid(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
+          ! Calculate the coefficients which minimize the band structure energy
+          ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H|phi_l>
+          ! for the given basis functions.
+          call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
+      else
+          if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
+          !allocate the potential in the full box
+          call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+               lind%orbs%norb,lind%orbs%norbp,ngatherarr,rhopot,potential)
+          
+          call HamiltonianApplication(iproc,nproc,at,lind%orbs,input%hx,input%hy,input%hz,rxyz,&
+               nlpspd,proj,Glr,ngatherarr,potential,&
+               phid(1),hphid(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+          if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
+          
+          !deallocate potential
+          call free_full_potential(nproc,potential,subname)
 
-!deallocate potential
-call free_full_potential(nproc,potential,subname)
+          ! Calculate the matrix elements <phid|H|phid>.
+          call getMatrixElements(iproc, nproc, Glr, lind, phid, hphid, matrixElementsd)
 
-if(iproc==0) write(*,'(x,a)') 'done.'
-
-      ! Calculate the matrix elements <phi|H|phi>.
-      call getMatrixElements(iproc, nproc, Glr, lin, phi, hphi, matrixElements)
-      !do iorb=1,lin%orbs%norb
-      !    if(iproc==0) write(*,'(100f8.4)') (matrixElements(iorb,jorb,1), jorb=1,lin%orbs%norb)
-      !end do
-
-!! EXPERIMENTAL !!
-allocate(matrixElementsd(lind%orbs%norb,lind%orbs%norb,2), stat=istat)
-call memocc(istat, matrixElementsd, 'matrixElementsd', subname)
-! Calculate the matrix elements <phid|H|phid>.
-call getMatrixElements(iproc, nproc, Glr, lind, phid, hphid, matrixElementsd)
-      !do iorb=1,lind%orbs%norb
-      !    if(iproc==0) write(*,'(100f8.4)') (matrixElementsd(iorb,jorb,1), jorb=1,lind%orbs%norb)
-      !end do
+          call optimizeCoefficients(iproc, orbs, lind, nspin, matrixElementsd, coeffd, infoCoeff)
+      end if
 
 
-      !if(iproc==0) write(*,'(x,a)',advance='no') 'Optimizing coefficients...'
-      ! Calculate the coefficients which minimize the band structure energy
-      ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H|phi_l>
-      ! for the given basis functions.
-      call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
-
-!! EXPERIMENTAL
-call mpi_barrier(mpi_comm_world, iorb)
-call optimizeCoefficients(iproc, orbs, lind, nspin, matrixElementsd, coeffd, infoCoeff)
-call mpi_barrier(mpi_comm_world, iorb)
-
-      !!!$$call modifiedBSEnergyModified(nspin, orbs, lin, coeff, matrixElements, ebsMod)
-      !!!$$if(iproc==0) write(*,'(x,a)') 'after initial guess:'
-      !!!$$if(infoBasisFunctions==0) then
-      !!!$$    if(iproc==0) write(*,'(3x,a)') '- basis functions converged'
-      !!!$$else
-      !!!$$    if(iproc==0) write(*,'(3x,a)') '- WARNING: basis functions not converged!'
-      !!!$$end if
-      !!!$$if(infoCoeff==0) then
-      !!!$$    if(iproc==0) write(*,'(3x,a)') '- coefficients converged'
-      !!!$$else
-      !!!$$    if(iproc==0) write(*,'(3x,a)') '- WARNING: coefficients not converged!'
-      !!!$$end if
-      !!!$$if(iproc==0) write(*,'(3x,a,es16.8)') '- modified band structure energy', ebsMod
 
 
   else if(trim(lin%getCoeff)=='diag') then
@@ -294,20 +229,15 @@ call mpi_barrier(mpi_comm_world, iorb)
   end if
   
   
-  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
-  
-  allocate(HamSmall(lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, HamSmall, 'HamSmall', subname)
-
-!! EXPERIMENTAL
-allocate(phiWorkd(max(size(phid),size(psi))), stat=istat)
-call memocc(istat, HamSmalld, 'HamSmalld', subname)
-call transpose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
-call transpose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, hphid, work=phiWorkd)
-
-allocate(HamSmalld(lin%orbs%norb,lin%orbs%norb), stat=istat)
-call memocc(istat, HamSmalld, 'HamSmalld', subname)
+  if(.not.lin%useDerivativeBasisFunctions) then
+      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+      
+  else
+      call transpose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
+      call transpose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, hphid, work=phiWorkd)
+      
+  end if
 
   
   if(trim(lin%getCoeff)=='diag') then
@@ -329,10 +259,11 @@ call memocc(istat, HamSmalld, 'HamSmalld', subname)
   if(trim(lin%getCoeff)=='diag') then
       call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
   else if(trim(lin%getCoeff)=='min') then
-      !call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
-!! EXPERIMENTAL
-write(*,*) 'ATTENTION: line 264'
-call buildWavefunctionModified(iproc, nproc, orbs, lind%orbs, comms, lind%comms, phid, psi, coeffd)
+      if(.not.lin%useDerivativeBasisFunctions) then
+          call buildWavefunctionModified(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, coeff)
+      else
+          call buildWavefunctionModified(iproc, nproc, orbs, lind%orbs, comms, lind%comms, phid, psi, coeffd)
+      end if
   else
       if(iproc==0) write(*,'(a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min' , &
           & but we found '", lin%getCoeff, "'."
@@ -344,31 +275,56 @@ call buildWavefunctionModified(iproc, nproc, orbs, lind%orbs, comms, lind%comms,
   if(iproc==0) write(*,'(a)') 'done.'
   
   
-  call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
+  if(.not.lin%useDerivativeBasisFunctions) then
+      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+      call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
+  else
+      call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWorkd)
+  end if
 
 
   
   
-  iall=-product(shape(phiWork))*kind(phiWork)
-  deallocate(phiWork, stat=istat)
-  call memocc(istat, iall, 'phiWork', subname)
   
-  iall=-product(shape(hphi))*kind(hphi)
-  deallocate(hphi, stat=istat)
-  call memocc(istat, iall, 'hphi', subname)
   
-  iall=-product(shape(HamSmall))*kind(HamSmall)
-  deallocate(HamSmall, stat=istat)
-  call memocc(istat, iall, 'HamSmall', subname)
+  if(.not.lin%useDerivativeBasisFunctions) then
+      iall=-product(shape(HamSmall))*kind(HamSmall)
+      deallocate(HamSmall, stat=istat)
+      call memocc(istat, iall, 'HamSmall', subname)
+
+      iall=-product(shape(hphi))*kind(hphi)
+      deallocate(hphi, stat=istat)
+      call memocc(istat, iall, 'hphi', subname)
+
+      iall=-product(shape(phiWork))*kind(phiWork)
+      deallocate(phiWork, stat=istat)
+      call memocc(istat, iall, 'phiWork', subname)
+
+      iall=-product(shape(matrixElements))*kind(matrixElements)
+      deallocate(matrixElements, stat=istat)
+      call memocc(istat, iall, 'matrixElements', subname)
+  else
+      iall=-product(shape(HamSmalld))*kind(HamSmalld)
+      deallocate(HamSmalld, stat=istat)
+      call memocc(istat, iall, 'HamSmalld', subname)
+
+      iall=-product(shape(hphid))*kind(hphid)
+      deallocate(hphid, stat=istat)
+      call memocc(istat, iall, 'hphid', subname)
+
+      iall=-product(shape(phiWorkd))*kind(phiWorkd)
+      deallocate(phiWorkd, stat=istat)
+      call memocc(istat, iall, 'phiWorkd', subname)
+
+      iall=-product(shape(matrixElementsd))*kind(matrixElementsd)
+      deallocate(matrixElementsd, stat=istat)
+      call memocc(istat, iall, 'matrixElementsd', subname)
+  end if
   
   iall=-product(shape(eval))*kind(eval)
   deallocate(eval, stat=istat)
   call memocc(istat, iall, 'eval', subname)
 
-  iall=-product(shape(matrixElements))*kind(matrixElements)
-  deallocate(matrixElements, stat=istat)
-  call memocc(istat, iall, 'matrixElements', subname)
 
 
 
@@ -529,7 +485,7 @@ end subroutine getLinearPsi
 
 
 subroutine getLocalizedBasis(iproc, nproc, nlr, Llr, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
+    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trH, rxyzParabola, &
     itScc, lastAlpha, infoBasisFunctions)
 !
 ! Purpose:
@@ -602,7 +558,7 @@ integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
 real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(lin%orbs%npsidim):: phi, hphi
+real(8),dimension(lin%orbs%npsidim):: phi
 real(8):: trH, lastAlpha
 
 ! Local variables
@@ -610,7 +566,7 @@ real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum
 real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
 integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp, nit
-real(8),dimension(:),allocatable:: hphiold, alpha, fnrmOldArr, lagMatDiag, alphaDIIS
+real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, lagMatDiag, alphaDIIS
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 real(8),dimension(:),pointer:: phiWork
 logical:: quiet, allowDIIS, startWithSD, adapt
@@ -1006,6 +962,8 @@ contains
     ! ========
     !   This subroutine allocates all local arrays.
     !
+      allocate(hphi(lin%orbs%npsidim), stat=istat)
+      call memocc(istat, hphi, 'hphi', subname)
 
       allocate(hphiold(lin%orbs%npsidim), stat=istat)
       call memocc(istat, hphiold, 'hphiold', subname)
@@ -1043,6 +1001,10 @@ contains
       iall=-product(shape(hphiold))*kind(hphiold)
       deallocate(hphiold, stat=istat)
       call memocc(istat, iall, 'hphiold', subname)
+
+      iall=-product(shape(hphi))*kind(hphi)
+      deallocate(hphi, stat=istat)
+      call memocc(istat, iall, 'hphi', subname)
       
       iall=-product(shape(alpha))*kind(alpha)
       deallocate(alpha, stat=istat)
@@ -2398,7 +2360,7 @@ real(8),dimension(lin%orbs%npsidim),intent(in):: phi
 real(8),dimension(lind%orbs%npsidim),intent(out):: phid
 
 ! Local variables
-integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iorb, jproc, ierr
+integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc, ierr
 integer:: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f, istLoc, istRoot
 real(8),dimension(0:3),parameter:: scal=1.d0
 real(8),dimension(:),allocatable:: w_f1, w_f2, w_f3, phiLoc, phiRoot
@@ -2413,9 +2375,9 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
   nf=(Glr%d%nfu1-Glr%d%nfl1+1)*(Glr%d%nfu2-Glr%d%nfl2+1)*(Glr%d%nfu3-Glr%d%nfl3+1)
   ! Allocate work arrays
   allocate(w_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3+ndebug), stat=istat)
-  call memocc(istat, w_c, 'x_c', subname)
+  call memocc(istat, w_c, 'w_c', subname)
   allocate(w_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3+ndebug), stat=istat)
-  call memocc(istat, w_f, 'x_f', subname)
+  call memocc(istat, w_f, 'w_f', subname)
 
   allocate(w_f1(nf+ndebug), stat=istat)
   call memocc(istat, w_f1, 'w_f1', subname)
@@ -2426,17 +2388,17 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
 
 
   allocate(phix_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
-  call memocc(istat, phix_c, 'phix_c', subname)
-  allocate(phix_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
   call memocc(istat, phix_f, 'phix_f', subname)
+  allocate(phix_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
+  call memocc(istat, phix_c, 'phix_c', subname)
   allocate(phiy_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
-  call memocc(istat, phiy_c, 'phiy_c', subname)
-  allocate(phiy_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
   call memocc(istat, phiy_f, 'phiy_f', subname)
+  allocate(phiy_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
+  call memocc(istat, phiy_c, 'phiy_c', subname)
   allocate(phiz_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
-  call memocc(istat, phiz_c, 'phiz_c', subname)
-  allocate(phiz_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
   call memocc(istat, phiz_f, 'phiz_f', subname)
+  allocate(phiz_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
+  call memocc(istat, phiz_c, 'phiz_c', subname)
 
   allocate(phiLoc(4*lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)), stat=istat)
   call memocc(istat, phiLoc, 'phiLoc', subname)
@@ -2604,24 +2566,71 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
   end do
   call mpi_scatterv(phiRoot(1), sendcounts, displs, mpi_double_precision, phid(1), &
        lind%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, 0, mpi_comm_world, ierr)
-  !write(40+iproc,*) phi
-  !write(50+iproc,*) phiLoc
-  !write(60+iproc,*) phiRoot
-  !write(70+iproc,*) phid
 
-  !!!nlenOrb=Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-  !!!do jproc=0,nproc-1
-  !!!   if(iproc==jproc) then
-  !!!       do jorb=1,max(4*lin%orbs%norbp,lind%orbs%norbp)
-  !!!           if(jorb<=lind%orbs%norbpd) then
-  !!!               ! Copy to same process
-  !!!               call dcopy(nlenOrb, phiLoc(ist1), 1, phid(ist2), 1)
-  !!!           else if(jorb>lind%orbs%norbpd) then
-  !!!               ! Send to next process
-  !!!           end if
-  !!!       end do
-  !!!   end if 
-  !!!end do
+  ! Deallocate all local arrays
+  iall=-product(shape(w_c))*kind(w_c)
+  deallocate(w_c, stat=istat)
+  call memocc(istat, iall, 'w_c', subname)
+
+  iall=-product(shape(w_f))*kind(w_f)
+  deallocate(w_f, stat=istat)
+  call memocc(istat, iall, 'w_f', subname)
+
+  iall=-product(shape(w_f1))*kind(w_f1)
+  deallocate(w_f1, stat=istat)
+  call memocc(istat, iall, 'w_f1', subname)
+
+  iall=-product(shape(w_f2))*kind(w_f2)
+  deallocate(w_f2, stat=istat)
+  call memocc(istat, iall, 'w_f2', subname)
+
+  iall=-product(shape(w_f3))*kind(w_f3)
+  deallocate(w_f3, stat=istat)
+  call memocc(istat, iall, 'w_f3', subname)
+
+  iall=-product(shape(phix_f))*kind(phix_f)
+  deallocate(phix_f, stat=istat)
+  call memocc(istat, iall, 'phix_f', subname)
+
+  iall=-product(shape(phix_c))*kind(phix_c)
+  deallocate(phix_c, stat=istat)
+  call memocc(istat, iall, 'phix_c', subname)
+
+  iall=-product(shape(phiy_f))*kind(phiy_f)
+  deallocate(phiy_f, stat=istat)
+  call memocc(istat, iall, 'phiy_f', subname)
+
+  iall=-product(shape(phiy_c))*kind(phiy_c)
+  deallocate(phiy_c, stat=istat)
+  call memocc(istat, iall, 'phiy_c', subname)
+
+  iall=-product(shape(phiz_f))*kind(phiz_f)
+  deallocate(phiz_f, stat=istat)
+  call memocc(istat, iall, 'phiz_f', subname)
+
+  iall=-product(shape(phiz_c))*kind(phiz_c)
+  deallocate(phiz_c, stat=istat)
+  call memocc(istat, iall, 'phiz_c', subname)
+
+  iall=-product(shape(phiLoc))*kind(phiLoc)
+  deallocate(phiLoc, stat=istat)
+  call memocc(istat, iall, 'phiLoc', subname)
+
+  iall=-product(shape(phiRoot))*kind(phiRoot)
+  deallocate(phiRoot, stat=istat)
+  call memocc(istat, iall, 'phiRoot', subname)
+
+  iall=-product(shape(recvcounts))*kind(recvcounts)
+  deallocate(recvcounts, stat=istat)
+  call memocc(istat, iall, 'recvcounts', subname)
+
+  iall=-product(shape(sendcounts))*kind(sendcounts)
+  deallocate(sendcounts, stat=istat)
+  call memocc(istat, iall, 'sendcounts', subname)
+
+  iall=-product(shape(displs))*kind(displs)
+  deallocate(displs, stat=istat)
+  call memocc(istat, iall, 'displs', subname)
 
 
 end subroutine getDerivativeBasisFunctions
@@ -2631,6 +2640,11 @@ end subroutine getDerivativeBasisFunctions
 
 
 subroutine orthonormalizeOnlyDerivatives(iproc, nproc, lin, lind, phid)
+!
+! Purpose:
+! ========
+!   Firts orthogonalizes the derivative basis functions to the original basis functions
+!   using Gram Schmidt. Then orthonormalizes the derivative basis functions with Loewdin.
 !
 use module_base
 use module_defs
@@ -2654,35 +2668,29 @@ character(len=*),parameter:: subname='orthonormalizeOnlyDerivatives'
 
 allocate(ovrlp(lin%orbs%norb+1:4*lin%orbs%norb,1:lin%orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
+
 ! Orthogonalize the derivative basis functions to the original ones.
 nvctrp=lind%comms%nvctr_par(iproc,1) ! 1 for k-point
+
 allocate(A(nvctrp,lin%orbs%norb+1:4*lin%orbs%norb), stat=istat)
 call memocc(istat, A, 'A', subname)
+
+
 ! Overlap matrix
 call dgemm('t', 'n', 3*lin%orbs%norb, lin%orbs%norb, nvctrp, 1.d0, phid(lin%orbs%norb*nvctrp+1), &
      nvctrp, phid(1), nvctrp, 0.d0, ovrlp(lin%orbs%norb+1,1), 3*lin%orbs%norb) 
+
 ! MPI
 call mpiallred(ovrlp(lin%orbs%norb+1,1), 3*lin%orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+
 ! The components to be projected out
 call dgemm('n', 't', nvctrp, 3*lin%orbs%norb, lin%orbs%norb, 1.d0, phid(1), &
      nvctrp, ovrlp(lin%orbs%norb+1,1), 3*lin%orbs%norb, 0.d0, A(1,lin%orbs%norb+1), nvctrp)
+
 ! Project out
 call daxpy(3*lin%orbs%norb*nvctrp, -1.d0, A(1,lin%orbs%norb+1), 1, phid(lin%orbs%norb*nvctrp+1), 1)
 
 
-!§! Orthogonalize the derivative basis functions to the original ones.
-!§nvctrp=lind%comms%nvctr_par(iproc,1) ! 1 for k-point
-!§ist=1
-!§do iorb=1,lin%orbs%norb
-!§    jst=lin%orbs%norb*nvctrp+1
-!§    do jorb=lin%orbs%norb+1,4*lin%orbs%norb
-!§        tt=ddot(nvctrp, phid(ist), 1, phid(jst), 1)
-!§        call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-!§        call daxpy(nvctrp, -tt, phid(ist), 1, phid(jst), 1)
-!§        jst=jst+nvctrp
-!§    end do
-!§    ist=ist+nvctrp 
-!§end do
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
@@ -2743,30 +2751,29 @@ call dgemm('n', 'n', nvctrp, 3*lin%orbs%norb, 3*lin%orbs%norb, 1.d0, phid(lin%or
 ! Now copy the orbitals from the temporary variable to phid.
 call dcopy(3*lin%orbs%norb*nvctrp, phidTemp(1,lin%orbs%norb+1), 1, phid(lin%orbs%norb*nvctrp+1), 1)
 
+iall=-product(shape(A))*kind(A)
+deallocate(A, stat=istat)
+call memocc(istat, iall, 'A', subname)
 
+iall=-product(shape(ovrlp))*kind(ovrlp)
+deallocate(ovrlp, stat=istat)
+call memocc(istat, iall, 'ovrlp', subname)
 
+iall=-product(shape(work))*kind(work)
+deallocate(work, stat=istat)
+call memocc(istat, iall, 'work', subname)
 
+iall=-product(shape(eval))*kind(eval)
+deallocate(eval, stat=istat)
+call memocc(istat, iall, 'eval', subname)
 
+iall=-product(shape(phidTemp))*kind(phidTemp)
+deallocate(phidTemp, stat=istat)
+call memocc(istat, iall, 'phidTemp', subname)
 
-
-!! Now orthonormalize the derivative basis functions.
-!ist=lin%orbs%norb*nvctrp+1
-!do iorb=lin%orbs%norb+1,4*lin%orbs%norb
-!    jst=lin%orbs%norb*nvctrp+1
-!    do jorb=lin%orbs%norb+1,iorb-1
-!        tt=ddot(nvctrp, phid(ist), 1, phid(jst), 1)
-!        call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-!        call daxpy(nvctrp, -tt, phid(jst), 1, phid(ist), 1)
-!        jst=jst+nvctrp
-!    end do
-!    tt=ddot(nvctrp, phid(ist), 1, phid(ist), 1)
-!    call mpiallred(tt, 1, mpi_sum, mpi_comm_world, ierr)
-!    call dscal(nvctrp, 1.d0/sqrt(tt), phid(ist), 1)
-!    ist=ist+nvctrp
-!end do
-!write(100+iproc,*) phid
-!!write(200+iproc,*) phid
-!call mpi_barrier(mpi_comm_world, ierr)
+iall=-product(shape(tempArr))*kind(tempArr)
+deallocate(tempArr, stat=istat)
+call memocc(istat, iall, 'tempArr', subname)
 
 
 end subroutine orthonormalizeOnlyDerivatives

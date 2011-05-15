@@ -1158,7 +1158,7 @@ module module_interfaces
     END SUBROUTINE free_full_potential
 
     subroutine getLocalizedBasis(iproc, nproc, nlr, Llr, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-        proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, hphi, trH, rxyzParabola, &
+        proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trH, rxyzParabola, &
         itSCC, lastAlpha, infoBasisFunctions)
       use module_base
       use module_types
@@ -1179,7 +1179,7 @@ module module_interfaces
       real(dp), dimension(*), intent(inout) :: rhopot
       type(GPU_pointers), intent(in out) :: GPU
       real(dp), dimension(:), pointer :: pkernelseq
-      real(8),dimension(lin%orbs%npsidim):: phi, hphi
+      real(8),dimension(lin%orbs%npsidim):: phi
       real(8):: trH, lastAlpha
       real(8),dimension(3,at%nat):: rxyzParabola
     end subroutine getLocalizedBasis
@@ -1469,14 +1469,14 @@ module module_interfaces
     end subroutine local_hamiltonianConfinement
     
     
-    subroutine deallocateLinear(iproc, lin, phi, coeff)
+    subroutine deallocateLinear(iproc, lin, lind, phi, coeff, phid, coeffd)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc
-      type(linearParameters),intent(inout):: lin
-      real(8),dimension(:),allocatable,intent(inout):: phi
-      real(8),dimension(:,:),allocatable,intent(inout):: coeff
+      type(linearParameters),intent(inout):: lin, lind
+      real(8),dimension(:),allocatable,intent(inout):: phi, phid
+      real(8),dimension(:,:),allocatable,intent(inout):: coeff, coeffd
 
     end subroutine deallocateLinear
     

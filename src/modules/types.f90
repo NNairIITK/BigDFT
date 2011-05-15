@@ -408,7 +408,7 @@ module module_types
     integer,dimension(:,:),pointer:: procsInComm
     integer:: ncomms
     type(arraySizes):: as
-    logical:: plotBasisFunctions, startWithSD
+    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
     character(len=4):: getCoeff
   end type
 
@@ -568,7 +568,10 @@ subroutine deallocate_orbs(orbs,subname)
     call memocc(i_stat,i_all,'orbs%iokpt',subname)
     i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
     deallocate(orbs%ikptproc,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%ikptproc',subname)
+    call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
+    i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
+    deallocate(orbs%inwhichlocreg,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
 
     !contradictory: needed for component distribution and allocated for
     !               orbital distribution. Better to deal with scalars

@@ -196,7 +196,7 @@ real(wp),dimension(:),allocatable:: projTemp
       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 
   ! Deallocate all arrays related to the linear scaling version.
-  call deallocateLinear(iproc, lin, phi, coeff)
+  call deallocateLinear(iproc, lin, lind, phi, coeff, phid, coeffd)
 
 
 end subroutine linearScaling

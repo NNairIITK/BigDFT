@@ -84,6 +84,7 @@ read(99,*) lin%nItPrecond
 read(99,*) lin%getCoeff
 read(99,*) lin%nItCoeff, lin%convCritCoeff
 read(99,*) lin%nItSCC, lin%alphaMix
+read(99,*) lin%useDerivativeBasisFunctions
 read(99,*) lin%plotBasisFunctions
 call checkLinearParameters(iproc, lin)
 !! Copy this to lind -- EXERIMENTAL
@@ -109,11 +110,11 @@ do iat=1,at%ntypes
 end do
 close(unit=99)
 if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '|  number of iterations in the   | alpha mix |'
-if(iproc==0) write(*,'(4x,a)') '|     selfconsistency cycle      |           |'
-if(iproc==0) write(*,'(4x,a,a,i0,16x,a,x,es9.3,x,a)') '|', repeat(' ', 16-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
-     lin%nItSCC, '|', lin%alphaMix, '|'
-if(iproc==0) write(*,'(4x,a)') '----------------------------------------------'
+if(iproc==0) write(*,'(4x,a)') '|  number of iterations in the   | alpha mix | use the derivative |'
+if(iproc==0) write(*,'(4x,a)') '|     selfconsistency cycle      |           |  basis functions   |'
+if(iproc==0) write(*,'(4x,a,a,i0,16x,a,x,es9.3,x,a,8x,l,10x,a)') '|', repeat(' ', 16-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
+     lin%nItSCC, '|', lin%alphaMix, '|', lin%useDerivativeBasisFunctions, '|'
+if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
 if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
@@ -221,13 +222,13 @@ call assignOrbitalsToAtoms(iproc, at%nat, lin, norbsPerAtom)
 
 ! The same for the basis including the derivatives.
 allocate(lind%onWhichAtom(lind%orbs%norbp), stat=istat)
-call memocc(istat, lin%onWhichAtom, 'lind%onWhichAtom', subname)
+call memocc(istat, lind%onWhichAtom, 'lind%onWhichAtom', subname)
 norbsPerAtom=4*norbsPerAtom
 call assignOrbitalsToAtoms(iproc, at%nat, lind, norbsPerAtom)
 norbsPerAtom=norbsPerAtom/4  ! Undo this..
-do iorb=1,lind%orbs%norbp
-    write(*,'(a,2i7,i10)') 'iproc, iorb, lind%onWhichAtom(iorb)', iproc, iorb, lind%onWhichAtom(iorb)
-end do
+!!do iorb=1,lind%orbs%norbp
+!!    write(*,'(a,2i7,i10)') 'iproc, iorb, lind%onWhichAtom(iorb)', iproc, iorb, lind%onWhichAtom(iorb)
+!!end do
 
 
 !write(*,'(a,i2,3x,200i4)') 'iproc, lin%onWhichAtom', iproc, lin%onWhichAtom
@@ -322,59 +323,61 @@ end if
 !! ###########################################################
 !!                       new part
 
+!! DO NOT UNCOMMENT THIS PART - THE PROGRAM WILL CRASH IF THE ALLOCATIO IS NOT DONE  !!
+
 nlr=at%nat
 !allocate the array of localisation regions
 allocate(Llr(nlr+ndebug),stat=istat)
-!call memocc(istat,Llr,'Llr',subname)
-allocate(outofzone(3,nlr),stat=istat)
-call memocc(istat,outofzone,'outofzone',subname)
-allocate(locrad(nlr+ndebug),stat=istat)
-call memocc(istat,locrad,'locrad',subname)
-
-! For now, set locrad by hand HERE
-locrad = 3000.0
-!print *,'locrad',locrad
-
-! Write some physical information on the Glr
-if(iproc==0) then
-    write(*,'(x,a24,3i4)')'Global region n1,n2,n3:',Glr%d%n1,Glr%d%n2,Glr%d%n3
-    write(*,'(x,a27,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*input%hx,Glr%d%n2*input%hy,Glr%d%n3*input%hz
-    write(*,'(x,a17,f12.2)')'Global volume: ',Glr%d%n1*input%hx*Glr%d%n2*input%hy*Glr%d%n3*input%hz
-    write(*,'(x,a,4i10)')'Global statistics:',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
-end if
-
- call determine_locreg_periodic(iproc,nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, Llr, outofzone)
- call mpi_barrier(mpi_comm_world, ierr)
-
-!!! Calculate the dimension of the total wavefunction
-!!   npsidim = 0
-!!   do ilr = 1, nlr
-!!      call count_atomic_shells(lmax+1,noccmax,nelecmax,input%nspin,orbse%nspinor,at%aocc(1,ilr),occup,nmoments)
-!!      norbe=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))*input%nspin
-!!      Localnorb(ilr)=norbe
-!!      npsidim = npsidim +(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*norbe*orbse%nspinor
-!!   end do
-!!   orbse%npsidim=npsidim
-
-! Determine inwhichlocreg
-    do iat=1,at%nat
-        write(*,'(a,2i4,i7)') 'iproc, iat, norbsPerAtom(iat)', iproc, iat, norbsPerAtom(iat)
-    end do
-    call mpi_barrier(mpi_comm_world, ierr)
-    ! Initialize, can maybe done somewhere else
-    allocate(lin%orbs%inWhichLocregP(lin%orbs%norbp), stat=istat)
-    call memocc(istat, lin%orbs%inWhichLocregP, 'lin%orbs%inWhichLocregP', subname)
-    lin%orbs%inWhichLocregP=0
-    call assignToLocregP(iproc, nlr, norbsPerAtom, lin%orbs)
-    
-    do iorb=1,lin%orbs%norbp
-        write(*,'(a,2i5,i8)') 'iproc, iorb, iwl', iproc, iorb, lin%orbs%inWhichLocregP(iorb)
-    end do
-
-
-iall=-product(shape(locrad))*kind(locrad)
-deallocate(locrad, stat=istat)
-call memocc(istat, iall, 'locrad', subname)
+!!!!!$$!call memocc(istat,Llr,'Llr',subname)
+!!!!!$$allocate(outofzone(3,nlr),stat=istat)
+!!!!!$$!call memocc(istat,outofzone,'outofzone',subname)
+!!!!!$$allocate(locrad(nlr+ndebug),stat=istat)
+!!!!!$$!call memocc(istat,locrad,'locrad',subname)
+!!!!!$$
+!!!!!$$! For now, set locrad by hand HERE
+!!!!!$$locrad = 3000.0
+!!!!!$$!print *,'locrad',locrad
+!!!!!$$
+!!!!!$$!!! Write some physical information on the Glr
+!!!!!$$!!if(iproc==0) then
+!!!!!$$!!    write(*,'(x,a24,3i4)')'Global region n1,n2,n3:',Glr%d%n1,Glr%d%n2,Glr%d%n3
+!!!!!$$!!    write(*,'(x,a27,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*input%hx,Glr%d%n2*input%hy,Glr%d%n3*input%hz
+!!!!!$$!!    write(*,'(x,a17,f12.2)')'Global volume: ',Glr%d%n1*input%hx*Glr%d%n2*input%hy*Glr%d%n3*input%hz
+!!!!!$$!!    write(*,'(x,a,4i10)')'Global statistics:',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
+!!!!!$$!!end if
+!!!!!$$
+!!!!!$$ call determine_locreg_periodic(iproc,nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, Llr, outofzone)
+!!!!!$$ call mpi_barrier(mpi_comm_world, ierr)
+!!!!!$$
+!!!!!$$!!! Calculate the dimension of the total wavefunction
+!!!!!$$!!   npsidim = 0
+!!!!!$$!!   do ilr = 1, nlr
+!!!!!$$!!      call count_atomic_shells(lmax+1,noccmax,nelecmax,input%nspin,orbse%nspinor,at%aocc(1,ilr),occup,nmoments)
+!!!!!$$!!      norbe=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))*input%nspin
+!!!!!$$!!      Localnorb(ilr)=norbe
+!!!!!$$!!      npsidim = npsidim +(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*norbe*orbse%nspinor
+!!!!!$$!!   end do
+!!!!!$$!!   orbse%npsidim=npsidim
+!!!!!$$
+!!!!!$$! Determine inwhichlocreg
+!!!!!$$    !!do iat=1,at%nat
+!!!!!$$    !!    write(*,'(a,2i4,i7)') 'iproc, iat, norbsPerAtom(iat)', iproc, iat, norbsPerAtom(iat)
+!!!!!$$    !!end do
+!!!!!$$    call mpi_barrier(mpi_comm_world, ierr)
+!!!!!$$    ! Initialize, can maybe done somewhere else
+!!!!!$$    allocate(lin%orbs%inWhichLocregP(lin%orbs%norbp), stat=istat)
+!!!!!$$    call memocc(istat, lin%orbs%inWhichLocregP, 'lin%orbs%inWhichLocregP', subname)
+!!!!!$$    lin%orbs%inWhichLocregP=0
+!!!!!$$    call assignToLocregP(iproc, nlr, norbsPerAtom, lin%orbs)
+!!!!!$$    
+!!!!!$$    !!do iorb=1,lin%orbs%norbp
+!!!!!$$    !!    write(*,'(a,2i5,i8)') 'iproc, iorb, iwl', iproc, iorb, lin%orbs%inWhichLocregP(iorb)
+!!!!!$$    !!end do
+!!!!!$$
+!!!!!$$
+!!!!!$$iall=-product(shape(locrad))*kind(locrad)
+!!!!!$$deallocate(locrad, stat=istat)
+!!!!!$$call memocc(istat, iall, 'locrad', subname)
 
 
 !! ###########################################################
@@ -499,7 +502,7 @@ end subroutine checkLinearParameters
 
 
 
-subroutine deallocateLinear(iproc, lin, phi, coeff)
+subroutine deallocateLinear(iproc, lin, lind, phi, coeff, phid, coeffd)
 !
 ! Purpose:
 ! ========
@@ -516,9 +519,9 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc
-type(linearParameters),intent(inout):: lin
-real(8),dimension(:),allocatable,intent(inout):: phi
-real(8),dimension(:,:),allocatable,intent(inout):: coeff
+type(linearParameters),intent(inout):: lin, lind
+real(8),dimension(:),allocatable,intent(inout):: phi, phid
+real(8),dimension(:,:),allocatable,intent(inout):: coeff, coeffd
 
 ! Local variables
 integer:: istat, iall, iorb
@@ -532,18 +535,34 @@ character(len=*),parameter:: subname='deallocateLinear'
   iall=-product(shape(lin%onWhichAtom))*kind(lin%onWhichAtom)
   deallocate(lin%onWhichAtom, stat=istat)
   call memocc(istat, iall, 'lin%onWhichAtom', subname)
+
+  iall=-product(shape(lind%onWhichAtom))*kind(lind%onWhichAtom)
+  deallocate(lind%onWhichAtom, stat=istat)
+  call memocc(istat, iall, 'lind%onWhichAtom', subname)
   
   call deallocate_orbs(lin%orbs,subname)
 
   call deallocate_comms(lin%comms,subname)
+
+  call deallocate_orbs(lind%orbs,subname)
+
+  call deallocate_comms(lind%comms,subname)
   
   iall=-product(shape(phi))*kind(phi)
   deallocate(phi, stat=istat)
   call memocc(istat, iall, 'phi', subname)
 
+  iall=-product(shape(phid))*kind(phid)
+  deallocate(phid, stat=istat)
+  call memocc(istat, iall, 'phid', subname)
+
   iall=-product(shape(lin%orbs%eval))*kind(lin%orbs%eval)
   deallocate(lin%orbs%eval, stat=istat)
   call memocc(istat, iall, 'lin%orbs%eval', subname)
+
+  iall=-product(shape(lind%orbs%eval))*kind(lind%orbs%eval)
+  deallocate(lind%orbs%eval, stat=istat)
+  call memocc(istat, iall, 'lind%orbs%eval', subname)
 
   if(associated(lin%wfds)) then
       !iall=-product(shape(lin%wfds))*kind(lin%wfds)
@@ -553,6 +572,16 @@ character(len=*),parameter:: subname='deallocateLinear'
           call deallocate_wfd(lin%wfds(iorb,iproc), subname)
       end do
       deallocate(lin%wfds, stat=istat)
+  end if
+
+  if(associated(lind%wfds)) then
+      !iall=-product(shape(lin%wfds))*kind(lin%wfds)
+      !deallocate(lin%wfds, stat=istat)
+      !call memocc(istat, iall, 'lin%wfds', subname)
+      do iorb=1,lind%orbs%norbp
+          call deallocate_wfd(lind%wfds(iorb,iproc), subname)
+      end do
+      deallocate(lind%wfds, stat=istat)
   end if
 
   if(associated(lin%comms%nvctr_parLIN)) then
@@ -603,9 +632,61 @@ character(len=*),parameter:: subname='deallocateLinear'
       call memocc(istat, iall, 'lin%norbPerComm', subname)
   end if
 
+  if(associated(lind%comms%nvctr_parLIN)) then
+      iall=-product(shape(lind%comms%nvctr_parLIN))*kind(lind%comms%nvctr_parLIN)
+      deallocate(lind%comms%nvctr_parLIN, stat=istat)
+      call memocc(istat, iall, 'lind%comms%nvctr_parLIN', subname)
+  end if
+
+  if(associated(lind%comms%ncntdLIN)) then
+      iall=-product(shape(lind%comms%ncntdLIN))*kind(lind%comms%ncntdLIN)
+      deallocate(lind%comms%ncntdLIN, stat=istat)
+      call memocc(istat, iall, 'lind%comms%ncntdLIN', subname)
+  end if
+
+  if(associated(lind%comms%ndspldLIN)) then
+      iall=-product(shape(lind%comms%ndspldLIN))*kind(lind%comms%ndspldLIN)
+      deallocate(lind%comms%ndspldLIN, stat=istat)
+      call memocc(istat, iall, 'lind%comms%ndspldLIN', subname)
+  end if
+
+  if(associated(lind%comms%ncnttLIN)) then
+      iall=-product(shape(lind%comms%ncnttLIN))*kind(lind%comms%ncnttLIN)
+      deallocate(lind%comms%ncnttLIN, stat=istat)
+      call memocc(istat, iall, 'lind%comms%ncnttLIN', subname)
+  end if
+
+  if(associated(lind%comms%ndspltLIN)) then
+      iall=-product(shape(lind%comms%ndspltLIN))*kind(lind%comms%ndspltLIN)
+      deallocate(lind%comms%ndspltLIN, stat=istat)
+      call memocc(istat, iall, 'lind%comms%ndspltLIN', subname)
+  end if
+
+  if(associated(lind%MPIComms)) then
+      iall=-product(shape(lind%MPIComms))*kind(lind%MPIComms)
+      deallocate(lind%MPIComms, stat=istat)
+      call memocc(istat, iall, 'lind%MPIComms', subname)
+  end if
+
+  if(associated(lind%procsInComm)) then
+      iall=-product(shape(lind%procsInComm))*kind(lind%procsInComm)
+      deallocate(lind%procsInComm, stat=istat)
+      call memocc(istat, iall, 'lind%procsInComm', subname)
+  end if
+
+  if(associated(lind%norbPerComm)) then
+      iall=-product(shape(lind%norbPerComm))*kind(lind%norbPerComm)
+      deallocate(lind%norbPerComm, stat=istat)
+      call memocc(istat, iall, 'lind%norbPerComm', subname)
+  end if
+
   iall=-product(shape(coeff))*kind(coeff)
   deallocate(coeff, stat=istat)
   call memocc(istat, iall, 'coeff', subname)
+
+  iall=-product(shape(coeffd))*kind(coeffd)
+  deallocate(coeffd, stat=istat)
+  call memocc(istat, iall, 'coeffd', subname)
 
 end subroutine deallocateLinear
 
@@ -637,15 +718,17 @@ type(input_variables), intent(in):: input
 real(8),dimension(3,at%nat):: rxyz
 real(8),dimension((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp):: phi
 
-integer:: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat
+integer:: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iall
 real(8),dimension(:),allocatable:: phir
 real(8):: hx, hy, hz, hxh, hyh, hzh, kx, ky, kz, tt, tt2, cut
 real :: ttreal
 type(workarr_sumrho) :: w
 type(workarr_locham):: w_lh
+character(len=*),parameter:: subname='randomWithinCutoff'
 
 
 allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
+call memocc(istat, phir, 'phir', subname)
 phi=0.d0
 
 call initialize_work_arrays_sumrho(Glr,w)
@@ -742,7 +825,9 @@ end do
 
 call deallocate_work_arrays_sumrho(w)
 call deallocate_work_arrays_locham(Glr, w_lh)
+iall=-product(shape(phir))*kind(phir)
 deallocate(phir, stat=istat)
+call memocc(istat, iall, 'phir', subname)
 
 
 end subroutine randomWithinCutoff
