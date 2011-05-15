@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Display the logo of BigDFT 
+!> Display the logo of BigDFT 
 subroutine print_logo()
   use module_base
   implicit none
@@ -53,13 +53,27 @@ subroutine print_logo()
   write(*,'(1x,a)')&
        '                                  The Journal of Chemical Physics 129, 014109 (2008)'
 END SUBROUTINE print_logo
+subroutine standard_inputfile_names(inputs)
+  use module_types
+  implicit none
+  type(input_variables), intent(out) :: inputs
+
+  inputs%file_dft='input.dft'
+  inputs%file_geopt='input.geopt'
+  inputs%file_kpt='input.kpt'
+  inputs%file_perf='input.perf'
+  inputs%file_tddft='input.tddft'
+  inputs%file_mix='input.mix'
+  
+end subroutine standard_inputfile_names
 
 
 !>    Do all initialisation for all different files of BigDFT. 
 !!    Set default values if not any.
 !!    Initialize memocc
-subroutine read_input_variables(iproc,posinp, &
-     & file_dft, file_kpt, file_mix, file_geopt, file_perf, inputs,atoms,rxyz)
+!! @todo
+!!   Should be better for debug purpose to read input.perf before
+subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
@@ -68,9 +82,8 @@ subroutine read_input_variables(iproc,posinp, &
 
   !Arguments
   character(len=*), intent(in) :: posinp
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
   integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
 
@@ -78,16 +91,14 @@ subroutine read_input_variables(iproc,posinp, &
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
   ! Read all parameters and update atoms and rxyz.
-  call read_input_parameters(iproc, file_dft, file_kpt, file_mix, &
-       & file_geopt, file_perf, inputs, atoms, rxyz)
+  call read_input_parameters(iproc,inputs, atoms, rxyz)
 END SUBROUTINE read_input_variables
 
 
 !>    Do initialisation for all different calculation parameters of BigDFT. 
 !!    Set default values if not any. Atomic informations are updated  by
 !!    symmetries if necessary and by geometry input parameters.
-subroutine read_input_parameters(iproc, &
-     & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
+subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_parameters
@@ -95,9 +106,8 @@ subroutine read_input_parameters(iproc, &
   implicit none
 
   !Arguments
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
   integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !Local variables
@@ -107,17 +117,19 @@ subroutine read_input_parameters(iproc, &
   ! Default for inputs
   call default_input_variables(inputs)
   ! Read performance input variables (if given)
-  call perf_input_variables(iproc,file_perf,inputs)
+  call perf_input_variables(iproc,trim(inputs%file_perf),inputs)
   ! Read dft input variables
-  call dft_input_variables(iproc,file_dft,inputs)
+  call dft_input_variables(iproc,trim(inputs%file_dft),inputs)
   ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
-  call kpt_input_variables(iproc,file_kpt,inputs,atoms)
+  call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
   ! Mixing input variables (if given)
-  call mix_input_variables(file_mix,inputs)
+  call mix_input_variables(trim(inputs%file_mix),inputs)
   ! Read geometry optimisation option
-  call geopt_input_variables(file_geopt,inputs)
+  call geopt_input_variables(trim(inputs%file_geopt),inputs)
+  ! Read tddft variables
+  call tddft_input_variables(trim(inputs%file_tddft),inputs)
 
   ! Shake atoms if required.
   if (inputs%randdis > 0.d0) then
@@ -145,20 +157,31 @@ subroutine read_input_parameters(iproc, &
      end if
   end do
 
-  !stop the code if it is trying to run GPU with non-periodic boundary conditions
+  ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
-     write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     if (iproc==0) write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+  end if
+
+  ! Stop the code if it is trying to run GPU with spin=4
+  if (inputs%nspin == 4 .and. (GPUconv .or. OCLconv)) then
+     if (iproc==0) write(*,'(1x,a)') 'GPU calculation not implemented with non-collinear spin'
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
 
   ! Stop code for unproper input variables combination.
   if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym) then
-     if (iproc==0) write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-     stop 'Forces are not implemented with symmetry support, disable symmetry please (T)'
+     if (iproc==0) then
+         write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+         write(*,'(1x,a)')  'Forces are not implemented with symmetry support, disable symmetry please (T)'
+     end if
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
-     stop 'Gaussian projection is not implemented with k-point support'
+     if (iproc==0) write(*,'(1x,a)') 'Gaussian projection is not implemented with k-point support'
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
+
 END SUBROUTINE read_input_parameters
 
 
@@ -169,7 +192,7 @@ subroutine default_input_variables(inputs)
   use module_types
   implicit none
 
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
 
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
@@ -186,6 +209,8 @@ subroutine default_input_variables(inputs)
   call geopt_input_variables_default(inputs) 
   ! Default values for mixing procedure
   call mix_input_variables_default(inputs) 
+  ! Default values for tddft
+  call tddft_input_variables_default(inputs)
 
 END SUBROUTINE default_input_variables
 
@@ -212,7 +237,7 @@ subroutine dft_input_variables(iproc,filename,in)
   inquire(file=trim(filename),exist=exists)
   if (.not.exists) then
       if (iproc == 0) write(*,*) "The file 'input.dft' does not exist!"
-      stop
+      call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   ! Open the file
@@ -241,6 +266,7 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%ncong,in%idsx
   call check()
+  in%idsx = min(in%idsx, in%itermax)
   read(1,*,iostat=ierror) in%dispersion
   call check()
 
@@ -261,7 +287,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. input_psi_validate(in%inputPsiId) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
      call input_psi_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
@@ -274,7 +300,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. output_wf_format_validate(in%output_wf_format) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
      call output_wf_format_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
   ! Setup out grid parameters.
   if (in%output_grid >= 0) then
@@ -288,7 +314,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. output_grid_validate(in%output_grid, in%output_grid_format) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_grid (', in%output_grid, ').'
      call output_grid_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   ! Tail treatment.
@@ -334,14 +360,14 @@ subroutine dft_input_variables(iproc,filename,in)
 !     !if (iproc==0) then
 !        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
 !     !end if
-!     stop
+!     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
 !  end if
 ! 
   close(unit=1,iostat=ierror)
 
   if (in%nspin/=4 .and. in%nspin/=2 .and. in%nspin/=1) then
      write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   !define whether there should be a last_run after geometry optimization
@@ -389,7 +415,6 @@ subroutine geopt_input_variables_default(in)
 
 END SUBROUTINE geopt_input_variables_default
 
-
 !>    Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
@@ -402,7 +427,7 @@ subroutine mix_input_variables_default(in)
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%iscf=7
+  in%iscf=0
   in%Tel=0.0_gp
   in%norbsempty=0
   in%alphadiis=2.d0
@@ -457,7 +482,7 @@ contains
        !if (iproc == 0) 
             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
-       stop
+            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
     end if
   END SUBROUTINE check
 
@@ -560,11 +585,78 @@ contains
        !if (iproc == 0) 
             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
-       stop
+            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
     end if
   END SUBROUTINE check
 
 END SUBROUTINE geopt_input_variables
+
+!!****f* BigDFT/tddft_input_variables_default
+!! FUNCTION
+!!    Assign default values for TDDFT variables
+!! SOURCE
+!!
+subroutine tddft_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  in%tddft_approach='NONE'
+
+END SUBROUTINE tddft_input_variables_default
+!!***
+
+subroutine tddft_input_variables(filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='tddft_input_variables'
+  character(len = 6) :: type
+  integer :: iline, ierror
+
+
+  inquire(file=trim(filename),exist=exists)
+
+  if (.not. exists) then
+     !write(*,*) "The file 'input.tddft' does not exists!"
+     !      stop
+     return
+  end if
+
+ ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+  read(1,*,iostat=ierror) in%tddft_approach
+  call check()
+  if (trim(in%tddft_approach) == "TDA") then
+  read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
+  call check()
+  end if
+
+  close(unit=1,iostat=ierror)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE tddft_input_variables
+
 
 
 !>    Calculate symmetries and update
@@ -872,7 +964,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%norbpInguess=5
   !Block size used for the orthonormalization
   inputs%bsLow=300
-  inputs%bsLow=800
+  inputs%bsUp=800
   !Orthogonalization method
   inputs%methOrtho=0
   !Tolerance criterion for input guess
@@ -909,13 +1001,13 @@ subroutine perf_input_variables(iproc,filename,inputs)
            read(line(ii:),fmt=*,iostat=ierror) inputs%exctxpar
 
         else if (index(line,"accel") /= 0 .or. index(line,"ACCEL") /= 0) then
-            ii = index(line,"ACCEL")  + index(line,"ACCEL") + 5
+            ii = index(line,"accel")  + index(line,"ACCEL") + 6
            read(line(ii:),fmt=*,iostat=ierror) string
            if (string=="NO     ") then
               inputs%iacceleration=0
            else if (string=="CUDAGPU") then
               inputs%iacceleration=1
-           else  if (string=="OCLGPU ") then
+           else  if (string=="OCLGPU") then
               inputs%iacceleration=2
            else
               write(*,'(1x,3a)') "input.perf: Unknown acceleration '",trim(string),"'"
@@ -1385,22 +1477,22 @@ subroutine deallocate_atoms_scf(atoms,subname)
   !semicores useful only for the input guess
   i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
   deallocate(atoms%iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'iasctype',subname)
+  call memocc(i_stat,i_all,'atoms%iasctype',subname)
   i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
   deallocate(atoms%aocc,stat=i_stat)
-  call memocc(i_stat,i_all,'aocc',subname)
+  call memocc(i_stat,i_all,'atoms%aocc',subname)
   i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
   deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'nzatom',subname)
+  call memocc(i_stat,i_all,'atoms%nzatom',subname)
   i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
   deallocate(atoms%psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'psppar',subname)
+  call memocc(i_stat,i_all,'atoms%psppar',subname)
   i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
   deallocate(atoms%nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'nelpsp',subname)
+  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
   i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
   deallocate(atoms%npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'npspcode',subname)
+  call memocc(i_stat,i_all,'atoms%npspcode',subname)
 END SUBROUTINE deallocate_atoms_scf
 
 
@@ -1765,7 +1857,7 @@ contains
 END SUBROUTINE parse_extra_info
 
 
-!>    Read atomic positions of ascii files.
+!> Read atomic positions of ascii files.
 subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   use module_base
   use module_types
@@ -1888,21 +1980,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
      atoms%alat2 = real(alat3,gp)
      atoms%alat3 = real(alat6,gp)
   end if
-  if (atoms%geocode == 'S') then
-     atoms%alat2 = 0.0_gp
-  else if (atoms%geocode == 'F') then
-     atoms%alat1 = 0.0_gp
-     atoms%alat2 = 0.0_gp
-     atoms%alat3 = 0.0_gp
-  end if
   
-  !reduced coordinates are possible only with periodic units
-  if (reduced .and. atoms%geocode /= 'P') then
-     if (iproc==0) write(*,'(1x,a)')&
-          'ERROR: Reduced coordinates are only allowed with fully periodic BC'
-  end if
-
-  !convert the values of the cell sizes in bohr
+  !Convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
      atoms%alat1 = atoms%alat1 / bohr2ang
@@ -1976,6 +2055,14 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         iat = iat + 1
      end if
   enddo
+
+  if (atoms%geocode == 'S') then
+     atoms%alat2 = 0.0_gp
+  else if (atoms%geocode == 'F') then
+     atoms%alat1 = 0.0_gp
+     atoms%alat2 = 0.0_gp
+     atoms%alat3 = 0.0_gp
+  end if
 
   !now that ntypes is determined allocate atoms%atomnames and copy the values
   allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
@@ -2685,10 +2772,13 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
   integer, intent(in):: iacceleration,iproc
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr
+  integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
 
   if (iacceleration == 1) then
-     call sg_init(GPUshare,useGPU,iproc,initerror)
+     call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
+     !initialize the id_proc per node
+     call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
+     call sg_init(GPUshare,useGPU,iproc,nproc_node,initerror)
      if (useGPU == 1) then
         iconv = 1
         iblas = 1
@@ -2715,7 +2805,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
      if (.not. OCLconv) then
         call MPI_COMM_SIZE(MPI_COMM_WORLD,mproc,ierr)
         !initialize the id_proc per node
-        call processor_id_per_node(iproc,mproc,GPU%id_proc)
+        call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
         call init_acceleration_OCL(GPU)
         if (iproc == 0) then
            write(*,*)' OpenCL convolutions activated'
@@ -2745,11 +2835,12 @@ subroutine release_material_acceleration(GPU)
 END SUBROUTINE release_material_acceleration
 
 
-subroutine processor_id_per_node(iproc,nproc,iproc_node)
+!> Give the number of MPI processes per node (nproc_node) and before iproc (iproc_node)
+subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   use module_base
   implicit none
   integer, intent(in) :: iproc,nproc
-  integer, intent(out) :: iproc_node
+  integer, intent(out) :: iproc_node,nproc_node
   !local variables
   character(len=*), parameter :: subname='processor_id_per_node'
   integer :: ierr,namelen,i_stat,i_all,jproc
@@ -2757,6 +2848,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node)
 
   if (nproc == 1) then
      iproc_node=0
+     nproc_node=1
   else
      allocate(nodename(0:nproc-1+ndebug),stat=i_stat)
      call memocc(i_stat,nodename,'nodename',subname)
@@ -2781,10 +2873,16 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node)
            iproc_node=iproc_node+1
         end if
      end do
+     nproc_node=iproc_node
+     do jproc=iproc,nproc-1
+        if (trim(nodename(jproc)) == trim(nodename(iproc))) then
+           nproc_node=nproc_node+1
+        end if
+     end do
      
      i_all=-product(shape(nodename))*kind(nodename)
      deallocate(nodename,stat=i_stat)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
-     
+
 END SUBROUTINE processor_id_per_node

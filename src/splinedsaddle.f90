@@ -78,8 +78,9 @@ program splined_saddle
      if (iproc==0) call print_logo()
 
      ! Read all input files.
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", inputs, atoms, rxyz)
+     !standard names
+     call standard_inputfile_names(inputs)
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      !-----------------------------------------------------------
      !-----------------------------------------------------------
      if (iproc == 0) then
@@ -335,7 +336,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         ixyz=mod(i-1,3)+1
         if(move_this_coordinate(atoms%ifrztyp(iat),ixyz)) nr=nr+1
     enddo
-    if(iproc==0) write(*,'(a,i0,i0)') 'DOF: n,nr ',n,nr
+    if(iproc==0) write(*,'(a,i0,1x,i0)') 'DOF: n,nr ',n,nr
     !---------------------------------------------------------------------------
     call readinputsplsad(iproc,np,np_neb,parmin,parmin_neb,pnow)
     if(iproc==0)    then

@@ -30,5 +30,5 @@ SPLSAD.out: $(top_builddir)/src/splsad
 	done
 
 check : SPLSAD.out
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=1.e-9 SPLSAD.out \
+	python $(top_srcdir)/tests/fldiff.py --mode=bigdft --discrepancy=2.e-8 SPLSAD.out \
 		$(top_srcdir)/tests/SPLSAD/SPLSAD.out.ref | tee fldiff.report

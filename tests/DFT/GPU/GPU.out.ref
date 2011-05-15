@@ -153,7 +153,7 @@ Logic CPU : 0 with real CPU 0
  evale(13)=  1.49669398234982E-01 <-
  evale(14)=  2.69117148999579E-01 <-
  evale(15)=  2.69117411713811E-01 <-
- evale(16)=  2.69117411713812E-01 <- Last eigenvalue for input wavefunctions
+ evale(16)=  2.69117411713812E-01 <- Last InputGuess eval, H-L IG gap:   2.8832 eV
  evale(17)=  3.75073375383855E-01 <- First virtual eigenvalue
  evale(18)=  3.75073375383856E-01 <-
  evale(19)=  3.75073582166261E-01 <-

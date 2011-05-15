@@ -184,7 +184,8 @@ high_level = cluster.f90 \
 	lanczos_base.f90 \
 	lanczos.f90 \
 	scfloop_API.f90 \
-	esatto.f90
+	esatto.f90 \
+	tddft.f90
 
 #objects which can be compiled only with module_base
 low_level = init/projectors.f90  \
@@ -250,8 +251,7 @@ splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
 rism_LDFLAGS = 
@@ -390,6 +390,8 @@ test_forces.o: $(mod_bigdft)
 $(mod_bigdft) : BigDFT_API.o
 
 $(modules_objects) : $(mpi_include)
+
+modules/defs.o: modules/base.o
 
 #BigDFT.o: \
 #	base.o \

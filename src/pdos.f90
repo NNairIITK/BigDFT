@@ -458,13 +458,15 @@ subroutine global_analysis(iproc,nproc,orbs,wf)
   write(DOS, "(A)")
   write(DOS, "(A)") "# This is the smearing function used in the calculation."
   if (occopt == SMEARING_DIST_ERF) then
-     write(DOS, "(A,F6.4,A)") 'set title "Density of state, erf smearing w = ', wf, '"'
+     write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of state, erf smearing w = ', &
+          & wf, ', eFermi = ', orbs%efermi , 'eV"'
      write(DOS, "(A)") "f(eb,E)  = 0.5 * (1 - erf((E - eb) / w))"
-     write(DOS, "(A)") "df(eb,E) = exp(-((E - eb) / w) ** 2)"
+     write(DOS, "(A)") "df(eb,E) = exp(-((E - eb) / w) ** 2) / w / sqrt(pi)"
   else if (occopt == SMEARING_DIST_FERMI) then
-     write(DOS, "(A,F6.4)") 'set title "Density of state, Fermi-Dirac smearing w = "', wf
+     write(DOS, "(A,F6.4,A,F12.6,A)") 'set title "Density of state, Fermi-Dirac smearing w = ', &
+          & wf, ', eFermi = ', orbs%efermi , 'eV"'
      write(DOS, "(A)") "f(eb,E)  = 1 / (1 + exp((eb-E)/w))"
-     write(DOS, "(A)") "df(eb,E) = 1 / (2 + exp((eb-E)/w) + exp((E-eb)/w))"
+     write(DOS, "(A)") "df(eb,E) = 1 / (2 + exp((eb-E)/w) + exp((E-eb)/w)) / w"
   end if
   write(DOS, "(A)")
   write(DOS, "(A)") "U(E) = \"
@@ -521,7 +523,7 @@ subroutine global_analysis(iproc,nproc,orbs,wf)
   write(DOS, "(A)") 'set xlabel "Energy (eV)"'
   write(DOS, "(A)") 'set ylabel "Electrons per unit cell per eV"'
   write(DOS, "(A,F12.6,A,F12.6,A)") "set arrow from ", orbs%efermi , &
-       & ",graph 0.1 to ", orbs%efermi , ",graph 0.9 nohead lt 0"
+       & ",graph 0.05 to ", orbs%efermi , ",graph 0.95 nohead lt 0"
   write(DOS, "(A,F12.8,A,F12.8,A)")  "plot [", minE-0.1*(maxE-minE) , &
        & ":", maxE+0.1*(maxE-minE) , "] \"
   if (orbs%norbd > 0) then

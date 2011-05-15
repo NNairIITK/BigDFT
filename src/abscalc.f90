@@ -71,8 +71,9 @@ program abscalc_main
      if (iproc==0) call print_logo()
 
      ! Read all input files.
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt","input.mix","input.geopt", "input.perf", inputs, atoms, rxyz)
+     !standard names
+     call standard_inputfile_names(inputs)
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 
      !Initialize memory counting
      !call memocc(0,iproc,'count','start')
@@ -497,10 +498,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation
   if (iproc==0 .and. verbose > 0) then
-     call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,&
-          atoms%alat1,atoms%alat2,atoms%alat3,&
-          hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,&
-          orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
+     call MemoryEstimator(nproc,idsx,Glr,&
+          atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+          in%nspin,in%itrpmax,in%iscf,peakmem)
   end if
 
 
@@ -920,9 +920,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               enddo
            enddo
 
-           print *,"for replica ", ireplica,  "SHIFT " , shift_b2B
-
-
+           print '(a,i6,a,3(1x,f18.14))',"for replica ", ireplica,  "SHIFT " , shift_b2B
 
            rhopottmp=0.0_gp
            do iz_bB = 1,n3i_bB
