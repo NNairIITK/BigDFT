@@ -396,7 +396,7 @@ module module_types
 !!!  end type
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
-    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC
+    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix
     real(8),dimension(:),pointer:: potentialPrefac
     type(orbitals_data):: orbs

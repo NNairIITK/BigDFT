@@ -995,9 +995,9 @@ write(*,*) 'iproc, psoffset', iproc, psoffset
            !control the previous value of idsx_actual
            idsx_actual_before=diis%idsx
 
-           call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in)
-           !if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,Glr,comms,ncong,&
-           !     iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,in%nspin,GPU,in)
+           !call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in)
+           ! Do not modify psi in the linear scaling case (i.e. if inputpsi==100)
+           if(inputpsi/=100) call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in)
 
            if (in%inputPsiId == 0) then
               if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &

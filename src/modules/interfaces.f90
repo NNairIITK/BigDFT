@@ -1387,11 +1387,11 @@ module module_interfaces
     
     
     subroutine apply_potentialConfinement(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, rxyzConfinement, &
-         hxh, hyh, hzh, potentialPrefac, &
+         hxh, hyh, hzh, potentialPrefac, confPotOrder, &
          ibyyzz_r) !optional
       use module_base
       implicit none
-      integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot
+      integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot, confPotOrder
       real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
       real(wp), dimension(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
            -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), intent(in) :: pot

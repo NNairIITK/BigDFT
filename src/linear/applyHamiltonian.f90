@@ -406,12 +406,12 @@ subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
 !write(*,'(a,i0,a,i0,a)') 'calling with lin%onWhichAtom(iorb)=',lin%onWhichAtom(iorb), '  (iproc=',iproc,')'
             call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                  pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, &
-                 lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lr%bounds%ibyyzz_r) !optional
+                 lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lin%confPotOrder, lr%bounds%ibyyzz_r) !optional
         else
 !write(*,'(a,i0,a,i0,a)') 'calling with centralAtom=',centralAtom, '  (iproc=',iproc,')'
             call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                  pot(nsoffset),epot, rxyz(1,centralAtom), hxh, hyh, hzh, &
-                 lin%potentialPrefac(at%iatype(centralAtom)), lr%bounds%ibyyzz_r) !optional
+                 lin%potentialPrefac(at%iatype(centralAtom)), lin%confPotOrder, lr%bounds%ibyyzz_r) !optional
         end if
           
      case('P') 
@@ -465,7 +465,7 @@ END SUBROUTINE local_hamiltonianConfinement
 
 
 subroutine apply_potentialConfinement(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
-     rxyzConfinement, hxh, hyh, hzh, potentialPrefac, &
+     rxyzConfinement, hxh, hyh, hzh, potentialPrefac, confPotOrder, &
      ibyyzz_r) !optional
 !
 ! Purpose:
@@ -504,7 +504,7 @@ subroutine apply_potentialConfinement(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psi
 !
 use module_base
 implicit none
-integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot
+integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot, confPotOrder
 real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
 real(wp), dimension(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
      -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), intent(in) :: pot
@@ -513,7 +513,7 @@ real(gp), intent(out) :: epot
 real(8),dimension(3),intent(in):: rxyzConfinement
 real(8),intent(in):: hxh, hyh, hzh, potentialPrefac
 !local variables
-integer :: i1,i2,i3,i1s,i1e,ispinor
+integer :: i1,i2,i3,i1s,i1e,ispinor, order
 real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
 real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
 real(gp) :: epot_p
@@ -521,6 +521,19 @@ real(gp) :: epot_p
 
   !the Tail treatment is allowed only in the Free BC case
   if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
+
+  ! The order of the cofinement potential (we take order divided by two, 
+  ! since later we calculate (r**2)**order.
+  if(confPotOrder==2) then
+      ! parabolic potential
+      order=1
+  else if(confPotOrder==4) then
+      ! quartic potential
+      order=2
+  else if(confPotOrder==6) then
+      ! sextic potential
+      order=3
+  end if
   
   epot=0.0_wp
 
@@ -604,7 +617,7 @@ real(gp) :: epot_p
                        ! Add the quartic confinement potential to the potential.
                        tt=(hxh*dble(i1)-rxyzConfinement(1))**2 + (hyh*dble(i2)-rxyzConfinement(2))**2 + &
                            (hzh*dble(i3)-rxyzConfinement(3))**2
-                       tt=potentialPrefac*tt**2
+                       tt=potentialPrefac*tt**order
                        tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
                        tt=tt*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
