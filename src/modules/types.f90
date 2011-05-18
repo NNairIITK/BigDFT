@@ -403,7 +403,7 @@ module module_types
     type(communications_arrays):: comms
     type(locreg_descriptors):: lr
     type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
-    integer,dimension(:),pointer:: onWhichAtom
+    integer,dimension(:),pointer:: onWhichAtom, norbsPerType
     integer,dimension(:),pointer:: MPIComms, norbPerComm
     integer,dimension(:,:),pointer:: procsInComm
     integer:: ncomms

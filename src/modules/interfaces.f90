@@ -324,7 +324,7 @@ module module_interfaces
        integer, intent(in) :: iproc,nproc,ixc,symObj
        integer, intent(inout) :: nspin,nvirt
        real(gp), intent(in) :: hx,hy,hz
-       type(atoms_data), intent(in) :: at
+       type(atoms_data), intent(inout) :: at
        type(orbitals_data), intent(inout) :: orbs
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
        type(locreg_descriptors), intent(in) :: Glr
@@ -746,7 +746,7 @@ module module_interfaces
        implicit none
        integer, intent(in) :: iproc,nproc,nspin
        integer, intent(inout) :: nvirt
-       type(atoms_data), intent(in) :: at
+       type(atoms_data), intent(inout) :: at
        type(orbitals_data), intent(in) :: orbs
        type(locreg_descriptors), intent(in) :: Glr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -757,6 +757,26 @@ module module_interfaces
        type(gaussian_basis), intent(out) :: G
        real(wp), dimension(:,:,:), pointer :: psigau
      END SUBROUTINE inputguess_gaussian_orbitals
+
+     subroutine inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
+          orbs,orbse,norbsc_arr,locrad,G,psigau,eks,onWhichAtom)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,nspin
+       integer, intent(inout) :: nvirt
+       type(atoms_data), intent(inout) :: at
+       type(orbitals_data), intent(in) :: orbs
+       type(locreg_descriptors), intent(in) :: Glr
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(gp), intent(out) :: eks
+       integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
+       real(gp), dimension(at%nat), intent(out) :: locrad
+       type(orbitals_data), intent(inout) :: orbse
+       type(gaussian_basis), intent(out) :: G
+       real(wp), dimension(:,:,:), pointer :: psigau
+       integer,dimension(orbse%norb),intent(out):: onWhichAtom
+     END SUBROUTINE inputguess_gaussian_orbitals_withOnWhichAtom
 
      subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
           nspin,eks,scorb,G,gaucoeff,iorbtolr)
@@ -1467,6 +1487,29 @@ module module_interfaces
     type(atoms_data), intent(in) :: at
     integer,intent(in),optional:: centralAtom
     end subroutine local_hamiltonianConfinement
+
+
+    subroutine local_hamiltonianConfinementForAllLocregs(iproc,orbs,lin,lr,hx,hy,hz,&
+         nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at, centralAtom)
+      use module_base
+      use module_types
+      use libxc_functionals
+      implicit none
+      integer, intent(in):: iproc, nspin, nat
+      real(gp), intent(in):: hx,hy,hz
+      type(orbitals_data),intent(in):: orbs
+      type(linearParameters),intent(in):: lin
+      type(locreg_descriptors),intent(in) :: lr
+      type(atoms_data),intent(in):: at
+      real(wp),dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp),intent(in):: psi
+      real(wp),dimension(*):: pot
+      !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
+      real(gp),intent(out):: ekin_sum,epot_sum
+      real(wp),dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp,at%nat),intent(out):: hpsi
+      real(8),dimension(3,nat),intent(in):: rxyz
+      integer,intent(in),optional:: centralAtom
+    end subroutine local_hamiltonianConfinementForAllLocregs
+
     
     
     subroutine deallocateLinear(iproc, lin, lind, phi, coeff, phid, coeffd)
@@ -1515,7 +1558,7 @@ module module_interfaces
       type(locreg_descriptors),intent(in) :: Glr
       type(orbitals_data),intent(in):: orbs
       type(communications_arrays),intent(in) :: comms
-      type(atoms_data),intent(in):: at
+      type(atoms_data),intent(inout):: at
       type(linearParameters),intent(in out):: lin
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(inout):: rxyz
@@ -1844,6 +1887,103 @@ module module_interfaces
      real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: z_c
      real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: z_f
     end subroutine createDerivativeBasis
+
+
+subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
+     nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, onWhichAtom, &
+     pkernel,orbsocc,psirocc,centralAtom) ! optional
+      use module_base
+      use module_types
+      use libxc_functionals
+      implicit none
+      integer, intent(in) :: iproc,nproc,ndimpot,nspin
+      real(gp), intent(in) :: hx,hy,hz
+      type(atoms_data), intent(in) :: at
+      type(orbitals_data), intent(in) :: orbs
+      type(linearParameters):: lin
+      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+      type(locreg_descriptors), intent(in) :: lr
+      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+      real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
+      real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+      real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
+      real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp*at%nat), intent(out) :: hpsi
+      type(GPU_pointers), intent(inout) :: GPU
+      real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
+      integer,dimension(orbs%norb),intent(in):: onWhichAtom
+      real(dp), dimension(*), optional :: pkernel
+      type(orbitals_data), intent(in), optional :: orbsocc
+      real(wp), dimension(:), pointer, optional :: psirocc
+      integer,intent(in),optional:: centralAtom
+    end subroutine HamiltonianApplicationConfinementForAllLocregs
+
+
+    subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad)
+      use module_base
+      use module_types
+      implicit none
+      !Arguments
+      integer, intent(in) :: nspin,nspinor
+      integer, intent(out) :: norbe,norbsc
+      type(atoms_data), intent(inout) :: at
+      logical, dimension(4,2,at%natsc), intent(out) :: scorb
+      integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
+      real(gp), dimension(at%nat), intent(out) :: locrad
+    end subroutine readAtomicOrbitals
+
+
+    subroutine readAtomicOrbitals_withOnWhichAtom(at,orbsig,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,locrad,&
+               onWhichAtom)
+      use module_base
+      use module_types
+      implicit none
+      !Arguments
+      integer, intent(in) :: nspin,nspinor
+      type(orbitals_data),intent(in):: orbsig
+      integer, intent(out) :: norbe,norbsc
+      type(atoms_data), intent(inout) :: at
+      logical, dimension(4,2,at%natsc), intent(out) :: scorb
+      integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
+      real(gp), dimension(at%nat), intent(out) :: locrad
+      integer,dimension(orbsig%norb),intent(out):: onWhichAtom
+    end subroutine readAtomicOrbitals_withOnWhichAtom
+
+
+
+
+    subroutine inputguessConfinement(iproc, nproc, at, &
+         comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
+         nlpspd, proj, pkernel, pkernelseq, &
+         nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, &
+         phi)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc,n3p
+      type(atoms_data), intent(inout) :: at
+      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+      type(locreg_descriptors), intent(in) :: Glr
+      type(communications_arrays), intent(in) :: comms
+      type(GPU_pointers), intent(inout) :: GPU
+      type(input_variables):: input
+      type(linearParameters),intent(inout):: lin
+      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+      real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
+      real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
+      real(wp), dimension(:), pointer :: rhocore
+      real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
+      real(dp), dimension(:), pointer :: pkernelseq
+      integer, intent(in) ::potshortcut
+      integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
+      real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
+      real(8),dimension(lin%orbs%npsidim),intent(out):: phi
+    end subroutine inputguessConfinement
 
 
     

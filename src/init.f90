@@ -341,7 +341,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer, intent(in) :: iproc,nproc,ixc,symObj
   integer, intent(inout) :: nspin,nvirt
   real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data), intent(in) :: at
+  type(atoms_data), intent(inout) :: at
   type(orbitals_data), intent(inout) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: Glr

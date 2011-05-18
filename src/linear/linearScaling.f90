@@ -64,7 +64,7 @@ integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
 type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in) :: comms
-type(atoms_data),intent(in):: at
+type(atoms_data),intent(inout):: at
 type(linearParameters),intent(in out):: lin
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(inout):: rxyz
@@ -102,7 +102,7 @@ integer,dimension(:,:),pointer :: outofzone
 
 
 ! Local variables
-integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr
+integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut
 real(8),dimension(:),allocatable:: phi, phid
 real(8),dimension(:,:),allocatable:: occupForInguess, coeff, coeffd
 real(8):: ebsMod, alpha, pnrm, tt
@@ -127,6 +127,14 @@ real(wp),dimension(:),allocatable:: projTemp
   ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
       input, rxyz, occupForInguess, coeff, coeffd, nlr, Llr, outofzone)
+
+  potshortcut=0 ! What is this?
+  call inputguessConfinement(iproc, nproc, at, &
+       comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
+       nlpspd, proj, pkernel, pkernelseq, &
+       nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, &
+       phi)
+
 
   ! The next subroutine will create the variable wave function descriptors.
   ! It is not used at the moment.

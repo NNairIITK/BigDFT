@@ -60,23 +60,24 @@ real :: ttreal
 real(gp),dimension(:),allocatable:: locrad
 
 
+allocate(lin%norbsPerType(at%ntypes), stat=istat)
+call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
+
 ! Allocate all local arrays.
-allocate(norbsPerType(at%ntypes), stat=istat)
-call memocc(istat, norbsPerType, 'norbsPerType', subname)
 allocate(atomNames(at%ntypes), stat=istat)
 call memocc(istat, atomNames, 'atomNames', subname)
 allocate(norbsPerAtom(at%nat), stat=istat)
 call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 
 ! Read in all parameters related to the linear scaling version and print them.
-call readLinearParameters(iproc, lin, lind, at, atomNames, norbsPerType)
+call readLinearParameters(iproc, lin, lind, at, atomNames, lin%norbsPerType)
 
 ! Assign to each atom its number of basis functions and count how many basis functions 
 ! we have in total.
 lin%orbs%norb=0
 do iat=1,at%nat
     ityp=at%iatype(iat)
-    norbsPerAtom(iat)=norbsPerType(ityp)
+    norbsPerAtom(iat)=lin%norbsPerType(ityp)
     lin%orbs%norb=lin%orbs%norb+norbsPerAtom(iat)
 end do
 
@@ -96,7 +97,7 @@ norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lind%orbs)
 
 ! Write all parameters related to the linear scaling version to the screen.
-call writeLinearParameters(iproc, nproc, at, lin, lind, atomNames, norbsPerType)
+call writeLinearParameters(iproc, nproc, at, lin, lind, atomNames, lin%norbsPerType)
 
 
 ! Decide which orbital is centered in which atom.
@@ -259,9 +260,9 @@ allocate(Llr(nlr+ndebug),stat=istat)
 
 
 ! Deallocate all local arrays
-iall=-product(shape(norbsPerType))*kind(norbsPerType)
-deallocate(norbsPerType, stat=istat)
-call memocc(istat, iall, 'norbsPerType', subname)
+!iall=-product(shape(norbsPerType))*kind(norbsPerType)
+!deallocate(norbsPerType, stat=istat)
+!call memocc(istat, iall, 'norbsPerType', subname)
 
 iall=-product(shape(atomNames))*kind(atomNames)
 deallocate(atomNames, stat=istat)
@@ -616,6 +617,10 @@ character(len=*),parameter:: subname='deallocateLinear'
   iall=-product(shape(lin%onWhichAtom))*kind(lin%onWhichAtom)
   deallocate(lin%onWhichAtom, stat=istat)
   call memocc(istat, iall, 'lin%onWhichAtom', subname)
+
+  iall=-product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
+  deallocate(lin%norbsPerType, stat=istat)
+  call memocc(istat, iall, 'lin%norbsPerType', subname)
 
   iall=-product(shape(lind%onWhichAtom))*kind(lind%onWhichAtom)
   deallocate(lind%onWhichAtom, stat=istat)
