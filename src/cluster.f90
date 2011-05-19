@@ -763,7 +763,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !all the input format need first_orthon except the LCAO input_guess
   if (inputpsi /= 0 .and. inputpsi /=-1000) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
+     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in%orthpar)
   end if
 
   !save the new atomic positions in the rxyz_old array
@@ -976,7 +976,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !control the previous value of idsx_actual
            idsx_actual_before=diis%idsx
 
-           call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in)
+           call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in%orthpar)
 
            if (in%inputPsiId == 0) then
               if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
