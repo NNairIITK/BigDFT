@@ -13,7 +13,11 @@
   method used in almost every kernel.
 */
 char * benchmark_program = "\
-#pragma OPENCL EXTENSION cl_khr_fp64: enable\n\
+#ifdef cl_khr_fp64\n\
+#pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
 #define NB_ITER 16\n\
 __kernel void benchmark_mopsKernel_d(uint n, __global const double *in, __global double *out){\n\
 size_t i = get_global_id(0);\n\

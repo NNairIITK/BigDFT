@@ -4,8 +4,12 @@
 #include "OpenCL_wrappers.h"
 
 char * kinetic_program="\
-#define FILTER_WIDTH 32\n\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
+#define FILTER_WIDTH 32\n\
 __kernel void kinetic1dKernel_d(uint n, uint ndat, double scale, __global const double * x_in, __global double * x_out, __global const double * y_in, __global double * y_out, __local double * tmp, __local double * tmp2) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
@@ -129,8 +133,12 @@ inline void kinetic_generic(cl_kernel kernel, cl_command_queue command_queue, cl
 }
 
 char * kinetic_k_program="\
-#define FILTER_WIDTH 32\n\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
+#define FILTER_WIDTH 32\n\
 __kernel void kinetic_k1dKernel_d(uint n, uint ndat, double scale_1, double scale_2, __global const double * x_in, __global double * x, __global const double * y_in, __global double * y, __local double * tmp, __local double * tmp_y ) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\

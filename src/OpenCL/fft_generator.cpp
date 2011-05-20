@@ -6,6 +6,7 @@
 #include <list>
 #include <malloc.h>
 #include <math.h>
+#include <stdlib.h>
 #include "fft_generator.h"
 #define TWOPI 3.14159265358979323846264338327950288419716939937510*2
 

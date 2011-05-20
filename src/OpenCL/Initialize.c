@@ -2,7 +2,11 @@
 #include "Initialize.h"
 
 char * initialize_program="\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
 __kernel void c_initializeKernel_d(uint n, __global const double * x_in, __global double * y_in, double c) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\

@@ -15,8 +15,12 @@
 */
 char * dgemm_program="\
 //size is supposed to be 16*16\n\
-#define BUFFER_SIZE 16\n\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
+#define BUFFER_SIZE 16\n\
 #define ELEM_PER_THREAD 2\n\
 #define init16(array) \
 array[0]=0.0;\
@@ -830,7 +834,11 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
 */
 char * reduction_program="\
 //group_size is supposed to be 512\n\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
 __kernel void reductionKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
   //get our position in the local buffer\n\
   size_t i = get_local_id(0);\n\
