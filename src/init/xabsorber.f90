@@ -1,14 +1,13 @@
-!!****f* BigDFT/find_pfproj
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2009-2010 BigDFT group
+!> @file
+!!  Routines for XANES calculation
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
 subroutine find_pfproj( Nsol,Ngrid,rgrid, psi1s, psigrid, real_start, psigrid_pseudo, dump_functions)
   use module_base
   implicit none
@@ -89,13 +88,8 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid, psi1s, psigrid, real_start, psigrid_ps
 
   return
 END SUBROUTINE find_pfproj
-!!***
 
 
-!!****f* BigDFT/find_Scoeffs_grid
-!!
-!! SOURCE
-!!
 subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   use module_base
   implicit none
@@ -155,12 +149,8 @@ subroutine find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   
   return 
 END SUBROUTINE find_Scoeffs_grid
-!!***
 
 
-!!****f* BigDFT/dump_1gauwf_on_radgrid
-!! SOURCE
-!!
 subroutine dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
   use module_base
   implicit none
@@ -191,12 +181,10 @@ subroutine dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
   close(unit=22)
 
 END SUBROUTINE dump_1gauwf_on_radgrid
-!!***
 
 
-!!****f* BigDFT/value_at_r
-!!
-!! SOURCE
+
+!> BigDFT/value_at_r
 !!
 function value_at_r(r, ng , expo,psi     )
   use module_base, only: gp
@@ -222,13 +210,8 @@ function value_at_r(r, ng , expo,psi     )
   value_at_r=sum
 
 end function value_at_r
-!!***
 
 
-!!****f* BigDFT/dump_gauwf_on_radgrid
-!!
-!! SOURCE
-!!
 subroutine dump_gauwf_on_radgrid(prefix, ng, noccmax, lmax, expo, psi)
   use module_base, only: gp
   implicit none
@@ -274,7 +257,6 @@ subroutine dump_gauwf_on_radgrid(prefix, ng, noccmax, lmax, expo, psi)
   enddo
 return
 END SUBROUTINE dump_gauwf_on_radgrid
-!!***
 
 
 subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccmax, lmax ,expo,psi, aeval, occup, psp_modifier, &
@@ -588,6 +570,7 @@ function pow(x,n)
   real(gp) :: pow
   pow=x**n
 end function pow
+
 
 function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
   use module_base, only: gp,wp
@@ -1111,7 +1094,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
   real(gp) :: rgrid(Ngrid)
   real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid)
 
-  if (nintp.ne.n_int) stop 'n_int><nintp'
+  if (nintp.ne.n_int) stop 'n_int/=nintp'
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l
@@ -1595,7 +1578,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 END SUBROUTINE gatom_modified
 
 
-!! this routine solves exactly a reference model
+!> this routine solves exactly a reference model
 subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg,&
@@ -1638,7 +1621,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!!  print *, py_r(1)
 !!! 
 
-  if (nintp.ne.n_int) stop 'n_int><nintp'
+  if (nintp.ne.n_int) stop 'n_int/=nintp'
 
 
   do l=0,lmax
@@ -2293,13 +2276,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
      end do
   end if
 
-
-
 END SUBROUTINE gatom_modified_eqdiff
-
-
-
-
 
 
 subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc, iproc, abs_final_L, do_eqdiff)
@@ -2699,10 +2676,6 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
 END SUBROUTINE GetExcitedOrbitalAsG
 
 
-!!****f* BigDFT/GetBottom
-!! FUNCTION
-!! SOURCE
-!!
 function GetBottom( atoms, iproc)
   
   use module_base
@@ -2813,7 +2786,7 @@ function GetBottom( atoms, iproc)
   call memocc(i_stat,i_all,'rgrid',subname)
 
 end function GetBottom
-!!***
+
 
 
 subroutine zero4b2B(n,x)
@@ -2827,19 +2800,13 @@ subroutine zero4b2B(n,x)
      x(i)=0.d0
   end do
 END SUBROUTINE zero4b2B
-!!***
 
 
-!!****f* PSolver/back_trans_14_4b2B
-!! FUNCTION
-!!   backward wavelet transform
-!!   nd: length of data set
-!!   nt length of data in data set to be transformed
-!!   m filter length (m has to be even!)
-!!   x input data, y output data
-!!
-!! SOURCE
-!!
+!> Backward wavelet transform
+!!    @param nd  length of data set
+!!    @param nt  length of data in data set to be transformed
+!!    @param m   filter length (m has to be even!)
+!!    @param x   input data, y output data
 subroutine back_trans_14_4b2B(nd,nt,x,y)
   implicit none
   !Arguments
@@ -2877,13 +2844,8 @@ subroutine back_trans_14_4b2B(nd,nt,x,y)
   end do
 
 END SUBROUTINE back_trans_14_4b2B
-!!***
 
 
-!!****f* BigDFT/scaling_function4b2B
-!!
-!! SOURCE
-!!
 subroutine scaling_function4b2B(itype,nd,nrange,a,x)
   use module_base
   implicit none
@@ -2967,13 +2929,8 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
   deallocate(y,stat=i_stat)
   call memocc(i_stat,i_all,'y',subname)
 END SUBROUTINE scaling_function4b2B
-!!***
 
 
-!!****f* BigDFT/read_potfile4b2B
-!!
-!! SOURCE
-!!
 subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   use module_base
   implicit none
@@ -3019,4 +2976,3 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   close(22)
   
 END SUBROUTINE read_potfile4b2B
-!!***

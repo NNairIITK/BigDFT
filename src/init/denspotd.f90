@@ -1,16 +1,14 @@
-!!****f* BigDFT/createDensPotDescriptors
-!! FUNCTION
-!!   Create the descriptors for the density and the potential
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group (LG)
+!> @file
+!!  Routines to create descriptor arrays for density and potential
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>   Create the descriptors for the density and the potential
 subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
      n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
 
@@ -56,24 +54,19 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
   ngatherarr(:,2)=n1i*n2i*nscatterarr(:,3)
 
 END SUBROUTINE createDensPotDescriptors
-!!***
 
-!!****f* BigDFT/orbitals_communicators
-!! FUNCTION
-!!   Partition the orbitals between processors to ensure load balancing
+
+!>   Partition the orbitals between processors to ensure load balancing
 !!   the criterion will depend on GPU computation
-!!   and/or on the sizes of the different localisation region
-!! DESCRIPTION
+!!   and/or on the sizes of the different localisation region.
+!!
 !!   Calculate the number of elements to be sent to each process
-!!   and the array of displacements
+!!   and the array of displacements.
 !!   Cubic strategy: 
 !!      - the components are equally distributed among the wavefunctions
 !!      - each processor has all the orbitals in transposed form
 !!      - each wavefunction is equally distributed in its transposed form
 !!      - this holds for each k-point, which regroups different processors
-!!
-!! SOURCE
-!!
 subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   use module_base
   use module_types
@@ -89,16 +82,8 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   integer :: ncomp_res,nkptsp,ierr,kproc,jkpts,jkpte,jsorb
   integer, dimension(:), allocatable :: mykpts
   logical, dimension(:), allocatable :: GPU_for_comp
-  integer, dimension(:,:), allocatable :: nvctr_par,norb_par !for all the components and orbitals (with k-pts)
+  integer, dimension(:,:), allocatable :: nvctr_par,norb_par !<for all the components and orbitals (with k-pts)
   
-
-  !calculate the number of elements to be sent to each process
-  !and the array of displacements
-  !cubic strategy: -the components are equally distributed among the wavefunctions
-  !                -each processor has all the orbitals in transposed form
-  !                -each wavefunction is equally distributed in its transposed form
-  !                -this holds for each k-point, which regroups different processors
-
   !check of allocation of important arrays
   if (.not. associated(orbs%norb_par)) then
      write(*,*)'ERROR: norb_par array not allocated'
@@ -386,7 +371,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
        orbs%npsidim*8
 
 END SUBROUTINE orbitals_communicators
-!!***
 
 
 subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
@@ -449,6 +433,7 @@ subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
   
 END SUBROUTINE print_distribution_schemes
 
+
 subroutine start_end_distribution(nproc,nkpts,jproc,ndist,is,ie,norbp)
   implicit none
   integer, intent(in) :: nproc,nkpts,jproc
@@ -478,6 +463,7 @@ subroutine start_end_distribution(nproc,nkpts,jproc,ndist,is,ie,norbp)
   end do loop_ie
 END SUBROUTINE start_end_distribution
 
+
 subroutine start_end_comps(nproc,jproc,ndist,is,ie)
   implicit none
   integer, intent(in) :: nproc,jproc
@@ -493,4 +479,3 @@ subroutine start_end_comps(nproc,jproc,ndist,is,ie)
   ie=is+ndist(jproc)-1
   
 END SUBROUTINE start_end_comps
-

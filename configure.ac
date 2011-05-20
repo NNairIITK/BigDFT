@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.5-dev.5],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.0],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -388,11 +388,15 @@ end]], ac_use_etsfio=yes, ac_use_etsfio=no)
    LIBS="$LIBS_SVG"
    FCFLAGS="$FCFLAGS_SVG"
    if test "$ac_use_etsfio" = "yes"; then
-      ac_libetsfio_libs="-letsf_io -lnetcdff -lnetcdf"
+      ac_etsfio_incs=""
       if test -n "$ac_etsfio_dir" ; then
-         AC_SUBST(LIBETSFIO_INCLUDE, "-I$ac_etsfio_dir/include")
+         ac_etsfio_incs=$ac_etsfio_incs" -I$ac_etsfio_dir/include"
       fi
-      LIBETSFIO_LIBS="-letsf_io -lnetcdff -lnetcdf"
+      if test -n "$ac_netcdf_dir" -a x"$ac_netcdf_dir" != x"$ac_etsfio_dir" ; then
+         ac_etsfio_incs=$ac_etsfio_incs" -I$ac_netcdf_dir/include"
+      fi
+      AC_SUBST(LIBETSFIO_INCLUDE, $ac_etsfio_incs)
+      LIBETSFIO_LIBS="-letsf_io $ac_netcdf_libs"
    fi
 fi
 AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
@@ -618,8 +622,15 @@ dnl Agregate all the optional libs.
 LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS"
 
 dnl Test for the documentation.
-AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes])
+AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
 AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes")
+dnl Test for the developers' documentation.
+AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
+AC_ARG_ENABLE(devel-doc,
+              AS_HELP_STRING([--enable-devel-doc],
+                             [compile documentation for developers using Doxygen.]),
+              ac_devel_doc=$withval, ac_devel_doc="no")
+AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],
@@ -638,6 +649,7 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 libABINIT/src/Makefile
+config/Doxyfile
 src/Makefile
 src/modules/Makefile
 src/modules/configure.inc
@@ -668,6 +680,7 @@ tests/SPLSAD/Makefile
 tests/DFT/Makefile
 tests/OpenCL/Makefile
 tests/CUDA/Makefile
+tests/ETSF_IO/Makefile
 ])
 
 # Call libXC ./configure script recursively.
@@ -698,6 +711,8 @@ Build:
   Main binaries (cluster...):$ac_build_bin_cluster
   Minima hopping binary:     $ac_build_bin_minima_hopping
   atom and pseudo binaries:  $ac_build_bin_pseudo
+  User documentation:        $ac_have_pdflatex
+  Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
 
 Options:
   Debug version:             $ac_use_debug		

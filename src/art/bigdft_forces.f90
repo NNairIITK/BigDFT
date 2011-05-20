@@ -1,14 +1,14 @@
-!!****m* bart/bigdft_forces
-!! FUNCTION
-!!   Module which contains information for bigdft run inside art
-!! COPYRIGHT
+!> @file
+!!   Information to interface BigDFT with ART
+!! @author
 !!   Copyright (C) 2010 BigDFT group, Normand Mousseau
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+
+!>   Module which contains information for BigDFT run inside art
 module bigdft_forces
 
   use module_base!, only : gp,wp,dp,bohr2ang
@@ -35,14 +35,9 @@ module bigdft_forces
   public :: bigdft_finalise
 
 contains
-!!***
 
 
-!!****f* bigdft_forces/bigdft_init
-!! FUNCTION
-!!   Routine to initialize all BigDFT stuff
-!! SOURCE
-!!
+!>   Routine to initialize all BigDFT stuff
   subroutine bigdft_init(nat,typa,posa,boxl, nproc_, me_)
 
     implicit none
@@ -65,8 +60,9 @@ contains
     ! Initialize memory counting
     call memocc(0,me,'count','start')
 
-    call read_input_variables(me_, "posinp", "input.dft", "input.kpt","input.mix", &
-         & "input.geopt", "input.perf", in, at, rxyz)
+    !standard names
+    call standard_inputfile_names(in)
+    call read_input_variables(me_, "posinp",in, at, rxyz)
 
     ! Transfer at data to ART variables
     nat = at%nat
@@ -94,14 +90,9 @@ contains
 
     initialised = .true.
   END SUBROUTINE bigdft_init
-!!***
 
 
-!!****f* bigdft_forces/calcforce
-!! FUNCTION
-!!   Calculation of forces
-!! SOURCE
-!!
+!>   Calculation of forces
   subroutine calcforce(nat,posa,boxl,forca,energy)
 
     implicit none
@@ -148,14 +139,9 @@ contains
     deallocate(xcart)
     deallocate(fcart)
   END SUBROUTINE calcforce
-!!***
 
 
-!!****f* bigdft_forces/mingeo
-!! FUNCTION
-!!   Minimise geometry
-!! SOURCE
-!!
+!>   Minimise geometry
   subroutine mingeo(nat, boxl, posa, evalf_number, forca, total_energy)
 
     implicit none
@@ -202,14 +188,9 @@ contains
     deallocate(xcart)
     deallocate(fcart)
   END SUBROUTINE mingeo
-!!***
 
 
-!!****f* bigdft_forces/bigdft_finalise
-!! FUNCTION
-!!   Routine to finalise all BigDFT stuff
-!! SOURCE
-!!
+!>   Routine to finalise all BigDFT stuff
   subroutine bigdft_finalise()
 
     implicit none
@@ -226,4 +207,3 @@ contains
 
 
 end module bigdft_forces
-!!***

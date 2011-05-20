@@ -91,7 +91,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -200,7 +200,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -276,7 +276,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -287,7 +287,7 @@
  PSolver, free  BC, dimensions:   125  125  125   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   59239   58142
+    nvctr_c_old /= nvctr_c   59239   58142
  Reformatting... done.
  iter,total energy,gnrm     1  -1.26418564362106167E+01  9.17E-01
  iter,total energy,gnrm     2  -1.47400840218006906E+01  3.55E-01
@@ -368,7 +368,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -379,7 +379,7 @@
  PSolver, free  BC, dimensions:   125  125  125   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   58142   57856
+    nvctr_c_old /= nvctr_c   58142   57856
  Reformatting... done.
  iter,total energy,gnrm     1  -8.49580210747841136E+00  1.27E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
@@ -428,7 +428,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -513,7 +513,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -524,7 +524,7 @@
  PSolver, free  BC, dimensions:   125  125  125   proc    4 ... done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions need reformatting because:                                 
-    nvctr_c_old >< nvctr_c   57856   58938
+    nvctr_c_old /= nvctr_c   57856   58938
  Reformatting... done.
  iter,total energy,gnrm     1  -5.17955787148792446E+00  1.40E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
@@ -573,7 +573,7 @@
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36
@@ -662,7 +662,7 @@ End of minimization using  VSSD
  Type    Name Number of atoms Number of projectors
     1      Na               1                    5
     2      Cl               1                    5
-                                            ------   On-the-fly projectors application
+                                            ------  On-the-fly projectors application
  Total number of projectors =                   10
  Total number of components =               266320
  Percent of zero components =                   36

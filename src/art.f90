@@ -1,8 +1,6 @@
-!!****p* BigDFT/art90
-!! FUNCTION
-!!  Main program to use BigDFT with art nouveau method
-!!
-!! COPYRIGHT
+!> @file
+!! Contains program to do Activation Relaxation Technique (ART) calculation
+!! @author
 !!    Copyright Normand Mousseau, July 2001
 !!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
@@ -10,8 +8,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
-!!
+!>  Main program to use BigDFT with art nouveau method
 program art90
 
   use DEFS
@@ -210,15 +207,10 @@ program art90
   deallocate(del_pos)
 
   call finalise_potential()
-end program art90
-!!***
+END PROGRAM art90
 
 
-!!****f* art/print_newevent
-!! FUNCTION
-!!   This subroutine prints the initial details for a new events
-!! SOURCE
-!!
+!>   This subroutine prints the initial details for a new events
 subroutine print_newevent(ievent_current,temperat)
   use defs
   implicit none
@@ -239,4 +231,4 @@ subroutine print_newevent(ievent_current,temperat)
 
   return
 END SUBROUTINE print_newevent
-!!***
+

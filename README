@@ -4,7 +4,7 @@ README for BigDFT
 
 
 <pre>
-	Copyright (C) 2008-2010 BigDFT Group
+	Copyright (C) 2008-2011 BigDFT Group
 
 	This file is part of BigDFT.
 
@@ -26,7 +26,7 @@ README for BigDFT
 
 
 
-The bigDFT project is an electronic structure calculations based on
+The BigDFT project is an electronic structure calculations based on
 wavelet basis set.
 
 Please see the file COPYING for copying conditions.

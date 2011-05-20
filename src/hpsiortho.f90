@@ -1,16 +1,14 @@
-!!****f* BigDFT/HamiltonianApplication
-!! FUNCTION
-!!  Application of the Hamiltonian
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA
+!> @file
+!!  Application of the Hamiltonian + orthonormalize constraints
+!! @author
+!!    Copyright (C) 2007-2011 CEA
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!> Application of the Hamiltonian
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
@@ -214,9 +212,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
 END SUBROUTINE HamiltonianApplication
-!!***
 
-!build the potential in the whole box
+
+!> Build the potential in the whole box
 subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
   use module_base
   use libxc_functionals
@@ -269,7 +267,8 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
 
   call timing(iproc,'Rho_commun    ','OF') 
 
-end subroutine full_local_potential
+END SUBROUTINE full_local_potential
+
 
 subroutine free_full_potential(nproc,pot,subname)
   use module_base
@@ -291,50 +290,48 @@ subroutine free_full_potential(nproc,pot,subname)
      nullify(pot)
   end if
 
-end subroutine free_full_potential
+END SUBROUTINE free_full_potential
 
-!!****f* BigDFT/hpsitopsi
-!! FUNCTION
-!!   Operations after h|psi> 
-!!   (transposition, orthonormalisation, inverse transposition)
-!! SOURCE
-!!
-subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
-     ncong,iter,diis,idsx,gnrm,gnrm_zero,trH,psi,psit,hpsi,nspin,GPU,input)
+!> Extract the energy (the quantity which has to be minimised by the wavefunction)
+!! and calculate the corresponding gradient.
+!! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
+!! depending of the functional we want to calculate. The gradient wrt the wavefucntion
+!! Is the put in hpsi accordingly to the functional
+subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
+     ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
   use module_base
   use module_types
-  use module_interfaces, except_this_one_A => hpsitopsi
+  use module_interfaces, except_this_one => calculate_energy_and_gradient
   implicit none
-  integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
-  real(gp), intent(in) :: hx,hy,hz
-  type(locreg_descriptors), intent(in) :: lr
-  type(communications_arrays), intent(in) :: comms
+  integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+  real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp
   type(orbitals_data), intent(in) :: orbs
-  type(input_variables), intent(in) :: input
-  type(diis_objects), intent(inout) :: diis
-  real(dp), intent(inout) :: gnrm,gnrm_zero,trH
+  type(communications_arrays), intent(in) :: comms
+  type(locreg_descriptors), intent(in) :: lr
+  type(GPU_pointers), intent(in) :: GPU
+  real(gp), intent(out) :: gnrm,gnrm_zero,energy
   real(wp), dimension(:), pointer :: psi,psit,hpsi
-  type(GPU_pointers), intent(inout) :: GPU
   !local variables
-  character(len=*), parameter :: subname='hpsitopsi'
-  !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-  integer :: ierr,iorb,k,i_stat,i_all,nzeroorbs
+  character(len=*), parameter :: subname='calculate_energy_and_gradient' 
+  logical :: lcs
+  integer :: ierr,ikpt,iorb,i_all,i_stat,k
+  real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
-!OCL  real(wp) :: maxdiff
-!OCL  integer, dimension(3) :: periodic
+  !band structure energy calculated with occupation numbers
+  energybs=ekin+epot+eproj !the potential energy contains also exctX
+  !this is the Kohn-Sham energy
+  energyKS=energybs-ehart+exc-evxc-eexctX+eion+edisp
 
-  !adjust the save variables for DIIS/SD switch
-  if (iter == 1) then
-     diis%ids=0
-     diis%mids=1
-     diis%idiistol=0
+  !calculate orbital poloarisation directions
+  if(orbs%nspinor==4) then
+     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
+     call memocc(i_stat,mom_vec,'mom_vec',subname)
+
+     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
+          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
   end if
-  !update variables at each iteration step
-  if (idsx > 0) then
-     diis%mids=mod(diis%ids,idsx)+1
-     diis%ids=diis%ids+1
-  end if
+
 
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
@@ -356,12 +353,30 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !passed as an optional argument
   call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
 
-  !add the trace of the hamiltonian to the value of the energy
-  diis%energy=diis%energy+trH
-  diis%energy_min=min(diis%energy_min,diis%energy)
-
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+
+  !after having calcutated the trace of the hamiltonian, the functional have to be defined
+  !new value without the trace, to be added in hpsitopsi
+  if (iscf >1) then
+     energy=trH
+  else
+     energy=trH-ehart+exc-evxc-eexctX+eion+edisp
+  end if
+
+  !check that the trace of the hamiltonian is compatible with the 
+  !band structure energy 
+  !this can be done only if the occupation numbers are all equal
+  tt=(energybs-trH)/trH
+  if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+       (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
+     !write this warning only if the system is closed shell
+     call check_closed_shell(orbs,lcs)
+     if (lcs) then
+        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+             'ERROR: inconsistency between gradient and energy',tt,energybs,trH
+     end if
+  endif
 
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0 .and. verbose > 1) then
@@ -372,12 +387,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
-!!$  if (OCLconv) then
-!!$     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,hpsi_OCL,'hpsi_OCL',subname)
-!!$     call dcopy((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, hpsi, 1, hpsi_OCL, 1)
-!!$  end if
-
   if (GPUconv) then
      call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
           hpsi,gnrm,gnrm_zero,GPU)
@@ -388,41 +397,29 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   end if
 
-!!$  if (OCLconv) then
-!!$     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
-!!$          hpsi_OCL,gnrm,GPU)
-!!$     maxdiff=0.0_wp
-!!$     do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
-!!$        maxdiff=max(maxdiff,abs(hpsi(i)-hpsi_OCL(i)))
-!!$     end do
-!!$     print *,''
-!!$     print *,'maxdiff',maxdiff
-!!$     i_all=-product(shape(hpsi_OCL))*kind(hpsi_OCL)
-!!$     deallocate(hpsi_OCL,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
-!!$
-!!$  end if
   !sum over all the partial residues
   if (nproc > 1) then
-     !tt=gnrm
-     !call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
      call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
      call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
   endif
+
   !count the number of orbitals which have zero occupation number
-  !assume that this is the same for all k-points, which is not true in general
-  nzeroorbs=0
-  do iorb=1,orbs%norb*orbs%nkpts
-     if (orbs%occup(iorb) == 0.0_gp) then
-        nzeroorbs=nzeroorbs+1
-     end if
+  !weight this with the corresponding k point weight
+  rzeroorbs=0.0_gp
+  do ikpt=1,orbs%nkpts
+     do iorb=1,orbs%norb
+        if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
+           rzeroorbs=rzeroorbs+orbs%kwgts(ikpt)
+        end if
+     end do
   end do
-  if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
+  !commented out, the kwgts sum already to one
+  !if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
 
-  gnrm=sqrt(gnrm/real(orbs%norb-nzeroorbs,dp))
+  gnrm=sqrt(gnrm/(real(orbs%norb,gp)-rzeroorbs))
 
-  if (nzeroorbs /= 0) then
-     gnrm_zero=sqrt(gnrm_zero/real(nzeroorbs,dp))
+  if (rzeroorbs /= 0.0_gp) then
+     gnrm_zero=sqrt(gnrm_zero/rzeroorbs)
   else
      gnrm_zero=0.0_gp
   end if
@@ -432,6 +429,80 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           'done.'
   end if
   call timing(iproc,'Precondition  ','OF')
+
+  if (orbs%nspinor == 4) then
+     !only the root process has the correct array
+     if(iproc==0 .and. verbose > 0) then
+        write(*,'(1x,a)')&
+             'Magnetic polarization per orbital'
+        write(*,'(1x,a)')&
+             '  iorb    m_x       m_y       m_z'
+        do iorb=1,orbs%norb
+           write(*,'(1x,i5,3f10.5)') &
+                iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
+        end do
+     end if
+     i_all=-product(shape(mom_vec))*kind(mom_vec)
+     deallocate(mom_vec,stat=i_stat)
+     call memocc(i_stat,i_all,'mom_vec',subname)
+  end if
+
+
+  !write the energy information
+  if (iproc == 0) then
+     if (verbose > 0 .and. iscf<1) then
+        write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+             ekin,epot,eproj
+        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,exc,evxc
+     end if
+     if (iscf > 1) then
+        if (gnrm_zero == 0.0_gp) then
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+        else
+           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
+        end if
+     else
+        if (gnrm_zero == 0.0_gp) then
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energyKS,gnrm
+        else
+           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
+        end if
+     end if
+  endif
+
+end subroutine calculate_energy_and_gradient
+
+!>   Operations after h|psi> 
+!!   (transposition, orthonormalisation, inverse transposition)
+subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,input)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one_A => hpsitopsi
+  implicit none
+  integer, intent(in) :: iproc,nproc,idsx,iter,nspin
+  type(locreg_descriptors), intent(in) :: lr
+  type(communications_arrays), intent(in) :: comms
+  type(orbitals_data), intent(in) :: orbs
+  type(input_variables), intent(in) :: input
+  type(diis_objects), intent(inout) :: diis
+  real(wp), dimension(:), pointer :: psi,psit,hpsi
+  !local variables
+  character(len=*), parameter :: subname='hpsitopsi'
+  integer :: ierr,iorb,k,i_stat,i_all,nzeroorbs
+
+  !adjust the save variables for DIIS/SD switch
+  if (iter == 1) then
+     diis%ids=0
+     diis%mids=1
+     diis%idiistol=0
+  end if
+  !update variables at each iteration step
+  if (idsx > 0) then
+     diis%mids=mod(diis%ids,idsx)+1
+     diis%ids=diis%ids+1
+  end if
+
+  diis%energy_min=min(diis%energy_min,diis%energy)
 
   !transpose the hpsi wavefunction
   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,&
@@ -465,39 +536,132 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           'done.'
   end if
 
-  if(orbs%nspinor==4) then
-     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
-     call memocc(i_stat,mom_vec,'mom_vec',subname)
-
-     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
-          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
-     !only the root process has the correct array
-     if(iproc==0 .and. verbose > 0) then
-        write(*,'(1x,a)')&
-             'Magnetic polarization per orbital'
-        write(*,'(1x,a)')&
-             '  iorb    m_x       m_y       m_z'
-        do iorb=1,orbs%norb
-           write(*,'(1x,i5,3f10.5)') &
-                iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
-        end do
-     end if
-
-     i_all=-product(shape(mom_vec))*kind(mom_vec)
-     deallocate(mom_vec,stat=i_stat)
-     call memocc(i_stat,i_all,'mom_vec',subname)
-  end if
+!!$  if(orbs%nspinor==4) then
+!!$     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,mom_vec,'mom_vec',subname)
+!!$
+!!$     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
+!!$          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
+!!$     !only the root process has the correct array
+!!$     if(iproc==0 .and. verbose > 0) then
+!!$        write(*,'(1x,a)')&
+!!$             'Magnetic polarization per orbital'
+!!$        write(*,'(1x,a)')&
+!!$             '  iorb    m_x       m_y       m_z'
+!!$        do iorb=1,orbs%norb
+!!$           write(*,'(1x,i5,3f10.5)') &
+!!$                iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
+!!$        end do
+!!$     end if
+!!$
+!!$     i_all=-product(shape(mom_vec))*kind(mom_vec)
+!!$     deallocate(mom_vec,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'mom_vec',subname)
+!!$  end if
 
   call diis_or_sd(iproc,idsx,orbs%nkptsp,diis)
 
-END SUBROUTINE hpsitopsi
-!!***
+  !previous value already fulfilled
+  diis%energy_old=diis%energy
 
-!!****f* BigDFT/first_orthon
-!! FUNCTION
-!!   First orthonormalisation
-!! SOURCE
-!!
+END SUBROUTINE hpsitopsi
+
+!>Choose among the wavefunctions a subset of them
+!! Rebuild orbital descriptors for the new space and allocate the psi_as wavefunction
+!! By hypothesis the work array is big enough to contain both wavefunctions
+subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => select_active_space
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: Glr
+  type(communications_arrays), intent(in) :: comms
+  logical, dimension(orbs%norb*orbs%nkpts), intent(in) :: mask_array
+  real(wp), dimension(orbs%npsidim), intent(in) :: psi
+  type(orbitals_data), intent(out) :: orbs_as
+  type(communications_arrays), intent(out) :: comms_as
+  real(wp), dimension(:), pointer :: psi_as
+  !local variables
+  character(len=*), parameter :: subname='select_active_space'
+  integer :: iorb,ikpt,norb_as,norbu_as,norbd_as,icnt,ikptp,ispsi,ispsi_as
+  integer :: i_all,i_stat,nvctrp
+    
+  !count the number of orbitals of the active space
+  norbu_as=-1
+  norbd_as=-1
+  do ikpt=1,orbs%nkpts
+     icnt=0
+     do iorb=1,orbs%norbu
+        if (mask_array(iorb+(ikpt-1)*orbs%norb)) icnt=icnt+1
+     end do
+     if (norbu_as /= icnt .and. norbu_as /= -1) then
+        write(*,*)'ERROR(select_active_space): the mask array should define always the same norbu'
+        stop
+     end if
+     norbu_as=icnt
+     icnt=0
+     do iorb=orbs%norbu+1,orbs%norbu+orbs%norbd
+        if (mask_array(iorb+(ikpt-1)*orbs%norb)) icnt=icnt+1
+     end do
+     if (norbd_as /= icnt .and. norbd_as /= -1) then
+        write(*,*)'ERROR(select_active_space): the mask array should define always the same norbd'
+        stop
+     end if
+     norbd_as=icnt
+  end do
+
+  !allocate the descriptors of the active space
+  call orbitals_descriptors(iproc,nproc,norbu_as+norbd_as,norbu_as,norbd_as, &
+       & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbs_as)
+  !allocate communications arrays for virtual orbitals
+  call orbitals_communicators(iproc,nproc,Glr,orbs_as,comms_as)  
+  !allocate array of the eigenvalues
+  allocate(orbs_as%eval(orbs_as%norb*orbs_as%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs_as%eval,'orbs_as%eval',subname)
+
+  !fill the orbitals array with the values and the wavefunction in transposed form
+  icnt=0
+  do iorb=1,orbs%nkpts*orbs%norb
+     if (mask_array(iorb)) then
+        icnt=icnt+1
+        orbs_as%eval(icnt)=orbs%eval(iorb)
+     end if
+  end do
+  if (icnt/=orbs_as%norb*orbs_as%nkpts) stop 'ERROR(select_active_space): icnt/=orbs_as%norb*orbs_as%nkpts'
+
+  allocate(psi_as(orbs_as%npsidim+ndebug),stat=i_stat)
+  call memocc(i_stat,psi_as,'psi_as',subname)
+
+  ispsi=1
+  do ikptp=1,orbs%nkptsp
+     ikpt=orbs%iskpts+ikptp
+     nvctrp=comms%nvctr_par(iproc,ikptp) 
+     !this should be identical in both the distributions
+     if (nvctrp /= comms_as%nvctr_par(iproc,ikptp)) then
+        write(*,*)'ERROR(select_active_space): the component distrbution is not identical'
+        stop
+     end if
+     
+     !put all the orbitals which match the active space
+     ispsi=1
+     ispsi_as=1
+     do iorb=1,orbs%norb
+        if (mask_array(iorb+(ikpt-1)*orbs%norb)) then
+           call dcopy(nvctrp,psi(ispsi),1,psi_as(ispsi_as),1)
+           ispsi_as=ispsi_as+nvctrp*orbs_as%nspinor
+        end if
+        ispsi=ispsi+nvctrp*orbs%nspinor
+     end do
+  end do
+
+
+end subroutine select_active_space
+
+
+
+!>   First orthonormalisation
 subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   use module_base
   use module_types
@@ -551,13 +715,9 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   end if
 
 END SUBROUTINE first_orthon
-!!***
 
-!!****f* BigDFT/last_orthon
-!! FUNCTION
-!!   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-!! SOURCE
-!!
+
+!>   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
 subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt_keeppsit)
   use module_base
   use module_types
@@ -577,6 +737,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
   integer :: i_all,i_stat,iorb,jorb,md,ikpt,isorb
+  real(gp) :: mpol
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   
@@ -631,12 +792,26 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   if (iproc == 0) then
      write(*,'(1x,a)')&
           '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
+     ! Calculate and print the magnetisation
+     if (nspin == 2) then
+        mpol = 0._gp
+        do ikpt=1,orbs%nkpts
+           isorb = (ikpt - 1) * orbs%norb
+           do iorb = 1, orbs%norbu
+              mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+           end do
+           do iorb = orbs%norbu + 1, orbs%norb, 1
+              mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+           end do
+        end do
+        write(*,"(1x,A,f9.6)") "Total magnetisation: ", mpol
+     end if
      if (orbs%nspinor ==4) then
         write(*,'(1x,a)')&
              '           Eigenvalue                                      m_x       m_y       m_z'
      end if
      do ikpt=1,orbs%nkpts
-        if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) write(*,"(1x,A,I3.3,A,3F12.6)") &
+        if (orbs%nkpts > 1 .and. orbs%nspinor >= 2) write(*,"(1x,A,I4.4,A,3F12.6)") &
              & "Kpt #", ikpt, " BZ coord. = ", orbs%kpts(:, ikpt)
         isorb = (ikpt - 1) * orbs%norb
         if (nspin==1.or.orbs%nspinor==4) then
@@ -688,19 +863,19 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
 END SUBROUTINE last_orthon
 
 
-subroutine evaltoocc(iproc,filewrite,wf,orbs)
- ! finds  the fermi level ef for an error function distribution with a width wf
- ! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
+!> Finds the fermi level ef for an error function distribution with a width wf
+!! eval are the Kohn Sham eigenvalues and melec is the total number of electrons
+subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
  use module_base
  use module_types
  implicit none
  logical, intent(in) :: filewrite
- integer, intent(in) :: iproc
+ integer, intent(in) :: iproc, nproc
  real(gp), intent(in) :: wf
  type(orbitals_data), intent(inout) :: orbs
  !local variables
  integer :: ikpt,iorb,melec,ii
- real(gp) :: charge
+ real(gp) :: charge, chargef
  real(gp) :: ef,pi,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
  parameter(pi=3.1415926535897932d0)
  !write(*,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd
@@ -711,20 +886,33 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
     full=1.d0   ! maximum occupation for spin polarized orbital
  endif
  
- if (orbs%nkpts.ne.1) stop 'Fermilevel: Not yet implemented correctly'
+ if (orbs%nkpts.ne.1 .and. filewrite) stop 'Fermilevel: CANNOT write input.occ with more than one k-point'
+ charge=0.0_gp
  do ikpt=1,orbs%nkpts
     !number of zero orbitals for the given k-point
     !overall charge of the system
-    charge=0.0_gp
     do iorb=1,orbs%norb
-       charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
+       charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb) * orbs%kwgts(ikpt)
     end do
  end do
  melec=nint(charge)
- !write(*,*) 'charge',charge,melec
+ !if (iproc == 0) write(*,*) 'charge',charge,melec
+
+ ! Send all eigenvalues to all procs.
+ call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
+      & orbs%eval(1), orbs%ikptproc)
 
  if (wf > 0.0_gp) then
     ii=0
+    if (orbs%efermi == UNINITIALISED) then
+       ! Take initial value at gamma point.
+       do iorb = 1, orbs%norbu
+          if (orbs%occup(iorb) < 1.0_gp) then
+             orbs%efermi = orbs%eval(iorb)
+             exit
+          end if
+       end do
+    end if
     ef=orbs%efermi
     factor=1.d0/(sqrt(pi)*wf)
     !print *,0,ef
@@ -736,20 +924,28 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
        do ikpt=1,orbs%nkpts
           do iorb=1,orbs%norbd+orbs%norbu
              arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-             ! next 2 line error function distribution
-             call derf_ab(res,arg)
-             electrons=electrons+.5d0*(1.d0-res)
-             !print *,iorb,ef,orbs%eval((ikpt-1)*orbs%norb+iorb),arg,electrons
-             dlectrons=dlectrons-exp(-arg**2)
-             !! next 2 line Fermi function distribution
-             !   electrons=electrons+1.d0/(1.d0+exp(arg))
-             !   dlectrons=dlectrons-exp(arg)/(1.d0+exp(arg))**2
+             if (occopt == SMEARING_DIST_ERF) then
+                ! next 2 line error function distribution
+                call derf_ab(res,arg)
+                electrons=electrons+.5d0*(1.d0-res) * orbs%kwgts(ikpt)
+                dlectrons=dlectrons-exp(-arg**2) * orbs%kwgts(ikpt)
+             else if (occopt == SMEARING_DIST_FERMI) then
+                !print *,iorb,ef,orbs%eval((ikpt-1)*orbs%norb+iorb),arg,electrons
+             else if (occopt == SMEARING_DIST_FERMI) then
+                !! next 2 line Fermi function distribution
+                electrons=electrons+1.d0/(1.d0+exp(arg)) * orbs%kwgts(ikpt)
+                dlectrons=dlectrons-1.d0/(2.d0+exp(arg)+exp(-arg)) * orbs%kwgts(ikpt)
+             end if
           enddo
        enddo
-       ! next  line error function distribution
-       dlectrons=dlectrons*factor
-       !! next  line Fermi function distribution
-       !   dlectrons=dlectrons/wf
+
+       if (occopt == SMEARING_DIST_ERF) then
+          ! next  line error function distribution
+          dlectrons=dlectrons*factor
+       else if (occopt == SMEARING_DIST_FERMI) then
+          ! next  line Fermi function distribution
+          dlectrons=dlectrons/wf
+       end if
        
        diff=real(melec,gp)/full-electrons
        if (abs(diff) < 1.d-12) exit loop_fermi
@@ -765,29 +961,44 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
     do ikpt=1,orbs%nkpts
        argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf
        argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf
-       call derf_ab(resu,argu)
-       call derf_ab(resd,argd)
-       cutoffu=.5d0*(1.d0-resu)
-       cutoffd=.5d0*(1.d0-resd)
-       !    cutoffu=1.d0/(1.d0+exp(argu))
-       !    cutoffd=1.d0/(1.d0+exp(argd))
-       if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:',ef,cutoffu,cutoffd
+       if (occopt == SMEARING_DIST_ERF) then
+          !error function
+          call derf_ab(resu,argu)
+          call derf_ab(resd,argd)
+          cutoffu=.5d0*(1.d0-resu)
+          cutoffd=.5d0*(1.d0-resd)
+       else if (occopt == SMEARING_DIST_FERMI) then
+          !Fermi function
+          cutoffu=1.d0/(1.d0+exp(argu))
+          cutoffd=1.d0/(1.d0+exp(argd))
+       end if
     enddo
+    if (iproc==0) write(*,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
     orbs%efermi=ef
     
     !update the occupation number
-    ikpt=1
-    do iorb=1,orbs%norbu
-       arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-       call derf_ab(res,arg)
-       orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
-       !print *,'iorb,arg,res,full*.5d0*(1.d0-res)',iorb,arg,res,full*.5d0*(1.d0-res)
+    do ikpt=1,orbs%nkpts
+       do iorb=1,orbs%norbu + orbs%norbd
+          arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+          if (occopt == SMEARING_DIST_ERF) then
+             !error function
+             call derf_ab(res,arg)
+             orbs%occup((ikpt-1)*orbs%norb+iorb)=full*.5d0*(1.d0-res)
+             !print *,'iorb,arg,res,full*.5d0*(1.d0-res)',iorb,arg,res,full*.5d0*(1.d0-res)
+          else if (occopt == SMEARING_DIST_FERMI) then
+             !Fermi function
+             orbs%occup((ikpt-1)*orbs%norb+iorb)=full*1.d0/(1.d0+exp(arg))
+          end if
+       end do
     end do
-    do iorb=1,orbs%norbd
-       arg=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+iorb)-ef)/wf
-       call derf_ab(res,arg)
-       orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+iorb)=full*.5d0*(1.d0-res)
+    ! Sanity check on sum of occup.
+    chargef=0.0_gp
+    do ikpt=1,orbs%nkpts
+       do iorb=1,orbs%norb
+          chargef=chargef+orbs%kwgts(ikpt) * orbs%occup(iorb+(ikpt-1)*orbs%norb)
+       end do
     end do
+    if (abs(charge - chargef) > 1e-6)  stop 'error occupation update'
  else if(full==1.0_gp) then
     call eFermi_nosmearing(iproc,orbs)
  end if
@@ -803,7 +1014,8 @@ subroutine evaltoocc(iproc,filewrite,wf,orbs)
     close(unit=11)
  end if
 
-end subroutine evaltoocc
+END SUBROUTINE evaltoocc
+
 
 subroutine eFermi_nosmearing(iproc,orbs)
   use module_base
@@ -816,6 +1028,9 @@ subroutine eFermi_nosmearing(iproc,orbs)
   real(gp) :: charge
   real(wp) :: eF
 
+  iu=0
+  id=0
+  eF = 0._wp
   do ikpt=1,orbs%nkpts
      !number of zero orbitals for the given k-point
      nzeroorbs=0
@@ -870,15 +1085,10 @@ subroutine eFermi_nosmearing(iproc,orbs)
      orbs%occup(iorb+orbs%norbu)=0.0_gp
   end do
 
-end subroutine eFermi_nosmearing
+END SUBROUTINE eFermi_nosmearing
 
 
-
-!!****f* BigDFT/calc_moments
-!! FUNCTION
-!!   Calculate magnetic moments
-!! SOURCE
-!!
+!>   Calculate magnetic moments
 subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   use module_base
   implicit none
@@ -940,7 +1150,6 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   end if
 
 END SUBROUTINE calc_moments
-!!***
 
 
 subroutine check_communications(iproc,nproc,orbs,lr,comms)
@@ -1147,7 +1356,8 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
 
 END SUBROUTINE check_communications
 
-!define a value for the wavefunction which is dependent of the indices
+
+!> define a value for the wavefunction which is dependent of the indices
 subroutine test_value(ikpt,iorb,ispinor,icomp,val)
   use module_base
   implicit none
@@ -1170,7 +1380,7 @@ subroutine test_value(ikpt,iorb,ispinor,icomp,val)
   val=(valorb+vali)*(-1)**(ispinor-1)
 
   
-end subroutine test_value
+END SUBROUTINE test_value
   
 
 subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
@@ -1188,4 +1398,4 @@ subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
              & ikptproc(ikpt), MPI_COMM_WORLD, ierr)
      end do
   end if
-end subroutine broadcast_kpt_objects
+END SUBROUTINE broadcast_kpt_objects

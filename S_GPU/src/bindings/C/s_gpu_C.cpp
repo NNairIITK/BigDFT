@@ -64,7 +64,7 @@ tracer_callbacks_t *tracer_callbacks;
 #endif
 
 extern "C"
-int sg_init ( int *GPUshare, int *useGPU, int iproc )
+int sg_init ( int *GPUshare, int *useGPU, int iproc, int nproc_node )
 {
 	*useGPU = 0;
 	try
@@ -76,9 +76,17 @@ int sg_init ( int *GPUshare, int *useGPU, int iproc )
 		int use_shared;
 		//  int iconv_param,iblas_param;
 		//read file
-		read_conf.get ( "MPI_TASKS_PER_NODE", &mpi_tasks_per_node );
+		//read_conf.get ( "MPI_TASKS_PER_NODE", &mpi_tasks_per_node );
+        mpi_tasks_per_node = nproc_node;
 		read_conf.get ( "NUM_GPU", &num_GPU );
-		read_conf.get ( "USE_SHARED", &use_shared );
+		if (num_GPU <  mpi_tasks_per_node){
+		  use_shared=1;
+		    }
+		else
+		  {
+		  use_shared=0;
+		  }
+		//read_conf.get ( "USE_SHARED", &use_shared );
 		//  read_conf.get("USE_GPU_BLAS",&iblas_param);
 		//  read_conf.get("USE_GPU_CONV",&iconv_param);
 		manage_cpu_affinity mca ( iproc );

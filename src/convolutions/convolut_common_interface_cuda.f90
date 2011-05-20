@@ -1,4 +1,14 @@
-!prepare the keys to be passed in GPU global or constant memory (presumably texture)
+ !> @file
+!!  Interface routines to do convolutions in GPU with CUDA
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Prepare the keys to be passed in GPU global or constant memory (presumably texture)
 subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c,keys_GPU)
   use module_base
   implicit none
@@ -358,9 +368,6 @@ subroutine preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
              GPU%keys,GPU%r,GPU%rhopot,GPU%d,GPU%work1,GPU%work2,GPU%work3,&
              0.5_wp,ncong,tab_stream_ptr(iorb))
 
-
-
-
      call sg_gpu_recv_mem(hpsi(1,inds,iorb),&
           GPU%psi(iorb),&
           GPU%pinned_out,&  
@@ -644,6 +651,7 @@ subroutine gpu_precond_helper_stream(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm,currO
        0.5_wp,ncong,gnrm,stream_ptr)
 
 END SUBROUTINE gpu_precond_helper_stream
+
 
 subroutine gpu_precondprecond_helper_stream(lr,hx,hy,hz,cprecr,scal,ncplx,w,x,b,&
      stream_ptr)

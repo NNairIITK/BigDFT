@@ -1,5 +1,15 @@
+!> @file
+!!  Combined convolution routines (unused)
+!! @deprecated
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
 subroutine  comb_rot_grow_loc_plus(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,icf,ib)
-  ! In one dimesnion, 
+  ! In one dimension, 
   ! with optimised cycles
   ! Applies synthesis wavelet transformation 
   ! then convolves with magic filter
@@ -65,7 +75,7 @@ END SUBROUTINE comb_rot_grow_loc_plus
 
 
 subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
-! In one dimesnion, 
+! In one dimension, 
 ! with optimised cycles
 ! Applies synthesis wavelet transformation 
 ! then convolves with magic filter
