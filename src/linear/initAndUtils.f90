@@ -103,14 +103,16 @@ call writeLinearParameters(iproc, nproc, at, lin, lind, atomNames, lin%norbsPerT
 ! Decide which orbital is centered in which atom.
 allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
 call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
-call assignOrbitalsToAtoms(iproc, at%nat, lin, norbsPerAtom)
+!call assignOrbitalsToAtoms(iproc, at%nat, lin, norbsPerAtom)
+call assignOrbitalsToAtoms(iproc, lin%orbs, at%nat, norbsPerAtom, lin%onWhichAtom)
 
 
 ! The same for the basis including the derivatives.
 allocate(lind%onWhichAtom(lind%orbs%norbp), stat=istat)
 call memocc(istat, lind%onWhichAtom, 'lind%onWhichAtom', subname)
 norbsPerAtom=4*norbsPerAtom
-call assignOrbitalsToAtoms(iproc, at%nat, lind, norbsPerAtom)
+!call assignOrbitalsToAtoms(iproc, at%nat, lind, norbsPerAtom)
+call assignOrbitalsToAtoms(iproc, lind%orbs, at%nat, norbsPerAtom, lind%onWhichAtom)
 norbsPerAtom=norbsPerAtom/4  ! Undo this..
 !!do iorb=1,lind%orbs%norbp
 !!    write(*,'(a,2i7,i10)') 'iproc, iorb, lind%onWhichAtom(iorb)', iproc, iorb, lind%onWhichAtom(iorb)
@@ -472,7 +474,7 @@ end subroutine writeLinearParameters
 
 
 
-subroutine assignOrbitalsToAtoms(iproc, nat, lin, norbsPerAt)
+subroutine assignOrbitalsToAtoms(iproc, orbs, nat, norbsPerAt, onWhichAtom)
 !
 ! Purpose:
 ! ========
@@ -496,8 +498,9 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nat
-type(linearParameters):: lin
+type(orbitals_data):: orbs
 integer,dimension(nat):: norbsPerAt
+integer,dimension(orbs%norbp):: onWhichAtom
 
 ! Local variables
 integer:: jproc, iiOrb, iorb, jorb, jat
@@ -513,11 +516,11 @@ integer:: jproc, iiOrb, iorb, jorb, jat
   jorb=0
   iiOrb=0
   
-  do iorb=1,lin%orbs%norb
+  do iorb=1,orbs%norb
   
       ! Switch to the next MPI process if the numbers of orbitals for a given
       ! MPI process is reached.
-      if(jorb==lin%orbs%norb_par(jproc)) then
+      if(jorb==orbs%norb_par(jproc)) then
           jproc=jproc+1
           jorb=0
       end if
@@ -529,7 +532,7 @@ integer:: jproc, iiOrb, iorb, jorb, jat
       end if
       jorb=jorb+1
       iiOrb=iiOrb+1
-      if(iproc==jproc) lin%onWhichAtom(jorb)=jat
+      if(iproc==jproc) onWhichAtom(jorb)=jat
   end do    
 
 end subroutine assignOrbitalsToAtoms

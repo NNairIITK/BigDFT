@@ -1,6 +1,6 @@
 subroutine HamiltonianApplicationConfinement(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola,&
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola,onWhichAtom,&
      pkernel,orbsocc,psirocc,centralAtom) ! optional
 !
 ! Purpose:
@@ -68,6 +68,7 @@ real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
 real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
 type(GPU_pointers), intent(inout) :: GPU
 real(gp), dimension(3,at%nat), intent(in) :: rxyzParabola
+integer,dimension(orbs%norbp),intent(in):: onWhichAtom
 real(dp), dimension(*), optional :: pkernel
 type(orbitals_data), intent(in), optional :: orbsocc
 real(wp), dimension(:), pointer, optional :: psirocc
@@ -85,6 +86,7 @@ real(gp),dimension(3,2) :: wrkallred
 real(wp),dimension(:), pointer :: pot
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
 integer,parameter::lupfil=14
+
 
 
   !stream ptr array
@@ -190,10 +192,11 @@ integer,parameter::lupfil=14
   else
      if(.not.present(centralAtom)) then
          call local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum, &
-           at%nat, rxyzParabola, at)
+           at%nat, rxyzParabola, onWhichAtom, at)
      else
-         call local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum, &
-           at%nat, rxyzParabola, at, centralAtom)
+         stop 'not implemeted for present(centralAtom)'
+         !!call local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum, &
+         !!  at%nat, rxyzParabola, at, centralAtom)
      end if
      !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
@@ -295,9 +298,8 @@ END SUBROUTINE HamiltonianApplicationConfinement
 
 
 
-
 subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
-     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, at, centralAtom)
+     nspin,pot,psi,hpsi,ekin_sum,epot_sum, nat, rxyz, onWhichAtom, at, centralAtom)
 !
 ! Purpose:
 ! ========
@@ -343,10 +345,11 @@ subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
   real(gp),intent(out):: ekin_sum,epot_sum
   real(wp),dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp),intent(out):: hpsi
   real(8),dimension(3,nat),intent(in):: rxyz 
+  integer,dimension(orbs%norbp),intent(in):: onWhichAtom
   type(atoms_data),intent(in):: at
   integer,intent(in),optional:: centralAtom
   !local variables
-  character(len=*),parameter:: subname='local_hamiltonian'
+  character(len=*),parameter:: subname='local_hamiltonianConfinement'
   integer:: i_all ,i_stat, iorb, npot, nsoffset, oidx, ispot
   real(wp):: exctXcoeff
   real(gp):: ekin,epot,kx,ky,kz,etest
@@ -387,61 +390,69 @@ subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
      else
         nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
      end if
-
+ 
      oidx=(iorb-1)*orbs%nspinor+1
 
-     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
-     !the psir wavefunction is given in the spinorial form
-     call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+     !if(onWhichAtom(iorb)>0) then
 
-     !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
-     !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
-     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
+         !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
+         !the psir wavefunction is given in the spinorial form
+         call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
 
-     !apply the potential to the psir wavefunction and calculate potential energy
-     select case(lr%geocode)
-     case('F')
+         !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
+         !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
+         !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
 
-        if(.not.present(centralAtom)) then
-!write(*,'(a,i0,a,i0,a)') 'calling with lin%onWhichAtom(iorb)=',lin%onWhichAtom(iorb), '  (iproc=',iproc,')'
-            call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-                 pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, &
-                 lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lin%confPotOrder, lr%bounds%ibyyzz_r) !optional
-        else
-!write(*,'(a,i0,a,i0,a)') 'calling with centralAtom=',centralAtom, '  (iproc=',iproc,')'
-            call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-                 pot(nsoffset),epot, rxyz(1,centralAtom), hxh, hyh, hzh, &
-                 lin%potentialPrefac(at%iatype(centralAtom)), lin%confPotOrder, lr%bounds%ibyyzz_r) !optional
-        end if
-          
-     case('P') 
-        !here the hybrid BC act the same way
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot)
+         !apply the potential to the psir wavefunction and calculate potential energy
+         select case(lr%geocode)
+         case('F')
 
-     case('S')
+            if(.not.present(centralAtom)) then
+                write(*,'(a,i0,a,i0,a,i0,a)') 'calling with onWhichAtom(iorb)=',onWhichAtom(iorb), '  (iproc=',iproc, ', iorb=',iorb,')'
+                call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+                     pot(nsoffset),epot, rxyz(1,onWhichAtom(iorb)), hxh, hyh, hzh, &
+                     lin%potentialPrefac(at%iatype(onWhichAtom(iorb))), lin%confPotOrder, lr%bounds%ibyyzz_r) !optional
+            else
+                !write(*,'(a,i0,a,i0,a)') 'calling with centralAtom=',centralAtom, '  (iproc=',iproc,')'
+                stop 'not implemented for present(centralAtom)'
+                !!call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+                !!     pot(nsoffset),epot, rxyz(1,centralAtom), hxh, hyh, hzh, &
+                !!     lin%potentialPrefac(at%iatype(centralAtom)), lin%confPotOrder, lr%bounds%ibyyzz_r) !optional
+            end if
+              
+         case('P') 
+            !here the hybrid BC act the same way
+            call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
+                 pot(nsoffset),epot)
 
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot)
-     end select
+         case('S')
 
-     !k-point values, if present
-     kx=orbs%kpts(1,orbs%iokpt(iorb))
-     ky=orbs%kpts(2,orbs%iokpt(iorb))
-     kz=orbs%kpts(3,orbs%iokpt(iorb))
+            call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
+                 pot(nsoffset),epot)
+         end select
 
-     if (exctXcoeff /= 0.0_gp) then
-        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
-        !add to the psir function the part of the potential coming from the exact exchange
-        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
-     end if
+         !k-point values, if present
+         kx=orbs%kpts(1,orbs%iokpt(iorb))
+         ky=orbs%kpts(2,orbs%iokpt(iorb))
+         kz=orbs%kpts(3,orbs%iokpt(iorb))
 
-     !apply the kinetic term, sum with the potential and transform back to Daubechies basis
-     call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
-          psir,hpsi(1,oidx),ekin)
+         if (exctXcoeff /= 0.0_gp) then
+            ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
+            !add to the psir function the part of the potential coming from the exact exchange
+            call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
+         end if
 
-     ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
-     epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
+         !apply the kinetic term, sum with the potential and transform back to Daubechies basis
+         call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
+              psir,hpsi(1,oidx),ekin)
+
+         ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
+         epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
+
+      !else
+      !   write(*,'(a,2i7)') 'set to zero, iproc, iorb', iproc, iorb
+      !   call razero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,oidx))
+      !end if
 
   enddo
 
@@ -740,9 +751,9 @@ real(wp), dimension(:), pointer, optional :: psirocc
 integer,intent(in),optional:: centralAtom
 
 ! Local variables
-character(len=*),parameter:: subname='HamiltonianApplicationConfinement'
+character(len=*),parameter:: subname='HamiltonianApplicationConfinementForAllLocregs'
 logical:: exctX,op2p
-integer:: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c,iat
+integer:: i_all,i_stat,ierr,iorb,ispin,n3p,ispot,ispotential,npot,istart_c, iat, iatout, ist
 integer:: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
@@ -901,36 +912,45 @@ integer,parameter::lupfil=14
   eproj_sum=0.0_gp
   !apply the projectors following the strategy (On-the-fly calculation or not)
   if (DistProjApply) then
-     call applyprojectorsonthefly(iproc,orbs,at,lr%d%n1,lr%d%n2,lr%d%n3,&
-          rxyz,hx,hy,hz,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
+     ist=1
+     do iat=1,at%nat
+         call applyprojectorsonthefly(iproc,orbs,at,lr%d%n1,lr%d%n2,lr%d%n3,&
+              rxyz,hx,hy,hz,lr%wfd,nlpspd,proj,psi,hpsi(ist),eproj_sum)
+         ist=ist+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+     end do
   else if(orbs%norbp > 0) then
      !apply the projectors  k-point of the processor
      !starting k-point
-     ikpt=orbs%iokpt(1)
-     istart_ck=1
-     ispsi_k=1
-     loop_kpt: do
+     ist=0
+     do iatout=1,at%nat
+         ikpt=orbs%iokpt(1)
+         istart_ck=1
+         ispsi_k=1
+         loop_kpt: do
 
-        call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+            call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
 
-        ! loop over all my orbitals
-        ispsi=ispsi_k
-        do iorb=isorb,ieorb
-           istart_c=istart_ck
-           do iat=1,at%nat
-              call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,lr%wfd,nlpspd,&
-                   proj,psi(ispsi),hpsi(ispsi),eproj_sum)           
-           end do
-           ispsi=ispsi+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*nspinor
-        end do
-        istart_ck=istart_c
-        if (ieorb == orbs%norbp) exit loop_kpt
-        ikpt=ikpt+1
-        ispsi_k=ispsi
-     end do loop_kpt
+            ! loop over all my orbitals
+            ispsi=ispsi_k
+            do iorb=isorb,ieorb
+               istart_c=istart_ck
+               do iat=1,at%nat
+                  call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,lr%wfd,nlpspd,&
+                       proj,psi(ispsi),hpsi(ist+ispsi),eproj_sum)           
+               end do
+               ispsi=ispsi+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*nspinor
+            end do
+            istart_ck=istart_c
+            if (ieorb == orbs%norbp) exit loop_kpt
+            ikpt=ikpt+1
+            ispsi_k=ispsi
+         end do loop_kpt
 
-     if (istart_ck-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
-     if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
+         if (istart_ck-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
+         if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
+
+         ist=ist+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+     end do
   end if
 
   call timing(iproc,'ApplyProj     ','OF')
@@ -1016,6 +1036,7 @@ subroutine local_hamiltonianConfinementForAllLocregs(iproc,orbs,lin,lr,hx,hy,hz,
   type(workarr_locham):: wrk_lh
   real(wp),dimension(:,:),allocatable:: psir
   real(8):: hxh, hyh, hzh
+integer:: ii
 
 
   exctXcoeff=libxc_functionals_exctXfac()
@@ -1072,9 +1093,20 @@ subroutine local_hamiltonianConfinementForAllLocregs(iproc,orbs,lin,lr,hx,hy,hz,
                 !call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                 !     pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, &
                 !     lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lin%confPotOrder, lr%bounds%ibyyzz_r) !optional
+                !!if(iat==4 .and. iproc==0) then
+                !!    do ii=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
+                !!        write(2000+iorb,*) ii, psir(ii,1)
+                !!    end do
+                !!end if
                 call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                      pot(nsoffset),epot, rxyz(1,iat), hxh, hyh, hzh, &
                      lin%potentialPrefac(at%iatype(iat)), lin%confPotOrder, lr%bounds%ibyyzz_r) !optional
+                write(*,'(a,3i7,es15.5)') 'iproc, iat, iorb, epot', iproc, iat, iorb, epot
+                !!if(iat==4 .and. iproc==0) then
+                !!    do ii=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
+                !!        write(2100+iorb,*) ii, psir(ii,1)
+                !!    end do
+                !!end if
             else
                 stop ' present(centralAtom) ... should never happen??'
                 !call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&

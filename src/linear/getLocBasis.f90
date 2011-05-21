@@ -642,7 +642,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
            nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
            rhopot(1),&
-           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, pkernel=pkernelseq)
+           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, lin%onWhichAtom, pkernel=pkernelseq)
 !!! Plot the gradients
 !!call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
 !!    .5d0*input%hy, .5d0*input%hz, 500+it)
@@ -1532,6 +1532,18 @@ allocate(lagMat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, lagMat, 'lagMat', subname)
 allocate(alpha(orbs%norb), stat=istat)
 call memocc(istat, alpha, 'alpha', subname)
+
+! trace of matrixElements
+if(iproc==0) then
+    tt=0.d0
+    do iorb=1,lin%orbs%norb
+        do jorb=1,lin%orbs%norb
+            if(iorb==jorb) tt=tt+matrixElements(iorb,jorb)
+            write(777,*) iorb,jorb,matrixElements(jorb,iorb)
+        end do
+    end do
+    write(*,*) 'trace',tt
+end if
 
 ! Do everything only on the root process and then broadcast to all processes.
 ! Maybe this part can be parallelized later, but at the moment it is not necessary since

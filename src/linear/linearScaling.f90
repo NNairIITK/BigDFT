@@ -129,11 +129,18 @@ real(wp),dimension(:),allocatable:: projTemp
       input, rxyz, occupForInguess, coeff, coeffd, nlr, Llr, outofzone)
 
   potshortcut=0 ! What is this?
+  phi=0.d0
   call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, &
        phi)
+  call potentialAndEnergySub(iproc, nproc, n3d, n3p, nlr, Llr, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
+      rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+  !call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+  !  .5d0*input%hy, .5d0*input%hz, 0)
+
 
 
   ! The next subroutine will create the variable wave function descriptors.
