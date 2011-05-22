@@ -353,13 +353,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0
+  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx
   real(kind=4) :: tt,builtin_rand
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(wp), dimension(:), allocatable :: potxc
+  real(wp), dimension(:), allocatable :: potxc,passmat
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:), pointer :: pot
@@ -687,13 +687,28 @@ subroutine input_wf_diag(iproc,nproc,at,&
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
        'Input Wavefunctions Orthogonalization:'
 
+  !nullify psit (will be created in DiagHam)
+  nullify(psit)
+
   !psivirt can be eliminated here, since it will be allocated before davidson
   !with a gaussian basis
 !!$  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
 !!$       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
 
+  !allocate the passage matrix for transforming the LCAO wavefunctions in the IG wavefucntions
+  ncplx=1
+  if (orbs%nspinor > 1) ncplx=2
+  allocate(passmat(ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd)+ndebug),stat=i_stat)
+  call memocc(i_stat,passmat,'passmat',subname)
+  !print '(a,10i5)','iproc,passmat',iproc,ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd),&
+  !     orbs%nspinor,orbs%nkptsp,orbse%norbu,orbse%norbd,orbs%norbu,orbs%norbd
+
   call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
-       psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
+       psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
+
+  i_all=-product(shape(passmat))*kind(passmat)
+  deallocate(passmat,stat=i_stat)
+  call memocc(i_stat,i_all,'passmat',subname)
 
   if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
      !use the eval array of orbse structure to save the original values
