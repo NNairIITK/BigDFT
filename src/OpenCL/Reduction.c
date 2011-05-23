@@ -1,4 +1,5 @@
 #include "OpenCL_wrappers.h"
+#include "Reduction_Generator.h"
 /*
   Matrix multiplication kernels written here share a common basic design.
   Each work item computes 1 (or 2 elements in bloc design) element of
@@ -828,170 +829,7 @@ __kernel __attribute__((reqd_work_group_size(16, 16, 1))) __attribute__((vec_typ
 }\n\
 ";
 
-/*
-  Reduction kernels reduce 1024 values to 1 per work group.
-  The first one is commented.
-*/
-char * reduction_program="\
-//group_size is supposed to be 512\n\
-#ifdef cl_khr_fp64\n\
-#pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-#elif defined (cl_amd_fp64)\n\
-#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
-#endif\n\
-__kernel void reductionKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
-  //get our position in the local buffer\n\
-  size_t i = get_local_id(0);\n\
-  //get our position in the input data\n\
-  size_t g = get_group_id(0)*1024+i;\n\
-  //copy our 2 data elements in the buffer, or store 0 if out of bounds.\n\
-  if(g<n) {\n\
-    tmp[i] = x[g];\n\
-  } else {\n\
-    tmp[i] = 0.0;\n\
-  }\n\
-  if(g+512<n) {\n\
-    tmp[i+512] = x[g+512];\n\
-  } else {\n\
-    tmp[i+512] = 0.0;\n\
-  }\n\
-  //wait for buffer to be full\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  //reduce 2 data to 1\n\
-  tmp[i] = tmp[i] + tmp[i+512];\n\
-  //wait for buffer to be processed 512 elem remaining\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  //if we are in the 256 first work items of the work group, repeat previous operations\n\
-  if( i<256 )\n\
-    tmp[i] = tmp[i] + tmp[i+256];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<128 )\n\
-    tmp[i] = tmp[i] + tmp[i+128];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<64 )\n\
-    tmp[i] = tmp[i] + tmp[i+64];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<32 )\n\
-    tmp[i] = tmp[i] + tmp[i+32];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<16 )\n\
-    tmp[i] = tmp[i] + tmp[i+16];\n\
-  if( i<8 )\n\
-    tmp[i] = tmp[i] + tmp[i+8];\n\
-  if( i<4 )\n\
-    tmp[i] = tmp[i] + tmp[i+4];\n\
-  if( i<2 )\n\
-    tmp[i] = tmp[i] + tmp[i+2];\n\
-  //if I am the firt work item, reduce the final 2 elements and store in result buffer at the position of our work group.\n\
-  if( i==0 )\n\
-    y[get_group_id(0)] = tmp[0]+tmp[1];\n\
-}\n\
-__kernel void reduction_dotKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
-  size_t i = get_local_id(0);\n\
-  size_t g = get_group_id(0)*1024+i;\n\
-  double tt;\n\
-  if(g<n) {\n\
-    tt = x[g];\n\
-    tmp[i] = tt*tt;\n\
-  } else {\n\
-    tmp[i] = 0.0;\n\
-  }\n\
-  if(g+512<n) {\n\
-    tt = x[g+512];\n\
-    tmp[i+512] = tt*tt;\n\
-  } else {\n\
-    tmp[i+512] = 0.0;\n\
-  }\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  tmp[i] = tmp[i] + tmp[i+512];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<256 )\n\
-    tmp[i] = tmp[i] + tmp[i+256];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<128 )\n\
-    tmp[i] = tmp[i] + tmp[i+128];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<64 )\n\
-    tmp[i] = tmp[i] + tmp[i+64];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<32 )\n\
-    tmp[i] = tmp[i] + tmp[i+32];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<16 )\n\
-    tmp[i] = tmp[i] + tmp[i+16];\n\
-  if( i<8 )\n\
-    tmp[i] = tmp[i] + tmp[i+8];\n\
-  if( i<4 )\n\
-    tmp[i] = tmp[i] + tmp[i+4];\n\
-  if( i<2 )\n\
-    tmp[i] = tmp[i] + tmp[i+2];\n\
-  if( i==0 )\n\
-    y[get_group_id(0)] = tmp[0]+tmp[1];\n\
-}\n\
-__kernel void dotKernel_d( uint n, __global const double *x, __global double *y, __global double *z, __local double *tmp ) {\n\
-  size_t i = get_local_id(0);\n\
-  size_t g = get_group_id(0)*1024+i;\n\
-  if(g<n)\n\
-    tmp[i] = x[g]*y[g];\n\
-  else\n\
-    tmp[i] = 0.0;\n\
-  if(g+512<n)\n\
-    tmp[i+512] = x[g+512]*y[g+512];\n\
-  else\n\
-    tmp[i+512] = 0.0;\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  tmp[i] = tmp[i] + tmp[i+512];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<256 )\n\
-    tmp[i] = tmp[i] + tmp[i+256];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<128 )\n\
-    tmp[i] = tmp[i] + tmp[i+128];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<64 )\n\
-    tmp[i] = tmp[i] + tmp[i+64];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<32 )\n\
-    tmp[i] = tmp[i] + tmp[i+32];\n\
-  barrier(CLK_LOCAL_MEM_FENCE);\n\
-  if( i<16 )\n\
-    tmp[i] = tmp[i] + tmp[i+16];\n\
-  if( i<8 )\n\
-    tmp[i] = tmp[i] + tmp[i+8];\n\
-  if( i<4 )\n\
-    tmp[i] = tmp[i] + tmp[i+4];\n\
-  if( i<2 )\n\
-    tmp[i] = tmp[i] + tmp[i+2];\n\
-  if( i==0 )\n\
-    z[get_group_id(0)] = tmp[0]+tmp[1];\n\
-}\n\
-__kernel void axpyKernel_d( uint n, double alpha, __global const double *x, __global const double *y, __global double *out) {\n\
-  size_t ig = get_global_id(0);\n\
-  if( ig < n)\n\
-    out[ig] = y[ig] + alpha * x[ig];\n\
-}\n\
-__kernel void axpy_offsetKernel_d( uint n, double alpha, uint offset_x, __global const double *x, uint offset_y, __global double *y, uint offset_out, __global double *out) {\n\
-  size_t ig = get_global_id(0);\n\
-  if( ig < n)\n\
-    out[ig+offset_out] = y[ig+offset_y] + alpha * x[ig+offset_x];\n\
-}\n\
-__kernel void scalKernel_d( uint n, double alpha, __global const double *x, __global double *y) {\n\
-  size_t ig = get_global_id(0);\n\
-  if( ig < n)\n\
-    y[ig] = alpha * x[ig];\n\
-}\n\
-__kernel void copyKernel_d( uint n, __global const double *x, __global double *y) {\n\
-  size_t ig = get_global_id(0);\n\
-  if( ig < n)\n\
-    y[ig] = x[ig];\n\
-}\n\
-__kernel void setKernel_d( uint n, const double val, __global double *x) {\n\
-  size_t ig = get_global_id(0);\n\
-  if( ig < n)\n\
-    x[ig] = val;\n\
-}\n\
-\n\
-";
+
 
 void inline zgemm_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *m, cl_uint *n, cl_uint *k, cl_double2 *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double2 *beta, cl_mem *c, cl_uint *ldc) {
   cl_int ciErrNum;
@@ -1123,9 +961,9 @@ void inline set_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uin
   oclErrorCheck(ciErrNum,"Failed to enqueue set kernel!");
 }
 
-void inline dot_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *out) {
+void inline dot_generic(cl_kernel kernel, bigdft_command_queue command_queue, cl_uint *n, cl_mem *x, cl_mem *y, cl_mem *out) {
   cl_int ciErrNum;
-  size_t block_size_i=512;
+  size_t block_size_i=command_queue->device_infos.MAX_WORK_GROUP_SIZE;
   cl_uint i=0;
   clSetKernelArg(kernel, i++,sizeof(*n), (void*)n);
   clSetKernelArg(kernel, i++,sizeof(*x), (void*)x);
@@ -1134,7 +972,7 @@ void inline dot_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uin
   clSetKernelArg(kernel, i++,sizeof(double)*block_size_i*2, NULL);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i,*n) };
-  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue->command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue dot kernel!");
 }
 
@@ -1201,9 +1039,9 @@ void inline axpy_offset_generic(cl_kernel kernel, cl_command_queue command_queue
   oclErrorCheck(ciErrNum,"Failed to enqueue axpy kernel!");
 }
 
-void inline reduction_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *ndat, cl_mem *in, cl_mem *out) {
+void inline reduction_generic(cl_kernel kernel, bigdft_command_queue command_queue, cl_uint *ndat, cl_mem *in, cl_mem *out) {
   cl_int ciErrNum;
-  size_t block_size_i=512;
+  size_t block_size_i=command_queue->device_infos.MAX_WORK_GROUP_SIZE;
   cl_uint i=0;
   clSetKernelArg(kernel, i++,sizeof(*ndat), (void*)ndat);
   clSetKernelArg(kernel, i++,sizeof(*in), (void*)in);
@@ -1211,7 +1049,7 @@ void inline reduction_generic(cl_kernel kernel, cl_command_queue command_queue, 
   clSetKernelArg(kernel, i++,sizeof(cl_double)*block_size_i*2, NULL);
   size_t localWorkSize[] = { block_size_i };
   size_t globalWorkSize[] ={ shrRoundUp(block_size_i*2,*ndat)/2 };
-  ciErrNum = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+  ciErrNum = clEnqueueNDRangeKernel(command_queue->command_queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
   oclErrorCheck(ciErrNum,"Failed to enqueue reduction kernel!");
 }
 
@@ -1269,49 +1107,7 @@ void FC_FUNC_(axpy_offset_self_d,AXPY_OFFSET_SELF_D)(bigdft_command_queue *comma
   axpy_offset_generic((*command_queue)->kernels.axpy_offset_kernel_d, (*command_queue)->command_queue, n, alpha, offset_x, x, offset_y, y, offset_y, y);
 }
 
-void FC_FUNC_(asum_self_d,ASUM_SELF_D)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out) {
-  if(*ndat==0){
-    *out = 0.0;
-    return;
-  }
-  cl_uint n = *ndat;
-  cl_mem *input = in;
-  cl_mem *output = work;
-  cl_mem *tmp;
-  do {
-    reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
-    tmp = input;
-    input = output;
-    output = tmp;
-    n = shrRoundUp(1024,n)/1024;
-  } while(n>1);
-  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
-}
 
-void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out) {
-  if(*ndat==0){
-   *out = 0.0;
-   return;
-  }
-  cl_uint n = *ndat;
-  cl_mem *input = in;
-  cl_mem *output = work;
-  cl_mem *tmp;
-  reduction_generic((*command_queue)->kernels.reduction_dot_kernel_d, (*command_queue)->command_queue, &n, input, output);
-  input = work;
-  output = in;
-  n = shrRoundUp(1024,n)/1024;
-  if(n>1) {
-    do {
-      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
-      tmp = input;
-      input = output;
-      output = tmp;
-      n = shrRoundUp(1024,n)/1024;
-    } while(n>1);
-  }
-  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
-}
 void FC_FUNC_(gemm_volkov_d,GEMM_VOLKOV_D)(bigdft_command_queue *command_queue, char *transa, char *transb, cl_uint *m, cl_uint *n, cl_uint *k, cl_double *alpha, cl_mem *a, cl_uint *lda, cl_mem *b, cl_uint *ldb, cl_double *beta, cl_mem *c, cl_uint *ldc) {
   if( *transa == 't' || *transa == 'c' || *transa == 'T' || *transa == 'C' ) {
     if ( *transb == 't' || *transb == 'c' || *transb == 'T' || *transb == 'C' ) {
@@ -1403,26 +1199,73 @@ void FC_FUNC_(gemm_z,GEMM_Z)(bigdft_command_queue *command_queue, char *transa, 
   }
 }
 
+void FC_FUNC_(asum_self_d,ASUM_SELF_D)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out) {
+  if(*ndat==0){
+    *out = 0.0;
+    return;
+  }
+  size_t max_wgs = (*command_queue)->device_infos.MAX_WORK_GROUP_SIZE*2;
+  cl_uint n = *ndat;
+  cl_mem *input = in;
+  cl_mem *output = work;
+  cl_mem *tmp;
+  do {
+    reduction_generic((*command_queue)->kernels.reduction_kernel_d, *command_queue, &n, input, output);
+    tmp = input;
+    input = output;
+    output = tmp;
+    n = shrRoundUp(max_wgs,n)/max_wgs;
+  } while(n>1);
+  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
+}
+
+void FC_FUNC_(nrm2sq_self_d,NRM2SQ_SELF_D)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work, cl_double *out) {
+  if(*ndat==0){
+   *out = 0.0;
+   return;
+  }
+  size_t max_wgs = (*command_queue)->device_infos.MAX_WORK_GROUP_SIZE*2;
+  cl_uint n = *ndat;
+  cl_mem *input = in;
+  cl_mem *output = work;
+  cl_mem *tmp;
+  reduction_generic((*command_queue)->kernels.reduction_dot_kernel_d, *command_queue, &n, input, output);
+  input = work;
+  output = in;
+  n = shrRoundUp(max_wgs,n)/max_wgs;
+  if(n>1) {
+    do {
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, *command_queue, &n, input, output);
+      tmp = input;
+      input = output;
+      output = tmp;
+      n = shrRoundUp(max_wgs,n)/max_wgs;
+    } while(n>1);
+  }
+  clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
+}
+
 void FC_FUNC_(asum_d,ASUM_D)(bigdft_command_queue *command_queue, cl_uint *ndat, cl_mem *in, cl_mem *work1, cl_mem *work2, cl_double *out) {
   if(*ndat==0){
    *out = 0.0;
    return;
   }
+  size_t max_wgs = (*command_queue)->device_infos.MAX_WORK_GROUP_SIZE*2;
   cl_uint n = *ndat;
   cl_mem *input = in;
   cl_mem *output = work1;
   cl_mem *tmp;
-  reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
+  reduction_generic((*command_queue)->kernels.reduction_kernel_d, *command_queue, &n, input, output);
   input = work1;
   output = work2;
-  n = shrRoundUp(1024,n)/1024;
+  n = shrRoundUp(max_wgs,n)/max_wgs;
   if(n>1) {
     do {
-      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, *command_queue, &n, input, output);
       tmp = input;
       input = output;
       output = tmp;
-      n = shrRoundUp(1024,n)/1024;
+      n = shrRoundUp(max_wgs,n)/max_wgs;
     } while(n>1);
   }
   clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
@@ -1433,19 +1276,20 @@ void FC_FUNC_(nrm2sq_d,NRM2SQ_D)(bigdft_command_queue *command_queue, cl_uint *n
    *out = 0.0;
    return;
   }
+  size_t max_wgs = (*command_queue)->device_infos.MAX_WORK_GROUP_SIZE*2;
   cl_uint n = *ndat;
-  reduction_generic((*command_queue)->kernels.reduction_dot_kernel_d, (*command_queue)->command_queue, &n, in, work1);
+  reduction_generic((*command_queue)->kernels.reduction_dot_kernel_d, *command_queue, &n, in, work1);
   cl_mem *input = work1;
   cl_mem *output = work2;
   cl_mem *tmp;
-  n = shrRoundUp(1024,n)/1024;
+  n = shrRoundUp(max_wgs,n)/max_wgs;
   if(n>1) {
     do {
-      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, *command_queue, &n, input, output);
       tmp = input;
       input = output;
       output = tmp;
-      n = shrRoundUp(1024,n)/1024;
+      n = shrRoundUp(max_wgs,n)/max_wgs;
     } while(n>1);
   }
   clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
@@ -1456,19 +1300,20 @@ void FC_FUNC_(dot_d,DOT_D)(bigdft_command_queue *command_queue, cl_uint *ndat, c
    *out = 0.0;
    return;
   }
+  size_t max_wgs = (*command_queue)->device_infos.MAX_WORK_GROUP_SIZE*2;
   cl_uint n = *ndat;
-  dot_generic((*command_queue)->kernels.dot_kernel_d, (*command_queue)->command_queue, &n, x, y, work1);
+  dot_generic((*command_queue)->kernels.dot_kernel_d, *command_queue, &n, x, y, work1);
   cl_mem *input=work1;
   cl_mem *output=work2;
   cl_mem *tmp;
-  n = shrRoundUp(1024,n)/1024;
+  n = shrRoundUp(max_wgs,n)/max_wgs;
   if(n>1) {
     do {
-      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, *command_queue, &n, input, output);
       tmp = input;
       input = output;
       output = tmp;
-      n = shrRoundUp(1024,n)/1024;
+      n = shrRoundUp(max_wgs,n)/max_wgs;
     } while(n>1);
   }
   clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_TRUE, 0, sizeof(cl_double), out, 0, NULL, NULL);
@@ -1479,19 +1324,20 @@ void FC_FUNC_(dot_d_async,DOT_D_ASYNC)(bigdft_command_queue *command_queue, cl_u
    *out = 0.0;
    return;
   }
+  size_t max_wgs = (*command_queue)->device_infos.MAX_WORK_GROUP_SIZE*2;
   cl_uint n = *ndat;
-  dot_generic((*command_queue)->kernels.dot_kernel_d, (*command_queue)->command_queue, &n, x, y, work1);
+  dot_generic((*command_queue)->kernels.dot_kernel_d, *command_queue, &n, x, y, work1);
   cl_mem *input=work1;
   cl_mem *output=work2;
   cl_mem *tmp;
-  n = shrRoundUp(1024,n)/1024;
+  n = shrRoundUp(max_wgs,n)/max_wgs;
   if(n>1) {
     do {
-      reduction_generic((*command_queue)->kernels.reduction_kernel_d, (*command_queue)->command_queue, &n, input, output);
+      reduction_generic((*command_queue)->kernels.reduction_kernel_d, *command_queue, &n, input, output);
       tmp = input;
       input = output;
       output = tmp;
-      n = shrRoundUp(1024,n)/1024;
+      n = shrRoundUp(max_wgs,n)/max_wgs;
     } while(n>1);
   }
   clEnqueueReadBuffer((*command_queue)->command_queue, *input, CL_FALSE, 0, sizeof(cl_double), out, 0, NULL, NULL);
@@ -1551,8 +1397,12 @@ void create_reduction_kernels(struct bigdft_kernels * kernels){
 }
 
 void build_reduction_programs(cl_context * context){
+    struct bigdft_device_infos infos;
+    get_context_devices_infos(context, &infos);
     cl_int ciErrNum = CL_SUCCESS;
-    reductionProgram = clCreateProgramWithSource(*context,1,(const char**) &reduction_program, NULL, &ciErrNum);
+    const char * code = generate_reduction_program(&infos);
+    printf("%s",code);
+    reductionProgram = clCreateProgramWithSource(*context,1,(const char**) &(code), NULL, &ciErrNum);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(reductionProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)

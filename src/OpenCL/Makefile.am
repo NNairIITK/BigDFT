@@ -10,6 +10,7 @@ EXTRA_DIST = \
 	OpenCL_wrappers.h \
 	Stream.h \
 	Reduction.h \
+	Reduction_Generator.h \
         Tool.h\
 	$(SOURCES_CONV_CHECK)
 
@@ -34,6 +35,7 @@ libbasec_a_SOURCES = OpenCL_wrappers.c \
                      Profiling.c \
                      Hamiltonian.c \
                      Reduction.c \
+                     Reduction_Generator.cpp \
                      Preconditioner.c \
                      Density.c \
                      fft.c \

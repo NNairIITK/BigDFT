@@ -94,8 +94,15 @@ struct bigdft_kernels {
   cl_kernel fft_kernel_d2_r_d;
 };
 
+struct bigdft_device_infos {
+  size_t MAX_WORK_GROUP_SIZE;
+  cl_ulong LOCAL_MEM_SIZE;
+  cl_uint MAX_COMPUTE_UNITS;
+};
+
 struct _bigdft_command_queue {
   struct bigdft_kernels kernels;
+  struct bigdft_device_infos device_infos;
   cl_command_queue command_queue;
 };
 typedef struct _bigdft_command_queue * bigdft_command_queue;
@@ -103,6 +110,10 @@ typedef struct _bigdft_command_queue * bigdft_command_queue;
 extern cl_uint fft_size[3];
 void FC_FUNC_(customize_fft,CUSTOMIZE_FFT)(cl_uint *dimensions);
 
+
+/** Recovers device info used by BigDFT code generator. */
+void get_context_devices_infos(cl_context * context, struct bigdft_device_infos * infos);
+void get_device_infos(cl_device_id device, struct bigdft_device_infos * infos);
 /** Creates all bigdft kernels*/
 void create_kernels(struct bigdft_kernels *kernels);
 /** Creates magicfilter kernels. to be called after building the magicfilter programs. */
