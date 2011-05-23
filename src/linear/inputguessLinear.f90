@@ -428,7 +428,8 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   !!   end if
   !!endif
 
-  !here we can define the subroutine which generates the coefficients for the virtual orbitals
+
+  ! Deallocate all local arrays.
   call deallocate_gwf(G,subname)
 
   i_all=-product(shape(psigau))*kind(psigau)
@@ -436,7 +437,6 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   call memocc(i_stat,i_all,'psigau',subname)
 
   call deallocate_orbs(orbsig,subname)
-
 
   i_all=-product(shape(onWhichAtom))*kind(onWhichAtom)
   deallocate(onWhichAtom, stat=i_stat)
