@@ -153,11 +153,11 @@ call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 call orbitals_communicators(iproc,nproc,Glr,lind%orbs,lind%comms)
 
 
-! Allocate phi and initialize it at random
+! Allocate phi.
 allocate(phi(lin%orbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
-call initRandomSeed(0, 1)
-call randomWithinCutoff(iproc, lin%orbs, Glr, at, lin, input, rxyz, phi)
+!call initRandomSeed(0, 1)
+!call randomWithinCutoff(iproc, lin%orbs, Glr, at, lin, input, rxyz, phi)
 !call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
 !    .5d0*input%hy, .5d0*input%hz, 1)
 
@@ -316,6 +316,7 @@ read(99,*) lin%getCoeff
 read(99,*) lin%nItCoeff, lin%convCritCoeff
 read(99,*) lin%nItSCC, lin%alphaMix
 read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
+read(99,*) lin%nItInguess
 read(99,*) lin%plotBasisFunctions
 call checkLinearParameters(iproc, lin)
 do itype=1,at%ntypes
@@ -383,6 +384,11 @@ if(iproc==0) write(*,'(4x,a,a,i0,14x,a,x,es9.3,x,a,8x,l,10x,a,7x,i1,8x,a)') '|',
      repeat(' ', 15-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
      lin%nItSCC, '|', lin%alphaMix, '|', lin%useDerivativeBasisFunctions, '|', lin%confPotOrder, '|'
 if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------------------'
+if(iproc==0) write(*,'(4x,a)') '| iterations in |'
+if(iproc==0) write(*,'(4x,a)') '|  input guess  |'
+if(iproc==0) write(*,'(4x,a,a,i0,5x,a)') '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
+     lin%nItInguess, '|'
+if(iproc==0) write(*,'(4x,a)') '-----------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
 if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'

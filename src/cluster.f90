@@ -695,16 +695,47 @@ write(*,*) 'iproc, psoffset', iproc, psoffset
         nvirt = norbv
      end if
   case(INPUT_PSI_LINEAR)
-     ! Do also the normal cubic case at the moment to avoid changes in the code (allocating etc.) and
-     ! to get the selfconsistent potential.
-     nspin=in%nspin
-     call input_wf_diag(iproc,nproc, atoms,&
-          orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
-     if (nvirt > norbv) then
-        nvirt = norbv
-     end if
+
+     lin%as%size_rhopot=size(rhopot)
+     lin%as%size_potxc(1)=size(potxc,1)
+     lin%as%size_potxc(2)=size(potxc,2)
+     lin%as%size_potxc(3)=size(potxc,3)
+     lin%as%size_potxc(4)=size(potxc,4)
+     lin%as%size_rhocore=size(rhocore)
+     lin%as%size_pot_ion=size(pot_ion)
+     lin%as%size_pkernel=size(pkernel)
+     lin%as%size_pkernelseq=size(pkernelseq)
+     lin%as%size_phnons(1)=size(phnons,1)
+     lin%as%size_phnons(2)=size(phnons,2)
+     lin%as%size_phnons(3)=size(phnons,3)
+     lin%as%size_irrzon(1)=size(irrzon,1)
+     lin%as%size_irrzon(2)=size(irrzon,2)
+     lin%as%size_irrzon(3)=size(irrzon,3)
+
+     allocate(psi(orbs%npsidim), stat=i_stat)
+     call memocc(i_stat, psi, 'psi', subname)
+     allocate(psit(orbs%npsidim), stat=i_stat)
+     call memocc(i_stat, psit, 'psit', subname)
+     scpot=.true.
+     ! This is the main routine that does everything related to the linear scaling version.
+     call linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, atoms, in, lin, rxyz, &
+         fion, fdisp, radii_cf, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, &
+         phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, psi, psit, &
+         energy, fxyz)
+
+
+     !!if(iproc==0) write(*,'(x,a)') '************************ END OF THE LINEAR SCALING VERSION. &
+     !!    & ************************'
+     !!if(iproc==0) write(*,'(x,a)') '********** The program will now continue with the standard &
+     !!    & cubic version. **********'
+     !!if(iproc==0) write(*,'(x,a)') '********************* !!WARNING: What follows may be garbage!! & 
+     !!    & *********************'
+
+
+     call finalDeallocationForLinear()
+    
+     return
+
 
 1  case(INPUT_PSI_MEMORY_WVL)
      !these parts should be reworked for the non-collinear spin case
@@ -1070,46 +1101,6 @@ write(*,*) 'iproc, psoffset', iproc, psoffset
 
         call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
              comms,psi,hpsi,psit,evsum,.true.) !never deallocate psit and hpsi
-
-
-        ! Here we try to reproduce the above result with the linear scaling version, i.e. we take the selfconsistent potential
-        ! for all calculations.
-        ! ATTENTION: This will overwrite some results of the cubic run made so far, in particular psi and psit.
-        !            In addition we calculate the forces for the linear scaling version. This will somehow overwrite
-        !            some values taht are needed for the usual forces calculation later on, so these forces are 
-        !            completely garbage.
-        linearIf: if(inputpsi==100) then
-            lin%as%size_rhopot=size(rhopot)
-            lin%as%size_potxc(1)=size(potxc,1)
-            lin%as%size_potxc(2)=size(potxc,2)
-            lin%as%size_potxc(3)=size(potxc,3)
-            lin%as%size_potxc(4)=size(potxc,4)
-            lin%as%size_rhocore=size(rhocore)
-            lin%as%size_pot_ion=size(pot_ion)
-            lin%as%size_pkernel=size(pkernel)
-            lin%as%size_pkernelseq=size(pkernelseq)
-            lin%as%size_phnons(1)=size(phnons,1)
-            lin%as%size_phnons(2)=size(phnons,2)
-            lin%as%size_phnons(3)=size(phnons,3)
-            lin%as%size_irrzon(1)=size(irrzon,1)
-            lin%as%size_irrzon(2)=size(irrzon,2)
-            lin%as%size_irrzon(3)=size(irrzon,3)
-
-            ! This is the main routine that does everything related to the linear scaling version.
-            call linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, atoms, in, lin, rxyz, &
-                fion, fdisp, radii_cf, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, &
-                phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, psi, psit, &
-                energy, fxyz)
-
-
-            if(iproc==0) write(*,'(x,a)') '************************ END OF THE LINEAR SCALING VERSION. &
-                & ************************'
-            if(iproc==0) write(*,'(x,a)') '********** The program will now continue with the standard &
-                & cubic version. **********'
-            if(iproc==0) write(*,'(x,a)') '********************* !!WARNING: What follows may be garbage!! & 
-                & *********************'
-
-        end if linearIf
 
 
         !exit if the infocode is correct
@@ -1813,6 +1804,96 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 
+  !> Final deallocation routine (similar to 'deallocate_before_exiting') for the linear
+  !! scaling case.
+  subroutine finalDeallocationForLinear()
+
+    if (in%idsx > 0) then
+       call deallocate_diis_objects(diis,subname)
+    end if
+
+    if (nproc > 1) then
+       i_all=-product(shape(psit))*kind(psit)
+       deallocate(psit,stat=i_stat)
+       call memocc(i_stat,i_all,'psit',subname)
+    end if
+
+    i_all=-product(shape(pot_ion))*kind(pot_ion)
+    deallocate(pot_ion,stat=i_stat)
+    call memocc(i_stat,i_all,'pot_ion',subname)
+    if (counterions) then
+       i_all=-product(shape(counter_ions))*kind(counter_ions)
+       deallocate(counter_ions,stat=i_stat)
+       call memocc(i_stat,i_all,'counter_ions',subname)
+    end if
+
+    if (in%exctxpar == 'OP2P') then
+       i_all=-product(shape(pkernelseq))*kind(pkernelseq)
+       deallocate(pkernelseq,stat=i_stat)
+       call memocc(i_stat,i_all,'kernelseq',subname)
+    end if
+
+
+    i_all=-product(shape(pkernel))*kind(pkernel)
+    deallocate(pkernel,stat=i_stat)
+    call memocc(i_stat,i_all,'kernel',subname)
+
+    ! calc_tail false
+    i_all=-product(shape(rhopot))*kind(rhopot)
+    deallocate(rhopot,stat=i_stat)
+    call memocc(i_stat,i_all,'rhopot',subname)
+    i_all=-product(shape(potxc))*kind(potxc)
+    deallocate(potxc,stat=i_stat)
+    call memocc(i_stat,i_all,'potxc',subname)
+
+    i_all=-product(shape(nscatterarr))*kind(nscatterarr)
+    deallocate(nscatterarr,stat=i_stat)
+    call memocc(i_stat,i_all,'nscatterarr',subname)
+    i_all=-product(shape(ngatherarr))*kind(ngatherarr)
+    deallocate(ngatherarr,stat=i_stat)
+    call memocc(i_stat,i_all,'ngatherarr',subname)
+
+    i_all=-product(shape(fion))*kind(fion)
+    deallocate(fion,stat=i_stat)
+    call memocc(i_stat,i_all,'fion',subname)
+    i_all=-product(shape(fdisp))*kind(fdisp)
+    deallocate(fdisp,stat=i_stat)
+    call memocc(i_stat,i_all,'fdisp',subname)
+
+
+    i_all=-product(shape(irrzon))*kind(irrzon)
+    deallocate(irrzon,stat=i_stat)
+    call memocc(i_stat,i_all,'irrzon',subname)
+
+    i_all=-product(shape(phnons))*kind(phnons)
+    deallocate(phnons,stat=i_stat)
+    call memocc(i_stat,i_all,'phnons',subname)
+
+    call deallocate_bounds(Glr%geocode,Glr%hybrid_on,Glr%bounds,subname)
+
+    !free GPU if it is the case
+    if (GPUconv .and. .not.(DoDavidson)) then
+       call free_gpu(GPU,orbs%norbp)
+    else if (OCLconv .and. .not.(DoDavidson)) then
+       call free_gpu_OCL(GPU,orbs,in%nspin)
+    end if
+
+    call deallocate_comms(comms,subname)
+
+    call deallocate_orbs(orbs,subname)
+    call deallocate_atoms_scf(atoms,subname) 
+
+    i_all=-product(shape(radii_cf))*kind(radii_cf)
+    deallocate(radii_cf,stat=i_stat)
+    call memocc(i_stat,i_all,'radii_cf',subname)
+
+    call deallocate_proj_descr(nlpspd,subname)
+
+    i_all=-product(shape(proj))*kind(proj)
+    deallocate(proj,stat=i_stat)
+    call memocc(i_stat,i_all,'proj',subname)
+
+  end subroutine finalDeallocationForLinear
 
 
 END SUBROUTINE cluster

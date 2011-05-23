@@ -328,11 +328,12 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
 
   allocate(onWhichAtomTemp(orbsig%norbp), stat=istat)
   call memocc(i_stat,onWhichAtomTemp,'onWhichAtomTemp',subname)
+  if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
   do iat=1,at%nat
       do iorb=1,orbsig%norbp
           onWhichAtomTemp(iorb)=iat
       end do
-      if(iproc==0) write(*,'(x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
+      if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
       call HamiltonianApplicationConfinement(iproc, nproc, at, orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
            nlpspd, proj, Glr, ngatherarr, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), &
            rhopot(1), &
@@ -347,15 +348,16 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   call free_full_potential(nproc,pot,subname)
 
 
-  accurex=abs(eks-ekin_sum)
-  !tolerance for comparing the eigenvalues in the case of degeneracies
-  etol=accurex/real(orbsig%norbu,gp)
-  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-  if (iproc == 0) then
-     write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-          ekin_sum,epot_sum,eproj_sum
-     write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-  endif
+  ! This does not make sense here...
+  !!accurex=abs(eks-ekin_sum)
+  !!!tolerance for comparing the eigenvalues in the case of degeneracies
+  !!etol=accurex/real(orbsig%norbu,gp)
+  !!if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+  !!if (iproc == 0) then
+  !!   write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+  !!        ekin_sum,epot_sum,eproj_sum
+  !!   write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+  !!endif
 
 
   !free GPU if it is the case
@@ -365,8 +367,6 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
      call free_gpu_OCL(GPU,orbsig,nspin_ig)
   end if
 
-  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
-       'Input Wavefunctions Orthogonalization:'
 
 
    allocate(onWhichAtomPhi(lin%orbs%norb))
@@ -376,12 +376,14 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
        onWhichAtomPhi(lin%orbs%isorb+iorb)=lin%onWhichAtom(iorb)
    end do
    call mpiallred(onWhichAtomPhi(1), lin%orbs%norb, mpi_sum, mpi_comm_world, iorb)
-   do iorb=1,lin%orbs%norb
-       if(iproc==0) write(*,*) 'iorb, owap', iorb, onWhichAtomPhi(iorb)
-   end do
+   !do iorb=1,lin%orbs%norb
+   !    if(iproc==0) write(*,*) 'iorb, owap', iorb, onWhichAtomPhi(iorb)
+   !end do
 
    call buildLinearCombinations(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
         onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
+
+  if(iproc==0) write(*,'(x,a)') '------------------------------------------------------------- Input guess generated.'
 
   ! This is probably not needed..
   !!if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
@@ -414,16 +416,17 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-  if (iproc == 0) then
-     !gaussian estimation valid only for Free BC
-     if (at%geocode == 'F') then
-        write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
-        write(*,'(1x,a,1pe9.2)') &
-          'expected accuracy in energy per orbital ',accurex/real(lin%orbs%norb,kind=8)
-        !write(*,'(1x,a,1pe9.2)') &
-        !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
-     end if
-  endif
+  ! This does not make sense here...
+  !!if (iproc == 0) then
+  !!   !gaussian estimation valid only for Free BC
+  !!   if (at%geocode == 'F') then
+  !!      write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
+  !!      write(*,'(1x,a,1pe9.2)') &
+  !!        'expected accuracy in energy per orbital ',accurex/real(lin%orbs%norb,kind=8)
+  !!      !write(*,'(1x,a,1pe9.2)') &
+  !!      !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
+  !!   end if
+  !!endif
 
   !here we can define the subroutine which generates the coefficients for the virtual orbitals
   call deallocate_gwf(G,subname)
@@ -506,6 +509,8 @@ character(len=*),parameter:: subname='buildLinearCombinations'
 real(4):: ttreal
      
 
+  if(iproc==0) write(*,'(x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
+
   ! Allocate the local arrays
   allocate(coeff(orbsig%norb,orbs%norb), stat=istat)
   call memocc(istat, coeff, 'coeff', subname)
@@ -583,7 +588,7 @@ real(4):: ttreal
     if(iproc==0) write(*,'(x,a)') '============================== optmizing coefficients =============================='
 
     ! The optimization loop.
-    iterLoop: do it=1,50000
+    iterLoop: do it=1,lin%nItInguess
 
         if (iproc==0 .and. mod(it,1000)==1) then
             write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
@@ -662,7 +667,7 @@ real(4):: ttreal
         end if
   
         ! Quit if the maximal number of iterations is reached.
-        if(it==50000) then
+        if(it==lin%nItInguess) then
             if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
                 ' iterations! Exiting loop due to limitations of iterations.'
             if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, trace: ', fnrm, trace
