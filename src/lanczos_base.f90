@@ -904,22 +904,22 @@ contains
        subroutine EP_initialize_start()
        END SUBROUTINE 
        subroutine EP_normalizza(i)
-         integer,intent(in):: i
+         integer, intent(in) :: i
        END SUBROUTINE 
        subroutine EP_Moltiplica4spectra(i,j, ene, gamma)
          use module_base
-         integer,intent(in) :: i,j
+         integer, intent(in) :: i,j
          real(gp) :: ene, gamma
        END SUBROUTINE 
        real(kind=8) function EP_scalare(i,j)
          integer,intent(in) :: i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
-         integer,intent(in) :: i,j
-         real(kind=8),intent(in) :: a
+         integer, intent(in) :: i,j
+         real(kind=8), intent(in) :: a
        END SUBROUTINE 
        subroutine EP_copy(i,j)
-         integer,intent(in) :: i,j
+         integer, intent(in) :: i,j
        END SUBROUTINE
        subroutine EP_multbyfact(j, fact)
          use module_base

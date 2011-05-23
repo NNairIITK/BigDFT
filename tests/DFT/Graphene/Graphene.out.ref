@@ -27,13 +27,18 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  ERROR: Reduced coordinates are only allowed with fully periodic BC
- File 'myparameters' is missing... using default values:
-   Input guess: direct diagonalization of Hamiltonian
-   Orthogonalization method: Cholesky
 
- Performance options (file 'input.perf' not present):
- |   'debug' option disabled
- |   'fftcache' = 8192
+ --- (file: input.perf -- not present) -------------------------- Performance Options
+ |   debug                   !Option disabled
+ |   fftcache 8192           !Cache size for the FFT
+ |   accel NO                !Acceleration (NO, CUDAGPU, OCLGPU)
+ |   blas F                  !CUBLAS acceleration
+ |   projrad  15.00          !Radius of the projector as a function of the maxrad
+ |   exctxpar BC             !Exact exchange parallelisation scheme
+ |   ig_diag T               !Input guess: Direct diagonalization of Hamiltonian
+ |   ig_blocks 800 11001     !Input guess: Block size for orthonormalisation
+ |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
 
  --- (file: posinp.ascii) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
@@ -44,9 +49,9 @@
                           |                          | Spin pol. = no          
  --- (file: input.kpt) ----------------------------------------------------- k-points
  WARNING: symmetries have been disabled, k points are not irreductible.
-        red. coordinates         weight      id         BZ coordinates
-   0.00000  0.00000  0.00000    0.33333       1    0.00000  0.00000  0.00000
-   0.33333  0.00000  0.00000    0.66667       2    0.45393  0.00000  0.00000
+        red. coordinates         weight       id        BZ coordinates
+   0.00000  0.00000  0.00000    0.33333        1   0.00000  0.00000  0.00000
+   0.33333  0.00000  0.00000    0.66667        2   0.45393  0.00000  0.00000
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -76,7 +81,7 @@
      2      C  0.00000E+00  7.35000E+00  2.66382E+00        0.000    21.000     8.000
      3      C  2.30694E+00  7.35000E+00  3.99573E+00        7.000    21.000    12.000
      4      C  2.30694E+00  7.35000E+00  6.65955E+00        7.000    21.000    20.000
-    Shift of= -0.00000E+00  7.35000E+00 -0.00000E+00 H grids=  0.3296  0.3500  0.3330
+    Shift of= -0.00000E+00 -1.26500E+01 -0.00000E+00 H grids=  0.3296  0.3500  0.3330
    Box Sizes=  4.61388E+00  1.47000E+01  7.99146E+00           13        42        23
        Extremes for the high resolution grid points:         0<13     16<26      0<23
  wavelet localization is OFF
@@ -92,6 +97,12 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1046 points=     13972
    Fine resolution grid: Number of segments=        345 points=      2714
+ ----------------------------------------------Direct and transposed data repartition
+ | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
+ |    0 |      16     |------|------------||        65940  |------|-----------------|
+ |      |             |   1  |    1-    8 ||               |   1  |       1-   32970|
+ |      |             |   2  |    1-    8 ||               |   2  |       1-   32970|
+ Wavefunctions memory occupation for root processor (Bytes): 8440320
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       C               4                    1
@@ -117,13 +128,6 @@
  The overall memory requirement needed for this calculation is thus: 37 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 2 MB
- ----------------------------------------------Direct and transposed data repartition
- | proc | N. Orbitals | K-pt |  Orbitals  || N. Components | K-pt |    Components   |
- |    0 |       8     |------|------------||        32970  |------|-----------------|
- |      |             |   1  |    1-    8 ||               |   1  |       1-   32970|
- |    1 |       8     |------|------------||        32970  |------|-----------------|
- |      |             |   2  |    1-    8 ||               |   2  |       1-   32970|
- Wavefunctions memory occupation for root processor (Bytes): 4220160
  PSolver, surfaces BC, dimensions:    28  115   48   proc    2 ... done.
  ion-ion interaction energy -3.99188391349168E+01
  ----------------------------------------------------------- Ionic Potential Creation

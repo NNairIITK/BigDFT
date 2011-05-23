@@ -144,12 +144,12 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !     nvirtep=orbsv%norbp
 
   !this is the same also in serial
-  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt,in)
+  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt,in%orthpar)
 
   if (occorbs) then
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psivirt,msg)
      !and orthonormalize them using "gram schmidt"  (conserve orthogonality to psi)
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt,in)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psivirt,in%orthpar)
   end if
 
   !retranspose v
@@ -258,15 +258,16 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
         exit wfn_loop 
      endif
 
+     !evaluate the functional of the wavefucntions and put it into the diis structure
+     !the energy values should be printed out here
+     call calculate_energy_and_gradient(iter,iproc,nproc,orbsv,commsv,GPU,lr,hx,hy,hz,in%ncong,in%iscf,&
+          ekin_sum,epot_sum,eproj_sum,0.0_gp,0.0_gp,0.0_gp,eexctX,0.0_gp,0.0_gp,&
+          psivirt,psitvirt,hpsivirt,gnrm,gnrm_zero,diis%energy)
+
      !control the previous value of idsx_actual
      idsx_actual_before=diis%idsx
-     !previous value
-     diis%energy_old=diis%energy
-     !new value without the trace, to be added in hpsitopsi
-     diis%energy=0.0_gp
 
-     call hpsitopsi(iproc,nproc,orbsv,hx,hy,hz,lr,commsv,in%ncong,&
-          iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psivirt,psitvirt,hpsivirt,in%nspin,GPU,in)
+     call hpsitopsi(iproc,nproc,orbsv,lr,commsv,iter,diis,in%idsx,psivirt,psitvirt,hpsivirt,in%nspin,in%orthpar)
 
      if (occorbs) then
         !if this is true the transposition for psivirt which is done in hpsitopsi
@@ -275,28 +276,11 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
         if (nproc == 1) psitvirt => psivirt
         !project psivirt such that they are orthogonal to all occupied psi
         call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,psitvirt,msg)
-        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psitvirt,in)
+        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,psitvirt,in%orthpar)
         !retranspose the psivirt
         call untranspose_v(iproc,nproc,orbsv,lr%wfd,commsv,psitvirt,&
              work=psiw,outadd=psivirt(1))
      end if
-
-     tt=(energybs-scprsum)/scprsum
-     if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
-          (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
-        call check_closed_shell(in%nspin,orbsv,lcs)
-        if (lcs) then
-           write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-                'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
-        end if
-     endif
-     if (iproc.eq.0) then
-        if (verbose > 0) then
-           write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-                ekin_sum,epot_sum,eproj_sum
-        end if
-        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total "energy",gnrm',iter,energy,gnrm
-     endif
 
   end do wfn_loop
   if (iter == in%itermax+100 .and. iproc == 0 ) &
@@ -528,12 +512,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !     nvirtep=orbsv%norbp
 
   !this is the same also in serial
-  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
+  call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
 
   if (occorbs) then
      call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
   end if
 
   !retranspose v
@@ -601,7 +585,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   end if
 
   if(iproc==0)write(*,'(1x,a)')"done."
-  if(iproc==0)write(*,'(1x,a)')"     sqnorm                Rayleigh quotient"
+  if(iproc==0)write(*,'(1x,a)')"      1-sqnorm   Rayleigh quotient"
  
   do ikpt=1,orbsv%nkpts
      if (orbsv%nkpts > 1 .and.iproc == 0) write(*,"(1x,A,I3.3,A,3F12.6)") &
@@ -609,8 +593,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      do iorb=1,orbsv%norb
         !e(:,1,1) = <psi|H|psi> / <psi|psi>
         e(iorb,ikpt,1)=e(iorb,ikpt,1)/e(iorb,ikpt,2)
-        if(iproc==0) write(*,'(1x,i3,2(1x,1pe21.14))')&
-             iorb,e(iorb,ikpt,2),e(iorb,ikpt,1)
+        if(iproc==0) write(*,'(1x,i3,1x,1pe13.6,1x,1pe12.5)')&
+             iorb,1.0_gp-e(iorb,ikpt,2),e(iorb,ikpt,1)
      end do
   end do
 
@@ -699,21 +683,22 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
      gnrm=0._dp
      do ikpt=1,orbsv%nkpts
-        do iorb=1,nvirt
+        do iorb=1,orbsv%norb
            tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
            if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
-           gnrm=gnrm+tt
+           if (iorb <= nvirt) gnrm=gnrm+tt
         end do
         if (nspin == 2) then
-           do iorb=1,nvirt
+           do iorb=1,orbsv%norb
               tt=real(e(iorb+orbsv%norbu,ikpt,2)*orbsv%kwgts(ikpt),dp)
               if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb+orbsv%norbu,tt
-              gnrm=gnrm+tt
+              if (iorb <= nvirt) gnrm=gnrm+tt
            end do
         end if
      end do
-     !should we divide by nvirt or by orbsv%norb?
-     gnrm=dsqrt(gnrm/real(orbsv%norb,dp))
+
+     !the gnrm defined should be the average of the active gnrms
+     gnrm=dsqrt(gnrm/real(nvirt,dp))
 
      if(iproc == 0)write(*,'(1x,a,2(1x,1pe12.5))')&
           "|gradient|=gnrm and exit criterion ",gnrm,in%gnrm_cv
@@ -736,9 +721,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
-     call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
 
      if(msg) then
+        call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
         write(*,'(1x,a)')"squared norm of all gradients after projection"
         ispsi=1
         do ikptp=1,orbsv%nkptsp
@@ -761,13 +746,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
         
         gnrm=0._dp
         do ikpt=1,orbsv%nkpts
-           do iorb=1,nvirt
+           do iorb=1,orbsv%norb
               tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
               if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
               gnrm=gnrm+tt
            end do
            if (nspin == 2) then
-              do iorb=1,nvirt
+              do iorb=1,orbsv%norb
                  tt=real(e(iorb+orbsv%norbu,ikpt,2)*orbsv%kwgts(ikpt),dp)
                  if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
                  gnrm=gnrm+tt
@@ -843,8 +828,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
-     call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
      if(msg) then
+        call razero(orbsv%norb*orbsv%nkpts,e(1,1,2))
         write(*,'(1x,a)')"Norm of all preconditioned gradients"
         ispsi=1
         do ikptp=1,orbsv%nkptsp
@@ -1037,15 +1022,15 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
            if(msg .or. (iproc==0 .and. ikpt == 1)) then
               if (nspin ==1) then
-                 write(*,'(1x,a)')'done. The refined eigenvalues are'
-                 do iorb=1,nvirt
-                    write(*,'(1x,i3,(1pe21.14))')iorb,e(iorb,ikpt,1)
+                 write(*,'(1x,a)')'done. Eigenvalues, gnrm'
+                 do iorb=1,orbsv%norb
+                    write(*,'(1x,i5,1pe22.14,1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
                  end do
               else if (ispin == 2) then
-                 write(*,'(1x,a)')'done. The refined eigenvalues are'
-                 do iorb=1,nvirt
-                    write(*,'(1x,i3,2(1pe21.14))')&
-                         iorb,e(iorb,ikpt,1),e(iorb+orbsv%norbu,ikpt,1)
+                 write(*,'(1x,a)')'done. Eigenvalues, gnrm'
+                 do iorb=1,min(orbsv%norbu,orbsv%norbd) !they should be equal
+                    write(*,'(1x,i5,2(1pe22.14,1pe9.2,2x))')&
+                         iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
                  end do
               end if
            end if
@@ -1058,7 +1043,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      deallocate(g,stat=i_stat)
      call memocc(i_stat,i_all,'g',subname)
 
-     if(iproc==0)write(*,'(1x,a)')"done."
+     !if(iproc==0)write(*,'(1x,a)')"done."
      if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
      !project v such that they are orthogonal to all occupied psi
      !Orthogonalize before and afterwards.
@@ -1066,12 +1051,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call timing(iproc,'Davidson      ','OF')
 
      !these routines should work both in parallel or in serial
-     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
+     call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
 
      if (occorbs) then
         call orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi,v,msg)
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
-        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in)
+        call orthogonalize(iproc,nproc,orbsv,commsv,lr%wfd,v,in%orthpar)
      end if
 
      !retranspose v
@@ -1134,7 +1119,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !finalize: Retranspose, deallocate
 
   ! Send all eigenvalues to all procs.
-  call broadcast_kpt_objects(nproc, orbsv%nkpts, orbsv%norb, e(1,1,1), orbsv%ikptproc)
+  call broadcast_kpt_objects(nproc,orbsv%nkpts,orbsv%norb,e(1,1,1),orbsv%ikptproc)
 
   call timing(iproc,'Davidson      ','OF')
 
@@ -1163,67 +1148,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   deallocate(hv,stat=i_stat)
   call memocc(i_stat,i_all,'hv',subname)
 
-!   ! PLOTTING
-! 
-!   !plot the converged wavefunctions in the different orbitals.
-!   !nplot is the requested total of orbitals to plot, where
-!   !states near the HOMO/LUMO gap are given higher priority.
-!   !Occupied orbitals are only plotted when nplot>nvirt,
-!   !otherwise a comment is given in the out file.
-! 
-!   if(abs(in%nplot)>orbs%norb+nvirt)then
-!      if(iproc==0)write(*,'(1x,A,i3)')&
-!           "WARNING: More plots requested than orbitals calculated." 
-!   end if
-! 
-!   !add a modulo operator to get rid of the particular k-point
-!   do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
-!      if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(in%nplot))then
-!         if(iproc == 0 .and. abs(in%nplot) > 0)write(*,'(A)')&
-!              'WARNING: No plots of occupied orbitals requested.'
-!         exit 
-!      end if
-!      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-!      !plot the orbital and the density
-!      write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
-!      write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
-!      write(comment,'(1pe10.3)')e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
-!      !choose the way of plotting the wavefunctions
-! !!$     if (in%nplot > 0) then
-! !!$        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-! !!$        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-! !!$     else if (in%nplot < 0) then
-! !!$        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-! !!$        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-! !!$     end if
-! 
-!      call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-!      call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,v(ind:),comment)
-! 
-!   end do
-! 
-!   do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-!      if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(in%nplot)) then  ! SG 
-!         !address
-!         ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-!         write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
-!         write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
-!         write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
-! !!$     !choose the way of plotting the wavefunctions
-! !!$     if (in%nplot > 0) then
-! !!$        call plot_wf('POT',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-! !!$        call plot_wf('POT',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-! !!$     else if (in%nplot < 0) then
-! !!$        call plot_wf('CUBE',orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-! !!$        call plot_wf('CUBE',denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-! !!$     end if
-!         call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-!         call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-!         
-!      endif
-!   end do
-!   ! END OF PLOTTING
-
   !copy the values in the eval array of the davidson procedure
   do ikpt=1,orbsv%nkpts
     do iorb=1,orbsv%norb
@@ -1247,7 +1171,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   end if
 
 END SUBROUTINE davidson
-
 
 !>   Generate upper triangular matrix in the subspace of Davidson algorithm
 subroutine Davidson_subspace_hamovr(norb,nspinor,ncplx,nvctrp,hamovr,v,g,hv,hg)
@@ -1877,11 +1800,12 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
 
   !add a modulo operator to get rid of the particular k-point
   do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
-     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot))then
-        if(iproc == 0 .and. abs(nplot) > 0)write(*,'(A)')&
-             'WARNING: No plots of occupied orbitals requested.'
+
+     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot)) then
         exit 
+        !if(iproc == 0 .and. abs(nplot) > 0) write(*,'(A)')'No plots of occupied orbitals requested.'
      end if
+
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      !plot the orbital and the density
      write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb

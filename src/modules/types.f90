@@ -60,6 +60,29 @@ module module_types
   integer, parameter :: occopt = SMEARING_DIST_ERF
 
 
+  !> Type used for the orthogonalisation parameter
+  type, public :: orthon_data
+     !> directDiag decides which input guess is chosen:
+     !!   if .true. -> as usual direct diagonalization of the Hamiltonian with dsyev (suitable for small systems)
+     !!   if .false. -> iterative diagonalization (suitable for large systems)
+     logical:: directDiag
+     !> norbpInguess indicates how many orbitals shall be treated by each process during the input guess
+     !! if directDiag=.false.
+     integer:: norbpInguess
+     !> You have to choose two numbers for the block size, bsLow and bsUp:
+     !!   if bsLow<bsUp, then the program will choose an appropriate block size in between these two numbers
+     !!   if bsLow==bsUp, then the program will take exactly this blocksize
+     integer:: bsLow, bsUp
+     !> the variable methOrtho indicates which orthonormalization procedure is used:
+     !!   methOrtho==0 -> Gram-Schmidt with Cholesky decomposition
+     !!   methOrtho==1 -> combined block wise classical Gram-Schmidt and Cholesky
+     !!   methOrtho==2 -> Loewdin
+     integer:: methOrtho
+     !> iguessTol gives the tolerance to which the input guess will converged (maximal
+     !! residue of all orbitals).
+     real(gp):: iguessTol
+  end type orthon_data
+
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
@@ -119,29 +142,8 @@ module module_types
      integer :: ncache_fft !< Cache size for FFT
      real(gp) :: projrad   !<coarse radius of the projectors in units of the maxrad
 
-     !> directDiag decides which input guess is chosen:
-     !!   if .true. -> as usual direct diagonalization of the Hamiltonian with dsyev (suitable for small systems)
-     !!   if .false. -> iterative diagonalization (suitable for large systems)
-     logical:: directDiag
-
-     !> norbpInguess indicates how many orbitals shall be treated by each process during the input guess
-     !! if directDiag=.false.
-     integer:: norbpInguess
-
-     !> You have to choose two numbers for the block size, bsLow and bsUp:
-     !!   if bsLow<bsUp, then the program will choose an appropriate block size in between these two numbers
-     !!   if bsLow==bsUp, then the program will take exactly this blocksize
-     integer:: bsLow, bsUp
-
-     !> the variable methOrtho indicates which orthonormalization procedure is used:
-     !!   methOrtho==0 -> Gram-Schmidt with Cholesky decomposition
-     !!   methOrtho==1 -> combined block wise classical Gram-Schmidt and Cholesky
-     !!   methOrtho==2 -> Loewdin
-     integer:: methOrtho
-
-     !> iguessTol gives the tolerance to which the input guess will converged (maximal
-     !! residue of all orbitals).
-     real(gp):: iguessTol
+     !orthogonalisation data
+     type(orthon_data) :: orthpar
 
      !> parallelisation scheme of the exact exchange operator
      !!   BC (Blocking Collective)
@@ -149,6 +151,10 @@ module module_types
      character(len=4) :: exctxpar
   end type input_variables
 
+  type, public :: energy_terms
+     real(gp) :: eh,exc,vxc,eion,edisp,ekin,epot,eproj,eexctX
+     real(gp) :: ebs,eKS,trH
+  end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations
 !!  Useful only for isolated systems AND in CPU
@@ -242,7 +248,7 @@ module module_types
 !> All the parameters which are important for describing the orbitals
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
+     integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
      real(wp), dimension(:), pointer :: eval

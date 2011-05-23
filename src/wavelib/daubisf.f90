@@ -749,15 +749,12 @@ subroutine memspace_work_arrays_sumrho(lr,memwork)
   type(locreg_descriptors), intent(in) :: lr
   integer(kind=8), intent(out) :: memwork
   !local variables
-  integer :: n1,n2,n3,n1i,n2i,n3i,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer :: nw1,nw2,nxc,nxf
 
   n1=lr%d%n1
   n2=lr%d%n2
   n3=lr%d%n3
-  n1i=lr%d%n1i
-  n2i=lr%d%n2i
-  n3i=lr%d%n3i
   nfl1=lr%d%nfl1
   nfl2=lr%d%nfl2
   nfl3=lr%d%nfl3

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Display the logo of BigDFT 
+!> Display the logo of BigDFT 
 subroutine print_logo()
   use module_base
   implicit none
@@ -157,20 +157,31 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
      end if
   end do
 
-  !stop the code if it is trying to run GPU with non-periodic boundary conditions
+  ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
-     write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     if (iproc==0) write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+  end if
+
+  ! Stop the code if it is trying to run GPU with spin=4
+  if (inputs%nspin == 4 .and. (GPUconv .or. OCLconv)) then
+     if (iproc==0) write(*,'(1x,a)') 'GPU calculation not implemented with non-collinear spin'
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
 
   ! Stop code for unproper input variables combination.
   if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym) then
-     if (iproc==0) write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-     stop 'Forces are not implemented with symmetry support, disable symmetry please (T)'
+     if (iproc==0) then
+         write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+         write(*,'(1x,a)')  'Forces are not implemented with symmetry support, disable symmetry please (T)'
+     end if
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
-     stop 'Gaussian projection is not implemented with k-point support'
+     if (iproc==0) write(*,'(1x,a)') 'Gaussian projection is not implemented with k-point support'
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
+
 END SUBROUTINE read_input_parameters
 
 
@@ -225,7 +236,8 @@ subroutine dft_input_variables(iproc,filename,in)
   ! Read the input variables.
   inquire(file=trim(filename),exist=exists)
   if (.not.exists) then
-     return 
+      if (iproc == 0) write(*,*) "The file 'input.dft' does not exist!"
+      call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   ! Open the file
@@ -254,6 +266,7 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%ncong,in%idsx
   call check()
+  in%idsx = min(in%idsx, in%itermax)
   read(1,*,iostat=ierror) in%dispersion
   call check()
 
@@ -274,7 +287,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. input_psi_validate(in%inputPsiId) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
      call input_psi_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
@@ -287,7 +300,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. output_wf_format_validate(in%output_wf_format) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
      call output_wf_format_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
   ! Setup out grid parameters.
   if (in%output_grid >= 0) then
@@ -301,7 +314,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. output_grid_validate(in%output_grid, in%output_grid_format) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_grid (', in%output_grid, ').'
      call output_grid_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   ! Tail treatment.
@@ -347,14 +360,14 @@ subroutine dft_input_variables(iproc,filename,in)
 !     !if (iproc==0) then
 !        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
 !     !end if
-!     stop
+!     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
 !  end if
 ! 
   close(unit=1,iostat=ierror)
 
   if (in%nspin/=4 .and. in%nspin/=2 .and. in%nspin/=1) then
      write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   !define whether there should be a last_run after geometry optimization
@@ -414,7 +427,7 @@ subroutine mix_input_variables_default(in)
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%iscf=7
+  in%iscf=0
   in%Tel=0.0_gp
   in%norbsempty=0
   in%alphadiis=2.d0
@@ -469,7 +482,7 @@ contains
        !if (iproc == 0) 
             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
-       stop
+            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
     end if
   END SUBROUTINE check
 
@@ -572,7 +585,7 @@ contains
        !if (iproc == 0) 
             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
-       stop
+            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
     end if
   END SUBROUTINE check
 
@@ -624,8 +637,8 @@ subroutine tddft_input_variables(filename,in)
   read(1,*,iostat=ierror) in%tddft_approach
   call check()
   if (trim(in%tddft_approach) == "TDA") then
-  read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
-  call check()
+     !read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
+     !call check()
   end if
 
   close(unit=1,iostat=ierror)
@@ -945,17 +958,18 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%iacceleration=0 !default:no acceleration
   !BLAS acceleration
   GPUblas=.false.
+
   !Direct diagonalisation of the Hamiltonian for the input guess
-  inputs%directDiag=.true.
+  inputs%orthpar%directDiag=.true.
   !Orbitals per process
-  inputs%norbpInguess=5
+  inputs%orthpar%norbpInguess=5
   !Block size used for the orthonormalization
-  inputs%bsLow=300
-  inputs%bsUp=800
+  inputs%orthpar%bsLow=300
+  inputs%orthpar%bsUp=800
   !Orthogonalization method
-  inputs%methOrtho=0
+  inputs%orthpar%methOrtho=0
   !Tolerance criterion for input guess
-  inputs%iguessTol=1.d-4
+  inputs%orthpar%iguessTol=1.d-4
 
   !initialization of the character string for printing
   string = "NO"
@@ -988,7 +1002,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
            read(line(ii:),fmt=*,iostat=ierror) inputs%exctxpar
 
         else if (index(line,"accel") /= 0 .or. index(line,"ACCEL") /= 0) then
-            ii = index(line,"ACCEL")  + index(line,"ACCEL") + 6
+            ii = index(line,"accel")  + index(line,"ACCEL") + 6
            read(line(ii:),fmt=*,iostat=ierror) string
            if (string=="NO     ") then
               inputs%iacceleration=0
@@ -1007,19 +1021,19 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
         else if (index(line,"ig_diag") /= 0 .or. index(line,"IG_DIAG") /= 0) then
            ii = index(line,"ig_diag")  + index(line,"IG_DIAG") + 10
-           read(line(ii:),fmt=*,iostat=ierror) inputs%directDiag
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%directDiag
 
         else if (index(line,"ig_norbp") /= 0 .or. index(line,"IG_NORBP") /= 0) then
            ii = index(line,"ig_norbp")  + index(line,"IG_NORBP") + 8
-           read(line(ii:),fmt=*,iostat=ierror) inputs%norbpInguess
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%norbpInguess
 
         else if (index(line,"methortho") /= 0 .or. index(line,"METHORTHO") /= 0) then
            ii = index(line,"methortho")  + index(line,"METHORTHO") + 9
-           read(line(ii:),fmt=*,iostat=ierror) inputs%methOrtho
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%methOrtho
 
         else if (index(line,"ig_blocks") /= 0 .or. index(line,"IG_BLOCKS") /= 0) then
            ii = index(line,"ig_blocks")  + index(line,"IG_BLOCKS") + 8
-           read(line(ii:),fmt=*,iostat=ierror) inputs%bsLow,inputs%bsUp
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%bsLow,inputs%orthpar%bsUp
         end if
 
         !Check iostat error
@@ -1063,38 +1077,38 @@ subroutine perf_input_variables(iproc,filename,inputs)
           "|","exctxpar",inputs%exctxpar,    '!Exact exchange parallelisation scheme'
 
      !Input guess performance variables
-     if(inputs%directDiag) then                   
+     if(inputs%orthpar%directDiag) then                   
         write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
-          "|","ig_diag",inputs%directDiag,   '!Input guess: Direct diagonalization of Hamiltonian'
-     else if(.not.inputs%directDiag) then         
+          "|","ig_diag",inputs%orthpar%directDiag,   '!Input guess: Direct diagonalization of Hamiltonian'
+     else if(.not.inputs%orthpar%directDiag) then         
         write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
-          "|","ig_diag",inputs%directDiag,   '!Input guess: Iterative diagonalization of Hamiltonian'
+          "|","ig_diag",inputs%orthpar%directDiag,   '!Input guess: Iterative diagonalization of Hamiltonian'
         write(*,'(1x,a,3x,a,1x,i0,t30,a)') &
-          "|","ig_norbp",inputs%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'
+          "|","ig_norbp",inputs%orthpar%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'
      end if
      write(*,"(1x,a,3x,a,1x,i0,1x,i0,t30,a)") &
-          "|","ig_blocks",inputs%bsLow,inputs%bsUp, &
+          "|","ig_blocks",inputs%orthpar%bsLow,inputs%orthpar%bsUp, &
                                                  '!Input guess: Block size for orthonormalisation'
      write(*,'(1x,a,3x,a,1x,es9.2,t30,a)') &
-          "|","ig_tol",inputs%iguessTol,    '!Input guess: Tolerance criterion'
+          "|","ig_tol",inputs%orthpar%iguessTol,    '!Input guess: Tolerance criterion'
      !Orthogonalisation: possible value: 0=Cholesky, 1=hybrid Gram-Schmidt/Cholesky, 2=Loewdin
      write(*,"(1x,a,3x,a,1x,i0,t30,a)") &
-          "|","methortho",inputs%methOrtho,  '!Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)'
+          "|","methortho",inputs%orthpar%methOrtho,  '!Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)'
      write(*,*)
   end if
 
   !Check after collecting all values
-  if (inputs%methOrtho < 0 .or. inputs%methOrtho > 2) then
-     write(*,'(3x,a,i0)') "ERROR: invalid value for inputs%methOrtho (",inputs%methOrtho,")."
+  if (inputs%orthpar%methOrtho < 0 .or. inputs%orthpar%methOrtho > 2) then
+     write(*,'(3x,a,i0)') "ERROR: invalid value for inputs%methOrtho (",inputs%orthpar%methOrtho,")."
      write(*,'(3x,a,i0)') "Change it in the file 'inputs.perf' to 0, 1 or 2."
-     call MPI_ABORT(MPI_COMM_WORLD,inputs%methOrtho,ierr)
+     call MPI_ABORT(MPI_COMM_WORLD,inputs%orthpar%methOrtho,ierr)
   end if
-  if(.not.inputs%directDiag .or. inputs%methOrtho==1) then 
+  if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
      write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
-     if(inputs%bsLow==inputs%bsUp) then
-        write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%bsLow
-     else if(inputs%bsLow<inputs%bsUp) then
-        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%bsLow,' and ',inputs%bsUp
+     if(inputs%orthpar%bsLow==inputs%orthpar%bsUp) then
+        write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%orthpar%bsLow
+     else if(inputs%orthpar%bsLow<inputs%orthpar%bsUp) then
+        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%orthpar%bsLow,' and ',inputs%orthpar%bsUp
      else
         write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
         call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
@@ -1844,7 +1858,7 @@ contains
 END SUBROUTINE parse_extra_info
 
 
-!>    Read atomic positions of ascii files.
+!> Read atomic positions of ascii files.
 subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   use module_base
   use module_types
@@ -1967,21 +1981,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
      atoms%alat2 = real(alat3,gp)
      atoms%alat3 = real(alat6,gp)
   end if
-  if (atoms%geocode == 'S') then
-     atoms%alat2 = 0.0_gp
-  else if (atoms%geocode == 'F') then
-     atoms%alat1 = 0.0_gp
-     atoms%alat2 = 0.0_gp
-     atoms%alat3 = 0.0_gp
-  end if
   
-  !reduced coordinates are possible only with periodic units
-  if (reduced .and. atoms%geocode /= 'P') then
-     if (iproc==0) write(*,'(1x,a)')&
-          'ERROR: Reduced coordinates are only allowed with fully periodic BC'
-  end if
-
-  !convert the values of the cell sizes in bohr
+  !Convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
      atoms%alat1 = atoms%alat1 / bohr2ang
@@ -2055,6 +2056,14 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
         iat = iat + 1
      end if
   enddo
+
+  if (atoms%geocode == 'S') then
+     atoms%alat2 = 0.0_gp
+  else if (atoms%geocode == 'F') then
+     atoms%alat1 = 0.0_gp
+     atoms%alat2 = 0.0_gp
+     atoms%alat3 = 0.0_gp
+  end if
 
   !now that ntypes is determined allocate atoms%atomnames and copy the values
   allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
@@ -2876,6 +2885,5 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      deallocate(nodename,stat=i_stat)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
-  !print *,iproc,nproc,iproc_node,nproc_node
-     
+
 END SUBROUTINE processor_id_per_node
