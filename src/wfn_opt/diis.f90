@@ -31,7 +31,7 @@ subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
-  integer :: ierr,ikpt,iorb,i_all,i_stat,k,ncplx
+  integer :: ierr,ikpt,iorb,i_all,i_stat,k,ncplx,jorb
   real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
   real(wp), dimension(:), allocatable :: passmat
   real(wp), dimension(:,:,:), allocatable :: mom_vec
