@@ -393,8 +393,6 @@ subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
  
      oidx=(iorb-1)*orbs%nspinor+1
 
-     !if(onWhichAtom(iorb)>0) then
-
          !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
          !the psir wavefunction is given in the spinorial form
          call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
@@ -408,7 +406,7 @@ subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
          case('F')
 
             if(.not.present(centralAtom)) then
-                write(*,'(a,i0,a,i0,a,i0,a)') 'calling with onWhichAtom(iorb)=',onWhichAtom(iorb), '  (iproc=',iproc, ', iorb=',iorb,')'
+                !write(*,'(a,i0,a,i0,a,i0,a)') 'calling with onWhichAtom(iorb)=',onWhichAtom(iorb), '  (iproc=',iproc, ', iorb=',iorb,')'
                 call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                      pot(nsoffset),epot, rxyz(1,onWhichAtom(iorb)), hxh, hyh, hzh, &
                      lin%potentialPrefac(at%iatype(onWhichAtom(iorb))), lin%confPotOrder, lr%bounds%ibyyzz_r) !optional
@@ -449,10 +447,6 @@ subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
          ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
          epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
 
-      !else
-      !   write(*,'(a,2i7)') 'set to zero, iproc, iorb', iproc, iorb
-      !   call razero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,oidx))
-      !end if
 
   enddo
 
@@ -1034,7 +1028,7 @@ subroutine local_hamiltonianConfinementForAllLocregs(iproc,orbs,lin,lr,hx,hy,hz,
   real(wp):: exctXcoeff
   real(gp):: ekin,epot,kx,ky,kz,etest
   type(workarr_locham):: wrk_lh
-  real(wp),dimension(:,:),allocatable:: psir
+  real(wp),dimension(:,:),allocatable:: psir, psirTemp
   real(8):: hxh, hyh, hzh
 integer:: ii
 
@@ -1051,6 +1045,8 @@ integer:: ii
   ! Wavefunction in real space
   allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
+  allocate(psirTemp(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,psirTemp,'psirTemp',subname)
 
   call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 
@@ -1063,23 +1059,26 @@ integer:: ii
   hyh=hy*.5d0
   hzh=hz*.5d0
 
-  ! Do this loop for all localization regions, i.e. for all atoms.
-  atomLoop: do iat=1,at%nat
 
-      orbitalLoop: do iorb=1,orbs%norbp
+  orbitalLoop: do iorb=1,orbs%norbp
 
 
-         if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
-            nsoffset=1
-         else
-            nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
-         end if
+      if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
+         nsoffset=1
+      else
+         nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
+      end if
 
-         oidx=(iorb-1)*orbs%nspinor+1
+      oidx=(iorb-1)*orbs%nspinor+1
 
-         !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
-         !the psir wavefunction is given in the spinorial form
-         call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
+      !the psir wavefunction is given in the spinorial form
+      call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+      call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*(orbs%nspinor+ndebug), psir, 1, psirTemp, 1)
+
+      ! Do this loop for all localization regions, i.e. for all atoms.
+      atomLoop: do iat=1,at%nat
+         if(iat>1) call dcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*(orbs%nspinor+ndebug), psirTemp, 1, psir, 1)
 
          !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
          !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
@@ -1143,9 +1142,9 @@ integer:: ii
          ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
          epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
 
-      end do orbitalLoop
+      end do atomLoop
 
-  end do atomLoop
+  end do orbitalLoop
   
   !print *,'iproc,etest',etest
 

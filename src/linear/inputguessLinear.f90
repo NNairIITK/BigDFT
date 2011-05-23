@@ -51,11 +51,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(wp), dimension(:,:,:), pointer :: psigau
 type(orbitals_data):: orbsLIN
 type(communications_arrays):: commsLIN
-real(8),dimension(:,:),allocatable:: HamSmall
-real(8),dimension(:,:),pointer:: hpsiForAllLocregs
 real(8),dimension(:),allocatable:: eval
 integer:: istat
-real(8),dimension(:),pointer:: phiWorkPointer
 real(8),dimension(:),allocatable:: chi
 real(8),dimension(:,:),allocatable:: hchi
 integer,dimension(:),allocatable:: onWhichAtom, onWhichAtomp, norbsPerAt, onWhichAtomTemp, onWhichAtomPhi
@@ -63,8 +60,7 @@ integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
 integer, dimension(lmax+1) :: nl
 real(gp), dimension(noccmax,lmax+1) :: occup
 real(8):: dnrm2, ddot, dasum
-integer:: ist, jst, jorb, iiAt, i
-real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
+integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
 
 
 
@@ -88,52 +84,69 @@ real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
      nspin_ig=input%nspin
   end if
 
-  ! Determine how many atomic orbitals we have
+  ! Determine how many atomic orbitals we have.
   norbat=0
+  ist=0
   do iat=1,at%nat
-      !! WARNING: add more atomic orbitals
-      if(at%iatype(iat)==1) then
-          !at%aocc(7,iat)=1.d0
-      else if(at%iatype(iat)==2) then
-          !at%aocc(3,iat)=1.d0
-      else
-          stop 'only carbon and hydrogen ATM.'
-      end if
-      write(*,'(a,i6,100es10.2)') 'iat, at%aocc(:,iat)',iat, at%aocc(:,iat)
-      call count_atomic_shells(lmax+1, noccmax, nelecmax, input%nspin, lin%orbs%nspinor, at%aocc(1,iat), occup, nl)
-      !write(*,'(a,i4,2x,10i4)') 'iat, nl', iat, nl
-      norbsPerAt(iat)=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
+      ii=lin%norbsPerType(at%iatype(iat))
+      iadd=0
+      do 
+          ! Count the number of atomic orbitals and increase the number if necessary until we have more
+          ! (or equal) atomic orbitals than basis functions per atom.
+          jj=1*nint(at%aocc(1,iat))+3*nint(at%aocc(3,iat))+5*nint(at%aocc(7,iat))+7*nint(at%aocc(13,iat))
+          if(jj>=ii) then
+              ! we have enough atomic orbitals
+              exit
+          else
+              ! add additional orbitals
+              iadd=iadd+1
+              select case(iadd)
+                  case(1) 
+                      at%aocc(1,iat)=1.d0
+                  case(2) 
+                      at%aocc(3,iat)=1.d0
+                  case(3) 
+                      at%aocc(7,iat)=1.d0
+                  case(4) 
+                      at%aocc(13,iat)=1.d0
+                  case default 
+                      write(*,'(x,a)') 'ERROR: more than 16 basis functions per atom are not possible!'
+                      stop
+              end select
+          end if
+      end do
+      norbsPerAt(iat)=jj
       norbat=norbat+norbsPerAt(iat)
   end do
-  write(*,*) 'norbat',norbat
-  orbsig%norb=norbat ! This will be assigned later anyway, but here it is needed
-                     ! to pass the array onWhichAtom to the subroutine inputguess_gaussian_orbitals
 
   allocate(onWhichAtom(norbat),stat=i_stat)
   call memocc(i_stat, onWhichAtom, 'onWhichAtom', subname)
+  ist=0
+  do iat=1,at%nat
+      ! Assign the orbitals to the atoms, i.e. onWhichAtom(i)=j means that orbital i belongs
+      ! to atom j.
+      do i=1,norbsPerAt(iat)
+          onWhichAtom(ist+i)=iat
+      end do
+      ist=ist+norbsPerAt(iat)
+  end do
+
 
   nvirt=0
-  call inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
-       lin%orbs,orbsig,norbsc_arr,locrad,G,psigau,eks,onWhichAtom)
-  !call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
-  !     lin%orbs,orbsig,norbsc_arr,locrad,G,psigau,eks)
-  !!write(*,*) 'orbsig%norb',orbsig%norb
-  !!do iorb=1,orbsig%norb
-  !!    write(*,'(a,3i8)') 'iproc, iorb, onWhichAtom(iorb)', iproc, iorb, onWhichAtom(iorb)
-  !!end do
+  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+       lin%orbs,orbsig,norbsc_arr,locrad,G,psigau,eks)
 
   !allocate communications arrays for inputguess orbitals
   !call allocate_comms(nproc,orbsig,commsig,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbsig,commsig)  
 
-  !write(*,*) '>>>>> iproc, orbsig%norbp', iproc, orbsig%norbp
   allocate(onWhichAtomp(orbsig%norbp),stat=i_stat)
   call memocc(i_stat, onWhichAtomp, 'onWhichAtomp', subname)
 
   call assignOrbitalsToAtoms(iproc, orbsig, at%nat, norbsPerAt, onWhichAtomp)
-  do iorb=1,orbsig%norbp
-      write(*,'(a,3i8)') 'iproc, iorb, onWhichAtom(iorb)', iproc, iorb, onWhichAtomp(iorb)
-  end do
+  !do iorb=1,orbsig%norbp
+  !    write(*,'(a,3i8)') 'iproc, iorb, onWhichAtom(iorb)', iproc, iorb, onWhichAtomp(iorb)
+  !end do
 
 
   hxh=.5_gp*input%hx
@@ -146,12 +159,6 @@ real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
   !once the wavefunction coefficients are known perform a set 
   !of nonblocking send-receive operations to calculate overlap matrices
 
-!!!  !create mpirequests array for controlling the success of the send-receive operation
-!!!  allocate(mpirequests(nproc-1+ndebug),stat=i_stat)
-!!!  call memocc(i_stat,mpirequests,'mpirequests',subname)
-!!!
-!!!  call nonblocking_transposition(iproc,nproc,G%ncoeff,orbsig%isorb+orbsig%norbp,&
-!!!       orbsig%nspinor,psigau,orbsig%norb_par,mpirequests)
 
   !experimental part for building the localisation regions
   if (at%geocode == 'F') then
@@ -176,9 +183,7 @@ real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
      !call memocc(i_stat,i_all,'Llr',subname)
   end if
 
-  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  !allocate(psi(orbsig%npsidim+ndebug),stat=i_stat)
-  !call memocc(i_stat,psi,'psi',subname)
+  ! Allocate the atomic orbitals.
   allocate(chi(orbsig%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,chi,'chi',subname)
   chi=0.d0
@@ -212,6 +217,9 @@ real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
+
+  
+  ! Create the potential
 
   !application of the hamiltonian for gaussian based treatment
   call sumrho(iproc,nproc,orbsig,Glr,input%ixc,hxh,hyh,hzh,chi,rhopot,&
@@ -274,77 +282,6 @@ real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
 
   end if
 
-!!!  if (nproc == 1) then
-!!!     !calculate the overlap matrix as well as the kinetic overlap
-!!!     !in view of complete gaussian calculation
-!!!     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
-!!!     call memocc(i_stat,ovrlp,'ovrlp',subname)
-!!!     allocate(tmp(G%ncoeff,orbsig%norb),stat=i_stat)
-!!!     call memocc(i_stat,tmp,'tmp',subname)
-!!!     allocate(smat(orbsig%norb,orbsig%norb),stat=i_stat)
-!!!     call memocc(i_stat,smat,'smat',subname)
-!!!
-!!!     !overlap calculation of the gaussian matrix
-!!!     call gaussian_overlap(G,G,ovrlp)
-!!!     call dsymm('L','U',G%ncoeff,orbsig%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-!!!          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-!!!
-!!!     call gemm('T','N',orbsig%norb,orbsig%norb,G%ncoeff,1.0_gp,&
-!!!          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbsig%norb)
-!!!
-!!!     !print overlap matrices
-!!!     do i=1,orbsig%norb
-!!!        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbsig%norb)
-!!!     end do
-!!!
-!!!     !overlap calculation of the kinetic operator
-!!!     call kinetic_overlap(G,G,ovrlp)
-!!!     call dsymm('L','U',G%ncoeff,orbsig%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-!!!          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-!!!
-!!!     call gemm('T','N',orbsig%norb,orbsig%norb,G%ncoeff,1.0_gp,&
-!!!          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbsig%norb)
-!!!
-!!!     !print overlap matrices
-!!!     tt=0.0_wp
-!!!     do i=1,orbsig%norb
-!!!        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbsig%norb)
-!!!        !write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbsig%norb)
-!!!        tt=tt+smat(i,i)
-!!!     end do
-!!!     print *,'trace',tt
-!!!
-!!!     !overlap calculation of the kinetic operator
-!!!     call cpu_time(t0)
-!!!     call potential_overlap(G,G,rhopot,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-!!!          ovrlp)
-!!!     call cpu_time(t1)
-!!!     call dsymm('L','U',G%ncoeff,orbsig%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-!!!          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-!!!
-!!!     call gemm('T','N',orbsig%norb,orbsig%norb,G%ncoeff,1.0_gp,&
-!!!          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbsig%norb)
-!!!
-!!!     !print overlap matrices
-!!!     tt=0.0_wp
-!!!     do i=1,orbsig%norb
-!!!        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbsig%norb)
-!!!        !write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbsig%norb)
-!!!        tt=tt+smat(i,i)
-!!!     end do
-!!!     print *,'trace',tt
-!!!     print *, 'time',t1-t0
-!!!
-!!!     i_all=-product(shape(ovrlp))*kind(ovrlp)
-!!!     deallocate(ovrlp,stat=i_stat)
-!!!     call memocc(i_stat,i_all,'ovrlp',subname)
-!!!     i_all=-product(shape(tmp))*kind(tmp)
-!!!     deallocate(tmp,stat=i_stat)
-!!!     call memocc(i_stat,i_all,'tmp',subname)
-!!!     i_all=-product(shape(smat))*kind(smat)
-!!!     deallocate(smat,stat=i_stat)
-!!!     call memocc(i_stat,i_all,'smat',subname)
-!!!  end if
 
   if(potshortcut>0) then
 !!$    if (GPUconv) then
@@ -385,199 +322,30 @@ real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
   call orthonormalizeAtomicOrbitals(iproc, nproc, orbsig, commsig, Glr, chi)
   
 
-
+  ! This is not required at teh moment since HamiltonianApplicationConfinement has a different structure.
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
        orbsig%norb,orbsig%norbp,ngatherarr,rhopot,pot)
 
-
-
-
-  !call HamiltonianApplication(iproc,nproc,at,orbsig,hx,hy,hz,rxyz,&
-  !     nlpspd,proj,Glr,ngatherarr,pot,&
-  !     psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-
-  !!!! THIS IS STUPID LIKE THIS, CHANGE LATER
-  !!do iat=1,at%nat
-  !!call HamiltonianApplication(iproc,nproc,at,orbsig,input%hx,input%hy,input%hz,rxyz,&
-  !!     nlpspd,proj,Glr,ngatherarr,pot,&
-  !!     chi,hchi(1,iat),ekin_sum,epot_sum,eexctX,eproj_sum,input%nspin,GPU,pkernel=pkernelseq)
-  !!end do
-
-  !! ATTENTION:
-  !! this works ONLY if the number of atomic orbitals used here is identical to the number of
-  !! basis functions phi used later!
-  !! HAS TO BE IMPROVED (adapt lin%onWhichAtom)
-
-  !allocate(hpsiForAllLocregs(orbsig%npsidim,at%nat), stat=i_stat)
-  !call memocc(i_stat,hpsiForAllLocregs,'hpsiForAllLocregs',subname)
-  !!call HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbsig,lin,input%hx,input%hy,input%hz,rxyz,&
-  !!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-  !!     rhopot(1),&
-  !!     chi,hchi,ekin_sum,epot_sum,eexctX,eproj_sum,input%nspin,GPU, rxyz, onWhichAtom, pkernel=pkernelseq)
-
   allocate(onWhichAtomTemp(orbsig%norbp), stat=istat)
+  call memocc(i_stat,onWhichAtomTemp,'onWhichAtomTemp',subname)
   do iat=1,at%nat
       do iorb=1,orbsig%norbp
-          iiAt=onWhichAtomp(iorb)
-          tt = (rxyz(1,iiAt)-rxyz(1,iat))**2 + (rxyz(2,iiAt)-rxyz(2,iat))**2 + (rxyz(3,iiAt)-rxyz(3,iat))**2
-          if(tt>50) then
-              !onWhichAtomTemp(iorb)=-1
-              onWhichAtomTemp(iorb)=iat
-          else
-              onWhichAtomTemp(iorb)=iat
-              write(*,*) 'iat, iiAt', iat, iiAt
-          end if
+          onWhichAtomTemp(iorb)=iat
       end do
-      if(iproc==0) write(*,'(a,i0)') 'iat=',iat
+      if(iproc==0) write(*,'(x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
       call HamiltonianApplicationConfinement(iproc, nproc, at, orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
            nlpspd, proj, Glr, ngatherarr, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), &
            rhopot(1), &
            chi(1), hchi(1,iat), ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, rxyz, onWhichAtomTemp, pkernel=pkernelseq)
-      write(*,'(a,2i8,es15.6)') 'iproc, iat, dsum', iproc, iat, dasum((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsig%norbp, hchi(1,iat), 1)
-      do iorb=1,orbsig%norbp
-          ist=0
-          !if(onWhichAtomTemp(iorb)==-1) then
-          !    write(*,'(a,3i7)') 'in main: set to zero. iat, iproc, iorb', iat, iproc, iorb
-          !    call razero(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, hchi(ist+1,iat))
-          !end if
-          !do i=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          !    write(10000+1000*iat+100*iorb+10*iproc,*) hchi(i+ist,iat)
-          !end do
-          ist=ist+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      end do
-      call mpi_barrier(mpi_comm_world, iorb)
+      if(iproc==0) write(*,'(a)') 'done.'
   end do
-
-
-
-  !!if(iproc==4) then
-  !!    allocate(ttarr1(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,8))
-  !!    allocate(ttarr2(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,8))
-  !!    open(unit=1,file='fort.2001')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr1(iorb,1)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2002')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr1(iorb,2)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2003')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr1(iorb,3)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2004')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr1(iorb,4)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2005')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr1(iorb,5)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2006')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr1(iorb,6)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2007')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr1(iorb,7)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2008')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr1(iorb,8)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2101')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr2(iorb,1)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2102')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr2(iorb,2)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2103')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr2(iorb,3)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2104')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr2(iorb,4)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2105')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr2(iorb,5)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2106')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr2(iorb,6)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2107')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr2(iorb,7)
-  !!        end do
-  !!    close(unit=1)
-  !!    open(unit=1,file='fort.2108')
-  !!        do iorb=1,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
-  !!            read(1,*) jorb, ttarr2(iorb,8)
-  !!        end do
-  !!    close(unit=1)
-  !!    do iorb=1,orbsig%norbp
-  !!        do jorb=1,orbsig%norbp
-  !!            write(*,'(a,2i7,3es15.5)') 'debug: iorb, jorb, <chi|chi>, <chi|hchi>, <hchi|hchi>', iorb, jorb, ddot(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i, ttarr1(1,iorb), 1, ttarr1(1,jorb), 1), &
-  !!                                      ddot(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i, ttarr1(1,iorb), 1, ttarr2(1,jorb), 1), ddot(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i, ttarr2(1,iorb), 1, ttarr2(1,jorb), 1)
-  !!        end do  
-  !!    end do  
-  !!end if
-
-  
-  !write(*,*) 'iproc, orbsig%norbp', iproc, orbsig%norbp
-  !do iat=1,at%nat
-  !    ist=1
-  !    do iorb=1,orbsig%norbp
-  !        jst=1
-  !        do jorb=1,orbsig%norbp
-  !            write(*,'(a,5i8,3es13.5)') 'iproc, iat, iorb, jorb, onWhichAtom(orbsig%isorb+iorb), <hchi|hchi>, <chi|hchi>, <chi|chi>', iproc, iat, iorb, jorb, onWhichAtom(orbsig%isorb+iorb), &
-  !                                       ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, hchi(ist,iat), 1, hchi(jst,iat), 1), ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, chi(ist), 1, hchi(jst,iat), 1), &
-  !                                       ddot(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, chi(ist), 1, chi(jst), 1)
-  !            jst=jst+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !        end do
-  !        ist=ist+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !    end do
-  !end do
-
-
+  !!call HamiltonianApplicationConfinementForAllLocregs(iproc, nproc, at, orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
+  !!     nlpspd, proj, Glr, ngatherarr, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), rhopot, chi, hchi, &
+  !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, rxyz, onWhichAtom, pkernel=pkernelseq)
 
   !deallocate potential
   call free_full_potential(nproc,pot,subname)
 
-!!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
-!!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
-!!!  call memocc(i_stat,thetaphi,'thetaphi',subname)
-!!!  thetaphi=0.0_gp
-!!!
-!!!  !calculate the scalar product between the hamiltonian and the gaussian basis
-!!!  allocate(hpsigau(G%ncoeff,orbsig%norbp+ndebug),stat=i_stat)
-!!!  call memocc(i_stat,hpsigau,'hpsigau',subname)
-!!!
-!!!
-!!!  call wavelets_to_gaussians(at%geocode,orbsig%norbp,Glr%d%n1,Glr%d%n2,Glr%d%n3,G,&
-!!!       thetaphi,hx,hy,hz,Glr%wfd,hpsi,hpsigau)
-!!!
-!!!  i_all=-product(shape(thetaphi))*kind(thetaphi)
-!!!  deallocate(thetaphi,stat=i_stat)
-!!!  call memocc(i_stat,i_all,'thetaphi',subname)
 
   accurex=abs(eks-ekin_sum)
   !tolerance for comparing the eigenvalues in the case of degeneracies
@@ -589,17 +357,6 @@ real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
      write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
   endif
 
-!!!  call Gaussian_DiagHam(iproc,nproc,at%natsc,nspin,orbs,G,mpirequests,&
-!!!       psigau,hpsigau,orbsig,etol,norbsc_arr)
-
-
-!!!  i_all=-product(shape(mpirequests))*kind(mpirequests)
-!!!  deallocate(mpirequests,stat=i_stat)
-!!!  call memocc(i_stat,i_all,'mpirequests',subname)
-
-!!!  i_all=-product(shape(hpsigau))*kind(hpsigau)
-!!!  deallocate(hpsigau,stat=i_stat)
-!!!  call memocc(i_stat,i_all,'hpsigau',subname)
 
   !free GPU if it is the case
   if (GPUconv) then
@@ -611,15 +368,9 @@ real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
        'Input Wavefunctions Orthogonalization:'
 
-  !psivirt can be eliminated here, since it will be allocated before davidson
-  !with a gaussian basis
-!!$  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
-!!$       psi,hpsi,psit,orbsig,commsig,etol,norbsc_arr,orbsv,psivirt)
-
-  !call DiagHamForAllLocregs(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
-  !     psi,hpsi,psit,input,at,orbsig,commsig,etol,norbsc_arr)
 
    allocate(onWhichAtomPhi(lin%orbs%norb))
+   call memocc(i_stat,onWhichAtomPhi,'onWhichAtomPhi',subname)
    onWhichAtomPhi=0
    do iorb=1,lin%orbs%norbp
        onWhichAtomPhi(lin%orbs%isorb+iorb)=lin%onWhichAtom(iorb)
@@ -630,31 +381,32 @@ real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
    end do
 
    call buildLinearCombinations(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
-              onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
+        onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
 
-  if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
-     !use the eval array of orbsig structure to save the original values
-     allocate(orbsig%eval(lin%orbs%norb*lin%orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,orbsig%eval,'orbsig%eval',subname)
-     
-     call dcopy(lin%orbs%norb*lin%orbs%nkpts,lin%orbs%eval(1),1,orbsig%eval(1),1)
+  ! This is probably not needed..
+  !!if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
+  !!   !use the eval array of orbsig structure to save the original values
+  !!   allocate(orbsig%eval(lin%orbs%norb*lin%orbs%nkpts+ndebug),stat=i_stat)
+  !!   call memocc(i_stat,orbsig%eval,'orbsig%eval',subname)
+  !!   
+  !!   call dcopy(lin%orbs%norb*lin%orbs%nkpts,lin%orbs%eval(1),1,orbsig%eval(1),1)
 
-     !add a small displacement in the eigenvalues
-     do iorb=1,lin%orbs%norb*lin%orbs%nkpts
-        tt=builtin_rand(idum)
-        lin%orbs%eval(iorb)=lin%orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
-     end do
+  !!   !add a small displacement in the eigenvalues
+  !!   do iorb=1,lin%orbs%norb*lin%orbs%nkpts
+  !!      tt=builtin_rand(idum)
+  !!      lin%orbs%eval(iorb)=lin%orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
+  !!   end do
 
-     !correct the occupation numbers wrt fermi level
-     call evaltoocc(iproc,nproc,.false.,input%Tel,lin%orbs)
+  !!   !correct the occupation numbers wrt fermi level
+  !!   call evaltoocc(iproc,nproc,.false.,input%Tel,lin%orbs)
 
-     !restore the occupation numbers
-     call dcopy(lin%orbs%norb*lin%orbs%nkpts,orbsig%eval(1),1,lin%orbs%eval(1),1)
+  !!   !restore the occupation numbers
+  !!   call dcopy(lin%orbs%norb*lin%orbs%nkpts,orbsig%eval(1),1,lin%orbs%eval(1),1)
 
-     i_all=-product(shape(orbsig%eval))*kind(orbsig%eval)
-     deallocate(orbsig%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbsig%eval',subname)
-  end if
+  !!   i_all=-product(shape(orbsig%eval))*kind(orbsig%eval)
+  !!   deallocate(orbsig%eval,stat=i_stat)
+  !!   call memocc(i_stat,i_all,'orbsig%eval',subname)
+  !!end if
 
   call deallocate_comms(commsig,subname)
 
@@ -686,11 +438,30 @@ real(8),dimension(:,:),allocatable:: ttarr1, ttarr2
   i_all=-product(shape(onWhichAtom))*kind(onWhichAtom)
   deallocate(onWhichAtom, stat=i_stat)
   call memocc(i_stat, i_all, 'onWhichAtom',subname)
+
+  i_all=-product(shape(onWhichAtomPhi))*kind(onWhichAtomPhi)
+  deallocate(onWhichAtomPhi, stat=i_stat)
+  call memocc(i_stat, i_all, 'onWhichAtomPhi',subname)
+
+  i_all=-product(shape(onWhichAtomp))*kind(onWhichAtomp)
+  deallocate(onWhichAtomp, stat=i_stat)
+  call memocc(i_stat, i_all, 'onWhichAtomp',subname)
+
+  i_all=-product(shape(onWhichAtomTemp))*kind(onWhichAtomTemp)
+  deallocate(onWhichAtomTemp, stat=i_stat)
+  call memocc(i_stat, i_all, 'onWhichAtomTemp',subname)
   
   i_all=-product(shape(norbsPerAt))*kind(norbsPerAt)
   deallocate(norbsPerAt, stat=i_stat)
   call memocc(i_stat, i_all, 'norbsPerAt',subname)
 
+  i_all=-product(shape(chi))*kind(chi)
+  deallocate(chi, stat=i_stat)
+  call memocc(i_stat, i_all, 'chi',subname)
+
+  i_all=-product(shape(hchi))*kind(hchi)
+  deallocate(hchi, stat=i_stat)
+  call memocc(i_stat, i_all, 'hchi',subname)
 
 
 END SUBROUTINE inputguessConfinement
@@ -729,11 +500,25 @@ real(8),dimension(:,:),allocatable:: ovrlp, ovrlpTemp, coeffTemp
 real(8),dimension(:,:),allocatable:: coeff, grad, gradOld, lagMat, ovrlpLarge, coeffOld
 real(8),dimension(:,:,:),allocatable:: Ham, tempArr
 real(8),dimension(:),pointer:: chiw
-real(8):: ddot, cosangle, ebsMod, ebsModOld, tt, dnrm2, fnrm, meanAlpha
+real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinations'
 real(4):: ttreal
      
+
+  ! Allocate the local arrays
+  allocate(coeff(orbsig%norb,orbs%norb), stat=istat)
+  call memocc(istat, coeff, 'coeff', subname)
+  allocate(alpha(orbs%norb), stat=istat)
+  call memocc(istat, alpha, 'alpha', subname)
+  allocate(grad(orbsig%norb,orbs%norb), stat=istat)
+  call memocc(istat, grad, 'grad', subname)
+  allocate(gradOld(orbsig%norb,orbs%norb), stat=istat)
+  call memocc(istat, gradOld, 'gradOld', subname)
+  allocate(lagMat(orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, lagMat, 'lagMat', subname)
+  allocate(Ham(orbsig%norb,orbsig%norb,at%nat), stat=istat)
+  call memocc(istat, Ham, 'Ham', subname)
 
   ! Transpose all the wavefunctions for having a piece of all the orbitals 
   ! for each processor
@@ -747,9 +532,7 @@ real(4):: ttreal
   deallocate(chiw,stat=istat)
   call memocc(istat, iall, 'chiw', subname)
 
-  ! Calculate Hamiltonian matrix and overlap matrix.
-  allocate(Ham(orbsig%norb,orbsig%norb,at%nat), stat=istat)
-  call memocc(istat, Ham, 'Ham', subname)
+  ! Calculate Hamiltonian matrix.
   Ham=0.d0
   nvctrp=commsig%nvctr_par(iproc,1) ! 1 for k-points
   do iat=1,at%nat
@@ -766,57 +549,21 @@ real(4):: ttreal
   call mpiallred(Ham(1,1,1), orbsig%norb**2*at%nat, mpi_sum, mpi_comm_world, ierr)
 
 
-  !! ATTENTION: modify Hamiltonian matrix
-  do iat=1,at%nat
-      do iorb=1,orbsig%norb
-          do jorb=1,orbsig%norb
-              !!!!!iiAt=onWhichAtom(iorb)
-              !!!!jjAt=onWhichAtom(jorb)
-              !!!!tt = (rxyz(1,iat)-rxyz(1,jjAt))**2 + (rxyz(2,iat)-rxyz(2,jjAt))**2 + (rxyz(3,iat)-rxyz(3,jjAt))**2
-              !!!!tt=lin%potentialPrefac(at%iatype(iat))*tt**(lin%confPotOrder/2)
-              !!!!!if(tt>50.d0) then
-              !!!!!    if(iproc==0) write(*,'(a,2i7,es14.5)') 'set matrix to zero: iorb, jorb, tt',  iorb, jorb, tt
-              !!!!!    Ham(iorb,jorb,iat)=0.d0
-              !!!!    Ham(iorb,jorb,iat)=Ham(iorb,jorb,iat)+tt
-              !!!!!end if
-              !! NEW  !!!!!!!!!!
-              !if(iorb/=jorb) Ham(iorb,jorb,iat)=0.d0
-          end do
-      end do
-  end do   
-  !!
 
 
-  allocate(coeff(orbsig%norb,orbs%norb), stat=istat)
-  call memocc(istat, coeff, 'coeff', subname)
-  allocate(alpha(orbs%norb), stat=istat)
-  call memocc(istat, alpha, 'alpha', subname)
-  allocate(grad(orbsig%norb,orbs%norb), stat=istat)
-  call memocc(istat, grad, 'grad', subname)
-  allocate(gradOld(orbsig%norb,orbs%norb), stat=istat)
-  call memocc(istat, gradOld, 'gradOld', subname)
-  allocate(lagMat(orbs%norb,orbs%norb), stat=istat)
-  call memocc(istat, lagMat, 'lagMat', subname)
-
-  allocate(coeffOld(orbsig%norb,orbs%norb), stat=istat)
-
-        allocate(ovrlp(orbs%norb,orbs%norb))
-        allocate(eval(orbs%norb))
-        allocate(tempArr(orbs%norb,orbs%norb,2), stat=istat)
-        call memocc(istat, tempArr, 'tempArr', subname)
-        allocate(coeffTemp(orbsig%norb,orbs%norb), stat=istat)
-        call memocc(istat, coeffTemp, 'coeffTemp', subname)
 
   processIf: if(iproc==0) then
 
-      !call random_number(coeff)
+      ! Initialize the coefficient vectors. Put random number to palces where it is
+      ! reasonable (i.e. close to the atom where the basis function is centered).
       do iorb=1,orbs%norb
           iiAt=onWhichAtomPhi(iorb)
+          cut=1.d0/lin%potentialPrefac(at%iatype(iiAt))
+          cut=cut**(1.d0/dble(lin%confPotOrder))
           do jorb=1,orbsig%norb
               jjAt=onWhichAtom(jorb)
-              write(*,'(a,4i8)') 'iorb, jorb, onWhichAtomPhi(iorb), onWhichAtom(jorb)', iorb, jorb, onWhichAtomPhi(iorb), onWhichAtom(jorb)
               tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
-              if(tt>50.d0) then
+              if(tt>cut) then
                   coeff(jorb,iorb)=0.d0
               else
                   call random_number(ttreal)
@@ -825,27 +572,7 @@ real(4):: ttreal
           end do
       end do
 
-      do iat=1,at%nat
-          do iorb=1,orbsig%norb
-              do jorb=1,orbsig%norb
-                   if(iproc==0) write(200+iat,*) iorb, jorb, Ham(iorb,jorb,iat)
-              end do
-          end do
-      end do
-      do iorb=1,orbs%norb
-          do jorb=1,orbsig%norb
-              write(998,*) iorb, jorb, coeff(jorb,iorb)
-          end do
-      end do
 
-      !tt=0.d0
-      !do iorb=1,orbsig%norb
-      !    tt=tt+Ham(iorb,iorb)
-      !end do
-      !if(iproc==0) write(*,*) 'tr(Ham)',tt
-
-
-    
     
     ! Initial step size for the optimization
     alpha=5.d-3
@@ -858,129 +585,28 @@ real(4):: ttreal
     ! The optimization loop.
     iterLoop: do it=1,50000
 
-        if (iproc==0) then
+        if (iproc==0 .and. mod(it,1000)==1) then
             write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
         endif
 
-      !! Put to zero the bad elements
-      !do iorb=1,orbs%norb
-      !    iiAt=onWhichAtomPhi(iorb)
-      !    do jorb=1,orbsig%norb
-      !        jjAt=onWhichAtom(jorb)
-      !        tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
-      !        if(tt>50.d0) then
-      !            coeff(jorb,iorb)=0.d0
-      !        end if
-      !    end do
-      !end do
 
- 
-        ! copy coeff to coeffOld (only for debugging)
-        coeffOld=coeff
+        ! Othonormalize the coefficients.
+        call orthonormalizeCoefficients(orbs, orbsig, coeff)
 
-
-        !!! Orthonormalize the coefficient vectors (Gram-Schmidt).
-        !!do iorb=1,orbs%norb
-        !!    do jorb=1,iorb-1
-        !!        tt=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-        !!        call daxpy(orbsig%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
-        !!    end do
-        !!    tt=dnrm2(orbsig%norb, coeff(1,iorb), 1)
-        !!    call dscal(orbsig%norb, 1/tt, coeff(1,iorb), 1)
-        !!end do
-
-        ! Orthonormalize the coefficient vectors (Loewdin).
-        do iorb=1,orbs%norb
-            do jorb=1,orbs%norb
-                ovrlp(iorb,jorb)=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-            end do
-        end do
-
-        allocate(work(1), stat=istat)
-        call memocc(istat, work, 'work', subname)
-        call dsyev('v', 'l', orbs%norb, ovrlp(1,1), orbs%norb, eval, work, -1, info)
-        lwork=work(1)
-        iall=-product(shape(work))*kind(work)
-        deallocate(work, stat=istat)
-        call memocc(istat, iall, 'work', subname)
-        allocate(work(lwork), stat=istat)
-        call memocc(istat, work, 'work', subname)
-        call dsyev('v', 'l', orbs%norb, ovrlp(1,1), orbs%norb, eval, work, lwork, info)
-        iall=-product(shape(work))*kind(work)
-        deallocate(work, stat=istat)
-        call memocc(istat, iall, 'work', subname)
-
-        ! Calculate S^{-1/2}. 
-        ! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
-        ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
-        do iorb=1,orbs%norb
-            do jorb=1,orbs%norb
-                tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
-            end do
-        end do
-
-        ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
-        ! This will give S^{-1/2}.
-        call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), &
-        orbs%norb, tempArr(1,1,1), orbs%norb, 0.d0, &
-        tempArr(1,1,2), orbs%norb)
-
-        ! Now calculate the orthonormal orbitals by applying S^{-1/2} to the orbitals.
-        ! This requires the use of a temporary variable phidTemp.
-        call dgemm('n', 'n', orbsig%norb, orbs%norb, orbs%norb, 1.d0, coeff(1,1), &
-             orbsig%norb, tempArr(1,1,2), orbs%norb, 0.d0, &
-             coeffTemp(1,1), orbsig%norb)
-        
-        ! Now copy the orbitals from the temporary variable to phid.
-        call dcopy(orbs%norb*orbsig%norb, coeffTemp(1,1), 1, coeff(1,1), 1)
-
-        !!!! CHECK
-        !!do iorb=1,orbs%norb
-        !!    do jorb=1,orbs%norb
-        !!        write(777,'(a,2i8,es15.5)') 'iorb, jorb, ddot', iorb, jorb, ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-        !!    end do
-        !!end do
-
-
-
-
-        !!write(888,*) '>>>>>>>>>>>>>>>>>it=',it
-        !!do iorb=1,orbs%norb
-        !!    do jorb=1,orbs%norb
-        !!        tt=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-        !!        write(888,*) iorb, jorb, tt
-        !!    end do
-        !!    do jorb=1,orbsig%norb
-        !!        write(999,*) iorb, jorb, coeff(jorb,iorb)
-        !!    end do
-        !!end do
 
 
         ! Calculate the gradient grad. At the same time we determine whether the step size shall be increased
         ! or decreased (depending on gradient feedback).
         meanAlpha=0.d0
         grad=0.d0
-        !if(ebsMod<ebsModOld+1.d-6*abs(ebsModOld)) then
-        !    write(*,*) 'trace decreasing by', ebsMod-ebsModOld
-        !else
-        !    write(*,*) 'trace increasing by', ebsMod-ebsModOld
-        !end if
         do iorb=1,orbs%norb
-            !iiAt=onWhichAtom(iorb)
             iiAt=onWhichAtomPhi(iorb)
-            !!do l=1,orbsig%norb
-            !!    do k=1,orbsig%norb
-            !!        !grad(l,iorb)=grad(l,iorb)+coeff(k,iorb)*(Ham(k,l,iiAt)+Ham(l,k,iiAt))
-            !!        grad(l,iorb)=grad(l,iorb)+Ham(l,k,iiAt)*coeff(k,iorb)
-            !!    end do
-            !!end do
             call dgemv('n', orbsig%norb, orbsig%norb, 1.d0, Ham(1,1,iiAt), orbsig%norb, coeff(1,iorb), 1, 0.d0, grad(1,iorb), 1)
             if(it>1) then
                 cosangle=ddot(orbsig%norb, grad(1,iorb), 1, gradOld(1,iorb), 1)
                 cosangle=cosangle/dnrm2(orbsig%norb, grad(1,iorb), 1)
                 cosangle=cosangle/dnrm2(orbsig%norb, gradOld(1,iorb), 1)
-                !write(*,'(a,es14.5,2es17.8)') 'cosangle, ebsMod, ebsModOld', cosangle, ebsMod, ebsModOld
-                if(cosangle>.8d0 .and. ebsMod<ebsModOld+1.d-6*abs(ebsModOld)) then
+                if(cosangle>.8d0 .and. trace<traceOld+1.d-6*abs(traceOld)) then
                     alpha(iorb)=max(alpha(iorb)*1.05d0,1.d-6)
                 else
                     alpha(iorb)=max(alpha(iorb)*.5d0,1.d-6)
@@ -990,110 +616,63 @@ real(4):: ttreal
             meanAlpha=meanAlpha+alpha(iorb)
         end do
         meanAlpha=meanAlpha/orbs%norb
-        !!do iorb=1,orbs%norb
-        !!    do jorb=1,orbsig%norb
-        !!        write(1111,'(2i7,es16.6,6x,2es16.6,4x,es12.3)') iorb, jorb, grad(jorb,iorb), coeff(jorb,iorb), coeffOld(jorb,iorb), alpha(iorb)
-        !!    end do
-        !!end do
-
-        !do iorb=1,orbs%norb
-        !    do k=1,orbsig%norb
-        !        write(400,*) iorb, k, grad(k,iorb)
-        !    end do
-        !end do
     
     
         ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
         ! multiplier matrix.
         lagMat=0.d0
         if(it>1) then
-            ebsModOld=ebsMod
+            traceOld=trace
         else
-            ebsModOld=1.d10
+            traceOld=1.d10
         end if
-        ebsMod=0.d0
+        trace=0.d0
+        call gemm('t', 'n', orbs%norb, orbs%norb, orbsig%norb, 1.0d0, coeff(1,1), &
+             orbsig%norb, grad(1,1), orbsig%norb, 0.d0, lagMat(1,1), orbs%norb)
         do iorb=1,orbs%norb
-            do jorb=1,orbs%norb
-                lagMat(jorb,iorb)=ddot(orbsig%norb, coeff(1,jorb), 1, grad(1,iorb), 1)
-                !do k=1,orbsig%norb
-                !    lagMat(iorb,jorb)=lagMat(iorb,jorb)+coeff(k,iorb)*grad(k,jorb)
-                !end do
-                !write(500,*) iorb, jorb, lagMat(jorb,iorb)
-            end do
-            ebsMod=ebsMod+lagMat(iorb,iorb)
+            trace=trace+lagMat(iorb,iorb)
         end do
+
 
         ! Now apply the orthoconstraint.
-        do iorb=1,orbs%norb
-            do k=1,orbsig%norb
-                do jorb=1,orbs%norb
-                    grad(k,iorb)=grad(k,iorb)-.5d0*(lagMat(iorb,jorb)*coeff(k,jorb)+lagMat(jorb,iorb)*coeff(k,jorb))
-                    !if(iorb==jorb) grad(k,iorb)=grad(k,iorb)-.5d0*(lagMat(iorb,jorb)*coeff(k,jorb)+lagMat(jorb,iorb)*coeff(k,jorb))
-                end do
-            end do
-        end do
-        !!do iorb=1,orbs%norb
-        !!    do jorb=1,orbsig%norb
-        !!        write(1112,'(2i7,es16.6)') iorb, jorb, grad(jorb,iorb)
-        !!    end do
-        !!end do
+        call dgemm('n', 'n', orbsig%norb, orbs%norb, orbs%norb, -.5d0, coeff(1,1), orbsig%norb, &
+             lagMat(1,1), orbs%norb, 1.d0, grad(1,1), orbsig%norb)
+        call dgemm('n', 't', orbsig%norb, orbs%norb, orbs%norb, -.5d0, coeff(1,1), orbsig%norb, &
+             lagMat(1,1), orbs%norb, 1.d0, grad(1,1), orbsig%norb)
 
-        !do iorb=1,orbs%norb
-        !    do k=1,orbsig%norb
-        !        write(600,*) iorb, k, grad(k,iorb)
-        !    end do
-        !end do
-    
-        
-        !!$! Calculate the modified band structure energy and the gradient norm.
-        !!$if(it>1) then
-        !!$    ebsModOld=ebsMod
-        !!$else
-        !!$    ebsModOld=1.d10
-        !!$end if
-        !ebsMod=0.d0
+
+        ! Calculate the gradient norm.
         fnrm=0.d0
         do iorb=1,orbs%norb
-            !iiAt=onWhichAtom(iorb)
             fnrm=fnrm+dnrm2(orbsig%norb, grad(1,iorb), 1)
-            !do jorb=1,orbsig%norb
-            !    do korb=1,orbsig%norb
-            !        ebsMod=ebsMod+coeff(korb,iorb)*coeff(jorb,iorb)*Ham(korb,jorb,iiAt)
-            !    end do
-            !end do
         end do
     
-        ! Multiply the energy with a factor of 2 if we have a closed-shell system.
-        !if(nspin==1) then
-        !    ebsMod=2.d0*ebsMod
-        !end if
 
-        !if(iproc==0) write(*,'(x,a,4x,i0,es12.4,3x,es10.3, es19.9)') 'iter, fnrm, meanAlpha, Energy', &
-        if(iproc==0) write(*,'(x,a,es11.2,es22.13,es10.2)') 'fnrm, band structure energy, mean alpha', &
-            fnrm, ebsMod, meanAlpha
+        ! Write some informations to the screen, but only every 1000th iteration.
+        if(iproc==0 .and. mod(it,1000)==1) write(*,'(x,a,es11.2,es22.13,es10.2)') 'fnrm, trace, mean alpha', &
+            fnrm, trace, meanAlpha
         
         ! Check for convergence.
         if(fnrm<1.d-5) then
             if(iproc==0) write(*,'(x,a,i0,a)') 'converged in ', it, ' iterations.'
-            if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, Energy:', fnrm, ebsMod
+            if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, trace:', fnrm, trace
             converged=.true.
             infoCoeff=it
             exit
         end if
   
+        ! Quit if the maximal number of iterations is reached.
         if(it==50000) then
             if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &
                 ' iterations! Exiting loop due to limitations of iterations.'
-            if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, Energy: ', fnrm, ebsMod
+            if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, trace: ', fnrm, trace
             infoCoeff=-1
             exit
         end if
 
         ! Improve the coefficients (by steepet descent).
         do iorb=1,orbs%norb
-            do l=1,orbsig%norb
-                coeff(l,iorb)=coeff(l,iorb)-alpha(iorb)*grad(l,iorb)
-            end do
+            call daxpy(orbsig%norb, -alpha(iorb), grad(1,iorb), 1, coeff(1,iorb), 1)
         end do
     
 
@@ -1109,31 +688,8 @@ end if processIf
 call mpi_bcast(coeff(1,1), orbsig%norb*orbs%norb, mpi_double_precision, 0, mpi_comm_world, ierr)
 call mpi_bcast(infoCoeff, 1, mpi_integer, 0, mpi_comm_world, ierr)
 call mpi_barrier(mpi_comm_world, ierr)
-write(*,*) 'after MPI stuff'
 
 
-
-
-
-
-
-!#############################################
-
-  !!ist=1
-  !!do iorb=1,orbsig%norb
-  !!    jst=1
-  !!    do jorb=1,orbsig%norb
-  !!        Ham(jorb,iorb)=ddot(nvctrp, chi(ist), 1, chi(jst), 1)
-  !!        jst=jst+nvctrp
-  !!    end do
-  !!    ist=ist+nvctrp
-  !!end do
-  !!call mpiallred(Ham(1,1), orbsig%norb**2, mpi_sum, mpi_comm_world, ierr)
-  !!do iorb=1,orbsig%norb
-  !!    do jorb=1,orbsig%norb
-  !!        write(300,*) iorb, jorb, Ham(iorb,jorb)
-  !!    end do
-  !!end do
 
   ! Build new linear combination
   phi=0.d0
@@ -1141,33 +697,15 @@ write(*,*) 'after MPI stuff'
   do iorb=1,orbs%norb
       jst=1
       do jorb=1,orbsig%norb
-          !write(*,'(a,3i7,es15.5)') 'iproc, iorb, jorb, Ham(jorb,iorb,iat)', iproc, iorb, jorb, Ham(jorb,iorb,iat)
           call daxpy(nvctrp, coeff(jorb,iorb), chi(jst), 1, phi(ist), 1)
           jst=jst+nvctrp
       end do
       ist=ist+nvctrp
   end do
 
-
-  ! Check orthogonality
-  ist=1
-  do iorb=1,orbs%norb
-      jst=1
-      do jorb=1,orbs%norb
-          ovrlp(jorb,iorb)=ddot(nvctrp, phi(ist), 1, phi(jst), 1)
-          jst=jst+nvctrp
-      end do
-      ist=ist+nvctrp
-  end do
-  call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-  do iorb=1,orbs%norb
-      do jorb=1,orbs%norb
-          if(iproc==0) write(*,'(a,2i7,es15.5)') 'iorb, jorb, ovrlp(iorb,jorb)', iorb, jorb, ovrlp(iorb,jorb)
-      end do
-  end do
   
 
-  ! Untranpose
+  ! Untranpose the orbitals.
   allocate(chiw(orbs%npsidim+ndebug),stat=istat)
   call memocc(istat, chiw, 'chiw', subname)
   call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, phi, work=chiw)
@@ -1175,6 +713,8 @@ write(*,*) 'after MPI stuff'
   deallocate(chiw, stat=istat)
   call memocc(istat, iall, 'chiw', subname)
 
+
+  ! Deallocate the local arrays.
   iall=-product(shape(Ham))*kind(Ham)
   deallocate(Ham, stat=istat)
   call memocc(istat, iall, 'Ham', subname)
@@ -1182,17 +722,37 @@ write(*,*) 'after MPI stuff'
   iall=-product(shape(coeff))*kind(coeff)
   deallocate(coeff, stat=istat)
   call memocc(istat, iall, 'coeff', subname)
-  
-  iall=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp, stat=istat)
-  call memocc(istat, iall, 'ovrlp', subname)
 
+  iall=-product(shape(alpha))*kind(alpha)
+  deallocate(alpha, stat=istat)
+  call memocc(istat, iall, 'alpha', subname)
+
+  iall=-product(shape(grad))*kind(grad)
+  deallocate(grad, stat=istat)
+  call memocc(istat, iall, 'grad', subname)
+
+  iall=-product(shape(gradOld))*kind(gradOld)
+  deallocate(gradOld, stat=istat)
+  call memocc(istat, iall, 'gradOld', subname)
+
+  iall=-product(shape(lagMat))*kind(lagMat)
+  deallocate(lagMat, stat=istat)
+  call memocc(istat, iall, 'lagMat', subname)
+
+  
 
 
 end subroutine buildLinearCombinations
 
 
 subroutine orthonormalizeAtomicOrbitals(iproc, nproc, orbsig, commsig, Glr, chi)
+!
+! Purpose:
+! ========
+!  Orthonormalizes the atomic orbitals chi using a Lowedin orthonormalization.
+!
+! Calling arguments:
+!    
 
 use module_base
 use module_types
@@ -1308,3 +868,107 @@ call memocc(istat, iall, 'chiw', subname)
 
 
 end subroutine orthonormalizeAtomicOrbitals
+
+
+
+
+
+subroutine orthonormalizeCoefficients(orbs, orbsig, coeff)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(orbitals_data),intent(in):: orbs, orbsig
+real(8),dimension(orbsig%norb,orbs%norb),intent(inout):: coeff
+
+! Local variables
+integer:: iorb, jorb, istat, iall, lwork, info
+real(8),dimension(:),allocatable:: work, eval
+real(8),dimension(:,:),allocatable:: ovrlp, coeffTemp
+real(8),dimension(:,:,:),allocatable:: tempArr
+character(len=*),parameter:: subname='orthonormalizeCoefficients'
+real(8):: ddot
+
+        allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
+        call memocc(istat, ovrlp, 'ovrlp', subname)
+        allocate(eval(orbs%norb), stat=istat)
+        call memocc(istat, eval, 'eval', subname)
+        allocate(tempArr(orbs%norb,orbs%norb,2), stat=istat)
+        call memocc(istat, tempArr, 'tempArr', subname)
+        allocate(coeffTemp(orbsig%norb,orbs%norb), stat=istat)
+        call memocc(istat, coeffTemp, 'coeffTemp', subname)
+
+
+        !!! Orthonormalize the coefficient vectors (Gram-Schmidt).
+        !!do iorb=1,orbs%norb
+        !!    do jorb=1,iorb-1
+        !!        tt=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+        !!        call daxpy(orbsig%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
+        !!    end do
+        !!    tt=dnrm2(orbsig%norb, coeff(1,iorb), 1)
+        !!    call dscal(orbsig%norb, 1/tt, coeff(1,iorb), 1)
+        !!end do
+
+        ! Orthonormalize the coefficient vectors (Loewdin).
+        do iorb=1,orbs%norb
+            do jorb=1,orbs%norb
+                ovrlp(iorb,jorb)=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+            end do
+        end do
+
+        allocate(work(1), stat=istat)
+        call memocc(istat, work, 'work', subname)
+        call dsyev('v', 'l', orbs%norb, ovrlp(1,1), orbs%norb, eval, work, -1, info)
+        lwork=work(1)
+        iall=-product(shape(work))*kind(work)
+        deallocate(work, stat=istat)
+        call memocc(istat, iall, 'work', subname)
+        allocate(work(lwork), stat=istat)
+        call memocc(istat, work, 'work', subname)
+        call dsyev('v', 'l', orbs%norb, ovrlp(1,1), orbs%norb, eval, work, lwork, info)
+        iall=-product(shape(work))*kind(work)
+        deallocate(work, stat=istat)
+        call memocc(istat, iall, 'work', subname)
+
+        ! Calculate S^{-1/2}. 
+        ! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
+        ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
+        do iorb=1,orbs%norb
+            do jorb=1,orbs%norb
+                tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
+            end do
+        end do
+
+        ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
+        ! This will give S^{-1/2}.
+        call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), &
+        orbs%norb, tempArr(1,1,1), orbs%norb, 0.d0, &
+        tempArr(1,1,2), orbs%norb)
+
+        ! Now calculate the orthonormal orbitals by applying S^{-1/2} to the orbitals.
+        ! This requires the use of a temporary variable phidTemp.
+        call dgemm('n', 'n', orbsig%norb, orbs%norb, orbs%norb, 1.d0, coeff(1,1), &
+             orbsig%norb, tempArr(1,1,2), orbs%norb, 0.d0, &
+             coeffTemp(1,1), orbsig%norb)
+        
+        ! Now copy the orbitals from the temporary variable to phid.
+        call dcopy(orbs%norb*orbsig%norb, coeffTemp(1,1), 1, coeff(1,1), 1)
+
+        iall=-product(shape(ovrlp))*kind(ovrlp)
+        deallocate(ovrlp, stat=istat)
+        call memocc(istat, iall, 'ovrlp', subname)
+
+        iall=-product(shape(eval))*kind(eval)
+        deallocate(eval, stat=istat)
+        call memocc(istat, iall, 'eval', subname)
+
+        iall=-product(shape(tempArr))*kind(tempArr)
+        deallocate(tempArr, stat=istat)
+        call memocc(istat, iall, 'tempArr', subname)
+
+        iall=-product(shape(coeffTemp))*kind(coeffTemp)
+        deallocate(coeffTemp, stat=istat)
+        call memocc(istat, iall, 'coeffTemp', subname)
+
+end subroutine orthonormalizeCoefficients

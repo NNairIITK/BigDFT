@@ -151,6 +151,16 @@ real(8):: tt1, tt2
   call getLocalizedBasis(iproc, nproc, nlr, Llr, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
       nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trace, rxyzParab, &
       itSCC, lastAlpha, infoBasisFunctions)
+!!! 3D plot of the basis functions
+!!write(procName,'(i0)') iproc
+!!istart=1
+!!do iorb=1,lin%orbs%norbp
+!!  write(orbNumber,'(i0)') iorb
+!!  orbName='orb_'//trim(procName)//'_'//trim(orbNumber)
+!!  call plot_wfSquare_cube(orbName, at, Glr, input%hx, input%hy, input%hz, rxyz, phi(istart), 'comment   ')
+!!  istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+!!end do
+
 
   if(lin%useDerivativeBasisFunctions) then
       ! Create the derivative basis functions.
@@ -687,7 +697,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
           ! Adapt step size for the steepest descent minimization.
               tt=fnrmOvrlpArr(iorb,1)/sqrt(fnrmArr(iorb,1)*fnrmOldArr(iorb))
               !if(tt>.7d0) then
-              if(tt>.7d0) then
+              if(tt>.9d0) then
                   alpha(iorb)=alpha(iorb)*1.05d0
               else
                   alpha(iorb)=alpha(iorb)*.5d0

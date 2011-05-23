@@ -114,6 +114,10 @@ integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcs
 real(8),dimension(:),allocatable:: phiTemp
 real(wp),dimension(:),allocatable:: projTemp
 
+character(len=11):: orbName
+character(len=10):: comment, procName, orbNumber
+integer:: iorb, istart
+
 
 
 
@@ -129,7 +133,7 @@ real(wp),dimension(:),allocatable:: projTemp
       input, rxyz, occupForInguess, coeff, coeffd, nlr, Llr, outofzone)
 
   potshortcut=0 ! What is this?
-  phi=0.d0
+  !phi=0.d0
   call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
@@ -161,6 +165,7 @@ real(wp),dimension(:),allocatable:: projTemp
           nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, &
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd)
+
 
       ! Calculate the energy that we get with psi.
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
