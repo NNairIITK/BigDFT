@@ -1,53 +1,58 @@
-!      ALGORITHM 680, COLLECTED ALGORITHMS FROM ACM.
-!      THIS WORK PUBLISHED IN TRANSACTIONS ON MATHEMATICAL SOFTWARE,
-!      VOL. 16, NO. 1, PP. 47.
+!> @file
+!!   Routines to calculate the Faddeeva-function
+!! @author
+!!      ALGORITHM 680, COLLECTED ALGORITHMS FROM ACM.
+!!      THIS WORK PUBLISHED IN TRANSACTIONS ON MATHEMATICAL SOFTWARE,
+!!      VOL. 16, NO. 1, PP. 47.
+
+
+!>  @brief GIVEN A COMPLEX NUMBER Z = (XI,YI), THIS SUBROUTINE COMPUTES
+!!  THE VALUE OF THE FADDEEVA-FUNCTION W(Z) = EXP(-Z**2)*ERFC(-I*Z),
+!!  WHERE ERFC IS THE COMPLEX COMPLEMENTARY ERROR-FUNCTION AND I
+!!  MEANS SQRT(-1).
+!!
+!!  THE ACCURACY OF THE ALGORITHM FOR Z IN THE 1ST AND 2ND QUADRANT
+!!  IS 14 SIGNIFICANT DIGITS; IN THE 3RD AND 4TH IT IS 13 SIGNIFICANT
+!!  DIGITS OUTSIDE A CIRCULAR REGION WITH RADIUS 0.126 AROUND A ZERO
+!!  OF THE FUNCTION.
+!!  ALL REAL VARIABLES IN THE PROGRAM ARE DOUBLE PRECISION.
+!!
+!!
+!!  THE CODE CONTAINS A FEW COMPILER-DEPENDENT PARAMETERS :
+!!     RMAXREAL = THE MAXIMUM VALUE OF RMAXREAL EQUALS THE ROOT OF
+!!                RMAX = THE LARGEST NUMBER WHICH CAN STILL BE
+!!                IMPLEMENTED ON THE COMPUTER IN DOUBLE PRECISION
+!!                FLOATING-POINT ARITHMETIC
+!!     RMAXEXP  = LN(RMAX) - LN(2)
+!!     RMAXGONI = THE LARGEST POSSIBLE ARGUMENT OF A DOUBLE PRECISION
+!!                GONIOMETRIC FUNCTION (DCOS, DSIN, ...)
+!!  THE REASON WHY THESE PARAMETERS ARE NEEDED AS THEY ARE DEFINED WILL
+!!  BE EXPLAINED IN THE CODE BY MEANS OF COMMENTS
+!!
+!!
+!!  PARAMETER LIST
+!!     XI     = REAL      PART OF Z
+!!     YI     = IMAGINARY PART OF Z
+!!     U      = REAL      PART OF W(Z)
+!!     V      = IMAGINARY PART OF W(Z)
+!!     FLAG   = AN ERROR FLAG INDICATING WHETHER OVERFLOW WILL
+!!              OCCUR OR NOT; TYPE LOGICAL;
+!!              THE VALUES OF THIS VARIABLE HAVE THE FOLLOWING
+!!              MEANING :
+!!              FLAG=.FALSE. : NO ERROR CONDITION
+!!              FLAG=.TRUE.  : OVERFLOW WILL OCCUR, THE ROUTINE
+!!                             BECOMES INACTIVE
+!!  XI, YI      ARE THE INPUT-PARAMETERS
+!!  U, V, FLAG  ARE THE OUTPUT-PARAMETERS
+!!
+!!  FURTHERMORE THE PARAMETER FACTOR EQUALS 2/SQRT(PI)
+!!
+!!  THE ROUTINE IS NOT UNDERFLOW-PROTECTED BUT ANY VARIABLE CAN BE
+!!  PUT TO 0 UPON UNDERFLOW;
+!!
+!!  REFERENCE - GPM POPPE, CMJ WIJERS; MORE EFFICIENT COMPUTATION OF
+!!  THE COMPLEX ERROR-FUNCTION, ACM TRANS. MATH. SOFTWARE.
 SUBROUTINE WOFZ (XI, YI, U, V, FLAG)
-  !
-  !  GIVEN A COMPLEX NUMBER Z = (XI,YI), THIS SUBROUTINE COMPUTES
-  !  THE VALUE OF THE FADDEEVA-FUNCTION W(Z) = EXP(-Z**2)*ERFC(-I*Z),
-  !  WHERE ERFC IS THE COMPLEX COMPLEMENTARY ERROR-FUNCTION AND I
-  !  MEANS SQRT(-1).
-  !  THE ACCURACY OF THE ALGORITHM FOR Z IN THE 1ST AND 2ND QUADRANT
-  !  IS 14 SIGNIFICANT DIGITS; IN THE 3RD AND 4TH IT IS 13 SIGNIFICANT
-  !  DIGITS OUTSIDE A CIRCULAR REGION WITH RADIUS 0.126 AROUND A ZERO
-  !  OF THE FUNCTION.
-  !  ALL REAL VARIABLES IN THE PROGRAM ARE DOUBLE PRECISION.
-  !
-  !
-  !  THE CODE CONTAINS A FEW COMPILER-DEPENDENT PARAMETERS :
-  !     RMAXREAL = THE MAXIMUM VALUE OF RMAXREAL EQUALS THE ROOT OF
-  !                RMAX = THE LARGEST NUMBER WHICH CAN STILL BE
-  !                IMPLEMENTED ON THE COMPUTER IN DOUBLE PRECISION
-  !                FLOATING-POINT ARITHMETIC
-  !     RMAXEXP  = LN(RMAX) - LN(2)
-  !     RMAXGONI = THE LARGEST POSSIBLE ARGUMENT OF A DOUBLE PRECISION
-  !                GONIOMETRIC FUNCTION (DCOS, DSIN, ...)
-  !  THE REASON WHY THESE PARAMETERS ARE NEEDED AS THEY ARE DEFINED WILL
-  !  BE EXPLAINED IN THE CODE BY MEANS OF COMMENTS
-  !
-  !
-  !  PARAMETER LIST
-  !     XI     = REAL      PART OF Z
-  !     YI     = IMAGINARY PART OF Z
-  !     U      = REAL      PART OF W(Z)
-  !     V      = IMAGINARY PART OF W(Z)
-  !     FLAG   = AN ERROR FLAG INDICATING WHETHER OVERFLOW WILL
-  !              OCCUR OR NOT; TYPE LOGICAL;
-  !              THE VALUES OF THIS VARIABLE HAVE THE FOLLOWING
-  !              MEANING :
-  !              FLAG=.FALSE. : NO ERROR CONDITION
-  !              FLAG=.TRUE.  : OVERFLOW WILL OCCUR, THE ROUTINE
-  !                             BECOMES INACTIVE
-  !  XI, YI      ARE THE INPUT-PARAMETERS
-  !  U, V, FLAG  ARE THE OUTPUT-PARAMETERS
-  !
-  !  FURTHERMORE THE PARAMETER FACTOR EQUALS 2/SQRT(PI)
-  !
-  !  THE ROUTINE IS NOT UNDERFLOW-PROTECTED BUT ANY VARIABLE CAN BE
-  !  PUT TO 0 UPON UNDERFLOW;
-  !
-  !  REFERENCE - GPM POPPE, CMJ WIJERS; MORE EFFICIENT COMPUTATION OF
-  !  THE COMPLEX ERROR-FUNCTION, ACM TRANS. MATH. SOFTWARE.
 
   IMPLICIT DOUBLE PRECISION (A-H, O-Z)
 
@@ -275,9 +280,11 @@ subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
      u1   = -factor*(xsum*yabs + ysum*xabs) + 1.0_dp
      v1   =  factor*(xsum*xabs - ysum*yabs)
      !MODIFICATION: the exponent is corrected, yabs disappears
+
      daux = fac**2
      daux = exp(-daux)
      daux = daux**(q**2)
+
      !daux =  exp(-xquad-yabs**2)
      u2   =  daux*dcos(yquadmod)
      v2   = -daux*dsin(yquadmod)
@@ -362,7 +369,6 @@ subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
   !
   !  evaluation of w(z) in the other quadrants
   !
-
   if (jm < 0) then
 
      if (a) then
@@ -376,13 +382,16 @@ subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
         !against overflow, taking into account the modification
         if (xquad-yabs**2 > rmaxexp) then
            flag = .true.
-           !print *,'bbb',xi,yi,yquad,xquad,rmaxgoni,rmaxexp
            return
         end if
-
-        daux = fac**2
-        daux = exp(-daux)
-        w1 = 2.0_dp*daux**(q**2)
+        !daux = fac**2
+        !daux = exp(-daux)
+        !w1 = 2.0_dp*daux**(q**2)
+        !avoid floating point exceptions
+        daux = real(q,kind=8)*fac
+        daux = daux*daux
+        daux = dexp(-daux)
+        w1 = 2.0_dp*daux    
         !w1 =  2*dexp(xquad-yabs**2)
         u2  =  w1*dcos(yquadmod)
         v2  = -w1*dsin(yquadmod)
@@ -396,5 +405,4 @@ subroutine wofz_mod(alpha,m,q,jm,u,v,flag)
   else
      if (q < 0) v = -v
   end if
-
 END SUBROUTINE wofz_mod

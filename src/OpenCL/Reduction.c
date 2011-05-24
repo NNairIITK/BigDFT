@@ -1,6 +1,5 @@
-#include "OpenCL_wrappers.h"
-#include "Reduction_Generator.h"
-/*
+//! @file
+/*!
   Matrix multiplication kernels written here share a common basic design.
   Each work item computes 1 (or 2 elements in bloc design) element of
   the result matrix. Local work size is 16*16 elements. Both arrays are 
@@ -14,6 +13,17 @@
   gemmsy is also commented.
   Matrix are stored in column.
 */
+//! @author
+//!    Copyright (C) 2009-2011 BigDFT group 
+//!    This file is distributed under the terms of the
+//!    GNU General Public License, see ~/COPYING file
+//!    or http://www.gnu.org/copyleft/gpl.txt .
+//!    For the list of contributors, see ~/AUTHORS 
+
+
+#include "OpenCL_wrappers.h"
+#include "Reduction_Generator.h"
+
 char * dgemm_program="\
 //size is supposed to be 16*16\n\
 #ifdef cl_khr_fp64\n\

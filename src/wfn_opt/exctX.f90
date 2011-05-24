@@ -1,9 +1,21 @@
+!> @file
+!!   Routines to calculate the exact exchange potential
+!! @author
+!!    Copyright (C) 2010-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+ 
+!>    Calculate the exact exchange potential
 subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psi,psir,eexctX)
+
   use module_base
   use module_types
   use Poisson_Solver
   use libxc_functionals
+
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n3p,nspin
@@ -304,12 +316,8 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   !call timing(iproc,'Exchangecorr  ','OF')
 
 END SUBROUTINE exact_exchange_potential
-!!***
 
 
-!!****f* BigDFT/prepare_psirocc
-!! SOURCE
-!! 
 subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   use module_base
   use module_types
@@ -410,16 +418,11 @@ subroutine prepare_psirocc(iproc,nproc,lr,orbsocc,n3p,n3parr,psiocc,psirocc)
   end if
 
 END SUBROUTINE prepare_psirocc
-!!***
 
 
-!!****f* BigDFT/exact_exchange_potential_virt
-!! FUNCTION
-!!   Calculate the exact exchange potential only on virtual orbitals
+!>   Calculate the exact exchange potential only on virtual orbitals
 !!   by knowing the occupied orbitals and their distribution
 !!   both sets of orbitals are to be 
-!! SOURCE
-!! 
 subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,n3parr,n3p,&
      hxh,hyh,hzh,pkernel,psirocc,psivirt,psirvirt)
   use module_base
@@ -685,16 +688,12 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      call memocc(i_stat,i_all,'ncommvirt',subname)
   end if
 
-end subroutine exact_exchange_potential_virt
-!!***
+END SUBROUTINE exact_exchange_potential_virt
 
-!!****f* BigDFT/exact_exchange_potential_round
-!! FUNCTION
-!!   Calculate the exact exchange potential on occupied orbitals
+
+!>   Calculate the exact exchange potential on occupied orbitals
 !!   within the symmetric round-robin scheme
 !!   the psi is already given in the real-space form
-!! SOURCE
-!! 
 subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
      hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
   use module_base
@@ -714,9 +713,9 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_round'
   logical :: doit
-  integer :: i_all,i_stat,ierr,ispin,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp,jgroup
-  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,jprocsend,jprocrecv,jprocrecv2,nend,isorb,iorbs,iorbe,jorbs,jorbe
-  integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,iproclast,ncalltot,icountmax,iprocref,ncalls
+  integer :: i_all,i_stat,ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
+  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs
+  integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
   real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
   integer, dimension(4) :: mpireq,mpireq2
   integer, dimension(MPI_STATUS_SIZE,4) :: mpistat,mpistat2
@@ -750,7 +749,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   hfac=1.0_gp/(hxh*hyh*hzh)
 
   !here we can start with the round-robin scheme
-  !since the orbitlas are all occupied we have to use the symmetric scheme
+  !since the orbitals are all occupied we have to use the symmetric scheme
   !we have first to define the number of groups, which correspond to the repartition 
   !of spin up and spin down orbitals
   allocate(nvctr_par(0:nproc-1,ngroup+ndebug),stat=i_stat)
@@ -883,7 +882,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
         if (nvctr_par(kproc,igrpr(igroup)) > 0) nprocgr=nprocgr+1
      end do
      
-     !do not sent anything if there is only one member in the group
+     !do not send anything if there is only one member in the group
      if (nprocgr > 1) then
         do kproc=0,(nprocgr-1)/2-1
            !define the arrays for send-receive of data
@@ -1236,7 +1235,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
      if (ncommsstep2 > 0) then
         !verify that the messages have been passed
         call MPI_WAITALL(ncommsstep2,mpireq2,mpistat2,ierr)
-        if (ierr /=0)  print *,'step2,ierr',jproc+1,iproc,ierr,mpistat,MPI_STATUSES_IGNORE
+        if (ierr /=0)  print *,'step2,ierr',jproc+1,iproc,ierr,mpistat2,MPI_STATUSES_IGNORE
         
         !copy the results which have been received (the messages sending are after)
         do igroup=1,ngroupp
@@ -1354,14 +1353,14 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 
   !call timing(iproc,'Exchangecorr  ','OF')
 
-end subroutine exact_exchange_potential_round
-!!***
-!!$!!****f* BigDFT/exact_exchange_potential_round
-!!$!! FUNCTION
+END SUBROUTINE exact_exchange_potential_round
+
+!!$!> BigDFT/exact_exchange_potential_round
+!!$!! :
 !!$!!   Calculate the exact exchange potential on occupied orbitals
 !!$!!   within the symmetric round-robin scheme
 !!$!!   the psi is already given in the real-space form
-!!$!! SOURCE
+!!$!!
 !!$!! 
 !!$subroutine exact_exchange_potential_round_new(iproc,nproc,geocode,nspin,lr,orbs,&
 !!$     hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
@@ -1911,8 +1910,8 @@ end subroutine exact_exchange_potential_round
 !!$
 !!$  !call timing(iproc,'Exchangecorr  ','OF')
 !!$
-!!$end subroutine exact_exchange_potential_round_new
-!!$!!***
+!!$END SUBROUTINE exact_exchange_potential_round_new
+!!$
 !!$subroutine OP2P_comm_simulation(iproc,nproc,op2p)
 !!$  use module_base
 !!$  use module_types
@@ -2052,4 +2051,4 @@ end subroutine exact_exchange_potential_round
 !!$  call memocc(i_stat,i_all,'ndatac',subname)
 !!$
 !!$
-!!$end subroutine OP2P_comm_simulation
+!!$END SUBROUTINE OP2P_comm_simulation

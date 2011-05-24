@@ -1,0 +1,15 @@
+spin-polarized  20  2.00      1.87      3.74     spin treatment, ng rij rcov and rprb
+   17    7  021811 zatom, zion, date (ddmmyy)
+   10     -20 1 0 2002 0     pspcod,IXC,lmax,lloc,mmax,r2well
+    0.41000000      1  -6.8505985     rloc nloc c1 .. cnloc
+   2                    0.3000000       4.3000000    nsep, rcore&zcore (NLCC)
+    0.33944488      2   5.2478035     -0.13356111E-01      s-projector
+                                        4.0973554    
+    0.37514648      1   4.5792091          p-projector
+                       0 (no kij)
+
+
+the values for the local and separable part
+are resulting from a very short fit without nlcc
+the values for the NLCC are from a simple fit
+to the file ae.core.dens.plt

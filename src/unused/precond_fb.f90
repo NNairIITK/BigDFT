@@ -1,16 +1,15 @@
-!!****f* BigDFT/preconditionall
-!! FUNCTION
-!!   Calls the preconditioner for each orbital treated by the processor
-!!
-!! COPYRIGHT
+!> @file
+!!   Old Preconditioner routines (unused) 
+!! @deprecated
+!! @author
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!> Calls the preconditioner for each orbital treated by the processor
 subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,cprec,logrid_c,logrid_f,hpsi)
   implicit real(kind=8) (a-h,o-z)
@@ -35,7 +34,6 @@ subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,n
   write(77,'(a40,i4,2(1x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
 
 END SUBROUTINE preconditionall
-!!***
 
 
 subroutine precondition(C,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -464,14 +462,11 @@ FUNCTION PIECELINE(C)
      
 END 
 
-
-
        
-! Wavefunction in real space
-
-        subroutine convolut_magic_t2(n1,n2,n3,ww,x,y)
-! Applies the magic filter matrix transposed ; data set shrinks
-! The input array x is overwritten
+!> Wavefunction in real space
+!! Applies the magic filter matrix transposed ; data set shrinks
+!! The input array x is overwritten
+subroutine convolut_magic_t2(n1,n2,n3,ww,x,y)
         implicit real(kind=8) (a-h,o-z)
         parameter(lowfil=-8,lupfil=8)
         dimension x(-lupfil:n1-lowfil,-lupfil:n2-lowfil,-lupfil:n3-lowfil),y(0:n1,0:n2,0:n3)
@@ -525,14 +520,10 @@ END
         enddo
         enddo
 
-    return
-    end
+end
 
 
-
-
-!Optimized standard version of the major convolution routines
-
+!> Optimized standard version of the major convolution routines
 subroutine ConvolStand(n1,n2,n3,&
                nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,&
                nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
@@ -763,12 +754,12 @@ subroutine ConvolStand(n1,n2,n3,&
 end
     
     
-        subroutine uncompress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+!> Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+!! into fine scaling functions (psifscf)
+subroutine uncompress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                               mseg_c,mvctr_c,keyg_c,keyv_c,  & 
                               mseg_f,mvctr_f,keyg_f,keyv_f,  & 
                               psi_c,psi_f,psig)
-! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-! into fine scaling functions (psifscf)
         implicit real(kind=8) (a-h,o-z)
         dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
         dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
@@ -822,14 +813,15 @@ end
 
         !deallocate(psig,ww)
 
-    end
-    
-        subroutine compress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+end
+
+
+!> Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
+!! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
+subroutine compress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                             mseg_c,mvctr_c,keyg_c,keyv_c,  & 
                             mseg_f,mvctr_f,keyg_f,keyv_f,  & 
                             psig,psi_c,psi_f)
-! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
-! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
         implicit real(kind=8) (a-h,o-z)
         dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
         dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
@@ -882,13 +874,10 @@ end
 
  !       deallocate(ww)
 
-    end
+end
 
 
-
-
-
-       SUBROUTINE MULTI_BACKWARD(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
+SUBROUTINE MULTI_BACKWARD(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
        implicit real(kind=8) (a-h,o-z)
        dimension  x(0:nd1,0:nd2,0:nd3)
        ALLOCATABLE XX(:),YY(:),WW(:)
@@ -957,7 +946,7 @@ end
 
        ENDIF
 
-       END
+END
 
 
 SUBROUTINE MULTI_FORWARD(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
@@ -1031,11 +1020,9 @@ SUBROUTINE MULTI_FORWARD(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
 END SUBROUTINE MULTI_FORWARD
 
 
-
-
-       subroutine BACKWARD_3D(nd1,nd2,nd3,x,y,ww)
-! A periodic synthesis (BACKWARD) wavelet transformation
-! The input array x is not overwritten
+!> A periodic synthesis (BACKWARD) wavelet transformation
+!! The input array x is not overwritten
+subroutine BACKWARD_3D(nd1,nd2,nd3,x,y,ww)
         implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
@@ -1052,11 +1039,12 @@ END SUBROUTINE MULTI_FORWARD
         call  BACKWARD_FAST(nd3,nt,ww,y)
 
         return
-        end
+end
 
-       subroutine BACKWARD_3D_SELF(nd1,nd2,nd3,x,y,ww)
-! A periodic synthesis (BACKWARD) wavelet transformation
-! The input array x is not overwritten
+
+!> A periodic synthesis (BACKWARD) wavelet transformation
+!! The input array x is not overwritten
+subroutine BACKWARD_3D_SELF(nd1,nd2,nd3,x,y,ww)
         implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
@@ -1073,12 +1061,12 @@ END SUBROUTINE MULTI_FORWARD
         call  BACKWARD_FAST(nd3,nt,ww,x)
 
         return
-        end
+end
 
 
-        subroutine FORWARD_3D(nd1,nd2,nd3,y,x,ww)
-! An analysis (FORWARD) periodic wavelet transformation
-! The input array y is NOT overwritten
+!> An analysis (FORWARD) periodic wavelet transformation
+!! The input array y is NOT overwritten
+subroutine FORWARD_3D(nd1,nd2,nd3,y,x,ww)
         implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
@@ -1095,11 +1083,12 @@ END SUBROUTINE MULTI_FORWARD
         call  FORWARD_FAST(nd3,nt,ww,x)
 
         return
-        end
+end
 
-        subroutine FORWARD_3D_SELF(nd1,nd2,nd3,y,x,ww)
-! An analysis (FORWARD) periodic wavelet transformation
-! The input array y is NOT overwritten
+
+!> An analysis (FORWARD) periodic wavelet transformation
+!! The input array y is NOT overwritten
+subroutine FORWARD_3D_SELF(nd1,nd2,nd3,y,x,ww)
         implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
@@ -1116,13 +1105,11 @@ END SUBROUTINE MULTI_FORWARD
         call  FORWARD_FAST(nd3,nt,ww,y)
 
         return
-        end
+end
 
 
-      SUBROUTINE FORWARD_FAST(RIGHT,NT,C,CD_1)
-!
-!      FORWARD WAVELET TRANSFORM, ANALYSIS, PERIODIC
-!
+!>     FORWARD WAVELET TRANSFORM, ANALYSIS, PERIODIC
+SUBROUTINE FORWARD_FAST(RIGHT,NT,C,CD_1)
        implicit real(kind=8) (a-h,o-z)
        INTEGER RIGHT
        DIMENSION C(0:RIGHT,NT),CD_1(NT,0:RIGHT)
@@ -1236,16 +1223,11 @@ END SUBROUTINE MULTI_FORWARD
 
        DEALLOCATE(MOD_MY) 
 
-       END
+END
 
 
-
-
-
-      SUBROUTINE BACKWARD_FAST(RIGHT1,NT,CD,C1)
-!
-!     BACKWARD WAVELET TRANSFORM, SYNTHESIS, PERIODIC
-!
+!>  BACKWARD WAVELET TRANSFORM, SYNTHESIS, PERIODIC
+SUBROUTINE BACKWARD_FAST(RIGHT1,NT,CD,C1)
       implicit real(kind=8) (a-h,o-z)
       INTEGER RIGHT1
       DIMENSION CD(0:RIGHT1,NT),C1(NT,0:RIGHT1)
@@ -1362,10 +1344,4 @@ END SUBROUTINE MULTI_FORWARD
 
        DEALLOCATE(MOD_MY)
 
-      END
-
-
-
-
-
-
+END

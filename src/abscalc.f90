@@ -1,16 +1,12 @@
-!!****p* BigDFT/abscalc_main
-!! FUNCTION
-!!  Main program for XANES calculation (absorption calculation)
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2009-2010 ESRF
+!> @file
+!! Main file for XANES calculation
+!! @author Copyright (C) 2009-2011 ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!! SOURCE
-!!
+!>  Main program for XANES calculation (absorption calculation)
 program abscalc_main
 
   use module_base
@@ -75,8 +71,9 @@ program abscalc_main
      if (iproc==0) call print_logo()
 
      ! Read all input files.
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt","input.mix","input.geopt", "input.perf", inputs, atoms, rxyz)
+     !standard names
+     call standard_inputfile_names(inputs)
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 
      !Initialize memory counting
      !call memocc(0,iproc,'count','start')
@@ -153,14 +150,9 @@ program abscalc_main
   call MPI_FINALIZE(ierr)
 
 end program abscalc_main
-!!***
 
 
-!!****f* BigDFT/call_abscalc
-!! FUNCTION
-!!   Routines to use abscalc as a blackbox
-!! SOURCE
-!!
+!>   Routines to use abscalc as a blackbox
  subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
   use module_base
   use module_types
@@ -285,26 +277,24 @@ end program abscalc_main
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
 END SUBROUTINE call_abscalc
-!!***
 
 
-!!****f* BigDFT/abscalc
-!! FUNCTION
-!!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
-!!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid
-!!                    as definition of the previous system.
-!!   inputPsiId = 2 : read waves from disk
-!!   does an electronic structure calculation. Output is the total energy and the forces 
-!!   psi, keyg, keyv and eval should be freed after use outside of the routine.
-!!   infocode -> encloses some information about the status of the run
-!!            =0 run succesfully succeded
-!!            =1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+!>   Absorption (XANES) calculation
+!!   @param inputPsiId = 
+!!          - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+!!          - 1 : read waves from argument psi, using n1, n2, n3, hgrid
+!!                as definition of the previous system.
+!!          - 2 : read waves from disk
+!!                does an electronic structure calculation. Output is the total energy and the forces 
+!!   @param psi, keyg, keyv and eval should be freed after use outside of the routine.
+!!   @param infocode -> encloses some information about the status of the run
+!!          - 0 run succesfully succeded
+!!          - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
 !!               forces may be meaningless   
-!!            =2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+!!          - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
-!!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-!! SOURCE
+!!          - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 !!
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
@@ -381,6 +371,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   type(atoms_data) :: atoms_b2B
   real(gp), dimension(:,:), pointer :: rxyz_b2B
+  integer, dimension(:), pointer :: iatype_b2B, znucl_b2B
   real(gp) :: shift_b2B(3)
   integer itype, nd
   integer n1i_bB,n2i_bB,n3i_bB
@@ -410,8 +401,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer, parameter :: noccmax=2
 
 
-
-  if (  in%potshortcut==0) then
+  if (in%potshortcut==0) then
      if(nproc>1) call MPI_Finalize(ierr)
      stop '   in%potshortcut==0 calculating spectra. Use rather box2Box option      '
   endif
@@ -508,10 +498,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation
   if (iproc==0 .and. verbose > 0) then
-     call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,&
-          atoms%alat1,atoms%alat2,atoms%alat3,&
-          hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,&
-          orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
+     call MemoryEstimator(nproc,idsx,Glr,&
+          atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
+          in%nspin,in%itrpmax,in%iscf,peakmem)
   end if
 
 
@@ -587,14 +576,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      allocate(rhoXanes(1,1,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,rhoXanes,'rhoXanes',subname)     
   endif
-
-
+  
 
   nullify(rhocore)
   !check the communication distribution
   !call check_communications(iproc,nproc,orbs,Glr,comms)
-
-
 
 
   if( iand( in%potshortcut,4)  .gt. 0 ) then
@@ -716,10 +702,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      deallocate(phnons,stat=i_stat)
      call memocc(i_stat,i_all,'phnons',subname)
      
-     
-
-
-
      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
      deallocate(atoms_clone%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
@@ -727,10 +709,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      deallocate(atoms_clone%iasctype,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
 
-
-
   endif
-
 
 
   if( iand( in%potshortcut,1)  .gt. 0 ) then
@@ -790,8 +769,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 !!$
 !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
-     if (abs(in%output_grid)==2) then
-        if (in%output_grid==2) then
+     if (in%output_grid == OUTPUT_GRID_DENSPOT) then
+        if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
           if (iproc == 0) write(*,*) 'writing local_potential.pot'
            call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -833,7 +812,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         print *, "controllo ",  trim(filename)//'.cube', exists
         if(exists) then
 
-           call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B)
+           call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, &
+                & nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
            !call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
            hx_old=hx_old*2
            hy_old=hy_old*2
@@ -940,9 +920,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               enddo
            enddo
 
-           print *,"for replica ", ireplica,  "SHIFT " , shift_b2B
-
-
+           print '(a,i6,a,3(1x,f18.14))',"for replica ", ireplica,  "SHIFT " , shift_b2B
 
            rhopottmp=0.0_gp
            do iz_bB = 1,n3i_bB
@@ -1057,6 +1035,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'rxyz',subname)
+        i_all=-product(shape(iatype_b2B))*kind(rxyz_b2B)
+        deallocate(iatype_b2B,stat=i_stat)
+        call memocc(i_stat,i_all,'iatype',subname)
+        i_all=-product(shape(znucl_b2B))*kind(rxyz_b2B)
+        deallocate(znucl_b2B,stat=i_stat)
+        call memocc(i_stat,i_all,'znucl',subname)
         i_all=-product(shape(rhopottmp))*kind(rhopottmp)
         deallocate(rhopottmp,stat=i_stat)
         call memocc(i_stat,i_all,'rhopottmp',subname)
@@ -1426,5 +1410,3 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE abscalc
-!!***
-

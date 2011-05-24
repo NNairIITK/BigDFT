@@ -1,6 +1,15 @@
+!> @file
+!!  Old convolution for kinetic operators
+!! @deprecated
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 
 
-         subroutine Convolkinetic(n1,n2,n3,&
+subroutine Convolkinetic(n1,n2,n3,&
                nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,&
                nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                cprecr,hgrid,logrid_c,logrid_f,x,y)

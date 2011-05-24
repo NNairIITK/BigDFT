@@ -1,22 +1,22 @@
-!!****f* BigDFT/hit_with_kernel_fac
-!! FUNCTION
-!!    Hit the Fourier transform of x with the kernel. At the same time, transform the array
-!!    from the form z3 (where only half of values of i3 are stored)
-!!    to the form z1   (where only half of values of i1 are stored)
-!!    The latter thing could be done separately by the subroutine z3_to_z1 that is contained
-!!    in FFT_back, but then the code would be slower.
-!! COPYRIGHT
-!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!> @file
+!!  OPtimzed routines using kernels
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+
+
+!>  Hit the Fourier transform of x with the kernel. At the same time, transform the array
+!!  from the form z3 (where only half of values of i3 are stored)
+!!  to the form z1   (where only half of values of i1 are stored)
+!!  The latter thing could be done separately by the subroutine z3_to_z1 that is contained
+!!  in FFT_back, but then the code would be slower.
 subroutine hit_with_kernel_fac(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
      n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,c,fac)
   ! hits the input array x with the kernel
-  ! ((-1/2\Delta+C)_{ij})^{-1}
+  ! @f$ ((-1/2\Delta+C)_{ij})^{-1} @f$
   use module_base
   implicit none
   integer,intent(in) :: n1,n2,n3,nd1,nd2,nd3
@@ -98,14 +98,9 @@ subroutine hit_with_kernel_fac(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,
   call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
 
 END SUBROUTINE hit_with_kernel_fac
-!!***
 
 
-!!****f* BigDFT/hit_with_kernel
-!! FUNCTION
-!!   Hits the input array x with the kernel ((-1/2\Delta+C)_{ij})^{-1}
-!! SOURCE
-!!
+!>  Hits the input array x with the kernel @f$((-1/2\Delta+C)_{ij})^{-1}@f$
 subroutine hit_with_kernel(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
   n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,c)
   use module_base
@@ -195,16 +190,11 @@ subroutine hit_with_kernel(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,
   call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
 
 END SUBROUTINE hit_with_kernel
-!!***
 
 
-!!****f* BigDFT/make_kernel
-!! FUNCTION
-!!   Construct the kernel (-1/2 d^2/dx^2)_{ij}
+!>   Construct the kernel (-1/2 d^2/dx^2)_{ij}
 !!   at a real space grid with grid size hgrid
 !!   and then fourier transform it to momentum space
-!!   SOURCE
-!!
 subroutine make_kernel(n1,hgrid,kern)
   use module_fft_sg
   use module_base
@@ -288,4 +278,3 @@ subroutine make_kernel(n1,hgrid,kern)
 
   deallocate(trig,z)
 END SUBROUTINE make_kernel
-!!***

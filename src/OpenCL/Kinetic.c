@@ -1,3 +1,14 @@
+//! @file
+//!  Kinetic kernel in OpenCL
+//!
+//! @author
+//!    Copyright (C) 2009-2011 BigDFT group 
+//!    This file is distributed under the terms of the
+//!    GNU General Public License, see ~/COPYING file
+//!    or http://www.gnu.org/copyleft/gpl.txt .
+//!    For the list of contributors, see ~/AUTHORS 
+
+
 #include "Initialize.h"
 #include "Kinetic.h"
 #include "Kinetic_k.h"

@@ -1,17 +1,25 @@
+//! @file
+//!  Those kernels are benchmark, they try to focus on
+//!  1 performance aspect each.
+//!  benchmark_mops measures the number of memory copy
+//!  that can be processed. It generates n*8 double memory
+//!  copy.
+//!  benchmark_flops mesures the number of mad that can be
+//!  expected from the device. It generates 16*128*n mads,
+//!  or 16*128*n*2 flop.
+//!  transpose measures the performances of the transposition
+//!  method used in almost every kernel.
+//! 
+//! @author
+//!    Copyright (C) 2009-2011 BigDFT group 
+//!    This file is distributed under the terms of the
+//!    GNU General Public License, see ~/COPYING file
+//!    or http://www.gnu.org/copyleft/gpl.txt .
+//!    For the list of contributors, see ~/AUTHORS 
+
+
 #include "OpenCL_wrappers.h"
 
-/**
-  Those kernels are benchmark, they try to focus on
-  1 performance aspect each.
-  benchmark_mops measures the number of memory copy
-  that can be processed. It generates n*8 double memory
-  copy.
-  benchmark_flops mesures the number of mad that can be
-  expected from the device. It generates 16*128*n mads,
-  or 16*128*n*2 flop.
-  transpose measures the performances of the transposition
-  method used in almost every kernel.
-*/
 char * benchmark_program = "\
 #ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\

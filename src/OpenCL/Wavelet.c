@@ -1,7 +1,5 @@
-#include "Wavelet.h"
-#include "OpenCL_wrappers.h"
-
-/**
+//! @file
+/*!
   Kernels in the ana_program peform a wavelet analysis,
   which can be reduced to a convolution and a transposition.
   In the kernels, each work item processes 2 elements, and
@@ -19,6 +17,17 @@
   go to the lower part of the resulting matrix.
   Size  of the data is 2*n * ndat.
 */
+//! @author
+//!    Copyright (C) 2009-2011 BigDFT group 
+//!    This file is distributed under the terms of the
+//!    GNU General Public License, see ~/COPYING file
+//!    or http://www.gnu.org/copyleft/gpl.txt .
+//!    For the list of contributors, see ~/AUTHORS 
+
+
+#include "Wavelet.h"
+#include "OpenCL_wrappers.h"
+
 char * ana_program="\
 #ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\

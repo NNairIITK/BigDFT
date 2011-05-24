@@ -1,3 +1,13 @@
+!> @file
+!!  Interface routines to do GPU convolution with OpenCL
+!! @author 
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 subroutine release_acceleration_OCL(GPU)
   use module_base
   use module_types
@@ -5,7 +15,8 @@ subroutine release_acceleration_OCL(GPU)
   type(GPU_pointers), intent(out) :: GPU
   call ocl_clean_command_queue(GPU%queue)
   call ocl_clean(GPU%context)
-end subroutine release_acceleration_OCL
+END SUBROUTINE release_acceleration_OCL
+
 
 subroutine init_acceleration_OCL(GPU)
   use module_base
@@ -18,7 +29,8 @@ subroutine init_acceleration_OCL(GPU)
   call ocl_build_programs(GPU%context)
   call ocl_create_command_queue_id(GPU%queue,GPU%context,GPU%id_proc)
   call init_event_list
-end subroutine init_acceleration_OCL
+END SUBROUTINE init_acceleration_OCL
+
 
 subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   use module_base
@@ -32,7 +44,6 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='allocate_data_OCL'
-  integer :: i_stat,iorb
   integer :: n1b, n2b, n3b
   integer, dimension(3) :: periodic
 
@@ -126,7 +137,7 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,hx,hy,hz,wfd,orbs,GPU)
   !full_locham stategy (always true for the moment)
   GPU%full_locham=.true.
 
-end subroutine allocate_data_OCL
+END SUBROUTINE allocate_data_OCL
 
 
 subroutine free_gpu_OCL(GPU,orbs,nspin)
@@ -138,8 +149,6 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   character(len=*), parameter :: subname='free_gpu_OCL'
-  integer :: i_stat,iorb,norbp,i_all
-  
 
   call ocl_release_mem_object(GPU%d)
   call ocl_release_mem_object(GPU%work1)
@@ -179,7 +188,7 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
     call ocl_release_mem_object(GPU%psi_f_d_i)
   endif
 
-end subroutine free_gpu_OCL
+END SUBROUTINE free_gpu_OCL
 
 subroutine daub_to_isf_OCL(orbs,lr,psi,psi_r,GPU)
   use module_base
@@ -232,7 +241,7 @@ subroutine daub_to_isf_OCL(orbs,lr,psi,psi_r,GPU)
   call ocl_enqueue_read_buffer(GPU%queue,GPU%work2,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,&
           psi_r(1))
 
-end subroutine daub_to_isf_OCL
+END SUBROUTINE daub_to_isf_OCL
 
 subroutine isf_to_daub_OCL(orbs,lr,psi_r,psi,GPU)
   use module_base
@@ -285,7 +294,7 @@ subroutine isf_to_daub_OCL(orbs,lr,psi_r,psi,GPU)
   call ocl_enqueue_read_buffer(GPU%queue,GPU%psi_f,7*lr%wfd%nvctr_f*8,&
           psi(isf))
 
-end subroutine isf_to_daub_OCL
+END SUBROUTINE isf_to_daub_OCL
 
 
 
@@ -308,12 +317,10 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
   real(gp), dimension(2,orbs%norbp), intent(out) :: epot
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_OCL'
-  integer :: i_stat,iorb,isf,i
+  integer :: iorb,isf
   real(gp), dimension(3) :: hgrids
   integer, dimension(3) :: periodic
   !stream ptr array
-  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
-  real(kind=8) :: stream_ptr_first_trsf
   real(kind=8) :: rhopot
   integer :: n1, n2, n3
 
@@ -424,7 +431,7 @@ subroutine local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,&
      end do
   endif
   
-end subroutine local_hamiltonian_OCL
+END SUBROUTINE local_hamiltonian_OCL
 
 
 subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
@@ -447,7 +454,7 @@ subroutine finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
                  - (epot(1,iorb)+epot(2,iorb)))
     epot_sum = epot_sum + orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)*(epot(1,iorb)+epot(2,iorb))
   end do
-end subroutine finish_hamiltonian_OCL
+END SUBROUTINE finish_hamiltonian_OCL
 
 subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   use module_base
@@ -461,7 +468,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
   character(len=*), parameter :: subname='preconditionall_OCL'
-  integer ::  ierr,iorb,jorb,i_stat,ncplx,i_all,inds,isf,ikpt
+  integer ::  iorb,jorb,i_stat,ncplx,i_all,inds,isf,ikpt
   real(wp) :: scpr
   real(gp) :: cprecr,eval_zero,evalmax
   type(GPU_pointers), intent(inout) :: GPU
@@ -470,7 +477,6 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
   real(wp), dimension(:,:), allocatable :: b
   real(gp), dimension(0:7) :: scal
   !stream ptr array
-  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
 
   !the eval array contains all the values
   !take the max for all k-points
@@ -506,7 +512,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
      gnrm=0.0_dp
      gnrm_zero=0.0_dp
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,orbs%nspinor,lr%d,w)
-  ikpt=orbs%iskpts
+  if (orbs%norbp >0) ikpt=orbs%iokpt(1)
   do iorb=1,orbs%norbp
      !if it is the first orbital or the k-point has changed calculate the max
      if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
@@ -607,7 +613,7 @@ subroutine preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm
 
 
 
-end subroutine preconditionall_OCL
+END SUBROUTINE preconditionall_OCL
 
 subroutine local_partial_density_OCL(iproc,nproc,orbs,&
      nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
@@ -625,8 +631,7 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
   real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,nspin), intent(inout) :: rho_p
   type(GPU_pointers), intent(inout) :: GPU
   
-  integer:: iorb,iorb_r,i_stat,isf,iaddjmp
-  real(kind=8) :: stream_ptr
+  integer:: iorb,iorb_r,isf
   real(gp) :: hfac
   integer, dimension(3) :: periodic
   real(kind=8) :: rhopot
@@ -692,6 +697,4 @@ subroutine local_partial_density_OCL(iproc,nproc,orbs,&
     call ocl_enqueue_read_buffer(GPU%queue,GPU%rhopot_down,lr%d%n1i*lr%d%n2i*lr%d%n3i*8,rho_p(1,1,1,2))
   endif
 
-end subroutine local_partial_density_OCL
-
-
+END SUBROUTINE local_partial_density_OCL

@@ -1,14 +1,15 @@
-!!****m* art/diis_def
-!! COPYRIGHT
+!> @file
+!!   DIIS routines for ART methods
+!! @author
 !!    Copyright (C) 2001 Normand Mousseau
-!!    Copyright (C) 2010 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!! 
+ 
+
+!> Module to define DIIS inside ART
 module diis_defs
   use defs
   implicit none
@@ -17,12 +18,9 @@ module diis_defs
   real(8), dimension(:,:), allocatable :: product_matrix
   real(8), dimension(:), allocatable :: tildeforce
 end module diis_defs
-!!***
 
 
-!!****f* art/apply_diis
-!! SOURCE
-!! 
+!> Apply DIIS for ART
 subroutine apply_diis(current_energy, ftot)
   use defs
   use diis_defs
@@ -79,19 +77,12 @@ subroutine apply_diis(current_energy, ftot)
 
   return
 END SUBROUTINE apply_diis
-!!***
 
 
-!!****f* art/diis
-!! FUNCTION
-!!   This program implement the direct inversion in iterative subspace
+!>   This program implement the direct inversion in iterative subspace
 !!   method which allows one to converge rapidly to a saddle point when
 !!   we are in its vicinity.
-!!
-!!   maxvec is the iteration number. The matrix computed has one more dimension
-!!
-!! SOURCE
-!! 
+!!   @param maxvec is the iteration number. The matrix computed has one more dimension
 subroutine diis(lter,maxvec, newpos)
   use defs
   use diis_defs
@@ -169,4 +160,3 @@ subroutine diis(lter,maxvec, newpos)
   newpos(:) = tildepos(:) + DIIS_STEP * tildeforce(:)
 
 END SUBROUTINE diis
-!!***

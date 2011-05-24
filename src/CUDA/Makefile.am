@@ -60,9 +60,9 @@ endif
 
 CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir)
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 
-libbasef_a_SOURCES = ../profiling/memory.f90 ../modules/base.F90 ../convolutions/interface_ocl_fake.f90 $(mpi_source)
+libbasef_a_SOURCES = ../modules/defs.F90 ../modules/base.f90 ../convolutions/interface_ocl_fake.f90 $(mpi_source)
 
 conv_check_SOURCES = conv_check.f90 timing.c
 conv_check_LDFLAGS =  -lrt

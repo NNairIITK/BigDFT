@@ -1,7 +1,5 @@
-#include "MagicFilter.h"
-#include "OpenCL_wrappers.h"
-
-/*
+//! @file
+/*!
   Magicfilter kernels share commons features. They are composed
   of one convolution and a transposition. Each work item is
   responsible for processing one element of the result matrix.
@@ -10,6 +8,18 @@
   elements, so each work item is responsible for loading 2 elements.
   The first kernel is commented.
 */
+//!
+//! @author
+//!    Copyright (C) 2009-2011 BigDFT group 
+//!    This file is distributed under the terms of the
+//!    GNU General Public License, see ~/COPYING file
+//!    or http://www.gnu.org/copyleft/gpl.txt .
+//!    For the list of contributors, see ~/AUTHORS 
+
+
+#include "MagicFilter.h"
+#include "OpenCL_wrappers.h"
+
 char * magicfilter_program="\
 #ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\

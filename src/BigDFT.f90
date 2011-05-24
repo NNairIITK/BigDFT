@@ -1,16 +1,14 @@
-!!****p* BigDFT/BigDFT
-!! FUNCTION
-!!  Main program to calculate electronic structures
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
+!> @file
+!! BigDFT package performing ab initio calculation based on wavelets
+!! @author
+!!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!>  Main program to calculate electronic structures
 program BigDFT
 
   use module_base
@@ -18,11 +16,10 @@ program BigDFT
   use module_interfaces
   use ab6_symmetry
 
-  !as a general policy, we'll have "implicit none" by assuming the same
-  !name convention as "implicit real(kind=8) (a-h,o-z)"
+  implicit none     !< As a general policy, we will have "implicit none" by assuming the same
+                    !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
-  implicit none
-  character(len=*), parameter :: subname='BigDFT'
+  character(len=*), parameter :: subname='BigDFT' !< Use by memocc routine (timing)
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
   integer :: ncount_bigdft
   real(gp) :: etot,sumx,sumy,sumz,fnoise
@@ -43,6 +40,8 @@ program BigDFT
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+  call memocc_set_memory_limit(memorylimit)
 
   ! find out which input files will be used
   inquire(file="list_posinp",exist=exist_list)
@@ -68,16 +67,16 @@ program BigDFT
      arr_posinp(1)='posinp'
   end if
 
-        open(unit=16,file='geopt.mon',status='unknown',position='append')
-        if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+  open(unit=16,file='geopt.mon',status='unknown',position='append')
+  if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
   do iconfig=1,nconfig
-
      !welcome screen
      if (iproc==0) call print_logo()
 
      ! Read all input files.
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt","input.mix","input.geopt", "input.perf", inputs, atoms, rxyz)
+     !standard names
+     call standard_inputfile_names(inputs)
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      if (iproc == 0) then
         call print_general_parameters(inputs,atoms)
      end if
@@ -104,7 +103,7 @@ program BigDFT
         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
         close(16)
         filename=trim('final_'//trim(arr_posinp(iconfig)))
-        if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
+        if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION')
      end if
 
      !if there is a last run to be performed do it now before stopping
@@ -112,7 +111,6 @@ program BigDFT
         inputs%last_run = 1
         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
      end if
-
 
      if (iproc == 0) then
         sumx=0.d0
@@ -126,12 +124,12 @@ program BigDFT
            sumy=sumy+fxyz(2,iat)
            sumz=sumz+fxyz(3,iat)
         enddo
-!!$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-!!$           write(*,'(1x,a)')'the sum of the forces is'
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-!!$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-!!$        end if
+!$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
+!$$           write(*,'(1x,a)')'the sum of the forces is'
+!$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+!$$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+!$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+!$$        end if
      endif
 
      call deallocate_atoms(atoms,subname) 
@@ -154,7 +152,10 @@ program BigDFT
 
   deallocate(arr_posinp)
 
+  !wait all processes before finalisation
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
   call MPI_FINALIZE(ierr)
 
 end program BigDFT
-!!***
+

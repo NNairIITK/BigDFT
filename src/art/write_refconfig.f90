@@ -1,9 +1,16 @@
-! This subroutine writes the atomic positions and others to a "refconfig" file
-! which will be used a the reference point until a new events gets accepted
-!
-!  
-! Copyright Normand Mousseau May 2001
+!> @file
+!!    Write refconfig files for ART method
+!! @author 
+!!    Copyright Normand Mousseau May 2001-2009
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 
+
+!> This subroutine writes the atomic positions and others to a "refconfig" file
+!! which will be used a the reference point until a new events gets accepted
 subroutine write_refconfig()
    use defs
    implicit none

@@ -13,23 +13,41 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	72_geomoptim/nose.F90 \
 	72_geomoptim/others.F90 \
 	72_geomoptim/quenched.F90 \
-	72_geomoptim/velocity_verlet.F90
+	72_geomoptim/velocity_verlet.F90 \
+	12_hide_mpi/xallgather_mpi.F90 \
+	12_hide_mpi/xallgatherv_mpi.F90 \
+	12_hide_mpi/xalltoall_mpi.F90 \
+	12_hide_mpi/xalltoallv_mpi.F90 \
+	12_hide_mpi/xcast_mpi.F90 \
+	12_hide_mpi/xexch_mpi.F90 \
+	12_hide_mpi/xmax_mpi.F90 \
+	12_hide_mpi/xmin_mpi.F90 \
+	12_hide_mpi/xrecv_mpi.F90 \
+	12_hide_mpi/xsend_mpi.F90 \
+	12_hide_mpi/xsum_master.F90 \
+	12_hide_mpi/xsum_mpi.F90
 
 noinst_LIBRARIES = libabinit.a
 
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim
+# Don't use the HAVE_CONFIG_H
+DEFS =
+# Force HAVE_MPI and HAVE_MPI1.
+AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -DHAVE_MPI -DHAVE_MPI1 -DHAVE_LIBXC -I$(srcdir)/72_geomoptim
 
 libabinit_a_SOURCES = \
 	01_interfaces_ext/interfaces_linalg.F90 \
 	10_defs/defs_basis.F90 \
 	10_defs/defs_datatypes.F90 \
 	10_defs/defs_parameters.F90 \
+	12_hide_mpi/interfaces_12_hide_mpi.F90 \
+	12_hide_mpi/m_xmpi.F90 \
 	14_hidewrite/wrtout.F90 \
 	14_hidewrite/interfaces_14_hidewrite.F90 \
 	16_hideleave/leave_new.F90 \
 	16_hideleave/interfaces_16_hideleave.F90 \
 	18_timing/interfaces_18_timing.F90 \
 	18_timing/timab.F90 \
+	18_memory/m_profiling.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
 	28_numeric_noabirule/sort_dp.F90 \
 	28_numeric_noabirule/sort_int.F90 \
@@ -93,6 +111,16 @@ libabinit_a_SOURCES = \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
+	56_mixing/aprxdr.F90 \
+	56_mixing/dotprodm_v.F90 \
+	56_mixing/dotprodm_vn.F90 \
+	56_mixing/findminscf.F90 \
+	56_mixing/interfaces_56_mixing.F90 \
+	56_mixing/m_ab6_mixing.F90 \
+	56_mixing/scfcge.F90 \
+	56_mixing/scfeig.F90 \
+	56_mixing/scfopt.F90 \
+	56_mixing/sqnormm_v.F90 \
 	56_recipspace/interfaces_56_recipspace.F90 \
 	56_recipspace/irrzg.F90 \
 	56_recipspace/getkgrid.F90 \
@@ -126,6 +154,7 @@ CLEANFILES = mpif.h \
 	defs_datatypes.@MODULE_EXT@ DEFS_DATATYPES.@MODULE_EXT@ \
 	defs_parameters.@MODULE_EXT@ DEFS_PARAMETERS.@MODULE_EXT@ \
 	defs_xc.@MODULE_EXT@ DEFS_XC.@MODULE_EXT@ \
+	m_profiling.@MODULE_EXT@ M_PROFILING.@MODULE_EXT@ \
 	libxc_functionals.@MODULE_EXT@ LIBXC_FUNCTIONALS.@MODULE_EXT@ \
 	interfaces_14_hidewrite.@MODULE_EXT@ INTERFACES_14_HIDEWRITE.@MODULE_EXT@ \
 	interfaces_16_hideleave.@MODULE_EXT@ INTERFACES_16_HIDELEAVE.@MODULE_EXT@ \
@@ -143,6 +172,12 @@ CLEANFILES = mpif.h \
 mpif.h:
 	touch mpif.h &&\
 	 echo "integer, parameter :: MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_COMM_NULL=1, MPI_COMM_SELF=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_LOR=1, MPI_COMPLEX=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_UNDEFINED=1, MPI_MAX_ERROR_STRING=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_DOUBLE_COMPLEX=1, MPI_STATUS_IGNORE=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_STATUS_SIZE=1, MPI_ERR_UNKNOWN=1" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_TAG_UB=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1,MPI_CHARACTER=1,MPI_REAL8=1" >> mpif.h

@@ -1,9 +1,11 @@
-!!****h* PSolver/lazy_40
-!! FUNCTION
+!> @file
 !!   Filters for interpolating scaling functions (order 40)
-!!
-!! SOURCE
-!!
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 integer, parameter :: m=42
 real(kind=8), dimension(-m:m) :: ch = (/ &
      0.d0, 0.d0, 0.d0, &
@@ -47,5 +49,5 @@ do i=-m,m-1
    cg(i+1)=cht(-i)*(-1.d0)**(i+1)
    cgt(i+1)=ch(-i)*(-1.d0)**(i+1)
 enddo
-!!***
+
 
