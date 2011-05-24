@@ -1400,8 +1400,9 @@ void build_reduction_programs(cl_context * context){
     struct bigdft_device_infos infos;
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum = CL_SUCCESS;
-    const char * code = generate_reduction_program(&infos);
+    char * code = generate_reduction_program(&infos);
     reductionProgram = clCreateProgramWithSource(*context,1,(const char**) &(code), NULL, &ciErrNum);
+    free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");
     ciErrNum = clBuildProgram(reductionProgram, 0, NULL, "-cl-mad-enable", NULL, NULL);
     if (ciErrNum != CL_SUCCESS)

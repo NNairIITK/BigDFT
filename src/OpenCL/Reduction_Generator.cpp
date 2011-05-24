@@ -10,7 +10,7 @@
 #include "Reduction_Generator.h"
 #include "OpenCL_wrappers.h"
 
-void generate_header(std::stringstream &program){
+static void generate_header(std::stringstream &program){
   program<<"#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 #elif defined (cl_amd_fp64)\n\
@@ -18,7 +18,7 @@ void generate_header(std::stringstream &program){
 #endif\n";
 }
 
-void generate_reductionKernel(std::stringstream &program,struct bigdft_device_infos * infos){
+static void generate_reductionKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
   program<<"__kernel void reductionKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
   //get our position in the local buffer\n\
@@ -57,7 +57,7 @@ void generate_reductionKernel(std::stringstream &program,struct bigdft_device_in
 }\n";
 }
 
-void generate_reduction_dotKernel(std::stringstream &program,struct bigdft_device_infos * infos){
+static void generate_reduction_dotKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
   program<<"__kernel void reduction_dotKernel_d( uint n, __global const double *x, __global double *y, __local double *tmp ) {\n\
   size_t i = get_local_id(0);\n\
@@ -95,7 +95,7 @@ void generate_reduction_dotKernel(std::stringstream &program,struct bigdft_devic
 }\n";
 }
 
-void generate_dotKernel(std::stringstream &program,struct bigdft_device_infos * infos){
+static void generate_dotKernel(std::stringstream &program,struct bigdft_device_infos * infos){
   size_t max_wgs = infos->MAX_WORK_GROUP_SIZE;
   program<<"__kernel void dotKernel_d( uint n, __global const double *x, __global double *y, __global double *z, __local double *tmp ) {\n\
   size_t i = get_local_id(0);\n\
@@ -130,7 +130,7 @@ void generate_dotKernel(std::stringstream &program,struct bigdft_device_infos * 
 }\n";
 }
 
-void generate_axpyKernel(std::stringstream &program){
+static void generate_axpyKernel(std::stringstream &program){
   program<<"__kernel void axpyKernel_d( uint n, double alpha, __global const double *x, __global const double *y, __global double *out) {\n\
   size_t ig = get_global_id(0);\n\
   if( ig < n)\n\
@@ -138,7 +138,7 @@ void generate_axpyKernel(std::stringstream &program){
 }\n";
 }
 
-void generate_axpy_offsetKernel(std::stringstream &program){
+static void generate_axpy_offsetKernel(std::stringstream &program){
   program<<"__kernel void axpy_offsetKernel_d( uint n, double alpha, uint offset_x, __global const double *x, uint offset_y, __global double *y, uint offset_out, __global double *out) {\n\
   size_t ig = get_global_id(0);\n\
   if( ig < n)\n\
@@ -146,7 +146,7 @@ void generate_axpy_offsetKernel(std::stringstream &program){
 }\n";
 }
 
-void generate_scalKernel(std::stringstream &program){
+static void generate_scalKernel(std::stringstream &program){
   program<<"__kernel void scalKernel_d( uint n, double alpha, __global const double *x, __global double *y) {\n\
   size_t ig = get_global_id(0);\n\
   if( ig < n)\n\
@@ -154,7 +154,7 @@ void generate_scalKernel(std::stringstream &program){
 }\n";
 }
 
-void generate_copyKernel(std::stringstream &program){
+static void generate_copyKernel(std::stringstream &program){
   program<<"__kernel void copyKernel_d( uint n, __global const double *x, __global double *y) {\n\
   size_t ig = get_global_id(0);\n\
   if( ig < n)\n\
@@ -162,7 +162,7 @@ void generate_copyKernel(std::stringstream &program){
 }\n";
 }
 
-void generate_setKernel(std::stringstream &program){
+static void generate_setKernel(std::stringstream &program){
   program<<"__kernel void setKernel_d( uint n, const double val, __global double *x) {\n\
   size_t ig = get_global_id(0);\n\
   if( ig < n)\n\
@@ -170,7 +170,7 @@ void generate_setKernel(std::stringstream &program){
 }\n";
 }
 
-extern "C" const char* generate_reduction_program(struct bigdft_device_infos * infos){
+extern "C" char* generate_reduction_program(struct bigdft_device_infos * infos){
   char * output;
   std::stringstream program;
 

@@ -1,6 +1,7 @@
 EXTRA_DIST = \
 	bench_lib.h \
 	Kinetic.h \
+	Kinetic_Generator.h \
 	Kinetic_k.h \
 	bench_lib.h \
 	MagicFilter.h \
@@ -29,6 +30,7 @@ libbasef_a_SOURCES = ../profiling/memory.f90 \
 libbasec_a_SOURCES = OpenCL_wrappers.c \
                      MagicFilter.c \
                      Kinetic.c \
+                     Kinetic_Generator.c \
                      Wavelet.c \
                      Uncompress.c \
                      Initialize.c \
