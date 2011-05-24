@@ -314,7 +314,7 @@
       type(ab6_mixing_object), intent(inout) :: mix
       integer, intent(in), optional :: istep
 
-      integer :: istep_, i_stat
+      integer :: istep_, i_stat, usepaw
       real(dp) :: tsec(2)
       character(len = *), parameter :: subname = "ab6_mixing_eval_allocate"
 
@@ -337,7 +337,10 @@
       end if
       ! Allocate PAW work array.
       if (.not. associated(mix%f_paw)) then
-         allocate(mix%f_paw(mix%n_pawmix,mix%n_fftgr), stat = i_stat)
+         usepaw = 0
+         if (mix%n_pawmix > 0) usepaw = 1
+         allocate(mix%f_paw(max(1,mix%n_pawmix),max(1,mix%n_fftgr * usepaw)), &
+              & stat = i_stat)
          call memocc(i_stat, mix%f_paw, 'mix%f_paw', subname)
          if (mix%n_pawmix > 0) then
             mix%f_paw(:,:)=zero
