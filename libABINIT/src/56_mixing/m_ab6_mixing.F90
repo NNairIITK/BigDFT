@@ -422,7 +422,7 @@
 
       logical, intent(in), optional :: reset
       integer, intent(in), optional :: isecur, pawopt, response
-      real(dp), intent(inout), optional :: pawarr(mix%n_pawmix)
+      real(dp), intent(inout), optional, target :: pawarr(mix%n_pawmix)
       real(dp), intent(in), optional :: etotal
       real(dp), intent(in), optional :: potden(mix%space * mix%nfft,mix%nspden)
       real(dp), intent(out), optional :: resnrm
@@ -447,10 +447,12 @@
          end function fnrm
       end interface
 
+      character(len = *), parameter :: subname = "ab6_mixing_eval"
       integer :: moveAtm, dbl_nnsclo, initialized, isecur_
-      integer :: usepaw, pawoptmix_, response_
+      integer :: usepaw, pawoptmix_, response_, i_stat, i_all
       integer :: user_data_(2)
       real(dp) :: resnrm_
+      real(dp), pointer :: pawarr_(:)
 
       ! Argument checkings.
       if (mix%iscf == AB6_MIXING_NONE) then
@@ -500,6 +502,12 @@
       if (present(pawopt)) pawoptmix_ = pawopt
       response_ = 0
       if (present(response)) response_ = response
+      if (present(pawarr)) then
+         pawarr_ => pawarr
+      else
+         allocate(pawarr_(1), stat = i_stat)
+         call memocc(i_stat, pawarr_, 'pawarr_', subname)
+      end if
 
       ! Norm and dot products.
       if (.not. present(user_data)) then
@@ -522,12 +530,12 @@
          if (present(user_data)) then
             call scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
                  & mix%i_vrespc,mix%i_vtrial, mix%nfft,mix%n_pawmix,mix%nspden, &
-                 & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr, &
+                 & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr_, &
                  & resnrm_, arr, fnrm, fdot, user_data, errid, errmess)
          else
             call scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
                  & mix%i_vrespc,mix%i_vtrial, mix%nfft,mix%n_pawmix,mix%nspden, &
-                 & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr, &
+                 & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr_, &
                  & resnrm_, arr, fnrm_default, fdot_default, user_data_, errid, errmess)
          end if
          !  Change atomic positions
@@ -549,7 +557,10 @@
             return
          end if
          if (mix%n_atom == 0) then
-            allocate(mix%xred(3,0), mix%dtn_pc(3,0))
+            allocate(mix%xred(3,0), stat = i_stat)
+            call memocc(i_stat, mix%xred, 'mix%xred', subname)
+            allocate(mix%dtn_pc(3,0), stat = i_stat)
+            call memocc(i_stat, mix%dtn_pc, 'mix%dtn_pc', subname)
          end if
          if (present(user_data)) then
             call scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
@@ -569,12 +580,22 @@
                  & fdotn_default, user_data_, errid, errmess)
          end if
          if (mix%n_atom == 0) then
-            deallocate(mix%xred, mix%dtn_pc)
+            i_all = -product(shape(mix%xred))*kind(mix%xred)
+            deallocate(mix%xred, stat = i_stat)
+            call memocc(i_stat, i_all, 'mix%xred', subname)
+            i_all = -product(shape(mix%dtn_pc))*kind(mix%dtn_pc)
+            deallocate(mix%dtn_pc, stat = i_stat)
+            call memocc(i_stat, i_all, 'mix%dtn_pc', subname)
          end if
          if (dbl_nnsclo == 1) errid = AB6_ERROR_MIXING_INC_NNSLOOP
       end if
       
       if (present(resnrm)) resnrm = resnrm_
+      if (.not. present(pawarr)) then
+         i_all = -product(shape(pawarr_))*kind(pawarr_)
+         deallocate(pawarr_, stat = i_stat)
+         call memocc(i_stat, i_all, 'pawarr_', subname)
+      end if
     end subroutine ab6_mixing_eval
 
     subroutine ab6_mixing_deallocate(mix)
