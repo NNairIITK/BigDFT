@@ -84,7 +84,8 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
      nspin_ig=input%nspin
   end if
 
-  ! Determine how many atomic orbitals we have.
+  ! Determine how many atomic orbitals we have. Maybe we have to increase this number to more than
+  ! its 'natural' value.
   norbat=0
   ist=0
   do iat=1,at%nat
@@ -119,74 +120,41 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
       norbat=norbat+norbsPerAt(iat)
   end do
 
+  ! Assign the orbitals to the atoms. onWhichAtom(i)=j means that orbital i belongs to atom j.
+  ! onWhichAtom is the 'global' distribution and onWhichAtomp is the one for each MPI process.
   allocate(onWhichAtom(norbat),stat=i_stat)
   call memocc(i_stat, onWhichAtom, 'onWhichAtom', subname)
+  allocate(onWhichAtomp(orbsig%norbp),stat=i_stat)
+  call memocc(i_stat, onWhichAtomp, 'onWhichAtomp', subname)
   ist=0
   do iat=1,at%nat
-      ! Assign the orbitals to the atoms, i.e. onWhichAtom(i)=j means that orbital i belongs
-      ! to atom j.
       do i=1,norbsPerAt(iat)
           onWhichAtom(ist+i)=iat
       end do
       ist=ist+norbsPerAt(iat)
   end do
+  call assignOrbitalsToAtoms(iproc, orbsig, at%nat, norbsPerAt, onWhichAtomp)
 
-
+  ! Create the atomic orbitals in a Gaussian basis.
   nvirt=0
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
        lin%orbs,orbsig,norbsc_arr,locrad,G,psigau,eks)
 
-  !allocate communications arrays for inputguess orbitals
-  !call allocate_comms(nproc,orbsig,commsig,subname)
+  ! Allocate communications arrays for inputguess orbitals.
   call orbitals_communicators(iproc,nproc,Glr,orbsig,commsig)  
-
-  allocate(onWhichAtomp(orbsig%norbp),stat=i_stat)
-  call memocc(i_stat, onWhichAtomp, 'onWhichAtomp', subname)
-
-  call assignOrbitalsToAtoms(iproc, orbsig, at%nat, norbsPerAt, onWhichAtomp)
-  !do iorb=1,orbsig%norbp
-  !    write(*,'(a,3i8)') 'iproc, iorb, onWhichAtom(iorb)', iproc, iorb, onWhichAtomp(iorb)
-  !end do
-
 
   hxh=.5_gp*input%hx
   hyh=.5_gp*input%hy
   hzh=.5_gp*input%hz
 
-  !check the communication distribution
-  !call check_communications(iproc,nproc,orbsig,Glr,commsig)
 
-  !once the wavefunction coefficients are known perform a set 
-  !of nonblocking send-receive operations to calculate overlap matrices
-
-
-  !experimental part for building the localisation regions
-  if (at%geocode == 'F') then
-     !allocate the array of localisation regions
-     allocate(Llr(at%nat+ndebug),stat=i_stat)
-     !call memocc(i_stat,Llr,'Llr',subname)
-
-     !print *,'locrad',locrad
-
-     call determine_locreg(at%nat,rxyz,locrad,input%hx,input%hy,input%hz,Glr,Llr)
-
-     do iat=1,at%nat
-        call deallocate_lr(Llr(iat),subname)
-!!$        call deallocate_wfd(Llr(iat)%wfd,subname)
-!!$        if (Llr(iat)%geocode=='F') then
-!!$           call deallocate_bounds(Llr(iat)%bounds,subname)
-!!$        end if
-     end do
-
-     !i_all=-product(shape(Llr))*kind(Llr)
-     deallocate(Llr,stat=i_stat) !these allocation are special
-     !call memocc(i_stat,i_all,'Llr',subname)
-  end if
-
-  ! Allocate the atomic orbitals.
+  ! Allocate the atomic orbitals chi and hchi (i.e. the Hamiltonian applied to them).
   allocate(chi(orbsig%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,chi,'chi',subname)
+  allocate(hchi(orbsig%npsidim,at%nat),stat=i_stat)
+  call memocc(i_stat,hchi,'hchi',subname)
   chi=0.d0
+  hchi=0.d0
 
   !allocate arrays for the GPU if a card is present
   switchGPUconv=.false.
@@ -208,10 +176,9 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   end if
 
 
-  !use only the part of the arrays for building the hamiltonian matrix
+  ! Transform the Gaussian based orbitals to wavelets.
   call gaussians_to_wavelets_new(iproc,nproc,Glr,orbsig,input%hx,input%hy,input%hz,G,&
        psigau(1,1,min(orbsig%isorb+1,orbsig%norb)),chi)
-
 
 
   i_all=-product(shape(locrad))*kind(locrad)
@@ -219,9 +186,7 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   call memocc(i_stat,i_all,'locrad',subname)
 
   
-  ! Create the potential
-
-  !application of the hamiltonian for gaussian based treatment
+  ! Create the potential.
   call sumrho(iproc,nproc,orbsig,Glr,input%ixc,hxh,hyh,hzh,chi,rhopot,&
        & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,input%nspin,GPU, &
        & at%symObj, irrzon, phnons)
@@ -309,23 +274,22 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
     return 
   end if
 
-  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(hchi(orbsig%npsidim,at%nat),stat=i_stat)
-  call memocc(i_stat,hchi,'hchi',subname)
-  hchi=0.d0
 
   !call dcopy(orbsig%npsidim,psi,1,hpsi,1)
   if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
 
 
-  ! Orthogonalize the atomic basis functions (Loewdin)
+  ! Orthogonalize the atomic basis functions (Loewdin).
   call orthonormalizeAtomicOrbitals(iproc, nproc, orbsig, commsig, Glr, chi)
   
 
-  ! This is not required at teh moment since HamiltonianApplicationConfinement has a different structure.
+  ! Build the potential.
+  ! This is not required at the moment since HamiltonianApplicationConfinement has a different (old) structure.
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
        orbsig%norb,orbsig%norbp,ngatherarr,rhopot,pot)
 
+  ! Apply the Hamiltonian for each atom.
+  ! onWhichAtomTemp indicates indicating that all orbitals feel the potential from atom iat.
   allocate(onWhichAtomTemp(orbsig%norbp), stat=istat)
   call memocc(i_stat,onWhichAtomTemp,'onWhichAtomTemp',subname)
   if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
@@ -340,24 +304,9 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
            chi(1), hchi(1,iat), ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, rxyz, onWhichAtomTemp, pkernel=pkernelseq)
       if(iproc==0) write(*,'(a)') 'done.'
   end do
-  !!call HamiltonianApplicationConfinementForAllLocregs(iproc, nproc, at, orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
-  !!     nlpspd, proj, Glr, ngatherarr, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), rhopot, chi, hchi, &
-  !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, rxyz, onWhichAtom, pkernel=pkernelseq)
 
-  !deallocate potential
+  ! Deallocate potential.
   call free_full_potential(nproc,pot,subname)
-
-
-  ! This does not make sense here...
-  !!accurex=abs(eks-ekin_sum)
-  !!!tolerance for comparing the eigenvalues in the case of degeneracies
-  !!etol=accurex/real(orbsig%norbu,gp)
-  !!if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-  !!if (iproc == 0) then
-  !!   write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-  !!        ekin_sum,epot_sum,eproj_sum
-  !!   write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-  !!endif
 
 
   !free GPU if it is the case
@@ -368,7 +317,7 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   end if
 
 
-
+   ! onWhichAtomPhi indicates on which atom the basis functions phi are centered.
    allocate(onWhichAtomPhi(lin%orbs%norb))
    call memocc(i_stat,onWhichAtomPhi,'onWhichAtomPhi',subname)
    onWhichAtomPhi=0
@@ -376,57 +325,14 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
        onWhichAtomPhi(lin%orbs%isorb+iorb)=lin%onWhichAtom(iorb)
    end do
    call mpiallred(onWhichAtomPhi(1), lin%orbs%norb, mpi_sum, mpi_comm_world, iorb)
-   !do iorb=1,lin%orbs%norb
-   !    if(iproc==0) write(*,*) 'iorb, owap', iorb, onWhichAtomPhi(iorb)
-   !end do
 
+   ! Build a linear combination of atomic orbitals to get a goor input guess for phi.
    call buildLinearCombinations(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
         onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
 
   if(iproc==0) write(*,'(x,a)') '------------------------------------------------------------- Input guess generated.'
 
-  ! This is probably not needed..
-  !!if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
-  !!   !use the eval array of orbsig structure to save the original values
-  !!   allocate(orbsig%eval(lin%orbs%norb*lin%orbs%nkpts+ndebug),stat=i_stat)
-  !!   call memocc(i_stat,orbsig%eval,'orbsig%eval',subname)
-  !!   
-  !!   call dcopy(lin%orbs%norb*lin%orbs%nkpts,lin%orbs%eval(1),1,orbsig%eval(1),1)
 
-  !!   !add a small displacement in the eigenvalues
-  !!   do iorb=1,lin%orbs%norb*lin%orbs%nkpts
-  !!      tt=builtin_rand(idum)
-  !!      lin%orbs%eval(iorb)=lin%orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
-  !!   end do
-
-  !!   !correct the occupation numbers wrt fermi level
-  !!   call evaltoocc(iproc,nproc,.false.,input%Tel,lin%orbs)
-
-  !!   !restore the occupation numbers
-  !!   call dcopy(lin%orbs%norb*lin%orbs%nkpts,orbsig%eval(1),1,lin%orbs%eval(1),1)
-
-  !!   i_all=-product(shape(orbsig%eval))*kind(orbsig%eval)
-  !!   deallocate(orbsig%eval,stat=i_stat)
-  !!   call memocc(i_stat,i_all,'orbsig%eval',subname)
-  !!end if
-
-  call deallocate_comms(commsig,subname)
-
-  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-  deallocate(norbsc_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'norbsc_arr',subname)
-
-  ! This does not make sense here...
-  !!if (iproc == 0) then
-  !!   !gaussian estimation valid only for Free BC
-  !!   if (at%geocode == 'F') then
-  !!      write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
-  !!      write(*,'(1x,a,1pe9.2)') &
-  !!        'expected accuracy in energy per orbital ',accurex/real(lin%orbs%norb,kind=8)
-  !!      !write(*,'(1x,a,1pe9.2)') &
-  !!      !     'suggested value for gnrm_cv ',accurex/real(orbs%norb,kind=8)
-  !!   end if
-  !!endif
 
 
   ! Deallocate all local arrays.
@@ -435,6 +341,12 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   i_all=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=i_stat)
   call memocc(i_stat,i_all,'psigau',subname)
+
+  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+  deallocate(norbsc_arr,stat=i_stat)
+  call memocc(i_stat,i_all,'norbsc_arr',subname)
+
+  call deallocate_comms(commsig,subname)
 
   call deallocate_orbs(orbsig,subname)
 
@@ -580,7 +492,7 @@ real(4):: ttreal
 
     
     ! Initial step size for the optimization
-    alpha=5.d-3
+    alpha=5.d-1
 
     ! Flag which checks convergence.
     converged=.false.
@@ -590,7 +502,7 @@ real(4):: ttreal
     ! The optimization loop.
     iterLoop: do it=1,lin%nItInguess
 
-        if (iproc==0 .and. mod(it,1000)==1) then
+        if (iproc==0 .and. mod(it,1)==0) then
             write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
         endif
 
@@ -651,10 +563,13 @@ real(4):: ttreal
         do iorb=1,orbs%norb
             fnrm=fnrm+dnrm2(orbsig%norb, grad(1,iorb), 1)
         end do
+
+        ! Precondition the gradient.
+        !if(fnrm<1.d0) call preconditionGradient(iproc, nproc, orbsig, orbs, at, Ham, lagMat, onWhichAtomPhi, grad)
     
 
         ! Write some informations to the screen, but only every 1000th iteration.
-        if(iproc==0 .and. mod(it,1000)==1) write(*,'(x,a,es11.2,es22.13,es10.2)') 'fnrm, trace, mean alpha', &
+        if(iproc==0 .and. mod(it,1)==0) write(*,'(x,a,es11.2,es22.13,es10.2)') 'fnrm, trace, mean alpha', &
             fnrm, trace, meanAlpha
         
         ! Check for convergence.
@@ -977,3 +892,87 @@ real(8):: ddot
         call memocc(istat, iall, 'coeffTemp', subname)
 
 end subroutine orthonormalizeCoefficients
+
+
+
+
+subroutine preconditionGradient(iproc, nproc, orbsig, orbs, at, Ham, lagMat, onWhichAtomPhi, grad)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbsig, orbs
+type(atoms_data),intent(in):: at
+real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(in):: Ham
+real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagMat
+integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi
+real(8),dimension(orbsig%norb,orbs%norb),intent(inout):: grad
+
+! Local variables
+integer:: iorb, jorb, korb, iiAt, info, istat, iall
+integer,dimension(:),allocatable:: ipiv
+real(8),dimension(:,:,:),allocatable:: matc
+real(8),dimension(:,:),allocatable:: solc
+character(len=*),parameter:: subname='preconditionGradient'
+real(8):: ddot
+
+
+allocate(ipiv(orbsig%norb), stat=istat)
+call memocc(istat, ipiv, 'ipiv', subname)
+allocate(matc(2,orbsig%norb,orbsig%norb), stat=istat)
+call memocc(istat, matc, 'matc', subname)
+allocate(solc(2,orbsig%norb), stat=istat)
+call memocc(istat, solc, 'solc', subname)
+
+do iorb=1,orbs%norb
+    iiAt=onWhichAtomPhi(iorb)
+    ! Build matrix that has to be inverted
+    do jorb=1,orbsig%norb
+        do korb=1,orbsig%norb
+            matc(1,korb,jorb)=Ham(korb,jorb,iiAt)
+            matc(2,korb,jorb)=0.d0
+        end do
+        !matc(1,jorb,jorb)=matc(1,jorb,jorb)-lagMat(iorb,iorb)
+        matc(1,jorb,jorb)=matc(1,jorb,jorb)+.5d0
+        matc(2,jorb,jorb)=-1.d-2
+        solc(1,jorb)=-grad(jorb,iiAt)
+        solc(2,jorb)=0.d0
+    end do
+    !do jorb=1,orbsig%norb
+    !    mat(jorb,jorb)=mat(jorb,jorb)-lagMat(iorb,iorb)
+    !end do
+    !call dcopy(orbsig%norb, grad(1,iorb), 1, sol(1), 1)
+write(100+iorb,*) ddot(orbsig%norb, grad(1,iorb), 1, grad(1,iorb), 1)
+do iall=1,orbsig%norb
+  write(100+iorb,*) iall, grad(iall,iorb)
+end do
+    !call dgesv(orbsig%norb, 1, mat(1,1), orbsig%norb, ipiv, grad(1,iorb), orbsig%norb, info)
+    call zgesv(orbsig%norb, 1, matc(1,1,1), orbsig%norb, ipiv, solc(1,1), orbsig%norb, info)
+    if(info/=0) then
+        write(*,'(x,a,i0)') 'ERROR in zgesv (subroutine preconditionGradient), infocode=', info
+    end if
+    do jorb=1,orbsig%norb
+        grad(jorb,iiAt)=solc(1,jorb)
+    end do
+    !call dscal(orbsig%norb, -1.d0, grad(1,iorb), 1)
+ write(200+iorb,*) ddot(orbsig%norb, grad(1,iorb), 1, grad(1,iorb), 1)
+ do iall=1,orbsig%norb
+   write(200+iorb,*) iall, grad(iall,iorb)
+ end do
+end do
+
+iall=-product(shape(ipiv))*kind(ipiv)
+deallocate(ipiv, stat=istat)
+call memocc(istat, iall, 'ipiv', subname)
+
+iall=-product(shape(matc))*kind(matc)
+deallocate(matc, stat=istat)
+call memocc(istat, iall, 'matc', subname)
+
+iall=-product(shape(solc))*kind(solc)
+deallocate(solc, stat=istat)
+call memocc(istat, iall, 'solc', subname)
+
+end subroutine preconditionGradient
