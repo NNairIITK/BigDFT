@@ -95,7 +95,8 @@ subroutine getEffectiveFilterSextic(it,parabPrefac,hgrid, x0, eff, filterCode)
 !     ceff   the effective filter for <phi|Op|psi>
 !     eeff   the effective filter for <psi|Op|psi>
 !
-use filterModule2
+!use filterModule2
+use filterModule
 implicit none
 
 ! Calling arguments
