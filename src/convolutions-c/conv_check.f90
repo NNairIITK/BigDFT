@@ -166,15 +166,31 @@ program conv_check
       INTEGER, PARAMETER :: PAPI_VEC_SP        = -2147483543
       INTEGER, PARAMETER :: PAPI_VEC_DP        = -2147483542
 
-  integer, parameter :: event_number = 7
+  integer, parameter :: event_number = 5
   integer, dimension(event_number) :: events
-  data events /PAPI_L1_TCM,PAPI_L2_TCM,PAPI_L3_TCM,PAPI_L2_TCA,PAPI_L3_TCA,&
-               PAPI_TOT_CYC,PAPI_TOT_INS/
+  data events /&
+               PAPI_L3_TCM,&
+!               PAPI_L1_DCM,&
+!               PAPI_L2_TCM,&
+!               PAPI_L3_DCM,&
+               PAPI_L2_DCM,&
+!               PAPI_L2_DCM,&
+               PAPI_L3_TCA,&
+               PAPI_TOT_CYC,&
+               PAPI_TOT_INS&
+                /
   integer(kind=8), dimension(event_number) :: counters
   character(*), parameter, dimension(event_number) :: event_name = (/&
-                'PAPI_L1_TCM','PAPI_L2_TCM','PAPI_L3_TCM',&
-                'PAPI_L2_TCA','PAPI_L3_TCA',&
-                'PAPI_TOT_CYC','PAPI_TOT_INS'/)
+                'PAPI_L3_TCM ',&
+!                'PAPI_L1_DCM ',&
+!                'PAPI_L2_TCM ',&
+!                'PAPI_L3_TCM ',&
+                'PAPI_L2_DCM ',&
+!                'PAPI_L2_DCM ',&
+                'PAPI_L3_TCA ',&
+                'PAPI_TOT_CYC',&
+                'PAPI_TOT_INS'&
+                 /)
  
 !!!  !Use arguments
 !!!  call getarg(1,chain)
@@ -310,12 +326,15 @@ program conv_check
 
            write(*,'(a,i7,i7,i7)')'CPU 3D Simple Transposed Convolutions, dimensions:',n1,n2,n3
 
+           call PAPIF_start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do i=1,ntimes
               call convrot_n_per_3d_simple_transpose(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
            end do
            call nanosec(tsc1);
            !call system_clock(it1,count_rate,count_max)
+
+           call read_print_stop_counters(counters,event_name,event_number,ierror)
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -831,7 +850,6 @@ subroutine convrot_n_per_3d(n1,n2,n3,x,y,tmp)
   integer, parameter :: lowfil=-8,lupfil=7
   integer :: i,j,k,l,m
   real(wp) :: fill,tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8
-  ! the filtered output data structure has grown by the filter length
 
   !          THE MAGIC FILTER FOR DAUBECHIES-16
   real(wp) fil(lowfil:lupfil)

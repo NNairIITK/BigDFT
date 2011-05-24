@@ -418,7 +418,6 @@ void build_kinetic_programs(cl_context * context){
     get_context_devices_infos(context, &infos);
     cl_int ciErrNum=CL_SUCCESS;
     char * code = generate_kinetic_program(&infos);
-    printf("%s",code);
     kineticProgram = clCreateProgramWithSource(*context,1,(const char**) &code, NULL, &ciErrNum);
     free(code);
     oclErrorCheck(ciErrNum,"Failed to create program!");

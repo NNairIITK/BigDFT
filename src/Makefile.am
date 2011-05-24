@@ -39,7 +39,7 @@ endif
 if USE_OCL
 sub_dirs_ocl=OpenCL
 OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
-libs_ocl=OpenCL/libOCL.a
+libs_ocl=OpenCL/libOCL.a -lstdc++
 else
 sub_dirs_ocl=
 OCL_INTERFACE = convolutions/interface_ocl_fake.f90
