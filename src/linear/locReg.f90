@@ -1818,7 +1818,7 @@ subroutine assignToLocreg(iproc, natom, nlr, nspin, Localnorb, orbse)
       end if
 
       ! Switch to the next atom if the number of basis functions for this atom is reached.
-      if(iiOrb==Localnorb(jat)/nspin) then
+      if(iiOrb==Localnorb(jat)) then
           jat=jat+1
           iiOrb=0
       end if

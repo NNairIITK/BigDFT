@@ -383,18 +383,19 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(gp), dimension(noccmax,lmax+1) :: occup
   integer,dimension(:),allocatable:: Localnorb
   real(dp),dimension(:),pointer:: Lpot,Lpsi,Lhpsi
+  real(wp),dimension(:,:,:),allocatable :: Lhamovr,hamovr
+  real(wp),dimension(:,:,:,:,:),allocatable :: work1, work2
   integer :: size_pot,size_Lpot,Gpsidim,norbp
   logical :: exctX
-  integer :: iorb1,iorb2,dim1,dim2,iolr,ldim1,ldim2
-  integer :: ilr2,isovrlp,psidim1,psidim2,psishift1,psishift2
+  integer :: dim1,dim2
+  integer :: ilr2,isovrlp,psidim1,psishift1,psidim2,psishift2
+  integer :: dim_Lhamovr,Lnorbovr
   real(dp) :: factor
   integer,dimension(at%nat) :: projflg
   type(nonlocal_psp_descriptors) :: Lnlpspd
-  type(locreg_descriptors),dimension(:),allocatable :: Olr
-  real(dp),dimension(:),pointer:: Lopsi,Lohpsi
-
-
-
+  integer :: norbi_max,ndim_hamovr
+  integer,dimension(5) :: sizes
+  integer :: lastrow,lastcol,firstrow,firstcol
   nlr = at%nat
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
@@ -449,7 +450,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,outofzone,'outofzone',subname)
 
   ! For now, set locrad by hand HERE
-  locrad = 8.0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
+  locrad = 30.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
   !print *,'locrad',locrad
 
 ! Write some physical information on the Glr
@@ -469,9 +470,9 @@ subroutine input_wf_diag(iproc,nproc,at,&
   npsidim = 0
   do ilr = 1, nlr
      call count_atomic_shells(lmax+1,noccmax,nelecmax,input%nspin,orbse%nspinor,at%aocc(1,ilr),occup,nmoments)
-     norbe=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))*input%nspin 
+     norbe=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
      Localnorb(ilr)=norbe
-     npsidim = npsidim +(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*norbe*orbse%nspinor
+     npsidim = npsidim +(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*norbe*orbse%nspinor*input%nspin
   end do
 !  print *,'orbse%npsidim,npsidim',orbse%npsidim,npsidim
   orbse%npsidim=npsidim
@@ -484,7 +485,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   do ilr=1,orbse%norb
     write(*,*) 'iorb, iwl', ilr, orbse%inWhichLocreg(ilr)
   end do
-
 
  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(Lpsi(npsidim+ndebug),stat=i_stat)
@@ -604,7 +604,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
         call memocc(i_stat,Lpot,'Lpot',subname)
         
         ! replace orbse%norbp by Localnorb for HamiltonianApplication
-        orbse%norbp = Localnorb(ilr)
+        orbse%norbp = Localnorb(ilr)*input%nspin
 
         !determine the dimension of the potential array (copied from full_local_potential)
         if (exctX) then
@@ -627,8 +627,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
         call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
               Lnlpspd,proj,Llr(ilr),ngatherarr,Lpot,&
-              Lpsi(ind:ind+(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbse%nspinor-1),&
-              Lhpsi(ind:ind+(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbse%nspinor-1),&
+              Lpsi(ind:ind+(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbse%nspinor*input%nspin-1),&
+              Lhpsi(ind:ind+(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbse%nspinor*input%nspin-1),&
               ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq,projflg=projflg)
 
         accurex=abs(eks-ekin_sum)
@@ -641,7 +641,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
            write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
         endif   
 
-        ind = ind + (Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbse%nspinor
+        ind = ind + (Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbse%nspinor*input%nspin
 
         ! deallocate Lpot
         call free_full_potential(nproc,Lpot,subname)
@@ -661,109 +661,121 @@ subroutine input_wf_diag(iproc,nproc,at,&
 ! Now the wavefunctions (Lpsi) and the Hamiltonian applied to the wavefunctions (Lhpsi)
 ! are completely constructed. We must now solve the eigensystem by diagonalizating the
 ! Hamiltonian (done by calling DiagHam_linear).
-! In this routine, we begin by calculating the overlap matrix. To do this, we must
-! first determine the intersecting locregs.
+
+    ! number of orbitals, dimension and allocation of Global hamiltonian/overlap matrix
+    norbi_max=max(orbse%norbu,orbse%norbd)
+    ndim_hamovr = norbi_max**2
+    allocate(hamovr(nspin*ndim_hamovr,2,orbse%nkpts+ndebug),stat=i_stat)
+    call memocc(i_stat,hamovr,'hamovr',subname)
+
+    ! put zeros everywhere
+    call razero(nspin*ndim_hamovr*2*orbse%nkpts+ndebug,hamovr)
+
+    ! reshape for easy assignation
+    allocate(work1(norbi_max, norbi_max, nspin,2,orbse%nkpts+ndebug),stat=i_stat)
+    call memocc(i_stat,work1,'work1',subname)
+    sizes = (/ norbi_max, norbi_max, nspin, 2, orbse%nkpts+ndebug /)
+    work1 = reshape(hamovr,sizes)
+
     psishift1 = 1
+    firstrow  = 1
+    lastrow   = 0
+    ! The loop on ilr gives the row indexes, the loop on ilr2 gives the column indexes
     do ilr = 1, nlr
-       psidim1 = (Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbs%nspinor
+       firstcol = 1
+       lastcol  = 0
        psishift2 = 1
-       do ilr2 = 1, nlr
-          print *,'Looking for overlap or regions:',ilr,ilr2
+       lastrow  = lastrow  + Localnorb(ilr)
+       psidim1 = (Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbs%nspinor
+       do ilr2 = 1,nlr
+       
           psidim2 = (Llr(ilr2)%wfd%nvctr_c+7*Llr(ilr2)%wfd%nvctr_f)*Localnorb(ilr2)*orbs%nspinor
-          !Calculate the number of overlap regions between two logregs (can be more then one because
-          ! of periodicity). The number of overlap regions is stored in the isvorlp integer.
+
           call get_number_of_overlap_region(ilr,ilr2,Glr,isovrlp,Llr,nlr,outofzone)
-          
-          if (isovrlp > 0 .and. (ilr .ne. ilr2)) then
-               !allocate the overlap regions (memocc not used because it is a type) 
-               allocate(Olr(isovrlp),stat=i_stat)
 
-               ! assign orbtial to groups (no semi-core)         TO-DO: Semi-core states
-               norbgrp(1,1)=orbs%norbu                      ! up orbitals in first group
-               if (nspin == 2) norbgrp(1,2)=orbs%norbd      ! down orbitals in second group
+          if(isovrlp == 0) cycle
+          ! dimensions and allocation of Local hamiltonian/overlap matrix
+          dim_Lhamovr = Localnorb(ilr) * Localnorb(ilr2)
+          allocate(Lhamovr(nspin*dim_Lhamovr,2,orbse%nkpts+ndebug),stat=i_stat)
+          call memocc(i_stat,Lhamovr,'Lhamovr',subname)
 
-               ! assign dimension of Overlap matrix              
-               ndim_hamovr=(Localnorb(ilr)+Localnorb(ilr2))**2  !TO-DO : Check spins !!
-               ! Now allocate the total overlap matrix for the overlap region [Lohamovr]
-               ! and a temporary overlap matrix [Ahamovr] for each zone (Olr fractured because of periodicity)
-               ! It has dimensions: Lohamovr(npsin*norb**2,2,nkpt). The second dimension is:
-               ! 1: Hamiltonian Matrix =  <Obr(iorb1)|H|Orb(iorb2)>
-               ! 2: Overlap Matrix = <Obr(iorb1)|Orb(iorb2)>
-               allocate(Lohamovr(ndim_hamovr,2,orbsu%nkpts+ndebug),stat=i_stat)
-               call memocc(i_stat,Lohamovr,'Lohamovr',subname)
-               allocate(Ahamovr(ndim_hamovr,2,orbsu%nkpts+ndebug),stat=i_stat)    !temporary
-               call memocc(i_stat,Ahamovr,'Ahamovr',subname)
-             
-               !since Lohamovr is an accumulator
-               call razero(ndim_hamovr*2*orbsu%nkpts+ndebug,Lohamovr)
+       ! In this routine, we begin by calculating the hamiltonian/overlap matrix between two locregs.
+          call overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nlr,nspin,psidim1,psidim2,psishift1,&
+             psishift2,npsidim,orbse,Glr,Llr,Lpsi,Lhpsi,Localnorb,outofzone,dim_Lhamovr,Lhamovr)
 
-               ! Construct the overlap region descriptors
-               call get_overlap_region_periodic(ilr,ilr2,Glr,isovrlp,Llr,nlr,Olr,outofzone)
+       ! update the shift for second wavefunction
+          psishift2 = psishift2 + psidim2*nspin
 
-               ! Third, transform the wavefunction to overlap regions
-               do iolr=1,isovrlp
-                 print *,'Treating overlap region :',iolr
-                 ldim1 = (Olr(iolr)%wfd%nvctr_c+7*Olr(iolr)%wfd%nvctr_f) * Localnorb(ilr) * orbs%nspinor
-                 ldim2 = (Olr(iolr)%wfd%nvctr_c+7*Olr(iolr)%wfd%nvctr_f) * Localnorb(ilr2)* orbs%nspinor
-          
-                 ! Allocate the local wavefunction (in one overlap region)
-                 allocate(Lopsi(ldim1+ldim2+ndebug), stat=i_stat)
-                 call memocc(i_stat,lopsi,'lopsi',subname)
-                 allocate(Lohpsi(ldim1+ldim2+ndebug), stat=i_stat)
-                 call memocc(i_stat,lohpsi,'lohpsi',subname)
-          
-                 ! Project the wavefunctions inside the overlap region (first for Llr(ilr)and second for Llr(ilr2))
-                 orbse%norbp = Localnorb(ilr) 
-                 orbse%npsidim = psidim1                               
-                 call psi_to_locreg(Llr(ilr),iolr,ldim1,Olr(iolr),Lopsi(1:ldim1),isovrlp,orbse,&
-                              Lpsi(psishift1:psishift1+psidim1-1))     
-                 call psi_to_locreg(Llr(ilr),iolr,ldim1,Olr(iolr),Lohpsi(1:ldim1),isovrlp,orbse,&
-                             Lhpsi(psishift1:psishift1+psidim1-1))
-                 !second region
-                 orbse%norbp = Localnorb(ilr2)
-                 orbse%npsidim = psidim2
-                 call psi_to_locreg(Llr(ilr2),iolr,ldim2,Olr(iolr),Lopsi(1+ldim1:ldim1+ldim2),&
-                             isovrlp,orbse,Lpsi(psishift2:psishift2+psidim2-1))
-                 call psi_to_locreg(Llr(ilr2),iolr,ldim2,Olr(iolr),Lohpsi(1+ldim1:ldim1+ldim2),&
-                             isovrlp,orbse,Lhpsi(psishift2:psishift2+psidim2-1))
+       ! reshape the hamiltonian/overlap matrix for easy assignations
+         allocate(work2(Localnorb(ilr),Localnorb(ilr2),nspin,2,orbse%nkpts+ndebug),stat=i_stat)
+         call memocc(i_stat,work2,'work2',subname)
+         sizes = (/ Localnorb(ilr), Localnorb(ilr2), nspin, 2, orbse%nkpts+ndebug /)
+         work2 = reshape(Lhamovr,sizes)
 
-                 ! Now we can build the overlap matrix of the intersection region
-!                 ispsi=1                                                     !TO DO: K-points and parallelization
-!                 do ikptp=1,orbsu%nkptsp
-!                    ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
-!               
-!                    nvctrp=commu%nvctr_par(iproc,ikptp)
-!                    if (nvctrp == 0) cycle
-               
-                    !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
-                    call overlap_matrices(Localnorb(ilr)+Localnorb(ilr2),ldim1+ldim2,at%natsc,nspin,orbs%nspinor,&
-                         & ndim_hamovr,norbgrp,Ahamovr(1,1,1),Lopsi(1),Lohpsi(1))  !Lohamovr(1,1,ikpt),Lopsi(ispsi),Lohpsi(ispsi))
-               
-!                    ispsi=ispsi+nvctrp*norbtot*orbsu%nspinor
-!                 end do
-                  
-                 ! The overlap matrix should be accumulated for each intersection region 
-                   Lohamovr = Lohamovr + Ahamovr                 !TO DO: carefull how we accumulate
-               end do
-          else if (ilr == ilr2) then
-               ! allocate overlap matrix inside the locreg (OnSitehamovr)
-               ndim_hamovr=Localnorb(ilr)**2
-               allocate(OnSitehamovr(ndim_hamovr,2,orbsu%nkpts+ndebug),stat=i_stat)    
-               call memocc(i_stat,OnSitehamovr,'OnSitehamovr',subname)
+       ! Assign the calculated values inside global matrix (for truly O(N) this should be replaced) 
+         lastcol  = lastcol  + Localnorb(ilr2)
+         work1(firstrow:lastrow,firstcol:lastcol,:,:,:) = work2(:,:,:,:,:)
 
-               call overlap_matrices(Localnorb(ilr),ldim1,at%natsc,nspin,orbs%nspinor,ndim_hamovr,norbgrp,&
-                 OnSitehamovr(1,1,1),Lpsi(psishift1:psishift1+psidim1),Lhpsi(psishift1:psishift1+psidim1))
-               
-          end if
-          ! Now we must add all the components to form the whole overlap matrix for locreg(ilr)
-          ! This only includes the orbitals from intersecting locregs(ilr2)
-          psishift2 = psishift2 + psidim2
-       end do
-       ! Now that we have the overlap matrix for locreg(ilr), we can diagonolize the Hamiltonian
-       ! in this locreg. To do this, we need to use the orbitals from the intersecting locregs.
-       !call DiagHam_linear()
-       psishift1 = psishift1 + psidim1
+       ! deallocate this instance of Lhamovr
+          i_all=-product(shape(work2))*kind(work2)
+          deallocate(work2,stat=i_stat)
+          call memocc(i_stat,i_all,'work2',subname) 
+
+          i_all=-product(shape(Lhamovr))*kind(Lhamovr)
+          deallocate(Lhamovr,stat=i_stat)
+          call memocc(i_stat,i_all,'Lhamovr',subname) 
+
+       ! update indexes
+         firstcol = firstcol + Localnorb(ilr2)
+       end do 
+       ! increment the shift of wavefunctions
+       psishift1 = psishift1 + psidim1*input%nspin
+       firstrow = firstrow + Localnorb(ilr)
     end do
+
+    ! reshape back to original shape
+    hamovr = reshape(work1,(/ nspin*ndim_hamovr, 2, orbse%nkpts+ndebug /))
+    i_all=-product(shape(work1))*kind(work1)
+    deallocate(work1,stat=i_stat)
+    call memocc(i_stat,i_all,'work1',subname) 
+
+    print *,'hamovr, ham:',hamovr(:,1,:)
+    print *,'hamovr, ovr:',hamovr(:,2,:)
+
+!    psishift1 = 1
+!    do ilr = 1, nlr
+!       Lnorbovr = 0
+!       do ilr2 = 1,nlr
+!          call get_number_of_overlap_region(ilr,ilr2,Glr,isovrlp,Llr,nlr,outofzone)
+!          if(isovrlp > 0) then
+!            Lnorbovr = Lnorbovr + Localnorb(ilr2)
+!          end if
+!       end do
+!       dim_Lhamovr = nspin * Lnorbovr ** 2
+!       ! Allocate the local Hamiltonian/Overlap matrix
+!       if (.not. allocated(Lhamovr))then
+!          allocate(Lhamovr(dim_Lhamovr,2,orbse%nkpts+ndebug),stat=i_stat)
+!          call memocc(i_stat,Lhamovr,'Lhamovr',subname)
+!       end if
+!       psidim1 = (Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbs%nspinor
+!       ! In this routine, we begin by calculating the overlap matrix for one locreg. To do this, we must
+!       ! first determine the intersecting locregs.
+!       call overlap_matrix_for_locreg(ilr,nlr,nspin,psidim1,psishift1,npsidim,at,orbse,Glr,Llr,Lpsi,&
+!           Lhpsi,Localnorb,Lnorbovr,outofzone,dim_Lhamovr,Lhamovr)
+!
+!       ! Now that we have the overlap matrix for locreg(ilr), we can diagonolize the Hamiltonian
+!       ! in this locreg. To do this, we need to use the orbitals from the intersecting locregs.
+!       !call DiagHam_linear()
+!       psishift1 = psishift1 + psidim1*input%nspin
+!
+!!      i_all=-product(shape(Lhamovr))*kind(Lhamovr)
+!!      deallocate(Lhamovr,stat=i_stat)
+!!      call memocc(i_stat,i_all,'Lhamovr',subname) 
+!    end do
+!
+!    print *, 'Lhamovr,ham:',Lhamovr(:,1,:)
+!    print *, 'Lhamovr,overlap:',Lhamovr(:,2,:)
+
      !call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Llr(ilr)%wfd,comms,&
      !      Lpsi,Lhpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
