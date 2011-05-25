@@ -1,18 +1,20 @@
-!> @file
-!!  Routines to initialize the information about localisation regions
-!! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!****f* BigDFT/createWavefunctionsDescriptors
+!! FUNCTION
+!!   Calculates the descriptor arrays and nvctrp
+!!   Calculates also the bounds arrays needed for convolutions
+!!   Refers this information to the global localisation region descriptor
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2010 bigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
-
-!>   Calculates the descriptor arrays and nvctrp
-!!   Calculates also the bounds arrays needed for convolutions
-!!   Refers this information to the global localisation region descriptor
+!!
+!! SOURCE
+!!
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-     crmult,frmult,Glr,output_grid)
+     crmult,frmult,Glr)
   use module_base
   use module_types
   implicit none
@@ -23,12 +25,10 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(locreg_descriptors), intent(inout) :: Glr
-  logical, intent(in), optional :: output_grid
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-  integer :: i_all,i_stat,i1,i2,i3,iat
+  integer :: i_all,i_stat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  logical :: my_output_grid
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   !assign the dimensions to improve (a little) readability
@@ -121,44 +121,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
           & Glr%wfd%keyv(Glr%wfd%nseg_c+1))
   end if
 
-! Create the file grid.xyz to visualize the grid of functions
-  my_output_grid = .false.
-  if (present(output_grid)) my_output_grid = output_grid
-  if (my_output_grid) then
-     open(unit=22,file='grid.xyz',status='unknown')
-     write(22,*) Glr%wfd%nvctr_c+Glr%wfd%nvctr_f+atoms%nat,' atomic'
-     if (atoms%geocode=='F') then
-        write(22,*)'complete simulation grid with low and high resolution points'
-     else if (atoms%geocode =='S') then
-        write(22,'(a,2x,3(1x,1pe24.17))')'surface',atoms%alat1,atoms%alat2,atoms%alat3
-     else if (atoms%geocode =='P') then
-        write(22,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%alat1,atoms%alat2,atoms%alat3
-     end if
-     do iat=1,atoms%nat
-        write(22,'(a6,2x,3(1x,e12.5),3x)') &
-             trim(atoms%atomnames(atoms%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
-     enddo
-     do i3=0,n3  
-        do i2=0,n2  
-           do i1=0,n1
-              if (logrid_c(i1,i2,i3))&
-                   write(22,'(a4,2x,3(1x,e10.3))') &
-                   '  g ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
-           enddo
-        enddo
-     end do
-     do i3=0,n3 
-        do i2=0,n2 
-           do i1=0,n1
-              if (logrid_f(i1,i2,i3))&
-                   write(22,'(a4,2x,3(1x,e10.3))') &
-                   '  G ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
-           enddo
-        enddo
-     enddo
-     close(22)
-  endif
-
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
   call memocc(i_stat,i_all,'logrid_c',subname)
@@ -215,9 +177,14 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   Glr%geocode=atoms%geocode
 
 END SUBROUTINE createWavefunctionsDescriptors
+!!***
 
 
-!>   Determine localization region for all projectors, but do not yet fill the descriptor arrays
+!!****f* BigDFT/createProjectorsArrays
+!! FUNCTION
+!!   Determine localization region for all projectors, but do not yet fill the descriptor arrays
+!! SOURCE
+!!
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   use module_base
@@ -313,10 +280,14 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   end if
 
 END SUBROUTINE createProjectorsArrays
+!!***
 
-
-!>   input guess wavefunction diagonalization
-subroutine input_wf_diag(iproc,nproc,at,&
+!!****f* BigDFT/input_wf_diag
+!! FUNCTION
+!!   input guess wavefunction diagonalization
+!! SOURCE
+!!
+subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
      nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
@@ -333,6 +304,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer, intent(inout) :: nspin,nvirt
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
+  type(rho_descriptors),intent(in) :: rhodsc
   type(orbitals_data), intent(inout) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: Glr
@@ -353,13 +325,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx
+  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0
   real(kind=4) :: tt,builtin_rand
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(wp), dimension(:), allocatable :: potxc,passmat
+  real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:), pointer :: pot
@@ -463,9 +435,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,i_all,'locrad',subname)
 
   !application of the hamiltonian for gaussian based treatment
-  call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-       & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
-       & symObj, irrzon, phnons)
+  !   write(*,'(A,1X,I2,1X)',advance='no') 'iter:',0
+  call sumrho(iproc,nproc,orbse,&
+       Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
+       symObj, irrzon, phnons,rhodsc)
      
   !-- if spectra calculation uses a energy dependent potential
   !    input_wf_diag will write (to be used in abscalc)
@@ -684,33 +658,18 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call free_gpu_OCL(GPU,orbse,nspin_ig)
   end if
 
-  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
-
-  !nullify psit (will be created in DiagHam)
-  nullify(psit)
 
   !psivirt can be eliminated here, since it will be allocated before davidson
   !with a gaussian basis
 !!$  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
 !!$       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
 
-  !allocate the passage matrix for transforming the LCAO wavefunctions in the IG wavefucntions
-  ncplx=1
-  if (orbs%nspinor > 1) ncplx=2
-  allocate(passmat(ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd)+ndebug),stat=i_stat)
-  call memocc(i_stat,passmat,'passmat',subname)
-  !print '(a,10i5)','iproc,passmat',iproc,ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd),&
-  !     orbs%nspinor,orbs%nkptsp,orbse%norbu,orbse%norbd,orbs%norbu,orbs%norbd
-
   call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
-       psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
+       psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
-  i_all=-product(shape(passmat))*kind(passmat)
-  deallocate(passmat,stat=i_stat)
-  call memocc(i_stat,i_all,'passmat',subname)
-
-  if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
+  if (input%itrpmax > 1) then
      !use the eval array of orbse structure to save the original values
      allocate(orbse%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,orbse%eval,'orbse%eval',subname)
@@ -719,12 +678,18 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
      !add a small displacement in the eigenvalues
      do iorb=1,orbs%norb*orbs%nkpts
+        if (iorb <= orbs%norb) then
+           if (orbs%efermi == -.1_gp .and. orbs%occup(iorb) < 1.0_gp) then
+              orbs%efermi=orbs%eval(iorb)
+           end if
+        end if
         tt=builtin_rand(idum)
-        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+max(input%Tel,1.0e-3_gp)*real(tt,gp))
+        orbs%eval(iorb)=orbs%eval(iorb)*(1.0_gp+input%Tel*real(tt,gp))
+        !use the first k-point to guess fermi energy input
      end do
 
      !correct the occupation numbers wrt fermi level
-     call evaltoocc(iproc,nproc,.false.,input%Tel,orbs)
+     call evaltoocc(iproc,.false.,input%Tel,orbs)
 
      !restore the occupation numbers
      call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
@@ -741,6 +706,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
   if (iproc == 0) then
+     if (verbose > 1) write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
      if (at%geocode == 'F') then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in energy ',accurex
@@ -761,3 +727,4 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call deallocate_orbs(orbse,subname)
      
 END SUBROUTINE input_wf_diag
+!!***

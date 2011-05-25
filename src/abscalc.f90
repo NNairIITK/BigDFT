@@ -1,12 +1,16 @@
-!> @file
-!! Main file for XANES calculation
-!! @author Copyright (C) 2009-2011 ESRF
+!!****p* BigDFT/abscalc_main
+!! FUNCTION
+!!  Main program for XANES calculation (absorption calculation)
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2009-2010 ESRF
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 !!
-!>  Main program for XANES calculation (absorption calculation)
+!! SOURCE
+!!
 program abscalc_main
 
   use module_base
@@ -33,6 +37,7 @@ program abscalc_main
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
+  type(rho_descriptors) :: rhodsc
   integer :: iconfig,nconfig
   logical :: exists
 
@@ -71,9 +76,8 @@ program abscalc_main
      if (iproc==0) call print_logo()
 
      ! Read all input files.
-     !standard names
-     call standard_inputfile_names(inputs)
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
+          & "input.dft", "input.kpt","input.mix","input.geopt", "input.perf", inputs, atoms, rxyz)
 
      !Initialize memory counting
      !call memocc(0,iproc,'count','start')
@@ -101,7 +105,7 @@ program abscalc_main
 
      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
 
-     call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+     call call_abscalc(nproc,iproc,atoms,rxyz,rhodsc,inputs,etot,fxyz,rst,infocode)
 
      if (iproc.eq.0) then
         sumx=0.d0
@@ -150,16 +154,22 @@ program abscalc_main
   call MPI_FINALIZE(ierr)
 
 end program abscalc_main
+!!***
 
 
-!>   Routines to use abscalc as a blackbox
- subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
+!!****f* BigDFT/call_abscalc
+!! FUNCTION
+!!   Routines to use abscalc as a blackbox
+!! SOURCE
+!!
+ subroutine call_abscalc(nproc,iproc,atoms,rxyz,rhodsc,in,energy,fxyz,rst,infocode)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
+  type(rho_descriptors),intent(in) :: rhodsc
   type(restart_objects), intent(inout) :: rst
   integer, intent(inout) :: infocode
   real(gp), intent(out) :: energy
@@ -172,13 +182,14 @@ end program abscalc_main
 
   !temporary interface
   interface
-     subroutine abscalc(nproc,iproc,atoms,rxyz,&
+     subroutine abscalc(nproc,iproc,atoms,rxyz,rhodsc,&
           psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: nproc,iproc
        integer, intent(out) :: infocode
+       type(rho_descriptors),intent(in) :: rhodsc
        real(gp), intent(inout) :: hx_old,hy_old,hz_old
        type(input_variables), intent(in) :: in
        type(locreg_descriptors), intent(inout) :: Glr
@@ -217,7 +228,7 @@ end program abscalc_main
 
         stop 'ERROR'
      else
-        call abscalc(nproc,iproc,atoms,rxyz,&
+        call abscalc(nproc,iproc,atoms,rxyz,rhodsc,&
              rst%psi,rst%Glr,rst%orbs,&
              rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
         fxyz(:,:) = 0.d0
@@ -277,26 +288,28 @@ end program abscalc_main
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
 END SUBROUTINE call_abscalc
+!!***
 
 
-!>   Absorption (XANES) calculation
-!!   @param inputPsiId = 
-!!          - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
-!!          - 1 : read waves from argument psi, using n1, n2, n3, hgrid
-!!                as definition of the previous system.
-!!          - 2 : read waves from disk
-!!                does an electronic structure calculation. Output is the total energy and the forces 
-!!   @param psi, keyg, keyv and eval should be freed after use outside of the routine.
-!!   @param infocode -> encloses some information about the status of the run
-!!          - 0 run succesfully succeded
-!!          - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+!!****f* BigDFT/abscalc
+!! FUNCTION
+!!   inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
+!!   inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid
+!!                    as definition of the previous system.
+!!   inputPsiId = 2 : read waves from disk
+!!   does an electronic structure calculation. Output is the total energy and the forces 
+!!   psi, keyg, keyv and eval should be freed after use outside of the routine.
+!!   infocode -> encloses some information about the status of the run
+!!            =0 run succesfully succeded
+!!            =1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
 !!               forces may be meaningless   
-!!          - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+!!            =2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
 !!               the second iteration OR grnm 1st >2.
 !!               Input wavefunctions need to be recalculated. Routine exits.
-!!          - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
+!!            =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
+!! SOURCE
 !!
-subroutine abscalc(nproc,iproc,atoms,rxyz,&
+subroutine abscalc(nproc,iproc,atoms,rxyz,rhodsc,&
      psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
@@ -309,6 +322,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
   type(input_variables), intent(in) :: in
+  type(rho_descriptors),intent(in) :: rhodsc
   type(locreg_descriptors), intent(inout) :: Glr
   type(atoms_data), intent(inout) :: atoms
   type(orbitals_data), intent(inout) :: orbs
@@ -401,7 +415,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer, parameter :: noccmax=2
 
 
-  if (in%potshortcut==0) then
+
+  if (  in%potshortcut==0) then
      if(nproc>1) call MPI_Finalize(ierr)
      stop '   in%potshortcut==0 calculating spectra. Use rather box2Box option      '
   endif
@@ -498,9 +513,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation
   if (iproc==0 .and. verbose > 0) then
-     call MemoryEstimator(nproc,idsx,Glr,&
-          atoms%nat,orbs%norb,orbs%nspinor,orbs%nkpts,nlpspd%nprojel,&
-          in%nspin,in%itrpmax,in%iscf,peakmem)
+     call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,&
+          atoms%alat1,atoms%alat2,atoms%alat3,&
+          hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,&
+          orbs%norb,orbs%nkpts,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
   end if
 
 
@@ -576,11 +592,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      allocate(rhoXanes(1,1,1,1+ndebug),stat=i_stat)
      call memocc(i_stat,rhoXanes,'rhoXanes',subname)     
   endif
-  
+
+
 
   nullify(rhocore)
   !check the communication distribution
   !call check_communications(iproc,nproc,orbs,Glr,comms)
+
+
 
 
   if( iand( in%potshortcut,4)  .gt. 0 ) then
@@ -661,7 +680,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      endif
 
 
-     call input_wf_diag(iproc,nproc,atoms_clone,&
+     call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
@@ -702,6 +721,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      deallocate(phnons,stat=i_stat)
      call memocc(i_stat,i_all,'phnons',subname)
      
+     
+
+
+
      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
      deallocate(atoms_clone%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
@@ -709,7 +732,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      deallocate(atoms_clone%iasctype,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
 
+
+
   endif
+
 
 
   if( iand( in%potshortcut,1)  .gt. 0 ) then
@@ -725,7 +751,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call memocc(i_stat,phnons,'phnons',subname)
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc,atoms,&
+     call input_wf_diag(iproc,nproc,atoms,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)
@@ -769,8 +795,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 !!$
 !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
-     if (in%output_grid == OUTPUT_GRID_DENSPOT) then
-        if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
+     if (abs(in%output_grid)==2) then
+        if (in%output_grid==2) then
           if (iproc == 0) write(*,*) 'writing local_potential.pot'
            call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -920,7 +946,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               enddo
            enddo
 
-           print '(a,i6,a,3(1x,f18.14))',"for replica ", ireplica,  "SHIFT " , shift_b2B
+           print *,"for replica ", ireplica,  "SHIFT " , shift_b2B
+
+
 
            rhopottmp=0.0_gp
            do iz_bB = 1,n3i_bB
@@ -1410,3 +1438,5 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE abscalc
+!!***
+
