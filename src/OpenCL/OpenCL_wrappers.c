@@ -12,9 +12,9 @@
 #include "OpenCL_wrappers.h"
 
 
-void FC_FUNC_(rdtsc,RDTSC)(cl_ulong * t){
-  rdtscll(*t);
-}
+//void FC_FUNC_(rdtsc,RDTSC)(cl_ulong * t){
+//  rdtscll(*t);
+//}
 void FC_FUNC_(nanosec,NANOSEC)(cl_ulong * t){
   struct timespec time;
   clock_gettime(CLOCK_REALTIME, &time);

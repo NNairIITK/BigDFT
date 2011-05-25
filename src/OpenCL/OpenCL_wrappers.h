@@ -6,7 +6,7 @@
 #include <config.h>
 #include <math.h>
 #include <assert.h>
-#include <Tool.h>
+//#include <Tool.h>
 #include <time.h>
 
 /** @file OpenCL_wrappers.h
