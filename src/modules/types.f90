@@ -397,7 +397,7 @@ module module_types
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder
-    integer:: nItInguess, nlr
+    integer:: nItInguess, nlr, nLocregOverlap
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix
     real(8),dimension(:),pointer:: potentialPrefac, locrad
     type(orbitals_data):: orbs, Lorbs
@@ -407,7 +407,7 @@ module module_types
     type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
     integer,dimension(:),pointer:: onWhichAtom, norbsPerType
     integer,dimension(:),pointer:: MPIComms, norbPerComm
-    integer,dimension(:,:),pointer:: procsInComm, outofzone
+    integer,dimension(:,:),pointer:: procsInComm, outofzone, LocregOverlap
     integer:: ncomms
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions

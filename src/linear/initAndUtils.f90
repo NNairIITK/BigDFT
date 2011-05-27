@@ -44,13 +44,14 @@ real(8),dimension(:,:),allocatable,intent(out):: coeff, coeffd
 
 ! Local variables
 integer:: jproc, istat, iorb, jorb, ierr, iat, ityp, iall, norb_tot
-integer:: norb, norbu, norbd, ilr, npsidim
+integer:: norb, norbu, norbd, ilr, jlr, npsidim, nlocregOverlap, ist
 integer,dimension(:),allocatable:: norbsPerType, norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20):: atomname
 character(len=20),dimension(:),allocatable:: atomNames
 logical:: written, fileExists
 real(8),dimension(:),pointer:: phiWork
+real(8):: tt
 real :: ttreal
 ! new
 real(gp),dimension(:),allocatable:: locrad
@@ -224,6 +225,30 @@ call memocc(istat,lin%locrad,'lin%locrad',subname)
 lin%locrad = 6.d0
 do ilr=1,lin%nlr
     if(iproc==0) write(*,'(x,a,i5,es13.3)') 'ilr, lin%locrad(ilr)', ilr, lin%locrad(ilr)
+end do
+
+! Determine the number of localization regions with which the current localization region overlaps.
+allocate(lin%locregOverlap(lin%nlr+1,lin%nlr), stat=istat)
+call memocc(istat, lin%locregOverlap,'lin%locregOverlap',subname)
+lin%locregOverlap=0
+! The meaning is the following:
+! lin%loclegOverlap(ilr,1) gives the number of overlap regions for the region ilr
+! lin%loclegOverlap(ilr,2:ii) gives the indices of the ii overlaping regions (ii is in%loclegOverlap(ilr,1))
+! For large systems this will be a waste of memory if it is allocated like this!
+do ilr=1,lin%nlr
+    ist=1
+    nLocregOverlap=0
+    do jlr=1,lin%nlr
+        tt = (rxyz(1,ilr)-rxyz(1,jlr))**2 + (rxyz(2,ilr)-rxyz(2,jlr))**2 + (rxyz(3,ilr)-rxyz(3,jlr))**2
+        tt = sqrt(tt)
+        if(tt <= lin%locrad(ilr)) then
+            ist=ist+1
+            lin%locregOverlap(ilr,ist)=jlr
+            nLocregOverlap=nLocregOverlap+1
+        end if
+    end do
+    lin%locregOverlap(ilr,1)=nLocregOverlap
+    if(iproc==0) write(*,'(a,i5,2x,i5,3x100i6)') 'ilr, nLocregOverlap, locregOverlap', ilr, lin%locregOverlap(ilr,1), lin%locregOverlap(ilr,2:lin%locregOverlap(ilr,1)+1)
 end do
 
 ! Write some physical information on the Glr

@@ -119,17 +119,17 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   if (scpot) then
      ! Potential from electronic charge density
      ! THIS WAS THE ORIGINAL
-     !call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
-     !     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
-     call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, atoms, rxyz)
+     call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
+          Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+     !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, atoms, rxyz)
      !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1), rhopot)
      !call sumrhoLinear(iproc, nproc, lin%nlr, lin%Lorbs, Glr, lin%Llr, in%ixc, hxh, hyh, hzh, phi, rhopot, &
      !     Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1), nscatterarr, in%nspin, GPU, atoms%symObj, irrzon, &
      !     phnons, orbs%norb, coeff)
-do iall=1,size(rhopot)
-    write(500,*) rhopot(iall)
-end do
-stop
+!do iall=1,size(rhopot)
+!    write(500,*) rhopot(iall)
+!end do
+!stop
 
      !call sumrhoLinear(iproc,nproc,nlr,lin%orbs,Glr,Llr,in%ixc,hxh,hyh,hzh,&
      !  psi,rhopot,&
