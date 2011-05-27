@@ -186,10 +186,9 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   ! allocate arrays necessary for DIIS convergence acceleration
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
-  if (in%idsx > 0) then
-     call allocate_diis_objects(in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp,diis,subname)  
-     !print *,'check',in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp
-  endif
+  call allocate_diis_objects(in%idsx,in%alphadiis,sum(commsv%ncntt(0:nproc-1)),&
+       orbsv%nkptsp,orbsv%nspinor,orbsv%norbd,diis,subname)  
+  !print *,'check',in%idsx,sum(commsv%ncntt(0:nproc-1)),orbsv%nkptsp
 
   energy=1.d10
   gnrm=1.d10
@@ -198,20 +197,10 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   epot_sum=0.d0 
   eproj_sum=0.d0
 
-  !diis initialisation variables
-  diis%alpha=in%alphadiis
-  diis%alpha_max=in%alphadiis
-  diis%energy=1.d10
-  !minimum value of the energy during the minimisation procedure
-  diis%energy_min=1.d10
-  !local variable for the diis history
-  diis%idsx=in%idsx
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
   idsx_actual_before=diis%idsx
-  !logical control variable for switch DIIS-SD
-  diis%switchSD=.false.
 
   wfn_loop: do iter=1,in%itermax+100
 
@@ -293,9 +282,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call memocc(i_stat,i_all,'psirocc',subname)
   end if
 
-  if (in%idsx > 0) then
-     call deallocate_diis_objects(diis,subname)
-  end if
+  call deallocate_diis_objects(diis,subname)
 
   !this deallocates also hpsivirt and psitvirt
   call last_orthon(iproc,nproc,orbsv,lr%wfd,in%nspin,&

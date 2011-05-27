@@ -1158,6 +1158,24 @@ module module_interfaces
       real(gp), intent(out) :: gnrm,gnrm_zero,energy
       real(wp), dimension(:), pointer :: psi,psit,hpsi
     end subroutine calculate_energy_and_gradient
+
+    subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,orthpar,hx,hy,hz,ncong,iscf,&
+         energs,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+      use module_base
+      use module_types
+      !use module_interfaces!, except_this_one => calculate_energy_and_gradient_new
+      implicit none
+      integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+      real(gp), intent(in) :: hx,hy,hz
+      type(orbitals_data), intent(inout) :: orbs
+      type(communications_arrays), intent(in) :: comms
+      type(locreg_descriptors), intent(in) :: lr
+      type(GPU_pointers), intent(in) :: GPU
+      type(orthon_data), intent(in) :: orthpar
+      type(energy_terms), intent(inout) :: energs
+      real(gp), intent(out) :: gnrm,gnrm_zero,energy
+      real(wp), dimension(:), pointer :: psi,psit,hpsi
+    end subroutine calculate_energy_and_gradient_new
     
   end interface
 

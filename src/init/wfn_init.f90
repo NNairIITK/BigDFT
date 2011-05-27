@@ -410,7 +410,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      ndim_hamovr=2*ndim_hamovr
   end if
 
-
   allocate(hamovr(nspin*ndim_hamovr,2,orbsu%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,hamovr,'hamovr',subname)
 
@@ -571,14 +570,14 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      deallocate(psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
   else if (nproc == 1) then
-     !reverse objects for the normal diagonalisation in serial
-     !at this stage hpsi is the eigenvectors and psi is the old wavefunction
-     !this will restore the correct identification
-     nullify(hpsi)
-     hpsi => psi
-     !     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
-     nullify(psi)
-     psi => psit
+!!$     !reverse objects for the normal diagonalisation in serial
+!!$     !at this stage hpsi is the eigenvectors and psi is the old wavefunction
+!!$     !this will restore the correct identification
+!!$     nullify(hpsi)
+!!$     hpsi => psi
+!!$     !     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
+!!$     nullify(psi)
+!!$     psi => psit
   end if
 
   !orthogonalise the orbitals in the case of semi-core atoms
@@ -602,7 +601,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   call untranspose_v(iproc,nproc,orbs,wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
 
-  if (nproc == 1) then
+  if (nproc == 1 .and. minimal) then
      nullify(psit)
   end if
 
@@ -618,7 +617,7 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
   real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
   real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
   !local variables
-  integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx
+  integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx,iorb,jorb
 !  integer :: iorb, jorb, icplx
 
   !WARNING: here nspin=1 for nspinor=4
@@ -669,6 +668,17 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
 !        close(17)
 !        close(18)
 !!$        stop
+
+!!$        !print out the passage matrix (valid for one k-point only and ncplx=1)
+!!$        print *,'HAMILTONIAN' 
+!!$        do iorb=1,norbi
+!!$           write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),1),jorb=1,norbi)
+!!$        end do
+!!$        print *,'OVERLAP' 
+!!$        do iorb=1,norbi
+!!$           write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),2),jorb=1,norbi)
+!!$        end do
+
         iorbst=iorbst+norbi
         imatrst=imatrst+ncplx*norbi**2
      end do

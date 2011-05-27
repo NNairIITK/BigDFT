@@ -125,9 +125,8 @@ program oneatom
   ! allocate arrays necessary for DIIS convergence acceleration
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
-  if (in%idsx > 0) then
-     call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)  
-  endif
+  call allocate_diis_objects(in%idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
+       orbs%nkptsp,orbs%nspinor,orbs%norbd,diis,subname)  
 
   !write the local potential in pot_ion array
   call createPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
@@ -178,14 +177,11 @@ program oneatom
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
-  !minimum value of the energy during the minimisation procedure
-  energy_min=1.d10
-  !local variable for the diis history
-  idsx_actual=in%idsx
+
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
-  idsx_actual_before=idsx_actual
+  idsx_actual_before=diis%idsx
 
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
@@ -260,9 +256,7 @@ program oneatom
   call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
        comms,psi,hpsi,psit,evsum)
   
-  if (in%idsx > 0) then
-     call deallocate_diis_objects(diis,subname)
-  end if
+  call deallocate_diis_objects(diis,subname)
 
   if (nproc > 1) then
      i_all=-product(shape(psit))*kind(psit)
