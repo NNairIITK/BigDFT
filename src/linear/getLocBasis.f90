@@ -1,4 +1,4 @@
-subroutine getLinearPsi(iproc, nproc, nspin, nlr, LLr, Glr, orbs, comms, at, lin, lind, rxyz, rxyzParab, &
+subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
     i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd)
@@ -61,8 +61,7 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nspin, nlr, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
-type(locreg_descriptors),dimension(nlr),intent(in):: LLr
+integer,intent(in):: iproc, nproc, nspin, n3p, n3pi, n3d, i3s, i3xcsh, itSCC
 type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in) :: orbs
 type(communications_arrays),intent(in) :: comms
@@ -150,7 +149,7 @@ real(8):: tt1, tt2
 
   if(updatePhi) then
   ! Optimize the localized basis functions by minimizing the trace of <phi|H|phi>.
-      call getLocalizedBasis(iproc, nproc, nlr, Llr, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
+      call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
           nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trace, rxyzParab, &
           itSCC, lastAlpha, infoBasisFunctions)
   end if
@@ -202,6 +201,13 @@ real(8):: tt1, tt2
           ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H|phi_l>
           ! for the given basis functions.
           call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
+         !do iorb=1,orbs%norb
+         !    do jorb=1,lin%orbs%norb
+         !        if(iproc==0) write(100+iorb,*) jorb, coeff(jorb,iorb)
+         !    end do
+         !end do
+         !call mpi_barrier(mpi_comm_world, ierr)
+         !stop
       else
           if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
           !allocate the potential in the full box
@@ -497,7 +503,7 @@ end subroutine getLinearPsi
 
 
 
-subroutine getLocalizedBasis(iproc, nproc, nlr, Llr, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trH, rxyzParabola, &
     itScc, lastAlpha, infoBasisFunctions)
 !
@@ -555,8 +561,7 @@ use module_interfaces, except_this_one => getLocalizedBasis
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, nlr, infoBasisFunctions, itSCC
-type(locreg_descriptors),dimension(nlr),intent(in):: LLr
+integer:: iproc, nproc, infoBasisFunctions, itSCC
 type(atoms_data), intent(in) :: at
 type(orbitals_data):: orbs
 type(locreg_descriptors), intent(in) :: Glr
@@ -622,7 +627,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   alphaDIIS=lin%alphaDIIS
   adapt=.false.
 
-  ! Untranspose phi
+  ! Transpose phi
   call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
 
   if(itSCC==1) then

@@ -397,16 +397,17 @@ module module_types
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder
-    integer:: nItInguess
+    integer:: nItInguess, nlr
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix
-    real(8),dimension(:),pointer:: potentialPrefac
-    type(orbitals_data):: orbs
-    type(communications_arrays):: comms
+    real(8),dimension(:),pointer:: potentialPrefac, locrad
+    type(orbitals_data):: orbs, Lorbs
+    type(communications_arrays):: comms, Lcomms
     type(locreg_descriptors):: lr
+    type(locreg_descriptors),dimension(:),pointer:: Llr
     type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
     integer,dimension(:),pointer:: onWhichAtom, norbsPerType
     integer,dimension(:),pointer:: MPIComms, norbPerComm
-    integer,dimension(:,:),pointer:: procsInComm
+    integer,dimension(:,:),pointer:: procsInComm, outofzone
     integer:: ncomms
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions

@@ -1,6 +1,6 @@
-subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, nlr, Llr, Glr, orbs, atoms, in, lin, phi, psi, rxyz, rxyzParab, &
+subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, lind, phi, phid, psi, rxyz, rxyzParab, &
     rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy)
 !
 ! Purpose:
 ! ========
@@ -59,14 +59,14 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, nlr, n3d, n3p
-type(locreg_descriptors),dimension(nlr),intent(in):: LLr
+integer:: iproc, nproc, n3d, n3p
 type(locreg_descriptors) :: Glr
 type(orbitals_data):: orbs
 type(atoms_data):: atoms
 type(input_variables):: in
-type(linearParameters):: lin
+type(linearParameters):: lin, lind
 real(8),dimension(lin%orbs%npsidim):: phi
+real(8),dimension(lind%orbs%npsidim):: phid
 real(8),dimension(orbs%npsidim):: psi
 real(dp), dimension(lin%as%size_rhopot) :: rhopot
 integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -87,6 +87,7 @@ real(8),dimension(3,atoms%nat),intent(in):: rxyz
 real(8),dimension(3,atoms%nat),intent(in):: rxyzParab
 real(gp):: eion, edisp, eexctX, energy
 real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
+real(8),dimension(lind%orbs%norb,orbs%norb):: coeffd
 real(8):: ebsMod
 logical:: scpot
 
@@ -96,7 +97,7 @@ real(8):: energyMod2, ehartMod
 real(wp), dimension(:), pointer :: potential
 real(8),dimension(:),allocatable:: hpsi, hphi
 real(8),dimension(:,:,:),allocatable:: matrixElements
-integer:: istat, iall, infoCoeff
+integer:: istat, iall, infoCoeff, ilr
 character(len=*),parameter:: subname='potentialAndEnergy'
 
 
@@ -117,8 +118,19 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   !calculate the self-consistent potential
   if (scpot) then
      ! Potential from electronic charge density
-     call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
-          Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+     ! THIS WAS THE ORIGINAL
+     !call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
+     !     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+     call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, atoms, rxyz)
+     !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1), rhopot)
+     !call sumrhoLinear(iproc, nproc, lin%nlr, lin%Lorbs, Glr, lin%Llr, in%ixc, hxh, hyh, hzh, phi, rhopot, &
+     !     Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1), nscatterarr, in%nspin, GPU, atoms%symObj, irrzon, &
+     !     phnons, orbs%norb, coeff)
+do iall=1,size(rhopot)
+    write(500,*) rhopot(iall)
+end do
+stop
+
      !call sumrhoLinear(iproc,nproc,nlr,lin%orbs,Glr,Llr,in%ixc,hxh,hyh,hzh,&
      !  psi,rhopot,&
      !  & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,in%nspin,GPU, &

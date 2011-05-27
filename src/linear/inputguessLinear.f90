@@ -57,6 +57,7 @@ real(8),dimension(:),allocatable:: chi
 real(8),dimension(:,:),allocatable:: hchi
 integer,dimension(:),allocatable:: onWhichAtom, onWhichAtomp, norbsPerAt, onWhichAtomTemp, onWhichAtomPhi
 integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+
 integer, dimension(lmax+1) :: nl
 real(gp), dimension(noccmax,lmax+1) :: occup
 real(8):: dnrm2, ddot, dasum
@@ -124,8 +125,10 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   ! onWhichAtom is the 'global' distribution and onWhichAtomp is the one for each MPI process.
   allocate(onWhichAtom(norbat),stat=i_stat)
   call memocc(i_stat, onWhichAtom, 'onWhichAtom', subname)
-  allocate(onWhichAtomp(orbsig%norbp),stat=i_stat)
-  call memocc(i_stat, onWhichAtomp, 'onWhichAtomp', subname)
+
+  ! This allocate is garbage (orbsig%norbp is not defined yet!) Anyway this array is not needed...
+  !!allocate(onWhichAtomp(orbsig%norbp),stat=i_stat)
+  !!call memocc(i_stat, onWhichAtomp, 'onWhichAtomp', subname)
   ist=0
   do iat=1,at%nat
       do i=1,norbsPerAt(iat)
@@ -133,7 +136,7 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
       end do
       ist=ist+norbsPerAt(iat)
   end do
-  call assignOrbitalsToAtoms(iproc, orbsig, at%nat, norbsPerAt, onWhichAtomp)
+  !!call assignOrbitalsToAtoms(iproc, orbsig, at%nat, norbsPerAt, onWhichAtomp)
 
   ! Create the atomic orbitals in a Gaussian basis.
   nvirt=0
@@ -358,9 +361,9 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   deallocate(onWhichAtomPhi, stat=i_stat)
   call memocc(i_stat, i_all, 'onWhichAtomPhi',subname)
 
-  i_all=-product(shape(onWhichAtomp))*kind(onWhichAtomp)
-  deallocate(onWhichAtomp, stat=i_stat)
-  call memocc(i_stat, i_all, 'onWhichAtomp',subname)
+  !!i_all=-product(shape(onWhichAtomp))*kind(onWhichAtomp)
+  !!deallocate(onWhichAtomp, stat=i_stat)
+  !!call memocc(i_stat, i_all, 'onWhichAtomp',subname)
 
   i_all=-product(shape(onWhichAtomTemp))*kind(onWhichAtomTemp)
   deallocate(onWhichAtomTemp, stat=i_stat)
@@ -600,6 +603,11 @@ real(4):: ttreal
 
 
     if(iproc==0) write(*,'(x,a)') '===================================================================================='
+    do iorb=1,orbs%norb
+        do jorb=1,orbsig%norb
+            write(999,'(2i8,es20.12)') iorb, jorb, coeff(jorb,iorb)
+        end do
+    end do
 
 end if processIf
 

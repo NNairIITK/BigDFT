@@ -885,9 +885,6 @@ character(len=*),parameter:: subname='orbitalsCommunicatorsWithGroups'
 END SUBROUTINE orbitalsCommunicatorsWithGroups
 
 
-
-
-
 !determine a set of localisation regions from the centers and the radii.
 !cut in cubes the global reference system
 subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outofzone)
@@ -909,13 +906,15 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outo
   integer :: ii !tests
   real(gp) :: rx,ry,rz,cutoff  
 
-  if(iproc==0) write(*,*)'Inside determine_locreg2:'
+  !write(*,*)'Inside determine_locreg2:'
 
   !initialize out of zone
   outofzone (:,:) = 0     
   
   !determine the limits of the different localisation regions
   do ilr=1,nlr
+
+     if(iproc==0) write(*,'(x,a,i0)') '>>>>>>>>>>>> zone ', ilr
 
      rx=cxyz(1,ilr)
      ry=cxyz(2,ilr)
@@ -937,22 +936,22 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outo
 
      ! First check if localization region fits inside box
      if (iex - isx >= Glr%d%n1 - 14) then
-        if(iproc==0) write(*,'(x,a,es11.3,a,i0)')'Width of direction x :',(iex - isx)*hx,' of localization region:',ilr
-        if(iproc==0) write(*,'(x,a,es11.3)')'is close or exceeds to the width of the simulation box:',Glr%d%n1*hx,'.'
+        if(iproc==0) write(*,'(x,a,es11.4,a,i0)')'Width of direction x :',(iex - isx)*hx,' of localization region: ',ilr
+        if(iproc==0) write(*,'(3x,a,es11.4,a)')'is close to or exceeds the width of the simulation box:',Glr%d%n1*hx,'.'
         if(iproc==0) write(*,'(x,a)')'Increasing the simulation box is recommended. The code will use the box limits'
-        if(iproc==0) write(*,'(x,a)')'of the simulation box.'
+        if(iproc==0) write(*,'(3x,a)')'of the simulation box.'
      end if
      if (iey - isy >= Glr%d%n2 - 14) then
-        if(iproc==0) write(*,'(x,a,es11.3,a,i0)')'Width of direction y :',(iey - isy)*hy,' of localization region:',ilr
-        if(iproc==0) write(*,'(x,a,es11.3)')'is close or exceeds to the width of the simulation box:',Glr%d%n2*hy,'.'
+        if(iproc==0) write(*,'(x,a,es11.4,a,i0)')'Width of direction y :',(iey - isy)*hy,' of localization region: ',ilr
+        if(iproc==0) write(*,'(3x,a,es11.4,a)')'is close to or exceeds the width of the simulation box:',Glr%d%n2*hy,'.'
         if(iproc==0) write(*,'(x,a)')'Increasing the simulation box is recommended. The code will use the width'
-        if(iproc==0) write(*,'(x,a)')'of the simulation box.'
+        if(iproc==0) write(*,'(3x,a)')'of the simulation box.'
      end if
      if (iez - isz >= Glr%d%n3 - 14) then
-        if(iproc==0) write(*,'(x,a,es11.3,a,i0)')'Width of direction z :',(iez - isz)*hz,' of localization region:',ilr
-        if(iproc==0) write(*,'(x,a,es11.3)')'is close or exceeds to the width of the simulation box:',Glr%d%n3*hz,'.'
+        if(iproc==0) write(*,'(x,a,es11.4,a,i0)')'Width of direction z :',(iez - isz)*hz,' of localization region: ',ilr
+        if(iproc==0) write(*,'(3x,a,es11.4,a)')'is close to or exceeds the width of the simulation box:',Glr%d%n3*hz,'.'
         if(iproc==0) write(*,'(x,a)')'Increasing the simulation box is recommended. The code will use the width'
-        if(iproc==0) write(*,'(x,a)')'of the simulation box.'
+        if(iproc==0) write(*,'(3x,a)')'of the simulation box.'
      end if 
 
      ! Localization regions should always have free boundary conditions
@@ -962,10 +961,12 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outo
      ! geometries
      select case(Glr%geocode)
      case('F')
+write(*,'(a,3i8)') 'before: isx, isy, isz', isx, isy, isz
         isx=max(isx,Glr%ns1)
         isy=max(isy,Glr%ns2)
         isz=max(isz,Glr%ns3)
 
+write(*,'(a,3i8)') 'before: iex, iey, iez', iex, iey, iez
         iex=min(iex,Glr%ns1+Glr%d%n1)
         iey=min(iey,Glr%ns2+Glr%d%n2)
         iez=min(iez,Glr%ns3+Glr%d%n3)
@@ -1063,14 +1064,14 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outo
      Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
 
 !DEBUG
-     if(iproc==0) write(*,*)'Description of zone:',ilr
-     if(iproc==0) write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
-     if(iproc==0) write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
-     if(iproc==0) write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
-     if(iproc==0) write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
-     if(iproc==0) write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
-     if(iproc==0) write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
-     if(iproc==0) write(*,*)'outofzone',ilr,':',outofzone(:,ilr)
+     if(iproc==0) write(*,'(x,a,i0)')'Description of zone:',ilr
+     if(iproc==0) write(*,'(x,a,3(3x,i0))')'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
+     if(iproc==0) write(*,'(x,a,3(3x,i0))')'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
+     if(iproc==0) write(*,'(x,a,3(3x,i0))')'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
+     if(iproc==0) write(*,'(x,a,3(3x,i0))')'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
+     if(iproc==0) write(*,'(x,a,3(3x,i0))')'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
+     if(iproc==0) write(*,'(x,a,3(3x,i0))')'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
+     if(iproc==0) write(*,'(x,a,i0,a,3i5)')'outofzone',ilr,':',outofzone(:,ilr)
 !DEBUG
 
     ! construct the wavefunction descriptors (wfd)
@@ -1089,7 +1090,8 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outo
              Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
              Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
      end if
-     if(iproc==0) print *,'Outside locreg_bounds'
+     !print *,'Outside locreg_bounds'
+     if(iproc==0) write(*,'(x,a)') '-----------------------------------------------------------------------------'
   end do !on ilr
 
   !after all localisation regions are determined draw them
@@ -1453,9 +1455,9 @@ subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr,outofzone)
      if(outofzone(ii,blr) > 0) bzones = bzones * 2
   end do
 
-write(*,*)'azones,bzones',azones,bzones
-write(*,*)'outofzone',alr,':',outofzone(:,alr)
-write(*,*)'outofzone',blr,':',outofzone(:,blr)
+!write(*,*)'azones,bzones',azones,bzones
+!write(*,*)'outofzone',alr,':',outofzone(:,alr)
+!write(*,*)'outofzone',blr,':',outofzone(:,blr)
 
 !allocate astart and aend
   allocate(astart(3,azones),stat=i_stat)
@@ -1788,27 +1790,24 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr,outofzone
 END SUBROUTINE get_overlap_region_periodic
 !%***
 
-
-
-
-subroutine assignToLocreg(iproc, nlr, Localnorb, orbse)
-use module_base
-use module_types
-implicit none
-
-integer,intent(in):: nlr,iproc
-integer,dimension(nlr),intent(in):: Localnorb
-type(orbitals_data),intent(inout):: orbse
-
-! Local variables
-integer:: jproc, iiOrb, iorb, jorb, jat
+subroutine assignToLocreg(iproc, natom, nlr, nspin, Localnorb, orbse)
+  use module_base
+  use module_types
+  implicit none
+  
+  integer,intent(in):: nlr,iproc,nspin,natom
+  integer,dimension(nlr),intent(in):: Localnorb
+  type(orbitals_data),intent(inout):: orbse
+  
+  ! Local variables
+  integer:: jproc, iiOrb, iorb, jorb, jat
 
 
   ! There are four counters:
   !   jproc: indicates which MPI process is handling the basis function which is being treated
   !   jat: counts the atom numbers
   !   jorb: counts the orbitals handled by a given process
-  !   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
+  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
   jproc=0
   jat=1
   jorb=0
@@ -1828,61 +1827,12 @@ integer:: jproc, iiOrb, iorb, jorb, jat
           jat=jat+1
           iiOrb=0
       end if
+      if(jat > natom) then
+        jat = 1
+      end if
       jorb=jorb+1
       iiOrb=iiOrb+1
       if(iproc==jproc) orbse%inWhichLocreg(jorb)=jat
   end do
 
-
-
 end subroutine assignToLocreg
-
-
-
-
-
-subroutine assignToLocregP(iproc, nlr, Localnorb, orbs)
-use module_base
-use module_types
-implicit none
-
-integer,intent(in):: nlr,iproc
-integer,dimension(nlr),intent(in):: Localnorb
-type(orbitals_data),intent(inout):: orbs
-
-! Local variables
-integer:: jproc, iiOrb, iorb, jorb, jat
-
-
-  ! There are four counters:
-  !   jproc: indicates which MPI process is handling the basis function which is being treated
-  !   jat: counts the atom numbers
-  !   jorb: counts the orbitals handled by a given process
-  !   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
-  jproc=0
-  jat=1
-  jorb=0
-  iiOrb=0
-
-  do iorb=1,orbs%norb
-
-      ! Switch to the next MPI process if the numbers of orbitals for a given
-      ! MPI process is reached.
-      if(jorb==orbs%norb_par(jproc)) then
-          jproc=jproc+1
-          jorb=0
-      end if
-
-      ! Switch to the next atom if the number of basis functions for this atom is reached.
-      if(iiOrb==Localnorb(jat)) then
-          jat=jat+1
-          iiOrb=0
-      end if
-      jorb=jorb+1
-      iiOrb=iiOrb+1
-      if(iproc==jproc) orbs%inWhichLocregP(jorb)=jat
-  end do
-
-
-
-end subroutine assignToLocregP

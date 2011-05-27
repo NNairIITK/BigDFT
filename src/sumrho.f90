@@ -66,7 +66,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   
 !  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
 !             (ixc < 0 .and. libxc_functionals_isgga()), have_mpi2,rsflag
-
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
      nrhotot=0
