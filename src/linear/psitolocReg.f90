@@ -299,7 +299,7 @@ END SUBROUTINE global_to_local
 !!         Only coded for sequential, not parallel cases !! For parallel should change increment and loc_psi dimensions
 !! SOURCE:
 !!
-subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,orbs,psi)
+subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 
   use module_base
   use module_types
@@ -309,15 +309,19 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,orbs,psi)
   !#######################################
   ! Subroutine Scalar Arguments
   !#######################################
-  integer :: Gdim          ! dimension of lpsi 
-  type(orbitals_data),intent(in) :: orbs      ! orbital descriptor
+  integer :: Gdim          ! dimension of psi 
+  integer :: Ldim          ! dimension of lpsi
+  integer :: norb          ! number of orbitals
+  integer :: nspinor       ! number of spinors
+  integer :: nspin         ! number of spins 
+  integer :: shift         ! shift to correct place in locreg
   type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
   type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
   !########################################
   !Subroutine Array Arguments
   !########################################
   real(wp),dimension(Gdim),intent(inout) :: psi       !Wavefunction (compressed format)
-  real(wp),dimension(orbs%npsidim),intent(in) :: lpsi !Wavefunction in localization region
+  real(wp),dimension(Ldim),intent(in) :: lpsi !Wavefunction in localization region
   !#############################################
   !local variables
   !############################################
@@ -332,15 +336,16 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,orbs,psi)
   integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
   character(len=*), parameter :: subname='psi_to_locreg'
   integer :: i_stat,i_all
-  integer :: start,Gstart
-  integer :: lfinc,Gfinc
+  integer :: start,Gstart,Lindex
+  integer :: lfinc,Gfinc,spinshift,ispin,Gindex
 
 ! Define integers
   nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
   lincrement = Llr%wfd%nvctr_c + 7*Llr%wfd%nvctr_f
   Gincrement = Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
   icheck = 0
-
+  spinshift = Gdim / nspin
+ 
 ! Get the keymask: shift for every segment of Llr (with respect to Glr)
   allocate(keymask(2,nseg),stat=i_stat)
   call memocc(i_stat,keymask,'keymask',subname)
@@ -377,9 +382,12 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,orbs,psi)
         do ix = 0,length
            icheck = icheck + 1
            ! loop over the orbitals
-           do iorbs=1,orbs%norbp*orbs%nspinor
-              psi(Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1))=&
-              psi(Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)) + lpsi(icheck+lincrement*(iorbs-1))
+           do iorbs=1,norb*nspinor
+              do ispin=1,nspin
+                 Gindex = Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+shift+spinshift*(ispin-1)
+                 Lindex = icheck+lincrement*(iorbs-1)+lincrement*norb*(ispin-1)
+                 psi(Gindex) = psi(Gindex) + lpsi(Lindex)
+              end do
            end do
         end do
      end do
@@ -425,10 +433,13 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,orbs,psi)
         do ix = 0,length
            icheck = icheck + 1
            do igrid=0,6
-              do iorbs=1,orbs%norbp*orbs%nspinor
-                psi(Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc) = &
-                psi(Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc) +&
-                lpsi(start+icheck+lincrement*(iorbs-1)+igrid*lfinc)
+              do iorbs=1,norb*nspinor
+                do ispin = 1, nspin
+                   Gindex = Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc+&
+                            shift + spinshift*(ispin-1)
+                   Lindex = start+icheck+lincrement*(iorbs-1)+igrid*lfinc + lincrement*norb*(ispin-1) 
+                   psi(Gindex) = psi(Gindex) + lpsi(Lindex)
+                end do
               end do
            end do
         end do

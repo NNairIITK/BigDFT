@@ -383,7 +383,8 @@ real(8):: dnrm2
                                   indSmall=indSmall+1
                                   ! indLarge is the index in the whole box. 
                                   !indLarge=(Llr(ilr)%d%nfl3+i3-1)*Glr%d%n3i + (Llr(ilr)%d%nfl2+i2-1)*Glr%d%n2i + Llr(ilr)%d%nfl1+i1
-                                  indLarge=(Llr(ilr)%ns3+i3-1)*Glr%d%n2i*Glr%d%n1i + (Llr(ilr)%ns2+i2-1)*Glr%d%n1i + Llr(ilr)%ns1+i1
+                                  indLarge=(2*Llr(ilr)%ns3+i3-1)*Glr%d%n2i*Glr%d%n1i +&
+                                     (2*Llr(ilr)%ns2+i2-1)*Glr%d%n1i + 2*Llr(ilr)%ns1+i1
                                   rho(indLarge,ispin)=rho(indLarge,ispin)+rho_p(indSmall)
                               end do
                           end do
