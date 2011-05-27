@@ -519,28 +519,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
      end do
      close(44)
    
-     !Construct Global wavefunction 
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     !Gpsidim = (Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*norbe*orbse%nspinor
-     !allocate(psi(Gpsidim+ndebug),stat=i_stat)
-     !call memocc(i_stat,psi,'psi',subname)
-     !call razero(Gpsidim+ndebug,psi)
-   
-     !print *,'dimension of psi:',Gpsidim,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-     !print *,'dimension of Lpsi',orbse%npsidim
-     !do ilr = 1,nlr
-     !  call Lpsi_to_global(Glr,Gpsidim,Llr(ilr),Lpsi,orbse,psi)
-     !end do
-   
-     !ndimLrho=Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*min(Llr(ilr)%d%n3i,nscatterarr(iproc,1))
-     !allocate(Lrho(ndimLrho), stat=i_stat)
-     !call memocc(i_stat,Lrho,'Lrho',subname)
-   
      call sumrhoLinear(iproc,nproc,nlr,orbse,Glr,Llr,ixc,hxh,hyh,hzh,&
        Lpsi,rhopot,&
        & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)    
-   
+ 
      !call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
      !     & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
      !     & symObj, irrzon, phnons)
