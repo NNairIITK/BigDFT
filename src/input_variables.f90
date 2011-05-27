@@ -554,15 +554,18 @@ subroutine geopt_input_variables(filename,in)
      else if (in%ionmov == 13) then
         read(1,*,iostat=ierror) in%nnos
         call check()
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
         read(1,*,iostat=ierror) in%qmass
         call check()
         read(1,*,iostat=ierror) in%bmass, in%vmass
         call check()
      end if
-
-     !the allocation of this pointer should be done in any case
-     allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-     call memocc(i_stat,in%qmass,'in%qmass',subname)
+     if (in%ionmov /= 13) then
+        !the allocation of this pointer should be done in any case
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
+     end if
 
   else if (trim(in%geopt_approach) == "DIIS") then
      read(1,*,iostat=ierror) in%betax, in%history
@@ -1529,7 +1532,8 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
 
   !controls if the positions are provided with machine precision
-  if (atoms%units == 'angstroemd0' .or. atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
+  if (atoms%units == 'angstroemd0' .or. atoms%units== 'atomicd0' .or. &
+       atoms%units== 'bohrd0' .or. atoms%units=='reduced') then
      lpsdbl=.true.
   else
      lpsdbl=.false.
@@ -1606,9 +1610,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      atoms%alat3=alat3d0
   else if (atoms%units == 'reduced') then
      !assume that for reduced coordinates cell size is in bohr
-     atoms%alat1=real(alat1,gp)
-     atoms%alat2=real(alat2,gp)
-     atoms%alat3=real(alat3,gp)
+     atoms%alat1=alat1d0
+     atoms%alat2=alat2d0
+     atoms%alat3=alat3d0
   else
      write(*,*) 'length units in input file unrecognized'
      write(*,*) 'recognized units are angstroem or atomic = bohr'
@@ -1937,8 +1941,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
 
-  !controls if the positions are provided with machine precision
-  if (index(atoms%units, 'd0') > 0) then
+  !controls if the positions are provided within machine precision
+  if (index(atoms%units, 'd0') > 0 .or. reduced) then
      lpsdbl=.true.
   else
      lpsdbl=.false.

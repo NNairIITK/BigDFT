@@ -83,6 +83,7 @@ xc_funcs.h: get_funcs.pl
 	$(srcdir)/get_funcs.pl $(srcdir) $(top_builddir)
 
 libxc_funcs.f90: xc_funcs.h
+libxc_master.f90: libxc_funcs.o
 libxc_master.o: libxc_funcs.o
 libxc.f90: libxc_master.F90 xc_funcs.h
 	@FCCPP@                       @CPPFLAGS@ $(AM_CPPFLAGS) $(srcdir)/libxc_master.F90 > $(top_builddir)/src/libxc.f90

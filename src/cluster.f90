@@ -779,11 +779,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   hz_old=in%hz
 
   ! allocate arrays necessary for DIIS convergence acceleration
-  !the allocation with npsidim is not necessary here since DIIS arrays
-  !are always calculated in the transpsed form
-  if (idsx > 0) then
-     call allocate_diis_objects(idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)
-  endif
+  call allocate_diis_objects(idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
+       orbs%nkptsp,orbs%nspinor,orbs%norbd,diis,subname)
 
   !allocate arrays for the GPU if a card is present
   if (GPUconv) then
@@ -806,18 +803,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
-  !diis initialisation variables
-  diis%alpha=in%alphadiis
-  diis%alpha_max=in%alphadiis
-  diis%energy=1.d10
-  !minimum value of the energy during the minimisation procedure
-  diis%energy_min=1.d10
-  !previous value already fulfilled
-  diis%energy_old=diis%energy
-  !local variable for the diis history
-  diis%idsx=idsx
-  !logical control variable for switch DIIS-SD
-  diis%switchSD=.false.
+
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
@@ -879,7 +865,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !control how many times the DIIS has switched into SD
            if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
 
-           !leave SD if the DIIS did not work the second time
+           !let SD runs if the DIIS did not work the second time
            if (ndiis_sd_sw > 1) then
               diis%switchSD=.false.
            end if
@@ -1113,9 +1099,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           'Difference:evsum,energybs',evsum,energybs
   end if
 
-  if (in%idsx > 0) then
-     call deallocate_diis_objects(diis,subname)
-  end if
+  call deallocate_diis_objects(diis,subname)
 
   !last run things has to be done:
   !if it is the last run and the infocode is zero
@@ -1636,9 +1620,7 @@ contains
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. in%inputPsiId /=-1000) then
 
-       if (in%idsx > 0) then
-          call deallocate_diis_objects(diis,subname)
-       end if
+       call deallocate_diis_objects(diis,subname)
 
        if (nproc > 1) then
           i_all=-product(shape(psit))*kind(psit)

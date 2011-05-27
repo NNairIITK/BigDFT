@@ -374,7 +374,7 @@ module module_types
      real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
      real(wp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
-     real(wp), dimension(:,:,:,:), pointer :: ads
+     real(wp), dimension(:,:,:,:,:,:), pointer :: ads
   end type diis_objects
 
 
@@ -382,21 +382,52 @@ contains
 
 
 !> Allocate diis objects
-  subroutine allocate_diis_objects(idsx,npsidim,nkptsp,diis,subname)
+  subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,norbd,diis,subname)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    integer, intent(in) :: idsx,npsidim,nkptsp
+    integer, intent(in) :: idsx,npsidim,nkptsp,nspinor,norbd
+    real(gp), intent(in) :: alphadiis
     type(diis_objects), intent(inout) :: diis
     !local variables
-    integer :: i_stat
+    integer :: i_stat,ncplx,ngroup
+
+    !calculate the number of complex components
+    if (nspinor > 1) then
+       ncplx=2
+    else
+       ncplx=1
+    end if
+
+    !always better to allow real combination of the wavefunctions
+    ncplx=1
+
+    !add the possibility of more than one diis group
+    ngroup=1
+
     allocate(diis%psidst(npsidim*idsx+ndebug),stat=i_stat)
     call memocc(i_stat,diis%psidst,'psidst',subname)
     allocate(diis%hpsidst(npsidim*idsx+ndebug),stat=i_stat)
     call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
-    allocate(diis%ads(idsx+1,idsx+1,nkptsp,3+ndebug),stat=i_stat)
+    allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
     call memocc(i_stat,diis%ads,'ads',subname)
-    call razero(nkptsp*3*(idsx+1)**2,diis%ads)
+    call razero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads)
+
+    !initialize scalar variables
+    !diis initialisation variables
+    diis%alpha=alphadiis
+    diis%alpha_max=alphadiis
+    diis%energy=1.d10
+    !minimum value of the energy during the minimisation procedure
+    diis%energy_min=1.d10
+    !previous value already fulfilled
+    diis%energy_old=diis%energy
+    !local variable for the diis history
+    diis%idsx=idsx
+    !logical control variable for switch DIIS-SD
+    diis%switchSD=.false.
+    
+
   END SUBROUTINE allocate_diis_objects
 
 
