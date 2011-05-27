@@ -375,6 +375,7 @@ real(8):: dnrm2
 
                   ! Copy rho_p to the correct place in rho
                   indSmall=0
+                  print *,'Llr(ilr)%nsi3,Llr(ilr)%nsi2,Llr(ilr)%nsi1',Llr(ilr)%nsi3,Llr(ilr)%nsi2,Llr(ilr)%nsi1
                   do ispin=1,nspinn
                       do i3=1,Llr(ilr)%d%n3i
                           do i2=1,Llr(ilr)%d%n2i
@@ -382,9 +383,8 @@ real(8):: dnrm2
                                   ! indSmall is the index in the currect localization region
                                   indSmall=indSmall+1
                                   ! indLarge is the index in the whole box. 
-                                  !indLarge=(Llr(ilr)%d%nfl3+i3-1)*Glr%d%n3i + (Llr(ilr)%d%nfl2+i2-1)*Glr%d%n2i + Llr(ilr)%d%nfl1+i1
-                                  indLarge=(2*Llr(ilr)%ns3+i3-1)*Glr%d%n2i*Glr%d%n1i +&
-                                     (2*Llr(ilr)%ns2+i2-1)*Glr%d%n1i + 2*Llr(ilr)%ns1+i1
+                                  indLarge=(Llr(ilr)%nsi3+i3-1)*Glr%d%n2i*Glr%d%n1i +&
+                                      (Llr(ilr)%nsi2+i2-1)*Glr%d%n1i + Llr(ilr)%nsi1+i1
                                   rho(indLarge,ispin)=rho(indLarge,ispin)+rho_p(indSmall)
                               end do
                           end do

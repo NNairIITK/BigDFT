@@ -458,7 +458,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call memocc(i_stat,outofzone,'outofzone',subname)
    
      ! For now, set locrad by hand HERE
-     locrad = 6.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
+     locrad = 30.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
      !print *,'locrad',locrad
    
    ! Write some physical information on the Glr
