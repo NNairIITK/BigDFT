@@ -686,7 +686,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   case(INPUT_PSI_LCAO)
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-write(*,*) 'in cluster: size(rhopot)', size(rhopot)
      call input_wf_diag(iproc,nproc, atoms,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
@@ -968,7 +967,7 @@ write(*,*) 'in cluster: size(rhopot)', size(rhopot)
            call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
                 orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
 
-
+print *,'size(hpsi)',size(hpsi)
            call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
                 nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
                 in%nspin,GPU,pkernel=pkernelseq)

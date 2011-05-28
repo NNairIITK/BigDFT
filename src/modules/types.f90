@@ -259,6 +259,7 @@ module module_types
      character(len=1) :: geocode
      logical :: hybrid_on             !<interesting for global, periodic, localisation regions
      integer :: ns1,ns2,ns3           !<starting point of the localisation region in global coordinates
+     integer :: nsi1,nsi2,nsi3        !<starting point of locreg for interpolating grid
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds

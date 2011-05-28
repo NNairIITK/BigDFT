@@ -369,26 +369,9 @@ real(8):: dnrm2
 
                select case(Llr(ilr)%geocode)
                case('F')
-                  call partial_density_linear(rsflag,nproc,Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i,&
+                  call partial_density(rsflag,nproc,Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i,&
                        npsir,nspinn,nrhotot,&
                        hfac,nscatterarr,spinval,psir,rho_p,Llr(ilr)%bounds%ibyyzz_r)
-
-                  ! Copy rho_p to the correct place in rho
-                  indSmall=0
-                  do ispin=1,nspinn
-                      do i3=1,Llr(ilr)%d%n3i
-                          do i2=1,Llr(ilr)%d%n2i
-                              do i1=1,Llr(ilr)%d%n1i
-                                  ! indSmall is the index in the currect localization region
-                                  indSmall=indSmall+1
-                                  ! indLarge is the index in the whole box. 
-                                  !indLarge=(Llr(ilr)%d%nfl3+i3-1)*Glr%d%n3i + (Llr(ilr)%d%nfl2+i2-1)*Glr%d%n2i + Llr(ilr)%d%nfl1+i1
-                                  indLarge=(Llr(ilr)%ns3+i3-1)*Glr%d%n2i*Glr%d%n1i + (Llr(ilr)%ns2+i2-1)*Glr%d%n1i + Llr(ilr)%ns1+i1
-                                  rho(indLarge,ispin)=rho(indLarge,ispin)+rho_p(indSmall)
-                              end do
-                          end do
-                      end do
-                  end do
 
                case('P')
 
@@ -403,6 +386,23 @@ real(8):: dnrm2
                        hfac,nscatterarr,spinval,psir,rho_p)
 
                end select
+
+               ! Copy rho_p to the correct place in rho
+               indSmall=0
+               do ispin=1,nspinn
+                   do i3=1,Llr(ilr)%d%n3i
+                       do i2=1,Llr(ilr)%d%n2i
+                           do i1=1,Llr(ilr)%d%n1i
+                               ! indSmall is the index in the currect localization region
+                               indSmall=indSmall+1
+                               ! indLarge is the index in the whole box. 
+                               indLarge=(Llr(ilr)%nsi3+i3-1)*Glr%d%n2i*Glr%d%n1i +&
+                                   (Llr(ilr)%nsi2+i2-1)*Glr%d%n1i + Llr(ilr)%nsi1+i1
+                               rho(indLarge,ispin)=rho(indLarge,ispin)+rho_p(indSmall)
+                           end do
+                       end do
+                   end do
+               end do
 
             end do
          end if
@@ -422,10 +422,6 @@ real(8):: dnrm2
   
 
 END SUBROUTINE local_partial_densityLinear
-
-
-
-
 
 !! WHAT FOLLOWS IS ALREADY IN SRC/SUMRHO.
 

@@ -900,7 +900,9 @@ subroutine determine_locreg_periodic(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outofzone)
   integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
   character(len=*), parameter :: subname='determine_locreg'
-  logical :: perx,pery,perz
+  logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz
+  integer :: Gnbl1,Gnbl2,Gnbl3,Gnbr1,Gnbr2,Gnbr3
+  integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3
   integer :: ii !tests
@@ -1035,14 +1037,36 @@ subroutine determine_locreg_periodic(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outofzone)
         end if
      end select
 
-     !values for the starting point of the cube
+     !values for the starting point of the cube for wavelet grid
      Llr(ilr)%ns1=isx
      Llr(ilr)%ns2=isy
      Llr(ilr)%ns3=isz
+
      !dimensions of the localisation region
      Llr(ilr)%d%n1=iex-isx
      Llr(ilr)%d%n2=iey-isy
      Llr(ilr)%d%n3=iez-isz
+
+     ! Set the conditions for ext_buffers (conditions for buffer size)
+     Gperx=(Glr%geocode /= 'F')
+     Gpery=(Glr%geocode == 'P')
+     Gperz=(Glr%geocode /= 'F')
+     Lperx=(Llr(ilr)%geocode /= 'F')
+     Lpery=(Llr(ilr)%geocode == 'P')
+     Lperz=(Llr(ilr)%geocode /= 'F')
+
+     !calculate the size of the buffers of interpolating function grid
+     call ext_buffers(Gperx,Gnbl1,Gnbr1)
+     call ext_buffers(Gpery,Gnbl2,Gnbr2)
+     call ext_buffers(Gperz,Gnbl3,Gnbr3)
+     call ext_buffers(Lperx,Lnbl1,Lnbr1)
+     call ext_buffers(Lpery,Lnbl2,Lnbr2)
+     call ext_buffers(Lperz,Lnbl3,Lnbr3)
+
+     !starting point of the region for interpolating functions grid
+     Llr(ilr)%nsi1= 2 * Llr(ilr)%ns1 - (Lnbl1 - Gnbl1)
+     Llr(ilr)%nsi2= 2 * Llr(ilr)%ns2 - (Lnbl2 - Gnbl2)
+     Llr(ilr)%nsi3= 2 * Llr(ilr)%ns3 - (Lnbl3 - Gnbl3)
 
      !dimensions of the fine grid inside the localisation region
      Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx ! should we really substract isx (probably because the routines are coded with 0 as origin)?
@@ -1818,7 +1842,7 @@ subroutine assignToLocreg(iproc, natom, nlr, nspin, Localnorb, orbse)
       end if
 
       ! Switch to the next atom if the number of basis functions for this atom is reached.
-      if(iiOrb==Localnorb(jat)/nspin) then
+      if(iiOrb==Localnorb(jat)) then
           jat=jat+1
           iiOrb=0
       end if
