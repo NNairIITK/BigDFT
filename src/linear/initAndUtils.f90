@@ -222,7 +222,7 @@ allocate(lin%locrad(lin%nlr),stat=istat)
 call memocc(istat,lin%locrad,'lin%locrad',subname)
 
 ! For now, set locrad by hand HERE
-lin%locrad = 6.d0
+lin%locrad = 7.d0
 do ilr=1,lin%nlr
     if(iproc==0) write(*,'(x,a,i5,es13.3)') 'ilr, lin%locrad(ilr)', ilr, lin%locrad(ilr)
 end do
@@ -232,8 +232,8 @@ allocate(lin%locregOverlap(lin%nlr+1,lin%nlr), stat=istat)
 call memocc(istat, lin%locregOverlap,'lin%locregOverlap',subname)
 lin%locregOverlap=0
 ! The meaning is the following:
-! lin%loclegOverlap(ilr,1) gives the number of overlap regions for the region ilr
-! lin%loclegOverlap(ilr,2:ii) gives the indices of the ii overlaping regions (ii is in%loclegOverlap(ilr,1))
+! lin%loclegOverlap(1,ilr) gives the number of overlap regions for the region ilr
+! lin%loclegOverlap(2:ii,ilr) gives the indices of the ii overlaping regions (ii is in%loclegOverlap(1,ilr))
 ! For large systems this will be a waste of memory if it is allocated like this!
 do ilr=1,lin%nlr
     ist=1
@@ -243,12 +243,12 @@ do ilr=1,lin%nlr
         tt = sqrt(tt)
         if(tt <= lin%locrad(ilr)) then
             ist=ist+1
-            lin%locregOverlap(ilr,ist)=jlr
+            lin%locregOverlap(ist,ilr)=jlr
             nLocregOverlap=nLocregOverlap+1
         end if
     end do
-    lin%locregOverlap(ilr,1)=nLocregOverlap
-    if(iproc==0) write(*,'(a,i5,2x,i5,3x100i6)') 'ilr, nLocregOverlap, locregOverlap', ilr, lin%locregOverlap(ilr,1), lin%locregOverlap(ilr,2:lin%locregOverlap(ilr,1)+1)
+    lin%locregOverlap(1,ilr)=nLocregOverlap
+    if(iproc==0) write(*,'(a,i5,2x,i5,3x100i6)') 'ilr, nLocregOverlap, locregOverlap', ilr, lin%locregOverlap(1,ilr), lin%locregOverlap(2:lin%locregOverlap(ilr,1)+1,ilr)
 end do
 
 ! Write some physical information on the Glr
@@ -256,6 +256,8 @@ if(iproc==0) then
     write(*,'(x,a)') '>>>>> Global localization region:'
     write(*,'(3x,a,3i6)')'Global region n1,n2,n3: ',Glr%d%n1,Glr%d%n2,Glr%d%n3
     write(*,'(3x,a,3i6)')'Global region n1i,n2i,n3i: ',Glr%d%n1i,Glr%d%n2i,Glr%d%n3i
+    write(*,'(3x,a,3i6)')'Global region nfl1,nfl2,nfl3: ',Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3
+    write(*,'(3x,a,3i6)')'Global region nfu1,nfu2,nfu3: ',Glr%d%nfu1,Glr%d%nfu2,Glr%d%nfu3
     write(*,'(3x,a,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*input%hx,Glr%d%n2*input%hy,Glr%d%n3*input%hz
     write(*,'(3x,a,f10.2)')'Global volume: ',Glr%d%n1*input%hx*Glr%d%n2*input%hy*Glr%d%n3*input%hz
     write(*,'(3x,a,4i10)')'Global statistics: nseg_c, nseg_f, nvctr_c, nvctr_f',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
@@ -268,6 +270,8 @@ do ilr=1,lin%nlr
     if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
     if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
     if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
+    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
+    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
 end do
 
 ! Calculate the dimension of the wave function for each process.
@@ -1097,41 +1101,41 @@ hzh=input%hz*.5d0
 allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
 call memocc(istat, phir, 'phir', subname)
 
-!ist=1
-!do iorb=1,lin%orbs%norbp
-!    ! Transform the orbitals to real space.
-!    phir=0.d0
-!    call daub_to_isf(Glr, w, phi(ist), phir(1))
-!    
-!    iiAt=lin%onWhichAtom(iorb)
-!    cut=lin%locrad(iiAt)
-!    
-!    jj=0
-!    ttIn=0.d0
-!    ttOut=0.d0
-!    do i3=-14,Glr%d%n3i-15
-!        do i2=-14,Glr%d%n2i-15
-!            do i1=-14,Glr%d%n1i-15
-!               jj=jj+1
-!               tt = (hxh*i1-rxyz(1,iiAt))**2 + (hyh*i2-rxyz(2,iiAt))**2 + (hzh*i3-rxyz(3,iiAt))**2
-!               tt=sqrt(tt)
-!               if(tt>cut) then
-!                  !write(*,'(a,4i7,3es20.12)') 'iorb, i1, i2, i3, tt, cut, phir(jj)', iorb, i1, i2, i3, tt, cut, phir(jj)
-!                  ttOut=ttOut+phir(jj)**2
-!                  phir(jj)=0.d0
-!               else
-!                  ttIn=ttIn+phir(jj)**2
-!               end if
-!            end do
-!        end do
-!    end do
-!    
-!    call isf_to_daub(Glr, w, phir(1), phi(ist))
-!
-!    write(*,'(a,i7,2es20.12)') 'before: iorb, ttIn, ttOut', iorb, ttIn, ttOut
-!    ist=ist+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-!
-!end do
+!!ist=1
+!!do iorb=1,lin%orbs%norbp
+!!    ! Transform the orbitals to real space.
+!!    phir=0.d0
+!!    call daub_to_isf(Glr, w, phi(ist), phir(1))
+!!    
+!!    iiAt=lin%onWhichAtom(iorb)
+!!    cut=lin%locrad(iiAt)
+!!    
+!!    jj=0
+!!    ttIn=0.d0
+!!    ttOut=0.d0
+!!    do i3=-14,Glr%d%n3i-15
+!!        do i2=-14,Glr%d%n2i-15
+!!            do i1=-14,Glr%d%n1i-15
+!!               jj=jj+1
+!!               tt = (hxh*i1-rxyz(1,iiAt))**2 + (hyh*i2-rxyz(2,iiAt))**2 + (hzh*i3-rxyz(3,iiAt))**2
+!!               tt=sqrt(tt)
+!!               if(tt>cut) then
+!!                  !write(*,'(a,4i7,3es20.12)') 'iorb, i1, i2, i3, tt, cut, phir(jj)', iorb, i1, i2, i3, tt, cut, phir(jj)
+!!                  ttOut=ttOut+phir(jj)**2
+!!                  phir(jj)=0.d0
+!!               else
+!!                  ttIn=ttIn+phir(jj)**2
+!!               end if
+!!            end do
+!!        end do
+!!    end do
+!!    
+!!    call isf_to_daub(Glr, w, phir(1), phi(ist))
+!!
+!!    write(*,'(a,i7,2es20.12)') 'before: iorb, ttIn, ttOut', iorb, ttIn, ttOut
+!!    ist=ist+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+!!
+!!end do
 
 
 call mpi_barrier(mpi_comm_world, ierr)
