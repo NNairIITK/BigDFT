@@ -229,14 +229,14 @@ program sandbox
   print *,'Global statistics:',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
    
 ! First, determine the localisation regions
-  call determine_locreg_periodic(nlr,rxyz,locrad,in%hx,in%hy,in%hz,Glr,Llr,outofzone)
+  call determine_locreg_periodic(iproc,nlr,rxyz,locrad,in%hx,in%hy,in%hz,Glr,Llr)
 
   print *,'Outside determine_locreg2'
 ! Plot the localization regions
 !  call draw_locregs(2,in%hx,in%hy,in%hz,Llr)
 
 ! Second, calculate the number of overlap regions using periodicity
-  call get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr,outofzone)
+  call get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)
 
   write(*,*)'Outside get_number_of_overlap_region:',isovrlp
 
@@ -248,7 +248,7 @@ program sandbox
 !     call memocc(i_stat,Olr,'Olr',subname)
    
      ! Third, construct the overlap region descriptors
-     call get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr,outofzone)
+     call get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
   
 !    Write some physical information on the overlap
      do ilr=1,isovrlp

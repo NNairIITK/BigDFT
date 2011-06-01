@@ -953,11 +953,11 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
   integer :: ncplx,ncomp,i,ispsiv
   integer:: j,iproc
 
-  if(iproc==0) then
-      do j=1,size(hamovr)
-          !write(100001,*) hamovr(j)
-      end do
-  end if
+!  if(iproc==0) then
+!      do j=1,size(hamovr)
+!          !write(100001,*) hamovr(j)
+!      end do
+!  end if
 
   !WARNING: here nspin=1 for nspinor=4
   if(nspinor == 1) then
@@ -989,7 +989,6 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
   !perform the vector-matrix multiplication for building the input wavefunctions
   ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
   !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
-
   !allocate the pointer for virtual orbitals
   iorbst=1
   iorbst2=1
