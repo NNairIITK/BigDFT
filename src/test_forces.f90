@@ -43,7 +43,7 @@ program test_forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz,drxyz
   integer :: iconfig,nconfig
-  integer :: ipath,npath, iat
+  integer :: ipath,npath
   real(gp):: dx,etot0,path,fdr
   !parameter (dx=1.d-2 , npath=2*16+1)  ! npath = 2*n+1 where n=2,4,6,8,...
   parameter (dx=1.d-2 , npath=5)
@@ -100,7 +100,7 @@ do iconfig=1,nconfig
              print*
              print*,'*******************************************************************************************************'
              print*,"This is a test program to verify  whether the force are the derivative of the energy: F=-dE/dR"
-             print '(, a,i3,a,f7.4,a,f6.4,a)', "It performs the integration of the calculated forces over " , npath,  &
+             print '(a,i3,a,f7.4,a,f6.4,a)', "It performs the integration of the calculated forces over " , npath,  &
                                              " random displacement (in the range [", -dx, ",",dx,"] a.u.)"
              print*, "and compares the result with the difference of the energy  between the final and the initial position:"// &
                   " E2-E1 = -Integral F.dR" 
@@ -112,8 +112,7 @@ do iconfig=1,nconfig
      endif
 
      ! Read all input files.
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt","input.mix","input.geopt", "input.perf", inputs, atoms, rxyz)
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 !     if (iproc == 0) then
  !       call print_general_parameters(inputs,atoms)
  !    end if
