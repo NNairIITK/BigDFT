@@ -774,9 +774,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      rxyz_old(3,iat)=rxyz(3,iat)
   enddo
   !save the new grid spacing into the hgrid_old value
-  hx_old=in%hx
-  hy_old=in%hy
-  hz_old=in%hz
+  hx_old=hx
+  hy_old=hy
+  hz_old=hz
 
   ! allocate arrays necessary for DIIS convergence acceleration
   call allocate_diis_objects(idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
