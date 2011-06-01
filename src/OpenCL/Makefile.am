@@ -30,7 +30,7 @@ libbasef_a_LIBADD = ../modules/defs.o ../modules/base.o \
 libbasec_a_SOURCES = OpenCL_wrappers.c \
                      MagicFilter.c \
                      Kinetic.c \
-                     Kinetic_Generator.c \
+                     Kinetic_Generator.cpp \
                      Wavelet.c \
                      Uncompress.c \
                      Initialize.c \
