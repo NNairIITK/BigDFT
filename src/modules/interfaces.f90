@@ -1987,7 +1987,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine inputguessConfinement
 
 
-    subroutine sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, at, rxyz)
+    subroutine sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, at, rxyz, nscatterarr)
       use module_base
       use module_types
       use libxc_functionals
@@ -2000,9 +2000,10 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(linearParameters),intent(in):: lin
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
       real(8),dimension(lin%orbs%npsidim),intent(in):: phi
-      real(8),dimension(nrho),intent(out):: rho
+      real(8),dimension(nrho),intent(out),target:: rho
       type(atoms_data),intent(in):: at
       real(8),dimension(3,at%nat),intent(in):: rxyz
+      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
     end subroutine sumrhoForLocalizedBasis
 
     

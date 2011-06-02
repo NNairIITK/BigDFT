@@ -43,9 +43,9 @@ real(8),dimension(:,:),allocatable,intent(out):: coeff, coeffd
 
 
 ! Local variables
-integer:: jproc, istat, iorb, jorb, ierr, iat, ityp, iall, norb_tot
-integer:: norb, norbu, norbd, ilr, jlr, npsidim, nlocregOverlap, ist
-integer,dimension(:),allocatable:: norbsPerType, norbsPerAtom
+integer:: jproc, istat, iorb, jorb, korb, ierr, iat, ityp, iall, norb_tot, klr
+integer:: norb, norbu, norbd, ilr, jlr, npsidim, nlocregOverlap, ist, iiorb, ii, jmpi, iilr, kmpi
+integer,dimension(:),allocatable:: norbsPerType, norbsPerAtom, istOrb, onWhichMPI, onWhichAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20):: atomname
 character(len=20),dimension(:),allocatable:: atomNames
@@ -227,10 +227,23 @@ do ilr=1,lin%nlr
     if(iproc==0) write(*,'(x,a,i5,es13.3)') 'ilr, lin%locrad(ilr)', ilr, lin%locrad(ilr)
 end do
 
+allocate(lin%onWhichAtomAll(lin%orbs%norb), stat=istat)
+call memocc(istat, lin%onWhichAtom, 'onWhichAtomAll', subname)
+lin%onWhichAtomAll=0
+iiorb=0
+do jproc=0,nproc-1
+    do jorb=1,lin%orbs%norb_par(jproc)
+        iiorb=iiorb+1
+        if(iproc==jproc) lin%onWhichAtomAll(iiorb)=lin%onWhichAtom(jorb)
+    end do
+end do
+call mpiallred(lin%onWhichAtomAll(1), lin%orbs%norb, mpi_sum, mpi_comm_world, ierr)
+write(*,'(a,200i6)') 'onwa', lin%onWhichAtomAll(:)
+
 ! Determine the number of localization regions with which the current localization region overlaps.
-allocate(lin%locregOverlap(lin%nlr+1,lin%nlr), stat=istat)
-call memocc(istat, lin%locregOverlap,'lin%locregOverlap',subname)
-lin%locregOverlap=0
+allocate(lin%overlappingOrbs(lin%orbs%norb+1,lin%nlr), stat=istat)
+call memocc(istat, lin%overlappingOrbs,'lin%overlappingOrbs',subname)
+lin%overlappingOrbs=0
 ! The meaning is the following:
 ! lin%loclegOverlap(1,ilr) gives the number of overlap regions for the region ilr
 ! lin%loclegOverlap(2:ii,ilr) gives the indices of the ii overlaping regions (ii is in%loclegOverlap(1,ilr))
@@ -238,18 +251,87 @@ lin%locregOverlap=0
 do ilr=1,lin%nlr
     ist=1
     nLocregOverlap=0
-    do jlr=1,lin%nlr
+    do jorb=1,lin%orbs%norb
+        jlr=lin%onWhichAtomAll(jorb)
         tt = (rxyz(1,ilr)-rxyz(1,jlr))**2 + (rxyz(2,ilr)-rxyz(2,jlr))**2 + (rxyz(3,ilr)-rxyz(3,jlr))**2
         tt = sqrt(tt)
-        if(tt <= lin%locrad(ilr)) then
+        if(tt <= lin%locrad(ilr)+lin%locrad(jlr)) then
             ist=ist+1
-            lin%locregOverlap(ist,ilr)=jlr
+            lin%overlappingOrbs(ist,ilr)=jorb
             nLocregOverlap=nLocregOverlap+1
         end if
     end do
-    lin%locregOverlap(1,ilr)=nLocregOverlap
-    if(iproc==0) write(*,'(a,i5,2x,i5,3x100i6)') 'ilr, nLocregOverlap, locregOverlap', ilr, lin%locregOverlap(1,ilr), lin%locregOverlap(2:lin%locregOverlap(ilr,1)+1,ilr)
+    lin%overlappingOrbs(1,ilr)=nLocregOverlap
+    if(iproc==0) write(*,'(a,i5,2x,i5,3x100i6)') 'ilr, nLocregOverlap, locregOverlap', ilr, lin%overlappingOrbs(1,ilr), lin%overlappingOrbs(2:lin%overlappingOrbs(1,ilr)+1,ilr)
 end do
+
+! Define arrays which indicate which orbitals have to be sent to / received from which process
+! First define a global onWhichAtom
+allocate(lin%isorb_par(0:nproc-1), stat=istat)
+call memocc(istat, lin%isorb_par, 'isorb_par', subname)
+allocate(lin%onWhichMPI(lin%orbs%norb), stat=istat)
+call memocc(istat, lin%onWhichMPI, 'lin%onWhichMPI', subname)
+iiorb=0
+lin%isorb_par=0
+do jproc=0,nproc-1
+    do iorb=1,lin%orbs%norb_par(jproc)
+        iiorb=iiorb+1
+        lin%onWhichMPI(iiorb)=jproc
+    end do
+    if(iproc==jproc) then
+        lin%isorb_par(jproc)=lin%orbs%isorb
+    end if
+end do
+call mpiallred(lin%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+do jproc=0,nproc-1
+    if(iproc==0) write(*,*) 'jproc, lin%isorb_par(jproc)', jproc, lin%isorb_par(jproc)
+end do
+
+ii=maxval(lin%overlappingOrbs(1,:))
+write(*,*) 'ii',ii
+allocate(lin%receiveArr(5,ii,lin%orbs%norb), stat=istat)
+call memocc(istat, lin%receiveArr, 'lin%receiveArr', subname)
+ii=0
+do iorb=1,lin%orbs%norb
+    ilr=lin%onWhichAtomAll(iorb)
+    do jorb=1,lin%overlappingOrbs(1,ilr)
+        ii=ii+1
+        korb=lin%overlappingOrbs(jorb+1,ilr)
+        kmpi=lin%onWhichMPI(korb)
+        klr=lin%onWhichAtomAll(iorb)
+        lin%receiveArr(1,jorb,iorb)=lin%onWhichMPI(iorb)
+        lin%receiveArr(2,jorb,iorb)=iorb-lin%isorb_par(lin%onWhichMPI(iorb)) !-iikorb-istOrb(kmpi)
+        lin%receiveArr(3,jorb,iorb)=kmpi
+        lin%receiveArr(4,jorb,iorb)=klr
+        lin%receiveArr(5,jorb,iorb)=ii
+    end do
+end do
+write(*,*) '>>> ii', ii
+!do ilr=1,lin%nlr
+!    do iorb=1,lin%overlappingOrbs(1,ilr)
+!        if(iproc==0) write(*,'(a,6i9)') 'iproc, ilr, iorb, mpi, orb, owa', iproc, ilr, iorb, lin%receiveArr(1,iorb,ilr), lin%receiveArr(2,iorb,ilr), lin%receiveArr(3,iorb,ilr)
+!    end do
+!end do
+do iorb=1,lin%orbs%norb
+    ilr=lin%onWhichAtomAll(iorb)
+    do jorb=1,lin%overlappingOrbs(1,ilr)
+        if(iproc==0) write(*,'(a,8i8,a)') 'iproc, iorb, jorb, mpisource, orbitalsource, mpidest, lrsource, tag', &
+         iproc, iorb, jorb, lin%receiveArr(1,jorb,iorb), lin%receiveArr(2,jorb,iorb), lin%receiveArr(3,jorb,iorb), &
+         lin%receiveArr(4,jorb,iorb), lin%receiveArr(5,jorb,iorb), '<tag'
+    end do
+end do
+
+
+
+!iall=-product(shape(istOrb))*kind(istOrb)
+!deallocate(istOrb, stat=istat)
+!call memocc(istat, iall, 'istOrb', subname)
+!iall=-product(shape(onWhichMPI))*kind(onWhichMPI)
+!deallocate(onWhichMPI, stat=istat)
+!call memocc(istat, iall, 'onWhichMPI', subname)
+!iall=-product(shape(onWhichAtom))*kind(onWhichAtom)
+!deallocate(onWhichAtom, stat=istat)
+!call memocc(istat, iall, 'onWhichAtom', subname)
 
 ! Write some physical information on the Glr
 if(iproc==0) then

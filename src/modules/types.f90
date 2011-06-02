@@ -405,9 +405,10 @@ module module_types
     type(locreg_descriptors):: lr
     type(locreg_descriptors),dimension(:),pointer:: Llr
     type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
-    integer,dimension(:),pointer:: onWhichAtom, norbsPerType
+    integer,dimension(:),pointer:: onWhichAtom, norbsPerType, onWhichAtomAll, onWhichMPI, isorb_par
     integer,dimension(:),pointer:: MPIComms, norbPerComm
-    integer,dimension(:,:),pointer:: procsInComm, outofzone, LocregOverlap
+    integer,dimension(:,:),pointer:: procsInComm, outofzone, overlappingOrbs
+    integer,dimension(:,:,:),pointer:: receiveArr
     integer:: ncomms
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
