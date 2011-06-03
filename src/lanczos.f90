@@ -1,13 +1,15 @@
-!> @file
-!!  Lanczos diagonalisation used by XANES calculation
-!! @author
-!!    Copyright (C) 2009-2011 BigDFT group (AM, LG)
+!!****f* BigDFT/lanczos
+!! FUNCTION
+!!   Lanczos diagonalization
+!! COPYRIGHT
+!!    Copyright (C) 2009 ESRF (AM, LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
-!>   Lanczos diagonalization
+!!
+!! SOURCE
+!!
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -45,17 +47,17 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   type(lanczos_args) :: ha
   integer :: i
 
-  type(gaussian_basis), target ::  Gabsorber
   real(wp),   pointer  :: Gabs_coeffs(:)
-  real(wp), dimension(:), pointer  :: pot
   real(wp),  pointer, dimension(:,:)  :: dum_coeffs
   character(len=800) :: filename
-  logical :: projeexists
+  character(len=1) wtag
+
+
 
   if(iproc==0) print *, " IN ROUTINE LANCZOS "
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -73,72 +75,55 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
- 
-  write(filename,'(A,A,A,I1)') "gproje_", &
-       & trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
-  
-  inquire(FILE=trim(filename),EXIST=projeexists)
-  
-  if( projeexists .and. .not. in%abscalc_eqdiff   ) then
-     
-     if(iproc==0) then
-        print *, "reading  precalculated  projection on pseudofunctions"
-        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
-             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
-        print '(a,a20)'," from file " , trim(filename)
-     endif
 
-     nullify( dum_coeffs  ) 
-     nullify(Gabsorber%nshell)
-     nullify(Gabsorber%nam)
-     nullify(Gabsorber%ndoc)
-     nullify(Gabsorber%xp)
-     nullify(Gabsorber%psiat)
-     
-     call read_gaussian_information (ha%orbs,Gabsorber,dum_coeffs , filename, .true. )    
-     Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
-     
-     i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
-     deallocate(dum_coeffs,stat=i_stat)
-     call memocc(i_stat,i_all,'coeffs',subname)
-     
+
+  select case(  in%Linit_absorber )
+  case(0)
+     wtag(1:1) = 's'
+  case(1)
+     wtag(1:1) = 'p'
+  case(2)
+     wtag(1:1) = 'd'
+  case(3)
+     wtag(1:1) = 'f'
+  case default
+     STOP "unknown in%Linit_absorber    "
+  end select
+  write(filename,'(A,A,A,I1,A,A,I1,A,I1,A,I0)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) ,&
+       "_", in%N_absorber,   "s" ,   "_pow=" ,  in%rpower_absorber,"_Labs=", &
+       in%L_absorber,"_npaw=",in%NPAW_absorber
+ 
+
+  
+  if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
-     
   else
      
-        if(iproc==0) then
-           print *, "calculating  projection on pseudofunctions"
-           print *, "for 1s of atom number ", in_iat_absorber, &
-                & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-           print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        endif
-           call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
-                at,rxyz,nproc,iproc,   in%L_absorber ,  in%abscalc_eqdiff )
-           
-           allocate(dum_coeffs(2*in%L_absorber+1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,dum_coeffs,'dum_coeffs',subname)
-           
-           dum_coeffs(:,1) = in%Gabs_coeffs(:)
-           
-           Gabs_coeffs(:)=in%Gabs_coeffs(:)
-           
-        if( iproc.eq.0) then
-           print *,"writing them on file " , filename
-           call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,filename)
-        endif
-     
-        i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
-        deallocate(dum_coeffs,stat=i_stat)
-        call memocc(i_stat,i_all,'coeffs',subname)
-        
+     if(iproc==0) then
+        print *, "xabs_lanczos : calculating  projection on pseudofunctions"
+        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
      endif
+     call GetExcitedOrbitalAsG(in_iat_absorber, & !!$ ,Gabsorber,&
+          at,rxyz,nproc,iproc,&
+          in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber , in%NPaw_absorber,  &
+          in%abscalc_eqdiff, filename, ha)
+     
 
-  !allocate the potential in the full box
-  call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
-       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+!     Gabs_coeffs(:)=in%Gabs_coeffs(:)    
+!      if( iproc.eq.0) then
+!         print *,"writing them on file " , filename
+!         call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber, in%Gabs_coeffs,filename)
+!      endif
 
 
+        print * , " you will now have to process informations in " ,filename,"_in_coeffs"
+        STOP " Normal stop : data for initial wave have been prepared "
+
+  endif
+  
+  ha%in_iat_absorber=in_iat_absorber
+  ha%Labsorber  = in%L_absorber
   ha%iproc=iproc
   ha%nproc=nproc
   ha%at=>at !!
@@ -153,19 +138,19 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>pot
+  ha%potential=>potential
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
   ha%nspin=nspin
   ha%GPU=>GPU !!
-  ha%Gabsorber=>Gabsorber 
   ha%Gabs_coeffs=>Gabs_coeffs
+  nullify(ha%PAWD)
+
+
 
   call EP_inizializza(ha) 
 
-  call EP_memorizza_stato(Gabsorber) 
-     
   if(.true.) then
      LB_nsteps =in%nsteps
      call LB_allocate_for_lanczos( )
@@ -195,8 +180,6 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
   endif
-
-
   
   call deallocate_comms(ha%comms,subname)
 
@@ -208,11 +191,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   call deallocate_orbs(ha%orbs,subname)
 
-  i_all=-product(shape(Gabsorber%rxyz))*kind(Gabsorber%rxyz)
-  deallocate(Gabsorber%rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
 
-  call deallocate_gwf(Gabsorber, subname)
 
   i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
   deallocate(ha%orbs%eval,stat=i_stat)
@@ -227,12 +206,17 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 END SUBROUTINE xabs_lanczos
+!!***
 
 
-!>   Chebychev polynomials to calculate the density of states
+!!****f* BigDFT/chebychev
+!! FUNCTION
+!!   Chebychev polynomials to calculate the density of states
+!! SOURCE
+!!
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-     ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
+     ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD   )! aggiunger a interface
 
   use module_base
   use module_types
@@ -258,6 +242,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   integer, intent(in) :: in_iat_absorber
   
   type(input_variables),intent(in) :: in
+  type(pawproj_data_type), target ::PAWD
 
   !Local variables
   character(len=*), parameter :: subname='chebychev'
@@ -266,22 +251,21 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   real(8) :: shift, tol
   integer :: i, cercacount
 
-  type(gaussian_basis), target ::  Gabsorber
   real(wp), pointer :: Gabs_coeffs(:)
-  real(wp), dimension(:), pointer :: pot
   real(wp), pointer, dimension (:,:) :: dum_coeffs
   character(len=80) :: filename
-  logical :: projeexists
+
   real(gp) :: eval_min, eval_max, fact_cheb, cheb_shift
   integer :: accontentati_di
   real(gp) :: Pi
-
+  character(len=1) wtag
+  logical:: dopaw
   if (iproc==0) print *, " IN ROUTINE  chebychev  "
 
   Pi=acos(-1.0_gp)
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -302,72 +286,48 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
 
-  write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
+  select case(  in%Linit_absorber )
+  case(0)
+     wtag(1:1) = 's'
+  case(1)
+     wtag(1:1) = 'p'
+  case(2)
+     wtag(1:1) = 'd'
+  case(3)
+     wtag(1:1) = 'f'
+  case default
+     STOP "unknown in%Linit_absorber    "
+  end select
+  write(filename,'(A,A,A,I1,A,A,I1,A,I1,A,I0)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) ,&
+       "_", in%N_absorber,   "s" ,   "_pow=" ,  in%rpower_absorber,"_Labs=", &
+       in%L_absorber,"_npaw=",in%NPAW_absorber
 
-  inquire(FILE=trim(filename),EXIST=projeexists)
-
-  if( projeexists .and. .not. in%abscalc_eqdiff   ) then
-     
-     if(iproc==0) then
-        print *, "reading  precalculated  projection on pseudofunctions"
-        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
-             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
-        print '(a,a20)'," from file " , trim(filename)
-     endif
-     
-     nullify( dum_coeffs  ) 
-
-     nullify(Gabsorber%nshell)
-     nullify(Gabsorber%nam)
-     nullify(Gabsorber%ndoc)
-     nullify(Gabsorber%xp)
-     nullify(Gabsorber%psiat)
-   
-     call read_gaussian_information(ha%orbs,Gabsorber,dum_coeffs , filename, .true. )
-     Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
-     
-     i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
-     deallocate(dum_coeffs,stat=i_stat)
-     call memocc(i_stat,i_all,'coeffs',subname)
-
+  if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
   else
      if(iproc==0) then
-        print *, "calculating  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", &
-             & at%atomnames(at%iatype(  in_iat_absorber ))," )"
+        print *, "xabs_chebychev : calculating  projection on pseudofunctions"
+        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
         print *, "After application of a 2*L-pole  with L= ", in%L_absorber
      endif
+
+     call GetExcitedOrbitalAsG(in_iat_absorber, & !!$ ,Gabsorber,&
+          at,rxyz,nproc,iproc, &
+          in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber ,in%NPaw_absorber,  &
+          in%abscalc_eqdiff, filename, ha)
      
-     call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
-          at,rxyz,nproc,iproc,   in%L_absorber ,  in%abscalc_eqdiff )
-     
-     allocate(dum_coeffs(2*in%L_absorber+1,1+ndebug),stat=i_stat)
-     call memocc(i_stat,dum_coeffs,'dum_coeffs',subname)
-     
-     dum_coeffs(:,1) = in%Gabs_coeffs(:)
-     
+
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
-     
-     if( iproc.eq.0) then
-        print *,"writing them on file " , filename
-        call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,trim(filename))
-     endif
-   
-     
-     i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
-     deallocate(dum_coeffs,stat=i_stat)
-     call memocc(i_stat,i_all,'coeffs',subname)
-     
+
+     print * , " you will now have to process informations in " ,filename,"_in_coeffs"
+     STOP " Normal stop : data for initial wave have been prepared "
+
+    
   endif
 
-  !allocate the potential in the full box
-  call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
-       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
-  
-  print *, "OK "
   !associate hamapp_arg pointers
+  ha%in_iat_absorber=in_iat_absorber
+  ha%Labsorber  = in%L_absorber
   ha%iproc=iproc
   ha%nproc=nproc
   ha%at=>at !!
@@ -382,21 +342,21 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>pot
+  ha%potential=>potential
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
   ha%nspin=nspin
   ha%GPU=>GPU !!
-  ha%Gabsorber=>Gabsorber 
   ha%Gabs_coeffs=>Gabs_coeffs
- 
-  call EP_inizializza(ha)  
-  print *, "OK 1"
- 
-  call  EP_memorizza_stato(Gabsorber) 
 
-  print *, "OK 2"
+  ha%PAWD=> PAWD
+ 
+  print *, "  initialization  "
+
+  call EP_inizializza(ha)  
+  print *, "  initialization OK   "
+
  
   if(.false.) then
 
@@ -430,36 +390,40 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      eval_min = LB_eval(0)+10000
 
   else
+
      eval_min = GetBottom(  at, iproc)-1.0
-     eval_max = 4.0*Pi*Pi*(1.0/hx/hx + 1.0/hy/hy + 1.0/hz/hz  )/2.0*1.01+1
+     eval_max = 4.0*Pi*Pi*(1.0/hx/hx + 1.0/hy/hy + 1.0/hz/hz  )/2.0*1.1 +2
+
   endif
+
 
 
 
   cheb_shift=0.5*(eval_min+ eval_max) 
   fact_cheb = (2-0.0001)/(eval_max-eval_min)
      
-  print *, "OK 4"
-
-
   if(.true.) then
-     
-     call EP_memorizza_stato(Gabsorber) ! se uno stato e' memorizzato EP_initialize_start usa quello, se no random
+  
      LB_nsteps = in%nsteps
-     
-     print *, "OK 45"
  
      call LB_allocate_for_chebychev( )
-     call EP_allocate_for_eigenprob(3) ! invece di nsteps, giusto qualche vettore per fare i calcoli
-     call EP_make_dummy_vectors(2)
+     call EP_allocate_for_eigenprob(6) ! invece di nsteps, giusto qualche vettore per fare i calcoli
+     call EP_make_dummy_vectors(4)
   
 
-     call set_EP_shift(-cheb_shift) 
-     print *, "OK 5"
- 
+     !! call set_EP_shift(-cheb_shift) 
+     call set_EP_shift(0.0_gp) 
+
+     if( sum( ha%at%paw_NofL ).gt.0 ) then
+        dopaw=.true.
+     else
+        dopaw=.false.
+     endif
+
      call LB_passeggia_Chebychev (LB_nsteps, cheb_shift,  fact_cheb,     get_EP_dim, EP_initialize_start , EP_normalizza,&
           EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
-          EP_scalare,EP_add_from_vect_with_fact  , EP_multbyfact  )
+          EP_scalare,EP_add_from_vect_with_fact  , EP_multbyfact, EP_ApplySinv, EP_ApplyS, dopaw, &
+          in%abscalc_S_do_cg,  in%abscalc_Sinv_do_cg, in%xabs_res_prefix )
 
      if(ha%iproc==0) then
         print *, "coefficients from Chebychev "
@@ -472,10 +436,6 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
         enddo
      endif
   endif
-
-  call free_full_potential(nproc,pot,subname)
-
-  nullify(ha%potential)
 
   !deallocate communication and orbitals descriptors
   call deallocate_comms(ha%comms,subname)
@@ -499,11 +459,6 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   call deallocate_orbs(ha%orbs,subname)
 
-  i_all=-product(shape(Gabsorber%rxyz))*kind(Gabsorber%rxyz)
-  deallocate(Gabsorber%rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
-
-  call deallocate_gwf(Gabsorber, subname)
 
   call deallocate_abscalc_input(in, subname)
 
@@ -537,11 +492,16 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 END SUBROUTINE xabs_chebychev
 
 
-!>   finds the spectra solving  (H-omega)x=b
+!!***
+!!****f* BigDFT/cg_spectra
+!! FUNCTION
+!!   finds the spectra solving  (H-omega)x=b
+!! SOURCE
+!!
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
-     in , rhoXanes )
+     in , rhoXanes, PPD )
   use module_base
   use module_types
   use lanczos_interface
@@ -556,6 +516,9 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   type(atoms_data), target :: at
   type(nonlocal_psp_descriptors), target :: nlpspd
   type(locreg_descriptors), target :: lr
+  
+  type(pcproj_data_type), target ::PPD
+  
   integer, dimension(0:nproc-1,2), target :: ngatherarr 
   real(gp), dimension(3,at%nat), target :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
@@ -579,14 +542,13 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   real(gp) Ene,gamma,  res
 
 
-  type(gaussian_basis), target ::  Gabsorber
   real(wp),   pointer  :: Gabs_coeffs(:)
-  real(wp), dimension(:), pointer  :: pot
   real(wp),  pointer, dimension(:,:)  :: dum_coeffs
   character(len=800) :: filename
-  logical :: projeexists
   logical:: useold
   real(gp) , pointer ::potentialclone(:,:)
+  character(len=1) wtag
+
 
   if( iand( in%potshortcut,16)>0) then
      allocate(potentialclone(max(ndimpot,1),nspin+ndebug),stat=i_stat)
@@ -597,7 +559,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   if(iproc==0) print *, " IN ROUTINE xabs_cg "
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -616,69 +578,49 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
   call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
  
-  write(filename,'(A,A,A,I1)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) , "_1s_",  in%L_absorber
-  
-  inquire(FILE=trim(filename),EXIST=projeexists)
-  
-  if( projeexists .and. .not. in%abscalc_eqdiff   ) then
-     
-     if(iproc==0) then
-        print *, "reading  precalculated  projection on pseudofunctions"
-        print '(a,i6,a,a10,a)', "for 1s of atom number ", in_iat_absorber, &
-             & " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print '(a,i6)', "After application of a 2*L-pole  with L= ", in%L_absorber
-        print '(a,a20)'," from file " , trim(filename)
-     endif
 
-     nullify( dum_coeffs  ) 
-     nullify(Gabsorber%nshell)
-     nullify(Gabsorber%nam)
-     nullify(Gabsorber%ndoc)
-     nullify(Gabsorber%xp)
-     nullify(Gabsorber%psiat)
-     
-     call read_gaussian_information (ha%orbs,Gabsorber,dum_coeffs , filename, .true. )    
-     Gabsorber%rxyz(:,1)=rxyz(:, in_iat_absorber )
-     
-     i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
-     deallocate(dum_coeffs,stat=i_stat)
-     call memocc(i_stat,i_all,'coeffs',subname)
-     
+
+
+
+  select case(  in%Linit_absorber )
+  case(0)
+     wtag(1:1) = 's'
+  case(1)
+     wtag(1:1) = 'p'
+  case(2)
+     wtag(1:1) = 'd'
+  case(3)
+     wtag(1:1) = 'f'
+  case default
+     STOP "unknown in%Linit_absorber    "
+  end select
+  write(filename,'(A,A,A,I1,A,A,I1,A,I1,A,I0)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) ,&
+       "_", in%N_absorber,   "s" ,   "_pow=" ,  in%rpower_absorber,"_Labs=", &
+       in%L_absorber,"_npaw=",in%NPAW_absorber
+  
+
+  if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
-     
   else
-     
+
         if(iproc==0) then
-           print *, "calculating  projection on pseudofunctions"
-           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", &
-                & at%atomnames(at%iatype(  in_iat_absorber ))," )"
+           print *, "xabs_cg : calculating  projection on pseudofunctions"
+           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
            print *, "After application of a 2*L-pole  with L= ", in%L_absorber
         endif
-           call GetExcitedOrbitalAsG(in_iat_absorber ,Gabsorber,&
-                at,rxyz,nproc,iproc,   in%L_absorber ,  in%abscalc_eqdiff )
-           
-           allocate(dum_coeffs(2*in%L_absorber+1,1+ndebug),stat=i_stat)
-           call memocc(i_stat,dum_coeffs,'dum_coeffs',subname)
-           
-           dum_coeffs(:,1) = in%Gabs_coeffs(:)
-           
-           Gabs_coeffs(:)=in%Gabs_coeffs(:)
-           
-        if( iproc.eq.0) then
-           print *,"writing them on file " , filename
-           call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber,dum_coeffs ,filename)
-        endif
-     
-        i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
-        deallocate(dum_coeffs,stat=i_stat)
-        call memocc(i_stat,i_all,'coeffs',subname)
+        call GetExcitedOrbitalAsG(in_iat_absorber , & !!$  ,Gabsorber,&
+             at,rxyz,nproc,iproc, &
+             in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber , in%NPaw_absorber, &
+             in%abscalc_eqdiff , filename , ha)
+        Gabs_coeffs(:)=in%Gabs_coeffs(:)
         
+        print * , " you will now have to process informations in " ,filename,"_in_coeffs"
+        STOP " Normal stop : data for initial wave have been prepared "
+
      endif
 
-     !allocate the potential in the full box
-     call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
-          ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
-
+  ha%in_iat_absorber=in_iat_absorber
+  ha%Labsorber  = in%L_absorber
   ha%iproc=iproc
   ha%nproc=nproc
   ha%at=>at !!
@@ -693,19 +635,20 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>pot
+  ha%potential=>potential
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
   ha%nspin=nspin
   ha%GPU=>GPU !!
-  ha%Gabsorber=>Gabsorber 
   ha%Gabs_coeffs=>Gabs_coeffs
+  nullify(ha%PAWD)
+
+  ha%PPD=> PPD
 
   call EP_inizializza(ha) 
 
-  call EP_memorizza_stato(Gabsorber) 
-     
+
   if(.true.) then
      LB_nsteps =in%nsteps
      call LB_allocate_for_lanczos( )
@@ -713,7 +656,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      call EP_make_dummy_vectors(10)
      
          
-     do i=0,70
+     do i=0,0
 
         ene = 0.22_gp + i*0.03_gp
 
@@ -739,13 +682,12 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
            useold=.true.
         endif
 
-        print *, "chiamo CG "
         res =  LB_cg(    get_EP_dim, EP_initialize_start , EP_normalizza,&
              EP_Moltiplica4spectra,  EP_copy,  &
-             EP_scalare,EP_add_from_vect_with_fact   , EP_multbyfact  ,EP_precondition, Ene, gamma, 1.0D-4, useold )
+             EP_scalare,EP_add_from_vect_with_fact   , EP_multbyfact  ,EP_precondition, Ene, gamma, 1.0D-2, useold )
         
         print *, ene, res
-        open(unit=22,file="cgspectra", position='append')
+        open(unit=22,file="cgspectra.dat", access='append')
         write(22,*) ene, res
         close(unit=22)
         
@@ -767,11 +709,6 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   call deallocate_orbs(ha%orbs,subname)
 
-  i_all=-product(shape(Gabsorber%rxyz))*kind(Gabsorber%rxyz)
-  deallocate(Gabsorber%rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'Gabsorber%rxyz',subname)
-
-  call deallocate_gwf(Gabsorber, subname)
 
   i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
   deallocate(ha%orbs%eval,stat=i_stat)
@@ -788,13 +725,14 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      call memocc(i_stat,i_all,'potentialclone',subname)
   endif
 
-  call free_full_potential(nproc,pot,subname)
+
+
 
   call deallocate_abscalc_input(in, subname)
 
 
-END SUBROUTINE xabs_cg
-
+END subroutine xabs_cg
+!!***
 
 subroutine dirac_hara (rho, E , V)
   use module_base
@@ -809,13 +747,21 @@ subroutine dirac_hara (rho, E , V)
   real(gp) Vcorr, rs, xk, EV,x
   integer i
 
+
+
   if(rho>1.0e-4) then
      rs = (3.0_gp / (4.0_gp*pi*rho)) ** (1.0_gp/3.0_gp)
   else
      rs=1000.0_gp
   endif
 
+
+
   Vcorr=V
+
+
+
+
 
   EV=E-Vcorr
   if(EV<=0) then
@@ -841,4 +787,4 @@ subroutine dirac_hara (rho, E , V)
   end do
   V=Vcorr
   return
-END SUBROUTINE dirac_hara
+end subroutine dirac_hara

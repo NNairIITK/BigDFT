@@ -1,7 +1,10 @@
-!> @file
 !!  Routines to do XANES calculation
 !! @author
 !!    Copyright (C) 2009-2011 BigDFT group
+!!****m* BigDFT/esatto
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2009 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,6 +12,9 @@
 
 
 !> module for XANES calculation
+
+
+
 module esatto
   use module_base
   use module_interfaces
@@ -406,11 +412,12 @@ contains
 
 
    real(gp) function esatto_CalcolaRiflettivita( ngrid_A ,rgrid, dumgrid1, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
-        Rmts,    Rinf ,nsteps_coarse ,nsteps_fine, Energia )
+        Rmts,    Rinf ,nsteps_coarse ,nsteps_fine, Energia , Labs)
      real(gp), target :: rgrid(1:ngrid_A), dumgrid1(1:ngrid_A)
      real(gp) rpot_a, spot_a, hpot_a,Rmts , Rinf, Energia
      integer nls_a, lpot_a, nsteps_coarse, nsteps_fine, ngrid_A
      real(gp), pointer ::  y_r(:), d_r(:)
+     integer Labs
 
      integer iCs, iFs,i
      real(gp) R0, Rh, rf0, rfh
@@ -473,13 +480,15 @@ contains
         Ref = MatMul(  inverse( nls,  UU-MatMul(Ref, DU)    ), -UD+MatMul(Ref, DD) )
         
         Transm = MatMul(  Transm, DD + MatMul(DU, Ref)      )
-        write(22,'(200(f20.10,1x))')  Rh, (1+Ref(1,1))/Transm(1,1)
+        write(22,'(200(f20.10,1x))')  Rh, (1+Ref(1,1))/Transm(1,1), Kh(1) 
         ! print *, Rh, (1+Ref(1,1))/Transm(1,1)
      enddo
-     esatto_CalcolaRiflettivita= DBLE(sum( Transm(1,:)*conjg(Transm(1,:)))     )
+
+     esatto_CalcolaRiflettivita= DBLE(sum( Transm(Labs,:)*conjg(Transm(Labs,:)))     )
 
      close(unit=22)
 
+
    end function esatto_CalcolaRiflettivita
  end module esatto
- 
+ !!***

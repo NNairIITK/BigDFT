@@ -183,6 +183,12 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
 
+  integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, dumi, npawl, ipawl, paw_l
+  integer :: paw_nofgaussians, paw_nofchannels, ig, il
+  real(gp) :: paw_greal, paw_gimag, paw_ccoeff, paw_scoeff, dumpaw
+  character(len=100) :: string
+
+
 
   !allocate atoms data variables
   ! store PSP parameters
@@ -199,6 +205,18 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
   allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
+
+  allocate(atoms%paw_NofL(atoms%ntypes+ndebug), stat=i_stat)
+  call memocc(i_stat,atoms%paw_NofL,'atoms%paw_NofL',subname)
+  paw_tot_l=0
+  paw_tot_q=0
+  paw_tot_coefficients=0
+  paw_tot_matrices=0
+
+
+
+
+
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -315,7 +333,70 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         message='         X              '
         radii_cf(ityp,3)=radfine
      end if
-     close(11)
+     
+     !! search for paw_patch informations
+
+     atoms%paw_NofL(ityp)=0
+     rewind(11)
+     do while(.true.)
+        read(11,'(a100)',iostat=ierror, END=110)  string
+        if ( trim(string).eq. 'PAWPATCH') then
+           exit
+        endif
+     end do
+     !! explain_paw_psp_terms_in_atom_data()
+     
+     read(11,*) npawl
+     atoms%paw_NofL(ityp) = npawl
+
+     paw_tot_l = paw_tot_l + npawl
+
+     do ipawl=1,npawl
+        read(11,*) paw_l
+        read(11,*) paw_greal
+        read(11,*) paw_nofgaussians
+        read(11,*) paw_nofchannels
+        read(11,*)  string  !!  follow 300 PAW_Gimag factors
+
+        paw_tot_q = paw_tot_q+paw_nofgaussians
+        paw_tot_coefficients = paw_tot_coefficients + paw_nofchannels*paw_nofgaussians*2
+        paw_tot_matrices=paw_tot_matrices+paw_nofchannels**2
+
+
+        do ig=1, paw_nofgaussians
+           read(11,*)  paw_gimag
+        enddo
+        read(11,*)  string  !!  !!  follow for each of the 7 channels 300 (cos_factor, sin_factor)  pairs
+        do il=1, paw_nofchannels
+           do ig=1, paw_nofgaussians
+              read(11,*)  paw_ccoeff, paw_scoeff
+           enddo
+        enddo
+        read(11,*)  string  !! pawpatch matrix
+        do il=1, paw_nofchannels
+           do ig=1, paw_nofchannels
+              read(11,*)  dumpaw
+           end do
+        enddo
+        read(11,*)  string  !! S  matrix
+        do il=1, paw_nofchannels
+           do ig=1, paw_nofchannels
+              read(11,*)  dumpaw
+           end do
+        enddo
+
+        read(11,*)  string  !! Sm1  matrix
+        do il=1, paw_nofchannels
+           do ig=1, paw_nofchannels
+              read(11,*)  dumpaw
+           end do
+        enddo
+
+
+     enddo
+110  close(11)
+
+
 
      !correct the coarse radius for projectors
      !it is always multiplied by frmult
@@ -347,6 +428,136 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
 
   enddo
   !print *,'iatsctype',atOMS%iasctype(:)
+
+
+
+
+
+
+ !! reread pspfiles collecting paw informations
+  !! explain_paw_psp_terms_in_atom_data()
+
+
+
+  allocate(atoms%paw_l  (paw_tot_l+ndebug), stat=i_stat)
+  call memocc(i_stat,atoms%paw_l,'atoms%paw_l',subname)
+  
+  allocate(atoms%paw_nofchannels  (paw_tot_l+ndebug), stat=i_stat)
+  call memocc(i_stat,atoms%paw_nofchannels,'atoms%paw_nofchannels',subname)
+  
+  allocate(atoms%paw_nofgaussians  (paw_tot_l+ndebug), stat=i_stat)
+  call memocc(i_stat,atoms%paw_nofgaussians,'atoms%paw_nofgaussians',subname)
+  
+  allocate(atoms%paw_Greal  (paw_tot_l+ndebug), stat=i_stat)
+  call memocc(i_stat,atoms%paw_Greal,'atoms%paw_Greal',subname)
+
+  allocate(atoms%paw_Gimag ( paw_tot_q   +  ndebug), stat=i_stat)
+  call memocc(i_stat,atoms%paw_Gimag,'atoms%paw_Gimag',subname)
+
+  allocate(atoms%paw_Gcoeffs ( paw_tot_coefficients  +  ndebug), stat=i_stat)
+  call memocc(i_stat,atoms%paw_Gcoeffs,'atoms%paw_Gcoeffs',subname)
+
+  allocate(atoms%paw_H_matrices(paw_tot_matrices+ndebug), stat=i_stat)
+  call memocc(i_stat,atoms%paw_H_matrices,'atoms%paw_H_matrices',subname)
+
+  allocate(atoms%paw_S_matrices ( paw_tot_matrices  +  ndebug), stat=i_stat)
+  call memocc(i_stat,atoms%paw_S_matrices,'atoms%paw_S_matrices',subname)
+
+
+  allocate(atoms%paw_Sm1_matrices ( paw_tot_matrices  +  ndebug), stat=i_stat)
+  call memocc(i_stat,atoms%paw_Sm1_matrices,'atoms%paw_Sm1_matrices',subname)
+
+
+  paw_tot_l=0
+  paw_tot_q = 0
+  paw_tot_coefficients = 0
+  paw_tot_matrices= 0
+  
+  do ityp=1,atoms%ntypes
+     if( atoms%paw_NofL(ityp).gt.0) then
+        filename = 'psppar.'//atoms%atomnames(ityp)
+        open(unit=11,file=filename,status='old',iostat=ierror)
+
+        do while(.true.)
+           read(11,'(a100)',iostat=ierror, END=220)  string
+           if ( trim(string).eq. 'PAWPATCH') then
+              exit
+           endif
+        end do
+        print *, " =============================== "
+        print *, string , " for file " , filename
+220     continue
+        if(trim(string) .ne. 'PAWPATCH') then
+           print *, "paw section not found re-reading  file ", filename
+           close(11)
+           stop
+        end if
+
+        read(11,*) npawl
+        atoms%paw_NofL(ityp) = npawl
+
+
+        do ipawl=1,npawl
+           !! explain_paw_psp_terms_in_atom_data()
+           read(11,*) atoms%paw_l(paw_tot_l+ipawl  )
+           read(11,*) atoms%paw_greal(paw_tot_l+ipawl  )
+           read(11,*) atoms%paw_nofgaussians(paw_tot_l+ipawl  )
+           read(11,*) atoms%paw_nofchannels(paw_tot_l+ipawl  )
+           paw_nofchannels = atoms%paw_nofchannels(paw_tot_l+ipawl  )
+           read(11,'(a100)')  string  !!  follow  paw_nofchannels PAW_Gimag factors
+
+           print *, string , " reading  " , filename
+
+           do ig=1, paw_nofgaussians
+              read(11,*)  atoms%paw_Gimag(paw_tot_q + ig )
+           enddo
+           read(11,'(a100)')  string  !!  !!  follow for each of the Npaw channels  nofgaussians (cos_factor, sin_factor)  pairs
+           print *, string, " reading  " , filename
+
+           do il=1, paw_nofchannels
+              print *, " inizio un nuovo " , il
+              do ig=1, paw_nofgaussians
+                 read(11,*)  atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig-1) , &
+                             atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig)
+                 if(ig==1) then
+                    print *,  " il primmo est " , atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig-1) , &
+                             atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig)
+                 endif
+              enddo
+           enddo
+           read(11,'(a100)')  string  !! pawpatch matrix
+           print *, string, " reading  " , filename
+           do il=1, paw_nofchannels
+              do ig=1, paw_nofchannels
+                 read(11,*)  dumpaw 
+                 atoms%paw_H_matrices(paw_tot_matrices +(il-1)*paw_nofchannels+ig   )=dumpaw
+              end do
+           enddo
+           read(11,'(a100)')  string  !! S  matrix
+           print *, string, " reading >>>>>  " , filename
+           do il=1, paw_nofchannels
+              do ig=1, paw_nofchannels
+                 read(11,*)  dumpaw
+                 atoms%paw_S_matrices(paw_tot_matrices +(il-1)*paw_nofchannels+ig   )=dumpaw
+              end do
+           enddo
+           read(11,'(a100)')  string  !! Sm1  matrix
+           print *, string, " reading  " , filename
+           do il=1, paw_nofchannels
+              do ig=1, paw_nofchannels
+                 read(11,*)  dumpaw
+                 atoms%paw_Sm1_matrices(paw_tot_matrices +(il-1)*paw_nofchannels+ig   )=dumpaw
+                 print *, dumpaw
+              end do
+           enddo
+           paw_tot_q = paw_tot_q+paw_nofgaussians
+           paw_tot_coefficients = paw_tot_coefficients + paw_nofchannels*paw_nofgaussians*2
+           paw_tot_matrices=paw_tot_matrices+paw_nofchannels**2
+        end do
+        paw_tot_l = paw_tot_l + npawl
+     end if
+     close(11)
+  end do
 
   !print the pseudopotential matrices
   if (iproc == 0) then
