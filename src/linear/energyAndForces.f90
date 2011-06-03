@@ -122,16 +122,18 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
      !call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
      !     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
      !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, atoms, rxyz, nscatterarr)
-write(*,*) 'calling sumrhoForLocalizedBasis2'
+     write(*,*) 'calling sumrhoForLocalizedBasis2'
      call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, atoms, rxyz, nscatterarr)
      !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1), rhopot)
      !call sumrhoLinear(iproc, nproc, lin%nlr, lin%Lorbs, Glr, lin%Llr, in%ixc, hxh, hyh, hzh, phi, rhopot, &
      !     Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1), nscatterarr, in%nspin, GPU, atoms%symObj, irrzon, &
      !     phnons, orbs%norb, coeff)
 call mpi_barrier(mpi_comm_world, iall)
+write(*,*) 'iproc, size(rhopot)', iproc, size(rhopot)
 do iall=1,size(rhopot)
-    write(500,*) rhopot(iall)
+    write(500+iproc*10,*) iall, rhopot(iall)
 end do
+call mpi_barrier(mpi_comm_world, iall)
 stop
 
      !call sumrhoLinear(iproc,nproc,nlr,lin%orbs,Glr,Llr,in%ixc,hxh,hyh,hzh,&

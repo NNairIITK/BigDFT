@@ -222,7 +222,7 @@ allocate(lin%locrad(lin%nlr),stat=istat)
 call memocc(istat,lin%locrad,'lin%locrad',subname)
 
 ! For now, set locrad by hand HERE
-lin%locrad = 7.d0
+lin%locrad = 700.d0
 do ilr=1,lin%nlr
     if(iproc==0) write(*,'(x,a,i5,es13.3)') 'ilr, lin%locrad(ilr)', ilr, lin%locrad(ilr)
 end do
