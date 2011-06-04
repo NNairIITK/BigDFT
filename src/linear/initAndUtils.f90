@@ -1,5 +1,5 @@
 subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
-    input, rxyz, occupForInguess, coeff, coeffd)
+    input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, phibuff, lphi)
 !
 ! Purpose:
 ! ========
@@ -37,14 +37,17 @@ type(linearParameters),intent(inout):: lin
 type(linearParameters),intent(inout):: lind
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
+integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(8),dimension(32,at%nat):: occupForInguess
 real(8),dimension(:),allocatable,intent(out):: phi, phid
 real(8),dimension(:,:),allocatable,intent(out):: coeff, coeffd
+real(8),dimension(:),pointer,intent(out):: lphi, phibuff
 
 
 ! Local variables
 integer:: jproc, istat, iorb, jorb, korb, ierr, iat, ityp, iall, norb_tot, klr
 integer:: norb, norbu, norbd, ilr, jlr, npsidim, nlocregOverlap, ist, iiorb, ii, jmpi, iilr, kmpi
+integer:: is, ie, tag, i3s, i3e, ioverlap
 integer,dimension(:),allocatable:: norbsPerType, norbsPerAtom, istOrb, onWhichMPI, onWhichAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20):: atomname
@@ -222,7 +225,7 @@ allocate(lin%locrad(lin%nlr),stat=istat)
 call memocc(istat,lin%locrad,'lin%locrad',subname)
 
 ! For now, set locrad by hand HERE
-lin%locrad = 700.d0
+lin%locrad = 5.d0
 do ilr=1,lin%nlr
     if(iproc==0) write(*,'(x,a,i5,es13.3)') 'ilr, lin%locrad(ilr)', ilr, lin%locrad(ilr)
 end do
@@ -393,6 +396,83 @@ write(*,*) orbs%nspinor, lin%orbs%nspinor, lin%Lorbs%nspinor
 !!iall=-product(shape(locrad))*kind(locrad)
 !!deallocate(locrad, stat=istat)
 !!call memocc(istat, iall, 'locrad', subname)
+
+
+
+
+! First count the number of overlapping orbitals for each slice.
+allocate(lin%comsr%noverlaps(0:nproc-1), stat=istat)
+call memocc(istat, lin%comsr%noverlaps, 'lin%comsr%noverlaps', subname)
+do jproc=0,nproc-1
+    is=nscatterarr(jproc,3)+1
+    ie=is+nscatterarr(jproc,1)
+    ioverlap=0
+    do iorb=1,lin%orbs%norb
+        ilr=lin%onWhichAtomAll(iorb)
+        i3s=2*lin%Llr(ilr)%ns3+1
+        i3e=2*lin%Llr(ilr)%ns3+lin%Llr(ilr)%d%n3i
+        if(i3s<=ie .and. i3e>=is) then
+            ioverlap=ioverlap+1
+        end if
+    end do
+    lin%comsr%noverlaps(jproc)=ioverlap
+end do
+! Do the initialization concerning the calculation of the charge density.
+allocate(lin%comsr%istarr(0:nproc-1), stat=istat)
+call memocc(istat, lin%comsr%istarr, 'lin%comsr%istarr', subname)
+allocate(lin%comsr%istrarr(lin%comsr%noverlaps(iproc)), stat=istat)
+call memocc(istat, lin%comsr%istrarr, 'lin%comsr%istrarr', subname)
+allocate(lin%comsr%overlaps(lin%comsr%noverlaps(iproc)), stat=istat)
+call memocc(istat, lin%comsr%overlaps, 'lin%comsr%overlaps', subname)
+
+allocate(lin%comsr%comarr(9,maxval(lin%comsr%noverlaps),0:nproc-1), stat=istat)
+call memocc(istat, lin%comsr%comarr, 'coms%commsSumrho', subname)
+
+
+tag=0
+lin%comsr%sizePhibuff=0
+lin%comsr%sizePhibuffr=0
+lin%comsr%istarr=1
+lin%comsr%istrarr=1
+do jproc=0,nproc-1
+    is=nscatterarr(jproc,3)+1
+    ie=is+nscatterarr(jproc,1)
+    ioverlap=0
+    do iorb=1,lin%orbs%norb
+        ilr=lin%onWhichAtomAll(iorb)
+        i3s=2*lin%Llr(ilr)%ns3+1
+        i3e=2*lin%Llr(ilr)%ns3+lin%Llr(ilr)%d%n3i
+        if(i3s<=ie .and. i3e>=is) then
+            ioverlap=ioverlap+1
+            tag=tag+1
+            call setCommunicationInformation(jproc, iorb, ilr, lin%comsr%istarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
+            if(iproc==jproc) then
+                lin%comsr%sizePhibuff = lin%comsr%sizePhibuff + lin%Llr(ilr)%wfd%nvctr_c + 7*lin%Llr(ilr)%wfd%nvctr_f
+                lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
+                lin%comsr%overlaps(ioverlap)=iorb
+                if(ioverlap<lin%comsr%noverlaps(iproc)) lin%comsr%istrarr(ioverlap+1) = lin%comsr%istrarr(ioverlap) + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
+            end if
+            lin%comsr%istarr(jproc)=lin%comsr%istarr(jproc)+lin%Llr(ilr)%wfd%nvctr_c + 7*lin%Llr(ilr)%wfd%nvctr_f
+        end if
+    end do
+end do
+
+allocate(phibuff(lin%comsr%sizePhibuff), stat=istat)
+call memocc(istat, phibuff, 'phibuff', subname)
+phibuff=0.d0
+
+allocate(lin%comsr%communComplete(maxval(lin%comsr%noverlaps(:)),0:nproc-1), stat=istat)
+call memocc(istat, lin%comsr%communComplete, 'lin%comsr%communComplete', subname)
+allocate(lin%comsr%computComplete(maxval(lin%comsr%noverlaps(:)),0:nproc-1), stat=istat)
+call memocc(istat, lin%comsr%computComplete, 'lin%comsr%computComplete', subname)
+
+! Allocate lphi, which will be phi transformed to the localization region.
+allocate(lphi(lin%Lorbs%npsidim), stat=istat)
+call memocc(istat, lphi, 'lphi', subname)
+
+
+
+
 
 
 !! ###########################################################

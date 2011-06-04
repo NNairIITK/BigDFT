@@ -378,6 +378,15 @@ module module_types
       integer:: size_pkernelseq
   end type
 
+!> Contains the parameters needed for the point to point communications
+!! for sumrho in the linear scaling version.
+  type,public:: p2pCommsSumrho
+    integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
+    integer,dimension(:,:,:),pointer:: comarr
+    integer:: sizePhibuff, sizePhibuffr
+    logical,dimension(:,:),pointer:: communComplete, computComplete
+  end type
+
 
 !!!!> Contains all parameters related to the linear scaling version.
 !!!  type,public:: linearParameters
@@ -413,6 +422,7 @@ module module_types
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
     character(len=4):: getCoeff
+    type(p2pCommsSumrho):: comsr
   end type
 
 

@@ -1237,7 +1237,7 @@ module module_interfaces
 
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
-          input, rxyz, occupForInguess, coeff, coeffd)
+          input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, phibuff, lphi)
       use module_base
       use module_types
       implicit none
@@ -1249,10 +1249,11 @@ module module_interfaces
       type(linearParameters),intent(inout):: lind
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(in):: rxyz
+      integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       real(8),dimension(32,at%nat):: occupForInguess
       real(8),dimension(:),allocatable,intent(out):: phi, phid
       real(8),dimension(:,:),allocatable,intent(out):: coeff, coeffd
-
+      real(8),dimension(:),pointer,intent(out):: phibuff, lphi
     end subroutine allocateAndInitializeLinear
 
 
@@ -1422,7 +1423,7 @@ module module_interfaces
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-        i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd)
+        i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, phibuff, lphi)
       use module_base
       use module_types
       !use Poisson_Solver
@@ -1461,6 +1462,8 @@ module module_interfaces
       real(8),dimension(lind%orbs%norb,orbs%norb),intent(in out):: coeffd
       real(8),dimension(3,at%nat),intent(out):: fxyz
       real(8):: eion, edisp, fnoise
+      real(8),dimension(lin%comsr%sizePhibuff),intent(out):: phibuff
+      real(8),dimension(lin%Lorbs%npsidim),intent(inout):: lphi
     end subroutine getLinearPsi
 
     subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
@@ -1591,7 +1594,7 @@ module module_interfaces
     
     subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, lind, phi, phid, psi, rxyz, rxyzParab, &
         rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-        proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy)
+        proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff)
       use module_base
       use module_types
       implicit none
@@ -1625,6 +1628,7 @@ module module_interfaces
       real(8),dimension(lind%orbs%norb,orbs%norb):: coeffd
       real(8):: ebsMod
       logical:: scpot
+      real(8),dimension(lin%comsr%sizePhibuff),intent(inout):: phibuff
     end subroutine potentialAndEnergySub
     
     
