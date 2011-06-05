@@ -502,6 +502,269 @@ contains
 END SUBROUTINE gauss_to_daub_k
 
 
+
+
+
+
+
+subroutine gauss_c_to_daub_k(hgrid,kvalin,ncplx,factor , &
+     gau_cen,gau_a, n_gau,&!no err, errsuc
+     nmax,n_left,n_right,c,& 
+     ww,nwork,periodic, hcutoff)      !added work arrays ww with dimension nwork
+  use module_base
+  implicit none
+  logical, intent(in) :: periodic
+  integer, intent(in) :: n_gau,nmax,nwork,ncplx
+  real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a,kvalin
+  real(wp), dimension(0:nwork,2,ncplx), intent(inout) :: ww 
+  integer, intent(out) :: n_left,n_right
+  real(wp), dimension(ncplx,0:nmax,2), intent(out) :: c
+  real(gp)  hcutoff
+
+  !local variables
+  integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
+  real(gp) :: a,z0,h,x,r,coeff,r2,fac,rk
+  real(wp) :: func,cval,sval
+  integer, dimension(0:8) :: lefts,rights
+  integer :: nrefinement, nforwards, ifwdtarget , ifwdsource, iswap
+  real(gp) kval
+  real(gp) cutoff
+
+  !include the convolutions filters
+  include 'recs16.inc'! MAGIC FILTER  
+  include 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
+  include 'sym_16.inc'! WAVELET FILTERS
+
+  !rescale the parameters so that hgrid goes to 1.d0  
+  a=gau_a/hgrid
+  kval=kvalin*hgrid*hgrid
+
+  i0=nint(gau_cen/hgrid) ! the array is centered at i0
+
+
+  z0=gau_cen/hgrid-real(i0,gp)
+  cutoff= hcutoff /hgrid
+
+
+  nrefinement=64
+  nforwards=6
+
+  h=  (16 * .125_gp*.5_gp)/ nrefinement
+
+  !calculate the array sizes;
+  !at level 0, positions shifted by i0 
+  right_t= ceiling(15.d0*a)
+
+  !print *,'a,right_t',a,right_t,gau_a,hgrid
+
+  !to rescale back the coefficients
+  fac = hgrid**n_gau*sqrt(hgrid)*factor
+
+
+  !initialise array
+  c=0.0_gp
+
+  if (periodic) then
+     !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
+     !we limit however the folding to one cell on each side 
+     !!(commented out)
+     !!     lefts( 0)=max(i0-right_t,-nmax)
+     !!     rights(0)=min(i0+right_t,2*nmax)
+
+     lefts( 0)=i0-right_t
+     rights(0)=i0+right_t
+     
+     call gauss_c_to_scf()
+     
+     ! special for periodic case:
+     call fold_tail
+  else
+     ! non-periodic: the Gaussian is bounded by the cell borders
+     lefts( 0)=max(i0-right_t,   0)
+     rights(0)=min(i0+right_t,nmax)
+
+     call gauss_c_to_scf
+     
+     !loop for each complex component
+     do icplx=1,ncplx
+        ! non-periodic: no tails to fold
+        do i=0,length-1
+           c(icplx,i+n_left,1)=fac*ww(i       ,2,icplx)
+           c(icplx,i+n_left,2)=fac*ww(i+length,2,icplx) 
+        end do
+     end do
+  endif
+
+
+contains
+
+  subroutine gauss_c_to_scf
+    ! Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
+    ! are fixed, we get the expansion coefficients in the usual way:
+    ! get them on the finest grid by quadrature
+    ! then forward transform to get the coeffs on the coarser grid.
+    ! All this is done assuming nonperiodic boundary conditions
+    ! but will also work in the periodic case if the tails are folded
+    n_left=lefts(0)
+    n_right=rights(0)
+    length=n_right-n_left+1
+
+    !print *,'nleft,nright',n_left,n_right
+
+    do k=1,nforwards
+       rights(k)=2*rights(k-1)+m
+       lefts( k)=2*lefts( k-1)-m
+    enddo
+
+    leftx = lefts(nforwards)-n
+    rightx=rights(nforwards)+n  
+
+    !stop the code if the gaussian is too extended
+    if (rightx-leftx > nwork) then
+       STOP 'gaustodaub'
+       return
+    end if
+
+    !loop for each complex component
+    do icplx=1,ncplx
+
+       !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
+
+       if( mod(nforwards,2)==0) then
+          ifwdtarget=1
+          ifwdsource=2
+       else
+          ifwdtarget=2
+          ifwdsource=1
+       endif
+
+
+       if (icplx == 1) then
+          if (n_gau == 0) then
+             do i=leftx,rightx
+                x=real(i-i0*nrefinement,gp)*h
+                r=x-z0
+                r2=r
+                r2=r2*r2
+                cval=real(cos(kval*r2),wp)
+                r2=0.5_gp*r2/a/a
+                func=real(dexp(-real(r2,kind=8)),wp)
+                if(abs(r)>cutoff) func=0
+                ww(i-leftx,ifwdtarget ,icplx)=func*cval
+             enddo
+          else
+             do i=leftx,rightx
+                x=real(i-i0*nrefinement,gp)*h
+                r=x-z0
+                coeff=r**n_gau
+                r2=r
+                r2=r2*r2
+                cval=real(cos(kval*r2),wp)
+                r2=0.5_gp*r2/a/a
+                func=real(dexp(-real(r2,kind=8)),wp)
+                func=real(coeff,wp)*func
+                if(abs(r)>cutoff) func=0
+                ww(i-leftx,ifwdtarget,icplx)=func*cval
+             enddo
+          end if
+       else if (icplx == 2) then
+          if (n_gau == 0) then
+             do i=leftx,rightx
+                x=real(i-i0*nrefinement,gp)*h
+                r=x-z0
+                r2=r
+                r2=r2*r2
+                cval=real(sin(kval*r2),wp)
+                r2=0.5_gp*r2/a/a
+                func=real(dexp(-real(r2,kind=8)),wp)
+                if(abs(r)>cutoff) func=0
+                ww(i-leftx,ifwdtarget,icplx)=func*cval
+             enddo
+          else
+             do i=leftx,rightx
+                x=real(i-i0*nrefinement,gp)*h
+                r=x-z0
+                coeff=r**n_gau
+                r2=r
+                r2=r2*r2
+                cval=real(sin(kval*r2),wp)
+                r2=0.5_gp*r2/a/a
+                func=real(dexp(-real(r2,kind=8)),wp)
+                func=real(coeff,wp)*func
+                if(abs(r)>cutoff) func=0
+                ww(i-leftx,ifwdtarget,icplx)=func*cval
+             enddo
+          end if
+       end if
+
+       !print *,'here',gau_a,gau_cen,n_gau
+
+       iswap=ifwdsource
+       ifwdsource=ifwdtarget
+       ifwdtarget=iswap
+
+
+       call apply_w(ww(0,ifwdsource ,icplx),ww(0,ifwdtarget ,icplx),&
+            leftx   ,rightx   ,lefts( nforwards),rights(nforwards  ),h)
+
+       do i=nforwards,2,-1
+
+          iswap=ifwdsource
+          ifwdsource=ifwdtarget
+          ifwdtarget=iswap
+          
+          call forward_c(ww(0,ifwdsource ,icplx),ww(0, ifwdtarget,icplx),&
+               lefts( i),rights( i),lefts(i-1),rights(i-1)) 
+          
+       enddo
+
+       iswap=ifwdsource
+       ifwdsource=ifwdtarget
+       ifwdtarget=iswap
+       
+       if( ifwdsource .ne. 1) then
+          STOP ' ifwdsource .ne. 1  '
+       endif
+
+       call forward(  ww(0,1,icplx),ww(0,2,icplx),&
+            lefts(1),rights(1),lefts(0),rights(0)) 
+
+    end do
+
+
+  END SUBROUTINE gauss_c_to_scf
+
+  subroutine fold_tail
+    ! One of the tails of the Gaussian is folded periodically
+    ! We assume that the situation when we need to fold both tails
+    ! will never arise
+    !implicit none
+
+
+    !modification of the calculation.
+    !at this stage the values of c are fixed to zero
+    !print *,'ncplx',ncplx,n_left,n_right,nwork,length
+    do icplx=1,ncplx
+       do i=n_left,n_right
+          j=modulo(i,nmax+1)
+          c(icplx,j,1)=c(icplx,j,1)+ww(i-n_left       ,2,icplx)
+          c(icplx,j,2)=c(icplx,j,2)+ww(i-n_left+length,2,icplx)
+       end do
+    end do
+
+    do icplx=1,ncplx
+       do j=0,nmax
+          c(icplx,j,1)=fac*c(icplx,j,1)
+          c(icplx,j,2)=fac*c(icplx,j,2)
+       enddo
+    enddo
+
+
+  END SUBROUTINE fold_tail
+
+
+END SUBROUTINE gauss_c_to_daub_k
+
 !> APPLYING THE MAGIC FILTER ("SHRINK") 
 subroutine apply_w(cx,c,leftx,rightx,left,right,h)
   use module_base

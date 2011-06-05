@@ -932,40 +932,11 @@ module module_interfaces
      end subroutine abs_generator_modified
 
 
-
-     subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
-          radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
-       use module_base
-       use module_types
-       implicit none
-       integer  :: iproc,nproc,ndimpot,nspin
-       real(gp)  :: hx,hy,hz
-       type(atoms_data), target :: at
-       type(nonlocal_psp_descriptors), target :: nlpspd
-       type(locreg_descriptors), target :: lr
-       integer, dimension(0:nproc-1,2), target :: ngatherarr 
-       real(gp), dimension(3,at%nat), target :: rxyz
-       real(gp), dimension(at%ntypes,3), intent(in), target ::  radii_cf
-       real(wp), dimension(nlpspd%nprojel), target :: proj
-       real(wp), dimension(max(ndimpot,1),nspin), target :: potential
-
-       real(gp) :: ekin_sum,epot_sum,eproj_sum
-       type(GPU_pointers), intent(inout) , target :: GPU
-       integer, intent(in) :: in_iat_absorber
-
-
-       type(input_variables),intent(in) :: in
-
-     END SUBROUTINE xabs_chebychev
-
      subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
           ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in, PAWD   )! aggiunger a interface
-       
        use module_base
-       use module_types
-       
+       use module_types       
        implicit none
        integer  :: iproc,nproc,ndimpot,nspin
        real(gp)  :: hx,hy,hz
@@ -1022,16 +993,6 @@ module module_interfaces
        integer iproc
        real(gp) GetBottom
      end function GetBottom
-
-     subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
-       implicit none
-       integer, intent(in) :: nzatom,nvalelec
-       character(len=2), intent(out) :: symbol
-       real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
-       integer, parameter :: nmax=6,lmax=3
-       integer, intent(out) :: neleconf(nmax,0:lmax)
-       integer, intent(out) :: nsccode,mxpl,mxchg
-     END SUBROUTINE eleconf
 
 !     subroutine psimix(iproc,nproc,orbs,comms,ads,ids,mids,idsx,energy,energy_old,alpha,&
 !          hpsit,psidst,hpsidst_sp,psit)
