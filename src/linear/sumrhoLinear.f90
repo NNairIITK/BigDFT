@@ -1143,14 +1143,24 @@ end subroutine sumrhoForLocalizedBasis
 
 
 
-
-subroutine setCommunicationInformation(jproc, iorb, ilr, istDest, tag, lin, commsSumrho)
+!> Initializes the parameters needed for the communication of the orbitals
+!! when calculating the charge density.
+!!
+!! input arguments
+!!  @param jproc        process to which the orbital shall be sent
+!!  @param iorb         orbital that is to be sent
+!!  @param istDest      the position on the MPI process to which it should be sent
+!!  @param tag          communication tag
+!!  @param lin          type containing the parameters for the linear scaling version
+!! output arguments
+!!  @param commsSumrho  contains the parameters
+subroutine setCommunicationInformation(jproc, iorb, istDest, tag, lin, commsSumrho)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: jproc, iorb, ilr, istDest, tag
+integer,intent(in):: jproc, iorb, istDest, tag
 type(linearParameters),intent(in):: lin
 integer,dimension(9),intent(out):: commsSumrho
 
@@ -1180,23 +1190,14 @@ commsSumrho(4)=lin%onWhichAtomAll(iorb)
 commsSumrho(5)=jproc
 
 ! the position on the MPI process to which it should be sent
-!ist=1
-!do jorb=lin%isorb_par(jproc)+1,ioverlap-1
-!    jlr=lin%onWhichAtomAll(jorb)
-!    ist=ist+lin%Llr(jlr)%wfd%nvctr_c+7*lin%Llr(jlr)%wfd%nvctr_f
-!end do
 commsSumrho(6)=istDest
-!if(mpisource==3) then
-!  write(*,'(a,8i8)') 'mpisource, istsource, ncount, mpidest, istdest, lin%isorb_par(jproc), ioverlap', commsSumrho(1), commsSumrho(2), commsSumrho(3), commsSumrho(5), commsSumrho(6), lin%isorb_par(jproc), ioverlap
-!end if
 
 ! the tag for this communication
 commsSumrho(7)=tag
 
-! this entry is used a request for the mpi_isend.
-!commsSumrho(8)=
-! this entry is used a request for the mpi_irecv.
-!commsSumrho(9)=
+! commsSumrho(8): this entry is used a request for the mpi_isend.
+
+! commsSumrho(9): this entry is used a request for the mpi_irecv.
 
 
 end subroutine setCommunicationInformation

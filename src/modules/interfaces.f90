@@ -1433,7 +1433,7 @@ module module_interfaces
       type(orbitals_data),intent(in) :: orbs
       type(communications_arrays),intent(in) :: comms
       type(atoms_data),intent(in):: at
-      type(linearParameters),intent(in):: lin, lind
+      type(linearParameters),intent(inout):: lin, lind
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
       real(8),dimension(3,at%nat),intent(inout):: rxyzParab

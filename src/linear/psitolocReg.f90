@@ -1062,7 +1062,7 @@ subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
               !lpsi(start+(icheck-1)*7+igrid) = gpsi(Gstart+(Glr%wfd%keyv(isegG)+ix-1)*7+offset+igrid)
               !!do iorbs=1,orbs%norbp*orbs%nspinor
               !!   lpsi(start+icheck+lincrement*(iorbs-1)+igrid*lfinc)=&
-&             !!   psi(Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc)
+              !!   psi(Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc)
               !!end do
            end do
         end do

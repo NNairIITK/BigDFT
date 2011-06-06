@@ -66,7 +66,7 @@ type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in) :: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
-type(linearParameters),intent(in):: lin, lind
+type(linearParameters),intent(inout):: lin, lind
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
 real(8),dimension(3,at%nat),intent(inout):: rxyzParab
@@ -2241,7 +2241,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linearParameters),intent(in):: lin
+type(linearParameters),intent(inout):: lin
 real(8),dimension(lin%Lorbs%npsidim),intent(inout):: lphi
 real(8),dimension(lin%comsr%sizePhibuff),intent(out):: phibuff
 

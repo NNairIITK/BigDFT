@@ -120,12 +120,11 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   !calculate the self-consistent potential
   if (scpot) then
      ! Potential from electronic charge density
-     ! THIS WAS THE ORIGINAL
      call cpu_time(t1)
+     ! THIS WAS THE ORIGINAL
      !call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
      !     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
      !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, atoms, rxyz, nscatterarr)
-     !write(*,*) 'calling sumrhoForLocalizedBasis2'
      if(.not. lin%useDerivativeBasisFunctions) then
          call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
               rhopot, atoms, rxyz, nscatterarr, phibuff)
@@ -137,10 +136,6 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
      time=t2-t1
      call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
      if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
-     !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1), rhopot)
-     !call sumrhoLinear(iproc, nproc, lin%nlr, lin%Lorbs, Glr, lin%Llr, in%ixc, hxh, hyh, hzh, phi, rhopot, &
-     !     Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1), nscatterarr, in%nspin, GPU, atoms%symObj, irrzon, &
-     !     phnons, orbs%norb, coeff)
 !!call mpi_barrier(mpi_comm_world, iall)
 !!write(*,*) 'iproc, size(rhopot)', iproc, size(rhopot)
 !!do iall=1,size(rhopot)
@@ -148,11 +143,6 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
 !!end do
 !!call mpi_barrier(mpi_comm_world, iall)
 !!stop
-
-     !call sumrhoLinear(iproc,nproc,nlr,lin%orbs,Glr,Llr,in%ixc,hxh,hyh,hzh,&
-     !  psi,rhopot,&
-     !  & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,in%nspin,GPU, &
-     !  & atoms%symObj, irrzon, phnons)
 
 
      if(orbs%nspinor==4) then

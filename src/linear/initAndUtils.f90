@@ -178,6 +178,7 @@ call orbitals_communicators(iproc,nproc,Glr,lind%orbs,lind%comms)
 
 
 ! Allocate phi.
+!write(*,*) 'iproc, lin%orbs%npsidim', iproc, lin%orbs%npsidim
 allocate(phi(lin%orbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
 
@@ -197,6 +198,7 @@ if(iproc==0) then
 end if
 
 ! The 'd' variants...
+!write(*,*) 'iproc, lind%orbs%npsidim', iproc, lind%orbs%npsidim
 allocate(phid(lind%orbs%npsidim), stat=istat)
 call memocc(istat, phid, 'phid', subname)
 
@@ -269,15 +271,19 @@ lind%Lorbs%npsidim=npsidim
 
 
 ! Allocate lphi, which will be phi transformed to the localization region.
+!write(*,*) 'iproc, lin%Lorbs%npsidim', iproc, lin%Lorbs%npsidim
 allocate(lphi(lin%Lorbs%npsidim), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
+!write(*,*) 'iproc, lind%Lorbs%npsidim', iproc, lind%Lorbs%npsidim
 allocate(lphid(lind%Lorbs%npsidim), stat=istat)
 call memocc(istat, lphid, 'lphid', subname)
 
 ! Initialize everything concerning the communication for the calculation
 ! of the charge density.
 call initializeCommsSumrho(iproc, nproc, nscatterarr, lin, phibuff)
+!write(*,*) 'iproc, lin%comsr%sizePhibuff', iproc, lin%comsr%sizePhibuff
 call initializeCommsSumrho(iproc, nproc, nscatterarr, lind, phibuffd)
+!write(*,*) 'iproc, lind%comsr%sizePhibuff', iproc, lind%comsr%sizePhibuff
 
 
 iall=-product(shape(atomNames))*kind(atomNames)
@@ -1239,7 +1245,7 @@ do jproc=0,nproc-1
         if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1
             tag=tag+1
-            call setCommunicationInformation(jproc, iorb, ilr, lin%comsr%istarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
+            call setCommunicationInformation(jproc, iorb, lin%comsr%istarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
                 lin%comsr%sizePhibuff = lin%comsr%sizePhibuff + lin%Llr(ilr)%wfd%nvctr_c + 7*lin%Llr(ilr)%wfd%nvctr_f
                 lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
@@ -1251,7 +1257,6 @@ do jproc=0,nproc-1
     end do
 end do
 
-!write(*,*) 'iproc, lin%comsr%sizePhibuff', iproc, lin%comsr%sizePhibuff
 allocate(phibuff(lin%comsr%sizePhibuff), stat=istat)
 call memocc(istat, phibuff, 'phibuff', subname)
 phibuff=0.d0
