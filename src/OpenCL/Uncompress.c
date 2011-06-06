@@ -15,7 +15,11 @@
 #include <math.h>
 
 char * uncompress_program="\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
 __kernel void uncompress_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, __global const uint * keyg_c, __global const uint * keyv_c, __global const double * psi_c, __global double * psi_g) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
@@ -207,7 +211,11 @@ psi_g[ ( ( ( (1 * n3 + i3 ) * 2 + 1 ) * n2 + i2 ) * 2 + 1 ) * n1  + i1] = tmp_o[
 ";
 
 char * compress_program="\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
 __kernel void compress_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, __global const uint * keyg_c, __global const uint const * keyv_c, __global double * psi_c, __global const double * psi_g) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\

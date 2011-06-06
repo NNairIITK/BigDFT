@@ -29,8 +29,12 @@
 #include "OpenCL_wrappers.h"
 
 char * ana_program="\
-#define FILTER_WIDTH 16\n\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
+#define FILTER_WIDTH 16\n\
 #define filter(ci,di,tmp)\
 ci += tmp[14] * -0.00030292051472413308126;\
 di += tmp[14] *  0.00054213233180001068935;\
@@ -212,9 +216,13 @@ out += n;\n\
   Size  of the data is 2*n * ndat.
 */
 char * syn_program="\
+#ifdef cl_khr_fp64\n\
+#pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
 #define FILTER_WIDTH 8\n\
 #define SIZE_I 16\n\
-#pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
 __kernel void syn1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
 __local double tmp1[SIZE_I*(2*FILTER_WIDTH+2*SIZE_I+1)];\n\
 __local double *tmp = &tmp1[0];\n\

@@ -39,7 +39,7 @@ endif
 if USE_OCL
 sub_dirs_ocl=OpenCL
 OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
-libs_ocl=OpenCL/libOCL.a
+libs_ocl=OpenCL/libOCL.a -lstdc++
 else
 sub_dirs_ocl=
 OCL_INTERFACE = convolutions/interface_ocl_fake.f90
@@ -345,6 +345,7 @@ CLEANFILES = \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
+	module_defs.@MODULE_EXT@ MODULE_DEFS.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
 	esatto.@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
@@ -362,7 +363,10 @@ CLEANFILES = \
 	lanczos_defs.@MODULE_EXT@ LANCZOS_DEFS.@MODULE_EXT@ \
 	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
 	minpar.@MODULE_EXT@ MINPAR.@MODULE_EXT@ \
-	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@
+	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@ \
+	minimization_sp.@MODULE_EXT@ MINIMIZATION_SP.@MODULE_EXT@ \
+	modulesplinedsaddle.@MODULE_EXT@ MODULESPLINEDSADDLE.@MODULE_EXT@ \
+	randomdata.@MODULE_EXT@ RANDOMDATA.@MODULE_EXT@ 
 
 
 check:

@@ -21,7 +21,11 @@
 #include "OpenCL_wrappers.h"
 
 char * magicfilter_program="\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
 #define FILT0   8.4334247333529341094733325815816e-7\n\
 #define FILT1  -0.1290557201342060969516786758559028e-4\n\
 #define FILT2   0.8762984476210559564689161894116397e-4\n\
@@ -73,22 +77,6 @@ tt += *tmp++ *  FILT3;\
 tt += *tmp++ *  FILT2;\
 tt += *tmp++ *  FILT1;\
 tt += *tmp++ *  FILT0;\n\
-__constant double filt0 = FILT0;\n\
-__constant double filt1 = FILT1;\n\
-__constant double filt2 = FILT2;\n\
-__constant double filt3 = FILT3;\n\
-__constant double filt4 = FILT4;\n\
-__constant double filt5 = FILT5;\n\
-__constant double filt6 = FILT6;\n\
-__constant double filt7 = FILT7;\n\
-__constant double filt8 = FILT8;\n\
-__constant double filt9 = FILT9;\n\
-__constant double filt10 = FILT10;\n\
-__constant double filt11 = FILT11;\n\
-__constant double filt12 = FILT12;\n\
-__constant double filt13 = FILT13;\n\
-__constant double filt14 = FILT14;\n\
-__constant double filt15 = FILT15;\n\
 //n is supposed to be greater or equal than get_local_size(0)\n\
 //this filter is for periodic boundary conditions\n\
 __kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\

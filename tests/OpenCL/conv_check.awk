@@ -3,7 +3,7 @@ BEGIN {
     print max_discrepancy
     discrepancy = 0.0
     end = "\033[m"
-    maxline = 154
+    maxline = 155
     }
 /nbelem/ {
     if ($6 > discrepancy) {
