@@ -257,9 +257,12 @@ module module_types
 !! wavefunction localisation region
   type, public :: locreg_descriptors
      character(len=1) :: geocode
-     logical :: hybrid_on             !<interesting for global, periodic, localisation regions
-     integer :: ns1,ns2,ns3           !<starting point of the localisation region in global coordinates
-     integer :: nsi1,nsi2,nsi3        !<starting point of locreg for interpolating grid
+     logical :: hybrid_on               !< interesting for global, periodic, localisation regions
+     integer :: ns1,ns2,ns3             !< starting point of the localisation region in global coordinates
+     integer :: nsi1,nsi2,nsi3          !< starting point of locreg for interpolating grid
+     integer :: Localnorb               !< number of orbitals contained in locreg
+     integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
+     integer,dimension(:),pointer :: projflg    !< atoms contributing nlpsp projectors to locreg
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
@@ -413,8 +416,16 @@ module module_types
     character(len=4):: getCoeff
   end type
 
-
-
+!!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
+  type,public:: linear_zone_descriptors
+    integer :: nlr                                              !> Number of localization regions 
+    type(orbitals_data):: orbs                                  !> Global orbitals descriptors
+    type(communications_arrays) :: comms                        !> Global communication descriptors
+    type(locreg_descriptors) :: Glr                             !> Global region descriptors
+    type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
+    type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
+    type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
+  end type
 
 
 !> Contains the arguments needed for the diis procedure
@@ -823,10 +834,16 @@ END SUBROUTINE deallocate_orbs
     use module_base
     character(len=*), intent(in) :: subname
     type(locreg_descriptors) :: lr
+    integer :: i_all,i_stat
 
     call deallocate_wfd(lr%wfd,subname)
 
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
+    if(associated(lr%projflg)) then
+       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
+       deallocate(lr%projflg,stat=i_stat)
+       call memocc(i_stat,i_all,'lr%projflg',subname)
+    end if
 
   END SUBROUTINE deallocate_lr
 

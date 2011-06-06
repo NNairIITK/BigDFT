@@ -375,8 +375,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:,:), pointer :: psigau
 ! #### Linear Scaling Variables
-  type(locreg_descriptors), dimension(:), allocatable :: Llr
-  integer :: nlr,npsidim,ilr,norbe,ind, indSmall, indLarge, indSpin, ispin, i1, i2, i3
+!  type(locreg_descriptors), dimension(:), allocatable :: Llr
+  integer :: npsidim,ilr,norbe,ind, indSmall, indLarge, indSpin, ispin, i1, i2, i3
   integer,dimension(:,:), allocatable :: outofzone
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   integer,dimension(lmax+1) :: nmoments
@@ -401,13 +401,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer, dimension(:,:), allocatable :: norbgrp      !
   type(orbitals_data), optional, intent(in) :: orbsv   !
   real(wp), dimension(:), pointer :: psivirt           ! still for testing DiagHam
+  type(linear_zone_descriptors) :: Lzd                 
 
-
-  nlr = at%nat   !!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  Lzd%nlr = at%nat   !!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-  allocate(locrad(nlr+ndebug),stat=i_stat)
+  allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
   call memocc(i_stat,locrad,'locrad',subname)
 
   if (iproc == 0) then
@@ -450,78 +450,88 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!experimental part for building the localisation regions
 ! ###################################################################
   linear = .true.
-  if (linear) then  
-     !allocate the array of localisation regions
-     allocate(Llr(nlr+ndebug),stat=i_stat)
+  if (linear) then 
+     
+     ! Construct the Lzd
+
+     ! Begin to define the Linear_Zone_descriptors
+     Lzd%Glr = Glr
+     Lzd%Gnlpspd = nlpspd
+     Lzd%orbs = orbse 
+     allocate(Lzd%orbs%eval(4))
+
+     !allocate the array of localisation regions (memocc does not work)
+     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      !call memocc(i_stat,Llr,'Llr',subname)
-     allocate(outofzone(3,nlr),stat=i_stat)
-     call memocc(i_stat,outofzone,'outofzone',subname)
    
      ! For now, set locrad by hand HERE
      locrad = 30.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
-     !print *,'locrad',locrad
    
-   ! Write some physical information on the Glr
-     write(*,'(a24,3i4)')'Global region n1,n2,n3:',Glr%d%n1,Glr%d%n2,Glr%d%n3
-     write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*input%hx,Glr%d%n2*input%hy,Glr%d%n3*input%hz
-     write(*,'(a17,f12.2)')'Global volume: ',Glr%d%n1*input%hx*Glr%d%n2*input%hy*Glr%d%n3*input%hz
-     print *,'Global statistics:',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
+     ! Write some physical information on the Glr
+     if(iproc == 0) then
+        write(*,'(a24,3i4)')'Global region n1,n2,n3:',Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3
+        write(*,'(a27,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Lzd%Glr%d%n1*input%hx,Lzd%Glr%d%n2*input%hy,Lzd%Glr%d%n3*input%hz
+        write(*,'(a17,f12.2)')'Global volume: ',Lzd%Glr%d%n1*input%hx*Lzd%Glr%d%n2*input%hy*Lzd%Glr%d%n3*input%hz
+        print *,'Global statistics:',Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f
+     end if
+
+     call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
    
-     call determine_locreg_periodic(nlr,rxyz,locrad,hx,hy,hz,Glr,Llr,outofzone)
-   
-     allocate(Localnorb(nlr), stat=i_stat)
+     allocate(Localnorb(Lzd%nlr),stat=i_stat)
      call memocc(i_stat,Localnorb,'Localnorb',subname)
-   
+
    ! Calculate the dimension of the total wavefunction
    ! NOTES: WORKS ONLY BECAUSE Llr coincides with the atoms !!
    ! NOTES: K-Points??
      npsidim = 0
-     do ilr = 1, nlr
+     do ilr = 1, Lzd%nlr
         call count_atomic_shells(lmax+1,noccmax,nelecmax,input%nspin,orbse%nspinor,at%aocc(1,ilr),occup,nmoments)
         norbe=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
-        Localnorb(ilr)=norbe
-        npsidim = npsidim +(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*norbe*orbse%nspinor*input%nspin
+        Lzd%Llr(ilr)%Localnorb=norbe
+        Localnorb(ilr) = norbe
+        npsidim = npsidim +(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*norbe*Lzd%orbs%nspinor*input%nspin
      end do
-   !  print *,'orbse%npsidim,npsidim',orbse%npsidim,npsidim
-     orbse%npsidim=npsidim
-   
+
+   ! change the npsidim
+     Lzd%orbs%npsidim=npsidim
+
    ! Determine inwhichlocreg
-     call assignToLocreg(iproc, at%nat, nlr, input%nspin, Localnorb, orbse)
-     print *,'orbs%norb',orbs%norb
-     print *,'orbse%norb',orbse%norb
-     print *,'Localnorb',Localnorb
-     do ilr=1,orbse%norb
-       write(*,*) 'iorb, iwl', ilr, orbse%inWhichLocreg(ilr)
-     end do
-   
+     call assignToLocreg(iproc, at%nat, Lzd%nlr, input%nspin, Localnorb, Lzd%orbs)
+
+!     DEBUG for inWhichLocreg(ilr)
+!     do ilr=1,Lzd%orbs%norb
+!       write(*,*) 'iorb, iwl', ilr, Lzd%orbs%inWhichLocreg(ilr)
+!     end do
+!     END DEBUG
+
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(Lpsi(npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
      call razero(npsidim,Lpsi)
    
     ! Construct wavefunction inside the locregs (the orbitals are ordered by locreg)
-        call gaussians_to_wavelets_new2(iproc,nproc,nlr,Llr,orbse,&
-          hx,hy,hz,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),Lpsi(1))
+     call gaussians_to_wavelets_new2(iproc,nproc,Lzd%nlr,Lzd%Llr,Lzd%orbs,&
+         hx,hy,hz,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),Lpsi(1))
     
      ! Print the wavefunctions
-     factor = real(Glr%d%n1,dp)/real(Llr(1)%d%n1,dp)
-     dim1 = Llr(1)%wfd%nvctr_c+7*Llr(1)%wfd%nvctr_f
-     dim2 = Llr(2)%wfd%nvctr_c+7*Llr(2)%wfd%nvctr_f
-     call plot_wf('orbital1   ',1,at,factor,Llr(1),hx,hy,hz,rxyz,Lpsi(1:dim1),'')
-     call plot_wf('orbital2   ',1,at,factor,Llr(1),hx,hy,hz,rxyz,Lpsi(dim1+1:dim1+dim1),'')
-     factor = real(Glr%d%n1,dp)/real(Llr(2)%d%n1,dp)
-     call plot_wf('orbital3   ',1,at,factor,Llr(2),hx,hy,hz,rxyz,Lpsi(dim1+dim1+1:2*dim1+dim2),'')
-     call plot_wf('orbital4   ',1,at,factor,Llr(2),hx,hy,hz,rxyz,Lpsi(2*dim1+dim2+1:2*dim1+2*dim2),'')
+     !factor = real(Lzd%Glr%d%n1,dp)/real(Lzd%Llr(1)%d%n1,dp)
+     !dim1 = Lzd%Llr(1)%wfd%nvctr_c+7*Lzd%Llr(1)%wfd%nvctr_f
+     !dim2 = Lzd%Llr(2)%wfd%nvctr_c+7*Lzd%Llr(2)%wfd%nvctr_f
+     !call plot_wf('orbital1   ',1,at,factor,Lzd%Llr(1),hx,hy,hz,rxyz,Lpsi(1:dim1),'')
+     !call plot_wf('orbital2   ',1,at,factor,Lzd%Llr(1),hx,hy,hz,rxyz,Lpsi(dim1+1:dim1+dim1),'')
+     !factor = real(Lzd%Glr%d%n1,dp)/real(Lzd%Llr(2)%d%n1,dp)
+     !call plot_wf('orbital3   ',1,at,factor,Lzd%Llr(2),hx,hy,hz,rxyz,Lpsi(dim1+dim1+1:2*dim1+dim2),'')
+     !call plot_wf('orbital4   ',1,at,factor,Lzd%Llr(2),hx,hy,hz,rxyz,Lpsi(2*dim1+dim2+1:2*dim1+2*dim2),'')
 
-     open(44,file='Lpsi2',status='unknown')
-     do ilr = 1,size(Lpsi)
-     write(44,*)Lpsi(ilr)
-     end do
-     close(44)
+     !open(44,file='Lpsi2',status='unknown')
+     !do ilr = 1,size(Lpsi)
+     !write(44,*)Lpsi(ilr)
+     !end do
+     !close(44)
    
-     call sumrhoLinear(iproc,nproc,nlr,orbse,Glr,Llr,ixc,hxh,hyh,hzh,&
+     call sumrhoLinear(iproc,nproc,Lzd%nlr,Lzd%orbs,Lzd%Glr,Lzd%Llr,ixc,hxh,hyh,hzh,&
        Lpsi,rhopot,&
-       & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
+       & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)    
  
      !call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
@@ -540,7 +550,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
         !!call memocc(i_stat,Lrho,'Lrho',subname)
    
         !if (nscatterarr(iproc,2) >0) then
-           allocate(potxc(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)*nspin+ndebug),stat=i_stat)
+           allocate(potxc(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2)*nspin+ndebug),stat=i_stat)
            !!allocate(Lpotxc(Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*Llr(ilr)%d%n3i*nspin+ndebug),stat=i_stat)
            !!call memocc(i_stat,Lpotxc,'Lpotxc',subname)
         !else
@@ -548,15 +558,15 @@ subroutine input_wf_diag(iproc,nproc,at,&
         !   call memocc(i_stat,potxc,'potxc',subname)
         !end if
    
-        call XC_potential(Glr%geocode,'D',iproc,nproc,&
-             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+        call XC_potential(Lzd%Glr%geocode,'D',iproc,nproc,&
+             Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,ixc,hxh,hyh,hzh,&
              rhopot,eexcu,vexcu,nspin,rhocore,potxc)
    
          write(*,*) 'eexcu, vexcu', eexcu, vexcu
    
         if( iand(potshortcut,4)==0) then
-           call H_potential(Glr%geocode,'D',iproc,nproc,&
-                Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+           call H_potential(Lzd%Glr%geocode,'D',iproc,nproc,&
+                Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,hxh,hyh,hzh,&
                 rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
         endif
    
@@ -564,11 +574,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
         !sum the two potentials in rhopot array
         !fill the other part, for spin, polarised
         if (nspin == 2) then
-           call dcopy(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),rhopot(1),1,&
-                rhopot(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)+1),1)
+           call dcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),rhopot(1),1,&
+                rhopot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2)+1),1)
         end if
         !spin up and down together with the XC part
-        call axpy(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)*nspin,1.0_dp,potxc(1),1,&
+        call axpy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2)*nspin,1.0_dp,potxc(1),1,&
              rhopot(1),1)
    
         i_all=-product(shape(potxc))*kind(potxc)
@@ -577,272 +587,128 @@ subroutine input_wf_diag(iproc,nproc,at,&
    
         if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
     
-        call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-             Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,nspin,&
-             orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)    
-        print *,'sum of pot:',sum(pot)
-   
+        call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
+             Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,&
+             Lzd%orbs%norb,Lzd%orbs%norbp,ngatherarr,rhopot,pot)    
    
        !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-        allocate(Lhpsi(npsidim+ndebug),stat=i_stat)
+        allocate(Lhpsi(Lzd%orbs%npsidim+ndebug),stat=i_stat)
         call memocc(i_stat,Lhpsi,'Lhpsi',subname)
    
         exctX = libxc_functionals_exctXfac() /= 0.0_gp
    
-   
-        ! Copy the value of orbse%norbp to a buffer
-          norbp = orbse%norbp
-   
-        ! Beginning loop on locregs
-        ind = 1
-        do ilr= 1, nlr
-   
-           allocate(Lpot(Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*Llr(ilr)%d%n3i*nspin), stat=i_stat)
-           call memocc(i_stat,Lpot,'Lpot',subname)
-           
-           ! replace orbse%norbp by Localnorb for HamiltonianApplication
-           orbse%norbp = Localnorb(ilr)*input%nspin
-   
-           !determine the dimension of the potential array (copied from full_local_potential)
-           if (exctX) then
-              size_pot=Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*nspin + &
-               max(max(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*orbse%norbp,ngatherarr(0,1)*orbse%norb),1) !part which refers to exact exchange
-              size_Lpot=Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*Llr(ilr)%d%n3i*nspin + &
-                 max(max(Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*Llr(ilr)%d%n3i*orbse%norbp,ngatherarr(0,1)*orbse%norb),1) !CHECK THIS...DOES NOT WORK YET
-           else
-              size_pot=Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*nspin
-              size_Lpot = Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*Llr(ilr)%d%n3i*nspin
-           end if
-   
-           ! Cut the potential into locreg pieces
-           call global_to_local(Glr,Llr(ilr),nspin,size_pot,size_Lpot,pot,Lpot)
-           print *,'ilr, sum(Lpot):',ilr, sum(Lpot)
-   
-           ! Make the local non-linear pseudopotentials descriptors
-           call nlpspd_to_locreg(input,iproc,Glr,Llr(ilr),rxyz,at,orbse,&
-   &       radii_cf,input%frmult,input%frmult,input%hx,input%hy,input%hz,nlpspd,Lnlpspd,projflg)
-   
-           call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-                 Lnlpspd,proj,Llr(ilr),ngatherarr,Lpot,&
-                 Lpsi(ind:ind+(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbse%nspinor*input%nspin-1),&
-                 Lhpsi(ind:ind+(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbse%nspinor*input%nspin-1),&
-                 ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq,projflg=projflg)
-   
-           accurex=abs(eks-ekin_sum)
-           !tolerance for comparing the eigenvalues in the case of degeneracies
-           etol=accurex/real(orbse%norbu,gp)
-           if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-           if (iproc == 0) then
-              write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
-                   ekin_sum,epot_sum,eproj_sum
-              write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-           endif   
-   
-           ind = ind + (Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbse%nspinor*input%nspin
-   
-           ! deallocate Lpot
-           call free_full_potential(nproc,Lpot,subname)
-   
-           !free GPU if it is the case
-           if (GPUconv) then
-              call free_gpu(GPU,orbse%norbp)
-           else if (OCLconv) then
-              call free_gpu_OCL(GPU,orbse,nspin_ig)
-           end if
-         
-           if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
-                'Input Wavefunctions Orthogonalization:'
-         
-        end do
-   
-   ! Now the wavefunctions (Lpsi) and the Hamiltonian applied to the wavefunctions (Lhpsi)
-   ! are completely constructed. We must now solve the eigensystem by diagonalizating the
-   ! Hamiltonian (usually done by calling DiagHam_linear). In our case, we must fisrt construct
-   ! the sparse hamiltonian/overlap matrix using the locregs
-   
-    if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
-          'Overlap Matrix...'
-   
-       ! number of orbitals, dimension and allocation of Global hamiltonian/overlap matrix
-       norbi_max=max(orbse%norbu,orbse%norbd)
-       ndim_hamovr = norbi_max**2
-       allocate(hamovr(nspin*ndim_hamovr,2,orbse%nkpts+ndebug),stat=i_stat)
-       call memocc(i_stat,hamovr,'hamovr',subname)
-   
-       ! put zeros everywhere
-       call razero(nspin*ndim_hamovr*2*orbse%nkpts+ndebug,hamovr)
-   
-       ! reshape for easy assignation
-       allocate(work1(norbi_max, norbi_max, nspin,2,orbse%nkpts+ndebug),stat=i_stat)
-       call memocc(i_stat,work1,'work1',subname)
-       sizes = (/ norbi_max, norbi_max, nspin, 2, orbse%nkpts+ndebug /)
-       work1 = reshape(hamovr,sizes)
-   
-       psishift1 = 1
-       firstrow  = 1
-       lastrow   = 0
-       ! The loop on ilr gives the row indexes, the loop on ilr2 gives the column indexes
-       do ilr = 1, nlr
-          firstcol = 1
-          lastcol  = 0
-          psishift2 = 1
-          lastrow  = lastrow  + Localnorb(ilr)
-          psidim1 = (Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbs%nspinor
-          do ilr2 = 1,nlr
-          
-             psidim2 = (Llr(ilr2)%wfd%nvctr_c+7*Llr(ilr2)%wfd%nvctr_f)*Localnorb(ilr2)*orbs%nspinor
-   
-             call get_number_of_overlap_region(ilr,ilr2,Glr,isovrlp,Llr,nlr,outofzone)
+! OLD WAY OF DOING THINGS: (HamiltonianApplication done only one localization at a time)   
+!!!        ! Beginning loop on locregs
+!!!        ind = 1
+!!!        do ilr= 1, Lzd%nlr
+!!!   
+!!!           allocate(Lpot(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin), stat=i_stat)
+!!!           call memocc(i_stat,Lpot,'Lpot',subname)
+!!!           
+!!!           ! replace orbse%norbp by Localnorb for HamiltonianApplication
+!!!           Lzd%orbs%norbp = Lzd%Llr(ilr)%Localnorb*input%nspin
+!!!   
+!!!           !determine the dimension of the potential array (copied from full_local_potential)
+!!!           if (exctX) then
+!!!              size_pot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin + &
+!!!               max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbse%norbp,ngatherarr(0,1)*Lzd%orbs%norb),1) !part which refers to exact exchange
+!!!              size_Lpot=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin + &
+!!!                 max(max(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbse%norbp,&
+!!!                 ngatherarr(0,1)*Lzd%orbs%norb),1) !CHECK THIS...DOES NOT WORK YET
+!!!           else
+!!!              size_pot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin
+!!!              size_Lpot = Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin
+!!!           end if
+!!!   
+!!!           ! Cut the potential into locreg pieces
+!!!           call global_to_local(Lzd%Glr,Lzd%Llr(ilr),nspin,size_pot,size_Lpot,pot,Lpot)
+!!!           print *,'ilr, sum(Lpot):',ilr, sum(Lpot)
+!!!  
+!!!           ! allocate projflg
+!!!           allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=i_stat)
+!!!           call memocc(i_stat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
+!!!           allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
+!!! 
+!!!           ! Make the local non-linear pseudopotentials descriptors
+!!!           call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,Lzd%orbs,&
+!!!   &       radii_cf,input%frmult,input%frmult,input%hx,input%hy,input%hz,Lzd%Gnlpspd,Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
+!!!   
+!!!           call HamiltonianApplication(iproc,nproc,at,Lzd%orbs,hx,hy,hz,rxyz,&
+!!!                 Lzd%Lnlpspd(ilr),proj,Lzd%Llr(ilr),ngatherarr,Lpot,&
+!!!                 Lpsi(ind:ind+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*&
+!!!                 Lzd%orbs%nspinor*input%nspin-1),&
+!!!                 Lhpsi(ind:ind+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*&
+!!!                 Lzd%orbs%nspinor*input%nspin-1),&
+!!!                 ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq,Lzd=Lzd)
+!!!   
+!!!           accurex=abs(eks-ekin_sum)
+!!!           !tolerance for comparing the eigenvalues in the case of degeneracies
+!!!           etol=accurex/real(orbse%norbu,gp)
+!!!           if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+!!!           if (iproc == 0) then
+!!!              write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
+!!!                   ekin_sum,epot_sum,eproj_sum
+!!!              write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+!!!           endif   
+!!!   
+!!!           ind = ind + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*Lzd%orbs%nspinor*input%nspin
+!!!   
+!!!           ! deallocate Lpot
+!!!           call free_full_potential(nproc,Lpot,subname)
+!!!   
+!!!           !free GPU if it is the case
+!!!           if (GPUconv) then
+!!!              call free_gpu(GPU,Lzd%orbs%norbp)
+!!!           else if (OCLconv) then
+!!!              call free_gpu_OCL(GPU,Lzd%orbs,nspin_ig)
+!!!           end if
+!!!         
+!!!           if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
+!!!                'Input Wavefunctions Orthogonalization:'
+!!!         
+!!!        end do
+! END OF OLD WAY OF DOING THINGS
 
-             ! If no overlap, increment the index of Lpsi and overlap matrix then cycle
-             if(isovrlp == 0)then
-                psishift2 = psishift2 + psidim2*nspin
-                firstcol = firstcol + Localnorb(ilr2)
-                lastcol  = lastcol  + Localnorb(ilr2)
-                cycle
-             end if
-             ! dimensions and allocation of Local hamiltonian/overlap matrix
-             dim_Lhamovr = Localnorb(ilr) * Localnorb(ilr2)
-             allocate(Lhamovr(nspin*dim_Lhamovr,2,orbse%nkpts+ndebug),stat=i_stat)
-             call memocc(i_stat,Lhamovr,'Lhamovr',subname)
-   
-          ! In this routine, we begin by calculating the hamiltonian/overlap matrix between two locregs.
-             call overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nlr,nspin,psidim1,psidim2,psishift1,&
-                psishift2,npsidim,orbse,Glr,Llr,Lpsi,Lhpsi,Localnorb,outofzone,dim_Lhamovr,Lhamovr)
-   
-          ! update the shift for second wavefunction
-             psishift2 = psishift2 + psidim2*nspin
-   
-          ! reshape the hamiltonian/overlap matrix for easy assignations
-            allocate(work2(Localnorb(ilr),Localnorb(ilr2),nspin,2,orbse%nkpts+ndebug),stat=i_stat)
-            call memocc(i_stat,work2,'work2',subname)
-            sizes = (/ Localnorb(ilr), Localnorb(ilr2), nspin, 2, orbse%nkpts+ndebug /)
-            work2 = reshape(Lhamovr,sizes)
-   
-          ! Assign the calculated values inside global matrix (for truly O(N) this should be replaced) 
-            lastcol  = lastcol  + Localnorb(ilr2)
-            work1(firstrow:lastrow,firstcol:lastcol,:,:,:) = work2(:,:,:,:,:)
-   
-          ! deallocate this instance of Lhamovr
-             i_all=-product(shape(work2))*kind(work2)
-             deallocate(work2,stat=i_stat)
-             call memocc(i_stat,i_all,'work2',subname) 
-   
-             i_all=-product(shape(Lhamovr))*kind(Lhamovr)
-             deallocate(Lhamovr,stat=i_stat)
-             call memocc(i_stat,i_all,'Lhamovr',subname) 
-   
-          ! update indexes
-            firstcol = firstcol + Localnorb(ilr2)
-          end do 
-          ! increment the shift of wavefunctions
-          psishift1 = psishift1 + psidim1*input%nspin
-          firstrow = firstrow + Localnorb(ilr)
-       end do
-   
-       ! reshape back to original shape
-       hamovr = reshape(work1,(/ nspin*ndim_hamovr, 2, orbse%nkpts+ndebug /))
-       i_all=-product(shape(work1))*kind(work1)
-       deallocate(work1,stat=i_stat)
-       call memocc(i_stat,i_all,'work1',subname) 
-   
-       print *,'hamovr, ham:',hamovr(:,1,:)
-       print *,'hamovr, ovr:',hamovr(:,2,:)
+!NEW WAY: the loop on locreg is inside LinearHamiltonianApplication
+    call LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
+     proj,ngatherarr,pot,Lpsi,Lhpsi,&
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel=pkernelseq)
 
-       ! Don't need Lhpsi anymore
-       i_all=-product(shape(Lhpsi))*kind(Lhpsi)
-       deallocate(Lhpsi,stat=i_stat)
-       call memocc(i_stat,i_all,'Lhpsi',subname)
+    accurex=abs(eks-ekin_sum)
+    !tolerance for comparing the eigenvalues in the case of degeneracies
+    etol=accurex/real(orbse%norbu,gp)
+    if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+    if (iproc == 0) then
+       write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  &
+            ekin_sum,epot_sum,eproj_sum
+       write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+    endif
+! END OF NEW WAY
 
-       ! Now solve the eigensystem: H |Lpsi> = epsilon S |Lpsi>  
-       if(iproc==0) write(*,'(1x,a)') 'Direct diagonalization...'
+    ! Now the wavefunctions (Lpsi) and the Hamiltonian applied to the wavefunctions (Lhpsi)
+    ! are completely constructed. We must now solve the eigensystem by diagonalizating the
+    ! Hamiltonian (usually done by calling DiagHam_linear). In our case, we must fisrt construct
+    ! the sparse hamiltonian/overlap matrix using the locregs
 
-!       call timing(iproc, 'Input_comput', 'ON')
+    ! allocate psit
+    allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
+    call memocc(i_stat,psit,'psit',subname)       
 
-       ! SET SOME VARIABLE FOR NOW (NO SEMICORE)
-       ispsi=1
-       natsceff = 0
-       allocate(norbgrp(1,nspin+ndebug),stat=i_stat)
-       call memocc(i_stat,norbgrp,'norbgrp',subname)
-       norbsc=0
-       norbgrp(1,1)=orbse%norbu
-       if (nspin == 2) norbgrp(1,2)=orbse%norbd
+    call LinearDiagHam(iproc,etol,Lzd,orbs,nspin,Lhpsi,Lpsi,psit)!,orbsv)
+    
+    ! Don't need Lhpsi anymore
+    i_all=-product(shape(Lhpsi))*kind(Lhpsi)
+    deallocate(Lhpsi,stat=i_stat)
+    call memocc(i_stat,i_all,'Lhpsi',subname)
 
-       !it is important that the k-points repartition of the inputguess orbitals
-       !coincides with the one of the SCF orbitals
-       do ikptp=1,orbse%nkptsp
-          ikpt=orbse%iskpts+ikptp!orbs%ikptsp(ikptp)
-          call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
-               ndim_hamovr,natsceff,nspin,orbs%nspinor,etol,norbgrp,hamovr(1,1,ikpt),&
-               orbs%eval((ikpt-1)*orbs%norb+1))
-       end do
+    !reallocate psi
+    allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+    call memocc(i_stat,psi,'psi',subname)
+    psi = psit
 
-       if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
-
-
-!      FOR NOW, just transform the Lpsi to psi in global region.
-       Gpsidim = (Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%norb*orbs%nspinor*nspin
-       allocate(psi(Gpsidim+ndebug),stat=i_stat)
-       call memocc(i_stat,psi,'psi',subname)
-       call razero(Gpsidim+ndebug,psi)
-
-!      WATCH OUT, does not work for nspinor > 1
-       psishift1 = 1
-       totshift = 0
-       do ilr = 1,nlr
-          ldim = (Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*Localnorb(ilr)*orbs%nspinor*nspin
-          call Lpsi_to_global(Glr,Gpsidim,Llr(ilr),Lpsi(psishift1:psishift1+ldim-1),&
-               ldim,Localnorb(ilr),orbs%nspinor,nspin,totshift,psi)
-          psishift1 = psishift1 + ldim
-          totshift = (Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*Localnorb(ilr)*orbs%nspinor
-       end do
-
-       allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
-       call memocc(i_stat,psit,'psit',subname)
-
-       ispsi=1
-       ispsie=1
-       ispsiv=1
-       norbtot = orbse%norb 
-       do ikptp=1,orbse%nkptsp
-          ikpt=orbse%iskpts+ikptp!orbsu%ikptsp(ikptp)\
-
-!         nvctrp is not a simple quantity anymore has it depends on the locregs (can be different for every locreg)
-!         for an O(N) code, should change these routines.
-!         FOR NOW, just transform the Lpsi to psi in global region.
-          nvctrp=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-
-          if (nvctrp == 0) cycle
-          call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-               natsceff,nspin,orbs%nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
-               psi(ispsie:),psit(ispsi:))
-          ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
-          ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
-          if (present(orbsv)) ispsiv=ispsiv+nvctrp*orbsv%norb*orbs%nspinor
-       end do
-
- 
-       !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
-       if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
-
-       !deallocate psi
-       i_all=-product(shape(psi))*kind(psi)
-       deallocate(psi,stat=i_stat)
-       call memocc(i_stat,i_all,'psi',subname) 
-       !reallocate psi
-       allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
-       call memocc(i_stat,psi,'psi',subname)
-       psi = psit
-
-       !allocate hpsi for rest of code
-       allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
-       call memocc(i_stat,hpsi,'hpsi',subname)
-
-       !Undo the modification of orbse%norbp
-        orbse%norbp = norbp
-        orbse%npsidim = npsidim
-       !deallocate potential
-       !call free_full_potential(nproc,pot,subname)
+    !allocate hpsi for rest of code
+    allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+    call memocc(i_stat,hpsi,'hpsi',subname)
    
 !####################################################################################################################################################
 ! END EXPERIMENTAL

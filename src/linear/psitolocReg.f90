@@ -714,7 +714,7 @@ END SUBROUTINE overlap_matrix_for_locreg
 !! SOURCE:
 !!
 subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nlr,nspin,psidim1,psidim2,psishift1,psishift2,&
-           npsidim,orbsi,Glr,Llr,Lpsi,Lhpsi,Localnorb,outofzone,dim_Lhamovr,Lhamovr)
+           npsidim,orbsi,Glr,Llr,Lpsi,Lhpsi,dim_Lhamovr,Lhamovr)
 
   use module_base
   use module_types
@@ -742,8 +742,6 @@ subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nlr,nspin,psidim1,psid
   !########################################
   real(wp),dimension(npsidim),intent(in) :: Lpsi       ! Wavefunction (compressed format)
   real(wp),dimension(npsidim),intent(in) :: Lhpsi      ! Wavefunction in localization region
-  integer,dimension(nlr),intent(in) :: Localnorb       ! Number of orbitals in each locreg
-  integer,dimension(3,nlr),intent(in) :: outofzone     ! Periodicity of the localization regions
   real(wp),dimension(nspin*dim_Lhamovr,2,orbsi%nkpts),intent(out) :: Lhamovr           ! Local Hamiltonian/Overlap matrix
   !########################################
   ! Local Variables
@@ -777,13 +775,13 @@ subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nlr,nspin,psidim1,psid
     call razero(nspin*dim_Lhamovr*2*(orbs%nkpts+ndebug),Lhamovr)
  
     ! Construct the overlap region descriptors
-    call get_overlap_region_periodic(ilr,ilr2,Glr,isovrlp,Llr,nlr,Olr,outofzone)
+    call get_overlap_region_periodic(ilr,ilr2,Glr,isovrlp,Llr,nlr,Olr)
  
     ! Third, transform the wavefunction to overlap regions
     do iolr=1,isovrlp
        ldim  =  Olr(iolr)%wfd%nvctr_c+7*Olr(iolr)%wfd%nvctr_f
-       ldim1 = ldim * Localnorb(ilr) * orbs%nspinor
-       ldim2 = ldim * Localnorb(ilr2)* orbs%nspinor
+       ldim1 = ldim * Llr(ilr)%Localnorb * orbs%nspinor
+       ldim2 = ldim * Llr(ilr2)%Localnorb* orbs%nspinor
  
        ! Allocate the local wavefunction (in one overlap region)
        allocate(Lopsi1(ldim1*nspin+ndebug), stat=i_stat)
@@ -795,7 +793,7 @@ subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nlr,nspin,psidim1,psid
  
        ! Project the wavefunctions inside the overlap region (first for Llr(ilr)and second for Llr(ilr2))
        ! Spin pas bien ordonnee (doit mettre tout les spin up, ensuite tout les spins down)
-       orbs%norbp = Localnorb(ilr)
+       orbs%norbp = Llr(ilr)%Localnorb
        orbs%npsidim = psidim1
        do ispin = 1, nspin
           call psi_to_locreg(Llr(ilr),iolr,ldim1,Olr(iolr),&
@@ -806,7 +804,7 @@ subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nlr,nspin,psidim1,psid
 !                   Lhpsi(psishift1+(ispin-1)*psidim1:psishift1+ispin*psidim1-1))
        end do
        !second region
-       orbs%norbp = Localnorb(ilr2)
+       orbs%norbp = Llr(ilr2)%Localnorb
        orbs%npsidim = psidim2
        do ispin = 1, nspin
           call psi_to_locreg(Llr(ilr2),iolr,ldim2,Olr(iolr),&
@@ -823,8 +821,8 @@ subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nlr,nspin,psidim1,psid
 !      
 !         nvctrp=commu%nvctr_par(iproc,ikptp)
 !         if (nvctrp == 0) cycle
-       call local_overlap_matrices((Localnorb(ilr)+Localnorb(ilr2))*nspin,Localnorb(ilr),&
-          Localnorb(ilr2),ldim,nspin,orbs%nspinor,dim_Lhamovr,Ahamovr(1,1,1),Lopsi1(1),Lopsi2,Lohpsi(1))  
+       call local_overlap_matrices((Llr(ilr)%Localnorb+Llr(ilr2)%Localnorb)*nspin,Llr(ilr)%Localnorb,&
+          Llr(ilr2)%Localnorb,ldim,nspin,orbs%nspinor,dim_Lhamovr,Ahamovr(1,1,1),Lopsi1(1),Lopsi2,Lohpsi(1))  
 !      ispsi=ispsi+nvctrp*norbtot*orbs%nspinor
 !      end do
 
@@ -856,7 +854,7 @@ subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nlr,nspin,psidim1,psid
 
   else if (ilr == ilr2) then
      ldim1 = (Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f) * orbs%nspinor
-     call local_overlap_matrices(Localnorb(ilr)*nspin,Localnorb(ilr),Localnorb(ilr2),ldim1,&
+     call local_overlap_matrices(Llr(ilr)%Localnorb*nspin,Llr(ilr)%Localnorb,Llr(ilr2)%Localnorb,ldim1,&
        nspin,orbs%nspinor,dim_Lhamovr,Lhamovr(1,1,1),Lpsi(psishift1:psishift1+psidim1-1),&
        Lpsi(psishift2:psishift2+psidim2-1),Lhpsi(psishift2:psishift2+psidim2-1))
   end if

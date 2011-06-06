@@ -30,7 +30,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
   !########################################
   !Subroutine Array Arguments
   !########################################
-  integer,dimension(atoms%nat),intent(out) :: projflg
+  integer,dimension(atoms%nat),intent(out) :: projflg  ! atoms contributing projectors inside the locreg
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz !atomic positions
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf  ! radii of the different atom types
   !#############################################
@@ -63,11 +63,11 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 
    Lnlpspd%nproj = mproj
 
-!TESTS
-  print *,'Llr check:',Llr%ns1,Llr%ns2,Llr%ns3,Llr%d%n1,Llr%d%n2,Llr%d%n3
-  print *,'Number of projectors:', mproj
-  print *,'Projflg', projflg
-!ENDTESTS
+!DEBUG
+!  print *,'Llr check:',Llr%ns1,Llr%ns2,Llr%ns3,Llr%d%n1,Llr%d%n2,Llr%d%n3
+!  print *,'Number of projectors:', mproj
+!  print *,'Projflg', projflg
+!END DEBUG
 
 !Allocate the arrays of Lnlpspd, except keyg_p and keyv_p
  call allocate_Lnlpspd(natp,Lnlpspd,subname)
