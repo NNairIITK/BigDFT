@@ -992,7 +992,6 @@ END SUBROUTINE hit_with_kernel_spectra
    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
         ha%rxyz,&
         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-        ha%ndimpot, &
         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
         ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
    
@@ -1005,7 +1004,6 @@ END SUBROUTINE hit_with_kernel_spectra
    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
         ha%rxyz,&
         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-        ha%ndimpot, &
         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
         ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
    call axpy(EP_dim_tot, mene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
@@ -1101,7 +1099,6 @@ END SUBROUTINE hit_with_kernel_spectra
     call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
          ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-         ha%ndimpot, &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
          ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
     if(  ha%iproc ==0 ) write(*,*)" done "

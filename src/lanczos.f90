@@ -49,15 +49,15 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   real(wp),   pointer  :: Gabs_coeffs(:)
   real(wp),  pointer, dimension(:,:)  :: dum_coeffs
+  real(wp), dimension(:), pointer  :: pot
+ 
   character(len=800) :: filename
   character(len=1) wtag
-
-
 
   if(iproc==0) print *, " IN ROUTINE LANCZOS "
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -121,6 +121,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
         STOP " Normal stop : data for initial wave have been prepared "
 
   endif
+  call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
   
   ha%in_iat_absorber=in_iat_absorber
   ha%Labsorber  = in%L_absorber
@@ -138,7 +140,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>potential
+  ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
@@ -201,6 +203,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   deallocate(Gabs_coeffs,stat=i_stat)
   call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
+  call free_full_potential(nproc,pot,subname)
 
   call deallocate_abscalc_input(in, subname)
 
@@ -253,6 +256,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   real(wp), pointer :: Gabs_coeffs(:)
   real(wp), pointer, dimension (:,:) :: dum_coeffs
+  real(wp), dimension(:), pointer  :: pot
+ 
   character(len=80) :: filename
 
   real(gp) :: eval_min, eval_max, fact_cheb, cheb_shift
@@ -265,7 +270,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   Pi=acos(-1.0_gp)
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -324,6 +329,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
     
   endif
+  call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
 
   !associate hamapp_arg pointers
   ha%in_iat_absorber=in_iat_absorber
@@ -342,7 +349,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>potential
+  ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
@@ -436,6 +443,10 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
         enddo
      endif
   endif
+
+  call free_full_potential(nproc,pot,subname)
+  nullify(ha%potential)
+
 
   !deallocate communication and orbitals descriptors
   call deallocate_comms(ha%comms,subname)
@@ -544,6 +555,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   real(wp),   pointer  :: Gabs_coeffs(:)
   real(wp),  pointer, dimension(:,:)  :: dum_coeffs
+  real(wp), dimension(:), pointer  :: pot
+ 
   character(len=800) :: filename
   logical:: useold
   real(gp) , pointer ::potentialclone(:,:)
@@ -559,7 +572,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   if(iproc==0) print *, " IN ROUTINE xabs_cg "
 
   !create the orbitals descriptors, for virtual and inputguess orbitals
-  call orbitals_descriptors(iproc,nproc,1,1,0,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
+  call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%nkpt,in%kpt,in%wkpt,ha%orbs)
 
   if (GPUconv) then
      call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,in%nspin,&
@@ -618,6 +631,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
         STOP " Normal stop : data for initial wave have been prepared "
 
      endif
+  call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
 
   ha%in_iat_absorber=in_iat_absorber
   ha%Labsorber  = in%L_absorber
@@ -635,7 +650,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%lr=>lr !!!
   ha%ngatherarr=>ngatherarr
   ha%ndimpot=ndimpot
-  ha%potential=>potential
+  ha%potential=>pot
   ha%ekin_sum=ekin_sum
   ha%epot_sum=epot_sum
   ha%eproj_sum=eproj_sum
@@ -727,6 +742,9 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
 
 
+
+  call free_full_potential(nproc,pot,subname)
+  nullify(ha%potential)
 
   call deallocate_abscalc_input(in, subname)
 
