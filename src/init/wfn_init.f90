@@ -613,7 +613,6 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
   real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
   !local variables
   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx
-
   !WARNING: here nspin=1 for nspinor=4
   if(nspinor == 1) then
      ncplx=1
@@ -954,11 +953,11 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
   integer :: ncplx,ncomp,i,ispsiv
   integer:: j,iproc
 
-  if(iproc==0) then
-      do j=1,size(hamovr)
-          !write(100001,*) hamovr(j)
-      end do
-  end if
+!  if(iproc==0) then
+!      do j=1,size(hamovr)
+!          !write(100001,*) hamovr(j)
+!      end do
+!  end if
 
   !WARNING: here nspin=1 for nspinor=4
   if(nspinor == 1) then
@@ -990,7 +989,6 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
   !perform the vector-matrix multiplication for building the input wavefunctions
   ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
   !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
-
   !allocate the pointer for virtual orbitals
   iorbst=1
   iorbst2=1
@@ -1143,7 +1141,7 @@ END SUBROUTINE psitospi
 
 !>  Generates an input guess for the wavefunctions. 
 !! To do this, the eigenvectors of the Hamiltonian are found by an iterative procedure.
-!!  This gives us an guess for the orbitals in the basis of atomic orbitals. These eigenfunctions are the transformed to the
+!!  This gives a guess for the orbitals in the basis of atomic orbitals. These eigenfunctions are then transformed to the
 !!  wavelet basis.
 !!
 !! Calling arguments

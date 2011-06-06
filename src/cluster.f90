@@ -690,7 +690,7 @@ write(*,*) 'iproc, psoffset', iproc, psoffset
      call input_wf_diag(iproc,nproc, atoms,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
+          nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in,radii_cf)
      if (nvirt > norbv) then
         nvirt = norbv
      end if
@@ -998,7 +998,6 @@ write(*,*) 'iproc, psoffset', iproc, psoffset
            !allocate the potential in the full box
            call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
                 orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
-
 
            call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
                 nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&

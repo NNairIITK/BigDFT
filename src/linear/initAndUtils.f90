@@ -239,8 +239,11 @@ call memocc(istat,lind%outofzone,'lind%outofzone',subname)
 !    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
 !end if
 
- call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr, lin%outofzone)
- call determine_locreg_periodic(iproc, lind%nlr, rxyz, lind%locrad, input%hx, input%hy, input%hz, Glr, lind%Llr, lind%outofzone)
+ !call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr, lin%outofzone)
+ !call determine_locreg_periodic(iproc, lind%nlr, rxyz, lind%locrad, input%hx, input%hy, input%hz, Glr, lind%Llr, lind%outofzone)
+ call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
+ call determine_locreg_periodic(iproc, lind%nlr, rxyz, lind%locrad, input%hx, input%hy, input%hz, Glr, lind%Llr)
+
  call mpi_barrier(mpi_comm_world, ierr)
 !do ilr=1,lin%nlr
 !    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
