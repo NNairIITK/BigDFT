@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, phibuff, lphi)
+    i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, phibuff, lphi, phibuffd, lphid)
 !
 ! Purpose:
 ! ========
@@ -97,6 +97,8 @@ real(8),dimension(3,at%nat),intent(out):: fxyz
 real(8):: eion, edisp, fnoise
 real(8),dimension(lin%comsr%sizePhibuff),intent(out):: phibuff
 real(8),dimension(lin%Lorbs%npsidim),intent(inout):: lphi
+real(8),dimension(lind%comsr%sizePhibuff),intent(out):: phibuffd
+real(8),dimension(lind%Lorbs%npsidim),intent(inout):: lphid
 
 ! Local variables 
 integer:: istat, iall, mpisource, istsource, ncount, mpidest, istdest, tag, nsends, nreceives, jproc
@@ -177,93 +179,40 @@ real(8):: tt1, tt2
       call untranspose_v(iproc, nproc, lind%orbs, Glr%wfd, lind%comms, phid, work=phiWorkd)
   end if
 
-!!end if
-!! ########################################################################################################################################
-!!! COMMUNICATE THE BASIS FUNCTIONS FOR SUMRHO
-!! This part will not be needed if we really have O(N) ######################################################
-! Transform the global phi to the local phi
-ind1=1
-ind2=1
-do iorb=1,lin%orbs%norbp
-    ilr = lin%onWhichAtom(iorb)
-    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-end do
-
-!ist=0
-!do iorb=1,lin%orbs%norbp
-!    ilr = lin%onWhichAtom(iorb)
-!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-!    do iall=1,ldim
-!        write(10000+iproc*1000+iorb*10,*) iall, lphi(ist+iall)
-!    end do
-!    ist=ist+ldim
-!end do
-!#############################################################################################################
-
-
-
-! Communicate the orbitals for the calculation of the charge density.
-! Since we use non blockinh point to point communication, only post the message
-! and continues with other calculations.
-! Be aware that you must not modify the send buffer without checking whether
-! the communications has completed.
-if(iproc==0) write(*,'(x,a)', advance='no') 'Posting sends / receives for the calculation of the charge density... '
-nreceives=0
-nsends=0
-procLoop1: do jproc=0,nproc-1
-    orbsLoop1: do iorb=1,lin%comsr%noverlaps(jproc)
-        mpisource=lin%comsr%comarr(1,iorb,jproc)
-        istsource=lin%comsr%comarr(2,iorb,jproc)
-        ncount=lin%comsr%comarr(3,iorb,jproc)
-        lrsource=lin%comsr%comarr(4,iorb,jproc)
-        mpidest=lin%comsr%comarr(5,iorb,jproc)
-        istdest=lin%comsr%comarr(6,iorb,jproc)
-        tag=lin%comsr%comarr(7,iorb,jproc)
-        if(mpisource/=mpidest) then
-            ! The orbitals are on different processes, so we need a point to point communication.
-            if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
-                call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
-                nsends=nsends+1
-            else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                call mpi_irecv(phibuff(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world, lin%comsr%comarr(9,iorb,jproc), ierr)
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
-                nreceives=nreceives+1
-                !fromWhichLocreg(nreceives)=lrsource
-            else
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
-            end if
-        else
-            ! The orbitals are on the same process, so simply copy them.
-            if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
-                call dcopy(ncount, lphi(istsource), 1, phibuff(istdest), 1)
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
-                nsends=nsends+1
-                nreceives=nreceives+1
-                !fromWhichLocreg(nreceives)=lrsource
-                lin%comsr%communComplete(iorb,iproc)=.true.
-            end if
-        end if
-    end do orbsLoop1
-end do procLoop1
-if(iproc==0) write(*,'(a)') 'done.'
-if(nreceives/=lin%comsr%noverlaps(iproc)) then
-    if(iproc==0) write(*,'(x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=lin%comsr%noverlaps(iproc)', nreceives, lin%comsr%noverlaps(iproc)
-    call mpi_barrier(mpi_comm_world, ierr)
-    stop
-end if
-!! ########################################################################################################################################
-
-
+  ! Transform the global phi to the local phi
+  ! This part will not be needed if we really have O(N)
+  if(.not. lin%useDerivativeBasisFunctions) then
+      ind1=1
+      ind2=1
+      do iorb=1,lin%orbs%norbp
+          ilr = lin%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+  else
+      ind1=1
+      ind2=1
+      do iorb=1,lind%orbs%norbp
+          ilr = lind%onWhichAtom(iorb)
+          ldim=lind%Llr(ilr)%wfd%nvctr_c+7*lind%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call psi_to_locreg2(iproc, nproc, ldim, gdim, lind%Llr(ilr), Glr, phid(ind1), lphid(ind2))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lind%Llr(ilr)%wfd%nvctr_c+7*lind%Llr(ilr)%wfd%nvctr_f
+      end do
+  end if
+  
+  ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
+  ! to point communication, the program will continue immediately.
+  if(.not. lin%useDerivativeBasisFunctions) then
+      call postCommunicationSumrho(iproc, nproc, lin, lphi, phibuff)
+  else
+      call postCommunicationSumrho(iproc, nproc, lind, lphid, phibuffd)
+  end if
+  
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
@@ -2281,3 +2230,78 @@ call memocc(istat, iall, 'tempArr', subname)
 
 
 end subroutine orthonormalizeOnlyDerivatives
+
+
+
+
+subroutine postCommunicationSumrho(iproc, nproc, lin, lphi, phibuff)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(in):: lin
+real(8),dimension(lin%Lorbs%npsidim),intent(inout):: lphi
+real(8),dimension(lin%comsr%sizePhibuff),intent(out):: phibuff
+
+! Local variables
+integer:: jproc, nreceives, nsends, iorb, mpisource, istsource, ncount, lrsource, mpidest, istdest, tag, ierr
+
+! Communicate the orbitals for the calculation of the charge density.
+! Since we use non blockinh point to point communication, only post the message
+! and continues with other calculations.
+! Be aware that you must not modify the send buffer without checking whether
+! the communications has completed.
+if(iproc==0) write(*,'(x,a)', advance='no') 'Posting sends / receives for the calculation of the charge density... '
+nreceives=0
+nsends=0
+procLoop1: do jproc=0,nproc-1
+    orbsLoop1: do iorb=1,lin%comsr%noverlaps(jproc)
+        mpisource=lin%comsr%comarr(1,iorb,jproc)
+        istsource=lin%comsr%comarr(2,iorb,jproc)
+        ncount=lin%comsr%comarr(3,iorb,jproc)
+        lrsource=lin%comsr%comarr(4,iorb,jproc)
+        mpidest=lin%comsr%comarr(5,iorb,jproc)
+        istdest=lin%comsr%comarr(6,iorb,jproc)
+        tag=lin%comsr%comarr(7,iorb,jproc)
+        if(mpisource/=mpidest) then
+            ! The orbitals are on different processes, so we need a point to point communication.
+            if(iproc==mpisource) then
+                !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
+                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
+                nsends=nsends+1
+            else if(iproc==mpidest) then
+                !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                call mpi_irecv(phibuff(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world, lin%comsr%comarr(9,iorb,jproc), ierr)
+                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
+                nreceives=nreceives+1
+                !fromWhichLocreg(nreceives)=lrsource
+            else
+                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+            end if
+        else
+            ! The orbitals are on the same process, so simply copy them.
+            if(iproc==mpisource) then
+                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                call dcopy(ncount, lphi(istsource), 1, phibuff(istdest), 1)
+                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+                nsends=nsends+1
+                nreceives=nreceives+1
+                !fromWhichLocreg(nreceives)=lrsource
+                lin%comsr%communComplete(iorb,iproc)=.true.
+            end if
+        end if
+    end do orbsLoop1
+end do procLoop1
+if(iproc==0) write(*,'(a)') 'done.'
+if(nreceives/=lin%comsr%noverlaps(iproc)) then
+    if(iproc==0) write(*,'(x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=lin%comsr%noverlaps(iproc)', nreceives, lin%comsr%noverlaps(iproc)
+    call mpi_barrier(mpi_comm_world, ierr)
+    stop
+end if
+
+end subroutine postCommunicationSumrho

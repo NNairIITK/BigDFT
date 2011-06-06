@@ -1237,7 +1237,7 @@ module module_interfaces
 
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
-          input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, phibuff, lphi)
+          input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, phibuff, lphi, phibuffd, lphid)
       use module_base
       use module_types
       implicit none
@@ -1253,7 +1253,7 @@ module module_interfaces
       real(8),dimension(32,at%nat):: occupForInguess
       real(8),dimension(:),allocatable,intent(out):: phi, phid
       real(8),dimension(:,:),allocatable,intent(out):: coeff, coeffd
-      real(8),dimension(:),pointer,intent(out):: phibuff, lphi
+      real(8),dimension(:),pointer,intent(out):: phibuff, lphi, phibuffd, lphid
     end subroutine allocateAndInitializeLinear
 
 
@@ -1423,7 +1423,7 @@ module module_interfaces
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-        i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, phibuff, lphi)
+        i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, phibuff, lphi, phibuffd, lphid)
       use module_base
       use module_types
       !use Poisson_Solver
@@ -1464,6 +1464,8 @@ module module_interfaces
       real(8):: eion, edisp, fnoise
       real(8),dimension(lin%comsr%sizePhibuff),intent(out):: phibuff
       real(8),dimension(lin%Lorbs%npsidim),intent(inout):: lphi
+      real(8),dimension(lind%comsr%sizePhibuff),intent(out):: phibuffd
+      real(8),dimension(lind%Lorbs%npsidim),intent(inout):: lphid
     end subroutine getLinearPsi
 
     subroutine local_hamiltonianConfinement(iproc,orbs,lin,lr,hx,hy,hz,&
@@ -1594,7 +1596,7 @@ module module_interfaces
     
     subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, lind, phi, phid, psi, rxyz, rxyzParab, &
         rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-        proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff)
+        proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff, phibuffd)
       use module_base
       use module_types
       implicit none
@@ -1629,6 +1631,7 @@ module module_interfaces
       real(8):: ebsMod
       logical:: scpot
       real(8),dimension(lin%comsr%sizePhibuff),intent(inout):: phibuff
+      real(8),dimension(lind%comsr%sizePhibuff),intent(inout):: phibuffd
     end subroutine potentialAndEnergySub
     
     
@@ -1990,8 +1993,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(lin%orbs%npsidim),intent(out):: phi
     end subroutine inputguessConfinement
 
-
-    subroutine sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, at, rxyz, nscatterarr)
+    subroutine sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, &
+               at, rxyz, nscatterarr, phibuff)
       use module_base
       use module_types
       use libxc_functionals
@@ -2001,14 +2004,29 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(orbitals_data),intent(in):: orbs
       type(locreg_descriptors),intent(in):: Glr
       type(input_variables),intent(in):: input
-      type(linearParameters),intent(in):: lin
+      type(linearParameters),intent(inout):: lin
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
       real(8),dimension(lin%orbs%npsidim),intent(in):: phi
       real(8),dimension(nrho),intent(out),target:: rho
       type(atoms_data),intent(in):: at
       real(8),dimension(3,at%nat),intent(in):: rxyz
-      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+      integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+      real(8),dimension(lin%comsr%sizePhibuff):: phibuff
     end subroutine sumrhoForLocalizedBasis
+
+
+    subroutine initializeCommsSumrho(iproc, nproc, nscatterarr, lin, phibuff)
+      use module_base
+      use module_types
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in):: iproc, nproc
+      integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+      type(linearParameters),intent(inout):: lin
+      real(8),dimension(:),pointer,intent(out):: phibuff
+    end subroutine
+
 
     
   end interface

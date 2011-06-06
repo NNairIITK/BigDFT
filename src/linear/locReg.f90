@@ -914,7 +914,7 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outo
   !determine the limits of the different localisation regions
   do ilr=1,nlr
 
-     if(iproc==0) write(*,'(x,a,i0)') '>>>>>>>>>>>> zone ', ilr
+     !if(iproc==0) write(*,'(x,a,i0)') '>>>>>>>>>>>> zone ', ilr
 
      rx=cxyz(1,ilr)
      ry=cxyz(2,ilr)
@@ -961,12 +961,10 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outo
      ! geometries
      select case(Glr%geocode)
      case('F')
-write(*,'(a,3i8)') 'before: isx, isy, isz', isx, isy, isz
         isx=max(isx,Glr%ns1)
         isy=max(isy,Glr%ns2)
         isz=max(isz,Glr%ns3)
 
-write(*,'(a,3i8)') 'before: iex, iey, iez', iex, iey, iez
         iex=min(iex,Glr%ns1+Glr%d%n1)
         iey=min(iey,Glr%ns2+Glr%d%n2)
         iez=min(iez,Glr%ns3+Glr%d%n3)
@@ -1063,16 +1061,16 @@ write(*,'(a,3i8)') 'before: iex, iey, iez', iex, iey, iez
      Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
      Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
 
-!DEBUG
-     if(iproc==0) write(*,'(x,a,i0)')'Description of zone:',ilr
-     if(iproc==0) write(*,'(x,a,3(3x,i0))')'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
-     if(iproc==0) write(*,'(x,a,3(3x,i0))')'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
-     if(iproc==0) write(*,'(x,a,3(3x,i0))')'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
-     if(iproc==0) write(*,'(x,a,3(3x,i0))')'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
-     if(iproc==0) write(*,'(x,a,3(3x,i0))')'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
-     if(iproc==0) write(*,'(x,a,3(3x,i0))')'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
-     if(iproc==0) write(*,'(x,a,i0,a,3i5)')'outofzone',ilr,':',outofzone(:,ilr)
-!DEBUG
+!!DEBUG
+!     if(iproc==0) write(*,'(x,a,i0)')'Description of zone:',ilr
+!     if(iproc==0) write(*,'(x,a,3(3x,i0))')'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
+!     if(iproc==0) write(*,'(x,a,3(3x,i0))')'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
+!     if(iproc==0) write(*,'(x,a,3(3x,i0))')'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
+!     if(iproc==0) write(*,'(x,a,3(3x,i0))')'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
+!     if(iproc==0) write(*,'(x,a,3(3x,i0))')'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
+!     if(iproc==0) write(*,'(x,a,3(3x,i0))')'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
+!     if(iproc==0) write(*,'(x,a,i0,a,3i5)')'outofzone',ilr,':',outofzone(:,ilr)
+!!DEBUG
 
     ! construct the wavefunction descriptors (wfd)
      call determine_wfd_periodicity(ilr,nlr,Glr,Llr,outofzone)
@@ -1091,7 +1089,7 @@ write(*,'(a,3i8)') 'before: iex, iey, iez', iex, iey, iez
              Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
      end if
      !print *,'Outside locreg_bounds'
-     if(iproc==0) write(*,'(x,a)') '-----------------------------------------------------------------------------'
+     !if(iproc==0) write(*,'(x,a)') '-----------------------------------------------------------------------------'
   end do !on ilr
 
   !after all localisation regions are determined draw them

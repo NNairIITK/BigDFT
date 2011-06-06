@@ -247,6 +247,7 @@ module module_types
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,inwhichlocreg, inWhichLocregP !,ikptsp
+     integer,dimension(:),pointer:: onWhichMPI, isorb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -414,9 +415,9 @@ module module_types
     type(locreg_descriptors):: lr
     type(locreg_descriptors),dimension(:),pointer:: Llr
     type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
-    integer,dimension(:),pointer:: onWhichAtom, norbsPerType, onWhichAtomAll, onWhichMPI, isorb_par
+    integer,dimension(:),pointer:: onWhichAtom, norbsPerType, onWhichAtomAll
     integer,dimension(:),pointer:: MPIComms, norbPerComm
-    integer,dimension(:,:),pointer:: procsInComm, outofzone, overlappingOrbs
+    integer,dimension(:,:),pointer:: procsInComm, outofzone
     integer,dimension(:,:,:),pointer:: receiveArr
     integer:: ncomms
     type(arraySizes):: as
@@ -585,6 +586,12 @@ subroutine deallocate_orbs(orbs,subname)
     i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
     deallocate(orbs%inwhichlocreg,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
+    i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
+    deallocate(orbs%isorb_par,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%isorb_par',subname)
+    i_all=-product(shape(orbs%onWhichMPI))*kind(orbs%onWhichMPI)
+    deallocate(orbs%onWhichMPI,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%onWhichMPI',subname)
 
     !contradictory: needed for component distribution and allocated for
     !               orbital distribution. Better to deal with scalars
