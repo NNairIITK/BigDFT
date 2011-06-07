@@ -1595,10 +1595,10 @@ if(iproc==0) then
     do iorb=1,lin%orbs%norb
         do jorb=1,lin%orbs%norb
             if(iorb==jorb) tt=tt+matrixElements(iorb,jorb)
-            write(777,*) iorb,jorb,matrixElements(jorb,iorb)
+            !write(777,*) iorb,jorb,matrixElements(jorb,iorb)
         end do
     end do
-    write(*,*) 'trace',tt
+    !write(*,*) 'trace',tt
 end if
 
 ! Do everything only on the root process and then broadcast to all processes.

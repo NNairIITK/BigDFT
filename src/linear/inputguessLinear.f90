@@ -603,11 +603,11 @@ real(4):: ttreal
 
 
     if(iproc==0) write(*,'(x,a)') '===================================================================================='
-    do iorb=1,orbs%norb
-        do jorb=1,orbsig%norb
-            write(999,'(2i8,es20.12)') iorb, jorb, coeff(jorb,iorb)
-        end do
-    end do
+    !do iorb=1,orbs%norb
+    !    do jorb=1,orbsig%norb
+    !        write(999,'(2i8,es20.12)') iorb, jorb, coeff(jorb,iorb)
+    !    end do
+    !end do
 
 end if processIf
 

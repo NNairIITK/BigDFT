@@ -1715,163 +1715,163 @@ module module_interfaces
 
 
 
-   subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outofzone)
-      use module_base
-      use module_types
-      implicit none
-      integer, intent(in) :: iproc,nlr
-      real(gp), intent(in) :: hx,hy,hz
-      type(locreg_descriptors), intent(in) :: Glr
-      real(gp), dimension(nlr), intent(in) :: locrad
-      real(gp), dimension(3,nlr), intent(in) :: cxyz
-      type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
-      integer, dimension(3,nlr),intent(out) :: outofzone
-   end subroutine
+   !!subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,outofzone)
+   !!   use module_base
+   !!   use module_types
+   !!   implicit none
+   !!   integer, intent(in) :: iproc,nlr
+   !!   real(gp), intent(in) :: hx,hy,hz
+   !!   type(locreg_descriptors), intent(in) :: Glr
+   !!   real(gp), dimension(nlr), intent(in) :: locrad
+   !!   real(gp), dimension(3,nlr), intent(in) :: cxyz
+   !!   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+   !!   integer, dimension(3,nlr),intent(out) :: outofzone
+   !!end subroutine
 
-    subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr,outofzone)
-      use module_base
-      use module_types
-      implicit none
-      integer,intent(in) :: ilr,nlr
-      type(locreg_descriptors),intent(in) :: Glr
-      type(locreg_descriptors),dimension(nlr),intent(inout) :: Llr
-      integer,dimension(3,nlr),intent(in) :: outofzone
-    end subroutine
+    !!subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr,outofzone)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  integer,intent(in) :: ilr,nlr
+    !!  type(locreg_descriptors),intent(in) :: Glr
+    !!  type(locreg_descriptors),dimension(nlr),intent(inout) :: Llr
+    !!  integer,dimension(3,nlr),intent(in) :: outofzone
+    !!end subroutine
 
-    subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-     nseg_loc,nvctr_loc,outofzone)
-     implicit none
-     integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr
-     integer, dimension(nseg), intent(in) :: keyv
-     integer, dimension(2,nseg), intent(in) :: keyg
-     integer, intent(out) :: nseg_loc,nvctr_loc
-     integer, dimension(3),intent(in) :: outofzone
-    end subroutine
+    !!subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
+    !! nseg_loc,nvctr_loc,outofzone)
+    !! implicit none
+    !! integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr
+    !! integer, dimension(nseg), intent(in) :: keyv
+    !! integer, dimension(2,nseg), intent(in) :: keyg
+    !! integer, intent(out) :: nseg_loc,nvctr_loc
+    !! integer, dimension(3),intent(in) :: outofzone
+    !!end subroutine
 
-    subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-     nseg_loc,nvctr_loc,keyg_loc,keyv_loc,outofzone)
-     implicit none
-     integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
-     integer, dimension(nseg), intent(in) :: keyv
-     integer, dimension(2,nseg), intent(in) :: keyg
-     integer, dimension(3), intent(in) :: outofzone
-     integer, dimension(nseg_loc), intent(out) :: keyv_loc
-     integer, dimension(2,nseg_loc), intent(out) :: keyg_loc
-     end subroutine
+    !!subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
+    !! nseg_loc,nvctr_loc,keyg_loc,keyv_loc,outofzone)
+    !! implicit none
+    !! integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
+    !! integer, dimension(nseg), intent(in) :: keyv
+    !! integer, dimension(2,nseg), intent(in) :: keyg
+    !! integer, dimension(3), intent(in) :: outofzone
+    !! integer, dimension(nseg_loc), intent(out) :: keyv_loc
+    !! integer, dimension(2,nseg_loc), intent(out) :: keyg_loc
+    !! end subroutine
 
-    subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr,outofzone)
-     use module_base
-     use module_types
-     implicit none
-     integer, intent(in) :: alr,blr
-     integer, intent(in) :: nlr
-     type(locreg_descriptors),intent(in) :: Glr
-     integer, intent(out) :: isovrlp
-     integer,dimension(3,nlr),intent(in) :: outofzone
-     type(locreg_descriptors), dimension(nlr), intent(in) :: Llr
-    end subroutine
+    !!subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr,outofzone)
+    !! use module_base
+    !! use module_types
+    !! implicit none
+    !! integer, intent(in) :: alr,blr
+    !! integer, intent(in) :: nlr
+    !! type(locreg_descriptors),intent(in) :: Glr
+    !! integer, intent(out) :: isovrlp
+    !! integer,dimension(3,nlr),intent(in) :: outofzone
+    !! type(locreg_descriptors), dimension(nlr), intent(in) :: Llr
+    !!end subroutine
 
-    subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr,outofzone)
-     use module_base
-     use module_types
-     implicit none
-     integer, intent(in) :: alr,blr
-     integer, intent(in) :: nlr
-     type(locreg_descriptors),intent(in) :: Glr
-     integer, intent(in) :: isovrlp
-     type(locreg_descriptors), dimension(nlr), intent(in) :: Llr
-     type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr
-     integer,dimension(3,nlr),intent(in) :: outofzone
-    end subroutine
+    !!subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr,outofzone)
+    !! use module_base
+    !! use module_types
+    !! implicit none
+    !! integer, intent(in) :: alr,blr
+    !! integer, intent(in) :: nlr
+    !! type(locreg_descriptors),intent(in) :: Glr
+    !! integer, intent(in) :: isovrlp
+    !! type(locreg_descriptors), dimension(nlr), intent(in) :: Llr
+    !! type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr
+    !! integer,dimension(3,nlr),intent(in) :: outofzone
+    !!end subroutine
 
-    subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
-       radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,Lnlpspd,projflg)
-     use module_base
-     use module_types
-     implicit none
-     type(input_variables),intent(in) :: input_parameters
-     integer,intent(in) :: iproc
-     type(locreg_descriptors),intent(in) :: Glr
-     type(locreg_descriptors),intent(in) :: Llr
-     type(atoms_data),intent(in) :: atoms
-     type(orbitals_data),intent(in) :: orbs
-     real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
-     type(nonlocal_psp_descriptors),intent(in) :: nlpspd
-     type(nonlocal_psp_descriptors),intent(out) :: Lnlpspd
-     integer,dimension(atoms%nat),intent(out) :: projflg
-     real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-     real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-    end subroutine
+    !!subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
+    !!   radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,Lnlpspd,projflg)
+    !! use module_base
+    !! use module_types
+    !! implicit none
+    !! type(input_variables),intent(in) :: input_parameters
+    !! integer,intent(in) :: iproc
+    !! type(locreg_descriptors),intent(in) :: Glr
+    !! type(locreg_descriptors),intent(in) :: Llr
+    !! type(atoms_data),intent(in) :: atoms
+    !! type(orbitals_data),intent(in) :: orbs
+    !! real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
+    !! type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+    !! type(nonlocal_psp_descriptors),intent(out) :: Lnlpspd
+    !! integer,dimension(atoms%nat),intent(out) :: projflg
+    !! real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+    !! real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+    !!end subroutine
 
-    subroutine apply_local_projectors(atoms,in,Llr,Lnlpspd,Lproj,orbs,projflg,psi,rxyz,hpsi)
-     use module_base
-     use module_types
-     implicit none
-     type(atoms_data),intent(in) :: atoms
-     type(input_variables),intent(in) :: in
-     type(locreg_descriptors),intent(in) :: Llr
-     type(nonlocal_psp_descriptors),intent(in) :: Lnlpspd
-     type(orbitals_data),intent(in) :: orbs
-     integer,dimension(atoms%nat),intent(in) :: projflg
-     real(wp),dimension(Lnlpspd%nprojel),intent(out):: Lproj
-     real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(in) :: psi
-     real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(out):: hpsi
-     real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-    end subroutine
+    !!subroutine apply_local_projectors(atoms,in,Llr,Lnlpspd,Lproj,orbs,projflg,psi,rxyz,hpsi)
+    !! use module_base
+    !! use module_types
+    !! implicit none
+    !! type(atoms_data),intent(in) :: atoms
+    !! type(input_variables),intent(in) :: in
+    !! type(locreg_descriptors),intent(in) :: Llr
+    !! type(nonlocal_psp_descriptors),intent(in) :: Lnlpspd
+    !! type(orbitals_data),intent(in) :: orbs
+    !! integer,dimension(atoms%nat),intent(in) :: projflg
+    !! real(wp),dimension(Lnlpspd%nprojel),intent(out):: Lproj
+    !! real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(in) :: psi
+    !! real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(out):: hpsi
+    !! real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+    !!end subroutine
 
-    subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
-     use module_base
-     use module_types
-     implicit none
-     integer, intent(in) :: nlr
-     integer :: ilr
-     integer :: ldim
-     type(orbitals_data),intent(in) :: orbs
-     type(locreg_descriptors),intent(in) :: Glr
-     type(locreg_descriptors), dimension(nlr), intent(in) :: Olr
-     real(wp),dimension(orbs%npsidim),intent(in) :: psi
-     real(wp),dimension(ldim),intent(inout) :: lpsi
-    end subroutine
-
-
+    !!subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
+    !! use module_base
+    !! use module_types
+    !! implicit none
+    !! integer, intent(in) :: nlr
+    !! integer :: ilr
+    !! integer :: ldim
+    !! type(orbitals_data),intent(in) :: orbs
+    !! type(locreg_descriptors),intent(in) :: Glr
+    !! type(locreg_descriptors), dimension(nlr), intent(in) :: Olr
+    !! real(wp),dimension(orbs%npsidim),intent(in) :: psi
+    !! real(wp),dimension(ldim),intent(inout) :: lpsi
+    !!end subroutine
 
 
 
-    subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
-         hfac,nscatterarr,spinsgn,psir,rho_p,norb,norbPsi,coeff,&
-         ibyyzz_r)
-      use module_base
-      use module_types
-      implicit none
-      logical, intent(in) :: rsflag
-      integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinn,npsir, norb,norbPsi
-      real(gp), intent(in) :: hfac,spinsgn
-      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
-      real(wp), dimension(n1i,n2i,n3i,npsir), intent(in) :: psir
-      real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
-      real(8),dimension(norb,norbPsi),intent(in):: coeff
-      integer, dimension(:,:,:),pointer :: ibyyzz_r
-    end subroutine partial_density_linear
 
-    subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
-         nrhotot,Glr,Llr,nrho,rho,hxh,hyh,hzh,nspin,orbs,psi,norbPsi,coeff)
-      use module_base
-      use module_types
-      use libxc_functionals
-      implicit none
-      logical, intent(in) :: rsflag
-      integer, intent(in) :: iproc,nproc,nlr,nrho, norbPsi
-      integer,intent(inout):: nrhotot
-      integer, intent(in) :: nspin
-      real(dp),dimension(max(nrho,1),nspin):: rho
-      real(gp), intent(in) :: hxh,hyh,hzh
-      type(orbitals_data), intent(in) :: orbs
-      type(locreg_descriptors), intent(in) :: Glr
-      type(locreg_descriptors),dimension(nlr),intent(in) :: Llr
-      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      real(wp), dimension(orbs%npsidim), intent(in) :: psi
-      real(8),dimension(norbPsi),intent(in):: coeff
-    end subroutine local_partial_densityLinear
+
+    !!subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
+    !!     hfac,nscatterarr,spinsgn,psir,rho_p,norb,norbPsi,coeff,&
+    !!     ibyyzz_r)
+    !!  use module_base
+    !!  use module_types
+    !!  implicit none
+    !!  logical, intent(in) :: rsflag
+    !!  integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinn,npsir, norb,norbPsi
+    !!  real(gp), intent(in) :: hfac,spinsgn
+    !!  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
+    !!  real(wp), dimension(n1i,n2i,n3i,npsir), intent(in) :: psir
+    !!  real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
+    !!  real(8),dimension(norb,norbPsi),intent(in):: coeff
+    !!  integer, dimension(:,:,:),pointer :: ibyyzz_r
+    !!end subroutine partial_density_linear
+
+    !!subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
+    !!     nrhotot,Glr,Llr,nrho,rho,hxh,hyh,hzh,nspin,orbs,psi,norbPsi,coeff)
+    !!  use module_base
+    !!  use module_types
+    !!  use libxc_functionals
+    !!  implicit none
+    !!  logical, intent(in) :: rsflag
+    !!  integer, intent(in) :: iproc,nproc,nlr,nrho, norbPsi
+    !!  integer,intent(inout):: nrhotot
+    !!  integer, intent(in) :: nspin
+    !!  real(dp),dimension(max(nrho,1),nspin):: rho
+    !!  real(gp), intent(in) :: hxh,hyh,hzh
+    !!  type(orbitals_data), intent(in) :: orbs
+    !!  type(locreg_descriptors), intent(in) :: Glr
+    !!  type(locreg_descriptors),dimension(nlr),intent(in) :: Llr
+    !!  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+    !!  real(wp), dimension(orbs%npsidim), intent(in) :: psi
+    !!  real(8),dimension(norbPsi),intent(in):: coeff
+    !!end subroutine local_partial_densityLinear
 
 
    subroutine createDerivativeBasis(n1,n2,n3, &
@@ -2028,7 +2028,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       type(linearParameters),intent(inout):: lin
       real(8),dimension(:),pointer,intent(out):: phibuff
-    end subroutine
+    end subroutine initializeCommsSumrho
 
 
 
@@ -2043,7 +2043,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(gp), dimension(nlr), intent(in) :: locrad
       real(gp), dimension(3,nlr), intent(in) :: cxyz
       type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
-   end subroutine
+   end subroutine determine_locreg_periodic
 
     subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr,outofzone)
       use module_base
@@ -2053,7 +2053,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(locreg_descriptors),intent(in) :: Glr  
       type(locreg_descriptors),dimension(nlr),intent(inout) :: Llr   
       integer,dimension(3,nlr),intent(in) :: outofzone
-    end subroutine 
+    end subroutine determine_wfd_periodicity
 
     subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
      nseg_loc,nvctr_loc,outofzone)
@@ -2063,7 +2063,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      integer, dimension(2,nseg), intent(in) :: keyg
      integer, intent(out) :: nseg_loc,nvctr_loc
      integer, dimension(3),intent(in) :: outofzone 
-    end subroutine
+    end subroutine num_segkeys_periodic
 
     subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
      nseg_loc,nvctr_loc,keyg_loc,keyv_loc,outofzone)
@@ -2074,7 +2074,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      integer, dimension(3), intent(in) :: outofzone
      integer, dimension(nseg_loc), intent(out) :: keyv_loc
      integer, dimension(2,nseg_loc), intent(out) :: keyg_loc
-     end subroutine
+     end subroutine segkeys_periodic
 
     subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)
      use module_base
@@ -2085,7 +2085,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      type(locreg_descriptors),intent(in) :: Glr  
      integer, intent(out) :: isovrlp           
      type(locreg_descriptors), dimension(nlr), intent(in) :: Llr       
-    end subroutine
+    end subroutine get_number_of_overlap_region
 
     subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
      use module_base
@@ -2097,7 +2097,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      integer, intent(in) :: isovrlp              
      type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  
      type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr 
-    end subroutine
+    end subroutine get_overlap_region_periodic
 
     subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,Lnlpspd,projflg)
@@ -2116,7 +2116,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      integer,dimension(atoms%nat),intent(out) :: projflg
      real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
      real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-    end subroutine
+    end subroutine nlpspd_to_locreg
 
     subroutine apply_local_projectors(atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,psi,rxyz,hpsi,eproj)
      use module_base
@@ -2133,7 +2133,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(in) :: psi  
      real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(out):: hpsi 
      real(gp), dimension(3,atoms%nat), intent(in) :: rxyz 
-    end subroutine
+    end subroutine apply_local_projectors
 
     subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
      use module_base
@@ -2147,7 +2147,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      type(locreg_descriptors), dimension(nlr), intent(in) :: Olr   
      real(wp),dimension(orbs%npsidim),intent(in) :: psi      
      real(wp),dimension(ldim),intent(inout) :: lpsi 
-    end subroutine
+    end subroutine psi_to_locreg
 
 
     subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
