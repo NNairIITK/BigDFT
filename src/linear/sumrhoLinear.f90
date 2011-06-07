@@ -397,6 +397,7 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
                                ! indLarge is the index in the whole box. 
                                indLarge=(Llr(ilr)%nsi3+i3-1)*Glr%d%n2i*Glr%d%n1i +&
                                    (Llr(ilr)%nsi2+i2-1)*Glr%d%n1i + Llr(ilr)%nsi1+i1
+                       !        print *,'indLarge, Llr(ilr)%nsi',indLarge, Llr(ilr)%nsi1,Llr(ilr)%nsi2,Llr(ilr)%nsi3
                                rho(indLarge,ispin)=rho(indLarge,ispin)+rho_p(indSmall)
                            end do
                        end do
@@ -603,6 +604,9 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
 
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
 
+  ! Allocate the nonlocal descriptors for the locregs
+  allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)   
+
   !initialize accumulators
   ekin_sum = 0.0_gp
   epot_sum = 0.0_gp
@@ -646,7 +650,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
         if (present(psirocc) .and. present(orbsocc)) then
            call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,&
                 Lzd%Llr(ilr),orbsocc,Lzd%orbs,ngatherarr(0,1),n3p,&
-                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi(ind:ind+dimwf-1),Lpot(ispot))
+                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi(ind:ind+dimwf-1),Lpot)
            eexctX = 0._gp
         else
    !!$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
@@ -656,11 +660,11 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
            if (.not. op2p) then
               call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
                    Lzd%Llr(ilr),Lzd%orbs,ngatherarr(0,1),n3p,&
-                   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi(ind:ind+dimwf-1),Lpot(ispot),eexctX)
+                   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi(ind:ind+dimwf-1),Lpot,eexctX)
            else
               !the psi should be transformed in real space
               call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,Lzd%Llr(ilr),Lzd%orbs,&
-                   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi(ind:ind+dimwf-1),Lpot(ispot),eexctX)
+                   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi(ind:ind+dimwf-1),Lpot,eexctX)
    
            end if
         end if
@@ -767,7 +771,6 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
         ! allocate projflg
         allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=i_stat)
         call memocc(i_stat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
-        allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)   
 
         ! Make the local non-linear pseudopotentials descriptors
         call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,Lzd%orbs,&
@@ -948,8 +951,10 @@ subroutine LinearDiagHam(iproc,etol,Lzd,orbs,nspin,Lhpsi,Lpsi,psit,orbsv)
   deallocate(work1,stat=i_stat)
   call memocc(i_stat,i_all,'work1',subname)
 
-  print *,'hamovr, ham:',hamovr(:,1,:)
-  print *,'hamovr, ovr:',hamovr(:,2,:)
+! DEBUG
+!  print *,'hamovr, ham:',hamovr(:,1,:)
+!  print *,'hamovr, ovr:',hamovr(:,2,:)
+! END DEBUG
 
   ! Don't need Lhpsi anymore
 !  i_all=-product(shape(Lhpsi))*kind(Lhpsi)
@@ -983,7 +988,7 @@ subroutine LinearDiagHam(iproc,etol,Lzd,orbs,nspin,Lhpsi,Lpsi,psit,orbsv)
 
 
 ! FOR NOW, just transform the Lpsi to psi in global region.
-  Gpsidim = (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb*Lzd%orbs%nspinor*nspin
+  Gpsidim = (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*Lzd%orbs%norb*Lzd%orbs%nspinor
   allocate(psi(Gpsidim+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
   call razero(Gpsidim+ndebug,psi)

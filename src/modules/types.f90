@@ -847,6 +847,30 @@ END SUBROUTINE deallocate_orbs
 
   END SUBROUTINE deallocate_lr
 
+  subroutine deallocate_Lzd(Lzd,subname)
+    use module_base
+    character(len=*), intent(in) :: subname
+    type(linear_zone_descriptors) :: Lzd
+    integer :: i_all,i_stat,ilr
+
+!    call deallocate_orbs(Lzd%orbs,subname)
+ 
+!    call deallocate_comms(Lzd%comms,subname)
+
+!    call deallocate_lr(Lzd%Glr,subname)
+
+    do ilr = 1, Lzd%nlr 
+       call deallocate_lr(Lzd%Llr(ilr),subname)
+       call deallocate_Lnlpspd(Lzd%Lnlpspd(ilr),subname)
+    end do
+
+    deallocate(Lzd%Llr,stat=i_stat)
+    deallocate(Lzd%Lnlpspd,stat=i_stat)
+   
+
+  END SUBROUTINE deallocate_Lzd
+
+
   function input_psi_names(id)
     integer, intent(in) :: id
     character(len = 14) :: input_psi_names

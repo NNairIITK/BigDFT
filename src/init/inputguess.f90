@@ -163,7 +163,6 @@ subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occu
   else
      noncoll=1
   end if
-
   occup(1:noccmax,1:lmax)=0
   nl(1:lmax)=0
 

@@ -321,7 +321,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
   !Subroutine Array Arguments
   !########################################
   real(wp),dimension(Gdim),intent(inout) :: psi       !Wavefunction (compressed format)
-  real(wp),dimension(Ldim),intent(in) :: lpsi !Wavefunction in localization region
+  real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
   !#############################################
   !local variables
   !############################################
@@ -691,6 +691,11 @@ subroutine overlap_matrix_for_locreg(ilr,nlr,nspin,psidim1,psishift1,npsidim,at,
      end do
 
      !deallocate the arrays depending on ilr2 (if they are allocated)
+     if(allocated(OnSitehamovr)) then
+        i_all=-product(shape(OnSitehamovr))*kind(OnSitehamovr)
+        deallocate(OnSitehamovr,stat=i_stat)
+        call memocc(i_stat,i_all,'OnSitehamovr',subname)
+     end if
      if(allocated(Ahamovr)) then
         i_all=-product(shape(Ahamovr))*kind(Ahamovr)
         deallocate(Ahamovr,stat=i_stat)

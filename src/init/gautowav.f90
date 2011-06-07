@@ -659,7 +659,7 @@ subroutine gaussians_to_wavelets_new2(iproc,nproc,nlr,lr,orbs,hx,hy,hz,G,wfn_gau
   ind = 1
   ind2 = 1
   do ilr = 1,nlr
-     do iorb=1,orbs%norbp
+     do iorb=1,orbs%norb
         ! do only the orbitals in this locreg
         if (orbs%inWhichLocreg(iorb) .ne. ilr ) cycle
         jorb = jorb + 1

@@ -1475,7 +1475,7 @@ subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)!,outofzone)
   !#############################################
   !local variables
   !############################################
-  integer :: ii,azones,bzones,i_stat
+  integer :: ii,azones,bzones,i_stat,i_all
   integer :: izones,jzones
   integer,allocatable :: astart(:,:),aend(:,:),bstart(:,:),bend(:,:)
   character(len=*), parameter :: subname='get_number_of_overlap_region'
@@ -1523,6 +1523,20 @@ subroutine get_number_of_overlap_region(alr,blr,Glr,isovrlp,Llr,nlr)!,outofzone)
       end if
    end do
  end do
+
+! Deallocation block
+  i_all = -product(shape(astart))*kind(astart)
+  deallocate(astart,stat=i_stat)
+  call memocc(i_stat,i_all,'astart',subname)
+  i_all = -product(shape(aend))*kind(aend)
+  deallocate(aend,stat=i_stat)
+  call memocc(i_stat,i_all,'aend',subname)
+  i_all = -product(shape(bstart))*kind(bstart)
+  deallocate(bstart,stat=i_stat)
+  call memocc(i_stat,i_all,'bstart',subname)
+  i_all = -product(shape(bend))*kind(bend)
+  deallocate(bend,stat=i_stat)
+  call memocc(i_stat,i_all,'bend',subname)
   
 END SUBROUTINE get_number_of_overlap_region
 
@@ -1655,7 +1669,7 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
   integer :: isx,isy,isz,iex,iey,iez             ! bounds of the overlap region
   character(len=*), parameter :: subname='get_overlap_region_periodic'
   !# NEW
-  integer :: ii,azones,bzones,i_stat,index
+  integer :: ii,azones,bzones,i_stat,i_all,index
   integer :: izones,jzones
   integer,allocatable :: astart(:,:),aend(:,:),bstart(:,:),bend(:,:)
   logical :: go1,go2,go3
@@ -1810,6 +1824,20 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
    end do !jzones
  end do !izones
 
+! Deallocation block
+  i_all = -product(shape(astart))*kind(astart)
+  deallocate(astart,stat=i_stat)
+  call memocc(i_stat,i_all,'astart',subname)
+  i_all = -product(shape(aend))*kind(aend)
+  deallocate(aend,stat=i_stat)
+  call memocc(i_stat,i_all,'aend',subname)
+  i_all = -product(shape(bstart))*kind(bstart)
+  deallocate(bstart,stat=i_stat)
+  call memocc(i_stat,i_all,'bstart',subname)
+  i_all = -product(shape(bend))*kind(bend)
+  deallocate(bend,stat=i_stat)
+  call memocc(i_stat,i_all,'bend',subname)
+
 ! Check on the number of zones
   if (index /= isovrlp) then
       write(*,*)&
@@ -1833,8 +1861,11 @@ subroutine assignToLocreg(iproc, natom, nlr, nspin, Localnorb, orbse)
   type(orbitals_data),intent(inout):: orbse
   
   ! Local variables
-  integer:: jproc, iiOrb, iorb, jorb, jat
+  integer:: jproc, iiOrb, iorb, jorb, jat,i_stat
+  character(len=*), parameter :: subname='assignToLocreg'
 
+  allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
+  call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
 
   ! There are four counters:
   !   jproc: indicates which MPI process is handling the basis function which is being treated

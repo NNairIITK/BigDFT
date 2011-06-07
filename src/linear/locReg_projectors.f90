@@ -99,8 +99,8 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      nu3 = nlpspd%nboxp_c(2,3,iat)
 
 !    Now we can determine the number of segments and elements of coarse grid
-     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,1,&
-&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(atoms%iatype(iatom),3),cpmult,hhx,hhy,hhz,logrid)
+     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
+&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,3),cpmult,hhx,hhy,hhz,logrid)
 
      call number_of_projector_elements_in_locreg(iatom,1,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_c,mvctr_c)
 
@@ -117,8 +117,8 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      nl3 = nlpspd%nboxp_f(1,3,iat)
      nu3 = nlpspd%nboxp_f(2,3,iat)
 
-     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,1,&
-&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(atoms%iatype(iatom),2),fpmult,hhx,hhy,hhz,logrid)
+     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
+&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,2),fpmult,hhx,hhy,hhz,logrid)
 
      call number_of_projector_elements_in_locreg(iatom,2,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_f,mvctr_f)
 
@@ -642,6 +642,55 @@ subroutine allocate_Lnlpspd(natom,Lnlpspd,subname)
 END SUBROUTINE allocate_Lnlpspd
 !%***
 
+!#############################################################################################################################################
+!!****f* BigDFT/allocate_Lnlpspd
+!#############################################################################################################################################
+!! FUNCTION:  Deallocates most of the arrays in Lnlpspd 
+!!
+!! WARNING: 
+!!         
+!! SOURCE:
+!!
+subroutine deallocate_Lnlpspd(Lnlpspd,subname)
+
+  use module_base
+  use module_types
+
+ implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  type(nonlocal_psp_descriptors),intent(inout) :: Lnlpspd  ! Local descriptors for the projectors
+  character(len=*), intent(in) :: subname
+  !#######################################
+  ! Local Variables 
+  !#######################################
+  integer :: i_stat,i_all
+
+  i_all=-product(shape(Lnlpspd%nvctr_p)*kind(Lnlpspd%nvctr_p))
+  deallocate(Lnlpspd%nvctr_p,stat=i_stat)
+  call memocc(i_stat,i_all,'nvctr_p',subname)
+  i_all=-product(shape(Lnlpspd%nseg_p)*kind(Lnlpspd%nseg_p))
+  deallocate(Lnlpspd%nseg_p,stat=i_stat)
+  call memocc(i_stat,i_all,'nseg_p',subname)
+  i_all=-product(shape(Lnlpspd%nboxp_c)*kind(Lnlpspd%nboxp_c))
+  deallocate(Lnlpspd%nboxp_c,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_c',subname)
+  i_all=-product(shape(Lnlpspd%nboxp_f)*kind(Lnlpspd%nboxp_f))
+  deallocate(Lnlpspd%nboxp_f,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_f',subname)
+  i_all=-product(shape(Lnlpspd%keyg_p)*kind(Lnlpspd%keyg_p))
+  deallocate(Lnlpspd%keyg_p,stat=i_stat)
+  call memocc(i_stat,i_all,'keyg_p',subname)
+  i_all=-product(shape(Lnlpspd%keyv_p)*kind(Lnlpspd%keyv_p))
+  deallocate(Lnlpspd%keyv_p,stat=i_stat)
+  call memocc(i_stat,i_all,'keyv_p',subname)
+
+END SUBROUTINE deallocate_Lnlpspd
+!%***
+
+
 
 !#############################################################################################################################################
 !!****f* BigDFT/allocate_projd
@@ -677,6 +726,7 @@ subroutine allocate_projd(mseg,Lnlpspd,subname)
 
 END SUBROUTINE allocate_projd
 !%***
+
 
 !#############################################################################################################################################
 !!****f* BigDFT/apply_local_projectors
@@ -728,7 +778,7 @@ subroutine apply_local_projectors(atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,
    psi_tmp = reshape(psi, (/ orbs%norbp, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
    hpsi_tmp = reshape(hpsi,(/ orbs%norbp, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
 
-
+     ieorb = orbs%norbp   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
      ikpt=orbs%iokpt(1)
      loop_kpt: do
       
@@ -816,7 +866,6 @@ subroutine apply_local_projectors(atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,
               ipsi = ipsi + Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
            end do
         end do
-        
         if (iproj /= Lnlpspd%nproj) stop 'incorrect number of projectors created'
         if (ieorb == orbs%norbp) exit loop_kpt
         ikpt=ikpt+1

@@ -457,7 +457,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
      ! Begin to define the Linear_Zone_descriptors
      Lzd%Glr = Glr
      Lzd%Gnlpspd = nlpspd
-     Lzd%orbs = orbse 
+     Lzd%orbs = orbse
+     Lzd%comms = comms 
      allocate(Lzd%orbs%eval(4))
 
      !allocate the array of localisation regions (memocc does not work)
@@ -485,13 +486,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
    ! NOTES: K-Points??
      npsidim = 0
      do ilr = 1, Lzd%nlr
-        call count_atomic_shells(lmax+1,noccmax,nelecmax,input%nspin,orbse%nspinor,at%aocc(1,ilr),occup,nmoments)
+        call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin_ig,orbse%nspinor,at%aocc(1,ilr),occup,nmoments)
         norbe=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
         Lzd%Llr(ilr)%Localnorb=norbe
         Localnorb(ilr) = norbe
         npsidim = npsidim +(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*norbe*Lzd%orbs%nspinor*input%nspin
      end do
-
+    
    ! change the npsidim
      Lzd%orbs%npsidim=npsidim
 
@@ -533,7 +534,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
        Lpsi,rhopot,&
        & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)    
- 
+
      !call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
      !     & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
      !     & symObj, irrzon, phnons)
@@ -687,8 +688,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
     ! Now the wavefunctions (Lpsi) and the Hamiltonian applied to the wavefunctions (Lhpsi)
     ! are completely constructed. We must now solve the eigensystem by diagonalizating the
-    ! Hamiltonian (usually done by calling DiagHam_linear). In our case, we must fisrt construct
-    ! the sparse hamiltonian/overlap matrix using the locregs
+    ! Hamiltonian (done by calling LinearDiagHam). 
 
     ! allocate psit
     allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
@@ -696,20 +696,52 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
     call LinearDiagHam(iproc,etol,Lzd,orbs,nspin,Lhpsi,Lpsi,psit)!,orbsv)
     
+    ! Don't need Lzd anymore (if only input guess)
+    call deallocate_Lzd(Lzd,subname)
+    
     ! Don't need Lhpsi anymore
     i_all=-product(shape(Lhpsi))*kind(Lhpsi)
     deallocate(Lhpsi,stat=i_stat)
     call memocc(i_stat,i_all,'Lhpsi',subname)
 
+    i_all=-product(shape(Localnorb))*kind(Localnorb)
+    deallocate(Localnorb,stat=i_stat)
+    call memocc(i_stat,i_all,'Localnorb',subname)
+
+    i_all=-product(shape(locrad))*kind(locrad)
+    deallocate(locrad,stat=i_stat)
+    call memocc(i_stat,i_all,'locrad',subname)
+
+    ! BEGIN STOLEN FROM: DiagHam
+     allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsi,'hpsi',subname)
+     
+     !allocate the direct wavefunction
+     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,psi,'psi',subname)
+     psi = psit
+     
+
+      !this untranspose also the wavefunctions 
+     call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,&
+         psit,work=hpsi,outadd=psi(1))
+
+     if (nproc == 1) then
+       nullify(psit)
+     end if
+    ! END STOLEN FROM: DiagHam
+
     !reallocate psi
-    allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
-    call memocc(i_stat,psi,'psi',subname)
-    psi = psit
+!    allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+!    call memocc(i_stat,psi,'psi',subname)
+!    psi = psit
 
     !allocate hpsi for rest of code
-    allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
-    call memocc(i_stat,hpsi,'hpsi',subname)
-   
+!    allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+!    call memocc(i_stat,hpsi,'hpsi',subname)
+
+    
+     
 !####################################################################################################################################################
 ! END EXPERIMENTAL
 !####################################################################################################################################################
@@ -764,6 +796,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      !---
      
      if(orbs%nspinor==4) then
+        print *,'in wrapper:'
         !this wrapper can be inserted inside the poisson solver 
         call PSolverNC(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
              nscatterarr(iproc,1),& !this is n3d
@@ -772,9 +805,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
      else
         !Allocate XC potential
         if (nscatterarr(iproc,2) >0) then
+            print *,'same has linear'
            allocate(potxc(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)*nspin+ndebug),stat=i_stat)
            call memocc(i_stat,potxc,'potxc',subname)
         else
+           print *,'dimension 1'
            allocate(potxc(1+ndebug),stat=i_stat)
            call memocc(i_stat,potxc,'potxc',subname)
         end if
@@ -980,7 +1015,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
           psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
-  end if  !if on linear
+  end if  !if on linear         <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
      !use the eval array of orbse structure to save the original values
