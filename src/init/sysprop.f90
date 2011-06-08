@@ -823,7 +823,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   real(gp), dimension(3,nkpt), intent(in) :: kpt
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,iiorb
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:), allocatable :: mykpts
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
@@ -890,6 +890,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
      write(*,*)orbs%norb_par(:),norb*orbs%nkpts
      stop
   end if
+
 
   !calculate the k-points related quantities
   allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
@@ -963,9 +964,34 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   ! default for inwhichlocreg
   orbs%inwhichlocreg = 1
 
+
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
+
+
+  ! Define to new arrays:
+  ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
+  !   the reference orbital of each other process.
+  ! - orbs%onWhichAtom indicates on which MPI process a given orbital
+  !   is located.
+  allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
+  call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
+  allocate(orbs%onWhichMPI(orbs%norb), stat=i_stat)
+  call memocc(i_stat, orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
+  iiorb=0
+  orbs%isorb_par=0
+  do jproc=0,nproc-1
+      do iorb=1,orbs%norb_par(jproc)
+          iiorb=iiorb+1
+          orbs%onWhichMPI(iiorb)=jproc
+      end do
+      if(iproc==jproc) then
+          orbs%isorb_par(jproc)=orbs%isorb
+      end if
+  end do
+  call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+
 
 END SUBROUTINE orbitals_descriptors
 

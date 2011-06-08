@@ -54,6 +54,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   etest=0.0_gp
 
   do iorb=1,orbs%norbp
+
      if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
         nsoffset=1
      else
@@ -106,7 +107,6 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
 !     print *,iorb, ekin+epot, epot
      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
-
   enddo
 
   !print *,'iproc,etest',etest

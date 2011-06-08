@@ -2344,11 +2344,14 @@ integer:: istart, jstart
   do iorb=1,orbs%norb
       lagMatDiag(iorb)=alag((iorb-1)*orbs%norb+iorb)
   end do
-!! Lagrange multiplier matrix
-!if(iproc==0) write(*,*) 'Lagrange multiplier matrix'
-!do iorb=1,norb
-!    if(iproc==0) write(*,'(80f8.4)') (alag(norb*jorb+iorb), jorb=0,norb-1)
-!end do
+! Lagrange multiplier matrix
+!!if(iproc==0) write(*,*) 'Lagrange multiplier matrix'
+!!do iorb=1,norb
+!!    !if(iproc==0) write(*,'(80f8.4)') (alag(norb*jorb+iorb), jorb=0,norb-1)
+!!    do jorb=1,norb
+!!        write(1100+iproc,*) iorb, jorb, alag(norb*(iorb-1)+jorb)
+!!    end do
+!!end do
 
 
   !now each processors knows all the overlap matrices for each k-point

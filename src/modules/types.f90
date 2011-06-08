@@ -246,7 +246,8 @@ module module_types
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi
-     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,inwhichlocreg!,ikptsp
+     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,inwhichlocreg, inWhichLocregP !,ikptsp
+     integer,dimension(:),pointer:: onWhichMPI, isorb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -382,6 +383,15 @@ module module_types
       integer:: size_pkernelseq
   end type
 
+!> Contains the parameters needed for the point to point communications
+!! for sumrho in the linear scaling version.
+  type,public:: p2pCommsSumrho
+    integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
+    integer,dimension(:,:,:),pointer:: comarr
+    integer:: sizePhibuff, sizePhibuffr
+    logical,dimension(:,:),pointer:: communComplete, computComplete
+  end type
+
 
 !!!!> Contains all parameters related to the linear scaling version.
 !!!  type,public:: linearParameters
@@ -400,20 +410,24 @@ module module_types
 !!!  end type
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
-    integer:: DIISHistMin, DIISHistMax, nItInguess, nItBasis, nItPrecond, nItCoeff, nItSCC
-    real(8):: convCrit, alphaSD, startDIIS, convCritCoeff
-    real(8),dimension(:),pointer:: potentialPrefac
-    type(orbitals_data):: orbs
-    type(communications_arrays):: comms
+    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder
+    integer:: nItInguess, nlr, nLocregOverlap
+    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix
+    real(8),dimension(:),pointer:: potentialPrefac, locrad
+    type(orbitals_data):: orbs, Lorbs
+    type(communications_arrays):: comms, Lcomms
     type(locreg_descriptors):: lr
+    type(locreg_descriptors),dimension(:),pointer:: Llr
     type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
-    integer,dimension(:),pointer:: onWhichAtom
+    integer,dimension(:),pointer:: onWhichAtom, norbsPerType, onWhichAtomAll
     integer,dimension(:),pointer:: MPIComms, norbPerComm
-    integer,dimension(:,:),pointer:: procsInComm
+    integer,dimension(:,:),pointer:: procsInComm, outofzone
+    integer,dimension(:,:,:),pointer:: receiveArr
     integer:: ncomms
     type(arraySizes):: as
-    logical:: plotBasisFunctions, startWithSD
+    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
     character(len=4):: getCoeff
+    type(p2pCommsSumrho):: comsr
   end type
 
 !!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
@@ -580,10 +594,16 @@ subroutine deallocate_orbs(orbs,subname)
     call memocc(i_stat,i_all,'orbs%iokpt',subname)
     i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
     deallocate(orbs%ikptproc,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%ikptproc',subname)
+    call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
     i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
     deallocate(orbs%inwhichlocreg,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
+    i_all=-product(shape(orbs%isorb_par))*kind(orbs%isorb_par)
+    deallocate(orbs%isorb_par,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%isorb_par',subname)
+    i_all=-product(shape(orbs%onWhichMPI))*kind(orbs%onWhichMPI)
+    deallocate(orbs%onWhichMPI,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%onWhichMPI',subname)
 
     !contradictory: needed for component distribution and allocated for
     !               orbital distribution. Better to deal with scalars

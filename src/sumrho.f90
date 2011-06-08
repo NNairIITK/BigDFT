@@ -66,7 +66,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   
 !  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
 !             (ixc < 0 .and. libxc_functionals_isgga()), have_mpi2,rsflag
-
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
      nrhotot=0
@@ -328,7 +327,6 @@ real(8):: dnrm2
            do sidx=1,npsir
               call daub_to_isf(lr,w,psi(1,oidx+sidx,iorb),psir(1,sidx))
            end do
-
            !print *,'iorb,nrm',iorb,&
            !nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
 
@@ -356,7 +354,6 @@ real(8):: dnrm2
         end do
      end if
   enddo
-
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)

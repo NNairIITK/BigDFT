@@ -346,8 +346,6 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
              call tenminustwenty(Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*Llr(ilr)%d%n3i*nspinn,rho_p,nproc)
          end if
 
-         !rho_p=1.d-20
-
          !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
          hfac=orbs%kwgts(orbs%iokpt(iorb))*(orbs%occup(orbs%isorb+iorb)/(hxh*hyh*hzh))
          spinval=orbs%spinsgn(orbs%isorb+iorb)
@@ -362,7 +360,6 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
                   call daub_to_isf(Llr(ilr),w,psi(ind),psir(1,sidx))
                   ind=ind+Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f
                end do
-
                !print *,'iorb,nrm',iorb,&
                !nrm2(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*npsir,psir(1,1),1)
 
@@ -390,8 +387,11 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
                indSmall=0
                do ispin=1,nspinn
                    do i3=1,Llr(ilr)%d%n3i
+                       if(Llr(ilr)%nsi3 + i3 - 1 .le. 0) cycle
                        do i2=1,Llr(ilr)%d%n2i
+                           if(Llr(ilr)%nsi2+ i2 - 1 .le. 0) cycle
                            do i1=1,Llr(ilr)%d%n1i
+                               if(Llr(ilr)%nsi1+ i1 - 1 .le. 0) cycle
                                ! indSmall is the index in the currect localization region
                                indSmall=indSmall+1
                                ! indLarge is the index in the whole box. 
@@ -405,6 +405,8 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
                end do
 
             end do
+         else
+            ind=ind+Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f
          end if
       end do orbitalsLoop
       i_all=-product(shape(rho_p))*kind(rho_p)
@@ -415,7 +417,6 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
       call memocc(i_stat,i_all,'psir',subname)
       call deallocate_work_arrays_sumrho(w)
   end do locRegLoop
-
   !i_all=-product(shape(psir))*kind(psir)
   !deallocate(psir,stat=i_stat)
   !call memocc(i_stat,i_all,'psir',subname)
@@ -581,6 +582,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
   integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
   integer :: ilr,dimwf,ind,size_Lpot,size_pot
+  integer :: tmp_norbp
   real(dp),dimension(:),pointer:: Lpot
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
@@ -617,15 +619,13 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
      allocate(Lpot(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin), stat=i_stat)
      call memocc(i_stat,Lpot,'Lpot',subname)
  
-     ! replace orbse%norbp by Localnorb for HamiltonianApplication
-     Lzd%orbs%norbp = Lzd%Llr(ilr)%Localnorb*nspin
  
      !determine the dimension of the potential array (copied from full_local_potential)
      if (exctX) then
         size_pot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin + &
-         max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*Lzd%orbs%norbp,ngatherarr(0,1)*Lzd%orbs%norb),1) !part which refers to exact exchange
+         max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*Lzd%Llr(ilr)%Localnorb*nspin,ngatherarr(0,1)*Lzd%orbs%norb),1) !part which refers to exact exchange
         size_Lpot=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin + &
-           max(max(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*Lzd%orbs%norbp,&
+           max(max(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*Lzd%Llr(ilr)%Localnorb*nspin,&
            ngatherarr(0,1)*Lzd%orbs%norb),1) !CHECK THIS...DOES NOT WORK YET
      else
         size_pot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin
@@ -685,20 +685,21 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
 !     end do
 
      if(OCLconv .and. ASYNCconv) then
-       allocate(hpsi2((Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%orbs%nspinor*Lzd%orbs%norbp),stat=i_stat)
+       allocate(hpsi2((Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%orbs%nspinor*&
+                Lzd%Llr(ilr)%Localnorb*nspin),stat=i_stat)
        call memocc(i_stat,hpsi2,'hpsi2',subname)
        hpsi(:)=0.0
      else
        hpsi2 => hpsi
      end if
-     if (GPUconv) then
+     if (GPUconv) then  !does not work yet
         call local_hamiltonian_GPU(iproc,Lzd%orbs,Lzd%Llr(ilr),hx,hy,hz,nspin,Lpot,psi(ind:ind+dimwf-1),&
-             hpsi(ind:ind+dimwf-1),tmp_ekin_sum,tmp_epot_sum,GPU)
-     else if (OCLconv) then
+             hpsi(ind:ind+dimwf-1),tmp_ekin_sum,tmp_epot_sum,GPU,ilr)
+     else if (OCLconv) then  ! does_not_work yet
         call local_hamiltonian_OCL(iproc,Lzd%orbs,Lzd%Llr(ilr),hx,hy,hz,nspin,Lpot,psi(ind:ind+dimwf-1),&
-             hpsi2,tmp_ekin_sum,tmp_epot_sum,GPU,ekin,epot)
+             hpsi2,tmp_ekin_sum,tmp_epot_sum,GPU,ekin,epot,ilr)
      else
-        call local_hamiltonian(iproc,Lzd%orbs,Lzd%Llr(ilr),hx,hy,hz,nspin,Lpot,psi(ind:ind+dimwf-1),&
+        call local_hamiltonian_Linear(iproc,ilr,Lzd%orbs,Lzd%Llr(ilr),hx,hy,hz,nspin,Lpot,psi(ind:ind+dimwf-1),&
              hpsi(ind:ind+dimwf-1),tmp_ekin_sum,tmp_epot_sum)
      end if
 
@@ -767,6 +768,11 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
 !!!
 !!!  END OF CUBIC STUFF
 
+
+     ! replace orbse%norbp by Localnorb for HamiltonianApplication
+     tmp_norbp = Lzd%orbs%norbp
+     Lzd%orbs%norbp = Lzd%Llr(ilr)%Localnorb*nspin
+
      if(Lzd%orbs%norbp > 0 ) then
         ! allocate projflg
         allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=i_stat)
@@ -786,6 +792,8 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
      ! deallocate Lpot
      call free_full_potential(nproc,Lpot,subname)
 
+     ! restore the original norbp
+     Lzd%orbs%norbp = tmp_norbp
   end do
 ! END LINEAR MODIFICATIONS
 
@@ -1038,3 +1046,454 @@ subroutine LinearDiagHam(iproc,etol,Lzd,orbs,nspin,Lhpsi,Lpsi,psit,orbsv)
 
 end subroutine LinearDiagHam
 
+
+!> @file
+!!  Routine to calculate the action of the hamiltonian
+!! @author
+!!   Copyright (C) 2005-2011 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+
+
+!>   Calculate the action of the local hamiltonian on the orbitals
+subroutine local_hamiltonian_Linear(iproc,ilr,orbs,lr,hx,hy,hz,&
+     nspin,pot,psi,hpsi,ekin_sum,epot_sum)
+  use module_base
+  use module_types
+  use module_interfaces
+  use libxc_functionals
+  implicit none
+  integer, intent(in) :: iproc,nspin,ilr
+  real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
+  real(wp), dimension(*) :: pot
+  !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
+  real(gp), intent(out) :: ekin_sum,epot_sum
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+  !local variables
+  character(len=*), parameter :: subname='local_hamiltonian_Linear'
+  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
+  integer :: ii,orbtot
+  integer,dimension(lr%localnorb*nspin) :: inthisLocreg
+  real(wp) :: exctXcoeff
+  real(gp) :: ekin,epot,kx,ky,kz,etest
+  type(workarr_locham) :: wrk_lh
+  real(wp), dimension(:,:), allocatable :: psir
+
+  exctXcoeff=libxc_functionals_exctXfac()
+
+  !initialise the work arrays
+  call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)
+
+  !components of the potential
+  npot=orbs%nspinor
+  if (orbs%nspinor == 2) npot=1
+
+  ! Wavefunction in real space
+  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
+
+  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+
+  ekin_sum=0.0_gp
+  epot_sum=0.0_gp
+
+  etest=0.0_gp
+  
+  orbtot = 0
+  do iorb=1,orbs%norbp
+     if (orbs%inWhichLocreg(iorb) == ilr) then
+        orbtot = orbtot+1
+        inthisLocreg(orbtot) = iorb
+     end if
+  end do 
+  
+  if (orbtot .ne. lr%localnorb*nspin) then
+     write(*,*) 'Problem in local_hamiltonian_Linear, orbtot=',orbtot,'is not equal to localnorb=',lr%localnorb*nspin
+     stop
+  end if
+
+  do ii=1,orbtot
+
+     iorb = inthisLocreg(ii)   !using ii and iorb to identify the orbitals because in linear case, the ordering is different
+                               !orbitals are now orderer by locreg. So, iorb is the old numbering (i.e. in Global region)
+                               !while ii is it's numbering in the locreg.
+
+     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
+        nsoffset=1
+     else
+        nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
+     end if
+
+     oidx=(ii-1)*orbs%nspinor+1
+
+     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
+     !the psir wavefunction is given in the spinorial form
+     call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+
+     !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
+     !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
+     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
+
+     !apply the potential to the psir wavefunction and calculate potential energy
+     select case(lr%geocode)
+     case('F')
+
+        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+             pot(nsoffset),epot,&
+             lr%bounds%ibyyzz_r) !optional
+
+     case('P')
+        !here the hybrid BC act the same way
+        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
+             pot(nsoffset),epot)
+
+     case('S')
+
+        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
+             pot(nsoffset),epot)
+     end select
+
+     !k-point values, if present
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+     if (exctXcoeff /= 0.0_gp) then
+        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+ii-1)
+        !add to the psir function the part of the potential coming from the exact exchange
+        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
+     end if
+
+     !apply the kinetic term, sum with the potential and transform back to Daubechies basis
+     call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
+          psir,hpsi(1,oidx),ekin)
+!     print *,iorb, ekin+epot, epot
+     ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
+     epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
+  enddo
+
+  !print *,'iproc,etest',etest
+
+  !deallocations of work arrays
+  i_all=-product(shape(psir))*kind(psir)
+  deallocate(psir,stat=i_stat)
+  call memocc(i_stat,i_all,'psir',subname)
+
+  call deallocate_work_arrays_locham(lr,wrk_lh)
+
+END SUBROUTINE local_hamiltonian_Linear
+
+
+subroutine sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, at, rxyz, nscatterarr, &
+            phibuff)
+!
+use module_base
+use module_types
+use libxc_functionals
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, nrho
+type(orbitals_data),intent(in):: orbs
+type(locreg_descriptors),intent(in):: Glr
+type(input_variables),intent(in):: input
+type(linearParameters),intent(inout):: lin
+real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
+real(8),dimension(lin%orbs%npsidim),intent(in):: phi
+real(8),dimension(nrho),intent(out),target:: rho
+type(atoms_data),intent(in):: at
+real(8),dimension(3,at%nat),intent(in):: rxyz
+integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+real(8),dimension(lin%comsr%sizePhibuff):: phibuff
+
+! Local variables
+integer:: iorb, jorb, korb, istat, ind, ind1, ind2, indLarge, i1, i2, i3, ilr, jlr, i_f, iseg_f
+integer:: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, ldim, gdim, iall, istr, istri, istrj
+integer:: indi2, indi3, indj2, indj3, indl2, indl3, mpisource, mpidest, orbitalsource, tag, lrsource, iiorb, jjorb
+integer:: ist, klr, cnt, ierr, istrecv, ii, ilrprev, istSend, nSendRecv, nSendRecvCheck, requestStart, sizePhibuffr, kst
+integer:: jproc, jprocprev, mpidestprev, is, ie, ioverlap, orbitaldest, sizePhibuff, kproc, nreceives, istsource, istdest, ncount
+integer:: nsends, nfast, nslow, nsameproc
+real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tr, partialCharge
+real(8),dimension(:),allocatable:: phir1, phir2, Lphi, Lphir1, lPhir2, rho2, phibuffr
+real(8),dimension(:,:),allocatable:: densKern
+real(8),dimension(:),pointer:: rhofull
+type(workarr_sumrho):: w
+character(len=*),parameter:: subname='sumrhoForLocalizedBasis'
+real(8),dimension(0:3):: scal
+integer,dimension(:),allocatable:: request, startInd, nSendRecvArr, requestCheck,fromWhichLocreg
+!integer,dimension(:,:,:),allocatable:: commsSumrho
+logical,dimension(:,:),allocatable:: communComplete, computComplete
+integer,dimension(mpi_status_size):: stat
+integer,dimension(mpi_status_size,2):: stats
+logical:: quit, sendComplete, receiveComplete
+
+
+
+!!! Determine which orbital are needed for each slice
+!!if(iproc==0) then
+!!    do jproc=0,nproc-1
+!!        write(*,'(a,i5,4i9)') 'jproc, n3d, n3p, i3s+i3xcsh-1, i3xcsh', jproc, nscatterarr(jproc,1), nscatterarr(jproc,2), nscatterarr(jproc,3), nscatterarr(jproc,4)
+!!    end do
+!!end if
+
+lin%comsr%communComplete=.false.
+lin%comsr%computComplete=.false.
+
+
+allocate(phibuffr(lin%comsr%sizePhibuffr), stat=istat)
+call memocc(istat, phibuffr, 'phibuffr', subname)
+phibuffr=0.d0
+
+
+
+
+! Allocate the density kernel.
+allocate(densKern(lin%orbs%norb,lin%orbs%norb), stat=istat)
+call memocc(istat, densKern, 'densKern', subname)
+
+! Calculate the density kernel.
+do iorb=1,lin%orbs%norb
+    do jorb=1,lin%orbs%norb
+        tt=0.d0
+        do korb=1,orbs%norb
+            tt = tt + coeff(iorb,korb)*coeff(jorb,korb)
+        end do
+        densKern(iorb,jorb)=tt
+        !write(*,'(a,2i6,es15.7)') 'iorb, jorb, densKern(iorb,jorb)', iorb, jorb, densKern(iorb,jorb)
+    end do
+end do
+
+
+! Define some constant factors.
+hxh=.5d0*input%hx
+hyh=.5d0*input%hy
+hzh=.5d0*input%hz
+if(input%nspin==1) then
+    factor=2.d0/(hxh*hyh*hzh)
+else
+    factor=1.d0/(hxh*hyh*hzh)
+end if
+
+! Initialize rho.
+if (libxc_functionals_isgga()) then
+    call razero(nrho, rho)
+else
+    ! There is no mpi_allreduce, therefore directly initialize to
+    ! 10^-20 and not 10^-20/nproc.
+    rho=1.d-20
+    !call tenminustwenty(nrho, rho, nproc)
+end if
+
+
+
+
+
+! Wait for the communications that have not completed yet
+nfast=0
+nsameproc=0
+testLoop: do
+    !do korb=1,nreceives
+    do korb=1,lin%comsr%noverlaps(iproc)
+        if(lin%comsr%communComplete(korb,iproc)) cycle
+!        call mpi_test(lin%comsr%comarr(8,korb,iproc), sendComplete, stat, ierr)      !COMMENTED BY PB
+!        call mpi_test(lin%comsr%comarr(9,korb,iproc), receiveComplete, stat, ierr)   !COMMENTED BY PB
+        if(sendComplete .and. receiveComplete) lin%comsr%communComplete(korb,iproc)=.true.
+        if(lin%comsr%communComplete(korb,iproc)) then
+            !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
+            mpisource=lin%comsr%comarr(1,korb,iproc)
+            mpidest=lin%comsr%comarr(5,korb,iproc)
+            if(mpisource/=mpidest) then
+                nfast=nfast+1
+            else
+                nsameproc=nsameproc+1
+            end if
+            kst=lin%comsr%comarr(6,korb,iproc)
+            klr=lin%comsr%comarr(4,korb,iproc)
+            istr=lin%comsr%istrarr(korb)
+            !write(*,'(a,i0,a,2i10)') 'process ', iproc, ' calls daub_to_isf with ', kst, istr
+            call initialize_work_arrays_sumrho(lin%Llr(klr), w)
+            call daub_to_isf(lin%Llr(klr), w, phibuff(kst), phibuffr(istr))
+            call deallocate_work_arrays_sumrho(w)
+            lin%comsr%computComplete(korb,iproc)=.true.
+        end if
+    end do
+    ! If we made it until here, either all all the communication is
+    ! complete or we better wait for each single orbital.
+    exit testLoop
+end do testLoop
+
+
+
+! Wait for the communications that have not completed yet
+!do korb=1,nreceives
+nslow=0
+do korb=1,lin%comsr%noverlaps(iproc)
+    if(lin%comsr%communComplete(korb,iproc)) cycle
+    !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
+    nslow=nslow+1
+!    call mpi_wait(lin%comsr%comarr(8,korb,iproc), stat, ierr)   !COMMENTED BY PB
+!    call mpi_wait(lin%comsr%comarr(9,korb,iproc), stat, ierr)   !COMMENTED BY PB
+    lin%comsr%communComplete(korb,iproc)=.true.
+    !write(*,'(2(a,i0))') 'process ', iproc, ' has received orbital ', korb
+    kst=lin%comsr%comarr(6,korb,iproc)
+    klr=lin%comsr%comarr(4,korb,iproc)
+    istr=lin%comsr%istrarr(korb)
+    !write(*,'(a,i0,a,2i10,3(a,i0))') 'process ', iproc, ' call daub_to_isf with ', kst, istr, ', size(phibuffr)=',size(phibuffr), ' klr=', klr, ' size(phibuff)=', size(phibuff)
+    call initialize_work_arrays_sumrho(lin%Llr(klr), w)
+    call daub_to_isf(lin%Llr(klr), w, phibuff(kst), phibuffr(istr))
+    call deallocate_work_arrays_sumrho(w)
+    lin%comsr%computComplete(korb,iproc)=.true.
+end do
+
+call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
+if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+                       nfast, ' could be overlapped with computation.'
+if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+
+
+quit=.false.
+do iorb=1,lin%comsr%noverlaps(iproc)
+    if(.not. lin%comsr%communComplete(iorb,iproc)) then
+        write(*,'(a,i0,a,i0,a)') 'ERROR: communication of orbital ', iorb, ' to process ', iproc, ' failed!'
+        !quit=.true.
+        stop
+    end if
+    if(.not. lin%comsr%computComplete(iorb,iproc)) then
+        write(*,'(a,i0,a,i0,a)') 'ERROR: computation of orbital ', iorb, ' on process ', iproc, ' failed!'
+        !quit=.true.
+        stop
+    end if
+end do
+
+!!do iall=1,lin%comsr%sizePhibuffr
+!!  write(20000+iproc,*) iall, phibuffr(iall)
+!!end do
+
+
+! No calculate the charge density
+! Bounds of slice in global coordinates
+is=nscatterarr(iproc,3)-14
+ie=is+nscatterarr(iproc,1)-1
+istri=0
+totalCharge=0.d0
+do iorb=1,lin%comsr%noverlaps(iproc)
+    iiorb=lin%comsr%overlaps(iorb)
+    ilr=lin%comsr%comarr(4,iorb,iproc)
+    istrj=0
+    do jorb=1,lin%comsr%noverlaps(iproc)
+        jjorb=lin%comsr%overlaps(jorb)
+        jlr=lin%comsr%comarr(4,jorb,iproc)
+        ! Bounds in global coordinates
+        i1s=max(2*lin%Llr(ilr)%ns1-14,2*lin%Llr(jlr)%ns1-14)
+        i1e=min(2*lin%Llr(ilr)%ns1-14+lin%Llr(ilr)%d%n1i-1,2*lin%Llr(jlr)%ns1-14+lin%Llr(jlr)%d%n1i-1)
+        i2s=max(2*lin%Llr(ilr)%ns2-14,2*lin%Llr(jlr)%ns2-14)
+        i2e=min(2*lin%Llr(ilr)%ns2-14+lin%Llr(ilr)%d%n2i-1,2*lin%Llr(jlr)%ns2-14+lin%Llr(jlr)%d%n2i-1)
+        i3s=max(2*lin%Llr(ilr)%ns3-14,2*lin%Llr(jlr)%ns3-14,is)
+        i3e=min(2*lin%Llr(ilr)%ns3-14+lin%Llr(ilr)%d%n3i-1,2*lin%Llr(jlr)%ns3-14+lin%Llr(jlr)%d%n3i-1,ie)
+        do i3=i3s,i3e
+            i3d=i3-2*lin%Llr(ilr)%ns3
+            j3d=i3-2*lin%Llr(jlr)%ns3
+            indi3=(i3d+15-1)*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n1i
+            indj3=(j3d+15-1)*lin%Llr(jlr)%d%n2i*lin%Llr(jlr)%d%n1i
+            !indl3=(i3-is+15-1)*Glr%d%n2i*Glr%d%n1i
+            indl3=(i3-is)*Glr%d%n2i*Glr%d%n1i
+            do i2=i2s,i2e
+                i2d=i2-2*lin%Llr(ilr)%ns2
+                j2d=i2-2*lin%Llr(jlr)%ns2
+                indi2=(i2d+15-1)*lin%Llr(ilr)%d%n1i
+                indj2=(j2d+15-1)*lin%Llr(jlr)%d%n1i
+                indl2=(i2+15-1)*Glr%d%n1i
+                do i1=i1s,i1e
+                    i1d=i1-2*lin%Llr(ilr)%ns1
+                    j1d=i1-2*lin%Llr(jlr)%ns1
+                    ! Now calculate the index in the boxes.
+                    indri = indi3 + indi2 + i1d+15 + istri
+                    indrj = indj3 + indj2 + j1d+15 + istrj
+                    indLarge = indl3 + indl2 + i1+15
+                    tt = factor*densKern(iorb,jorb)*phibuffr(indri)*phibuffr(indrj)
+                    rho(indLarge) = rho(indLarge) + tt
+                    !rhofull(indLarge) = rhofull(indLarge) + tt
+                    totalCharge = totalCharge + tt
+                end do
+            end do
+        end do
+        istrj = istrj + lin%Llr(jlr)%d%n3i*lin%Llr(jlr)%d%n2i*lin%Llr(jlr)%d%n1i
+    end do
+    istri = istri + lin%Llr(ilr)%d%n3i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n1i
+end do
+
+!write(*,'(x,a,i5,es20.12)') 'iproc, TOTAL CHARGE = ', iproc, totalCharge*hxh*hyh*hzh
+call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
+if(iproc==0) write(*,'(x,a,es20.12)') 'TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
+
+end subroutine sumrhoForLocalizedBasis
+
+
+
+
+!> Initializes the parameters needed for the communication of the orbitals
+!! when calculating the charge density.
+!!
+!! input arguments
+!!  @param jproc        process to which the orbital shall be sent
+!!  @param iorb         orbital that is to be sent
+!!  @param istDest      the position on the MPI process to which it should be sent
+!!  @param tag          communication tag
+!!  @param lin          type containing the parameters for the linear scaling version
+!! output arguments
+!!  @param commsSumrho  contains the parameters
+subroutine setCommunicationInformation(jproc, iorb, istDest, tag, lin, commsSumrho)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: jproc, iorb, istDest, tag
+type(linearParameters),intent(in):: lin
+integer,dimension(9),intent(out):: commsSumrho
+
+! Local variables
+integer:: mpisource, ist, jorb, jlr
+
+! on which MPI process is the orbital that has to be sent to jproc
+mpisource=lin%orbs%onWhichMPI(iorb)
+commsSumrho(1)=mpisource
+
+! starting index of the orbital on that MPI process
+ist=1
+do jorb=lin%orbs%isorb_par(mpisource)+1,iorb-1
+    jlr=lin%onWhichAtomAll(jorb)
+    ist=ist+lin%Llr(jlr)%wfd%nvctr_c+7*lin%Llr(jlr)%wfd%nvctr_f
+end do
+commsSumrho(2)=ist
+
+! amount of data to be sent
+jlr=lin%onWhichAtomAll(iorb)
+commsSumrho(3)=lin%Llr(jlr)%wfd%nvctr_c+7*lin%Llr(jlr)%wfd%nvctr_f
+
+! localization region to which this orbital belongs to
+commsSumrho(4)=lin%onWhichAtomAll(iorb)
+
+! to which MPI process should this orbital be sent
+commsSumrho(5)=jproc
+
+! the position on the MPI process to which it should be sent
+commsSumrho(6)=istDest
+
+! the tag for this communication
+commsSumrho(7)=tag
+
+! commsSumrho(8): this entry is used a request for the mpi_isend.
+
+! commsSumrho(9): this entry is used a request for the mpi_irecv.
+
+
+end subroutine setCommunicationInformation

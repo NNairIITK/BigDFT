@@ -108,7 +108,8 @@ real(gp) :: kx,ky,kz
               ! iiAt indicates on which atom orbital iorb is centered.
               iiAt=lin%onWhichAtom(iorb)
               call solvePrecondEquation(lr,ncplx,ncong,cprecr,&
-                   hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb), rxyz(1,iiAt), orbs, lin%potentialPrefac(at%iatype(iiAt)), it)
+                   hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb), rxyz(1,iiAt), orbs,&
+                   lin%potentialPrefac(at%iatype(iiAt)), lin%confPotOrder, it)
 
            end if
 
@@ -123,7 +124,7 @@ END SUBROUTINE choosePreconditioner
 
 
 subroutine solvePrecondEquation(lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, it)
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, it)
 !
 ! Purpose:
 ! ========
@@ -167,7 +168,7 @@ real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
 real(8),dimension(3),intent(in):: rxyzParab
 type(orbitals_data), intent(in):: orbs
 real(8):: potentialPrefac
-integer:: it
+integer:: confPotOrder, it
 
 ! Local variables
 character(len=*), parameter :: subname='precondition_residue'
@@ -189,7 +190,8 @@ real(wp), dimension(:), allocatable :: b,r,d
 
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
-  call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal, rxyzParab, orbs, potentialPrefac, it)
+  call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal,&
+       rxyzParab, orbs, potentialPrefac, confPotOrder, it)
 
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
@@ -206,7 +208,8 @@ real(wp), dimension(:), allocatable :: b,r,d
   do icong=1,ncong 
      !write(*,*)icong,rmr_new
 
-     call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal, rxyzParab, orbs, potentialPrefac, it)
+     call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
+          rxyzParab, orbs, potentialPrefac, confPotOrder, it)
 
      !in the complex case these objects are to be supposed real
      alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)
@@ -248,7 +251,7 @@ END SUBROUTINE solvePrecondEquation
 
 
 subroutine differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,&
-     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, it)! y:=Ax
+     cprecr,x,y,w,scal, rxyzParab, orbs, parabPrefac, confPotOrder, it)! y:=Ax
   use module_base
   use module_types
   implicit none
@@ -262,7 +265,7 @@ subroutine differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,&
 real(8),dimension(3),intent(in):: rxyzParab
 type(orbitals_data), intent(in) :: orbs
 real(8):: parabPrefac
-integer:: it
+integer:: confPotOrder, it
   !local variables
   integer :: idx,nf
 
@@ -280,7 +283,7 @@ integer:: it
              x(1,idx),x(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
              y(1,idx),y(lr%wfd%nvctr_c+min(1,lr%wfd%nvctr_f),idx),&
              w%xpsig_c,w%xpsig_f,w%ypsig_c,w%ypsig_f,&
-             w%x_f1,w%x_f2,w%x_f3, rxyzParab, orbs, lr, parabPrefac, it)
+             w%x_f1,w%x_f2,w%x_f3, rxyzParab, orbs, lr, parabPrefac, confPotOrder, it)
      end do
   else if (lr%geocode == 'P') then
      if (lr%hybrid_on) then
@@ -333,7 +336,7 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
      xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
-     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab, orbs, lr, parabPrefac, it)
+     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab, orbs, lr, parabPrefac, confPotOrder, it)
 !
 ! Purpose:
 ! ========
@@ -346,7 +349,7 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   use module_types
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
   real(wp), intent(in) :: cprecr
   real(gp), intent(in) :: hgrid
   integer, dimension(nseg_c), intent(in) :: keyv_c
@@ -380,9 +383,15 @@ subroutine applyOperator(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
-  call ConvolkineticQuartic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-       cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
-       xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
+  if(confPotOrder==4) then
+      call ConvolkineticQuartic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+           cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
+           xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
+  else if(confPotOrder==6) then
+      call ConvolkineticSextic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+           cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
+           xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3, rxyzParab(1), parabPrefac, it)
+  end if
 
   ! Compress the wavefunctions.
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &

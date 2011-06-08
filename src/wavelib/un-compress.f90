@@ -234,6 +234,10 @@ subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
      i1=i0+j1-j0
      do i=i0,i1
         psig_c(i,i2,i3)=psi_c(i-i0+jj)*scal(0)
+!if(abs(psi_c(i-i0+jj)-3.4239806d-05)<1.d-12) then
+!    write(950,'(a,6i8,2es16.7)') 'iseg, keyv_c(iseg), keyg_c(1,iseg), i, i2, i3, psi_c(i-i0+jj), abs(psi_c(i-i0+jj)-3.4239806d-05)', &
+!        iseg, keyv_c(iseg), keyg_c(1,iseg), i, i2, i3, psi_c(i-i0+jj), abs(psi_c(i-i0+jj)-3.4239806d-05)
+!end if
      enddo
   enddo
 

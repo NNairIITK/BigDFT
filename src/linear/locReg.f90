@@ -943,29 +943,29 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
      ln3 = iez-isz
 
      ! First check if localization region fits inside box
-     if (iproc == 0) then
-        if ((iex - isx >= Glr%d%n1 - 14) .and. (warningx .eqv. .false.)) then
-           write(*,*)'Width of direction x :',(iex - isx)*hx,' of localization region:',ilr
-           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n1*hx
-           write(*,*)'Increasing the simulation box is recommended. The code will use the '
-           write(*,*)'simulation box width. This is the only warning for x direction.'
-           warningx = .true.
-        end if
-        if ((iey - isy >= Glr%d%n2 - 14) .and. (warningy .eqv. .false.)) then
-           write(*,*)'Width of direction y :',(iey - isy)*hy,' of localization region:',ilr
-           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n2*hy,'.'
-           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
-           write(*,*)'of the simulation box. This is the only warning for y direction.'
-           warningy = .true.
-        end if
-        if ((iez - isz >= Glr%d%n3 - 14) .and. (warningz .eqv. .false.)) then
-           write(*,*)'Width of direction z :',(iez - isz)*hz,' of localization region:',ilr
-           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n3*hz,'.'
-           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
-           write(*,*)'of the simulation box. This is the only warning for z direction.'
-           warningz = .true.
-        end if 
-     end if
+!!!     if (iproc == 0 .and. verbose > 1) then
+!!!        if ((iex - isx >= Glr%d%n1 - 14) .and. (warningx .eqv. .false.)) then
+!!!           write(*,*)'Width of direction x :',(iex - isx)*hx,' of localization region:',ilr
+!!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n1*hx
+!!!           write(*,*)'Increasing the simulation box is recommended. The code will use the '
+!!!           write(*,*)'simulation box width. This is the only warning for x direction.'
+!!!           warningx = .true.
+!!!        end if
+!!!        if ((iey - isy >= Glr%d%n2 - 14) .and. (warningy .eqv. .false.)) then
+!!!           write(*,*)'Width of direction y :',(iey - isy)*hy,' of localization region:',ilr
+!!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n2*hy,'.'
+!!!           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
+!!!           write(*,*)'of the simulation box. This is the only warning for y direction.'
+!!!           warningy = .true.
+!!!        end if
+!!!        if ((iez - isz >= Glr%d%n3 - 14) .and. (warningz .eqv. .false.)) then
+!!!           write(*,*)'Width of direction z :',(iez - isz)*hz,' of localization region:',ilr
+!!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n3*hz,'.'
+!!!           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
+!!!           write(*,*)'of the simulation box. This is the only warning for z direction.'
+!!!           warningz = .true.
+!!!        end if 
+!!!     end if
 
      ! Localization regions should always have free boundary conditions
      Llr(ilr)%geocode='F'

@@ -1,4 +1,4 @@
-subroutine linearScaling(iproc, nproc, n3d, n3p, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, fion, fdisp, radii_cf, &
+subroutine linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, fion, fdisp, radii_cf, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
     eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
 !
@@ -60,11 +60,11 @@ use module_interfaces, exceptThisOne => linearScaling
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, n3d, n3p, i3s, i3xcsh
+integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
 type(locreg_descriptors),intent(in) :: Glr
 type(orbitals_data),intent(in):: orbs
 type(communications_arrays),intent(in) :: comms
-type(atoms_data),intent(in):: at
+type(atoms_data),intent(inout):: at
 type(linearParameters),intent(in out):: lin
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(inout):: rxyz
@@ -96,12 +96,26 @@ real(8),dimension(3,at%nat),intent(out):: fxyz
 real(8):: fnoise
 
 
+
 ! Local variables
-integer:: infoBasisFunctions, istat, iall
-real(8),dimension(:),allocatable:: phi
-real(8),dimension(:,:),allocatable:: occupForInguess, coeff
-real(8):: ebsMod
+integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut
+real(8),dimension(:),allocatable:: phi, phid
+real(8),dimension(:,:),allocatable:: occupForInguess, coeff, coeffd
+real(8):: ebsMod, alpha, pnrm, tt
 character(len=*),parameter:: subname='linearScaling'
+real(8),dimension(:),allocatable:: rhopotOld
+type(linearParameters):: lind
+logical:: updatePhi
+real(8),dimension(:),pointer:: phibuff, lphi, phibuffd, lphid
+
+integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+real(8),dimension(:),allocatable:: phiTemp
+real(wp),dimension(:),allocatable:: projTemp
+
+character(len=11):: orbName
+character(len=10):: comment, procName, orbNumber
+integer:: iorb, istart
+
 
 
 
@@ -113,7 +127,30 @@ character(len=*),parameter:: subname='linearScaling'
   allocate(occupForInguess(32,at%nat))
 
   ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
-  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, input, rxyz, occupForInguess, coeff)
+  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
+      input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, phibuff, lphi, phibuffd, lphid)
+
+  potshortcut=0 ! What is this?
+  call inputguessConfinement(iproc, nproc, at, &
+       comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
+       nlpspd, proj, pkernel, pkernelseq, &
+       nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, &
+       phi)
+  ! Cut off outside localization region -- experimental
+  !call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+
+  updatePhi=.false.
+  call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyz, &
+      nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
+      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, phibuff, lphi, phibuffd, lphid)
+  call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+    .5d0*input%hy, .5d0*input%hz, 0)
+  call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, lind, phi, phid, psi, rxyz, rxyz, &
+      rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff, phibuffd)
+
+
 
   ! The next subroutine will create the variable wave function descriptors.
   ! It is not used at the moment.
@@ -123,24 +160,153 @@ character(len=*),parameter:: subname='linearScaling'
 
 
   if(nproc==1) allocate(psit(size(psi)))
-  ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
-  call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
-      nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, &
-      infoBasisFunctions, n3p, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff)
+  nitSCC=lin%nitSCC
+  alpha=.1d0
+  allocate(rhopotOld(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), stat=istat)
+  call memocc(istat, rhopotOld, 'rhopotOld', subname)
+  updatePhi=.true.
+  do itSCC=1,nitSCC
+      ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
+      call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyz, &
+          nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
+          infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, phibuff, lphi, phibuffd, lphid)
 
-  ! Calculate the energy that we get with psi.
-  call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
-      rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+
+      ! Calculate the energy that we get with psi.
+      call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
+      call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, lind, phi, phid, psi, rxyz, rxyz, &
+          rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+          proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff, phibuffd)
+
+      !!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ! Calculate the forces we get with psi.
+        allocate(nscatterarrTemp(0:nproc-1,4), stat=istat)
+        call memocc(istat, nscatterarrTemp, 'nscatterarrTemp', subname)
+        allocate(phiTemp(size(phi)), stat=istat)
+        call memocc(istat, phiTemp, 'phiTemp', subname)
+        allocate(projTemp(nlpspd%nprojel), stat=istat)
+        call memocc(istat, projTemp, 'projTemp', subname)
+        projTemp=proj
+        nscatterarrTemp=nscatterarr
+        phiTemp=phi
+        call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
+            proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+        proj=projTemp
+        nscatterarr=nscatterarrTemp
+        phi=phiTemp
+        iall=-product(shape(nscatterarrTemp))*kind(nscatterarrTemp)
+        deallocate(nscatterarrTemp, stat=istat)
+        call memocc(istat, iall, 'nscatterarrTemp', subname)
+        iall=-product(shape(phiTemp))*kind(phiTemp)
+        deallocate(phiTemp, stat=istat)
+        call memocc(istat, iall, 'phiTemp', subname)
+        iall=-product(shape(projTemp))*kind(projTemp)
+        deallocate(projTemp, stat=istat)
+        call memocc(istat, iall, 'projTemp', subname)
+      !!!  TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      ! Mix the potential
+      call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+
+      ! Write some informations
+      call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy)
+  end do
+  iall=-product(shape(rhopotOld))*kind(rhopotOld)
+  deallocate(rhopotOld, stat=istat)
+  call memocc(istat, iall, 'rhopotOld', subname)
 
 
   ! Calculate the forces we get with psi.
-  call calculateForcesSub(iproc, nproc, n3p, i3s, i3xcsh, Glr, orbs, at, input, lin, nlpspd, proj, ngatherarr, nscatterarr, GPU, &
-      irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+  call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
+      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 
   ! Deallocate all arrays related to the linear scaling version.
-  call deallocateLinear(iproc, lin, phi, coeff)
+  call deallocateLinear(iproc, lin, lind, phi, coeff, phid, coeffd)
 
 
 end subroutine linearScaling
+
+
+
+
+subroutine mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+!
+! Purpose:
+! ========
+!   Mixes the potential in order to get a self consistent potential.
+!
+! Calling arguments:
+! ==================
+!   Input arguments
+!   ---------------
+!
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, n3p
+type(locreg_descriptors),intent(in) :: Glr
+type(input_variables),intent(in):: input
+type(linearParameters),intent(in):: lin
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in):: rhopotOld
+real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(in out):: rhopot
+real(8),intent(out):: pnrm
+
+! Local variables
+integer:: i, ierr
+real(8):: tt
+
+
+  pnrm=0.d0
+  tt=1.d0-lin%alphaMix
+  !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
+  do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
+      pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
+      rhopot(i)=tt*rhopotOld(i)+lin%alphaMix*rhopot(i)
+  end do
+  call mpiallred(pnrm, 1, mpi_sum, mpi_comm_world, ierr)
+  pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
+
+end subroutine mixPotential
+
+
+
+
+subroutine printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy)
+!
+! Purpose:
+! ========
+!   Print a short summary of some values calculated during the last iteration in the self
+!   consistency cycle.
+! 
+! Calling arguments:
+! ==================
+!   Input arguments
+!   ---------------
+!
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, itSCC, infoBasisFunctions, infoCoeff
+real(8),intent(in):: pnrm, energy
+
+  if(iproc==0) then
+      write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
+      write(*,'(x,a,i0,a)') 'at iteration ', itSCC, ' of the self consistency cycle:'
+      if(infoBasisFunctions<0) then
+          write(*,'(3x,a)') '- WARNING: basis functions not converged!'
+      else
+          write(*,'(3x,a,i0,a)') '- basis functions converged in ', infoBasisFunctions, ' iterations.'
+      end if
+      if(infoCoeff<0) then
+          write(*,'(3x,a)') '- WARNING: coefficients not converged!'
+      else
+          write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+      end if
+      write(*,'(3x,a,3x,i0,es11.2,es27.17)') 'it, Delta POT, energy ', itSCC, pnrm, energy
+      write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
+  end if
+
+end subroutine printSummary
