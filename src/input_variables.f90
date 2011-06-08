@@ -2110,6 +2110,12 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
      write(*,*) "Error, unknown file format."
      stop
   end if
+  ! Add to archive
+  if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
+     call addToCompress('posout.tar.bz2', len('posout.tar.bz2'), &
+          & trim(filename)//'.'//trim(atoms%format), &
+          & len(trim(filename)//'.'//trim(atoms%format)))
+  end if
 END SUBROUTINE write_atomic_file
 
 

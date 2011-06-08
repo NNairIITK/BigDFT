@@ -345,11 +345,6 @@ dnl      LIBOCL_LIBS="-L$ac_ocl_path/lib -lOpenCL -lm -lrt -lstdc++"
 fi
 AM_CONDITIONAL(USE_OCL, test "$ac_use_ocl" = "yes")
 
-if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" -o "$ac_use_dgemmsy" = "yes"; then
-  dnl Instead of second underscoring, test the compiler behaviour.
-  AC_FC_WRAPPERS()
-fi
-
 dnl Use ETSF_IO
 ac_use_etsfio=no
 AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
@@ -400,6 +395,26 @@ end]], ac_use_etsfio=yes, ac_use_etsfio=no)
    fi
 fi
 AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
+
+dnl Archive input file support
+ac_archives="no"
+AC_ARG_WITH([archives],
+            AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
+            [ac_archives=yes], [ac_archives=no])
+if test x"$ac_archives" = x"yes" ; then
+   PKG_CHECK_MODULES([LIB_ARCHIVE],
+                     [libarchive >= 2.4],
+                     [ac_archives=yes],
+                     [ac_archives=no])
+   if test x"$ac_archives" = x"yes" ; then
+      AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
+   else
+      AC_MSG_WARN([libarchive is not available])
+   fi
+fi
+AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_archives" = x"yes")
+AC_SUBST(LIB_ARCHIVE_CFLAGS)
+AC_SUBST(LIB_ARCHIVE_LIBS)
 
 dnl Test libraries required for benching.
 AC_LANG_PUSH(C++)
@@ -618,8 +633,14 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
 fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
+dnl Instead of second underscoring, test the compiler behaviour.
+if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" -o "$ac_use_dgemmsy" = "yes" -o "$ac_archives" = "yes" ; then
+  AC_FC_WRAPPERS()
+fi
+
 dnl Agregate all the optional libs.
 LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS"
+
 
 dnl Test for the documentation.
 AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
@@ -717,9 +738,9 @@ Build:
 Options:
   Debug version:             $ac_use_debug		
   With MPI:                  $ac_use_mpi
-   | Include dir.:           $MPI_INCLUDE
-   | Linker flags:           $MPI_LDFLAGS
-   | Linked libraries:       $MPI_LIBS
+   | include dir.:           $MPI_INCLUDE
+   | linker flags:           $MPI_LDFLAGS
+   | linked libraries:       $MPI_LIBS
    | MPI2 support:           $ac_with_mpi2
   With optimised conv.:      $ac_use_opti_convolut
   With Cuda GPU conv.:       $ac_use_cuda_gpu
@@ -738,6 +759,9 @@ Options:
    | include dir.:           $LIBSGPU_INCLUDE
   With ETSF_IO:              $ac_use_etsfio
    | include dir.:           $LIBETSFIO_INCLUDE
+  With libarchive:           $ac_archives
+   | C flags:                $LIB_ARCHIVE_CFLAGS
+   | linked libraries:       $LIB_ARCHIVE_LIBS
 
 Installation paths:
   Source code location:      ${srcdir}
