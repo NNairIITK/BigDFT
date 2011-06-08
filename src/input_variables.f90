@@ -2102,6 +2102,8 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
 
+  character(len = 15) :: arFile
+
   if (atoms%format == "xyz") then
      call wtxyz(filename,energy,rxyz,atoms,comment)
   else if (atoms%format == "ascii") then
@@ -2112,7 +2114,9 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
   end if
   ! Add to archive
   if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
-     call addToCompress('posout.tar.bz2', len('posout.tar.bz2'), &
+     write(arFile, "(A)") "posout.tar.bz2"
+     if (index(filename, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
+     call addToCompress(trim(arFile), len(trim(arFile)), &
           & trim(filename)//'.'//trim(atoms%format), &
           & len(trim(filename)//'.'//trim(atoms%format)))
   end if

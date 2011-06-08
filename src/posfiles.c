@@ -46,7 +46,7 @@ void FC_FUNC(addtocompress, ADDTOCOMPRESS)(const char *archive, int *lgAr,
   if (!count)
     {
 #ifdef HAVE_LIB_ARCHIVE
-      fprintf(stdout, "Init '%s'.\n", arFilename);
+      /* fprintf(stdout, "Init '%s'.\n", arFilename); */
       _posout_ = archive_write_new();
       if (strstr(arFilename, ".tar.bz2"))
         archive_write_set_compression_bzip2(_posout_);
@@ -61,7 +61,7 @@ void FC_FUNC(addtocompress, ADDTOCOMPRESS)(const char *archive, int *lgAr,
     }
   count +=1;
 
-  fprintf(stdout, "Copy '%s' to '%s'.\n", addFilename, arFilename);
+  /* fprintf(stdout, "Copy '%s' to '%s'.\n", addFilename, arFilename); */
 #ifdef HAVE_LIB_ARCHIVE
   stat(addFilename, &st);
   if (st.st_size > 0)
@@ -71,11 +71,8 @@ void FC_FUNC(addtocompress, ADDTOCOMPRESS)(const char *archive, int *lgAr,
       /* archive_entry_copy_stat(entry, &st); */
       archive_entry_set_size(entry, st.st_size);
       archive_entry_set_filetype(entry, AE_IFREG);
-      fprintf(stdout, "Write header to '%s'.\n", arFilename);
       archive_write_header(_posout_, entry);
-      fprintf(stdout, "Open '%s'.\n", addFilename);
       fd = open(addFilename, O_RDONLY);
-      fprintf(stdout, "Read '%s'.\n", addFilename);
       len = read(fd, buff, sizeof(buff));
       while ( len > 0 )
         {
@@ -85,7 +82,7 @@ void FC_FUNC(addtocompress, ADDTOCOMPRESS)(const char *archive, int *lgAr,
       close(fd);
       archive_entry_free(entry);
     }
-  fprintf(stdout, "Remove '%s'.\n", addFilename);
+  /* fprintf(stdout, "Remove '%s'.\n", addFilename); */
   unlink(addFilename);
 #endif
 
@@ -96,7 +93,7 @@ void FC_FUNC(addtocompress, ADDTOCOMPRESS)(const char *archive, int *lgAr,
 void FC_FUNC(finalisecompress, FINALISECOMPRESS)(void)
 {
 #ifdef HAVE_LIB_ARCHIVE
-  fprintf(stdout, "Finalise\n");
+  /* fprintf(stdout, "Finalise\n"); */
   archive_write_close(_posout_);
   archive_write_finish(_posout_);
 #endif
