@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, phibuff, lphi, phibuffd, lphid, &
+    i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, lphi, lphid, &
     lphir, phibuffr, lphird, phibuffrd)
 !
 ! Purpose:
@@ -96,9 +96,7 @@ real(8),dimension(lin%orbs%norb,orbs%norb),intent(in out):: coeff
 real(8),dimension(lind%orbs%norb,orbs%norb),intent(in out):: coeffd
 real(8),dimension(3,at%nat),intent(out):: fxyz
 real(8):: eion, edisp, fnoise
-real(8),dimension(lin%comsr%sizePhibuff),intent(out):: phibuff
 real(8),dimension(lin%Lorbs%npsidim),intent(inout):: lphi
-real(8),dimension(lind%comsr%sizePhibuff),intent(out):: phibuffd
 real(8),dimension(lind%Lorbs%npsidim),intent(inout):: lphid
 real(8),dimension(lin%Lorbs%npsidimr),intent(out):: lphir
 real(8),dimension(lin%comsr%sizePhibuffr),intent(out):: phibuffr
@@ -133,7 +131,6 @@ real :: ttreal
 integer:: nvctrp, ist, jst, ierr
 real(8),dimension(:,:,:),allocatable:: ovrlp
 real(8):: tt1, tt2
- write(*,'(a,2i14)') 'in getLinear: iproc, size(phiBuffr)', iproc, size(phiBuffr)
   
   if(.not.lin%useDerivativeBasisFunctions) then
       allocate(hphi(lin%orbs%npsidim), stat=istat) 
@@ -247,7 +244,7 @@ real(8):: tt1, tt2
       do iorb=1,lind%orbs%norbp
           ilr=lind%onWhichAtom(iorb)
           call initialize_work_arrays_sumrho(lind%Llr(ilr), w)
-          call daub_to_isf(lind%Llr(ilr), w, lphid(ist), lphir(istr))
+          call daub_to_isf(lind%Llr(ilr), w, lphid(ist), lphird(istr))
           call deallocate_work_arrays_sumrho(w)
           ist = ist + lind%Llr(ilr)%wfd%nvctr_c + 7*lind%Llr(ilr)%wfd%nvctr_f
           istr = istr + lind%Llr(ilr)%d%n1i*lind%Llr(ilr)%d%n2i*lind%Llr(ilr)%d%n3i

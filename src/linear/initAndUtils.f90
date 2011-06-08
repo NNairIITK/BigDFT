@@ -1,6 +1,6 @@
 subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
-    input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, phibuff, lphi, phibuffd, lphid, &
-    lphir, phibuffr, lphird, phibuffrd)
+    input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, lphi, lphid, &
+    lphir, lphird, phibuffr, phibuffrd)
 !
 ! Purpose:
 ! ========
@@ -42,7 +42,7 @@ integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3
 real(8),dimension(32,at%nat):: occupForInguess
 real(8),dimension(:),allocatable,intent(out):: phi, phid
 real(8),dimension(:,:),allocatable,intent(out):: coeff, coeffd
-real(8),dimension(:),pointer,intent(out):: lphi, phibuff, lphid, phibuffd
+real(8),dimension(:),pointer,intent(out):: lphi, lphid
 real(8),dimension(:),pointer,intent(out):: lphir, phibuffr, lphird, phibuffrd
 
 
@@ -264,6 +264,7 @@ do iorb=1,lin%orbs%norbp
     ilr=lin%onWhichAtom(iorb)
     npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
     npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%orbs%nspinor
+write(*,'(a,3i8)') 'iproc, iorb, lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%orbs%nspinor', iproc, iorb, lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%orbs%nspinor
 end do
 lin%Lorbs%npsidim=npsidim
 lin%Lorbs%npsidimr=npsidimr
@@ -276,6 +277,7 @@ do iorb=1,lind%orbs%norbp
     ilr=lind%onWhichAtom(iorb)
     npsidim = npsidim + (lind%Llr(ilr)%wfd%nvctr_c+7*lind%Llr(ilr)%wfd%nvctr_f)*lind%orbs%nspinor
     npsidimr = npsidimr + lind%Llr(ilr)%d%n1i*lind%Llr(ilr)%d%n2i*lind%Llr(ilr)%d%n3i*lind%orbs%nspinor
+write(*,'(a,3i8)') 'iproc, iorb, lind%Llr(ilr)%d%n1i*lind%Llr(ilr)%d%n2i*lind%Llr(ilr)%d%n3i*lind%orbs%nspinor', iproc, iorb, lind%Llr(ilr)%d%n1i*lind%Llr(ilr)%d%n2i*lind%Llr(ilr)%d%n3i*lind%orbs%nspinor
 end do
 lind%Lorbs%npsidim=npsidim
 lind%Lorbs%npsidimr=npsidimr
@@ -297,10 +299,10 @@ call memocc(istat, lphid, 'lphid', subname)
 ! of the charge density.
 !call initializeCommsSumrho(iproc, nproc, nscatterarr, lin, phibuff)
 write(*,*) 'calling initializeCommsSumrho2, iproc', iproc
-call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, phibuff)
+call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin)
 !write(*,*) 'iproc, lin%comsr%sizePhibuff', iproc, lin%comsr%sizePhibuff
 !call initializeCommsSumrho(iproc, nproc, nscatterarr, lind, phibuffd)
-call initializeCommsSumrho2(iproc, nproc, nscatterarr, lind, phibuffd)
+call initializeCommsSumrho2(iproc, nproc, nscatterarr, lind)
 !write(*,*) 'iproc, lind%comsr%sizePhibuff', iproc, lind%comsr%sizePhibuff
 
 write(*,'(a,3i12)') 'iproc, lin%comsr%sizePhibuffr, lind%comsr%sizePhibuffr', iproc, lin%comsr%sizePhibuffr, lind%comsr%sizePhibuffr
@@ -1306,7 +1308,7 @@ end subroutine initializeCommsSumrho
 
 
 
-subroutine initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, phibuff)
+subroutine initializeCommsSumrho2(iproc, nproc, nscatterarr, lin)
 use module_base
 use module_types
 implicit none
@@ -1315,7 +1317,6 @@ implicit none
 integer,intent(in):: iproc, nproc
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 type(linearParameters),intent(inout):: lin
-real(8),dimension(:),pointer,intent(out):: phibuff
 
 ! Local variables
 integer:: istat, jproc, is, ie, ioverlap, i3s, i3e, tag, ilr, iorb, is3ovrlp, n3ovrlp
@@ -1391,9 +1392,10 @@ if(iproc==0) write(*,'(a,3i9)') 'jproc, ioverlap, n3ovrlp', jproc, ioverlap, n3o
 end do
 
 write(*,*) '1: iproc', iproc
-allocate(phibuff(lin%comsr%sizePhibuff), stat=istat)
-call memocc(istat, phibuff, 'phibuff', subname)
-phibuff=0.d0
+lin%comsr%sizePhibuff=max(lin%comsr%sizePhibuff,1)
+!allocate(phibuff(lin%comsr%sizePhibuff), stat=istat)
+!call memocc(istat, phibuff, 'phibuff', subname)
+!phibuff=0.d0
 
 allocate(lin%comsr%communComplete(maxval(lin%comsr%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, lin%comsr%communComplete, 'lin%comsr%communComplete', subname)

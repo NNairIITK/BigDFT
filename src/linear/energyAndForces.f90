@@ -1,6 +1,6 @@
 subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, lind, phi, phid, psi, rxyz, rxyzParab, &
     rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff, phibuffd, &
+    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, &
     lphir, phibuffr, lphird, phibuffrd)
 !
 ! Purpose:
@@ -91,8 +91,6 @@ real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
 real(8),dimension(lind%orbs%norb,orbs%norb):: coeffd
 real(8):: ebsMod
 logical:: scpot
-real(8),dimension(lin%comsr%sizePhibuff),intent(inout):: phibuff
-real(8),dimension(lind%comsr%sizePhibuff),intent(inout):: phibuffd
 real(8),dimension(lin%Lorbs%npsidimr),intent(out):: lphir
 real(8),dimension(lin%comsr%sizePhibuffr),intent(out):: phibuffr
 real(8),dimension(lind%Lorbs%npsidimr),intent(out):: lphird
@@ -138,14 +136,13 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
      else
          !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lind, coeffd, phid, Glr%d%n1i*Glr%d%n2i*n3d, &
          !     rhopot, atoms, rxyz, nscatterarr, phibuffd)
-         call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lind, coeff, phid, Glr%d%n1i*Glr%d%n2i*n3d, &
+         call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lind, coeffd, phid, Glr%d%n1i*Glr%d%n2i*n3d, &
               rhopot, atoms, rxyz, nscatterarr, lphird, phibuffrd)
      end if
      call cpu_time(t2)
      time=t2-t1
      call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
      if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
-call mpi_barrier(mpi_comm_world, iall)
 write(*,*) 'iproc, size(rhopot)', iproc, size(rhopot)
 do iall=1,size(rhopot)
     write(500+iproc*10,*) iall, rhopot(iall)

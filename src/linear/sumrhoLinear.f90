@@ -1548,6 +1548,7 @@ end if
                     !tt = factor*densKern(iorb,jorb)*phibuffr(indri)*phibuffr(indrj)
                     tt = factor*densKern(iiorb,jjorb)*phibuffr(indri)*phibuffr(indrj)
                     rho(indLarge) = rho(indLarge) + tt
+                    if(iiorb==jjorb) tr=tr+tt
                     !rhofull(indLarge) = rhofull(indLarge) + tt
                     totalCharge = totalCharge + tt
                 end do
@@ -1555,6 +1556,7 @@ end if
         end do
         !istrj = istrj + lin%Llr(jlr)%d%n3i*lin%Llr(jlr)%d%n2i*lin%Llr(jlr)%d%n1i
     end do
+    !call mpiallred(tr, 1, mpi_sum, mpi_comm_world, ierr)
     !istri = istri + lin%Llr(ilr)%d%n3i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n1i
 end do
 
