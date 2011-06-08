@@ -1,6 +1,7 @@
 subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, lind, phi, phid, psi, rxyz, rxyzParab, &
     rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff, phibuffd)
+    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff, phibuffd, &
+    lphir, phibuffr, lphird, phibuffrd)
 !
 ! Purpose:
 ! ========
@@ -59,7 +60,7 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, n3d, n3p
+integer:: iproc, nproc, n3d, n3p, sizeLphir, sizePhibuffr
 type(locreg_descriptors) :: Glr
 type(orbitals_data):: orbs
 type(atoms_data):: atoms
@@ -92,6 +93,10 @@ real(8):: ebsMod
 logical:: scpot
 real(8),dimension(lin%comsr%sizePhibuff),intent(inout):: phibuff
 real(8),dimension(lind%comsr%sizePhibuff),intent(inout):: phibuffd
+real(8),dimension(lin%Lorbs%npsidimr),intent(out):: lphir
+real(8),dimension(lin%comsr%sizePhibuffr),intent(out):: phibuffr
+real(8),dimension(lind%Lorbs%npsidimr),intent(out):: lphird
+real(8),dimension(lind%comsr%sizePhibuffr),intent(out):: phibuffrd
 
 ! Local variables
 real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, ekin_sum, epot_sum, eproj_sum, energybs, energyMod
@@ -126,23 +131,27 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
      !     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
      !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, atoms, rxyz, nscatterarr)
      if(.not. lin%useDerivativeBasisFunctions) then
-         call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
-              rhopot, atoms, rxyz, nscatterarr, phibuff)
+         !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+         !     rhopot, atoms, rxyz, nscatterarr, phibuff)
+         call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+              rhopot, atoms, rxyz, nscatterarr, lphir, phibuffr)
      else
-         call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lind, coeffd, phid, Glr%d%n1i*Glr%d%n2i*n3d, &
-              rhopot, atoms, rxyz, nscatterarr, phibuffd)
+         !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lind, coeffd, phid, Glr%d%n1i*Glr%d%n2i*n3d, &
+         !     rhopot, atoms, rxyz, nscatterarr, phibuffd)
+         call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lind, coeff, phid, Glr%d%n1i*Glr%d%n2i*n3d, &
+              rhopot, atoms, rxyz, nscatterarr, lphird, phibuffrd)
      end if
      call cpu_time(t2)
      time=t2-t1
      call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
      if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
-!!call mpi_barrier(mpi_comm_world, iall)
-!!write(*,*) 'iproc, size(rhopot)', iproc, size(rhopot)
-!!do iall=1,size(rhopot)
-!!    write(500+iproc*10,*) iall, rhopot(iall)
-!!end do
-!!call mpi_barrier(mpi_comm_world, iall)
-!!stop
+call mpi_barrier(mpi_comm_world, iall)
+write(*,*) 'iproc, size(rhopot)', iproc, size(rhopot)
+do iall=1,size(rhopot)
+    write(500+iproc*10,*) iall, rhopot(iall)
+end do
+call mpi_barrier(mpi_comm_world, iall)
+stop
 
 
      if(orbs%nspinor==4) then
