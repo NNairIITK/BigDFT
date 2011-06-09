@@ -94,7 +94,7 @@ bench_zg: bench_zgemm
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='$(srcdir)/profile.conf' ./bench_zgemm
 
 check_conv: conv_check
-	echo 1 128 128 16384 16384 100 > fort.1
+	echo 124 132 130 100 > fort.1
 	./conv_check
 
 check_conv_fft: conv_check_fft
