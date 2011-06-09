@@ -142,16 +142,8 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   ! Cut off outside localization region -- experimental
   call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
-  !allocate(lphir(lin%Lorbs%npsidimr), stat=istat)
-  !call memocc(istat, lphir, 'lphir', subname)
-  !call razero(lin%Lorbs%npsidimr, lphir)
-  !allocate(phibuffr(lin%comsr%sizePhibuffr), stat=istat)
-  !call memocc(istat, phibuffr, 'phibuffr', subname)
-  !call razero(lin%comsr%sizePhibuffr, phibuffr)
 
   updatePhi=.false.
-write(*,*) 'calling getLinearPsi,iproc', iproc
-call mpi_barrier(mpi_comm_world, ierr)
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
