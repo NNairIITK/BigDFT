@@ -32,6 +32,10 @@ program find_angles
  character(len=40) :: xdatcar
  integer, dimension(:), pointer :: iatype
  real(kind=8), dimension(:,:), pointer :: pos
+ ! Debug variables
+ integer :: timecount, timeread_start, timeread_stop
+
+ call system_clock(count_rate = timecount)
 
  inquire(file='input',exist=exists)
  if (exists) then
@@ -65,8 +69,9 @@ program find_angles
     if (whichone =='B') then
       !initial file to read the box features
       read(contcar,'(i5)') posout
-      write(fn4,'(i5.5)') posout
-      contcar='posmd_'//fn4
+      !write(fn4,'(i5.5)') posout
+      !contcar='posmd_'//fn4
+       contcar='posinp'
      end if
 
  else
@@ -103,8 +108,9 @@ program find_angles
        xdatcar=contcar
     else if (whichone =='B') then
        !initial file to read the box features
-       write(fn4,'(i5.5)') posout
-       contcar='posmd_'//fn4
+       !write(fn4,'(i5.5)') posout
+       !contcar='posmd_'//fn4
+       contcar='posinp'
     end if
  end if
  call box_features(whichone,contcar,nrep,nat,ntypes,iatype,pos,factor)
@@ -135,6 +141,7 @@ program find_angles
     end do
  end if
 
+ call system_clock(timeread_start)
  !this loop is over the frames
  loop_step: do j1=1,nstep
     istep=istep+1
@@ -199,6 +206,10 @@ program find_angles
  end if
  print *,''
  print *,'anglemin,anglemax,ncountmax=',anglemin,anglemax,ncountmax
+ call system_clock(timeread_stop)
+ write(0, "(A,F20.8,A)") "Global file read: ", &
+      & real(timeread_stop - timeread_start) / real(timecount) , "s"
+ call finaliseExtract()
 
  !values of the normalisations
  integrals(:)=0.d0
@@ -334,10 +345,10 @@ contains
        factor=xhi-xlo
     else if (whichone == 'B') then
        !open the first file to check box features
-print *,'here'
+!print *,'here'
        call read_atomic_file(trim(contcar),0,atoms,rxyz)
        nat=atoms%nat
-print *,'nat',nat
+!print *,'nat',nat
        allocate(iatype(nrep**3*nat),pos(3,nrep**3*nat))
        do i=1,nat
           iatype(i)=atoms%iatype(i)

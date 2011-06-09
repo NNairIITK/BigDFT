@@ -19,7 +19,7 @@
 #ifdef HAVE_LIB_ARCHIVE
 #include <archive.h>
 #include <archive_entry.h>
-static struct archive *_posout_;
+static struct archive *_posout_, *_posinp_;
 #endif
 
 void FC_FUNC(addtocompress, ADDTOCOMPRESS)(const char *archive, int *lgAr,
@@ -71,6 +71,8 @@ void FC_FUNC(addtocompress, ADDTOCOMPRESS)(const char *archive, int *lgAr,
       /* archive_entry_copy_stat(entry, &st); */
       archive_entry_set_size(entry, st.st_size);
       archive_entry_set_filetype(entry, AE_IFREG);
+      archive_entry_set_mode(entry, st.st_mode);
+      archive_entry_set_mtime(entry, st.st_mtime, 0);
       archive_write_header(_posout_, entry);
       fd = open(addFilename, O_RDONLY);
       len = read(fd, buff, sizeof(buff));
@@ -96,5 +98,89 @@ void FC_FUNC(finalisecompress, FINALISECOMPRESS)(void)
   /* fprintf(stdout, "Finalise\n"); */
   archive_write_close(_posout_);
   archive_write_finish(_posout_);
+#endif
+}
+
+void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int *lgAr,
+                                                       const char *filename, int *lgF,
+                                                       int *extract)
+{
+  static int count = 0;
+  char *arFilename, *addFilename;
+#ifdef HAVE_LIB_ARCHIVE
+  struct archive_entry *entry;
+  struct stat st;
+  const void *buff;
+  size_t size;
+  off_t offset;
+  int fd;
+#endif
+
+  arFilename = (char*)malloc(sizeof(char) * (*lgAr + 1));
+  memcpy(arFilename, archive, (size_t)*lgAr);
+  arFilename[*lgAr] = '\0';
+
+  addFilename = (char*)malloc(sizeof(char) * (*lgF + 1));
+  memcpy(addFilename, filename, (size_t)*lgF);
+  addFilename[*lgF] = '\0';
+
+  *extract = 0;
+
+  if (!count)
+    {
+#ifdef HAVE_LIB_ARCHIVE
+      /* fprintf(stdout, "Init '%s'.\n", arFilename); */
+      _posinp_ = archive_read_new();
+      archive_read_support_compression_all(_posinp_);
+      archive_read_support_format_all(_posinp_);
+      archive_read_open_filename(_posinp_, arFilename, 10240);
+#else
+      fprintf(stdout, "Warning: no possibility of archive,"
+              " compile BigDFT with libarchive.\n");
+#endif
+    }
+  count +=1;
+
+  /* fprintf(stdout, "Extract '%s' from '%s'.\n", addFilename, arFilename); */
+#ifdef HAVE_LIB_ARCHIVE
+  while (archive_read_next_header(_posinp_, &entry) == ARCHIVE_OK)
+    if (!strncmp(addFilename, archive_entry_pathname(entry), strlen(addFilename)))
+      {
+        /* We extract the file. */
+        fd = creat(archive_entry_pathname(entry), 0640);
+        /* fprintf(stdout, "Create '%s' (%d).\n", archive_entry_pathname(entry), fd); */
+        while (archive_read_data_block(_posinp_, &buff, &size, &offset) == ARCHIVE_OK)
+          write(fd, buff, size);
+        close(fd);
+        *extract = 1;
+        break;
+      }
+#endif
+
+  free(addFilename);
+  free(arFilename);
+}
+
+void FC_FUNC(unlinkextract, UNLINKEXTRACT)(const char *filename, int *lgF)
+{
+  char *addFilename;
+
+  addFilename = (char*)malloc(sizeof(char) * (*lgF + 1));
+  memcpy(addFilename, filename, (size_t)*lgF);
+  addFilename[*lgF] = '\0';
+
+#ifdef HAVE_LIB_ARCHIVE
+  unlink(addFilename);
+#endif
+
+  free(addFilename);
+}
+
+void FC_FUNC(finaliseextract, FINALISEEXTRACT)(void)
+{
+#ifdef HAVE_LIB_ARCHIVE
+  /* fprintf(stdout, "Finalise\n"); */
+  archive_write_close(_posinp_);
+  archive_write_finish(_posinp_);
 #endif
 }

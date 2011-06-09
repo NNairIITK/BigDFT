@@ -1362,11 +1362,24 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_file'
-  integer :: i_stat, l
+  integer :: i_stat, l, extract
   logical :: file_exists
   character(len = 128) :: filename
+  character(len = 15) :: arFile
 
   file_exists = .false.
+
+  ! Extract from archive
+  if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
+     write(arFile, "(A)") "posout.tar.bz2"
+     if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
+     call extractNextCompress(trim(arFile), len(trim(arFile)), &
+          & trim(file), len(trim(file)), extract)
+     if (extract == 0) then
+        write(*,*) "Can't find '", file, "' in archive."
+        stop
+     end if
+  end if
 
   ! Test posinp.xyz
   if (.not. file_exists) then
@@ -1429,6 +1442,10 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   ! We delay the calculation of the symmetries.
   atoms%symObj = -1
 
+  ! rm temporary file.
+  if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
+     call unlinkExtract(trim(filename), len(trim(filename)))
+  end if
 END SUBROUTINE read_atomic_file
 
 
