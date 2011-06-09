@@ -127,9 +127,11 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   allocate(occupForInguess(32,at%nat))
 
   ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
-  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
-      input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, lphi, lphid, &
-      lphir, lphird, phibuffr, phibuffrd)
+  !call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
+  !    input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, lphi, lphid, &
+  !    lphir, phibuffr)
+  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, &
+       input, rxyz, nscatterarr, coeff, lphi)
 
   potshortcut=0 ! What is this?
   call inputguessConfinement(iproc, nproc, at, &
@@ -140,26 +142,27 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   ! Cut off outside localization region -- experimental
   call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
-  allocate(lphir(lin%Lorbs%npsidimr), stat=istat)
-  call memocc(istat, lphir, 'lphir', subname)
-  call razero(lin%Lorbs%npsidimr, lphir)
-  allocate(phibuffr(lin%comsr%sizePhibuffr), stat=istat)
-  call memocc(istat, phibuffr, 'phibuffr', subname)
-  call razero(lin%comsr%sizePhibuffr, phibuffr)
+  !allocate(lphir(lin%Lorbs%npsidimr), stat=istat)
+  !call memocc(istat, lphir, 'lphir', subname)
+  !call razero(lin%Lorbs%npsidimr, lphir)
+  !allocate(phibuffr(lin%comsr%sizePhibuffr), stat=istat)
+  !call memocc(istat, phibuffr, 'phibuffr', subname)
+  !call razero(lin%comsr%sizePhibuffr, phibuffr)
 
   updatePhi=.false.
-  call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyz, &
-      nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
+write(*,*) 'calling getLinearPsi,iproc', iproc
+call mpi_barrier(mpi_comm_world, ierr)
+  call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
+      nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, lphi, lphid, &
-      lphir, phibuffr, lphird, phibuffrd)
+      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, lphi)
+
   call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
     .5d0*input%hy, .5d0*input%hz, 0)
 
-  call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, lind, phi, phid, psi, rxyz, rxyz, &
+  call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
       rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, &
-      lphir, phibuffr, lphird, phibuffrd)
+      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
 
 
 
@@ -178,19 +181,17 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   updatePhi=.true.
   do itSCC=1,nitSCC
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
-      call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyz, &
-          nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
+      call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
+          nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, lphi, lphid, &
-          lphir, phibuffr, lphird, phibuffrd)
+          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, lphi)
 
 
       ! Calculate the energy that we get with psi.
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
-      call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, lind, phi, phid, psi, rxyz, rxyz, &
+      call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
           rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, &
-          lphir, phibuffr, lphird, phibuffrd)
+          proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
 
       !!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! Calculate the forces we get with psi.

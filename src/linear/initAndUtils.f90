@@ -1,6 +1,6 @@
-subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
-    input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, lphi, lphid, &
-    lphir, lphird, phibuffr, phibuffrd)
+subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, &
+    input, rxyz, nscatterarr, coeff, lphi)
+    
 !
 ! Purpose:
 ! ========
@@ -35,15 +35,12 @@ type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: at
 type(linearParameters),intent(inout):: lin
-type(linearParameters),intent(inout):: lind
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-real(8),dimension(32,at%nat):: occupForInguess
-real(8),dimension(:),allocatable,intent(out):: phi, phid
-real(8),dimension(:,:),allocatable,intent(out):: coeff, coeffd
-real(8),dimension(:),pointer,intent(out):: lphi, lphid
-real(8),dimension(:),pointer,intent(out):: lphir, phibuffr, lphird, phibuffrd
+real(8),dimension(:),allocatable,intent(out):: phi
+real(8),dimension(:,:),allocatable,intent(out):: coeff
+real(8),dimension(:),pointer,intent(out):: lphi
 
 
 ! Local variables
@@ -64,14 +61,14 @@ real(gp),dimension(:),allocatable:: locrad
 
 allocate(lin%norbsPerType(at%ntypes), stat=istat)
 call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
-allocate(lind%norbsPerType(at%ntypes), stat=istat)
-call memocc(istat, lind%norbsPerType, 'lind%norbsPerType', subname)
+!allocate(lind%norbsPerType(at%ntypes), stat=istat)
+!call memocc(istat, lind%norbsPerType, 'lind%norbsPerType', subname)
 lin%nlr=at%nat
-lind%nlr=at%nat
+!lind%nlr=at%nat
 allocate(lin%locrad(lin%nlr),stat=istat)
 call memocc(istat,lin%locrad,'lin%locrad',subname)
-allocate(lind%locrad(lind%nlr),stat=istat)
-call memocc(istat,lind%locrad,'lind%locrad',subname)
+!allocate(lind%locrad(lind%nlr),stat=istat)
+!call memocc(istat,lind%locrad,'lind%locrad',subname)
 
 ! Allocate all local arrays.
 allocate(atomNames(at%ntypes), stat=istat)
@@ -80,7 +77,7 @@ allocate(norbsPerAtom(at%nat), stat=istat)
 call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 
 ! Read in all parameters related to the linear scaling version and print them.
-call readLinearParameters(iproc, lin, lind, at, atomNames)
+call readLinearParameters(iproc, lin, at, atomNames)
 
 ! Assign to each atom its number of basis functions and count how many basis functions 
 ! we have in total.
@@ -91,8 +88,8 @@ do iat=1,at%nat
     lin%orbs%norb=lin%orbs%norb+norbsPerAtom(iat)
 end do
 
-! Copy to Lorbs
-lin%Lorbs%norb=lin%orbs%norb
+!! Copy to Lorbs
+!lin%Lorbs%norb=lin%orbs%norb
 
 ! Distribute the orbitals among the processors.
 norb=lin%orbs%norb
@@ -102,18 +99,28 @@ call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%ns
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%Lorbs)
 
 ! Number of basis functions if the derivative is included.
-lind%orbs%norb=4*lin%orbs%norb
-lind%Lorbs%norb=4*lin%Lorbs%norb
+!!lind%orbs%norb=4*lin%orbs%norb
+!!lind%Lorbs%norb=4*lin%Lorbs%norb
+!!lin%d%orbs%norb=4*lin%orbs%norb
+!!lin%d%Lorbs%norb=4*lin%Lorbs%norb
 
 ! Distribute the orbitals among the processors.
-norb=lind%orbs%norb
-norbu=norb
-norbd=0
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lind%orbs)
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lind%Lorbs)
+if(.not. lin%useDerivativeBasisFunctions) then
+    norb=lin%orbs%norb
+    norbu=norb
+    norbd=0
+else
+    norb=4*lin%orbs%norb
+    norbu=norb
+    norbd=0
+end if
+!!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lind%orbs)
+!!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lind%Lorbs)
+call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%orbs)
+call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%Lorbs)
 
 ! Write all parameters related to the linear scaling version to the screen.
-call writeLinearParameters(iproc, nproc, at, lin, lind, atomNames, lin%norbsPerType)
+call writeLinearParameters(iproc, nproc, at, lin, atomNames, lin%norbsPerType)
 
 
 ! Decide which orbital is centered in which atom.
@@ -124,108 +131,119 @@ call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtomAll', subname)
 !call assignOrbitalsToAtoms(iproc, at%nat, lin, norbsPerAtom)
 call assignOrbitalsToAtoms(iproc, lin%orbs, at%nat, norbsPerAtom, lin%onWhichAtom, lin%onWhichAtomAll)
 
-
+write(*,*) 'iproc, lin%orbs%norb', iproc, lin%orbs%norb
+write(*,*) 'iproc, lin%lb%orbs%norb', iproc, lin%lb%orbs%norb
 ! The same for the basis including the derivatives.
-allocate(lind%onWhichAtom(lind%orbs%norbp), stat=istat)
-call memocc(istat, lind%onWhichAtom, 'lind%onWhichAtom', subname)
-allocate(lind%onWhichAtomAll(lind%orbs%norb), stat=istat)
-call memocc(istat, lind%onWhichAtom, 'lind%onWhichAtomAll', subname)
-norbsPerAtom=4*norbsPerAtom
+allocate(lin%lb%onWhichAtom(lin%lb%orbs%norbp), stat=istat)
+call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtom', subname)
+allocate(lin%lb%onWhichAtomAll(lin%lb%orbs%norb), stat=istat)
+call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtomAll', subname)
+if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 !call assignOrbitalsToAtoms(iproc, at%nat, lind, norbsPerAtom)
-call assignOrbitalsToAtoms(iproc, lind%orbs, at%nat, norbsPerAtom, lind%onWhichAtom, lind%onWhichAtomAll)
-norbsPerAtom=norbsPerAtom/4  ! Undo this..
-!!do iorb=1,lind%orbs%norbp
-!!    write(*,'(a,2i7,i10)') 'iproc, iorb, lind%onWhichAtom(iorb)', iproc, iorb, lind%onWhichAtom(iorb)
+write(*,'(a,i4,4x,100i8)') 'iproc, norbsPerAtom', iproc, norbsPerAtom
+call assignOrbitalsToAtoms(iproc, lin%lb%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
+if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4  ! Undo this..
+do iorb=1,lin%lb%orbs%norbp
+    write(*,'(a,2i7,i10)') 'iproc, iorb, lin%lb%onWhichAtom(iorb)', iproc, iorb, lin%lb%onWhichAtom(iorb)
+end do
+do iorb=1,lin%lb%orbs%norb
+    write(*,'(a,2i7,i10)') 'iproc, iorb, lin%lb%onWhichAtomAll(iorb)', iproc, iorb, lin%lb%onWhichAtomAll(iorb)
+end do
+
+
+
+!!! lin%orbs%isorb is the 'first' orbital for a given MPI process.
+!!norb_tot=0
+!!do jproc=0,iproc-1
+!!   norb_tot=norb_tot+lin%orbs%norb_par(jproc)
 !!end do
-
-
-
-! lin%orbs%isorb is the 'first' orbital for a given MPI process.
-norb_tot=0
-do jproc=0,iproc-1
-   norb_tot=norb_tot+lin%orbs%norb_par(jproc)
-end do
-!reference orbital for process
-lin%orbs%isorb=norb_tot
-lin%Lorbs%isorb=norb_tot
-
-! The same for lind
-norb_tot=0
-do jproc=0,iproc-1
-   norb_tot=norb_tot+lind%orbs%norb_par(jproc)
-end do
-!reference orbital for process
-lind%orbs%isorb=norb_tot
-lind%Lorbs%isorb=norb_tot
+!!!reference orbital for process
+!!lin%orbs%isorb=norb_tot
+!!lin%Lorbs%isorb=norb_tot
+!!
+!!! The same for lind
+!!norb_tot=0
+!!do jproc=0,iproc-1
+!!   norb_tot=norb_tot+lin%d%orbs%norb_par(jproc)
+!!end do
+!!!reference orbital for process
+!!lin%d%orbs%isorb=norb_tot
+!!lin%d%Lorbs%isorb=norb_tot
 
 
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 call memocc(istat, lin%orbs%eval, 'lin%orbs%eval', subname)
+lin%orbs%eval=-.5d0
 allocate(lin%Lorbs%eval(lin%Lorbs%norb), stat=istat)
 call memocc(istat, lin%Lorbs%eval, 'lin%Lorbs%eval', subname)
 lin%Lorbs%eval=-.5d0
 
-allocate(lind%orbs%eval(lind%orbs%norb), stat=istat)
-call memocc(istat, lind%orbs%eval, 'lind%orbs%eval', subname)
-allocate(lind%Lorbs%eval(lind%Lorbs%norb), stat=istat)
-call memocc(istat, lind%Lorbs%eval, 'lind%Lorbs%eval', subname)
-lind%Lorbs%eval=-.5d0
+allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
+call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
+lin%lb%orbs%eval=-.5d0
+allocate(lin%lb%Lorbs%eval(lin%lb%Lorbs%norb), stat=istat)
+call memocc(istat, lin%lb%Lorbs%eval, 'lin%lb%Lorbs%eval', subname)
+lin%lb%Lorbs%eval=-.5d0
 
 
 ! Assign the parameters needed for the communication to lin%comms
 call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 
 ! Again for lind
-call orbitals_communicators(iproc,nproc,Glr,lind%orbs,lind%comms)
+call orbitals_communicators(iproc,nproc,Glr,lin%lb%orbs,lin%lb%comms)
 
 
 ! Allocate phi.
 !write(*,*) 'iproc, lin%orbs%npsidim', iproc, lin%orbs%npsidim
-allocate(phi(lin%orbs%npsidim), stat=istat)
+!allocate(phi(lin%orbs%npsidim+lin%d%orbs%npsidim), stat=istat)
+allocate(phi(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
+allocate(lin%phiRestart(lin%orbs%npsidim), stat=istat)
+call memocc(istat, lin%phiRestart, 'lin%phiRestart', subname)
 
 ! Allocate the coefficients for the linear combinations of the  orbitals and initialize
 ! them at random.
 ! Do this only on the root, since the calculations to determine coeff are not yet parallelized.
-allocate(coeff(lin%orbs%norb,orbs%norb), stat=istat)
+!allocate(coeff(lin%orbs%norb+lin%d%orbs%norb,orbs%norb), stat=istat)
+allocate(coeff(lin%lb%orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, coeff, 'coeff', subname)
 call initRandomSeed(0, 1)
 if(iproc==0) then
     do iorb=1,orbs%norb
-       do jorb=1,lin%orbs%norb
+       do jorb=1,lin%lb%orbs%norb
           call random_number(ttreal)
           coeff(jorb,iorb)=real(ttreal,kind=8)
        end do
     end do
 end if
 
-! The 'd' variants...
-!write(*,*) 'iproc, lind%orbs%npsidim', iproc, lind%orbs%npsidim
-allocate(phid(lind%orbs%npsidim), stat=istat)
-call memocc(istat, phid, 'phid', subname)
-
-allocate(coeffd(lind%orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, coeffd, 'coeffd', subname)
-call initRandomSeed(0, 1)
-if(iproc==0) then
-    do iorb=1,orbs%norb
-       do jorb=1,lind%orbs%norb
-          call random_number(ttreal)
-          coeffd(jorb,iorb)=real(ttreal,kind=8)
-       end do
-    end do
-end if
+!!! The 'd' variants...
+!!!write(*,*) 'iproc, lind%orbs%npsidim', iproc, lind%orbs%npsidim
+!!allocate(phid(lind%orbs%npsidim), stat=istat)
+!!call memocc(istat, phid, 'phid', subname)
+!!
+!!allocate(coeffd(lind%orbs%norb,orbs%norb), stat=istat)
+!!call memocc(istat, coeffd, 'coeffd', subname)
+!!call initRandomSeed(0, 1)
+!!if(iproc==0) then
+!!    do iorb=1,orbs%norb
+!!       do jorb=1,lind%orbs%norb
+!!          call random_number(ttreal)
+!!          coeffd(jorb,iorb)=real(ttreal,kind=8)
+!!       end do
+!!    end do
+!!end if
 
 
 
 
 ! Allocate the array of localisation regions
 allocate(lin%Llr(lin%nlr),stat=istat)
-allocate(lind%Llr(lin%nlr),stat=istat)
+!allocate(lind%Llr(lin%nlr),stat=istat)
 allocate(lin%outofzone(3,lin%nlr),stat=istat)
 call memocc(istat,lin%outofzone,'lin%outofzone',subname)
-allocate(lind%outofzone(3,lin%nlr),stat=istat)
-call memocc(istat,lind%outofzone,'lind%outofzone',subname)
+!allocate(lind%outofzone(3,lin%nlr),stat=istat)
+!call memocc(istat,lind%outofzone,'lind%outofzone',subname)
 
 
 !! Write some physical information on the Glr
@@ -244,9 +262,8 @@ call memocc(istat,lind%outofzone,'lind%outofzone',subname)
  !call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr, lin%outofzone)
  !call determine_locreg_periodic(iproc, lind%nlr, rxyz, lind%locrad, input%hx, input%hy, input%hz, Glr, lind%Llr, lind%outofzone)
  call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
- call determine_locreg_periodic(iproc, lind%nlr, rxyz, lind%locrad, input%hx, input%hy, input%hz, Glr, lind%Llr)
+ !call determine_locreg_periodic(iproc, lind%nlr, rxyz, lind%locrad, input%hx, input%hy, input%hz, Glr, lind%Llr)
 
- call mpi_barrier(mpi_comm_world, ierr)
 !do ilr=1,lin%nlr
 !    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
 !    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
@@ -264,63 +281,67 @@ do iorb=1,lin%orbs%norbp
     ilr=lin%onWhichAtom(iorb)
     npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
     npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%orbs%nspinor
-write(*,'(a,3i8)') 'iproc, iorb, lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%orbs%nspinor', iproc, iorb, lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%orbs%nspinor
 end do
 lin%Lorbs%npsidim=npsidim
 lin%Lorbs%npsidimr=npsidimr
-write(*,'(a,i5,i11)') 'iproc, npsidimr', iproc, lin%Lorbs%npsidimr
 
 ! The 'd' variants...
-npsidim=0
-npsidimr=0
-do iorb=1,lind%orbs%norbp
-    ilr=lind%onWhichAtom(iorb)
-    npsidim = npsidim + (lind%Llr(ilr)%wfd%nvctr_c+7*lind%Llr(ilr)%wfd%nvctr_f)*lind%orbs%nspinor
-    npsidimr = npsidimr + lind%Llr(ilr)%d%n1i*lind%Llr(ilr)%d%n2i*lind%Llr(ilr)%d%n3i*lind%orbs%nspinor
-write(*,'(a,3i8)') 'iproc, iorb, lind%Llr(ilr)%d%n1i*lind%Llr(ilr)%d%n2i*lind%Llr(ilr)%d%n3i*lind%orbs%nspinor', iproc, iorb, lind%Llr(ilr)%d%n1i*lind%Llr(ilr)%d%n2i*lind%Llr(ilr)%d%n3i*lind%orbs%nspinor
-end do
-lind%Lorbs%npsidim=npsidim
-lind%Lorbs%npsidimr=npsidimr
-!write(*,'(a,i5,i11)') 'iproc, npsidim', iproc, lind%Lorbs%npsidim
+! with d
+if(.not. lin%useDerivativeBasisFunctions) then
+    lin%lb%Lorbs%npsidim=npsidim
+    lin%lb%Lorbs%npsidimr=npsidimr
+else
+    npsidim=0
+    npsidimr=0
+    do iorb=1,lin%lb%orbs%norbp
+        ilr=lin%lb%onWhichAtom(iorb)
+        npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
+        npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
+    end do
+    lin%lb%Lorbs%npsidim=npsidim
+    lin%lb%Lorbs%npsidimr=npsidimr
+end if
 
 
 
 ! Allocate lphi, which will be phi transformed to the localization region.
 !write(*,*) 'iproc, lin%Lorbs%npsidim', iproc, lin%Lorbs%npsidim
-allocate(lphi(lin%Lorbs%npsidim), stat=istat)
+allocate(lphi(lin%lb%Lorbs%npsidim), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
-!write(*,*) 'iproc, lind%Lorbs%npsidim', iproc, lind%Lorbs%npsidim
-allocate(lphid(lind%Lorbs%npsidim), stat=istat)
-call memocc(istat, lphid, 'lphid', subname)
+!!!write(*,*) 'iproc, lind%Lorbs%npsidim', iproc, lind%Lorbs%npsidim
+!!allocate(lphid(lind%Lorbs%npsidim), stat=istat)
+!!call memocc(istat, lphid, 'lphid', subname)
 
 
 
 ! Initialize everything concerning the communication for the calculation
 ! of the charge density.
 !call initializeCommsSumrho(iproc, nproc, nscatterarr, lin, phibuff)
-write(*,*) 'calling initializeCommsSumrho2, iproc', iproc
 call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin)
 !write(*,*) 'iproc, lin%comsr%sizePhibuff', iproc, lin%comsr%sizePhibuff
 !call initializeCommsSumrho(iproc, nproc, nscatterarr, lind, phibuffd)
-call initializeCommsSumrho2(iproc, nproc, nscatterarr, lind)
+!call initializeCommsSumrho2(iproc, nproc, nscatterarr, lind)
 !write(*,*) 'iproc, lind%comsr%sizePhibuff', iproc, lind%comsr%sizePhibuff
 
-write(*,'(a,3i12)') 'iproc, lin%comsr%sizePhibuffr, lind%comsr%sizePhibuffr', iproc, lin%comsr%sizePhibuffr, lind%comsr%sizePhibuffr
-write(*,'(a,3i12)') 'iproc, lin%Lorbs%npsidimr, lind%Lorbs%npsidimr', iproc, lin%Lorbs%npsidimr, lind%Lorbs%npsidimr
+!!if(.not. lin%useDerivativeBasisFunctions) then
 
-allocate(lphir(lin%Lorbs%npsidimr), stat=istat)
-call memocc(istat, lphir, 'lphir', subname)
-call razero(lin%Lorbs%npsidimr, lphir)
-allocate(phibuffr(lin%comsr%sizePhibuffr), stat=istat)
-call memocc(istat, phibuffr, 'phibuffr', subname)
-call razero(lin%comsr%sizePhibuffr, phibuffr)
 
-allocate(lphird(lind%Lorbs%npsidimr), stat=istat)
-call memocc(istat, lphird, 'lphird', subname)
-call razero(lind%Lorbs%npsidimr, lphird)
-allocate(phibuffrd(lind%comsr%sizePhibuffr), stat=istat)
-call memocc(istat, phibuffrd, 'phibuffrd', subname)
-call razero(lind%comsr%sizePhibuffr, phibuffrd)
+!!    allocate(phibuffr(lin%comsr%sizePhibuffr), stat=istat)
+!!    call memocc(istat, phibuffr, 'phibuffr', subname)
+!!    call razero(lin%comsr%sizePhibuffr, phibuffr)
+!!else
+!!    allocate(lphir(lind%Lorbs%npsidimr), stat=istat)
+!!    call memocc(istat, lphir, 'lphir', subname)
+!!    call razero(lind%Lorbs%npsidimr, lphird)
+!!
+!!    allocate(phibuffr(lind%comsr%sizePhibuffr), stat=istat)
+!!    call memocc(istat, phibuffr, 'phibuffr', subname)
+!!    call razero(lind%comsr%sizePhibuffr, phibuffrd)
+!!end if
+
+
+
+
 
 
 iall=-product(shape(atomNames))*kind(atomNames)
@@ -337,13 +358,13 @@ end subroutine allocateAndInitializeLinear
 
 
 
-subroutine readLinearParameters(iproc, lin, lind, at, atomNames)
+subroutine readLinearParameters(iproc, lin, at, atomNames)
 use module_base
 use module_types
 implicit none
 
 integer,intent(in):: iproc
-type(linearParameters):: lin, lind
+type(linearParameters):: lin
 type(atoms_data),intent(in):: at
 character(len=20),dimension(at%ntypes):: atomNames
 !integer,dimension(at%ntypes):: norbsPerType
@@ -366,8 +387,6 @@ allocate(locradType(at%ntypes), stat=istat)
 call memocc(istat, locradType, 'locradType', subname)
 allocate(lin%potentialPrefac(at%ntypes), stat=istat)
 call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
-allocate(lind%potentialPrefac(at%ntypes), stat=istat)
-call memocc(istat, lind%potentialPrefac, 'lind%potentialPrefac', subname)
 open(unit=99, file='input.lin')
 read(99,*) lin%nItBasisFirst, lin%nItBasis
 read(99,*) lin%convCrit
@@ -386,29 +405,11 @@ do itype=1,at%ntypes
 end do
 close(unit=99)
 
-! Copy the contents from lin to lind.
-! Do not copy everything, but only some parts. Maybe this amount can even be reduced.
-lind%nItBasisFirst=lin%nItBasisFirst; lind%nItBasis=lind%nItBasis
-lind%convCrit=lin%convCrit
-lind%DIISHistMin=lin%DIISHistMin; lind%DIISHistMax=lin%DIISHistMax; lind%alphaDIIS=lin%alphaDIIS; lind%alphaSD=lin%alphaSD
-lind%startWithSD=lin%startWithSD; lind%startDIIS=lin%startDIIS
-lind%nItPrecond=lin%nItPrecond
-lind%getCoeff=lin%getCoeff
-lind%nItCoeff=lin%nItCoeff; lind%convCritCoeff=lin%convCritCoeff
-lind%nItSCC=lin%nItSCC; lind%alphaMix=lin%alphaMix
-lind%useDerivativeBasisFunctions=lin%useDerivativeBasisFunctions; lind%ConfPotOrder=lin%ConfPotOrder
-lind%nItInguess=lin%nItInguess
-lind%plotBasisFunctions=lin%plotBasisFunctions
-do itype=1,at%ntypes
-    lind%norbsPerType(itype)=4*lin%norbsPerType(itype) ! 4 since we use also use the derivatives with respect to x,y,z
-    lind%potentialPrefac(itype)=lin%potentialPrefac(itype)
-end do
 
 ! Assign the localization radius to each atom
 do iat=1,at%nat
     itype=at%iatype(iat)
     lin%locrad(iat)=locradType(itype)
-    lind%locrad(iat)=locradType(itype)
 end do
 
 
@@ -422,7 +423,7 @@ end subroutine readLinearParameters
 
 
 
-subroutine writeLinearParameters(iproc, nproc, at, lin, lind, atomNames, norbsPerType)
+subroutine writeLinearParameters(iproc, nproc, at, lin, atomNames, norbsPerType)
 !
 ! Purpose:
 ! ========
@@ -436,7 +437,7 @@ implicit none
 
 integer,intent(in):: iproc, nproc
 type(atoms_data),intent(in):: at
-type(linearParameters),intent(in):: lin, lind
+type(linearParameters),intent(in):: lin
 character(len=20),dimension(at%ntypes),intent(in):: atomNames
 integer,dimension(at%ntypes),intent(in):: norbsPerType
 
@@ -527,10 +528,10 @@ if(iproc==0) write(*,'(x,a)') '-----------------------------------------------'
 written=.false.
 if(iproc==0) write(*,'(x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
 do jproc=1,nproc-1
-    if(lind%orbs%norb_par(jproc)<lind%orbs%norb_par(jproc-1)) then
-        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lind%orbs%norb_par(jproc-1)+1.d-5)))
+    if(lin%lb%orbs%norb_par(jproc)<lin%lb%orbs%norb_par(jproc-1)) then
+        len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%lb%orbs%norb_par(jproc-1)+1.d-5)))
         len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
-             ceiling(log10(dble(lind%orbs%norb_par(jproc)+1.d-5)))
+             ceiling(log10(dble(lin%lb%orbs%norb_par(jproc)+1.d-5)))
         if(len1>=len2) then
             space1=1
             space2=1+len1-len2
@@ -539,16 +540,16 @@ do jproc=1,nproc-1
             space2=1
         end if
         if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
-            lind%orbs%norb_par(jproc-1), ' orbitals,', repeat(' ', space1), '|'
+            lin%lb%orbs%norb_par(jproc-1), ' orbitals,', repeat(' ', space1), '|'
         if(iproc==0) write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
-            lind%orbs%norb_par(jproc),' orbitals.', repeat(' ', space2), '|'
+            lin%lb%orbs%norb_par(jproc),' orbitals.', repeat(' ', space2), '|'
         written=.true.
         exit
     end if
 end do
 if(.not.written) then
     if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
-        ' treat ',lind%orbs%norbp,' orbitals. |'!, &
+        ' treat ',lin%lb%orbs%norbp,' orbitals. |'!, &
 end if
 if(iproc==0) write(*,'(x,a)') '####################################################################################'
 
@@ -1221,89 +1222,89 @@ end subroutine cutoffOutsideLocreg
 
 
 
-subroutine initializeCommsSumrho(iproc, nproc, nscatterarr, lin, phibuff)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-type(linearParameters),intent(inout):: lin
-real(8),dimension(:),pointer,intent(out):: phibuff
-
-! Local variables
-integer:: istat, jproc, is, ie, ioverlap, i3s, i3e, tag, ilr, iorb
-character(len=*),parameter:: subname='initializeCommsSumrho'
-
-
-! First count the number of overlapping orbitals for each slice.
-allocate(lin%comsr%noverlaps(0:nproc-1), stat=istat)
-call memocc(istat, lin%comsr%noverlaps, 'lin%comsr%noverlaps', subname)
-do jproc=0,nproc-1
-    is=nscatterarr(jproc,3)+1
-    ie=is+nscatterarr(jproc,1)
-    ioverlap=0
-    do iorb=1,lin%orbs%norb
-        ilr=lin%onWhichAtomAll(iorb)
-        i3s=2*lin%Llr(ilr)%ns3+1
-        i3e=2*lin%Llr(ilr)%ns3+lin%Llr(ilr)%d%n3i
-        if(i3s<=ie .and. i3e>=is) then
-            ioverlap=ioverlap+1
-        end if
-    end do
-    lin%comsr%noverlaps(jproc)=ioverlap
-end do
-! Do the initialization concerning the calculation of the charge density.
-allocate(lin%comsr%istarr(0:nproc-1), stat=istat)
-call memocc(istat, lin%comsr%istarr, 'lin%comsr%istarr', subname)
-allocate(lin%comsr%istrarr(lin%comsr%noverlaps(iproc)), stat=istat)
-call memocc(istat, lin%comsr%istrarr, 'lin%comsr%istrarr', subname)
-allocate(lin%comsr%overlaps(lin%comsr%noverlaps(iproc)), stat=istat)
-call memocc(istat, lin%comsr%overlaps, 'lin%comsr%overlaps', subname)
-
-allocate(lin%comsr%comarr(9,maxval(lin%comsr%noverlaps),0:nproc-1), stat=istat)
-call memocc(istat, lin%comsr%comarr, 'coms%commsSumrho', subname)
-
-
-tag=0
-lin%comsr%sizePhibuff=0
-lin%comsr%sizePhibuffr=0
-lin%comsr%istarr=1
-lin%comsr%istrarr=1
-do jproc=0,nproc-1
-    is=nscatterarr(jproc,3)+1
-    ie=is+nscatterarr(jproc,1)
-    ioverlap=0
-    do iorb=1,lin%orbs%norb
-        ilr=lin%onWhichAtomAll(iorb)
-        i3s=2*lin%Llr(ilr)%ns3+1
-        i3e=2*lin%Llr(ilr)%ns3+lin%Llr(ilr)%d%n3i
-        if(i3s<=ie .and. i3e>=is) then
-            ioverlap=ioverlap+1
-            tag=tag+1
-            call setCommunicationInformation(jproc, iorb, lin%comsr%istarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
-            if(iproc==jproc) then
-                lin%comsr%sizePhibuff = lin%comsr%sizePhibuff + lin%Llr(ilr)%wfd%nvctr_c + 7*lin%Llr(ilr)%wfd%nvctr_f
-                lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
-                lin%comsr%overlaps(ioverlap)=iorb
-                if(ioverlap<lin%comsr%noverlaps(iproc)) lin%comsr%istrarr(ioverlap+1) = lin%comsr%istrarr(ioverlap) + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
-            end if
-            lin%comsr%istarr(jproc)=lin%comsr%istarr(jproc)+lin%Llr(ilr)%wfd%nvctr_c + 7*lin%Llr(ilr)%wfd%nvctr_f
-        end if
-    end do
-end do
-
-allocate(phibuff(lin%comsr%sizePhibuff), stat=istat)
-call memocc(istat, phibuff, 'phibuff', subname)
-phibuff=0.d0
-
-allocate(lin%comsr%communComplete(maxval(lin%comsr%noverlaps(:)),0:nproc-1), stat=istat)
-call memocc(istat, lin%comsr%communComplete, 'lin%comsr%communComplete', subname)
-allocate(lin%comsr%computComplete(maxval(lin%comsr%noverlaps(:)),0:nproc-1), stat=istat)
-call memocc(istat, lin%comsr%computComplete, 'lin%comsr%computComplete', subname)
-
-end subroutine initializeCommsSumrho
+!!subroutine initializeCommsSumrho(iproc, nproc, nscatterarr, lin, phibuff)
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!! Calling arguments
+!!integer,intent(in):: iproc, nproc
+!!integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!type(linearParameters),intent(inout):: lin
+!!real(8),dimension(:),pointer,intent(out):: phibuff
+!!
+!!! Local variables
+!!integer:: istat, jproc, is, ie, ioverlap, i3s, i3e, tag, ilr, iorb
+!!character(len=*),parameter:: subname='initializeCommsSumrho'
+!!
+!!
+!!! First count the number of overlapping orbitals for each slice.
+!!allocate(lin%comsr%noverlaps(0:nproc-1), stat=istat)
+!!call memocc(istat, lin%comsr%noverlaps, 'lin%comsr%noverlaps', subname)
+!!do jproc=0,nproc-1
+!!    is=nscatterarr(jproc,3)+1
+!!    ie=is+nscatterarr(jproc,1)
+!!    ioverlap=0
+!!    do iorb=1,lin%orbs%norb
+!!        ilr=lin%onWhichAtomAll(iorb)
+!!        i3s=2*lin%Llr(ilr)%ns3+1
+!!        i3e=2*lin%Llr(ilr)%ns3+lin%Llr(ilr)%d%n3i
+!!        if(i3s<=ie .and. i3e>=is) then
+!!            ioverlap=ioverlap+1
+!!        end if
+!!    end do
+!!    lin%comsr%noverlaps(jproc)=ioverlap
+!!end do
+!!! Do the initialization concerning the calculation of the charge density.
+!!allocate(lin%comsr%istarr(0:nproc-1), stat=istat)
+!!call memocc(istat, lin%comsr%istarr, 'lin%comsr%istarr', subname)
+!!allocate(lin%comsr%istrarr(lin%comsr%noverlaps(iproc)), stat=istat)
+!!call memocc(istat, lin%comsr%istrarr, 'lin%comsr%istrarr', subname)
+!!allocate(lin%comsr%overlaps(lin%comsr%noverlaps(iproc)), stat=istat)
+!!call memocc(istat, lin%comsr%overlaps, 'lin%comsr%overlaps', subname)
+!!
+!!allocate(lin%comsr%comarr(9,maxval(lin%comsr%noverlaps),0:nproc-1), stat=istat)
+!!call memocc(istat, lin%comsr%comarr, 'coms%commsSumrho', subname)
+!!
+!!
+!!tag=0
+!!lin%comsr%sizePhibuff=0
+!!lin%comsr%sizePhibuffr=0
+!!lin%comsr%istarr=1
+!!lin%comsr%istrarr=1
+!!do jproc=0,nproc-1
+!!    is=nscatterarr(jproc,3)+1
+!!    ie=is+nscatterarr(jproc,1)
+!!    ioverlap=0
+!!    do iorb=1,lin%orbs%norb
+!!        ilr=lin%onWhichAtomAll(iorb)
+!!        i3s=2*lin%Llr(ilr)%ns3+1
+!!        i3e=2*lin%Llr(ilr)%ns3+lin%Llr(ilr)%d%n3i
+!!        if(i3s<=ie .and. i3e>=is) then
+!!            ioverlap=ioverlap+1
+!!            tag=tag+1
+!!            call setCommunicationInformation(jproc, iorb, lin%comsr%istarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
+!!            if(iproc==jproc) then
+!!                lin%comsr%sizePhibuff = lin%comsr%sizePhibuff + lin%Llr(ilr)%wfd%nvctr_c + 7*lin%Llr(ilr)%wfd%nvctr_f
+!!                lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
+!!                lin%comsr%overlaps(ioverlap)=iorb
+!!                if(ioverlap<lin%comsr%noverlaps(iproc)) lin%comsr%istrarr(ioverlap+1) = lin%comsr%istrarr(ioverlap) + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
+!!            end if
+!!            lin%comsr%istarr(jproc)=lin%comsr%istarr(jproc)+lin%Llr(ilr)%wfd%nvctr_c + 7*lin%Llr(ilr)%wfd%nvctr_f
+!!        end if
+!!    end do
+!!end do
+!!
+!!allocate(phibuff(lin%comsr%sizePhibuff), stat=istat)
+!!call memocc(istat, phibuff, 'phibuff', subname)
+!!phibuff=0.d0
+!!
+!!allocate(lin%comsr%communComplete(maxval(lin%comsr%noverlaps(:)),0:nproc-1), stat=istat)
+!!call memocc(istat, lin%comsr%communComplete, 'lin%comsr%communComplete', subname)
+!!allocate(lin%comsr%computComplete(maxval(lin%comsr%noverlaps(:)),0:nproc-1), stat=istat)
+!!call memocc(istat, lin%comsr%computComplete, 'lin%comsr%computComplete', subname)
+!!
+!!end subroutine initializeCommsSumrho
 
 
 
@@ -1322,7 +1323,6 @@ type(linearParameters),intent(inout):: lin
 integer:: istat, jproc, is, ie, ioverlap, i3s, i3e, tag, ilr, iorb, is3ovrlp, n3ovrlp
 character(len=*),parameter:: subname='initializeCommsSumrho'
 
-write(*,*) '0: iproc', iproc
 
 ! First count the number of overlapping orbitals for each slice.
 allocate(lin%comsr%noverlaps(0:nproc-1), stat=istat)
@@ -1332,8 +1332,8 @@ do jproc=0,nproc-1
     ie=is+nscatterarr(jproc,1)-1
     if(iproc==0) write(*,'(a,3i8)') 'jproc, is, ie', jproc, is, ie
     ioverlap=0
-    do iorb=1,lin%orbs%norb
-        ilr=lin%onWhichAtomAll(iorb)
+    do iorb=1,lin%lb%orbs%norb
+        ilr=lin%lb%onWhichAtomAll(iorb)
         i3s=2*lin%Llr(ilr)%ns3-14
         i3e=i3s+lin%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
@@ -1341,7 +1341,7 @@ do jproc=0,nproc-1
         end if
     end do
     lin%comsr%noverlaps(jproc)=ioverlap
-    if(iproc==0) write(*,'(a,2i8)') 'jproc, lin%comsr%noverlaps(jproc)', jproc, lin%comsr%noverlaps(jproc)
+    !if(iproc==0) write(*,'(a,2i8)') 'jproc, lin%comsr%noverlaps(jproc)', jproc, lin%comsr%noverlaps(jproc)
 end do
 ! Do the initialization concerning the calculation of the charge density.
 allocate(lin%comsr%istarr(0:nproc-1), stat=istat)
@@ -1353,54 +1353,97 @@ allocate(lin%comsr%overlaps(lin%comsr%noverlaps(iproc)), stat=istat)
 call memocc(istat, lin%comsr%overlaps, 'lin%comsr%overlaps', subname)
 
 allocate(lin%comsr%comarr(9,maxval(lin%comsr%noverlaps),0:nproc-1), stat=istat)
-call memocc(istat, lin%comsr%comarr, 'coms%commsSumrho', subname)
+call memocc(istat, lin%comsr%comarr, 'lin%coms%commsSumrho', subname)
 
 
+write(*,'(a,i4,5x,200i5)') 'iproc, lin%lb%onWhichAtomAll',iproc, lin%lb%onWhichAtomAll(:)
 tag=0
-lin%comsr%sizePhibuff=0
-lin%comsr%sizePhibuffr=0
+!lin%comsr%sizePhibuff=0
+!lin%comsr%sizePhibuffr=0
 lin%comsr%istarr=1
 lin%comsr%istrarr=1
+lin%comsr%nrecvBuf=0
 do jproc=0,nproc-1
     is=nscatterarr(jproc,3)-14
     ie=is+nscatterarr(jproc,1)-1
     ioverlap=0
-    do iorb=1,lin%orbs%norb
-        ilr=lin%onWhichAtomAll(iorb)
-        i3s=2*lin%Llr(ilr)%ns3-14
-        i3e=i3s+lin%Llr(ilr)%d%n3i-1
-        if(i3s<=ie .and. i3e>=is) then
-            ioverlap=ioverlap+1
-            tag=tag+1
-            is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
-            n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
-if(iproc==0) write(*,'(a,3i9)') 'jproc, ioverlap, n3ovrlp', jproc, ioverlap, n3ovrlp
-            is3ovrlp=is3ovrlp-2*lin%Llr(ilr)%ns3+15
-            !call setCommunicationInformation(jproc, iorb, lin%comsr%istarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
-            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
-            if(iproc==jproc) then
-                !lin%comsr%sizePhibuff = lin%comsr%sizePhibuff + lin%Llr(ilr)%wfd%nvctr_c + 7*lin%Llr(ilr)%wfd%nvctr_f
-                !lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
-                lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
-                lin%comsr%overlaps(ioverlap)=iorb
-                !if(ioverlap<lin%comsr%noverlaps(iproc)) lin%comsr%istrarr(ioverlap+1) = lin%comsr%istrarr(ioverlap) + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
+    !!if(.not. lin%usederivativeBasisFunctions) then
+        do iorb=1,lin%lb%orbs%norb
+            ilr=lin%lb%onWhichAtomAll(iorb)
+            i3s=2*lin%Llr(ilr)%ns3-14
+            i3e=i3s+lin%Llr(ilr)%d%n3i-1
+            if(i3s<=ie .and. i3e>=is) then
+                ioverlap=ioverlap+1
+                tag=tag+1
+                is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+                n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+                is3ovrlp=is3ovrlp-2*lin%Llr(ilr)%ns3+15
+                !call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
+                call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin%nlr, lin%Llr, &
+                     lin%lb%onWhichAtomAll, lin%lb%orbs, lin%comsr%comarr(1,ioverlap,jproc))
+if(iproc==0) write(*,'(a,7i8)') 'jproc, iorb, mpisource, istsource, mpidest, istdest, lin%lb%orbs%isorb_par(jproc)', jproc, iorb, &
+     lin%comsr%comarr(1,ioverlap,jproc), lin%comsr%comarr(2,ioverlap,jproc), lin%comsr%comarr(5,ioverlap,jproc), lin%comsr%comarr(6,ioverlap,jproc), lin%lb%orbs%isorb_par(jproc)
+                if(iproc==jproc) then
+                    !lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
+                    lin%comsr%nrecvBuf = lin%comsr%nrecvBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
+                    lin%comsr%overlaps(ioverlap)=iorb
+                end if
+                lin%comsr%istrarr(jproc) = lin%comsr%istrarr(jproc) + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
             end if
-            !lin%comsr%istarr(jproc)=lin%comsr%istarr(jproc)+lin%Llr(ilr)%wfd%nvctr_c + 7*lin%Llr(ilr)%wfd%nvctr_f
-            lin%comsr%istrarr(jproc) = lin%comsr%istrarr(jproc) + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
-        end if
-    end do
+        end do
+    !!else
+    !!    do iorb=1,lind%orbs%norb
+    !!        ilr=lind%onWhichAtomAll(iorb)
+    !!        i3s=2*lind%Llr(ilr)%ns3-14
+    !!        i3e=i3s+lind%Llr(ilr)%d%n3i-1
+    !!        if(i3s<=ie .and. i3e>=is) then
+    !!            ioverlap=ioverlap+1
+    !!            tag=tag+1
+    !!            is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
+    !!            n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
+    !!            is3ovrlp=is3ovrlp-2*lind%Llr(ilr)%ns3+15
+    !!            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lind%comsr%istrarr(jproc), tag, lind, lin%comsr%comarr(1,ioverlap,jproc))
+    !!            if(iproc==jproc) then
+    !!                !lind%comsr%sizePhibuffr = lind%comsr%sizePhibuffr + lind%Llr(ilr)%d%n1i*lind%Llr(ilr)%d%n2i*n3ovrlp
+    !!                lind%comsr%nrecvBuf = lind%comsr%nrecvBuf + lind%Llr(ilr)%d%n1i*lind%Llr(ilr)%d%n2i*n3ovrlp
+    !!                lind%comsr%overlaps(ioverlap)=iorb
+    !!            end if
+    !!            lind%comsr%istrarr(jproc) = lind%comsr%istrarr(jproc) + lind%Llr(ilr)%d%n1i*lind%Llr(ilr)%d%n2i*n3ovrlp
+    !!        end if
+    !!    end do
+    !!end if
 end do
 
-write(*,*) '1: iproc', iproc
-lin%comsr%sizePhibuff=max(lin%comsr%sizePhibuff,1)
-!allocate(phibuff(lin%comsr%sizePhibuff), stat=istat)
-!call memocc(istat, phibuff, 'phibuff', subname)
-!phibuff=0.d0
+!lin%comsr%sizePhibuff=max(lin%comsr%sizePhibuff,1)
 
 allocate(lin%comsr%communComplete(maxval(lin%comsr%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, lin%comsr%communComplete, 'lin%comsr%communComplete', subname)
 allocate(lin%comsr%computComplete(maxval(lin%comsr%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, lin%comsr%computComplete, 'lin%comsr%computComplete', subname)
 
-write(*,*) '2: iproc', iproc
+
+! Calculate the dimension of the wave function for each process.
+! Do it for both the compressed ('npsidim') and for the uncompressed real space
+! ('npsidimr') case.
+lin%comsr%nsendBuf=0
+!if(.not. lin%useDerivativeBasisFunctions) then
+    do iorb=1,lin%lb%orbs%norbp
+        ilr=lin%lb%onWhichAtom(iorb)
+        lin%comsr%nsendBuf = lin%comsr%nsendBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
+    end do
+!else
+!    do iorb=1,lind%orbs%norbp
+!        ilr=lind%onWhichAtom(iorb)
+!        lin%comsr%nsendBuf = lin%comsr%nsendBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%orbs%nspinor
+!    end do
+!end if
+
+allocate(lin%comsr%sendBuf(lin%comsr%nsendBuf), stat=istat)
+call memocc(istat, lin%comsr%sendBuf, 'lin%comsr%sendBuf', subname)
+call razero(lin%comsr%nSendBuf, lin%comsr%sendBuf)
+
+allocate(lin%comsr%recvBuf(lin%comsr%nrecvBuf), stat=istat)
+call memocc(istat, lin%comsr%recvBuf, 'lin%comsr%recvBuf', subname)
+call razero(lin%comsr%nrecvBuf, lin%comsr%recvBuf)
+
 end subroutine initializeCommsSumrho2

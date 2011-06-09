@@ -387,10 +387,22 @@ module module_types
 !! for sumrho in the linear scaling version.
   type,public:: p2pCommsSumrho
     integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
+    real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: sizePhibuff, sizePhibuffr
+    integer:: nsendBuf, nrecvBuf
     logical,dimension(:,:),pointer:: communComplete, computComplete
-  end type
+  end type p2pCommsSumrho
+
+!> Contains all parameters for the basis with which we calculate the properties
+!! like energy and forces. Since we may also use the derivative of the trace
+!! minimizing orbitals, this basis may be larger than only the trace minimizing
+!! orbitals. In case we don't use the derivatives, these parameters are identical
+!! from those in lin%orbs etc.
+type,public:: largeBasis
+    type(communications_arrays):: comms
+    type(orbitals_data):: orbs, Lorbs
+    integer,dimension(:),pointer:: onWhichAtom, onWhichAtomAll
+end type largeBasis
 
 
 !!!!> Contains all parameters related to the linear scaling version.
@@ -413,7 +425,7 @@ module module_types
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder
     integer:: nItInguess, nlr, nLocregOverlap
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix
-    real(8),dimension(:),pointer:: potentialPrefac, locrad
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, phiRestart
     type(orbitals_data):: orbs, Lorbs
     type(communications_arrays):: comms, Lcomms
     type(locreg_descriptors):: lr
@@ -428,7 +440,8 @@ module module_types
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
     character(len=4):: getCoeff
     type(p2pCommsSumrho):: comsr
-  end type
+    type(largeBasis):: lb
+  end type linearParameters
 
 !!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: linear_zone_descriptors
