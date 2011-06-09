@@ -99,8 +99,8 @@ real(8):: fnoise
 
 ! Local variables
 integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut
-real(8),dimension(:),allocatable:: phi, phid
-real(8),dimension(:,:),allocatable:: occupForInguess, coeff, coeffd
+real(8),dimension(:),pointer:: phi, phid
+real(8),dimension(:,:),pointer:: occupForInguess, coeff, coeffd
 real(8):: ebsMod, alpha, pnrm, tt
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld
@@ -126,10 +126,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   end if
   allocate(occupForInguess(32,at%nat))
 
-  ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
-  !call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
-  !    input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, lphi, lphid, &
-  !    lphir, phibuffr)
+  ! Initialize the parameters for the linear scaling version and allocate all arrays.
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, &
        input, rxyz, nscatterarr, coeff, lphi)
 
@@ -140,7 +137,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, &
        phi)
   ! Cut off outside localization region -- experimental
-  call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+  !call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
 
   updatePhi=.false.

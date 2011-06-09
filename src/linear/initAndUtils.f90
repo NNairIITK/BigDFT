@@ -1,11 +1,7 @@
+!> This subroutine initializes all parameters needed for the linear scaling version
+!! and allocate all arrays.
 subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, &
     input, rxyz, nscatterarr, coeff, lphi)
-    
-!
-! Purpose:
-! ========
-!   This subroutine initializes all parameters needed for the linear scaling version.
-!
 ! Calling arguments:
 ! ==================
 !   Input arguments:
@@ -38,34 +34,18 @@ type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-real(8),dimension(:),allocatable,intent(out):: phi
-real(8),dimension(:,:),allocatable,intent(out):: coeff
+real(8),dimension(:),pointer,intent(out):: phi
+real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 
 
 ! Local variables
 integer:: jproc, istat, iorb, jorb, korb, ierr, iat, ityp, iall, norb_tot, klr
 integer:: norb, norbu, norbd, ilr, jlr, npsidim, nlocregOverlap, ist, iiorb, ii, jmpi, iilr, kmpi
-integer:: is, ie, tag, i3s, i3e, ioverlap, npsidimr
-integer,dimension(:),allocatable:: norbsPerType, norbsPerAtom, istOrb, onWhichMPI, onWhichAtom
+integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
-character(len=20):: atomname
 character(len=20),dimension(:),allocatable:: atomNames
-logical:: written, fileExists
-real(8),dimension(:),pointer:: phiWork
-real(8):: tt
-real :: ttreal
-! new
-real(gp),dimension(:),allocatable:: locrad
 
-
-allocate(lin%norbsPerType(at%ntypes), stat=istat)
-call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
-
-lin%nlr=at%nat
-
-allocate(lin%locrad(lin%nlr),stat=istat)
-call memocc(istat,lin%locrad,'lin%locrad',subname)
 
 ! Allocate all local arrays.
 allocate(atomNames(at%ntypes), stat=istat)
@@ -73,28 +53,33 @@ call memocc(istat, atomNames, 'atomNames', subname)
 allocate(norbsPerAtom(at%nat), stat=istat)
 call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 
-! Read in all parameters related to the linear scaling version and print them.
+! Number of localization regions.
+lin%nlr=at%nat
+
+! Allocate the basic arrays that are needed for reading the input parameters.
+call allocateBasicArrays(at, lin)
+
+! Read in all parameters related to the linear scaling version.
 call readLinearParameters(iproc, lin, at, atomNames)
 
-! Assign to each atom its number of basis functions and count how many basis functions 
-! we have in total.
-lin%orbs%norb=0
+! Count the number of basis functions.
+norb=0
 do iat=1,at%nat
     ityp=at%iatype(iat)
     norbsPerAtom(iat)=lin%norbsPerType(ityp)
-    lin%orbs%norb=lin%orbs%norb+norbsPerAtom(iat)
+    norb=norb+norbsPerAtom(iat)
 end do
 
-
-! Distribute the orbitals among the processors.
-norb=lin%orbs%norb
+! Distribute the basis functions among the processors.
 norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%Lorbs)
 
 
-! Distribute the orbitals among the processors.
+! Do the same again, but take into acount that we may also use the derivatives of the basis functions with
+! respect to x,y,z. These informations will be stored in lin%lb%orbs. If we don't use the derivtaive, then
+! lin%lb%orbs will be identical to lin%orbs.
 if(.not. lin%useDerivativeBasisFunctions) then
     norb=lin%orbs%norb
     norbu=norb
@@ -107,39 +92,36 @@ end if
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%Lorbs)
 
+
+! Assign the parameters needed for the communication to lin%comms. Again distinguish
+! between the 'normal' basis and the 'large' basis inlcuding the derivtaives.
+call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
+call orbitals_communicators(iproc,nproc,Glr,lin%lb%orbs,lin%lb%comms)
+
+
 ! Write all parameters related to the linear scaling version to the screen.
 call writeLinearParameters(iproc, nproc, at, lin, atomNames, lin%norbsPerType)
 
+! Allocate (almost) all remaining arrays.
+call allocateLinArrays(lin)
 
-! Decide which orbital is centered in which atom.
-allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
-call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
-allocate(lin%onWhichAtomAll(lin%orbs%norb), stat=istat)
-call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtomAll', subname)
-
+! Decide which orbital is centered on which atom, again for the 'normal' and
+! the 'large' basis.
 call assignOrbitalsToAtoms(iproc, lin%orbs, at%nat, norbsPerAtom, lin%onWhichAtom, lin%onWhichAtomAll)
-
-! The same for the basis including the derivatives.
-allocate(lin%lb%onWhichAtom(lin%lb%orbs%norbp), stat=istat)
-call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtom', subname)
-allocate(lin%lb%onWhichAtomAll(lin%lb%orbs%norb), stat=istat)
-call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtomAll', subname)
-
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignOrbitalsToAtoms(iproc, lin%lb%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
-if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4  ! Undo this..
+if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
+! Initialize the localization regions.
+call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
 
-
-
-
+! Maybe this could be moved to another subroutine? Or be omitted at all?
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 call memocc(istat, lin%orbs%eval, 'lin%orbs%eval', subname)
 lin%orbs%eval=-.5d0
 allocate(lin%Lorbs%eval(lin%Lorbs%norb), stat=istat)
 call memocc(istat, lin%Lorbs%eval, 'lin%Lorbs%eval', subname)
 lin%Lorbs%eval=-.5d0
-
 allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
 call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
 lin%lb%orbs%eval=-.5d0
@@ -147,113 +129,14 @@ allocate(lin%lb%Lorbs%eval(lin%lb%Lorbs%norb), stat=istat)
 call memocc(istat, lin%lb%Lorbs%eval, 'lin%lb%Lorbs%eval', subname)
 lin%lb%Lorbs%eval=-.5d0
 
+! Initialize the coefficients.
+call initCoefficients(iproc, orbs, lin, coeff)
 
-! Assign the parameters needed for the communication to lin%comms
-call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
-
-! Again for lind
-call orbitals_communicators(iproc,nproc,Glr,lin%lb%orbs,lin%lb%comms)
-
-
-! Allocate phi.
-allocate(phi(lin%lb%orbs%npsidim), stat=istat)
-call memocc(istat, phi, 'phi', subname)
-allocate(lin%phiRestart(lin%orbs%npsidim), stat=istat)
-call memocc(istat, lin%phiRestart, 'lin%phiRestart', subname)
-
-! Allocate the coefficients for the linear combinations of the  orbitals and initialize
-! them at random.
-! Do this only on the root, since the calculations to determine coeff are not yet parallelized.
-!allocate(coeff(lin%orbs%norb+lin%d%orbs%norb,orbs%norb), stat=istat)
-allocate(coeff(lin%lb%orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, coeff, 'coeff', subname)
-call initRandomSeed(0, 1)
-if(iproc==0) then
-    do iorb=1,orbs%norb
-       do jorb=1,lin%lb%orbs%norb
-          call random_number(ttreal)
-          coeff(jorb,iorb)=real(ttreal,kind=8)
-       end do
-    end do
-end if
-
-
-
-
-
-! Allocate the array of localisation regions
-allocate(lin%Llr(lin%nlr),stat=istat)
-allocate(lin%outofzone(3,lin%nlr),stat=istat)
-call memocc(istat,lin%outofzone,'lin%outofzone',subname)
-
-
-!! Write some physical information on the Glr
-!if(iproc==0) then
-!    write(*,'(x,a)') '>>>>> Global localization region:'
-!    write(*,'(3x,a,3i6)')'Global region n1,n2,n3: ',Glr%d%n1,Glr%d%n2,Glr%d%n3
-!    write(*,'(3x,a,3i6)')'Global region n1i,n2i,n3i: ',Glr%d%n1i,Glr%d%n2i,Glr%d%n3i
-!    write(*,'(3x,a,3i6)')'Global region nfl1,nfl2,nfl3: ',Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3
-!    write(*,'(3x,a,3i6)')'Global region nfu1,nfu2,nfu3: ',Glr%d%nfu1,Glr%d%nfu2,Glr%d%nfu3
-!    write(*,'(3x,a,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*input%hx,Glr%d%n2*input%hy,Glr%d%n3*input%hz
-!    write(*,'(3x,a,f10.2)')'Global volume: ',Glr%d%n1*input%hx*Glr%d%n2*input%hy*Glr%d%n3*input%hz
-!    write(*,'(3x,a,4i10)')'Global statistics: nseg_c, nseg_f, nvctr_c, nvctr_f',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
-!    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
-!end if
-
- call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
-
-!do ilr=1,lin%nlr
-!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
-!    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
-!    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
-!    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
-!    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
-!end do
-
-! Calculate the dimension of the wave function for each process.
-! Do it for both the compressed ('npsidim') and for the uncompressed real space
-! ('npsidimr') case.
-npsidim=0
-npsidimr=0
-do iorb=1,lin%orbs%norbp
-    ilr=lin%onWhichAtom(iorb)
-    npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
-    npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%orbs%nspinor
-end do
-lin%Lorbs%npsidim=npsidim
-lin%Lorbs%npsidimr=npsidimr
-
-if(.not. lin%useDerivativeBasisFunctions) then
-    lin%lb%Lorbs%npsidim=npsidim
-    lin%lb%Lorbs%npsidimr=npsidimr
-else
-    npsidim=0
-    npsidimr=0
-    do iorb=1,lin%lb%orbs%norbp
-        ilr=lin%lb%onWhichAtom(iorb)
-        npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
-        npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
-    end do
-    lin%lb%Lorbs%npsidim=npsidim
-    lin%lb%Lorbs%npsidimr=npsidimr
-end if
-
-
-
-! Allocate lphi, which will be phi transformed to the localization region.
-allocate(lphi(lin%lb%Lorbs%npsidim), stat=istat)
-call memocc(istat, lphi, 'lphi', subname)
-
-
-
-! Initialize everything concerning the communication for the calculation
-! of the charge density.
+! Initialize the parameters for the point to point communication for the
+! calculation of the charge density.
 call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin)
 
-
-
-
-
+! Deallocate all local arrays.
 iall=-product(shape(atomNames))*kind(atomNames)
 deallocate(atomNames, stat=istat)
 call memocc(istat, iall, 'atomNames', subname)
@@ -269,64 +152,61 @@ end subroutine allocateAndInitializeLinear
 
 
 subroutine readLinearParameters(iproc, lin, at, atomNames)
-use module_base
-use module_types
-implicit none
-
-integer,intent(in):: iproc
-type(linearParameters):: lin
-type(atoms_data),intent(in):: at
-character(len=20),dimension(at%ntypes):: atomNames
-!integer,dimension(at%ntypes):: norbsPerType
-
-! Local variables
-integer:: istat, itype, ierr, iall, iat
-logical:: fileExists
-character(len=*),parameter:: subname='readLinearParameters'
-real(8),dimension(:),allocatable:: locradType
-
-
-inquire(file='input.lin', exist=fileExists)
-if(.not. fileExists) then
-    if(iproc==0) write(*,'(x,a)') "ERROR: the file 'input.lin' must be present for the linear &
-        & scaling version!"
-    call mpi_barrier(mpi_comm_world, ierr)
-    stop
-end if
-allocate(locradType(at%ntypes), stat=istat)
-call memocc(istat, locradType, 'locradType', subname)
-allocate(lin%potentialPrefac(at%ntypes), stat=istat)
-call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
-open(unit=99, file='input.lin')
-read(99,*) lin%nItBasisFirst, lin%nItBasis
-read(99,*) lin%convCrit
-read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
-read(99,*) lin%startWithSD, lin%startDIIS
-read(99,*) lin%nItPrecond
-read(99,*) lin%getCoeff
-read(99,*) lin%nItCoeff, lin%convCritCoeff
-read(99,*) lin%nItSCC, lin%alphaMix
-read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
-read(99,*) lin%nItInguess
-read(99,*) lin%plotBasisFunctions
-call checkLinearParameters(iproc, lin)
-do itype=1,at%ntypes
-    read(99,*) atomNames(itype), lin%norbsPerType(itype), lin%potentialPrefac(itype), locradType(itype)
-end do
-close(unit=99)
-
-
-! Assign the localization radius to each atom
-do iat=1,at%nat
-    itype=at%iatype(iat)
-    lin%locrad(iat)=locradType(itype)
-end do
-
-
-iall=-product(shape(locradType))*kind(locradType)
-deallocate(locradType, stat=istat)
-call memocc(istat, iall, 'locradType', subname)
-
+  use module_base
+  use module_types
+  implicit none
+  
+  integer,intent(in):: iproc
+  type(linearParameters):: lin
+  type(atoms_data),intent(in):: at
+  character(len=20),dimension(at%ntypes):: atomNames
+  !integer,dimension(at%ntypes):: norbsPerType
+  
+  ! Local variables
+  integer:: istat, itype, ierr, iall, iat
+  logical:: fileExists
+  character(len=*),parameter:: subname='readLinearParameters'
+  real(8),dimension(:),allocatable:: locradType
+  
+  allocate(locradType(at%ntypes), stat=istat)
+  call memocc(istat, locradType, 'locradType', subname)
+    
+  ! Open the input file and read in the parameters.
+  inquire(file='input.lin', exist=fileExists)
+  if(.not. fileExists) then
+      if(iproc==0) write(*,'(x,a)') "ERROR: the file 'input.lin' must be present for the linear &
+          & scaling version!"
+      call mpi_barrier(mpi_comm_world, ierr)
+      stop
+  end if
+  open(unit=99, file='input.lin')
+  read(99,*) lin%nItBasisFirst, lin%nItBasis
+  read(99,*) lin%convCrit
+  read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
+  read(99,*) lin%startWithSD, lin%startDIIS
+  read(99,*) lin%nItPrecond
+  read(99,*) lin%getCoeff
+  read(99,*) lin%nItCoeff, lin%convCritCoeff
+  read(99,*) lin%nItSCC, lin%alphaMix
+  read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
+  read(99,*) lin%nItInguess
+  read(99,*) lin%plotBasisFunctions
+  call checkLinearParameters(iproc, lin)
+  do itype=1,at%ntypes
+      read(99,*) atomNames(itype), lin%norbsPerType(itype), lin%potentialPrefac(itype), locradType(itype)
+  end do
+  close(unit=99)
+  
+  ! Assign the localization radius to each atom.
+  do iat=1,at%nat
+      itype=at%iatype(iat)
+      lin%locrad(iat)=locradType(itype)
+  end do
+  
+  
+  iall=-product(shape(locradType))*kind(locradType)
+  deallocate(locradType, stat=istat)
+  call memocc(istat, iall, 'locradType', subname)
 
 end subroutine readLinearParameters
 
@@ -605,8 +485,8 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc
 type(linearParameters),intent(inout):: lin, lind
-real(8),dimension(:),allocatable,intent(inout):: phi, phid
-real(8),dimension(:,:),allocatable,intent(inout):: coeff, coeffd
+real(8),dimension(:),pointer,intent(inout):: phi, phid
+real(8),dimension(:,:),pointer,intent(inout):: coeff, coeffd
 
 ! Local variables
 integer:: istat, iall, iorb
@@ -1237,3 +1117,178 @@ call memocc(istat, lin%comsr%recvBuf, 'lin%comsr%recvBuf', subname)
 call razero(lin%comsr%nrecvBuf, lin%comsr%recvBuf)
 
 end subroutine initializeCommsSumrho2
+
+
+subroutine allocateLinArrays(lin)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(linearParameters),intent(inout):: lin
+
+! Local variables
+integer:: istat
+character(len=*),parameter:: subname='allocateLinArrays'
+
+
+allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
+call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
+
+allocate(lin%onWhichAtomAll(lin%orbs%norb), stat=istat)
+call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtomAll', subname)
+
+allocate(lin%lb%onWhichAtom(lin%lb%orbs%norbp), stat=istat)
+call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtom', subname)
+
+allocate(lin%lb%onWhichAtomAll(lin%lb%orbs%norb), stat=istat)
+call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtomAll', subname)
+
+allocate(lin%phiRestart(lin%orbs%npsidim), stat=istat)
+call memocc(istat, lin%phiRestart, 'lin%phiRestart', subname)
+
+
+end subroutine allocateLinArrays
+
+
+
+
+subroutine allocateBasicArrays(at, lin)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(atoms_data),intent(in):: at
+  type(linearParameters),intent(inout):: lin
+  
+  ! Local variables
+  integer:: istat
+  character(len=*),parameter:: subname='allocateBasicArrays'
+  
+  allocate(lin%norbsPerType(at%ntypes), stat=istat)
+  call memocc(istat, lin%norbsPerType, 'lin%norbsPerType', subname)
+  
+  allocate(lin%potentialPrefac(at%ntypes), stat=istat)
+  call memocc(istat, lin%potentialPrefac, 'lin%potentialPrefac', subname)
+
+  allocate(lin%locrad(lin%nlr),stat=istat)
+  call memocc(istat,lin%locrad,'lin%locrad',subname)
+  
+end subroutine allocateBasicArrays
+
+
+
+subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nat
+real(8),dimension(3,nat),intent(in):: rxyz
+type(linearParameters),intent(inout):: lin
+type(input_variables),intent(in):: input
+type(locreg_descriptors),intent(in):: Glr
+real(8),dimension(:),pointer:: phi, lphi
+
+! Local variables
+integer:: istat, npsidim, npsidimr, iorb, ilr
+character(len=*),parameter:: subname='initLocregs'
+
+! Allocate the array of localisation regions
+allocate(lin%Llr(lin%nlr),stat=istat)
+allocate(lin%outofzone(3,lin%nlr),stat=istat)
+call memocc(istat,lin%outofzone,'lin%outofzone',subname)
+
+
+!! Write some physical information on the Glr
+!if(iproc==0) then
+!    write(*,'(x,a)') '>>>>> Global localization region:'
+!    write(*,'(3x,a,3i6)')'Global region n1,n2,n3: ',Glr%d%n1,Glr%d%n2,Glr%d%n3
+!    write(*,'(3x,a,3i6)')'Global region n1i,n2i,n3i: ',Glr%d%n1i,Glr%d%n2i,Glr%d%n3i
+!    write(*,'(3x,a,3i6)')'Global region nfl1,nfl2,nfl3: ',Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3
+!    write(*,'(3x,a,3i6)')'Global region nfu1,nfu2,nfu3: ',Glr%d%nfu1,Glr%d%nfu2,Glr%d%nfu3
+!    write(*,'(3x,a,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*input%hx,Glr%d%n2*input%hy,Glr%d%n3*input%hz
+!    write(*,'(3x,a,f10.2)')'Global volume: ',Glr%d%n1*input%hx*Glr%d%n2*input%hy*Glr%d%n3*input%hz
+!    write(*,'(3x,a,4i10)')'Global statistics: nseg_c, nseg_f, nvctr_c, nvctr_f',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
+!    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
+!end if
+
+ call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
+
+!do ilr=1,lin%nlr
+!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
+!    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
+!    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
+!    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
+!    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
+!end do
+
+! Calculate the dimension of the wave function for each process.
+! Do it for both the compressed ('npsidim') and for the uncompressed real space
+! ('npsidimr') case.
+npsidim=0
+do iorb=1,lin%orbs%norbp
+    ilr=lin%onWhichAtom(iorb)
+    npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
+end do
+lin%Lorbs%npsidim=npsidim
+
+if(.not. lin%useDerivativeBasisFunctions) then
+    lin%lb%Lorbs%npsidim=npsidim
+else
+    npsidim=0
+    do iorb=1,lin%lb%orbs%norbp
+        ilr=lin%lb%onWhichAtom(iorb)
+        npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
+        npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
+    end do
+    lin%lb%Lorbs%npsidim=npsidim
+end if
+
+
+allocate(phi(lin%lb%orbs%npsidim), stat=istat)
+call memocc(istat, phi, 'phi', subname)
+
+allocate(lphi(lin%lb%Lorbs%npsidim), stat=istat)
+call memocc(istat, lphi, 'lphi', subname)
+
+end subroutine initLocregs
+
+
+
+!> Allocate the coefficients for the linear combinations of the  orbitals and initialize
+!! them at random.
+!! Do this only on the root, since the calculations to determine coeff are not yet parallelized.
+subroutine initCoefficients(iproc, orbs, lin, coeff)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc
+  type(orbitals_data),intent(in):: orbs
+  type(linearParameters),intent(in):: lin
+  real(8),dimension(:,:),pointer,intent(out):: coeff
+  
+  ! Local variables
+  integer:: iorb, jorb, istat
+  real:: ttreal
+  character(len=*),parameter:: subname='initCoefficients'
+  
+  
+  allocate(coeff(lin%lb%orbs%norb,orbs%norb), stat=istat)
+  call memocc(istat, coeff, 'coeff', subname)
+  
+  call initRandomSeed(0, 1)
+  if(iproc==0) then
+      do iorb=1,orbs%norb
+         do jorb=1,lin%lb%orbs%norb
+            call random_number(ttreal)
+            coeff(jorb,iorb)=real(ttreal,kind=8)
+         end do
+      end do
+  end if
+
+end subroutine initCoefficients

@@ -1252,8 +1252,8 @@ module module_interfaces
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(in):: rxyz
       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      real(8),dimension(:),allocatable,intent(out):: phi
-      real(8),dimension(:,:),allocatable,intent(out):: coeff
+      real(8),dimension(:),pointer,intent(out):: phi
+      real(8),dimension(:,:),pointer,intent(out):: coeff
       real(8),dimension(:),pointer,intent(out):: lphi
     end subroutine allocateAndInitializeLinear
 
@@ -1517,8 +1517,8 @@ module module_interfaces
       implicit none
       integer,intent(in):: iproc
       type(linearParameters),intent(inout):: lin, lind
-      real(8),dimension(:),allocatable,intent(inout):: phi, phid
-      real(8),dimension(:,:),allocatable,intent(inout):: coeff, coeffd
+      real(8),dimension(:),pointer,intent(inout):: phi, phid
+      real(8),dimension(:,:),pointer,intent(inout):: coeff, coeffd
 
     end subroutine deallocateLinear
     
@@ -2287,6 +2287,38 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(lin%comsr%nsendBuf),intent(inout):: sendBuf
        real(8),dimension(lin%comsr%nrecvBuf),intent(out):: recvBuf
      end subroutine postCommunicationSumrho2
+
+
+     subroutine allocateLinArrays(lin)
+       use module_base
+       use module_types
+       implicit none
+       type(linearParameters),intent(inout):: lin
+     end subroutine allocateLinArrays
+
+
+     subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nat
+       real(8),dimension(3,nat),intent(in):: rxyz
+       type(linearParameters),intent(inout):: lin
+       type(input_variables),intent(in):: input
+       type(locreg_descriptors),intent(in):: Glr
+       real(8),dimension(:),pointer:: phi, lphi
+     end subroutine initLocregs
+
+
+     subroutine initCoefficients(iproc, orbs, lin, coeff)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc
+       type(orbitals_data),intent(in):: orbs
+       type(linearParameters),intent(in):: lin
+       real(8),dimension(:,:),pointer,intent(out):: coeff
+     end subroutine initCoefficients
 
 
 
