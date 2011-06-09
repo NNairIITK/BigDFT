@@ -101,7 +101,8 @@ EXTRA_DIST = \
 	NEB_driver.sh 
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
-	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @LIBETSFIO_INCLUDE@
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
+	@LIBETSFIO_INCLUDE@ @LIB_ARCHIVE_CFLAGS@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -224,6 +225,7 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
+	posfiles.c \
 	sdcg.f90 \
 	bfgs.f90 \
 	$(DGEMMSY_INTERFACE)
@@ -245,6 +247,7 @@ bigdft_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 splsad_SOURCES = splinedsaddle.f90
@@ -253,6 +256,7 @@ splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
@@ -261,6 +265,7 @@ rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
  
 oneatom_SOURCES = oneatom.f90
@@ -269,6 +274,7 @@ oneatom_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 
@@ -278,6 +284,7 @@ MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)  
 
 abscalc_SOURCES = abscalc.f90 
@@ -286,6 +293,7 @@ abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 test_forces_SOURCES = test_forces.f90
@@ -294,6 +302,7 @@ test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 NEB_SOURCES = NEB.f90 \
@@ -301,6 +310,7 @@ NEB_SOURCES = NEB.f90 \
 NEB_LDFLAGS = 
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
@@ -309,6 +319,7 @@ memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
@@ -318,6 +329,7 @@ frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 bart_SOURCES = \
@@ -338,6 +350,7 @@ bart_LDADD = art/libart.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 CLEANFILES = \
