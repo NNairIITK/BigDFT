@@ -1463,7 +1463,11 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      end if
   else if (atoms%format == "ascii") then
      !read atomic positions
-     call read_ascii_positions(iproc,99,atoms,rxyz)
+     if (.not.archive) then
+        call read_ascii_positions(iproc,99,atoms,rxyz,directGetLine)
+     else
+        call read_ascii_positions(iproc,99,atoms,rxyz,archiveGetLine)
+     end if
   end if
 
   !control atom positions
@@ -1931,20 +1935,27 @@ END SUBROUTINE parse_extra_info
 
 
 !> Read atomic positions of ascii files.
-subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
+subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
+  interface
+     subroutine getline(line,ifile,eof)
+       integer, intent(in) :: ifile
+       character(len=150), intent(out) :: line
+       logical, intent(out) :: eof
+     end subroutine getline
+  end interface
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl, reduced
+  logical :: lpsdbl, reduced, eof
   integer :: iat,ityp,i,i_stat,j,nlines
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
@@ -1957,8 +1968,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   ! First pass to store the file in a string buffer.
   nlines = 1
   do
-     read(ifile,'(a150)', iostat = i_stat) lines(nlines)
-     if (i_stat /= 0) then
+     call getline(lines(nlines), ifile, eof)
+     if (eof) then
         exit
      end if
      nlines = nlines + 1

@@ -207,13 +207,20 @@ module module_interfaces
        end interface
      END SUBROUTINE read_xyz_positions
 
-     subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
+     subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,ifile
        type(atoms_data), intent(inout) :: atoms
        real(gp), dimension(:,:), pointer :: rxyz
+       interface
+          subroutine getline(line,ifile,eof)
+            integer, intent(in) :: ifile
+            character(len=150), intent(out) :: line
+            logical, intent(out) :: eof
+          end subroutine getline
+       end interface
      END SUBROUTINE read_ascii_positions
 
      subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
