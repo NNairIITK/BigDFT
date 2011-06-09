@@ -5,6 +5,7 @@ EXTRA_DIST = \
 	Kinetic_k.h \
 	bench_lib.h \
 	MagicFilter.h \
+	MagicFilter_Generator.h \
 	Uncompress.h \
 	Wavelet.h \
 	Initialize.h \
@@ -12,6 +13,7 @@ EXTRA_DIST = \
 	Stream.h \
 	Reduction.h \
 	Reduction_Generator.h \
+	Benchmark_Generator.h \
         Tool.h\
 	$(SOURCES_CONV_CHECK)
 
@@ -29,6 +31,7 @@ libbasef_a_LIBADD = ../modules/defs.o ../modules/base.o \
 
 libbasec_a_SOURCES = OpenCL_wrappers.c \
                      MagicFilter.c \
+                     MagicFilter_Generator.cpp \
                      Kinetic.c \
                      Kinetic_Generator.cpp \
                      Wavelet.c \
@@ -42,7 +45,8 @@ libbasec_a_SOURCES = OpenCL_wrappers.c \
                      Density.c \
                      fft.c \
                      fft_generator.cpp \
-                     Benchmark.c
+                     Benchmark.c \
+                     Benchmark_Generator.cpp
 libOCL_a_SOURCES = $(libbasec_a_SOURCES)
 libStream_a_SOURCES = Stream.c
 
@@ -66,16 +70,16 @@ conv_check_fft_LDADD =  ../libbigdft.a ../PSolver/libpoissonsolver.a libbasec.a 
 conv_check_fft_LDFLAGS = -lrt -lstdc++
 stream_check_SOURCES = StreamCheck.c
 stream_check_LDADD = libOCL.a libStream.a
-stream_check_LDFLAGS = -lrt
+stream_check_LDFLAGS = -lrt -lstdc++
 bench_conv_SOURCES = bench_conv.c bench_lib.c
 bench_conv_LDADD = libbasec.a
-bench_conv_LDFLAGS = -lrt
+bench_conv_LDFLAGS = -lrt -lstdc++
 bench_conv_quick_SOURCES = bench_conv_quick.c bench_lib.c
 bench_conv_quick_LDADD = libbasec.a
-bench_conv_quick_LDFLAGS = -lrt
+bench_conv_quick_LDFLAGS = -lrt -lstdc++
 bench_zgemm_SOURCES = bench_zgemm.c bench_lib.c
 bench_zgemm_LDADD = libbasec.a
-bench_zgemm_LDFLAGS = -lrt
+bench_zgemm_LDFLAGS = -lrt -lstdc++
 
 stream: stream_check
 	OPENCL_PROFILE=1 OPENCL_PROFILE_CONFIG='$(srcdir)/profile.conf' ./stream_check

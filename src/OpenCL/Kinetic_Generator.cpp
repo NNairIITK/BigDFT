@@ -7,7 +7,7 @@
 #include <malloc.h>
 #include <math.h>
 #include <stdlib.h>
-#include "Reduction_Generator.h"
+#include "Kinetic_Generator.h"
 #include "OpenCL_wrappers.h"
 
 #define FILTER_WIDTH 32
