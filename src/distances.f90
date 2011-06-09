@@ -25,7 +25,6 @@ program find_angles
  real(kind=8), dimension(nsegr) :: nistor
  real(kind=8), dimension(nnmax+1) :: integrals
  character(len=1) :: whichone
- character(len=5) :: fn4
  integer :: icount,ncount,ncountmax,tot,atcenter,atangles,nstep,jr,posout,iunit
  logical :: exists
  character(len=40) :: contcar
@@ -423,15 +422,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
         pos(2,iat)=rxyz(2,iat)/atoms%alat2
         pos(3,iat)=rxyz(3,iat)/atoms%alat3
      enddo
-     ! TODO, move them into input_variables as a free method for atoms
-     deallocate(atoms%ifrztyp)
-     deallocate(atoms%iatype)
-     deallocate(atoms%natpol)
-     deallocate(atoms%atomnames)
-     deallocate(atoms%amu)
-     deallocate(rxyz)
-     if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
-
+     call deallocate_atoms(atoms, 'distance')
   end if
 
   !replica of the atom positions

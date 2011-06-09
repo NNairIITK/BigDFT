@@ -616,7 +616,6 @@ subroutine tddft_input_variables(filename,in)
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='tddft_input_variables'
-  character(len = 6) :: type
   integer :: iline, ierror
 
 
@@ -1348,6 +1347,32 @@ contains
 
 END SUBROUTINE frequencies_input_variables
 
+module position_files
+contains
+  subroutine directGetLine(line, ifile, eof)
+    integer, intent(in) :: ifile
+    character(len=150), intent(out) :: line
+    logical, intent(out) :: eof
+
+    integer :: i_stat
+
+    eof = .false.
+    read(ifile,'(a150)', iostat = i_stat) line
+    if (i_stat /= 0) eof = .true.
+  end subroutine directGetLine
+
+  subroutine archiveGetLine(line, ifile, eof)
+    integer, intent(in) :: ifile
+    character(len=150), intent(out) :: line
+    logical, intent(out) :: eof
+
+    integer :: i_stat
+
+    eof = .false.
+    call extractNextLine(line, i_stat)
+    if (i_stat /= 0) eof = .true.
+  end subroutine archiveGetLine
+end module position_files
 
 !>    Read atomic file
 subroutine read_atomic_file(file,iproc,atoms,rxyz)
@@ -1355,6 +1380,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   use module_types
   use module_interfaces, except_this_one => read_atomic_file
   use ab6_symmetry
+  use position_files
   implicit none
   character(len=*), intent(in) :: file
   integer, intent(in) :: iproc
@@ -1362,23 +1388,31 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_file'
-  integer :: i_stat, l, extract
-  logical :: file_exists
+  integer :: l, extract
+  logical :: file_exists, archive
   character(len = 128) :: filename
   character(len = 15) :: arFile
+  character(len = 6) :: ext
 
   file_exists = .false.
+  archive = .false.
 
   ! Extract from archive
   if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
      write(arFile, "(A)") "posout.tar.bz2"
      if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
-     call extractNextCompress(trim(arFile), len(trim(arFile)), &
-          & trim(file), len(trim(file)), extract)
+!!$     call extractNextCompress(trim(arFile), len(trim(arFile)), &
+!!$          & trim(file), len(trim(file)), extract, ext)
+     call openNextCompress(trim(arFile), len(trim(arFile)), &
+          & trim(file), len(trim(file)), extract, ext)
      if (extract == 0) then
         write(*,*) "Can't find '", file, "' in archive."
         stop
      end if
+     file_exists = .true.
+     archive = .true.
+     write(filename, "(A)") file//'.'//trim(ext)
+     write(atoms%format, "(A)") trim(ext)
   end if
 
   ! Test posinp.xyz
@@ -1386,12 +1420,14 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      inquire(FILE = file//'.xyz', EXIST = file_exists)
      if (file_exists) write(filename, "(A)") file//'.xyz'!"posinp.xyz"
      write(atoms%format, "(A)") "xyz"
+     open(unit=99,file=trim(filename),status='old')
   end if
   ! Test posinp.ascii
   if (.not. file_exists) then
      inquire(FILE = file//'.ascii', EXIST = file_exists)
      if (file_exists) write(filename, "(A)") file//'.ascii'!"posinp.ascii"
      write(atoms%format, "(A)") "ascii"
+     open(unit=99,file=trim(filename),status='old')
   end if
   ! Test the name directly
   if (.not. file_exists) then
@@ -1408,6 +1444,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
             write(*,*) " File should be *.ascii or *.xyz."
             stop
          end if
+         open(unit=99,file=trim(filename),status='old')
      end if
   end if
 
@@ -1417,24 +1454,17 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      stop 
   end if
 
-  open(unit=99,file=trim(filename),status='old')
-  !if (iproc.eq.0) write(*,*) 'Reading atomic input positions from file:',trim(filename) 
-
   if (atoms%format == "xyz") then
-     read(99,*) atoms%nat,atoms%units
-
-     allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,rxyz,'rxyz',subname)
-
      !read atomic positions
-     call read_atomic_positions(iproc,99,atoms,rxyz)
-
+     if (.not.archive) then
+        call read_xyz_positions(iproc,99,atoms,rxyz,directGetLine)
+     else
+        call read_xyz_positions(iproc,99,atoms,rxyz,archiveGetLine)
+     end if
   else if (atoms%format == "ascii") then
      !read atomic positions
      call read_ascii_positions(iproc,99,atoms,rxyz)
   end if
-
-  close(99)
 
   !control atom positions
   call check_atoms_positions(iproc,atoms,rxyz)
@@ -1443,11 +1473,12 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   atoms%symObj = -1
 
   ! rm temporary file.
-  if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
-     call unlinkExtract(trim(filename), len(trim(filename)))
+  if (.not.archive) then
+     close(99)
+!!$  else
+!!$     call unlinkExtract(trim(filename), len(trim(filename)))
   end if
 END SUBROUTINE read_atomic_file
-
 
 !>    Deallocate the structure atoms_data.
 subroutine deallocate_atoms(atoms,subname) 
@@ -1514,26 +1545,43 @@ END SUBROUTINE deallocate_atoms_scf
 
 
 !>    Read atomic positions
-subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
+subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(out) :: rxyz
+  real(gp), dimension(:,:), pointer :: rxyz
+  interface
+     subroutine getline(line,ifile,eof)
+       integer, intent(in) :: ifile
+       character(len=150), intent(out) :: line
+       logical, intent(out) :: eof
+     end subroutine getline
+  end interface
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl
+  logical :: lpsdbl, eof
   integer :: iat,ityp,i,ierrsfx,i_stat
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
 ! case for which the atomic positions are given whithin general precision
   real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
   character(len=20), dimension(100) :: atomnames
+
+  call getLine(line, ifile, eof)
+  if (eof) then
+     write(*,*) "Error: unexpected end of file."
+     stop
+  end if
+  read(line,*) atoms%nat,atoms%units
+
+  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',subname)
 
   allocate(atoms%iatype(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iatype,'atoms%iatype',subname)
@@ -1560,7 +1608,11 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   atoms%natpol(:)=100
 
   !read from positions of .xyz format, but accepts also the old .ascii format
-  read(ifile,'(a150)')line
+  call getLine(line, ifile, eof)
+  if (eof) then
+     write(*,*) "Error: unexpected end of file."
+     stop
+  end if
 
 !!!  !old format, still here for backward compatibility
 !!!  !admits only simple precision calculation
@@ -1634,7 +1686,11 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   atoms%ntypes=0
   do iat=1,atoms%nat
      !xyz input file, allow extra information
-     read(ifile,'(a150)')line 
+     call getLine(line, ifile, eof)
+     if (eof) then
+        write(*,*) "Error: unexpected end of file."
+        stop
+     end if
      if (lpsdbl) then
         read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,extra
      else
@@ -1700,7 +1756,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
-END SUBROUTINE read_atomic_positions
+END SUBROUTINE read_xyz_positions
 
 
 !>    Check the position of atoms
@@ -1907,16 +1963,14 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
      end if
      nlines = nlines + 1
      if (nlines > 5000) then
-        !if (iproc==0) 
-        write(*,*) 'Atomic input file too long (> 5000 lines).'
+        if (iproc==0) write(*,*) 'Atomic input file too long (> 5000 lines).'
         stop 
      end if
   end do
   nlines = nlines - 1
 
   if (nlines < 4) then
-     !if (iproc==0) 
-      write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
+     if (iproc==0) write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
      stop 
   end if
 

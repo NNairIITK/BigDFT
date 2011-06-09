@@ -35,13 +35,8 @@ void FC_FUNC(addtocompress, ADDTOCOMPRESS)(const char *archive, int *lgAr,
   int fd;
 #endif
 
-  arFilename = (char*)malloc(sizeof(char) * (*lgAr + 1));
-  memcpy(arFilename, archive, (size_t)*lgAr);
-  arFilename[*lgAr] = '\0';
-
-  addFilename = (char*)malloc(sizeof(char) * (*lgF + 1));
-  memcpy(addFilename, filename, (size_t)*lgF);
-  addFilename[*lgF] = '\0';
+  arFilename = strndup(archive, (size_t)*lgAr);
+  addFilename = strndup(filename, (size_t)*lgF);
 
   if (!count)
     {
@@ -101,30 +96,9 @@ void FC_FUNC(finalisecompress, FINALISECOMPRESS)(void)
 #endif
 }
 
-void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int *lgAr,
-                                                       const char *filename, int *lgF,
-                                                       int *extract)
+static void _openArchive_(const char *arFilename)
 {
   static int count = 0;
-  char *arFilename, *addFilename;
-#ifdef HAVE_LIB_ARCHIVE
-  struct archive_entry *entry;
-  struct stat st;
-  const void *buff;
-  size_t size;
-  off_t offset;
-  int fd;
-#endif
-
-  arFilename = (char*)malloc(sizeof(char) * (*lgAr + 1));
-  memcpy(arFilename, archive, (size_t)*lgAr);
-  arFilename[*lgAr] = '\0';
-
-  addFilename = (char*)malloc(sizeof(char) * (*lgF + 1));
-  memcpy(addFilename, filename, (size_t)*lgF);
-  addFilename[*lgF] = '\0';
-
-  *extract = 0;
 
   if (!count)
     {
@@ -140,11 +114,32 @@ void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int 
 #endif
     }
   count +=1;
+}
+
+void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int *lgAr,
+                                                       const char *filename, int *lgF,
+                                                       int *extract, char ext[6])
+{
+  char *arFilename, *addFilename;
+#ifdef HAVE_LIB_ARCHIVE
+  struct archive_entry *entry;
+  const void *buff;
+  size_t size;
+  off_t offset;
+  int fd, len;
+#endif
+
+  arFilename = strndup(archive, (size_t)*lgAr);
+  addFilename = strndup(filename, (size_t)*lgF);
+  len = strlen(addFilename);
+
+  *extract = 0;
+  _openArchive_(arFilename);
 
   /* fprintf(stdout, "Extract '%s' from '%s'.\n", addFilename, arFilename); */
 #ifdef HAVE_LIB_ARCHIVE
   while (archive_read_next_header(_posinp_, &entry) == ARCHIVE_OK)
-    if (!strncmp(addFilename, archive_entry_pathname(entry), strlen(addFilename)))
+    if (!strncmp(addFilename, archive_entry_pathname(entry), len))
       {
         /* We extract the file. */
         fd = creat(archive_entry_pathname(entry), 0640);
@@ -153,6 +148,8 @@ void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int 
           write(fd, buff, size);
         close(fd);
         *extract = 1;
+        strcpy(ext, archive_entry_pathname(entry) + len + 1);
+        memset(ext + strlen(ext), ' ', 6 - strlen(ext));
         break;
       }
 #endif
@@ -183,4 +180,84 @@ void FC_FUNC(finaliseextract, FINALISEEXTRACT)(void)
   archive_write_close(_posinp_);
   archive_write_finish(_posinp_);
 #endif
+}
+
+void FC_FUNC(opennextcompress, OPENNEXTCOMPRESS)(const char *archive, int *lgAr,
+                                                 const char *filename, int *lgF,
+                                                 int *extract, char ext[6])
+{
+  char *arFilename, *addFilename;
+#ifdef HAVE_LIB_ARCHIVE
+  struct archive_entry *entry;
+  int len;
+#endif
+
+  arFilename = strndup(archive, (size_t)*lgAr);
+  addFilename = strndup(filename, (size_t)*lgF);
+  len = strlen(addFilename);
+
+  *extract = 0;
+  _openArchive_(arFilename);
+
+  /* fprintf(stdout, "Open '%s' from '%s'.\n", addFilename, arFilename); */
+#ifdef HAVE_LIB_ARCHIVE
+  while (archive_read_next_header(_posinp_, &entry) == ARCHIVE_OK)
+    if (!strncmp(addFilename, archive_entry_pathname(entry), len))
+      {
+        *extract = 1;
+        strcpy(ext, archive_entry_pathname(entry) + len + 1);
+        memset(ext + strlen(ext), ' ', 6 - strlen(ext));
+        break;
+      }
+#endif
+
+  free(addFilename);
+  free(arFilename);
+}
+
+void FC_FUNC(extractnextline, EXTRACTNEXTLINE)(char line[150], int *eof)
+{
+  static const void *buff = (void*)0;
+  char *vals;
+  static size_t size;
+  size_t  idx, jdx;
+  off_t offset;
+  static size_t pos = 0;
+  int r;
+
+  *eof = 0;
+  jdx = 0;
+  /* fprintf(stdout, "Read a line (buff = %p, pos = %d)...\n", buff, pos); */
+
+  do
+    {
+      if (!buff)
+        r = archive_read_data_block(_posinp_, &buff, &size, &offset);
+      if (r != ARCHIVE_OK)
+        {
+          buff = (void*)0;
+          pos = 0;
+          if (!jdx)
+            *eof = 1;
+          return;
+        }
+      vals = (char*)buff;
+      for (idx = pos; idx < size; idx++)
+        {
+          if (vals[idx] != '\n')
+            line[jdx++] = vals[idx];
+          else
+            {
+              line[jdx] = '\0';
+              /* fprintf(stdout, "Found '%s'.\n", line); */
+              memset(line + jdx, ' ', 150 - jdx);
+              pos = idx + 1;
+              return;
+            }
+        }
+      /* We eat all. */
+      buff = (void*)0;
+      pos = 0;
+    }
+  while(1);
 }

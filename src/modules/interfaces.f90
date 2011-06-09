@@ -191,6 +191,22 @@ module module_interfaces
        real(gp), dimension(:,:), pointer :: rxyz
      END SUBROUTINE read_atomic_file
 
+     subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,ifile
+       type(atoms_data), intent(inout) :: atoms
+       real(gp), dimension(:,:), pointer :: rxyz
+       interface
+          subroutine getline(line,ifile,eof)
+            integer, intent(in) :: ifile
+            character(len=150), intent(out) :: line
+            logical, intent(out) :: eof
+          end subroutine getline
+       end interface
+     END SUBROUTINE read_xyz_positions
+
      subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
        use module_base
        use module_types
