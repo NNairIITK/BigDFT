@@ -1418,16 +1418,20 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   ! Test posinp.xyz
   if (.not. file_exists) then
      inquire(FILE = file//'.xyz', EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") file//'.xyz'!"posinp.xyz"
-     write(atoms%format, "(A)") "xyz"
-     open(unit=99,file=trim(filename),status='old')
+     if (file_exists) then
+        write(filename, "(A)") file//'.xyz'!"posinp.xyz"
+        write(atoms%format, "(A)") "xyz"
+        open(unit=99,file=trim(filename),status='old')
+     end if
   end if
   ! Test posinp.ascii
   if (.not. file_exists) then
      inquire(FILE = file//'.ascii', EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") file//'.ascii'!"posinp.ascii"
-     write(atoms%format, "(A)") "ascii"
-     open(unit=99,file=trim(filename),status='old')
+     if (file_exists) then
+        write(filename, "(A)") file//'.ascii'!"posinp.ascii"
+        write(atoms%format, "(A)") "ascii"
+        open(unit=99,file=trim(filename),status='old')
+     end if
   end if
   ! Test the name directly
   if (.not. file_exists) then
