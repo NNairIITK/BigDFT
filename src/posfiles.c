@@ -121,12 +121,13 @@ void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int 
                                                        int *extract, char ext[6])
 {
   char *arFilename, *addFilename;
+  int len;
 #ifdef HAVE_LIB_ARCHIVE
   struct archive_entry *entry;
   const void *buff;
   size_t size;
   off_t offset;
-  int fd, len;
+  int fd;
 #endif
 
   arFilename = strndup(archive, (size_t)*lgAr);
@@ -187,9 +188,9 @@ void FC_FUNC(opennextcompress, OPENNEXTCOMPRESS)(const char *archive, int *lgAr,
                                                  int *extract, char ext[6])
 {
   char *arFilename, *addFilename;
+  int len;
 #ifdef HAVE_LIB_ARCHIVE
   struct archive_entry *entry;
-  int len;
 #endif
 
   arFilename = strndup(archive, (size_t)*lgAr);
@@ -217,6 +218,7 @@ void FC_FUNC(opennextcompress, OPENNEXTCOMPRESS)(const char *archive, int *lgAr,
 
 void FC_FUNC(extractnextline, EXTRACTNEXTLINE)(char line[150], int *eof)
 {
+#ifdef HAVE_LIB_ARCHIVE
   static const void *buff = (void*)0;
   char *vals;
   static size_t size;
@@ -260,4 +262,8 @@ void FC_FUNC(extractnextline, EXTRACTNEXTLINE)(char line[150], int *eof)
       pos = 0;
     }
   while(1);
+#else
+  fprintf(stdout, "Warning: no possibility of archive,"
+          " compile BigDFT with libarchive.\n");
+#endif
 }

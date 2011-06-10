@@ -1401,18 +1401,20 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
      write(arFile, "(A)") "posout.tar.bz2"
      if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
+     inquire(FILE = trim(arFile), EXIST = file_exists)
+     if (file_exists) then
 !!$     call extractNextCompress(trim(arFile), len(trim(arFile)), &
 !!$          & trim(file), len(trim(file)), extract, ext)
-     call openNextCompress(trim(arFile), len(trim(arFile)), &
-          & trim(file), len(trim(file)), extract, ext)
-     if (extract == 0) then
-        write(*,*) "Can't find '", file, "' in archive."
-        stop
+        call openNextCompress(trim(arFile), len(trim(arFile)), &
+             & trim(file), len(trim(file)), extract, ext)
+        if (extract == 0) then
+           write(*,*) "Can't find '", file, "' in archive."
+           stop
+        end if
+        archive = .true.
+        write(filename, "(A)") file//'.'//trim(ext)
+        write(atoms%format, "(A)") trim(ext)
      end if
-     file_exists = .true.
-     archive = .true.
-     write(filename, "(A)") file//'.'//trim(ext)
-     write(atoms%format, "(A)") trim(ext)
   end if
 
   ! Test posinp.xyz

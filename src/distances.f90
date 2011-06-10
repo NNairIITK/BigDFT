@@ -188,7 +188,7 @@ program find_angles
                 th=theta(pos(1,nrstn(icount)),pos(1,i),pos(1,nrstn(k)))
                 anglemin=min(anglemin,th)
                 anglemax=max(anglemax,th)
-                j=int(th*real(nseg,kind=8)/180.d0)
+                j=int(th*real(nseg,kind=8)/180.d0) + 1
                 isto(j,ncount)=isto(j,ncount)+1
                 isto(j,nnmax+1)=isto(j,nnmax+1)+1
              end do
@@ -389,7 +389,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   !local variables
   character(len=5) :: fn4
   integer :: i,iat,ityp,i1,i2,i3
-  real(kind=8) :: x,y,z,vx,vy,vz,xlo,xhi,ylo,yhi,zlo,zhi
+  real(kind=8) :: x,y,z,vx,vy,vz,xlo,xhi,ylo,yhi,zlo,zhi,alat(3)
   type(atoms_data) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
 
@@ -417,10 +417,16 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
      write(fn4,'(i5.5)') iunit
      call read_atomic_file('posmd_'//fn4,0,atoms,rxyz)
      !transform the positions in reduced coordinates
+     alat(1) = atoms%alat1
+     if (atoms%geocode == 'F') alat(1) = 1.d0
+     alat(2) = atoms%alat2
+     if (atoms%geocode == 'F' .or. atoms%geocode == 'S') alat(2) = 1.d0
+     alat(3) = atoms%alat3
+     if (atoms%geocode == 'F') alat(3) = 1.d0
      do iat=1,nat
-        pos(1,iat)=rxyz(1,iat)/atoms%alat1
-        pos(2,iat)=rxyz(2,iat)/atoms%alat2
-        pos(3,iat)=rxyz(3,iat)/atoms%alat3
+        pos(1,iat)=rxyz(1,iat)/alat(1)
+        pos(2,iat)=rxyz(2,iat)/alat(2)
+        pos(3,iat)=rxyz(3,iat)/alat(3)
      enddo
      call deallocate_atoms(atoms, 'distance')
   end if
