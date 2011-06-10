@@ -108,7 +108,8 @@ real(gp) :: kx,ky,kz
               ! iiAt indicates on which atom orbital iorb is centered.
               iiAt=lin%onWhichAtom(iorb)
               call solvePrecondEquation(lr,ncplx,ncong,cprecr,&
-                   hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb), rxyz(1,iiAt), orbs, lin%potentialPrefac(at%iatype(iiAt)), lin%confPotOrder, it)
+                   hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb), rxyz(1,iiAt), orbs,&
+                   lin%potentialPrefac(at%iatype(iiAt)), lin%confPotOrder, it)
 
            end if
 
@@ -189,7 +190,8 @@ real(wp), dimension(:), allocatable :: b,r,d
 
   call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 
-  call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal, rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+  call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,x,d,w,scal,&
+       rxyzParab, orbs, potentialPrefac, confPotOrder, it)
 
 !!  rmr_new=dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,d(1),1)
 !!  write(*,*)'debug1',rmr_new
@@ -206,7 +208,8 @@ real(wp), dimension(:), allocatable :: b,r,d
   do icong=1,ncong 
      !write(*,*)icong,rmr_new
 
-     call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal, rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+     call differentiateBetweenBoundaryConditions(ncplx,lr,hx,hy,hz,kx,ky,kz,cprecr,d,b,w,scal,&
+          rxyzParab, orbs, potentialPrefac, confPotOrder, it)
 
      !in the complex case these objects are to be supposed real
      alpha=rmr_new/dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),d(1),1,b(1),1)

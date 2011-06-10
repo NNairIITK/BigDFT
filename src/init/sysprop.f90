@@ -959,7 +959,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%efermi = UNINITIALISED
 
   ! allocate inwhichlocreg
-  allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)
+  allocate(orbs%inwhichlocreg(orbs%norbp),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
   ! default for inwhichlocreg
   orbs%inwhichlocreg = 1
@@ -973,7 +973,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   ! Define to new arrays:
   ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
   !   the reference orbital of each other process.
-  ! - orbs%onWhichAtom indicates on which MPI process a given orbital
+  ! - orbs%onWhichMPI indicates on which MPI process a given orbital
   !   is located.
   allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
   call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)

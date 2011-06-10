@@ -99,8 +99,8 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      nu3 = nlpspd%nboxp_c(2,3,iat)
 
 !    Now we can determine the number of segments and elements of coarse grid
-     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,1,&
-&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(atoms%iatype(iatom),3),cpmult,hhx,hhy,hhz,logrid)
+     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
+&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,3),cpmult,hhx,hhy,hhz,logrid)
 
      call number_of_projector_elements_in_locreg(iatom,1,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_c,mvctr_c)
 
@@ -117,8 +117,8 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      nl3 = nlpspd%nboxp_f(1,3,iat)
      nu3 = nlpspd%nboxp_f(2,3,iat)
 
-     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,1,&
-&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(atoms%iatype(iatom),2),fpmult,hhx,hhy,hhz,logrid)
+     call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
+&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,2),fpmult,hhx,hhy,hhz,logrid)
 
      call number_of_projector_elements_in_locreg(iatom,2,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_f,mvctr_f)
 
@@ -642,6 +642,55 @@ subroutine allocate_Lnlpspd(natom,Lnlpspd,subname)
 END SUBROUTINE allocate_Lnlpspd
 !%***
 
+!#############################################################################################################################################
+!!****f* BigDFT/allocate_Lnlpspd
+!#############################################################################################################################################
+!! FUNCTION:  Deallocates most of the arrays in Lnlpspd 
+!!
+!! WARNING: 
+!!         
+!! SOURCE:
+!!
+subroutine deallocate_Lnlpspd(Lnlpspd,subname)
+
+  use module_base
+  use module_types
+
+ implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  type(nonlocal_psp_descriptors),intent(inout) :: Lnlpspd  ! Local descriptors for the projectors
+  character(len=*), intent(in) :: subname
+  !#######################################
+  ! Local Variables 
+  !#######################################
+  integer :: i_stat,i_all
+
+  i_all=-product(shape(Lnlpspd%nvctr_p)*kind(Lnlpspd%nvctr_p))
+  deallocate(Lnlpspd%nvctr_p,stat=i_stat)
+  call memocc(i_stat,i_all,'nvctr_p',subname)
+  i_all=-product(shape(Lnlpspd%nseg_p)*kind(Lnlpspd%nseg_p))
+  deallocate(Lnlpspd%nseg_p,stat=i_stat)
+  call memocc(i_stat,i_all,'nseg_p',subname)
+  i_all=-product(shape(Lnlpspd%nboxp_c)*kind(Lnlpspd%nboxp_c))
+  deallocate(Lnlpspd%nboxp_c,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_c',subname)
+  i_all=-product(shape(Lnlpspd%nboxp_f)*kind(Lnlpspd%nboxp_f))
+  deallocate(Lnlpspd%nboxp_f,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_f',subname)
+  i_all=-product(shape(Lnlpspd%keyg_p)*kind(Lnlpspd%keyg_p))
+  deallocate(Lnlpspd%keyg_p,stat=i_stat)
+  call memocc(i_stat,i_all,'keyg_p',subname)
+  i_all=-product(shape(Lnlpspd%keyv_p)*kind(Lnlpspd%keyv_p))
+  deallocate(Lnlpspd%keyv_p,stat=i_stat)
+  call memocc(i_stat,i_all,'keyv_p',subname)
+
+END SUBROUTINE deallocate_Lnlpspd
+!%***
+
+
 
 !#############################################################################################################################################
 !!****f* BigDFT/allocate_projd
@@ -678,6 +727,7 @@ subroutine allocate_projd(mseg,Lnlpspd,subname)
 END SUBROUTINE allocate_projd
 !%***
 
+
 !#############################################################################################################################################
 !!****f* BigDFT/apply_local_projectors
 !#############################################################################################################################################
@@ -688,7 +738,7 @@ END SUBROUTINE allocate_projd
 !!         
 !! SOURCE:
 !!
-subroutine apply_local_projectors(atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,psi,rxyz,hpsi,eproj)
+subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,psi,rxyz,hpsi,eproj)
 
   use module_base
   use module_types
@@ -698,19 +748,20 @@ subroutine apply_local_projectors(atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,
   !#######################################
   ! Subroutine Scalar Arguments
   !#######################################
+  integer, intent(in) :: ilr,nspin
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data),intent(in) :: atoms
   type(locreg_descriptors),intent(in) :: Llr
   type(nonlocal_psp_descriptors),intent(in) :: Lnlpspd  ! Local descriptors for the projectors
   type(orbitals_data),intent(in) :: orbs
-  real(gp), intent(out) :: eproj
+  real(gp), intent(inout) :: eproj
   !#######################################
   ! Subroutine Array Arguments
   !#######################################
   integer,dimension(atoms%nat),intent(in) :: projflg
   real(wp),dimension(Lnlpspd%nprojel),intent(out):: Lproj  !local projectors
-  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(in) :: psi  !local wavefunction
-  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(out):: hpsi ! local |p><p|Psi>
+  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(in) :: psi  !local wavefunction
+  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(inout):: hpsi ! local |p><p|Psi>
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !#######################################
   ! Local Variables 
@@ -718,109 +769,132 @@ subroutine apply_local_projectors(atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,
   integer :: ikpt,istart_c,ncplx,jseg_c,iproj,iat,ityp,l,i,nwarnings
   integer :: isorb,ieorb,nspinor,iorb,istart_o,ispinor
   integer :: nels,ipsi,ii,iatom
+  integer :: jj,orbtot,ispin,ind
+  integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
-  real(wp),dimension(orbs%norbp,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: psi_tmp
-  real(wp),dimension(orbs%norbp,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: hpsi_tmp
+  real(wp),dimension(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: psi_tmp
+  real(wp),dimension(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: hpsi_tmp
 
 !  First reshape the wavefunctions: psi_tmp(norb,nels,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
 
-   psi_tmp = reshape(psi, (/ orbs%norbp, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
-   hpsi_tmp = reshape(hpsi,(/ orbs%norbp, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
+!  format the number of orbitals in this locreg orbitals
+   orbtot = 0
+   do iorb=1,orbs%norbp
+      if (orbs%inWhichLocreg(iorb) == ilr) then
+         orbtot = orbtot+1
+         inthisLocreg(orbtot) = iorb
+      end if
+   end do
+   
+   psi_tmp = reshape(psi, (/ Llr%Localnorb*nspin, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
+   hpsi_tmp = reshape(hpsi,(/ LLr%localnorb*nspin, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
+
+   ieorb = orbtot   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
+   ikpt=orbs%iokpt(1)
+   loop_kpt: do
+    
+      !features of the k-point ikpt
+      kx=orbs%kpts(1,ikpt)
+      ky=orbs%kpts(2,ikpt)
+      kz=orbs%kpts(3,ikpt)
+
+      !evaluate the complexity of the k-point
+      if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+         ncplx=1
+      else
+         ncplx=2
+      end if
+
+      jseg_c = 1
+      iproj = 0
+      iatom = 0
+      do iat = 1,atoms%nat
+         if(projflg(iat) == 0) cycle
+         iatom = iatom +1
+         istart_c = 1
+         ityp=atoms%iatype(iat)
+
+         do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+            do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+               if (atoms%psppar(l,i,ityp) /= 0.0_gp) then
+
+!                 Second fill the projectors
+!                 NOTE : idir was set to 0 because we don't care for derivatives
+                  call local_projector(atoms%geocode,atoms%atomnames(ityp),iat,0,l,i,&
+                       atoms%psppar(l,0,ityp),rxyz(1,iat),Llr,&
+                       hx,hy,hz,kx,ky,kz,ncplx,Lnlpspd%nvctr_p(2*iatom-1),&
+                       Lnlpspd%nvctr_p(2*iatom),Lnlpspd%nseg_p(2*iatom-1),Lnlpspd%nseg_p(2*iatom),&
+                       Lnlpspd%keyv_p(jseg_c),Lnlpspd%keyg_p(1,jseg_c),Lproj(istart_c),nwarnings)
+
+                  iproj=iproj+2*l-1
+                  istart_c=istart_c+(Lnlpspd%nvctr_p(2*iatom-1)+7*Lnlpspd%nvctr_p(2*iatom))*(2*l-1)*ncplx
+                  !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,Lnlpspd%nprojel,ncplx,nlpspd%nprojel
+                  if (istart_c > Lnlpspd%nprojel+1) stop 'istart_c > nprojel+1'
+                  if (iproj > Lnlpspd%nproj) stop 'iproj > nproj'
+               endif
+            enddo
+         enddo
 
 
-     ikpt=orbs%iokpt(1)
-     loop_kpt: do
+!        Apply them on the wavefunctions in the overlap region
+!        hpsi contains the new wavefunctions
+         call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor) 
+
+         do iorb=isorb,ieorb
+            do ii=1,orbtot
+               if (inthisLocreg(ii) == iorb) then   !using ii and iorb to identify the orbitals because in linear case, the ordering is different
+                                                    !orbitals are now orderer by locreg. So, iorb is the old numbering (i.e. in Global region)
+                                                    !while ii is it's numbering in the locreg.
+
+                  istart_o=1
+                  do ispinor=1,nspinor,ncplx
+                     eproj_spinor = 0.0_gp
+                     if (ispinor >= 2) istart_o=1
+
+                     !GTH and HGH pseudopotentials
+                     do l=1,4
+                        do i=1,3
+                           if (atoms%psppar(l,i,ityp) /= 0.0_gp) then
+                              call applyprojector(ncplx,l,i,atoms%psppar(0,0,ityp),atoms%npspcode(ityp),&
+                                   Llr%wfd%nvctr_c,Llr%wfd%nvctr_f,Llr%wfd%nseg_c,&
+                                   Llr%wfd%nseg_f,Llr%wfd%keyv,Llr%wfd%keyg,&
+                                   Lnlpspd%nvctr_p(2*iatom-1),Lnlpspd%nvctr_p(2*iatom),Lnlpspd%nseg_p(2*iatom-1),&
+                                   Lnlpspd%nseg_p(2*iatom),Lnlpspd%keyv_p(jseg_c),Lnlpspd%keyg_p(1,jseg_c),&
+                                   Lproj(istart_o),psi_tmp(ii,:,ispinor),hpsi_tmp(ii,:,ispinor),eproj_spinor)
+                               
+                               istart_o=istart_o+(Lnlpspd%nvctr_p(2*iatom-1)+7*Lnlpspd%nvctr_p(2*iatom))*(2*l-1)*ncplx
+                           end if
+                        enddo
+                     enddo
+                     eproj=eproj+&
+                          orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_spinor      
+                  end do
+               end if
+            end do
+         end do
+         jseg_c = jseg_c + Lnlpspd%nseg_p(2*iatom - 1)+ Lnlpspd%nseg_p(2*iatom) 
+      end do  !on iat
       
-        !features of the k-point ikpt
-        kx=orbs%kpts(1,ikpt)
-        ky=orbs%kpts(2,ikpt)
-        kz=orbs%kpts(3,ikpt)
+     ! hpsi = reshape(hpsi_tmp,(/ (Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin/))!,order=(/ 2, 3, 1 /))
 
-        !evaluate the complexity of the k-point
-        if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
-           ncplx=1
-        else
-           ncplx=2
-        end if
+      ind = 0
+      hpsi = 0.0_wp
+      do ispin = 1,nspin                 !is the order correct for spin and spinor?
+         do ispinor=1,orbs%nspinor
+            do ii=1,Llr%localnorb
+               do jj=1,Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
+                  hpsi(ind+jj) = hpsi_tmp(ii+(ispin-1)*Llr%localnorb,jj,ispinor)
+               end do
+               ind = ind + Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
+            end do
+         end do
+      end do
 
-        jseg_c = 1
-        iproj = 0
-        iatom = 0
-        do iat = 1,atoms%nat
-           if(projflg(iat) == 0) cycle
-           iatom = iatom +1
-           istart_c = 1
-           ityp=atoms%iatype(iat)
-
-           do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
-              do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
-                 if (atoms%psppar(l,i,ityp) /= 0.0_gp) then
-
-!                   Second fill the projectors
-!                   NOTE : idir was set to 0 because we don't care for derivatives
-                    call local_projector(atoms%geocode,atoms%atomnames(ityp),iat,0,l,i,&
-                         atoms%psppar(l,0,ityp),rxyz(1,iat),Llr,&
-                         hx,hy,hz,kx,ky,kz,ncplx,Lnlpspd%nvctr_p(2*iatom-1),&
-                         Lnlpspd%nvctr_p(2*iatom),Lnlpspd%nseg_p(2*iatom-1),Lnlpspd%nseg_p(2*iatom),&
-                         Lnlpspd%keyv_p(jseg_c),Lnlpspd%keyg_p(1,jseg_c),Lproj(istart_c),nwarnings)
-
-                    iproj=iproj+2*l-1
-                    istart_c=istart_c+(Lnlpspd%nvctr_p(2*iatom-1)+7*Lnlpspd%nvctr_p(2*iatom))*(2*l-1)*ncplx
-                    !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,Lnlpspd%nprojel,ncplx,nlpspd%nprojel
-                    if (istart_c > Lnlpspd%nprojel+1) stop 'istart_c > nprojel+1'
-                    if (iproj > Lnlpspd%nproj) stop 'iproj > nproj'
-                 endif
-              enddo
-           enddo
-
-
-!          Apply them on the wavefunctions in the overlap region
-!          hpsi contains the new wavefunctions
-           call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor) 
-
-           do iorb=isorb,ieorb 
-              istart_o=1
-              do ispinor=1,nspinor,ncplx
-                 eproj_spinor = 0.0_gp
-                 if (ispinor >= 2) istart_o=1
-
-                 !GTH and HGH pseudopotentials
-                 do l=1,4
-                    do i=1,3
-                       if (atoms%psppar(l,i,ityp) /= 0.0_gp) then
-                          call applyprojector(ncplx,l,i,atoms%psppar(0,0,ityp),atoms%npspcode(ityp),&
-                               Llr%wfd%nvctr_c,Llr%wfd%nvctr_f,Llr%wfd%nseg_c,&
-                               Llr%wfd%nseg_f,Llr%wfd%keyv,Llr%wfd%keyg,&
-                               Lnlpspd%nvctr_p(2*iatom-1),Lnlpspd%nvctr_p(2*iatom),Lnlpspd%nseg_p(2*iatom-1),&
-                               Lnlpspd%nseg_p(2*iatom),Lnlpspd%keyv_p(jseg_c),Lnlpspd%keyg_p(1,jseg_c),&
-                               Lproj(istart_o),psi_tmp(iorb,:,ispinor),hpsi_tmp(iorb,:,ispinor),eproj_spinor)
-                           
-                           istart_o=istart_o+(Lnlpspd%nvctr_p(2*iatom-1)+7*Lnlpspd%nvctr_p(2*iatom))*(2*l-1)*ncplx
-                       end if
-                    enddo
-                 enddo
-                 eproj=eproj+&
-                      orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_spinor
-              end do
-           end do
-           jseg_c = jseg_c + Lnlpspd%nseg_p(2*iatom - 1)+ Lnlpspd%nseg_p(2*iatom) 
-        end do  !on iat
-        
-        ipsi = 0
-        do iorb = isorb,ieorb
-           do ispinor=1,nspinor,ncplx
-              do ii = 1,Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
-                 hpsi(ipsi+ii) = hpsi_tmp(iorb,ii,ispinor)
-              end do
-              ipsi = ipsi + Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
-           end do
-        end do
-        
-        if (iproj /= Lnlpspd%nproj) stop 'incorrect number of projectors created'
-        if (ieorb == orbs%norbp) exit loop_kpt
-        ikpt=ikpt+1
-     end do loop_kpt
+      if (iproj /= Lnlpspd%nproj) stop 'incorrect number of projectors created'
+      if (ieorb == orbs%norbp) exit loop_kpt
+      ikpt=ikpt+1
+   end do loop_kpt
 
 END SUBROUTINE apply_local_projectors
 !%***

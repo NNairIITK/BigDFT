@@ -406,8 +406,8 @@ real(8):: trH, lastAlpha
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum
 real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
-integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp, nit
-real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, lagMatDiag, alphaDIIS
+integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp, nit, ind1, ind2
+real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, lagMatDiag, alphaDIIS, lphi
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 real(8),dimension(:),pointer:: phiWork
 logical:: quiet, allowDIIS, startWithSD, adapt
@@ -480,6 +480,20 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       if(iproc==0) then
           write(*,'(a)', advance='no') 'Hamiltonian application... '
       end if
+
+      ! Transform the global phi to the local phi
+      ! This part will not be needed if we really have O(N)
+      ind1=1
+      ind2=1
+      do iorb=1,lin%orbs%norbp
+          ilr = lin%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+
       call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
            nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
            rhopot(1),&
@@ -827,6 +841,8 @@ contains
       allocate(phiWork(size(phi)), stat=istat)
       call memocc(istat, phiWork, 'phiWork', subname)
       
+      allocate(lphi(lin%Lorbs%npsidim), stat=istat)
+      call memocc(istat, lphi, 'lphi', subname)
     
 
     end subroutine allocateLocalArrays
@@ -870,6 +886,10 @@ contains
       iall=-product(shape(phiWork))*kind(phiWork)
       deallocate(phiWork, stat=istat)
       call memocc(istat, iall, 'phiWork', subname)
+
+      iall=-product(shape(lphi))*kind(lphi)
+      deallocate(lphi, stat=istat)
+      call memocc(istat, iall, 'lphi', subname)
       
       ! if diisLIN%idsx==0, these arrays have already been deallocated
       if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN,subname)

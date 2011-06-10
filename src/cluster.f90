@@ -694,6 +694,7 @@ write(*,*) 'iproc, psoffset', iproc, psoffset
      if (nvirt > norbv) then
         nvirt = norbv
      end if
+
   case(INPUT_PSI_LINEAR)
 
      lin%as%size_rhopot=size(rhopot)

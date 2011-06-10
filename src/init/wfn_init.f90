@@ -443,6 +443,12 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 !  if(iproc==0 .and. verbose>1) write(*,'(a)') ' done.'
   !if (iproc == 0) print *,'hamovr,iproc:',iproc,hamovr
 
+! DEBUG
+!  print *,'hamovr, ham:',hamovr(:,1,:)
+!  print *,'hamovr, ovr:',hamovr(:,2,:)
+! END DEBUG
+
+
   if (minimal) then
      !deallocate hpsi in the case of a minimal basis
      i_all=-product(shape(hpsi))*kind(hpsi)
@@ -509,7 +515,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
     
       if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
       nvctr=wfd%nvctr_c+7*wfd%nvctr_f
-    
+
       ispsi=1
       ispsie=1
       ispsiv=1

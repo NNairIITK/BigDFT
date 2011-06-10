@@ -71,8 +71,10 @@ end do
 ! Distribute the basis functions among the processors.
 norbu=norb
 norbd=0
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%orbs)
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%Lorbs)
+call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+     input%nkpt, input%kpt, input%wkpt, lin%orbs)
+call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+     input%nkpt, input%kpt, input%wkpt, lin%Lorbs)
 
 
 ! Do the same again, but take into acount that we may also use the derivatives of the basis functions with
@@ -1010,6 +1012,7 @@ do jproc=0,nproc-1
                 !lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
                 lin%comsr%nrecvBuf = lin%comsr%nrecvBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
                 lin%comsr%overlaps(ioverlap)=iorb
+                                                        !lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
             end if
             lin%comsr%istrarr(jproc) = lin%comsr%istrarr(jproc) + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
         end if
