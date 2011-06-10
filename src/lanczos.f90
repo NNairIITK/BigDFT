@@ -13,7 +13,7 @@
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
-     in  )! aggiunger a interface
+     in , PAWD  )! aggiunger a interface
   use module_base
   use module_types
   use lanczos_interface
@@ -38,8 +38,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   type(GPU_pointers), intent(inout) , target :: GPU
   integer, intent(in) :: in_iat_absorber
   
-
   type(input_variables),intent(in) :: in
+  type(pawproj_data_type), target ::PAWD
 
   !local variables
   character(len=*), parameter :: subname='lanczos'
@@ -147,7 +147,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%nspin=nspin
   ha%GPU=>GPU !!
   ha%Gabs_coeffs=>Gabs_coeffs
-  nullify(ha%PAWD)
+  ha%PAWD=> PAWD
 
 
 
@@ -316,6 +316,9 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
         print *, "After application of a 2*L-pole  with L= ", in%L_absorber
      endif
 
+     print *, "  in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber ,in%NPaw_absorber "
+     print *, in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber ,in%NPaw_absorber
+
      call GetExcitedOrbitalAsG(in_iat_absorber, & !!$ ,Gabsorber,&
           at,rxyz,nproc,iproc, &
           in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber ,in%NPaw_absorber,  &
@@ -356,7 +359,6 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%nspin=nspin
   ha%GPU=>GPU !!
   ha%Gabs_coeffs=>Gabs_coeffs
-
   ha%PAWD=> PAWD
  
   print *, "  initialization  "
@@ -512,7 +514,7 @@ END SUBROUTINE xabs_chebychev
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
-     in , rhoXanes, PPD )
+     in , rhoXanes, PAWD , PPD )
   use module_base
   use module_types
   use lanczos_interface
@@ -542,7 +544,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   real(gp) :: ekin_sum,epot_sum,eproj_sum
   type(GPU_pointers), intent(inout) , target :: GPU
   integer, intent(in) :: in_iat_absorber
-
+  type(pawproj_data_type), target ::PAWD
   type(input_variables),intent(in) :: in
 
   !local variables
@@ -657,8 +659,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%nspin=nspin
   ha%GPU=>GPU !!
   ha%Gabs_coeffs=>Gabs_coeffs
-  nullify(ha%PAWD)
-
+  ha%PAWD=> PAWD 
   ha%PPD=> PPD
 
   call EP_inizializza(ha) 

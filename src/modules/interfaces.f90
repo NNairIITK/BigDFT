@@ -844,7 +844,7 @@ module module_interfaces
 
      subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, in )
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, in, PAWD )
        use module_base
        use module_types
        implicit none
@@ -861,6 +861,7 @@ module module_interfaces
        real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
        integer, intent(in) :: in_iat_absorber
+       type(pawproj_data_type), target ::PAWD
 
        type(input_variables),intent(in) :: in
      END SUBROUTINE xabs_lanczos
@@ -961,7 +962,7 @@ module module_interfaces
 
      subroutine cg_spectra(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in , PAWD  )! aggiunger a interface
        use module_base
        use module_types
        implicit none
@@ -979,7 +980,7 @@ module module_interfaces
        real(gp) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
        integer, intent(in) :: in_iat_absorber
-
+       type(pawproj_data_type), target ::PAWD
 
        type(input_variables),intent(in) :: in
 

@@ -1183,6 +1183,10 @@ subroutine abscalc_input_variables_default(in)
   in%c_absorbtion=.false.
   in%potshortcut=0
   in%iat_absorber=0
+  in%abscalc_S_do_cg=.false.
+  in%abscalc_Sinv_do_cg=.false.
+
+
 
 END SUBROUTINE abscalc_input_variables_default
 
@@ -1218,7 +1222,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
 
   read(iunit,*,iostat=ierror)  in%iat_absorber
   call check()
-  read(iunit,*,iostat=ierror)  in%L_absorber
+  read(iunit,*,iostat=ierror)  in%N_absorber,in%Linit_absorber      ,in%rpower_absorber,  in%L_absorber,  in%NPaw_absorber
   call check()
 
   allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
@@ -1236,15 +1240,21 @@ subroutine abscalc_input_variables(iproc,filename,in)
   if( iand( in%potshortcut,4)>0) then
      read(iunit,'(a100)',iostat=ierror) in%extraOrbital
   end if
-
-
   
   read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+  !!, &
+  !!     in%abscalc_S_do_cg ,in%abscalc_Sinv_do_cg
   if(ierror==0) then
-
   else
      in%abscalc_alterpot=.false.
      in%abscalc_eqdiff =.false.
+  endif
+
+
+  read(iunit, '(a100)' ,iostat=ierror) in%xabs_res_prefix
+  if(ierror==0) then
+  else
+     in%xabs_res_prefix=""
   endif
 
   in%c_absorbtion=.true.

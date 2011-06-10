@@ -484,8 +484,8 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
               exit
            endif
         end do
-        print *, " =============================== "
-        print *, string , " for file " , filename
+        !!print *, " =============================== "
+        !!print *, string , " for file " , filename
 220     continue
         if(trim(string) .ne. 'PAWPATCH') then
            print *, "paw section not found re-reading  file ", filename
@@ -506,27 +506,22 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
            paw_nofchannels = atoms%paw_nofchannels(paw_tot_l+ipawl  )
            read(11,'(a100)')  string  !!  follow  paw_nofchannels PAW_Gimag factors
 
-           print *, string , " reading  " , filename
+           !!print *, string , " reading  " , filename
 
            do ig=1, paw_nofgaussians
               read(11,*)  atoms%paw_Gimag(paw_tot_q + ig )
            enddo
            read(11,'(a100)')  string  !!  !!  follow for each of the Npaw channels  nofgaussians (cos_factor, sin_factor)  pairs
-           print *, string, " reading  " , filename
+           !!print *, string, " reading  " , filename
 
            do il=1, paw_nofchannels
-              print *, " inizio un nuovo " , il
               do ig=1, paw_nofgaussians
                  read(11,*)  atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig-1) , &
                              atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig)
-                 if(ig==1) then
-                    print *,  " il primmo est " , atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig-1) , &
-                             atoms%paw_Gcoeffs( paw_tot_coefficients + 2*(il-1)*paw_nofgaussians+2*ig)
-                 endif
               enddo
            enddo
            read(11,'(a100)')  string  !! pawpatch matrix
-           print *, string, " reading  " , filename
+           !!print *, string, " reading  " , filename
            do il=1, paw_nofchannels
               do ig=1, paw_nofchannels
                  read(11,*)  dumpaw 
@@ -534,7 +529,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
               end do
            enddo
            read(11,'(a100)')  string  !! S  matrix
-           print *, string, " reading >>>>>  " , filename
+           !!print *, string, " reading >>>>>  " , filename
            do il=1, paw_nofchannels
               do ig=1, paw_nofchannels
                  read(11,*)  dumpaw
@@ -542,12 +537,12 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
               end do
            enddo
            read(11,'(a100)')  string  !! Sm1  matrix
-           print *, string, " reading  " , filename
+           !!print *, string, " reading  " , filename
            do il=1, paw_nofchannels
               do ig=1, paw_nofchannels
                  read(11,*)  dumpaw
                  atoms%paw_Sm1_matrices(paw_tot_matrices +(il-1)*paw_nofchannels+ig   )=dumpaw
-                 print *, dumpaw
+                 !!print *, dumpaw
               end do
            enddo
            paw_tot_q = paw_tot_q+paw_nofgaussians

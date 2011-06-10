@@ -1217,7 +1217,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-             , in%iat_absorber  , in )
+             , in%iat_absorber  , in , PAWD)
         
      else if (in%iabscalc_type==1) then
         call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
@@ -1228,7 +1228,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-             , in%iat_absorber, in, rhoXanes(1,1,1,1), PPD)
+             , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD)
      else
         if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
      endif
