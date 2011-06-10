@@ -412,8 +412,8 @@ integer,dimension(orbs%norb):: onWhichAtomPhi
 type(linearParameters),intent(in):: lin
 
 ! Local variables
-integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, lwork, info, ierr, infoCoeff, k, l,it, iiAt, jjAt
-real(8),dimension(:),allocatable:: eval, work, alpha
+integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, ierr, infoCoeff, k, l,it, iiAt, jjAt
+real(8),dimension(:),allocatable:: alpha
 real(8),dimension(:,:),allocatable:: ovrlp, ovrlpTemp, coeffTemp
 real(8),dimension(:,:),allocatable:: coeff, grad, gradOld, lagMat, ovrlpLarge, coeffOld
 real(8),dimension(:,:,:),allocatable:: Ham, tempArr
@@ -422,7 +422,11 @@ real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinations'
 real(4):: ttreal
-     
+  
+! new
+real(8),dimension(:),allocatable:: work, eval, evals
+real(8),dimension(:,:),allocatable:: tempMat
+integer:: lwork, ii, info, iiAtprev
 
   if(iproc==0) write(*,'(x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
@@ -469,6 +473,17 @@ real(4):: ttreal
   call mpiallred(Ham(1,1,1), orbsig%norb**2*at%nat, mpi_sum, mpi_comm_world, ierr)
 
 
+!!! Calculate proconditioning matrix
+!!ncplx=1
+!!cprecr=.5d0
+!!do iat=1,at%nat
+!!    do iorb=1,orbsig%norbp
+!!        call allocate_work_arrays(Glr%geocode, Glr%hybrid_on, ncplx, Glr%d, w)
+!!        call differentiateBetweenBoundaryConditions(ncplx, Glr, inut%hx, inout%hy, input%hz, kx, ky, kz, cprecr, chi, pchi, ,w, scal, rxyzParab, orbs, potentialPrefac, confPotOrder, it)
+!!        call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
+!!    end do
+!!end do
+
 
 
 
@@ -491,6 +506,29 @@ real(4):: ttreal
               end if
           end do
       end do
+
+    !!! Diagonalize all Hamiltonian matrices
+    !!allocate(tempMat(orbsig%norb,orbsig%norb))
+    !!allocate(eval(orbsig%norb))
+    !!lwork=1000*orbsig%norb
+    !!allocate(work(lwork))
+    !!allocate(evals(orbs%norb))
+    !!iiAtprev=0
+    !!ii=0
+    !!do iorb=1,orbs%norb
+    !!    iiAt=onWhichAtomPhi(iorb)
+    !!    ii=ii+1
+    !!    if(iiAt>iiAtprev) then
+    !!        ii=1
+    !!        call dcopy(orbsig%norb**2, Ham(1,1,iiAt), 1, tempMat(1,1), 1)
+    !!        call dsyev('n', 'l', orbsig%norb, tempMat, orbsig%norb, eval, work, lwork, info)
+    !!    end if
+    !!    evals(iorb)=eval(ii)
+    !!    iiAtprev=iiAt
+    !!end do
+    !!deallocate(tempMat)
+    !!deallocate(eval)
+    !!deallocate(work)
 
 
     
@@ -568,7 +606,7 @@ real(4):: ttreal
         end do
 
         ! Precondition the gradient.
-        !if(fnrm<1.d0) call preconditionGradient(iproc, nproc, orbsig, orbs, at, Ham, lagMat, onWhichAtomPhi, grad)
+        !!if(fnrm<1.d0) call preconditionGradient(iproc, nproc, orbsig, orbs, at, Ham, lagMat, onWhichAtomPhi, grad, it, evals)
     
 
         ! Write some informations to the screen, but only every 1000th iteration.
@@ -904,19 +942,20 @@ end subroutine orthonormalizeCoefficients
 
 
 
-subroutine preconditionGradient(iproc, nproc, orbsig, orbs, at, Ham, lagMat, onWhichAtomPhi, grad)
+subroutine preconditionGradient(iproc, nproc, orbsig, orbs, at, Ham, lagMat, onWhichAtomPhi, grad, it, evals)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, it
 type(orbitals_data),intent(in):: orbsig, orbs
 type(atoms_data),intent(in):: at
 real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(in):: Ham
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagMat
 integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi
 real(8),dimension(orbsig%norb,orbs%norb),intent(inout):: grad
+real(8),dimension(orbs%norb),intent(in):: evals
 
 ! Local variables
 integer:: iorb, jorb, korb, iiAt, info, istat, iall
@@ -937,22 +976,26 @@ call memocc(istat, solc, 'solc', subname)
 do iorb=1,orbs%norb
     iiAt=onWhichAtomPhi(iorb)
     ! Build matrix that has to be inverted
+!write(*,*) 'iorb, lagMat(iorb,iorb)', iorb, lagMat(iorb,iorb)
+write(*,'(a,i5,4x,2es15.7)') 'iorb, evals(iorb), lagMat(iorb,iorb)', iorb, evals(iorb), lagMat(iorb,iorb)
     do jorb=1,orbsig%norb
         do korb=1,orbsig%norb
             matc(1,korb,jorb)=Ham(korb,jorb,iiAt)
             matc(2,korb,jorb)=0.d0
         end do
-        !matc(1,jorb,jorb)=matc(1,jorb,jorb)-lagMat(iorb,iorb)
-        matc(1,jorb,jorb)=matc(1,jorb,jorb)+.5d0
+        !matc(1,jorb,jorb)=matc(1,jorb,jorb)+lagMat(iorb,iorb)**2
+        !matc(1,jorb,jorb)=matc(1,jorb,jorb)-.5d0
+        matc(1,jorb,jorb)=matc(1,jorb,jorb)-evals(iorb)
+        !matc(1,jorb,jorb)=1.d0
         matc(2,jorb,jorb)=-1.d-2
-        solc(1,jorb)=-grad(jorb,iiAt)
+        solc(1,jorb)=grad(jorb,iiAt)
         solc(2,jorb)=0.d0
     end do
     !do jorb=1,orbsig%norb
     !    mat(jorb,jorb)=mat(jorb,jorb)-lagMat(iorb,iorb)
     !end do
     !call dcopy(orbsig%norb, grad(1,iorb), 1, sol(1), 1)
-write(100+iorb,*) ddot(orbsig%norb, grad(1,iorb), 1, grad(1,iorb), 1)
+write(100+iorb,'(a,i0,es15.7)') 'grad ', it, ddot(orbsig%norb, grad(1,iorb), 1, grad(1,iorb), 1)
 do iall=1,orbsig%norb
   write(100+iorb,*) iall, grad(iall,iorb)
 end do
@@ -965,7 +1008,7 @@ end do
         grad(jorb,iiAt)=solc(1,jorb)
     end do
     !call dscal(orbsig%norb, -1.d0, grad(1,iorb), 1)
- write(200+iorb,*) ddot(orbsig%norb, grad(1,iorb), 1, grad(1,iorb), 1)
+ write(200+iorb,'(a,i0,es15.7)') 'grad ', it, ddot(orbsig%norb, grad(1,iorb), 1, grad(1,iorb), 1)
  do iall=1,orbsig%norb
    write(200+iorb,*) iall, grad(iall,iorb)
  end do

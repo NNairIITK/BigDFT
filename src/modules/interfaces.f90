@@ -1510,19 +1510,17 @@ module module_interfaces
     end subroutine local_hamiltonianConfinementForAllLocregs
 
     
-    
-    subroutine deallocateLinear(iproc, lin, lind, phi, coeff, phid, coeffd)
+    subroutine deallocateLinear(iproc, lin, phi, lphi, coeff)
       use module_base
       use module_types
       implicit none
       integer,intent(in):: iproc
-      type(linearParameters),intent(inout):: lin, lind
-      real(8),dimension(:),pointer,intent(inout):: phi, phid
-      real(8),dimension(:,:),pointer,intent(inout):: coeff, coeffd
-
+      type(linearParameters),intent(inout):: lin
+      real(8),dimension(:),pointer,intent(inout):: phi, lphi
+      real(8),dimension(:,:),pointer,intent(inout):: coeff
     end subroutine deallocateLinear
     
-    
+
     subroutine initializeLocRegLIN(iproc, nproc, lr, lin, at, input, rxyz, radii_cf)
       use module_base
       use module_types

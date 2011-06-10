@@ -38,10 +38,8 @@ real(8),dimension(:),pointer,intent(out):: phi
 real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 
-
 ! Local variables
-integer:: jproc, istat, iorb, jorb, korb, ierr, iat, ityp, iall, norb_tot, klr
-integer:: norb, norbu, norbd, ilr, jlr, npsidim, nlocregOverlap, ist, iiorb, ii, jmpi, iilr, kmpi
+integer:: norb, norbu, norbd, istat, iat, ityp, iall
 integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
@@ -467,7 +465,7 @@ end subroutine checkLinearParameters
 
 
 
-subroutine deallocateLinear(iproc, lin, lind, phi, coeff, phid, coeffd)
+subroutine deallocateLinear(iproc, lin, phi, lphi, coeff)
 !
 ! Purpose:
 ! ========
@@ -484,9 +482,9 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc
-type(linearParameters),intent(inout):: lin, lind
-real(8),dimension(:),pointer,intent(inout):: phi, phid
-real(8),dimension(:,:),pointer,intent(inout):: coeff, coeffd
+type(linearParameters),intent(inout):: lin
+real(8),dimension(:),pointer,intent(inout):: phi, lphi
+real(8),dimension(:,:),pointer,intent(inout):: coeff
 
 ! Local variables
 integer:: istat, iall, iorb
@@ -505,53 +503,30 @@ character(len=*),parameter:: subname='deallocateLinear'
   deallocate(lin%norbsPerType, stat=istat)
   call memocc(istat, iall, 'lin%norbsPerType', subname)
 
-  iall=-product(shape(lind%onWhichAtom))*kind(lind%onWhichAtom)
-  deallocate(lind%onWhichAtom, stat=istat)
-  call memocc(istat, iall, 'lind%onWhichAtom', subname)
   
   call deallocate_orbs(lin%orbs,subname)
 
   call deallocate_comms(lin%comms,subname)
 
-  call deallocate_orbs(lind%orbs,subname)
+  call deallocate_orbs(lin%lb%orbs,subname)
 
-  call deallocate_comms(lind%comms,subname)
+  call deallocate_comms(lin%lb%comms,subname)
   
   iall=-product(shape(phi))*kind(phi)
   deallocate(phi, stat=istat)
   call memocc(istat, iall, 'phi', subname)
 
-  iall=-product(shape(phid))*kind(phid)
-  deallocate(phid, stat=istat)
-  call memocc(istat, iall, 'phid', subname)
+  iall=-product(shape(lphi))*kind(lphi)
+  deallocate(lphi, stat=istat)
+  call memocc(istat, iall, 'lphi', subname)
 
   iall=-product(shape(lin%orbs%eval))*kind(lin%orbs%eval)
   deallocate(lin%orbs%eval, stat=istat)
   call memocc(istat, iall, 'lin%orbs%eval', subname)
 
-  iall=-product(shape(lind%orbs%eval))*kind(lind%orbs%eval)
-  deallocate(lind%orbs%eval, stat=istat)
-  call memocc(istat, iall, 'lind%orbs%eval', subname)
-
-  if(associated(lin%wfds)) then
-      !iall=-product(shape(lin%wfds))*kind(lin%wfds)
-      !deallocate(lin%wfds, stat=istat)
-      !call memocc(istat, iall, 'lin%wfds', subname)
-      do iorb=1,lin%orbs%norbp
-          call deallocate_wfd(lin%wfds(iorb,iproc), subname)
-      end do
-      deallocate(lin%wfds, stat=istat)
-  end if
-
-  if(associated(lind%wfds)) then
-      !iall=-product(shape(lin%wfds))*kind(lin%wfds)
-      !deallocate(lin%wfds, stat=istat)
-      !call memocc(istat, iall, 'lin%wfds', subname)
-      do iorb=1,lind%orbs%norbp
-          call deallocate_wfd(lind%wfds(iorb,iproc), subname)
-      end do
-      deallocate(lind%wfds, stat=istat)
-  end if
+  iall=-product(shape(lin%lb%orbs%eval))*kind(lin%lb%orbs%eval)
+  deallocate(lin%lb%orbs%eval, stat=istat)
+  call memocc(istat, iall, 'lin%lb%orbs%eval', subname)
 
   if(associated(lin%comms%nvctr_parLIN)) then
       iall=-product(shape(lin%comms%nvctr_parLIN))*kind(lin%comms%nvctr_parLIN)
@@ -601,61 +576,10 @@ character(len=*),parameter:: subname='deallocateLinear'
       call memocc(istat, iall, 'lin%norbPerComm', subname)
   end if
 
-  if(associated(lind%comms%nvctr_parLIN)) then
-      iall=-product(shape(lind%comms%nvctr_parLIN))*kind(lind%comms%nvctr_parLIN)
-      deallocate(lind%comms%nvctr_parLIN, stat=istat)
-      call memocc(istat, iall, 'lind%comms%nvctr_parLIN', subname)
-  end if
-
-  if(associated(lind%comms%ncntdLIN)) then
-      iall=-product(shape(lind%comms%ncntdLIN))*kind(lind%comms%ncntdLIN)
-      deallocate(lind%comms%ncntdLIN, stat=istat)
-      call memocc(istat, iall, 'lind%comms%ncntdLIN', subname)
-  end if
-
-  if(associated(lind%comms%ndspldLIN)) then
-      iall=-product(shape(lind%comms%ndspldLIN))*kind(lind%comms%ndspldLIN)
-      deallocate(lind%comms%ndspldLIN, stat=istat)
-      call memocc(istat, iall, 'lind%comms%ndspldLIN', subname)
-  end if
-
-  if(associated(lind%comms%ncnttLIN)) then
-      iall=-product(shape(lind%comms%ncnttLIN))*kind(lind%comms%ncnttLIN)
-      deallocate(lind%comms%ncnttLIN, stat=istat)
-      call memocc(istat, iall, 'lind%comms%ncnttLIN', subname)
-  end if
-
-  if(associated(lind%comms%ndspltLIN)) then
-      iall=-product(shape(lind%comms%ndspltLIN))*kind(lind%comms%ndspltLIN)
-      deallocate(lind%comms%ndspltLIN, stat=istat)
-      call memocc(istat, iall, 'lind%comms%ndspltLIN', subname)
-  end if
-
-  if(associated(lind%MPIComms)) then
-      iall=-product(shape(lind%MPIComms))*kind(lind%MPIComms)
-      deallocate(lind%MPIComms, stat=istat)
-      call memocc(istat, iall, 'lind%MPIComms', subname)
-  end if
-
-  if(associated(lind%procsInComm)) then
-      iall=-product(shape(lind%procsInComm))*kind(lind%procsInComm)
-      deallocate(lind%procsInComm, stat=istat)
-      call memocc(istat, iall, 'lind%procsInComm', subname)
-  end if
-
-  if(associated(lind%norbPerComm)) then
-      iall=-product(shape(lind%norbPerComm))*kind(lind%norbPerComm)
-      deallocate(lind%norbPerComm, stat=istat)
-      call memocc(istat, iall, 'lind%norbPerComm', subname)
-  end if
 
   iall=-product(shape(coeff))*kind(coeff)
   deallocate(coeff, stat=istat)
   call memocc(istat, iall, 'coeff', subname)
-
-  iall=-product(shape(coeffd))*kind(coeffd)
-  deallocate(coeffd, stat=istat)
-  call memocc(istat, iall, 'coeffd', subname)
 
   if(associated(lin%outofzone)) then
       iall=-product(shape(lin%outofzone))*kind(lin%outofzone)

@@ -124,7 +124,7 @@ integer:: nvctrp, ist, jst, ierr
 real(8),dimension(:,:,:),allocatable:: ovrlp
 real(8):: tt1, tt2
 
-  
+  ! Allocate the local arrays.  
   allocate(hphi(lin%lb%orbs%npsidim), stat=istat) 
   call memocc(istat, hphi, 'hphi', subname)
   allocate(matrixElements(lin%lb%orbs%norb,lin%lb%orbs%norb,2), stat=istat)
@@ -135,9 +135,9 @@ real(8):: tt1, tt2
   call memocc(istat, phiWork, 'phiWork', subname)
   allocate(eval(lin%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
-
   
 
+  ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
       if(lin%useDerivativeBasisFunctions) then
           call dcopy(lin%orbs%npsidim, lin%phiRestart(1), 1, phi(1), 1)
