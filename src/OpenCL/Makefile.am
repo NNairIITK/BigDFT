@@ -3,6 +3,7 @@ EXTRA_DIST = \
 	Kinetic.h \
 	Kinetic_Generator.h \
 	Kinetic_k.h \
+	Kinetic_k_Generator.h \
 	bench_lib.h \
 	MagicFilter.h \
 	MagicFilter_Generator.h \
@@ -34,6 +35,7 @@ libbasec_a_SOURCES = OpenCL_wrappers.c \
                      MagicFilter_Generator.cpp \
                      Kinetic.c \
                      Kinetic_Generator.cpp \
+                     Kinetic_k_Generator.cpp \
                      Wavelet.c \
                      Uncompress.c \
                      Initialize.c \

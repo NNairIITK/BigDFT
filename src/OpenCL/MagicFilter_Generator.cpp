@@ -35,7 +35,7 @@ static void generate_header(std::stringstream &program){
 #define FILT14 -0.5185986881173432922848639136911487e-4\n\
 #define FILT15  2.72734492911979659657715313017228e-6\n\
 #define FILTER_WIDTH 16\n\
-#define filter(tt,tmp) \
+#define filter_nofma(tt,tmp) \
 tt += *tmp++ * FILT0;\
 tt += *tmp++ * FILT1;\
 tt += *tmp++ * FILT2;\
@@ -52,7 +52,33 @@ tt += *tmp++ * FILT12;\
 tt += *tmp++ * FILT13;\
 tt += *tmp++ * FILT14;\
 tt += *tmp++ * FILT15;\n\
-#define filter_reverse(tt,tmp) \
+#define filter(tt,tmp) \
+tt = fma(*tmp++, FILT0, tt);\
+tt = fma(*tmp++, FILT1, tt);\
+tt = fma(*tmp++, FILT2, tt);\
+tt = fma(*tmp++, FILT3, tt);\
+tt = fma(*tmp++, FILT4, tt);\
+tt = fma(*tmp++, FILT5, tt);\
+tt = fma(*tmp++, FILT6, tt);\
+tt = fma(*tmp++, FILT7, tt);\
+tt = fma(*tmp++, FILT8, tt);\
+tt = fma(*tmp++, FILT9, tt);\
+tt = fma(*tmp++, FILT10, tt);\
+tt = fma(*tmp++, FILT11, tt);\
+tt = fma(*tmp++, FILT12, tt);\
+tt = fma(*tmp++, FILT13, tt);\
+tt = fma(*tmp++, FILT14, tt);\
+tt = fma(*tmp++, FILT15, tt);\n\
+#define filter_vector(tt,tmp) \
+tt = fma(*tmp++, (double2)(FILT0,FILT1), tt);\
+tt = fma(*tmp++, (double2)(FILT2,FILT3), tt);\
+tt = fma(*tmp++, (double2)(FILT4,FILT5), tt);\
+tt = fma(*tmp++, (double2)(FILT6,FILT7), tt);\
+tt = fma(*tmp++, (double2)(FILT8,FILT9), tt);\
+tt = fma(*tmp++, (double2)(FILT10,FILT11), tt);\
+tt = fma(*tmp++, (double2)(FILT12,FILT13), tt);\
+tt = fma(*tmp++, (double2)(FILT14,FILT15), tt);\n\
+#define filter_reverse_nofma(tt,tmp) \
 tt += *tmp++ *  FILT15;\
 tt += *tmp++ *  FILT14;\
 tt += *tmp++ *  FILT13;\
@@ -68,7 +94,24 @@ tt += *tmp++ *  FILT4;\
 tt += *tmp++ *  FILT3;\
 tt += *tmp++ *  FILT2;\
 tt += *tmp++ *  FILT1;\
-tt += *tmp++ *  FILT0;\n";
+tt += *tmp++ *  FILT0;\n\
+#define filter_reverse(tt,tmp) \
+tt = fma(*tmp++, FILT15, tt);\
+tt = fma(*tmp++, FILT14, tt);\
+tt = fma(*tmp++, FILT13, tt);\
+tt = fma(*tmp++, FILT12, tt);\
+tt = fma(*tmp++, FILT11, tt);\
+tt = fma(*tmp++, FILT10, tt);\
+tt = fma(*tmp++, FILT9, tt);\
+tt = fma(*tmp++, FILT8, tt);\
+tt = fma(*tmp++, FILT7, tt);\
+tt = fma(*tmp++, FILT6, tt);\
+tt = fma(*tmp++, FILT5, tt);\
+tt = fma(*tmp++, FILT4, tt);\
+tt = fma(*tmp++, FILT3, tt);\
+tt = fma(*tmp++, FILT2, tt);\
+tt = fma(*tmp++, FILT1, tt);\
+tt = fma(*tmp++, FILT0, tt);\n";
 }
 
 static void generate_magicfilter1dKernel(std::stringstream &program){
@@ -103,16 +146,64 @@ if ( igt >= n ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-//initialize reult\n\
-double tt = 0.0;\n\
+//initialize result\n";
+  if(true){
+    program<<"double tt = 0.0;\n\
+//rest position in the buffer to first element involved in the convolution\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
+//wait for buffer to be full\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+//apply filter\n\
+filter(tt,tmp);\n\
+//store the result\n\
+out[(jg*n+ig)]=tt;\n\
+};\n";
+  } else {
+    program<<"double2 tt = (double2)(0.0, 0.0);\n\
 //rest position in the buffer to first element involved in the convolution\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 //wait for buffer to be full\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
 //apply filter\n\
-filter(tt,tmp);\n\
+__local double2 *tmp2= (__local double2 *)tmp;\n\
+filter_vector(tt,tmp2);\n\
 //store the result\n\
+out[(jg*n+ig)]=tt.x+tt.y;\n\
+};\n";
+  }
+}
+
+static void generate_magicfilter1d_tKernel(std::stringstream &program){
+program<<"__kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
+__local double *tmp = &tmp1[0];\n\
+size_t ig = get_global_id(0);\n\
+size_t jg = get_global_id(1);\n\
+const size_t i2 = get_local_id(0);\n\
+const size_t j2 = get_local_id(1);\n\
+ptrdiff_t igt = get_group_id(0);\n\
+ptrdiff_t jgt = get_group_id(1);\n\
+//if data are ill dimentioned last block recomputes part of the data\n\
+jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
+ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
+igt = ig - i2 + j2 - FILTER_WIDTH/2;\n\
+jgt = jg - j2 + i2;\n\
+//If I'm on the outside, select a border element to load\n\
+if ( igt < 0 ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + ( n + igt ) * ndat];\n\
+else \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
+igt += FILTER_WIDTH;\n\
+if ( igt >= n ) \n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
+else\n\
+  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
+double tt = 0.0;\n\
+tmp += j2*(2*FILTER_WIDTH+1) + i2 + 1;\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n\
+\
+filter_reverse(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n";
 }
@@ -405,39 +496,6 @@ out[(jg*n+ig)]=tt*tt;\n\
 };\n";
 }
 
-static void generate_magicfilter1d_tKernel(std::stringstream &program){
-program<<"__kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
-__local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
-__local double *tmp = &tmp1[0];\n\
-size_t ig = get_global_id(0);\n\
-size_t jg = get_global_id(1);\n\
-const size_t i2 = get_local_id(0);\n\
-const size_t j2 = get_local_id(1);\n\
-ptrdiff_t igt = get_group_id(0);\n\
-ptrdiff_t jgt = get_group_id(1);\n\
-//if data are ill dimentioned last block recomputes part of the data\n\
-jg  = jgt == get_num_groups(1) - 1 ? jg - ( get_global_size(1) - ndat ) : jg;\n\
-ig  = igt == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - n ) : ig;\n\
-igt = ig - i2 + j2 - FILTER_WIDTH/2;\n\
-jgt = jg - j2 + i2;\n\
-//If I'm on the outside, select a border element to load\n\
-if ( igt < 0 ) \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + ( n + igt ) * ndat];\n\
-else \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2] = psi[jgt + igt * ndat];\n\
-igt += FILTER_WIDTH;\n\
-if ( igt >= n ) \n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
-else\n\
-  tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-double tt = 0.0;\n\
-tmp += j2*(2*FILTER_WIDTH+1) + i2 + 1;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-filter_reverse(tt,tmp);\n\
-out[(jg*n+ig)]=tt;\n\
-};\n";
-}
 
 extern "C" char* generate_magicfilter_program(struct bigdft_device_infos * infos){
   char * output;
