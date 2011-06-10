@@ -1169,8 +1169,8 @@ program conv_check
            !**************************************************wavelet transformations
         if (modulo(n1,2) == 0) then
            n1bis = n1
-           n2bis = n1
-           n3bis = n1
+           n2bis = n2
+           n3bis = n3
            write(*,'(a,i6,i6,i6)')'CPU Analysis 3D, dimensions:',n1bis,n2bis,n3bis
 
            allocate(psi_k_in_a(n1bis,n2bis,n3bis,1+ndebug),stat=i_stat)
