@@ -47,6 +47,8 @@ dnl Defining Fortran language for tests.
 AC_LANG(Fortran)
 AC_FC_SRCEXT(f90)
 
+AC_FC_WRAPPERS()
+
 dnl Set if the module name are capitalized or not with the FC compiler.
 AC_MSG_CHECKING([for module extension for compiler '$fc_type'])
 case "$fc_type" in
@@ -632,11 +634,6 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
-
-dnl Instead of second underscoring, test the compiler behaviour.
-if test "$ac_use_ocl" = "yes" -o "$ac_use_cuda_gpu" = "yes" -o "$ac_use_dgemmsy" = "yes" -o "$ac_archives" = "yes" ; then
-  AC_FC_WRAPPERS()
-fi
 
 dnl Agregate all the optional libs.
 LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS"
