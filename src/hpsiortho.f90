@@ -179,7 +179,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         ikpt=ikpt+1
         ispsi_k=ispsi
      end do loop_kpt
-
      if (istart_ck-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
      if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
   

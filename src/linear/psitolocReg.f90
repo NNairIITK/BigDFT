@@ -273,14 +273,19 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
  indSpin=0
  do ispin=1,nspin
      ! WARNING: I added the factors 2.
-     do i3=2*Llr%ns3+1,Llr%d%n3i+2*Llr%ns3
-         do i2=2*Llr%ns2+1,Llr%d%n2i+2*Llr%ns2
-             do i1=2*Llr%ns1+1,Llr%d%n1i+2*Llr%ns1
+     do i3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
+         do i2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
+             do i1=Llr%nsi3+1,Llr%d%n1i+Llr%nsi1
                  ! indSmall is the index in the local localization region
                  indSmall=indSmall+1
-                 ! indLarge is the index in the global localization region. 
-                 indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
-                 Lrho(indSmall)=rho(indLarge+indSpin)
+                 if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                  !This initializes the buffers of locreg to zeros if outside the simulation box.
+                     i3 < Glr%d%n3i .and. i2 < Glr%d%n2i .and. i1 < Glr%d%n1i) then           !Should use periodic image instead... MUST FIX THIS.
+                    ! indLarge is the index in the global localization region. 
+                    indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
+                    Lrho(indSmall)=rho(indLarge+indSpin)
+                 else
+                    Lrho(indSmall)= 0.0_wp
+                 end if
              end do
          end do
      end do
@@ -335,7 +340,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
   integer :: Gincrement  ! Increment for reading orbitals in psi
   integer :: nseg        ! total number of segments in Llr
   integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
-  character(len=*), parameter :: subname='psi_to_locreg'
+  character(len=*), parameter :: subname='Lpsi_to_global'
   integer :: i_stat,i_all
   integer :: start,Gstart,Lindex
   integer :: lfinc,Gfinc,spinshift,ispin,Gindex
@@ -396,7 +401,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 
 ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_c) then
-    write(*,*)'There is an error in psi_to_locreg: number of coarse points used',icheck
+    write(*,*)'There is an error in Lpsi_to_global: number of coarse points used',icheck
     write(*,*)'is not equal to the number of coarse points in the region',Llr%wfd%nvctr_c
   end if
 
@@ -449,7 +454,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
 
  ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_f) then
-    write(*,*)'There is an error in psi_to_locreg: number of fine points used',icheck
+    write(*,*)'There is an error in Lpsi_to_global: number of fine points used',icheck
     write(*,*)'is not equal to the number of fine points in the region',Llr%wfd%nvctr_f
   end if
 

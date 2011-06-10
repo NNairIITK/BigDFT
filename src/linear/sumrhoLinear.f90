@@ -326,7 +326,6 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
       call tenminustwenty(max(nrho,1)*nspin,rho,nproc)
   end if
 
-
   locRegLoop: do ilr=1,nlr
       call initialize_work_arrays_sumrho(Llr(ilr),w)
       allocate(rho_p(Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*Llr(ilr)%d%n3i*nspinn), stat=i_stat)
@@ -387,17 +386,19 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
                indSmall=0
                do ispin=1,nspinn
                    do i3=1,Llr(ilr)%d%n3i
-                       if(Llr(ilr)%nsi3 + i3 - 1 .le. 0) cycle
+                       if(Llr(ilr)%nsi3 + i3 - 1 < 0) cycle   !throwing away the extra buffer of the locreg, related to the change of boundary conditions
+                       if(Llr(ilr)%nsi3 + i3  > Glr%d%n3i) cycle
                        do i2=1,Llr(ilr)%d%n2i
-                           if(Llr(ilr)%nsi2+ i2 - 1 .le. 0) cycle
+                           if(Llr(ilr)%nsi2+ i2 - 1 < 0) cycle !same
+                           if(Llr(ilr)%nsi2 + i2  > Glr%d%n2i) cycle
                            do i1=1,Llr(ilr)%d%n1i
-                               if(Llr(ilr)%nsi1+ i1 - 1 .le. 0) cycle
+                               if(Llr(ilr)%nsi1+ i1 - 1 < 0) cycle ! same
+                               if(Llr(ilr)%nsi1 + i1  > Glr%d%n1i) cycle
                                ! indSmall is the index in the currect localization region
                                indSmall=indSmall+1
                                ! indLarge is the index in the whole box. 
                                indLarge=(Llr(ilr)%nsi3+i3-1)*Glr%d%n2i*Glr%d%n1i +&
                                    (Llr(ilr)%nsi2+i2-1)*Glr%d%n1i + Llr(ilr)%nsi1+i1
-                       !        print *,'indLarge, Llr(ilr)%nsi',indLarge, Llr(ilr)%nsi1,Llr(ilr)%nsi2,Llr(ilr)%nsi3
                                rho(indLarge,ispin)=rho(indLarge,ispin)+rho_p(indSmall)
                            end do
                        end do
@@ -584,6 +585,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
   integer :: ilr,dimwf,ind,size_Lpot,size_pot
   integer :: tmp_norbp
   real(dp),dimension(:),pointer:: Lpot
+  real(wp),dimension(:),allocatable :: hpsi_proj
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
@@ -730,7 +732,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
 !     call timing(iproc,'ApplyProj     ','ON')
 
   !here the localisation region should be changed, temporary only for cubic approach
-     eproj_sum=0.0_gp
+  !   eproj_sum=0.0_gp
 
   ! CUBIC STUFF
   !apply the projectors following the strategy (On-the-fly calculation or not)
@@ -768,12 +770,14 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
 !!!
 !!!  END OF CUBIC STUFF
 
+     if(Lzd%orbs%norbp > 0) then
+        !allocate
+        if(ilr == 1) then
+           allocate(hpsi_proj(Lzd%orbs%npsidim),stat=i_stat)
+           call memocc(i_stat,hpsi_proj,'hpsi_proj',subname)
+           hpsi_proj = 0.0_wp
+        end if
 
-     ! replace orbse%norbp by Localnorb for HamiltonianApplication
-     tmp_norbp = Lzd%orbs%norbp
-     Lzd%orbs%norbp = Lzd%Llr(ilr)%Localnorb*nspin
-
-     if(Lzd%orbs%norbp > 0 ) then
         ! allocate projflg
         allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=i_stat)
         call memocc(i_stat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
@@ -781,21 +785,27 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
         ! Make the local non-linear pseudopotentials descriptors
         call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,Lzd%orbs,&
       &      radii_cf,input%frmult,input%frmult,input%hx,input%hy,input%hz,Lzd%Gnlpspd,Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
-   
-        call apply_local_projectors(at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),proj,Lzd%orbs,&
-                 Lzd%Llr(ilr)%projflg,psi(ind:ind+dimwf-1),rxyz,hpsi(ind:ind+dimwf-1),tmp_eproj_sum)
 
-        eproj_sum = eproj_sum + tmp_eproj_sum
+        call apply_local_projectors(ilr,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),proj,Lzd%orbs,&
+                 Lzd%Llr(ilr)%projflg,psi(ind:ind+dimwf-1),rxyz,hpsi(ind:ind+dimwf-1),eproj_sum)
+        ! accumulate the new hpsi
+        hpsi_proj(ind:ind+dimwf-1) = hpsi_proj(ind:ind+dimwf-1) + hpsi(ind:ind+dimwf-1)
      end if
      ind = ind + dimwf
 
      ! deallocate Lpot
      call free_full_potential(nproc,Lpot,subname)
 
-     ! restore the original norbp
-     Lzd%orbs%norbp = tmp_norbp
   end do
 ! END LINEAR MODIFICATIONS
+
+  ! Now that all is accumulated, rename hpsi_proj to hpsi
+  hpsi = hpsi_proj
+
+  !deallocate hpsi_proj
+  i_all=-product(shape(hpsi_proj))*kind(hpsi_proj)
+  deallocate(hpsi_proj,stat=i_stat)
+  call memocc(i_stat,i_all,'hpsi_proj',subname)
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0 .and. verbose > 1) then
@@ -1009,7 +1019,7 @@ subroutine LinearDiagHam(iproc,etol,Lzd,orbs,nspin,Lhpsi,Lpsi,psit,orbsv)
      call Lpsi_to_global(Lzd%Glr,Gpsidim,Lzd%Llr(ilr),Lpsi(psishift1:psishift1+ldim-1),&
           ldim,Lzd%Llr(ilr)%Localnorb,Lzd%orbs%nspinor,nspin,totshift,psi)
      psishift1 = psishift1 + ldim
-     totshift = (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*Lzd%orbs%nspinor
+     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*Lzd%orbs%nspinor
   end do
 
 !  allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
@@ -1032,7 +1042,6 @@ subroutine LinearDiagHam(iproc,etol,Lzd,orbs,nspin,Lhpsi,Lpsi,psit,orbsv)
           psi(ispsie:),psit(ispsi:))
      ispsi=ispsi+nvctrp*orbs%norb*Lzd%orbs%nspinor
      ispsie=ispsie+nvctrp*norbtot*Lzd%orbs%nspinor
-     if (present(orbsv)) ispsiv=ispsiv+nvctrp*orbsv%norb*Lzd%orbs%nspinor
   end do
 
 

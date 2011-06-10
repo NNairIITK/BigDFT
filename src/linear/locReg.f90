@@ -1864,7 +1864,7 @@ subroutine assignToLocreg(iproc, natom, nlr, nspin, Localnorb, orbse)
   integer:: jproc, iiOrb, iorb, jorb, jat,i_stat
   character(len=*), parameter :: subname='assignToLocreg'
 
-  allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
+  allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
   call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
 
   ! There are four counters:
