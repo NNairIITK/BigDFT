@@ -9,6 +9,7 @@ EXTRA_DIST = \
 	MagicFilter_Generator.h \
 	Uncompress.h \
 	Wavelet.h \
+	Wavelet_Generator.h \
 	Initialize.h \
 	OpenCL_wrappers.h \
 	Stream.h \
@@ -37,6 +38,7 @@ libbasec_a_SOURCES = OpenCL_wrappers.c \
                      Kinetic_Generator.cpp \
                      Kinetic_k_Generator.cpp \
                      Wavelet.c \
+                     Wavelet_Generator.cpp \
                      Uncompress.c \
                      Initialize.c \
                      Profiling.c \
