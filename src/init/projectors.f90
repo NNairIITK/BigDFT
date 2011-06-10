@@ -145,8 +145,6 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
         nlpspd%nboxp_f(2,3,iat)=nu3
 
 
-
-
      endif
   enddo
 
@@ -1713,12 +1711,12 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
      if(  at%paw_NofL(at%iatype(iat)).gt.0) then
 
         call numb_proj_paw(at%iatype(iat),mproj)
+
         if (mproj /= 0) then 
            natpaw=natpaw+1
            PAWD%paw_nlpspd%nproj=PAWD%paw_nlpspd%nproj+mproj
 
 
-           print *, "  FOR COARSE    ",    radii_cf(at%iatype(iat),3)*cpmult
 
            ! coarse grid quantities
            call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
@@ -1739,13 +1737,15 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            PAWD%paw_nlpspd%nseg_p (2*natpaw-1)=PAWD%paw_nlpspd%nseg_p (2*natpaw-2) + mseg
            PAWD%paw_nlpspd%nvctr_p(2*natpaw-1)=PAWD%paw_nlpspd%nvctr_p(2*natpaw-2) + mvctr
            istart=istart+mvctr*mproj
+ 
+
 
            nprojelat=mvctr*mproj
 
            !print *,'iat,mvctr',iat,mvctr,mseg,mproj
 
            ! fine grid quantities
-           print *, "  FOR FINE     ",   radii_cf(at%iatype(iat),2)*fpmult
+
 
            call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
                 hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
@@ -1765,8 +1765,13 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            PAWD%paw_nlpspd%nseg_p (2*natpaw)=PAWD%paw_nlpspd%nseg_p (2*natpaw-1) + mseg
            PAWD%paw_nlpspd%nvctr_p(2*natpaw)=PAWD%paw_nlpspd%nvctr_p(2*natpaw-1) + mvctr
 
+
+
            istart=istart+7*mvctr*mproj
            nprojelat=nprojelat+7*mvctr*mproj
+
+
+
            PAWD%paw_nlpspd%nprojel=max(PAWD%paw_nlpspd%nprojel,nprojelat)
 
            !print *,'iat,nprojelat',iat,nprojelat,mvctr,mseg
@@ -1914,7 +1919,11 @@ subroutine numb_proj_paw(ityp,mproj)
   enddo
   do i =1, at%paw_NofL(ityp)
      il=il+1
-     mproj=mproj+at%paw_nofchannels(il)*(2*at%paw_l(il) +1)
+     if( at%paw_l(il).ge.0) then
+        mproj=mproj+at%paw_nofchannels(il)*(2*at%paw_l(il) +1)
+     else
+        mproj=mproj+at%paw_nofchannels(il)*(-2*at%paw_l(il) -1)        
+     endif
   enddo
 end subroutine numb_proj_paw
 

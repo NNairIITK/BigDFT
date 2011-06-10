@@ -895,7 +895,6 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   real(gp) Pcpmult
   integer :: mprojtot, nvctr_c, nvctr_f
   real(gp) rdum
-  integer nprojel_tmp
   integer iatat
   
   integer mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
@@ -953,13 +952,24 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 !!$  --
 !!$  allocate(pc_proj(pc_nlpspd%nprojel+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,pc_proj,'pc_proj',subname)
+  allocate(PAWD%paw_proj(PAWD%paw_nlpspd%nprojel+ndebug),stat=i_stat)
+  call memocc(i_stat,PAWD%paw_proj,'paw_proj',subname)
 
-  PAWD%paw_nlpspd%nprojel=0
-  PAWD%paw_nlpspd%nproj  =0
+
+
+
+
+  allocate(PAWD%ilr_to_mproj(PAWD%G%nat  +ndebug ) , stat=i_stat)
+  call memocc(i_stat,PAWD%ilr_to_mproj,'ilr_to_mproj',subname)
+
+  allocate(PAWD%iproj_to_l(PAWD%paw_nlpspd%nproj +ndebug ) , stat=i_stat)
+  call memocc(i_stat ,PAWD%iproj_to_l,'iproj_to_l',subname)
+
+  allocate(PAWD%iproj_to_paw_nchannels( PAWD%paw_nlpspd%nproj+ndebug ) , stat=i_stat)
+  call memocc(i_stat ,PAWD%iproj_to_paw_nchannels,'iproj_to_paw_nchannels',subname)
 
 !!$ =========================================================================================  
 
-  mprojtot=0
   jorb=1  
   ! After having determined the size of the projector descriptor arrays fill them
   iat=0
@@ -973,11 +983,9 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
            jorb=jorb+1
         end do
 
-        mprojtot=mprojtot+mproj
         PAWD%paw_nlpspd%nproj=PAWD%paw_nlpspd%nproj+mproj
         if (mproj.ne.0) then 
 
-           nprojel_tmp=0
            ! coarse grid quantities
            nl1=PAWD%paw_nlpspd%nboxp_c(1,1,iat) 
            nl2=PAWD%paw_nlpspd%nboxp_c(1,2,iat) 
@@ -995,10 +1003,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
            call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                 logrid,mseg,PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
-
            mvctr =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
-
-           nprojel_tmp =nprojel_tmp +mproj*mvctr
 
            ! fine grid quantities
            nl1=PAWD%paw_nlpspd%nboxp_f(1,1,iat)
@@ -1015,37 +1020,17 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
            if (mseg > 0) then
               call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                    logrid,mseg,PAWD%paw_nlpspd%keyg_p(1,iseg),PAWD%paw_nlpspd%keyv_p(iseg))
-
               mvctr =PAWD%paw_nlpspd%nvctr_p(2*iat)-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
-
-              nprojel_tmp=nprojel_tmp+mproj*mvctr*7
-
            end if
 
-           if( PAWD%DistProjApply)  then
-              PAWD%paw_nlpspd%nprojel=max(PAWD%paw_nlpspd%nprojel,nprojel_tmp   )
-           else
-              PAWD%paw_nlpspd%nprojel= PAWD%paw_nlpspd%nprojel+nprojel_tmp 
-           endif
 
         endif
      endif
   enddo
 
-     
-  allocate(PAWD%paw_proj(PAWD%paw_nlpspd%nprojel+ndebug),stat=i_stat)
-  call memocc(i_stat,PAWD%paw_proj,'paw_proj',subname)
 
-  allocate(PAWD%ilr_to_mproj(PAWD%G%nat  +ndebug ) , stat=i_stat)
-  call memocc(i_stat,PAWD%ilr_to_mproj,'ilr_to_mproj',subname)
+  !! PAWD%mprojtot=mprojtot
 
-  allocate(PAWD%iproj_to_l(mprojtot +ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PAWD%iproj_to_l,'iproj_to_l',subname)
-
-  allocate(PAWD%iproj_to_paw_nchannels(mprojtot +ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PAWD%iproj_to_paw_nchannels,'iproj_to_paw_nchannels',subname)
-
-  PAWD%mprojtot=mprojtot
   startjorb=1
   jorb=1
   istart_c=1
