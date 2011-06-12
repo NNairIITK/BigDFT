@@ -393,6 +393,17 @@ module module_types
     logical,dimension(:,:),pointer:: communComplete, computComplete
   end type p2pCommsSumrho
 
+!> Contains the parameters neeed for the point to point communications
+!! for gathering the potential (for the application of the Hamiltonian)
+   type,public::p2pCommsGatherPot
+       integer,dimension(:),pointer:: noverlaps, overlaps
+       integer,dimension(:,:,:),pointer:: comarr
+       real(8),dimension(:),pointer:: recvBuf
+       integer:: nrecvBuf
+       logical,dimension(:,:),pointer:: communComplete
+   end type p2pCommsGatherPot
+
+
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
 !! minimizing orbitals, this basis may be larger than only the trace minimizing
@@ -404,22 +415,17 @@ type,public:: largeBasis
     integer,dimension(:),pointer:: onWhichAtom, onWhichAtomAll
 end type largeBasis
 
+!!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
+  type,public:: linear_zone_descriptors
+    integer :: nlr                                              !> Number of localization regions 
+    type(orbitals_data):: orbs                                  !> Global orbitals descriptors
+    type(communications_arrays) :: comms                        !> Global communication descriptors
+    type(locreg_descriptors) :: Glr                             !> Global region descriptors
+    type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
+    type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
+    type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
+  end type
 
-!!!!> Contains all parameters related to the linear scaling version.
-!!!  type,public:: linearParameters
-!!!    integer:: DIISHistMin, DIISHistMax, nItMax, nItPrecond
-!!!    real(8):: convCrit, alphaSD
-!!!    real(8),dimension(:),allocatable:: potentialPrefac
-!!!    type(orbitals_data):: orbs
-!!!    type(communications_arrays):: comms
-!!!    type(locreg_descriptors):: lr
-!!!    type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfds
-!!!    integer,dimension(:),allocatable:: onWhichAtom
-!!!    integer,dimension(:),allocatable:: MPIComms, norbPerComm
-!!!    integer,dimension(:,:),allocatable:: procsInComm
-!!!    integer:: ncomms
-!!!    type(arraySizes):: as
-!!!  end type
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder
@@ -440,19 +446,11 @@ end type largeBasis
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
     character(len=4):: getCoeff
     type(p2pCommsSumrho):: comsr
+    type(p2pCommsGatherPot):: comgp
     type(largeBasis):: lb
+    type(linear_zone_descriptors):: lzd
   end type linearParameters
 
-!!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
-  type,public:: linear_zone_descriptors
-    integer :: nlr                                              !> Number of localization regions 
-    type(orbitals_data):: orbs                                  !> Global orbitals descriptors
-    type(communications_arrays) :: comms                        !> Global communication descriptors
-    type(locreg_descriptors) :: Glr                             !> Global region descriptors
-    type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
-    type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
-    type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
-  end type
 
 
 !> Contains the arguments needed for the diis procedure

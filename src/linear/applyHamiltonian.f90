@@ -1161,39 +1161,32 @@ END SUBROUTINE local_hamiltonianConfinementForAllLocregs
 
 
 
-
-!> @file
-!!  Application of the Hamiltonian + orthonormalize constraints
-!! @author
-!!    Copyright (C) 2007-2011 CEA
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-
-
 !> Application of the Hamiltonian
-subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
-     proj,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel,orbsocc,psirocc)
+subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
+     proj,ngatherarr,ndimpot,pot,psi,hpsi,&
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,nscatterarr,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use libxc_functionals
+  use module_interfaces
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin
+  integer, intent(in) :: iproc,nproc,nspin,ndimpot
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(input_variables), intent(in) :: input
   type(linear_zone_descriptors),intent(inout) :: Lzd
+  type(linearParameters),intent(in):: lin
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(Lzd%orbs%npsidim), intent(in) :: psi
-  real(wp), dimension(:), pointer :: pot
+  real(wp), dimension(max(ndimpot,1)*nspin), intent(in) :: pot
+  !real(wp), dimension(:), pointer :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
   real(wp), target, dimension(Lzd%orbs%npsidim), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
+  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(dp), dimension(*), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
@@ -1202,7 +1195,7 @@ subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,h
   real(gp), dimension(2,Lzd%orbs%norbp) :: ekin
   real(gp), dimension(2,Lzd%orbs%norbp) :: epot
   real(wp), dimension(:), pointer :: hpsi2
-  character(len=*), parameter :: subname='HamiltonianApplication'
+  character(len=*), parameter :: subname='LinearHamiltonianApplicationConfinement'
   logical :: exctX,op2p
   integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
@@ -1210,6 +1203,7 @@ subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,h
   integer :: tmp_norbp
   real(dp),dimension(:),pointer:: Lpot
   real(wp),dimension(:),allocatable :: hpsi_proj
+  real(wp),dimension(:),allocatable:: projCopy
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
@@ -1217,14 +1211,14 @@ subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,h
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
 
 
-  !check if the potential has been associated
-  if (.not. associated(pot)) then
-     if (iproc ==0) then
-        write(*,*)' ERROR, HamiltonianApplication, potential not associated!'
+  !!!check if the potential has been associated
+  !!if (.not. associated(pot)) then
+  !!   if (iproc ==0) then
+  !!      write(*,*)' ERROR, HamiltonianApplication, potential not associated!'
 
-        stop
-     end if
-  end if
+  !!      stop
+  !!   end if
+  !!end if
 
   !initialise exact exchange energy 
   op2p=(eexctX == -99.0_gp)
@@ -1241,6 +1235,10 @@ subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,h
   eproj_sum= 0.0_gp
   ind = 1
   do ilr= 1, Lzd%nlr
+
+     ! Cycle if the process does not have any orbitals belonging
+     ! to this localization region.
+     if(Lzd%Llr(ilr)%Localnorb == 0) cycle
  
      allocate(Lpot(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin), stat=i_stat)
      call memocc(i_stat,Lpot,'Lpot',subname)
@@ -1254,12 +1252,20 @@ subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,h
            max(max(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*Lzd%Llr(ilr)%Localnorb*nspin,&
            ngatherarr(0,1)*Lzd%orbs%norb),1) !CHECK THIS...DOES NOT WORK YET
      else
-        size_pot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin
+        !size_pot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin
+        size_pot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2)*nspin
         size_Lpot = Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin
      end if
  
      ! Cut the potential into locreg pieces
      call global_to_local(Lzd%Glr,Lzd%Llr(ilr),nspin,size_pot,size_Lpot,pot,Lpot)
+write(*,'(a,3i10)') 'size(pot), ndimpot, size_pot', size(pot), ndimpot, size_pot
+do i_all=1,size_pot
+    write(3600+iproc*10+ilr,*) i_all, pot(i_all)
+end do
+do i_all=1,size_Lpot
+    write(3700+iproc*10+ilr,*) i_all, Lpot(i_all)
+end do
 
      ! Set some quantities: ispot=shift for potential, dimwf=dimension of wavefunction
      ispot=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin+1
@@ -1325,8 +1331,18 @@ subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,h
         call local_hamiltonian_OCL(iproc,Lzd%orbs,Lzd%Llr(ilr),hx,hy,hz,nspin,Lpot,psi(ind:ind+dimwf-1),&
              hpsi2,tmp_ekin_sum,tmp_epot_sum,GPU,ekin,epot,ilr)
      else
-        call local_hamiltonian_Linear(iproc,ilr,Lzd%orbs,Lzd%Llr(ilr),hx,hy,hz,nspin,Lpot,psi(ind:ind+dimwf-1),&
-             hpsi(ind:ind+dimwf-1),tmp_ekin_sum,tmp_epot_sum)
+        !!call local_hamiltonian_Linear(iproc,ilr,Lzd%orbs,Lzd%Llr(ilr),hx,hy,hz,nspin,Lpot,psi(ind:ind+dimwf-1),&
+        !!     hpsi(ind:ind+dimwf-1),tmp_ekin_sum,tmp_epot_sum)
+write(*,'(a,4i9)') 'iproc, ilr, ind, dimwf', iproc, ilr, ind, dimwf
+        i_all=lzd%orbs%norb
+        lzd%orbs%norb=Lzd%Llr(ilr)%Localnorb
+        call local_hamiltonian_LinearConfinement(iproc, ilr, lzd%orbs, lzd%Llr(ilr), hx, hy, hz,&
+             nspin, pot, psi(ind:ind+dimwf-1), hpsi(ind:ind+dimwf-1), tmp_ekin_sum, tmp_epot_sum, lin, at, rxyz)
+        lzd%orbs%norb=i_all
+do i_all=ind,ind+dimwf-1
+    write(3000+iproc,*) i_all, psi(i_all)
+    write(3100+iproc,*) i_all, hpsi(i_all)
+end do
      end if
 
      ekin_sum = ekin_sum + tmp_ekin_sum
@@ -1396,7 +1412,8 @@ subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,h
 
      if(Lzd%orbs%norbp > 0) then
         !allocate
-        if(ilr == 1) then
+        !if(ilr == 1) then
+        if(.not.allocated(hpsi_proj)) then
            allocate(hpsi_proj(Lzd%orbs%npsidim),stat=i_stat)
            call memocc(i_stat,hpsi_proj,'hpsi_proj',subname)
            hpsi_proj = 0.0_wp
@@ -1410,8 +1427,15 @@ subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,h
         call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,Lzd%orbs,&
       &      radii_cf,input%frmult,input%frmult,input%hx,input%hy,input%hz,Lzd%Gnlpspd,Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
 
-        call apply_local_projectors(ilr,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),proj,Lzd%orbs,&
+        ! proj is declared with intent in, but in apply_local_projectors it has intent out. Therefore
+        ! copy it to projCopy. Maybe not needed, since it is not used anywhere else in this subroutine
+        !call apply_local_projectors(ilr,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),proj,Lzd%orbs,&
+        !         Lzd%Llr(ilr)%projflg,psi(ind:ind+dimwf-1),rxyz,hpsi(ind:ind+dimwf-1),eproj_sum)
+        allocate(projCopy(Lzd%Lnlpspd(ilr)%nprojel), stat=i_stat)
+        call dcopy(Lzd%Lnlpspd(ilr)%nprojel, proj, 1, projCopy, 1)
+        call apply_local_projectors(ilr,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),projCopy,Lzd%orbs,&
                  Lzd%Llr(ilr)%projflg,psi(ind:ind+dimwf-1),rxyz,hpsi(ind:ind+dimwf-1),eproj_sum)
+        deallocate(projCopy, stat=i_stat)
         ! accumulate the new hpsi
         hpsi_proj(ind:ind+dimwf-1) = hpsi_proj(ind:ind+dimwf-1) + hpsi(ind:ind+dimwf-1)
      end if
@@ -1422,6 +1446,7 @@ subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,h
 
   end do
 ! END LINEAR MODIFICATIONS
+
 
   ! Now that all is accumulated, rename hpsi_proj to hpsi
   hpsi = hpsi_proj
@@ -1468,3 +1493,158 @@ subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,hx,h
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
 END SUBROUTINE LinearHamiltonianApplicationConfinement
+
+
+
+
+
+!>   Calculate the action of the local hamiltonian on the orbitals
+subroutine local_hamiltonian_LinearConfinement(iproc,ilr,orbs,lr,hx,hy,hz,&
+     nspin,pot,psi,hpsi,ekin_sum,epot_sum, lin, at, rxyz)
+  use module_base
+  use module_types
+  use module_interfaces
+  use libxc_functionals
+  implicit none
+  integer, intent(in) :: iproc,nspin,ilr
+  real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
+  real(wp), dimension(*) :: pot
+  !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
+  real(gp), intent(out) :: ekin_sum,epot_sum
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+  type(linearParameters),intent(in):: lin
+  type(atoms_data),intent(in):: at
+  real(8),dimension(3,at%nat),intent(in):: rxyz
+  !local variables
+  character(len=*), parameter :: subname='local_hamiltonian_Linear'
+  integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
+  integer :: ii,orbtot
+  integer,dimension(lr%localnorb*nspin) :: inthisLocreg
+  real(wp) :: exctXcoeff
+  real(gp) :: ekin,epot,kx,ky,kz,etest, hxh, hyh, hzh
+  type(workarr_locham) :: wrk_lh
+  real(wp), dimension(:,:), allocatable :: psir
+
+  hxh=.5d0*hx
+  hyh=.5d0*hy
+  hzh=.5d0*hz
+
+  exctXcoeff=libxc_functionals_exctXfac()
+
+  !initialise the work arrays
+  call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)
+
+  !components of the potential
+  npot=orbs%nspinor
+  if (orbs%nspinor == 2) npot=1
+
+  ! Wavefunction in real space
+  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
+
+  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+
+  ekin_sum=0.0_gp
+  epot_sum=0.0_gp
+
+  etest=0.0_gp
+  
+  orbtot = 0
+  do iorb=1,orbs%norbp
+     if (orbs%inWhichLocreg(iorb) == ilr) then
+        orbtot = orbtot+1
+        inthisLocreg(orbtot) = iorb
+     end if
+  end do 
+  
+  if (orbtot .ne. lr%localnorb*nspin) then
+     write(*,'(3(a,i0))') 'process ',iproc, ': Problem in local_hamiltonian_Linear, orbtot=',orbtot,' is not equal to localnorb=',lr%localnorb*nspin
+     stop
+  end if
+
+  do ii=1,orbtot
+
+     iorb = inthisLocreg(ii)   !using ii and iorb to identify the orbitals because in linear case, the ordering is different
+                               !orbitals are now orderer by locreg. So, iorb is the old numbering (i.e. in Global region)
+                               !while ii is it's numbering in the locreg.
+
+     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
+        nsoffset=1
+     else
+        nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
+     end if
+
+     oidx=(ii-1)*orbs%nspinor+1
+
+     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
+     !the psir wavefunction is given in the spinorial form
+     call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+
+     !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
+     !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
+     !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
+
+     !apply the potential to the psir wavefunction and calculate potential energy
+     select case(lr%geocode)
+     case('F')
+
+        !!call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+        !!     pot(nsoffset),epot,&
+        !!     lr%bounds%ibyyzz_r) !optional
+do i_all=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
+    write(3200+10*iproc+ii,*) i_all, psir(i_all,1)
+end do
+do i_all=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
+    write(3400+10*iproc+ii,*) i_all, pot(i_all)
+end do
+        call apply_potentialConfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+             pot(nsoffset),epot, rxyz(1,lin%onWhichAtom(iorb)), hxh, hyh, hzh, &
+             lin%potentialPrefac(at%iatype(lin%onWhichAtom(iorb))), lin%confPotOrder, lr%bounds%ibyyzz_r) !optional
+do i_all=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
+    write(3300+10*iproc+ii,*) i_all, psir(i_all,1)
+end do
+
+     case('P')
+        !here the hybrid BC act the same way
+        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
+             pot(nsoffset),epot)
+
+     case('S')
+
+        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
+             pot(nsoffset),epot)
+     end select
+
+     !k-point values, if present
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+     if (exctXcoeff /= 0.0_gp) then
+        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+ii-1)
+        !add to the psir function the part of the potential coming from the exact exchange
+        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
+     end if
+
+     !apply the kinetic term, sum with the potential and transform back to Daubechies basis
+     call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
+          psir,hpsi(1,oidx),ekin)
+!     print *,iorb, ekin+epot, epot
+     ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
+     epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
+  enddo
+
+  !print *,'iproc,etest',etest
+
+  !deallocations of work arrays
+  i_all=-product(shape(psir))*kind(psir)
+  deallocate(psir,stat=i_stat)
+  call memocc(i_stat,i_all,'psir',subname)
+
+  call deallocate_work_arrays_locham(lr,wrk_lh)
+
+END SUBROUTINE local_hamiltonian_LinearConfinement
+

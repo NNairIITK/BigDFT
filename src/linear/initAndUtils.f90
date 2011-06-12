@@ -1,6 +1,6 @@
 !> This subroutine initializes all parameters needed for the linear scaling version
 !! and allocate all arrays.
-subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, phi, &
+subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
     input, rxyz, nscatterarr, coeff, lphi)
 ! Calling arguments:
 ! ==================
@@ -30,6 +30,7 @@ integer,intent(in):: iproc, nproc
 type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: at
+type(nonlocal_psp_descriptors),intent(in):: nlpspd
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
@@ -39,7 +40,7 @@ real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 
 ! Local variables
-integer:: norb, norbu, norbd, istat, iat, ityp, iall
+integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb
 integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
@@ -53,6 +54,7 @@ call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 
 ! Number of localization regions.
 lin%nlr=at%nat
+lin%lzd%nlr=at%nat
 
 ! Allocate the basic arrays that are needed for reading the input parameters.
 call allocateBasicArrays(at, lin)
@@ -75,6 +77,8 @@ call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%ns
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%Lorbs)
+call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+     input%nkpt, input%kpt, input%wkpt, lin%lzd%orbs)
 
 
 ! Do the same again, but take into acount that we may also use the derivatives of the basis functions with
@@ -97,6 +101,7 @@ call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%ns
 ! between the 'normal' basis and the 'large' basis inlcuding the derivtaives.
 call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%orbs,lin%lb%comms)
+call orbitals_communicators(iproc,nproc,Glr,lin%lzd%orbs,lin%lzd%comms)
 
 
 ! Write all parameters related to the linear scaling version to the screen.
@@ -111,6 +116,9 @@ call assignOrbitalsToAtoms(iproc, lin%orbs, at%nat, norbsPerAtom, lin%onWhichAto
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignOrbitalsToAtoms(iproc, lin%lb%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
+
+! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
+call assignToLocreg(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
 
 ! Initialize the localization regions.
 call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
@@ -135,6 +143,26 @@ call initCoefficients(iproc, orbs, lin, coeff)
 ! Initialize the parameters for the point to point communication for the
 ! calculation of the charge density.
 call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin)
+
+! Copy Glr to lin%lzd
+lin%lzd%Glr = Glr
+
+! Copy nlpspd to lin%lzd
+lin%lzd%Gnlpspd = nlpspd
+
+! Set localnorb
+do ilr=1,lin%lzd%nlr
+    lin%lzd%Llr(ilr)%localnorb=0
+    do iorb=1,lin%lzd%orbs%norbp
+        if(lin%onWhichAtom(iorb)==ilr) then
+            lin%lzd%Llr(ilr)%localnorb = lin%lzd%Llr(ilr)%localnorb+1
+        end if
+    end do
+end do
+
+! Initialize the parameters for the communication for the
+! potential.
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
 
 ! Deallocate all local arrays.
 iall=-product(shape(atomNames))*kind(atomNames)
@@ -1125,6 +1153,7 @@ character(len=*),parameter:: subname='initLocregs'
 
 ! Allocate the array of localisation regions
 allocate(lin%Llr(lin%nlr),stat=istat)
+allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
 allocate(lin%outofzone(3,lin%nlr),stat=istat)
 call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 
@@ -1143,6 +1172,7 @@ call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 !end if
 
  call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
+ call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
 
 !do ilr=1,lin%nlr
 !    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
@@ -1161,6 +1191,7 @@ do iorb=1,lin%orbs%norbp
     npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
 end do
 lin%Lorbs%npsidim=npsidim
+lin%lzd%orbs%npsidim=npsidim
 
 if(.not. lin%useDerivativeBasisFunctions) then
     lin%lb%Lorbs%npsidim=npsidim
@@ -1173,6 +1204,7 @@ else
     end do
     lin%lb%Lorbs%npsidim=npsidim
 end if
+
 
 
 allocate(phi(lin%lb%orbs%npsidim), stat=istat)
@@ -1219,3 +1251,65 @@ subroutine initCoefficients(iproc, orbs, lin, coeff)
   end if
 
 end subroutine initCoefficients
+
+
+
+
+!!!!!> Copies lrin to lrout.
+!!!! Can be used to copy Glr to lin%lzr%Glr, can probabaly be deleted
+!!!! as soon as this initialization is done somewhere else.
+!!subroutine allocateAndCopyLocreg(lrin, lrout)
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!! Calling arguments
+!!type(locreg_descriptors),intent(in):: lrin
+!!type(locreg_descriptors),intent(out):: lrout
+!!
+!!
+!!lrout%geocode = lrin%geocode
+!!
+!!lrout%hybrid_on = lrin%hyrbid_on
+!!
+!!lrout%ns1 = lrin%ns1 ; lrout%ns2 = lrin%ns2 ; lrout%ns3 = lrin%ns3
+!!
+!!lrout%nsi1 = lrin%nsi1 ; lrout%nsi2 = lrin%nsi2 ; lrout%nsi3 = lrin%nsi3
+!!
+!!lrout%Localnorb = lrin%Localnorb
+!!
+!!call dcopy(3, lrin%outofzone(1), 1, lrout%outofzone(1), 1)
+!!
+!!ii=size(lrin%projflg)
+!!allocate(lrout%projflg(ii))
+!!call dcopy(ii, lrin%projflg(1), 1, lrout%projflg(1), 1)
+!!
+!!lrout%Glr = lrin%Glr
+!!
+!!lrout%Gnlpspd = lrin%nlpspd
+!!
+!!lrout%orbs = lrin%orbs
+!!
+!!lrout%comms = lrin%comms
+!!
+!!
+!!
+!!!> Contains the information needed for describing completely a
+!!!! wavefunction localisation region
+!!  type, public :: locreg_descriptors
+!!     character(len=1) :: geocode
+!!     logical :: hybrid_on               !< interesting for global, periodic, localisation regions
+!!     integer :: ns1,ns2,ns3             !< starting point of the localisation region in global coordinates
+!!     integer :: nsi1,nsi2,nsi3          !< starting point of locreg for interpolating grid
+!!     integer :: Localnorb               !< number of orbitals contained in locreg
+!!     integer,dimension(3) :: outofzone  !< vector of points outside of the zone outside Glr for periodic systems
+!!     integer,dimension(:),pointer :: projflg    !< atoms contributing nlpsp projectors to locreg
+!!     type(grid_dimensions) :: d
+!!     type(wavefunctions_descriptors) :: wfd
+!!     type(convolutions_bounds) :: bounds
+!!  end type locreg_descriptors
+!!
+!!
+!!
+!!end subroutine allocateAndCopyLocreg
+
