@@ -912,7 +912,7 @@ contains
          real(gp) :: ene, gamma
        END SUBROUTINE 
        real(kind=8) function EP_scalare(i,j)
-         integer,intent(in) :: i,j
+         integer, intent(in) :: i,j
        end function 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
          integer, intent(in) :: i,j

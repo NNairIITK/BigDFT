@@ -536,32 +536,9 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspi
           'done.'
   end if
 
-!!$  if(orbs%nspinor==4) then
-!!$     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,mom_vec,'mom_vec',subname)
-!!$
-!!$     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
-!!$          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
-!!$     !only the root process has the correct array
-!!$     if(iproc==0 .and. verbose > 0) then
-!!$        write(*,'(1x,a)')&
-!!$             'Magnetic polarization per orbital'
-!!$        write(*,'(1x,a)')&
-!!$             '  iorb    m_x       m_y       m_z'
-!!$        do iorb=1,orbs%norb
-!!$           write(*,'(1x,i5,3f10.5)') &
-!!$                iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
-!!$        end do
-!!$     end if
-!!$
-!!$     i_all=-product(shape(mom_vec))*kind(mom_vec)
-!!$     deallocate(mom_vec,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'mom_vec',subname)
-!!$  end if
-
   call diis_or_sd(iproc,idsx,orbs%nkptsp,diis)
 
-  !previous value already fulfilled
+  !previous value already filled
   diis%energy_old=diis%energy
 
 END SUBROUTINE hpsitopsi
@@ -569,6 +546,7 @@ END SUBROUTINE hpsitopsi
 !>Choose among the wavefunctions a subset of them
 !! Rebuild orbital descriptors for the new space and allocate the psi_as wavefunction
 !! By hypothesis the work array is big enough to contain both wavefunctions
+!! This routine has to be tested
 subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as)
   use module_base
   use module_types
@@ -1398,6 +1376,8 @@ subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
      do ikpt = 1, nkpts
         call MPI_BCAST(data(1,ikpt), ndata, MPI_DOUBLE_PRECISION, &
              & ikptproc(ikpt), MPI_COMM_WORLD, ierr)
+        !redundant barrier 
+        call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      end do
   end if
 END SUBROUTINE broadcast_kpt_objects

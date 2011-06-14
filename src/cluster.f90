@@ -224,6 +224,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
   type(diis_objects) :: diis
+  type(energy_terms) :: energs
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
@@ -773,16 +774,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      rxyz_old(3,iat)=rxyz(3,iat)
   enddo
   !save the new grid spacing into the hgrid_old value
-  hx_old=in%hx
-  hy_old=in%hy
-  hz_old=in%hz
+  hx_old=hx
+  hy_old=hy
+  hz_old=hz
 
   ! allocate arrays necessary for DIIS convergence acceleration
-  !the allocation with npsidim is not necessary here since DIIS arrays
-  !are always calculated in the transpsed form
-  if (idsx > 0) then
-     call allocate_diis_objects(idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)
-  endif
+  call allocate_diis_objects(idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
+       orbs%nkptsp,orbs%nspinor,orbs%norbd,diis,subname)
 
   !allocate arrays for the GPU if a card is present
   if (GPUconv) then
@@ -805,18 +803,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
-  !diis initialisation variables
-  diis%alpha=in%alphadiis
-  diis%alpha_max=in%alphadiis
-  diis%energy=1.d10
-  !minimum value of the energy during the minimisation procedure
-  diis%energy_min=1.d10
-  !previous value already fulfilled
-  diis%energy_old=diis%energy
-  !local variable for the diis history
-  diis%idsx=idsx
-  !logical control variable for switch DIIS-SD
-  diis%switchSD=.false.
+
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
@@ -878,7 +865,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !control how many times the DIIS has switched into SD
            if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
 
-           !leave SD if the DIIS did not work the second time
+           !let SD runs if the DIIS did not work the second time
            if (ndiis_sd_sw > 1) then
               diis%switchSD=.false.
            end if
@@ -972,6 +959,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,hx,hy,hz,in%ncong,in%iscf,&
                 ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,eexctX,eion,edisp,&
                 psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
+!!$
+!!$           call calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,Glr,in%orthpar,&
+!!$                hx,hy,hz,in%ncong,in%iscf,&
+!!$                energs,psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
 
            !control the previous value of idsx_actual
            idsx_actual_before=diis%idsx
@@ -1108,9 +1099,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           'Difference:evsum,energybs',evsum,energybs
   end if
 
-  if (in%idsx > 0) then
-     call deallocate_diis_objects(diis,subname)
-  end if
+  call deallocate_diis_objects(diis,subname)
 
   !last run things has to be done:
   !if it is the last run and the infocode is zero
@@ -1631,9 +1620,7 @@ contains
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. in%inputPsiId /=-1000) then
 
-       if (in%idsx > 0) then
-          call deallocate_diis_objects(diis,subname)
-       end if
+       call deallocate_diis_objects(diis,subname)
 
        if (nproc > 1) then
           i_all=-product(shape(psit))*kind(psit)

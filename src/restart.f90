@@ -335,8 +335,8 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
            filename_ = filename//".bin."//f4
            open(unit=99,file=filename_,status='unknown',form="unformatted")
         else
-           filename_ = filename//"."//f4
-           open(unit=99,file=filename_,status='unknown')
+           filename_ = trim(filename)//"."//f4
+           open(unit=99,file=trim(filename_),status='unknown')
         end if
 
         call readonewave(99, .not.exists,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
@@ -393,12 +393,12 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
      do iorb=1,orbs%norbp*orbs%nspinor
 
         write(f4,'(i4.4)')  iorb+orbs%isorb*orbs%nspinor
-        filename_ = filename//"."//f4
+        filename_ = trim(filename)//"."//f4
         if (verbose >= 2) write(*,*) 'opening ',filename_
         if (isuffix <= 0) then
            open(unit=99,file=filename_,status='unknown')
         else
-           open(unit=99,file=filename_,status='unknown',form="unformatted")
+           open(unit=99,file=trim(filename_),status='unknown',form="unformatted")
         end if
 
         call writeonewave(99,(isuffix <= 0),iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 

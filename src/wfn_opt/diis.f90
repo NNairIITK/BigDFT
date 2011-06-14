@@ -13,28 +13,37 @@
 !! depending of the functional we want to calculate. The gradient wrt the wavefucntion
 !! Is then put in hpsi accordingly to the functional
 subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,orthpar,hx,hy,hz,ncong,iscf,&
-     energs,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+     ixc,nspin,nscatterarr,irrzon,phnons,atoms,&
+     rhocore,rhopot,potxc,pot_ion,energs,psi,psit,hpsi,gnrm,gnrm_zero,energy)
   use module_base
   use module_types
-  use module_interfaces!, except_this_one => calculate_energy_and_gradient_new
+  use Poisson_Solver
+  use module_interfaces, except_this_one => calculate_energy_and_gradient_new
   implicit none
-  integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+  integer, intent(in) :: iproc,nproc,ncong,iscf,iter,nspin,ixc
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(inout) :: orbs
   type(communications_arrays), intent(in) :: comms
   type(locreg_descriptors), intent(in) :: lr
-  type(GPU_pointers), intent(in) :: GPU
+  type(GPU_pointers), intent(inout) :: GPU
   type(orthon_data), intent(in) :: orthpar
+  type(atoms_data), intent(in) :: atoms
+  integer, dimension(*), intent(in) :: irrzon
+  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !< arrays of n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  real(dp), dimension(*), intent(in) :: phnons
+  real(wp), dimension(*), intent(inout) :: potxc,rhopot,pot_ion
   type(energy_terms), intent(out) :: energs
   real(gp), intent(out) :: gnrm,gnrm_zero,energy
   real(wp), dimension(:), pointer :: psi,psit,hpsi
+  real(wp), dimension(:), pointer :: rhocore,pkernel 
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
-  logical :: lcs
-  integer :: ierr,ikpt,iorb,i_all,i_stat,k,ncplx,jorb
+  logical :: lcs,PSquiet
+  integer :: ierr,ikpt,iorb,i_all,i_stat,k,ncplx,jorb,nvctrp,npot,nrho
   real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
   real(wp), dimension(:), allocatable :: passmat
   real(wp), dimension(:,:,:), allocatable :: mom_vec
+  real(wp), dimension(:,:,:,:), allocatable :: fxc
   real(wp), dimension(:), pointer :: psiw !< fake pointer for the calculation of the hamiltonian matrix
 
   !band structure energy calculated with occupation numbers
@@ -88,15 +97,83 @@ subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,
   call DiagHam(iproc,nproc,0,orbs%nspin,orbs,lr%wfd,comms,&
      psi,psiw,psit,orthpar,passmat)
 
-  !print out the passage matrix (valid for one k-point only and ncplx=1)
-  do iorb=1,orbs%norbu
-     write(*,'(100(1pe14.7))')(passmat(iorb+orbs%norbu*(jorb-1)),jorb=1,orbs%norbu)
-  end do
+  !the wavefunction psi is then used for creating the density
+  !this could have been calculated before
+  ! Potential from electronic charge density
+  nrho=lr%d%n1i*lr%d%n2i*nscatterarr(iproc,1) !n1i*n2i*n3d
+  call sumrho(iproc,nproc,orbs,lr,ixc,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,psi,rhopot,&
+       nrho,nscatterarr,nspin,GPU,atoms%symObj,irrzon,phnons)
 
-  !DEBUG: test 
-  !this passage matrix should be applied to the 
-  !the second passage should give a passage matrix of identity
-  !the matrix
+  !Allocate second Exc derivative
+  if (nscatterarr(iproc,2) > 0) then
+     allocate(fxc(lr%d%n1i,lr%d%n2i,nscatterarr(iproc,2),nspin+1+ndebug),stat=i_stat)
+      call memocc(i_stat,fxc,'fxc',subname)
+  else
+     allocate(fxc(1,1,1,nspin+1+ndebug),stat=i_stat)
+     call memocc(i_stat,fxc,'fxc',subname)
+  end if
+
+  call XC_potential(atoms%geocode,'D',iproc,nproc,&
+       lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+       rhopot,energs%exc,energs%vxc,nspin,rhocore,potxc,fxc)
+
+  call H_potential(atoms%geocode,'D',iproc,nproc,&
+       lr%d%n1i,lr%d%n2i,lr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+       rhopot,pkernel,rhopot,energs%eh,0.0_dp,.false.) !optional argument
+
+  !sum the two potentials in rhopot array
+  !fill the other part, for spin, polarised
+  npot=lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2) !n1i*n2i*n3d
+  if (nspin == 2) then
+     call dcopy(npot,rhopot(1),1,rhopot(1+npot),1)
+  end if
+  !spin up and down together with the XC part
+  call axpy(npot*nspin,1.0_dp,potxc(1),1,rhopot(1),1)
+
+  !at this point the potential is completely determined
+
+
+  i_all=-product(shape(fxc))*kind(fxc)
+  deallocate(fxc,stat=i_stat)
+  call memocc(i_stat,i_all,'fxc',subname)
+
+
+!!$  !print out the passage matrix (valid for one k-point only and ncplx=1)
+!!$  do iorb=1,orbs%norbu
+!!$     write(*,'(i6,100(1pe16.7))')iorb,(passmat(iorb+orbs%norbu*(jorb-1)),jorb=1,orbs%norbu)
+!!$  end do
+
+!!$  !apply the same transformation to the hpsi pointer (DEBUG, valid only without spin and Free BC)
+!!$  !call transpose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psiw)
+!!$  !allocate the pointer for virtual orbitals
+!!$  !iorbst=1
+!!$  !imatrst=1
+!!$  !do ispin=1,nspin
+!!$  !if (nspinor == 1) then
+!!$  nvctrp=comms%nvctr_par(iproc,1)
+!!$  call gemm('N','N',nvctrp,orbs%norb,orbs%norb,1.0_wp,hpsi(1),max(1,nvctrp),&
+!!$       passmat(1),orbs%norb,0.0_wp,psiw(1),max(1,nvctrp))
+!!$  !else
+!!$  !   call c_gemm('N','N',ncomp*nvctrp,norbi,norbi,(1.0_wp,0.0_wp),&
+!!$  !        psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst),norbi,&
+!!$  !        (0.0_wp,0.0_wp),ppsit(1,iorbst2),max(1,ncomp*nvctrp))
+!!$  !end if
+!!$  !iorbst=iorbst+norbi
+!!$  !imatrst=imatrst+ncplx*norbi**2
+!!$  !end do
+!!$
+!!$  !call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,psiw,work=psit,outadd=hpsi(1))
+!!$  !call dcopy(orbs%npsidim,psi,1,psiw,1)
+!!$  call DiagHam(iproc,nproc,0,orbs%nspin,orbs,lr%wfd,comms,&
+!!$     psi,psiw,psit,orthpar,passmat)
+!!$
+!!$  !print out the passage matrix (valid for one k-point only and ncplx=1)
+!!$  do iorb=1,orbs%norbu
+!!$     write(*,'(i6,100(1pe16.7))')iorb,(passmat(iorb+orbs%norbu*(jorb-1)),jorb=1,orbs%norbu)
+!!$     !print *,'BBB',dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1),1,psi(1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)),1)
+!!$  end do
+!!$  !print *,'AAA',dot(orbs%norbu,passmat(1),1,passmat(orbs%norbu+1),1)
+!!$ stop ! end DEBUG
 
 !!$
 !!$
@@ -406,24 +483,32 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
         ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
      end do
 
-     !here we should separate between up and down spin orbitals, maybe
-     call diisstp(iproc,nproc,orbs,comms,diis,psit)
+     !here we should separate between up and down spin orbitals, but it turned out to be not necessary
+     call diisstp(iproc,nproc,orbs,comms,diis)
+
+     !update the psit array with the difference stored in the psidst work array
+     ispsi=1
+     ispsidst=1
+     do ikptp=1,orbs%nkptsp
+        nvctrp=comms%nvctr_par(iproc,ikptp)
+        if (nvctrp == 0) cycle
+        call axpy(nvctrp*orbs%nspinor*orbs%norb,1.0_dp,&
+             diis%psidst(ispsidst+(mod(diis%ids,diis%idsx))*orbs%norb*orbs%nspinor*nvctrp),1,&
+             psit(ispsi),1)
+        ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
+        ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
+     end do
+
 
   else
      ! update all wavefunctions with the preconditioned gradient
      if (diis%energy > diis%energy_old) then
         diis%alpha=max(5.d-2,.5_wp*diis%alpha)
-        if (diis%alpha == 5.d-2) write(*,*) ' WARNING: Convergence problem or limit'
+        if (diis%alpha == 5.d-2 .and. iproc==0) write(*,*) ' WARNING: Convergence problem or limit'
      else
         diis%alpha=min(1.05_wp*diis%alpha,diis%alpha_max)
      endif
      if (iproc == 0 .and. verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
-
-!!     do iorb=1,orbs%norb*orbs%nspinor
-!!        call axpy(comms%nvctr_par(iproc),&
-!!             -alpha,hpsi(1+comms%nvctr_par(iproc)*(iorb-1)),1,&
-!!             psit(1+comms%nvctr_par(iproc)*(iorb-1)),1)
-!!     enddo
 
      call axpy(sum(comms%ncntt(0:nproc-1)),-diis%alpha,hpsit(1),1,psit(1),1)
 
@@ -467,8 +552,8 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
   if ((diis%energy == diis%energy_min) .and. diis%switchSD) then
      diis%idiistol=diis%idiistol+1
   end if
-!  if (diis%idiistol > idsx .and. diis%switchSD) then
-   if (diis%idiistol > 10000*idsx .and. diis%switchSD) then
+  if (diis%idiistol > idsx .and. diis%switchSD) then
+     !if (diis%idiistol > 10000*idsx .and. diis%switchSD) then
      !restore the original DIIS
      if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
           'WARNING: The energy value is now decreasing again, coming back to DIIS'
@@ -485,7 +570,8 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
      !allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
      !call memocc(i_stat,ads,'ads',subname)
 
-     call razero(nkptsp*3*(idsx+1)**2,diis%ads)
+     !ncplx and ngroup have to be added
+     call razero(nkptsp*(idsx+1)**2,diis%ads)
   end if
 
 END SUBROUTINE diis_or_sd
@@ -494,7 +580,7 @@ END SUBROUTINE diis_or_sd
 !> calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 !! using  the previous iteration points psidst and the associated error 
 !! vectors (preconditioned gradients) hpsidst
-subroutine diisstp(iproc,nproc,orbs,comms,diis,psit)
+subroutine diisstp(iproc,nproc,orbs,comms,diis)
   use module_base
   use module_types
   implicit none
@@ -503,140 +589,307 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis,psit)
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   type(diis_objects), intent(inout) :: diis
-  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(out) :: psit
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
-  integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr
-  integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp
+  character(len=2) :: mesupdw
+  integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr,ipsi_spin_sh,iorb_group_sh
+  integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp,icplx,ncplx,norbi,ngroup,igroup,iacc_add
+  complex(tp) :: zdres,zdotc
+  real(tp), dimension(2) :: psicoeff
   integer, dimension(:), allocatable :: ipiv
-  real(dp), dimension(:,:), allocatable :: rds
+  real(tp), dimension(:,:,:), allocatable :: adsw
+  real(tp), dimension(:,:,:,:), allocatable :: rds
+
+  !calculate the number of complex components
+  if (orbs%nspinor > 1) then
+     ncplx=2
+  else
+     ncplx=1
+  end if
+
+  ncplx=1
+
+  !all the wavefunctions for a given k-point go only in one group
+  ngroup=1
 
   allocate(ipiv(diis%idsx+1+ndebug),stat=i_stat)
   call memocc(i_stat,ipiv,'ipiv',subname)
-  allocate(rds(diis%idsx+1,orbs%nkpts+ndebug),stat=i_stat)
+  allocate(rds(ncplx,diis%idsx+1,ngroup,orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,rds,'rds',subname)
+  call razero(ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,rds)
 
-  call razero((diis%idsx+1)*orbs%nkpts,rds)
+  allocate(adsw(ncplx,diis%idsx+1,diis%idsx+1+ndebug),stat=i_stat)
+  call memocc(i_stat,adsw,'adsw',subname)
+  call razero(ncplx*(diis%idsx+1)**2,adsw)
 
   ispsidst=1
   do ikptp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      nvctrp=comms%nvctr_par(iproc,ikptp)
      if (nvctrp == 0) cycle
-
      ! set up DIIS matrix (upper triangle)
      if (diis%ids > diis%idsx) then
         ! shift left up matrix
         do i=1,diis%idsx-1
            do j=1,i
-              diis%ads(j,i,ikptp,1)=diis%ads(j+1,i+1,ikptp,1)
+              do icplx=1,ncplx
+                 diis%ads(icplx,j,i,1,ikptp,1)=&
+                      diis%ads(icplx,j+1,i+1,1,ikptp,1)
+              end do
            end do
         end do
      end if
-
+     
      ! calculate new line, use rds as work array for summation
      ist=max(1,diis%ids-diis%idsx+1)
      do i=ist,diis%ids
         mi=mod(i-1,diis%idsx)+1
-!!     do iorb=1,norb*nspinor
-!!        tt=dot(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
-!!        rds(i-ist+1)=rds(i-ist+1)+tt
-!!     end do
-        !to be corrected for complex wavefunctions
-        rds(i-ist+1,ikpt)=dot(nvctrp*orbs%norb*orbs%nspinor,&
-             diis%hpsidst(ispsidst+(diis%mids-1)*nvctrp*orbs%norb*orbs%nspinor),1,&
-             diis%hpsidst(ispsidst+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
-        !this has to be inserted in module_base
-        !call ds_dot(nvctrp*orbs%norb*orbs%nspinor,&
-        !     hpsidst_sp,ispsidst+(mids-1)*nvctrp*orbs%norb*orbs%nspinor,1,&
-        !     hpsidst_sp,ispsidst+(mi  -1)*nvctrp*orbs%norb*orbs%nspinor,1,&
-        !     rds(i-ist+1,ikpt))
+        !useful in care of more than one group
+        if (ncplx==1) then
+           rds(1,i-ist+1,1,ikpt)=0.0_tp
+        else
+           zdres=cmplx(0.0_tp,0.0_tp)
+        end if
+        
+        ipsi_spin_sh=0
+        do igroup=1,ngroup
+           norbi=orbs%norb!u
+           if (ncplx==1) then
+              !to be corrected for complex wavefunctions
+              !print *,'isipnst',sum(comms%ncntt(0:nproc-1)),ispsidst+ipsi_spin_sh,nvctrp*norbi*orbs%nspinor
+              rds(1,i-ist+1,1,ikpt)=rds(1,i-ist+1,1,ikpt)+dot(nvctrp*norbi*orbs%nspinor,&
+                   diis%hpsidst(ispsidst+ipsi_spin_sh+(diis%mids-1)*nvctrp*orbs%norb*orbs%nspinor),1,&
+                   diis%hpsidst(ispsidst+ipsi_spin_sh+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
+              !this has to be inserted in module_base
+              !call ds_dot(nvctrp*orbs%norb*orbs%nspinor,&
+              !     hpsidst_sp,ispsidst+(mids-1)*nvctrp*orbs%norb*orbs%nspinor,1,&
+              !     hpsidst_sp,ispsidst+(mi  -1)*nvctrp*orbs%norb*orbs%nspinor,1,&
+              !     rds(i-ist+1,ikpt))
+           else 
+              !this should be simple or double precision either
+              zdres=zdres+zdotc(nvctrp*norbi*(orbs%nspinor/2),&
+                   diis%hpsidst(ispsidst+ipsi_spin_sh+(diis%mids-1)*nvctrp*orbs%norb*orbs%nspinor),1,&
+                   diis%hpsidst(ispsidst+ipsi_spin_sh+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
+           end if
+        end do
+        !copy the complex result in the rds array (DCOPY TO BE REDEFINED)
+        if (ncplx == 2) call vcopy(2,zdres,1,rds(1,i-ist+1,1,ikpt),1)
      end do
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
   end do
-
   if (nproc > 1) then
-     call mpiallred(rds(1,1),(diis%idsx+1)*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
-!     call MPI_ALLREDUCE(MPI_IN_PLACE,rds,(diis%idsx+1)*orbs%nkpts,  & 
-!                 mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
-!
-!!     call MPI_ALLREDUCE(rds,ads(1,min(diis%idsx,ids),1),min(ids,diis%idsx),  & 
-!!                 MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(rds(1,1,1,1),ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
   endif
-  
+
   ispsi=1
   ispsidst=1
   do ikptp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      nvctrp=comms%nvctr_par(iproc,ikptp)
      if (nvctrp == 0) cycle
-
-     do i=1,min(diis%ids,diis%idsx)
-        diis%ads(i,min(diis%idsx,diis%ids),ikptp,1)=rds(i,ikpt)
-     end do
-
-     ! copy to work array, right hand side, boundary elements
-     do j=1,min(diis%idsx,diis%ids)
-        diis%ads(j,min(diis%idsx,diis%ids)+1,ikptp,2)=1.0_wp
-        rds(j,ikpt)=0.d0
-        do i=j,min(diis%idsx,diis%ids)
-           diis%ads(j,i,ikptp,2)=diis%ads(j,i,ikptp,1)
+     iorb_group_sh=0
+     do igroup=1,ngroup
+        norbi=orbs%norb
+        !update the matrix of the DIIS errors
+        do i=1,min(diis%ids,diis%idsx)
+           do icplx=1,ncplx
+              diis%ads(icplx,i,min(diis%idsx,diis%ids),igroup,ikptp,1)=rds(icplx,i,igroup,ikpt)
+           end do
         end do
-     end do
-     diis%ads(min(diis%idsx,diis%ids)+1,min(diis%idsx,diis%ids)+1,ikptp,2)=0.0_dp
-     rds(min(diis%idsx,diis%ids)+1,ikpt)=1.0_dp
-     
-     !if(iproc==0)  write(6,*) 'DIIS matrix'
-     !do i=1,min(diis%idsx,ids)+1
-     !  if(iproc==0)  write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(diis%idsx,ids)+1),rds(i)
-     !enddo
-     if (diis%ids > 1) then
-        ! solve linear system:(LAPACK)
-        call DSYSV('U',min(diis%idsx,diis%ids)+1,1,diis%ads(1,1,ikptp,2),diis%idsx+1,  & 
-             ipiv,rds(1,ikpt),diis%idsx+1,diis%ads(1,1,ikptp,3),(diis%idsx+1)**2,info)
-        
-        if (info /= 0) then
-           print*, 'diisstp: DSYSV',info
-        end if
-     else
-        rds(1,ikpt)=1.0_dp
-     endif
 
-! new guess
-     do iorb=1,orbs%norb
-        call razero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
+        ! copy to work array, right hand side, boundary elements
+        do j=1,min(diis%idsx,diis%ids)
+           !diis%ads(j,min(diis%idsx,diis%ids)+1,ikptp,2)=1.0_wp
+           !case for complex values
+           adsw(ncplx,j,min(diis%idsx,diis%ids)+1)=0.0_tp
+           adsw(1,j,min(diis%idsx,diis%ids)+1)=1.0_tp
+           do icplx=1,ncplx   
+              rds(icplx,j,igroup,ikpt)=0.0_tp
+           end do
+           do i=j,min(diis%idsx,diis%ids)
+              !diis%ads(j,i,ikptp,2)=diis%ads(j,i,ikptp,1)
+              do icplx=1,ncplx
+                 adsw(icplx,j,i)=diis%ads(icplx,j,i,igroup,ikptp,1)
+              end do
+           end do
+        end do
+        !diis%ads(min(diis%idsx,diis%ids)+1,min(diis%idsx,diis%ids)+1,ikptp,2)=0.0_dp
+        do icplx=1,ncplx
+           adsw(icplx,min(diis%idsx,diis%ids)+1,min(diis%idsx,diis%ids)+1)=0.0_tp
+        end do
+        !case for complex values
+        rds(ncplx,min(diis%idsx,diis%ids)+1,igroup,ikpt)=0.0_tp
+        rds(1,min(diis%idsx,diis%ids)+1,igroup,ikpt)=1.0_tp
+
+        !make the matrix symmetric (hermitian) to use DGESV (ZGESV) (no work array, more stable)
+        do j=1,min(diis%idsx,diis%ids)+1
+           do i=1,min(diis%idsx,diis%ids)+1
+              !diis%ads(i,j,ikptp,2)=diis%ads(j,i,ikptp,2)
+              adsw(1,i,j)=adsw(1,j,i)
+              !case for complex matrices
+              if (ncplx==2) then
+                 adsw(2,i,j)=-adsw(2,j,i)
+              end if
+           end do
+        end do
+
+        !if(iproc==0)  write(6,*) 'DIIS matrix'
+        !do i=1,min(diis%idsx,ids)+1
+        !  if(iproc==0)  write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(diis%idsx,ids)+1),rds(i)
+        !enddo
+        if (diis%ids > 1) then
+           ! solve linear system:(LAPACK)
+           !call DSYSV('U',min(diis%idsx,diis%ids)+1,1,diis%ads(1,1,ikptp,2),diis%idsx+1,  & 
+           !     ipiv,rds(1,ikpt),diis%idsx+1,diis%ads(1,1,ikptp,3),(diis%idsx+1)**2,info)
+           !if (info /= 0) then
+           !   print*, 'diisstp: DSYSV',info
+           !end if
+
+           ! solve linear system, supposing it is general. More stable, no need of work array
+           if (ncplx == 1) then
+              call DGESV(min(diis%idsx,diis%ids)+1,1,adsw(1,1,1),diis%idsx+1,  & 
+                   ipiv,rds(1,1,igroup,ikpt),diis%idsx+1,info)
+           else
+              call ZGESV(min(diis%idsx,diis%ids)+1,1,adsw(1,1,1),diis%idsx+1,  & 
+                   ipiv,rds(1,1,igroup,ikpt),diis%idsx+1,info)
+           end if
+           if (info /= 0) then
+              print*, 'diisstp: GESV',info
+           end if
+
+        else
+           !case for complex values
+           rds(ncplx,1,igroup,ikpt)=0.0_tp
+           rds(1,1,igroup,ikpt)=1.0_tp
+        endif
+
+        !recreate the wavefunction using the new weigths
+!!$        do iorb=iorb_group_sh+1,norbi+iorb_group_sh!1,orbs%norb
+!!$           call razero(nvctrp*orbs%nspinor,psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor))
         
+        !call razero(nvctrp*orbs%nspinor*norbi,psit(ispsi+iorb_group_sh*nvctrp*orbs%nspinor))
+        !change the approach and fill only the difference between the original psit and the updated one
         jst=max(1,diis%ids-diis%idsx+1)
+        !use the array which will be erased in the next step as the work array
+        iacc_add=ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mod(diis%ids,diis%idsx))*orbs%norb*orbs%nspinor*nvctrp
+        if (diis%ids < diis%idsx) then
+           !some arrays still has to be filled
+           call vscal(nvctrp*orbs%nspinor*norbi,0.0_tp,diis%psidst(iacc_add),1)
+           !call razero(nvctrp*orbs%nspinor*norbi,diis%psidst(iacc_add))
+        end if
+
         jj=0
         do j=jst,diis%ids
            jj=jj+1
            mj=mod(j-1,diis%idsx)+1
-           do k=1,nvctrp*orbs%nspinor
-              psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor+k-1)=&
-                   psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor+k-1)+&
-                   rds(jj,ikpt)*(&
-                   diis%psidst(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
-                   (mj-1)*orbs%norb*orbs%nspinor*nvctrp)&
-                   -real(diis%hpsidst(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
-                   (mj-1)*orbs%norb*orbs%nspinor*nvctrp),wp))
-           end do
+           !print *,'test',j,jj,mj,diis%mids
+           !do k=1,nvctrp*orbs%nspinor
+           !   psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor+k-1)=&
+           !        psit(ispsi+(iorb-1)*nvctrp*orbs%nspinor+k-1)+&
+           !        rds(1,jj,ispin,ikpt)*(&
+           !        diis%psidst(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
+           !        (mj-1)*orbs%norb*orbs%nspinor*nvctrp)&
+           !        -real(diis%hpsidst(ispsidst+k-1+(iorb-1)*nvctrp*orbs%nspinor+&
+           !        (mj-1)*orbs%norb*orbs%nspinor*nvctrp),wp))
+           !end do
+!!$           if (ncplx ==1) then
+!!$              !use axpy for updating the array (can be done for all the orbitals in the group)
+!!$              call axpy(nvctrp*orbs%nspinor*norbi,rds(1,jj,igroup,ikpt),&
+!!$                   diis%psidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+!!$                   psit(ispsi+iorb_group_sh*nvctrp*orbs%nspinor),1)
+!!$              !this will work only if the errors are written in double precision
+!!$              call axpy(nvctrp*orbs%nspinor*norbi,-rds(1,jj,igroup,ikpt),&
+!!$                   diis%hpsidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+!!$                   psit(ispsi+iorb_group_sh*nvctrp*orbs%nspinor),1)
+!!$           else
+!!$              call c_axpy(nvctrp*(orbs%nspinor/2)*norbi,rds(1,jj,igroup,ikpt),&
+!!$                   diis%psidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+!!$                   psit(ispsi+iorb_group_sh*nvctrp*orbs%nspinor),1)
+!!$              !this will work only if the errors are written in double precision
+!!$              call c_axpy(nvctrp*(orbs%nspinor/2)*norbi,-rds(1,jj,igroup,ikpt),&
+!!$                   diis%hpsidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+!!$                   psit(ispsi+iorb_group_sh*nvctrp*orbs%nspinor),1)
+!!$           end if
+
+           !correct the coefficient for the daxpy in psi for the first and the last cycle
+           psicoeff(ncplx)=rds(ncplx,jj,igroup,ikpt) !for complex cases
+           if ((j==jst .and. diis%ids >= diis%idsx) .or. j==diis%ids) then
+              psicoeff(1)=rds(1,jj,igroup,ikpt)-1.0_tp
+           else
+              psicoeff(1)=rds(1,jj,igroup,ikpt)
+           end if
+
+           if (ncplx ==1) then
+              !use axpy for updating the array (can be done for all the orbitals in the group)
+              !the last step is the update with psi
+              call axpy(nvctrp*orbs%nspinor*norbi,psicoeff(1),&
+                   diis%psidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+                   diis%psidst(iacc_add),1)
+              !this will work only if the errors are written in double precision
+              call axpy(nvctrp*orbs%nspinor*norbi,-rds(1,jj,igroup,ikpt),&
+                   diis%hpsidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+                   diis%psidst(iacc_add),1)
+           else
+              call c_axpy(nvctrp*(orbs%nspinor/2)*norbi,psicoeff(1),&
+                   diis%psidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+                   diis%psidst(iacc_add),1)
+              !this will work only if the errors are written in double precision
+              call c_axpy(nvctrp*(orbs%nspinor/2)*norbi,-rds(1,jj,igroup,ikpt),&
+                   diis%hpsidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+                   diis%psidst(iacc_add),1)
+           end if
+
         end do
+
+!!$        call axpy(nvctrp*orbs%nspinor*norbi,1.0_dp,&
+!!$             diis%psidst(iacc_add),1,&
+!!$             psit(ispsi+iorb_group_sh*nvctrp*orbs%nspinor),1)
+        !then psidst(iaccadd) will be erased in the next diis step
+
      end do
+!!$     end do
      ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
   end do
+
   ! Output to screen, depending on policy.
   if (verbose >= 10) then
-     call broadcast_kpt_objects(nproc, orbs%nkpts, diis%idsx+1, rds, orbs%ikptproc)
+     call broadcast_kpt_objects(nproc, orbs%nkpts, ncplx*ngroup*(diis%idsx+1), rds, orbs%ikptproc)
   end if
+
   if (iproc == 0 .and. verbose > 0) then 
      if (verbose < 10) then
         !we restrict the printing to the first k point only.
-        write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j,1),j=1,min(diis%idsx,diis%ids)+1)
+        if (ngroup==1) then
+!!$           ttr=0.0_dp
+!!$           tti=0.0_dp
+!!$           do j=1,min(diis%idsx,diis%ids)+1
+!!$              ttr=ttr+rds(1,j,1,1)
+!!$              tti=tti+rds(2,j,1,1) 
+!!$           end do
+           write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts:',(rds(1:ncplx,j,1,1),j=1,min(diis%idsx,diis%ids)+1)!,&
+           !'(',ttr,tti,')'
+        else
+           do igroup=1,ngroup
+              if (igroup==1) mesupdw='up'
+              if (igroup==2) mesupdw='dw'
+              write(*,'(1x,a,2x,18(1x,1pe9.2))')'DIIS wgts'//mesupdw//':',&
+                   (rds(1:ncplx,j,igroup,1),j=1,min(diis%idsx,diis%ids)+1)
+           end do
+        end if
      else
         do ikpt = 1, orbs%nkpts
-           write(*,'(1x,a,I3.3,a,2x,12(1x,1pe9.2))')'DIIS weights (kpt #', ikpt, &
-                & ')', (rds(j,0),j=1,min(diis%idsx,diis%ids)+1)
+           if (ngroup==1) then
+              write(*,'(1x,a,I3.3,a,2x,9(1x,(1pe9.2)))')'DIIS wgts (kpt #', ikpt, &
+                   & ')',(rds(1:ncplx,j,1,ikpt),j=1,min(diis%idsx,diis%ids)+1)
+           else
+              do igroup=1,ngroup
+                 if (igroup==1) mesupdw='up'
+                 if (igroup==2) mesupdw='dw'
+                 write(*,'(1x,a,I3.3,a,2x,9(1x,a,2(1pe9.2),a))'),'DIIS wgts (kpt #', ikpt, &
+                      & ')'//mesupdw//':',('(',rds(1:ncplx,j,igroup,ikpt),')',j=1,min(diis%idsx,diis%ids)+1)
+              end do
+           end if
         end do
      end if
   endif
@@ -647,6 +900,10 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis,psit)
   i_all=-product(shape(rds))*kind(rds)
   deallocate(rds,stat=i_stat)
   call memocc(i_stat,i_all,'rds',subname)
+  i_all=-product(shape(adsw))*kind(adsw)
+  deallocate(adsw,stat=i_stat)
+  call memocc(i_stat,i_all,'adsw',subname)
+
 
 END SUBROUTINE diisstp
 

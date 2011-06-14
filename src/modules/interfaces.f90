@@ -191,13 +191,36 @@ module module_interfaces
        real(gp), dimension(:,:), pointer :: rxyz
      END SUBROUTINE read_atomic_file
 
-     subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
+     subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,ifile
        type(atoms_data), intent(inout) :: atoms
        real(gp), dimension(:,:), pointer :: rxyz
+       interface
+          subroutine getline(line,ifile,eof)
+            integer, intent(in) :: ifile
+            character(len=150), intent(out) :: line
+            logical, intent(out) :: eof
+          end subroutine getline
+       end interface
+     END SUBROUTINE read_xyz_positions
+
+     subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,ifile
+       type(atoms_data), intent(inout) :: atoms
+       real(gp), dimension(:,:), pointer :: rxyz
+       interface
+          subroutine getline(line,ifile,eof)
+            integer, intent(in) :: ifile
+            character(len=150), intent(out) :: line
+            logical, intent(out) :: eof
+          end subroutine getline
+       end interface
      END SUBROUTINE read_ascii_positions
 
      subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
@@ -1158,6 +1181,24 @@ module module_interfaces
       real(gp), intent(out) :: gnrm,gnrm_zero,energy
       real(wp), dimension(:), pointer :: psi,psit,hpsi
     end subroutine calculate_energy_and_gradient
+
+    subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,orthpar,hx,hy,hz,ncong,iscf,&
+         energs,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+      use module_base
+      use module_types
+      !use module_interfaces!, except_this_one => calculate_energy_and_gradient_new
+      implicit none
+      integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+      real(gp), intent(in) :: hx,hy,hz
+      type(orbitals_data), intent(inout) :: orbs
+      type(communications_arrays), intent(in) :: comms
+      type(locreg_descriptors), intent(in) :: lr
+      type(GPU_pointers), intent(in) :: GPU
+      type(orthon_data), intent(in) :: orthpar
+      type(energy_terms), intent(inout) :: energs
+      real(gp), intent(out) :: gnrm,gnrm_zero,energy
+      real(wp), dimension(:), pointer :: psi,psit,hpsi
+    end subroutine calculate_energy_and_gradient_new
     
   end interface
 
