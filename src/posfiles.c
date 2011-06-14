@@ -19,7 +19,7 @@
 #ifdef HAVE_LIB_ARCHIVE
 #include <archive.h>
 #include <archive_entry.h>
-static struct archive *_posout_, *_posinp_;
+static struct archive *_posout_ = NULL, *_posinp_ = NULL;
 #endif
 
 void FC_FUNC(addtocompress, ADDTOCOMPRESS)(const char *archive, int *lgAr,
@@ -91,8 +91,11 @@ void FC_FUNC(finalisecompress, FINALISECOMPRESS)(void)
 {
 #ifdef HAVE_LIB_ARCHIVE
   /* fprintf(stdout, "Finalise\n"); */
-  archive_write_close(_posout_);
-  archive_write_finish(_posout_);
+  if (_posout_)
+    {
+      archive_write_close(_posout_);
+      archive_write_finish(_posout_);
+    }
 #endif
 }
 
@@ -121,12 +124,13 @@ void FC_FUNC(extractnextcompress, EXTRACTNEXTCOMPRESS)(const char *archive, int 
                                                        int *extract, char ext[6])
 {
   char *arFilename, *addFilename;
+  int len;
 #ifdef HAVE_LIB_ARCHIVE
   struct archive_entry *entry;
   const void *buff;
   size_t size;
   off_t offset;
-  int fd, len;
+  int fd;
 #endif
 
   arFilename = strndup(archive, (size_t)*lgAr);
@@ -177,19 +181,26 @@ void FC_FUNC(finaliseextract, FINALISEEXTRACT)(void)
 {
 #ifdef HAVE_LIB_ARCHIVE
   /* fprintf(stdout, "Finalise\n"); */
-  archive_write_close(_posinp_);
-  archive_write_finish(_posinp_);
+  if (_posinp_)
+    {
+      archive_write_close(_posinp_);
+      archive_write_finish(_posinp_);
+    }
 #endif
 }
+
+static const void *buff = (void*)0;
+static size_t size;
+static size_t pos = 0;
 
 void FC_FUNC(opennextcompress, OPENNEXTCOMPRESS)(const char *archive, int *lgAr,
                                                  const char *filename, int *lgF,
                                                  int *extract, char ext[6])
 {
   char *arFilename, *addFilename;
+  int len;
 #ifdef HAVE_LIB_ARCHIVE
   struct archive_entry *entry;
-  int len;
 #endif
 
   arFilename = strndup(archive, (size_t)*lgAr);
@@ -201,12 +212,17 @@ void FC_FUNC(opennextcompress, OPENNEXTCOMPRESS)(const char *archive, int *lgAr,
 
   /* fprintf(stdout, "Open '%s' from '%s'.\n", addFilename, arFilename); */
 #ifdef HAVE_LIB_ARCHIVE
+
   while (archive_read_next_header(_posinp_, &entry) == ARCHIVE_OK)
     if (!strncmp(addFilename, archive_entry_pathname(entry), len))
       {
         *extract = 1;
         strcpy(ext, archive_entry_pathname(entry) + len + 1);
         memset(ext + strlen(ext), ' ', 6 - strlen(ext));
+
+        buff = (void*)0;
+        size = 0;
+        pos = 0;
         break;
       }
 #endif
@@ -217,12 +233,10 @@ void FC_FUNC(opennextcompress, OPENNEXTCOMPRESS)(const char *archive, int *lgAr,
 
 void FC_FUNC(extractnextline, EXTRACTNEXTLINE)(char line[150], int *eof)
 {
-  static const void *buff = (void*)0;
+#ifdef HAVE_LIB_ARCHIVE
   char *vals;
-  static size_t size;
   size_t  idx, jdx;
   off_t offset;
-  static size_t pos = 0;
   int r;
 
   *eof = 0;
@@ -260,4 +274,8 @@ void FC_FUNC(extractnextline, EXTRACTNEXTLINE)(char line[150], int *eof)
       pos = 0;
     }
   while(1);
+#else
+  fprintf(stdout, "Warning: no possibility of archive,"
+          " compile BigDFT with libarchive.\n");
+#endif
 }
