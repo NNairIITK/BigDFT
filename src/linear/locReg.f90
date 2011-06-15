@@ -1094,7 +1094,7 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
      Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
      Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
 
-     !dimensions of the interpolating scaling functions grid (reduce to +2?, check with Luigi)
+     !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
      Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
      Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
      Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31

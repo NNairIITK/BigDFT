@@ -275,7 +275,7 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
      ! WARNING: I added the factors 2.
      do i3=Llr%nsi3+1,Llr%d%n3i+Llr%nsi3
          do i2=Llr%nsi2+1,Llr%d%n2i+Llr%nsi2
-             do i1=Llr%nsi3+1,Llr%d%n1i+Llr%nsi1
+             do i1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
                  ! indSmall is the index in the local localization region
                  indSmall=indSmall+1
                  if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                  !This initializes the buffers of locreg to zeros if outside the simulation box.
