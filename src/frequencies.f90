@@ -401,7 +401,7 @@ program frequencies
   !Finalize memory counting
   call memocc(0,0,'count','stop')
 
-  if (nproc > 1) call MPI_FINALIZE(ierr)
+  call MPI_FINALIZE(ierr)
 
 contains
 

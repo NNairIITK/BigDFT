@@ -256,9 +256,9 @@ subroutine moldyn(acell,amass,me,&
  rprimd0(:,:)=rprimd(:,:)
  ucvol0=ucvol
 
-!!$ if(ionmov==6 .and. maxval(vel) == zero)then
-!!$    call md_nose_init(amass, natom, mditemp, vel)
-!!$ end if
+ if (ionmov==6 .and. maxval(vel) == zero) then
+    call md_nose_init(amass, natom, mditemp, vel)
+ end if
 
 !Initialize input vectors : first vin, then vout
  option=1

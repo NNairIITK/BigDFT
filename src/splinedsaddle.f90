@@ -466,7 +466,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
         parmin_neb%alphax=1.d0*parmin%alphax !non-BigDFT
         parmin_neb%alphamin=5.d-2*parmin_neb%alphax
         parmin_neb%alphamax=2.0d0*parmin_neb%alphax
-        parmin_neb%approach='BFGS' !'FIRE' !SD or SDDIIS
+        parmin_neb%approach='FIRE' !SD or SDDIIS
         parmin_neb%alpha=1.d0*parmin%alphax
         call initminimize(parmin_neb)
         parmin_neb%maxforcecall=200 !30  !10

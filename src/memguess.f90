@@ -217,7 +217,7 @@ program memguess
      else
         call shift_periodic_directions(atoms,rxyz,radii_cf)
      end if
-     write(*,'(1x,a)')'Writing optimised positions in file posout_000.[xyz,ascii]...'
+     write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
      write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
      call write_atomic_file('posopt',0.d0,rxyz,atoms,trim(comment))
      !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))

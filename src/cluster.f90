@@ -224,6 +224,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
   type(diis_objects) :: diis
+  type(energy_terms) :: energs
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
@@ -287,7 +288,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      
   norbv=abs(in%norbv)
   nvirt=in%nvirt
-
   hx=in%hx
   hy=in%hy
   hz=in%hz
@@ -764,7 +764,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !all the input format need first_orthon except the LCAO input_guess
   if (inputpsi /= 0 .and. inputpsi /=-1000) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in)
+     call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit,in%orthpar)
   end if
 
   !save the new atomic positions in the rxyz_old array
@@ -774,16 +774,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      rxyz_old(3,iat)=rxyz(3,iat)
   enddo
   !save the new grid spacing into the hgrid_old value
-  hx_old=in%hx
-  hy_old=in%hy
-  hz_old=in%hz
+  hx_old=hx
+  hy_old=hy
+  hz_old=hz
 
   ! allocate arrays necessary for DIIS convergence acceleration
-  !the allocation with npsidim is not necessary here since DIIS arrays
-  !are always calculated in the transpsed form
-  if (idsx > 0) then
-     call allocate_diis_objects(idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)
-  endif
+  call allocate_diis_objects(idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
+       orbs%nkptsp,orbs%nspinor,orbs%norbd,diis,subname)
 
   !allocate arrays for the GPU if a card is present
   if (GPUconv) then
@@ -806,18 +803,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
-  !diis initialisation variables
-  diis%alpha=in%alphadiis
-  diis%alpha_max=in%alphadiis
-  diis%energy=1.d10
-  !minimum value of the energy during the minimisation procedure
-  diis%energy_min=1.d10
-  !previous value already fulfilled
-  diis%energy_old=diis%energy
-  !local variable for the diis history
-  diis%idsx=idsx
-  !logical control variable for switch DIIS-SD
-  diis%switchSD=.false.
+
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
@@ -846,7 +832,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           & AB6_MIXING_REAL_SPACE, 1, in%nspin, 0, &
           & ierr, errmess, useprec = .false.)
   end if
-  if (in%itrpmax >1) call ab6_mixing_eval_allocate(mix)
+  if (in%itrpmax >1) then
+     call ab6_mixing_eval_allocate(mix)
+     !stop if the iscf is not compatible 
+     if (in%iscf == 0) then
+        write(*,*)'ERROR: the iscf code is not compatible with the mixing routines'
+        stop
+     end if
+  end if
   endlooprp=.false.
 
   !if we are in the last_run case, validate the last_run only for the last cycle
@@ -872,7 +865,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !control how many times the DIIS has switched into SD
            if (diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
 
-           !leave SD if the DIIS did not work the second time
+           !let SD runs if the DIIS did not work the second time
            if (ndiis_sd_sw > 1) then
               diis%switchSD=.false.
            end if
@@ -889,7 +882,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               ! Potential from electronic charge density
               call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
                    n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
-
               !here the density can be mixed
               if (mix%kind == AB6_MIXING_DENSITY .and. in%itrpmax>1) then
                  call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
@@ -967,11 +959,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,hx,hy,hz,in%ncong,in%iscf,&
                 ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,eexctX,eion,edisp,&
                 psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
+!!$
+!!$           call calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,Glr,in%orthpar,&
+!!$                hx,hy,hz,in%ncong,in%iscf,&
+!!$                energs,psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
 
            !control the previous value of idsx_actual
            idsx_actual_before=diis%idsx
 
-           call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in)
+           call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,idsx,psi,psit,hpsi,in%nspin,in%orthpar)
 
            if (in%inputPsiId == 0) then
               if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
@@ -1103,9 +1099,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           'Difference:evsum,energybs',evsum,energybs
   end if
 
-  if (in%idsx > 0) then
-     call deallocate_diis_objects(diis,subname)
-  end if
+  call deallocate_diis_objects(diis,subname)
 
   !last run things has to be done:
   !if it is the last run and the infocode is zero
@@ -1424,12 +1418,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 pkernelseq,psi,psivirt,ngatherarr,GPU)
         else if (in%norbv > 0) then
            call davidson(iproc,nproc,n1i,n2i,in,atoms,&
-                orbs,orbsv,nvirt,Glr,comms,commsv,&
+                orbs,orbsv,in%nvirt,Glr,comms,commsv,&
                 hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
                 pkernelseq,psi,psivirt,ngatherarr,GPU)
         end if
 
-        if (atoms%geocode == 'F' .and. .false.) then
+        !start the Casida's treatment 
+        if (in%tddft_approach=='TDA') then
+
+           !this could have been calculated before
            ! Potential from electronic charge density
            call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
                 n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
@@ -1448,7 +1445,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 rhopot,eexcu,vexcu,in%nspin,rhocore,potxc,dvxcdrho)
 
            !select the active space if needed
-
 
            call tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,ngatherarr(0,1),&
                 Glr,orbs,orbsv,i3s+i3xcsh,dvxcdrho,pkernelseq,psi,psivirt)
@@ -1624,9 +1620,7 @@ contains
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1 .and. in%inputPsiId /=-1000) then
 
-       if (in%idsx > 0) then
-          call deallocate_diis_objects(diis,subname)
-       end if
+       call deallocate_diis_objects(diis,subname)
 
        if (nproc > 1) then
           i_all=-product(shape(psit))*kind(psit)

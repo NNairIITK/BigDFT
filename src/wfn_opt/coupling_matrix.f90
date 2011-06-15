@@ -398,8 +398,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
               write(9,'(f9.4,5x,1pe10.3)') ha2ev*omega(imulti), (2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
            end do
            close(unit=9)
-     
- 
+
            write(6,10)
 
            do imulti = 1,2*nmulti
@@ -412,8 +411,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
               do iorbi = 1, orbsocc%norb
                  do iorba = 1, orbsvirt%norb
                     jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if ((Kbig(jmulti,imulti) .gt. 5.D-02.or. Kbig(jmulti,imulti) .lt.-5.D-02)) then 
-                       write(6,60) iorbi, iorba,  (Kbig(jmulti,imulti))
+                    if (abs(Kbig(jmulti,imulti)) > 5.d-02) then 
+                       write(6,60) iorbi, iorba,  abs(Kbig(jmulti,imulti))
 60                     format (i4,'----->',i3,2x,' Coeff )=',1pe12.5) 
                     end if
                  end do
@@ -424,8 +423,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
              do iorbi = 1, orbsocc%norb
                  do iorba = 1, orbsvirt%norb
                     jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if ((Kbig(jmulti+nmulti,imulti) .gt. 5.D-02.or. Kbig(jmulti+nmulti,imulti) .lt.-5.D-02)) then
-                       write(6,60) iorbi, iorba,  (Kbig(jmulti+nmulti,imulti))
+                    if (abs(Kbig(jmulti+nmulti,imulti)) > 5.d-02) then
+                       write(6,60) iorbi, iorba,  abs(Kbig(jmulti+nmulti,imulti))
                     end if
                  end do
               end do

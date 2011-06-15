@@ -7,7 +7,9 @@ SUBDIRS = \
 	  H2-freq \
 	  NEB \
 	  XabsCheb \
-	  SPLSAD
+	  SPLSAD \
+	  TDDFT \
+	  tutorials
 
 
 #This will run the automatic tests also for minima hopping
@@ -55,7 +57,8 @@ oclrun: head_message $(mpirun_message)
 EXTRA_DIST = \
 	README \
 	fldiff.py \
-	report.py
+	report.py \
+	styles images
 
 CLEANFILES =
 
