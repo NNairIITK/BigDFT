@@ -84,7 +84,7 @@ tt = fma(tmp[2* 1] - tmp[2* -1], FILT2_1,  tt);\n";
 }
 
 static void generate_kinetic_k1dKernel(std::stringstream &program){
-  program<<"__kernel void kinetic_k1dKernel_d(uint n, uint ndat, double scale_1, double scale_2, __global const double * x_in, __global double * x, __global const double * y_in, __global double * y, __local double * tmp, __local double * tmp_y ) {\n\
+  program<<"__kernel void kinetic_k1dKernel_d(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in, __global double *  restrict x, __global const double *  restrict y_in, __global double *  restrict y, __local double * tmp, __local double * tmp_y ) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -172,7 +172,7 @@ tt = fma(tmp[ 1] - tmp[ -1], FILT2_1,  tt);\n";
 }
 
 static void generate_kinetic_k1dKernel_2(std::stringstream &program){
-  program<<"__kernel void kinetic_k1dKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double * x_in_r, __global const double * x_in_i, __global double * x_r, __global double * x_i, __global const double * y_in_r, __global const double * y_in_i, __global double * y_r, __global double * y_i, __local double * tmp_r, __local double * tmp_i, __local double * tmp_y_r, __local double * tmp_y_i ) {\n\
+  program<<"__kernel void kinetic_k1dKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in_r, __global const double *  restrict x_in_i, __global double *  restrict x_r, __global double *  restrict x_i, __global const double *  restrict y_in_r, __global const double *  restrict y_in_i, __global double *  restrict y_r, __global double *  restrict y_i, __local double * tmp_r, __local double * tmp_i, __local double * tmp_y_r, __local double * tmp_y_i ) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\
@@ -223,7 +223,7 @@ x_i[jg*n + ig] = tmp_o_i[0];\n\
 }
 
 static void generate_kinetic_k1d_fKernel_2(std::stringstream &program){
-  program<<"__kernel void kinetic_k1d_fKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double * x_in_r, __global const double * x_in_i, __global double * x_r, __global double * x_i, __global const double * y_in_r, __global const double * y_in_i, __global double * y_r, __global double * y_i, __local double * tmp_r, __local double * tmp_i, __local double * tmp_y_r, __local double * tmp_y_i ) {\n\
+  program<<"__kernel void kinetic_k1d_fKernel_d_2(uint n, uint ndat, double scale_1, double scale_2, __global const double *  restrict x_in_r, __global const double *  restrict x_in_i, __global double *  restrict x_r, __global double *  restrict x_i, __global const double *  restrict y_in_r, __global const double *  restrict y_in_i, __global double *  restrict y_r, __global double *  restrict y_i, __local double * tmp_r, __local double * tmp_i, __local double * tmp_y_r, __local double * tmp_y_i ) {\n\
 size_t ig = get_global_id(0);\n\
 size_t jg = get_global_id(1);\n\
 const size_t i2 = get_local_id(0);\n\

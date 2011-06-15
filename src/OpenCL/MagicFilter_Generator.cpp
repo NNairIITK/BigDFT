@@ -122,7 +122,7 @@ tt = fma(*tmp++, FILT0, tt);\n";
 static void generate_magicfilter1dKernel(std::stringstream &program){
   program<<"//n is supposed to be greater or equal than get_local_size(0)\n\
 //this filter is for periodic boundary conditions\n\
-__kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 //get our position in the local work group\n\
@@ -180,7 +180,7 @@ out[(jg*n+ig)]=tt.x+tt.y;//+tt.z+tt.w;\n\
 }
 
 static void generate_magicfilter1d_tKernel(std::stringstream &program){
-program<<"__kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+program<<"__kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
@@ -214,7 +214,7 @@ out[(jg*n+ig)]=tt;\n\
 }
 
 static void generate_magicfiltergrow1dKernel(std::stringstream &program){
-  program<<"__kernel void magicfiltergrow1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+  program<<"__kernel void magicfiltergrow1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
@@ -248,7 +248,7 @@ out[(jg*n+ig)]=tt;\n\
 }
 
 static void generate_magicfiltergrow1d_denKernel(std::stringstream &program){
-  program<<"__kernel void magicfiltergrow1d_denKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+  program<<"__kernel void magicfiltergrow1d_denKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
@@ -282,7 +282,7 @@ out[(jg*n+ig)]=tt*tt;\n\
 }
 
 static void generate_magicfiltergrow1d_potKernel(std::stringstream &program){
-  program<<"__kernel void magicfiltergrow1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global const double *pot, __global double *out){\n\
+  program<<"__kernel void magicfiltergrow1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global const double * restrict pot, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
@@ -316,7 +316,7 @@ out[(jg*n+ig)]=tt*pot[(jg*n+ig)];\n\
 }
 
 static void generate_magicfiltershrink1dKernel(std::stringstream &program){
-  program<<"__kernel void magicfiltershrink1dKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+  program<<"__kernel void magicfiltershrink1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
@@ -346,7 +346,7 @@ out[(jg*n+ig)]=tt;\n\
 }
 
 static void generate_magicfilter1d_potKernel(std::stringstream &program){
-  program<<"__kernel void magicfilter1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global double *pot, __global double *out){\n\
+  program<<"__kernel void magicfilter1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global double * restrict pot, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
@@ -382,7 +382,7 @@ out[(jg*n+ig)]=tt*pot[jg*n+ig];\n\
 
 static void generate_magicfilter1d_blockKernel(std::stringstream &program){
 program<<"#define ELEM_PER_THREAD 2\n\
-__kernel void magicfilter1d_blockKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+__kernel void magicfilter1d_blockKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
@@ -433,7 +433,7 @@ out += n;\n\
 }
 
 static void generate_magicfilter1d_straightKernel(std::stringstream &program){
-program<<"__kernel void magicfilter1d_straightKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+program<<"__kernel void magicfilter1d_straightKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 ptrdiff_t ig = get_global_id(0);\n\
@@ -468,7 +468,7 @@ out[(igt*ndat+jgt)]=tt;\n\
 }
 
 static void generate_magicfilter1d_denKernel(std::stringstream &program){
-program<<"__kernel void magicfilter1d_denKernel_d(uint n, uint ndat, __global const double *psi, __global double *out){\n\
+program<<"__kernel void magicfilter1d_denKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
 size_t ig = get_global_id(0);\n\
