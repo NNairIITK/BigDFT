@@ -397,6 +397,7 @@ module module_types
 !! for gathering the potential (for the application of the Hamiltonian)
    type,public::p2pCommsGatherPot
        integer,dimension(:),pointer:: noverlaps, overlaps
+       integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
        integer,dimension(:,:,:),pointer:: comarr
        real(8),dimension(:),pointer:: recvBuf
        integer:: nrecvBuf

@@ -2342,7 +2342,35 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine initCoefficients
 
 
-     subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
+     !!subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
+     !!     proj,ngatherarr,ndimpot,pot,psi,hpsi,&
+     !!     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel,orbsocc,psirocc)
+     !!  use module_base
+     !!  use module_types
+     !!  use libxc_functionals
+     !!  implicit none
+     !!  integer, intent(in) :: iproc,nproc,nspin,ndimpot
+     !!  real(gp), intent(in) :: hx,hy,hz
+     !!  type(atoms_data), intent(in) :: at
+     !!  type(input_variables), intent(in) :: input
+     !!  type(linear_zone_descriptors),intent(inout) :: Lzd
+     !!  type(linearParameters),intent(in):: lin
+     !!  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+     !!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+     !!  real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
+     !!  real(wp), dimension(Lzd%orbs%npsidim), intent(in) :: psi
+     !!  !real(wp), dimension(:), pointer :: pot
+     !!  real(wp), dimension(max(ndimpot,1)*nspin), intent(in) :: pot
+     !!  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
+     !!  real(wp), target, dimension(Lzd%orbs%npsidim), intent(out) :: hpsi
+     !!  type(GPU_pointers), intent(inout) :: GPU
+     !!  real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
+     !!  real(dp), dimension(*), optional :: pkernel
+     !!  type(orbitals_data), intent(in), optional :: orbsocc
+     !!  real(wp), dimension(:), pointer, optional :: psirocc
+     !!end subroutine LinearHamiltonianApplicationConfinement
+
+     subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
           proj,ngatherarr,ndimpot,pot,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel,orbsocc,psirocc)
        use module_base
@@ -2359,8 +2387,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
        real(wp), dimension(Lzd%orbs%npsidim), intent(in) :: psi
-       !real(wp), dimension(:), pointer :: pot
        real(wp), dimension(max(ndimpot,1)*nspin), intent(in) :: pot
+       !real(wp), dimension(:), pointer :: pot
        real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
        real(wp), target, dimension(Lzd%orbs%npsidim), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
@@ -2368,8 +2396,44 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(dp), dimension(*), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
-     end subroutine LinearHamiltonianApplicationConfinement
+     end subroutine HamiltonianApplicationConfinement2
 
+
+
+
+     subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb, hx, hy, hz, &
+          nspin, ndimpot, pot, psi, hpsi, ekin_sum, epot_sum, lin, at, rxyz)
+       use module_base
+       use module_types
+       use libxc_functionals
+       implicit none
+       integer, intent(in) :: iproc, nproc, nspin, ilr, norb, ndimpot
+       real(gp), intent(in) :: hx, hy, hz
+       type(orbitals_data), intent(in) :: orbs
+       type(locreg_descriptors), intent(in) :: lr
+       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*norb), intent(in) :: psi
+       real(wp), dimension(ndimpot) :: pot
+       real(gp), intent(out) :: ekin_sum,epot_sum
+       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*norb), intent(out) :: hpsi
+       type(linearParameters),intent(in):: lin
+       type(atoms_data),intent(in):: at
+       real(8),dimension(3,at%nat),intent(in):: rxyz
+     end subroutine local_hamiltonian_LinearConfinement
+
+     subroutine apply_potentialConfinement2(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
+            rxyzConfinement, hxh, hyh, hzh, potentialPrefac, confPotOrder, offsetx, offsety, offsetz, &
+            ibyyzz_r) !optional
+       use module_base
+       implicit none
+       integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot, confPotOrder, offsetx, offsety, offsetz
+       real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+       real(wp), dimension(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
+            -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), intent(in) :: pot
+       integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+       real(gp), intent(out) :: epot
+       real(8),dimension(3),intent(in):: rxyzConfinement
+       real(8),intent(in):: hxh, hyh, hzh, potentialPrefac
+     end subroutine apply_potentialConfinement2
 
 
   end interface

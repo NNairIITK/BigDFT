@@ -139,7 +139,9 @@ real(8):: tt1, tt2
   
 
   ! This is a flag whether the basis functions shall be updated.
-  call gatherPotential(iproc, nproc, lin%comgp)
+!do iall=1,size(lin%comgp%recvBuf)
+!    write(800+iproc,*) iall, lin%comgp%recvBuf(iall)
+!end do
   if(updatePhi) then
       if(lin%useDerivativeBasisFunctions) then
           call dcopy(lin%orbs%npsidim, lin%phiRestart(1), 1, phi(1), 1)
@@ -217,6 +219,12 @@ real(8):: tt1, tt2
   
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
+
+
+  if(.not.updatePhi) then
+      ! Otherwise the potential is gathered in getLocalizedBasis.
+      call gatherPotential(iproc, nproc, lin%comgp)
+  end if
 
   if(trim(lin%getCoeff)=='min') then
 
@@ -454,6 +462,8 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   alphaDIIS=lin%alphaDIIS
   adapt=.false.
 
+  ! Cut off outside localization region -- experimental
+  call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
   ! Transpose phi
   call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
 
@@ -462,6 +472,10 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   else
       nit=lin%nItBasis
   end if
+
+  ! Gather the potential
+  call gatherPotential(iproc, nproc, lin%comgp)
+
   iterLoop: do it=1,nit
       fnrmMax=0.d0
       fnrm=0.d0
@@ -489,17 +503,17 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       ! This part will not be needed if we really have O(N)
       ind1=1
       ind2=1
-!!do iorb=1,lin%orbs%npsidim
-!!  write(10000+iproc*1000,*) iorb, phi(iorb)
-!!end do
-!!      do iorb=1,lin%orbs%norbp
-!!          ilr = lin%onWhichAtom(iorb)
-!!          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-!!          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!!          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-!!          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!!          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-!!      end do
+!do iorb=1,lin%orbs%npsidim
+!  write(10000+iproc*1000,*) iorb, phi(iorb)
+!end do
+      do iorb=1,lin%orbs%norbp
+          ilr = lin%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
 !!do iorb=1,lin%Lorbs%npsidim
 !!  write(20000+iproc*1000,*) iorb, lphi(iorb)
 !!end do
@@ -514,28 +528,42 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
 !!          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
 !!          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
 !!      end do
+!!do iorb=1,lin%orbs%npsidim
+!!  write(30000+iproc*1000,*) iorb, hphi(iorb)
+!!end do
+!!call mpi_barrier(mpi_comm_world, ierr)
+!!stop
 !!
 !!do iall=1,lin%lzd%nlr
 !!  write(*,'(a,4i7)') 'iproc, iall, lin%lzd%Llr(iall)%localnorb',  iproc, iall, lin%lzd%Llr(iall)%localnorb
 !!end do
-      call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-           nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-           rhopot(1),&
-           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, lin%onWhichAtom, pkernel=pkernelseq)
-!!      call LinearHamiltonianApplicationConfinement(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
-!!           proj, ngatherarr, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), rhopot, lphi, lhphi, &
-!!           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, nscatterarr, pkernel=pkernelseq)
-!!      ind1=1
-!!      ind2=1
-!!      hphi=0.d0
-!!      do iorb=1,lin%orbs%norbp
-!!          ilr = lin%onWhichAtom(iorb)
-!!          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-!!          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!!          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
-!!          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!!          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-!!      end do
+      !!!! THSI IS THE ORIGINAL
+      !!if(iproc==0) write(*,*) 'in sub: iproc, ekin_sum, epot_sum ==================================================='
+      !!call mpi_barrier(mpi_comm_world, ierr)
+      !!call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+      !!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+      !!     rhopot(1),&
+      !!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, lin%onWhichAtom, pkernel=pkernelseq)
+!!call mpi_barrier(mpi_comm_world, ierr)
+!!stop
+      !!call LinearHamiltonianApplicationConfinement(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
+      !!     proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+      !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, pkernel=pkernelseq)
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
+           proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, pkernel=pkernelseq)
+      ind1=1
+      ind2=1
+      hphi=0.d0
+      do iorb=1,lin%orbs%norbp
+          ilr = lin%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+!!write(*,'(a,i5,2es16.7)') 'iproc, ekin_sum, epot_sum', iproc, ekin_sum, epot_sum
 !!do iorb=1,lin%orbs%npsidim
 !!  write(30000+iproc*1000,*) iorb, hphi(iorb)
 !!end do
@@ -2183,7 +2211,7 @@ type(linearParameters),intent(inout):: lin
 
 ! Local variables
 integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat
-integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, tag, istdest, ioffset
+integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, tag, istdest, ioffset, is3min, ie3max
 integer,dimension(:,:),allocatable:: iStartEnd
 character(len=*),parameter:: subname='setCommunicationPotential'
 
@@ -2267,8 +2295,12 @@ allocate(lin%comgp%overlaps(lin%comgp%noverlaps(iproc)), stat=istat)
 call memocc(istat, lin%comgp%overlaps, 'lin%comgp%overlaps', subname)
 allocate(lin%comgp%comarr(8,maxval(lin%comgp%noverlaps),0:nproc-1))
 call memocc(istat, lin%comgp%comarr, 'lin%comgp%comarr', subname)
+allocate(lin%comgp%ise3(2,0:nproc-1), stat=istat)
+call memocc(istat, lin%comgp%ise3, 'lin%comgp%ise3', subname)
 tag=0
 lin%comgp%nrecvBuf = 0
+is3min=0
+ie3max=0
 do jproc=0,nproc-1
     is3j=istartEnd(5,jproc)
     ie3j=istartEnd(6,jproc)
@@ -2284,6 +2316,12 @@ do jproc=0,nproc-1
             is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
             ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
             ioffset=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+            if(is3<is3min .or. ioverlap==1) then
+                is3min=is3
+            end if
+            if(ie3>ie3max .or. ioverlap==1) then
+                ie3max=ie3
+            end if
             call setCommunicationPotential(kproc, is3, ie3, ioffset, lin%lzd%Glr%d%n1i, lin%lzd%Glr%d%n2i, jproc, istdest, tag, lin%comgp%comarr(1,ioverlap,jproc))
             !if(iproc==0) write(*,'(6(a,i0))') 'process ',lin%comgp%comarr(1,ioverlap,jproc),' sends ',lin%comgp%comarr(3,ioverlap,jproc),' elements from position ',&
             !                        lin%comgp%comarr(2,ioverlap,jproc),' to position ',lin%comgp%comarr(5,ioverlap,jproc),' on process ',&
@@ -2294,6 +2332,9 @@ do jproc=0,nproc-1
             end if
         end if
     end do
+    lin%comgp%ise3(1,jproc)=is3min
+    lin%comgp%ise3(2,jproc)=ie3max
+    if(iproc==0) write(*,'(a,3i8)') 'jproc, lin%comgp%ise3(1,jproc), lin%comgp%ise3(2,jproc)', jproc, lin%comgp%ise3(1,jproc), lin%comgp%ise3(2,jproc)
 end do
 
 allocate(lin%comgp%recvBuf(lin%comgp%nrecvBuf), stat=istat)

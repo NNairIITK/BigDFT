@@ -874,41 +874,41 @@ hzh=input%hz*.5d0
 allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
 call memocc(istat, phir, 'phir', subname)
 
-!!ist=1
-!!do iorb=1,lin%orbs%norbp
-!!    ! Transform the orbitals to real space.
-!!    phir=0.d0
-!!    call daub_to_isf(Glr, w, phi(ist), phir(1))
-!!    
-!!    iiAt=lin%onWhichAtom(iorb)
-!!    cut=lin%locrad(iiAt)
-!!    
-!!    jj=0
-!!    ttIn=0.d0
-!!    ttOut=0.d0
-!!    do i3=-14,Glr%d%n3i-15
-!!        do i2=-14,Glr%d%n2i-15
-!!            do i1=-14,Glr%d%n1i-15
-!!               jj=jj+1
-!!               tt = (hxh*i1-rxyz(1,iiAt))**2 + (hyh*i2-rxyz(2,iiAt))**2 + (hzh*i3-rxyz(3,iiAt))**2
-!!               tt=sqrt(tt)
-!!               if(tt>cut) then
-!!                  !write(*,'(a,4i7,3es20.12)') 'iorb, i1, i2, i3, tt, cut, phir(jj)', iorb, i1, i2, i3, tt, cut, phir(jj)
-!!                  ttOut=ttOut+phir(jj)**2
-!!                  phir(jj)=0.d0
-!!               else
-!!                  ttIn=ttIn+phir(jj)**2
-!!               end if
-!!            end do
-!!        end do
-!!    end do
-!!    
-!!    call isf_to_daub(Glr, w, phir(1), phi(ist))
-!!
-!!    write(*,'(a,i7,2es20.12)') 'before: iorb, ttIn, ttOut', iorb, ttIn, ttOut
-!!    ist=ist+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-!!
-!!end do
+ist=1
+do iorb=1,lin%orbs%norbp
+    ! Transform the orbitals to real space.
+    phir=0.d0
+    call daub_to_isf(Glr, w, phi(ist), phir(1))
+    
+    iiAt=lin%onWhichAtom(iorb)
+    cut=lin%locrad(iiAt)
+    
+    jj=0
+    ttIn=0.d0
+    ttOut=0.d0
+    do i3=-14,Glr%d%n3i-15
+        do i2=-14,Glr%d%n2i-15
+            do i1=-14,Glr%d%n1i-15
+               jj=jj+1
+               tt = (hxh*i1-rxyz(1,iiAt))**2 + (hyh*i2-rxyz(2,iiAt))**2 + (hzh*i3-rxyz(3,iiAt))**2
+               tt=sqrt(tt)
+               if(tt>cut) then
+                  !write(*,'(a,4i7,3es20.12)') 'iorb, i1, i2, i3, tt, cut, phir(jj)', iorb, i1, i2, i3, tt, cut, phir(jj)
+                  ttOut=ttOut+phir(jj)**2
+                  phir(jj)=0.d0
+               else
+                  ttIn=ttIn+phir(jj)**2
+               end if
+            end do
+        end do
+    end do
+    
+    call isf_to_daub(Glr, w, phir(1), phi(ist))
+
+    write(*,'(a,i7,2es20.12)') 'before: iorb, ttIn, ttOut', iorb, ttIn, ttOut
+    ist=ist+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+
+end do
 
 
 call mpi_barrier(mpi_comm_world, ierr)

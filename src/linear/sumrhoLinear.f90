@@ -1537,9 +1537,9 @@ commsSumrho(6)=istDest
 ! the tag for this communication
 commsSumrho(7)=tag
 
-! commsSumrho(8): this entry is used a request for the mpi_isend.
+! commsSumrho(8): this entry is used as request for the mpi_isend.
 
-! commsSumrho(9): this entry is used a request for the mpi_irecv.
+! commsSumrho(9): this entry is used as request for the mpi_irecv.
 
 
 end subroutine setCommunicationInformation2

@@ -137,7 +137,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, &
        phi)
   ! Cut off outside localization region -- experimental
-  !call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+  call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -156,6 +156,14 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
       rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+
+  ! Post communications for gathering the potential
+  ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+
+  !!do iorb=1,size(rhopot)
+  !!    write(590+iproc,*) iorb, rhopot(iorb)
+  !!end do
 
 
 
@@ -178,6 +186,8 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
           nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, lphi, radii_cf)
+      ! Cut off outside localization region -- experimental
+      call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
 
       ! Calculate the energy that we get with psi.
@@ -185,6 +195,10 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
           rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+
+      ! Post communications for gathering the potential
+      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
       !!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! Calculate the forces we get with psi.
