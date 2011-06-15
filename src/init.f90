@@ -409,7 +409,7 @@ end subroutine fillPcProjOnTheFly
 !>   fill the preconditioning projectors for a given atom 
 !! SOURCE
 !!
-subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,startjorb,   initial_istart_c, geocode, at, iatat) 
+subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   initial_istart_c, geocode, at, iatat) 
   use module_interfaces
   use module_base
   use module_types
@@ -418,7 +418,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,startjorb,   initial_is
   type(pawproj_data_type),  intent(in) ::PAWD
   type(locreg_descriptors),  intent(in):: Glr
   integer, intent(in)  ::iat, startjorb
-  real(gp), intent(in) ::   hx,hy,hz
+  real(gp), intent(in) ::   hx,hy,hz,kx,ky,kz
   integer, intent(in) :: initial_istart_c
   character(len=1), intent(in) :: geocode
   type(atoms_data) :: at
@@ -426,7 +426,6 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,startjorb,   initial_is
 
   ! local variables  
   type(locreg_descriptors) :: Plr
-  real(gp) kx, ky, kz
   integer :: jorb, ncplx, istart_c
   real(wp), dimension(PAWD%G%ncoeff ) :: Gocc
   character(len=*), parameter :: subname='fillPawProjOnTheFly'
@@ -438,8 +437,6 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,startjorb,   initial_is
   character(len=2) :: symbol
   real(kind=8), dimension(6,4) :: neleconf
   
-
-
   istart_c=initial_istart_c
   
   Plr%d%n1 = Glr%d%n1
@@ -457,9 +454,11 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,startjorb,   initial_is
   Plr%wfd%keyv(:)  = PAWD%paw_nlpspd%keyv_p(  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:  PAWD%paw_nlpspd%nseg_p(2*iat)   )
   Plr%wfd%keyg(1:2, :)  = PAWD%paw_nlpspd%keyg_p( 1:2,  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:  PAWD%paw_nlpspd%nseg_p(2*iat)   )
   
-  kx=0.0_gp
-  ky=0.0_gp
-  kz=0.0_gp
+  if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+     ncplx=1
+  else
+     ncplx=2
+  end if
   
   Gocc=0.0_wp
 
@@ -475,7 +474,6 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,startjorb,   initial_is
 
   do while( jorb<=PAWD%G%ncoeff         .and. PAWD%iorbtolr(jorb)== iat)      
      Gocc(jorb)=1.0_wp
-     ncplx=1
 
      call gaussians_c_to_wavelets_orb(ncplx,Plr,hx,hy,hz,kx,ky,kz,PAWD%G,&
           Gocc(1),  PAWD%paw_proj(istart_c), rcov  )
@@ -487,7 +485,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,startjorb,   initial_is
 !!$              Plr%d          = Glr%d
 !!$              call plot_wf_cube(orbname,PAWD%at,Plr,hx,hy,hz,PAWD%G%rxyz, PAWD%paw_proj(istart_c) ,"1234567890" ) 
 
-     istart_c=istart_c + (   Plr%wfd%nvctr_c    +   7*Plr%wfd%nvctr_f   )
+     istart_c=istart_c + (   Plr%wfd%nvctr_c    +   7*Plr%wfd%nvctr_f   ) * ncplx
 
 
      jorb=jorb+1
@@ -899,6 +897,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   
   integer mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
        jseg_c, idum
+  integer :: ikpt,iskpt,iekpt
 
   Pcpmult=1.0*cpmult
 
@@ -954,10 +953,6 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 !!$  call memocc(i_stat,pc_proj,'pc_proj',subname)
   allocate(PAWD%paw_proj(PAWD%paw_nlpspd%nprojel+ndebug),stat=i_stat)
   call memocc(i_stat,PAWD%paw_proj,'paw_proj',subname)
-
-
-
-
 
   allocate(PAWD%ilr_to_mproj(PAWD%G%nat  +ndebug ) , stat=i_stat)
   call memocc(i_stat,PAWD%ilr_to_mproj,'ilr_to_mproj',subname)
@@ -1028,60 +1023,71 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      endif
   enddo
 
+  if (orbs%norbp > 0) then
+     iskpt=orbs%iokpt(1)
+     iekpt=orbs%iokpt(orbs%norbp)
+  else
+     iskpt=1
+     iekpt=1
+  end if
 
-  !! PAWD%mprojtot=mprojtot
-
-  startjorb=1
-  jorb=1
   istart_c=1
-  Gocc(:)=0.0_wp
-  iproj=0
 
-  iat=0
-  do iatat=1, at%nat
-     if (  at%paw_NofL(at%iatype(iatat)).gt.0  ) then
-        iat=iat+1
-        mproj=0
-        do while( jorb<=PAWD%G%ncoeff         .and. PAWD%iorbtolr(jorb)== iat)
-           mproj=mproj+1
-           if(jorb==PAWD%G%ncoeff) exit
-           jorb=jorb+1
-        end do
+  do ikpt=iskpt,iekpt     
+     !features of the k-point ikpt
+     kx=orbs%kpts(1,ikpt)
+     ky=orbs%kpts(2,ikpt)
+     kz=orbs%kpts(3,ikpt)
+     !evaluate the complexity of the k-point
+     if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+        ncplx=1
+     else
+        ncplx=2
+     end if
+     
+     startjorb=1
+     jorb=1
+     Gocc(:)=0.0_wp
+     iproj=0
 
-        PAWD%ilr_to_mproj(iat)=mproj
-        if( mproj>0) then
-           nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
-           nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
-
-           jorb=startjorb
-           do while( jorb<=PAWD%G%ncoeff  .and. PAWD%iorbtolr(jorb)== iat) 
-              iproj=iproj+1
-              PAWD%iproj_to_l(iproj)   = iorbto_l(jorb)
-              PAWD%iproj_to_paw_nchannels(iproj)   = iorbto_paw_nchannels(jorb)
-              istart_c=istart_c + (   nvctr_c    +   7*nvctr_f   )
+     iat=0
+     do iatat=1, at%nat
+        if (  at%paw_NofL(at%iatype(iatat)).gt.0  ) then
+           iat=iat+1
+           mproj=0
+           do while( jorb<=PAWD%G%ncoeff         .and. PAWD%iorbtolr(jorb)== iat)
+              mproj=mproj+1
+              if(jorb==PAWD%G%ncoeff) exit
               jorb=jorb+1
-              if(jorb> PAWD%G%ncoeff) exit
            end do
 
-           if( .not. PAWD%DistProjApply) then
-              istart_c= istart_c-mproj*(nvctr_c+7*nvctr_f)
-              print *, " fill on the fly " 
-              
-              call fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz, startjorb,&
-                   istart_c, at%geocode , at, iatat) 
+           PAWD%ilr_to_mproj(iat)=mproj
+           if( mproj>0) then
+              nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+              nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
 
-              istart_c= istart_c+mproj*(nvctr_c+7*nvctr_f)
-
-              print *, " filled on the fly OK , istart_c " ,  istart_c, " mproj ", mproj
-           endif
-
+              jorb=startjorb
+              do while( jorb<=PAWD%G%ncoeff  .and. PAWD%iorbtolr(jorb)== iat) 
+                 iproj=iproj+1
+                 PAWD%iproj_to_l(iproj)   = iorbto_l(jorb)
+                 PAWD%iproj_to_paw_nchannels(iproj)   = iorbto_paw_nchannels(jorb)
+                 istart_c=istart_c + (   nvctr_c    +   7*nvctr_f   )*ncplx
+                 jorb=jorb+1
+                 if(jorb> PAWD%G%ncoeff) exit
+              end do
+              if( .not. PAWD%DistProjApply) then
+                 istart_c= istart_c-mproj*(nvctr_c+7*nvctr_f)*ncplx
+                 call fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz, kx,ky,kz, startjorb,&
+                      istart_c, at%geocode , at, iatat) 
+                 istart_c= istart_c+mproj*(nvctr_c+7*nvctr_f)*ncplx
+              endif
+           end if
+           startjorb=jorb
         end if
-
-        !! aggiunger condizione su istartc_c per vedere se e nelprj
-
-        startjorb=jorb
-     end if
+     enddo
   enddo
+  if (istart_c-1 /= PAWD%paw_nlpspd%nprojel) stop 'incorrect once-and-for-all psp generation'
+
 
   if( .not. PAWD%DistProjApply) then
      call deallocate_gwf_c(PAWD%G,subname)

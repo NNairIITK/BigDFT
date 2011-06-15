@@ -794,7 +794,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
   real(wp), allocatable, dimension(:,:,:) :: work
-  real(wp), allocatable, dimension(:,:,:,:) :: wx,wy,wz
+  real(wp), allocatable, dimension(:,  :,:,:,:) :: wx,wy,wz
   real(wp), allocatable, dimension(:,:,:,:) :: wx_k,wy_k,wz_k
   real(wp), allocatable, dimension(:,:) :: cossinfacts
   character(len=11) :: filename
@@ -804,9 +804,9 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   integer :: ncplxC
   ncplxC=2
 
-  if ( ncplx.ne.1) then
-     stop ' ncplx must be 1 in  actual version of  gaussians_c_to_wavelets_orb'
-  end if
+  ! if ( ncplx.ne.1) then
+  !    stop ' ncplx must be 1 in  actual version of  gaussians_c_to_wavelets_orb'
+  ! end if
 
 
   !calculate nterms_max:
@@ -818,11 +818,11 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   allocate(work(0:nw,2,2+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
 
-  allocate(wx(ncplxC,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
+  allocate(wx(ncplx, ncplxC,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
   call memocc(i_stat,wx,'wx',subname)
-  allocate(wy(ncplxC,0:lr%d%n2,2,nterms_max+ndebug),stat=i_stat)
+  allocate(wy(ncplx, ncplxC,0:lr%d%n2,2,nterms_max+ndebug),stat=i_stat)
   call memocc(i_stat,wy,'wy',subname)
-  allocate(wz(ncplxC,0:lr%d%n3,2,nterms_max+ndebug),stat=i_stat)
+  allocate(wz(ncplx, ncplxC,0:lr%d%n3,2,nterms_max+ndebug),stat=i_stat)
   call memocc(i_stat,wz,'wz',subname)
 
   allocate(   cossinfacts(1:2, 1:nterms_max+ndebug) ,stat=i_stat)
@@ -872,7 +872,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
 
            if (wfn_gau(icoeff) /= 0.0_wp) then
               if (nterms + nterm*ng > nterms_max) then
-                 call wfn_from_tensprod_cossin(lr, cossinfacts , nterms,wx,wy,wz,psi)
+                 call wfn_from_tensprod_cossin(lr, ncplx,cossinfacts , nterms,wx,wy,wz,psi)
                  iterm=1
                  nterms=0
               end if
@@ -883,68 +883,35 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
 
                  gau_a= sqrt( 1.0_gp/REAL(2.0_gp*G%expof(iexpo+ig-1))   )
                  gau_bf = AIMAG ( G%expof(iexpo+ig-1) )
-!!$
-!!$                 if(m.eq.1) then
-!!$                    do i =1,500
-!!$                       r=i/100.0
-!!$                       test_wf(i)=test_wf(i)+REAL(G%psiat(iexpo+ig-1))*exp(-0.5*r*r/gau_a/gau_a)*&
-!!$                            cos(r*r* gau_bf  )
-!!$                       test_wf(i)=test_wf(i)+AIMAG(G%psiat(iexpo+ig-1))*exp(-0.5*r*r/gau_a/gau_a)*&
-!!$                            sin(r*r* gau_bf  )
-!!$                    enddo
-!!$                 endif
 
                  do i=1,nterm
                     
                     n_gau=lx(i)
 
-                    call gauss_c_to_daub_k(hx,gau_bf ,ncplxC,fac_arr(i), &
+                    call gauss_c_to_daub_k(hx,kx*hx,ncplx,gau_bf ,ncplxC,fac_arr(i), &
                          rx,gau_a,  n_gau,&
                          lr%d%n1,ml1,mu1,&
-                         wx(1,0,1,iterm),work,nw,perx, cutoff) 
+                         wx(1,1,0,1,iterm),work,nw,perx, cutoff) 
 
                     n_gau=ly(i)
                     !print *,'y',ml2,mu2,lr%d%n2
-                    call gauss_c_to_daub_k(hy,gau_bf,ncplxC,wfn_gau(icoeff), &
+                    call gauss_c_to_daub_k(hy,ky*hy,ncplx,gau_bf,ncplxC,wfn_gau(icoeff), &
                          ry,gau_a,n_gau,&
                          lr%d%n2,ml2,mu2,&
-                         wy(1,0,1,iterm),work,nw,pery, cutoff) 
+                         wy(1,1,0,1,iterm),work,nw,pery, cutoff) 
                     n_gau=lz(i) 
                     !print *,'z',ml3,mu3,lr%d%n3
-                    call gauss_c_to_daub_k(hz,gau_bf,ncplxC,  1.0_wp,  &
+                    call gauss_c_to_daub_k(hz,kz*hz,ncplx,gau_bf,ncplxC,  1.0_wp,  &
                          rz,gau_a,n_gau,&
                          lr%d%n3,ml3,mu3,&
-                         wz(1,0,1,iterm),work,nw,perz, cutoff)
+                         wz(1,1,0,1,iterm),work,nw,perz, cutoff)
 
-                    cossinfacts(1,iterm)=REAL(G%psiat(iexpo+ig-1))
+                    cossinfacts(1,iterm)= REAL( G%psiat(iexpo+ig-1))
                     cossinfacts(2,iterm)= AIMAG(G%psiat(iexpo+ig-1)) 
-
-
-!!$                    if(ig.eq.1) then
-!!$                       cossinfacts(1,iterm)=REAL(G%psiat(iexpo+ig-1))
-!!$                       cossinfacts(2,iterm)= AIMAG(G%psiat(iexpo+ig-1)) 
-!!$                       cossinfacts(1,iterm)= 1.0
-!!$                       cossinfacts(2,iterm)= 0.0 
-!!$                    else
-!!$                       cossinfacts(1,iterm)= 0.0
-!!$                       cossinfacts(2,iterm)= 0.0
-!!$                    endif
 
                     iterm=iterm+1
                  end do
               end do
-!!$              if(m.eq.1) then
-!!$                 write(filename,'(A,i4.4)')'test_',icoeff
-!!$                 open(unit=54,file=filename)
-!!$                 do i=1,500
-!!$                    write(54,*) test_wf(i)
-!!$                 enddo
-!!$                 do ig=1,ng
-!!$                    write(54,*) "#  ",  REAL(G%psiat(iexpo+ig-1)), AIMAG(G%psiat(iexpo+ig-1)), &
-!!$                         REAL(G%expof(iexpo+ig-1)), AIMAG(G%expof(iexpo+ig-1))
-!!$                 end do
-!!$                 close(54)
-!!$              endif
 
 
               nterms=nterms+nterm*ng

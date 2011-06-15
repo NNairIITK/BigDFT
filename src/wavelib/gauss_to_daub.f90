@@ -502,32 +502,27 @@ contains
 END SUBROUTINE gauss_to_daub_k
 
 
-
-
-
-
-
-subroutine gauss_c_to_daub_k(hgrid,kvalin,ncplx,factor , &
+subroutine gauss_c_to_daub_k(hgrid,kval, ,ncplx,gau_bf,ncs_s,factor , &
      gau_cen,gau_a, n_gau,&!no err, errsuc
      nmax,n_left,n_right,c,& 
      ww,nwork,periodic, hcutoff)      !added work arrays ww with dimension nwork
   use module_base
   implicit none
   logical, intent(in) :: periodic
-  integer, intent(in) :: n_gau,nmax,nwork,ncplx
-  real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a,kvalin
-  real(wp), dimension(0:nwork,2,ncplx), intent(inout) :: ww 
+  integer, intent(in) :: n_gau,nmax,nwork,ncs_s
+  real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a,gau_bf
+  real(wp), dimension(0:nwork,2,ncs_s), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
-  real(wp), dimension(ncplx,0:nmax,2), intent(out) :: c
+  real(wp), dimension(ncs_s,0:nmax,2), intent(out) :: c
   real(gp)  hcutoff
 
   !local variables
-  integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
+  integer :: rightx,leftx,right_t,i0,i,k,length,j,ics
   real(gp) :: a,z0,h,x,r,coeff,r2,fac,rk
   real(wp) :: func,cval,sval
   integer, dimension(0:8) :: lefts,rights
   integer :: nrefinement, nforwards, ifwdtarget , ifwdsource, iswap
-  real(gp) kval
+  real(gp) gau_kval, kval
   real(gp) cutoff
 
   !include the convolutions filters
@@ -537,14 +532,12 @@ subroutine gauss_c_to_daub_k(hgrid,kvalin,ncplx,factor , &
 
   !rescale the parameters so that hgrid goes to 1.d0  
   a=gau_a/hgrid
-  kval=kvalin*hgrid*hgrid
+  gau_kval=gau_bf*hgrid*hgrid
 
   i0=nint(gau_cen/hgrid) ! the array is centered at i0
 
-
   z0=gau_cen/hgrid-real(i0,gp)
   cutoff= hcutoff /hgrid
-
 
   nrefinement=64
   nforwards=6
@@ -586,11 +579,11 @@ subroutine gauss_c_to_daub_k(hgrid,kvalin,ncplx,factor , &
      call gauss_c_to_scf
      
      !loop for each complex component
-     do icplx=1,ncplx
+     do ics=1,ncs_s
         ! non-periodic: no tails to fold
         do i=0,length-1
-           c(icplx,i+n_left,1)=fac*ww(i       ,2,icplx)
-           c(icplx,i+n_left,2)=fac*ww(i+length,2,icplx) 
+           c(ics,i+n_left,1)=fac*ww(i       ,2,ics)
+           c(ics,i+n_left,2)=fac*ww(i+length,2,ics) 
         end do
      end do
   endif
@@ -626,10 +619,8 @@ contains
     end if
 
     !loop for each complex component
-    do icplx=1,ncplx
-
+    do ics=1,ncs_s
        !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
-
        if( mod(nforwards,2)==0) then
           ifwdtarget=1
           ifwdsource=2
@@ -639,18 +630,18 @@ contains
        endif
 
 
-       if (icplx == 1) then
+       if (ics == 1) then
           if (n_gau == 0) then
              do i=leftx,rightx
                 x=real(i-i0*nrefinement,gp)*h
                 r=x-z0
                 r2=r
                 r2=r2*r2
-                cval=real(cos(kval*r2),wp)
+                cval=real(cos(gau_kval*r2),wp)
                 r2=0.5_gp*r2/a/a
                 func=real(dexp(-real(r2,kind=8)),wp)
                 if(abs(r)>cutoff) func=0
-                ww(i-leftx,ifwdtarget ,icplx)=func*cval
+                ww(i-leftx,ifwdtarget ,ics)=func*cval
              enddo
           else
              do i=leftx,rightx
@@ -659,26 +650,26 @@ contains
                 coeff=r**n_gau
                 r2=r
                 r2=r2*r2
-                cval=real(cos(kval*r2),wp)
+                cval=real(cos(gau_kval*r2),wp)
                 r2=0.5_gp*r2/a/a
                 func=real(dexp(-real(r2,kind=8)),wp)
                 func=real(coeff,wp)*func
                 if(abs(r)>cutoff) func=0
-                ww(i-leftx,ifwdtarget,icplx)=func*cval
+                ww(i-leftx,ifwdtarget,ics)=func*cval
              enddo
           end if
-       else if (icplx == 2) then
+       else if (ics == 2) then
           if (n_gau == 0) then
              do i=leftx,rightx
                 x=real(i-i0*nrefinement,gp)*h
                 r=x-z0
                 r2=r
                 r2=r2*r2
-                cval=real(sin(kval*r2),wp)
+                cval=real(sin(gau_kval*r2),wp)
                 r2=0.5_gp*r2/a/a
                 func=real(dexp(-real(r2,kind=8)),wp)
                 if(abs(r)>cutoff) func=0
-                ww(i-leftx,ifwdtarget,icplx)=func*cval
+                ww(i-leftx,ifwdtarget,ics)=func*cval
              enddo
           else
              do i=leftx,rightx
@@ -687,12 +678,12 @@ contains
                 coeff=r**n_gau
                 r2=r
                 r2=r2*r2
-                cval=real(sin(kval*r2),wp)
+                cval=real(sin(gau_kval*r2),wp)
                 r2=0.5_gp*r2/a/a
                 func=real(dexp(-real(r2,kind=8)),wp)
                 func=real(coeff,wp)*func
                 if(abs(r)>cutoff) func=0
-                ww(i-leftx,ifwdtarget,icplx)=func*cval
+                ww(i-leftx,ifwdtarget,ics)=func*cval
              enddo
           end if
        end if
@@ -703,8 +694,7 @@ contains
        ifwdsource=ifwdtarget
        ifwdtarget=iswap
 
-
-       call apply_w(ww(0,ifwdsource ,icplx),ww(0,ifwdtarget ,icplx),&
+       call apply_w(ww(0,ifwdsource ,ics),ww(0,ifwdtarget ,ics),&
             leftx   ,rightx   ,lefts( nforwards),rights(nforwards  ),h)
 
        do i=nforwards,2,-1
@@ -713,7 +703,7 @@ contains
           ifwdsource=ifwdtarget
           ifwdtarget=iswap
           
-          call forward_c(ww(0,ifwdsource ,icplx),ww(0, ifwdtarget,icplx),&
+          call forward_c(ww(0,ifwdsource ,ics),ww(0, ifwdtarget,ics),&
                lefts( i),rights( i),lefts(i-1),rights(i-1)) 
           
        enddo
@@ -726,7 +716,7 @@ contains
           STOP ' ifwdsource .ne. 1  '
        endif
 
-       call forward(  ww(0,1,icplx),ww(0,2,icplx),&
+       call forward(  ww(0,1,ics),ww(0,2,ics),&
             lefts(1),rights(1),lefts(0),rights(0)) 
 
     end do
@@ -743,8 +733,8 @@ contains
 
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
-    !print *,'ncplx',ncplx,n_left,n_right,nwork,length
-    do icplx=1,ncplx
+    !print *,'ncs_s',ncs_s,n_left,n_right,nwork,length
+    do icplx=1,ncs_s
        do i=n_left,n_right
           j=modulo(i,nmax+1)
           c(icplx,j,1)=c(icplx,j,1)+ww(i-n_left       ,2,icplx)
@@ -752,7 +742,7 @@ contains
        end do
     end do
 
-    do icplx=1,ncplx
+    do icplx=1,ncs_s
        do j=0,nmax
           c(icplx,j,1)=fac*c(icplx,j,1)
           c(icplx,j,2)=fac*c(icplx,j,2)
@@ -789,7 +779,6 @@ subroutine apply_w(cx,c,leftx,rightx,left,right,h)
   enddo
 
 END SUBROUTINE apply_w
-
 
 !> FORWARD WAVELET TRANSFORM WITHOUT WAVELETS ("SHRINK")
 subroutine forward_c(c,c_1,left,right,left_1,right_1)
