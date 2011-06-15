@@ -69,7 +69,7 @@ tt = fma(*tmp++, FILT12, tt);\
 tt = fma(*tmp++, FILT13, tt);\
 tt = fma(*tmp++, FILT14, tt);\
 tt = fma(*tmp++, FILT15, tt);\n\
-#define filter_vector(tt,tmp) \
+#define filter_vector2(tt,tmp) \
 tt = fma(*tmp++, (double2)(FILT0,FILT1), tt);\
 tt = fma(*tmp++, (double2)(FILT2,FILT3), tt);\
 tt = fma(*tmp++, (double2)(FILT4,FILT5), tt);\
@@ -78,6 +78,11 @@ tt = fma(*tmp++, (double2)(FILT8,FILT9), tt);\
 tt = fma(*tmp++, (double2)(FILT10,FILT11), tt);\
 tt = fma(*tmp++, (double2)(FILT12,FILT13), tt);\
 tt = fma(*tmp++, (double2)(FILT14,FILT15), tt);\n\
+#define filter_vector4(tt,tmp) \
+tt = fma(*tmp++, (double4)(FILT0,FILT1,FILT2,FILT3), tt);\
+tt = fma(*tmp++, (double4)(FILT4,FILT5,FILT6,FILT7), tt);\
+tt = fma(*tmp++, (double4)(FILT8,FILT9,FILT10,FILT11), tt);\
+tt = fma(*tmp++, (double4)(FILT12,FILT13,FILT14,FILT15), tt);\n\
 #define filter_reverse_nofma(tt,tmp) \
 tt += *tmp++ *  FILT15;\
 tt += *tmp++ *  FILT14;\
@@ -159,7 +164,7 @@ filter(tt,tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n";
   } else {
-    program<<"double2 tt = (double2)(0.0, 0.0);\n\
+    program<<"double2 tt = (double2)(0.0, 0.0);//, 0.0, 0.0);\n\
 //rest position in the buffer to first element involved in the convolution\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 //wait for buffer to be full\n\
@@ -167,9 +172,9 @@ barrier(CLK_LOCAL_MEM_FENCE);\n\
 \
 //apply filter\n\
 __local double2 *tmp2= (__local double2 *)tmp;\n\
-filter_vector(tt,tmp2);\n\
+filter_vector2(tt,tmp2);\n\
 //store the result\n\
-out[(jg*n+ig)]=tt.x+tt.y;\n\
+out[(jg*n+ig)]=tt.x+tt.y;//+tt.z+tt.w;\n\
 };\n";
   }
 }
