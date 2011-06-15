@@ -35,7 +35,7 @@ static void generate_header(std::stringstream &program){
 #define FILT14 -0.5185986881173432922848639136911487e-4\n\
 #define FILT15  2.72734492911979659657715313017228e-6\n\
 #define FILTER_WIDTH 16\n\
-#define filter_nofma(tt,tmp) \
+#define filter_nomad(tt,tmp) \
 tt += *tmp++ * FILT0;\
 tt += *tmp++ * FILT1;\
 tt += *tmp++ * FILT2;\
@@ -53,37 +53,37 @@ tt += *tmp++ * FILT13;\
 tt += *tmp++ * FILT14;\
 tt += *tmp++ * FILT15;\n\
 #define filter(tt,tmp) \
-tt = fma(*tmp++, FILT0, tt);\
-tt = fma(*tmp++, FILT1, tt);\
-tt = fma(*tmp++, FILT2, tt);\
-tt = fma(*tmp++, FILT3, tt);\
-tt = fma(*tmp++, FILT4, tt);\
-tt = fma(*tmp++, FILT5, tt);\
-tt = fma(*tmp++, FILT6, tt);\
-tt = fma(*tmp++, FILT7, tt);\
-tt = fma(*tmp++, FILT8, tt);\
-tt = fma(*tmp++, FILT9, tt);\
-tt = fma(*tmp++, FILT10, tt);\
-tt = fma(*tmp++, FILT11, tt);\
-tt = fma(*tmp++, FILT12, tt);\
-tt = fma(*tmp++, FILT13, tt);\
-tt = fma(*tmp++, FILT14, tt);\
-tt = fma(*tmp++, FILT15, tt);\n\
+tt = mad(*tmp++, FILT0, tt);\
+tt = mad(*tmp++, FILT1, tt);\
+tt = mad(*tmp++, FILT2, tt);\
+tt = mad(*tmp++, FILT3, tt);\
+tt = mad(*tmp++, FILT4, tt);\
+tt = mad(*tmp++, FILT5, tt);\
+tt = mad(*tmp++, FILT6, tt);\
+tt = mad(*tmp++, FILT7, tt);\
+tt = mad(*tmp++, FILT8, tt);\
+tt = mad(*tmp++, FILT9, tt);\
+tt = mad(*tmp++, FILT10, tt);\
+tt = mad(*tmp++, FILT11, tt);\
+tt = mad(*tmp++, FILT12, tt);\
+tt = mad(*tmp++, FILT13, tt);\
+tt = mad(*tmp++, FILT14, tt);\
+tt = mad(*tmp++, FILT15, tt);\n\
 #define filter_vector2(tt,tmp) \
-tt = fma(*tmp++, (double2)(FILT0,FILT1), tt);\
-tt = fma(*tmp++, (double2)(FILT2,FILT3), tt);\
-tt = fma(*tmp++, (double2)(FILT4,FILT5), tt);\
-tt = fma(*tmp++, (double2)(FILT6,FILT7), tt);\
-tt = fma(*tmp++, (double2)(FILT8,FILT9), tt);\
-tt = fma(*tmp++, (double2)(FILT10,FILT11), tt);\
-tt = fma(*tmp++, (double2)(FILT12,FILT13), tt);\
-tt = fma(*tmp++, (double2)(FILT14,FILT15), tt);\n\
+tt = mad(*tmp++, (double2)(FILT0,FILT1), tt);\
+tt = mad(*tmp++, (double2)(FILT2,FILT3), tt);\
+tt = mad(*tmp++, (double2)(FILT4,FILT5), tt);\
+tt = mad(*tmp++, (double2)(FILT6,FILT7), tt);\
+tt = mad(*tmp++, (double2)(FILT8,FILT9), tt);\
+tt = mad(*tmp++, (double2)(FILT10,FILT11), tt);\
+tt = mad(*tmp++, (double2)(FILT12,FILT13), tt);\
+tt = mad(*tmp++, (double2)(FILT14,FILT15), tt);\n\
 #define filter_vector4(tt,tmp) \
-tt = fma(*tmp++, (double4)(FILT0,FILT1,FILT2,FILT3), tt);\
-tt = fma(*tmp++, (double4)(FILT4,FILT5,FILT6,FILT7), tt);\
-tt = fma(*tmp++, (double4)(FILT8,FILT9,FILT10,FILT11), tt);\
-tt = fma(*tmp++, (double4)(FILT12,FILT13,FILT14,FILT15), tt);\n\
-#define filter_reverse_nofma(tt,tmp) \
+tt = mad(*tmp++, (double4)(FILT0,FILT1,FILT2,FILT3), tt);\
+tt = mad(*tmp++, (double4)(FILT4,FILT5,FILT6,FILT7), tt);\
+tt = mad(*tmp++, (double4)(FILT8,FILT9,FILT10,FILT11), tt);\
+tt = mad(*tmp++, (double4)(FILT12,FILT13,FILT14,FILT15), tt);\n\
+#define filter_reverse_nomad(tt,tmp) \
 tt += *tmp++ *  FILT15;\
 tt += *tmp++ *  FILT14;\
 tt += *tmp++ *  FILT13;\
@@ -101,22 +101,22 @@ tt += *tmp++ *  FILT2;\
 tt += *tmp++ *  FILT1;\
 tt += *tmp++ *  FILT0;\n\
 #define filter_reverse(tt,tmp) \
-tt = fma(*tmp++, FILT15, tt);\
-tt = fma(*tmp++, FILT14, tt);\
-tt = fma(*tmp++, FILT13, tt);\
-tt = fma(*tmp++, FILT12, tt);\
-tt = fma(*tmp++, FILT11, tt);\
-tt = fma(*tmp++, FILT10, tt);\
-tt = fma(*tmp++, FILT9, tt);\
-tt = fma(*tmp++, FILT8, tt);\
-tt = fma(*tmp++, FILT7, tt);\
-tt = fma(*tmp++, FILT6, tt);\
-tt = fma(*tmp++, FILT5, tt);\
-tt = fma(*tmp++, FILT4, tt);\
-tt = fma(*tmp++, FILT3, tt);\
-tt = fma(*tmp++, FILT2, tt);\
-tt = fma(*tmp++, FILT1, tt);\
-tt = fma(*tmp++, FILT0, tt);\n";
+tt = mad(*tmp++, FILT15, tt);\
+tt = mad(*tmp++, FILT14, tt);\
+tt = mad(*tmp++, FILT13, tt);\
+tt = mad(*tmp++, FILT12, tt);\
+tt = mad(*tmp++, FILT11, tt);\
+tt = mad(*tmp++, FILT10, tt);\
+tt = mad(*tmp++, FILT9, tt);\
+tt = mad(*tmp++, FILT8, tt);\
+tt = mad(*tmp++, FILT7, tt);\
+tt = mad(*tmp++, FILT6, tt);\
+tt = mad(*tmp++, FILT5, tt);\
+tt = mad(*tmp++, FILT4, tt);\
+tt = mad(*tmp++, FILT3, tt);\
+tt = mad(*tmp++, FILT2, tt);\
+tt = mad(*tmp++, FILT1, tt);\
+tt = mad(*tmp++, FILT0, tt);\n";
 }
 
 static void generate_magicfilter1dKernel(std::stringstream &program){

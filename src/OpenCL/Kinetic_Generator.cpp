@@ -37,21 +37,21 @@ static void generate_header(std::stringstream &program){
 
 static void generate_filters(std::stringstream &program){
   program<<"#define filter1(tt,tmp) \
-tt = fma(tmp[14] + tmp[-14], FILT1_14, tt);\
-tt = fma(tmp[13] + tmp[-13], FILT1_13, tt);\
-tt = fma(tmp[12] + tmp[-12], FILT1_12, tt);\
-tt = fma(tmp[11] + tmp[-11], FILT1_11, tt);\
-tt = fma(tmp[10] + tmp[-10], FILT1_10, tt);\
-tt = fma(tmp[ 9] + tmp[ -9], FILT1_9 , tt);\
-tt = fma(tmp[ 8] + tmp[ -8], FILT1_8 , tt);\
-tt = fma(tmp[ 7] + tmp[ -7], FILT1_7 , tt);\
-tt = fma(tmp[ 6] + tmp[ -6], FILT1_6 , tt);\
-tt = fma(tmp[ 5] + tmp[ -5], FILT1_5 , tt);\
-tt = fma(tmp[ 4] + tmp[ -4], FILT1_4 , tt);\
-tt = fma(tmp[ 3] + tmp[ -3], FILT1_3 , tt);\
-tt = fma(tmp[ 2] + tmp[ -2], FILT1_2 , tt);\
-tt = fma(tmp[ 1] + tmp[ -1], FILT1_1 , tt);\
-tt = fma(tmp[ 0]           , FILT1_0 , tt);\n";
+tt = mad(tmp[14] + tmp[-14], FILT1_14, tt);\
+tt = mad(tmp[13] + tmp[-13], FILT1_13, tt);\
+tt = mad(tmp[12] + tmp[-12], FILT1_12, tt);\
+tt = mad(tmp[11] + tmp[-11], FILT1_11, tt);\
+tt = mad(tmp[10] + tmp[-10], FILT1_10, tt);\
+tt = mad(tmp[ 9] + tmp[ -9], FILT1_9 , tt);\
+tt = mad(tmp[ 8] + tmp[ -8], FILT1_8 , tt);\
+tt = mad(tmp[ 7] + tmp[ -7], FILT1_7 , tt);\
+tt = mad(tmp[ 6] + tmp[ -6], FILT1_6 , tt);\
+tt = mad(tmp[ 5] + tmp[ -5], FILT1_5 , tt);\
+tt = mad(tmp[ 4] + tmp[ -4], FILT1_4 , tt);\
+tt = mad(tmp[ 3] + tmp[ -3], FILT1_3 , tt);\
+tt = mad(tmp[ 2] + tmp[ -2], FILT1_2 , tt);\
+tt = mad(tmp[ 1] + tmp[ -1], FILT1_1 , tt);\
+tt = mad(tmp[ 0]           , FILT1_0 , tt);\n";
 }
 
 static void generate_kinetic1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
