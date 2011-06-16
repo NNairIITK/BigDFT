@@ -114,7 +114,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 !        call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 !     end if
 !
-  else if(trim(parmin%approach)=='BFGS') then
+  else if(trim(parmin%approach)=='BFGS' .or. trim(parmin%approach)=='PBFGS') then
      call bfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft)
   else if(trim(parmin%approach)=='SDCG') then
 
