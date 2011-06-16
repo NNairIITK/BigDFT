@@ -12,9 +12,9 @@
 #include "OpenCL_wrappers.h"
 
 
-void FC_FUNC_(rdtsc,RDTSC)(cl_ulong * t){
-  rdtscll(*t);
-}
+//void FC_FUNC_(rdtsc,RDTSC)(cl_ulong * t){
+//  rdtscll(*t);
+//}
 void FC_FUNC_(nanosec,NANOSEC)(cl_ulong * t){
   struct timespec time;
   clock_gettime(CLOCK_REALTIME, &time);
@@ -48,6 +48,7 @@ void FC_FUNC_(ocl_build_programs,OCL_BUILD_PROGRAMS)(cl_context * context) {
     build_uncompress_programs(context);
     build_initialize_programs(context);
     build_reduction_programs(context);
+    build_fft_programs(context);
 }
 
 void create_kernels(struct bigdft_kernels *kernels){
@@ -58,6 +59,33 @@ void create_kernels(struct bigdft_kernels *kernels){
     create_uncompress_kernels(kernels);
     create_initialize_kernels(kernels);
     create_reduction_kernels(kernels);
+    create_fft_kernels(kernels);
+}
+
+
+// WARNING : devices are supposed to be uniform in a context
+void get_context_devices_infos(cl_context * context, struct bigdft_device_infos * infos){
+    cl_uint device_number;
+
+#if __OPENCL_VERSION__ <= CL_VERSION_1_0
+    size_t nContextDescriptorSize;
+    clGetContextInfo(*context, CL_CONTEXT_DEVICES, 0, 0, &nContextDescriptorSize);
+    device_number = nContextDescriptorSize/sizeof(cl_device_id);
+#else
+    clGetContextInfo(*context, CL_CONTEXT_NUM_DEVICES, sizeof(device_number), &device_number, NULL);
+#endif
+    cl_device_id * aDevices = (cl_device_id *) malloc(sizeof(cl_device_id)*device_number);
+    clGetContextInfo(*context, CL_CONTEXT_DEVICES, sizeof(cl_device_id)*device_number, aDevices, 0);
+
+    get_device_infos(aDevices[0], infos);
+
+    free(aDevices);
+}
+
+void get_device_infos(cl_device_id device, struct bigdft_device_infos * infos){
+    clGetDeviceInfo(device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(infos->LOCAL_MEM_SIZE), &(infos->LOCAL_MEM_SIZE), NULL);
+    clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(infos->MAX_WORK_GROUP_SIZE), &(infos->MAX_WORK_GROUP_SIZE), NULL);
+    clGetDeviceInfo(device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(infos->MAX_COMPUTE_UNITS), &(infos->MAX_COMPUTE_UNITS), NULL);
 }
 
 void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * context) {
@@ -190,6 +218,8 @@ void FC_FUNC_(ocl_create_command_queue,OCL_CREATE_COMMAND_QUEUE)(bigdft_command_
 #else
     (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[0], 0, &ciErrNum);
 #endif
+    get_device_infos(aDevices[0], &((*command_queue)->device_infos));
+    free(aDevices);
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
     printf("contexte address: %p, command queue: %p\n",*context, (*command_queue)->command_queue);
@@ -221,6 +251,8 @@ void FC_FUNC_(ocl_create_command_queue_id,OCL_CREATE_COMMAND_QUEUE_ID)(bigdft_co
     (*command_queue)->command_queue = clCreateCommandQueue(*context, aDevices[*index % device_number], 0, &ciErrNum);
     /*printf("Queue created index : %d, gpu chosen :%d, gpu number : %d\n", *index, *index % device_number, device_number);*/ 
 #endif
+    get_device_infos(aDevices[*index % device_number], &((*command_queue)->device_infos));
+    free(aDevices);
 #if DEBUG
     printf("%s %s\n", __func__, __FILE__);
     printf("contexte address: %p, command queue: %p\n",*context, (*command_queue)->command_queue);
@@ -264,6 +296,7 @@ void FC_FUNC_(ocl_clean_command_queue,OCL_CLEAN_COMMAND_QUEUE)(bigdft_command_qu
   clean_wavelet_kernels(&((*command_queue)->kernels));
   clean_uncompress_kernels(&((*command_queue)->kernels));
   clean_reduction_kernels(&((*command_queue)->kernels));
+  clean_fft_kernels(&((*command_queue)->kernels));
   clReleaseCommandQueue((*command_queue)->command_queue);
   free(*command_queue);
 }
@@ -277,6 +310,7 @@ void FC_FUNC_(ocl_clean,OCL_CLEAN)(cl_context *context){
   clean_wavelet_programs();
   clean_uncompress_programs();
   clean_reduction_programs();
+  clean_fft_programs();
   for(i=0;i<event_number;i++){
     clReleaseEvent(event_list[i].e);
   }

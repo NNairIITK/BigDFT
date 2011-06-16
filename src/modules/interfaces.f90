@@ -382,7 +382,7 @@ module module_interfaces
        real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
      END SUBROUTINE reformatmywaves
 
-     subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
+     subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
        use module_base
        use module_types
        implicit none
@@ -390,7 +390,7 @@ module module_interfaces
        type(orbitals_data), intent(in) :: orbs
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), intent(in) :: comms
-       type(input_variables):: input
+       type(orthon_data):: orthpar
        real(wp), dimension(:) , pointer :: psi,hpsi,psit
      END SUBROUTINE first_orthon
 
@@ -436,25 +436,21 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psirocc
      END SUBROUTINE HamiltonianApplication
 
-     subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
-          ncong,iter,diis,idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,nspin,GPU,input)
+     subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,orthpar)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
-       real(gp), intent(in) :: hx,hy,hz
+       integer, intent(in) :: iproc,nproc,idsx,iter,nspin
        type(locreg_descriptors), intent(in) :: lr
        type(communications_arrays), intent(in) :: comms
        type(orbitals_data), intent(in) :: orbs
-       type(input_variables), intent(in) :: input
+       type(orthon_data), intent(in) :: orthpar
        type(diis_objects), intent(inout) :: diis
-       real(dp), intent(inout) :: gnrm,gnrm_zero,scprsum
        real(wp), dimension(:), pointer :: psi,psit,hpsi
-       type(GPU_pointers), intent(inout) :: GPU
      END SUBROUTINE hpsitopsi
 
      subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
-          psi,hpsi,psit,input,& !mandatory
+          psi,hpsi,psit,orthpar,passmat,& !mandatory
           orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
        use module_base
        use module_types
@@ -463,8 +459,9 @@ module module_interfaces
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), target, intent(in) :: comms
        type(orbitals_data), target, intent(inout) :: orbs
-       type(input_variables):: input
+       type(orthon_data), intent(in) :: orthpar
        real(wp), dimension(:), pointer :: psi,hpsi,psit
+       real(wp), dimension(*), intent(out) :: passmat
        !optional arguments
        real(gp), optional, intent(in) :: etol
        type(orbitals_data), optional, intent(in) :: orbsv
@@ -617,7 +614,7 @@ module module_interfaces
      END SUBROUTINE davidson
 
      subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
-          ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,nvirte,psivirt)
+          ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,passmat,nvirte,psivirt)
        use module_base
        implicit none
        !Arguments
@@ -626,6 +623,7 @@ module module_interfaces
        real(wp), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
        real(wp), dimension(nvctrp,norbe), intent(in) :: psi
        real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
+       real(wp), dimension(*), intent(out) :: passmat
        integer, dimension(2), intent(in), optional :: nvirte
        real(wp), dimension(*), optional :: psivirt
        integer:: iproc
@@ -1154,6 +1152,54 @@ module module_interfaces
       real(wp), dimension(:), pointer :: pot
     END SUBROUTINE free_full_potential
 
+    subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,comms_as,psi,psi_as)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(locreg_descriptors), intent(in) :: Glr
+      type(communications_arrays), intent(in) :: comms
+      logical, dimension(orbs%norb*orbs%nkpts), intent(in) :: mask_array
+      real(wp), dimension(orbs%npsidim), intent(in) :: psi
+      type(orbitals_data), intent(out) :: orbs_as
+      type(communications_arrays), intent(out) :: comms_as
+      real(wp), dimension(:), pointer :: psi_as
+    END SUBROUTINE select_active_space
+
+    subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
+         ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+      real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp
+      type(orbitals_data), intent(in) :: orbs
+      type(communications_arrays), intent(in) :: comms
+      type(locreg_descriptors), intent(in) :: lr
+      type(GPU_pointers), intent(in) :: GPU
+      real(gp), intent(out) :: gnrm,gnrm_zero,energy
+      real(wp), dimension(:), pointer :: psi,psit,hpsi
+    end subroutine calculate_energy_and_gradient
+
+    subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,orthpar,hx,hy,hz,ncong,iscf,&
+         energs,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+      use module_base
+      use module_types
+      !use module_interfaces!, except_this_one => calculate_energy_and_gradient_new
+      implicit none
+      integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+      real(gp), intent(in) :: hx,hy,hz
+      type(orbitals_data), intent(inout) :: orbs
+      type(communications_arrays), intent(in) :: comms
+      type(locreg_descriptors), intent(in) :: lr
+      type(GPU_pointers), intent(in) :: GPU
+      type(orthon_data), intent(in) :: orthpar
+      type(energy_terms), intent(inout) :: energs
+      real(gp), intent(out) :: gnrm,gnrm_zero,energy
+      real(wp), dimension(:), pointer :: psi,psit,hpsi
+    end subroutine calculate_energy_and_gradient_new
+    
   end interface
 
 end module module_interfaces

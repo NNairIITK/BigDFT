@@ -18,6 +18,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <papi.h>
 
 const double filt[] __attribute__ ((aligned (16))) = { 8.4334247333529341094733325815816e-7,
                        -0.1290557201342060969516786758559028e-4,
@@ -150,6 +151,7 @@ inline void conv_gliding(unsigned int n,unsigned int ndat, double const * source
   __m128d S8,S9,S10,S11,S12,S13,S14,S15;
   __m128d F;
   __m128d D;
+  S0=S1=S2=S3=S4=S5=S6=S7=S8=S9=S10=S11=S12=S13=S14=S15=_mm_setzero_pd();
 
   microloop_nostore(source0,source1,0,D,F,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15);
   microloop_nostore(source0,source1,1,D,F,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0);
@@ -247,6 +249,7 @@ inline void conv_gliding_reverse(unsigned int n,unsigned int ndat, double const 
   __m128d S8,S9,S10,S11,S12,S13,S14,S15;
   __m128d F;
   __m128d D;
+  S0=S1=S2=S3=S4=S5=S6=S7=S8=S9=S10=S11=S12=S13=S14=S15=_mm_setzero_pd();
 
   microloop_nostore_reverse(source,0,D,F,S0,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15);
   microloop_nostore_reverse(source,1,D,F,S1,S2,S3,S4,S5,S6,S7,S8,S9,S10,S11,S12,S13,S14,S15,S0);
@@ -2665,13 +2668,40 @@ void conv_ref_reverse(size_t n, size_t ndat, double const * source, double * des
 #define FLOP (BUFFER_WIDTH*BUFFER_DEPTH)*2*FILTER_SIZE
 #define MOP (BUFFER_WIDTH*BUFFER_DEPTH)*2*8
 
+#define EVENT_NUMBER 7
+int read_print_stop_counters( long long int *counters, char **event_name, int event_number){
+    int i;
+    int error;
+
+    error = PAPI_stop_counters(counters,event_number);
+    for(i=0; i<event_number; i++)
+      printf("%s : %lld\n",event_name[i],counters[i]);
+    return error;
+}
+
+
 inline void check_conv(void (*func) (size_t, size_t,  double const *, double *), double const * source, double * dest, double * check, char const * description) {
+    int event_number = EVENT_NUMBER;
+    long long int counters[EVENT_NUMBER];
+    int events[EVENT_NUMBER] = {PAPI_L1_TCM,PAPI_L2_TCM,PAPI_L3_TCM,
+                                PAPI_L2_TCA,PAPI_L3_TCA,
+                                PAPI_TOT_CYC,PAPI_TOT_INS};
+    char * event_name[] = { "PAPI_L1_TCM","PAPI_L2_TCM","PAPI_L3_TCM",
+                            "PAPI_L2_TCA","PAPI_L3_TCA",
+                            "PAPI_TOT_CYC","PAPI_TOT_INS"};
+/*    int events[EVENT_NUMBER] = {PAPI_RES_STL, PAPI_BR_MSP, PAPI_BR_PRC, PAPI_BR_CN,
+                                  PAPI_TOT_INS, PAPI_TOT_CYC};
+      char * event_name[] = { "PAPI_RES_STL", "PAPI_BR_MSP", "PAPI_BR_PRC", "PAPI_BR_CN", 
+                              "PAPI_TOT_INS", "PAPI_TOT_CYC"};*/
+
     unsigned long long int t1,t2;
 //    memset(dest, 0, BUFFER_DEPTH*BUFFER_WIDTH*sizeof(double));
 
+    PAPI_start_counters(events,event_number);
     nanosec(&t1);
     (*func)(BUFFER_DEPTH,BUFFER_WIDTH,source,dest);
     nanosec(&t2);
+    read_print_stop_counters(counters, event_name, event_number);
 
 
     double br;
@@ -2690,10 +2720,24 @@ inline void check_conv(void (*func) (size_t, size_t,  double const *, double *),
 
 inline void check_trans(void (*func) (size_t, size_t,  double const *, double *), double const * source, double * dest, double * check, char const * description) {
     unsigned long long int t1,t2;
+    int event_number = EVENT_NUMBER;
+    long long int counters[EVENT_NUMBER];
+    int events[EVENT_NUMBER] = {PAPI_L1_TCM,PAPI_L2_TCM,PAPI_L3_TCM,
+                                PAPI_L2_TCA,PAPI_L3_TCA,
+                                PAPI_TOT_CYC,PAPI_TOT_INS};
+    char * event_name[] = { "PAPI_L1_TCM","PAPI_L2_TCM","PAPI_L3_TCM",
+                            "PAPI_L2_TCA","PAPI_L3_TCA",
+                            "PAPI_TOT_CYC","PAPI_TOT_INS"};
+/*    int events[EVENT_NUMBER] = {PAPI_RES_STL, PAPI_BR_MSP, PAPI_BR_PRC, PAPI_BR_CN,
+                                PAPI_TOT_INS, PAPI_TOT_CYC};
+    char * event_name[] = { "PAPI_RES_STL", "PAPI_BR_MSP", "PAPI_BR_PRC", "PAPI_BR_CN", 
+                            "PAPI_TOT_INS", "PAPI_TOT_CYC"};*/
 
+    PAPI_start_counters(events,event_number);
     nanosec(&t1);
     (*func)(BUFFER_DEPTH,BUFFER_WIDTH,source,dest);
     nanosec(&t2);
+    read_print_stop_counters(counters, event_name, event_number);
 
 
     double br;
@@ -2712,6 +2756,7 @@ inline void check_trans(void (*func) (size_t, size_t,  double const *, double *)
 
 
 int main(void) {
+
   void * t;
   double * a;
   int err = posix_memalign(&t,16,BUFFER_WIDTH*(BUFFER_DEPTH+FILTER_SIZE)*sizeof(double));

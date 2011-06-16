@@ -427,7 +427,7 @@ subroutine mix_input_variables_default(in)
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%iscf=7
+  in%iscf=0
   in%Tel=0.0_gp
   in%norbsempty=0
   in%alphadiis=2.d0
@@ -554,15 +554,18 @@ subroutine geopt_input_variables(filename,in)
      else if (in%ionmov == 13) then
         read(1,*,iostat=ierror) in%nnos
         call check()
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
         read(1,*,iostat=ierror) in%qmass
         call check()
         read(1,*,iostat=ierror) in%bmass, in%vmass
         call check()
      end if
-
-     !the allocation of this pointer should be done in any case
-     allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-     call memocc(i_stat,in%qmass,'in%qmass',subname)
+     if (in%ionmov /= 13) then
+        !the allocation of this pointer should be done in any case
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
+     end if
 
   else if (trim(in%geopt_approach) == "DIIS") then
      read(1,*,iostat=ierror) in%betax, in%history
@@ -636,8 +639,8 @@ subroutine tddft_input_variables(filename,in)
   read(1,*,iostat=ierror) in%tddft_approach
   call check()
   if (trim(in%tddft_approach) == "TDA") then
-  read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
-  call check()
+     !read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
+     !call check()
   end if
 
   close(unit=1,iostat=ierror)
@@ -957,17 +960,18 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%iacceleration=0 !default:no acceleration
   !BLAS acceleration
   GPUblas=.false.
+
   !Direct diagonalisation of the Hamiltonian for the input guess
-  inputs%directDiag=.true.
+  inputs%orthpar%directDiag=.true.
   !Orbitals per process
-  inputs%norbpInguess=5
+  inputs%orthpar%norbpInguess=5
   !Block size used for the orthonormalization
-  inputs%bsLow=300
-  inputs%bsUp=800
+  inputs%orthpar%bsLow=300
+  inputs%orthpar%bsUp=800
   !Orthogonalization method
-  inputs%methOrtho=0
+  inputs%orthpar%methOrtho=0
   !Tolerance criterion for input guess
-  inputs%iguessTol=1.d-4
+  inputs%orthpar%iguessTol=1.d-4
 
   !initialization of the character string for printing
   string = "NO"
@@ -1019,19 +1023,19 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
         else if (index(line,"ig_diag") /= 0 .or. index(line,"IG_DIAG") /= 0) then
            ii = index(line,"ig_diag")  + index(line,"IG_DIAG") + 10
-           read(line(ii:),fmt=*,iostat=ierror) inputs%directDiag
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%directDiag
 
         else if (index(line,"ig_norbp") /= 0 .or. index(line,"IG_NORBP") /= 0) then
            ii = index(line,"ig_norbp")  + index(line,"IG_NORBP") + 8
-           read(line(ii:),fmt=*,iostat=ierror) inputs%norbpInguess
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%norbpInguess
 
         else if (index(line,"methortho") /= 0 .or. index(line,"METHORTHO") /= 0) then
            ii = index(line,"methortho")  + index(line,"METHORTHO") + 9
-           read(line(ii:),fmt=*,iostat=ierror) inputs%methOrtho
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%methOrtho
 
         else if (index(line,"ig_blocks") /= 0 .or. index(line,"IG_BLOCKS") /= 0) then
            ii = index(line,"ig_blocks")  + index(line,"IG_BLOCKS") + 8
-           read(line(ii:),fmt=*,iostat=ierror) inputs%bsLow,inputs%bsUp
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%bsLow,inputs%orthpar%bsUp
         end if
 
         !Check iostat error
@@ -1075,38 +1079,38 @@ subroutine perf_input_variables(iproc,filename,inputs)
           "|","exctxpar",inputs%exctxpar,    '!Exact exchange parallelisation scheme'
 
      !Input guess performance variables
-     if(inputs%directDiag) then                   
+     if(inputs%orthpar%directDiag) then                   
         write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
-          "|","ig_diag",inputs%directDiag,   '!Input guess: Direct diagonalization of Hamiltonian'
-     else if(.not.inputs%directDiag) then         
+          "|","ig_diag",inputs%orthpar%directDiag,   '!Input guess: Direct diagonalization of Hamiltonian'
+     else if(.not.inputs%orthpar%directDiag) then         
         write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
-          "|","ig_diag",inputs%directDiag,   '!Input guess: Iterative diagonalization of Hamiltonian'
+          "|","ig_diag",inputs%orthpar%directDiag,   '!Input guess: Iterative diagonalization of Hamiltonian'
         write(*,'(1x,a,3x,a,1x,i0,t30,a)') &
-          "|","ig_norbp",inputs%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'
+          "|","ig_norbp",inputs%orthpar%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'
      end if
      write(*,"(1x,a,3x,a,1x,i0,1x,i0,t30,a)") &
-          "|","ig_blocks",inputs%bsLow,inputs%bsUp, &
+          "|","ig_blocks",inputs%orthpar%bsLow,inputs%orthpar%bsUp, &
                                                  '!Input guess: Block size for orthonormalisation'
      write(*,'(1x,a,3x,a,1x,es9.2,t30,a)') &
-          "|","ig_tol",inputs%iguessTol,    '!Input guess: Tolerance criterion'
+          "|","ig_tol",inputs%orthpar%iguessTol,    '!Input guess: Tolerance criterion'
      !Orthogonalisation: possible value: 0=Cholesky, 1=hybrid Gram-Schmidt/Cholesky, 2=Loewdin
      write(*,"(1x,a,3x,a,1x,i0,t30,a)") &
-          "|","methortho",inputs%methOrtho,  '!Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)'
+          "|","methortho",inputs%orthpar%methOrtho,  '!Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)'
      write(*,*)
   end if
 
   !Check after collecting all values
-  if (inputs%methOrtho < 0 .or. inputs%methOrtho > 2) then
-     write(*,'(3x,a,i0)') "ERROR: invalid value for inputs%methOrtho (",inputs%methOrtho,")."
+  if (inputs%orthpar%methOrtho < 0 .or. inputs%orthpar%methOrtho > 2) then
+     write(*,'(3x,a,i0)') "ERROR: invalid value for inputs%methOrtho (",inputs%orthpar%methOrtho,")."
      write(*,'(3x,a,i0)') "Change it in the file 'inputs.perf' to 0, 1 or 2."
-     call MPI_ABORT(MPI_COMM_WORLD,inputs%methOrtho,ierr)
+     call MPI_ABORT(MPI_COMM_WORLD,inputs%orthpar%methOrtho,ierr)
   end if
-  if(.not.inputs%directDiag .or. inputs%methOrtho==1) then 
+  if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
      write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
-     if(inputs%bsLow==inputs%bsUp) then
-        write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%bsLow
-     else if(inputs%bsLow<inputs%bsUp) then
-        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%bsLow,' and ',inputs%bsUp
+     if(inputs%orthpar%bsLow==inputs%orthpar%bsUp) then
+        write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%orthpar%bsLow
+     else if(inputs%orthpar%bsLow<inputs%orthpar%bsUp) then
+        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%orthpar%bsLow,' and ',inputs%orthpar%bsUp
      else
         write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
         call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
@@ -1603,7 +1607,8 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
 
   !controls if the positions are provided with machine precision
-  if (atoms%units == 'angstroemd0' .or. atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
+  if (atoms%units == 'angstroemd0' .or. atoms%units== 'atomicd0' .or. &
+       atoms%units== 'bohrd0' .or. atoms%units=='reduced') then
      lpsdbl=.true.
   else
      lpsdbl=.false.
@@ -1684,9 +1689,9 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
      atoms%alat3=alat3d0
   else if (atoms%units == 'reduced') then
      !assume that for reduced coordinates cell size is in bohr
-     atoms%alat1=real(alat1,gp)
-     atoms%alat2=real(alat2,gp)
-     atoms%alat3=real(alat3,gp)
+     atoms%alat1=alat1d0
+     atoms%alat2=alat2d0
+     atoms%alat3=alat3d0
   else
      write(*,*) 'length units in input file unrecognized'
      write(*,*) 'recognized units are angstroem or atomic = bohr'
@@ -2024,8 +2029,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
 
-  !controls if the positions are provided with machine precision
-  if (index(atoms%units, 'd0') > 0) then
+  !controls if the positions are provided within machine precision
+  if (index(atoms%units, 'd0') > 0 .or. reduced) then
      lpsdbl=.true.
   else
      lpsdbl=.false.

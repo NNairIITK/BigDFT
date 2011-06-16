@@ -16,7 +16,7 @@
 */
 #ifndef THREAD_ENGINE_H
 #define THREAD_ENGINE_H 1
-#include "tool.h"
+//#include "tool.h"
 
 struct thread_engine_param {
   char * topology_file;

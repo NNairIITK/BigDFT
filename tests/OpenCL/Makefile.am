@@ -30,7 +30,7 @@ conv_check_LDADD =  $(top_builddir)/src/libbigdft.a \
 	$(top_builddir)/src/PSolver/libpoissonsolver.a \
 	$(top_builddir)/src/OpenCL/libbasec.a \
 	$(top_builddir)/src/OpenCL/libbasef.a $(libs_dgemmsy)
-conv_check_LDFLAGS = -lrt
+conv_check_LDFLAGS = -lrt -lstdc++
 
 
 conv_check.out: conv_check

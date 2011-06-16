@@ -19,16 +19,17 @@
 #ifndef u32
 typedef unsigned int u32;
 #endif
-#include <asm/msr.h>
+//#include <asm/msr.h>
 #include <sched.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <semaphore.h>
 #include <stdlib.h>
-#include <errno.h>
+//#include <errno.h>
 #include <libconfig.h++>
 #include "thread_engine.h"
 
+#define ASMPAUSE asm("" : : : "memory")
 
 
 struct thread_data {
@@ -94,7 +95,7 @@ void get_engine_opt(int argc, char *argv[]) {
 	int ch;
 	char *endptr;
         engine_params = new struct thread_engine_param;
-        errno = 0;
+        //errno = 0;
 
         engine_params->thread_number = 0;
 	engine_params->cpu_number = 1;
@@ -117,9 +118,9 @@ void get_engine_opt(int argc, char *argv[]) {
 				break;
 			case 'v':
 				engine_params->verbose = strtol(optarg, &endptr, 10);
-				if( errno != 0)  {
-					perror("Invalid verbose level");
-				};
+//				if( errno != 0)  {
+//					perror("Invalid verbose level");
+//				};
 				break;
 			default:
 				printf ("Unknown parameter : %c\n",ch);

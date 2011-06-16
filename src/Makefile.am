@@ -39,7 +39,7 @@ endif
 if USE_OCL
 sub_dirs_ocl=OpenCL
 OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
-libs_ocl=OpenCL/libOCL.a
+libs_ocl=OpenCL/libOCL.a -lstdc++
 else
 sub_dirs_ocl=
 OCL_INTERFACE = convolutions/interface_ocl_fake.f90
@@ -85,11 +85,10 @@ global_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt)
 # Hack to avoid global.f90 inclusion into make dist.
 am_global_OBJECTS = global.$(OBJEXT)
-global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
+global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
@@ -185,7 +184,8 @@ high_level = cluster.f90 \
 	lanczos_base.f90 \
 	lanczos.f90 \
 	scfloop_API.f90 \
-	esatto.f90
+	esatto.f90 \
+	tddft.f90
 
 #objects which can be compiled only with module_base
 low_level = init/projectors.f90  \
@@ -215,6 +215,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
+	lib/lbfgs.f90 \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
@@ -225,6 +226,8 @@ low_level = init/projectors.f90  \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
 	posfiles.c \
+	sdcg.f90 \
+	bfgs.f90 \
 	$(DGEMMSY_INTERFACE)
 
 libbigdft_a_SOURCES = \
@@ -355,6 +358,7 @@ CLEANFILES = \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
+	module_defs.@MODULE_EXT@ MODULE_DEFS.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
 	esatto.@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
@@ -372,7 +376,10 @@ CLEANFILES = \
 	lanczos_defs.@MODULE_EXT@ LANCZOS_DEFS.@MODULE_EXT@ \
 	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
 	minpar.@MODULE_EXT@ MINPAR.@MODULE_EXT@ \
-	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@
+	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@ \
+	minimization_sp.@MODULE_EXT@ MINIMIZATION_SP.@MODULE_EXT@ \
+	modulesplinedsaddle.@MODULE_EXT@ MODULESPLINEDSADDLE.@MODULE_EXT@ \
+	randomdata.@MODULE_EXT@ RANDOMDATA.@MODULE_EXT@ 
 
 
 check:
