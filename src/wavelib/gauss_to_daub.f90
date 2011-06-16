@@ -513,7 +513,7 @@ subroutine gauss_c_to_daub_k(hgrid,kval, ,ncplx,gau_bf,ncs_s,factor , &
   real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a,gau_bf
   real(wp), dimension(0:nwork,2,ncs_s, ncplx), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
-  real(wp), dimension( ncplx, ncs_s,0:nmax,2), intent(out) :: c
+  real(wp), dimension(  ncs_s,ncplx,0:nmax,2), intent(out) :: c
   real(gp)  hcutoff
 
   !local variables
@@ -584,8 +584,8 @@ subroutine gauss_c_to_daub_k(hgrid,kval, ,ncplx,gau_bf,ncs_s,factor , &
         do ics=1,ncs_s
            ! non-periodic: no tails to fold
            do i=0,length-1
-              c(icplx, ics,i+n_left,1)=fac*ww(i       ,2,ics, icplx)
-              c(icplx, ics,i+n_left,2)=fac*ww(i+length,2,ics, icplx) 
+              c( ics,icplx,i+n_left,1)=fac*ww(i       ,2,ics, icplx)
+              c( ics,icplx,i+n_left,2)=fac*ww(i+length,2,ics, icplx) 
            end do
         end do
      end do
@@ -747,8 +747,8 @@ contains
        do ics=1,ncs_s
           do i=n_left,n_right
              j=modulo(i,nmax+1)
-             c(icplx, ics,j,1)=c(icplx, ics,j,1)+ww(i-n_left       ,2,ics, icplx)
-             c(icplx, ics,j,2)=c(icplx, ics,j,2)+ww(i-n_left+length,2,ics, icplx)
+             c(ics, icplx, j,1)=c(ics,icplx, j,1)+ww(i-n_left       ,2,ics, icplx)
+             c(ics, icplx, j,2)=c(ics,icplx,j,2)+ww(i-n_left+length,2,ics, icplx)
           end do
        end do
     end do
@@ -757,8 +757,8 @@ contains
     do icplx=1,ncplx
        do ics=1,ncs_s
           do j=0,nmax
-             c(icplx, ics,j,1)=fac*c(ics,j,1, icplx)
-             c(icplx, ics,j,2)=fac*c(ics,j,2, icplx)
+             c(ics,icplx, j,1)=fac*c(ics, icplx , j, 1 )
+             c(ics,icplx, j,2)=fac*c(ics, icplx , j, 2 )
           enddo
        enddo
     end do

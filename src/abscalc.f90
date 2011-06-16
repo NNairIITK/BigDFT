@@ -1710,8 +1710,11 @@ subroutine applyPAWprojectors(orbs,at,&
      call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
      
      ! loop over all my orbitals
-     istart_c=1
-     iproj=1
+     ispsi=ispsi_k
+     do iorb=isorb,ieorb
+
+        istart_c=1
+        iproj=1
      
      iat=0
 

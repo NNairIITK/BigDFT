@@ -464,8 +464,6 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
 
   jorb=startjorb
   
-
-
   !!Just for extracting the covalent radius 
   call eleconf(at%nzatom( at%iatype(iatat)), at%nelpsp(at%iatype(iatat)) ,  &
        symbol, rcov, rprb, ehomo,neleconf, nsccode, mxpl, mxchg, amu)
