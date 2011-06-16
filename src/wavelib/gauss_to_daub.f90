@@ -511,19 +511,20 @@ subroutine gauss_c_to_daub_k(hgrid,kval, ,ncplx,gau_bf,ncs_s,factor , &
   logical, intent(in) :: periodic
   integer, intent(in) :: n_gau,nmax,nwork,ncs_s
   real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a,gau_bf
-  real(wp), dimension(0:nwork,2,ncs_s), intent(inout) :: ww 
+  real(wp), dimension(0:nwork,2,ncs_s, ncplx), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
-  real(wp), dimension(ncs_s,0:nmax,2), intent(out) :: c
+  real(wp), dimension( ncplx, ncs_s,0:nmax,2), intent(out) :: c
   real(gp)  hcutoff
 
   !local variables
-  integer :: rightx,leftx,right_t,i0,i,k,length,j,ics
+  integer :: rightx,leftx,right_t,i0,i,k,length,j,ics, icplx
   real(gp) :: a,z0,h,x,r,coeff,r2,fac,rk
   real(wp) :: func,cval,sval
   integer, dimension(0:8) :: lefts,rights
   integer :: nrefinement, nforwards, ifwdtarget , ifwdsource, iswap
   real(gp) gau_kval, kval
-  real(gp) cutoff
+  real(gp) cutoff, pishift
+  real(gp), parameter :: pi=3.141592653589793_gp
 
   !include the convolutions filters
   include 'recs16.inc'! MAGIC FILTER  
@@ -579,11 +580,13 @@ subroutine gauss_c_to_daub_k(hgrid,kval, ,ncplx,gau_bf,ncs_s,factor , &
      call gauss_c_to_scf
      
      !loop for each complex component
-     do ics=1,ncs_s
-        ! non-periodic: no tails to fold
-        do i=0,length-1
-           c(ics,i+n_left,1)=fac*ww(i       ,2,ics)
-           c(ics,i+n_left,2)=fac*ww(i+length,2,ics) 
+     do icplx=1,ncplx
+        do ics=1,ncs_s
+           ! non-periodic: no tails to fold
+           do i=0,length-1
+              c(icplx, ics,i+n_left,1)=fac*ww(i       ,2,ics, icplx)
+              c(icplx, ics,i+n_left,2)=fac*ww(i+length,2,ics, icplx) 
+           end do
         end do
      end do
   endif
@@ -619,108 +622,114 @@ contains
     end if
 
     !loop for each complex component
-    do ics=1,ncs_s
-       !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
-       if( mod(nforwards,2)==0) then
-          ifwdtarget=1
-          ifwdsource=2
-       else
-          ifwdtarget=2
-          ifwdsource=1
-       endif
-
-
-       if (ics == 1) then
-          if (n_gau == 0) then
-             do i=leftx,rightx
-                x=real(i-i0*nrefinement,gp)*h
-                r=x-z0
-                r2=r
-                r2=r2*r2
-                cval=real(cos(gau_kval*r2),wp)
-                r2=0.5_gp*r2/a/a
-                func=real(dexp(-real(r2,kind=8)),wp)
-                if(abs(r)>cutoff) func=0
-                ww(i-leftx,ifwdtarget ,ics)=func*cval
-             enddo
+    do icplx=1,ncplx
+       pishift=(icplx-1)*pi/2.0_gp
+       do ics=1,ncs_s
+          !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
+          if( mod(nforwards,2)==0) then
+             ifwdtarget=1
+             ifwdsource=2
           else
-             do i=leftx,rightx
-                x=real(i-i0*nrefinement,gp)*h
-                r=x-z0
-                coeff=r**n_gau
-                r2=r
-                r2=r2*r2
-                cval=real(cos(gau_kval*r2),wp)
-                r2=0.5_gp*r2/a/a
-                func=real(dexp(-real(r2,kind=8)),wp)
-                func=real(coeff,wp)*func
-                if(abs(r)>cutoff) func=0
-                ww(i-leftx,ifwdtarget,ics)=func*cval
-             enddo
+             ifwdtarget=2
+             ifwdsource=1
+          endif
+
+
+          if (ics == 1) then
+             if (n_gau == 0) then
+                do i=leftx,rightx
+                   x=real(i-i0*nrefinement,gp)*h
+                   sval=real(cos(kval*x+pishift))
+                   r=x-z0
+                   r2=r
+                   r2=r2*r2
+                   cval=real(cos(gau_kval*r2),wp)
+                   r2=0.5_gp*r2/a/a
+                   func=real(dexp(-real(r2,kind=8)),wp)
+                   if(abs(r)>cutoff) func=0
+                   ww(i-leftx,ifwdtarget ,ics, icplx)=func*cval*sval
+                enddo
+             else
+                do i=leftx,rightx
+                   x=real(i-i0*nrefinement,gp)*h
+                   sval=real(cos(kval*x+pishift))
+                   r=x-z0
+                   coeff=r**n_gau
+                   r2=r
+                   r2=r2*r2
+                   cval=real(cos(gau_kval*r2),wp)
+                   r2=0.5_gp*r2/a/a
+                   func=real(dexp(-real(r2,kind=8)),wp)
+                   func=real(coeff,wp)*func
+                   if(abs(r)>cutoff) func=0
+                   ww(i-leftx,ifwdtarget,ics, icplx)=func*cval*sval
+                enddo
+             end if
+          else if (ics == 2) then
+             if (n_gau == 0) then
+                do i=leftx,rightx
+                   x=real(i-i0*nrefinement,gp)*h
+                   sval=real(cos(kval*x+pishift))
+                   r=x-z0
+                   r2=r
+                   r2=r2*r2
+                   cval=real(sin(gau_kval*r2),wp)
+                   r2=0.5_gp*r2/a/a
+                   func=real(dexp(-real(r2,kind=8)),wp)
+                   if(abs(r)>cutoff) func=0
+                   ww(i-leftx,ifwdtarget,ics, icplx)=func*cval*sval
+                enddo
+             else
+                do i=leftx,rightx
+                   x=real(i-i0*nrefinement,gp)*h
+                   sval=real(cos(kval*x+pishift))
+                   r=x-z0
+                   coeff=r**n_gau
+                   r2=r
+                   r2=r2*r2
+                   cval=real(sin(gau_kval*r2),wp)
+                   r2=0.5_gp*r2/a/a
+                   func=real(dexp(-real(r2,kind=8)),wp)
+                   func=real(coeff,wp)*func
+                   if(abs(r)>cutoff) func=0
+                   ww(i-leftx,ifwdtarget,ics, icplx)=func*cval*sval
+                enddo
+             end if
           end if
-       else if (ics == 2) then
-          if (n_gau == 0) then
-             do i=leftx,rightx
-                x=real(i-i0*nrefinement,gp)*h
-                r=x-z0
-                r2=r
-                r2=r2*r2
-                cval=real(sin(gau_kval*r2),wp)
-                r2=0.5_gp*r2/a/a
-                func=real(dexp(-real(r2,kind=8)),wp)
-                if(abs(r)>cutoff) func=0
-                ww(i-leftx,ifwdtarget,ics)=func*cval
-             enddo
-          else
-             do i=leftx,rightx
-                x=real(i-i0*nrefinement,gp)*h
-                r=x-z0
-                coeff=r**n_gau
-                r2=r
-                r2=r2*r2
-                cval=real(sin(gau_kval*r2),wp)
-                r2=0.5_gp*r2/a/a
-                func=real(dexp(-real(r2,kind=8)),wp)
-                func=real(coeff,wp)*func
-                if(abs(r)>cutoff) func=0
-                ww(i-leftx,ifwdtarget,ics)=func*cval
-             enddo
-          end if
-       end if
 
-       !print *,'here',gau_a,gau_cen,n_gau
-
-       iswap=ifwdsource
-       ifwdsource=ifwdtarget
-       ifwdtarget=iswap
-
-       call apply_w(ww(0,ifwdsource ,ics),ww(0,ifwdtarget ,ics),&
-            leftx   ,rightx   ,lefts( nforwards),rights(nforwards  ),h)
-
-       do i=nforwards,2,-1
+          !print *,'here',gau_a,gau_cen,n_gau
 
           iswap=ifwdsource
           ifwdsource=ifwdtarget
           ifwdtarget=iswap
-          
-          call forward_c(ww(0,ifwdsource ,ics),ww(0, ifwdtarget,ics),&
-               lefts( i),rights( i),lefts(i-1),rights(i-1)) 
-          
-       enddo
 
-       iswap=ifwdsource
-       ifwdsource=ifwdtarget
-       ifwdtarget=iswap
-       
-       if( ifwdsource .ne. 1) then
-          STOP ' ifwdsource .ne. 1  '
-       endif
+          call apply_w(ww(0,ifwdsource ,ics,icplx),ww(0,ifwdtarget ,ics,icplx),&
+               leftx   ,rightx   ,lefts( nforwards),rights(nforwards  ),h)
 
-       call forward(  ww(0,1,ics),ww(0,2,ics),&
-            lefts(1),rights(1),lefts(0),rights(0)) 
+          do i=nforwards,2,-1
 
+             iswap=ifwdsource
+             ifwdsource=ifwdtarget
+             ifwdtarget=iswap
+
+             call forward_c(ww(0,ifwdsource ,ics, icplx),ww(0, ifwdtarget,ics, icplx),&
+                  lefts( i),rights( i),lefts(i-1),rights(i-1)) 
+
+          enddo
+
+          iswap=ifwdsource
+          ifwdsource=ifwdtarget
+          ifwdtarget=iswap
+
+          if( ifwdsource .ne. 1) then
+             STOP ' ifwdsource .ne. 1  '
+          endif
+
+          call forward(  ww(0,1,ics, icplx),ww(0,2,ics, icplx),&
+               lefts(1),rights(1),lefts(0),rights(0)) 
+
+       end do
     end do
-
 
   END SUBROUTINE gauss_c_to_scf
 
@@ -734,22 +743,26 @@ contains
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
     !print *,'ncs_s',ncs_s,n_left,n_right,nwork,length
-    do icplx=1,ncs_s
-       do i=n_left,n_right
-          j=modulo(i,nmax+1)
-          c(icplx,j,1)=c(icplx,j,1)+ww(i-n_left       ,2,icplx)
-          c(icplx,j,2)=c(icplx,j,2)+ww(i-n_left+length,2,icplx)
+    do icplx=1,ncplx
+       do ics=1,ncs_s
+          do i=n_left,n_right
+             j=modulo(i,nmax+1)
+             c(icplx, ics,j,1)=c(icplx, ics,j,1)+ww(i-n_left       ,2,ics, icplx)
+             c(icplx, ics,j,2)=c(icplx, ics,j,2)+ww(i-n_left+length,2,ics, icplx)
+          end do
        end do
     end do
 
-    do icplx=1,ncs_s
-       do j=0,nmax
-          c(icplx,j,1)=fac*c(icplx,j,1)
-          c(icplx,j,2)=fac*c(icplx,j,2)
+
+    do icplx=1,ncplx
+       do ics=1,ncs_s
+          do j=0,nmax
+             c(icplx, ics,j,1)=fac*c(ics,j,1, icplx)
+             c(icplx, ics,j,2)=fac*c(ics,j,2, icplx)
+          enddo
        enddo
-    enddo
-
-
+    end do
+    
   END SUBROUTINE fold_tail
 
 

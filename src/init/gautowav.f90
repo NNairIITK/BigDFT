@@ -793,7 +793,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   real(gp) :: rx,ry,rz,gau_a, gau_bf
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
-  real(wp), allocatable, dimension(:,:,:) :: work
+  real(wp), allocatable, dimension(:,:,:, :) :: work
   real(wp), allocatable, dimension(:,  :,:,:,:) :: wx,wy,wz
   real(wp), allocatable, dimension(:,:,:,:) :: wx_k,wy_k,wz_k
   real(wp), allocatable, dimension(:,:) :: cossinfacts
@@ -815,7 +815,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   !but with at least ngx*nterm_max ~= 100 elements
   nterms_max=max(maxsizeKB*1024/(2*ncplxC*max(lr%d%n1,lr%d%n2,lr%d%n3)),100)
 
-  allocate(work(0:nw,2,2+ndebug),stat=i_stat)
+  allocate(work(0:nw,2,2, ncplx+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
 
   allocate(wx(ncplx, ncplxC,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
@@ -888,20 +888,20 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
                     
                     n_gau=lx(i)
 
-                    call gauss_c_to_daub_k(hx,kx*hx,ncplx,gau_bf ,ncplxC,fac_arr(i), &
+                    call gauss_c_to_daub_k(hx,kx,ncplx,gau_bf ,ncplxC,fac_arr(i), &
                          rx,gau_a,  n_gau,&
                          lr%d%n1,ml1,mu1,&
                          wx(1,1,0,1,iterm),work,nw,perx, cutoff) 
 
                     n_gau=ly(i)
                     !print *,'y',ml2,mu2,lr%d%n2
-                    call gauss_c_to_daub_k(hy,ky*hy,ncplx,gau_bf,ncplxC,wfn_gau(icoeff), &
+                    call gauss_c_to_daub_k(hy,ky,ncplx,gau_bf,ncplxC,wfn_gau(icoeff), &
                          ry,gau_a,n_gau,&
                          lr%d%n2,ml2,mu2,&
                          wy(1,1,0,1,iterm),work,nw,pery, cutoff) 
                     n_gau=lz(i) 
                     !print *,'z',ml3,mu3,lr%d%n3
-                    call gauss_c_to_daub_k(hz,kz*hz,ncplx,gau_bf,ncplxC,  1.0_wp,  &
+                    call gauss_c_to_daub_k(hz,kz,ncplx,gau_bf,ncplxC,  1.0_wp,  &
                          rz,gau_a,n_gau,&
                          lr%d%n3,ml3,mu3,&
                          wz(1,1,0,1,iterm),work,nw,perz, cutoff)
@@ -1154,19 +1154,19 @@ END SUBROUTINE wfn_from_tensprod
 
 !accumulate 3d projector in real form from a tensor produc decomposition
 ! using complex gaussians
-subroutine wfn_from_tensprod_cossin(lr,  cossinfacts ,nterm,wx,wy,wz,psi)
+subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: nterm
   type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(2,0:lr%d%n1,2,nterm), intent(in) :: wx
-  real(wp), dimension(2,0:lr%d%n2,2,nterm), intent(in) :: wy
-  real(wp), dimension(2,0:lr%d%n3,2,nterm), intent(in) :: wz
+  real(wp), dimension(ncplx,2,0:lr%d%n1,2,nterm), intent(in) :: wx
+  real(wp), dimension(ncplx,2,0:lr%d%n2,2,nterm), intent(in) :: wy
+  real(wp), dimension(ncplx,2,0:lr%d%n3,2,nterm), intent(in) :: wz
   real(wp) :: cossinfacts(2,nterm)
 
 
-  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)), intent(inout) :: psi
+  real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: psi
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
   real(wp) :: re_cmplx_prod,im_cmplx_prod
