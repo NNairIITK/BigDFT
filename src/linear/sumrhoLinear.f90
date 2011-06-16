@@ -1368,6 +1368,7 @@ do iorb=1,lin%comsr%noverlaps(iproc)
     istri=lin%comsr%comarr(6,iorb,iproc)-1
     tr=0.d0
     do jorb=1,lin%comsr%noverlaps(iproc)
+        !write(*,'(a,3i8)') 'iproc, iorb, jorb', iproc, iorb, jorb
         jjorb=lin%comsr%overlaps(jorb)
         jlr=lin%comsr%comarr(4,jorb,iproc)
         istrj=lin%comsr%comarr(6,jorb,iproc)-1

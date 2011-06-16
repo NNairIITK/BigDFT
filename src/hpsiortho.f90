@@ -289,11 +289,8 @@ subroutine free_full_potential(nproc,pot,subname)
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
   if (nproc > 1 .or. exctX) then
      i_all=-product(shape(pot))*kind(pot)
-write(*,*) 'associated(pot), subname', associated(pot), subname
-write(*,*) 'size(pot)', size(pot)
      deallocate(pot,stat=i_stat)
      call memocc(i_stat,i_all,'pot',subname)
-write(*,*) 'after deallocate'
   else
      nullify(pot)
   end if

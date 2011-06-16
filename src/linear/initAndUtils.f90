@@ -162,7 +162,8 @@ end do
 
 ! Initialize the parameters for the communication for the
 ! potential.
-call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
+!call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%onWhichAtomAll)
 
 ! Deallocate all local arrays.
 iall=-product(shape(atomNames))*kind(atomNames)
@@ -857,13 +858,13 @@ real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
 
 ! Local variables
 integer:: iorb, ist, i1, i2, i3, jj, iiAt, istat, iall, ierr
-real(8):: tt, cut, hxh, hyh, hzh, ttIn, ttOut
+real(8):: tt, cut, hxh, hyh, hzh, ttIn, ttOut, ttIntot, ttOuttot
 type(workarr_sumrho) :: w
 real(8),dimension(:),allocatable:: phir
 real(8),dimension(:),pointer:: phiWork
 character(len=*),parameter:: subname='cutoffOutsideLocreg'
 
-write(*,*) 'in cutoffOutsideLocreg'
+!write(*,*) 'in cutoffOutsideLocreg'
 
 call initialize_work_arrays_sumrho(Glr, w)
 hxh=input%hx*.5d0
@@ -875,6 +876,8 @@ allocate(phir(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i), stat=istat)
 call memocc(istat, phir, 'phir', subname)
 
 ist=1
+ttIntot=0.d0
+ttOuttot=0.d0
 do iorb=1,lin%orbs%norbp
     ! Transform the orbitals to real space.
     phir=0.d0
@@ -905,10 +908,18 @@ do iorb=1,lin%orbs%norbp
     
     call isf_to_daub(Glr, w, phir(1), phi(ist))
 
-    write(*,'(a,i7,2es20.12)') 'before: iorb, ttIn, ttOut', iorb, ttIn, ttOut
+    !write(*,'(a,i7,2es20.12)') 'before: iorb, ttIn, ttOut', iorb, ttIn, ttOut
     ist=ist+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
 
+    ttIntot = ttIntot + ttIn
+    ttOuttot = ttOuttot + ttOut
+
 end do
+
+call mpiallred(ttIntot, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(ttOuttot, 1, mpi_sum, mpi_comm_world, ierr)
+if(iproc==0) write(*,'(x,a)') 'cutting of outside localization region:'
+if(iproc==0) write(*,'(3x,a,2es17.8)') 'before cut; average weights in / out:', ttIntot/dble(lin%orbs%norb), ttOuttot/dble(lin%orbs%norb)
 
 
 call mpi_barrier(mpi_comm_world, ierr)
@@ -923,6 +934,8 @@ call memocc(istat, iall, 'phiWork', subname)
 
 ! Check
 ist=1
+ttIntot=0.d0
+ttOuttot=0.d0
 do iorb=1,lin%orbs%norbp
     ! Transform the orbitals to real space.
     phir=0.d0
@@ -930,7 +943,7 @@ do iorb=1,lin%orbs%norbp
     
     iiAt=lin%onWhichAtom(iorb)
     cut=lin%locrad(iiAt)
-    write(*,'(a,2i8,es10.3)') 'iorb, iiAt, cut', iorb, iiAt, cut
+    !write(*,'(a,2i8,es10.3)') 'iorb, iiAt, cut', iorb, iiAt, cut
     
     jj=0
     ttIn=0.d0
@@ -950,10 +963,17 @@ do iorb=1,lin%orbs%norbp
         end do
     end do
     
-    write(*,'(a,i7,2es20.12)') 'after: iorb, ttIn, ttOut', iorb, ttIn, ttOut
+    !write(*,'(a,i7,2es20.12)') 'after: iorb, ttIn, ttOut', iorb, ttIn, ttOut
     ist=ist+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
 
+    ttIntot = ttIntot + ttIn
+    ttOuttot = ttOuttot + ttOut
+
 end do
+
+call mpiallred(ttIntot, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(ttOuttot, 1, mpi_sum, mpi_comm_world, ierr)
+if(iproc==0) write(*,'(3x,a,2es17.8)') 'after cut; average weights in / out:', ttIntot/dble(lin%orbs%norb), ttOuttot/dble(lin%orbs%norb)
 
 iall=-product(shape(phir))*kind(phir)
 deallocate(phir, stat=istat)
@@ -1183,8 +1203,6 @@ call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 !end do
 
 ! Calculate the dimension of the wave function for each process.
-! Do it for both the compressed ('npsidim') and for the uncompressed real space
-! ('npsidimr') case.
 npsidim=0
 do iorb=1,lin%orbs%norbp
     ilr=lin%onWhichAtom(iorb)
@@ -1200,7 +1218,7 @@ else
     do iorb=1,lin%lb%orbs%norbp
         ilr=lin%lb%onWhichAtom(iorb)
         npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
-        npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
+        !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
     end do
     lin%lb%Lorbs%npsidim=npsidim
 end if
@@ -1215,6 +1233,94 @@ call memocc(istat, lphi, 'lphi', subname)
 
 end subroutine initLocregs
 
+
+
+!> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
+!! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
+!subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
+subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nat
+real(8),dimension(3,nat),intent(in):: rxyz
+type(linear_zone_descriptors),intent(inout):: lzd
+type(input_variables),intent(in):: input
+type(locreg_descriptors),intent(in):: Glr
+real(8),dimension(lzd%nlr),intent(in):: locrad
+!real(8),dimension(:),pointer:: phi, lphi
+
+! Local variables
+integer:: istat, npsidim, npsidimr, iorb, ilr
+character(len=*),parameter:: subname='initLocregs'
+
+! Allocate the array of localisation regions
+allocate(lzd%Llr(lzd%nlr),stat=istat)
+!! ATTENATION: WHAT ABAOUT OUTOFZONE??
+!allocate(lin%outofzone(3,lin%nlr),stat=istat)
+!call memocc(istat,lin%outofzone,'lin%outofzone',subname)
+
+
+!! Write some physical information on the Glr
+!if(iproc==0) then
+!    write(*,'(x,a)') '>>>>> Global localization region:'
+!    write(*,'(3x,a,3i6)')'Global region n1,n2,n3: ',Glr%d%n1,Glr%d%n2,Glr%d%n3
+!    write(*,'(3x,a,3i6)')'Global region n1i,n2i,n3i: ',Glr%d%n1i,Glr%d%n2i,Glr%d%n3i
+!    write(*,'(3x,a,3i6)')'Global region nfl1,nfl2,nfl3: ',Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3
+!    write(*,'(3x,a,3i6)')'Global region nfu1,nfu2,nfu3: ',Glr%d%nfu1,Glr%d%nfu2,Glr%d%nfu3
+!    write(*,'(3x,a,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*input%hx,Glr%d%n2*input%hy,Glr%d%n3*input%hz
+!    write(*,'(3x,a,f10.2)')'Global volume: ',Glr%d%n1*input%hx*Glr%d%n2*input%hy*Glr%d%n3*input%hz
+!    write(*,'(3x,a,4i10)')'Global statistics: nseg_c, nseg_f, nvctr_c, nvctr_f',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
+!    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
+!end if
+
+ call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr)
+
+!do ilr=1,lin%nlr
+!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
+!    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
+!    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
+!    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
+!    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
+!end do
+
+! Calculate the dimension of the wave function for each process.
+! Do it for both the compressed ('npsidim') and for the uncompressed real space
+! ('npsidimr') case.
+npsidim=0
+do iorb=1,lzd%orbs%norbp
+    !ilr=lin%onWhichAtom(iorb)
+    ilr=lzd%orbs%inWhichLocreg(iorb)
+    npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*lzd%orbs%nspinor
+end do
+!! WARNING: CHECHK THIS
+!lin%Lorbs%npsidim=npsidim
+lzd%orbs%npsidim=npsidim
+
+!! WARNING: CHECK THIS
+!if(.not. lin%useDerivativeBasisFunctions) then
+!    lin%lb%Lorbs%npsidim=npsidim
+!else
+!    npsidim=0
+!    do iorb=1,lin%lb%orbs%norbp
+!        ilr=lin%lb%onWhichAtom(iorb)
+!        npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
+!        npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
+!    end do
+!    lin%lb%Lorbs%npsidim=npsidim
+!end if
+
+
+ !! WARNING: CHECKTHIS
+!allocate(phi(lin%lb%orbs%npsidim), stat=istat)
+!call memocc(istat, phi, 'phi', subname)
+!
+!allocate(lphi(lin%lb%Lorbs%npsidim), stat=istat)
+!call memocc(istat, lphi, 'lphi', subname)
+
+end subroutine initLocregs2
 
 
 !> Allocate the coefficients for the linear combinations of the  orbitals and initialize

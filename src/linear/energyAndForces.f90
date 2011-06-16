@@ -118,8 +118,8 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
      ! Potential from electronic charge density
      call cpu_time(t1)
      ! THIS WAS THE ORIGINAL
-     call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
-          Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+     !call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
+     !     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
      !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, atoms, rxyz, nscatterarr)
      !if(.not. lin%useDerivativeBasisFunctions) then
          !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
@@ -127,8 +127,8 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
          !call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
          !     rhopot, atoms, rxyz, nscatterarr, lphir, phibuffr)
      !! THIS IS CORRECT
-     !call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
-     !     rhopot, atoms, rxyz, nscatterarr)
+     call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+          rhopot, atoms, rxyz, nscatterarr)
      !else
      !    !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lind, coeffd, phid, Glr%d%n1i*Glr%d%n2i*n3d, &
      !    !     rhopot, atoms, rxyz, nscatterarr, phibuffd)

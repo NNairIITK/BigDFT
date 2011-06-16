@@ -91,13 +91,16 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      end do
 
 !    Rename the variables
-     nl1 = nlpspd%nboxp_c(1,1,iat)
-     nu1 = nlpspd%nboxp_c(2,1,iat)
-     nl2 = nlpspd%nboxp_c(1,2,iat)
-     nu2 = nlpspd%nboxp_c(2,2,iat)
-     nl3 = nlpspd%nboxp_c(1,3,iat)
-     nu3 = nlpspd%nboxp_c(2,3,iat)
+     nl1 = nlpspd%nboxp_c(1,1,iatom)
+     nu1 = nlpspd%nboxp_c(2,1,iatom)
+     nl2 = nlpspd%nboxp_c(1,2,iatom)
+     nu2 = nlpspd%nboxp_c(2,2,iatom)
+     nl3 = nlpspd%nboxp_c(1,3,iatom)
+     nu3 = nlpspd%nboxp_c(2,3,iatom)
+!write(*,'(a,i4,3x,6i8)') 'iat, nl1, nu1, nl2, nu2, nl3, nu3', iat, nl1, nu1, nl2, nu2, nl3, nu3
 
+!write(*,*) 'before first call to fill_logrid'
+!call mpi_barrier(mpi_comm_world,ii)
 !    Now we can determine the number of segments and elements of coarse grid
      call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
 &                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,3),cpmult,hhx,hhy,hhz,logrid)
@@ -106,16 +109,18 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 
      Lnlpspd%nseg_p(2*iat-1) = mseg_c
      Lnlpspd%nvctr_p(2*iat-1) = mvctr_c 
+!write(*,*) 'passed coarse part'
+!call mpi_barrier(mpi_comm_world,ii)
 
 ! Do the same for fine grid
 
 !    Rename the variables
-     nl1 = nlpspd%nboxp_f(1,1,iat)
-     nu1 = nlpspd%nboxp_f(2,1,iat)
-     nl2 = nlpspd%nboxp_f(1,2,iat)
-     nu2 = nlpspd%nboxp_f(2,2,iat)
-     nl3 = nlpspd%nboxp_f(1,3,iat)
-     nu3 = nlpspd%nboxp_f(2,3,iat)
+     nl1 = nlpspd%nboxp_f(1,1,iatom)
+     nu1 = nlpspd%nboxp_f(2,1,iatom)
+     nl2 = nlpspd%nboxp_f(1,2,iatom)
+     nu2 = nlpspd%nboxp_f(2,2,iatom)
+     nl3 = nlpspd%nboxp_f(1,3,iatom)
+     nu3 = nlpspd%nboxp_f(2,3,iatom)
 
      call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
 &                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,2),fpmult,hhx,hhy,hhz,logrid)
@@ -740,8 +745,10 @@ END SUBROUTINE allocate_projd
 !!
 subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,psi,rxyz,hpsi,eproj)
 
+
   use module_base
   use module_types
+  !use module_interfaces, exceptThisOne => apply_local_projectors
  
   implicit none
 
@@ -770,10 +777,21 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
   integer :: isorb,ieorb,nspinor,iorb,istart_o,ispinor
   integer :: nels,ipsi,ii,iatom
   integer :: jj,orbtot,ispin,ind
-  integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
+  !integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
+  integer,dimension(:),allocatable :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
-  real(wp),dimension(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: psi_tmp
-  real(wp),dimension(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: hpsi_tmp
+  !real(wp),dimension(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: psi_tmp
+  !real(wp),dimension(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: hpsi_tmp
+  real(wp),dimension(:,:,:),allocatable :: psi_tmp
+  real(wp),dimension(:,:,:),allocatable :: hpsi_tmp
+
+integer:: ierr, iel
+allocate(inthisLocreg(Llr%localnorb*nspin))
+allocate(psi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor))
+allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor))
+
+!!write(*,*) 'in apply_local_projectors'
+!!call mpi_barrier(mpi_comm_world, jj)
 
 !  First reshape the wavefunctions: psi_tmp(norb,nels,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
@@ -787,11 +805,34 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
       end if
    end do
    
-   psi_tmp = reshape(psi, (/ Llr%Localnorb*nspin, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
-   hpsi_tmp = reshape(hpsi,(/ LLr%localnorb*nspin, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
+!!do ierr=1,size(psi)
+!!    write(50000,*) ierr, psi(ierr)
+!!end do
+!!do ierr=1,size(psi)
+!!    write(51000,*) ierr, hpsi(ierr)
+!!end do
+
+!!write(*,*) 'before reshape'
+!!call mpi_barrier(mpi_comm_world, ierr)
+   !!psi_tmp = reshape(psi, (/ Llr%Localnorb*nspin, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
+   !!hpsi_tmp = reshape(hpsi,(/ LLr%localnorb*nspin, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
+   ii=0
+   do iorb=1,Llr%Localnorb*nspin
+       do ispinor=1,orbs%nspinor
+           do iel=1,nels
+               ii=ii+1
+               psi_tmp(iorb,iel,ispinor)=psi(ii)
+               hpsi_tmp(iorb,iel,ispinor)=hpsi(ii)
+           end do
+       end do
+   end do
+!!write(*,*) 'after reshape'
+!!call mpi_barrier(mpi_comm_world, ierr)
 
    ieorb = orbtot   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
    ikpt=orbs%iokpt(1)
+!!write(*,*) 'before loop_kpt'
+!!call mpi_barrier(mpi_comm_world, ierr)
    loop_kpt: do
     
       !features of the k-point ikpt
@@ -814,6 +855,8 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
          iatom = iatom +1
          istart_c = 1
          ityp=atoms%iatype(iat)
+!!write(*,*) 'before local_projector'
+!!call mpi_barrier(mpi_comm_world, ierr)
 
          do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
             do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
@@ -851,6 +894,8 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
                   do ispinor=1,nspinor,ncplx
                      eproj_spinor = 0.0_gp
                      if (ispinor >= 2) istart_o=1
+!!write(*,*) 'before applyprojector'
+!!call mpi_barrier(mpi_comm_world, ierr)
 
                      !GTH and HGH pseudopotentials
                      do l=1,4
@@ -862,6 +907,8 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
                                    Lnlpspd%nvctr_p(2*iatom-1),Lnlpspd%nvctr_p(2*iatom),Lnlpspd%nseg_p(2*iatom-1),&
                                    Lnlpspd%nseg_p(2*iatom),Lnlpspd%keyv_p(jseg_c),Lnlpspd%keyg_p(1,jseg_c),&
                                    Lproj(istart_o),psi_tmp(ii,:,ispinor),hpsi_tmp(ii,:,ispinor),eproj_spinor)
+!!write(*,*) 'after applyprojector'
+!!call mpi_barrier(mpi_comm_world, ierr)
                                
                                istart_o=istart_o+(Lnlpspd%nvctr_p(2*iatom-1)+7*Lnlpspd%nvctr_p(2*iatom))*(2*l-1)*ncplx
                            end if
@@ -971,12 +1018,12 @@ subroutine local_projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,Llr,&
         if (abs(1.d0-scpr) > 1.d-2) then
            if (abs(1.d0-scpr) > 1.d-1) then
               !if (iproc == 0) then
-                write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
-                      'The norm of the nonlocal PSP for atom n=',iat,&
-                      ' (',trim(atomname),&
-                      ') labeled by l=',l,' m=',m,' is ',scpr
-                 write(*,'(1x,a)')&
-                      'while it is supposed to be about 1.0.'
+                !!write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
+                !!      'The norm of the nonlocal PSP for atom n=',iat,&
+                !!      ' (',trim(atomname),&
+                !!      ') labeled by l=',l,' m=',m,' is ',scpr
+                !! write(*,'(1x,a)')&
+                !!      'while it is supposed to be about 1.0.'
               !end if
            else
               nwarnings=nwarnings+1

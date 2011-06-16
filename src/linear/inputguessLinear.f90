@@ -2,7 +2,7 @@
 subroutine inputguessConfinement(iproc, nproc, at, &
      comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
      nlpspd, proj, pkernel, pkernelseq, &
-     nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, &
+     nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf,  &
      phi)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
@@ -33,6 +33,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer, intent(in) ::potshortcut
   integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
   real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
+  real(8),dimension(at%ntypes,3),intent(in):: radii_cf
   real(8),dimension(lin%orbs%npsidim),intent(out):: phi
   !local variables
   type(gaussian_basis):: G !basis for davidson IG
@@ -49,19 +50,21 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:,:), pointer :: psigau
+type(linear_zone_descriptors):: lzdig
+type(p2pCommsGatherPot):: comgp
 type(orbitals_data):: orbsLIN
 type(communications_arrays):: commsLIN
 real(8),dimension(:),allocatable:: eval
 integer:: istat
-real(8),dimension(:),allocatable:: chi
-real(8),dimension(:,:),allocatable:: hchi
+real(8),dimension(:),allocatable:: chi, lchi
+real(8),dimension(:,:),allocatable:: hchi, lhchi
 integer,dimension(:),allocatable:: onWhichAtom, onWhichAtomp, norbsPerAt, onWhichAtomTemp, onWhichAtomPhi
 integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
 
 integer, dimension(lmax+1) :: nl
 real(gp), dimension(noccmax,lmax+1) :: occup
-real(8):: dnrm2, ddot, dasum
-integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
+real(8):: dnrm2, ddot, dasum, t1, t2, time
+integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr
 
 
 
@@ -71,6 +74,9 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   call memocc(i_stat,locrad,'locrad',subname)
   allocate(norbsPerAt(at%nat), stat=istat)
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
+
+  ! number of localization regions
+  lzdig%nlr=at%nat
 
 
   if (iproc == 0) then
@@ -136,15 +142,39 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
       end do
       ist=ist+norbsPerAt(iat)
   end do
-  !!call assignOrbitalsToAtoms(iproc, orbsig, at%nat, norbsPerAt, onWhichAtomp)
+  !write(*,'(a,i3,3x,100i4)') 'iproc, owa', iproc, onWhichAtom(:)
+
 
   ! Create the atomic orbitals in a Gaussian basis.
   nvirt=0
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
        lin%orbs,orbsig,norbsc_arr,locrad,G,psigau,eks)
+  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+       lin%orbs,lzdig%orbs,norbsc_arr,locrad,G,psigau,eks)
 
   ! Allocate communications arrays for inputguess orbitals.
   call orbitals_communicators(iproc,nproc,Glr,orbsig,commsig)  
+  call orbitals_communicators(iproc,nproc,Glr,lzdig%orbs,lzdig%comms)  
+
+  allocate(onWhichAtomp(lzdig%orbs%norbp), stat=istat)
+  call memocc(i_stat, onWhichAtomp, 'onWhichAtomp', subname)
+  !call assignOrbitalsToAtoms(iproc, lzdig%orbs, at%nat, norbsPerAt, onWhichAtomp)
+  call assignOrbitalsToAtoms(iproc, lzdig%orbs, at%nat, norbsPerAt, onWhichAtomp, onWhichAtom)
+  ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
+  call assignToLocreg(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
+  write(*,'(a,i3,3x,100i4)') 'iproc, owa', iproc, onWhichAtom(:)
+  write(*,'(a,i3,3x,100i4)') 'iproc, iwi', iproc, lzdig%orbs%inwhichlocreg(:)
+  write(*,'(a,i3,3x,100i4)') 'iproc, owap', iproc, onWhichAtomp(:)
+
+  !call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, locrad)
+  call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
+   allocate(lchi(lzdig%orbs%npsidim+ndebug),stat=i_stat)
+  call memocc(i_stat,chi,'lchi',subname)
+  allocate(lhchi(lzdig%orbs%npsidim,at%nat),stat=i_stat)
+  call memocc(i_stat,lhchi,'lhchi',subname)
+  lchi=0.d0
+  lhchi=0.d0
+
 
   hxh=.5_gp*input%hx
   hyh=.5_gp*input%hy
@@ -180,8 +210,10 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
 
 
   ! Transform the Gaussian based orbitals to wavelets.
-  call gaussians_to_wavelets_new(iproc,nproc,Glr,orbsig,input%hx,input%hy,input%hz,G,&
-       psigau(1,1,min(orbsig%isorb+1,orbsig%norb)),chi)
+  !call gaussians_to_wavelets_new(iproc,nproc,Glr,orbsig,input%hx,input%hy,input%hz,G,&
+  !     psigau(1,1,min(orbsig%isorb+1,orbsig%norb)),chi)
+  call gaussians_to_wavelets_new(iproc,nproc,Glr,lzdig%orbs,input%hx,input%hy,input%hz,G,&
+       psigau(1,1,min(lzdig%orbs%isorb+1,lzdig%orbs%norb)),chi)
 
 
   i_all=-product(shape(locrad))*kind(locrad)
@@ -282,9 +314,36 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
   if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
 
 
+  ! Copy Glr to lzd
+  lzdig%Glr = Glr
+  
+  ! Copy nlpspd to lin%lzd
+  lzdig%Gnlpspd = nlpspd
+  
+  ! Set localnorb
+  do ilr=1,lzdig%nlr
+      lzdig%Llr(ilr)%localnorb=0
+      do iorb=1,lzdig%orbs%norbp
+          if(onWhichAtomp(iorb)==ilr) then
+              lzdig%Llr(ilr)%localnorb = lzdig%Llr(ilr)%localnorb+1
+          end if
+      end do
+  end do
+
+
+  ! Initialize the parameters for the communications of the potential.
+  call initializeCommunicationPotential(iproc, nproc, nscatterarr, lzdig%orbs, lzdig, comgp, onWhichAtom)
+
+  ! Post the messages for the communication of the potential.
+  ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, comgp)
+
+
   ! Orthogonalize the atomic basis functions (Loewdin).
   call orthonormalizeAtomicOrbitals(iproc, nproc, orbsig, commsig, Glr, chi)
   
+  ! Gather the potential
+  call gatherPotential(iproc, nproc, comgp)
 
   ! Build the potential.
   ! This is not required at the moment since HamiltonianApplicationConfinement has a different (old) structure.
@@ -293,20 +352,75 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj
 
   ! Apply the Hamiltonian for each atom.
   ! onWhichAtomTemp indicates indicating that all orbitals feel the potential from atom iat.
-  allocate(onWhichAtomTemp(orbsig%norbp), stat=istat)
+  allocate(onWhichAtomTemp(lzdig%orbs%norbp), stat=istat)
   call memocc(i_stat,onWhichAtomTemp,'onWhichAtomTemp',subname)
   if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
+
+  ! Transform chi to the localization region. This is not needed if we really habe O(N).
+  ind1=1
+  ind2=1
+  do iorb=1,lzdig%orbs%norbp
+      ilr = onWhichAtomp(iorb)
+      ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, chi(ind1), lchi(ind2))
+      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+  end do
+
+  hchi=0.d0
+  call cpu_time(t1)
   do iat=1,at%nat
       do iorb=1,orbsig%norbp
           onWhichAtomTemp(iorb)=iat
       end do
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
-      call HamiltonianApplicationConfinement(iproc, nproc, at, orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
-           nlpspd, proj, Glr, ngatherarr, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), &
-           rhopot(1), &
-           chi(1), hchi(1,iat), ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, rxyz, onWhichAtomTemp, pkernel=pkernelseq)
+      !!do ind1=1,size(rhopot)
+      !!    write(20000+iproc,*) ind1, rhopot(ind1)
+      !!end do
+      !!do ind1=1,size(pot)
+      !!    write(22000+iproc,*) ind1, pot(ind1)
+      !!end do
+      !!call HamiltonianApplicationConfinement(iproc, nproc, at, orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
+      !!     nlpspd, proj, Glr, ngatherarr, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), &
+      !!     rhopot(1), &
+      !!     chi(1), hchi(1,iat), ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, rxyz, onWhichAtomTemp, pkernel=pkernelseq)
+      !!do ind1=1,size(hchi,1)
+      !!    write(30000+10*iat+iproc,*) ind1, hchi(ind1,iat)
+      !!end do
+
+      !!do ind1=1,size(comgp%recvBuf)
+      !!    write(21000+iproc,*) ind1, comgp%recvBuf(ind1)
+      !!end do
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lzdig, lin, input%hx, input%hy, input%hz, rxyz,&
+           proj, ngatherarr, comgp%nrecvBuf, comgp%recvBuf, lchi, lhchi(1,iat), &
+           ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp, pkernel=pkernelseq)
+      ind1=1
+      ind2=1
+      do iorb=1,lzdig%orbs%norbp
+          ilr = onWhichAtomp(iorb)
+          ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdig%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lzdig%Llr(ilr), lhchi(ind2,iat), hchi(ind1,iat))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+      end do
+      !!do ind1=1,size(hchi,1)
+      !!    write(32000+10*iat+iproc,*) ind1, hchi(ind1,iat)
+      !!end do
+      !!do ind1=1,size(lhchi,1)
+      !!    write(41000+10*iat+iproc,*) ind1, lhchi(ind1,iat)
+      !!end do
+
       if(iproc==0) write(*,'(a)') 'done.'
   end do
+  call cpu_time(t2)
+  time=t2-t1
+  call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+  if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time/dble(nproc)
+  
+  !!call mpi_barrier(mpi_comm_world, ind1)
+  !!stop
 
   ! Deallocate potential.
   call free_full_potential(nproc,pot,subname)

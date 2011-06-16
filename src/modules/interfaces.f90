@@ -1960,7 +1960,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     subroutine inputguessConfinement(iproc, nproc, at, &
          comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
          nlpspd, proj, pkernel, pkernelseq, &
-         nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, &
+         nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
          phi)
       use module_base
       use module_types
@@ -1985,6 +1985,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer, intent(in) ::potshortcut
       integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
       real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
+      real(8),dimension(at%ntypes,3),intent(in):: radii_cf
       real(8),dimension(lin%orbs%npsidim),intent(out):: phi
     end subroutine inputguessConfinement
 
@@ -2372,7 +2373,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
      subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
           proj,ngatherarr,ndimpot,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel,orbsocc,psirocc)
+          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        use libxc_functionals
@@ -2393,6 +2394,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(wp), target, dimension(Lzd%orbs%npsidim), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
        real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
+       type(p2pCommsGatherPot), intent(in):: comgp
+       integer,dimension(lzd%orbs%norbp),intent(in):: onWhichAtomp
        real(dp), dimension(*), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
@@ -2402,7 +2405,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb, hx, hy, hz, &
-          nspin, ndimpot, pot, psi, hpsi, ekin_sum, epot_sum, lin, at, rxyz)
+          nspin, ndimpot, pot, psi, hpsi, ekin_sum, epot_sum, lin, at, rxyz, onWhichAtomp)
        use module_base
        use module_types
        use libxc_functionals
@@ -2418,7 +2421,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(linearParameters),intent(in):: lin
        type(atoms_data),intent(in):: at
        real(8),dimension(3,at%nat),intent(in):: rxyz
+       integer,dimension(orbs%norbp),intent(in):: onWhichAtomp
      end subroutine local_hamiltonian_LinearConfinement
+
 
      subroutine apply_potentialConfinement2(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
             rxyzConfinement, hxh, hyh, hzh, potentialPrefac, confPotOrder, offsetx, offsety, offsetz, &
@@ -2434,6 +2439,26 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(3),intent(in):: rxyzConfinement
        real(8),intent(in):: hxh, hyh, hzh, potentialPrefac
      end subroutine apply_potentialConfinement2
+
+
+     !!subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
+     !!     nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
+     !!     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,psi,hpsi,eproj)
+     !!  use module_base
+     !!  implicit none
+     !!  integer, intent(in) :: i,l,npspcode,ncplx
+     !!  integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
+     !!  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+     !!  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+     !!  integer, dimension(mbseg_c+mbseg_f), intent(in) :: keyv_p
+     !!  integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keyg_p
+     !!  real(wp), dimension(*), intent(in) :: proj
+     !!  real(gp), dimension(0:4,0:6), intent(in) :: psppar
+     !!  real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(in) :: psi
+     !!  real(gp), intent(inout) :: eproj
+     !!  real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: hpsi
+     !!end subroutine applyprojector
+
 
 
   end interface

@@ -499,13 +499,16 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
           write(*,'(a)', advance='no') 'Hamiltonian application... '
       end if
 
+      !!!! THIS IS THE ORIGINAL
+      !!call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
+      !!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+      !!     rhopot(1),&
+      !!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, lin%onWhichAtom, pkernel=pkernelseq)
+
       ! Transform the global phi to the local phi
       ! This part will not be needed if we really have O(N)
       ind1=1
       ind2=1
-!do iorb=1,lin%orbs%npsidim
-!  write(10000+iproc*1000,*) iorb, phi(iorb)
-!end do
       do iorb=1,lin%orbs%norbp
           ilr = lin%onWhichAtom(iorb)
           ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
@@ -514,44 +517,9 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
           ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
           ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
       end do
-!!do iorb=1,lin%Lorbs%npsidim
-!!  write(20000+iproc*1000,*) iorb, lphi(iorb)
-!!end do
-!!      ind1=1
-!!      ind2=1
-!!      hphi=0.d0
-!!      do iorb=1,lin%orbs%norbp
-!!          ilr = lin%onWhichAtom(iorb)
-!!          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-!!          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!!          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), hphi(ind1))
-!!          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!!          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-!!      end do
-!!do iorb=1,lin%orbs%npsidim
-!!  write(30000+iproc*1000,*) iorb, hphi(iorb)
-!!end do
-!!call mpi_barrier(mpi_comm_world, ierr)
-!!stop
-!!
-!!do iall=1,lin%lzd%nlr
-!!  write(*,'(a,4i7)') 'iproc, iall, lin%lzd%Llr(iall)%localnorb',  iproc, iall, lin%lzd%Llr(iall)%localnorb
-!!end do
-      !!!! THSI IS THE ORIGINAL
-      !!if(iproc==0) write(*,*) 'in sub: iproc, ekin_sum, epot_sum ==================================================='
-      !!call mpi_barrier(mpi_comm_world, ierr)
-      !!call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-      !!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-      !!     rhopot(1),&
-      !!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, lin%onWhichAtom, pkernel=pkernelseq)
-!!call mpi_barrier(mpi_comm_world, ierr)
-!!stop
-      !!call LinearHamiltonianApplicationConfinement(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
-      !!     proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-      !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, pkernel=pkernelseq)
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, pkernel=pkernelseq)
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, pkernel=pkernelseq)
       ind1=1
       ind2=1
       hphi=0.d0
@@ -2199,7 +2167,8 @@ end subroutine postCommunicationSumrho2
 
 
 
-subroutine initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
+!subroutine initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
+subroutine initializeCommunicationPotential(iproc, nproc, nscatterarr, orbs, lzd, comgp, onWhichAtomAll)
 use module_base
 use module_types
 implicit none
@@ -2207,7 +2176,11 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-type(linearParameters),intent(inout):: lin
+!type(linearParameters),intent(inout):: lin
+type(orbitals_data),intent(in):: orbs
+type(linear_zone_descriptors),intent(in):: lzd
+type(p2pCommsGatherPot),intent(out):: comgp
+integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 
 ! Local variables
 integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat
@@ -2228,34 +2201,34 @@ is3=0
 ie3=0
 iiorb=0
 do jproc=0,nproc-1
-    do iorb=1,lin%lzd%orbs%norb_par(jproc)
+    do iorb=1,lzd%orbs%norb_par(jproc)
         
         iiorb=iiorb+1 
-        ilr=lin%onWhichAtomAll(iiorb)
+        ilr=onWhichAtomAll(iiorb)
     
-        ii=lin%lzd%Llr(ilr)%nsi1
+        ii=lzd%Llr(ilr)%nsi1
         if(ii < is1 .or. iorb==1) then
             is1=ii
         end if
-        ii=lin%lzd%Llr(ilr)%nsi1+lin%lzd%Llr(ilr)%d%n1i
+        ii=lzd%Llr(ilr)%nsi1+lzd%Llr(ilr)%d%n1i
         if(ii > ie1 .or. iorb==1) then
             ie1=ii
         end if
     
-        ii=lin%lzd%Llr(ilr)%nsi2
+        ii=lzd%Llr(ilr)%nsi2
         if(ii < is2 .or. iorb==1) then
             is2=ii
         end if
-        ii=lin%lzd%Llr(ilr)%nsi2+lin%lzd%Llr(ilr)%d%n2i
+        ii=lzd%Llr(ilr)%nsi2+lzd%Llr(ilr)%d%n2i
         if(ii > ie2 .or. iorb==1) then
             ie2=ii
         end if
     
-        ii=lin%lzd%Llr(ilr)%nsi3
+        ii=lzd%Llr(ilr)%nsi3
         if(ii < is3 .or. iorb==1) then
             is3=ii
         end if
-        ii=lin%lzd%Llr(ilr)%nsi3+lin%lzd%Llr(ilr)%d%n3i
+        ii=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i
         if(ii > ie3 .or. iorb==1) then
             ie3=ii
         end if
@@ -2271,8 +2244,8 @@ if(iproc==0) write(*,'(a,i4,3x,6i7)') 'jproc, is1, ie1, is2, ie2, is3, ie3', jpr
 end do
 
 ! Determine how many slices each process receives.
-allocate(lin%comgp%noverlaps(0:nproc-1), stat=istat)
-call memocc(istat, lin%comgp%noverlaps, 'lin%comgp%noverlaps', subname)
+allocate(comgp%noverlaps(0:nproc-1), stat=istat)
+call memocc(istat, comgp%noverlaps, 'comgp%noverlaps', subname)
 do jproc=0,nproc-1
     is3j=istartEnd(5,jproc)
     ie3j=istartEnd(6,jproc)
@@ -2286,19 +2259,19 @@ do jproc=0,nproc-1
             if(iproc==0) write(*,'(2(a,i0),a)') 'process ',jproc,' gets potential from process ',kproc,'.' 
         end if
     end do
-    lin%comgp%noverlaps(jproc)=ioverlap
+    comgp%noverlaps(jproc)=ioverlap
     if(iproc==0) write(*,'(2(a,i0),a)') 'Process ',jproc,' gets ',ioverlap,' potential slices.'
 end do
 
 ! Determine the parameters for the communications.
-allocate(lin%comgp%overlaps(lin%comgp%noverlaps(iproc)), stat=istat)
-call memocc(istat, lin%comgp%overlaps, 'lin%comgp%overlaps', subname)
-allocate(lin%comgp%comarr(8,maxval(lin%comgp%noverlaps),0:nproc-1))
-call memocc(istat, lin%comgp%comarr, 'lin%comgp%comarr', subname)
-allocate(lin%comgp%ise3(2,0:nproc-1), stat=istat)
-call memocc(istat, lin%comgp%ise3, 'lin%comgp%ise3', subname)
+allocate(comgp%overlaps(comgp%noverlaps(iproc)), stat=istat)
+call memocc(istat, comgp%overlaps, 'comgp%overlaps', subname)
+allocate(comgp%comarr(8,maxval(comgp%noverlaps),0:nproc-1))
+call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
+allocate(comgp%ise3(2,0:nproc-1), stat=istat)
+call memocc(istat, comgp%ise3, 'comgp%ise3', subname)
 tag=0
-lin%comgp%nrecvBuf = 0
+comgp%nrecvBuf = 0
 is3min=0
 ie3max=0
 do jproc=0,nproc-1
@@ -2322,26 +2295,29 @@ do jproc=0,nproc-1
             if(ie3>ie3max .or. ioverlap==1) then
                 ie3max=ie3
             end if
-            call setCommunicationPotential(kproc, is3, ie3, ioffset, lin%lzd%Glr%d%n1i, lin%lzd%Glr%d%n2i, jproc, istdest, tag, lin%comgp%comarr(1,ioverlap,jproc))
-            !if(iproc==0) write(*,'(6(a,i0))') 'process ',lin%comgp%comarr(1,ioverlap,jproc),' sends ',lin%comgp%comarr(3,ioverlap,jproc),' elements from position ',&
-            !                        lin%comgp%comarr(2,ioverlap,jproc),' to position ',lin%comgp%comarr(5,ioverlap,jproc),' on process ',&
-            !                        lin%comgp%comarr(4,ioverlap,jproc),'; tag=',lin%comgp%comarr(6,ioverlap,jproc)
-            istdest = istdest + (ie3-is3+1)*lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i
+            !write(*,'(a,8i8)') 'jproc, kproc, is3j, ie3j, is3k, ie3k, is3, ie3', jproc, kproc, is3j, ie3j, is3k, ie3k, is3, ie3
+            call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc, istdest, tag, comgp%comarr(1,ioverlap,jproc))
+            if(iproc==0) write(*,'(6(a,i0))') 'process ',comgp%comarr(1,ioverlap,jproc),' sends ',comgp%comarr(3,ioverlap,jproc),' elements from position ',&
+                                    comgp%comarr(2,ioverlap,jproc),' to position ',comgp%comarr(5,ioverlap,jproc),' on process ',&
+                                    comgp%comarr(4,ioverlap,jproc),'; tag=',comgp%comarr(6,ioverlap,jproc)
+            istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
+            !write(*,'(a,4i8)') 'jproc, kproc, (ie3-is3+1),lzd%Glr%d%n1i*lzd%Glr%d%n2i', jproc, kproc, (ie3-is3+1),lzd%Glr%d%n1i*lzd%Glr%d%n2i
             if(iproc==jproc) then
-                lin%comgp%nrecvBuf = lin%comgp%nrecvBuf + (ie3-is3+1)*lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i
+                comgp%nrecvBuf = comgp%nrecvBuf + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
             end if
         end if
     end do
-    lin%comgp%ise3(1,jproc)=is3min
-    lin%comgp%ise3(2,jproc)=ie3max
-    if(iproc==0) write(*,'(a,3i8)') 'jproc, lin%comgp%ise3(1,jproc), lin%comgp%ise3(2,jproc)', jproc, lin%comgp%ise3(1,jproc), lin%comgp%ise3(2,jproc)
+    comgp%ise3(1,jproc)=is3min
+    comgp%ise3(2,jproc)=ie3max
+    !if(iproc==0) write(*,'(a,3i8)') 'jproc, comgp%ise3(1,jproc), comgp%ise3(2,jproc)', jproc, comgp%ise3(1,jproc), comgp%ise3(2,jproc)
 end do
 
-allocate(lin%comgp%recvBuf(lin%comgp%nrecvBuf), stat=istat)
-call memocc(istat, lin%comgp%recvBuf, 'lin%comgp%recvBuf', subname)
+!write(*,'(a,i4,i12)') 'iproc, comgp%nrecvBuf', iproc, comgp%nrecvBuf
+allocate(comgp%recvBuf(comgp%nrecvBuf), stat=istat)
+call memocc(istat, comgp%recvBuf, 'comgp%recvBuf', subname)
 
-allocate(lin%comgp%communComplete(maxval(lin%comgp%noverlaps),0:nproc-1), stat=istat)
-call memocc(istat, lin%comgp%communComplete, 'lin%comgp%communComplete', subname)
+allocate(comgp%communComplete(maxval(comgp%noverlaps),0:nproc-1), stat=istat)
+call memocc(istat, comgp%communComplete, 'comgp%communComplete', subname)
 
 
 end subroutine initializeCommunicationPotential
@@ -2404,7 +2380,7 @@ integer:: jproc, kproc, nsends, nreceives, istat, mpisource, istsource, ncount, 
 
 
 ! Post the messages
-if(iproc==0) write(*,'(x,a)', advance='no') 'Posting sends / receives for the calculation of the charge density... '
+if(iproc==0) write(*,'(x,a)', advance='no') 'Posting sends / receives for communicating the potential... '
 nreceives=0
 nsends=0
 destLoop: do jproc=0,nproc-1
@@ -2417,12 +2393,12 @@ destLoop: do jproc=0,nproc-1
         tag=comgp%comarr(6,kproc,jproc)
         if(mpisource/=mpidest) then
             if(iproc==mpisource) then
-                write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
                 call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, comgp%comarr(7,kproc,jproc), ierr)
                 comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
-                write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                 call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world, comgp%comarr(8,kproc,jproc), ierr)
                 comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
                 nreceives=nreceives+1
@@ -2433,7 +2409,7 @@ destLoop: do jproc=0,nproc-1
         else
             ! The orbitals are on the same process, so simply copy them.
             if(iproc==mpisource) then
-                write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
                 call dcopy(ncount, pot(istsource), 1, comgp%recvBuf(istdest), 1)
                 comgp%comarr(7,kproc,jproc)=mpi_request_null
                 comgp%comarr(8,kproc,jproc)=mpi_request_null

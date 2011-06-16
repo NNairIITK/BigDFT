@@ -134,7 +134,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
-       nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, &
+       nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        phi)
   ! Cut off outside localization region -- experimental
   call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
