@@ -98,6 +98,7 @@ struct bigdft_device_infos {
   size_t MAX_WORK_GROUP_SIZE;
   cl_ulong LOCAL_MEM_SIZE;
   cl_uint MAX_COMPUTE_UNITS;
+  char NAME[1024];
 };
 
 struct _bigdft_command_queue {

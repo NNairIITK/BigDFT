@@ -52,7 +52,8 @@ tt += *tmp++ * FILT12;\
 tt += *tmp++ * FILT13;\
 tt += *tmp++ * FILT14;\
 tt += *tmp++ * FILT15;\n\
-#define filter(tt,tmp) \
+#define filter(tmp) \
+double tt = 0.0;\
 tt = mad(*tmp++, FILT0, tt);\
 tt = mad(*tmp++, FILT1, tt);\
 tt = mad(*tmp++, FILT2, tt);\
@@ -69,15 +70,34 @@ tt = mad(*tmp++, FILT12, tt);\
 tt = mad(*tmp++, FILT13, tt);\
 tt = mad(*tmp++, FILT14, tt);\
 tt = mad(*tmp++, FILT15, tt);\n\
-#define filter_vector2(tt,tmp) \
-tt = mad(*tmp++, (double2)(FILT0,FILT1), tt);\
-tt = mad(*tmp++, (double2)(FILT2,FILT3), tt);\
-tt = mad(*tmp++, (double2)(FILT4,FILT5), tt);\
-tt = mad(*tmp++, (double2)(FILT6,FILT7), tt);\
-tt = mad(*tmp++, (double2)(FILT8,FILT9), tt);\
-tt = mad(*tmp++, (double2)(FILT10,FILT11), tt);\
-tt = mad(*tmp++, (double2)(FILT12,FILT13), tt);\
-tt = mad(*tmp++, (double2)(FILT14,FILT15), tt);\n\
+#define filterp(tt,tmp) \
+tt = mad(*tmp++, FILT0, tt);\
+tt = mad(*tmp++, FILT1, tt);\
+tt = mad(*tmp++, FILT2, tt);\
+tt = mad(*tmp++, FILT3, tt);\
+tt = mad(*tmp++, FILT4, tt);\
+tt = mad(*tmp++, FILT5, tt);\
+tt = mad(*tmp++, FILT6, tt);\
+tt = mad(*tmp++, FILT7, tt);\
+tt = mad(*tmp++, FILT8, tt);\
+tt = mad(*tmp++, FILT9, tt);\
+tt = mad(*tmp++, FILT10, tt);\
+tt = mad(*tmp++, FILT11, tt);\
+tt = mad(*tmp++, FILT12, tt);\
+tt = mad(*tmp++, FILT13, tt);\
+tt = mad(*tmp++, FILT14, tt);\
+tt = mad(*tmp++, FILT15, tt);\n\
+#define filter_vector2(tmp) \
+double2 tt = (double2)(0.0, 0.0);\
+__local double2 *tmp2= (__local double2 *)tmp;\
+tt = mad(*tmp2++, (double2)(FILT0,FILT1), tt);\
+tt = mad(*tmp2++, (double2)(FILT2,FILT3), tt);\
+tt = mad(*tmp2++, (double2)(FILT4,FILT5), tt);\
+tt = mad(*tmp2++, (double2)(FILT6,FILT7), tt);\
+tt = mad(*tmp2++, (double2)(FILT8,FILT9), tt);\
+tt = mad(*tmp2++, (double2)(FILT10,FILT11), tt);\
+tt = mad(*tmp2++, (double2)(FILT12,FILT13), tt);\
+tt = mad(*tmp2++, (double2)(FILT14,FILT15), tt);\n\
 #define filter_vector4(tt,tmp) \
 tt = mad(*tmp++, (double4)(FILT0,FILT1,FILT2,FILT3), tt);\
 tt = mad(*tmp++, (double4)(FILT4,FILT5,FILT6,FILT7), tt);\
@@ -100,7 +120,8 @@ tt += *tmp++ *  FILT3;\
 tt += *tmp++ *  FILT2;\
 tt += *tmp++ *  FILT1;\
 tt += *tmp++ *  FILT0;\n\
-#define filter_reverse(tt,tmp) \
+#define filter_reverse(tmp) \
+double tt = 0.0;\
 tt = mad(*tmp++, FILT15, tt);\
 tt = mad(*tmp++, FILT14, tt);\
 tt = mad(*tmp++, FILT13, tt);\
@@ -116,10 +137,22 @@ tt = mad(*tmp++, FILT4, tt);\
 tt = mad(*tmp++, FILT3, tt);\
 tt = mad(*tmp++, FILT2, tt);\
 tt = mad(*tmp++, FILT1, tt);\
-tt = mad(*tmp++, FILT0, tt);\n";
+tt = mad(*tmp++, FILT0, tt);\n\
+#define filter_reverse_vector2(tmp) \
+double2 tt = (double2)(0.0, 0.0);\
+__local double2 *tmp2= (__local double2 *)tmp;\
+tt = mad(*tmp2++, (double2)(FILT15,FILT14), tt);\
+tt = mad(*tmp2++, (double2)(FILT13,FILT12), tt);\
+tt = mad(*tmp2++, (double2)(FILT11,FILT10), tt);\
+tt = mad(*tmp2++, (double2)(FILT9,FILT8), tt);\
+tt = mad(*tmp2++, (double2)(FILT7,FILT6), tt);\
+tt = mad(*tmp2++, (double2)(FILT5,FILT4), tt);\
+tt = mad(*tmp2++, (double2)(FILT3,FILT2), tt);\
+tt = mad(*tmp2++, (double2)(FILT1,FILT0), tt);\n\
+";
 }
 
-static void generate_magicfilter1dKernel(std::stringstream &program){
+static void generate_magicfilter1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"//n is supposed to be greater or equal than get_local_size(0)\n\
 //this filter is for periodic boundary conditions\n\
 __kernel void magicfilter1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
@@ -151,35 +184,26 @@ if ( igt >= n ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-//initialize result\n";
-  if(true){
-    program<<"double tt = 0.0;\n\
 //rest position in the buffer to first element involved in the convolution\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
 //wait for buffer to be full\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-//apply filter\n\
-filter(tt,tmp);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"//apply filter\n\
+filter_vector2(tmp);\n\
 //store the result\n\
-out[(jg*n+ig)]=tt;\n\
+out[(jg*n+ig)]=tt.x+tt.y;\n\
 };\n";
   } else {
-    program<<"double2 tt = (double2)(0.0, 0.0);//, 0.0, 0.0);\n\
-//rest position in the buffer to first element involved in the convolution\n\
-tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
-//wait for buffer to be full\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-//apply filter\n\
-__local double2 *tmp2= (__local double2 *)tmp;\n\
-filter_vector2(tt,tmp2);\n\
+    program<<"//apply filter\n\
+filter(tmp);\n\
 //store the result\n\
-out[(jg*n+ig)]=tt.x+tt.y;//+tt.z+tt.w;\n\
+out[(jg*n+ig)]=tt;\n\
 };\n";
   }
 }
 
-static void generate_magicfilter1d_tKernel(std::stringstream &program){
+static void generate_magicfilter1d_tKernel(std::stringstream &program, struct bigdft_device_infos * infos){
 program<<"__kernel void magicfilter1d_tKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -204,16 +228,20 @@ if ( igt >= n ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2 + 1;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-filter_reverse(tt,tmp);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"filter_reverse_vector2(tmp);\n\
+out[(jg*n+ig)]=tt.x+tt.y;\n\
+};\n";
+  } else {
+    program<<"filter_reverse(tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n";
+  }
 }
 
-static void generate_magicfiltergrow1dKernel(std::stringstream &program){
+static void generate_magicfiltergrow1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"__kernel void magicfiltergrow1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -238,16 +266,20 @@ if ( igt >= n - 15 ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = 0.0;\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-filter(tt,tmp);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+  program<<"filter_vector2(tmp);\n\
+out[(jg*n+ig)]=tt.x+tt.y;\n\
+};\n";
+  } else {
+  program<<"filter(tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n";
+  }
 }
 
-static void generate_magicfiltergrow1d_denKernel(std::stringstream &program){
+static void generate_magicfiltergrow1d_denKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"__kernel void magicfiltergrow1d_denKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -272,16 +304,21 @@ if ( igt >= n - 15 ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = 0.0;\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-filter(tt,tmp);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"filter_vector2(tmp);\n\
+tt.x += tt.y;\n\
+out[(jg*n+ig)]=tt.x*tt.x;\n\
+};\n";
+  } else {
+    program<<"filter(tmp);\n\
 out[(jg*n+ig)]=tt*tt;\n\
 };\n";
+  }
 }
 
-static void generate_magicfiltergrow1d_potKernel(std::stringstream &program){
+static void generate_magicfiltergrow1d_potKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"__kernel void magicfiltergrow1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global const double * restrict pot, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -306,16 +343,20 @@ if ( igt >= n - 15 ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = 0.0;\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-filter(tt,tmp);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"filter_vector2(tmp);\n\
+out[(jg*n+ig)]=(tt.x+tt.y)*pot[(jg*n+ig)];\n\
+};\n";
+  } else {
+    program<<"filter(tmp);\n\
 out[(jg*n+ig)]=tt*pot[(jg*n+ig)];\n\
 };\n";
+  }
 }
 
-static void generate_magicfiltershrink1dKernel(std::stringstream &program){
+static void generate_magicfiltershrink1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"__kernel void magicfiltershrink1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -336,16 +377,20 @@ psi = psi + 8 * ndat;\n\
 tmp[i2 * (2 * FILTER_WIDTH + 1) + j2]=psi[jgt + igt * ndat];\n\
 igt += FILTER_WIDTH - 1;\n\
 tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH - 1]=psi[jgt + igt * ndat];\n\
-double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-filter_reverse(tt,tmp);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"filter_reverse_vector2(tmp);\n\
+out[(jg*n+ig)]=tt.x+tt.y;\n\
+};\n";
+  } else {
+    program<<"filter_reverse(tmp);\n\
 out[(jg*n+ig)]=tt;\n\
 };\n";
+  }
 }
 
-static void generate_magicfilter1d_potKernel(std::stringstream &program){
+static void generate_magicfilter1d_potKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"__kernel void magicfilter1d_potKernel_d(uint n, uint ndat, __global const double *psi, __global double * restrict pot, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -371,16 +416,20 @@ if ( igt >= n ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-filter(tt,tmp);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"filter_vector2(tmp);\n\
+out[(jg*n+ig)]=(tt.x+tt.y)*pot[jg*n+ig];\n\
+};\n";
+  } else {
+    program<<"filter(tmp);\n\
 out[(jg*n+ig)]=tt*pot[jg*n+ig];\n\
 };\n";
+  }
 }
 
-static void generate_magicfilter1d_blockKernel(std::stringstream &program){
+static void generate_magicfilter1d_blockKernel(std::stringstream &program, struct bigdft_device_infos * infos){
 program<<"#define ELEM_PER_THREAD 2\n\
 __kernel void magicfilter1d_blockKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
@@ -424,15 +473,15 @@ out += jg*n + ig;\n\
 double tt_1 = 0.0;\n\
 double tt_2 = 0.0;\n\
 barrier(CLK_LOCAL_MEM_FENCE);\n\
-filter(tt_1,tmp_1);\n\
-filter(tt_2,tmp_2);\n\
+filterp(tt_1,tmp_1);\n\
+filterp(tt_2,tmp_2);\n\
 *out = tt_1;\n\
 out += n;\n\
 *out = tt_2;\n\
 };\n";
 }
 
-static void generate_magicfilter1d_straightKernel(std::stringstream &program){
+static void generate_magicfilter1d_straightKernel(std::stringstream &program, struct bigdft_device_infos * infos){
 program<<"__kernel void magicfilter1d_straightKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -458,16 +507,20 @@ if ( ig >= n ) \n\
   tmp[j2 * (2 * FILTER_WIDTH + 1) + i2 + FILTER_WIDTH] = psi[jg*n + ig - n];\n\
 else\n\
   tmp[j2 * (2 * FILTER_WIDTH + 1) + i2 + FILTER_WIDTH] = psi[jg*n + ig];\n\
-double tt = 0.0;\n\
 tmp += i2*(2*FILTER_WIDTH+1) + j2;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-filter(tt,tmp);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"filter_vector2(tmp);\n\
+out[(igt*ndat+jgt)]=tt.x+tt.y;\n\
+};\n";
+  } else {
+    program<<"filter(tmp);\n\
 out[(igt*ndat+jgt)]=tt;\n\
 };\n";
+  }
 }
 
-static void generate_magicfilter1d_denKernel(std::stringstream &program){
+static void generate_magicfilter1d_denKernel(std::stringstream &program, struct bigdft_device_infos * infos){
 program<<"__kernel void magicfilter1d_denKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(2*FILTER_WIDTH+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -492,13 +545,18 @@ if ( igt >= n ) \n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt + ( igt - n ) * ndat];\n\
 else\n\
   tmp[i2 * (2 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-double tt = 0.0;\n\
 tmp += j2*(2*FILTER_WIDTH+1) + i2;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-filter(tt,tmp);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"filter_vector2(tmp);\n\
+tt.x+=tt.y;\n\
+out[(jg*n+ig)]=tt.x*tt.x;\n\
+};\n";
+  } else {
+    program<<"filter(tmp);\n\
 out[(jg*n+ig)]=tt*tt;\n\
 };\n";
+  }
 }
 
 
@@ -507,16 +565,16 @@ extern "C" char* generate_magicfilter_program(struct bigdft_device_infos * infos
   std::stringstream program;
 
   generate_header(program);
-  generate_magicfilter1dKernel(program);
-  generate_magicfiltergrow1dKernel(program);
-  generate_magicfiltergrow1d_denKernel(program);
-  generate_magicfiltergrow1d_potKernel(program);
-  generate_magicfiltershrink1dKernel(program);
-  generate_magicfilter1d_potKernel(program);
-  generate_magicfilter1d_blockKernel(program);
-  generate_magicfilter1d_straightKernel(program);
-  generate_magicfilter1d_denKernel(program);
-  generate_magicfilter1d_tKernel(program);
+  generate_magicfilter1dKernel(program,infos);
+  generate_magicfiltergrow1dKernel(program,infos);
+  generate_magicfiltergrow1d_denKernel(program,infos);
+  generate_magicfiltergrow1d_potKernel(program,infos);
+  generate_magicfiltershrink1dKernel(program,infos);
+  generate_magicfilter1d_potKernel(program,infos);
+  generate_magicfilter1d_blockKernel(program,infos);
+  generate_magicfilter1d_straightKernel(program,infos);
+  generate_magicfilter1d_denKernel(program,infos);
+  generate_magicfilter1d_tKernel(program,infos);
 
   output = (char *)malloc((program.str().size()+1)*sizeof(char));
   strcpy(output, program.str().c_str());

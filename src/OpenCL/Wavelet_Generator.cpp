@@ -53,7 +53,27 @@ di = mad(tmp[ 6],  0.051945838107881800736  , di);\
 ci = mad(tmp[ 8],  0.36444189483617893676   , ci);\
 di = mad(tmp[ 8], -0.77718575169962802862   , di);\
 ci = mad(tmp[ 7],  0.77718575169962802862   , ci);\
-di = mad(tmp[ 7],  0.36444189483617893676   , di);\n";
+di = mad(tmp[ 7],  0.36444189483617893676   , di);\n\
+#define filter_vector2(tmp) \
+double2 ci = (double2)(0.0, 0.0);\
+double2 di = (double2)(0.0, 0.0);\
+__local double2 *tmp2= (__local double2 *)tmp;\
+ci = mad( *tmp2,   (double2)(-0.0033824159510050025955  ,-0.00054213233180001068935), ci);\
+di = mad( *tmp2++, (double2)(-0.0018899503327676891843  ,-0.00030292051472413308126), di);\
+ci = mad( *tmp2,   (double2)( 0.031695087811525991431   , 0.0076074873249766081919) , ci);\
+di = mad( *tmp2++, (double2)( 0.014952258337062199118   , 0.0038087520138944894631) , di);\
+ci = mad( *tmp2,   (double2)(-0.14329423835127266284    ,-0.061273359067811077843)  , ci);\
+di = mad( *tmp2++, (double2)(-0.049137179673730286787   ,-0.027219029917103486322)  , di);\
+ci = mad( *tmp2,   (double2)( 0.48135965125905339159    , 0.77718575169962802862)   , ci);\
+di = mad( *tmp2++, (double2)( 0.051945838107881800736   , 0.36444189483617893676)   , di);\
+ci = mad( *tmp2,   (double2)( 0.36444189483617893676    ,-0.051945838107881800736)  , ci);\
+di = mad( *tmp2++, (double2)(-0.77718575169962802862    , 0.48135965125905339159)   , di);\
+ci = mad( *tmp2,   (double2)(-0.027219029917103486322   , 0.049137179673730286787)  , ci);\
+di = mad( *tmp2++, (double2)( 0.061273359067811077843   ,-0.14329423835127266284)   , di);\
+ci = mad( *tmp2,   (double2)( 0.0038087520138944894631  ,-0.014952258337062199118)  , ci);\
+di = mad( *tmp2++, (double2)(-0.0076074873249766081919  , 0.031695087811525991431)  , di);\
+ci = mad( *tmp2,   (double2)(-0.00030292051472413308126 , 0.0018899503327676891843) , ci);\
+di = mad( *tmp2, (double2)( 0.00054213233180001068935 ,-0.0033824159510050025955) , di);\n";
 }
 
 /*!
@@ -74,7 +94,7 @@ di = mad(tmp[ 7],  0.36444189483617893676   , di);\n";
   go to the lower part of the resulting matrix.
   Size  of the data is 2*n * ndat.
 */
-static void generate_ana1dKernel(std::stringstream &program){
+static void generate_ana1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"//periodic boundary condition of the filter\n\
 __kernel void ana1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[FILTER_WIDTH*(3*FILTER_WIDTH+1)];\n\
@@ -102,9 +122,16 @@ if ( igt >= 2*n ) \n\
   tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + 2*FILTER_WIDTH] = psi[jgt + ( igt - 2*n ) * ndat];\n\
 else\n\
   tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + 2*FILTER_WIDTH] = psi[jgt +  igt * ndat];\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"tmp = tmp + j2*(3*FILTER_WIDTH+1) + 2*i2 + 1;\n\
+filter_vector2(tmp);\n\
 \
-double ci = 0.0;\n\
+out[(jg*(2*n)+ig)]=ci.x+ci.y;\n\
+out[(jg*(2*n)+ig+n)]=di.x+di.y;\n\
+};\n";
+  } else {
+    program<<"double ci = 0.0;\n\
 double di = 0.0;\n\
 tmp = tmp + j2*(3*FILTER_WIDTH+1) + 2*i2 + 1;\n\
 filter(ci,di,tmp);\n\
@@ -112,9 +139,10 @@ filter(ci,di,tmp);\n\
 out[(jg*(2*n)+ig)]=ci;\n\
 out[(jg*(2*n)+ig+n)]=di;\n\
 };\n";
+  }
 }
 
-static void generate_anashrink1dKernel(std::stringstream &program){
+static void generate_anashrink1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"//non periodic boundary condition version of the filter\n\
 //output data is shrinked in regard of the input data\n\
 __kernel void anashrink1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
@@ -140,9 +168,16 @@ igt += FILTER_WIDTH - 1;\n\
 tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + FILTER_WIDTH - 1]=psi[jgt+igt*ndat];\n\
 igt += FILTER_WIDTH - 1;\n\
 tmp[i2 * (3 * FILTER_WIDTH + 1) + j2 + 2 * FILTER_WIDTH - 2]=psi[jgt+igt*ndat];\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"tmp = tmp + j2*(3*FILTER_WIDTH+1) + 2*i2;\n\
+filter_vector2(tmp);\n\
 \
-double ci = 0.0;\n\
+out[(jg*(2*n)+ig)]=ci.x+ci.y;\n\
+out[(jg*(2*n)+ig+n)]=di.x+di.y;\n\
+};\n";
+  } else {
+    program<<"double ci = 0.0;\n\
 double di = 0.0;\n\
 tmp = tmp + j2*(3*FILTER_WIDTH+1) + 2*i2;\n\
 filter(ci,di,tmp);\n\
@@ -150,6 +185,7 @@ filter(ci,di,tmp);\n\
 out[(jg*(2*n)+ig)]=ci;\n\
 out[(jg*(2*n)+ig+n)]=di;\n\
 };\n";
+  }
 }
 
 static void generate_ana1d_blockKernel(std::stringstream &program){
@@ -402,8 +438,8 @@ extern "C" char* generate_ana_program(struct bigdft_device_infos * infos){
 
   generate_ana_header(program);
   generate_ana_filter(program);
-  generate_ana1dKernel(program);
-  generate_anashrink1dKernel(program);
+  generate_ana1dKernel(program,infos);
+  generate_anashrink1dKernel(program,infos);
   generate_ana1d_blockKernel(program);
 
   output = (char *)malloc((program.str().size()+1)*sizeof(char));
