@@ -1,224 +1,218 @@
-!> @file
-!!   Contains a routine to test forces
-!! @author
-!!    Copyright (C) 2005-2011 BigDFT group (LG)
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-
-
-!>    Runs BigDFT and test whether the forces are the 
+!!****p* BigDFT/test_forces
+!! FUNCTION
+!!    Runs BigDFT and test whether the forces are the 
 !!    derivative of the energy.
 !!    Performs the integration of the calculated forces over
 !!    some random displacement and compare the result with the 
 !!    difference of the energy between the final and the initial 
 !!    position
-!! @deprecated
-!! @todo
+!! WARNING
 !!    Date: 10/07; THIS PROGRAM MUST BE COMPLETELY CHANGED
+!!  ***  Date: Feb 2011:  This program was modified and updated by Ali Sadeghi ***
+!! AUTHOR
+!!    Luigi Genovese
+!! COPYRIGHT
+!!    Copyright (C) 2005-2008 CEA
+!! CREATION DATE
+!!    09/2006
+!! SOURCE
+!!
 program test_forces
 
   use module_base
   use module_types
-  
+  use module_interfaces
+  use ab6_symmetry
+
+  !as a general policy, we'll have "implicit none" by assuming the same
+  !name convention as "implicit real(kind=8) (a-h,o-z)"
+
   implicit none
   character(len=*), parameter :: subname='test_forces'
-  integer, parameter :: n=31
-  real(kind=8), dimension(:,:), allocatable :: rxyz,fxyz,drxyz,rxyz_old
-  real(kind=8), dimension(:), allocatable :: weight
-  character(len=20) :: tatonam,units
-  integer, allocatable, dimension(:) :: iatype
-  character(len=20) :: atomnames(100)
-  integer :: nat,nproc,iproc,ntypes,ityp,iat,i,ierr
-  real(kind=8) :: energy,energy0,FxdRx,FydRy,FzdRz,path,sumx,sumy,sumz,dx
-  logical :: parallel=.true.
-  real(kind=8), pointer :: psi(:,:), eval(:)
-  integer :: norb, norbp, n1, n2, n3,i_all,i_stat,infocode
+  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode
+  real(gp) :: etot,fnoise
+  logical :: exist_list
+  !input variables
+  type(atoms_data) :: atoms
   type(input_variables) :: inputs
-  type(wavefunctions_descriptors) :: wfd
-
-  !Body
-  !Start MPI in parallel version
-  if (parallel) then
-     call MPI_INIT(ierr)
-     call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-     call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-     write(6,*) 'mpi started',iproc,nproc
-  else
-     nproc=1
-     iproc=0
-  endif
+  type(restart_objects) :: rst
+  character(len=50), dimension(:), allocatable :: arr_posinp
+  character(len=60), parameter :: filename="list_posinp"
+  ! atomic coordinates, forces
+  real(gp), dimension(:,:), allocatable :: fxyz
+  real(gp), dimension(:,:), pointer :: rxyz,drxyz
+  integer :: iconfig,nconfig
+  integer :: ipath,npath
+  real(gp):: dx,etot0,path,fdr
+  !parameter (dx=1.d-2 , npath=2*16+1)  ! npath = 2*n+1 where n=2,4,6,8,...
+  parameter (dx=1.d-2 , npath=5)
+  real(gp) :: simpson(1:npath)
   
-! read starting atomic positions
-  open(unit=9,file='posinp',status='old')
-  read(9,*) nat,units
-  if (iproc.eq.0) write(6,*) 'nat=',nat
-  allocate(rxyz(3,nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
-  allocate(iatype(nat+ndebug),stat=i_stat)
-  call memocc(i_stat,iatype,'iatype',subname)
-  allocate(fxyz(3,nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fxyz,'fxyz',subname)
-  allocate(drxyz(3,nat+ndebug),stat=i_stat)
-  call memocc(i_stat,drxyz,'drxyz',subname)
-  ntypes=0
-  do iat=1,nat
-     read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
-     do ityp=1,ntypes
-        if (tatonam.eq.atomnames(ityp)) then
-           iatype(iat)=ityp
-           goto 200
-        endif
-     end do
-     ntypes=ntypes+1
-     if (ntypes.gt.100) stop 'more than 100 atomnames not permitted'
-     atomnames(ityp)=tatonam
-     iatype(iat)=ntypes
-200  continue
-     if (units.eq.'angstroem') then
-        ! if Angstroem convert to Bohr
-        do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
-        end do
-     else if  (units.eq.'atomic' .or. units.eq.'bohr') then
+  ! Start MPI in parallel version
+  !in the case of MPIfake libraries the number of processors is automatically adjusted
+  call MPI_INIT(ierr)
+  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
+  ! find out which input files will be used
+  inquire(file=filename,exist=exist_list)
+  if (exist_list) then
+     open(54,file=filename)
+     read(54,*) nconfig
+     if (nconfig > 0) then 
+        !allocation not referenced since memocc count not initialised
+        allocate(arr_posinp(1:nconfig))
+
+        do iconfig=1,nconfig
+           read(54,*) arr_posinp(iconfig)
+        enddo
      else
-        write(*,*) 'length units in input file unrecognized'
-        write(*,*) 'recognized units are angstroem or atomic = bohr'
-        stop 
-     end if
-  end do
-  close(9)
-  do ityp=1,ntypes
-     if (iproc.eq.0) write(*,*) 'atoms of type ',ityp,' are ',atomnames(ityp)
-  enddo
-
-  !calculate the starting point
-  if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-
-  !some input variablesm to be completed
-  inputs%inputPsiId=0
-  inputs%output_grid=0
-  inputs%output_wf=.false.
-  inputs%calc_tail=.false.
-  inputs%calc_tail=.false.
-  call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-       psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
+        nconfig=1
+        allocate(arr_posinp(1:1))
+        arr_posinp(1)='posinp'
+     endif
+     close(54)
+  else
+     nconfig=1
+     allocate(arr_posinp(1:1))
+     arr_posinp(1)='posinp'
+  end if
   
-  i_all=-product(shape(psi))*kind(psi)
-  deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi',subname)
-  i_all=-product(shape(eval))*kind(eval)
-  deallocate(eval,stat=i_stat)
-  call memocc(i_stat,i_all,'eval',subname)
-  i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
-  deallocate(wfd%keyg,stat=i_stat)
-  call memocc(i_stat,i_all,'keyg',subname)
-  i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-  deallocate(wfd%keyv,stat=i_stat)
-  call memocc(i_stat,i_all,'keyv',subname)
-
-  allocate(weight(n+ndebug),stat=i_stat)
-  call memocc(i_stat,weight,'weight',subname)
-  !prepare the array of the correct weights of the iteration steps
-  if (mod(n,2).ne.1) stop 'the number of iteration steps has to be odd'
-  weight(1)=1.d0/3.d0
-  weight(2)=4.d0/3.d0
-  do i=3,n-2,2
-     weight(i)=2.d0/3.d0
-     weight(i+1)=4.d0/3.d0
+ !prepare the array of the correct Simpson's rule weigths for the intagration
+  if (mod(npath,2).ne.1) stop 'the number of iteration steps has to be odd'
+  simpson(1)=1.d0/3.d0
+  simpson(2)=4.d0/3.d0
+  do ipath=3,npath-2,2
+     simpson(ipath)=2.d0/3.d0
+     simpson(ipath+1)=4.d0/3.d0
   enddo
-  weight(n)=1.d0/3.d0
+  simpson(npath)=1.d0/3.d0
 
-  !then start the integration steps
-  dx=1.d-2
-  path=0.d0
 
+
+do iconfig=1,nconfig
+
+     !welcome screen
+     if (iproc==0) call print_logo()
+     if (iproc==0) then 
+             print*
+             print*
+             print*,'*******************************************************************************************************'
+             print*,"This is a test program to verify  whether the force are the derivative of the energy: F=-dE/dR"
+             print '(a,i3,a,f7.4,a,f6.4,a)', "It performs the integration of the calculated forces over " , npath,  &
+                                             " random displacement (in the range [", -dx, ",",dx,"] a.u.)"
+             print*, "and compares the result with the difference of the energy  between the final and the initial position:"// &
+                  " E2-E1 = -Integral F.dR" 
+             print*," The advatage is two fold: 1) evoiding cancellation error in finite difference derivative," // & 
+                    " 2) considernig the forces over all atoms "
+             print*,'*********************************************************************************************************'
+             print*
+             print*
+     endif
+
+     ! Read all input files.
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+!     if (iproc == 0) then
+ !       call print_general_parameters(inputs,atoms)
+ !    end if
+
+     !initialize memory counting
+     !call memocc(0,iproc,'count','start')
+
+     allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,fxyz,'fxyz',subname)
+
+     call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+
+     !if other steps are supposed to be done leave the last_run to minus one
+     !otherwise put it to one
+     if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1 .or. inputs%ncount_cluster_x <= 1) then
+        inputs%last_run = 1
+     end if
+ 
+ ! path intagral   
+   path=0.d0
   !calculate the displacement at each integration step
   !(use sin instead of random numbers)
-  do iat=1,nat
-     drxyz(1,iat)=dx*abs(dsin(real(iat,kind=8)+.2d0))
-     drxyz(2,iat)=dx*abs(dsin(real(iat,kind=8)+.4d0))
-     drxyz(3,iat)=dx*abs(dsin(real(iat,kind=8)+.7d0))
+  allocate(drxyz(1:3,1:atoms%nat))
+  do iat=1,atoms%nat
+     drxyz(1,iat)=dx*sin(iat+.2d0)   
+     drxyz(2,iat)=dx*sin(iat+.4d0)  
+     drxyz(3,iat)=dx*sin(iat+.7d0)  
   end do
- 
-  do i=1,n
 
+  ! loop for ipath 
+  do ipath=1,npath
 
-     if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+        !update atomic positions alog the path
+     if(ipath>1) rxyz(:,:)=rxyz(:,:)+drxyz(:,:)
 
-  call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-       psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
-
-     i_all=-product(shape(psi))*kind(psi)
-     deallocate(psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi',subname)
-     i_all=-product(shape(eval))*kind(eval)
-     deallocate(eval,stat=i_stat)
-     call memocc(i_stat,i_all,'eval',subname)
-     i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
-     deallocate(wfd%keyg,stat=i_stat)
-     call memocc(i_stat,i_all,'keyg',subname)
-     i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-     deallocate(wfd%keyv,stat=i_stat)
-     call memocc(i_stat,i_all,'keyv',subname)
-     
-
-     FxdRx=0.d0
-     FydRy=0.d0
-     FzdRz=0.d0
-     do iat=1,nat
-        !integrate forces*displacement
-        FxdRx=FxdRx+fxyz(1,iat)*drxyz(1,iat)
-        FydRy=FydRy+fxyz(2,iat)*drxyz(2,iat)
-        FzdRz=FzdRz+fxyz(3,iat)*drxyz(3,iat)
-
-        !update atomic positions
-        rxyz(1,iat)=rxyz(1,iat)+drxyz(1,iat)
-        rxyz(2,iat)=rxyz(2,iat)+drxyz(2,iat)
-        rxyz(3,iat)=rxyz(3,iat)+drxyz(3,iat)
-
-     end do
-     path=path-weight(i)*(FxdRx+FydRy+FzdRz)
-
-
-     if (iproc==0) then 
-        !verify if the system is still translational invariant by summing the forces
-        sumx=0.d0
-        sumy=0.d0
-        sumz=0.d0
-        do iat=1,nat
-           sumx=sumx+fxyz(1,iat)
-           sumy=sumy+fxyz(2,iat)
-           sumz=sumz+fxyz(3,iat)
-        end do
-
-        write(67,'(a12,i3,2(a10,3x,e13.5),e13.5,e13.5)')'Iteration',i,'Energy ',energy,&
-             'Force sums',sumx,sumy,sumz
-        write(67,'(a12,i3,a24,3x,e16.8)')'Max. Iter',n,'Energy Difference',energy-energy0
-        write(67,'(a39,3x,e16.8,a12,e16.8)')'Force Integral',path,'Delta',energy-energy0-path
-        write(67,'(a39,3x,e16.8,a12,e16.8)')'Error on Delta',sqrt(sumx**2+sumy**2+sumz**2)
+     if (iproc == 0) then
+        call print_general_parameters(inputs,atoms) ! to know the new positions
      end if
+                       
+     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+!        inputs%inputPsiId=0   ! change PsiId to 0 if you want to  generate a new Psi and not use the found one
+ 
+     if (iproc == 0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
 
-  end do
+     if (ipath == 1 ) etot0=etot
+     !   do one step of the path integration
+     if (iproc == 0) then
+        !integrate forces*displacement
+        !fdr=sum(fxyz(1:3,1:atoms%nat)*drxyz(1:3,1:atoms%nat))
+        fdr=sum(fxyz(:,:)*drxyz(:,:))
+        path=path-simpson(ipath)*fdr
+       write(*,"('path iter:',i3,'   -F.dr=',e13.5,'    path integral=',e13.5 )") ipath,-fdr, path 
 
-  i_all=-product(shape(rxyz))*kind(rxyz)
-  deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz',subname)
-  i_all=-product(shape(iatype))*kind(iatype)
-  deallocate(iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype',subname)
-  i_all=-product(shape(fxyz))*kind(fxyz)
-  deallocate(fxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz',subname)
-  i_all=-product(shape(drxyz))*kind(drxyz)
-  deallocate(drxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'drxyz',subname)
-  i_all=-product(shape(weight))*kind(weight)
-  deallocate(weight,stat=i_stat)
-  call memocc(i_stat,i_all,'weight',subname)
-  
-  if (parallel) call MPI_FINALIZE(ierr)
+     
+        write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
+  !      write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
+   !             (iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3),  iat=1,atoms%nat)
+   !     sumx=sum(fxyz(1,1:atoms%nat))
+   !     sumy=sum(fxyz(2,1:atoms%nat))
+   !     sumz=sum(fxyz(3,1:atoms%nat))
+        
+   !     write(*,'(1x,a)')'the sum of the forces is'
+   !     write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+   !     write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+   !     write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+     endif
+  enddo !loop over ipath
+
+ 
+  deallocate(drxyz)
+
+     call deallocate_atoms(atoms,subname) 
+
+     call free_restart_objects(rst,subname)
+
+     i_all=-product(shape(rxyz))*kind(rxyz)
+     deallocate(rxyz,stat=i_stat)
+     call memocc(i_stat,i_all,'rxyz',subname)
+     i_all=-product(shape(fxyz))*kind(fxyz)
+     deallocate(fxyz,stat=i_stat)
+     call memocc(i_stat,i_all,'fxyz',subname)
+
+     call free_input_variables(inputs)
+
+     !finalize memory counting
+     call memocc(0,0,'count','stop')
+     if (iproc==0) then 
+         write(*,*) 
+         write(*,*) 'Check correctness of forces'
+         write(*,*) 'Difference of total energies =',etot-etot0
+         write(*,*) 'Integral force*displacement = ',path
+         write(*,*) 'Difference = ',(etot-etot0)-path
+         write(*,*) 
+     endif
+ 
+  enddo !loop over iconfig
+
+  deallocate(arr_posinp)
+
+  call MPI_FINALIZE(ierr)
 
 
 end program test_forces
+!!***
