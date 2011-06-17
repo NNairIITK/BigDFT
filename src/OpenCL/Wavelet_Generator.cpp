@@ -73,7 +73,7 @@ di = mad( *tmp2++, (double2)( 0.061273359067811077843   ,-0.14329423835127266284
 ci = mad( *tmp2,   (double2)( 0.0038087520138944894631  ,-0.014952258337062199118)  , ci);\
 di = mad( *tmp2++, (double2)(-0.0076074873249766081919  , 0.031695087811525991431)  , di);\
 ci = mad( *tmp2,   (double2)(-0.00030292051472413308126 , 0.0018899503327676891843) , ci);\
-di = mad( *tmp2, (double2)( 0.00054213233180001068935 ,-0.0033824159510050025955) , di);\n";
+di = mad( *tmp2++, (double2)( 0.00054213233180001068935 ,-0.0033824159510050025955) , di);\n";
 }
 
 /*!
@@ -273,8 +273,126 @@ static void generate_syn_header(std::stringstream &program){
   load 2 elements. The performance inpact of this is minimal.
   Size  of the data is 2*n * ndat.
 */
-
-static void generate_syn1dKernel(std::stringstream &program){
+static void generate_syn_filter(std::stringstream &program){
+  program<<"#define filter_vector2(tmp1,tmp2) \
+double2 se = (double2)(0.0, 0.0);\
+double2 so = (double2)(0.0, 0.0);\
+se = mad((double2)(*tmp1,*(tmp1+7)), (double2)(0.0018899503327676891843,-0.00054213233180001068935),  se);\
+__local double2 *tmp1b = (__local double2 *)(tmp1+1);\
+so = mad(*tmp1b,   (double2)(-0.00030292051472413308126, 0.0038087520138944894631) ,so);\
+se = mad(*tmp1b++, (double2)(-0.014952258337062199118,   0.049137179673730286787)  ,se);\
+so = mad(*tmp1b,   (double2)(-0.027219029917103486322,   0.36444189483617893676)   ,so);\
+se = mad(*tmp1b++, (double2)(-0.051945838107881800736,   0.77718575169962802862)   ,se);\
+so = mad(*tmp1b,   (double2)( 0.48135965125905339159,   -0.14329423835127266284)   ,so);\
+se = mad(*tmp1b++, (double2)(-0.061273359067811077843,   0.0076074873249766081919) ,se);\
+so = mad(*tmp1b,   (double2)( 0.031695087811525991431,  -0.0033824159510050025955) ,so);\
+se = mad((double2)(*tmp2,*(tmp2+7)), (double2)(-0.0033824159510050025955, -0.00030292051472413308126),  se);\
+__local double2 *tmp2b = (__local double2 *)(tmp2+1);\
+so = mad(*tmp2b,   (double2)( 0.00054213233180001068935,-0.0076074873249766081919) ,so);\
+se = mad(*tmp2b++, (double2)( 0.031695087811525991431,  -0.14329423835127266284)   ,se);\
+so = mad(*tmp2b,   (double2)( 0.061273359067811077843,  -0.77718575169962802862)   ,so);\
+se = mad(*tmp2b++, (double2)( 0.48135965125905339159,    0.36444189483617893676)   ,se);\
+so = mad(*tmp2b,   (double2)( 0.051945838107881800736,  -0.049137179673730286787)  ,so);\
+se = mad(*tmp2b++, (double2)(-0.027219029917103486322,   0.0038087520138944894631) ,se);\
+so = mad(*tmp2b,   (double2)( 0.014952258337062199118,  -0.0018899503327676891843) ,so);\n\
+#define filter(tmp1,tmp2) \
+double se = 0.0;\
+double so = 0.0;\
+__local double *tmp1b = tmp1;\
+__local double *tmp2b = tmp2+8;\
+se = mad(*tmp1b++,  0.0018899503327676891843,  se);\
+se = mad(*tmp1b,   -0.014952258337062199118,   se);\
+so = mad(*tmp1b++, -0.00030292051472413308126, so);\
+so = mad(*tmp2b--, -0.0018899503327676891843,  so);\
+se = mad(*tmp2b,   -0.00030292051472413308126, se);\
+so = mad(*tmp2b--,  0.014952258337062199118,   so);\
+se = mad(*tmp1b,    0.049137179673730286787,   se);\
+so = mad(*tmp1b++,  0.0038087520138944894631,  so);\
+se = mad(*tmp2b,    0.0038087520138944894631,  se);\
+so = mad(*tmp2b--, -0.049137179673730286787,   so);\
+se = mad(*tmp1b,   -0.051945838107881800736,   se);\
+so = mad(*tmp1b++, -0.027219029917103486322,   so);\
+se = mad(*tmp2b,   -0.027219029917103486322,   se);\
+so = mad(*tmp2b--,  0.051945838107881800736,   so);\
+se = mad(*tmp1b,    0.77718575169962802862,    se);\
+so = mad(*tmp1b++,  0.36444189483617893676,    so);\
+se = mad(*tmp2b,    0.36444189483617893676,    se);\
+so = mad(*tmp2b--, -0.77718575169962802862,    so);\
+se = mad(*tmp1b,   -0.061273359067811077843,   se);\
+so = mad(*tmp1b++,  0.48135965125905339159,    so);\
+se = mad(*tmp2b,    0.48135965125905339159,    se);\
+so = mad(*tmp2b--,  0.061273359067811077843,   so);\
+se = mad(*tmp1b,    0.0076074873249766081919,  se);\
+so = mad(*tmp1b++, -0.14329423835127266284,    so);\
+se = mad(*tmp2b,   -0.14329423835127266284,    se);\
+so = mad(*tmp2b--, -0.0076074873249766081919,  so);\
+se = mad(*tmp1b,   -0.00054213233180001068935, se);\
+so = mad(*tmp1b++,  0.031695087811525991431,   so);\
+se = mad(*tmp2b,    0.031695087811525991431,   se);\
+so = mad(*tmp2b--,  0.00054213233180001068935, so);\
+so = mad(*tmp1b++, -0.0033824159510050025955,  so);\
+se = mad(*tmp2b--, -0.0033824159510050025955,  se);\n\
+#define filter_grow_vector2(tmp1,tmp2) \
+double2 so = (double2)(0.0, 0.0);\
+double2 se = (double2)(0.0, 0.0);\
+__local double2 *tmp1b = (__local double2 *)tmp1;\
+__local double2 *tmp2b = (__local double2 *)tmp2;\
+so = mad(*tmp1b,   (double2)(-0.00030292051472413308126, 0.0038087520138944894631) , so);\
+se = mad(*tmp1b++, (double2)( 0.0018899503327676891843, -0.014952258337062199118)  , se);\
+so = mad(*tmp1b,   (double2)(-0.027219029917103486322,   0.36444189483617893676)   , so);\
+se = mad(*tmp1b++, (double2)( 0.049137179673730286787,  -0.051945838107881800736)  , se);\
+so = mad(*tmp1b,   (double2)( 0.48135965125905339159,   -0.14329423835127266284)   , so);\
+se = mad(*tmp1b++, (double2)( 0.77718575169962802862,   -0.061273359067811077843)  , se);\
+so = mad(*tmp1b,   (double2)( 0.031695087811525991431,  -0.0033824159510050025955) , so);\
+se = mad(*tmp1b++, (double2)( 0.0076074873249766081919, -0.00054213233180001068935), se);\
+so = mad(*tmp2b,   (double2)( 0.00054213233180001068935,-0.0076074873249766081919) , so);\
+se = mad(*tmp2b++, (double2)(-0.0033824159510050025955,  0.031695087811525991431)  , se);\
+so = mad(*tmp2b,   (double2)( 0.061273359067811077843,  -0.77718575169962802862)   , so);\
+se = mad(*tmp2b++, (double2)(-0.14329423835127266284,    0.48135965125905339159)   , se);\
+so = mad(*tmp2b,   (double2)( 0.051945838107881800736,  -0.049137179673730286787)  , so);\
+se = mad(*tmp2b++, (double2)( 0.36444189483617893676,   -0.027219029917103486322)  , se);\
+so = mad(*tmp2b,   (double2)( 0.014952258337062199118,  -0.0018899503327676891843) , so);\
+se = mad(*tmp2b++, (double2)( 0.0038087520138944894631, -0.00030292051472413308126), se);\n\
+#define filter_grow(tmp1,tmp2) \
+double se = 0.0;\
+double so = 0.0;\
+__local double *tmp1b = tmp1;\
+__local double *tmp2b = tmp2+7;\
+so = mad(*tmp2b,   -0.0018899503327676891843,  so);\
+se = mad(*tmp2b--, -0.00030292051472413308126, se);\
+so = mad(*tmp1b,   -0.00030292051472413308126, so);\
+se = mad(*tmp1b++,  0.0018899503327676891843,  se);\
+so = mad(*tmp2b,    0.014952258337062199118,   so);\
+se = mad(*tmp2b--,  0.0038087520138944894631,  se);\
+so = mad(*tmp1b,    0.0038087520138944894631,  so);\
+se = mad(*tmp1b++, -0.014952258337062199118,   se);\
+so = mad(*tmp2b,   -0.049137179673730286787,   so);\
+se = mad(*tmp2b--, -0.027219029917103486322,   se);\
+so = mad(*tmp1b,   -0.027219029917103486322,   so);\
+se = mad(*tmp1b++,  0.049137179673730286787,   se);\
+so = mad(*tmp2b,    0.051945838107881800736,   so);\
+se = mad(*tmp2b--,  0.36444189483617893676,    se);\
+so = mad(*tmp1b,    0.36444189483617893676,    so);\
+se = mad(*tmp1b++, -0.051945838107881800736,   se);\
+so = mad(*tmp2b,   -0.77718575169962802862,    so);\
+se = mad(*tmp2b--,  0.48135965125905339159,    se);\
+so = mad(*tmp1b,    0.48135965125905339159,    so);\
+se = mad(*tmp1b++,  0.77718575169962802862,    se);\
+so = mad(*tmp2b,    0.061273359067811077843,   so);\
+se = mad(*tmp2b--, -0.14329423835127266284,    se);\
+so = mad(*tmp1b,   -0.14329423835127266284,    so);\
+se = mad(*tmp1b++, -0.061273359067811077843,   se);\
+so = mad(*tmp2b,   -0.0076074873249766081919,  so);\
+se = mad(*tmp2b--,  0.031695087811525991431,   se);\
+so = mad(*tmp1b,    0.031695087811525991431,   so);\
+se = mad(*tmp1b++,  0.0076074873249766081919,  se);\
+so = mad(*tmp2b,    0.00054213233180001068935, so);\
+se = mad(*tmp2b--, -0.0033824159510050025955,  se);\
+so = mad(*tmp1b,   -0.0033824159510050025955,  so);\
+se = mad(*tmp1b++, -0.00054213233180001068935, se);\n\
+";
+}
+static void generate_syn1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"__kernel void syn1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[SIZE_I*(2*FILTER_WIDTH+2*SIZE_I+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -311,49 +429,21 @@ if( j2 < SIZE_I - FILTER_WIDTH){\n\
   }\n\
 }\n\
 tmp += j2*(2*FILTER_WIDTH+2*SIZE_I+1) + FILTER_WIDTH/2+i2;\n\
-double se = 0.0;\n\
-double so = 0.0;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-se = mad(tmp[-3], -0.014952258337062199118,                        se);\n\
-so = mad(tmp[-3], -0.00030292051472413308126,                      so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I + 3], -0.00030292051472413308126, se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I + 3],  0.014952258337062199118,   so);\n\
-se = mad(tmp[-2],  0.049137179673730286787,                        se);\n\
-so = mad(tmp[-2],  0.0038087520138944894631,                       so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I + 2],  0.0038087520138944894631,  se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I + 2], -0.049137179673730286787,   so);\n\
-se = mad(tmp[-1], -0.051945838107881800736,                        se);\n\
-so = mad(tmp[-1], -0.027219029917103486322,                        so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I + 1], -0.027219029917103486322,   se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I + 1],  0.051945838107881800736,   so);\n\
-se = mad(tmp[ 0],  0.77718575169962802862,                         se);\n\
-so = mad(tmp[ 0],  0.36444189483617893676,                         so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I + 0],  0.36444189483617893676,    se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I + 0], -0.77718575169962802862,    so);\n\
-se = mad(tmp[ 1], -0.061273359067811077843,                        se);\n\
-so = mad(tmp[ 1],  0.48135965125905339159,                         so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I - 1],  0.48135965125905339159,    se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I - 1],  0.061273359067811077843,   so);\n\
-se = mad(tmp[ 2],  0.0076074873249766081919,                       se);\n\
-so = mad(tmp[ 2], -0.14329423835127266284,                         so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I - 2], -0.14329423835127266284,    se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I - 2], -0.0076074873249766081919,  so);\n\
-se = mad(tmp[ 3], -0.00054213233180001068935,                      se);\n\
-so = mad(tmp[ 3],  0.031695087811525991431,                        so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I - 3],  0.031695087811525991431,   se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I - 3],  0.00054213233180001068935, so);\n\
-se = mad(tmp[-4],  0.0018899503327676891843,                       se);\n\
-so = mad(tmp[ 4], -0.0033824159510050025955,                       so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I - 4], -0.0033824159510050025955,  se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I + 4], -0.0018899503327676891843,  so);\n\
-\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"filter_vector2(&tmp[-4],&tmp[FILTER_WIDTH+SIZE_I - 4]);\n\
+out[jg*(2*n)+ig*2]=se.x+se.y;\n\
+out[jg*(2*n)+ig*2+1]=so.x+so.y;\n\
+};\n";
+  } else {
+    program<<"filter(&tmp[-4],&tmp[FILTER_WIDTH+SIZE_I - 4]);\n\
 out[jg*(2*n)+ig*2]=se;\n\
 out[jg*(2*n)+ig*2+1]=so;\n\
 };\n";
+  }
 }
 
-static void generate_syngrow1dKernel(std::stringstream &program){
+static void generate_syngrow1dKernel(std::stringstream &program, struct bigdft_device_infos * infos){
   program<<"__kernel void syngrow1dKernel_d(uint n, uint ndat, __global const double * restrict psi, __global double * restrict out){\n\
 __local double tmp1[SIZE_I*(2*FILTER_WIDTH+2*SIZE_I+1)];\n\
 __local double *tmp = &tmp1[0];\n\
@@ -390,46 +480,18 @@ if( j2 < SIZE_I - FILTER_WIDTH){\n\
   }\n\
 }\n\
 tmp += j2*(2*FILTER_WIDTH+2*SIZE_I+1) + FILTER_WIDTH/2+i2;\n\
-double se = 0.0;\n\
-double so = 0.0;\n\
-barrier(CLK_LOCAL_MEM_FENCE);\n\
-\
-so = mad(tmp[FILTER_WIDTH+SIZE_I + 4], -0.0018899503327676891843,  so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I + 4], -0.00030292051472413308126, se);\n\
-so = mad(tmp[-3], -0.00030292051472413308126,                      so);\n\
-se = mad(tmp[-3],  0.0018899503327676891843,                       se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I + 3],  0.014952258337062199118,   so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I + 3],  0.0038087520138944894631,  se);\n\
-so = mad(tmp[-2],  0.0038087520138944894631,                       so);\n\
-se = mad(tmp[-2], -0.014952258337062199118,                        se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I + 2], -0.049137179673730286787,   so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I + 2], -0.027219029917103486322,   se);\n\
-so = mad(tmp[-1], -0.027219029917103486322,                        so);\n\
-se = mad(tmp[-1],  0.049137179673730286787,                        se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I + 1],  0.051945838107881800736,   so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I + 1],  0.36444189483617893676,    se);\n\
-so = mad(tmp[ 0],  0.36444189483617893676,                         so);\n\
-se = mad(tmp[ 0], -0.051945838107881800736,                        se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I + 0], -0.77718575169962802862,    so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I + 0],  0.48135965125905339159,    se);\n\
-so = mad(tmp[ 1],  0.48135965125905339159,                         so);\n\
-se = mad(tmp[ 1],  0.77718575169962802862,                         se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I - 1],  0.061273359067811077843,   so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I - 1], -0.14329423835127266284,    se);\n\
-so = mad(tmp[ 2], -0.14329423835127266284,                         so);\n\
-se = mad(tmp[ 2], -0.061273359067811077843,                        se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I - 2], -0.0076074873249766081919,  so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I - 2],  0.031695087811525991431,   se);\n\
-so = mad(tmp[ 3],  0.031695087811525991431,                        so);\n\
-se = mad(tmp[ 3],  0.0076074873249766081919,                       se);\n\
-so = mad(tmp[FILTER_WIDTH+SIZE_I - 3],  0.00054213233180001068935, so);\n\
-se = mad(tmp[FILTER_WIDTH+SIZE_I - 3], -0.0033824159510050025955,  se);\n\
-so = mad(tmp[ 4], -0.0033824159510050025955,                       so);\n\
-se = mad(tmp[ 4], -0.00054213233180001068935,                      se);\n\
-\
+barrier(CLK_LOCAL_MEM_FENCE);\n";
+  if(strncmp(infos->NAME,"Cayman",strlen("Cayman"))==0){
+    program<<"filter_grow_vector2(&tmp[-3],&tmp[FILTER_WIDTH+SIZE_I - 3]);\n\
+out[jg*2*n+2*ig]=so.x+so.y;\n\
+out[jg*2*n+2*ig+1]=se.x+se.y;\n\
+};\n";
+  } else {
+    program<<"filter_grow(&tmp[-3],&tmp[FILTER_WIDTH+SIZE_I - 3]);\n\
 out[jg*2*n+2*ig]=so;\n\
 out[jg*2*n+2*ig+1]=se;\n\
 };\n";
+  }
 }
 
 extern "C" char* generate_ana_program(struct bigdft_device_infos * infos){
@@ -452,8 +514,9 @@ extern "C" char* generate_syn_program(struct bigdft_device_infos * infos){
   std::stringstream program;
 
   generate_syn_header(program);
-  generate_syn1dKernel(program);
-  generate_syngrow1dKernel(program);
+  generate_syn_filter(program);
+  generate_syn1dKernel(program,infos);
+  generate_syngrow1dKernel(program,infos);
   
   output = (char *)malloc((program.str().size()+1)*sizeof(char));
   strcpy(output, program.str().c_str());
