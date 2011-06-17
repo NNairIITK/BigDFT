@@ -17,6 +17,7 @@ EXTRA_DIST = \
 	Reduction_Generator.h \
 	Benchmark_Generator.h \
         Tool.h\
+        fft_generator.h \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV_CHECK =
