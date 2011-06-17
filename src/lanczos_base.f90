@@ -1,14 +1,15 @@
-!> @file
-!!  Routine to handle Lanczos diagonalisation
-!! @author
-!!    Copyright (C) 2010-2011 BigDFT group
+!!****m* BigDFT/lanczos_base
+!! FUNCTION
+!!   Module to handle diagonalization scheme
+!! COPYRIGHT
+!!    Copyright (C) 2010 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
-
-!>   Module to handle diagonalization scheme
+!!
+!! SOURCE
+!!
 module lanczos_base
   use module_base
   implicit none
@@ -668,7 +669,7 @@ contains
     real(gp) :: fact
 
     write(filename,'(a,i0)') "cheb_spectra_" , Nu
-    print '(a100)', " writing spectra to "//trim(filename) 
+    print *, " writing spectra to " , filename 
 
     Pi=acos(-1.0_gp)
     Nbar =1
@@ -1012,3 +1013,4 @@ contains
   END function LB_cg
 
 END MODULE lanczos_base
+!!***

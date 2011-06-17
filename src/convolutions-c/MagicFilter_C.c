@@ -17,9 +17,9 @@
 #define NB_SYB 2
 #define NB_CORE 8
 
-void rdtsc_(long long unsigned int * t) {
-  rdtscll(*t);
-}
+///void rdtsc_(long long unsigned int * t) {
+//  rdtscll(*t);
+//}
 
 void nanosec_(long long unsigned int * t){
   struct timespec time;

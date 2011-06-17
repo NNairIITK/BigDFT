@@ -10,7 +10,7 @@
 
 !>    Orthogonality routine, for all the orbitals
 !!    Uses wavefunctions in their transposed form
-subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
+subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,orthpar)
   use module_base
   use module_types
   implicit none
@@ -18,7 +18,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   type(wavefunctions_descriptors), intent(in) :: wfd
-  type(input_variables), intent(in) :: input
+  type(orthon_data), intent(in) :: orthpar
   real(wp), dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor*orbs%norb), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='orthogonalize'
@@ -52,7 +52,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
   ! methOrtho==0: Cholesky orthonormalization (i.e. a pseudo Gram-Schmidt)
   ! methOrtho==1: hybrid Gram-Schmidt/Cholesky orthonormalization
   ! methOrtho==2: Loewdin orthonormalization
-  if(input%methOrtho==0) then
+  if(orthpar%methOrtho==0) then
      category='Chol'
      call timing(iproc, trim(category)//'_comput', 'ON')
 
@@ -78,13 +78,13 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
      deallocate(ovrlp,stat=i_stat)
      call memocc(i_stat,i_all,'ovrlp',subname)
 
-  else if(input%methOrtho==1) then
+  else if(orthpar%methOrtho==1) then
        category='GS/Chol'
        call timing(iproc, trim(category)//'_comput', 'ON')
        
        ! Make a hybrid Gram-Schmidt/Cholesky orthonormalization.
-       call gsChol(iproc,nproc,psi(1),input,nspinor,orbs,nspin,ndimovrlp,norbArr,comms)
-  else if(input%methOrtho==2) then
+       call gsChol(iproc,nproc,psi(1),orthpar,nspinor,orbs,nspin,ndimovrlp,norbArr,comms)
+  else if(orthpar%methOrtho==2) then
      category='Loewdin'
      call timing(iproc,trim(category)//'_comput','ON')
 
@@ -126,18 +126,17 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
 END SUBROUTINE orthogonalize
 
 
-subroutine check_closed_shell(nspin,orbs,lcs)
+subroutine check_closed_shell(orbs,lcs)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: nspin
   type(orbitals_data), intent(in) :: orbs
   logical, intent(out) :: lcs
   !local variables
   integer :: iorb
   lcs=.true.
   do iorb=orbs%norb*orbs%nkpts,1,-1
-     if ( orbs%occup(iorb) /= real(3-nspin,gp)) then
+     if ( orbs%occup(iorb) /= real(3-orbs%nspin,gp)) then
         lcs=.false.
         exit
      end if
@@ -145,7 +144,7 @@ subroutine check_closed_shell(nspin,orbs,lcs)
 END SUBROUTINE check_closed_shell
 
 
-!>   Orthogonality routine, for all the orbitals
+!>   Orthogonality constraint routine, for all the orbitals
 !!   Uses wavefunctions in their transposed form
 subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
   use module_base
@@ -264,7 +263,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
         !calculate the scprsum if the k-point is associated to this processor
         !the scprsum always coincide with the trace of the hamiltonian
         if (orbs%ikptproc(ikpt) == iproc) then
-           occ=real(orbs%kwgts(ikpt),dp)*real(3-nspin,gp)
+           occ=real(orbs%kwgts(ikpt),dp)*real(3-orbs%nspin,gp)
            if (nspinor == 4) occ=real(orbs%kwgts(ikpt),dp)
            if(nspinor == 1) then
               do iorb=1,norb
@@ -1534,7 +1533,7 @@ END SUBROUTINE KStrans_p
 !!   @param  psi
 !!       - on input: the vectors to be orthonormalized
 !!       - on output: the orthonomalized vectors
-subroutine gsChol(iproc, nproc, psi, input, nspinor, orbs, nspin,ndimovrlp,norbArr,comms)
+subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,norbArr,comms)
   use module_base
   use module_types
   implicit none
@@ -1542,7 +1541,7 @@ subroutine gsChol(iproc, nproc, psi, input, nspinor, orbs, nspin,ndimovrlp,norbA
   ! Calling arguments
   !integer, intent(in) :: ikpt
   integer, intent(in) :: iproc, nproc, nspinor,nspin
-  type(input_variables):: input
+  type(orthon_data):: orthpar
   type(orbitals_data):: orbs
   type(communications_arrays), intent(in) :: comms
   integer, dimension(nspin), intent(in) :: norbArr
@@ -1554,12 +1553,12 @@ subroutine gsChol(iproc, nproc, psi, input, nspinor, orbs, nspin,ndimovrlp,norbA
   integer:: getBlocksize, ispin
   real(wp),dimension(:), allocatable :: ovrlp
   character(len=*), parameter:: subname='gsChol',category='GS/Chol'
-   
+  
   
   ! Make a loop over spin up/down.
   do ispin=1,nspin
      ! Get the blocksize.
-     blocksize=getBlocksize(iproc, nproc, input, norbArr(ispin))
+     blocksize=getBlocksize(iproc, nproc, orthpar, norbArr(ispin))
      
      ! There are two orthonormalization subroutines: gramschmidt orthogonalizes a given bunch of vectors to another bunch
      ! of already orthonormal vectors, and the subroutine cholesky orthonormalizes the given bunch.
@@ -1764,7 +1763,7 @@ END SUBROUTINE gramschmidt
 !!   @param  ispinIn    indicates whether the up or down orbitals shall be handled
 !!  Input/Output arguments:
 !!   @param  psi        the vectors that shall be orthonormalized
-!!   @param  ovrlp      the overlap matrix which will be destroyed during this subroutine
+!!   @param  Lc      the overlap matrix which will be destroyed during this subroutine
 subroutine cholesky(iproc, nproc, norbIn, psi, nspinor, nspin, orbs, comms, ndimL, Lc, norbTot, block1, ispinIn)
 
 use module_base

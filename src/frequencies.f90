@@ -73,8 +73,9 @@ program frequencies
   ! Initialize memory counting
   !call memocc(0,iproc,'count','start')
 
-  call read_input_variables(iproc, "posinp", "input.dft", "input.kpt","input.mix", &
-       & "input.geopt", "input.perf", inputs, atoms, rxyz)
+  !standard names
+  call standard_inputfile_names(inputs)
+  call read_input_variables(iproc, "posinp", inputs, atoms, rxyz)
 
   ! Read all input files.
   inquire(file="input.freq",exist=exists)
@@ -400,7 +401,7 @@ program frequencies
   !Finalize memory counting
   call memocc(0,0,'count','stop')
 
-  if (nproc > 1) call MPI_FINALIZE(ierr)
+  call MPI_FINALIZE(ierr)
 
 contains
 

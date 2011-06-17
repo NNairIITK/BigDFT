@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Display the logo of BigDFT 
+!> Display the logo of BigDFT 
 subroutine print_logo()
   use module_base
   implicit none
@@ -53,6 +53,19 @@ subroutine print_logo()
   write(*,'(1x,a)')&
        '                                  The Journal of Chemical Physics 129, 014109 (2008)'
 END SUBROUTINE print_logo
+subroutine standard_inputfile_names(inputs)
+  use module_types
+  implicit none
+  type(input_variables), intent(out) :: inputs
+
+  inputs%file_dft='input.dft'
+  inputs%file_geopt='input.geopt'
+  inputs%file_kpt='input.kpt'
+  inputs%file_perf='input.perf'
+  inputs%file_tddft='input.tddft'
+  inputs%file_mix='input.mix'
+  
+end subroutine standard_inputfile_names
 
 
 !>    Do all initialisation for all different files of BigDFT. 
@@ -60,8 +73,7 @@ END SUBROUTINE print_logo
 !!    Initialize memocc
 !! @todo
 !!   Should be better for debug purpose to read input.perf before
-subroutine read_input_variables(iproc,posinp, &
-     & file_dft, file_kpt, file_mix, file_geopt, file_perf, inputs,atoms,rxyz)
+subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_variables
@@ -70,9 +82,8 @@ subroutine read_input_variables(iproc,posinp, &
 
   !Arguments
   character(len=*), intent(in) :: posinp
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
   integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
 
@@ -80,16 +91,14 @@ subroutine read_input_variables(iproc,posinp, &
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
   ! Read all parameters and update atoms and rxyz.
-  call read_input_parameters(iproc, file_dft, file_kpt, file_mix, &
-       & file_geopt, file_perf, inputs, atoms, rxyz)
+  call read_input_parameters(iproc,inputs, atoms, rxyz)
 END SUBROUTINE read_input_variables
 
 
 !>    Do initialisation for all different calculation parameters of BigDFT. 
 !!    Set default values if not any. Atomic informations are updated  by
 !!    symmetries if necessary and by geometry input parameters.
-subroutine read_input_parameters(iproc, &
-     & file_dft, file_kpt, file_mix, file_geopt, file_perf,inputs,atoms,rxyz)
+subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_input_parameters
@@ -97,9 +106,8 @@ subroutine read_input_parameters(iproc, &
   implicit none
 
   !Arguments
-  character(len=*), intent(in) :: file_dft, file_geopt, file_kpt, file_mix,file_perf
   integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !Local variables
@@ -109,17 +117,19 @@ subroutine read_input_parameters(iproc, &
   ! Default for inputs
   call default_input_variables(inputs)
   ! Read performance input variables (if given)
-  call perf_input_variables(iproc,file_perf,inputs)
+  call perf_input_variables(iproc,trim(inputs%file_perf),inputs)
   ! Read dft input variables
-  call dft_input_variables(iproc,file_dft,inputs)
+  call dft_input_variables(iproc,trim(inputs%file_dft),inputs)
   ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
-  call kpt_input_variables(iproc,file_kpt,inputs,atoms)
+  call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
   ! Mixing input variables (if given)
-  call mix_input_variables(file_mix,inputs)
+  call mix_input_variables(trim(inputs%file_mix),inputs)
   ! Read geometry optimisation option
-  call geopt_input_variables(file_geopt,inputs)
+  call geopt_input_variables(trim(inputs%file_geopt),inputs)
+  ! Read tddft variables
+  call tddft_input_variables(trim(inputs%file_tddft),inputs)
 
   ! Shake atoms if required.
   if (inputs%randdis > 0.d0) then
@@ -147,20 +157,31 @@ subroutine read_input_parameters(iproc, &
      end if
   end do
 
-  !stop the code if it is trying to run GPU with non-periodic boundary conditions
+  ! Stop the code if it is trying to run GPU with non-periodic boundary conditions
   if (atoms%geocode /= 'P' .and. (GPUconv .or. OCLconv)) then
-     write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     if (iproc==0) write(*,'(1x,a)') 'GPU calculation allowed only in periodic boundary conditions'
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
+  end if
+
+  ! Stop the code if it is trying to run GPU with spin=4
+  if (inputs%nspin == 4 .and. (GPUconv .or. OCLconv)) then
+     if (iproc==0) write(*,'(1x,a)') 'GPU calculation not implemented with non-collinear spin'
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
 
   ! Stop code for unproper input variables combination.
   if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym) then
-     if (iproc==0) write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
-     stop 'Forces are not implemented with symmetry support, disable symmetry please (T)'
+     if (iproc==0) then
+         write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
+         write(*,'(1x,a)')  'Forces are not implemented with symmetry support, disable symmetry please (T)'
+     end if
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
   if (inputs%nkpt > 1 .and. inputs%gaussian_help) then
-     stop 'Gaussian projection is not implemented with k-point support'
+     if (iproc==0) write(*,'(1x,a)') 'Gaussian projection is not implemented with k-point support'
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
+
 END SUBROUTINE read_input_parameters
 
 
@@ -171,7 +192,7 @@ subroutine default_input_variables(inputs)
   use module_types
   implicit none
 
-  type(input_variables), intent(out) :: inputs
+  type(input_variables), intent(inout) :: inputs
 
   ! Default values.
   inputs%output_wf_format = WF_FORMAT_NONE
@@ -188,6 +209,8 @@ subroutine default_input_variables(inputs)
   call geopt_input_variables_default(inputs) 
   ! Default values for mixing procedure
   call mix_input_variables_default(inputs) 
+  ! Default values for tddft
+  call tddft_input_variables_default(inputs)
 
 END SUBROUTINE default_input_variables
 
@@ -214,7 +237,7 @@ subroutine dft_input_variables(iproc,filename,in)
   inquire(file=trim(filename),exist=exists)
   if (.not.exists) then
       if (iproc == 0) write(*,*) "The file 'input.dft' does not exist!"
-      stop
+      call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   ! Open the file
@@ -243,6 +266,7 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%ncong,in%idsx
   call check()
+  in%idsx = min(in%idsx, in%itermax)
   read(1,*,iostat=ierror) in%dispersion
   call check()
 
@@ -263,7 +287,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. input_psi_validate(in%inputPsiId) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
      call input_psi_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
@@ -276,7 +300,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. output_wf_format_validate(in%output_wf_format) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
      call output_wf_format_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
   ! Setup out grid parameters.
   if (in%output_grid >= 0) then
@@ -290,7 +314,7 @@ subroutine dft_input_variables(iproc,filename,in)
   if (.not. output_grid_validate(in%output_grid, in%output_grid_format) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_grid (', in%output_grid, ').'
      call output_grid_help()
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   ! Tail treatment.
@@ -336,14 +360,14 @@ subroutine dft_input_variables(iproc,filename,in)
 !     !if (iproc==0) then
 !        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
 !     !end if
-!     stop
+!     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
 !  end if
 ! 
   close(unit=1,iostat=ierror)
 
   if (in%nspin/=4 .and. in%nspin/=2 .and. in%nspin/=1) then
      write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
-     stop
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
   end if
 
   !define whether there should be a last_run after geometry optimization
@@ -391,7 +415,6 @@ subroutine geopt_input_variables_default(in)
 
 END SUBROUTINE geopt_input_variables_default
 
-
 !>    Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
@@ -404,7 +427,7 @@ subroutine mix_input_variables_default(in)
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%iscf=7
+  in%iscf=0
   in%Tel=0.0_gp
   in%norbsempty=0
   in%alphadiis=2.d0
@@ -459,7 +482,7 @@ contains
        !if (iproc == 0) 
             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
-       stop
+            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
     end if
   END SUBROUTINE check
 
@@ -531,15 +554,18 @@ subroutine geopt_input_variables(filename,in)
      else if (in%ionmov == 13) then
         read(1,*,iostat=ierror) in%nnos
         call check()
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
         read(1,*,iostat=ierror) in%qmass
         call check()
         read(1,*,iostat=ierror) in%bmass, in%vmass
         call check()
      end if
-
-     !the allocation of this pointer should be done in any case
-     allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
-     call memocc(i_stat,in%qmass,'in%qmass',subname)
+     if (in%ionmov /= 13) then
+        !the allocation of this pointer should be done in any case
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
+     end if
 
   else if (trim(in%geopt_approach) == "DIIS") then
      read(1,*,iostat=ierror) in%betax, in%history
@@ -562,11 +588,77 @@ contains
        !if (iproc == 0) 
             write(*,'(1x,a,a,a,i3)') &
             'Error while reading the file "',trim(filename),'", line=',iline
-       stop
+            call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
     end if
   END SUBROUTINE check
 
 END SUBROUTINE geopt_input_variables
+
+!!****f* BigDFT/tddft_input_variables_default
+!! FUNCTION
+!!    Assign default values for TDDFT variables
+!! SOURCE
+!!
+subroutine tddft_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  in%tddft_approach='NONE'
+
+END SUBROUTINE tddft_input_variables_default
+!!***
+
+subroutine tddft_input_variables(filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='tddft_input_variables'
+  integer :: iline, ierror
+
+
+  inquire(file=trim(filename),exist=exists)
+
+  if (.not. exists) then
+     !write(*,*) "The file 'input.tddft' does not exists!"
+     !      stop
+     return
+  end if
+
+ ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+  read(1,*,iostat=ierror) in%tddft_approach
+  call check()
+  if (trim(in%tddft_approach) == "TDA") then
+     !read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
+     !call check()
+  end if
+
+  close(unit=1,iostat=ierror)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE tddft_input_variables
+
 
 
 !>    Calculate symmetries and update
@@ -868,17 +960,18 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%iacceleration=0 !default:no acceleration
   !BLAS acceleration
   GPUblas=.false.
+
   !Direct diagonalisation of the Hamiltonian for the input guess
-  inputs%directDiag=.true.
+  inputs%orthpar%directDiag=.true.
   !Orbitals per process
-  inputs%norbpInguess=5
+  inputs%orthpar%norbpInguess=5
   !Block size used for the orthonormalization
-  inputs%bsLow=300
-  inputs%bsLow=800
+  inputs%orthpar%bsLow=300
+  inputs%orthpar%bsUp=800
   !Orthogonalization method
-  inputs%methOrtho=0
+  inputs%orthpar%methOrtho=0
   !Tolerance criterion for input guess
-  inputs%iguessTol=1.d-4
+  inputs%orthpar%iguessTol=1.d-4
 
   !initialization of the character string for printing
   string = "NO"
@@ -911,13 +1004,13 @@ subroutine perf_input_variables(iproc,filename,inputs)
            read(line(ii:),fmt=*,iostat=ierror) inputs%exctxpar
 
         else if (index(line,"accel") /= 0 .or. index(line,"ACCEL") /= 0) then
-            ii = index(line,"ACCEL")  + index(line,"ACCEL") + 5
+            ii = index(line,"accel")  + index(line,"ACCEL") + 6
            read(line(ii:),fmt=*,iostat=ierror) string
            if (string=="NO     ") then
               inputs%iacceleration=0
            else if (string=="CUDAGPU") then
               inputs%iacceleration=1
-           else  if (string=="OCLGPU ") then
+           else  if (string=="OCLGPU") then
               inputs%iacceleration=2
            else
               write(*,'(1x,3a)') "input.perf: Unknown acceleration '",trim(string),"'"
@@ -930,19 +1023,19 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
         else if (index(line,"ig_diag") /= 0 .or. index(line,"IG_DIAG") /= 0) then
            ii = index(line,"ig_diag")  + index(line,"IG_DIAG") + 10
-           read(line(ii:),fmt=*,iostat=ierror) inputs%directDiag
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%directDiag
 
         else if (index(line,"ig_norbp") /= 0 .or. index(line,"IG_NORBP") /= 0) then
            ii = index(line,"ig_norbp")  + index(line,"IG_NORBP") + 8
-           read(line(ii:),fmt=*,iostat=ierror) inputs%norbpInguess
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%norbpInguess
 
         else if (index(line,"methortho") /= 0 .or. index(line,"METHORTHO") /= 0) then
            ii = index(line,"methortho")  + index(line,"METHORTHO") + 9
-           read(line(ii:),fmt=*,iostat=ierror) inputs%methOrtho
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%methOrtho
 
         else if (index(line,"ig_blocks") /= 0 .or. index(line,"IG_BLOCKS") /= 0) then
            ii = index(line,"ig_blocks")  + index(line,"IG_BLOCKS") + 8
-           read(line(ii:),fmt=*,iostat=ierror) inputs%bsLow,inputs%bsUp
+           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%bsLow,inputs%orthpar%bsUp
         end if
 
         !Check iostat error
@@ -986,38 +1079,38 @@ subroutine perf_input_variables(iproc,filename,inputs)
           "|","exctxpar",inputs%exctxpar,    '!Exact exchange parallelisation scheme'
 
      !Input guess performance variables
-     if(inputs%directDiag) then                   
+     if(inputs%orthpar%directDiag) then                   
         write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
-          "|","ig_diag",inputs%directDiag,   '!Input guess: Direct diagonalization of Hamiltonian'
-     else if(.not.inputs%directDiag) then         
+          "|","ig_diag",inputs%orthpar%directDiag,   '!Input guess: Direct diagonalization of Hamiltonian'
+     else if(.not.inputs%orthpar%directDiag) then         
         write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
-          "|","ig_diag",inputs%directDiag,   '!Input guess: Iterative diagonalization of Hamiltonian'
+          "|","ig_diag",inputs%orthpar%directDiag,   '!Input guess: Iterative diagonalization of Hamiltonian'
         write(*,'(1x,a,3x,a,1x,i0,t30,a)') &
-          "|","ig_norbp",inputs%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'
+          "|","ig_norbp",inputs%orthpar%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'
      end if
      write(*,"(1x,a,3x,a,1x,i0,1x,i0,t30,a)") &
-          "|","ig_blocks",inputs%bsLow,inputs%bsUp, &
+          "|","ig_blocks",inputs%orthpar%bsLow,inputs%orthpar%bsUp, &
                                                  '!Input guess: Block size for orthonormalisation'
      write(*,'(1x,a,3x,a,1x,es9.2,t30,a)') &
-          "|","ig_tol",inputs%iguessTol,    '!Input guess: Tolerance criterion'
+          "|","ig_tol",inputs%orthpar%iguessTol,    '!Input guess: Tolerance criterion'
      !Orthogonalisation: possible value: 0=Cholesky, 1=hybrid Gram-Schmidt/Cholesky, 2=Loewdin
      write(*,"(1x,a,3x,a,1x,i0,t30,a)") &
-          "|","methortho",inputs%methOrtho,  '!Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)'
+          "|","methortho",inputs%orthpar%methOrtho,  '!Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)'
      write(*,*)
   end if
 
   !Check after collecting all values
-  if (inputs%methOrtho < 0 .or. inputs%methOrtho > 2) then
-     write(*,'(3x,a,i0)') "ERROR: invalid value for inputs%methOrtho (",inputs%methOrtho,")."
+  if (inputs%orthpar%methOrtho < 0 .or. inputs%orthpar%methOrtho > 2) then
+     write(*,'(3x,a,i0)') "ERROR: invalid value for inputs%methOrtho (",inputs%orthpar%methOrtho,")."
      write(*,'(3x,a,i0)') "Change it in the file 'inputs.perf' to 0, 1 or 2."
-     call MPI_ABORT(MPI_COMM_WORLD,inputs%methOrtho,ierr)
+     call MPI_ABORT(MPI_COMM_WORLD,inputs%orthpar%methOrtho,ierr)
   end if
-  if(.not.inputs%directDiag .or. inputs%methOrtho==1) then 
+  if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
      write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
-     if(inputs%bsLow==inputs%bsUp) then
-        write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%bsLow
-     else if(inputs%bsLow<inputs%bsUp) then
-        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%bsLow,' and ',inputs%bsUp
+     if(inputs%orthpar%bsLow==inputs%orthpar%bsUp) then
+        write(*,'(5x,a,i0)') 'Take block size specified by user: ',inputs%orthpar%bsLow
+     else if(inputs%orthpar%bsLow<inputs%orthpar%bsUp) then
+        write(*,'(5x,2(a,i0))') 'Choose block size automatically between ',inputs%orthpar%bsLow,' and ',inputs%orthpar%bsUp
      else
         write(*,'(1x,a)') "ERROR: invalid values of inputs%bsLow and inputs%bsUp. Change them in 'inputs.perf'!"
         call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
@@ -1258,6 +1351,128 @@ contains
 
 END SUBROUTINE frequencies_input_variables
 
+!> initialize_atomic_file
+!! @author
+!! Written by Laurent K Beland 2011 UdeM
+!! this routine does the same operations as
+!! read_atomic_file but uses inputs from memory
+!! as input positions instead of inputs from file
+!! Useful for QM/MM implementation of BigDFT-ART
+subroutine initialize_atomic_file(iproc,atoms,rxyz)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => read_atomic_file
+  use ab6_symmetry
+  implicit none
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(inout) :: atoms
+  real(gp), dimension(:,:), pointer :: rxyz
+  !local variables
+  character(len=*), parameter :: subname='initialize_atomic_file'
+  integer :: i_stat, l
+  integer :: iat,i
+
+  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
+
+  if (atoms%geocode=='S') then 
+        atoms%alat2=0.0_gp
+  else if (atoms%geocode=='F') then !otherwise free bc    
+        atoms%alat1=0.0_gp
+        atoms%alat2=0.0_gp
+        atoms%alat3=0.0_gp
+  else
+        atoms%alat1=0.0_gp
+        atoms%alat2=0.0_gp
+        atoms%alat3=0.0_gp
+  end if
+
+  !reduced coordinates are possible only with periodic units
+  if (atoms%units == 'reduced' .and. atoms%geocode == 'F') then
+     if (iproc==0) write(*,'(1x,a)')&
+          'ERROR: Reduced coordinates are not allowed with isolated BC'
+  end if
+
+   !convert the values of the cell sizes in bohr
+  if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+     ! if Angstroem convert to Bohr
+     atoms%alat1=atoms%alat1/bohr2ang
+     atoms%alat2=atoms%alat2/bohr2ang
+     atoms%alat3=atoms%alat3/bohr2ang
+  else if (atoms%units == 'reduced') then
+     !assume that for reduced coordinates cell size is in bohr
+     atoms%alat1=real(atoms%alat1,gp)
+     atoms%alat2=real(atoms%alat2,gp)
+     atoms%alat3=real(atoms%alat3,gp)
+  else
+     write(*,*) 'length units in input file unrecognized'
+     write(*,*) 'recognized units are angstroem or atomic = bohr'
+     stop 
+  endif
+  
+  do iat=1,atoms%nat
+     !xyz input file, allow extra information
+     
+     if (atoms%units == 'reduced') then !add treatment for reduced coordinates
+        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
+        if (atoms%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
+        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
+     else if (atoms%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     end if
+ 
+     if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
+        ! if Angstroem convert to Bohr
+        do i=1,3 
+           rxyz(i,iat)=rxyz(i,iat)/bohr2ang
+        enddo
+     else if (atoms%units == 'reduced') then 
+        rxyz(1,iat)=rxyz(1,iat)*atoms%alat1
+        if (atoms%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*atoms%alat2
+        rxyz(3,iat)=rxyz(3,iat)*atoms%alat3
+     endif
+  enddo
+
+  !control atom positions
+  call check_atoms_positions(iproc,atoms,rxyz)
+
+  ! We delay the calculation of the symmetries.
+  atoms%symObj = -1
+
+END SUBROUTINE initialize_atomic_file
+
+
+module position_files
+contains
+  subroutine directGetLine(line, ifile, eof)
+    integer, intent(in) :: ifile
+    character(len=150), intent(out) :: line
+    logical, intent(out) :: eof
+
+    integer :: i_stat
+
+    eof = .false.
+    read(ifile,'(a150)', iostat = i_stat) line
+    if (i_stat /= 0) eof = .true.
+  end subroutine directGetLine
+
+  subroutine archiveGetLine(line, ifile, eof)
+    integer, intent(in) :: ifile
+    character(len=150), intent(out) :: line
+    logical, intent(out) :: eof
+
+    integer :: i_stat
+
+    eof = .false.
+    call extractNextLine(line, i_stat)
+    if (i_stat /= 0) eof = .true.
+  end subroutine archiveGetLine
+end module position_files
 
 !>    Read atomic file
 subroutine read_atomic_file(file,iproc,atoms,rxyz)
@@ -1265,6 +1480,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   use module_types
   use module_interfaces, except_this_one => read_atomic_file
   use ab6_symmetry
+  use position_files
   implicit none
   character(len=*), intent(in) :: file
   integer, intent(in) :: iproc
@@ -1272,23 +1488,52 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_file'
-  integer :: i_stat, l
-  logical :: file_exists
+  integer :: l, extract
+  logical :: file_exists, archive
   character(len = 128) :: filename
+  character(len = 15) :: arFile
+  character(len = 6) :: ext
 
   file_exists = .false.
+  archive = .false.
+
+  ! Extract from archive
+  if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
+     write(arFile, "(A)") "posout.tar.bz2"
+     if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
+     inquire(FILE = trim(arFile), EXIST = file_exists)
+     if (file_exists) then
+!!$     call extractNextCompress(trim(arFile), len(trim(arFile)), &
+!!$          & trim(file), len(trim(file)), extract, ext)
+        call openNextCompress(trim(arFile), len(trim(arFile)), &
+             & trim(file), len(trim(file)), extract, ext)
+        if (extract == 0) then
+           write(*,*) "Can't find '", file, "' in archive."
+           stop
+        end if
+        archive = .true.
+        write(filename, "(A)") file//'.'//trim(ext)
+        write(atoms%format, "(A)") trim(ext)
+     end if
+  end if
 
   ! Test posinp.xyz
   if (.not. file_exists) then
      inquire(FILE = file//'.xyz', EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") file//'.xyz'!"posinp.xyz"
-     write(atoms%format, "(A)") "xyz"
+     if (file_exists) then
+        write(filename, "(A)") file//'.xyz'!"posinp.xyz"
+        write(atoms%format, "(A)") "xyz"
+        open(unit=99,file=trim(filename),status='old')
+     end if
   end if
   ! Test posinp.ascii
   if (.not. file_exists) then
      inquire(FILE = file//'.ascii', EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") file//'.ascii'!"posinp.ascii"
-     write(atoms%format, "(A)") "ascii"
+     if (file_exists) then
+        write(filename, "(A)") file//'.ascii'!"posinp.ascii"
+        write(atoms%format, "(A)") "ascii"
+        open(unit=99,file=trim(filename),status='old')
+     end if
   end if
   ! Test the name directly
   if (.not. file_exists) then
@@ -1305,6 +1550,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
             write(*,*) " File should be *.ascii or *.xyz."
             stop
          end if
+         open(unit=99,file=trim(filename),status='old')
      end if
   end if
 
@@ -1314,24 +1560,21 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      stop 
   end if
 
-  open(unit=99,file=trim(filename),status='old')
-  !if (iproc.eq.0) write(*,*) 'Reading atomic input positions from file:',trim(filename) 
-
   if (atoms%format == "xyz") then
-     read(99,*) atoms%nat,atoms%units
-
-     allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,rxyz,'rxyz',subname)
-
      !read atomic positions
-     call read_atomic_positions(iproc,99,atoms,rxyz)
-
+     if (.not.archive) then
+        call read_xyz_positions(iproc,99,atoms,rxyz,directGetLine)
+     else
+        call read_xyz_positions(iproc,99,atoms,rxyz,archiveGetLine)
+     end if
   else if (atoms%format == "ascii") then
      !read atomic positions
-     call read_ascii_positions(iproc,99,atoms,rxyz)
+     if (.not.archive) then
+        call read_ascii_positions(iproc,99,atoms,rxyz,directGetLine)
+     else
+        call read_ascii_positions(iproc,99,atoms,rxyz,archiveGetLine)
+     end if
   end if
-
-  close(99)
 
   !control atom positions
   call check_atoms_positions(iproc,atoms,rxyz)
@@ -1339,8 +1582,13 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   ! We delay the calculation of the symmetries.
   atoms%symObj = -1
 
+  ! rm temporary file.
+  if (.not.archive) then
+     close(99)
+!!$  else
+!!$     call unlinkExtract(trim(filename), len(trim(filename)))
+  end if
 END SUBROUTINE read_atomic_file
-
 
 !>    Deallocate the structure atoms_data.
 subroutine deallocate_atoms(atoms,subname) 
@@ -1407,26 +1655,43 @@ END SUBROUTINE deallocate_atoms_scf
 
 
 !>    Read atomic positions
-subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
+subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(3,atoms%nat), intent(out) :: rxyz
+  real(gp), dimension(:,:), pointer :: rxyz
+  interface
+     subroutine getline(line,ifile,eof)
+       integer, intent(in) :: ifile
+       character(len=150), intent(out) :: line
+       logical, intent(out) :: eof
+     end subroutine getline
+  end interface
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl
+  logical :: lpsdbl, eof
   integer :: iat,ityp,i,ierrsfx,i_stat
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
 ! case for which the atomic positions are given whithin general precision
   real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
   character(len=20), dimension(100) :: atomnames
+
+  call getLine(line, ifile, eof)
+  if (eof) then
+     write(*,*) "Error: unexpected end of file."
+     stop
+  end if
+  read(line,*) atoms%nat,atoms%units
+
+  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',subname)
 
   allocate(atoms%iatype(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iatype,'atoms%iatype',subname)
@@ -1438,7 +1703,8 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)
 
   !controls if the positions are provided with machine precision
-  if (atoms%units == 'angstroemd0' .or. atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
+  if (atoms%units == 'angstroemd0' .or. atoms%units== 'atomicd0' .or. &
+       atoms%units== 'bohrd0' .or. atoms%units=='reduced') then
      lpsdbl=.true.
   else
      lpsdbl=.false.
@@ -1453,7 +1719,11 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   atoms%natpol(:)=100
 
   !read from positions of .xyz format, but accepts also the old .ascii format
-  read(ifile,'(a150)')line
+  call getLine(line, ifile, eof)
+  if (eof) then
+     write(*,*) "Error: unexpected end of file."
+     stop
+  end if
 
 !!!  !old format, still here for backward compatibility
 !!!  !admits only simple precision calculation
@@ -1515,9 +1785,9 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
      atoms%alat3=alat3d0
   else if (atoms%units == 'reduced') then
      !assume that for reduced coordinates cell size is in bohr
-     atoms%alat1=real(alat1,gp)
-     atoms%alat2=real(alat2,gp)
-     atoms%alat3=real(alat3,gp)
+     atoms%alat1=alat1d0
+     atoms%alat2=alat2d0
+     atoms%alat3=alat3d0
   else
      write(*,*) 'length units in input file unrecognized'
      write(*,*) 'recognized units are angstroem or atomic = bohr'
@@ -1527,7 +1797,11 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   atoms%ntypes=0
   do iat=1,atoms%nat
      !xyz input file, allow extra information
-     read(ifile,'(a150)')line 
+     call getLine(line, ifile, eof)
+     if (eof) then
+        write(*,*) "Error: unexpected end of file."
+        stop
+     end if
      if (lpsdbl) then
         read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,extra
      else
@@ -1593,7 +1867,7 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
   atoms%atomnames(1:atoms%ntypes)=atomnames(1:atoms%ntypes)
-END SUBROUTINE read_atomic_positions
+END SUBROUTINE read_xyz_positions
 
 
 !>    Check the position of atoms
@@ -1767,21 +2041,28 @@ contains
 END SUBROUTINE parse_extra_info
 
 
-!>    Read atomic positions of ascii files.
-subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
+!> Read atomic positions of ascii files.
+subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
+  interface
+     subroutine getline(line,ifile,eof)
+       integer, intent(in) :: ifile
+       character(len=150), intent(out) :: line
+       logical, intent(out) :: eof
+     end subroutine getline
+  end interface
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl, reduced
+  logical :: lpsdbl, reduced, eof
   integer :: iat,ityp,i,i_stat,j,nlines
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
@@ -1794,22 +2075,20 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   ! First pass to store the file in a string buffer.
   nlines = 1
   do
-     read(ifile,'(a150)', iostat = i_stat) lines(nlines)
-     if (i_stat /= 0) then
+     call getline(lines(nlines), ifile, eof)
+     if (eof) then
         exit
      end if
      nlines = nlines + 1
      if (nlines > 5000) then
-        !if (iproc==0) 
-        write(*,*) 'Atomic input file too long (> 5000 lines).'
+        if (iproc==0) write(*,*) 'Atomic input file too long (> 5000 lines).'
         stop 
      end if
   end do
   nlines = nlines - 1
 
   if (nlines < 4) then
-     !if (iproc==0) 
-      write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
+     if (iproc==0) write(*,*) 'Error in ASCII file format, file has less than 4 lines.'
      stop 
   end if
 
@@ -1846,8 +2125,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
 
-  !controls if the positions are provided with machine precision
-  if (index(atoms%units, 'd0') > 0) then
+  !controls if the positions are provided within machine precision
+  if (index(atoms%units, 'd0') > 0 .or. reduced) then
      lpsdbl=.true.
   else
      lpsdbl=.false.
@@ -1890,21 +2169,8 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
      atoms%alat2 = real(alat3,gp)
      atoms%alat3 = real(alat6,gp)
   end if
-  if (atoms%geocode == 'S') then
-     atoms%alat2 = 0.0_gp
-  else if (atoms%geocode == 'F') then
-     atoms%alat1 = 0.0_gp
-     atoms%alat2 = 0.0_gp
-     atoms%alat3 = 0.0_gp
-  end if
   
-  !reduced coordinates are possible only with periodic units
-  if (reduced .and. atoms%geocode /= 'P') then
-     if (iproc==0) write(*,'(1x,a)')&
-          'ERROR: Reduced coordinates are only allowed with fully periodic BC'
-  end if
-
-  !convert the values of the cell sizes in bohr
+  !Convert the values of the cell sizes in bohr
   if (atoms%units=='angstroem' .or. atoms%units=='angstroemd0') then
      ! if Angstroem convert to Bohr
      atoms%alat1 = atoms%alat1 / bohr2ang
@@ -1979,6 +2245,14 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
      end if
   enddo
 
+  if (atoms%geocode == 'S') then
+     atoms%alat2 = 0.0_gp
+  else if (atoms%geocode == 'F') then
+     atoms%alat1 = 0.0_gp
+     atoms%alat2 = 0.0_gp
+     atoms%alat3 = 0.0_gp
+  end if
+
   !now that ntypes is determined allocate atoms%atomnames and copy the values
   allocate(atoms%atomnames(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%atomnames,'atoms%atomnames',subname)
@@ -2017,6 +2291,8 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
 
+  character(len = 15) :: arFile
+
   if (atoms%format == "xyz") then
      call wtxyz(filename,energy,rxyz,atoms,comment)
   else if (atoms%format == "ascii") then
@@ -2024,6 +2300,14 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
   else
      write(*,*) "Error, unknown file format."
      stop
+  end if
+  ! Add to archive
+  if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
+     write(arFile, "(A)") "posout.tar.bz2"
+     if (index(filename, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
+     call addToCompress(trim(arFile), len(trim(arFile)), &
+          & trim(filename)//'.'//trim(atoms%format), &
+          & len(trim(filename)//'.'//trim(atoms%format)))
   end if
 END SUBROUTINE write_atomic_file
 
@@ -2799,6 +3083,5 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      deallocate(nodename,stat=i_stat)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
-  print *,iproc,nproc,iproc_node,nproc_node
-     
+
 END SUBROUTINE processor_id_per_node

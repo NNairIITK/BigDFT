@@ -67,16 +67,16 @@ program BigDFT
      arr_posinp(1)='posinp'
   end if
 
-        open(unit=16,file='geopt.mon',status='unknown',position='append')
-        if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+  open(unit=16,file='geopt.mon',status='unknown',position='append')
+  if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
   do iconfig=1,nconfig
-
      !welcome screen
      if (iproc==0) call print_logo()
 
      ! Read all input files.
-     call read_input_variables(iproc,trim(arr_posinp(iconfig)), &
-          & "input.dft", "input.kpt","input.mix","input.geopt", "input.perf", inputs, atoms, rxyz)
+     !standard names
+     call standard_inputfile_names(inputs)
+     call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      if (iproc == 0) then
         call print_general_parameters(inputs,atoms)
      end if
@@ -111,7 +111,6 @@ program BigDFT
         inputs%last_run = 1
         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
      end if
-
 
      if (iproc == 0) then
         sumx=0.d0
@@ -153,7 +152,7 @@ program BigDFT
 
   deallocate(arr_posinp)
 
-  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
+  !wait all processes before finalisation
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   call MPI_FINALIZE(ierr)

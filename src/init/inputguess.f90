@@ -95,7 +95,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   !also for non-collinear case
   !nspin*noncoll is always <= 2
   call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-       & nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
+       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
      do ispin=1,nspin
@@ -2147,14 +2147,15 @@ subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
      end if
      !read the different atomic occupation numbers
      read(string(ist:min(ist+49,99)),*,iostat=ierror)(tmp(j),j=1,nspin*noncoll*(2*l-1))
-     do j=1,nspin*noncoll*(2*l-1)
-        call read_fraction_string_old(l,tmp(j),allocc(j,nl(l),l))
-     end do
      if (ierror /= 0) then
-        write(*,*)'An error occured while reading the electronic configuration. Check the correct spin value',&
+        write(*,*) 'Line:',string
+        write(*,*) 'An error occured while reading the electronic configuration. Check the correct spin value',&
              nspin,nspinor
         stop
      end if
+     do j=1,nspin*noncoll*(2*l-1)
+        call read_fraction_string_old(l,tmp(j),allocc(j,nl(l),l))
+     end do
   end do
 
   !put the values in the aocc array

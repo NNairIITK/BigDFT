@@ -60,8 +60,34 @@ module module_types
   integer, parameter :: occopt = SMEARING_DIST_ERF
 
 
+  !> Type used for the orthogonalisation parameter
+  type, public :: orthon_data
+     !> directDiag decides which input guess is chosen:
+     !!   if .true. -> as usual direct diagonalization of the Hamiltonian with dsyev (suitable for small systems)
+     !!   if .false. -> iterative diagonalization (suitable for large systems)
+     logical:: directDiag
+     !> norbpInguess indicates how many orbitals shall be treated by each process during the input guess
+     !! if directDiag=.false.
+     integer:: norbpInguess
+     !> You have to choose two numbers for the block size, bsLow and bsUp:
+     !!   if bsLow<bsUp, then the program will choose an appropriate block size in between these two numbers
+     !!   if bsLow==bsUp, then the program will take exactly this blocksize
+     integer:: bsLow, bsUp
+     !> the variable methOrtho indicates which orthonormalization procedure is used:
+     !!   methOrtho==0 -> Gram-Schmidt with Cholesky decomposition
+     !!   methOrtho==1 -> combined block wise classical Gram-Schmidt and Cholesky
+     !!   methOrtho==2 -> Loewdin
+     integer:: methOrtho
+     !> iguessTol gives the tolerance to which the input guess will converged (maximal
+     !! residue of all orbitals).
+     real(gp):: iguessTol
+  end type orthon_data
+
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
+     !strings of the input files
+     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix
+     !miscellaneous variables
      logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
@@ -102,6 +128,8 @@ module module_types
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
      real(gp) :: dtinit,dtmax !for FIRE
+     ! tddft vaiables from *.tddft
+     character(len=10) :: tddft_approach
 
      !> variable for material acceleration
      !! values 0: traditional CPU calculation
@@ -114,29 +142,8 @@ module module_types
      integer :: ncache_fft !< Cache size for FFT
      real(gp) :: projrad   !<coarse radius of the projectors in units of the maxrad
 
-     !> directDiag decides which input guess is chosen:
-     !!   if .true. -> as usual direct diagonalization of the Hamiltonian with dsyev (suitable for small systems)
-     !!   if .false. -> iterative diagonalization (suitable for large systems)
-     logical:: directDiag
-
-     !> norbpInguess indicates how many orbitals shall be treated by each process during the input guess
-     !! if directDiag=.false.
-     integer:: norbpInguess
-
-     !> You have to choose two numbers for the block size, bsLow and bsUp:
-     !!   if bsLow<bsUp, then the program will choose an appropriate block size in between these two numbers
-     !!   if bsLow==bsUp, then the program will take exactly this blocksize
-     integer:: bsLow, bsUp
-
-     !> the variable methOrtho indicates which orthonormalization procedure is used:
-     !!   methOrtho==0 -> Gram-Schmidt with Cholesky decomposition
-     !!   methOrtho==1 -> combined block wise classical Gram-Schmidt and Cholesky
-     !!   methOrtho==2 -> Loewdin
-     integer:: methOrtho
-
-     !> iguessTol gives the tolerance to which the input guess will converged (maximal
-     !! residue of all orbitals).
-     real(gp):: iguessTol
+     !orthogonalisation data
+     type(orthon_data) :: orthpar
 
      !> parallelisation scheme of the exact exchange operator
      !!   BC (Blocking Collective)
@@ -144,6 +151,10 @@ module module_types
      character(len=4) :: exctxpar
   end type input_variables
 
+  type, public :: energy_terms
+     real(gp) :: eh,exc,vxc,eion,edisp,ekin,epot,eproj,eexctX
+     real(gp) :: ebs,eKS,trH
+  end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations
 !!  Useful only for isolated systems AND in CPU
@@ -237,7 +248,7 @@ module module_types
 !> All the parameters which are important for describing the orbitals
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
+     integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
      real(wp), dimension(:), pointer :: eval
@@ -363,7 +374,7 @@ module module_types
      real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
      real(wp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
-     real(wp), dimension(:,:,:,:), pointer :: ads
+     real(wp), dimension(:,:,:,:,:,:), pointer :: ads
   end type diis_objects
 
 
@@ -371,21 +382,52 @@ contains
 
 
 !> Allocate diis objects
-  subroutine allocate_diis_objects(idsx,npsidim,nkptsp,diis,subname)
+  subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,norbd,diis,subname)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    integer, intent(in) :: idsx,npsidim,nkptsp
+    integer, intent(in) :: idsx,npsidim,nkptsp,nspinor,norbd
+    real(gp), intent(in) :: alphadiis
     type(diis_objects), intent(inout) :: diis
     !local variables
-    integer :: i_stat
+    integer :: i_stat,ncplx,ngroup
+
+    !calculate the number of complex components
+    if (nspinor > 1) then
+       ncplx=2
+    else
+       ncplx=1
+    end if
+
+    !always better to allow real combination of the wavefunctions
+    ncplx=1
+
+    !add the possibility of more than one diis group
+    ngroup=1
+
     allocate(diis%psidst(npsidim*idsx+ndebug),stat=i_stat)
     call memocc(i_stat,diis%psidst,'psidst',subname)
     allocate(diis%hpsidst(npsidim*idsx+ndebug),stat=i_stat)
     call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
-    allocate(diis%ads(idsx+1,idsx+1,nkptsp,3+ndebug),stat=i_stat)
+    allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
     call memocc(i_stat,diis%ads,'ads',subname)
-    call razero(nkptsp*3*(idsx+1)**2,diis%ads)
+    call razero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads)
+
+    !initialize scalar variables
+    !diis initialisation variables
+    diis%alpha=alphadiis
+    diis%alpha_max=alphadiis
+    diis%energy=1.d10
+    !minimum value of the energy during the minimisation procedure
+    diis%energy_min=1.d10
+    !previous value already fulfilled
+    diis%energy_old=diis%energy
+    !local variable for the diis history
+    diis%idsx=idsx
+    !logical control variable for switch DIIS-SD
+    diis%switchSD=.false.
+    
+
   END SUBROUTINE allocate_diis_objects
 
 

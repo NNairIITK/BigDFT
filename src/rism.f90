@@ -33,10 +33,9 @@ program rism
   nproc=1
 
   !initalise the varaibles for the calculation
-  !the centers may be more than the original atoms
-  !the pseudopotential for the dummy centers have to be provided
-  call read_input_variables(iproc,'centers', &
-       & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", in, atoms, rxyz)
+  !standard names
+  call standard_inputfile_names(in)
+  call read_input_variables(iproc,'posinp',in,atoms,rxyz)
   write(gridformat, "(A)") ""
   select case (in%output_grid_format)
      case (OUTPUT_GRID_FORMAT_ETSF)
@@ -878,7 +877,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
   isorb=ncoeff_par(iproc,2)
 
   !fake orbitals descriptor to calculate the wavelet expansion
-  call orbitals_descriptors(0,1,ncoeff_par(iproc,1),ncoeff_par(iproc,1),0,1,1,&
+  call orbitals_descriptors(0,1,ncoeff_par(iproc,1),ncoeff_par(iproc,1),0,1,1,1,&
        (/0.0_gp,0.0_gp,0.0_gp/),(/1.0_gp /),orbspswf)
 
   !allocate the wavefunctions in wavelets and in gaussians

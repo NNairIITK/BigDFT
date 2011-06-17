@@ -43,9 +43,8 @@ program oneatom
   nproc=1
 
   !initalise the variables for the calculation
-
-  call read_input_variables(iproc,'posinp', &
-       & "input.dft", "input.kpt","input.mix", "input.geopt", "input.perf", in, atoms, rxyz)
+  call standard_inputfile_names(in)
+  call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then
      call print_general_parameters(in,atoms)
@@ -126,9 +125,8 @@ program oneatom
   ! allocate arrays necessary for DIIS convergence acceleration
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
-  if (in%idsx > 0) then
-     call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)  
-  endif
+  call allocate_diis_objects(in%idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
+       orbs%nkptsp,orbs%nspinor,orbs%norbd,diis,subname)  
 
   !write the local potential in pot_ion array
   call createPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
@@ -163,7 +161,7 @@ program oneatom
   !transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,&
        psi,work=hpsi)
-  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi,in)
+  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi,in%orthpar)
   !untranspose psi
   call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi,work=hpsi)
 
@@ -179,14 +177,11 @@ program oneatom
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
-  !minimum value of the energy during the minimisation procedure
-  energy_min=1.d10
-  !local variable for the diis history
-  idsx_actual=in%idsx
+
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
-  idsx_actual_before=idsx_actual
+  idsx_actual_before=diis%idsx
 
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
@@ -234,8 +229,7 @@ program oneatom
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
 
-     call hpsitopsi(iproc,nproc,orbs,in%hx,in%hy,in%hz,Glr,comms,in%ncong,&
-          iter,diis,in%idsx,gnrm,gnrm_zero,scprsum,psi,psit,hpsi,in%nspin,GPU,in)
+     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%nspin,in%orthpar)
 
      write(itername,'(i4.4)')iter
      call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
@@ -262,9 +256,7 @@ program oneatom
   call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
        comms,psi,hpsi,psit,evsum)
   
-  if (in%idsx > 0) then
-     call deallocate_diis_objects(diis,subname)
-  end if
+  call deallocate_diis_objects(diis,subname)
 
   if (nproc > 1) then
      i_all=-product(shape(psit))*kind(psit)
@@ -869,9 +861,11 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   character(len=*), parameter :: subname='plot_wf'
   integer :: i_stat,i_all
   integer :: nl1,nl2,nl3,n1i,n2i,n3i,n1,n2,n3,i1,i2,i3,nu1,nu2,nu3,iat
-  real(gp) :: x,y,z
+  real(gp) :: x,y,z,maxval
   type(workarr_sumrho) :: w
-  real(wp), dimension(:,:,:), allocatable :: psir
+  real(wp), dimension(:), allocatable :: psi2
+  real(wp), dimension(:,:,:), allocatable :: psir,psir2
+
 
   n1=lr%d%n1
   n2=lr%d%n2
@@ -911,8 +905,54 @@ subroutine plot_wf_oneatom(orbname,nexpo,at,lr,hxh,hyh,hzh,rxyz,psi,comment)
   if (lr%geocode == 'F') then
      call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
   end if
- 
+
+  allocate(psi2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f+ndebug),stat=i_stat)
+  call memocc(i_stat,psi2,'psi2',subname)
+  allocate(psir2(-nl1:2*n1+1+nu1,-nl2:2*n2+1+nu2,-nl3:2*n3+1+nu3+ndebug),stat=i_stat)
+  call memocc(i_stat,psir2,'psir2',subname)
+
+  print *,'normDaub',dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi(1),1,psi(1),1)
+  
   call daub_to_isf(lr,w,psi,psir)
+
+  print *,'normISF',dot(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir(-nl1,-nl2,-nl3),1)
+
+  call dcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
+  call isf_to_daub(lr,w,psir2,psi2)
+  !psir2 is destroyed
+  call dcopy(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir2(-nl1,-nl2,-nl3),1)
+
+  print *,'normDaub2',dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psi2(1),1,psi2(1),1)
+
+  call daub_to_isf(lr,w,psi2,psir)
+
+  print *,'normISF2',dot(n1i*n2i*n3i,psir(-nl1,-nl2,-nl3),1,psir(-nl1,-nl2,-nl3),1)
+
+  maxval=0.0_wp
+  do i3=-nl3,2*n3+1+nu3
+     do i2=-nl2,2*n2+1+nu2
+        do i1=-nl1,2*n1+1+nu1
+           maxval=max(maxval,abs(psir(i1,i2,i3)-psir2(i1,i2,i3)))
+         end do
+     end do
+  end do
+  print *,'maxvalISF',maxval
+
+  maxval=0.0_wp
+  do i3=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+     maxval=max(maxval,abs(psi(i3)-psi2(i3)))
+  end do
+  print *,'maxvalDaub',maxval
+
+  i_all=-product(shape(psir2))*kind(psir2)
+  deallocate(psir2,stat=i_stat)
+  call memocc(i_stat,i_all,'psir2',subname)
+
+  i_all=-product(shape(psi2))*kind(psi2)
+  deallocate(psi2,stat=i_stat)
+  call memocc(i_stat,i_all,'psi2',subname)
+
+  stop
 
   do iat=1,at%nat
 

@@ -10,6 +10,7 @@ PSPS = psppar.H \
        HGH/psppar.O \
        HGH/psppar.Si \
        HGH/psppar.Fe \
+       HGH/psppar.Mg \
        HGH-K/psppar.H \
        HGH-K/psppar.Si \
        HGH-K/psppar.N \
@@ -24,14 +25,15 @@ TESTDIRS = C \
 	  NH3 \
 	  NaCl \
 	  Ca2 \
-	  Mn2 \
 	  H2O-CP2K \
 	  SiBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
 	  TiMix \
 	  O2-Spin \
-	  FeHyb 
+	  GEOPT-BFGS \
+	  GEOPT-LBFGS 
+
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
   TESTDIRS += GPU
@@ -39,8 +41,9 @@ endif
 if USE_OCL
   TESTDIRS += OCL
 else
-#Add H  and Graphene only if we do not use OCL (see README)
-  TESTDIRS += H Graphene
+#Add H (box too small) and Graphene (different algorithm) only if we do not use OCL (see README)
+#OCL not implemented with spin=4 (Fehyb and Mn2)
+  TESTDIRS += H Graphene FeHyb Mn2
 endif
 
 # Give here the pseudo-potentials used by each test.
@@ -63,6 +66,8 @@ FeHyb.psp: HGH/psppar.Fe
 GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
+GEOPT-BFGS.psp: HGH/psppar.Mg
+GEOPT-LBFGS.psp: HGH/psppar.Mg
 
 # Additional rules.
 H2O-slab.post-in:
@@ -103,9 +108,11 @@ report:
         esac ; \
         case $* in \
           Ca2.out*) prec="4.e-10" ;; \
-          Davidson-SiH4.out*) prec="4.e-9" ;; \
+          Davidson-SiH4.out*) prec="1.e-8" ;; \
           NaCl.out*) prec="2.e-8" ;; \
           SiBulk.out*) prec="2.e-7" ;; \
+          GEOPT-BFGS.out*) prec="4.e-9" ;; \
+          GEOPT-LBFGS.out*) prec="4.e-9" ;; \
           SiH4.out*) prec="1.5e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
@@ -194,3 +201,35 @@ EXTRA_DIST = \
 	inguess.dat \
         $(TESTDIRS) \
         GPU OCL
+
+# Avoid copying in dist the builddir files.
+distdir: $(DISTFILES)
+	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
+	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
+	list='$(DISTFILES)'; \
+	  dist_files=`for file in $$list; do echo $$file; done | \
+	  sed -e "s|^$$srcdirstrip/||;t" \
+	      -e "s|^$$topsrcdirstrip/|$(top_builddir)/|;t"`; \
+	case $$dist_files in \
+	  */*) $(MKDIR_P) `echo "$$dist_files" | \
+			   sed '/\//!d;s|^|$(distdir)/|;s,/[^/]*$$,,' | \
+			   sort -u` ;; \
+	esac; \
+	for file in $$dist_files; do \
+	  d=$(srcdir); \
+	  if test -d $$d/$$file; then \
+	    dir=`echo "/$$file" | sed -e 's,/[^/]*$$,,'`; \
+	    if test -d "$(distdir)/$$file"; then \
+	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
+	    fi; \
+	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then \
+	      cp -fpR $(srcdir)/$$file "$(distdir)$$dir" || exit 1; \
+	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
+	    fi; \
+	    cp -fpR $$d/$$file "$(distdir)$$dir" || exit 1; \
+	  else \
+	    test -f "$(distdir)/$$file" \
+	    || cp -p $$d/$$file "$(distdir)/$$file" \
+	    || exit 1; \
+	  fi; \
+	done

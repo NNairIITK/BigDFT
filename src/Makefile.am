@@ -39,7 +39,7 @@ endif
 if USE_OCL
 sub_dirs_ocl=OpenCL
 OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
-libs_ocl=OpenCL/libOCL.a
+libs_ocl=OpenCL/libOCL.a -lstdc++
 else
 sub_dirs_ocl=
 OCL_INTERFACE = convolutions/interface_ocl_fake.f90
@@ -85,11 +85,10 @@ global_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) \
-	$(libs_ocl)
+	$(libs_opt)
 # Hack to avoid global.f90 inclusion into make dist.
 am_global_OBJECTS = global.$(OBJEXT)
-global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
+global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
@@ -102,7 +101,8 @@ EXTRA_DIST = \
 	NEB_driver.sh 
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
-	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @LIBETSFIO_INCLUDE@
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
+	@LIBETSFIO_INCLUDE@ @LIB_ARCHIVE_CFLAGS@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -184,7 +184,8 @@ high_level = cluster.f90 \
 	lanczos_base.f90 \
 	lanczos.f90 \
 	scfloop_API.f90 \
-	esatto.f90
+	esatto.f90 \
+	tddft.f90
 
 #objects which can be compiled only with module_base
 low_level = init/projectors.f90  \
@@ -214,6 +215,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
+	lib/lbfgs.f90 \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
@@ -223,6 +225,9 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
+	posfiles.c \
+	sdcg.f90 \
+	bfgs.f90 \
 	$(DGEMMSY_INTERFACE)
 
 libbigdft_a_SOURCES = \
@@ -242,6 +247,7 @@ bigdft_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 splsad_SOURCES = splinedsaddle.f90
@@ -250,6 +256,7 @@ splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
@@ -258,6 +265,7 @@ rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
  
 oneatom_SOURCES = oneatom.f90
@@ -266,6 +274,7 @@ oneatom_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 
@@ -275,6 +284,7 @@ MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)  
 
 abscalc_SOURCES = abscalc.f90 
@@ -283,6 +293,7 @@ abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 test_forces_SOURCES = test_forces.f90
@@ -291,6 +302,7 @@ test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 NEB_SOURCES = NEB.f90 \
@@ -298,6 +310,7 @@ NEB_SOURCES = NEB.f90 \
 NEB_LDFLAGS = 
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
@@ -306,6 +319,7 @@ memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
@@ -315,19 +329,24 @@ frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 bart_SOURCES = \
-	art/bigdft_forces.f90 \
-	art/art_step.f90 \
-	art/initialize_potential.f90 \
-	art/art_lanczos.f90 \
-	art/find_saddle.f90 \
-	art/min_converge.f90 \
-	art/saddle_converge.f90 \
-	art/initialize.f90 \
-	art/read_parameters.f90 \
-	art.f90
+        art/bigdft_forces.f90 \
+        art/art_step.f90 \
+        art/calcforce.f90\
+        art/calcfo_sw.f90\
+        art/neighbour.f90\
+        art/initialize_potential.f90 \
+        art/art_lanczos.f90 \
+        art/find_saddle.f90 \
+        art/min_converge.f90 \
+        art/saddle_converge.f90 \
+        art/initialize.f90 \
+        art/bayes.f90 \
+        art/read_parameters.f90 \
+        art.f90
 bart_FCFLAGS = -I. -Iart -Imodules @LIBABINIT_INCLUDE@
 bart_LDFLAGS = 
 bart_LDADD = art/libart.a \
@@ -335,6 +354,7 @@ bart_LDADD = art/libart.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 CLEANFILES = \
@@ -342,6 +362,7 @@ CLEANFILES = \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
+	module_defs.@MODULE_EXT@ MODULE_DEFS.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
 	esatto.@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
@@ -359,7 +380,10 @@ CLEANFILES = \
 	lanczos_defs.@MODULE_EXT@ LANCZOS_DEFS.@MODULE_EXT@ \
 	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
 	minpar.@MODULE_EXT@ MINPAR.@MODULE_EXT@ \
-	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@
+	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@ \
+	minimization_sp.@MODULE_EXT@ MINIMIZATION_SP.@MODULE_EXT@ \
+	modulesplinedsaddle.@MODULE_EXT@ MODULESPLINEDSADDLE.@MODULE_EXT@ \
+	randomdata.@MODULE_EXT@ RANDOMDATA.@MODULE_EXT@ 
 
 
 check:
@@ -405,6 +429,18 @@ bart-art.o: art.f90 art/defs.o art/random.o bart-art_lanczos.o
 bart-bigdft_forces.o: art/bigdft_forces.f90 BigDFT_API.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-bigdft_forces.o `test -f 'art/bigdft_forces.f90' || echo '$(srcdir)/'`art/bigdft_forces.f90
 
+bart-bayes.o: art/bayes.f90 art/defs.o art/random.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-bayes.o `test -f 'art/bayes.f90' || echo '$(srcdir)/'`art/bayes.f90
+
+bart-calcforce.o: art/calcforce.f90 art/defs.o bart-bigdft_forces.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-calcforce.o `test -f 'art/calcforce.f90' || echo '$(srcdir)/'`art/calcforce.f90
+
+bart-calcfo_sw.o: art/calcfo_sw.f90 art/defs.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-calcfo_sw.o `test -f 'art/calcfo_sw.f90' || echo '$(srcdir)/'`art/calcfo_sw.f90
+
+bart-neighbour.o: art/neighbour.f90 bart-calcfo_sw.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-neighbour.o `test -f 'art/neighbour.f90' || echo '$(srcdir)/'`art/neighbour.f90
+
 bart-find_saddle.o: art/find_saddle.f90 art/defs.o art/random.o bart-art_lanczos.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-find_saddle.o `test -f 'art/find_saddle.f90' || echo '$(srcdir)/'`art/find_saddle.f90
 
@@ -414,14 +450,14 @@ bart-initialize_potential.o: art/initialize_potential.f90 art/defs.o bart-bigdft
 bart-art_lanczos.o: art/art_lanczos.f90 art/defs.o art/random.o bart-bigdft_forces.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_lanczos.o `test -f 'art/art_lanczos.f90' || echo '$(srcdir)/'`art/art_lanczos.f90
 
-bart-min_converge.o: art/min_converge.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o
+bart-min_converge.o: art/min_converge.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o bart-bayes.o bart-find_saddle.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-min_converge.o `test -f 'art/min_converge.f90' || echo '$(srcdir)/'`art/min_converge.f90
 
-bart-saddle_converge.o: art/saddle_converge.f90 art/defs.o bart-bigdft_forces.o bart-find_saddle.o bart-art_lanczos.o  bart-art_step.o
+bart-saddle_converge.o: art/saddle_converge.f90 art/defs.o bart-bigdft_forces.o bart-find_saddle.o art/random.o bart-art_lanczos.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-saddle_converge.o `test -f 'art/saddle_converge.f90' || echo '$(srcdir)/'`art/saddle_converge.f90
 
-bart-art_step.o: art/art_step.f90 art/defs.o bart-bigdft_forces.o bart-art_lanczos.o  bart-find_saddle.o
-	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_step.o `test -f 'art/art_step.f90' || echo '$(srcdir)/'`art/art_step.f90
+bart-art_diis.o: art/art_diis.f90 art/defs.o bart-bigdft_forces.o art/random.o
+	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-art_diis.o `test -f 'art/art_diis.f90' || echo '$(srcdir)/'`art/art_diis.f90
 
 bart-initialize.o: art/initialize.f90 art/defs.o bart-art_lanczos.o
 	$(FC) $(bart_FCFLAGS) $(FCFLAGS) -c -o bart-initialize.o `test -f 'art/initialize.f90' || echo '$(srcdir)/'`art/initialize.f90

@@ -146,9 +146,11 @@ subroutine bigdft_init( nat, me_, my_gnrm,passivate,total_nb_atoms )
      call copy_atoms_object(atoms_all,at,rxyz,natoms_calcul,total_nb_atoms,posquant)
      call initialize_atomic_file(me_,at,rxyz)
   endif
+                                      !standard names
+  call standard_inputfile_names(in)
                                       ! Read inputs.
-  call read_input_parameters( me_, "input.dft",  &
-       & "input.kpt", "input.mix", "input.geopt", "input.perf", in, at, rxyz )
+  call read_input_parameters(me_, in, at, rxyz)
+
                                       ! Transfer at data to ART variables.
   gnrm_l = in%gnrm_cv
   if ( my_gnrm == 1 ) then 
