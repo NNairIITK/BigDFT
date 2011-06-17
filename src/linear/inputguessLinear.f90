@@ -506,8 +506,8 @@ type(linearParameters),intent(in):: lin
 
 ! Local variables
 integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, ierr, infoCoeff, k, l,it, iiAt, jjAt
-real(8),dimension(:),allocatable:: alpha
-real(8),dimension(:,:),allocatable:: ovrlp, ovrlpTemp, coeffTemp
+real(8),dimension(:),allocatable:: alpha, coeffTemp
+real(8),dimension(:,:),allocatable:: ovrlp, ovrlpTemp
 real(8),dimension(:,:),allocatable:: coeff, grad, gradOld, lagMat, ovrlpLarge, coeffOld
 real(8),dimension(:,:,:),allocatable:: Ham, tempArr
 real(8),dimension(:),pointer:: chiw
@@ -520,6 +520,7 @@ real(4):: ttreal
 real(8),dimension(:),allocatable:: work, eval, evals
 real(8),dimension(:,:),allocatable:: tempMat
 integer:: lwork, ii, info, iiAtprev
+type(inguessParameters):: ip
 
   if(iproc==0) write(*,'(x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
@@ -578,6 +579,51 @@ integer:: lwork, ii, info, iiAtprev
 !!end do
 
 
+  ! initialize the parameters for performing tha calculations in parallel.
+  call initializeInguessParameters(iproc, nproc, orbs, orbsig, ip)
+
+  allocate(coeffTemp(max(ip%norbtotPad*ip%norb_par(iproc), ip%nvctrp*ip%norb)))
+  do ii=1,orbsig%isorb*ip%norbtotPad
+      call random_number(ttreal)
+  end do
+  coeffTemp=0.d0
+  ii=0
+  do iorb=1,ip%norb_par(iproc)
+      do jorb=1,ip%norbtot
+          ii=ii+1
+          call random_number(ttreal)
+          coeffTemp((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
+          !coeffTemp((iorb-1)*ip%norbtotPad+jorb)=dble(100*iproc+ii)
+          !coeffTemp((iorb-1)*ip%norbtotPad+jorb)=coeff(jorb,iorb)
+      end do
+  end do
+write(2000+iproc,*) coeffTemp
+
+  call transposeInguess(iproc, ip, coeffTemp)
+write(2100+iproc,*) coeffTemp
+write(*,'(a,4i9)') 'ip%norbtotPad, ip%norb_par(iproc); ip%nvctrp, ip%norb', ip%norbtotPad, ip%norb_par(iproc), ip%nvctrp, ip%norb
+  call orthonormalizeCoefficients_parallel(iproc, ip, coeffTemp)
+write(2200+iproc,*) coeffTemp
+  call untransposeInguess(iproc, ip, coeffTemp)
+write(2300+iproc,*) coeffTemp
+
+  ! test
+  allocate(ovrlp(ip%norb,ip%norb))
+  call transposeInguess(iproc, ip, coeffTemp)
+  do iorb=1,ip%norb
+      do jorb=1,ip%norb
+          !ovrlp(iorb,jorb)=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+          ovrlp(iorb,jorb)=ddot(ip%nvctrp_nz(iproc), coeffTemp((iorb-1)*ip%nvctrp+1), 1, coeffTemp((jorb-1)*ip%nvctrp+1), 1)
+      end do
+  end do
+  call mpiallred(ovrlp(1,1), ip%norb**2, mpi_sum, mpi_comm_world, ierr)
+  do iorb=1,ip%norb
+      do jorb=1,ip%norb
+          write(5000+iproc,*) jorb, iorb, ovrlp(jorb,iorb)
+      end do
+  end do
+  call mpi_barrier(mpi_comm_world, ierr)
+  stop
 
 
   processIf: if(iproc==0) then
@@ -622,6 +668,16 @@ integer:: lwork, ii, info, iiAtprev
     !!deallocate(tempMat)
     !!deallocate(eval)
     !!deallocate(work)
+
+
+    !! ###############################################################
+    ! Initialize the parameters for doing the minimization in parallel.
+
+
+
+
+
+    
 
 
     
@@ -1120,3 +1176,358 @@ deallocate(solc, stat=istat)
 call memocc(istat, iall, 'solc', subname)
 
 end subroutine preconditionGradient
+
+
+
+
+subroutine transposeInguess(iproc, ip, chi)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc
+type(inguessParameters),intent(in):: ip
+real(8),dimension(ip%norbtotPad*ip%norb_par(iproc)),intent(inout):: chi
+
+! Local variables
+integer:: ii, jj, jproc, iorb, j, ierr, istat, iall
+real(8),dimension(:),allocatable:: chiw
+character(len=*),parameter:: subname='transposeInguess'
+
+
+  ! Allocate the work array.
+  allocate(chiw(ip%sizeWork), stat=istat)
+  call memocc(istat, chiw, 'chiw', subname)
+  chiw=0.d0
+  
+  ! Rearranges the elements on the processor to enable the transposition with only one call
+  ! to mpi_alltoallv.
+  jj=1
+  ii=0
+  do jproc=0,ip%nproc-1
+     do iorb=0,ip%norb_par(iproc)-1
+        ! Copy the non-zero parts
+        write(*,'(a,6i8)') 'iproc, jproc, iorb, ii, ip%norbtotPad, ii+iorb*ip%norbtotPad+1', iproc, jproc, iorb, ii, ip%norbtotPad, ii+iorb*ip%norbtotPad+1
+        call dcopy(ip%nvctrp_nz(jproc), chi(ii+iorb*ip%norbtotPad+1), 1, chiw(jj), 1)
+        jj=jj+ip%nvctrp_nz(jproc)
+        do j=ip%nvctrp_nz(jproc)+1,ip%nvctrp
+           ! "Copy" the zeros. This happens only if ip%nvctrp_nz(jproc) < ip%nvctrp
+           chiw(jj)=0.d0
+           jj=jj+1
+        end do
+     end do
+     ii=ii+ip%nvctrp_nz(jproc)
+  end do
+write(2010+iproc,*) chiw
+
+  ! Communicate the vectors.
+write(*,'(a,i3,3x,100i6)') 'iproc, ip%sendcounts', iproc, ip%sendcounts
+call mpi_barrier(mpi_comm_world, ierr)
+write(*,'(a,i3,3x,100i6)') 'iproc, ip%senddispls', iproc, ip%senddispls
+call mpi_barrier(mpi_comm_world, ierr)
+write(*,'(a,i3,3x,100i6)') 'iproc, ip%recvcounts', iproc, ip%recvcounts
+call mpi_barrier(mpi_comm_world, ierr)
+write(*,'(a,i3,3x,100i6)') 'iproc, ip%recvdispls', iproc, ip%recvdispls
+call mpi_barrier(mpi_comm_world, ierr)
+write(*,*) 'before alltoallv, iproc', iproc
+  call mpi_alltoallv(chiw(1), ip%sendcounts, ip%senddispls, mpi_double_precision, chi(1), &
+       ip%recvcounts, ip%recvdispls, mpi_double_precision, mpi_comm_world, ierr)
+write(*,*) 'after alltoallv, iproc', iproc
+call mpi_barrier(mpi_comm_world, ierr)
+write(2020+iproc,*) chi
+
+  ! Dellocate the work array.
+  iall=-product(shape(chiw))*kind(chiw)
+  deallocate(chiw, stat=istat)
+  call memocc(istat, iall, 'chiw', subname)
+
+end subroutine transposeInguess
+
+
+
+
+
+subroutine untransposeInguess(iproc, ip, chi)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc
+type(inguessParameters),intent(in):: ip
+real(8),dimension(ip%norbtotPad*ip%norb_par(iproc)),intent(inout):: chi
+
+! Local variables
+integer:: ii, jj, jproc, iorb, istat, iall, ierr
+real(8),dimension(:),allocatable:: chiw
+character(len=*),parameter:: subname='untransposeInguess'
+
+
+  ! Allocate the work array.
+  allocate(chiw(ip%sizeWork), stat=istat)
+  call memocc(istat, chiw, 'chiw', subname)
+
+  ! Communicate the data.
+  call mpi_alltoallv(chi(1), ip%recvcounts, ip%recvdispls, mpi_double_precision, chiw(1), &
+       ip%sendcounts, ip%senddispls, mpi_double_precision, mpi_comm_world, ierr)
+write(2030+iproc,*) chiw
+
+  ! Rearrange back the elements.
+  chi=0.d0
+  ii=0
+  jj=1
+  do jproc=0,ip%nproc-1
+     do iorb=0,ip%norb_par(iproc)-1
+        call dcopy(ip%nvctrp, chiw(jj), 1, chi(ii+iorb*ip%norbtotPad+1), 1)
+        jj=jj+ip%nvctrp
+     end do
+     ii=ii+ip%nvctrp_nz(jproc)
+  end do
+
+     !!ii=0
+     !!jj=1
+     !!do i=nprocSt,nprocSt+nproc-1
+     !!   do iorb=0,norbp-1
+     !!      call dcopy(norbtotp*nspinor, psiW(jj), 1, psi(ii+iorb*norbtot*nspinor+1), 1)
+     !!      jj=jj+norbtotp*nspinor
+     !!   end do
+     !!   ii=ii+norbtotpArr(i)*nspinor
+     !!end do
+
+
+  ! Dellocate the work array.
+  iall=-product(shape(chiw))*kind(chiw)
+  deallocate(chiw, stat=istat)
+  call memocc(istat, iall, 'chiw', subname)
+
+end subroutine untransposeInguess
+
+
+
+
+subroutine initializeInguessParameters(iproc, nproc, orbs, orbsig, ip)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs, orbsig
+type(inguessParameters),intent(out):: ip
+
+! Local variables
+integer:: ii, kk, jproc, istat, ierr
+real(8):: tt
+character(len=*),parameter:: subname='initializeInguessParameters'
+
+
+  ip%nproc=nproc
+  ip%norb=orbs%norb
+  ip%norbtot=orbsig%norb
+
+  ! In order to symplify the transposing/untransposing, the orbitals are padded with zeros such that 
+  ! they can be distributed evenly over all processes when being transposed. The new length of the 
+  ! orbitals after this padding is then given by ip%norbtotPad.
+  ip%norbtotPad=ip%norbtot
+  do
+      if(mod(ip%norbtotPad, ip%nproc)==0) exit
+      ip%norbtotPad=ip%norbtotPad+1
+  end do
+
+  ! Distribute the orbitals among the processes.
+  allocate(ip%norb_par(0:ip%nproc-1), stat=istat)
+  call memocc(istat, ip%norb_par, 'ip%norb_par', subname)
+  ip%norb_par=0
+  tt=dble(ip%norb)/dble(ip%nproc)
+  ii=floor(tt)
+  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
+  ip%norb_par(0:ip%nproc-1)=ii
+  kk=ip%norb-ip%nproc*ii
+  ip%norb_par(0:kk-1)=ii+1
+
+  ! Calculate the number of elements that each process has when the vectors are transposed.
+  ! nvctrp is the total number, nvctrp_nz is the nonzero numbers.
+  allocate(ip%nvctrp_nz(0:ip%nproc-1), stat=istat)
+  call memocc(istat, ip%nvctrp_nz, 'ip%nvctrp_nz', subname)
+  tt=ip%norbtot/dble(ip%nproc)
+  ii=floor(tt)
+  ! ii is now the number of elements that every process has. Distribute the remaining ones.
+  ip%nvctrp_nz=ii
+  kk=ip%norbtot-ip%nproc*ii
+  ip%nvctrp_nz(0:kk-1)=ii+1
+  ! Check wheter this distribution is correct
+  ii=0
+  do jproc=0,ip%nproc-1
+     ii=ii+ip%nvctrp_nz(jproc)
+  end do
+  if(ii/=ip%norbtot) then
+     if(iproc==0) write(*,'(3x,a)') 'ERROR: wrong partition of ip%norbtot!'
+     call mpi_barrier(mpi_comm_world, ierr)
+     stop
+  end if
+
+  ! With the padded zeros, the elemts can be distributed evenly.
+  ip%nvctrp=ip%norbtotPad/ip%nproc
+
+  ! Define the values for the mpi_alltoallv.
+  ! sendcounts: number of elements that a given  process sends to another process.
+  ! senddispls: offset of the starting index on a given process for the send operation to another process.
+  allocate(ip%sendcounts(0:ip%nproc-1), stat=istat)
+  call memocc(istat, ip%sendcounts, 'ip%sendcounts', subname)
+  allocate(ip%senddispls(0:ip%nproc-1), stat=istat)
+  call memocc(istat, ip%senddispls, 'ip%senddispls', subname)
+  ii=0
+  do jproc=0,ip%nproc-1
+      ip%sendcounts(jproc)=ip%nvctrp*ip%norb_par(iproc)
+      ip%senddispls(jproc)=ii
+      ii=ii+ip%sendcounts(jproc)
+  end do
+  ! recvcounts: number of elements that a given process receives from another process.
+  ! recvdispls: offset of the starting index on a given process for the receive operation from another process.
+  allocate(ip%recvcounts(0:ip%nproc-1), stat=istat)
+  call memocc(istat, ip%recvcounts, 'ip%recvcounts', subname)
+  allocate(ip%recvdispls(0:ip%nproc-1), stat=istat)
+  call memocc(istat, ip%recvdispls, 'ip%recvdispls', subname)
+  ii=0
+  do jproc=0,ip%nproc-1
+      ip%recvcounts(jproc)=ip%nvctrp*ip%norb_par(jproc)
+      ip%recvdispls(jproc)=ii
+      ii=ii+ip%recvcounts(jproc)
+  end do
+
+  ! Determine the size of the work array needed for the transposition.
+  ip%sizeWork=max(ip%norbtotPad*ip%norb_par(iproc),sum(ip%recvcounts(:)))
+
+end subroutine initializeInguessParameters
+
+
+
+
+
+subroutine orthonormalizeCoefficients_parallel(iproc, ip, coeff)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc
+type(inguessParameters),intent(in):: ip
+real(8),dimension(ip%nvctrp,ip%norb),intent(inout):: coeff
+
+! Local variables
+integer:: iorb, jorb, istat, iall, lwork, info, ierr
+real(8),dimension(:),allocatable:: work, eval
+real(8),dimension(:,:),allocatable:: ovrlp, coeffTemp
+real(8),dimension(:,:,:),allocatable:: tempArr
+character(len=*),parameter:: subname='orthonormalizeCoefficients'
+real(8):: ddot
+
+write(2900+iproc,*) coeff
+
+        allocate(ovrlp(ip%norb,ip%norb), stat=istat)
+        call memocc(istat, ovrlp, 'ovrlp', subname)
+        allocate(eval(ip%norb), stat=istat)
+        call memocc(istat, eval, 'eval', subname)
+        allocate(tempArr(ip%norb,ip%norb,2), stat=istat)
+        call memocc(istat, tempArr, 'tempArr', subname)
+        allocate(coeffTemp(ip%nvctrp,ip%norb), stat=istat)
+        call memocc(istat, coeffTemp, 'coeffTemp', subname)
+
+
+        !!! Orthonormalize the coefficient vectors (Gram-Schmidt).
+        !!do iorb=1,orbs%norb
+        !!    do jorb=1,iorb-1
+        !!        tt=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+        !!        call daxpy(orbsig%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
+        !!    end do
+        !!    tt=dnrm2(orbsig%norb, coeff(1,iorb), 1)
+        !!    call dscal(orbsig%norb, 1/tt, coeff(1,iorb), 1)
+        !!end do
+
+
+        ! Orthonormalize the coefficient vectors (Loewdin).
+        do iorb=1,ip%norb
+            do jorb=1,ip%norb
+                !ovrlp(iorb,jorb)=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+                ovrlp(iorb,jorb)=ddot(ip%nvctrp_nz(iproc), coeff(1,iorb), 1, coeff(1,jorb), 1)
+            end do
+        end do
+
+        ! Sum up over all processes.
+        if(ip%nproc>1) call mpiallred(ovrlp(1,1), ip%norb**2, mpi_sum, mpi_comm_world, ierr)
+
+        do iorb=1,ip%norb
+            do jorb=1,ip%norb
+                if(abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))>1.d-10) stop 'not symmetric'
+                write(3000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+            end do
+        end do
+
+        !!allocate(work(1), stat=istat)
+        !!call memocc(istat, work, 'work', subname)
+        !!call dsyev('v', 'l', ip%norb, ovrlp(1,1), ip%norb, eval, work, -1, info)
+        !!lwork=work(1)
+        !!iall=-product(shape(work))*kind(work)
+        !!deallocate(work, stat=istat)
+        !!call memocc(istat, iall, 'work', subname)
+        lwork=100*ip%norb
+        allocate(work(lwork), stat=istat)
+        call memocc(istat, work, 'work', subname)
+        eval=555.55d0
+        call dsyev('v', 'l', ip%norb, ovrlp(1,1), ip%norb, eval, work, lwork, info)
+        if(info/=0) then
+            write(*,'(a,i0)') 'ERROR in dsyev, info=', info
+        end if
+        iall=-product(shape(work))*kind(work)
+        deallocate(work, stat=istat)
+        call memocc(istat, iall, 'work', subname)
+write(3050+iproc,*) eval
+write(3100+iproc,*) ovrlp
+
+        ! Calculate S^{-1/2}. 
+        ! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
+        ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
+        do iorb=1,ip%norb
+            do jorb=1,ip%norb
+                tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
+            end do
+        end do
+write(3200+iproc,*) tempArr(:,:,1)
+
+        ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
+        ! This will give S^{-1/2}.
+        call dgemm('n', 't', ip%norb, ip%norb, ip%norb, 1.d0, ovrlp(1,1), &
+             ip%norb, tempArr(1,1,1), ip%norb, 0.d0, &
+             tempArr(1,1,2), ip%norb)
+write(3300+iproc,*) tempArr(:,:,2)
+
+        ! Now calculate the orthonormal orbitals by applying S^{-1/2} to the orbitals.
+        ! This requires the use of a temporary variable phidTemp.
+        coeffTemp=0.d0
+        call dgemm('n', 'n', ip%nvctrp_nz(iproc), ip%norb, ip%norb, 1.d0, coeff(1,1), &
+             ip%nvctrp, tempArr(1,1,2), ip%norb, 0.d0, &
+             coeffTemp(1,1), ip%nvctrp)
+write(3400+iproc,*) coeffTemp
+        
+        ! Now copy the orbitals from the temporary variable to phid.
+        call dcopy(ip%norb*ip%nvctrp, coeffTemp(1,1), 1, coeff(1,1), 1)
+write(3500+iproc,*) coeff
+
+        iall=-product(shape(ovrlp))*kind(ovrlp)
+        deallocate(ovrlp, stat=istat)
+        call memocc(istat, iall, 'ovrlp', subname)
+
+        iall=-product(shape(eval))*kind(eval)
+        deallocate(eval, stat=istat)
+        call memocc(istat, iall, 'eval', subname)
+
+        iall=-product(shape(tempArr))*kind(tempArr)
+        deallocate(tempArr, stat=istat)
+        call memocc(istat, iall, 'tempArr', subname)
+
+        iall=-product(shape(coeffTemp))*kind(coeffTemp)
+        deallocate(coeffTemp, stat=istat)
+        call memocc(istat, iall, 'coeffTemp', subname)
+
+end subroutine orthonormalizeCoefficients_parallel

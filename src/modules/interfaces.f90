@@ -2461,6 +2461,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      !!end subroutine applyprojector
 
 
+     subroutine initializeInguessParameters(iproc, nproc, orbs, orbsig, ip)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs, orbsig
+       type(inguessParameters),intent(out):: ip
+     end subroutine initializeInguessParameters
+
+
 
   end interface
 

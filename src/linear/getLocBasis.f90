@@ -648,7 +648,7 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       if(iproc==0) write(*,'(x,a,es10.3)') 'time for preconditioning:', time/dble(nproc)
 
 !!do iorb=1,lin%orbs%npsidim
-!!  write(30000+iproc*1000,*) iorb, hphi(iorb)
+!!  write(40000+iproc*1000,*) iorb, hphi(iorb)
 !!end do
 !!call mpi_barrier(mpi_comm_world, ierr)
 !!stop

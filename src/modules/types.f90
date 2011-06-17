@@ -427,6 +427,12 @@ end type largeBasis
     type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
   end type
 
+  !> Contains the parameters for the parallel input guess for the O(N) version.
+  type,public:: inguessParameters
+    integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp
+    integer,dimension(:),pointer:: norb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
+  end type inguessParameters
+
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder
