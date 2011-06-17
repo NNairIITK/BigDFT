@@ -143,19 +143,29 @@ subroutine saddle_converge( ret, saddle_energy )
 
         if ( SAVE_CONF_INT ) call save_intermediate( 'K' ) 
 
-                                      ! We start checking of negative eigenvalues 
-        if ( kter >= KTER_MIN ) then  ! eigenvalues only after a few steps.
+        if ( kter == KTER_MIN ) then ! We start checking of negative
+                                     ! eigenvalues only after a few steps.
+                                     ! First time, twice !!
+              do i = 1, 2            
+                 call lanczos( NVECTOR_LANCZOS_A, new_projection, a1 )
+                 new_projection = .false. 
+                 if ( iproc == 0 ) write(*,'(a,3I5,f12.6,f7.2)') &
+                    & 'BART COLLINEAR:', pas, kter, i, eigenvalue, a1
+              end do
+
+        else if ( kter > KTER_MIN ) then 
 
            if ( .not. setup_initial ) then
-              call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
-              new_projection = .false.
+                ! we get eigen direction for the minimum of this hyperplane.
+                 call lanczos( NVECTOR_LANCZOS_A, new_projection, a1 )
+                                               ! Lanczos call, we start from the
+                 new_projection = .false.      ! previous direction each time.
            else
               call check_min( 'I' ) 
               call write_step ( 'K', kter, a1, current_energy )
               call MPI_Barrier( MPI_COMM_WORLD, ierr )
               call end_art( )
            end if
-
         end if
                                       ! Write 
         call write_step ( 'K', kter, a1, current_energy )
@@ -238,22 +248,29 @@ subroutine saddle_converge( ret, saddle_energy )
 !                'REFINE' EVENT 
                                       ! we must compute the eigenvector
                                       ! with precision.
-     posref = pos                     
      new_projection = .true. 
-     !if ( iproc==0 ) write(*,*) "BART: INIT LANCZOS"  !debug
+
      do i = 1, 5
-        call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
+        call lanczos( NVECTOR_LANCZOS_A, new_projection, a1 )
         new_projection = .false.
+        if ( iproc == 0 ) write(*,'(a,2I5,f12.6,f7.2)') &
+           & 'BART COLLINEAR:', pas, i, eigenvalue, a1
+        if ( a1 > collinear_factor ) exit
      end do
-     !if ( iproc==0 ) write(*,*) "BART: END  LANCZOS"  !debug
 
-     call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number, .false. )
-
-     delta_e = current_energy - ref_energy
+     delta_e = total_energy - ref_energy
      fpar = dot_product(force,projection)
      if( fpar > 0.0d0 ) projection = -1.0d0 * projection
+     call force_projection( fpar, perp_force, fperp, ftot, force, projection )
                                       ! This will be just for divide the INCREMENT,
-     liter = 100                      ! i.e, a small move.
+     liter = 10                       ! i.e, a small move.
+                                      ! Write 
+     call write_step ( 'L', liter, a1, total_energy )
+
+     liter = liter + 1
+     diter = 1                        ! init value of diis loop. 
+     pas   = pas + 1
+     switchDIIS= .false.
 ! _________
   else                                ! Else If_restart
      write(*,*) 'BART: Problem with restart and state_restart : '
@@ -398,7 +415,7 @@ subroutine end_report ( success, ret, saddle_energy )
            new_projection = .false.
            !if ( iproc == 0 ) write(*,*) "BART: INIT LANCZOS"  !debug
            Do_lanc: do i = 1, 4
-              call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
+              call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
               new_projection = .false.
                                          ! Exit of loop.  
               if ( eigenvalue < 0.0d0 ) exit Do_lanc

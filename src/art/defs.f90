@@ -29,6 +29,14 @@ module defs
   integer      :: NATOMS             ! Number of atoms in the system
   integer      :: MAXNEI             ! Maximum number of nearest neighbours
   integer      :: VECSIZE            ! Length of the force and position vectors
+  integer      :: nbr_quantum        !Number of quantum atoms for BSW force_calc. These are the first atoms in the input file
+  integer      :: nbr_quantum_trash  !Number of quantum atoms where the forces will be wrong (to close to the H bonds). The are the very first atoms in the file
+                                     !Thus nbr_quantum = nbr_quantum_trash + nbr_quantum_good
+  integer      :: nbr_to_fit         !number of atoms where we fit SW to the hybrid computation
+  logical      :: passivate          !Do we passivate the cluster with H ?
+  logical, dimension(:), allocatable :: should_fit  !should we fit this atom or not ?
+
+  character(len=3)    ::energy_type  !To choose the energy calc routine
 
   integer      :: NUMBER_EVENTS      ! Total number of events in this run
   logical      :: NEW_EVENT          ! Total number of events in this run
@@ -130,6 +138,7 @@ module defs
   real(kind=8) :: delta_thr                 ! default = 0.0 
   real(kind=8) :: delr_thr                  ! default = 0.0
   !__________________
+  
   character(len=20) :: LOGFILE
   character(len=20) :: EVENTSLIST
   character(len=20) :: REFCONFIG
@@ -138,7 +147,8 @@ module defs
   character(len=11) :: COUNTER
   character(len=11) :: RESTARTFILE
   character(len=20) :: eventtype 
-  character(len=11) :: pos_units = "angstroem"
+  character(len=11),parameter :: pos_units = "angstroemd0"
+  
 
   include 'mpif.h'
 

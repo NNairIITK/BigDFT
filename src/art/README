@@ -1,4 +1,3 @@
-/*!
 This version of ART nouveau has been optimized for BigDFT and other cases where
 the force evaluation is extremelly heavy. Because of that it saves the
 configuration at every step during the activation. This version of ART nouveau
@@ -70,7 +69,4 @@ This new version includes many corrections made by Kevin Levasseur-Smith and Nor
 
 It also includes DIIS, proposed by Damien Caliste and a number of optimization proposed by Cosmin Marinica.
 
-Version 2.1 (8 March 2011)
 
-This version includes a number of corrections and improvments made by Eduardo Machado-Charry
-*/

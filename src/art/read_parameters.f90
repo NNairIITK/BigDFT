@@ -95,13 +95,6 @@ subroutine read_parameters( )
      read(temporary,*) natoms
   end if
 
-  call getenv('MAXNEI', temporary)
-  if (temporary .eq. '') then
-     maxnei = natoms
-  else
-     read(temporary,*) maxnei
-  end if
-
   call getenv('Max_Number_Events', temporary)
   if (temporary .eq. '') then
      number_events = 100
@@ -115,6 +108,60 @@ subroutine read_parameters( )
   else
      read(temporary,*) maxnei
   end if
+
+ ! type of energy and force calculation 
+  call getenv('ENERGY_CALC', temporary)
+  if (temporary .eq. '') then
+     write(*,*) "Error: energy calculation type is not defined: ENERGY_CALC " 
+     write(*,*) " choose: SWP or BIG, BSW, OTF (buggy), BAY (buggy)  "
+     stop
+  else
+     read(temporary,*) energy_type   
+  endif
+
+   ! number of quantum atoms
+  call getenv('NBR_QUNT', temporary)
+  if (temporary .eq. '' .and. energy_type .ne. "BSW" &
+       &  .and. energy_type .ne. "OTF" .and. energy_type .ne. "BAY") then
+     nbr_quantum = natoms
+  elseif ((energy_type == "BSW" .or. energy_type == "OTF" .or. energy_type == "BAY"&
+           &) .and. temporary .eq. "" ) then
+     write(*,*) "Error : you have not given the number of quantum atoms"
+     write(*,*) "The program will stop"
+  elseif (temporary .ne. "") then
+     read(temporary,*) nbr_quantum
+  endif
+
+   ! number of quantum atoms to trash (buffer zone)
+  call getenv('NBR_QUNT_BUF', temporary)
+  if (temporary .ne. '' .and. energy_type .ne. "BSW" .and. energy_type .ne. "OTF" &
+            & .and. energy_type .ne. "BAY") then
+     write(*,*) "Error: number of quantum atoms only usefull for BSW energy_calc " 
+     write(*,*) " we will stop  "
+     stop
+  elseif ( (energy_type == "BSW" .or. energy_type == "OTF" .or. energy_type == "BAY" &
+              &) .and. temporary .eq. "" ) then
+     write(*,*) "Error : you have not given the number of quantum atoms"
+     write(*,*) "The program will stop"
+     stop
+  elseif (temporary .eq. '') then
+     nbr_quantum_trash = 0
+  else
+     read(temporary,*) nbr_quantum_trash
+  endif
+
+    call getenv('PASSIVATE', temporary)
+  if ( (temporary .eq. ".true.") .and. energy_type .ne. "BSW" .and. energy_type .ne. "OTF" &
+              & .and. energy_type .ne. "BAY") then
+     write(*,*) "Error: should only passivate if BSW energy_calc " 
+     write(*,*) " we will stop  "
+     write(*,*) temporary
+     stop
+  elseif (temporary .eq. "" .or. temporary .ne. ".true." ) then
+     passivate = .false.
+  else
+     read(temporary,*) passivate
+  endif
 
   ! File names
   call getenv('LOGFILE', temporary)
@@ -296,11 +343,18 @@ subroutine read_parameters( )
   end if
 
   ! Force threshold for the convergence at the saddle point
-  call getenv('Number_Lanczos_Vectors',temporary)
+  call getenv('Number_Lanczos_Vectors_A',temporary)
   if (temporary .eq. '') then
-     NVECTOR_LANCZOS = 16
+     NVECTOR_LANCZOS_A = 16
   else
-     read(temporary,*) NVECTOR_LANCZOS
+     read(temporary,*) NVECTOR_LANCZOS_A
+  end if
+  ! Force threshold for the convergence at the saddle point
+  call getenv('Number_Lanczos_Vectors_C',temporary)
+  if (temporary .eq. '') then
+     NVECTOR_LANCZOS_C = 16
+  else
+     read(temporary,*) NVECTOR_LANCZOS_C
   end if
 
   ! The step of the numerical derivative of forces for the Hessian 
@@ -309,6 +363,22 @@ subroutine read_parameters( )
      DEL_LANCZOS =  0.01
   else
      read(temporary,*) DEL_LANCZOS 
+  end if
+
+  ! Self consistent loop in Lanczos 
+  call getenv('Lanczos_SCLoop',temporary)
+  if (temporary .eq. '') then
+     LANCZOS_SCL = 3 
+  else
+     read(temporary,*) LANCZOS_SCL
+  end if
+
+  ! The convergence criteria in the Lanczos Self consistent loop
+  call getenv('Lanczos_collinear',temporary)
+  if (temporary .eq. '') then
+     collinear_factor= 0.7d0
+  else
+     read(temporary,*) collinear_factor 
   end if
 
   ! Calculation of the Hessian for each minimum
@@ -504,6 +574,18 @@ subroutine write_parameters( )
   character(len=20) :: fname  ! same len than LOGFILE in defs.f90
   character(len=4)   :: ext
   logical :: exists_already
+  !_______________________
+                                      ! Initialization of seed in random.
+                                      ! WARNING: There will be an idum per
+                                      ! iproc. Suggested by Laurent Karim Beland,
+                                      ! UdeM 2011
+  call date_and_time(values=values)
+
+  if ( .not. setup_initial ) then
+     idum = -1 * mod( (1000 * values(7) + values(8))+iproc, 1024)
+  else
+     idum = 0
+  end if
 
   if ( iproc == 0 ) then
 
@@ -566,7 +648,8 @@ subroutine write_parameters( )
   write(flog,'(1X,A51,F8.4)')  ' - Initial step size                             : ', INITSTEPSIZE
   write(flog,'(1X,A51,F8.4)')  ' - Increment size                                : ', INCREMENT
   write(flog,'(1X,A51,F8.4)')  ' - Atomic displacement for breaking the symmetry : ', sym_break_dist
-  write(flog,'(1X,A51,I8)')    ' - Number of vectors computed by Lanzcos         : ', NVECTOR_LANCZOS
+  write(flog,'(1X,A51,2I8)')    ' - Number of vectors computed by Lanzcos         : ', NVECTOR_LANCZOS_A,&
+  NVECTOR_LANCZOS_C
   write(flog,'(1X,A51,F8.4)')  ' - Delta displacement for derivative in Lanzcos  : ', DEL_LANCZOS
   write(flog,*) ' '
   write(flog,'(1X,A51,L8)')    ' - Calculation of the Hessian for each minimum   : ', LANCZOS_MIN
@@ -601,15 +684,6 @@ subroutine write_parameters( )
   write(flog,'(1X,A39,A15)')  ' - File with filecounter             : ', trim(counter)
   write(flog,*) '********************* '
   write(flog,*) ' '
-                                      ! Initialization of seed in random.
-  call date_and_time(values=values)
-
-  if ( .not. setup_initial ) then
-     idum = -1 * mod( (1000 * values(7) + values(8)), 1024)
-  else
-     idum = 0
-  end if
-                                      ! Report 
   write(flog,'(1X,A34,I17)') ' - The seed is                  : ', idum
   write(flog,'(1X,A34,L17)') ' - Restart                      : ', restart
   close(flog)

@@ -31,7 +31,7 @@ subroutine print_event( ievent_current, temperat )
   write(*,*) 'BART: Temperature : ', temperat
 
   open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
-  write(FLOG,*) ' _______________________________________'
+  write(FLOG,*) ' __________________________________________________'
   write(FLOG,'(1X,A34,I17)') ' - Simulation                   : ', ievent_current
   write(FLOG,'(1X,A34,I17)') ' - Attempt                      : ', atp
   write(FLOG,'(1X,A34,I17)') ' - Starting from minconf        : ', mincounter
@@ -58,6 +58,7 @@ subroutine displacement( posa, posb, delr, npart )
 
   !Local variables
   integer :: i, j
+  real(kind=8),dimension(3) :: invbox
   real(kind=8), parameter :: THRESHOLD = 0.1d0  ! In Angstroems
   real(kind=8), dimension(:), pointer :: xa, ya, za, xb, yb, zb
   real(kind=8) :: delx, dely, delz, dr, dr2, delr2
@@ -74,10 +75,28 @@ subroutine displacement( posa, posb, delr, npart )
   delr2 = 0.0d0
   npart = 0
 
+  invbox = 1.0d0/box
   do i = 1, NATOMS
-     delx = ( xa(i) - xb(i) )
-     dely = ( ya(i) - yb(i) )
-     delz = ( za(i) - zb(i) )
+     if ( boundary == 'P') then
+
+        delx = ( xa(i) - xb(i) ) - box(1) * nint(( xa(i) - xb(i) )*invbox(1))
+        dely = ( ya(i) - yb(i) ) - box(2) * nint(( ya(i) - yb(i) )*invbox(2))
+        delz = ( za(i) - zb(i) ) - box(3) * nint(( za(i) - zb(i) )*invbox(3))
+         
+     else if ( boundary == 'S') then
+
+        !be carefull with boundaries if surface: In bigdft the surface is 
+        !always perpendicular to "y"
+
+        delx = ( xa(i) - xb(i) ) - box(1) * nint(( xa(i) - xb(i) )*invbox(1))
+        dely = ( ya(i) - yb(i) )
+        delz = ( za(i) - zb(i) ) - box(3) * nint(( za(i) - zb(i) )*invbox(3))
+      else if ( boundary == 'F' ) then
+
+        delx = ( xa(i) - xb(i) )
+        dely = ( ya(i) - yb(i) )
+        delz = ( za(i) - zb(i) )
+      end if
 
      dr2   = delx*delx + dely*dely + delz*delz
      delr2 = delr2 + dr2
@@ -234,6 +253,17 @@ subroutine save_intermediate( stage )
 
 END SUBROUTINE save_intermediate
 
+!subroutine convert_to_chain(init_number,chain)
+!  integer, intent(in) :: init_number
+!  character(len=7), intent(out) :: chain
+!
+!  ! write to string
+!  write(chain,'(I7)') init_number
+!  ! flush left
+!  chain = adjustl(chain)
+!
+!end subroutine convert_to_chain
+
 
 !> ART convert_to_chain
 !!    It takes an integer and transforms it into a chain of character. 
@@ -380,3 +410,61 @@ subroutine print_proj( repetitions, stage, projection, eigenvalue, DEL_LANCZOS )
   deallocate(pc)
 
 END SUBROUTINE print_proj 
+
+
+!> ART boundary_cond
+subroutine boundary_cond ( posr, posa, posb )
+
+  use defs, only : natoms, vecsize, box, boundary
+  implicit none
+
+  !Arguments
+  real(kind=8), dimension(vecsize), intent(out), target :: posr
+  real(kind=8), dimension(vecsize), intent(in), target  :: posa
+  real(kind=8), dimension(vecsize), intent(in), target  :: posb 
+
+  !Local variables
+  integer :: i
+  real(kind=8),dimension(3) :: invbox
+  real(kind=8), dimension(:), pointer :: xr, yr, zr, xa, ya, za, xb, yb, zb
+
+  ! We first set-up pointers for the x, y, z components for posr, posa and posb
+
+  xr => posr(1:NATOMS)
+  yr => posr(NATOMS+1:2*NATOMS)
+  zr => posr(2*NATOMS+1:3*NATOMS)
+
+  xa => posa(1:NATOMS)
+  ya => posa(NATOMS+1:2*NATOMS)
+  za => posa(2*NATOMS+1:3*NATOMS)
+
+  xb => posb(1:NATOMS)
+  yb => posb(NATOMS+1:2*NATOMS)
+  zb => posb(2*NATOMS+1:3*NATOMS)
+
+  invbox = 1.0d0/box
+
+  do i = 1, natoms
+     if ( boundary == 'P') then
+
+        xr(i) = ( xa(i) - xb(i) ) - box(1) * nint(( xa(i) - xb(i) )*invbox(1))
+        yr(i) = ( ya(i) - yb(i) ) - box(2) * nint(( ya(i) - yb(i) )*invbox(2))
+        zr(i) = ( za(i) - zb(i) ) - box(3) * nint(( za(i) - zb(i) )*invbox(3))
+         
+     else if ( boundary == 'S') then
+
+        !be carefull with boundaries if surface: In bigdft the surface is 
+        !always perpendicular to "y"
+
+        xr(i) = ( xa(i) - xb(i) ) - box(1) * nint(( xa(i) - xb(i) )*invbox(1))
+        yr(i) = ( ya(i) - yb(i) )
+        zr(i) = ( za(i) - zb(i) ) - box(3) * nint(( za(i) - zb(i) )*invbox(3))
+      else if ( boundary == 'F' ) then
+
+        xr(i) = ( xa(i) - xb(i) )
+        yr(i) = ( ya(i) - yb(i) )
+        zr(i) = ( za(i) - zb(i) )
+     end if
+  enddo
+
+END SUBROUTINE boundary_cond

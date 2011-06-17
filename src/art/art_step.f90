@@ -1,5 +1,6 @@
 !> @file
 !! @author
+!!    Eduardo Machado-Charry (EM) 2010
 !!    Copyright (C) 2001 Normand Mousseau
 !!    Copyright (C) 2010 BigDFT group 
 !!    This file is distributed under the terms of the
@@ -62,7 +63,7 @@ subroutine apply_diis( diter, saddle_energy )
   use defs
   use diis_defs
   use bigdft_forces
-  use lanczos_defs,  only: projection, NVECTOR_LANCZOS, eigenvalue
+  use lanczos_defs,  only: projection, NVECTOR_LANCZOS_C, eigenvalue
   use saddles
   implicit none
 
@@ -80,9 +81,8 @@ subroutine apply_diis( diter, saddle_energy )
   real(kind=8), dimension(:,:), allocatable :: error_vector
   logical :: new_projection 
   logical :: rejected_step
-
-  ! real(kind=8) :: costheta, n_deltaref,  degtheta, sumpos, sumneg ! For Farkas' Tests.
-  ! real(kind=8), dimension(VECSIZE) :: deltaref ! For Farkas' Tests.
+  !real(kind=8) :: costheta, n_deltaref,  degtheta, sumpos, sumneg ! For Farkas' Tests.
+  !real(kind=8), dimension(VECSIZE) :: deltaref ! For Farkas' Tests.
   !_______________________
   boxl = box * scala
 
@@ -143,7 +143,8 @@ subroutine apply_diis( diter, saddle_energy )
       ! Can we accept this DIIS_step ?
       ! ----------------------
 
-      deltaGdiis(:)=  pos(:) - previous_pos(maxter,:) 
+      ! Boundary conditions: Suggested by Laurent Karim Beland, UdeM 2011
+      call boundary_cond( deltaGdiis, pos, previous_pos(maxter,:) )   
       n_deltaGdiis = sqrt(dot_product( deltaGdiis,deltaGdiis ))
 
       !deltaref(:) = DIIS_STEP* previous_forces(maxter,:)
@@ -199,7 +200,7 @@ subroutine apply_diis( diter, saddle_energy )
                new_projection = .false.   ! Let's start with the last projection.  
 
                Do_lanc: do i = 1, 4
-                  call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
+                  call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
                   if ( eigenvalue < 0.0d0 ) exit Do_lanc
                end do Do_lanc                         
                                       ! Orientation of the projection vector                               
@@ -209,7 +210,7 @@ subroutine apply_diis( diter, saddle_energy )
                                       ! This is the projection vector for the second 
                                       ! trial step when we called DIIS            
                new_projection = .false.       
-               call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
+               call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
             end if
 
             return ! c'est la fin. If ITERATIVE Let's try again with Lanczos.
@@ -445,6 +446,8 @@ END SUBROUTINE apply_lanczos
 !> ART lanczos_step
 !! We move from one hyperplane to the next one. We relax the position in it.
 !! Finally we get the eigenvector at the relaxed configuration.
+!! Modified by:
+!! -Laurent Karim Beland, UdeM 2011: Collinear
 subroutine lanczos_step ( current_energy, liter, get_proj ) 
 
   use defs 
@@ -534,22 +537,26 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
        & .or. m_perp > MAXIPERP .or. try > 5 ) exit While_perpi
     
   end do  While_perpi 
-  
+
+  delta_e = current_energy - ref_energy
+                                      ! Magnitude of the displacement (utils.f90).
+  call displacement( posref, pos, delr, npart )
+
   ! we get eigen direction for the minimum of this hyperplane.
   if ( get_proj ) then
-                                      ! Lanczos call, we start from the
-      new_projection = .false.        ! previous direction each time.
-      call lanczos( NVECTOR_LANCZOS, new_projection, a1 )
+     do i = 1, LANCZOS_SCL            ! Lanczos call, we start from the
+        new_projection = .false.      ! previous direction each time.
+        call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
+        if ( iproc == 0 ) write(*,'(a,3I5,f12.6,f7.2)') &
+           & 'BART COLLINEAR:', pas, liter, i, eigenvalue, a1
+        if ( a1 > collinear_factor ) exit 
+     end do
   end if
                                       ! Debug
   !if ( iproc == 0 ) then                
   ! write(*,*) 'BART: eigenvalue : ', eigenvalue
   ! write(*,"(' ','BART: eigenvals: ',4f12.6)") (eigenvals(i),i=1,4)
   !end if
-
-  delta_e = current_energy - ref_energy
-                                      ! Magnitude of the displacement (utils.f90).
-  call displacement( posref, pos, delr, npart )
                                       ! We look for an inflection in the
                                       ! eigenvalue.
   eigen_min = min( eigen_min, eigenvalue )
@@ -569,3 +576,232 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
      end if
   end if
 END SUBROUTINE lanczos_step
+
+
+!> ART apply_glisse
+!! @author
+!! Written by Laurent Karim Beland, UdeM 2011!!
+!! IN DEVELOPMENT
+!! This routine converges to the saddle point by using
+!! the inertial properties of the solid
+subroutine apply_glisse( giter, saddle_energy )
+
+  use defs
+  use lanczos_defs
+  use diis_defs
+  use saddles
+  implicit none
+
+  !Arguments
+  integer, intent(inout) :: giter
+  real(kind=8), intent(out)   :: saddle_energy
+
+  !Local variables
+  real(kind=8) :: current_energy              ! Accept energy.
+  real(8) :: a1
+  logical :: get_proj,should_reset_velo,new_projection
+
+  real(8), parameter :: dt = 0.015d0
+  real(8) :: alpha , alphastart
+  real(8), dimension(3*natoms) :: fcur,poscur,velcur,fpred,pospred,velpred,perp_force
+  integer :: liter,i,j, step_rejected
+  logical :: conv
+
+  real(kind=8), dimension(VECSIZE) :: pos_b        ! Position for evaluation.
+  real(kind=8), dimension(VECSIZE) :: force_b      ! Total Force for evaluation.
+  real(kind=8), dimension(VECSIZE) :: perp_force_b ! ...& for evaluation.  
+  real(kind=8), dimension(VECSIZE) :: pos_tmp      ! position for parallel lanc accel 
+  real(kind=8), dimension(VECSIZE) :: pos_former
+
+  real(kind=8) :: step                        ! This is the step in the hyperplane. 
+  real(kind=8) :: ftot_b                     ! ...& for evaluation.
+  real(kind=8) :: fpar_b                     ! ...& for evaluation. 
+  real(kind=8) :: fperp_b                    ! ...& for evaluation.
+  real(kind=8) :: current_fperp              ! fperp as a criteria of minimization.
+  !_______________________ 
+
+  conv = .false.
+
+  if ( .not. restart ) then
+     ! To be consistent with the restart file, each time we call
+     ! this subroutine we make this initialization.
+     previous_forces = 0.0d0
+     previous_pos    = 0.0d0
+     previous_norm   = 0.0d0
+     maxter = 0
+     eigen_min = 0.0d0
+  else
+     ! A warranty 
+     eigen_min = min( eigen_min, eigenvalue )
+     if ( eigenvalue == eigen_min ) then
+        previous_forces = 0.0d0
+        previous_pos    = 0.0d0
+        previous_norm   = 0.0d0
+     end if
+     restart = .false.
+  end if
+
+  ! We first get the current force and energy
+  call calcforce( NATOMS, pos, box, force, current_energy, evalf_number, .false. )
+  fcur = force
+  poscur = pos
+
+  !We then get the eigendirection
+
+  liter = 1
+  do i = 1,3
+      new_projection = .false.        ! previous direction each time.
+      call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
+       delta_e = current_energy - ref_energy
+                                      ! Magnitude of the displacement (utils.f90).
+       call displacement( posref, pos, delr, npart )
+                                      ! Write 
+       call write_step ( 'L', liter, a1, current_energy )
+
+     if (a1 > 0.70d0) exit
+  enddo
+
+  giter = 0
+  should_reset_velo = .true.
+  do
+     giter = giter + 1
+     pas = pas + 1
+
+     !we then use this eigendirection to establish the initial velocity
+     if (should_reset_velo) then
+        call force_projection( fpar, perp_force, fperp, ftot, force, projection )
+
+        current_fperp = fperp
+  
+        step = 0.04d0*INCREMENT
+        try = 0
+        m_perp = 0
+        step_rejected = 0
+
+        do                     
+           pos_b = pos + step * perp_force
+
+           call calcforce( NATOMS, pos_b, box, force_b, total_energy, evalf_number, .false. )
+                                      ! New force's components. 
+           call force_projection( fpar_b, perp_force_b, fperp_b, ftot_b, &
+                  & force_b, projection )      
+
+           if ( fperp_b < current_fperp ) then
+              pos            = pos_b
+              current_energy = total_energy
+              fpar           = fpar_b
+              perp_force     = perp_force_b
+              fperp          = fperp_b
+              ftot           = ftot_b
+              force          = force_b
+
+              current_fperp  = fperp_b
+              m_perp = m_perp + 1
+              step = 1.6 * step
+              step_rejected = 0
+           else
+              step = 0.8 * step
+              step_rejected = step_rejected + 1
+           end if
+           try = try + 1
+                                      ! 5 kills MAXIPERP 
+           if ( fperp < FTHRESHOLD .or. &
+              &  m_perp > MAXIPERP+3 .or. try > 8 ) exit 
+
+        end do 
+
+        velcur =   -3.0d0*sign(1.0d0,fpar) * abs(ftot) * projection  ! all mass eq 1
+
+        should_reset_velo = .false.
+     endif
+
+     !we now start the verlet velocity integrator
+     pospred=pos+dt*velcur + dt*dt*0.5d0*fcur  ! all mass = 1
+     call calcforce(natoms,pospred,box,fpred,total_energy,evalf_number,conv)
+     velpred = velcur + 0.5d0*dt*fpred + 0.5d0*dt*fcur
+
+     !we then make sure the norm of the velocity goes up
+     !otherwise, we stop and recalculate lanczos
+
+     if ( abs(dot_product(velpred,projection)) >abs(dot_product(velcur,projection))) then
+        should_reset_velo = .true.
+     endif
+
+     if (should_reset_velo ) then
+ !       liter = liter + 1
+ !       pos = poscur
+ !       call calcforce( NATOMS, pos, box, force, current_energy, evalf_number, .false. )
+
+ !       do j = 1,3
+
+ !          new_projection = .false.        ! previous direction each time.
+ !          call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
+ !          delta_e = current_energy - ref_energy
+                                      ! Magnitude of the displacement (utils.f90).
+ !          call displacement( posref, pos, delr, npart )
+                                      ! Write 
+ !          call write_step ( 'L', liter, a1, current_energy )
+ !          if (a1 > 0.70d0) exit
+ !       enddo
+ !       cycle
+     endif
+
+     !we now look if we should stop this activation
+     ftot = dsqrt(dot_product(fpred,fpred))
+     if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. eigenvalue > 0.0d0 .or. giter > 80) then
+        pos = pospred
+        force = fpred
+
+        saddle_energy = total_energy
+        end_activation = .true.
+        exit
+     endif
+
+     !then we look if we should start diis
+     if (ftot < DIIS_FORCE_THRESHOLD) then !
+        pos = pospred
+        force = fpred
+
+        if ( all( previous_forces(1,:) .eq. 0.0d0 ) ) then
+               ! We set the first trial vector
+               previous_forces(1,:) = force(:)
+               previous_pos(1,:)    = pos(:)
+               previous_norm(1)     = ftot*DIIS_STEP
+
+             !  get_proj = .true.
+             !  liter = 1
+             !  call lanczos_step ( saddle_energy, liter, get_proj)
+
+            if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) &
+               & .or. (eigenvalue > 0.0) ) then
+               end_activation = .true.
+               exit
+            else
+               ! We set the second trial vector 
+              ! previous_forces(2,:) = force(:)
+              ! previous_pos(2,:)    = pos(:)
+              ! previous_norm(2)     = ftot*DIIS_STEP
+               switchDIIS = .true.   ! let's make DIIS.
+               exit                  ! We go back
+            end if
+        endif
+     endif
+
+     fcur=fpred
+     poscur=pospred
+     pos = poscur
+     force = fpred
+
+     call force_projection( fpar, perp_force, fperp, ftot, force, projection )
+
+     velcur = 0.60d0*velpred + 0.4d0*perp_force / fperp* dsqrt(dot_product(velpred,velpred))
+
+     a1 = 0.0d0
+     delta_e = total_energy - ref_energy
+                             ! Magnitude of the displacement (utils.f90).
+     call displacement( posref, pos, delr, npart )
+                             ! Write 
+     call write_step ( 'G', giter, a1, current_energy )
+  enddo
+
+END SUBROUTINE apply_glisse

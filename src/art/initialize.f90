@@ -6,11 +6,11 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
+!! Modified by Laurent Karim Beland, UdeM, 2011.
+!!
 !> ART initialize
 !!   Initialization of art method
 !!   It relaxes it into a local minimum without volume optimization
-!! 
 !!   The initial configuration is a "reference configuration", it will be the reference 
 !!   configuration until a new event is accepted. 
 !! 
@@ -30,10 +30,10 @@
 !!     The third line indicates the full box size along the x, y and z directions.
 !! 
 !!     The NATOMS lines are the atomic species and coordinates in Angstroems
-!! 
 subroutine initialize()
 
   use defs
+  use bigdft_forces, only : init_all_atoms
   use lanczos_defs, only: LANCZOS_MIN 
   implicit none
 
@@ -42,15 +42,21 @@ subroutine initialize()
   character(len=20) :: dummy, fname
   character(len=4)  :: scounter
   logical           :: flag, success
+
+  integer                   :: nat_test
+  integer, pointer          :: typa(:)    ! Atomic type
+  integer, pointer          :: const_(:)  ! Constraints
+  real(kind=8), pointer     :: posa(:)    ! Working positions of the atoms
+  real(kind=8),dimension(3) :: boxref_    ! Reference box from posinp file
   !_______________________
   !! WARNING EDUARDO: cuidado, aqui pierdo el refcounter de REFCONFIG
 
-  !! Read the atomic positions
   !open(unit=FREFCONFIG,file=REFCONFIG,status='old',action='read',iostat=ierror)
   !read(FREFCONFIG, '(A10,i5)' ) dummy, refcounter
   !read(FREFCONFIG,*) dummy, ref_energy !! M-A Malouin
-  !read(FREFCONFIG,*) boxref(1), boxref(2), boxref(3)
-  !read(FREFCONFIG,*) (typat(i),x(i),y(i),z(i),i=1,NATOMS)
+  !read(FREFCONFIG,*) boundary,boxref(1), boxref(2), boxref(3)
+  !do i = 1,natoms
+  !	read(FREFCONFIG,*) (typat(i),x(i),y(i),z(i),constr(i))
   !close(FREFCONFIG)
   
   ! Read the counter in order to continue the run where it stopped
@@ -66,10 +72,35 @@ subroutine initialize()
      mincounter = 1000
   end if
 
+  ! Read atomic file
+  call init_all_atoms( nat_test, typa, posa, const_, boxref_, boundary, nproc, iproc )
+
+  ! test nat_test and nat
+  if ( nat_test /= NATOMS ) then
+     if ( iproc == 0 ) write(*,*) "Different number of atoms"
+     call end_art()
+  end if
+  !assign the data from the atomic file
+  if ( .not. restart ) then
+     typat(:)   = typa(:)
+     pos(:)     = posa(:)
+     constr(:)  = const_(:)
+     boxref(:)  = boxref_(:)
+     refcounter = mincounter
+     box = boxref
+  endif
+
+  deallocate(posa)
+  deallocate(typa)
+  deallocate(const_)
+
+  !atomic positions are now all read
+
+
   do i = 1, NATOMS
      Atom(i) = type_name(typat(i))
-
   end do
+  !Atom(:) = type_name(typat(:))
 
   if ( iproc == 0 ) then 
    open(unit=FLOG,file=LOGFILE,status='unknown',action='write',position='append',iostat=ierror)
@@ -77,25 +108,22 @@ subroutine initialize()
    close(FLOG)
   end if
 
-  ! We rescale the coordinates and define the reference coordinates
-  refcounter = mincounter  
+  ! We rescale the coordinates 
   scalaref = 1.0d0
   scala = scalaref
-  box = boxref
-  xref = x 
-  yref = y 
-  zref = z
-  total_energy = ref_energy           ! IS THIS USEFULL?
+
+  call initialize_potential()         ! Initialize Potential 
 
   if ( iproc == 0 ) call convert_to_chain( refcounter, 4, scounter )
   fname = FINAL // scounter
   conf_initial = fname
                                       ! If this is a new event, 
-  If_ne: if ( new_event ) then 
-
-     call min_converge( success )             ! Converge the configuration to a local minimum
+  If_ne: if ( new_event .and. (.not. restart) ) then 
+     call min_converge( success )     ! Converge the configuration to a local minimum
 
      posref = pos                     ! New reference configuration.
+     mincounter = mincounter + 1
+     ref_energy = total_energy
  
      if ( iproc == 0 ) then
                                       ! THIS iS NOT NECESSARY IN BIGDFT
@@ -114,9 +142,6 @@ subroutine initialize()
      end if
 
      if ( LANCZOS_MIN .and. success ) call check_min( 'M' ) 
-
-     mincounter = mincounter + 1
-     ref_energy = total_energy
 
   end if If_ne
 

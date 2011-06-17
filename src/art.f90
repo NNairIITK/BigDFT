@@ -55,8 +55,7 @@ program art90
      close(FLOG)
   end if
 
-  call initialize_potential()         ! Initialize BigDFT
-
+  call initialize( )         ! Initialize positions and potential 
   if ( restart ) then        
      if ( iproc == 0 ) call convert_to_chain( refcounter, 4, scounter )
                              ! Information for FLIST 
@@ -65,7 +64,6 @@ program art90
                              ! Set up of mincounter & referecence configuration,
                              ! if new_event then relaxes it into a local minimum. 
      evalf_number = 0 
-     call initialize( )                
      ievent_restart = 1
   end if
 ! _________
@@ -117,8 +115,7 @@ program art90
                                       ! that it falls back into its original state.
      
      allocate(del_pos(VECSIZE))       ! We compute the displacement.
-
-     del_pos = pos - posref          
+     call boundary_cond( del_pos, pos, posref )
      difpos  = sqrt( dot_product(del_pos,del_pos) )
      del_pos = del_pos/difpos 
 
@@ -129,9 +126,11 @@ program art90
 
      if ( abs(a1) < 0.1d0 ) then      ! pushing in the direction of projection (assuming sign ok) 
         prod = 1.0d0
-        write(*,*) 'BART :WARNING'
-        write(*,*) 'BART :Projection and displacement vectors almost perpendicular to each other'
-        write(*,*) 'BART :Assuming projection points in right direction'
+        if ( iproc == 0 ) then 
+         write(*,*) 'BART :WARNING'
+         write(*,*) 'BART :Projection and displacement vectors almost perpendicular'
+         write(*,*) 'BART :to each other. Assuming projection points in right direction'
+        end if
      else                             ! just keep the sign of the dot product
         if ( a1 > 0.0 ) then
            prod =  1.0d0
@@ -152,8 +151,6 @@ program art90
         conf_final = fname
         call store( fname ) 
      end if
-                                      ! Is a real minimum ?
-     if ( LANCZOS_MIN .and. success ) call check_min( 'M' ) 
                                       ! Magnitude of the displacement (utils.f90).
      call displacement( posref, pos, delr, npart )
                                       ! Now, we accept or reject this move based
@@ -186,7 +183,7 @@ program art90
         accept = "REJECTED"
         if ( iproc == 0 ) then        ! Write
 
-        ! the exchange does not have any meaning without an geometric analysis. 
+        ! the exchange does not have any meaning without a geometric analysis. 
            !if (( total_energy - ref_energy ) > 1.0d-5 )  then
                write(FLIST,*) conf_initial, conf_saddle, conf_final,'    rejected'
            !else  
@@ -219,6 +216,8 @@ program art90
         !& ' - -T*log( random_number )      : ', -temperature*log( random_number )
         close(FLOG)
      end if
+                                      ! Is a real minimum ?
+     if ( LANCZOS_MIN .and. success ) call check_min( 'M' ) 
 
      if ( eventtype == "REFINE_AND_RELAX" ) call end_art() 
 

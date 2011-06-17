@@ -6,20 +6,27 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+!! Modified by:
+!! -EM 2010, see ~/AUTHORS
+!! -Laurent Karim Beland, UdeM 2011: Gramm-Schmidt orthogonalization
 
-!>  ART Module lanczos_defs
-!!  to use lanczos inside art
+!> ART Module lanczos_defs
+!! to use lanczos inside art
 module lanczos_defs
 
   implicit none
   save
 
-  integer      :: NVECTOR_LANCZOS
+  integer      :: NVECTOR_LANCZOS_A
+  integer      :: NVECTOR_LANCZOS_C
+  integer      :: LANCZOS_SCL
+
   real(kind=8) :: DEL_LANCZOS
   real(kind=8) :: eigenvalue
   real(kind=8), dimension(10) :: eigenvals
   real(kind=8) :: lanc_energy
   real(kind=8) :: proj_energy
+  real(kind=8) :: collinear_factor 
 
   ! Projection direction based on lanczos computations of lowest eigenvalues
   real(kind=8), dimension(:), allocatable :: old_projection, projection 
@@ -28,7 +35,8 @@ module lanczos_defs
 END MODULE lanczos_defs
 
 
-!>   Lanczos routine to determine lowest frequencies
+!> ART lanczos
+!! Determine lowest frequencies
 subroutine lanczos( maxvec, new_projection, produit )
 
   use defs
@@ -86,7 +94,7 @@ subroutine lanczos( maxvec, new_projection, produit )
                 dy(i) = 0.5d0 - ran3()
                 dz(i) = 0.5d0 - ran3()
                                          ! displacement is isotropic
-               ! dr2 = dx(i)**2 + dy(i)**2 + dz(i)**2
+                !dr2 = dx(i)**2 + dy(i)**2 + dz(i)**2
                 !if ( dr2 < 0.25d0 ) exit 
               !end do
            end if
@@ -136,11 +144,18 @@ subroutine lanczos( maxvec, new_projection, produit )
      z0 => lanc(:,ivec-1)
      z2 => lanc(:,ivec+1)
      z2 = newforce - a1*z1 - b1*z0
+                                      !Gramm-Schmidt orthogonalization
+     do i = 1, ivec
+        ! write(*,*) i,dot_product(z2,lanc(:,i))
+        z2 = z2 - dot_product( z2, lanc(:,i) )*lanc(:,i)
+     enddo
 
      b2 = dot_product( z2, z2 )
-     offdiag(ivec) = sqrt(b2)
      invsum = 1.0d0/sqrt(b2)
      z2 = z2 * invsum
+
+     b2 = dot_product( z2, newforce )
+     offdiag(ivec) = b2
 
   end do
                                       ! We now consider the last line of
@@ -217,8 +232,11 @@ subroutine lanczos( maxvec, new_projection, produit )
 
 END SUBROUTINE lanczos
 
+
 !> ART center
-!! It places the center of mass of a 3D vector at (0,0,0) 
+!! @author
+!! Written by EM 2010, see ~/AUTHORS 
+!! It places the center of mass of a 3D vector at (0,0,0). 
 subroutine center( vector, vecsize )
 
   use defs, only : natoms, constr
@@ -233,6 +251,7 @@ subroutine center( vector, vecsize )
   real(kind=8) :: xtotal, ytotal, ztotal
   real(kind=8), dimension(:), pointer :: x, y, z     ! Pointers for coordinates
   logical, dimension(natoms) :: mask
+  !_______________________
 
   ! degrees of freedom 
   mask = constr .eq. 0
