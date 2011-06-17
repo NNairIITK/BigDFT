@@ -277,7 +277,7 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
      nrhotot,Glr,Llr,nrho,rho,hxh,hyh,hzh,nspin,orbs,psi)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, exceptThisOne => local_partial_densityLinear
   use libxc_functionals
   implicit none
   logical, intent(in) :: rsflag
@@ -555,6 +555,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
   use module_base
   use module_types
   use libxc_functionals
+  use module_interfaces, exceptThisOne => LinearHamiltonianApplication
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hx,hy,hz
@@ -563,7 +564,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
   type(linear_zone_descriptors),intent(inout) :: Lzd
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(inout) :: proj
   real(wp), dimension(Lzd%orbs%npsidim), intent(in) :: psi
   real(wp), dimension(:), pointer :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum

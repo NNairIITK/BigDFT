@@ -375,23 +375,10 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
           onWhichAtomTemp(iorb)=iat
       end do
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
-      !!do ind1=1,size(rhopot)
-      !!    write(20000+iproc,*) ind1, rhopot(ind1)
-      !!end do
-      !!do ind1=1,size(pot)
-      !!    write(22000+iproc,*) ind1, pot(ind1)
-      !!end do
       !!call HamiltonianApplicationConfinement(iproc, nproc, at, orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
       !!     nlpspd, proj, Glr, ngatherarr, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), &
       !!     rhopot(1), &
       !!     chi(1), hchi(1,iat), ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, rxyz, onWhichAtomTemp, pkernel=pkernelseq)
-      !!do ind1=1,size(hchi,1)
-      !!    write(30000+10*iat+iproc,*) ind1, hchi(ind1,iat)
-      !!end do
-
-      !!do ind1=1,size(comgp%recvBuf)
-      !!    write(21000+iproc,*) ind1, comgp%recvBuf(ind1)
-      !!end do
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lzdig, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, comgp%nrecvBuf, comgp%recvBuf, lchi, lhchi(1,iat), &
            ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp, pkernel=pkernelseq)
@@ -405,12 +392,6 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
           ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
           ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
       end do
-      !!do ind1=1,size(hchi,1)
-      !!    write(32000+10*iat+iproc,*) ind1, hchi(ind1,iat)
-      !!end do
-      !!do ind1=1,size(lhchi,1)
-      !!    write(41000+10*iat+iproc,*) ind1, lhchi(ind1,iat)
-      !!end do
 
       if(iproc==0) write(*,'(a)') 'done.'
   end do
@@ -419,8 +400,6 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
   call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
   if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time/dble(nproc)
   
-  !!call mpi_barrier(mpi_comm_world, ind1)
-  !!stop
 
   ! Deallocate potential.
   call free_full_potential(nproc,pot,subname)

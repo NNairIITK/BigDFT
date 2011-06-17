@@ -317,7 +317,7 @@ module module_interfaces
      subroutine input_wf_diag(iproc,nproc,at,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input,radii_cf)
+          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input,radii_cf,orbsv)
        use module_base
        use module_types
        implicit none
@@ -343,6 +343,7 @@ module module_interfaces
        integer, dimension(*), intent(in) :: irrzon
        real(dp), dimension(*), intent(in) :: phnons
        real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
+       type(orbitals_data), optional, intent(in) :: orbsv
      END SUBROUTINE input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&
@@ -2049,14 +2050,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
    end subroutine determine_locreg_periodic
 
-    subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr,outofzone)
+    subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
       use module_base
       use module_types
       implicit none
       integer,intent(in) :: ilr,nlr
       type(locreg_descriptors),intent(in) :: Glr  
       type(locreg_descriptors),dimension(nlr),intent(inout) :: Llr   
-      integer,dimension(3,nlr),intent(in) :: outofzone
+      !integer,dimension(3,nlr),intent(in) :: outofzone
     end subroutine determine_wfd_periodicity
 
     subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&

@@ -1111,7 +1111,8 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
 !DEBUG
 
     ! construct the wavefunction descriptors (wfd)
-     call determine_wfd_periodicity(ilr,nlr,Glr,Llr,outofzone)
+     !call determine_wfd_periodicity(ilr,nlr,Glr,Llr,outofzone)
+     call determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
      
 !     print *,'Before locreg_bounds'
 !     print *,'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3

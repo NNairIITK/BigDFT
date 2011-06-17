@@ -414,8 +414,8 @@ real(8):: trH, lastAlpha
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 
 ! Local variables
-real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum
-real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax
+real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero
+real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2, time
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
 integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp, nit, ind1, ind2
 integer:: ldim, gdim, ilr
@@ -614,8 +614,44 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
           write(*,'(a)') 'preconditioning. '
       end if
       gnrm=1.d3 ; gnrm_zero=1.d3
-      call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
-          lin%nItPrecond, hphi, at%nat, rxyz, at, it)
+      call cpu_time(t1)
+      !!!! THIS IS THE ORIGINAL
+      !!call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
+      !!    lin%nItPrecond, hphi, at%nat, rxyz, at, it)
+
+      evalmax=lin%orbs%eval(lin%orbs%isorb+1)
+      do iorb=1,lin%orbs%norbp
+        evalmax=max(lin%orbs%eval(lin%orbs%isorb+iorb),evalmax)
+      enddo
+      call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
+           MPI_MAX,MPI_COMM_WORLD,ierr)
+
+      ! Transform the global phi to the local phi
+      ! This part will not be needed if we really have O(N)
+      ind1=1
+      ind2=1
+      do iorb=1,lin%orbs%norbp
+          ilr = lin%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, hphi(ind1), lhphi(ind2))
+          call choosePreconditioner2(iproc, nproc, lin%orbs, lin, lin%Llr(ilr), input%hx, input%hy, input%hz, &
+              lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, it, iorb, eval_zero)
+          call razero(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, hphi(ind1))
+          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+      call cpu_time(t2)
+      time=t2-t1
+      call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+      if(iproc==0) write(*,'(x,a,es10.3)') 'time for preconditioning:', time/dble(nproc)
+
+!!do iorb=1,lin%orbs%npsidim
+!!  write(30000+iproc*1000,*) iorb, hphi(iorb)
+!!end do
+!!call mpi_barrier(mpi_comm_world, ierr)
+!!stop
 
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)
@@ -1211,7 +1247,7 @@ subroutine getMatrixElements(iproc, nproc, Glr, orbs, comms, phi, hphi, matrixEl
 !
 use module_base
 use module_types
-use module_interfaces
+use module_interfaces, exceptThisOne => getMatrixElements
 implicit none
 
 ! Calling arguments
@@ -1652,7 +1688,7 @@ end subroutine optimizeCoefficients
 subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
 use module_base
 use module_types
-use module_interfaces
+use module_interfaces, exceptThisOne => getDerivativeBasisFunctions
 implicit none
 
 ! Calling arguments

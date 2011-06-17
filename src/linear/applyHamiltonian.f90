@@ -1462,10 +1462,6 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
      ! Extract the part of the potential which is needed for the current localization region.
      i3s=lzd%Llr(ilr)%nsi3-comgp%ise3(1,iproc)+2 ! starting index of localized potential with respect to total potential in comgp%recvBuf
      i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise3(1,iproc)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
-     !write(*,'(a,4i8)') 'iproc, ilr, lzd%Llr(ilr)%nsi3, lzd%Llr(ilr)%d%n3i', iproc, ilr, lzd%Llr(ilr)%nsi3, lzd%Llr(ilr)%d%n3i
-     !write(*,'(a,5i12)') 'iproc, ilr, Lzd%Llr(ilr)%d%n1i, Lzd%Llr(ilr)%d%n2i, Lzd%Llr(ilr)%d%n3i', iproc, ilr, Lzd%Llr(ilr)%d%n1i, Lzd%Llr(ilr)%d%n2i, Lzd%Llr(ilr)%d%n3i
-     !write(*,'(a,4i8)') 'iproc, Lzd%Glr%d%n1i, Lzd%Glr%d%n2i, Lzd%Glr%d%n3i', iproc, Lzd%Glr%d%n1i, Lzd%Glr%d%n2i, Lzd%Glr%d%n3i
-     !write(*,'(a,6i12)') 'iproc, i3s, i3e, comgp%ise3(1,iproc), ndimpot/(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i)', iproc, i3s, i3e, comgp%ise3(1,iproc), comgp%ise3(1,iproc), ndimpot/(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i)
      if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
          write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i', i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
          stop
@@ -1539,29 +1535,6 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
      else
         call local_hamiltonian_LinearConfinement(iproc, nproc, ilr, lzd%orbs, lzd%Llr(ilr), lzd%Llr(ilr)%localnorb, hx, hy, hz, &
               nspin, size_Lpot, Lpot, psi(ind), hpsi(ind), tmp_ekin_sum, tmp_epot_sum, lin, at, rxyz, onWhichAtomp)
-!!!!! TEST: TRANSFORM BACK TO GLOBAL
-!!allocate(temparr(lin%orbs%npsidim))
-!!ind1=1
-!!ind2=1
-!!temparr=0.d0
-!!do iorb=1,lin%orbs%norbp
-!!    jlr = lin%onWhichAtom(iorb)
-!!    ldim=lin%Llr(jlr)%wfd%nvctr_c+7*lin%Llr(jlr)%wfd%nvctr_f
-!!    gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
-!!    !write(*,'(a,5i11)') 'iproc, iorb, jlr, ldim, gdim', iproc, iorb, jlr, ldim, gdim
-!!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, lzd%Glr, lin%Llr(jlr), hpsi(ind2), temparr(ind1))
-!!    ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
-!!    ind2=ind2+lin%Llr(jlr)%wfd%nvctr_c+7*lin%Llr(jlr)%wfd%nvctr_f
-!!end do
-!!do i_all=1,size(temparr)
-!!    write(670+iproc,*) i_all, temparr(i_all)
-!!end do
-
-        !lzd%orbs%norb=i_all
-!do i_all=ind,ind+dimwf-1
-!    write(3000+iproc,*) i_all, psi(i_all)
-!    write(3100+iproc,*) i_all, hpsi(i_all)
-!end do
      end if
 
      ekin_sum = ekin_sum + tmp_ekin_sum
@@ -1652,12 +1625,8 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
         !         Lzd%Llr(ilr)%projflg,psi(ind:ind+dimwf-1),rxyz,hpsi(ind:ind+dimwf-1),eproj_sum)
         allocate(projCopy(Lzd%Lnlpspd(ilr)%nprojel), stat=i_stat)
         call dcopy(Lzd%Lnlpspd(ilr)%nprojel, proj, 1, projCopy, 1)
-!!write(*,'(a,6i10)') 'iproc, Lzd%Llr(ilr)%localnorb, ind, dimwf, size(psi), size(hpsi)', iproc, Lzd%Llr(ilr)%localnorb, ind, dimwf, size(psi), size(hpsi)
-!!call mpi_barrier(mpi_comm_world, i_all)
         call apply_local_projectors(ilr,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),projCopy,Lzd%orbs,&
                  Lzd%Llr(ilr)%projflg,psi(ind:ind+dimwf-1),rxyz,hpsi(ind:ind+dimwf-1),eproj_sum)
-!!write(*,*) 'after apply_local_projectors, iproc', iproc
-!!call mpi_barrier(mpi_comm_world, i_all)
         deallocate(projCopy, stat=i_stat)
         ! accumulate the new hpsi
         hpsi_proj(ind:ind+dimwf-1) = hpsi_proj(ind:ind+dimwf-1) + hpsi(ind:ind+dimwf-1)
