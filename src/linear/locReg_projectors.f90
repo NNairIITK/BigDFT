@@ -72,7 +72,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
   mseg = 0
   do iatom = 1,atoms%nat
      if(projflg(iatom) == 0) cycle 
-     iat = iat + 1  
+     iat = iat + 1  !iatom is the global numbering of atoms, while iat is the numbering only in the locreg. 
 
 !    Determine the bounds of the projectors
      call projector_box_in_locreg(iatom,Glr,Llr,nlpspd,bounds)
@@ -85,12 +85,12 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      end do
 
 !    Rename the variables
-     nl1 = nlpspd%nboxp_c(1,1,iat)
-     nu1 = nlpspd%nboxp_c(2,1,iat)
-     nl2 = nlpspd%nboxp_c(1,2,iat)
-     nu2 = nlpspd%nboxp_c(2,2,iat)
-     nl3 = nlpspd%nboxp_c(1,3,iat)
-     nu3 = nlpspd%nboxp_c(2,3,iat)
+     nl1 = nlpspd%nboxp_c(1,1,iatom)
+     nu1 = nlpspd%nboxp_c(2,1,iatom)
+     nl2 = nlpspd%nboxp_c(1,2,iatom)
+     nu2 = nlpspd%nboxp_c(2,2,iatom)
+     nl3 = nlpspd%nboxp_c(1,3,iatom)
+     nu3 = nlpspd%nboxp_c(2,3,iatom)
 
 !    Now we can determine the number of segments and elements of coarse grid
      call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
@@ -104,12 +104,12 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 ! Do the same for fine grid
 
 !    Rename the variables
-     nl1 = nlpspd%nboxp_f(1,1,iat)
-     nu1 = nlpspd%nboxp_f(2,1,iat)
-     nl2 = nlpspd%nboxp_f(1,2,iat)
-     nu2 = nlpspd%nboxp_f(2,2,iat)
-     nl3 = nlpspd%nboxp_f(1,3,iat)
-     nu3 = nlpspd%nboxp_f(2,3,iat)
+     nl1 = nlpspd%nboxp_f(1,1,iatom)
+     nu1 = nlpspd%nboxp_f(2,1,iatom)
+     nl2 = nlpspd%nboxp_f(1,2,iatom)
+     nu2 = nlpspd%nboxp_f(2,2,iatom)
+     nl3 = nlpspd%nboxp_f(1,3,iatom)
+     nu3 = nlpspd%nboxp_f(2,3,iatom)
 
      call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
 &                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,2),fpmult,hx,hy,hz,logrid)
@@ -732,7 +732,7 @@ END SUBROUTINE allocate_projd
 !!         
 !! SOURCE:
 !!
-subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,psi,rxyz,hpsi,eproj)
+subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
 
   use module_base
   use module_types
@@ -753,7 +753,6 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
   ! Subroutine Array Arguments
   !#######################################
   integer,dimension(atoms%nat),intent(in) :: projflg
-  real(wp),dimension(Lnlpspd%nprojel),intent(out):: Lproj  !local projectors
   real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(in) :: psi  !local wavefunction
   real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(inout):: hpsi ! local |p><p|Psi>
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -762,14 +761,15 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
   !#######################################
   integer :: ikpt,istart_c,ncplx,jseg_c,iproj,iat,ityp,l,i,nwarnings
   integer :: isorb,ieorb,nspinor,iorb,istart_o,ispinor
-  integer :: nels,ipsi,ii,iatom
+  integer :: nels,ipsi,ii,iatom,iel
   integer :: jj,orbtot,ispin,ind
   integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
-  real(wp),dimension(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: psi_tmp
-  real(wp),dimension(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: hpsi_tmp
+  real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,Llr%localnorb*nspin) :: psi_tmp
+  real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,Llr%localnorb*nspin) :: hpsi_tmp
+  real(wp),dimension(Lnlpspd%nprojel):: Lproj  !local projectors
 
-!  First reshape the wavefunctions: psi_tmp(norb,nels,nspinor)
+!  First reshape the wavefunctions: psi_tmp(nels,norbs,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
 
 !  format the number of orbitals in this locreg orbitals
@@ -780,10 +780,19 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
          inthisLocreg(orbtot) = iorb
       end if
    end do
-   
-   psi_tmp = reshape(psi, (/ Llr%Localnorb*nspin, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
-   hpsi_tmp = reshape(hpsi,(/ LLr%localnorb*nspin, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
 
+   ! reshape the wavefunction
+   ii=0
+   do iorb=1,Llr%Localnorb*nspin
+       do ispinor=1,orbs%nspinor
+           do iel=1,nels
+               ii=ii+1
+               psi_tmp(iel,ispinor,iorb)=psi(ii)
+               hpsi_tmp(iel,ispinor,iorb)=hpsi(ii)
+           end do
+       end do
+   end do
+   
    ieorb = orbtot   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
    ikpt=orbs%iokpt(1)
    loop_kpt: do
@@ -855,7 +864,7 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
                                    Llr%wfd%nseg_f,Llr%wfd%keyv,Llr%wfd%keyg,&
                                    Lnlpspd%nvctr_p(2*iatom-1),Lnlpspd%nvctr_p(2*iatom),Lnlpspd%nseg_p(2*iatom-1),&
                                    Lnlpspd%nseg_p(2*iatom),Lnlpspd%keyv_p(jseg_c),Lnlpspd%keyg_p(1,jseg_c),&
-                                   Lproj(istart_o),psi_tmp(ii,:,ispinor),hpsi_tmp(ii,:,ispinor),eproj_spinor)
+                                   Lproj(istart_o),psi_tmp(1,ispinor,ii),hpsi_tmp(1,ispinor,ii),eproj_spinor)
                                
                                istart_o=istart_o+(Lnlpspd%nvctr_p(2*iatom-1)+7*Lnlpspd%nvctr_p(2*iatom))*(2*l-1)*ncplx
                            end if
@@ -878,7 +887,7 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
          do ispinor=1,orbs%nspinor
             do ii=1,Llr%localnorb
                do jj=1,Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
-                  hpsi(ind+jj) = hpsi_tmp(ii+(ispin-1)*Llr%localnorb,jj,ispinor)
+                  hpsi(ind+jj) = hpsi_tmp(jj,ispinor,ii+(ispin-1)*Llr%localnorb)
                end do
                ind = ind + Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
             end do

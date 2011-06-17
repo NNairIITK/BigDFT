@@ -328,7 +328,7 @@ END SUBROUTINE createProjectorsArrays
 subroutine input_wf_diag(iproc,nproc,at,&
      orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input,radii_cf,orbsv)
+     nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input,radii_cf)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -400,7 +400,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer :: nvctrp,norbtot,ispsie,ispsiv              !
   integer :: nspincomp                                 ! number of spin for orbitals
   integer, dimension(:,:), allocatable :: norbgrp      !
-  type(orbitals_data), optional, intent(in) :: orbsv   !
   real(wp), dimension(:), pointer :: psivirt           ! still for testing DiagHam
   type(linear_zone_descriptors) :: Lzd                 
 
@@ -508,15 +507,16 @@ subroutine input_wf_diag(iproc,nproc,at,&
      Lzd%orbs%npsidim=npsidim
 
    ! Determine inwhichlocreg
-     call assignToLocreg(iproc, at%nat, Lzd%nlr, nspincomp, Localnorb, Lzd%orbs)
+     call assignToLocreg(iproc,at%nat,at%natsc,Lzd%nlr,nspincomp,Localnorb,Lzd%orbs,norbsc_arr,at%iasctype)
 
 ! DEBUG for inWhichLocreg(ilr)
-!     do ilr=1,Lzd%nlr
-!       print *,'ilr,localnorb:',ilr,Lzd%Llr(ilr)%Localnorb
-!     end do
-!     do ilr=1,Lzd%orbs%norbp
-!       write(*,*) 'iorb, iwl', ilr, Lzd%orbs%inWhichLocreg(ilr),Lzd%orbs%occup(ilr)
-!     end do
+     print *,'at%iasctype:',at%iasctype,Lzd%orbs%norb
+     do ilr=1,Lzd%nlr
+       print *,'ilr,localnorb:',ilr,Lzd%Llr(ilr)%Localnorb
+     end do
+     do ilr=1,Lzd%orbs%norbp
+       write(*,*) 'iorb, iwl', ilr, Lzd%orbs%inWhichLocreg(ilr),Lzd%orbs%occup(ilr)
+     end do
 ! END DEBUG
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
@@ -549,12 +549,12 @@ subroutine input_wf_diag(iproc,nproc,at,&
        & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)    
 
-     open(44,file='Lrhopot',status='unknown')
-     do ilr = 1,max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),1)*nspin
-     write(44,*)rhopot(ilr)
+ !    open(44,file='Lrhopot',status='unknown')
+ !    do ilr = 1,max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),1)*nspin
+ !    write(44,*)rhopot(ilr)
  !    if (rhopot(ilr) == 1.49999999999999948d-019) rhopot(ilr)=9.99999999999999945d-021
-     end do
-     close(44)
+ !    end do
+ !    close(44)
      
 
      if(orbs%nspinor==4) then
@@ -637,7 +637,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psit,'psit',subname)       
 
-     call LinearDiagHam(iproc,etol,Lzd,orbs,nspin,Lhpsi,Lpsi,psit)!,orbsv)
+     call LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,at%natsc,Lhpsi,Lpsi,psit,norbsc_arr=norbsc_arr)!,orbsv)
      
      ! Don't need Lzd anymore (if only input guess)
      call deallocate_Lzd(Lzd,subname)

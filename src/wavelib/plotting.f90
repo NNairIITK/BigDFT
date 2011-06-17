@@ -1097,7 +1097,7 @@ subroutine plot_density(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
            b=-1.0_dp
            ib=2
            call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
-                at,1.d0,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
+                at,1.d0,rxyz,n1,n2,n3,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
         else
            message = 'spin up, down, total, difference'

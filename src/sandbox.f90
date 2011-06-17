@@ -399,7 +399,7 @@ program sandbox
 
 
 ! Fill and Apply the projectors on the wavefunctions
-  call apply_local_projectors(atoms,in%hx,in%hy,in%hz,Olr(ilr),Lnlpspd,Lproj,orbs,projflg,lpsi,rxyz,lppsi,eproj)
+  call apply_local_projectors(ilr,in%nspin,atoms,in%hx,in%hy,in%hz,Olr(ilr),Lnlpspd,orbs,projflg,lpsi,rxyz,lppsi,eproj)
 
 ! Calculate dotprod: <Psi_a|p><p|Psi_b>
 ! write(*,'(A54)') 'NL-Operator overlap matrix with ddot and localization:'
