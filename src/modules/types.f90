@@ -197,6 +197,12 @@ module module_types
      integer, dimension(:), pointer :: keyv
   end type wavefunctions_descriptors
 
+  type, public :: rho_descriptors
+     integer :: n_csegs,n_fsegs,dp_size,sp_size
+     integer, dimension(:,:), allocatable :: spkey,dpkey
+     integer, dimension(:), allocatable :: cseg_b,fseg_b
+     character(len=1) :: geocode
+  end type rho_descriptors
 
 !>  Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors

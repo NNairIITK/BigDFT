@@ -33,6 +33,7 @@ program abscalc_main
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
+  type(rho_descriptors)  :: rhodsc
   integer :: iconfig,nconfig
   logical :: exists
 
@@ -101,7 +102,7 @@ program abscalc_main
 
      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
 
-     call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+     call call_abscalc(nproc,iproc,atoms,rxyz,rhodsc,inputs,etot,fxyz,rst,infocode)
 
      if (iproc.eq.0) then
         sumx=0.d0
@@ -153,13 +154,14 @@ end program abscalc_main
 
 
 !>   Routines to use abscalc as a blackbox
- subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
+ subroutine call_abscalc(nproc,iproc,atoms,rxyz,rhodsc,in,energy,fxyz,rst,infocode)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
   type(atoms_data), intent(inout) :: atoms
+  type(rho_descriptors),intent(in) :: rhodsc
   type(restart_objects), intent(inout) :: rst
   integer, intent(inout) :: infocode
   real(gp), intent(out) :: energy
@@ -172,13 +174,14 @@ end program abscalc_main
 
   !temporary interface
   interface
-     subroutine abscalc(nproc,iproc,atoms,rxyz,&
+     subroutine abscalc(nproc,iproc,atoms,rxyz,rhodsc,&
           psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: nproc,iproc
        integer, intent(out) :: infocode
+       type(rho_descriptors),intent(in) :: rhodsc
        real(gp), intent(inout) :: hx_old,hy_old,hz_old
        type(input_variables), intent(in) :: in
        type(locreg_descriptors), intent(inout) :: Glr
@@ -217,7 +220,7 @@ end program abscalc_main
 
         stop 'ERROR'
      else
-        call abscalc(nproc,iproc,atoms,rxyz,&
+        call abscalc(nproc,iproc,atoms,rxyz,rhodsc,&
              rst%psi,rst%Glr,rst%orbs,&
              rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
         fxyz(:,:) = 0.d0
@@ -296,7 +299,7 @@ END SUBROUTINE call_abscalc
 !!               Input wavefunctions need to be recalculated. Routine exits.
 !!          - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 !!
-subroutine abscalc(nproc,iproc,atoms,rxyz,&
+subroutine abscalc(nproc,iproc,atoms,rxyz,rhodsc,&
      psi,Glr,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
   use module_base
   use module_types
@@ -309,6 +312,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
   type(input_variables), intent(in) :: in
+  type(rho_descriptors),intent(in) :: rhodsc
   type(locreg_descriptors), intent(inout) :: Glr
   type(atoms_data), intent(inout) :: atoms
   type(orbitals_data), intent(inout) :: orbs
@@ -661,7 +665,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      endif
 
 
-     call input_wf_diag(iproc,nproc,atoms_clone,&
+     call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
@@ -725,7 +729,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call memocc(i_stat,phnons,'phnons',subname)
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc,atoms,&
+     call input_wf_diag(iproc,nproc,atoms,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)

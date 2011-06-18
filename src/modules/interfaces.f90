@@ -336,7 +336,7 @@ module module_interfaces
        real(wp), dimension(*), intent(inout) :: pot_ion
      END SUBROUTINE createIonicPotential
 
-     subroutine input_wf_diag(iproc,nproc,at,&
+     subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
           nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
@@ -346,6 +346,7 @@ module module_interfaces
        integer, intent(in) :: iproc,nproc,ixc,symObj
        integer, intent(inout) :: nspin,nvirt
        real(gp), intent(in) :: hx,hy,hz
+       type(rho_descriptors),intent(in) :: rhodsc
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(inout) :: orbs
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -395,7 +396,7 @@ module module_interfaces
      END SUBROUTINE first_orthon
 
      subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho, &
-          & nscatterarr,nspin,GPU,symObj,irrzon,phnons)
+          & nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
        use module_base!, only: gp,dp,wp,ndebug,memocc
        use module_types
        implicit none
@@ -409,7 +410,24 @@ module module_interfaces
        type(GPU_pointers), intent(inout) :: GPU
        integer, dimension(*), intent(in) :: irrzon
        real(dp), dimension(*), intent(in) :: phnons
+       type(rho_descriptors),intent(in) :: rhodsc
      END SUBROUTINE sumrho
+
+
+     subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
+         n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,nspin,rho_d,iprint)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in) :: n1,n2,n3,n1i,n2i,n3i,iproc,nspin
+       type(atoms_data), intent(in) :: at
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
+       real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+       logical,intent(in) :: iprint
+       type(rho_descriptors),intent(inout) :: rho_d
+      end subroutine rho_segkey
+
 
      subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&

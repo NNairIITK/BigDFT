@@ -250,6 +250,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
   real(gp), allocatable :: wkptv(:)
+  type(rho_descriptors) :: rhodsc
 
   ! ----------------------------------
 
@@ -572,6 +573,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,psi,'psi',subname)
   end if
 
+ if ((atoms%geocode.eq.'F').and.(nproc.gt.1).and.(((ixc >= 11 .and. ixc <= 16) .or. &
+       & (ixc < 0 .and. libxc_functionals_isgga())))) then
+    call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
+         Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+         hxh,hyh,hzh,in%nspin,rhodsc,.false.)
+  endif
+
   ! INPUT WAVEFUNCTIONS, added also random input guess
   select case(inputpsi)
   case(INPUT_PSI_EMPTY)
@@ -681,7 +689,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   case(INPUT_PSI_LCAO)
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc, atoms,&
+     call input_wf_diag(iproc,nproc, atoms,rhodsc,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
@@ -881,7 +889,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            if (scpot) then
               ! Potential from electronic charge density
               call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-                   n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+                   n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
               !here the density can be mixed
               if (mix%kind == AB6_MIXING_DENSITY .and. in%itrpmax>1) then
                  call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
@@ -1235,7 +1243,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         call memocc(i_stat,rho,'rho',subname)
      end if
      call sumrho(iproc,nproc,orbs,Glr,0,hxh,hyh,hzh,psi,rho,n1i*n2i*n3p,&
-          nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+          nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
 
      !plot the density on the density.pot file
      if ((in%output_grid >= OUTPUT_GRID_DENSITY .or. in%nvacancy /=0) .and. DoLastRunThings) then
@@ -1429,7 +1437,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !this could have been calculated before
            ! Potential from electronic charge density
            call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-                n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+                n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
 
            !Allocate second Exc derivative
            if (n3p >0) then
@@ -1609,6 +1617,22 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      call memocc(i_stat,i_all,'ngatherarr',subname)
   endif
   ! --- End if of tail calculation
+
+  if ((atoms%geocode.eq.'F').and.(nproc.gt.1).and.(((ixc >= 11 .and. ixc <= 16).or.&
+       & (ixc < 0 .and. libxc_functionals_isgga())))) then
+    i_all=-product(shape(rhodsc%spkey))*kind(rhodsc%spkey)
+    deallocate(rhodsc%spkey,stat=i_stat)
+    call memocc(i_stat,i_all,'spkey',subname)
+    i_all=-product(shape(rhodsc%dpkey))*kind(rhodsc%dpkey)
+    deallocate(rhodsc%dpkey,stat=i_stat)
+    call memocc(i_stat,i_all,'dpkey',subname)
+    i_all=-product(shape(rhodsc%cseg_b))*kind(rhodsc%cseg_b)
+    deallocate(rhodsc%cseg_b,stat=i_stat)
+    call memocc(i_stat,i_all,'csegb',subname)
+    i_all=-product(shape(rhodsc%fseg_b))*kind(rhodsc%fseg_b)
+    deallocate(rhodsc%fseg_b,stat=i_stat)
+    call memocc(i_stat,i_all,'fsegb',subname)
+  endif
 
   call deallocate_before_exiting
 
