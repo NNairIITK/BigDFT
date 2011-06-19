@@ -437,7 +437,7 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
   if(iproc==0) write(*,'(x,a)') '------------------------------------------------------------- Input guess generated.'
 
 
-
+write(*,*) 'here 1, iproc', iproc
 
   ! Deallocate all local arrays.
   call deallocate_gwf(G,subname)
@@ -450,18 +450,23 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
+write(*,*) 'here 2, iproc', iproc
   call deallocate_comms(commsig,subname)
 
+write(*,*) 'here 3, iproc', iproc
   call deallocate_orbs(orbsig,subname)
 
+write(*,*) 'here 4, iproc', iproc
   i_all=-product(shape(onWhichAtom))*kind(onWhichAtom)
   deallocate(onWhichAtom, stat=i_stat)
   call memocc(i_stat, i_all, 'onWhichAtom',subname)
 
+write(*,*) 'here 5, iproc', iproc
   i_all=-product(shape(onWhichAtomPhi))*kind(onWhichAtomPhi)
   deallocate(onWhichAtomPhi, stat=i_stat)
   call memocc(i_stat, i_all, 'onWhichAtomPhi',subname)
 
+write(*,*) 'here 6, iproc', iproc
   !!i_all=-product(shape(onWhichAtomp))*kind(onWhichAtomp)
   !!deallocate(onWhichAtomp, stat=i_stat)
   !!call memocc(i_stat, i_all, 'onWhichAtomp',subname)
@@ -599,6 +604,7 @@ type(inguessParameters):: ip
   end if
 
   ip%nproc=ceiling(dble(orbs%norb)/dble(norbTarget))
+  ip%nproc=min(ip%nproc,nproc)
   if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', ip%nproc, ' processes.'
 
   allocate(newID(0:ip%nproc-1), stat=istat)
@@ -618,44 +624,6 @@ type(inguessParameters):: ip
   call initializeInguessParameters(iproc, orbs, orbsig, newComm, ip)
 
 
-  !!allocate(coeffPad(max(ip%norbtotPad*ip%norb_par(iproc), ip%nvctrp*ip%norb)))
-  !!call memocc(istat, coeffPad, 'coeffPad', subname)
-  !!do ii=1,orbsig%isorb*ip%norbtotPad
-  !!    call random_number(ttreal)
-  !!end do
-  !!coeffPad=0.d0
-  !!ii=0
-  !!do iorb=1,ip%norb_par(iproc)
-  !!    do jorb=1,ip%norbtot
-  !!        ii=ii+1
-  !!        call random_number(ttreal)
-  !!        coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
-  !!        !coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(100*iproc+ii)
-  !!        !coeffPad((iorb-1)*ip%norbtotPad+jorb)=coeff(jorb,iorb)
-  !!    end do
-  !!end do
-
-  !!call transposeInguess(iproc, ip, coeffPad)
-  !!call orthonormalizeCoefficients_parallel(iproc, ip, coeffPad)
-  !!call untransposeInguess(iproc, ip, coeffPad)
-
-  !!! test
-  allocate(ovrlp(ip%norb,ip%norb))
-  !!call transposeInguess(iproc, ip, coeffPad)
-  !!do iorb=1,ip%norb
-  !!    do jorb=1,ip%norb
-  !!        !ovrlp(iorb,jorb)=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-  !!        ovrlp(iorb,jorb)=ddot(ip%nvctrp_nz(iproc), coeffPad((iorb-1)*ip%nvctrp+1), 1, coeffPad((jorb-1)*ip%nvctrp+1), 1)
-  !!    end do
-  !!end do
-  !!call mpiallred(ovrlp(1,1), ip%norb**2, mpi_sum, mpi_comm_world, ierr)
-  !!do iorb=1,ip%norb
-  !!    do jorb=1,ip%norb
-  !!        write(5000+iproc,*) jorb, iorb, ovrlp(jorb,iorb)
-  !!    end do
-  !!end do
-  !!call mpi_barrier(mpi_comm_world, ierr)
-  !!stop
 
 
       allocate(coeffPad(max(ip%norbtotPad*ip%norb_par(iproc), ip%nvctrp*ip%norb)), stat=istat)
@@ -761,21 +729,6 @@ type(inguessParameters):: ip
         !call orthonormalizeCoefficients(orbs, orbsig, coeff)
         call orthonormalizeCoefficients_parallel(iproc, ip, newComm, coeffPad)
         call untransposeInguess(iproc, ip, newComm, coeffPad)
-  !!! test
-  !!call transposeInguess(iproc, ip, coeffPad)
-  !!do iorb=1,ip%norb
-  !!    do jorb=1,ip%norb
-  !!        !ovrlp(iorb,jorb)=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-  !!        ovrlp(iorb,jorb)=ddot(ip%nvctrp_nz(iproc), coeffPad((iorb-1)*ip%nvctrp+1), 1, coeffPad((jorb-1)*ip%nvctrp+1), 1)
-  !!    end do
-  !!end do
-  !!call mpiallred(ovrlp(1,1), ip%norb**2, mpi_sum, mpi_comm_world, ierr)
-  !!do iorb=1,ip%norb
-  !!    do jorb=1,ip%norb
-  !!        write(5000+iproc,*) jorb, iorb, ovrlp(jorb,iorb)
-  !!    end do
-  !!end do
-  !!call untransposeInguess(iproc, ip, coeffPad)
 
 
 
@@ -983,10 +936,16 @@ call memocc(istat, displs, 'displs', subname)
 ! Send ip%norb_par and ip%norbtot to all processes.
 allocate(norb_par(0:ip%nproc-1), stat=istat)
 call memocc(istat, norb_par, 'norb_par', subname)
+
+!! WITHOUT THIS IT CRASHES...?
+call mpi_bcast(norb_par(0), ip%nproc, mpi_integer, 0, mpi_comm_world, ierr)
+!!!!!!!!!a!!!!!!!!!!!!!!!!!!!!
+
 if(iproc==0) then
     call dcopy(ip%nproc, ip%norb_par(0), 1, norb_par(0), 1)
     norbtot=ip%norbtot
 end if
+call mpi_barrier(mpi_comm_world, ierr)
 call mpi_bcast(norb_par(0), ip%nproc, mpi_integer, 0, mpi_comm_world, ierr)
 call mpi_bcast(norbtot, 1, mpi_integer, 0, mpi_comm_world, ierr)
 

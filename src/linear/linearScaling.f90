@@ -136,6 +136,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        phi)
+write(*,*) 'after inguess, iproc', iproc
   ! Cut off outside localization region -- experimental
   call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
