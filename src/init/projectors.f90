@@ -66,7 +66,6 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
         ! coarse grid quantities
         call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
-write(*,'(a,2i7,2es14.6,6i8)') 'iproc, iat, radii_cf(at%iatype(iat),3), cpmult, nl1, nu1, nl2, nu2, nl3, nu3', iproc, iat, radii_cf(at%iatype(iat),3), cpmult, nl1, nu1, nl2, nu2, nl3, nu3
 
         nlpspd%nboxp_c(1,1,iat)=nl1
         nlpspd%nboxp_c(1,2,iat)=nl2       

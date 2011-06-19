@@ -2276,7 +2276,6 @@ do jproc=0,nproc-1
     iStartEnd(4,jproc)=ie2
     iStartEnd(5,jproc)=is3
     iStartEnd(6,jproc)=ie3
-if(iproc==0) write(*,'(a,i4,3x,6i7)') 'jproc, is1, ie1, is2, ie2, is3, ie3', jproc, is1, ie1, is2, ie2, is3, ie3
 end do
 
 ! Determine how many slices each process receives.
@@ -2292,11 +2291,11 @@ do jproc=0,nproc-1
         ie3k=is3k+nscatterarr(kproc,2)-1
         if(is3j<=ie3k .and. ie3j>=is3k) then
             ioverlap=ioverlap+1
-            if(iproc==0) write(*,'(2(a,i0),a)') 'process ',jproc,' gets potential from process ',kproc,'.' 
+            !if(iproc==0) write(*,'(2(a,i0),a)') 'process ',jproc,' gets potential from process ',kproc,'.' 
         end if
     end do
     comgp%noverlaps(jproc)=ioverlap
-    if(iproc==0) write(*,'(2(a,i0),a)') 'Process ',jproc,' gets ',ioverlap,' potential slices.'
+    !if(iproc==0) write(*,'(2(a,i0),a)') 'Process ',jproc,' gets ',ioverlap,' potential slices.'
 end do
 
 ! Determine the parameters for the communications.
@@ -2333,9 +2332,9 @@ do jproc=0,nproc-1
             end if
             !write(*,'(a,8i8)') 'jproc, kproc, is3j, ie3j, is3k, ie3k, is3, ie3', jproc, kproc, is3j, ie3j, is3k, ie3k, is3, ie3
             call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc, istdest, tag, comgp%comarr(1,ioverlap,jproc))
-            if(iproc==0) write(*,'(6(a,i0))') 'process ',comgp%comarr(1,ioverlap,jproc),' sends ',comgp%comarr(3,ioverlap,jproc),' elements from position ',&
-                                    comgp%comarr(2,ioverlap,jproc),' to position ',comgp%comarr(5,ioverlap,jproc),' on process ',&
-                                    comgp%comarr(4,ioverlap,jproc),'; tag=',comgp%comarr(6,ioverlap,jproc)
+            !if(iproc==0) write(*,'(6(a,i0))') 'process ',comgp%comarr(1,ioverlap,jproc),' sends ',comgp%comarr(3,ioverlap,jproc),' elements from position ',&
+            !                        comgp%comarr(2,ioverlap,jproc),' to position ',comgp%comarr(5,ioverlap,jproc),' on process ',&
+            !                        comgp%comarr(4,ioverlap,jproc),'; tag=',comgp%comarr(6,ioverlap,jproc)
             istdest = istdest + (ie3-is3+1)*lzd%Glr%d%n1i*lzd%Glr%d%n2i
             !write(*,'(a,4i8)') 'jproc, kproc, (ie3-is3+1),lzd%Glr%d%n1i*lzd%Glr%d%n2i', jproc, kproc, (ie3-is3+1),lzd%Glr%d%n1i*lzd%Glr%d%n2i
             if(iproc==jproc) then

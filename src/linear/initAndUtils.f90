@@ -1010,7 +1010,7 @@ call memocc(istat, lin%comsr%noverlaps, 'lin%comsr%noverlaps', subname)
 do jproc=0,nproc-1
     is=nscatterarr(jproc,3)-14
     ie=is+nscatterarr(jproc,1)-1
-    if(iproc==0) write(*,'(a,3i8)') 'jproc, is, ie', jproc, is, ie
+    !if(iproc==0) write(*,'(a,3i8)') 'jproc, is, ie', jproc, is, ie
     ioverlap=0
     do iorb=1,lin%lb%orbs%norb
         ilr=lin%lb%onWhichAtomAll(iorb)
