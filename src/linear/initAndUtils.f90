@@ -220,6 +220,7 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess
   read(99,*) lin%plotBasisFunctions
+  read(99,*) lin%norbsPerProcIG
   call checkLinearParameters(iproc, lin)
   do itype=1,at%ntypes
       read(99,*) atomNames(itype), lin%norbsPerType(itype), lin%potentialPrefac(itype), locradType(itype)

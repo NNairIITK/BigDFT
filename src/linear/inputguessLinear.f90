@@ -424,10 +424,15 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
 
    ! Build a linear combination of atomic orbitals to get a goor input guess for phi.
    !! THIS IS THE ORIGINAL
+   call cpu_time(t1)
    !call buildLinearCombinations(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
    !     onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
    call buildLinearCombinations2(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
         onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
+   call cpu_time(t2)
+   time=t2-t1
+   call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+   if(iproc==0) write(*,'(x,a,es10.3)') 'time for "buildLinearCombinations":', time/dble(nproc)
 
   if(iproc==0) write(*,'(x,a)') '------------------------------------------------------------- Input guess generated.'
 
@@ -515,16 +520,18 @@ real(8),dimension(:,:),allocatable:: ovrlp, ovrlpTemp
 real(8),dimension(:,:),allocatable:: coeff, grad, gradOld, lagMat, ovrlpLarge, coeffOld
 real(8),dimension(:,:,:),allocatable:: Ham, tempArr, HamPad
 real(8),dimension(:),pointer:: chiw
-integer,dimension(:),allocatable:: recvcounts, displs
+integer,dimension(:),allocatable:: recvcounts, displs, norb_par
 real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinations'
 real(4):: ttreal
+integer:: wholeGroup, newGroup, newComm, norbtot
+integer,dimension(:),allocatable:: newID
   
 ! new
 real(8),dimension(:),allocatable:: work, eval, evals
 real(8),dimension(:,:),allocatable:: tempMat
-integer:: lwork, ii, info, iiAtprev, i, jproc
+integer:: lwork, ii, info, iiAtprev, i, jproc, norbTarget, sendcount
 type(inguessParameters):: ip
 
   if(iproc==0) write(*,'(x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
@@ -584,8 +591,31 @@ type(inguessParameters):: ip
 !!end do
 
 
+  ! Determine the number of processes we need.
+  if(lin%norbsPerProcIG>orbs%norb) then
+      norbTarget=orbs%norb
+  else
+     norbTarget=lin%norbsperProcIG
+  end if
+
+  ip%nproc=ceiling(dble(orbs%norb)/dble(norbTarget))
+  if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', ip%nproc, ' processes.'
+
+  allocate(newID(0:ip%nproc-1), stat=istat)
+  call memocc(istat, newID, 'newID', subname)
+  ! Assign the IDs of the active processes to newID.
+  do jproc=0,ip%nproc-1
+     newID(jproc)=jproc
+  end do
+  ! Create the new communicator newComm.
+  call mpi_comm_group(mpi_comm_world, wholeGroup, ierr)
+  call mpi_group_incl(wholeGroup, ip%nproc, newID, newGroup, ierr)
+  call mpi_comm_create(mpi_comm_world, newGroup, newComm, ierr)
+
+  processIf: if(iproc<ip%nproc) then
+
   ! Initialize the parameters for performing tha calculations in parallel.
-  call initializeInguessParameters(iproc, nproc, orbs, orbsig, ip)
+  call initializeInguessParameters(iproc, orbs, orbsig, newComm, ip)
 
 
   !!allocate(coeffPad(max(ip%norbtotPad*ip%norb_par(iproc), ip%nvctrp*ip%norb)))
@@ -645,6 +675,7 @@ type(inguessParameters):: ip
 
       ! Initialize the coefficient vectors. Put random number to palces where it is
       ! reasonable (i.e. close to the atom where the basis function is centered).
+      call initRandomSeed(iproc, 1)
       do ii=1,orbsig%isorb*ip%norbtotPad
           call random_number(ttreal)
       end do
@@ -653,11 +684,13 @@ type(inguessParameters):: ip
       ii=0
       do iorb=1,ip%norb_par(iproc)
           !iiAt=onWhichAtomPhi(iorb)
-          iiAt=lin%onWhichAtom(iorb)
+          !iiAt=lin%onWhichAtom(iorb)
+          iiAt=onWhichAtom(ip%isorb+iorb)
           !!cut=1.d0/lin%potentialPrefac(at%iatype(iiAt))
           !!cut=cut**(1.d0/dble(lin%confPotOrder))
           cut=lin%locrad(at%iatype(iiAt))**2
           do jorb=1,ip%norbtot
+!!write(*,'(a,4i8)') 'iproc, iorb, jorb, iiAt', iproc, iorb, jorb, iiAt
               jjAt=onWhichAtom(jorb)
               tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
               if(tt>cut) then
@@ -715,7 +748,7 @@ type(inguessParameters):: ip
     ! The optimization loop.
 
     ! Transpose the coefficients for the first orthonormalization.
-    call transposeInguess(iproc, ip, coeffPad)
+    call transposeInguess(iproc, ip, newComm, coeffPad)
 
     iterLoop: do it=1,lin%nItInguess
 
@@ -726,8 +759,8 @@ type(inguessParameters):: ip
 
         ! Othonormalize the coefficients.
         !call orthonormalizeCoefficients(orbs, orbsig, coeff)
-        call orthonormalizeCoefficients_parallel(iproc, ip, coeffPad)
-        call untransposeInguess(iproc, ip, coeffPad)
+        call orthonormalizeCoefficients_parallel(iproc, ip, newComm, coeffPad)
+        call untransposeInguess(iproc, ip, newComm, coeffPad)
   !!! test
   !!call transposeInguess(iproc, ip, coeffPad)
   !!do iorb=1,ip%norb
@@ -754,7 +787,8 @@ type(inguessParameters):: ip
         !do iorb=1,orbs%norb
         do iorb=1,ip%norb_par(iproc)
             !iiAt=onWhichAtomPhi(iorb)
-            iiAt=lin%onWhichAtom(iorb)
+            !iiAt=lin%onWhichAtom(iorb)
+            iiAt=onWhichAtom(ip%isorb+iorb)
  !write(*,'(a,4i8)') 'it, iproc, iorb, iiAt', it, iproc, iorb, iiAt
             !call dgemv('n', orbsig%norb, orbsig%norb, 1.d0, Ham(1,1,iiAt), orbsig%norb, coeff(1,iorb), 1, 0.d0, grad(1,iorb), 1)
             !call dgemv('n', ip%norbtotPad, ip%norb_par(iproc), 1.d0, HamPad(1,ip%isorb+1,iiAt), ip%norbtotPad, coeffPad(1), 1, 0.d0, gradTemp(1), 1)
@@ -802,13 +836,14 @@ type(inguessParameters):: ip
         !!do iorb=1,orbs%norb
         !!    trace=trace+lagMat(iorb,iorb)
         !!end do
-        call transposeInguess(iproc, ip, coeffPad)
-        call transposeInguess(iproc, ip, gradTemp)
+        call transposeInguess(iproc, ip, newComm, coeffPad)
+        call transposeInguess(iproc, ip, newComm, gradTemp)
         !call gemm('t', 'n', orbs%norb, orbs%norb, ip%nvctrp, 1.0d0, coeffPad(1), &
         !     orbsig%norb, gradTemp(1,1), ip%nvctrp, 0.d0, lagMat(1,1), orbs%norb)
         call gemm('t', 'n', ip%norb, ip%norb, ip%nvctrp, 1.0d0, coeffPad(1), &
              ip%nvctrp, gradTemp(1), ip%nvctrp, 0.d0, lagMat(1,1), ip%norb)
-        call mpiallred(lagMat(1,1), ip%norb**2, mpi_sum, mpi_comm_world, ierr)
+        !call mpiallred(lagMat(1,1), ip%norb**2, mpi_sum, mpi_comm_world, ierr)
+        call mpiallred(lagMat(1,1), ip%norb**2, mpi_sum, newComm, ierr)
         do iorb=1,orbs%norb
             trace=trace+lagMat(iorb,iorb)
         end do
@@ -833,8 +868,10 @@ type(inguessParameters):: ip
             fnrmArr(iorb)=ddot(ip%nvctrp, gradTemp((iorb-1)*ip%nvctrp+1), 1, gradTemp((iorb-1)*ip%nvctrp+1), 1)
             if(it>1) fnrmOvrlpArr(iorb)=ddot(ip%nvctrp, gradTemp((iorb-1)*ip%nvctrp+1), 1, gradTempOld((iorb-1)*ip%nvctrp+1), 1)
         end do
-        call mpiallred(fnrmArr(1), ip%norb, mpi_sum, mpi_comm_world, ierr)
-        call mpiallred(fnrmOvrlpArr(1), ip%norb, mpi_sum, mpi_comm_world, ierr)
+        !call mpiallred(fnrmArr(1), ip%norb, mpi_sum, mpi_comm_world, ierr)
+        call mpiallred(fnrmArr(1), ip%norb, mpi_sum,newComm, ierr)
+        !call mpiallred(fnrmOvrlpArr(1), ip%norb, mpi_sum, mpi_comm_world, ierr)
+        call mpiallred(fnrmOvrlpArr(1), ip%norb, mpi_sum, newComm, ierr)
         call dcopy(ip%nvctrp*ip%norb, gradTemp(1), 1, gradTempOld(1), 1)
 
         ! Keep the gradient for the next iteration.
@@ -920,30 +957,82 @@ type(inguessParameters):: ip
 
 
 ! Cut out the zeros
-call untransposeInguess(iproc, ip, coeffPad)
+call untransposeInguess(iproc, ip, newComm, coeffPad)
 allocate(coeff2(ip%norbtot*ip%norb_par(iproc)), stat=istat)
 call memocc(istat, coeff2, 'coeff2', subname)
 do iorb=1,ip%norb_par(iproc)
     call dcopy(ip%norbtot, coeffPad((iorb-1)*ip%norbtotPad+1), 1, coeff2((iorb-1)*ip%norbtot+1), 1)
 end do
 
+end if processIf
+
+call mpi_barrier(mpi_comm_world, ierr)
+
+if(iproc>=ip%nproc) then
+    allocate(coeff2(1), stat=istat)
+    call memocc(istat, coeff2, 'coeff2', subname)
+end if
+
+
 ! Collect all coefficients
-allocate(recvcounts(0:ip%nproc-1), stat=istat)
+allocate(recvcounts(0:nproc-1), stat=istat)
 call memocc(istat, recvcounts, 'recvcounts', subname)
-allocate(displs(0:ip%nproc-1), stat=istat)
+allocate(displs(0:nproc-1), stat=istat)
 call memocc(istat, displs, 'displs', subname)
+
+! Send ip%norb_par and ip%norbtot to all processes.
+allocate(norb_par(0:ip%nproc-1), stat=istat)
+call memocc(istat, norb_par, 'norb_par', subname)
+if(iproc==0) then
+    call dcopy(ip%nproc, ip%norb_par(0), 1, norb_par(0), 1)
+    norbtot=ip%norbtot
+end if
+call mpi_bcast(norb_par(0), ip%nproc, mpi_integer, 0, mpi_comm_world, ierr)
+call mpi_bcast(norbtot, 1, mpi_integer, 0, mpi_comm_world, ierr)
+
 ii=0
 do jproc=0,ip%nproc-1
-    recvcounts(jproc)=ip%norbtot*ip%norb_par(jproc)
+    !recvcounts(jproc)=ip%norbtot*ip%norb_par(jproc)
+    recvcounts(jproc)=norbtot*norb_par(jproc)
+    displs(jproc)=ii
+    ii=ii+recvcounts(jproc)
+end do
+do jproc=ip%nproc,nproc-1
+    recvcounts(jproc)=0
     displs(jproc)=ii
     ii=ii+recvcounts(jproc)
 end do
 write(*,'(a,100i4)') 'iproc, recvcounts', recvcounts(:)
 write(*,'(a,100i4)') 'iproc, displs', displs(:)
-call mpi_allgatherv(coeff2(1), ip%norbtot*ip%norb_par(iproc), mpi_double_precision, coeff(1,1), recvcounts, &
+if(iproc<ip%nproc) then
+    sendcount=ip%norbtot*ip%norb_par(iproc)
+else
+    sendcount=0
+end if
+call mpi_allgatherv(coeff2(1), sendcount, mpi_double_precision, coeff(1,1), recvcounts, &
      displs, mpi_double_precision, mpi_comm_world, ierr)
+!call mpi_allgatherv(coeff2(1), ip%norbtot*ip%norb_par(iproc), mpi_double_precision, coeff(1,1), recvcounts, &
+!     displs, mpi_double_precision, mpi_comm_world, ierr)
+
+!!! Collect all coefficients
+!!allocate(recvcounts(0:ip%nproc-1), stat=istat)
+!!call memocc(istat, recvcounts, 'recvcounts', subname)
+!!allocate(displs(0:ip%nproc-1), stat=istat)
+!!call memocc(istat, displs, 'displs', subname)
+!!ii=0
+!!do jproc=0,ip%nproc-1
+!!    recvcounts(jproc)=ip%norbtot*ip%norb_par(jproc)
+!!    displs(jproc)=ii
+!!    ii=ii+recvcounts(jproc)
+!!end do
+!!write(*,'(a,100i4)') 'iproc, recvcounts', recvcounts(:)
+!!write(*,'(a,100i4)') 'iproc, displs', displs(:)
+!!call mpi_allgatherv(coeff2(1), ip%norbtot*ip%norb_par(iproc), mpi_double_precision, coeff(1,1), recvcounts, &
+!!     displs, mpi_double_precision, mpi_comm_world, ierr)
 
 
+
+! Now send the results to those processes which did not participate in the calculations.
 
 !!! Now broadcast the result to all processes
 !!call mpi_bcast(coeff(1,1), orbsig%norb*orbs%norb, mpi_double_precision, 0, mpi_comm_world, ierr)
@@ -1516,12 +1605,12 @@ real(8):: ddot
         !!    call dscal(orbsig%norb, 1/tt, coeff(1,iorb), 1)
         !!end do
 
-        ! Orthonormalize the coefficient vectors (Loewdin).
-        do iorb=1,orbs%norb
-            do jorb=1,orbs%norb
-                ovrlp(iorb,jorb)=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-            end do
-        end do
+        !!! Orthonormalize the coefficient vectors (Loewdin).
+        !!do iorb=1,orbs%norb
+        !!    do jorb=1,orbs%norb
+        !!        ovrlp(iorb,jorb)=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+        !!    end do
+        !!end do
 
         allocate(work(1), stat=istat)
         call memocc(istat, work, 'work', subname)
@@ -1671,13 +1760,13 @@ end subroutine preconditionGradient
 
 
 
-subroutine transposeInguess(iproc, ip, chi)
+subroutine transposeInguess(iproc, ip, newComm, chi)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc
+integer,intent(in):: iproc, newComm
 type(inguessParameters),intent(in):: ip
 real(8),dimension(ip%norbtotPad*ip%norb_par(iproc)),intent(inout):: chi
 
@@ -1712,8 +1801,10 @@ character(len=*),parameter:: subname='transposeInguess'
   end do
 
   ! Communicate the vectors.
+  !call mpi_alltoallv(chiw(1), ip%sendcounts, ip%senddispls, mpi_double_precision, chi(1), &
+  !     ip%recvcounts, ip%recvdispls, mpi_double_precision, mpi_comm_world, ierr)
   call mpi_alltoallv(chiw(1), ip%sendcounts, ip%senddispls, mpi_double_precision, chi(1), &
-       ip%recvcounts, ip%recvdispls, mpi_double_precision, mpi_comm_world, ierr)
+       ip%recvcounts, ip%recvdispls, mpi_double_precision, newComm, ierr)
 
   ! Dellocate the work array.
   iall=-product(shape(chiw))*kind(chiw)
@@ -1726,13 +1817,13 @@ end subroutine transposeInguess
 
 
 
-subroutine untransposeInguess(iproc, ip, chi)
+subroutine untransposeInguess(iproc, ip, newComm, chi)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc
+integer,intent(in):: iproc, newComm
 type(inguessParameters),intent(in):: ip
 real(8),dimension(ip%norbtotPad*ip%norb_par(iproc)),intent(inout):: chi
 
@@ -1747,8 +1838,10 @@ character(len=*),parameter:: subname='untransposeInguess'
   call memocc(istat, chiw, 'chiw', subname)
 
   ! Communicate the data.
+  !call mpi_alltoallv(chi(1), ip%recvcounts, ip%recvdispls, mpi_double_precision, chiw(1), &
+  !     ip%sendcounts, ip%senddispls, mpi_double_precision, mpi_comm_world, ierr)
   call mpi_alltoallv(chi(1), ip%recvcounts, ip%recvdispls, mpi_double_precision, chiw(1), &
-       ip%sendcounts, ip%senddispls, mpi_double_precision, mpi_comm_world, ierr)
+       ip%sendcounts, ip%senddispls, mpi_double_precision, newComm, ierr)
 
   ! Rearrange back the elements.
   chi=0.d0
@@ -1783,23 +1876,27 @@ end subroutine untransposeInguess
 
 
 
-subroutine initializeInguessParameters(iproc, nproc, orbs, orbsig, ip)
+!subroutine initializeInguessParameters(iproc, nproc, orbs, orbsig, lin, ip)
+subroutine initializeInguessParameters(iproc, orbs, orbsig, newComm, ip)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc
 type(orbitals_data),intent(in):: orbs, orbsig
-type(inguessParameters),intent(out):: ip
+integer,intent(in):: newComm
+type(inguessParameters),intent(inout):: ip
 
 ! Local variables
-integer:: ii, kk, jproc, istat, ierr
+integer:: ii, kk, jproc, istat, ierr, norbTarget
 real(8):: tt
 character(len=*),parameter:: subname='initializeInguessParameters'
 
 
-  ip%nproc=nproc
+  
+
+
   ip%norb=orbs%norb
   ip%norbtot=orbsig%norb
 
@@ -1849,7 +1946,7 @@ character(len=*),parameter:: subname='initializeInguessParameters'
   end do
   if(ii/=ip%norbtot) then
      if(iproc==0) write(*,'(3x,a)') 'ERROR: wrong partition of ip%norbtot!'
-     call mpi_barrier(mpi_comm_world, ierr)
+     call mpi_barrier(newComm, ierr)
      stop
   end if
 
@@ -1891,13 +1988,13 @@ end subroutine initializeInguessParameters
 
 
 
-subroutine orthonormalizeCoefficients_parallel(iproc, ip, coeff)
+subroutine orthonormalizeCoefficients_parallel(iproc, ip, newComm, coeff)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc
+integer,intent(in):: iproc, newComm
 type(inguessParameters),intent(in):: ip
 real(8),dimension(ip%nvctrp,ip%norb),intent(inout):: coeff
 
@@ -1940,14 +2037,16 @@ real(8):: ddot
         end do
 
         ! Sum up over all processes.
-        if(ip%nproc>1) call mpiallred(ovrlp(1,1), ip%norb**2, mpi_sum, mpi_comm_world, ierr)
+        !if(ip%nproc>1) call mpiallred(ovrlp(1,1), ip%norb**2, mpi_sum, mpi_comm_world, ierr)
+        if(ip%nproc>1) call mpiallred(ovrlp(1,1), ip%norb**2, mpi_sum, newComm, ierr)
 
-        !!do iorb=1,ip%norb
-        !!    do jorb=1,ip%norb
-        !!        if(abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))>1.d-10) stop 'not symmetric'
-        !!        write(3000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-        !!    end do
-        !!end do
+        do iorb=1,ip%norb
+            do jorb=1,ip%norb
+                if(abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))>1.d-10) stop 'not symmetric'
+                write(3000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+            end do
+        end do
+        write(3000+iproc,*) '=================================='
 
         !!allocate(work(1), stat=istat)
         !!call memocc(istat, work, 'work', subname)
