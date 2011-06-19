@@ -1710,48 +1710,42 @@ subroutine applyPAWprojectors(orbs,at,&
      call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
      
      ! loop over all my orbitals
-     ispsi=ispsi_k
      do iorb=isorb,ieorb
-
-        istart_c=1
+        istart_c=istart_ck
         iproj=1
-     
-     iat=0
+        iat=0
 
-     do iatat=1, at%nat
-        !!$ 
-        if (  at%paw_NofL(at%iatype(iatat)).gt.0  ) then
-           iat=iat+1
-           
-           istart_c_i=istart_c
-           iproj_old=iproj
-           ispsi=ispsi_k
-           do iorb=isorb,ieorb
-              
+        do iatat=1, at%nat
+           if (  at%paw_NofL(at%iatype(iatat)).gt.0  ) then
+              iat=iat+1
+              istart_c_i=istart_c
+              iproj_old=iproj
+              ispsi=ispsi_k
+              !!!! do iorb=isorb,ieorb
+
+
               mproj= PAWD%ilr_to_mproj(iat)
               
+              if( ikpt .ne. orbs%iokpt(iorb) ) then
+                 STOP " ikpt .ne. orbs%iokpt(iorb) in applypawprojectors " 
+              end if
+              kx=orbs%kpts(1,ikpt)
+              ky=orbs%kpts(2,ikpt)
+              kz=orbs%kpts(3,ikpt)
               call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
               if(ncplx.ne.1) then
                  STOP '  ncplx.ne.1 in  applyPAWprojectors   '
               end if
-              
               do ispinor=1,orbs%nspinor,ncplx
                  eproj_spinor=0.0_gp
-                 
                  if (ispinor >= 2) istart_c=istart_c_i
-                 
                  mbvctr_c=PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
                  mbvctr_f=PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
-                 
                  mbseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
                  mbseg_f=PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
                  jseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
-                 
                  mdone=0
-
-
                  iproj=iproj_old
-                 
                  if(mproj>0) then
                     if(  PAWD%DistProjApply) then
                        jorb=1
@@ -1759,7 +1753,9 @@ subroutine applyPAWprojectors(orbs,at,&
                           jorb=jorb+1
                        end do
                        if(jorb<PAWD%G%ncoeff) then
-                          call fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz, jorb, istart_c,  at%geocode, at, iatat ) 
+                          call fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,&
+                               kx,ky,kz, &
+                               jorb, istart_c,  at%geocode, at, iatat ) 
                        endif
                     end if
                  endif
@@ -1775,9 +1771,7 @@ subroutine applyPAWprojectors(orbs,at,&
 !!$                       print *, "applying paw for l= ", l,&
 !!$                            "  primo elemento ", paw_matrix(PAWD%iprojto_imatrixbeg(iproj))
 !!$                    end if
-
                     old_istart_c=istart_c
-                    
                     do ichannel=1, nchannels
                        do m=1,2*l-1
                           ibuffer=ibuffer+1
@@ -1795,8 +1789,8 @@ subroutine applyPAWprojectors(orbs,at,&
                                   PAWD%paw_proj(istart_c),&
                                   dotbuffer( ibuffer ) )
                           end if
+                          ibuffer=ibuffer + (ncplx-1)
                           
-
 !!$                          !! TTTTTTTTTTTTTTTTTTTt TEST TTTTTTTTTTTTTTTTTTT
 !!$                          call wpdot_wrap(ncplx,  &
 !!$                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PAWD%paw_nlpspd%keyv_p(jseg_c),&
@@ -1806,7 +1800,7 @@ subroutine applyPAWprojectors(orbs,at,&
 !!$                               PAWD%paw_proj(istart_c),&
 !!$                               eproj_spinor)
 !!$                          print *, "TEST:  THE PROJECTOR ichannel = ", ichannel, " m=",m, " HAS SQUARED MODULUS  " ,eproj_spinor 
-  
+                          
 !!$                          !! plot -------------------------------------------------------------
 !!$                          Plr%d%n1 = Glr%d%n1
 !!$                          Plr%d%n2 = Glr%d%n2
@@ -1829,9 +1823,9 @@ subroutine applyPAWprojectors(orbs,at,&
 !!$                          call plot_wf_cube(orbname,at,Plr,hx,hy,hz,rxyz, PAWD%paw_proj(istart_c) ,"1234567890" ) 
 !!$                          !! END plot ----------------------------------------------------------
                           
-
+                          
                           !! TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
-
+                          
                           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                           iproj=iproj+1
                           mdone=mdone+1
@@ -1841,13 +1835,13 @@ subroutine applyPAWprojectors(orbs,at,&
 !!$                    call DGEMM('N','N', nchannels ,(2*l-1)  , nchannels  ,&
 !!$                         1.0d0 , paw_matrix(imatrix) , nchannels ,&
 !!$                         dotbuffer  ,(2*l-1), 0.0D0 , dotbufferbis  ,(2*l-1))
-
-
+                    
+                    
                     if( .not. dosuperposition) then
                        if(lsign>0) then
-                          call DGEMM('N','N',(2*l-1)  , nchannels , nchannels  ,&
-                               1.0d0 ,dotbuffer , (2*l-1) ,&
-                               paw_matrix(imatrix)  ,nchannels , 0.0D0 , dotbufferbis  ,(2*l-1))
+                          call DGEMM('N','N',(2*l-1)*ncplx  , nchannels , nchannels  ,&
+                               1.0d0 ,dotbuffer , (2*l-1)*ncplx ,&
+                               paw_matrix(imatrix)  ,nchannels , 0.0D0 , dotbufferbis  ,(2*l-1)*ncplx )
                        else
                           dotbufferbis=0.0_wp
                        endif
@@ -1855,14 +1849,16 @@ subroutine applyPAWprojectors(orbs,at,&
                        if( sup_iatom .eq. iatat .and. (-sup_l) .eq. lsign ) then
                           do ichannel=1, nchannels
                              do m=1,2*l-1
-                                dotbufferbis((ichannel-1)*(2*l-1)+m) = sup_arraym(m)
+                                dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx           ) = 0.0_gp ! keep this before
+                                dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx -(ncplx-1)) = sup_arraym(m)
                              end do
                           enddo
                           lfound_sup=.true.
                        else
                           do ichannel=1, nchannels
                              do m=1,2*l-1
-                                dotbufferbis((ichannel-1)*(2*l-1)+m) = 0.0
+                                dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx           ) = 0.0_gp 
+                                dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx -(ncplx-1)) = 0.0_gp
                              end do
                           enddo
                        endif
@@ -1885,42 +1881,47 @@ subroutine applyPAWprojectors(orbs,at,&
                                Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
                                hpsi(ispsi+(ispinor-1)*(orbs%npsidim/orbs%nspinor)  )&
                                )
-
+                          
                           
                           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                           iproj=iproj+1
-
+                          ibuffer=ibuffer + (ncplx-1)
                        end do
                     end do
                  end do
                  
                  mdone=0
-                 !!$ iproj=iproj_old
+!!$ iproj=iproj_old
                  istart_c=istart_c_i
                  ispsi=ispsi+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*nspinor
-
+                 
               end do
-           end do
-           if( PAWD%DistProjApply ) then
-              istart_c=1
-           else
-              istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*mproj
-           endif
-        end if
-     end do
 
-     !! istart_ck=istart_c  non si incrementa
+              if( PAWD%DistProjApply ) then
+                 istart_c=1
+              else
+                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*mproj*ncplx
+              endif
+           end if
+        end do
+        
+        ispsi_k=ispsi
+     end do
+     istart_ck=istart_c
+     
+     if(  dosuperposition ) then
+        if(.not. lfound_sup) then
+           print *, " initial state not found in routine ",subname
+           STOP 
+        endif
+     endif
+     
+     
      if (ieorb == orbs%norbp) exit loop_kpt
      ikpt=ikpt+1
-     ispsi_k=ispsi
+     
+     
   end do loop_kpt
-
-  if(  dosuperposition ) then
-     if(.not. lfound_sup) then
-        print *, " initial state not found in routine ",subname
-        STOP 
-     endif
-  endif
 
 end subroutine applyPAWprojectors
   

@@ -279,17 +279,13 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   GPU%full_locham=.true.
 
 
-  allocate(ha%orbs%eval(ha%orbs%norb+ndebug),stat=i_stat)
+  allocate(ha%orbs%eval(ha%orbs%norb *ha%orbs%nkpts  +ndebug),stat=i_stat)
   call memocc(i_stat,ha%orbs%eval,'ha%orbs%eval',subname)
-  ha%orbs%occup(1:ha%orbs%norb)=1.0_gp
-  ha%orbs%spinsgn(1:ha%orbs%norb)=1.0_gp
-  ha%orbs%eval(1:ha%orbs%norb)=1.0_gp
+  ha%orbs%occup(1:ha%orbs%norb*ha%orbs%nkpts )=1.0_gp
+  ha%orbs%spinsgn(1:ha%orbs%norb*ha%orbs%nkpts )=1.0_gp
+  ha%orbs%eval(1:ha%orbs%norb*ha%orbs%nkpts )=1.0_gp
 
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
-
-  allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
-  call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
- 
 
   select case(  in%Linit_absorber )
   case(0)
@@ -303,12 +299,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   case default
      STOP "unknown in%Linit_absorber    "
   end select
-  write(filename,'(A,A,A,I1,A,A,I1,A,I1,A,I0)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) ,&
-       "_", in%N_absorber,   "s" ,   "_pow=" ,  in%rpower_absorber,"_Labs=", &
-       in%L_absorber,"_npaw=",in%NPAW_absorber
 
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
-     Gabs_coeffs(:)=in%Gabs_coeffs(:)
   else
      if(iproc==0) then
         print *, "xabs_chebychev : calculating  projection on pseudofunctions"
@@ -316,16 +308,14 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
         print *, "After application of a 2*L-pole  with L= ", in%L_absorber
      endif
 
-     print *, "  in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber ,in%NPaw_absorber "
-     print *, in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber ,in%NPaw_absorber
+     write(filename,'(A,A,A,I1,A,A,I1,A,I1,A,I0)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) ,&
+          "_", in%N_absorber,   "s" ,   "_pow=" ,  in%rpower_absorber,"_Labs=", &
+          in%L_absorber,"_npaw=",in%NPAW_absorber
 
      call GetExcitedOrbitalAsG(in_iat_absorber, & !!$ ,Gabsorber,&
           at,rxyz,nproc,iproc, &
           in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber ,in%NPaw_absorber,  &
           in%abscalc_eqdiff, filename, ha)
-     
-
-     Gabs_coeffs(:)=in%Gabs_coeffs(:)
 
      print * , " you will now have to process informations in " ,filename,"_in_coeffs"
      STOP " Normal stop : data for initial wave have been prepared "
@@ -358,7 +348,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%eproj_sum=eproj_sum
   ha%nspin=nspin
   ha%GPU=>GPU !!
-  ha%Gabs_coeffs=>Gabs_coeffs
+  ha%Gabs_coeffs=>in%Gabs_coeffs(:) 
   ha%PAWD=> PAWD
  
   print *, "  initialization  "
@@ -465,10 +455,6 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   i_all=-product(shape(ha%orbs%eval))*kind(ha%orbs%eval)
   deallocate(ha%orbs%eval,stat=i_stat)
   call memocc(i_stat,i_all,'ha%orbs%eval',subname)
-  
-  i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
-  deallocate(Gabs_coeffs,stat=i_stat)
-  call memocc(i_stat,i_all,'Gabs_coeffs',subname)
 
   call deallocate_orbs(ha%orbs,subname)
 
@@ -584,6 +570,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   allocate(ha%orbs%eval(ha%orbs%norb+ndebug),stat=i_stat)
   call memocc(i_stat,ha%orbs%eval,'ha%orbs%eval',subname)
+
   ha%orbs%occup(1:ha%orbs%norb)=1.0_gp
   ha%orbs%spinsgn(1:ha%orbs%norb)=1.0_gp
   ha%orbs%eval(1:ha%orbs%norb)=1.0_gp

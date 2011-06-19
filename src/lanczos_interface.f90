@@ -91,9 +91,9 @@ contains
 
     EP_dim=ha%comms%nvctr_par(ha%iproc,1)*ha%orbs%nspinor
 
-    EP_dim_tot=(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nspinor
+    EP_dim_tot=(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nspinor*ha%orbs%nkpts
 
-    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f) /= &
+    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nkpts /= &
          sum(ha%comms%nvctr_par(:,1))  ) then
        stop "array size inconsistency" 
     endif
