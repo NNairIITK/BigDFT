@@ -429,7 +429,7 @@ end type largeBasis
 
   !> Contains the parameters for the parallel input guess for the O(N) version.
   type,public:: inguessParameters
-    integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp
+    integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
     integer,dimension(:),pointer:: norb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
   end type inguessParameters
 
