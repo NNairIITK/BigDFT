@@ -761,7 +761,8 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
      do i3=0,n3i-1
         do i2=0,n2i-1
            do i1=0,n1i-1
-              rho(i1+1,i2+1,i3+1,ispden)=rhog(1,i1+1,i2+1,i3+1,inzee)/real(n1i*n2i*n3i,dp)
+              !correct the density in case it has negative values
+              rho(i1+1,i2+1,i3+1,ispden)=max(rhog(1,i1+1,i2+1,i3+1,inzee)/real(n1i*n2i*n3i,dp),1.d-20)
            enddo
         enddo
      enddo

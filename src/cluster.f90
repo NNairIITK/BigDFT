@@ -532,34 +532,36 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !if the wavefunctions are all present
   !otherwise switch to normal input guess
   if (in%inputPsiId ==2) then
-     allfiles=.true.
      ! Test ETSF file.
      inquire(file="wavefunction.etsf",exist=onefile)
+     allfiles=.true.
      if (.not. onefile) then
-        ! Test bin files
-        do iorb=1,orbs%norb*orbs%nspinor
-           write(f4,'(i4.4)')  iorb
-           filename = 'wavefunction.bin.'//f4
-           inquire(file=filename,exist=onefile)
-           allfiles=allfiles .and. onefile
-           if (.not. allfiles) then
-              exit
-           end if
-        end do
-        if (.not. allfiles) then           
-           allfiles = .true.
-           ! Test plain files.
-           do iorb=1,orbs%norb*orbs%nspinor
-              write(f4,'(i4.4)')  iorb
-              filename = 'wavefunction.'//f4
-              inquire(file=filename,exist=onefile)
-              allfiles=allfiles .and. onefile
-              if (.not. allfiles) then
-                 exit
-              end if
-           end do
-        end if
+        call verify_file_presence(orbs,allfiles)
+!!$        ! Test bin files
+!!$        do iorb=1,orbs%norb*orbs%nspinor
+!!$           write(f4,'(i4.4)')  iorb
+!!$           filename = 'wavefunction.bin.'//f4
+!!$           inquire(file=filename,exist=onefile)
+!!$           allfiles=allfiles .and. onefile
+!!$           if (.not. allfiles) then
+!!$              exit
+!!$           end if
+!!$        end do
+!!$        if (.not. allfiles) then           
+!!$           allfiles = .true.
+!!$           ! Test plain files.
+!!$           do iorb=1,orbs%norb*orbs%nspinor
+!!$              write(f4,'(i4.4)')  iorb
+!!$              filename = 'wavefunction.'//f4
+!!$              inquire(file=filename,exist=onefile)
+!!$              allfiles=allfiles .and. onefile
+!!$              if (.not. allfiles) then
+!!$                 exit
+!!$              end if
+!!$           end do
+!!$        end if
      end if
+     !!!SONO ARRIVATO QUI DEVO CAMBIARE LA REGOLA PER IL RESTART
      if (.not. allfiles) then
         if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
         inputpsi = 0
@@ -894,7 +896,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
 
               if(orbs%nspinor==4) then
-                 !this wrapper can be inserted inside the poisson solver 
+                 !this wrapper can be inserted inside the XC_potential routine
                  call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
                       ixc,hxh,hyh,hzh,&
                       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
@@ -1421,6 +1423,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 orbs,orbsv,in%nvirt,Glr,comms,commsv,&
                 hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
                 pkernelseq,psi,psivirt,ngatherarr,GPU)
+!!$           call constrained_davidson(iproc,nproc,n1i,n2i,in,atoms,&
+!!$                orbs,orbsv,in%nvirt,Glr,comms,commsv,&
+!!$                hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
+!!$                pkernelseq,psi,psivirt,ngatherarr,GPU)
         end if
 
         !start the Casida's treatment 

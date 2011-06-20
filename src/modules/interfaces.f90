@@ -1199,6 +1199,31 @@ module module_interfaces
       real(gp), intent(out) :: gnrm,gnrm_zero,energy
       real(wp), dimension(:), pointer :: psi,psit,hpsi
     end subroutine calculate_energy_and_gradient_new
+
+    subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
+         orbs,orbsv,nvirt,lr,comms,commsv,&
+         hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
+      use module_base
+      use module_types
+      use libxc_functionals
+      implicit none
+      integer, intent(in) :: iproc,nproc,n1i,n2i
+      integer, intent(in) :: nvirt,n3p
+      type(input_variables), intent(in) :: in
+      type(atoms_data), intent(in) :: at
+      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+      type(locreg_descriptors), intent(in) :: lr 
+      type(orbitals_data), intent(in) :: orbs
+      type(communications_arrays), intent(in) :: comms, commsv
+      real(gp), intent(in) :: hx,hy,hz
+      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+      real(dp), dimension(*), intent(in) :: pkernel,rhopot
+      type(orbitals_data), intent(inout) :: orbsv
+      type(GPU_pointers), intent(inout) :: GPU
+      real(wp), dimension(:), pointer :: psi,v
+    end subroutine constrained_davidson
     
   end interface
 
