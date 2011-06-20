@@ -198,7 +198,10 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
 
       ! Post communications for gathering the potential
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+!!do iall=1,size(rhopot)
+!!    write(80000+iproc,*) iall, rhopot(iall)
+!!end do
+      !!call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
       !!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! Calculate the forces we get with psi.
@@ -229,6 +232,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
 
       ! Mix the potential
       call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
       ! Write some informations
       call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy)

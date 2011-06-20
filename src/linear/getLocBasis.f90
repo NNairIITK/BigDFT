@@ -99,7 +99,7 @@ real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 ! Local variables 
 integer:: istat, iall, mpisource, istsource, ncount, mpidest, istdest, tag, nsends, nreceives, jproc
 integer:: lrsource, ind1, ind2, ldim, gdim, ilr, istr, nphibuff
-real(8),dimension(:),allocatable:: hphi, eval , hphid
+real(8),dimension(:),allocatable:: hphi, eval , hphid, lhphi
 real(8),dimension(:,:),allocatable:: HamSmall, HamSmalld
 real(8),dimension(:,:,:),allocatable:: matrixElements, matrixElementsd
 real(8),dimension(:),pointer:: phiWork, phiWorkd
@@ -107,15 +107,15 @@ real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace , lastAlpha
 real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
 real(8):: energy, dnrm2
-logical:: scpot
+logical:: scpot, withConfinement
 type(workarr_sumrho):: w
 
 real(8),dimension(:),allocatable:: rhopotCorrect
 integer,dimension(:,:),allocatable :: nscatterarrCorrect ,ngatherarrCorrect
 real(kind=8),dimension(:), pointer :: projCorrect
 
-real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu
-integer:: iorb, jorb, it, istart
+real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, tt
+integer:: iorb, jorb, it, istart, korb
 character(len=11):: procName, orbNumber, orbName
 character(len=30):: filename
 real :: ttreal
@@ -228,16 +228,54 @@ real(8):: tt1, tt2
 
   if(trim(lin%getCoeff)=='min') then
 
-      call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-           lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
-      
-      call HamiltonianApplication(iproc,nproc,at,lin%lb%orbs,input%hx,input%hy,input%hz,rxyz,&
-           nlpspd,proj,Glr,ngatherarr,potential,&
-           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+      !!!! THIS IS THE ORIGINAL
+      !!call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
+      !!     lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
+      !!call HamiltonianApplication(iproc,nproc,at,lin%lb%orbs,input%hx,input%hy,input%hz,rxyz,&
+      !!     nlpspd,proj,Glr,ngatherarr,potential,&
+      !!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+      !!!deallocate potential
+      !!call free_full_potential(nproc,potential,subname)
+
+      ! Transform the global phi to the local phi
+      ! This part will not be needed if we really have O(N)
+      allocate(lhphi(lin%lb%Lorbs%npsidim), stat=istat)
+      call memocc(istat, lhphi, 'lhphi', subname)
+
+      ind1=1
+      ind2=1
+      !lphi=0.d0
+      do iorb=1,lin%lb%orbs%norbp
+          ilr = lin%lb%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+
+      withConfinement=.false.
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
+           proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, pkernel=pkernelseq)
+      ind1=1
+      ind2=1
+      hphi=0.d0
+      do iorb=1,lin%lb%orbs%norbp
+          ilr = lin%lb%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+
+      iall=-product(shape(lhphi))*kind(lhphi)
+      deallocate(lhphi, stat=istat)
+      call memocc(istat, iall, 'lhphi', subname)
+
       if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
       
-      !deallocate potential
-      call free_full_potential(nproc,potential,subname)
 
       ! Calculate the matrix elements <phi|H|phi>.
       call getMatrixElements(iproc, nproc, Glr, lin%lb%orbs, lin%lb%comms, phi, hphi, matrixElements)
@@ -245,7 +283,10 @@ real(8):: tt1, tt2
           ! Calculate the coefficients which minimize the band structure energy
           ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H|phi_l>
           ! for the given basis functions.
+          !if(.not. updatePhi) call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
           call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
+      !!call diagonalizeHamiltonian(iproc, nproc, lin%orbs, matrixElements(1,1,1), eval)
+      !!call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,1), 1, coeff(1,1), 1)
 
   else if(trim(lin%getCoeff)=='diag') then
   
@@ -302,6 +343,21 @@ real(8):: tt1, tt2
   else
       call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
   end if
+
+
+  !!!!! Improve the coefficients -- EXPERIMENTAL
+  !!!if(updatePhi) then
+  !!!    do iorb=1,orbs%norb
+  !!!        do jorb=1,lin%lb%orbs%norb
+  !!!            tt=0.d0
+  !!!            do korb=1,lin%lb%orbs%norb
+  !!!                tt=tt+coeff(korb,iorb)*matrixElements(jorb,korb,1)
+  !!!            end do
+  !!!            coeff(jorb,iorb) = coeff(jorb,iorb)-1.d-1*tt
+  !!!        end do 
+  !!!    end do
+  !!!end if
+  !!!!!
 
   
   iall=-product(shape(HamSmall))*kind(HamSmall)
@@ -422,7 +478,7 @@ integer:: ldim, gdim, ilr
 real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, lagMatDiag, alphaDIIS, lphi, lhphi
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 real(8),dimension(:),pointer:: phiWork
-logical:: quiet, allowDIIS, startWithSD, adapt
+logical:: quiet, allowDIIS, startWithSD, adapt, withConfinement
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(diis_objects):: diisLIN
@@ -517,9 +573,15 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
           ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
           ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
       end do
+      withConfinement=.true.
+if(it==1) then
+    do iall=1,size(lin%comgp%recvBuf)
+        !write(8000+iproc,*) iall, lin%comgp%recvBuf(iall)
+    end do
+end if
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, pkernel=pkernelseq)
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, pkernel=pkernelseq)
       ind1=1
       ind2=1
       hphi=0.d0
@@ -2305,7 +2367,7 @@ allocate(comgp%comarr(8,maxval(comgp%noverlaps),0:nproc-1))
 call memocc(istat, comgp%comarr, 'comgp%comarr', subname)
 allocate(comgp%ise3(2,0:nproc-1), stat=istat)
 call memocc(istat, comgp%ise3, 'comgp%ise3', subname)
-tag=0
+tag=1000
 comgp%nrecvBuf = 0
 is3min=0
 ie3max=0

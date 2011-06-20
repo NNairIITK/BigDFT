@@ -2374,7 +2374,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
      subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
           proj,ngatherarr,ndimpot,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, pkernel,orbsocc,psirocc)
+          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        use libxc_functionals
@@ -2397,6 +2397,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
        type(p2pCommsGatherPot), intent(in):: comgp
        integer,dimension(lzd%orbs%norbp),intent(in):: onWhichAtomp
+       logical,intent(in):: withConfinement
        real(dp), dimension(*), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
@@ -2406,7 +2407,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb, hx, hy, hz, &
-          nspin, ndimpot, pot, psi, hpsi, ekin_sum, epot_sum, lin, at, rxyz, onWhichAtomp)
+          nspin, ndimpot, pot, psi, hpsi, ekin_sum, epot_sum, lin, at, rxyz, onWhichAtomp, withConfinement)
        use module_base
        use module_types
        use libxc_functionals
@@ -2423,6 +2424,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(atoms_data),intent(in):: at
        real(8),dimension(3,at%nat),intent(in):: rxyz
        integer,dimension(orbs%norbp),intent(in):: onWhichAtomp
+       logical,intent(in):: withConfinement
      end subroutine local_hamiltonian_LinearConfinement
 
 

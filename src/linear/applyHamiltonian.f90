@@ -1371,7 +1371,7 @@ END SUBROUTINE local_hamiltonianConfinementForAllLocregs
 !> Application of the Hamiltonian
 subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
      proj,ngatherarr,ndimpot,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, pkernel,orbsocc,psirocc)
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use libxc_functionals
@@ -1395,6 +1395,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
   type(p2pCommsgatherPot), intent(in):: comgp
   integer,dimension(lzd%orbs%norbp),intent(in):: onWhichAtomp
+  logical,intent(in):: withConfinement
   real(dp), dimension(*), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
@@ -1534,7 +1535,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
              hpsi2,tmp_ekin_sum,tmp_epot_sum,GPU,ekin,epot,ilr)
      else
         call local_hamiltonian_LinearConfinement(iproc, nproc, ilr, lzd%orbs, lzd%Llr(ilr), lzd%Llr(ilr)%localnorb, hx, hy, hz, &
-              nspin, size_Lpot, Lpot, psi(ind), hpsi(ind), tmp_ekin_sum, tmp_epot_sum, lin, at, rxyz, onWhichAtomp)
+              nspin, size_Lpot, Lpot, psi(ind), hpsi(ind), tmp_ekin_sum, tmp_epot_sum, lin, at, rxyz, onWhichAtomp, withConfinement)
      end if
 
      ekin_sum = ekin_sum + tmp_ekin_sum
@@ -1690,7 +1691,7 @@ END SUBROUTINE HamiltonianApplicationConfinement2
 
 !>   Calculate the action of the local hamiltonian on the orbitals
 subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb, hx, hy, hz, &
-     nspin, ndimpot, pot, psi, hpsi, ekin_sum, epot_sum, lin, at, rxyz, onWhichAtomp)
+     nspin, ndimpot, pot, psi, hpsi, ekin_sum, epot_sum, lin, at, rxyz, onWhichAtomp, withConfinement)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => local_hamiltonian_LinearConfinement
@@ -1708,6 +1709,7 @@ subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb
   type(atoms_data),intent(in):: at
   real(8),dimension(3,at%nat),intent(in):: rxyz
   integer,dimension(orbs%norbp),intent(in):: onWhichAtomp
+  logical,intent(in):: withConfinement
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_Linear'
   integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
@@ -1781,32 +1783,22 @@ subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb
      select case(lr%geocode)
      case('F')
 
-        !!call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-        !!     pot(nsoffset),epot,&
-        !!     lr%bounds%ibyyzz_r) !optional
-!do i_all=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
-!    write(3200+10*iproc+ii,*) i_all, psir(i_all,1)
-!end do
-!do i_all=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
-!    write(3400+10*iproc+ii,*) i_all, pot(i_all)
-!end do
-        !call apply_potentialconfinement(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-        !     pot(nsoffset),epot, rxyz(1,lin%onwhichatom(iorb)), hxh, hyh, hzh, &
-        !     lin%potentialprefac(at%iatype(lin%onwhichatom(iorb))), lin%confpotorder, lr%bounds%ibyyzz_r) !optional
-!write(*,'(a,i0,a,3i8)') 'process ',iproc,' call with offsets ', lr%nsi1, lr%nsi2, lr%nsi3
-        !!call apply_potentialConfinement2(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-        !!     pot(nsoffset),epot, rxyz(1,lin%onwhichatom(iorb)), hxh, hyh, hzh, &
-        !!     lin%potentialprefac(at%iatype(lin%onwhichatom(iorb))), lin%confpotorder, &
-        !!     lr%nsi1, lr%nsi2, lr%nsi3, &
-        !!     lr%bounds%ibyyzz_r) !optional
-        call apply_potentialConfinement2(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot, rxyz(1,onWhichAtomp(iorb)), hxh, hyh, hzh, &
-             lin%potentialprefac(at%iatype(onWhichAtomp(iorb))), lin%confpotorder, &
-             lr%nsi1, lr%nsi2, lr%nsi3, &
-             lr%bounds%ibyyzz_r) !optional
-!do i_all=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
-!    write(3300+10*iproc+ii,*) i_all, psir(i_all,1)
-!end do
+        if(withConfinement) then
+            call apply_potentialConfinement2(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+                 pot(nsoffset),epot, rxyz(1,onWhichAtomp(iorb)), hxh, hyh, hzh, &
+                 lin%potentialprefac(at%iatype(onWhichAtomp(iorb))), lin%confpotorder, &
+                 lr%nsi1, lr%nsi2, lr%nsi3, &
+                 lr%bounds%ibyyzz_r) !optional
+        else
+            !!call apply_potentialConfinement2(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+            !!     pot(nsoffset),epot, rxyz(1,onWhichAtomp(iorb)), hxh, hyh, hzh, &
+            !!     0.d0, lin%confpotorder, &
+            !!     lr%nsi1, lr%nsi2, lr%nsi3, &
+            !!     lr%bounds%ibyyzz_r) !optional
+            call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+                pot(nsoffset),epot,&
+                lr%bounds%ibyyzz_r) !optional
+        end if
 
      case('P')
         !here the hybrid BC act the same way
