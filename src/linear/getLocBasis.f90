@@ -97,33 +97,25 @@ real(8),dimension(lin%lb%Lorbs%npsidim),intent(inout):: lphi
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 
 ! Local variables 
-integer:: istat, iall, mpisource, istsource, ncount, mpidest, istdest, tag, nsends, nreceives, jproc
-integer:: lrsource, ind1, ind2, ldim, gdim, ilr, istr, nphibuff
-real(8),dimension(:),allocatable:: hphi, eval , hphid, lhphi
-real(8),dimension(:,:),allocatable:: HamSmall, HamSmalld
-real(8),dimension(:,:,:),allocatable:: matrixElements, matrixElementsd
-real(8),dimension(:),pointer:: phiWork, phiWorkd
-real(8)::epot_sum,ekin_sum,eexctX,eproj_sum, ddot, trace , lastAlpha
+integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff
+real(8),dimension(:),allocatable:: hphi, eval, lhphi
+real(8),dimension(:,:),allocatable:: HamSmall
+real(8),dimension(:,:,:),allocatable:: matrixElements
+real(8),dimension(:),pointer:: phiWork
+real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, ddot, trace, lastAlpha
 real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
-real(8):: energy, dnrm2
-logical:: scpot, withConfinement
+logical:: withConfinement
 type(workarr_sumrho):: w
 
-real(8),dimension(:),allocatable:: rhopotCorrect
-integer,dimension(:,:),allocatable :: nscatterarrCorrect ,ngatherarrCorrect
-real(kind=8),dimension(:), pointer :: projCorrect
 
 real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, tt
 integer:: iorb, jorb, it, istart, korb
 character(len=11):: procName, orbNumber, orbName
 character(len=30):: filename
-real :: ttreal
 
 
-integer:: nvctrp, ist, jst, ierr
-real(8),dimension(:,:,:),allocatable:: ovrlp
-real(8):: tt1, tt2
+integer:: ist, ierr
 
   ! Allocate the local arrays.  
   allocate(hphi(lin%lb%orbs%npsidim), stat=istat) 
@@ -139,9 +131,6 @@ real(8):: tt1, tt2
   
 
   ! This is a flag whether the basis functions shall be updated.
-!do iall=1,size(lin%comgp%recvBuf)
-!    write(800+iproc,*) iall, lin%comgp%recvBuf(iall)
-!end do
   if(updatePhi) then
       if(lin%useDerivativeBasisFunctions) then
           call dcopy(lin%orbs%npsidim, lin%phiRestart(1), 1, phi(1), 1)
@@ -190,16 +179,6 @@ real(8):: tt1, tt2
       ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
   end do
-  ! Transform the orbitals to real space. The array lphir will be the send buffer
-  ! for the MPI point to point communication. When calculating the charge density
-  ! all messages should have been received and we will therefore deallocate
-  ! lphir there.
-  !allocate(lphir(lin%Lorbs%npsidimr), stat=istat)
-  !call memocc(istat, lphir, 'lphir', subname)
-  !call razero(lin%Lorbs%npsidimr, lphir)
-  !allocate(phibuffr(lin%comsr%sizePhibuffr), stat=istat)
-  !call memocc(istat, phibuffr, 'phibuffr', subname)
-  !call razero(lin%comsr%sizePhibuffr, phibuffr)
   ! Transfom all orbitals to real space
   ist=1
   istr=1
@@ -215,7 +194,7 @@ real(8):: tt1, tt2
   
   ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
   ! to point communication, the program will continue immediately.
-      call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
+  call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
   
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
