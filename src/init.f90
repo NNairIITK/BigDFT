@@ -316,7 +316,7 @@ END SUBROUTINE createProjectorsArrays
 
 
 !>   input guess wavefunction diagonalization
-subroutine input_wf_diag(iproc,nproc,at,&
+subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
      nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
@@ -333,6 +333,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer, intent(inout) :: nspin,nvirt
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
+  type(rho_descriptors),intent(in) :: rhodsc
   type(orbitals_data), intent(inout) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: Glr
@@ -457,15 +458,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
 
-
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
 
   !application of the hamiltonian for gaussian based treatment
-  call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-       & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
-       & symObj, irrzon, phnons)
+  call sumrho(iproc,nproc,orbse,Glr,hxh,hyh,hzh,psi,rhopot,&
+       nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
      
   !-- if spectra calculation uses a energy dependent potential
   !    input_wf_diag will write (to be used in abscalc)

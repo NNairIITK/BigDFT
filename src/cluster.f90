@@ -250,6 +250,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ! Variables for the virtual orbitals and band diagram.
   integer :: nkptv, nvirtu, nvirtd
   real(gp), allocatable :: wkptv(:)
+  type(rho_descriptors) :: rhodsc
 
   ! ----------------------------------
 
@@ -422,8 +423,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
   !create the descriptors for the density and the potential
   !these descriptors should take into account the localisation regions
-  call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',n1i,n2i,n3i,ixc,&
-       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
+       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',ixc,in%rho_commun,&
+       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
   !calculate the irreductible zone, if necessary.
   if (atoms%symObj >= 0) then
@@ -537,31 +539,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      allfiles=.true.
      if (.not. onefile) then
         call verify_file_presence(orbs,allfiles)
-!!$        ! Test bin files
-!!$        do iorb=1,orbs%norb*orbs%nspinor
-!!$           write(f4,'(i4.4)')  iorb
-!!$           filename = 'wavefunction.bin.'//f4
-!!$           inquire(file=filename,exist=onefile)
-!!$           allfiles=allfiles .and. onefile
-!!$           if (.not. allfiles) then
-!!$              exit
-!!$           end if
-!!$        end do
-!!$        if (.not. allfiles) then           
-!!$           allfiles = .true.
-!!$           ! Test plain files.
-!!$           do iorb=1,orbs%norb*orbs%nspinor
-!!$              write(f4,'(i4.4)')  iorb
-!!$              filename = 'wavefunction.'//f4
-!!$              inquire(file=filename,exist=onefile)
-!!$              allfiles=allfiles .and. onefile
-!!$              if (.not. allfiles) then
-!!$                 exit
-!!$              end if
-!!$           end do
-!!$        end if
      end if
-     !!!SONO ARRIVATO QUI DEVO CAMBIARE LA REGOLA PER IL RESTART
      if (.not. allfiles) then
         if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
         inputpsi = 0
@@ -683,7 +661,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   case(INPUT_PSI_LCAO)
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc, atoms,&
+     call input_wf_diag(iproc,nproc, atoms,rhodsc,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in)
@@ -821,20 +799,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   if (in%iscf < 10) then
      potden = AB6_MIXING_POTENTIAL
      npoints = n1i*n2i*n3p
+     if (n3p==0) npoints=1
   else
      potden = AB6_MIXING_DENSITY
      npoints = n1i*n2i*n3d
+     if (n3d==0) npoints=1
   end if
-  if (n3d >0 .and. in%itrpmax>1) then
+  if (in%itrpmax >1) then
      call ab6_mixing_new(mix, modulo(in%iscf, 10), potden, &
           & AB6_MIXING_REAL_SPACE, npoints, in%nspin, 0, &
           & ierr, errmess, useprec = .false.)
-  else if (in%itrpmax >1) then
-     call ab6_mixing_new(mix, modulo(in%iscf, 10), potden, &
-          & AB6_MIXING_REAL_SPACE, 1, in%nspin, 0, &
-          & ierr, errmess, useprec = .false.)
-  end if
-  if (in%itrpmax >1) then
      call ab6_mixing_eval_allocate(mix)
      !stop if the iscf is not compatible 
      if (in%iscf == 0) then
@@ -881,9 +855,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            !calculate the self-consistent potential
            if (scpot) then
-              ! Potential from electronic charge density
-              call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-                   n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+              ! Potential from electronic charge density     
+              call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rhopot,&
+                   nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
               !here the density can be mixed
               if (mix%kind == AB6_MIXING_DENSITY .and. in%itrpmax>1) then
                  call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
@@ -891,7 +865,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                  if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
                       'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
                  endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
-                 ! DEBUGGING !!!!!!
+                 ! DEBUGGING, for not correct mixing !!!!!!
                  rhopot = abs(rhopot) + 1.0d-20
               end if
 
@@ -1228,6 +1202,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         !i3xcsh=0
         nscatterarr(jproc,4)=0
      end do
+     !change communication scheme to LDA case
+     rhodsc%icomm=1
 
      if (n3p>0) then
         allocate(rho(n1i*n2i*n3p*in%nspin+ndebug),stat=i_stat)
@@ -1236,8 +1212,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         allocate(rho(1+ndebug),stat=i_stat)
         call memocc(i_stat,rho,'rho',subname)
      end if
-     call sumrho(iproc,nproc,orbs,Glr,0,hxh,hyh,hzh,psi,rho,n1i*n2i*n3p,&
-          nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+     call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rho,&
+          nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
 
      !plot the density on the density.pot file
      if ((in%output_grid >= OUTPUT_GRID_DENSITY .or. in%nvacancy /=0) .and. DoLastRunThings) then
@@ -1278,14 +1254,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              & in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
      end if
 
-     allocate(gxyz(3,atoms%nat+ndebug),stat=i_stat)
-     call memocc(i_stat,gxyz,'gxyz',subname)
-
      call timing(iproc,'Forces        ','ON')
-     ! Calculate local part of the forces gxyz
-     !! @todo Symmetrize forces with k points
-     call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
-          n1,n2,n3,n3p,i3s+i3xcsh,n1i,n2i,n3i,rho,pot,gxyz)
+     !refill projectors for tails, davidson
+     refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
+
+     call calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s+i3xcsh,n3p,refill_proj,&
+          rho,pot,psi,fion,fdisp,fxyz,fnoise)
 
      i_all=-product(shape(rho))*kind(rho)
      deallocate(rho,stat=i_stat)
@@ -1293,52 +1267,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
      call memocc(i_stat,i_all,'pot',subname)
-
-     if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
-
-     !refill projectors for tails, davidson
-     refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
-
-     call nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,atoms,rxyz,&
-          orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
-
-     if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
-
-     ! Add up all the force contributions
-     if (nproc > 1) then
-        call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
-     else
-        do iat=1,atoms%nat
-           fxyz(1,iat)=gxyz(1,iat)
-           fxyz(2,iat)=gxyz(2,iat)
-           fxyz(3,iat)=gxyz(3,iat)
-        enddo
-     end if
-
-!!$  if (iproc == 0) then
-!!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
-!!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
-!!$     do iat=1,atoms%nat
-!!$        sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
-!!$        fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
-!!$     enddo
-!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
-!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
-!!$  endif
-
-     !add to the forces the ionic and dispersion contribution 
-     do iat=1,atoms%nat
-        fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
-        fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
-        fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
-     enddo
-
-     i_all=-product(shape(gxyz))*kind(gxyz)
-     deallocate(gxyz,stat=i_stat)
-     call memocc(i_stat,i_all,'gxyz',subname)
-
-     !clean the center mass shift and the torque in isolated directions
-     call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
 
      call timing(iproc,'Forces        ','OF')
   end if
@@ -1434,8 +1362,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            !this could have been calculated before
            ! Potential from electronic charge density
-           call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-                n1i*n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+           !WARNING: this is good just because the TDDFT is done with LDA
+           call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rhopot,&
+                nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
 
            !Allocate second Exc derivative
            if (n3p >0) then
@@ -1709,6 +1638,9 @@ contains
     call memocc(i_stat,i_all,'radii_cf',subname)
 
     call deallocate_proj_descr(nlpspd,subname)
+
+    !free the rhodsc pointers if they were allocated
+    call deallocate_rho_descriptors(rhodsc,subname)
 
     i_all=-product(shape(proj))*kind(proj)
     deallocate(proj,stat=i_stat)

@@ -956,6 +956,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%projrad= 15.0_gp
   !exact exchange parallelisation scheme
   inputs%exctxpar='BC' !(blocking collective)
+  !density communication scheme
+  inputs%rho_commun='DBL' !traditional scheme
   !Acceleration scheme
   inputs%iacceleration=0 !default:no acceleration
   !BLAS acceleration
@@ -1002,6 +1004,10 @@ subroutine perf_input_variables(iproc,filename,inputs)
         else if (index(line,"exctxpar") /= 0 .or. index(line,"EXCTXPAR") /= 0) then
            ii = index(line,"exctxpar")  + index(line,"EXCTXPAR") + 8 
            read(line(ii:),fmt=*,iostat=ierror) inputs%exctxpar
+
+        else if (index(line,"rho_commun") /= 0 .or. index(line,"RHO_COMMUN") /= 0) then
+           ii = index(line,"rho_commun")  + index(line,"RHO_COMMUN") + 10 
+           read(line(ii:),fmt=*,iostat=ierror) inputs%rho_commun
 
         else if (index(line,"accel") /= 0 .or. index(line,"ACCEL") /= 0) then
             ii = index(line,"accel")  + index(line,"ACCEL") + 6
@@ -1077,6 +1083,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
           "|","projrad",inputs%projrad,      '!Radius of the projector as a function of the maxrad'
      write(*,"(1x,a,3x,a,1x,a,t30,a)") &             
           "|","exctxpar",inputs%exctxpar,    '!Exact exchange parallelisation scheme'
+     write(*,"(1x,a,3x,a,1x,a,t30,a)") &             
+          "|","rho_commun",inputs%rho_commun,'!Density communication scheme'
 
      !Input guess performance variables
      if(inputs%orthpar%directDiag) then                   
