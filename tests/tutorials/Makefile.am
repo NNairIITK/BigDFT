@@ -3,10 +3,10 @@ TESTDIRS = CH4 \
 	  CH3- \
 	  H2O-slab
 
-EXTRA_DIST = basics-1.html CH4-cv.png CH4-grid.png \
+EXTRA_DIST = H1A.html CH4-cv.png CH4-grid.png \
 	CH4/input.dft CH4/posinp.xyz CH4/psppar.C CH4/psppar.H \
 	CH3-/input.dft CH3-/posinp.xyz CH3-/psppar.C CH3-/psppar.H CH3-/input.geopt \
-	surface-1.html H2O-slab.png H2O-dipolar.png H2O-dipolarE.png \
+	H1B.html H2O-slab.png H2O-dipolar.png H2O-dipolarE.png \
         $(TESTDIRS)
 
 
