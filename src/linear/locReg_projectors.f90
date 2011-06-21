@@ -765,21 +765,17 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,proj
   integer :: isorb,ieorb,nspinor,iorb,istart_o,ispinor
   integer :: nels,ipsi,ii,iatom,iel
   integer :: jj,orbtot,ispin,ind
-  !integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
-  integer,dimension(:),allocatable :: inthisLocreg
+  integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
+  !integer,dimension(:),allocatable :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
   real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,Llr%localnorb*nspin) :: psi_tmp
   real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,Llr%localnorb*nspin) :: hpsi_tmp
   real(wp),dimension(Lnlpspd%nprojel):: Lproj  !local projectors
-  real(wp),dimension(:,:,:),allocatable :: hpsi_tmp
 
-integer:: ierr, iel
-allocate(inthisLocreg(Llr%localnorb*nspin))
-allocate(psi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor))
-allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor))
+!allocate(inthisLocreg(Llr%localnorb*nspin))
+!allocate(psi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor))
+!allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor))
 
-!!write(*,*) 'in apply_local_projectors'
-!!call mpi_barrier(mpi_comm_world, jj)
 
 !  First reshape the wavefunctions: psi_tmp(nels,norbs,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
@@ -804,23 +800,9 @@ allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%n
            end do
        end do
    end do
-   ii=0
-   do iorb=1,Llr%Localnorb*nspin
-       do ispinor=1,orbs%nspinor
-           do iel=1,nels
-               ii=ii+1
-               psi_tmp(iorb,iel,ispinor)=psi(ii)
-               hpsi_tmp(iorb,iel,ispinor)=hpsi(ii)
-           end do
-       end do
-   end do
-!!write(*,*) 'after reshape'
-!!call mpi_barrier(mpi_comm_world, ierr)
    
    ieorb = orbtot   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
    ikpt=orbs%iokpt(1)
-!!write(*,*) 'before loop_kpt'
-!!call mpi_barrier(mpi_comm_world, ierr)
    loop_kpt: do
       !features of the k-point ikpt
       kx=orbs%kpts(1,ikpt)
@@ -843,8 +825,6 @@ allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%n
          iatom = iatom +1
          istart_c = 1
          ityp=atoms%iatype(iat)
-!!write(*,*) 'before local_projector'
-!!call mpi_barrier(mpi_comm_world, ierr)
 
          do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
             do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
@@ -882,8 +862,6 @@ allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%n
                   do ispinor=1,nspinor,ncplx
                      eproj_spinor = 0.0_gp
                      if (ispinor >= 2) istart_o=1
-!!write(*,*) 'before applyprojector'
-!!call mpi_barrier(mpi_comm_world, ierr)
 
                      !GTH and HGH pseudopotentials
                      do l=1,4
@@ -895,8 +873,6 @@ allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%n
                                    Lnlpspd%nvctr_p(2*iatom-1),Lnlpspd%nvctr_p(2*iatom),Lnlpspd%nseg_p(2*iatom-1),&
                                    Lnlpspd%nseg_p(2*iatom),Lnlpspd%keyv_p(jseg_c),Lnlpspd%keyg_p(1,jseg_c),&
                                    Lproj(istart_o),psi_tmp(1,ispinor,ii),hpsi_tmp(1,ispinor,ii),eproj_spinor)
-!!write(*,*) 'after applyprojector'
-!!call mpi_barrier(mpi_comm_world, ierr)
                                
                                istart_o=istart_o+(Lnlpspd%nvctr_p(2*iatom-1)+7*Lnlpspd%nvctr_p(2*iatom))*(2*l-1)*ncplx
                            end if

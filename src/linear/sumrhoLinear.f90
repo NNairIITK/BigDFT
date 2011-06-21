@@ -580,7 +580,6 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => LinearHamiltonianApplication
   use libxc_functionals
   use module_interfaces, exceptThisOne => LinearHamiltonianApplication
   implicit none

@@ -1937,3 +1937,55 @@ subroutine assignToLocreg(iproc, natom, natsc, nlr, nspin, Localnorb, orbse, nor
   end do
 
 end subroutine assignToLocreg
+
+
+subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, orbse)
+  use module_base
+  use module_types
+  implicit none
+
+  integer,intent(in):: nlr,iproc,nspin,natom
+  integer,dimension(nlr),intent(in):: Localnorb
+  type(orbitals_data),intent(inout):: orbse
+
+  ! Local variables
+  integer:: jproc, iiOrb, iorb, jorb, jat,i_stat
+  character(len=*), parameter :: subname='assignToLocreg'
+
+  allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
+  call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
+
+  ! There are four counters:
+  !   jproc: indicates which MPI process is handling the basis function which is being treated
+  !   jat: counts the atom numbers
+  !   jorb: counts the orbitals handled by a given process
+  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
+  jproc=0
+  jat=1
+  jorb=0
+  iiOrb=0
+
+  do iorb=1,orbse%norb
+
+      ! Switch to the next MPI process if the numbers of orbitals for a given
+      ! MPI process is reached.
+      if(jorb==orbse%norb_par(jproc)) then
+          jproc=jproc+1
+          jorb=0
+      end if
+
+      ! Switch to the next atom if the number of basis functions for this atom is reached.
+      if(iiOrb==Localnorb(jat)) then
+          jat=jat+1
+          iiOrb=0
+      end if
+      if(jat > natom) then
+        jat = 1
+      end if
+      jorb=jorb+1
+      iiOrb=iiOrb+1
+      if(iproc==jproc) orbse%inWhichLocreg(jorb)=jat
+  end do
+
+end subroutine assignToLocreg2
+

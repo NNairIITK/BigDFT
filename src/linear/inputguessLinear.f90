@@ -163,7 +163,7 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
   !call assignOrbitalsToAtoms(iproc, lzdig%orbs, at%nat, norbsPerAt, onWhichAtomp)
   call assignOrbitalsToAtoms(iproc, lzdig%orbs, at%nat, norbsPerAt, onWhichAtomp, onWhichAtom)
   ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
-  call assignToLocreg(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
+  call assignToLocreg2(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
   !!write(*,'(a,i3,3x,100i4)') 'iproc, owa', iproc, onWhichAtom(:)
   !!write(*,'(a,i3,3x,100i4)') 'iproc, iwi', iproc, lzdig%orbs%inwhichlocreg(:)
   !!write(*,'(a,i3,3x,100i4)') 'iproc, owap', iproc, onWhichAtomp(:)

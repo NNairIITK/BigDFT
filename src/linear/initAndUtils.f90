@@ -118,7 +118,7 @@ call assignOrbitalsToAtoms(iproc, lin%lb%orbs, at%nat, norbsPerAtom, lin%lb%onWh
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
-call assignToLocreg(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
+call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
 
 ! Initialize the localization regions.
 call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
