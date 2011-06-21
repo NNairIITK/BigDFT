@@ -245,6 +245,10 @@ program conv_check
      fil(-i)=fil(i)
   enddo
 
+  call MPI_INIT(ierr)
+  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
   ekin=0.0_wp
   
   !call set_gpu_double() !after this call, all memory operations are in double precision, call set_gpu_simple() in order to have simple memory operations
@@ -521,6 +525,10 @@ program conv_check
   else 
      print *,'wrong ndim',ndim
   end if
+
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
+  call MPI_FINALIZE(ierr)
 
 contains
 
