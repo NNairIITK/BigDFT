@@ -205,124 +205,83 @@ integer:: ist, ierr
       call gatherPotential(iproc, nproc, lin%comgp)
   end if
 
+
+  ! Transform the global phi to the local phi
+  ! This part will not be needed if we really have O(N)
+  allocate(lhphi(lin%lb%Lorbs%npsidim), stat=istat)
+  call memocc(istat, lhphi, 'lhphi', subname)
+
+  ind1=1
+  ind2=1
+  do iorb=1,lin%lb%orbs%norbp
+      ilr = lin%lb%onWhichAtom(iorb)
+      ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+  end do
+
+  withConfinement=.false.
+  call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
+       proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+       ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, &
+       pkernel=pkernelseq)
+  ind1=1
+  ind2=1
+  hphi=0.d0
+  do iorb=1,lin%lb%orbs%norbp
+      ilr = lin%lb%onWhichAtom(iorb)
+      ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
+      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+  end do
+
+  iall=-product(shape(lhphi))*kind(lhphi)
+  deallocate(lhphi, stat=istat)
+  call memocc(istat, iall, 'lhphi', subname)
+
+  if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
+
+
+  ! Calculate the matrix elements <phi|H|phi>.
+  call getMatrixElements(iproc, nproc, Glr, lin%lb%orbs, lin%lb%comms, phi, hphi, matrixElements)
+
   if(trim(lin%getCoeff)=='min') then
+      call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
+  else
+      ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
+      ! are still needed later.
+      call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
+      call diagonalizeHamiltonian(iproc, nproc, lin%orbs, matrixElements(1,1,2), eval)
+      call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
+  end if
 
-      !!!! THIS IS THE ORIGINAL
-      !!call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-      !!     lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
-      !!call HamiltonianApplication(iproc,nproc,at,lin%lb%orbs,input%hx,input%hy,input%hz,rxyz,&
-      !!     nlpspd,proj,Glr,ngatherarr,potential,&
-      !!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-      !!!deallocate potential
-      !!call free_full_potential(nproc,potential,subname)
-
-      ! Transform the global phi to the local phi
-      ! This part will not be needed if we really have O(N)
-      allocate(lhphi(lin%lb%Lorbs%npsidim), stat=istat)
-      call memocc(istat, lhphi, 'lhphi', subname)
-
-      ind1=1
-      ind2=1
-      !lphi=0.d0
-      do iorb=1,lin%lb%orbs%norbp
-          ilr = lin%lb%onWhichAtom(iorb)
-          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      end do
-
-      withConfinement=.false.
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
-           proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, &
-           pkernel=pkernelseq)
-      ind1=1
-      ind2=1
-      hphi=0.d0
-      do iorb=1,lin%lb%orbs%norbp
-          ilr = lin%lb%onWhichAtom(iorb)
-          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
-          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      end do
-
-      iall=-product(shape(lhphi))*kind(lhphi)
-      deallocate(lhphi, stat=istat)
-      call memocc(istat, iall, 'lhphi', subname)
-
-      if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
-      
-
-      ! Calculate the matrix elements <phi|H|phi>.
-      call getMatrixElements(iproc, nproc, Glr, lin%lb%orbs, lin%lb%comms, phi, hphi, matrixElements)
-
-          ! Calculate the coefficients which minimize the band structure energy
-          ! ebs = \sum_i \sum_{k,l} c_{ik}*c_{il}*<phi_k|H|phi_l>
-          ! for the given basis functions.
-          !if(.not. updatePhi) call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
-          call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
-      !!call diagonalizeHamiltonian(iproc, nproc, lin%orbs, matrixElements(1,1,1), eval)
-      !!call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,1), 1, coeff(1,1), 1)
-
-      ! Calculate the band structure energy with matrixElements.
-      ebs=0.d0
-      do iorb=1,orbs%norb
-          do jorb=1,lin%lb%orbs%norb
-              do korb=1,lin%lb%orbs%norb
-                  ebs = ebs + coeff(jorb,iorb)*coeff(korb,iorb)*matrixElements(korb,jorb,1)
-              end do
+  ! Calculate the band structure energy with matrixElements.
+  ebs=0.d0
+  do iorb=1,orbs%norb
+      do jorb=1,lin%lb%orbs%norb
+          do korb=1,lin%lb%orbs%norb
+              ebs = ebs + coeff(jorb,iorb)*coeff(korb,iorb)*matrixElements(korb,jorb,1)
           end do
       end do
-      ! If closed shell multiply by two
-      if(input%nspin==1) ebs=2.d0*ebs
+  end do
+  ! If closed shell multiply by two
+  if(input%nspin==1) ebs=2.d0*ebs
 
-  else if(trim(lin%getCoeff)=='diag') then
-  
-      !allocate the potential in the full box
-      call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
-           lin%orbs%norb,lin%orbs%norbp,ngatherarr,rhopot,potential)
-      
-      call HamiltonianApplication(iproc,nproc,at,lin%orbs,input%hx,input%hy,input%hz,rxyz,&
-           nlpspd,proj,Glr,ngatherarr,potential,&
-           phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
-      if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
-      
-      !deallocate potential
-      call free_full_potential(nproc,potential,subname)
-
-  end if
-  
   
   call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-  call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, hphi, work=phiWork)
-      
-  
-  if(trim(lin%getCoeff)=='diag') then
-      call transformHam(iproc, nproc, lin%orbs, lin%comms, phi, hphi, HamSmall)
-      if(iproc==0) write(*,'(a)', advance='no') ' Diagonalization... '
-      call diagonalizeHamiltonian(iproc, nproc, lin%orbs, HamSmall, eval)
-      call dcopy(lin%orbs%norb*orbs%norb, HamSmall(1,1), 1, coeff(1,1), 1)
-      if(iproc==0) write(*,'(a)') 'done.'
-  end if
 
   
   if(iproc==0) then
       write(*,'(x,a)', advance='no') '------------------------------------- Building linear combinations... '
       
   end if
-  if(trim(lin%getCoeff)=='diag') then
-      call buildWavefunction(iproc, nproc, orbs, lin%orbs, comms, lin%comms, phi, psi, HamSmall)
-  else if(trim(lin%getCoeff)=='min') then
-      call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
-  else
-      if(iproc==0) write(*,'(a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min' , &
-          & but we found '", lin%getCoeff, "'."
-      stop
-  end if
+  ! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
+  ! this has to replaced, but at the moment it is still needed.
+  call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
 
   
   call dcopy(orbs%npsidim, psi, 1, psit, 1)

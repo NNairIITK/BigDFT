@@ -216,7 +216,7 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%nItPrecond
   read(99,*) lin%getCoeff
   read(99,*) lin%nItCoeff, lin%convCritCoeff
-  read(99,*) lin%nItSCC, lin%alphaMix
+  read(99,*) lin%nItSCC, lin%alphaMix, lin%convCritMix
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess
   read(99,*) lin%plotBasisFunctions
@@ -277,17 +277,17 @@ do itype=1,at%ntypes
 end do
 close(unit=99)
 if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| number of iterations in the | alpha mix | use the derivative | order of conf. |'
-if(iproc==0) write(*,'(4x,a)') '|    selfconsistency cycle    |           |  basis functions   |   potential    |'
-if(iproc==0) write(*,'(4x,a,a,i0,14x,a,x,es9.3,x,a,8x,l,10x,a,7x,i1,8x,a)') '|', &
-     repeat(' ', 15-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
-     lin%nItSCC, '|', lin%alphaMix, '|', lin%useDerivativeBasisFunctions, '|', lin%confPotOrder, '|'
+if(iproc==0) write(*,'(4x,a)') '| iterations in | alpha mix | convergence crit. | use the derivative | order of conf. |'
+if(iproc==0) write(*,'(4x,a)') '|  in SC cycle  |           |    for mixing     |  basis functions   |   potential    |'
+if(iproc==0) write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a,8x,l,10x,a,7x,i1,8x,a)') '|', &
+     repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
+     lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|', lin%useDerivativeBasisFunctions, '|', lin%confPotOrder, '|'
 if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| iterations in |'
-if(iproc==0) write(*,'(4x,a)') '|  input guess  |'
-if(iproc==0) write(*,'(4x,a,a,i0,5x,a)') '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
-     lin%nItInguess, '|'
-if(iproc==0) write(*,'(4x,a)') '-----------------'
+if(iproc==0) write(*,'(4x,a)') '| iterations in | orbitals per |'
+if(iproc==0) write(*,'(4x,a)') '|  input guess  |   process    |'
+if(iproc==0) write(*,'(4x,a,a,i0,5x,a,a,i0,6x,a)') '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
+     lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|'
+if(iproc==0) write(*,'(4x,a)') '--------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
 if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'

@@ -2124,23 +2124,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
     end subroutine nlpspd_to_locreg
 
-    !!subroutine apply_local_projectors(atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,psi,rxyz,hpsi,eproj)
-    !! use module_base
-    !! use module_types
-    !! implicit none
-    !! real(gp), intent(in) :: hx,hy,hz
-    !! real(gp), intent(out) :: eproj
-    !! type(atoms_data),intent(in) :: atoms
-    !! type(locreg_descriptors),intent(in) :: Llr
-    !! type(nonlocal_psp_descriptors),intent(in) :: Lnlpspd  
-    !! type(orbitals_data),intent(in) :: orbs
-    !! integer,dimension(atoms%nat),intent(in) :: projflg
-    !! real(wp),dimension(Lnlpspd%nprojel),intent(out):: Lproj  
-    !! real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(in) :: psi  
-    !! real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(out):: hpsi 
-    !! real(gp), dimension(3,atoms%nat), intent(in) :: rxyz 
-    !!end subroutine apply_local_projectors
-
 
     subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,psi,rxyz,hpsi,eproj)
      use module_base
@@ -2344,33 +2327,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine initCoefficients
 
 
-     !!subroutine LinearHamiltonianApplicationConfinement(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
-     !!     proj,ngatherarr,ndimpot,pot,psi,hpsi,&
-     !!     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel,orbsocc,psirocc)
-     !!  use module_base
-     !!  use module_types
-     !!  use libxc_functionals
-     !!  implicit none
-     !!  integer, intent(in) :: iproc,nproc,nspin,ndimpot
-     !!  real(gp), intent(in) :: hx,hy,hz
-     !!  type(atoms_data), intent(in) :: at
-     !!  type(input_variables), intent(in) :: input
-     !!  type(linear_zone_descriptors),intent(inout) :: Lzd
-     !!  type(linearParameters),intent(in):: lin
-     !!  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-     !!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
-     !!  real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
-     !!  real(wp), dimension(Lzd%orbs%npsidim), intent(in) :: psi
-     !!  !real(wp), dimension(:), pointer :: pot
-     !!  real(wp), dimension(max(ndimpot,1)*nspin), intent(in) :: pot
-     !!  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
-     !!  real(wp), target, dimension(Lzd%orbs%npsidim), intent(out) :: hpsi
-     !!  type(GPU_pointers), intent(inout) :: GPU
-     !!  real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
-     !!  real(dp), dimension(*), optional :: pkernel
-     !!  type(orbitals_data), intent(in), optional :: orbsocc
-     !!  real(wp), dimension(:), pointer, optional :: psirocc
-     !!end subroutine LinearHamiltonianApplicationConfinement
 
      subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
           proj,ngatherarr,ndimpot,pot,psi,hpsi,&
@@ -2474,31 +2430,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(inguessParameters),intent(inout):: ip
      end subroutine initializeInguessParameters
 
-
-     !!!subroutine updatePotential(iproc, nproc, Glr, orbs, atoms, in, lin, phi, rhopot, &
-     !!!           nscatterarr, ngatherarr, GPU, rhocore, potxc, PSquiet, coeff, ehart, eexcu, vexcu)
-     !!!  use module_base
-     !!!  use module_types
-     !!!  implicit none
-     !!!  integer:: iproc, nproc
-     !!!  type(locreg_descriptors) :: Glr
-     !!!  type(orbitals_data):: orbs
-     !!!  type(atoms_data):: atoms
-     !!!  type(input_variables):: in
-     !!!  type(linearParameters):: lin
-     !!!  real(8),dimension(lin%lb%orbs%npsidim):: phi
-     !!!  real(dp), dimension(lin%as%size_rhopot) :: rhopot
-     !!!  integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-     !!!  integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
-     !!!  type(GPU_pointers),intent(in out):: GPU
-     !!!  real(dp), dimension(lin%as%size_pkernel):: pkernel
-     !!!  real(wp), dimension(lin%as%size_pot_ion):: pot_ion
-     !!!  real(wp), dimension(:),pointer:: rhocore
-     !!!  real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
-     !!!  character(len=3):: PSquiet
-     !!!  real(8),dimension(lin%lb%orbs%norb,orbs%norb):: coeff
-     !!!  real(8):: ehart, eexcu, vexcu
-     !!!end subroutine updatePotential
 
      subroutine updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, phi, &
          rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &

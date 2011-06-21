@@ -164,9 +164,9 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
   call assignOrbitalsToAtoms(iproc, lzdig%orbs, at%nat, norbsPerAt, onWhichAtomp, onWhichAtom)
   ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
   call assignToLocreg(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
-  write(*,'(a,i3,3x,100i4)') 'iproc, owa', iproc, onWhichAtom(:)
-  write(*,'(a,i3,3x,100i4)') 'iproc, iwi', iproc, lzdig%orbs%inwhichlocreg(:)
-  write(*,'(a,i3,3x,100i4)') 'iproc, owap', iproc, onWhichAtomp(:)
+  !!write(*,'(a,i3,3x,100i4)') 'iproc, owa', iproc, onWhichAtom(:)
+  !!write(*,'(a,i3,3x,100i4)') 'iproc, iwi', iproc, lzdig%orbs%inwhichlocreg(:)
+  !!write(*,'(a,i3,3x,100i4)') 'iproc, owap', iproc, onWhichAtomp(:)
 
   !call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, locrad)
   call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
@@ -616,7 +616,8 @@ type(inguessParameters):: ip
       ii=0
       do iorb=1,ip%norb_par(iproc)
           iiAt=onWhichAtom(ip%isorb+iorb)
-          cut=lin%locrad(at%iatype(iiAt))**2
+          ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
+          cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
           do jorb=1,ip%norbtot
               jjAt=onWhichAtom(jorb)
               tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
@@ -647,7 +648,7 @@ type(inguessParameters):: ip
     
       
       ! Initial step size for the optimization
-      alpha=5.d-1
+      alpha=1.d-3
     
       ! Flag which checks convergence.
       converged=.false.
@@ -1892,13 +1893,13 @@ real(8):: ddot
         !if(ip%nproc>1) call mpiallred(ovrlp(1,1), ip%norb**2, mpi_sum, mpi_comm_world, ierr)
         if(ip%nproc>1) call mpiallred(ovrlp(1,1), ip%norb**2, mpi_sum, newComm, ierr)
 
-        do iorb=1,ip%norb
-            do jorb=1,ip%norb
-                if(abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))>1.d-10) stop 'not symmetric'
-                write(3000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-            end do
-        end do
-        write(3000+iproc,*) '=================================='
+        !!do iorb=1,ip%norb
+        !!    do jorb=1,ip%norb
+        !!        if(abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))>1.d-10) stop 'not symmetric'
+        !!        write(3000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+        !!    end do
+        !!end do
+        !!write(3000+iproc,*) '=================================='
 
         !!allocate(work(1), stat=istat)
         !!call memocc(istat, work, 'work', subname)

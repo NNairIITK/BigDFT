@@ -196,7 +196,6 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
           rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           coeff, ehart, eexcu, vexcu)
       energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
-      !write(*,*) 'new energy', energy
 
       ! Post communications for gathering the potential
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -204,10 +203,6 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
 
       ! Post communications for gathering the potential
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-!!do iall=1,size(rhopot)
-!!    write(80000+iproc,*) iall, rhopot(iall)
-!!end do
-      !!call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
       !!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! Calculate the forces we get with psi.
@@ -242,6 +237,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
 
       ! Write some informations
       call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy)
+      if(pnrm<lin%convCritMix) exit
   end do
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
   deallocate(rhopotOld, stat=istat)
