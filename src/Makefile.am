@@ -404,7 +404,7 @@ xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 #BigDFT_API.o: base.o types.o interfaces.o
 
-#$(high_level:.f90=.o) : base.o types.o
+$(high_level:.f90=.o) : $(modules_objects)
 
 test_forces.o: $(mod_bigdft)
 
