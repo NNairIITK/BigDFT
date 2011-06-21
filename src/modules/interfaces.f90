@@ -317,7 +317,7 @@ module module_interfaces
      subroutine input_wf_diag(iproc,nproc,at,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
-          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input,radii_cf,orbsv)
+          nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input,radii_cf)
        use module_base
        use module_types
        implicit none
@@ -343,7 +343,6 @@ module module_interfaces
        integer, dimension(*), intent(in) :: irrzon
        real(dp), dimension(*), intent(in) :: phnons
        real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
-       type(orbitals_data), optional, intent(in) :: orbsv
      END SUBROUTINE input_wf_diag
 
      subroutine reformatmywaves(iproc,orbs,at,&

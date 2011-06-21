@@ -470,6 +470,9 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   alphaDIIS=lin%alphaDIIS
   adapt=.false.
 
+  ! Cut off outside localization region -- experimental
+  call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+
   ! Transpose phi
   call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
 
@@ -490,10 +493,10 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
           write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       endif
 
-      ! Cut off outside localization region -- experimental
-      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-      call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
-      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+      !!! Cut off outside localization region -- experimental
+      !!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+      !!call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+      !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
   
       ! Orthonormalize the orbitals.
       if(iproc==0) then
