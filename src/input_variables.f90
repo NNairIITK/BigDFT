@@ -969,6 +969,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
        & "Input guess: Tolerance criterion", inputs%orthpar%iguessTol)
   call input_var("methortho", 0, (/ 0, 1, 2 /), &
        & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
+  call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
 
   call input_free()
 

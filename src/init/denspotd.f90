@@ -9,16 +9,25 @@
 
 
 !>   Create the descriptors for the density and the potential
-subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
-     n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
-
+subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
+     rxyz,crmult,frmult,radii_cf,nspin,datacode,ixc,rho_commun,&
+     n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
+  use module_base
+  use module_types
   use Poisson_Solver
-
+  use libxc_functionals
   implicit none
   !Arguments
-  character(len=1), intent(in) :: geocode,datacode
-  integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,ixc
+  character(len=1), intent(in) :: datacode
+  character(len=3), intent(in) :: rho_commun
+  integer, intent(in) :: iproc,nproc,ixc,nspin
+  real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
+  type(atoms_data), intent(in) :: atoms
+  type(grid_dimensions), intent(in) :: gdim
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   integer, intent(out) ::  n3d,n3p,n3pi,i3xcsh,i3s
+  type(rho_descriptors), intent(out) :: rhodsc
   integer, dimension(0:nproc-1,4), intent(out) :: nscatterarr
   integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
   !Local variables
@@ -26,7 +35,8 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
 
   if (datacode == 'D') then
      do jproc=0,iproc-1
-        call PS_dim4allocation(geocode,datacode,jproc,nproc,n1i,n2i,n3i,ixc,&
+        call PS_dim4allocation(atoms%geocode,datacode,jproc,nproc,&
+             gdim%n1i,gdim%n2i,gdim%n3i,ixc,&
              n3d,n3p,n3pi,i3xcsh,i3s)
         nscatterarr(jproc,1)=n3d            !number of planes for the density
         nscatterarr(jproc,2)=n3p            !number of planes for the potential
@@ -34,7 +44,8 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
         nscatterarr(jproc,4)=i3xcsh         !GGA XC shift between density and potential
      end do
      do jproc=iproc+1,nproc-1
-        call PS_dim4allocation(geocode,datacode,jproc,nproc,n1i,n2i,n3i,ixc,&
+        call PS_dim4allocation(atoms%geocode,datacode,jproc,nproc,&
+             gdim%n1i,gdim%n2i,gdim%n3i,ixc,&
              n3d,n3p,n3pi,i3xcsh,i3s)
         nscatterarr(jproc,1)=n3d
         nscatterarr(jproc,2)=n3p
@@ -43,15 +54,40 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
      end do
   end if
 
-  call PS_dim4allocation(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,&
+  call PS_dim4allocation(atoms%geocode,datacode,iproc,nproc,&
+       gdim%n1i,gdim%n2i,gdim%n3i,ixc,&
        n3d,n3p,n3pi,i3xcsh,i3s)
   nscatterarr(iproc,1)=n3d
   nscatterarr(iproc,2)=n3p
   nscatterarr(iproc,3)=i3s+i3xcsh-1
   nscatterarr(iproc,4)=i3xcsh
 
-  ngatherarr(:,1)=n1i*n2i*nscatterarr(:,2)
-  ngatherarr(:,2)=n1i*n2i*nscatterarr(:,3)
+  ngatherarr(:,1)=gdim%n1i*gdim%n2i*nscatterarr(:,2)
+  ngatherarr(:,2)=gdim%n1i*gdim%n2i*nscatterarr(:,3)
+
+  !create rhopot descriptors
+    !allocate rho_descriptors if the density repartition is activated
+  !decide rho communication strategy
+  if (rho_commun=='MIX' .and. ((atoms%geocode.eq.'F').and.(nproc > 1).and.(((ixc >= 11 .and. ixc <= 16) .or. &
+       & (ixc < 0 .and. libxc_functionals_isgga()))))) then
+     call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
+          gdim%n1,gdim%n2,gdim%n3,gdim%n1i,gdim%n2i,gdim%n3i,&
+          hxh,hyh,hzh,nspin,rhodsc,.false.)
+     rhodsc%icomm=2
+  else
+     !nullify rhodsc pointers
+     nullify(rhodsc%spkey)
+     nullify(rhodsc%dpkey)
+     nullify(rhodsc%cseg_b)
+     nullify(rhodsc%fseg_b)
+     if (.not. ((ixc >= 11 .and. ixc <= 16) .or. &
+          (ixc < 0 .and. libxc_functionals_isgga()))) then
+        rhodsc%icomm=1
+     else
+        rhodsc%icomm=0
+     endif
+  end if
+
 
 END SUBROUTINE createDensPotDescriptors
 

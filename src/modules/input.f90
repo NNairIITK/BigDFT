@@ -98,7 +98,7 @@ contains
 
     integer :: i, j, ierror, ierr
 
-    var = default
+    write(var, "(A)") default
     call find(name, i, j)
     if (i > 0) then
        read(input_lines(i)(j + 2:), fmt = *, iostat = ierror) var

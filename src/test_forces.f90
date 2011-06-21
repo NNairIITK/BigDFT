@@ -79,7 +79,7 @@ program test_forces
      arr_posinp(1)='posinp'
   end if
   
- !prepare the array of the correct Simpson's rule weigths for the intagration
+ !prepare the array of the correct Simpson's rule weigths for the integration
   if (mod(npath,2).ne.1) stop 'the number of iteration steps has to be odd'
   simpson(1)=1.d0/3.d0
   simpson(2)=4.d0/3.d0
@@ -104,7 +104,7 @@ do iconfig=1,nconfig
                                              " random displacement (in the range [", -dx, ",",dx,"] a.u.)"
              print*, "and compares the result with the difference of the energy  between the final and the initial position:"// &
                   " E2-E1 = -Integral F.dR" 
-             print*," The advatage is two fold: 1) evoiding cancellation error in finite difference derivative," // & 
+             print*," The advantage is two fold: 1) avoiding cancellation error in finite difference derivative," // & 
                     " 2) considernig the forces over all atoms "
              print*,'*********************************************************************************************************'
              print*
@@ -112,6 +112,8 @@ do iconfig=1,nconfig
      endif
 
      ! Read all input files.
+     !standard names
+     call standard_inputfile_names(inputs)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 !     if (iproc == 0) then
  !       call print_general_parameters(inputs,atoms)
@@ -131,7 +133,7 @@ do iconfig=1,nconfig
         inputs%last_run = 1
      end if
  
- ! path intagral   
+ ! path integral   
    path=0.d0
   !calculate the displacement at each integration step
   !(use sin instead of random numbers)
@@ -146,7 +148,10 @@ do iconfig=1,nconfig
   do ipath=1,npath
 
         !update atomic positions alog the path
-     if(ipath>1) rxyz(:,:)=rxyz(:,:)+drxyz(:,:)
+     if(ipath>1) then
+        rxyz(:,:)=rxyz(:,:)+drxyz(:,:)
+        inputs%inputPsiId=1
+     end if
 
      if (iproc == 0) then
         call print_general_parameters(inputs,atoms) ! to know the new positions
