@@ -621,7 +621,6 @@ subroutine tddft_input_variables(filename,in)
   character(len=*), parameter :: subname='tddft_input_variables'
   integer :: iline, ierror
 
-
   inquire(file=trim(filename),exist=exists)
 
   if (.not. exists) then
@@ -1010,7 +1009,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
            read(line(ii:),fmt=*,iostat=ierror) inputs%rho_commun
 
         else if (index(line,"accel") /= 0 .or. index(line,"ACCEL") /= 0) then
-            ii = index(line,"accel")  + index(line,"ACCEL") + 6
+            ii = index(line,"accel")  + index(line,"ACCEL") + 5
            read(line(ii:),fmt=*,iostat=ierror) string
            if (string=="NO     ") then
               inputs%iacceleration=0
@@ -2995,5 +2994,4 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      deallocate(nodename,stat=i_stat)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
-
 END SUBROUTINE processor_id_per_node

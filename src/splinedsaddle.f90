@@ -1,7 +1,7 @@
 !> @file
 !! Contains routines for the executable splined_saddle
 !! @author
-!!    Copyright (C) 2007-2010 BigDFT group
+!!    Copyright (C) 2010-2011 BigDFT group (AG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -284,7 +284,7 @@ module modulesplinedsaddle
         integer::ncount
         real(kind=8)::time_ll
         real(kind=8)::time
-        real(8)::epotci
+        real(kind=8)::epotci
         logical::granot
         character(20)::hybrid
         character(20)::doneb
@@ -1383,7 +1383,7 @@ subroutine nebforce(n,np,x,f,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount
     integer, intent(inout) :: ncount_bigdft
     integer::n,np,i,ip,istat,infocode
     real(kind=8)::x(n,0:np),f(n,0:np),fnoise
-    real(kind=8)::tt,t1,t2,springcons,fnrmtot,time1,time2,fnrmarr(99),fspmaxarr(99),DNRM2
+    real(kind=8)::tt,t1,t2,springcons,fnrmtot,time1,time2,fnrmarr(99),fspmaxarr(99)!,DNRM2
     real(kind=8), allocatable::tang(:,:),x_bigdft(:)
     type(parametersplinedsaddle)::pnow
     logical::move_this_coordinate
@@ -1752,13 +1752,12 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,iw4,info,i,j,l,mx
-    real(8)::x(nr),f(nr),epot,work(nwork)
-    integer, allocatable::ipiv(:)
-    !real(8), allocatable::eval(:),umat(:)
+    real(kind=8)::x(nr),f(nr),epot,work(nwork)
+    !real(kind=8), allocatable::eval(:),umat(:)
     type(parameterminimization_sp)::parmin
-    real(8)::DDOT,DNRM2,tt1,tt2,de,fnrm,calnorm,fmax,calmaxforcecomponent,beta
-    real(8)::tt3,tt4,tt5,tt6
-    real(8), save::epotold,alpha,alphamax,zeta
+    real(kind=8)::DDOT,tt1,tt2,de,fnrm,calnorm,fmax,calmaxforcecomponent,beta
+    real(kind=8)::tt3,tt4,tt5,tt6
+    real(kind=8), save::epotold,alpha,alphamax,zeta
     logical, save::reset
     integer, save::isatur
     if(nwork/=nr*nr+3*nr+3*nr*nr+3*nr) then
@@ -2033,6 +2032,8 @@ subroutine dfp_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
         x(i)=x(i)+sign(min(abs(dx),5.d0),dx)
     enddo
 end subroutine dfp_splsad
+
+
 subroutine reportcalvmaxanchorforces(iproc,icall,n,np,x,etmax,fspnrm,fspmax,pnow,atoms,ncount_bigdft)
     use modulesplinedsaddle, only:parametersplinedsaddle
     use module_types

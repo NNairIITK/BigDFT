@@ -36,7 +36,6 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   real(kind=8), dimension(:,:,:,:), allocatable :: zmpi2
   !cache work array
   real(kind=8), dimension(:,:,:), allocatable :: zw
-  real(kind=8), dimension(:,:,:,:), allocatable :: zw1
   !FFT work arrays
   real(kind=8), dimension(:,:), allocatable :: btrig1,btrig2,btrig3, &
        ftrig1,ftrig2,ftrig3,cosinarr

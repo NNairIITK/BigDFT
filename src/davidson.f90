@@ -37,11 +37,11 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   real(wp), dimension(:), pointer :: psi,psivirt
   !local variables
   character(len=*), parameter :: subname='direct_minimization'
-  logical :: msg,exctX,occorbs,endloop,lcs !extended output
+  logical :: msg,exctX,occorbs,endloop !extended output
   integer :: occnorb, occnorbu, occnorbd
   integer :: i_stat,i_all,iter,ikpt,idsx_actual_before,ndiis_sd_sw
-  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum
-  real(gp) :: energy,energy_old,energybs,evsum,scprsum
+  real(gp) :: gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum
+  real(gp) :: energy,energy_old,energybs,evsum
   type(diis_objects) :: diis
   real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
 

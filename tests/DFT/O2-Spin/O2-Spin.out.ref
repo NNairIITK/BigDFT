@@ -274,7 +274,7 @@
  clean forces norm (Ha/Bohr): maxval=  6.140251115332E-02  fnrm2=  7.540536751867E-03
  raw forces:                  maxval=  6.583627803689E-02  fnrm2=  7.588900086531E-03
  CPU time/ELAPSED time for root process     0        66.47        63.16
-  WARNING: Self-consistent cycle did not met convergence criteria
+  WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
      1      O  2.03288E-20  1.21973E-19 -6.14025E-02
      2      O  1.35525E-20  1.28749E-19  6.14025E-02
