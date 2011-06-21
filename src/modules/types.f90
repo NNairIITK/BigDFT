@@ -149,6 +149,11 @@ module module_types
      !!   BC (Blocking Collective)
      !!   OP2P (Overlap Point-to-Point)
      character(len=4) :: exctxpar
+
+     !> communication scheme for the density
+     !!  DBL traditional scheme with double precision
+     !!  MIX mixed single-double precision scheme (requires rho_descriptors)
+     character(len=3) :: rho_commun
   end type input_variables
 
   type, public :: energy_terms
@@ -197,11 +202,13 @@ module module_types
      integer, dimension(:), pointer :: keyv
   end type wavefunctions_descriptors
 
+!> Used to split between points to be treated in simple or in double precision
   type, public :: rho_descriptors
-     integer :: n_csegs,n_fsegs,dp_size,sp_size
-     integer, dimension(:,:), allocatable :: spkey,dpkey
-     integer, dimension(:), allocatable :: cseg_b,fseg_b
      character(len=1) :: geocode
+     integer :: icomm !< method for communicating the density
+     integer :: n_csegs,n_fsegs,dp_size,sp_size
+     integer, dimension(:,:), pointer :: spkey,dpkey
+     integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
 
 !>  Non local pseudopotential descriptors
@@ -695,6 +702,37 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'wfd%keyv',subname)
     end if
   END SUBROUTINE deallocate_wfd
+
+  subroutine deallocate_rho_descriptors(rhodsc,subname)
+    use module_base
+    implicit none
+    type(rho_descriptors) :: rhodsc
+    character(len=*), intent(in) :: subname
+    !local variables
+    integer :: i_all,i_stat
+
+    if (associated(rhodsc%spkey))then
+       i_all=-product(shape(rhodsc%spkey))*kind(rhodsc%spkey)
+       deallocate(rhodsc%spkey,stat=i_stat)
+       call memocc(i_stat,i_all,'spkey',subname)
+    end if
+    if (associated(rhodsc%dpkey))then
+       i_all=-product(shape(rhodsc%dpkey))*kind(rhodsc%dpkey)
+       deallocate(rhodsc%dpkey,stat=i_stat)
+       call memocc(i_stat,i_all,'dpkey',subname)
+    end if
+    if (associated(rhodsc%cseg_b))then
+       i_all=-product(shape(rhodsc%cseg_b))*kind(rhodsc%cseg_b)
+       deallocate(rhodsc%cseg_b,stat=i_stat)
+       call memocc(i_stat,i_all,'csegb',subname)
+    end if
+    if (associated(rhodsc%fseg_b))then
+       i_all=-product(shape(rhodsc%fseg_b))*kind(rhodsc%fseg_b)
+       deallocate(rhodsc%fseg_b,stat=i_stat)
+       call memocc(i_stat,i_all,'fsegb',subname)
+    end if
+
+  end subroutine deallocate_rho_descriptors
 
 
 !> De-Allocate gaussian_basis type

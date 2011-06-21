@@ -7,6 +7,66 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,refill_proj,&
+     rho,pot,psi,fion,fdisp,fxyz,fnoise)
+  use module_base
+  use module_types
+  implicit none
+  logical, intent(in) :: refill_proj
+  integer, intent(in) :: iproc,nproc,i3s,n3p
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: Glr
+  type(atoms_data), intent(in) :: atoms
+  type(orbitals_data), intent(in) :: orbs
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot
+  real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
+  real(gp), intent(out) :: fnoise
+  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+  !local variables
+  integer :: ierr,iat
+  
+  ! Calculate local part of the forces gxyz
+  !! @todo Symmetrize forces with k points
+  call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,rho,pot,fxyz)
+
+  if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
+  
+  call nonlocal_forces(iproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,atoms,rxyz,&
+       orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj)
+
+  if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
+
+  ! Add up all the force contributions
+  if (nproc > 1) then
+     call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+  end if
+
+!!$  if (iproc == 0) then
+!!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
+!!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
+!!$     do iat=1,atoms%nat
+!!$        sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
+!!$        fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
+!!$     enddo
+!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
+!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
+!!$  endif
+
+  !add to the forces the ionic and dispersion contribution 
+  do iat=1,atoms%nat
+     fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
+     fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
+     fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
+  enddo
+  !clean the center mass shift and the torque in isolated directions
+  call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+end subroutine calculate_forces
+
+
 
 !>   Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&

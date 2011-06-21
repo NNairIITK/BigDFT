@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
-subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
+subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
      nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
@@ -20,15 +20,14 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc,nrho,nspin,ixc,symObj
+  integer, intent(in) :: iproc,nproc,nspin,symObj
   real(gp), intent(in) :: hxh,hyh,hzh
   type(rho_descriptors),intent(in) :: rhodsc
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr 
-  real(8),dimension(lr%d%n1i,lr%d%n2i,lr%d%n3i) :: xx,yy
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
-  real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
+  real(dp), dimension(max(lr%d%n1i*lr%d%n2i*nscatterarr(iproc,1),1),nspin), intent(out), target :: rho
   type(GPU_pointers), intent(inout) :: GPU
   integer, dimension(*), intent(in) :: irrzon
   real(dp), dimension(*), intent(in) :: phnons
@@ -63,15 +62,15 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      nspinn=nspin
   end if
 
-  !flag for toggling the REDUCE_SCATTER stategy
-  rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-       & (ixc < 0 .and. libxc_functionals_isgga()))
+  !flag for toggling the REDUCE_SCATTER stategy (deprecated, icomm used instead of ixc value)
+  !rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
+  !     & (ixc < 0 .and. libxc_functionals_isgga()))
   
 !  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
 !             (ixc < 0 .and. libxc_functionals_isgga()), have_mpi2,rsflag
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
-  if (rsflag) then
+  if (rhodsc%icomm==1) then
      nrhotot=0
      do jproc=0,nproc-1
         nrhotot=nrhotot+nscatterarr(jproc,1)
@@ -113,7 +112,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      end if
 
      !for each of the orbitals treated by the processor build the partial densities
-     call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+     call local_partial_density(iproc,nproc,(rhodsc%icomm==1),nscatterarr,&
           nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   end if
 
@@ -149,52 +148,57 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
      !write(*,*) 'rsflag',rsflag
-     if (rsflag) then
+     !communication strategy for the density
+
+     !LDA case (icomm==1)
+     if (rhodsc%icomm==1) then
         do ispin=1,nspin
-          call MPI_REDUCE_SCATTER(rho_p(1,ispin),rho(1,ispin),&
-               lr%d%n1i*lr%d%n2i*nscatterarr(:,1),&
-               MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-               !write(*,*) 'LDA: MRC called'
+           call MPI_REDUCE_SCATTER(rho_p(1,ispin),rho(1,ispin),&
+                lr%d%n1i*lr%d%n2i*nscatterarr(:,1),&
+                MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+           !write(*,*) 'LDA: MRC called'
         end do
+
+     ! splitted single-double precision communication (icomm=2)
+     else if (rhodsc%icomm==2) then
+        !        if (rho_compress .and. rhodsc%geocode.eq.'F') then
+        !if (rhodsc%geocode == 'F') then
+        !call system_clock(ncount0,ncount_rate,ncount_max)
+        !write(*,*) 'geocode=F, compress rho called'
+        allocate(sprho_comp(rhodsc%sp_size,nspin),stat=i_stat)
+        call memocc(i_stat,sprho_comp,'sprho_comp',subname)
+        allocate(dprho_comp(rhodsc%dp_size,nspin),stat=i_stat)
+        call memocc(i_stat,dprho_comp,'dprho_comp',subname)
+        call compress_rho(iproc,nproc,rho_p,lr,nspin,rhodsc,sprho_comp,dprho_comp)
+        !call system_clock(ncount1,ncount_rate,ncount_max)
+        !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
+        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
+        !call system_clock(ncount2,ncount_rate,ncount_max)
+        !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
+        i3s=nscatterarr(iproc,3)-nscatterarr(iproc,4)
+        n3d=nscatterarr(iproc,1)
+        call uncompress_rho(iproc,nproc,sprho_comp,dprho_comp,&
+             lr,nspin,rhodsc,rho_p,i3s,n3d)
+        !call system_clock(ncount3,ncount_rate,ncount_max)
+        !write(*,*) 'TIMING:ARED3',real(ncount3-ncount2)/real(ncount_rate)
+        i_all=-product(shape(sprho_comp))*kind(sprho_comp)
+        deallocate(sprho_comp,stat=i_stat)
+        call memocc(i_stat,i_all,'sprho_comp',subname)
+        i_all=-product(shape(dprho_comp))*kind(dprho_comp)
+        deallocate(dprho_comp,stat=i_stat)
+        call memocc(i_stat,i_all,'dprho_comp',subname)
+
+     !naive communication (unsplitted GGA case) (icomm=0)
+     else if (rhodsc%icomm==0) then
+        call mpiallred(rho_p(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
+             MPI_SUM,MPI_COMM_WORLD,ierr)
      else
-!        if (rho_compress .and. rhodsc%geocode.eq.'F') then
-        if (rhodsc%geocode.eq.'F') then
-          !call system_clock(ncount0,ncount_rate,ncount_max)
-          !write(*,*) 'geocode=F, compress rho called'
-          allocate(sprho_comp(rhodsc%sp_size,nspin),stat=i_stat)
-          call memocc(i_stat,sprho_comp,'sprho_comp',subname)
-          allocate(dprho_comp(rhodsc%dp_size,nspin),stat=i_stat)
-          call memocc(i_stat,dprho_comp,'dprho_comp',subname)
-          call compress_rho(iproc,nproc,rho_p,lr,nspin,rhodsc,sprho_comp,dprho_comp)
-          !call system_clock(ncount1,ncount_rate,ncount_max)
-          !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
-          call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
-          call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
-          !call system_clock(ncount2,ncount_rate,ncount_max)
-          !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
-          i3s=nscatterarr(iproc,3)-nscatterarr(iproc,4)
-          n3d=nscatterarr(iproc,1)
-          call uncompress_rho(iproc,nproc,sprho_comp,dprho_comp,&
-                 lr,nspin,rhodsc,rho_p,i3s,n3d)
-          !call system_clock(ncount3,ncount_rate,ncount_max)
-          !write(*,*) 'TIMING:ARED3',real(ncount3-ncount2)/real(ncount_rate)
-          i_all=-product(shape(sprho_comp))*kind(sprho_comp)
-          deallocate(sprho_comp,stat=i_stat)
-          call memocc(i_stat,i_all,'sprho_comp',subname)
-          i_all=-product(shape(dprho_comp))*kind(dprho_comp)
-          deallocate(dprho_comp,stat=i_stat)
-          call memocc(i_stat,i_all,'dprho_comp',subname)
-       else
-          !write(*,*) 'geocode >< F, compress rho NOT called'
-          !call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
-          !     MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-          call mpiallred(rho_p(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
-               MPI_SUM,MPI_COMM_WORLD,ierr)
-       endif
-     end if
+        STOP 'DENSITY COMMUNICATION KEY UNVALID' 
+     endif
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
-     if (.not. rsflag) then
+     if (rhodsc%icomm /= 1) then
         !treatment which includes the periodic GGA
         !the density should meet the poisson solver distribution
         i3s=nscatterarr(iproc,3)-nscatterarr(iproc,4)
@@ -803,7 +807,8 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
      do i3=0,n3i-1
         do i2=0,n2i-1
            do i1=0,n1i-1
-              rho(i1+1,i2+1,i3+1,ispden)=rhog(1,i1+1,i2+1,i3+1,inzee)/real(n1i*n2i*n3i,dp)
+              !correct the density in case it has negative values
+              rho(i1+1,i2+1,i3+1,ispden)=max(rhog(1,i1+1,i2+1,i3+1,inzee)/real(n1i*n2i*n3i,dp),1.d-20)
            enddo
         enddo
      enddo

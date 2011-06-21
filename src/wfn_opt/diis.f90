@@ -390,7 +390,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   implicit none
   integer, intent(in) :: npoints, istep, n1, n2, n3, nproc, iproc
   real(gp), intent(in) :: alphamix, ucvol
-  integer, intent(in) :: nscatterarr(0:nproc-1,4)
+  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
   type(ab6_mixing_object), intent(inout) :: mix
   real(dp), dimension(npoints), intent(inout) :: rhopot
   real(gp), intent(out) :: rpnrm
@@ -886,7 +886,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
               do igroup=1,ngroup
                  if (igroup==1) mesupdw='up'
                  if (igroup==2) mesupdw='dw'
-                 write(*,'(1x,a,I3.3,a,2x,9(1x,a,2(1pe9.2),a))'),'DIIS wgts (kpt #', ikpt, &
+                 write(*,'(1x,a,I3.3,a,2x,9(1x,a,2(1pe9.2),a))')'DIIS wgts (kpt #', ikpt, &
                       & ')'//mesupdw//':',('(',rds(1:ncplx,j,igroup,ikpt),')',j=1,min(diis%idsx,diis%ids)+1)
               end do
            end if

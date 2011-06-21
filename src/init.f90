@@ -458,15 +458,13 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
 
-
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
 
   !application of the hamiltonian for gaussian based treatment
-  call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-       & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
-       & symObj, irrzon, phnons,rhodsc)
+  call sumrho(iproc,nproc,orbse,Glr,hxh,hyh,hzh,psi,rhopot,&
+       nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
      
   !-- if spectra calculation uses a energy dependent potential
   !    input_wf_diag will write (to be used in abscalc)

@@ -19,6 +19,7 @@ program rism
   type(input_variables) :: in
   type(orbitals_data) :: orbs
   type(locreg_descriptors) :: Glr
+  type(rho_descriptors)  :: rhodsc
   real(gp), dimension(3) :: shift
   integer, dimension(:), allocatable :: iatlr
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -74,9 +75,9 @@ program rism
   allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
 
-  call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',&
-       Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,&
-       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
+       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',0,in%rho_commun,&
+       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
   !read the files from the .cubes on the disk
   call read_density('electronic_density' // gridformat,atoms%geocode,&
@@ -157,6 +158,8 @@ program rism
   deallocate(rxyz,stat=i_stat)
   call memocc(i_stat,i_all,'rxyz',subname)
   call free_input_variables(in)
+
+  call deallocate_rho_descriptors(rhodsc,subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
