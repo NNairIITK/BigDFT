@@ -348,14 +348,13 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%eproj_sum=eproj_sum
   ha%nspin=nspin
   ha%GPU=>GPU !!
-  ha%Gabs_coeffs=>in%Gabs_coeffs(:) 
+  ha%Gabs_coeffs=>in%Gabs_coeffs
   ha%PAWD=> PAWD
  
   print *, "  initialization  "
 
   call EP_inizializza(ha)  
   print *, "  initialization OK   "
-
  
   if(.false.) then
 

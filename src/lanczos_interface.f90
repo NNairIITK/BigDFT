@@ -98,14 +98,14 @@ contains
        stop "array size inconsistency" 
     endif
     
-    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat) 
+    allocate(Qvect_tmp(ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f ) +ndebug) , stat=i_stat) 
     call memocc(i_stat,Qvect_tmp,'Qvect_tmp',subname)
 
-    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat )
+    allocate(wrk      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f ) +ndebug) , stat=i_stat )
     call memocc(i_stat,wrk,'wrk',subname)
-    allocate(wrk1      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat )
+    allocate(wrk1      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f) +ndebug) , stat=i_stat )
     call memocc(i_stat,wrk1,'wrk1',subname)
-    allocate(wrk2      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f  +ndebug)) , stat=i_stat )
+    allocate(wrk2      (ha%orbs%norbp*ha%orbs%nspinor*(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f) +ndebug) , stat=i_stat )
     call memocc(i_stat,wrk2,'wrk2',subname)
 
     EP_shift=0.0
