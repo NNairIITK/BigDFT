@@ -3,7 +3,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
      comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
      nlpspd, proj, pkernel, pkernelseq, &
      nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf,  &
-     phi)
+     phi, ehart, eexcu, vexcu)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -35,13 +35,14 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
   real(8),dimension(at%ntypes,3),intent(in):: radii_cf
   real(8),dimension(lin%orbs%npsidim),intent(out):: phi
+  real(8),intent(out):: ehart, eexcu, vexcu
   !local variables
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
   integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0, nvirt, norbat
   real(kind=4) :: tt,builtin_rand
-  real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
+  real(gp) :: hxh,hyh,hzh,eks,epot_sum,ekin_sum,eexctX,eproj_sum,etol,accurex
   type(orbitals_data) :: orbsig
   type(communications_arrays) :: commsig
   integer, dimension(:,:), allocatable :: norbsc_arr

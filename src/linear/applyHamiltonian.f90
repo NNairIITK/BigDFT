@@ -1371,7 +1371,8 @@ END SUBROUTINE local_hamiltonianConfinementForAllLocregs
 !> Application of the Hamiltonian
 subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
      proj,ngatherarr,ndimpot,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, pkernel,orbsocc,psirocc)
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, &
+     pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use libxc_functionals
@@ -1409,7 +1410,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat, i3s, i3e, ind1, ind2, ldim, gdim, jlr
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
   integer :: ilr,dimwf,ind,size_Lpot,size_pot
-  integer :: tmp_norbp
+  integer :: tmp_norbp, istorb
   real(dp),dimension(:),pointer:: Lpot
   real(wp),dimension(:),allocatable :: hpsi_proj
   real(wp),dimension(:),allocatable:: projCopy
@@ -1435,6 +1436,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   epot_sum = 0.0_gp
   eproj_sum= 0.0_gp
   ind = 1
+  istorb=1
   do ilr= 1, Lzd%nlr
 
      ! Cycle if the process does not have any orbitals belonging
@@ -1828,6 +1830,7 @@ subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb
 !     print *,iorb, ekin+epot, epot
      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
+
   enddo
 
   !print *,'iproc,etest',etest

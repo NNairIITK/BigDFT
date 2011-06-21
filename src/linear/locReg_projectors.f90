@@ -97,10 +97,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      nu2 = nlpspd%nboxp_c(2,2,iatom)
      nl3 = nlpspd%nboxp_c(1,3,iatom)
      nu3 = nlpspd%nboxp_c(2,3,iatom)
-!write(*,'(a,i4,3x,6i8)') 'iat, nl1, nu1, nl2, nu2, nl3, nu3', iat, nl1, nu1, nl2, nu2, nl3, nu3
 
-!write(*,*) 'before first call to fill_logrid'
-!call mpi_barrier(mpi_comm_world,ii)
 !    Now we can determine the number of segments and elements of coarse grid
      call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
 &                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,3),cpmult,hhx,hhy,hhz,logrid)
@@ -109,8 +106,6 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 
      Lnlpspd%nseg_p(2*iat-1) = mseg_c
      Lnlpspd%nvctr_p(2*iat-1) = mvctr_c 
-!write(*,*) 'passed coarse part'
-!call mpi_barrier(mpi_comm_world,ii)
 
 ! Do the same for fine grid
 

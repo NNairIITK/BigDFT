@@ -101,7 +101,7 @@ real(8):: fnoise
 integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot
 real(8),dimension(:),pointer:: phi, phid
 real(8),dimension(:,:),pointer:: occupForInguess, coeff, coeffd
-real(8):: ebsMod, alpha, pnrm, tt
+real(8):: ebs, ebsMod, alpha, pnrm, tt, ehart, eexcu, vexcu
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld
 type(linearParameters):: lind
@@ -135,7 +135,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
        comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-       phi)
+       phi, ehart, eexcu, vexcu)
   ! Cut off outside localization region -- experimental
   call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
@@ -148,22 +148,18 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, lphi, radii_cf)
+      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
 
   call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
     .5d0*input%hy, .5d0*input%hz, 0)
 
-  call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
-      rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+  call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
+      rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      coeff, ehart, eexcu, vexcu)
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-
-  !!do iorb=1,size(rhopot)
-  !!    write(590+iproc,*) iorb, rhopot(iorb)
-  !!end do
 
 
 
@@ -185,16 +181,26 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, lphi, radii_cf)
+          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
       ! Cut off outside localization region -- experimental
       call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
 
       ! Calculate the energy that we get with psi.
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
-      call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
-          rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+      !!call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
+      !!    rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      !!    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+
+      call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
+          rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+          coeff, ehart, eexcu, vexcu)
+      energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
+      !write(*,*) 'new energy', energy
+
+      ! Post communications for gathering the potential
+      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
       ! Post communications for gathering the potential
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)

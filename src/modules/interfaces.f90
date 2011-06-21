@@ -1962,7 +1962,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
          nlpspd, proj, pkernel, pkernelseq, &
          nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-         phi)
+         phi, ehart, eexcu, vexcu)
       use module_base
       use module_types
       implicit none
@@ -1988,6 +1988,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
       real(8),dimension(lin%orbs%npsidim),intent(out):: phi
+      real(8),intent(out):: ehart, eexcu, vexcu
     end subroutine inputguessConfinement
 
     !subroutine sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, &
@@ -2282,7 +2283,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(orbs%norb,orbs%norb,2),intent(out):: matrixElements
      end subroutine getMatrixElements
 
-     subroutine sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, at, rxyz, nscatterarr)
+     subroutine sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, at, nscatterarr)
        use module_base
        use module_types
        use libxc_functionals
@@ -2296,7 +2297,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(lin%lb%orbs%npsidim),intent(in):: phi
        real(8),dimension(nrho),intent(out),target:: rho
        type(atoms_data),intent(in):: at
-       real(8),dimension(3,at%nat),intent(in):: rxyz
        integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      end subroutine sumrhoForLocalizedBasis2
 
@@ -2374,7 +2374,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
      subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
           proj,ngatherarr,ndimpot,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, pkernel,orbsocc,psirocc)
+          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, &
+          pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        use libxc_functionals
@@ -2472,6 +2473,59 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,intent(in):: newComm
        type(inguessParameters),intent(inout):: ip
      end subroutine initializeInguessParameters
+
+
+     !!!subroutine updatePotential(iproc, nproc, Glr, orbs, atoms, in, lin, phi, rhopot, &
+     !!!           nscatterarr, ngatherarr, GPU, rhocore, potxc, PSquiet, coeff, ehart, eexcu, vexcu)
+     !!!  use module_base
+     !!!  use module_types
+     !!!  implicit none
+     !!!  integer:: iproc, nproc
+     !!!  type(locreg_descriptors) :: Glr
+     !!!  type(orbitals_data):: orbs
+     !!!  type(atoms_data):: atoms
+     !!!  type(input_variables):: in
+     !!!  type(linearParameters):: lin
+     !!!  real(8),dimension(lin%lb%orbs%npsidim):: phi
+     !!!  real(dp), dimension(lin%as%size_rhopot) :: rhopot
+     !!!  integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+     !!!  integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
+     !!!  type(GPU_pointers),intent(in out):: GPU
+     !!!  real(dp), dimension(lin%as%size_pkernel):: pkernel
+     !!!  real(wp), dimension(lin%as%size_pot_ion):: pot_ion
+     !!!  real(wp), dimension(:),pointer:: rhocore
+     !!!  real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
+     !!!  character(len=3):: PSquiet
+     !!!  real(8),dimension(lin%lb%orbs%norb,orbs%norb):: coeff
+     !!!  real(8):: ehart, eexcu, vexcu
+     !!!end subroutine updatePotential
+
+     subroutine updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, phi, &
+         rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+         coeff, ehart, eexcu, vexcu)
+       use module_base
+       use module_types
+       implicit none
+       
+       ! Calling arguments
+       integer:: iproc, nproc, n3d, n3p, sizeLphir, sizePhibuffr
+       type(locreg_descriptors) :: Glr
+       type(orbitals_data):: orbs
+       type(atoms_data):: atoms
+       type(input_variables):: in
+       type(linearParameters):: lin
+       real(8),dimension(lin%lb%orbs%npsidim):: phi
+       real(dp), dimension(lin%as%size_rhopot) :: rhopot
+       integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+       real(dp), dimension(lin%as%size_pkernel):: pkernel
+       real(wp), dimension(lin%as%size_pot_ion):: pot_ion
+       real(wp), dimension(:),pointer:: rhocore
+       real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
+       character(len=3):: PSquiet
+       real(8),dimension(lin%lb%orbs%norb,orbs%norb):: coeff
+       real(8),intent(out):: ehart, eexcu, vexcu
+     end subroutine updatePotential
+
 
 
 

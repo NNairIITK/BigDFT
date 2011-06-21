@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, lphi, radii_cf)
+    i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
 !
 ! Purpose:
 ! ========
@@ -89,7 +89,7 @@ real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: phi
 real(8),dimension(orbs%npsidim),intent(out):: psi, psit
 integer,intent(out):: infoBasisFunctions, infoCoeff
 character(len=3),intent(in):: PSquiet
-real(8),intent(out):: ebsMod
+real(8),intent(out):: ebs
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
 real(8),dimension(3,at%nat),intent(out):: fxyz
 real(8):: eion, edisp, fnoise
@@ -109,7 +109,7 @@ logical:: withConfinement
 type(workarr_sumrho):: w
 
 
-real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, tt
+real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, tt, energybs
 integer:: iorb, jorb, it, istart, korb
 character(len=11):: procName, orbNumber, orbName
 character(len=30):: filename
@@ -236,7 +236,8 @@ integer:: ist, ierr
       withConfinement=.false.
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, pkernel=pkernelseq)
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, &
+           pkernel=pkernelseq)
       ind1=1
       ind2=1
       hphi=0.d0
@@ -266,6 +267,18 @@ integer:: ist, ierr
           call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
       !!call diagonalizeHamiltonian(iproc, nproc, lin%orbs, matrixElements(1,1,1), eval)
       !!call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,1), 1, coeff(1,1), 1)
+
+      ! Calculate the band structure energy with matrixElements.
+      ebs=0.d0
+      do iorb=1,orbs%norb
+          do jorb=1,lin%lb%orbs%norb
+              do korb=1,lin%lb%orbs%norb
+                  ebs = ebs + coeff(jorb,iorb)*coeff(korb,iorb)*matrixElements(korb,jorb,1)
+              end do
+          end do
+      end do
+      ! If closed shell multiply by two
+      if(input%nspin==1) ebs=2.d0*ebs
 
   else if(trim(lin%getCoeff)=='diag') then
   
@@ -337,6 +350,7 @@ integer:: ist, ierr
   !!!    end do
   !!!end if
   !!!!!
+
 
   
   iall=-product(shape(HamSmall))*kind(HamSmall)
@@ -560,7 +574,8 @@ if(it==1) then
 end if
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, pkernel=pkernelseq)
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, &
+           pkernel=pkernelseq)
       ind1=1
       ind2=1
       hphi=0.d0
