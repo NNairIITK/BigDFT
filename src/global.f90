@@ -81,6 +81,9 @@ program MINHOP
 
 
   call cpu_time(tcpu1)
+    do i=1,npminx
+      elocmin(i)=1.d100
+    enddo                                                               
   ! read  earr.dat
   open(unit=12,file='earr.dat',status='unknown')
   read(12,*) nlmin,nlminx
@@ -154,6 +157,12 @@ program MINHOP
   do i=1,nrandoff
      call random_number(ts)
   enddo
+
+! open output files
+       if (iproc==0) then 
+          open(unit=2,file='global.mon',status='unknown',position='append')
+          open(unit=16,file='geopt.mon',status='unknown')
+       endif
   
   ! read input parameters
   write(filename,'(a6,i3.3)') 'ioput'   !,iproc
@@ -163,7 +172,6 @@ program MINHOP
   !write(*,'(a,1x,i3,3(1x,e10.3),1x,i4)') 'In :iproc,ediff,ekinetic,dt,nsoften',iproc,ediff,ekinetic,dt,nsoften
   if (iproc == 0) write(*,'(a,1x,3(1x,e10.3),1x,i4)') 'In :ediff,ekinetic,dt,nsoften',ediff,ekinetic,dt,nsoften
 
-  if (iproc == 0) open(unit=16,file='geopt.mon',status='unknown')
 
   ! If restart run read previously found energies
   if (nlmin > 0) then
@@ -175,11 +183,11 @@ program MINHOP
         if (npmin.ge.npminx .or. kk.gt.min(nlmin,npminx)) then
            exit
         end if
-        npmin=npmin+1  
         open(unit=9,file=filename,status='old',iostat=ierror)
-        if (ierror /= 0) then
+        if (ierror == 0) then
+            npmin=npmin+1  
+        else
 !           write(*,*) iproc,' COULD not read file ',filename
-            npmin=npmin-1
            exit
         end if
         read(9,*) natp,unitsp,elocmin(npmin)
@@ -204,13 +212,17 @@ program MINHOP
         if (iproc == 0) write(*,*) '# read file',filename
         kk=kk+1
      end do
-     if (iproc == 0) write(67,*) 'read ',npmin,'poslow files'
+     if (iproc == 0) then 
+        write(67,*) 'read ',npmin,'poslow files with energies'
+        do ip=1,npmin
+          write(67,*) elocmin(ip)
+        enddo                                                              
+     endif
+
      if (iproc == 0) write(*,*) '# read ',npmin,'poslow files'
   endif
 
 
-! open output files
-         if (iproc==0) open(unit=2,file='global.mon',status='unknown',position='append')
 
   av_ekinetic=0.d0
   av_ediff=0.d0
@@ -290,6 +302,21 @@ program MINHOP
         poslocmin(2,iat,1)=pos(2,iat) 
         poslocmin(3,iat,1)=pos(3,iat) 
      enddo
+  else  ! the poscur file might have been modified by hand
+!         check whether new minimum  
+        call hunt_g(earr(1,1),min(nlmin,nlminx),re_pos,k_e_pos)
+            if (re_pos.eq.earr(k_e_pos,1)) then  
+              write(67,*) 'initial minimum is old '
+            else
+              write(100+iproc,*) 'initial minimum is new '
+              nlmin=nlmin+1
+!            add minimum to history list
+              call insert(nlminx,nlmin,k_e_pos,re_pos,earr(0,1))
+!            save configuration if it is among the lowest ones in energy 
+              npmin=npmin+1
+              call save_low_conf(atoms%nat,npmin,npminx,re_pos,pos,elocmin,poslocmin)
+              k_e_wpos=k_e_wpos+1
+            endif
   endif
   re_sm=min(re_pos,earr(1,1))
   if (iproc == 0) then

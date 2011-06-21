@@ -65,15 +65,17 @@ subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old
        n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
        displ<= 1.d-2) then
      !if (iproc==0) write(*,*) iproc,' orbital just copied'
-     do i3=-nb3,2*n3+1+nb3
-        do i2=-nb2,2*n2+1+nb2
-           do i1=-nb1,2*n1+1+nb1
-              ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
-                   (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
-              psifscf(ind)=psifscfold(i1,i2,i3)
-           enddo
-        enddo
-     enddo
+     call dcopy((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscfold(-nb1,-nb2,-nb3),1,&
+          psifscf(1),1)
+!!$     do i3=-nb3,2*n3+1+nb3
+!!$        do i2=-nb2,2*n2+1+nb2
+!!$           do i1=-nb1,2*n1+1+nb1
+!!$              ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
+!!$                   (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
+!!$              psifscf(ind)=psifscfold(i1,i2,i3)
+!!$           enddo
+!!$        enddo
+!!$     enddo
      
   else
 

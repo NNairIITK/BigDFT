@@ -3,6 +3,7 @@ EXTRA_DIST = \
 	thread_engine.h \
 	topology_muscade.cfg \
 	placement_muscade.cfg \
+	thread_engine.cpp \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV_CHECK =
@@ -20,8 +21,7 @@ noinst_LIBRARIES = libbasef.a libbasec.a
 libbasef_a_SOURCES = $(mpi_source)
 libbasef_a_LIBADD = ../modules/defs.o ../modules/base.o \
                      ../modules/cublas_fake.o
-libbasec_a_SOURCES = thread_engine.cpp \
-                     MagicFilter_sse.c
+libbasec_a_SOURCES = MagicFilter_sse.c
 
 if USE_MPI
 mpi_source =
@@ -52,7 +52,10 @@ convolution_sse_t_LDFLAGS = -lrt -lpapi
 
 conv_check_SOURCES = conv_check.f90 
 conv_check_LDADD = ../libbigdft.a ../PSolver/libpoissonsolver.a $(libs_dgemmsy) libbasec.a libbasef.a
-conv_check_LDFLAGS = -lpthread -lconfig++ -lstdc++ -lrt -lpapi
+conv_check_LDFLAGS = -lpthread -lstdc++ -lrt 
+
+
+#-lpapi
 
 check_conv: conv_check
 	echo 1 128 128 204900 204900 10 > fort.1

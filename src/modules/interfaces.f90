@@ -191,13 +191,36 @@ module module_interfaces
        real(gp), dimension(:,:), pointer :: rxyz
      END SUBROUTINE read_atomic_file
 
-     subroutine read_ascii_positions(iproc,ifile,atoms,rxyz)
+     subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,ifile
        type(atoms_data), intent(inout) :: atoms
        real(gp), dimension(:,:), pointer :: rxyz
+       interface
+          subroutine getline(line,ifile,eof)
+            integer, intent(in) :: ifile
+            character(len=150), intent(out) :: line
+            logical, intent(out) :: eof
+          end subroutine getline
+       end interface
+     END SUBROUTINE read_xyz_positions
+
+     subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,ifile
+       type(atoms_data), intent(inout) :: atoms
+       real(gp), dimension(:,:), pointer :: rxyz
+       interface
+          subroutine getline(line,ifile,eof)
+            integer, intent(in) :: ifile
+            character(len=150), intent(out) :: line
+            logical, intent(out) :: eof
+          end subroutine getline
+       end interface
      END SUBROUTINE read_ascii_positions
 
      subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
@@ -270,13 +293,24 @@ module module_interfaces
        real(kind=8), dimension(:), pointer :: proj
      END SUBROUTINE createProjectorsArrays
 
-     subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
-          n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+     subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
+          rxyz,crmult,frmult,radii_cf,nspin,datacode,ixc,rho_commun,&
+          n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
        use module_base
+       use module_types
+       use libxc_functionals
        implicit none
-       character(len=1), intent(in) :: geocode,datacode
-       integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,ixc
+       !Arguments
+       character(len=1), intent(in) :: datacode
+       character(len=3), intent(in) :: rho_commun
+       integer, intent(in) :: iproc,nproc,ixc,nspin
+       real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
+       type(atoms_data), intent(in) :: atoms
+       type(grid_dimensions), intent(in) :: gdim
+       real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+       real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
        integer, intent(out) ::  n3d,n3p,n3pi,i3xcsh,i3s
+       type(rho_descriptors), intent(out) :: rhodsc
        integer, dimension(0:nproc-1,4), intent(out) :: nscatterarr
        integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
      END SUBROUTINE createDensPotDescriptors
@@ -313,7 +347,7 @@ module module_interfaces
        real(wp), dimension(*), intent(inout) :: pot_ion
      END SUBROUTINE createIonicPotential
 
-     subroutine input_wf_diag(iproc,nproc,at,&
+     subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
           nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
@@ -323,6 +357,7 @@ module module_interfaces
        integer, intent(in) :: iproc,nproc,ixc,symObj
        integer, intent(inout) :: nspin,nvirt
        real(gp), intent(in) :: hx,hy,hz
+       type(rho_descriptors),intent(in) :: rhodsc
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(inout) :: orbs
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -371,22 +406,39 @@ module module_interfaces
        real(wp), dimension(:) , pointer :: psi,hpsi,psit
      END SUBROUTINE first_orthon
 
-     subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho, &
-          & nscatterarr,nspin,GPU,symObj,irrzon,phnons)
-       use module_base!, only: gp,dp,wp,ndebug,memocc
+     subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho, &
+          nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
+       use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,nrho,nspin,ixc,symObj
+       integer, intent(in) :: iproc,nproc,nspin,symObj
        real(gp), intent(in) :: hxh,hyh,hzh
+       type(rho_descriptors),intent(in) :: rhodsc
        type(orbitals_data), intent(in) :: orbs
        type(locreg_descriptors), intent(in) :: lr 
        integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
-       real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
+       real(dp), dimension(max(lr%d%n1i*lr%d%n2i*nscatterarr(iproc,1),1),nspin), intent(out), target :: rho
        type(GPU_pointers), intent(inout) :: GPU
        integer, dimension(*), intent(in) :: irrzon
        real(dp), dimension(*), intent(in) :: phnons
      END SUBROUTINE sumrho
+
+
+     subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
+         n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,nspin,rho_d,iprint)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in) :: n1,n2,n3,n1i,n2i,n3i,iproc,nspin
+       type(atoms_data), intent(in) :: at
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
+       real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
+       logical,intent(in) :: iprint
+       type(rho_descriptors),intent(inout) :: rho_d
+      end subroutine rho_segkey
+
 
      subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
@@ -1159,23 +1211,48 @@ module module_interfaces
       real(wp), dimension(:), pointer :: psi,psit,hpsi
     end subroutine calculate_energy_and_gradient
 
-    subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,orthpar,hx,hy,hz,ncong,iscf,&
-         energs,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+!!    subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,orthpar,hx,hy,hz,ncong,iscf,&
+!!         energs,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+!!      use module_base
+!!      use module_types
+!!      !use module_interfaces!, except_this_one => calculate_energy_and_gradient_new
+!!      implicit none
+!!      integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+!!      real(gp), intent(in) :: hx,hy,hz
+!!      type(orbitals_data), intent(inout) :: orbs
+!!      type(communications_arrays), intent(in) :: comms
+!!      type(locreg_descriptors), intent(in) :: lr
+!!      type(GPU_pointers), intent(in) :: GPU
+!!      type(orthon_data), intent(in) :: orthpar
+!!      type(energy_terms), intent(inout) :: energs
+!!      real(gp), intent(out) :: gnrm,gnrm_zero,energy
+!!      real(wp), dimension(:), pointer :: psi,psit,hpsi
+!!    end subroutine calculate_energy_and_gradient_new
+
+    subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
+         orbs,orbsv,nvirt,lr,comms,commsv,&
+         hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
       use module_base
       use module_types
-      !use module_interfaces!, except_this_one => calculate_energy_and_gradient_new
+      use libxc_functionals
       implicit none
-      integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+      integer, intent(in) :: iproc,nproc,n1i,n2i
+      integer, intent(in) :: nvirt,n3p
+      type(input_variables), intent(in) :: in
+      type(atoms_data), intent(in) :: at
+      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+      type(locreg_descriptors), intent(in) :: lr 
+      type(orbitals_data), intent(in) :: orbs
+      type(communications_arrays), intent(in) :: comms, commsv
       real(gp), intent(in) :: hx,hy,hz
-      type(orbitals_data), intent(inout) :: orbs
-      type(communications_arrays), intent(in) :: comms
-      type(locreg_descriptors), intent(in) :: lr
-      type(GPU_pointers), intent(in) :: GPU
-      type(orthon_data), intent(in) :: orthpar
-      type(energy_terms), intent(inout) :: energs
-      real(gp), intent(out) :: gnrm,gnrm_zero,energy
-      real(wp), dimension(:), pointer :: psi,psit,hpsi
-    end subroutine calculate_energy_and_gradient_new
+      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+      real(dp), dimension(*), intent(in) :: pkernel,rhopot
+      type(orbitals_data), intent(inout) :: orbsv
+      type(GPU_pointers), intent(inout) :: GPU
+      real(wp), dimension(:), pointer :: psi,v
+    end subroutine constrained_davidson
     
   end interface
 

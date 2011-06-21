@@ -81,7 +81,7 @@ module module_defs
 
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
-     module procedure mpiallred_int,mpiallred_real,mpiallred_double
+     module procedure mpiallred_int,mpiallred_real,mpiallred_double,mpiallred_log
   end interface
 
 
@@ -125,11 +125,18 @@ module module_defs
   interface dot
      module procedure dot_simple,dot_double
   end interface
+  interface dotc
+     module procedure dotc_simple,dotc_double
+  end interface
   interface nrm2
      module procedure nrm2_simple,nrm2_double
   end interface
   interface vscal
      module procedure scal_simple,scal_double
+  end interface
+  interface vcopy
+     module procedure copy_simple,copy_double,&
+          copy_complex_real_simple,copy_complex_real_double
   end interface
   interface c_vscal
      module procedure c_scal_simple,c_scal_double
@@ -185,6 +192,8 @@ module module_defs
       deallocate(copybuf,stat=i_stat)
       call memocc(i_stat,i_all,'copybuf',subname)
 #endif
+      if (ierr /=0) stop 'MPIALLRED_INT'
+
     end subroutine mpiallred_int
 
     subroutine mpiallred_real(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -215,6 +224,8 @@ module module_defs
       deallocate(copybuf,stat=i_stat)
       call memocc(i_stat,i_all,'copybuf',subname)
 #endif
+      if (ierr /=0) stop 'MPIALLRED_REAL'
+
     end subroutine mpiallred_real
 
     subroutine mpiallred_double(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -245,7 +256,44 @@ module module_defs
       deallocate(copybuf,stat=i_stat)
       call memocc(i_stat,i_all,'copybuf',subname)
 #endif
+      if (ierr /=0) stop 'MPIALLRED_DBL'
     end subroutine mpiallred_double
+
+    !interface for MPI_ALLREDUCE operations
+    subroutine mpiallred_log(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      logical, intent(in) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_LOGICAL,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      logical, dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+
+      !not appropriate for logical, to be seen if it works
+      call scopy(ntot,buffer,1,copybuf,1) 
+
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_LOGICAL,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+
+      !inform and stop if an error occurs
+      if (ierr /=0) stop 'MPIALLRED_LOG'
+
+    end subroutine mpiallred_log
 
 
     !> Interfaces for LAPACK routines
@@ -436,13 +484,8 @@ module module_defs
       integer, intent(in) :: incx,n
       real(kind=4), intent(in) :: da
       real(kind=4), intent(out) :: dx
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_SSCAL(n,da,dx,incx)
-      else
-         !call to BLAS routine
-         call SSCAL(n,da,dx,incx)
-      end if
+      !call to BLAS routine
+      call SSCAL(n,da,dx,incx)
     end subroutine scal_simple
 
     subroutine scal_double(n,da,dx,incx)
@@ -476,6 +519,44 @@ module module_defs
       !call to BLAS routine
       call ZSCAL(n,da,dx,incx)
     end subroutine c_scal_double
+
+    !copy the vector
+    subroutine copy_complex_real_simple(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      complex(kind=4), intent(in) :: dx
+      real(kind=4), intent(out) :: dy
+      !call to BLAS routine
+      call SCOPY(n,dx,incx,dy,incy)
+    end subroutine copy_complex_real_simple
+
+    subroutine copy_complex_real_double(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      complex(kind=8), intent(in) :: dx
+      real(kind=8), intent(out) :: dy
+      !call to BLAS routine
+      call DCOPY(n,dx,incx,dy,incy)
+    end subroutine copy_complex_real_double
+
+    subroutine copy_simple(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      real(kind=4), intent(in) :: dx
+      real(kind=4), intent(out) :: dy
+      !call to BLAS routine
+      call SCOPY(n,dx,incx,dy,incy)
+    end subroutine copy_simple
+
+    subroutine copy_double(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      real(kind=8), intent(in) :: dx
+      real(kind=8), intent(out) :: dy
+      !call to BLAS routine
+      call DCOPY(n,dx,incx,dy,incy)
+    end subroutine copy_double
+
 
     subroutine trmm_simple(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
       implicit none
@@ -603,6 +684,18 @@ module module_defs
       end if
     end function dot_simple
 
+    !euclidean dot product
+    function dotc_simple(n,sx,incx,sy,incy)
+      implicit none
+      integer, intent(in) :: n,incx,incy
+      complex(kind=4), intent(in) :: sx,sy
+      complex(kind=4) :: dotc_simple
+      !local variables
+      complex(kind=4) :: cdotc
+      !call to BLAS function
+      dotc_simple=cdotc(n,sx,incx,sy,incy)
+    end function dotc_simple
+
     function dot_double(n,dx,incx,dy,incy)
       implicit none
       integer, intent(in) :: n,incx,incy
@@ -618,6 +711,17 @@ module module_defs
          dot_double=ddot(n,dx,incx,dy,incy)
       end if
     end function dot_double
+
+    function dotc_double(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: n,incx,incy
+      complex(kind=8), intent(in) :: dx,dy
+      complex(kind=8) :: dotc_double
+      !local variables
+      complex(kind=8) :: zdotc
+      !call to BLAS function
+      dotc_double=zdotc(n,dx,incx,dy,incy)
+    end function dotc_double
 
     !euclidean NoRM of a vector
     function nrm2_simple(n,x,incx)

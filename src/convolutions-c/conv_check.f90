@@ -302,7 +302,7 @@ program conv_check
              end do
            end do
             
-           call PAPIF_start_counters(events,event_number,ierror)
+           call start_counters(events,event_number,ierror)
 
            write(*,'(a,i7,i7,i7)')'CPU 3D Simple Convolutions, dimensions:',n1,n2,n3
            call nanosec(tsc0);
@@ -319,7 +319,7 @@ program conv_check
 
            write(*,'(a,i7,i7,i7)')'CPU 3D Simple Transposed Convolutions, dimensions:',n1,n2,n3
 
-           call PAPIF_start_counters(events,event_number,ierror)
+           call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do i=1,ntimes
               call convrot_n_per_3d_simple_transpose(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
@@ -340,7 +340,7 @@ program conv_check
 
            write(*,'(a,i7,i7,i7)')'CPU 3D Convolutions, dimensions:',n1,n2,n3
 
-           call PAPIF_start_counters(events,event_number,ierror)
+           call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do i=1,ntimes
               call convrot_n_per_3d(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
@@ -360,7 +360,7 @@ program conv_check
 
            write(*,'(a,i7,i7,i7)')'CPU 3D Transposed Convolutions, dimensions:',n1,n2,n3
 
-           call PAPIF_start_counters(events,event_number,ierror)
+           call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do i=1,ntimes
               call convrot_n_per_3d_transpose(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
@@ -379,7 +379,7 @@ program conv_check
 
            write(*,'(a,i7,i7,i7)')'CPU 3D Transposed sse Convolutions, dimensions:',n1,n2,n3
 
-           call PAPIF_start_counters(events,event_number,ierror)
+           call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do i=1,ntimes
               call convrot_n_per_3d_sse(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
@@ -399,7 +399,7 @@ program conv_check
 
            write(*,'(a,i7,i7,i7)')'CPU 3D Transposed sse Convolutions T, dimensions:',n1,n2,n3
 
-           call PAPIF_start_counters(events,event_number,ierror)
+           call start_counters(events,event_number,ierror)
            call nanosec(tsc0);
            do i=1,ntimes
               call convrot_t_per_3d_sse(n1,n2,n3,psi_3d_in,psi_3d_cuda,psi_3d_tmp)
@@ -532,6 +532,16 @@ program conv_check
 
 contains
 
+  subroutine start_counters(events,event_number,ierror)
+    implicit none
+    integer, intent(in) :: event_number
+    integer, dimension(event_number), intent(in) :: events
+    integer, intent(inout) :: ierror
+
+!    call PAPIF_start_counters(events,event_number,ierror)
+
+  end subroutine start_counters
+
   subroutine read_print_stop_counters(counters,event_name,event_number,ierror)
     implicit none
     integer, intent(in) :: event_number
@@ -540,10 +550,10 @@ contains
     character(*), dimension(event_number), intent(in) :: event_name
     integer :: i
 
-    call PAPIF_stop_counters(counters,event_number,ierror)
-    do i=1,event_number
-      print *,event_name(i),':',counters(i)
-    enddo
+!    call PAPIF_stop_counters(counters,event_number,ierror)
+!    do i=1,event_number
+!      print *,event_name(i),':',counters(i)
+!    enddo
 
   end subroutine read_print_stop_counters
 

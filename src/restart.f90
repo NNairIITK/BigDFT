@@ -286,14 +286,14 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
   character(len=*), intent(in) :: filename
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
   character(len=4) :: f4
   character(len=50) :: filename_
   logical :: perx,pery,perz,exists
-  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3
+  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
@@ -328,21 +328,27 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
         if (iproc ==0) write(*,*) "Reading wavefunctions in plain text file format."
      end if
 
-     do iorb=1,orbs%norbp*orbs%nspinor
+     do iorb=1,orbs%norbp!*orbs%nspinor
 
-        write(f4,'(i4.4)') iorb+orbs%isorb*orbs%nspinor
-        if (exists) then
-           filename_ = filename//".bin."//f4
-           open(unit=99,file=filename_,status='unknown',form="unformatted")
-        else
-           filename_ = filename//"."//f4
-           open(unit=99,file=filename_,status='unknown')
-        end if
+!!$        write(f4,'(i4.4)') iorb+orbs%isorb*orbs%nspinor
+!!$        if (exists) then
+!!$           filename_ = filename//".bin."//f4
+!!$           open(unit=99,file=filename_,status='unknown',form="unformatted")
+!!$        else
+!!$           filename_ = trim(filename)//"."//f4
+!!$           open(unit=99,file=trim(filename_),status='unknown')
+!!$        end if
+!!$           call readonewave(99, .not.exists,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
+!!$                & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
+!!$                psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
 
-        call readonewave(99, .not.exists,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
-             & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
-             psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
-        close(99)
+        do ispinor=1,orbs%nspinor
+           call open_filename_of_iorb(99,exists,filename,orbs,iorb,ispinor,iorb_out)           
+           call readonewave(99, .not.exists,iorb_out,iproc,n1,n2,n3, &
+                & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
+                psi(1,ispinor,iorb),orbs%eval(orbs%isorb+iorb),psifscf)
+           close(99)
+        end do
 
      end do
 
@@ -353,10 +359,148 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
      call cpu_time(tr1)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+     write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
   end if
 END SUBROUTINE readmywaves
 
+subroutine verify_file_presence(orbs,allfiles)
+  use module_base
+  use module_types
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  logical, intent(out) :: allfiles
+  !local variables
+  character(len=50) :: filename
+  logical :: onefile
+  integer :: iorb,ispinor,iorb_out,ierr
+  
+  allfiles=.true.
+
+  !first try with plain files
+  loop_plain: do iorb=1,orbs%norbp
+     do ispinor=1,orbs%nspinor
+        call filename_of_iorb(.false.,"wavefunction",orbs,iorb,ispinor,filename,iorb_out)
+        inquire(file=filename,exist=onefile)
+        allfiles=allfiles .and. onefile
+        if (.not. allfiles) then
+           exit loop_plain
+        end if
+     end do
+  end do loop_plain
+  !reduce the result among the other processors
+  call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+ 
+  !Otherwise  test binary files.
+  if (.not. allfiles) then           
+     allfiles = .true.
+     loop_binary: do iorb=1,orbs%norbp
+        do ispinor=1,orbs%nspinor
+           call filename_of_iorb(.true.,"wavefunction",orbs,iorb,ispinor,filename,iorb_out)
+
+           inquire(file=filename,exist=onefile)
+           allfiles=allfiles .and. onefile
+           if (.not. allfiles) then
+              exit loop_binary
+           end if
+
+        end do
+     end do loop_binary
+     !reduce the result among the other processors
+     call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
+  end if
+
+end subroutine verify_file_presence
+
+!> Associate to the absolute value of orbital a filename which depends of the k-point and 
+!! of the spin sign
+subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  logical, intent(in) :: lbin
+  integer, intent(in) :: iorb,ispinor
+  type(orbitals_data), intent(in) :: orbs
+  character(len=*) :: filename_out
+  integer, intent(out) :: iorb_out
+  !local variables
+  character(len=1) :: spintype,realimag
+  character(len=3) :: f3
+  character(len=4) :: f4
+  character(len=7) :: completename
+  integer :: ikpt
+  real(gp) :: spins
+
+  !calculate k-point
+  ikpt=orbs%iokpt(iorb)
+  write(f3,'(i3.3)') ikpt !not more than 999 kpts
+  !see if the wavefunction is real or imaginary
+  if(modulo(ispinor,2)==0) then
+     realimag='I'
+  else
+     realimag='R'
+  end if
+  !calculate the spin sector
+  spins=orbs%spinsgn(orbs%isorb+iorb)
+  if(orbs%nspinor == 4) then
+     if (ispinor <=2) then
+        spintype='A'
+     else
+        spintype='B'
+     end if
+  else
+     if (spins==1.0_gp) then
+        spintype='U'
+     else
+        spintype='D'
+     end if
+  end if
+  !no spin polarization if nspin=1
+  if (orbs%nspin==1) spintype='N'
+
+  !calculate the actual orbital value
+  iorb_out=iorb+orbs%isorb-(ikpt-1)*orbs%norb
+  !purge the value from the spin sign
+  if (spins==-1.0_gp) iorb_out=iorb_out-orbs%norbu
+
+  !value of the orbital 
+  write(f4,'(i4.4)') iorb_out
+
+  !complete the information in the name of the orbital
+  completename='-'//f3//'-'//spintype//realimag
+
+  if (lbin) then
+     filename_out = trim(filename)//completename//".bin."//f4
+  else
+     filename_out = trim(filename)//completename//"."//f4
+  end if
+
+end subroutine filename_of_iorb
+
+
+!> Associate to the absolute value of orbital a filename which depends of the k-point and 
+!! of the spin sign
+subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  logical, intent(in) :: lbin
+  integer, intent(in) :: iorb,ispinor,unitfile
+  type(orbitals_data), intent(in) :: orbs
+  integer, intent(out) :: iorb_out
+  !local variables
+  character(len=50) :: filename_out
+
+  call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
+
+  if (lbin) then
+     open(unit=unitfile,file=trim(filename_out),status='unknown',form="unformatted")
+  else
+     open(unit=unitfile,file=trim(filename_out),status='unknown')
+  end if
+
+end subroutine open_filename_of_iorb
 
 !>   Write all my wavefunctions in files by calling writeonewave
 subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
@@ -369,12 +513,12 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   character(len=*), intent(in) :: filename
   !Local variables
   character(len=4) :: f4
   character(len=50) :: filename_
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,isuffix
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,isuffix,iorb_out,ispinor
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
@@ -390,31 +534,43 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
      isuffix = index(filename, ".bin", back = .true.)
 
      ! Plain BigDFT files.
-     do iorb=1,orbs%norbp*orbs%nspinor
+     do iorb=1,orbs%norbp!*orbs%nspinor
 
-        write(f4,'(i4.4)')  iorb+orbs%isorb*orbs%nspinor
-        filename_ = filename//"."//f4
-        if (verbose >= 2) write(*,*) 'opening ',filename_
-        if (isuffix <= 0) then
-           open(unit=99,file=filename_,status='unknown')
-        else
-           open(unit=99,file=filename_,status='unknown',form="unformatted")
-        end if
+!!$        write(f4,'(i4.4)')  iorb+orbs%isorb*orbs%nspinor
+!!$        filename_ = trim(filename)//"."//f4
+!!$        if (verbose > 2) write(*,*) 'opening ',filename_
+!!$        if (isuffix <= 0) then
+!!$           open(unit=99,file=filename_,status='unknown')
+!!$        else
+!!$           open(unit=99,file=trim(filename_),status='unknown',form="unformatted")
+!!$        end if
+!!$        call writeonewave(99,(isuffix <= 0),iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 
+!!$             wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
+!!$             wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
+!!$             psi(1,iorb),psi(wfd%nvctr_c+1,iorb), &
+!!$             orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb))
+!!$        close(99)
 
-        call writeonewave(99,(isuffix <= 0),iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 
-             wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
-             wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
-             psi(1,iorb),psi(wfd%nvctr_c+1,iorb), &
-             orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb))
-        close(99)
+        do ispinor=1,orbs%nspinor
+           call open_filename_of_iorb(99,(isuffix > 0),filename,orbs,iorb,ispinor,iorb_out)           
+           call writeonewave(99,(isuffix <= 0),iorb_out,n1,n2,n3,hx,hy,hz,at%nat,rxyz,  & 
+                wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
+                wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
+                psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
+                orbs%eval(iorb+orbs%isorb))
+           close(99)
+        end do
+
+
+
 
      enddo
 
      call cpu_time(tr1)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     write(*,'(a,i4,2(1x,e10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
-     write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+     write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+     !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
 
 END SUBROUTINE writemywaves

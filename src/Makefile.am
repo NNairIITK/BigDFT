@@ -101,7 +101,8 @@ EXTRA_DIST = \
 	NEB_driver.sh 
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
-	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @LIBETSFIO_INCLUDE@
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
+	@LIBETSFIO_INCLUDE@ @LIB_ARCHIVE_CFLAGS@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -177,6 +178,7 @@ high_level = cluster.f90 \
 	restart.f90 \
 	geometry.f90 \
 	davidson.f90 \
+	ConstrainedDavidson.f90 \
 	pdos.f90 \
 	vdwcorrection.f90 \
 	lanczos_interface.f90 \
@@ -224,6 +226,7 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
+	posfiles.c \
 	sdcg.f90 \
 	bfgs.f90 \
 	$(DGEMMSY_INTERFACE)
@@ -245,6 +248,7 @@ bigdft_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 splsad_SOURCES = splinedsaddle.f90
@@ -253,6 +257,7 @@ splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
@@ -261,6 +266,7 @@ rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
  
 oneatom_SOURCES = oneatom.f90
@@ -269,6 +275,7 @@ oneatom_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 
@@ -278,6 +285,7 @@ MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)  
 
 abscalc_SOURCES = abscalc.f90 
@@ -286,6 +294,7 @@ abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 test_forces_SOURCES = test_forces.f90
@@ -294,6 +303,7 @@ test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 NEB_SOURCES = NEB.f90 \
@@ -301,6 +311,7 @@ NEB_SOURCES = NEB.f90 \
 NEB_LDFLAGS = 
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
@@ -309,6 +320,7 @@ memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
@@ -318,6 +330,7 @@ frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 bart_SOURCES = \
@@ -338,6 +351,7 @@ bart_LDADD = art/libart.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
+	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 CLEANFILES = \
@@ -345,6 +359,7 @@ CLEANFILES = \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
+	module_defs.@MODULE_EXT@ MODULE_DEFS.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
 	esatto.@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
@@ -362,7 +377,10 @@ CLEANFILES = \
 	lanczos_defs.@MODULE_EXT@ LANCZOS_DEFS.@MODULE_EXT@ \
 	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
 	minpar.@MODULE_EXT@ MINPAR.@MODULE_EXT@ \
-	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@
+	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@ \
+	minimization_sp.@MODULE_EXT@ MINIMIZATION_SP.@MODULE_EXT@ \
+	modulesplinedsaddle.@MODULE_EXT@ MODULESPLINEDSADDLE.@MODULE_EXT@ \
+	randomdata.@MODULE_EXT@ RANDOMDATA.@MODULE_EXT@ 
 
 
 check:
