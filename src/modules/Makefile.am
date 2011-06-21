@@ -28,6 +28,7 @@ EXTRA_DIST = configure.inc.in
 modules_source = base.f90 \
 	defs.F90 \
 	types.f90 \
+	input.f90 \
 	interfaces.f90 \
 	$(GPUBLAS_INTERFACE)
 
