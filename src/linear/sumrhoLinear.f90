@@ -679,7 +679,6 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
      if (present(pkernel) .and. exctX) then
         n3p=ngatherarr(iproc,1)/(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i)
         !exact exchange for virtual orbitals (needs psirocc)
-   
         !here we have to add the round part
         if (present(psirocc) .and. present(orbsocc)) then
            call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,&
@@ -692,7 +691,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
    
            !here the condition for the scheme should be chosen
            if (.not. op2p) then
-              call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
+              call exact_exchange_potential(iproc,nproc,Lzd%Llr(ilr)%geocode,nspin,&
                    Lzd%Llr(ilr),Lzd%orbs,ngatherarr(0,1),n3p,&
                    0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi(ind:ind+dimwf-1),Lpot,eexctX)
            else
@@ -924,7 +923,6 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
   logical :: semicore
 
   semicore=present(norbsc_arr)
-  print *,'semicore,natsc,norbsc_arr',semicore,natsc,norbsc_arr
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
         'Overlap Matrix...'
 
@@ -979,8 +977,8 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
   allocate(hamovr(nspin*ndim_hamovr,2,Lzd%orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,hamovr,'hamovr',subname)
 
-  print *,'size(hamovr)',size(hamovr,1),size(hamovr,2),size(hamovr,3)
-  print *,'norbi_max,norbsc,nspin,2,Lzd%orbs%nkpts',norbi_max,norbsc,nspin,2,Lzd%orbs%nkpts
+  ! put it to zero
+  call razero(nspin*ndim_hamovr*2*Lzd%orbs%nkpts,hamovr)
 
   ! First build the number of semicore states for each atom (hence each locreg)
   ! ONLY WORKS FOR INPUT GUESS where each atom has it's locreg
@@ -1005,22 +1003,26 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
         ! These states only intersect with themselves, so only need to consider this locreg
         call semicore_overlap_matrices(ilr,nspin,orbs%nspinor,Lzd%orbs%norb,Lzd,orbscToAtom,&
              ndim_hamovr,hamovr,scstr,Lpsi,Lhpsi)
-        scstr= scstr + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f*norbsc
+        scstr= scstr + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbscToAtom(ilr,1)*orbs%nspinor
+        psishift1 = psishift1 + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbscToAtom(ilr,1)*orbs%nspinor
      end if
-
+     
      !Now calculate the hamiltonian/overlap matrix for the non semicore states (FOR SPINS THIS DOES NOT WORK)
      firstcol = 1 + norbsc   !This assumes that number of semicore orbitals are the same for each spin. CHECK IF NONCOLL is a problem
-     psishift2 = 1
      lastrow  = firstrow-1  + Lzd%Llr(ilr)%Localnorb - orbscToAtom(ilr,1) !This assumes that number of semicore orbitals are the same for each spin.
      psidim1 = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*&
                (Lzd%Llr(ilr)%Localnorb-orbscToAtom(ilr,1))*orbs%nspinor
+     psishift2 = 1
      do ilr2 = 1,Lzd%nlr
 
-        psidim2=(Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*&
-                (Lzd%Llr(ilr2)%Localnorb-orbscToAtom(ilr2,1))*Lzd%orbs%nspinor
+        ! don't use the semicore states
+        psishift2 = psishift2 + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*&
+                    orbscToAtom(ilr2,1)*nspin*orbs%nspinor
 
         call get_number_of_overlap_region(ilr,ilr2,Lzd%Glr,isovrlp,Lzd%Llr,Lzd%nlr)!,outofzone)
         
+        psidim2=(Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*Lzd%Llr(ilr2)%Localnorb*Lzd%orbs%nspinor
+
         ! If no overlap, increment the index of Lpsi and overlap matrix then cycle
         if(isovrlp == 0)then
            psishift2 = psishift2 + psidim2*nspin
@@ -1028,17 +1030,20 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
            firstcol = firstcol + Lzd%Llr(ilr2)%Localnorb - orbscToAtom(ilr2,1)
            cycle
         end if
+        
+        !redefine psidim2 to remove the semicore states
+        psidim2=(Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*&
+                (Lzd%Llr(ilr2)%Localnorb-orbscToAtom(ilr2,1))*Lzd%orbs%nspinor
+
         ! dimensions and allocation of Local hamiltonian/overlap matrix
         dim_Lhamovr=(Lzd%Llr(ilr)%Localnorb-orbscToAtom(ilr,1))*(Lzd%Llr(ilr2)%Localnorb-orbscToAtom(ilr2,1))
         allocate(Lhamovr(nspin*dim_Lhamovr,2,Lzd%orbs%nkpts+ndebug),stat=i_stat)
         call memocc(i_stat,Lhamovr,'Lhamovr',subname)
 
      ! In this routine, we begin by calculating the hamiltonian/overlap matrix between two locregs.
-        call overlap_matrix_between_locreg(ilr,ilr2,isovrlp,Lzd%nlr,nspin,psidim1,psidim2,psishift1,&
+        call overlap_matrix_between_locreg(ilr,ilr2,isovrlp,Lzd%nlr,nspin,orbscToAtom,psidim1,psidim2,psishift1,&
            psishift2,Lzd%orbs%npsidim,Lzd%orbs,Lzd%Glr,Lzd%Llr,Lpsi,Lhpsi,dim_Lhamovr,Lhamovr)
 
-       print *,'size(Lhamovr)',size(Lhamovr,1),size(Lhamovr,2),size(Lhamovr,3)
-       print *,'Lhamovr,ham',Lhamovr(:,1,:)
      ! update the shift for second wavefunction
         psishift2 = psishift2 + psidim2*nspin
 
@@ -1054,15 +1059,15 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
        lastcol  = firstcol-1  + Lzd%Llr(ilr2)%Localnorb - orbscToAtom(ilr2,1)
 
 
-       iel = (firstrow-norbsc-1) * norbsc_arr(natsc+1,1)  + (firstcol-norbsc-1)
        do ispin=1,nspin
-          iel = iel + scshift
-          do ii=firstrow,lastrow
-             do jj=firstcol,lastcol
-                iel = iel + 1
-                hamovr(iel,:,:) = work1(ii,jj,ispin,:,:)
+          iel = (firstrow-norbsc-1)*norbsc_arr(natsc+1,1)+(firstcol-norbsc-1)+ispin*scshift+(ispin-1)*norbsc_arr(natsc+1,1)**2 
+          do ii=1,size(work1,1)
+             do jj=1,size(work1,2)
+                hamovr(iel+jj,:,:) = work1(ii,jj,ispin,:,:)
              end do
+             iel = iel + norbsc_arr(natsc+1,1)
           end do
+             
        end do
 
      ! deallocate this instance of Lhamovr
@@ -1084,8 +1089,8 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
 
 
 ! DEBUG
-  print *,'hamovr, ham:',hamovr(:,1,:)
-  print *,'hamovr, ovr:',hamovr(:,2,:)
+!  print *,'hamovr, ham:',hamovr(:,1,:)
+!  print *,'hamovr, ovr:',hamovr(:,2,:)
 ! END DEBUG
 
   ! Don't need Lhpsi anymore
@@ -1100,12 +1105,25 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
 
   ! SET SOME VARIABLE FOR NOW (NO SEMICORE)
   ispsi=1
-  natsceff = 0
-  allocate(norbgrp(1,nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,norbgrp,'norbgrp',subname)
-  norbsc=0
-  norbgrp(1,1)=Lzd%orbs%norbu
-  if (nspin == 2) norbgrp(1,2)=Lzd%orbs%norbd
+  if (semicore) then
+     natsceff=natsc
+     allocate(norbgrp(natsceff+1,nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,norbgrp,'norbgrp',subname)
+
+     !assign the grouping of the orbitals
+     do jj=1,nspin
+        do ii=1,natsceff+1
+           norbgrp(ii,jj)=noncoll*norbsc_arr(ii,jj)
+        end do
+     end do
+  else
+     natsceff = 0
+     allocate(norbgrp(1,nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,norbgrp,'norbgrp',subname)
+     norbsc=0
+     norbgrp(1,1)=Lzd%orbs%norbu
+     if (nspin == 2) norbgrp(1,2)=Lzd%orbs%norbd
+  end if
   !it is important that the k-points repartition of the inputguess orbitals
   !coincides with the one of the SCF orbitals
   ! NOTE: USE ORBS OR ORBSE??

@@ -1885,7 +1885,6 @@ subroutine assignToLocreg(iproc, natom, natsc, nlr, nspin, Localnorb, orbse, nor
         if(iasctype(jat) == 0)cycle
          iat = iat + 1
         orbscToAtom(jat,ispin) = norbsc_arr(iat,ispin)
-        print *,'jat,ispin,oTA:',jat,ispin,orbscToAtom(jat,ispin)
      end do
   end do
 
@@ -1937,3 +1936,75 @@ subroutine assignToLocreg(iproc, natom, natsc, nlr, nspin, Localnorb, orbse, nor
   end do
 
 end subroutine assignToLocreg
+
+!determine a set of localisation regions from the centers and the radii.
+!cut in cubes the global reference system
+subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  integer, intent(in) :: nlr
+  logical,intent(out) :: linear
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: Glr
+  real(gp), dimension(nlr), intent(in) :: locrad
+  real(gp), dimension(3,nlr), intent(in) :: cxyz
+  !local variables
+  character(len=*), parameter :: subname='check_linear_inputguess'
+  logical :: warningx,warningy,warningz
+  integer :: ilr,isx,isy,isz,iex,iey,iez
+  integer :: ln1,ln2,ln3
+  real(gp) :: rx,ry,rz,cutoff
+  
+  linear = .true.
+
+  !determine the limits of the different localisation regions
+  do ilr=1,nlr
+
+     !initialize logicals
+     warningx = .false.
+     warningy = .false.
+     warningz = .false.
+
+     rx=cxyz(1,ilr)
+     ry=cxyz(2,ilr)
+     rz=cxyz(3,ilr)
+
+     cutoff=locrad(ilr)
+
+     isx=floor((rx-cutoff)/hx)
+     isy=floor((ry-cutoff)/hy)
+     isz=floor((rz-cutoff)/hz)
+
+     iex=ceiling((rx+cutoff)/hx)
+     iey=ceiling((ry+cutoff)/hy)
+     iez=ceiling((rz+cutoff)/hz)
+
+     ln1 = iex-isx
+     ln2 = iey-isy
+     ln3 = iez-isz
+
+     ! First check if localization region fits inside box
+     if (iproc == 0 .and. verbose > 1) then
+        if (iex - isx >= Glr%d%n1 - 14) then
+           warningx = .true.
+        end if
+        if (iey - isy >= Glr%d%n2 - 14) then
+           warningy = .true.
+        end if
+        if (iez - isz >= Glr%d%n3 - 14) then
+           warningz = .true.
+        end if 
+     end if
+
+     !If not, then don't use linear input guess (set linear to false)
+     if(warningx .and. warningy .and. warningz .and. (Glr%geocode .ne. 'F')) then
+       linear = .false.
+       write(*,*)'Not using the linear scaling input guess, because localization'
+       write(*,*)'region greater or equal to simulation box.'
+       exit 
+     end if
+  end do
+      
+end subroutine check_linear_inputguess

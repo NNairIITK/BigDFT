@@ -386,7 +386,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(wp),dimension(:,:,:),allocatable :: Lhamovr,hamovr
   real(wp),dimension(:,:,:,:,:),allocatable :: work1, work2
   integer :: size_pot,size_Lpot,Gpsidim,norbp
-  logical :: exctX,linear
+  logical :: exctX,linear,linear2
   integer :: dim1,dim2
   integer :: ilr2,isovrlp,psidim1,psishift1,psidim2,psishift2
   integer :: dim_Lhamovr,Lnorbovr
@@ -449,8 +449,12 @@ subroutine input_wf_diag(iproc,nproc,at,&
 ! ###################################################################
 !!experimental part for building the localisation regions
 ! ###################################################################
-  linear =.true. 
-  if (linear) then
+  linear =.true.
+  linear2 = .true.
+
+  call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear2)
+
+  if (linear .and. linear2 .and. (nspin < 4)) then
  
      nspincomp = 1
      if (nspin > 1) then
@@ -510,13 +514,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call assignToLocreg(iproc,at%nat,at%natsc,Lzd%nlr,nspincomp,Localnorb,Lzd%orbs,norbsc_arr,at%iasctype)
 
 ! DEBUG for inWhichLocreg(ilr)
-     print *,'at%iasctype:',at%iasctype,Lzd%orbs%norb
-     do ilr=1,Lzd%nlr
-       print *,'ilr,localnorb:',ilr,Lzd%Llr(ilr)%Localnorb
-     end do
-     do ilr=1,Lzd%orbs%norbp
-       write(*,*) 'iorb, iwl', ilr, Lzd%orbs%inWhichLocreg(ilr),Lzd%orbs%occup(ilr)
-     end do
+!     print *,'at%iasctype:',at%iasctype,Lzd%orbs%norb
+!     do ilr=1,Lzd%nlr
+!       print *,'ilr,localnorb:',ilr,Lzd%Llr(ilr)%Localnorb
+!     end do
+!     do ilr=1,Lzd%orbs%norbp
+!       write(*,*) 'iorb, iwl', ilr, Lzd%orbs%inWhichLocreg(ilr),Lzd%orbs%occup(ilr)
+!     end do
 ! END DEBUG
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
