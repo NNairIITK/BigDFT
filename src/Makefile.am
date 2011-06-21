@@ -163,6 +163,7 @@ modules_source = modules/base.f90 \
 	modules/defs.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
+	modules/input.f90 \
 	$(GPU_BLAS)
 
 modules_objects = $(modules_source:.f90=.o)

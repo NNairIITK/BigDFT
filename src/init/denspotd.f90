@@ -398,7 +398,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
   !calculate the dimension of the wavefunction
   !for the given processor
-  !take into account max one k-point per processor
   orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc)*orbs%nspinor,&
        sum(comms%ncntt(0:nproc-1)))
 

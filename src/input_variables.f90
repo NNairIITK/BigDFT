@@ -935,183 +935,55 @@ END SUBROUTINE kpt_input_variables
 subroutine perf_input_variables(iproc,filename,inputs)
   use module_base
   use module_types
+  use module_input
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: inputs
   !local variables
   character(len=*), parameter :: subname='perf_input_variables'
-  character(len=100) :: line
-  character(len=7) :: string
   logical :: exists
-  integer :: iline,ierror,ii,ierr
+  integer :: iline,ierror,ierr,blocks(2)
 
-  ! Set default values.
-  !Debug option (used for memocc mainly)
-  inputs%debug = .false.
-  !Cache size for FFT
-  inputs%ncache_fft = 8*1024
-  !radius of the projector as a function of the maxrad
-  inputs%projrad= 15.0_gp
-  !exact exchange parallelisation scheme
-  inputs%exctxpar='BC' !(blocking collective)
-  !density communication scheme
-  inputs%rho_commun='DBL' !traditional scheme
-  !Acceleration scheme
-  inputs%iacceleration=0 !default:no acceleration
-  !BLAS acceleration
-  GPUblas=.false.
+  call input_set_file(iproc, filename, exists)
 
-  !Direct diagonalisation of the Hamiltonian for the input guess
-  inputs%orthpar%directDiag=.true.
-  !Orbitals per process
-  inputs%orthpar%norbpInguess=5
+        
+
+  call input_var("debug", .false., "Debug option", inputs%debug)
+  call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
+  call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU " /), &
+       & "Acceleration", inputs%iacceleration)
+  call input_var("blas", .false., "CUBLAS acceleration", GPUblas)
+  call input_var("projrad", 15.0d0, &
+       & "Radius of the projector as a function of the maxrad", inputs%projrad)
+  call input_var("exctxpar", "BC", &
+       & "Exact exchange parallelisation scheme", inputs%exctxpar)
+  call input_var("ig_diag", .true., &
+       & "Input guess: (T:Direct, F:Iterative) diag. of Ham.", &
+       & inputs%orthpar%directDiag)
+  call input_var("ig_norbp", 5, &
+       & "Input guess: Orbitals per process for iterative diag.", &
+       & inputs%orthpar%norbpInguess)
+  call input_var("ig_blocks", (/ 300, 800 /), &
+       & "Input guess: Block sizes for orthonormalisation", blocks)
+  call input_var("ig_tol", 1d-4, &
+       & "Input guess: Tolerance criterion", inputs%orthpar%iguessTol)
+  call input_var("methortho", 0, (/ 0, 1, 2 /), &
+       & "Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)", inputs%orthpar%methOrtho)
+  call input_var("rho_commun", "DBL", "Density communication scheme", inputs%rho_commun)
+
+  call input_free()
+
   !Block size used for the orthonormalization
-  inputs%orthpar%bsLow=300
-  inputs%orthpar%bsUp=800
-  !Orthogonalization method
-  inputs%orthpar%methOrtho=0
-  !Tolerance criterion for input guess
-  inputs%orthpar%iguessTol=1.d-4
-
-  !initialization of the character string for printing
-  string = "NO"
-  !Check if the file is present
-  inquire(file=trim(filename),exist=exists)
-  if (exists) then
-     !Read the file
-     open(unit=1,file=filename,status='old')
-     !line number, to control the input values
-     iline=0
-     do 
-        read(1,fmt='(a)',iostat=ierror) line
-        if (ierror /= 0) then
-           !End of file (normally ierror < 0)
-           exit
-        end if
-        if (trim(line) == "debug" .or. trim(line) == "Debug" .or. trim(line) == "DEBUG") then
-           inputs%debug = .true.
-
-        else if (index(line,"fftcache") /= 0 .or. index(line,"FFTCACHE") /= 0) then
-           ii = index(line,"fftcache")  + index(line,"FFTCACHE") + 8 
-           read(line(ii:),fmt=*,iostat=ierror) inputs%ncache_fft
-
-        else if (index(line,"projrad") /= 0 .or. index(line,"PROJRAD") /= 0) then
-           ii = index(line,"projrad")  + index(line,"PROJRAD") + 7
-           read(line(ii:),fmt=*,iostat=ierror) inputs%projrad
-
-        else if (index(line,"exctxpar") /= 0 .or. index(line,"EXCTXPAR") /= 0) then
-           ii = index(line,"exctxpar")  + index(line,"EXCTXPAR") + 8 
-           read(line(ii:),fmt=*,iostat=ierror) inputs%exctxpar
-
-        else if (index(line,"rho_commun") /= 0 .or. index(line,"RHO_COMMUN") /= 0) then
-           ii = index(line,"rho_commun")  + index(line,"RHO_COMMUN") + 10 
-           read(line(ii:),fmt=*,iostat=ierror) inputs%rho_commun
-
-        else if (index(line,"accel") /= 0 .or. index(line,"ACCEL") /= 0) then
-            ii = index(line,"accel")  + index(line,"ACCEL") + 5
-           read(line(ii:),fmt=*,iostat=ierror) string
-           if (string=="NO     ") then
-              inputs%iacceleration=0
-           else if (string=="CUDAGPU") then
-              inputs%iacceleration=1
-           else  if (string=="OCLGPU") then
-              inputs%iacceleration=2
-           else
-              write(*,'(1x,3a)') "input.perf: Unknown acceleration '",trim(string),"'"
-              call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
-           end if
-
-        else if (index(line,"blas") /= 0 .or. index(line,"BLAS") /= 0) then
-           ii = index(line,"blas")  + index(line,"BLAS") + 4
-           read(line(ii:),fmt=*,iostat=ierror) GPUblas
-
-        else if (index(line,"ig_diag") /= 0 .or. index(line,"IG_DIAG") /= 0) then
-           ii = index(line,"ig_diag")  + index(line,"IG_DIAG") + 10
-           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%directDiag
-
-        else if (index(line,"ig_norbp") /= 0 .or. index(line,"IG_NORBP") /= 0) then
-           ii = index(line,"ig_norbp")  + index(line,"IG_NORBP") + 8
-           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%norbpInguess
-
-        else if (index(line,"methortho") /= 0 .or. index(line,"METHORTHO") /= 0) then
-           ii = index(line,"methortho")  + index(line,"METHORTHO") + 9
-           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%methOrtho
-
-        else if (index(line,"ig_blocks") /= 0 .or. index(line,"IG_BLOCKS") /= 0) then
-           ii = index(line,"ig_blocks")  + index(line,"IG_BLOCKS") + 8
-           read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%bsLow,inputs%orthpar%bsUp
-        end if
-
-        !Check iostat error
-        call check()
-     end do
-     close(unit=1,iostat=ierror)
-  end if
-
+  inputs%orthpar%bsLow = blocks(1)
+  inputs%orthpar%bsUp  = blocks(2)
+  
   ! Set performance variables
   call memocc_set_debug(inputs%debug)
   call set_cache_size(inputs%ncache_fft)
   
-  ! Output
-  if (iproc == 0) then
-     write(*,*)
-     if (exists) then
-        write(*,'(1x,a)')&
-          '--- (file: input.perf) ----------------------------------------- Performance Options'
-     else
-        write(*,'(1x,a)')&
-          '--- (file: input.perf -- not present) -------------------------- Performance Options'
-     end if
-
-     if (inputs%debug) then
-        write(*, "(1x,a,3x,a,t30,a)") &
-          "|","debug",                          '!Debug option enabled'
-     else
-        write(*, "(1x,a,3x,a,t30,a)") &
-          "|","debug",                          '!Option disabled'
-     end if
-
-     write(*,"(1x,a,3x,a,1x,i0,t30,a)") &
-          "|","fftcache",inputs%ncache_fft,  '!Cache size for the FFT'
-     write(*,"(1x,a,3x,a,1x,a,t30,a)") &
-          "|","accel",string,                '!Acceleration (NO, CUDAGPU, OCLGPU)'
-     write(*,"(1x,a,3x,a,1x,l,t30,a)") &             
-          "|","blas",GPUblas,                '!CUBLAS acceleration'
-     write(*,"(1x,a,3x,a,1x,f6.2,t30,a)") &          
-          "|","projrad",inputs%projrad,      '!Radius of the projector as a function of the maxrad'
-     write(*,"(1x,a,3x,a,1x,a,t30,a)") &             
-          "|","exctxpar",inputs%exctxpar,    '!Exact exchange parallelisation scheme'
-     write(*,"(1x,a,3x,a,1x,a,t30,a)") &             
-          "|","rho_commun",inputs%rho_commun,'!Density communication scheme'
-
-     !Input guess performance variables
-     if(inputs%orthpar%directDiag) then                   
-        write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
-          "|","ig_diag",inputs%orthpar%directDiag,   '!Input guess: Direct diagonalization of Hamiltonian'
-     else if(.not.inputs%orthpar%directDiag) then         
-        write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
-          "|","ig_diag",inputs%orthpar%directDiag,   '!Input guess: Iterative diagonalization of Hamiltonian'
-        write(*,'(1x,a,3x,a,1x,i0,t30,a)') &
-          "|","ig_norbp",inputs%orthpar%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'
-     end if
-     write(*,"(1x,a,3x,a,1x,i0,1x,i0,t30,a)") &
-          "|","ig_blocks",inputs%orthpar%bsLow,inputs%orthpar%bsUp, &
-                                                 '!Input guess: Block size for orthonormalisation'
-     write(*,'(1x,a,3x,a,1x,es9.2,t30,a)') &
-          "|","ig_tol",inputs%orthpar%iguessTol,    '!Input guess: Tolerance criterion'
-     !Orthogonalisation: possible value: 0=Cholesky, 1=hybrid Gram-Schmidt/Cholesky, 2=Loewdin
-     write(*,"(1x,a,3x,a,1x,i0,t30,a)") &
-          "|","methortho",inputs%orthpar%methOrtho,  '!Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)'
-     write(*,*)
-  end if
 
   !Check after collecting all values
-  if (inputs%orthpar%methOrtho < 0 .or. inputs%orthpar%methOrtho > 2) then
-     write(*,'(3x,a,i0)') "ERROR: invalid value for inputs%methOrtho (",inputs%orthpar%methOrtho,")."
-     write(*,'(3x,a,i0)') "Change it in the file 'inputs.perf' to 0, 1 or 2."
-     call MPI_ABORT(MPI_COMM_WORLD,inputs%orthpar%methOrtho,ierr)
-  end if
   if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
      write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
      if(inputs%orthpar%bsLow==inputs%orthpar%bsUp) then
