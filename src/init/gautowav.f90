@@ -680,10 +680,10 @@ subroutine gaussians_to_wavelets_new2(iproc,nproc,nlr,lr,orbs,hx,hy,hz,G,wfn_gau
            !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
            call gaussians_to_wavelets_orb(ncplx,lr(ilr),hx,hy,hz,kx,ky,kz,G,&
                 wfn_gau(1,ispinor,iorb),psi(ind))
+
            !if (iproc == 0)print *,'end',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
            call wnrm_wrap(ncplx,lr(ilr)%wfd%nvctr_c,lr(ilr)%wfd%nvctr_f,psi(ind),scpr) 
            totnorm=totnorm+scpr
-
            ind = ind + lr(ilr)%wfd%nvctr_c + 7*lr(ilr)%wfd%nvctr_f
         end do
         !write(*,'(1x,a,i5,1pe14.7,i3)')'norm of orbital ',iorb,totnorm,ncplx

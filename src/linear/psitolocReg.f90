@@ -932,7 +932,99 @@ subroutine local_overlap_matrices(norbe,norb1,norb2,nvctrp,nspin,nspinor,ndim_ha
 
 END SUBROUTINE local_overlap_matrices
 
+subroutine semicore_overlap_matrices(ilr,nspin,nspinor,norbtot,Lzd,orbscToAtom,ndim_hamovr,hamovr,scstr,psi,hpsi)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ilr         ! localization region
+  integer, intent(in) :: ndim_hamovr,nspinor,nspin,scstr,norbtot
+  type(linear_zone_descriptors),intent(in) :: Lzd
+  integer, dimension(Lzd%nlr,nspin),intent(in) :: orbscToAtom 
+  real(wp), dimension(nspin*ndim_hamovr,2,Lzd%orbs%nkpts+ndebug), intent(inout) :: hamovr
+  real(wp), dimension(Lzd%orbs%npsidim), intent(in) :: psi,hpsi
+  !local variables
+  integer :: ncomp,ncplx,pos,ii,ispsi,ikptp,ikpt,i_all
+  integer :: ispin,norbe,nvctrp,ndim_hamsc,start,iel
+  integer :: i_stat,jj
+  real(wp),allocatable :: psitmp(:,:),hpsitmp(:,:)
+  character(len=*), parameter :: subname='semicore_overlap_matrices'
+  real(wp), allocatable :: hamsc(:,:)
+  !WARNING: here nspin=1 for nspinor=4
+  if(nspinor == 1) then
+     ncplx=1
+  elseif(nspinor == 2) then
+     ncplx=2
+     ncomp=1
+  else if (nspinor == 4) then
+     ncplx=2
+     ncomp=2
+  end if
 
+!WARNING: What about the kpoints? Does this work? Not parallel, because nvctrp not distributed
+  ispsi=0
+  do ikptp=1,Lzd%orbs%nkptsp
+     ikpt = Lzd%orbs%iskpts+ikptp!orbsu%ikptsp(ikptp)
+
+     do ispin=1,nspin
+        norbe = orbscToAtom(ilr,ispin)
+        nvctrp = Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+        ndim_hamsc = norbe**2
+        start  = scstr + (ispin-1)*Lzd%orbs%npsidim / nspin + ispsi
+        iel = start-1 + nvctrp
+
+        allocate(hamsc(ndim_hamsc,2),stat=i_stat)
+        call memocc(i_stat,hamsc,'hamsc',subname)
+        allocate(psitmp(nvctrp*nspinor,norbe))
+        call memocc(i_stat,psitmp,'psitmp',subname)
+        allocate(hpsitmp(nvctrp*nspinor,norbe))
+        call memocc(i_stat,hpsitmp,'hpsitmp',subname)
+ 
+        do jj=1,norbe
+           do ii=1,nvctrp*nspinor
+              psitmp(ii,jj)=psi(start+ii)
+              hpsitmp(ii,jj)=hpsi(start+ii)
+           end do
+        end do
+
+        !calculate the overlap matrix for each group of the semicore atoms
+        !       hamovr(jorb,iorb,1)=+psit(k,jorb)*hpsit(k,iorb)
+        !       hamovr(jorb,iorb,2)=+psit(k,jorb)* psit(k,iorb)
+        if (nspinor ==1) then
+           call gemm('T','N',norbe,norbe,nvctrp,1.0_wp,psitmp(1,1),max(1,nvctrp),&
+                hpsitmp(1,1),max(1,nvctrp),0.0_wp,hamsc(1,1),norbe)
+           !here probably dsyrk can be used
+           call gemm('T','N',norbe,norbe,nvctrp,1.0_wp,psitmp(1,1),max(1,nvctrp),&
+                psitmp(1,1),max(1,nvctrp),0.0_wp,hamsc(1,2),norbe)
+        else
+           call c_gemm('C','N',norbe,norbe,ncomp*nvctrp,(1.0_wp,0.0_wp),psitmp(1,1),&
+                max(1,ncomp*nvctrp),hpsitmp(1,1),max(1,ncomp*nvctrp),&
+                (0.0_wp,0.0_wp),hamsc(1,1),norbe)
+           !here probably zherk can be used
+           call c_gemm('C','N',norbe,norbe,ncomp*nvctrp,(1.0_wp,0.0_wp),psitmp(1,1),&
+                max(1,ncomp*nvctrp),psitmp(1,1),max(1,ncomp*nvctrp),&
+                (0.0_wp,0.0_wp),hamsc(1,2),norbe)
+        end if
+
+        ! Calculate the starting position of hamsc in hamovr   
+        pos = 0
+        do ii=1,ilr
+           pos = pos + orbscToAtom(ii,ispin)**2
+        end do
+
+        ! Put into the correct order in hamovr
+        do ii=1,ndim_hamsc
+           hamovr(ii+pos+(ispin-1)*ndim_hamovr,:,ikpt) = hamsc(ii,:)
+        end do
+
+        ! deallocate hamsc
+        i_all = -product(shape(hamsc))*kind(hamsc)
+        deallocate(hamsc,stat=i_stat)
+        call memocc(i_stat,i_all,'hamsc',subname)
+     end do
+     ispsi=ispsi+nvctrp*norbtot*nspinor
+  end do
+
+END SUBROUTINE semicore_overlap_matrices
 
 
 

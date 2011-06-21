@@ -1094,7 +1094,7 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
      Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
      Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
 
-     !dimensions of the interpolating scaling functions grid (reduce to +2?, check with Luigi)
+     !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
      Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
      Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
      Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
@@ -1111,8 +1111,7 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
 !DEBUG
 
     ! construct the wavefunction descriptors (wfd)
-     !call determine_wfd_periodicity(ilr,nlr,Glr,Llr,outofzone)
-     call determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
+     call determine_wfd_periodicity(ilr,nlr,Glr,Llr)
      
 !     print *,'Before locreg_bounds'
 !     print *,'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
@@ -1852,17 +1851,21 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 END SUBROUTINE get_overlap_region_periodic
 !%***
 
-subroutine assignToLocreg(iproc, natom, nlr, nspin, Localnorb, orbse)
+subroutine assignToLocreg(iproc, natom, natsc, nlr, nspin, Localnorb, orbse, norbsc_arr, iasctype)
   use module_base
   use module_types
   implicit none
   
   integer,intent(in):: nlr,iproc,nspin,natom
+  integer, intent(in) :: natsc                                          !> number of atoms having semicore states
   integer,dimension(nlr),intent(in):: Localnorb
   type(orbitals_data),intent(inout):: orbse
-  
+  integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr           !> number of semicore orbitals for the semicore atoms 
+  integer,dimension(natom),intent(in) :: iasctype                       !> mapping of semicore atoms: >0 if atom has semicore states
   ! Local variables
-  integer:: jproc, iiOrb, iorb, jorb, jat,i_stat
+  integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsctot,orbsc,ispin
+  integer :: iat,ind
+  integer, dimension(natom,nspin) :: orbscToAtom                        !> array olding the number of semicore states for each atom and spin
   character(len=*), parameter :: subname='assignToLocreg'
 
   allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
@@ -1873,22 +1876,55 @@ subroutine assignToLocreg(iproc, natom, nlr, nspin, Localnorb, orbse)
   !   jat: counts the atom numbers
   !   jorb: counts the orbitals handled by a given process
   !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
+
+  ! First build the number of semicore states for each atom
+  orbscToAtom = 0
+  do ispin=1,nspin
+     iat = 0
+     do jat=1,natom
+        if(iasctype(jat) == 0)cycle
+         iat = iat + 1
+        orbscToAtom(jat,ispin) = norbsc_arr(iat,ispin)
+        print *,'jat,ispin,oTA:',jat,ispin,orbscToAtom(jat,ispin)
+     end do
+  end do
+
+  ! Now distribute the semicore states
+  ind = 0
+  do ispin=1,nspin
+     do jat=1,natom
+        do iorb=1,orbscToAtom(jat,ispin)
+            orbse%inWhichLocreg(iorb+ind) = jat
+        end do
+        ind = ind + orbscToAtom(jat,ispin)
+     end do
+  end do
+ 
+! DEBUG
+!     print *,'ind',ind 
+!     do ispin=1,orbse%norb
+!       write(*,*) 'iorb, iwl', ispin, orbse%inWhichLocreg(ispin),orbse%occup(ispin)
+!     end do
+! END DEBUG
+
   jproc=0
   jat=1
-  jorb=0
+  jorb=ind
   iiOrb=0
-
-  do iorb=1,orbse%norb
+  do iorb=ind,orbse%norb
 
       ! Switch to the next MPI process if the numbers of orbitals for a given
       ! MPI process is reached.
       if(jorb==orbse%norb_par(jproc)) then
           jproc=jproc+1
-          jorb=0
+          jorb=ind
       end if
-
+      orbsc = 0
+      do ispin=1,nspin
+         orbsc = orbsc + orbscToAtom(jat,ispin)
+      end do
       ! Switch to the next atom if the number of basis functions for this atom is reached.
-      if(iiOrb==Localnorb(jat)) then
+      if(iiOrb==Localnorb(jat)-orbsc) then
           jat=jat+1
           iiOrb=0
       end if

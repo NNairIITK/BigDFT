@@ -327,6 +327,7 @@ real(8):: dnrm2
            do sidx=1,npsir
               call daub_to_isf(lr,w,psi(1,oidx+sidx,iorb),psir(1,sidx))
            end do
+
            !print *,'iorb,nrm',iorb,&
            !nrm2(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir(1,1),1)
 

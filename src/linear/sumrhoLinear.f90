@@ -293,10 +293,12 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
   real(wp), dimension(orbs%npsidim), intent(in) :: psi
   !local variables
   character(len=*), parameter :: subname='local_partial_density'
-  integer :: iorb,i_stat,i_all,ii, ind, indSmall, indLarge
+  integer :: iorb,i_stat,i_all,ii, ind, indSmall, indLarge, orbtot
   integer :: oidx,sidx,nspinn,npsir,ncomplex, i1, i2, i3, ilr, ispin
+  integer :: nspincomp
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
+  integer, allocatable :: inthisLocreg(:)
   real(wp), dimension(:,:), allocatable :: psir
   real(dp), dimension(:),allocatable :: rho_p
   real(8):: dnrm2
@@ -312,6 +314,8 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
      nspinn=nspin
      ncomplex=orbs%nspinor-1
   end if
+  nspincomp = 1
+  if (nspin > 1) nspincomp = 2
 
   !initialisation
   !print *,iproc,'there'
@@ -332,13 +336,34 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
       call memocc(i_stat,rho_p,'rho_p',subname)
       allocate(psir(Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*Llr(ilr)%d%n3i,npsir+ndebug),stat=i_stat)
       call memocc(i_stat,psir,'psir',subname)
-      
+
       if (Llr(ilr)%geocode == 'F') then
           call razero(Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*Llr(ilr)%d%n3i*npsir,psir)
       end if
+
       nrhotot=Llr(ilr)%d%n3i
-      orbitalsLoop: do iorb=1,orbs%norbp
-         if(orbs%inwhichlocreg(iorb) /= ilr) cycle
+      allocate(inthisLocreg(Llr(ilr)%localnorb*nspincomp),stat=i_stat)
+      call memocc(i_stat,inthisLocreg,'inthisLocreg',subname)
+         
+      orbtot = 0      
+      do iorb=1,orbs%norbp
+         if (orbs%inWhichLocreg(iorb) == ilr) then
+            orbtot = orbtot+1
+            inthisLocreg(orbtot) = iorb
+         end if
+      end do
+      if (orbtot .ne. Llr(ilr)%localnorb*nspincomp) then
+         write(*,*) 'Problem in local_hamiltonian_Linear, orbtot=',orbtot,'is not equal to localnorb=',Llr(ilr)%localnorb*nspincomp
+         
+         stop
+      end if
+
+      orbitalsLoop: do ii=1,orbtot
+
+         iorb = inthisLocreg(ii)   !using ii and iorb to identify the orbitals because in linear case, the ordering is different
+                                   !orbitals are now orderer by locreg. So, iorb is the old numbering (i.e. in Global region)
+                                   !while ii is it's numbering in the locreg.
+
          if (libxc_functionals_isgga()) then
              call razero(Llr(ilr)%d%n1i*Llr(ilr)%d%n2i*Llr(ilr)%d%n3i*nspinn,rho_p)
          else
@@ -359,8 +384,6 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
                   call daub_to_isf(Llr(ilr),w,psi(ind),psir(1,sidx))
                   ind=ind+Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f
                end do
-               !print *,'iorb,nrm',iorb,&
-               !nrm2(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*npsir,psir(1,1),1)
 
                select case(Llr(ilr)%geocode)
                case('F')
@@ -407,7 +430,7 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
 
             end do
          else
-            ind=ind+Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f
+            ind=ind+(Llr(ilr)%wfd%nvctr_c+7*Llr(ilr)%wfd%nvctr_f)*max(ncomplex,1)*npsir
          end if
       end do orbitalsLoop
       i_all=-product(shape(rho_p))*kind(rho_p)
@@ -417,6 +440,9 @@ subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
       deallocate(psir,stat=i_stat)
       call memocc(i_stat,i_all,'psir',subname)
       call deallocate_work_arrays_sumrho(w)
+      i_all=-product(shape(inthisLocreg))*kind(inthisLocreg)
+      deallocate(inthisLocreg,stat=i_stat)
+      call memocc(i_stat,i_all,'inthisLocreg',subname)
   end do locRegLoop
   !i_all=-product(shape(psir))*kind(psir)
   !deallocate(psir,stat=i_stat)
@@ -554,6 +580,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
+  use module_interfaces, exceptThisOne => LinearHamiltonianApplication
   use libxc_functionals
   use module_interfaces, exceptThisOne => LinearHamiltonianApplication
   implicit none
@@ -584,7 +611,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
   integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
   integer :: ilr,dimwf,ind,size_Lpot,size_pot
-  integer :: tmp_norbp
+  integer :: tmp_norbp,nspincomp
   real(dp),dimension(:),pointer:: Lpot
   real(wp),dimension(:),allocatable :: hpsi_proj
 !OCL  integer, dimension(3) :: periodic
@@ -601,6 +628,11 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
 
         stop
      end if
+  end if
+
+  nspincomp = 1
+  if (nspin > 1) then
+     nspincomp = 2
   end if
 
   !initialise exact exchange energy 
@@ -641,7 +673,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
      ! Set some quantities: ispot=shift for potential, dimwf=dimension of wavefunction
      ispot=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin+1
      dimwf=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*&
-           Lzd%orbs%nspinor*nspin
+           Lzd%orbs%nspinor*nspincomp
 
      ! EXACT EXCHANGE NOT TESTED: SHOULD CHECK IF EVERYTHING IF FINE
      !fill the rest of the potential with the exact-exchange terms
@@ -785,9 +817,9 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
 
         ! Make the local non-linear pseudopotentials descriptors
         call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,Lzd%orbs,&
-      &      radii_cf,input%frmult,input%frmult,input%hx,input%hy,input%hz,Lzd%Gnlpspd,Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
+      &      radii_cf,input%frmult,input%frmult,hx,hy,hz,Lzd%Gnlpspd,Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
 
-        call apply_local_projectors(ilr,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),proj,Lzd%orbs,&
+        call apply_local_projectors(ilr,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),Lzd%orbs,&
                  Lzd%Llr(ilr)%projflg,psi(ind:ind+dimwf-1),rxyz,hpsi(ind:ind+dimwf-1),eproj_sum)
         ! accumulate the new hpsi
         hpsi_proj(ind:ind+dimwf-1) = hpsi_proj(ind:ind+dimwf-1) + hpsi(ind:ind+dimwf-1)
@@ -847,22 +879,25 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
 END SUBROUTINE LinearHamiltonianApplication
 
 
-subroutine LinearDiagHam(iproc,etol,Lzd,orbs,nspin,Lhpsi,Lpsi,psit,orbsv)
+subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbsv,norbsc_arr)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, exceptThisOne => LinearDiagHam
   implicit none
-  integer, intent(in) :: iproc                                       !> current processor
-  integer, intent(in) :: nspin                                       !> number of spin in spin polarized calculation 
-  real(gp),intent(in) :: etol                                        !> Tolerance on energy for solve_eigensystem
-  type(linear_zone_descriptors) :: Lzd                               !> Information about the locregs
-  type(orbitals_data), intent(in) :: orbs                            !> description of orbitals after the input guess (less orbitals)
-  type(orbitals_data), optional, intent(in) :: orbsv                 !> description of virtual orbitals (for davidson?)
-  real(wp),dimension(Lzd%orbs%npsidim),intent(in):: Lhpsi            !> All the local H|Psi>
-  real(wp),dimension(Lzd%orbs%npsidim),intent(in):: Lpsi             !> All the local |Psi>
-  real(wp),dimension(orbs%npsidim),intent(inout):: psit                !> Eigenvectors
+  integer, intent(in) :: iproc                                          !> current processor
+  integer, intent(in) :: nspin                                          !> number of spin in spin polarized calculation
+  integer, intent(in) :: natsc                                          !> number of atoms having semicore states
+  real(gp),intent(in) :: etol                                           !> Tolerance on energy for solve_eigensystem
+  type(atoms_data),intent(in) :: at                                     !> Atoms data
+  type(linear_zone_descriptors) :: Lzd                                  !> Information about the locregs
+  type(orbitals_data), intent(in) :: orbs                               !> description of orbitals after the input guess (less orbitals)
+  type(orbitals_data), optional, intent(in) :: orbsv                    !> description of virtual orbitals (for davidson?)
+  real(wp),dimension(Lzd%orbs%npsidim),intent(in):: Lhpsi               !> All the local H|Psi>
+  real(wp),dimension(Lzd%orbs%npsidim),intent(in):: Lpsi                !> All the local |Psi>
+  real(wp),dimension(orbs%npsidim),intent(inout):: psit                 !> Eigenvectors
+  integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr !> semicore description
   !Local variables
-  integer :: ilr,ilr2,ikptp,ikpt                             !> loop integers
+  integer :: ilr,ilr2,ikptp,ikpt,ii,jj                       !> loop integers
   integer :: i_stat,i_all                                    !> error handling for allocation/deallocation and memocc
   integer :: ndim_hamovr                                     !> dimension of Global Hamiltonian/overlap matrix
   integer :: psishift1,psishift2                             !> shifting index of wavefunctions for locreg(1) and locreg(2)
@@ -876,103 +911,182 @@ subroutine LinearDiagHam(iproc,etol,Lzd,orbs,nspin,Lhpsi,Lpsi,psit,orbsv)
   integer :: nvctrp,norbtot,ispsie,ispsiv                    !>
   integer :: totshift                                        !> Total shift for the wavefunction when passing from local_to_Global
   integer :: Gpsidim                                         !> Global wavefunction dimension
+  integer :: noncoll                                         !> =2 for non collinear spins, =1 otherwise
+  integer :: i,ispin,ndh1,iat,iel,scshift,scstr              !> used for loops with semicore states
   character(len=*),parameter :: subname='Linear_DiagHam'     ! name of subroutine
   integer, dimension(:,:), allocatable :: norbgrp            !>
   real(wp), dimension(:), pointer :: psivirt                 !> 
   real(wp),dimension(:,:,:),allocatable :: hamovr            !> Global Hamiltonian/overlap matrix
   integer,dimension(5) :: sizes                              !> array with the sizes for the reshaping of hamovr
+  integer,dimension(Lzd%nlr,nspin) :: orbscToAtom            !> mapping the number of semicore orbitals on the atoms
   real(wp), dimension(:), pointer :: psi                     !> global quantities for now   SHOULD BE REPLACED
-  real(wp),dimension(:,:,:,:,:),allocatable :: work1, work2  !> working arrays for hamovr
+  real(wp),dimension(:,:,:,:,:),allocatable :: work1  !> working arrays for hamovr
   real(wp),dimension(:,:,:),allocatable :: Lhamovr           !> Local,to locreg(1), hamiltonian/overlap matrix
+  logical :: semicore
 
-
-
+  semicore=present(norbsc_arr)
+  print *,'semicore,natsc,norbsc_arr',semicore,natsc,norbsc_arr
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
         'Overlap Matrix...'
 
-  ! number of orbitals, dimension and allocation of Global hamiltonian/overlap matrix
-  norbi_max=max(Lzd%orbs%norbu,Lzd%orbs%norbd)
-  ndim_hamovr = norbi_max**2
+  if (orbs%nspinor == 4) then
+     noncoll=2
+  else
+     noncoll=1
+  end if
+
+  if (semicore) then
+     if (present(orbsv)) then
+        norbi_max=max(noncoll*maxval(norbsc_arr),orbsv%norb)
+     else
+        norbi_max=noncoll*maxval(norbsc_arr)
+     end if
+
+     scshift = 0
+     do ii=1,natsc
+        scshift = scshift + (noncoll*norbsc_arr(ii,1))**2
+     end do
+
+     !calculate the dimension of the overlap matrix
+     !take the maximum as the two spin dimensions
+     ndim_hamovr=0
+     do ispin=1,nspin
+        ndh1=0
+        norbsc=0
+        do i=1,natsc+1
+           ndh1=ndh1+(noncoll*norbsc_arr(i,ispin))**2
+        end do
+        ndim_hamovr=max(ndim_hamovr,ndh1)
+     end do
+     if (natsc > 0) then
+        if (nspin == 2) then
+           if (sum(norbsc_arr(1:natsc,1)) /= sum(norbsc_arr(1:natsc,2))) then
+              write(*,'(1x,a)')&
+                'ERROR (DiagHam): The number of semicore orbitals must be the same for both spins'
+              stop
+           end if
+        end if
+        norbsc=noncoll*sum(norbsc_arr(1:natsc,1))
+     else
+        norbsc=0
+     end if
+  else
+     norbsc = 0
+     norbi_max=max(Lzd%orbs%norbu,Lzd%orbs%norbd)
+     ndim_hamovr = norbi_max**2
+  end if
+
+  !allocation of Global hamiltonian/overlap matrix
   allocate(hamovr(nspin*ndim_hamovr,2,Lzd%orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,hamovr,'hamovr',subname)
 
-  ! reshape hamovr for easy assignation
-  allocate(work1(norbi_max, norbi_max, nspin,2,Lzd%orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,work1,'work1',subname)
-  sizes = (/ norbi_max, norbi_max, nspin, 2, Lzd%orbs%nkpts+ndebug /)
-  work1 = reshape(hamovr,sizes)
+  print *,'size(hamovr)',size(hamovr,1),size(hamovr,2),size(hamovr,3)
+  print *,'norbi_max,norbsc,nspin,2,Lzd%orbs%nkpts',norbi_max,norbsc,nspin,2,Lzd%orbs%nkpts
 
-  psishift1 = 1
-  firstrow  = 1
-  lastrow   = 0
+  ! First build the number of semicore states for each atom (hence each locreg)
+  ! ONLY WORKS FOR INPUT GUESS where each atom has it's locreg
+  orbscToAtom = 0
+  do ispin=1,nspin
+     iat = 0
+     do ilr=1,Lzd%nlr
+        if(at%iasctype(ilr) == 0)cycle
+         iat = iat + 1
+        orbscToAtom(ilr,ispin) = norbsc_arr(iat,ispin)
+     end do
+  end do
+
+  psishift1 = 1 
+  firstrow  = 1 + norbsc  !This assumes that number of semicore orbitals are the same for each spin. CHECK IF NONCOLL is a problem
+  scstr = 1
   ! The loop on ilr gives the row indexes, the loop on ilr2 gives the column indexes
-  do ilr = 1, Lzd%nlr
-     firstcol = 1
-     lastcol  = 0
+  do ilr = 1, Lzd%nlr   
+
+     if (orbscToAtom(ilr,1) > 0) then  !This assumes that number of semicore orbitals are the same for each spin.
+        ! Calculate the hamiltonian/overlap matrix for the semicore states of locreg ilr
+        ! These states only intersect with themselves, so only need to consider this locreg
+        call semicore_overlap_matrices(ilr,nspin,orbs%nspinor,Lzd%orbs%norb,Lzd,orbscToAtom,&
+             ndim_hamovr,hamovr,scstr,Lpsi,Lhpsi)
+        scstr= scstr + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f*norbsc
+     end if
+
+     !Now calculate the hamiltonian/overlap matrix for the non semicore states (FOR SPINS THIS DOES NOT WORK)
+     firstcol = 1 + norbsc   !This assumes that number of semicore orbitals are the same for each spin. CHECK IF NONCOLL is a problem
      psishift2 = 1
-     lastrow  = lastrow  + Lzd%Llr(ilr)%Localnorb
-     psidim1 = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*orbs%nspinor
+     lastrow  = firstrow-1  + Lzd%Llr(ilr)%Localnorb - orbscToAtom(ilr,1) !This assumes that number of semicore orbitals are the same for each spin.
+     psidim1 = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*&
+               (Lzd%Llr(ilr)%Localnorb-orbscToAtom(ilr,1))*orbs%nspinor
      do ilr2 = 1,Lzd%nlr
 
-        psidim2 = (Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*Lzd%Llr(ilr2)%Localnorb*Lzd%orbs%nspinor
+        psidim2=(Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*&
+                (Lzd%Llr(ilr2)%Localnorb-orbscToAtom(ilr2,1))*Lzd%orbs%nspinor
 
         call get_number_of_overlap_region(ilr,ilr2,Lzd%Glr,isovrlp,Lzd%Llr,Lzd%nlr)!,outofzone)
         
         ! If no overlap, increment the index of Lpsi and overlap matrix then cycle
         if(isovrlp == 0)then
            psishift2 = psishift2 + psidim2*nspin
-           firstcol = firstcol + Lzd%Llr(ilr2)%Localnorb
-           lastcol  = lastcol  + Lzd%Llr(ilr2)%Localnorb
+           lastcol  = firstcol-1  + Lzd%Llr(ilr2)%Localnorb - orbscToAtom(ilr2,1)
+           firstcol = firstcol + Lzd%Llr(ilr2)%Localnorb - orbscToAtom(ilr2,1)
            cycle
         end if
         ! dimensions and allocation of Local hamiltonian/overlap matrix
-        dim_Lhamovr = Lzd%Llr(ilr)%Localnorb * Lzd%Llr(ilr2)%Localnorb
+        dim_Lhamovr=(Lzd%Llr(ilr)%Localnorb-orbscToAtom(ilr,1))*(Lzd%Llr(ilr2)%Localnorb-orbscToAtom(ilr2,1))
         allocate(Lhamovr(nspin*dim_Lhamovr,2,Lzd%orbs%nkpts+ndebug),stat=i_stat)
         call memocc(i_stat,Lhamovr,'Lhamovr',subname)
 
      ! In this routine, we begin by calculating the hamiltonian/overlap matrix between two locregs.
         call overlap_matrix_between_locreg(ilr,ilr2,isovrlp,Lzd%nlr,nspin,psidim1,psidim2,psishift1,&
-           psishift2,Lzd%orbs%npsidim,Lzd%orbs,Lzd%Glr,Lzd%Llr,Lpsi,Lhpsi,dim_Lhamovr,Lhamovr)   !deleted outofzone,Localnorb
+           psishift2,Lzd%orbs%npsidim,Lzd%orbs,Lzd%Glr,Lzd%Llr,Lpsi,Lhpsi,dim_Lhamovr,Lhamovr)
 
+       print *,'size(Lhamovr)',size(Lhamovr,1),size(Lhamovr,2),size(Lhamovr,3)
+       print *,'Lhamovr,ham',Lhamovr(:,1,:)
      ! update the shift for second wavefunction
         psishift2 = psishift2 + psidim2*nspin
 
-     ! reshape the hamiltonian/overlap matrix for easy assignations
-       allocate(work2(Lzd%Llr(ilr)%Localnorb,Lzd%Llr(ilr2)%Localnorb,nspin,2,Lzd%orbs%nkpts+ndebug),stat=i_stat)
-       call memocc(i_stat,work2,'work2',subname)
-       sizes = (/ Lzd%Llr(ilr)%Localnorb, Lzd%Llr(ilr2)%Localnorb, nspin, 2, Lzd%orbs%nkpts+ndebug /)
-       work2 = reshape(Lhamovr,sizes)
+     ! reshape the hamiltonian/overlap matrix for easy assignations  
+       allocate(work1(Lzd%Llr(ilr)%Localnorb-orbscToAtom(ilr,1),Lzd%Llr(ilr2)%Localnorb-orbscToAtom(ilr2,1),&
+               nspin,2,Lzd%orbs%nkpts+ndebug),stat=i_stat)
+       call memocc(i_stat,work1,'work1',subname)
+       sizes = (/ Lzd%Llr(ilr)%Localnorb-orbscToAtom(ilr,1), Lzd%Llr(ilr2)%Localnorb-orbscToAtom(ilr2,1),&
+                nspin, 2, Lzd%orbs%nkpts+ndebug /)
+       work1 = reshape(Lhamovr,sizes)
 
      ! Assign the calculated values inside global matrix (for truly O(N) this should be replaced) 
-       lastcol  = lastcol  + Lzd%Llr(ilr2)%Localnorb
-       work1(firstrow:lastrow,firstcol:lastcol,:,:,:) = work2(:,:,:,:,:)
+       lastcol  = firstcol-1  + Lzd%Llr(ilr2)%Localnorb - orbscToAtom(ilr2,1)
+
+
+       iel = (firstrow-norbsc-1) * norbsc_arr(natsc+1,1)  + (firstcol-norbsc-1)
+       do ispin=1,nspin
+          iel = iel + scshift
+          do ii=firstrow,lastrow
+             do jj=firstcol,lastcol
+                iel = iel + 1
+                hamovr(iel,:,:) = work1(ii,jj,ispin,:,:)
+             end do
+          end do
+       end do
 
      ! deallocate this instance of Lhamovr
-        i_all=-product(shape(work2))*kind(work2)
-        deallocate(work2,stat=i_stat)
-        call memocc(i_stat,i_all,'work2',subname)
+        i_all=-product(shape(work1))*kind(work1)
+        deallocate(work1,stat=i_stat)
+        call memocc(i_stat,i_all,'work1',subname)
 
         i_all=-product(shape(Lhamovr))*kind(Lhamovr)
         deallocate(Lhamovr,stat=i_stat)
         call memocc(i_stat,i_all,'Lhamovr',subname)
 
      ! update indexes
-       firstcol = firstcol + Lzd%Llr(ilr2)%Localnorb
+       firstcol = firstcol + Lzd%Llr(ilr2)%Localnorb - orbscToAtom(ilr2,1)
      end do
      ! increment the shift of wavefunctions
      psishift1 = psishift1 + psidim1*nspin
-     firstrow = firstrow + Lzd%Llr(ilr)%Localnorb
+     firstrow = firstrow + Lzd%Llr(ilr)%Localnorb - orbscToAtom(ilr,1)
   end do
 
-  ! reshape back to original shape
-  hamovr = reshape(work1,(/ nspin*ndim_hamovr, 2, Lzd%orbs%nkpts+ndebug /))
-  i_all=-product(shape(work1))*kind(work1)
-  deallocate(work1,stat=i_stat)
-  call memocc(i_stat,i_all,'work1',subname)
 
 ! DEBUG
-!  print *,'hamovr, ham:',hamovr(:,1,:)
-!  print *,'hamovr, ovr:',hamovr(:,2,:)
+  print *,'hamovr, ham:',hamovr(:,1,:)
+  print *,'hamovr, ovr:',hamovr(:,2,:)
 ! END DEBUG
 
   ! Don't need Lhpsi anymore
@@ -1088,13 +1202,22 @@ subroutine local_hamiltonian_Linear(iproc,ilr,orbs,lr,hx,hy,hz,&
   character(len=*), parameter :: subname='local_hamiltonian_Linear'
   integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
   integer :: ii,orbtot
-  integer,dimension(lr%localnorb*nspin) :: inthisLocreg
+  integer :: nspincomp
+  integer,dimension(:),allocatable :: inthisLocreg
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir
 
   exctXcoeff=libxc_functionals_exctXfac()
+
+  nspincomp = 1
+  if(nspin > 1) then
+    nspincomp = 2
+  end if
+
+  allocate(inthisLocreg(lr%localnorb*nspincomp),stat=i_stat)
+  call memocc(i_stat,inthisLocreg,'inthisLocreg',subname)
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)
@@ -1121,9 +1244,8 @@ subroutine local_hamiltonian_Linear(iproc,ilr,orbs,lr,hx,hy,hz,&
         inthisLocreg(orbtot) = iorb
      end if
   end do 
-  
-  if (orbtot .ne. lr%localnorb*nspin) then
-     write(*,*) 'Problem in local_hamiltonian_Linear, orbtot=',orbtot,'is not equal to localnorb=',lr%localnorb*nspin
+  if (orbtot .ne. lr%localnorb*nspincomp) then
+     write(*,*) 'Problem in local_hamiltonian_Linear, orbtot=',orbtot,'is not equal to localnorb=',lr%localnorb*nspincomp
      stop
   end if
 
@@ -1174,7 +1296,7 @@ subroutine local_hamiltonian_Linear(iproc,ilr,orbs,lr,hx,hy,hz,&
      kz=orbs%kpts(3,orbs%iokpt(iorb))
 
      if (exctXcoeff /= 0.0_gp) then
-        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+ii-1)
+        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspincomp+ii-1)
         !add to the psir function the part of the potential coming from the exact exchange
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
      end if
@@ -1193,6 +1315,10 @@ subroutine local_hamiltonian_Linear(iproc,ilr,orbs,lr,hx,hy,hz,&
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
+
+  i_all=-product(shape(inthisLocreg))*kind(inthisLocreg)
+  deallocate(inthisLocreg,stat=i_stat)
+  call memocc(i_stat,i_all,'inthisLocreg',subname)
 
   call deallocate_work_arrays_locham(lr,wrk_lh)
 

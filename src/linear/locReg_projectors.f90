@@ -46,15 +46,9 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
    integer :: isx,isy,isz,iex,iey,iez
    integer :: iseg,jseg,Gseg,Gvctr
    integer :: nl1,nl2,nl3,nu1,nu2,nu3 ! bounds of projectors around atom iatom
-   real(gp) :: hhx,hhy,hhz   !reals to shorten name of variables
    integer,dimension(1:2,1:2,1:3) :: bounds
    logical,dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3) :: logrid
    character(len=*),parameter :: subname='nlpspd_to_locreg'
-
-! Rename some variables
-  hhx = input_parameters%hx
-  hhy = input_parameters%hy
-  hhz = input_parameters%hz
 
 !Determine the number of projectors with components in locreg
 ! and also which atoms have such projectors and number of atoms
@@ -78,7 +72,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
   mseg = 0
   do iatom = 1,atoms%nat
      if(projflg(iatom) == 0) cycle 
-     iat = iat + 1  
+     iat = iat + 1  !iatom is the global numbering of atoms, while iat is the numbering only in the locreg. 
 
 !    Determine the bounds of the projectors
      call projector_box_in_locreg(iatom,Glr,Llr,nlpspd,bounds)
@@ -100,7 +94,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
 
 !    Now we can determine the number of segments and elements of coarse grid
      call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
-&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,3),cpmult,hhx,hhy,hhz,logrid)
+&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,3),cpmult,hx,hy,hz,logrid)
 
      call number_of_projector_elements_in_locreg(iatom,1,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_c,mvctr_c)
 
@@ -118,7 +112,7 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      nu3 = nlpspd%nboxp_f(2,3,iatom)
 
      call fill_logrid(atoms%geocode,Glr%d%n1,Glr%d%n2,Glr%d%n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,atoms%ntypes,&
-&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,2),fpmult,hhx,hhy,hhz,logrid)
+&                     atoms%iatype(iatom),rxyz(1,iatom),radii_cf(:,2),fpmult,hx,hy,hz,logrid)
 
      call number_of_projector_elements_in_locreg(iatom,2,atoms,Glr,Llr,logrid,nlpspd,mproj,mseg_f,mvctr_f)
 
@@ -135,55 +129,55 @@ subroutine nlpspd_to_locreg(input_parameters,iproc,Glr,Llr,rxyz,atoms,orbs,&
      mseg = mseg + mseg_c + mseg_f
   end do
 
-!   Now allocate keyg_p,keyv_p following the needs
-    call allocate_projd(mseg,Lnlpspd,subname)
+! Now allocate keyg_p,keyv_p following the needs
+  call allocate_projd(mseg,Lnlpspd,subname)
 
 ! Renaming some variables to simply calling of routines
-   !starting point of locreg
-   isx = Llr%ns1
-   isy = Llr%ns2
-   isz = Llr%ns3
-   !ending point of locreg
-   iex = Llr%ns1 + Llr%d%n1
-   iey = Llr%ns2 + Llr%d%n2
-   iez = Llr%ns3 + Llr%d%n3
+  !starting point of locreg
+  isx = Llr%ns1
+  isy = Llr%ns2
+  isz = Llr%ns3
+  !ending point of locreg
+  iex = Llr%ns1 + Llr%d%n1
+  iey = Llr%ns2 + Llr%d%n2
+  iez = Llr%ns3 + Llr%d%n3
   
-!  At last, fill the projector descriptors (keyg_p,keyv_p)
-   iseg = 1
-   iat = 0
-   do iatom= 1,atoms%nat
-      if(projflg(iatom) == 0) cycle
-      iat = iat + 1
+! At last, fill the projector descriptors (keyg_p,keyv_p)
+  iseg = 1
+  iat = 0
+  do iatom= 1,atoms%nat
+     if(projflg(iatom) == 0) cycle
+     iat = iat + 1
 
-!     number of segments for coarse
-      jseg = nlpspd%nseg_p(2*iatom-2)+1 ! index where to start in keyg for global region (nlpspd)
-      Gseg = nlpspd%nseg_p(2*iatom-1)-nlpspd%nseg_p(2*iatom-2) ! number of segments for global region
-      Gvctr = nlpspd%nvctr_p(2*iatom-1)-nlpspd%nvctr_p(2*iatom-2)!number of elements for global region
+!    number of segments for coarse
+     jseg = nlpspd%nseg_p(2*iatom-2)+1 ! index where to start in keyg for global region (nlpspd)
+     Gseg = nlpspd%nseg_p(2*iatom-1)-nlpspd%nseg_p(2*iatom-2) ! number of segments for global region
+     Gvctr = nlpspd%nvctr_p(2*iatom-1)-nlpspd%nvctr_p(2*iatom-2)!number of elements for global region
 
-!     Coarse part 
-      if (Lnlpspd%nseg_p(2*iat-1) > 0) then
-         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+!    Coarse part 
+     if (Lnlpspd%nseg_p(2*iat-1) > 0) then
+        call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+            Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
+            Lnlpspd%nseg_p(2*iat-1),Lnlpspd%nvctr_p(2*iat-1),&
+            Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
+     end if
+
+     iseg = iseg + Lnlpspd%nseg_p(2*iat-1)      
+     if(Lnlpspd%nseg_p(2*iat) > 0) then  !only do fine grid if present
+!    Number of segments for fine
+        jseg = nlpspd%nseg_p(2*iatom-1)+1 ! index where to start in keyg for global region (nlpspd)
+        Gseg = nlpspd%nseg_p(2*iatom)-nlpspd%nseg_p(2*iatom-1) ! number of segments for global region
+        Gvctr = nlpspd%nvctr_p(2*iatom)-nlpspd%nvctr_p(2*iatom-1)!number of elements for global region
+
+!    Fine part 
+        call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
              Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
-             Lnlpspd%nseg_p(2*iat-1),Lnlpspd%nvctr_p(2*iat-1),&
+             Lnlpspd%nseg_p(2*iat),Lnlpspd%nvctr_p(2*iat),&
              Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
-      end if
 
-      iseg = iseg + Lnlpspd%nseg_p(2*iat-1)      
-      if(Lnlpspd%nseg_p(2*iat) > 0) then  !only do fine grid if present
-!     Number of segments for fine
-         jseg = nlpspd%nseg_p(2*iatom-1)+1 ! index where to start in keyg for global region (nlpspd)
-         Gseg = nlpspd%nseg_p(2*iatom)-nlpspd%nseg_p(2*iatom-1) ! number of segments for global region
-         Gvctr = nlpspd%nvctr_p(2*iatom)-nlpspd%nvctr_p(2*iatom-1)!number of elements for global region
-
-!     Fine part
-         call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
-              Gseg,Gvctr,nlpspd%keyg_p(1,jseg),nlpspd%keyv_p(jseg),&
-              Lnlpspd%nseg_p(2*iat),Lnlpspd%nvctr_p(2*iat),&
-              Lnlpspd%keyg_p(1,iseg),Lnlpspd%keyv_p(iseg))
-
-         iseg = iseg + Lnlpspd%nseg_p(2*iat)
-      end if 
-   end do
+        iseg = iseg + Lnlpspd%nseg_p(2*iat)
+     end if 
+  end do
 
 END SUBROUTINE nlpspd_to_locreg
 !%***
@@ -738,7 +732,7 @@ END SUBROUTINE allocate_projd
 !!         
 !! SOURCE:
 !!
-subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orbs,projflg,psi,rxyz,hpsi,eproj)
+subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
 
 
   use module_base
@@ -761,7 +755,6 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
   ! Subroutine Array Arguments
   !#######################################
   integer,dimension(atoms%nat),intent(in) :: projflg
-  real(wp),dimension(Lnlpspd%nprojel),intent(out):: Lproj  !local projectors
   real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(in) :: psi  !local wavefunction
   real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(inout):: hpsi ! local |p><p|Psi>
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -770,14 +763,14 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,Lproj,orb
   !#######################################
   integer :: ikpt,istart_c,ncplx,jseg_c,iproj,iat,ityp,l,i,nwarnings
   integer :: isorb,ieorb,nspinor,iorb,istart_o,ispinor
-  integer :: nels,ipsi,ii,iatom
+  integer :: nels,ipsi,ii,iatom,iel
   integer :: jj,orbtot,ispin,ind
   !integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
   integer,dimension(:),allocatable :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
-  !real(wp),dimension(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: psi_tmp
-  !real(wp),dimension(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor) :: hpsi_tmp
-  real(wp),dimension(:,:,:),allocatable :: psi_tmp
+  real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,Llr%localnorb*nspin) :: psi_tmp
+  real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,Llr%localnorb*nspin) :: hpsi_tmp
+  real(wp),dimension(Lnlpspd%nprojel):: Lproj  !local projectors
   real(wp),dimension(:,:,:),allocatable :: hpsi_tmp
 
 integer:: ierr, iel
@@ -788,7 +781,7 @@ allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%n
 !!write(*,*) 'in apply_local_projectors'
 !!call mpi_barrier(mpi_comm_world, jj)
 
-!  First reshape the wavefunctions: psi_tmp(norb,nels,nspinor)
+!  First reshape the wavefunctions: psi_tmp(nels,norbs,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
 
 !  format the number of orbitals in this locreg orbitals
@@ -799,18 +792,18 @@ allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%n
          inthisLocreg(orbtot) = iorb
       end if
    end do
-   
-!!do ierr=1,size(psi)
-!!    write(50000,*) ierr, psi(ierr)
-!!end do
-!!do ierr=1,size(psi)
-!!    write(51000,*) ierr, hpsi(ierr)
-!!end do
 
-!!write(*,*) 'before reshape'
-!!call mpi_barrier(mpi_comm_world, ierr)
-   !!psi_tmp = reshape(psi, (/ Llr%Localnorb*nspin, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
-   !!hpsi_tmp = reshape(hpsi,(/ LLr%localnorb*nspin, nels, orbs%nspinor /),order=(/ 2, 3, 1 /))
+   ! reshape the wavefunction
+   ii=0
+   do iorb=1,Llr%Localnorb*nspin
+       do ispinor=1,orbs%nspinor
+           do iel=1,nels
+               ii=ii+1
+               psi_tmp(iel,ispinor,iorb)=psi(ii)
+               hpsi_tmp(iel,ispinor,iorb)=hpsi(ii)
+           end do
+       end do
+   end do
    ii=0
    do iorb=1,Llr%Localnorb*nspin
        do ispinor=1,orbs%nspinor
@@ -823,13 +816,12 @@ allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%n
    end do
 !!write(*,*) 'after reshape'
 !!call mpi_barrier(mpi_comm_world, ierr)
-
+   
    ieorb = orbtot   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
    ikpt=orbs%iokpt(1)
 !!write(*,*) 'before loop_kpt'
 !!call mpi_barrier(mpi_comm_world, ierr)
    loop_kpt: do
-    
       !features of the k-point ikpt
       kx=orbs%kpts(1,ikpt)
       ky=orbs%kpts(2,ikpt)
@@ -842,6 +834,7 @@ allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%n
          ncplx=2
       end if
 
+      ieorb = orbs%norbp  !initialize value in case no atoms have projectors
       jseg_c = 1
       iproj = 0
       iatom = 0
@@ -901,7 +894,7 @@ allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%n
                                    Llr%wfd%nseg_f,Llr%wfd%keyv,Llr%wfd%keyg,&
                                    Lnlpspd%nvctr_p(2*iatom-1),Lnlpspd%nvctr_p(2*iatom),Lnlpspd%nseg_p(2*iatom-1),&
                                    Lnlpspd%nseg_p(2*iatom),Lnlpspd%keyv_p(jseg_c),Lnlpspd%keyg_p(1,jseg_c),&
-                                   Lproj(istart_o),psi_tmp(ii,:,ispinor),hpsi_tmp(ii,:,ispinor),eproj_spinor)
+                                   Lproj(istart_o),psi_tmp(1,ispinor,ii),hpsi_tmp(1,ispinor,ii),eproj_spinor)
 !!write(*,*) 'after applyprojector'
 !!call mpi_barrier(mpi_comm_world, ierr)
                                
@@ -926,13 +919,12 @@ allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%n
          do ispinor=1,orbs%nspinor
             do ii=1,Llr%localnorb
                do jj=1,Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
-                  hpsi(ind+jj) = hpsi_tmp(ii+(ispin-1)*Llr%localnorb,jj,ispinor)
+                  hpsi(ind+jj) = hpsi_tmp(jj,ispinor,ii+(ispin-1)*Llr%localnorb)
                end do
                ind = ind + Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
             end do
          end do
       end do
-
       if (iproj /= Lnlpspd%nproj) stop 'incorrect number of projectors created'
       if (ieorb == orbs%norbp) exit loop_kpt
       ikpt=ikpt+1
