@@ -335,6 +335,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
   type(gaussian_basis) :: Gvirt
+  type(rho_descriptors)  :: rhodsc
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
@@ -518,8 +519,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
   !create the descriptors for the density and the potential
   !these descriptors should take into account the localisation regions
-  call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',n1i,n2i,n3i,ixc,&
-       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
+       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',ixc,in%rho_commun,&
+       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
   !allocate ionic potential
   print *, " allocate ionic potential " 
@@ -661,7 +663,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      endif
 
 
-     call input_wf_diag(iproc,nproc,atoms_clone,&
+     call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
@@ -725,7 +727,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call memocc(i_stat,phnons,'phnons',subname)
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc,atoms,&
+     call input_wf_diag(iproc,nproc,atoms,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)
@@ -1392,6 +1394,8 @@ contains
     i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
     deallocate(atoms%npspcode,stat=i_stat)
     call memocc(i_stat,i_all,'npspcode',subname)
+
+    call deallocate_rho_descriptors(rhodsc,subname)
 
     ! Free the libXC stuff if necessary.
     if (ixc < 0) then
