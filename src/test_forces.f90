@@ -29,16 +29,15 @@ program test_forces
 
   implicit none
   character(len=*), parameter :: subname='test_forces'
-  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
-  integer :: ncount_bigdft
-  real(gp) :: etot,sumx,sumy,sumz,fnoise
+  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode
+  real(gp) :: etot,fnoise
   logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=50), dimension(:), allocatable :: arr_posinp
-  character(len=60) :: filename
+  character(len=60), parameter :: filename="list_posinp"
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz,drxyz
@@ -56,9 +55,9 @@ program test_forces
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
   ! find out which input files will be used
-  inquire(file="list_posinp",exist=exist_list)
+  inquire(file=filename,exist=exist_list)
   if (exist_list) then
-     open(54,file="list_posinp")
+     open(54,file=filename)
      read(54,*) nconfig
      if (nconfig > 0) then 
         !allocation not referenced since memocc count not initialised

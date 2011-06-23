@@ -621,7 +621,6 @@ subroutine tddft_input_variables(filename,in)
   character(len=*), parameter :: subname='tddft_input_variables'
   integer :: iline, ierror
 
-
   inquire(file=trim(filename),exist=exists)
 
   if (.not. exists) then
@@ -948,6 +947,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
   call input_set_file(iproc, filename, exists)
 
+        
+
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
   call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU " /), &
@@ -981,6 +982,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   call memocc_set_debug(inputs%debug)
   call set_cache_size(inputs%ncache_fft)
   
+
   !Check after collecting all values
   if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
      write(*,'(1x,a)') 'Input Guess: Block size used for the orthonormalization (ig_blocks)'
@@ -2864,5 +2866,4 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      deallocate(nodename,stat=i_stat)
      call memocc(i_stat,i_all,'nodename',subname)
   end if
-
 END SUBROUTINE processor_id_per_node

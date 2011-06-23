@@ -28,6 +28,7 @@ EXTRA_DIST = configure.inc.in
 modules_source = base.f90 \
 	defs.F90 \
 	types.f90 \
+	input.f90 \
 	interfaces.f90 \
 	$(GPUBLAS_INTERFACE)
 
@@ -46,7 +47,7 @@ interfaces.o: base.o types.o
 types.o: base.o
 defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
-cublas_fake.o: base.o
+input.o: base.o
 
 $(mod_bigdft) : base.o types.o interfaces.o
 
@@ -54,7 +55,7 @@ $(mod_bigdft) : base.o types.o interfaces.o
 mpif.h:
 	touch mpif.h &&\
 	echo "integer, parameter :: MPI_SUM=1, MPI_COMM_WORLD=1" >> mpif.h &&\
-	echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
+	echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1, MPI_LAND=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1, MPI_CHARACTER=1, MPI_REAL8=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=1, MPI_STATUS_SIZE=1" >> mpif.h
