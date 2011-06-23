@@ -287,15 +287,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   call timing(iproc,'Rho_comput    ','OF')
 
 END SUBROUTINE sumrho
-!!***
 
 
-!!****f* BigDFT/local_partial_density
-!! FUNCTION
-!!   Here starts the routine for building partial density inside the localisation region
-!!   This routine should be treated as a building-block for the linear scaling code
-!! SOURCE
-!!
+!> Here starts the routine for building partial density inside the localisation region
+!! This routine should be treated as a building-block for the linear scaling code
 subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   use module_base
@@ -389,13 +384,9 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   call deallocate_work_arrays_sumrho(w)
 
 END SUBROUTINE local_partial_density
-!!***
 
 
-!!****f* BigDFT/partial_density
-!! FUNCTION
-!! SOURCE
-!!
+!> Do partial density
 subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p)
   use module_base
@@ -496,13 +487,9 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   end if
 
 END SUBROUTINE partial_density
-!!***
 
 
-!!****f* BigDFT/partial_density_free
-!! FUNCTION
-!! SOURCE
-!!
+!> Do partial density for isolated system
 subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p,&
      ibyyzz_r) 
@@ -615,13 +602,9 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
 !  call system_clock(ncount1,ncount_rate,ncount_max)
 !  write(*,*) 'TIMING:PDF',real(ncount1-ncount0)/real(ncount_rate)
 END SUBROUTINE partial_density_free
-!!***
 
 
-!!****f* BigDFT/symmetrise_density
-!! FUNCTION
-!! SOURCE
-!!
+!> Symmetrise density
 subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho,&
      symObj,irrzon,phnons)
   use module_base!, only: gp,dp,wp,ndebug,memocc
@@ -819,14 +802,14 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
   call memocc(i_stat,i_all,'rhog',subname)
 
 END SUBROUTINE symmetrise_density
-!!***
 
-! INPUT  
-!        rho_p: the partial rho array of the current proc
-!        spkey,dpkey: keys for coarse and fine regions
-! OUTPUT 
-!        sprho_comp, dprho_comp: compressed arrays of rho in single and double 
-!        precision
+
+!> INPUT  
+!!    rho_p: the partial rho array of the current proc
+!!    spkey,dpkey: keys for coarse and fine regions
+!! OUTPUT 
+!!    sprho_comp, dprho_comp: compressed arrays of rho in single and double 
+!!    precision
 subroutine compress_rho(iproc,nprocs,rho_p,lr,nspin,rhodsc,sprho_comp,dprho_comp)
   use module_base
   use module_types

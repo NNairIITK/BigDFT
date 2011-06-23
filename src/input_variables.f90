@@ -594,11 +594,8 @@ contains
 
 END SUBROUTINE geopt_input_variables
 
-!!****f* BigDFT/tddft_input_variables_default
-!! FUNCTION
-!!    Assign default values for TDDFT variables
-!! SOURCE
-!!
+
+!> Assign default values for TDDFT variables
 subroutine tddft_input_variables_default(in)
   use module_base
   use module_types
@@ -608,7 +605,7 @@ subroutine tddft_input_variables_default(in)
   in%tddft_approach='NONE'
 
 END SUBROUTINE tddft_input_variables_default
-!!***
+
 
 subroutine tddft_input_variables(filename,in)
   use module_base
