@@ -64,6 +64,8 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
   enddo
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+  ! Apply symmetries when needed
+  if (atoms%symObj >= 0) call symmetrise_forces(iproc, fxyz, atoms)
 end subroutine calculate_forces
 
 
@@ -3132,3 +3134,71 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   &  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
   end if
 END SUBROUTINE clean_forces
+
+subroutine symmetrise_forces(iproc, fxyz, at)
+  use defs_basis
+  use ab6_symmetry
+  use module_types
+
+  implicit none
+
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(inout) :: fxyz(3, at%nat)
+
+  integer :: ia, mu, isym, errno, ind, nsym
+  integer :: indsym(4, AB6_MAX_SYMMETRIES)
+  real(gp) :: summ
+  real(gp) :: alat(3)
+  real(gp), allocatable :: dedt(:,:)
+  integer, allocatable :: symrec(:,:,:)
+  integer, pointer  :: sym(:,:,:)
+  integer, pointer  :: symAfm(:)
+  real(gp), pointer :: transNon(:,:)
+
+  call ab6_symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
+  if (errno /= AB6_NO_ERROR) stop
+  if (nsym < 2) return
+
+  if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
+
+  !Get the symmetry matrices in terms of reciprocal basis
+  allocate(symrec(3, 3, nsym))
+  do isym = 1, nsym, 1
+     call mati3inv(sym(:,:,isym), symrec(:,:,isym))
+  end do
+
+  alat = (/ at%alat1, at%alat2, at%alat3 /)
+  if (at%geocode == 'S') alat(2) = real(1, gp)
+
+  !Save fxyz into dedt.
+  allocate(dedt(3,at%nat))
+  do ia = 1, at%nat
+     dedt(:, ia) = fxyz(:, ia) / alat
+  end do
+
+  ! actually conduct symmetrization
+  do ia = 1, at%nat
+     call ab6_symmetry_get_equivalent_atom(at%symObj, indsym, ia, errno)
+     if (errno /= AB6_NO_ERROR) stop
+     do mu = 1, 3
+        summ = real(0, gp)
+        do isym = 1, nsym
+           ind = indsym(4, isym)
+           summ = summ + real(symrec(mu,1,isym), gp) * dedt(1, ind) + &
+                & real(symrec(mu,2,isym), gp) * dedt(2, ind) + &
+                & real(symrec(mu,3,isym), gp) * dedt(3, ind)
+        end do
+        fxyz(mu, ia) = summ / real(nsym, gp)
+        ! if (abs(fred(mu, ia))<tol)fred(mu,ia)=0.0_dp
+     end do
+  end do
+
+  deallocate(dedt)
+  deallocate(symrec)
+  
+  ! fxyz is in reduced coordinates, we expand here.
+  do ia = 1, at%nat
+     fxyz(:, ia) = fxyz(:, ia) * alat
+  end do
+end subroutine symmetrise_forces
