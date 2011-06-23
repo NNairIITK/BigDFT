@@ -157,7 +157,7 @@ end
     AC_MSG_WARN([MPI is not working and has been disabled.])
     AC_MSG_WARN([  If you don't want to see this warning,])
     AC_MSG_WARN([  set --disable-mpi in the configure line.])
-    ac_use_mpi="Warning"
+    ac_use_mpi="warn"
     MPI_LIBS=
     MPI_INCLUDE='-I$(top_builddir)/src/modules'
     MPI_LDFLAGS=
@@ -399,17 +399,20 @@ fi
 AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
 
 dnl Archive input file support
-ac_archives="no"
+ac_archives="yes"
 AC_ARG_WITH([archives],
             AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
-            [ac_archives=yes], [ac_archives=no])
-if test x"$ac_archives" = x"yes" ; then
+            [ac_archives=$withval], [ac_archives=yes])
+if test x"$ac_archives" != x"no" ; then
    PKG_CHECK_MODULES([LIB_ARCHIVE],
                      [libarchive >= 2.4],
                      [ac_archives=yes],
-                     [ac_archives=no])
+                     [ac_archives=warn])
    if test x"$ac_archives" = x"yes" ; then
       AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
+      AC_LANG_PUSH(C)
+      AC_CHECK_FUNCS([strndup])
+      AC_LANG_POP(C)
    else
       AC_MSG_WARN([libarchive is not available])
    fi
@@ -772,10 +775,17 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"Warning" ; then
-  echo "Warnings:
-  MPI:                       disabled by tests
-"
+if test x"$ac_use_mpi" = x"warn" -o x"$ac_archives" = x"warn" ; then
+  echo "Warnings:"
+  if test x"$ac_use_mpi" = x"warn" ; then
+    echo  "
+  MPI:                       disabled by tests"
+  fi
+  if test x"$ac_archives" = x"warn" ; then
+    echo  "
+  libarchive:                disabled by tests"
+  fi
+  echo
 fi
 
 dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
