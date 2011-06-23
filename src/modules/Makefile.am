@@ -46,6 +46,7 @@ interfaces.o: base.o types.o
 types.o: base.o
 defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
+cublas_fake.o: base.o
 
 $(mod_bigdft) : base.o types.o interfaces.o
 

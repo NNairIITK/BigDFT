@@ -776,13 +776,13 @@ Installation paths:
 "
 
 if test x"$ac_use_mpi" = x"warn" -o x"$ac_archives" = x"warn" ; then
-  echo "Warnings:"
+  echo -n "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
-    echo  "
+    echo -n "
   MPI:                       disabled by tests"
   fi
   if test x"$ac_archives" = x"warn" ; then
-    echo  "
+    echo -n "
   libarchive:                disabled by tests"
   fi
   echo
