@@ -1434,6 +1434,16 @@ subroutine deallocate_atoms_scf(atoms,subname)
   i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
   deallocate(atoms%npspcode,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%npspcode',subname)
+  i_all=-product(shape(atoms%nlcc_ngv))*kind(atoms%nlcc_ngv)
+  deallocate(atoms%nlcc_ngv,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nlcc_ngv',subname)
+  i_all=-product(shape(atoms%nlcc_ngc))*kind(atoms%nlcc_ngc)
+  deallocate(atoms%nlcc_ngc,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nlcc_ngc',subname)
+  i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
+  deallocate(atoms%nlccpar,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nlccpar',subname)
+
 END SUBROUTINE deallocate_atoms_scf
 
 

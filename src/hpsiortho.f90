@@ -880,7 +880,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
 
  if (wf > 0.0_gp) then
     ii=0
-    if (orbs%efermi == UNINITIALISED) then
+    if (orbs%efermi == UNINITIALIZED(orbs%efermi)) then
        ! Take initial value at gamma point.
        do iorb = 1, orbs%norbu
           if (orbs%occup(iorb) < 1.0_gp) then
