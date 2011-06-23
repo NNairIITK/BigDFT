@@ -2117,7 +2117,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
     end subroutine nlpspd_to_locreg
 
-    subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
+    subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorbs,projflg,psi,rxyz,hpsi,eproj)
      use module_base
      use module_types
      implicit none
@@ -2128,6 +2128,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      type(locreg_descriptors),intent(in) :: Llr
      type(nonlocal_psp_descriptors),intent(in) :: Lnlpspd  
      type(orbitals_data),intent(in) :: orbs
+     type(orbitals_data),intent(in) :: Gorbs
      integer,dimension(atoms%nat),intent(in) :: projflg
      real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(in) :: psi  
      real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),intent(out):: hpsi 
@@ -2211,10 +2212,10 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
-       real(wp), dimension(Lzd%orbs%npsidim), intent(in) :: psi
+       real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
        real(wp), dimension(:), pointer :: pot
        real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
-       real(wp), target, dimension(Lzd%orbs%npsidim), intent(out) :: hpsi
+       real(wp), target, dimension(Lzd%Lpsidimtot), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
        real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
        real(dp), dimension(*), optional :: pkernel
@@ -2234,8 +2235,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(linear_zone_descriptors) :: Lzd                                  
        type(orbitals_data), intent(in) :: orbs                               
        type(orbitals_data), optional, intent(in) :: orbsv                    
-       real(wp),dimension(Lzd%orbs%npsidim),intent(in):: Lhpsi               
-       real(wp),dimension(Lzd%orbs%npsidim),intent(in):: Lpsi                
+       real(wp),dimension(Lzd%Lpsidimtot),intent(in):: Lhpsi               
+       real(wp),dimension(Lzd%Lpsidimtot),intent(in):: Lpsi                
        real(wp),dimension(orbs%npsidim),intent(inout):: psit                 
        integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr 
      end subroutine

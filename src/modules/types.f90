@@ -245,6 +245,7 @@ module module_types
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
+     integer :: norbsc
      real(gp) :: efermi
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,inwhichlocreg, inWhichLocregP !,ikptsp
      integer,dimension(:),pointer:: onWhichMPI, isorb_par
@@ -433,8 +434,11 @@ module module_types
 !!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: linear_zone_descriptors
     integer :: nlr                                              !> Number of localization regions 
-    type(orbitals_data):: orbs                                  !> Global orbitals descriptors
+    integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
+    type(orbitals_data) :: orbs                                !> Global orbitals descriptors
+    type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
     type(communications_arrays) :: comms                        !> Global communication descriptors
+    type(communications_arrays) :: Lcomms                       !> Local communication arrays
     type(locreg_descriptors) :: Glr                             !> Global region descriptors
     type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)

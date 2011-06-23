@@ -732,7 +732,7 @@ END SUBROUTINE allocate_projd
 !!         
 !! SOURCE:
 !!
-subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
+subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorbs,projflg,psi,rxyz,hpsi,eproj)
 
   use module_base
   use module_types
@@ -748,13 +748,14 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,proj
   type(locreg_descriptors),intent(in) :: Llr
   type(nonlocal_psp_descriptors),intent(in) :: Lnlpspd  ! Local descriptors for the projectors
   type(orbitals_data),intent(in) :: orbs
+  type(orbitals_data),intent(in) :: Gorbs
   real(gp), intent(inout) :: eproj
   !#######################################
   ! Subroutine Array Arguments
   !#######################################
   integer,dimension(atoms%nat),intent(in) :: projflg
-  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(in) :: psi  !local wavefunction
-  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(inout):: hpsi ! local |p><p|Psi>
+  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norb),intent(in) :: psi  !local wavefunction
+  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norb),intent(inout):: hpsi ! local |p><p|Psi>
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !#######################################
   ! Local Variables 
@@ -765,25 +766,16 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,proj
   integer :: jj,orbtot,ispin,ind
   integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
-  real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,Llr%localnorb*nspin) :: psi_tmp
-  real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,Llr%localnorb*nspin) :: hpsi_tmp
+  real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,orbs%norb) :: psi_tmp
+  real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,orbs%norb) :: hpsi_tmp
   real(wp),dimension(Lnlpspd%nprojel):: Lproj  !local projectors
 
 !  First reshape the wavefunctions: psi_tmp(nels,norbs,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
 
-!  format the number of orbitals in this locreg orbitals
-   orbtot = 0
-   do iorb=1,orbs%norbp
-      if (orbs%inWhichLocreg(iorb) == ilr) then
-         orbtot = orbtot+1
-         inthisLocreg(orbtot) = iorb
-      end if
-   end do
-
    ! reshape the wavefunction
    ii=0
-   do iorb=1,Llr%Localnorb*nspin
+   do iorb=1,orbs%norb
        do ispinor=1,orbs%nspinor
            do iel=1,nels
                ii=ii+1
@@ -793,7 +785,7 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,proj
        end do
    end do
    
-   ieorb = orbtot   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
+   ieorb = orbs%norbp   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
    ikpt=orbs%iokpt(1)
    loop_kpt: do
       !features of the k-point ikpt
@@ -808,7 +800,7 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,proj
          ncplx=2
       end if
 
-      ieorb = orbs%norbp  !initialize value in case no atoms have projectors
+      ieorb = Gorbs%norbp  !initialize value in case no atoms have projectors
       jseg_c = 1
       iproj = 0
       iatom = 0
@@ -842,13 +834,13 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,proj
 
 !        Apply them on the wavefunctions in the overlap region
 !        hpsi contains the new wavefunctions
-         call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor) 
+         call orbs_in_kpt(ikpt,Gorbs,isorb,ieorb,nspinor) 
 
          do iorb=isorb,ieorb
-            do ii=1,orbtot
-               if (inthisLocreg(ii) == iorb) then   !using ii and iorb to identify the orbitals because in linear case, the ordering is different
-                                                    !orbitals are now orderer by locreg. So, iorb is the old numbering (i.e. in Global region)
-                                                    !while ii is it's numbering in the locreg.
+            do ii=1,orbs%norb
+               if (orbs%inWhichLocreg(ii) == iorb) then   !using ii and iorb to identify the orbitals because in linear case, the ordering is different
+                                                          !orbitals are now orderer by locreg. So, iorb is the old numbering (i.e. in Global region)
+                                                          !while ii is it's numbering in the locreg.
 
                   istart_o=1
                   do ispinor=1,nspinor,ncplx
@@ -871,7 +863,7 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,proj
                         enddo
                      enddo
                      eproj=eproj+&
-                          orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_spinor      
+                          orbs%kwgts(orbs%iokpt(ii))*orbs%occup(ii+orbs%isorb)*eproj_spinor      
                   end do
                end if
             end do
@@ -885,16 +877,16 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,proj
       hpsi = 0.0_wp
       do ispin = 1,nspin                 !is the order correct for spin and spinor?
          do ispinor=1,orbs%nspinor
-            do ii=1,Llr%localnorb
+            do ii=1,orbs%norb/orbs%nspin
                do jj=1,Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
-                  hpsi(ind+jj) = hpsi_tmp(jj,ispinor,ii+(ispin-1)*Llr%localnorb)
+                  hpsi(ind+jj) = hpsi_tmp(jj,ispinor,ii+(ispin-1)*orbs%norb/orbs%nspin)
                end do
                ind = ind + Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
             end do
          end do
       end do
       if (iproj /= Lnlpspd%nproj) stop 'incorrect number of projectors created'
-      if (ieorb == orbs%norbp) exit loop_kpt
+      if (ieorb == Gorbs%norbp) exit loop_kpt
       ikpt=ikpt+1
    end do loop_kpt
 

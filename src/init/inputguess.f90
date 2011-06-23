@@ -292,7 +292,7 @@ subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occu
   implicit none
   integer, intent(in) :: lmax,noccmax,nelecmax,nspin,nspinor
   real(gp), dimension(nelecmax), intent(in) :: elecorbs
-  integer, dimension(lmax), intent(out) :: nl
+  integer, dimension(lmax+1), intent(out) :: nl
   real(gp), dimension(noccmax,lmax), intent(out) :: occup
   !local variables
   integer :: l,iocc,noncoll,inl,ispin,icoll,m
@@ -304,7 +304,7 @@ subroutine count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,elecorbs,occu
      noncoll=1
   end if
   occup(1:noccmax,1:lmax)=0
-  nl(1:lmax)=0
+  nl(1:lmax+1)=0
 
   !calculate nl and the number of occupation numbers per orbital
   iocc=0
