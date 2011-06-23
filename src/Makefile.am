@@ -412,8 +412,6 @@ $(mod_bigdft) : BigDFT_API.o
 
 $(modules_objects) : $(mpi_include)
 
-modules/defs.o: modules/base.o
-
 #BigDFT.o: \
 #	base.o \
 #	interfaces.o

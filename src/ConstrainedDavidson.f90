@@ -1,3 +1,12 @@
+!> @file 
+!!   Routines to do diagonalisation (Davidson)
+!! @author
+!!   Copyright (C) 2010-2011 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+
 
 !> Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
 !!   under orthogonality constraints to occupied orbitals psi. The nvirt input
@@ -67,16 +76,14 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   character(len=*), parameter :: subname='davidson'
   logical :: msg,exctX,occorbs !extended output
   integer :: occnorb, occnorbu, occnorbd
-  integer :: offset_state,offset_energy,offset_state_VR
-  integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor,imin,itab
-  integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
+  integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor,imin
+  integer :: ise,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake,emin,diff_max,this_e
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
   real(wp), dimension(:), allocatable :: hv,g,hg,ew  !,Pv,Pg
   real(wp), dimension(:,:,:), allocatable :: e,eg,e_tmp,eg_tmp
   real(wp), dimension(:), pointer :: psiw,psirocc,pot
-  real(wp), dimension(:), allocatable :: P
   real(wp), dimension(:), allocatable :: ALPHAR,ALPHAI,BETA,VR,VL
   
   

@@ -1,19 +1,18 @@
-!!****f* BigDFT/sumrho
-!! FUNCTION
+!> @file 
 !!    Calculate the electronic density (rho)
-!! COPYRIGHT
-!!    Copyright (C) 2007-2010 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!! SOURCE
-!!
+!! @author
+!!   Copyright (C) 2007-2011 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+
+
+!> Calculates the charge density by summing the square of all orbitals
+!! Input: psi
+!! Output: rho
 subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
      nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
-  ! Calculates the charge density by summing the square of all orbitals
-  ! Input: psi
-  ! Output: rho
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
   use libxc_functionals
@@ -33,7 +32,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   real(dp), dimension(*), intent(in) :: phnons
   !Local variables
   character(len=*), parameter :: subname='sumrho'
-  logical :: rsflag
   integer :: nrhotot,n3d,itmred
   integer :: nspinn
   integer :: i1,i2,i3,i3off,i3s,i,ispin,jproc,i_all,i_stat,ierr,j3,j3p,j
@@ -46,7 +44,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   !integer :: ncount0,ncount1,ncount2,ncount3,ncountmpi0,ncountmpi1,ncount_max,ncount_rate
   real(gp),dimension(:,:),allocatable :: dprho_comp
   real(4) ,dimension(:,:),allocatable :: sprho_comp
-  logical,save :: firstcall=.true.
 
   call timing(iproc,'Rho_comput    ','ON')
 
@@ -316,7 +313,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,orbs%nspinor)), intent(inout) :: rho_p
   !local variables
   character(len=*), parameter :: subname='local_partial_density'
-  integer :: iorb,i_stat,i_all,ii,i1,i2,i3
+  integer :: iorb,i_stat,i_all
   integer :: oidx,sidx,nspinn,npsir,ncomplex
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
@@ -1031,7 +1028,7 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
   logical,intent(in) :: iprint
   type(rho_descriptors),intent(inout) :: rhodsc
   !local variable
-  integer :: i1,i2,i3,nseg,iseg,ispin,jrho,irho,i_stat,i_all,iat
+  integer :: i1,i2,i3,iseg,irho,i_stat,iat
   integer :: reg_c,reg_l
   integer(4),dimension(n1i*n2i*n3i) :: reg
   integer,dimension(n1i*n2i*n3i,2) :: dpkey,spkey
@@ -1039,9 +1036,9 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
   character(len=*), parameter :: subname='rhokey'
   integer :: nbx,nby,nbz,nl1,nl2,nl3
   real(gp) :: dpmult,dsq,dsq_cr,dsq_fr,spadd
-  integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax,&
-      i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax,imin,imax,&
-      i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,csegstot,fsegstot,corx,cory,corz
+  integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
+  integer :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
+  integer :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,csegstot,fsegstot,corx,cory,corz
   !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
 
   rhodsc%geocode=at%geocode
