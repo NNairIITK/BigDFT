@@ -435,13 +435,13 @@ character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(diis_objects):: diisLIN
 
-real(8),dimension(:,:),allocatable:: lagMult
-real(8),dimension(:,:,:),allocatable:: ovrlp
-integer:: jstart, jorb
+real(8),dimension(:),allocatable:: lphiovrlp
+real(8),dimension(:,:),allocatable:: lagMult, lovrlp
+real(8),dimension(:,:),allocatable:: ovrlp
+integer:: jstart, jorb, ist, jst
 
 allocate(lagMult(lin%orbs%norb,lin%orbs%norb), stat=istat)
 lagMult=1.d-1
-allocate(ovrlp(lin%orbs%norb,lin%orbs%norb,2), stat=istat)
 
 allocate(lagMatDiag(lin%orbs%norb), stat=istat)
 
@@ -472,6 +472,106 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
 
   ! Cut off outside localization region -- experimental
   call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+
+  !! THIS IS A TEST
+  !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  !!call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
+  !!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  if(iproc==5) call random_number(phi)
+  do iall=1,lin%orbs%npsidim
+      write(1900+iproc,*) iall, phi(iall)
+  end do
+  !! should call with lphi
+  allocate(lovrlp(maxval(lin%op%noverlaps),lin%orbs%norbp), stat=istat)
+  allocate(ovrlp(lin%orbs%norb,lin%orbs%norb), stat=istat)
+  do it=1,1
+      if(iproc==0) write(*,'(a,i0)') 'at it=',it
+      ! Transform the global phi to the local phi
+      ! This part will not be needed if we really have O(N)
+      ind1=1
+      ind2=1
+      do iorb=1,lin%orbs%norbp
+          ilr = lin%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          write(*,'(a,3i8)') 'iproc, iorb, ldim', iproc, iorb, ldim
+          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+      call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+      do iall=1,lin%lorbs%npsidim
+          write(2000+iproc,*) iall, lphi(iall)
+      end do
+      do iall=1,lin%comon%nsendBuf
+          write(3000+iproc,*) iall, lin%comon%sendBuf(iall)
+      end do
+      call postCommsOverlap(iproc, nproc, lin%comon)
+      call gatherOrbitals(iproc, nproc, lin%comon)
+      write(*,'(a,i3,4x,100i8)') 'iproc, lin%op%indexInRecvBuf', iproc, lin%op%indexInRecvBuf
+      do iall=1,lin%orbs%norbp
+          write(*,'(a,2i4,4x,100i8)') 'iproc, iall, lin%op%indexInSendBuf(iall,:)', iproc, iall, lin%op%indexInSendBuf(iall,:)
+      end do
+      do iall=1,lin%comon%nrecvBuf
+          write(4000+iproc,*) iall, lin%comon%recvBuf(iall)
+      end do
+      !call calculateOverlapMatrix(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, lovrlp)
+      call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, ovrlp)
+      call transformOverlapMatrix(iproc, nproc, lin%lzd%orbs, ovrlp)
+      do iorb=1,lin%orbs%norb
+        do jorb=1,lin%orbs%norb
+            write(550+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+        end do
+      end do
+      allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
+      call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+      do iall=1,lin%op%ndim_lphiovrlp
+          write(5000+iproc,*) iall, lphiovrlp(iall)
+      end do
+      call globalLoewdin(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, ovrlp, lphiovrlp, lphi)
+
+      ind1=1
+      ind2=1
+      phi=0.d0
+      do iorb=1,lin%orbs%norbp
+          ilr = lin%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+      do iall=1,lin%orbs%npsidim
+          write(7000+iproc,*) iall, phi(iall)
+      end do
+      call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+  end do
+  !!call localGramschmidt(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lovrlp, lphiovrlp, lphi)
+  !!do iall=1,lin%lorbs%npsidim
+  !!    write(6000+iproc,*) iall, lphi(iall)
+  !!end do
+
+  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  ovrlp=0.d0
+  nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+  ist=1
+  do iorb=1,lin%orbs%norb
+      jst=1
+      do jorb=1,lin%orbs%norb
+          ovrlp(iorb,jorb)=ddot(nvctrp, phi(ist), 1, phi(jst), 1)
+          jst=jst+nvctrp
+      end do
+      ist=ist+nvctrp
+  end do
+  call mpiallred(ovrlp(1,1), lin%orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+  do iorb=1,lin%orbs%norb
+      do jorb=1,lin%orbs%norb
+          if(iproc==0) write(*,'(a,2i5,es16.8)') 'iorb, jorb, ovrlp(iorb,jorb)', iorb, jorb, ovrlp(iorb,jorb)
+      end do
+  end do
+  
+  call mpi_barrier(mpi_comm_world, ierr)
+  stop
 
   ! Transpose phi
   call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
@@ -2500,7 +2600,7 @@ integer,intent(in):: iproc, nproc
 type(p2pCommsGatherPot),intent(inout):: comgp
 
 ! Local variables
-integer:: kproc, mpisource, mpidest, nfast, nslow, nsameproc, ierr, nreceives
+integer:: kproc, mpisource, mpidest, nfast, nslow, nsameproc, ierr
 integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
 
@@ -2518,7 +2618,7 @@ testLoop: do
         if(comgp%communComplete(kproc,iproc)) then
             !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
             mpisource=comgp%comarr(1,kproc,iproc)
-            mpidest=comgp%comarr(5,kproc,iproc)
+            mpidest=comgp%comarr(4,kproc,iproc)
             if(mpisource/=mpidest) then
                 nfast=nfast+1
             else
@@ -2533,7 +2633,6 @@ end do testLoop
 
 
 ! Wait for the communications that have not completed yet
-!do korb=1,nreceives
 nslow=0
 do kproc=1,comgp%noverlaps(iproc)
     if(comgp%communComplete(kproc,iproc)) cycle
@@ -2544,7 +2643,6 @@ do kproc=1,comgp%noverlaps(iproc)
     comgp%communComplete(kproc,iproc)=.true.
 end do
 
-call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)

@@ -2475,6 +2475,186 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),intent(out):: ehart, eexcu, vexcu
      end subroutine updatePotential
 
+     subroutine initCommsOrtho(iproc, nproc, lin)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(linearParameters),intent(inout):: lin
+     end subroutine initCommsOrtho
+     
+     subroutine getIndices(lr, is1, ie1, is2, ie2, is3, ie3)
+       use module_base
+       use module_types
+       implicit none
+       type(locreg_descriptors),intent(in):: lr
+       integer,intent(out):: is1, ie1, is2, ie2, is3, ie3
+     end subroutine getIndices
+     
+     subroutine countOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs
+       type(linear_zone_descriptors),intent(in):: lzd
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(overlapParameters),intent(out):: op
+       type(p2pCommsOrthonormality),intent(out):: comon
+     end subroutine countOverlaps
+     
+     subroutine determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtom, op, comon)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs
+       type(linear_zone_descriptors),intent(in):: lzd
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(overlapParameters),intent(out):: op
+       type(p2pCommsOrthonormality),intent(out):: comon
+     end subroutine determineOverlaps
+     
+     subroutine determineOverlapDescriptors(iproc, nproc, orbs, lzd, Glr, onWhichAtom, op)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(locreg_descriptors),intent(in):: Glr
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(overlapParameters),intent(inout):: op
+     end subroutine determineOverlapDescriptors
+     
+     subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(overlapParameters),intent(inout):: op
+       type(p2pCommsOrthonormality),intent(out):: comon
+     end subroutine setCommsOrtho
+     
+     subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: mpisource, mpidest, istsource, istdest, ncount, tag
+       integer,dimension(8),intent(out):: comarr
+     end subroutine setCommsParameters
+     
+     
+     subroutine postCommsOverlap(iproc, nproc, comon)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(p2pCommsOrthonormality),intent(inout):: comon
+     end subroutine postCommsOverlap
+     
+     
+     subroutine extractOrbital(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, phi, comon)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs, lorbs
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(overlapParameters),intent(inout):: op
+       real(8),dimension(lorbs%npsidim),intent(in):: phi
+       type(p2pCommsOrthonormality),intent(out):: comon
+     end subroutine extractOrbital
+     
+     subroutine gatherOrbitals(iproc, nproc, comon)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(p2pCommsOrthonormality),intent(inout):: comon
+     end subroutine gatherOrbitals
+     
+     subroutine calculateOverlapMatrix(iproc, nproc, orbs, op, comon, onWhichAtom, lovrlp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs
+       type(overlapParameters),intent(in):: op
+       type(p2pCommsOrthonormality),intent(inout):: comon
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       real(8),dimension(maxval(op%noverlaps),orbs%norbp),intent(out):: lovrlp
+     end subroutine calculateOverlapMatrix
+     
+     
+     subroutine calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtom, ovrlp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs
+       type(overlapParameters),intent(in):: op
+       type(p2pCommsOrthonormality),intent(inout):: comon
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+     end subroutine calculateOverlapMatrix2
+     
+     subroutine transformOverlapMatrix(iproc, nproc, orbs, ovrlp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs
+       real(8),dimension(orbs%norb,orbs%norb),intent(inout):: ovrlp
+     end subroutine transformOverlapMatrix
+     
+     subroutine expandOrbital(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon, lphiovrlp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs
+       type(input_variables),intent(in):: input
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(overlapParameters),intent(in):: op
+       type(p2pCommsOrthonormality),intent(in):: comon
+       real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+     end subroutine expandOrbital
+     
+     subroutine localGramschmidt(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, comon, lovrlp, lphiovrlp, lphi)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs, lorbs
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(overlapParameters),intent(in):: op
+       type(p2pCommsOrthonormality),intent(in):: comon
+       real(8),dimension(maxval(op%noverlaps),orbs%norbp),intent(in):: lovrlp
+       real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
+       real(8),dimension(lorbs%npsidim),intent(inout):: lphi
+     end subroutine localGramschmidt
+     
+     
+     subroutine globalLoewdin(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, ovrlp, lphiovrlp, lphi)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs, lorbs
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(overlapParameters),intent(in):: op
+       real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
+       real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
+       real(8),dimension(lorbs%npsidim),intent(out):: lphi
+     end subroutine globalLoewdin
 
 
 

@@ -970,7 +970,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   call memocc(i_stat,orbs%ikptproc,'orbs%ikptproc',subname)
 
 
-  ! Define to new arrays:
+  ! Define two new arrays:
   ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
   !   the reference orbital of each other process.
   ! - orbs%onWhichMPI indicates on which MPI process a given orbital

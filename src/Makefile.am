@@ -239,6 +239,7 @@ low_level = init/projectors.f90  \
         linear/sumrhoLinear.f90 \
 	linear/inputguessLinear.f90 \
         linear/psitolocReg.f90 \
+        linear/orthonormality.f90 \
 	$(DGEMMSY_INTERFACE)  
 
 libbigdft_a_SOURCES = \

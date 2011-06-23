@@ -165,6 +165,9 @@ end do
 !call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%onWhichAtomAll)
 
+! Initialize the parameters for the communication for the orthonormalization.
+call initCommsOrtho(iproc, nproc, lin)
+
 ! Deallocate all local arrays.
 iall=-product(shape(atomNames))*kind(atomNames)
 deallocate(atomNames, stat=istat)
