@@ -1443,6 +1443,9 @@ subroutine deallocate_atoms_scf(atoms,subname)
   i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
   deallocate(atoms%nlccpar,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%nlccpar',subname)
+  i_all=-product(shape(atoms%ig_nlccpar))*kind(atoms%ig_nlccpar)
+  deallocate(atoms%ig_nlccpar,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%ig_nlccpar',subname)
 
 END SUBROUTINE deallocate_atoms_scf
 

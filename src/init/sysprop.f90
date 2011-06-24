@@ -206,6 +206,8 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
   allocate(atoms%nlcc_ngc(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
+  allocate(atoms%ig_nlccpar(0:4,atoms%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%ig_nlccpar,'atoms%ig_nlccpar',subname)
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -371,7 +373,9 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         end if
         nlcc_dim=nlcc_dim+(ngv*(ngv+1)/2)
         do ig=1,(ngv*(ngv+1))/2
-           read(79,*) !jump the suitable lines
+           do j=0,4
+              read(79,*) !jump the suitable lines (the file is organised with one element per line)
+           end do
         end do
         read(79,*)ngc
         if (ngc==0) then
@@ -380,11 +384,28 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
            atoms%nlcc_ngc(ityp)=ngc
         end if
         nlcc_dim=nlcc_dim+(ngc*(ngc+1))/2
-        !no need to go firther for the moment
+!!$        !better to read values in a fake array
+!!$        do ig=1,(ngc*(ngc+1))/2
+!!$           do j=0,4
+!!$              read(79,*) !jump the suitable lines (the file is organised with one element per line)
+!!$           end do
+!!$        end do
+        do j=0,4
+           atoms%ig_nlccpar(j,ityp)=UNINITIALIZED(1.0_gp)
+        end do
+
+!!$        read(79,*)
+!!$        read(79,*)
+!!$        read(79,*,iostat=i_stat)rcore2,gcore !SONO ARRIVATO QUI DEVO AGGIUNGERE LA LETTURA CON ISTAT
+!!$
+        !no need to go further for the moment
         close(unit=79)
      else
         atoms%nlcc_ngv(ityp)=UNINITIALIZED(1)
         atoms%nlcc_ngc(ityp)=UNINITIALIZED(1)
+        do j=0,4
+           atoms%ig_nlccpar(j,ityp)=UNINITIALIZED(1.0_gp)
+        end do
      end if
   enddo
 
