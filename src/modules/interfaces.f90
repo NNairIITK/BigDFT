@@ -2657,6 +2657,17 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine globalLoewdin
 
 
+     subroutine orthonormalizeLocalized(iproc, nproc, lin, input, lphi)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(linearParameters),intent(inout):: lin
+       type(input_variables),intent(in):: input
+       real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
+     end subroutine orthonormalizeLocalized
+
+
 
   end interface
 
