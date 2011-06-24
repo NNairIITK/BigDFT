@@ -351,7 +351,7 @@ dnl Use ETSF_IO
 ac_use_etsfio=no
 AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
 AC_ARG_WITH(etsf-io-path, AS_HELP_STRING([--with-etsf-io-path], [Give the path of the ETSF_IO installation (default = /usr).]),
-            ac_etsfio_dir=$withval, ac_etsfio_dir=)
+            ac_etsfio_dir=$withval, ac_etsfio_dir="/usr")
 AC_ARG_WITH(netcdf-path, AS_HELP_STRING([--with-netcdf-path], [Give the path to NetCDF (required by ETSF_IO) (default = /usr).]),
             ac_netcdf_dir=$withval, ac_netcdf_dir=)
 AC_ARG_WITH(netcdf-libs, AS_HELP_STRING([--with-netcdf-libs], [Give the library to link with NetCDF (required by ETSF_IO) (default = -lnetcdff -lnetcdf).]),
@@ -394,21 +394,23 @@ end]], ac_use_etsfio=yes, ac_use_etsfio=no)
       fi
       AC_SUBST(LIBETSFIO_INCLUDE, $ac_etsfio_incs)
       LIBETSFIO_LIBS="-letsf_io $ac_netcdf_libs"
+   else
+      ac_use_etsfio="warn"
    fi
 fi
 AM_CONDITIONAL(HAVE_ETSF_IO, test "$ac_use_etsfio" = "yes")
 
 dnl Archive input file support
-ac_archives="yes"
+ac_use_archive="yes"
 AC_ARG_WITH([archives],
             AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
-            [ac_archives=$withval], [ac_archives=yes])
-if test x"$ac_archives" != x"no" ; then
+            [ac_use_archive=$withval], [ac_use_archive=yes])
+if test x"$ac_use_archive" != x"no" ; then
    PKG_CHECK_MODULES([LIB_ARCHIVE],
                      [libarchive >= 2.4],
-                     [ac_archives=yes],
-                     [ac_archives=warn])
-   if test x"$ac_archives" = x"yes" ; then
+                     [ac_use_archive=yes],
+                     [ac_use_archive=warn])
+   if test x"$ac_use_archive" = x"yes" ; then
       AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
       AC_LANG_PUSH(C)
       AC_CHECK_FUNCS([strndup])
@@ -417,7 +419,7 @@ if test x"$ac_archives" != x"no" ; then
       AC_MSG_WARN([libarchive is not available])
    fi
 fi
-AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_archives" = x"yes")
+AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
 AC_SUBST(LIB_ARCHIVE_CFLAGS)
 AC_SUBST(LIB_ARCHIVE_LIBS)
 
@@ -639,7 +641,7 @@ fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Agregate all the optional libs.
-LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS"
+LIBS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIBS $LIB_ARCHIVE_LIBS"
 
 
 dnl Test for the documentation.
@@ -761,7 +763,7 @@ Options:
    | include dir.:           $LIBSGPU_INCLUDE
   With ETSF_IO:              $ac_use_etsfio
    | include dir.:           $LIBETSFIO_INCLUDE
-  With libarchive:           $ac_archives
+  With libarchive:           $ac_use_archive
    | C flags:                $LIB_ARCHIVE_CFLAGS
    | linked libraries:       $LIB_ARCHIVE_LIBS
 
@@ -775,15 +777,19 @@ Installation paths:
   Documentation:             $docdir
 "
 
-if test x"$ac_use_mpi" = x"warn" -o x"$ac_archives" = x"warn" ; then
+if test x"$ac_use_mpi" = x"warn" -o x"$ac_use_archive" = x"warn" -o x"$ac_use_etsfio" = x"warn" ; then
   echo -n "Warnings:"
   if test x"$ac_use_mpi" = x"warn" ; then
     echo -n "
   MPI:                       disabled by tests"
   fi
-  if test x"$ac_archives" = x"warn" ; then
+  if test x"$ac_use_archive" = x"warn" ; then
     echo -n "
   libarchive:                disabled by tests"
+  fi
+  if test x"$ac_use_etsfio" = x"warn" ; then
+    echo -n "
+  ETSF_IO:                   disabled by tests"
   fi
   echo
 fi
