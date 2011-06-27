@@ -1258,8 +1258,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !refill projectors for tails, davidson
      refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
 
-     call calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s+i3xcsh,n3p,refill_proj,&
-          rho,pot,psi,fion,fdisp,fxyz,fnoise)
+     call calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s+i3xcsh,n3p,in%nspin,refill_proj,&
+          rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise)
 
      i_all=-product(shape(rho))*kind(rho)
      deallocate(rho,stat=i_stat)

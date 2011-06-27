@@ -77,13 +77,17 @@ module module_defs
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass
 
   !> Code constants.
-  real(gp), parameter :: UNINITIALISED = -123456789._gp
+  !real(gp), parameter :: UNINITIALISED = -123456789._gp
 
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
      module procedure mpiallred_int,mpiallred_real,mpiallred_double,mpiallred_log
   end interface
 
+  !interface for uninitialized variable
+  interface UNINITIALIZED
+     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real
+  end interface
 
   !> interfaces for LAPACK routines
   interface potrf
@@ -294,6 +298,28 @@ module module_defs
       if (ierr /=0) stop 'MPIALLRED_LOG'
 
     end subroutine mpiallred_log
+
+    function uninitialized_int(one)
+      implicit none
+      integer, intent(in) :: one
+      integer :: uninitialized_int
+      uninitialized_int=-123456789
+    end function uninitialized_int
+
+    function uninitialized_real(one)
+      implicit none
+      real(kind=4), intent(in) :: one
+      real(kind=4) :: uninitialized_real
+      uninitialized_real=-123456789.e0
+    end function uninitialized_real
+
+    function uninitialized_dbl(one)
+      implicit none
+      real(kind=8), intent(in) :: one
+      real(kind=8) :: uninitialized_dbl
+      
+      uninitialized_dbl=-123456789.d0
+    end function uninitialized_dbl
 
 
     !> Interfaces for LAPACK routines
