@@ -427,18 +427,19 @@ real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2, 
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
 integer:: istat, istart, ierr, ii, it, nbasisPerAtForDebug, ncong, iall, nvctrp, nit, ind1, ind2
 integer:: ldim, gdim, ilr
-real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, lagMatDiag, alphaDIIS, lphi, lhphi
+real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, lagMatDiag, alphaDIIS, lphi, lhphi, lhphiold
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 real(8),dimension(:),pointer:: phiWork
 logical:: quiet, allowDIIS, startWithSD, adapt, withConfinement
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(diis_objects):: diisLIN
+type(localizedDIISParameters):: ldiis
 
 real(8),dimension(:),allocatable:: lphiovrlp
 real(8),dimension(:,:),allocatable:: lagMult, lovrlp
 real(8),dimension(:,:),allocatable:: ovrlp
-integer:: jstart, jorb, ist, jst
+integer:: jstart, jorb, ist, jst, i, ncount
 
 allocate(lagMult(lin%orbs%norb,lin%orbs%norb), stat=istat)
 lagMult=1.d-1
@@ -524,8 +525,8 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   !!!call mpi_barrier(mpi_comm_world, ierr)
   !!!stop
 
-  ! Transpose phi
-  call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  !!! Transpose phi
+  !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
 
   if(itSCC==1) then
       nit=lin%nItBasisFirst
@@ -536,6 +537,33 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   ! Gather the potential
   call gatherPotential(iproc, nproc, lin%comgp)
 
+  !! TRY THIS
+  ldiis%isx=10
+  ldiis%is=0
+  allocate(ldiis%mat(ldiis%isx,ldiis%isx,lin%orbs%norbp), stat=istat)
+  ii=0
+  do iorb=1,lin%orbs%norbp
+      ilr=lin%onWhichAtom(iorb)
+      ii=ii+ldiis%isx*(lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f)
+  end do
+  allocate(ldiis%phiHist(ii), stat=istat)
+  allocate(ldiis%hphiHist(ii), stat=istat)
+
+  ! THIS IS NEW
+  ! Transform the global phi to the local phi
+  ! This part will not be needed if we really have O(N)
+  ind1=1
+  ind2=1
+  do iorb=1,lin%orbs%norbp
+      ilr = lin%onWhichAtom(iorb)
+      ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      !write(*,'(a,3i8)') 'iproc, iorb, ldim', iproc, iorb, ldim
+      call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+  end do
+
   iterLoop: do it=1,nit
       fnrmMax=0.d0
       fnrm=0.d0
@@ -544,164 +572,51 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
           write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
       endif
 
-      !!! Cut off outside localization region -- experimental
-      !!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-      !!call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
-      !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
   
       ! Orthonormalize the orbitals.
       if(iproc==0) then
           write(*,'(x,a)', advance='no') 'Orthonormalization... '
       end if
-      !!call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
-
-      ! Untranspose phi
-      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-
-      ! THIS IS NEW
-      ! Transform the global phi to the local phi
-      ! This part will not be needed if we really have O(N)
-      ind1=1
-      ind2=1
-      do iorb=1,lin%orbs%norbp
-          ilr = lin%onWhichAtom(iorb)
-          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          !write(*,'(a,3i8)') 'iproc, iorb, ldim', iproc, iorb, ldim
-          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      end do
       call orthonormalizeLocalized(iproc, nproc, lin, input, lphi)
-      ind1=1
-      ind2=1
-      phi=0.d0
-      do iorb=1,lin%orbs%norbp
-          ilr = lin%onWhichAtom(iorb)
-          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
-          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      end do
-  
   
       ! Calculate the unconstrained gradient.
       if(iproc==0) then
           write(*,'(a)', advance='no') 'Hamiltonian application... '
       end if
-
-      !!!! THIS IS THE ORIGINAL
-      !!call HamiltonianApplicationConfinement(iproc,nproc,at,lin%orbs,lin,input%hx,input%hy,input%hz,rxyz,&
-      !!     nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
-      !!     rhopot(1),&
-      !!     phi(1),hphi(1),ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU, rxyzParabola, lin%onWhichAtom, pkernel=pkernelseq)
-
-      ! Transform the global phi to the local phi
-      ! This part will not be needed if we really have O(N)
-      ind1=1
-      ind2=1
-      do iorb=1,lin%orbs%norbp
-          ilr = lin%onWhichAtom(iorb)
-          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      end do
       withConfinement=.true.
-if(it==1) then
-    do iall=1,size(lin%comgp%recvBuf)
-        !write(8000+iproc,*) iall, lin%comgp%recvBuf(iall)
-    end do
-end if
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, &
            pkernel=pkernelseq)
-      !!ind1=1
-      !!ind2=1
-      !!hphi=0.d0
-      !!do iorb=1,lin%orbs%norbp
-      !!    ilr = lin%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
-!!write(*,'(a,i5,2es16.7)') 'iproc, ekin_sum, epot_sum', iproc, ekin_sum, epot_sum
-!!do iorb=1,lin%orbs%npsidim
-!!  write(30000+iproc*1000,*) iorb, hphi(iorb)
-!!end do
-!!call mpi_barrier(mpi_comm_world, ierr)
-!!stop
-!!! Plot the gradients
-!!call plotOrbitals(iproc, lin%orbs, Glr, hphi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-!!    .5d0*input%hy, .5d0*input%hz, 500+it)
-  
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
           write(*,'(a)', advance='no') 'orthoconstraint... '
       end if
-    
-      !! THIS IS NEW
-      !!! Transform the global phi to the local phi
-      !!! This part will not be needed if we really have O(N)
-      !!ind1=1
-      !!ind2=1
-      !!do iorb=1,lin%orbs%norbp
-      !!    ilr = lin%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, hphi(ind1), lhphi(ind2))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
       call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
-      ind1=1
-      ind2=1
-      hphi=0.d0
-      do iorb=1,lin%orbs%norbp
-          ilr = lin%onWhichAtom(iorb)
-          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
-          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      end do
-
-
-      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
-      call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-      !call orthoconstraintNotSymmetric(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, hphi, trH, lagMatDiag)
-  
   
       ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
       ! of the previous iteration (fnrmOvrlpArr).
-      nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
       istart=1
-      do iorb=1,lin%orbs%norb
-          if(it>1) fnrmOvrlpArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphiold(istart), 1)
-          fnrmArr(iorb,2)=ddot(nvctrp*orbs%nspinor, hphi(istart), 1, hphi(istart), 1)
-          istart=istart+nvctrp*orbs%nspinor
+      do iorb=1,lin%orbs%norbp
+          ilr=lin%onWhichAtom(iorb)
+          ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+          if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
+          fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
+          istart=istart+ncount
       end do
-      !in case mpiallred is used
-      !call mpiallred(fnrmArr(1,1),lin%orbs%norb,mpi_sum,mpi_comm_world, ierr) 
-      call mpi_allreduce(fnrmArr(1,2), fnrmArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-      call mpi_allreduce(fnrmOvrlpArr(1,2), fnrmOvrlpArr(1,1), lin%orbs%norb, mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-  
+
       ! Keep the gradient for the next iteration.
       if(it>1) then
-          call dcopy(lin%orbs%norb, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
+          call dcopy(lin%orbs%norbp, fnrmArr(1,1), 1, fnrmOldArr(1), 1)
       end if
   
       ! Determine the gradient norm and its maximal component. In addition, adapt the
       ! step size for the steepest descent minimization (depending on the angle 
       ! between the current gradient and the one from the previous iteration).
       ! This is of course only necessary if we are using steepest descent and not DIIS.
-      do iorb=1,lin%orbs%norb
+      !do iorb=1,lin%orbs%norb
+      do iorb=1,lin%orbs%norbp
           fnrm=fnrm+fnrmArr(iorb,1)
           if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
           if(it>1 .and. diisLIN%idsx==0 .and. .not.diisLIN%switchSD) then
@@ -715,14 +630,12 @@ end if
               end if
           end if
       end do
+      call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
+      call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
       fnrm=sqrt(fnrm)
       fnrmMax=sqrt(fnrmMax)
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
-      call dcopy(lin%orbs%norb*nvctrp*orbs%nspinor, hphi(1), 1, hphiold(1), 1)
-  
-      ! Untranspose hphi.
-      call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
-
+      call dcopy(lin%lorbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
   
       ! Adapt the preconditioning constant
       if(fnrmMax<1.d-9) then
@@ -742,9 +655,6 @@ end if
       end if
       gnrm=1.d3 ; gnrm_zero=1.d3
       call cpu_time(t1)
-      !!!! THIS IS THE ORIGINAL
-      !!call choosePreconditioner(iproc, nproc, lin%orbs, lin, Glr, input%hx, input%hy, input%hz, &
-      !!    lin%nItPrecond, hphi, at%nat, rxyz, at, it)
 
       evalmax=lin%orbs%eval(lin%orbs%isorb+1)
       do iorb=1,lin%orbs%norbp
@@ -753,20 +663,11 @@ end if
       call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
            MPI_MAX,MPI_COMM_WORLD,ierr)
 
-      ! Transform the global phi to the local phi
-      ! This part will not be needed if we really have O(N)
-      ind1=1
       ind2=1
       do iorb=1,lin%orbs%norbp
           ilr = lin%onWhichAtom(iorb)
-          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, hphi(ind1), lhphi(ind2))
           call choosePreconditioner2(iproc, nproc, lin%orbs, lin, lin%Llr(ilr), input%hx, input%hy, input%hz, &
               lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, it, iorb, eval_zero)
-          call razero(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, hphi(ind1))
-          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
-          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
           ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
       end do
       call cpu_time(t2)
@@ -774,11 +675,6 @@ end if
       call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
       if(iproc==0) write(*,'(x,a,es10.3)') 'time for preconditioning:', time/dble(nproc)
 
-!!do iorb=1,lin%orbs%npsidim
-!!  write(40000+iproc*1000,*) iorb, hphi(iorb)
-!!end do
-!!call mpi_barrier(mpi_comm_world, ierr)
-!!stop
 
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)
@@ -801,7 +697,17 @@ end if
               infoBasisFunctions=it
           end if
           if(iproc==0) write(*,'(x,a)') '============================= Basis functions created. ============================='
-          call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+          ind1=1
+          ind2=1
+          phi=0.d0
+          do iorb=1,lin%orbs%norbp
+              ilr = lin%onWhichAtom(iorb)
+              ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+              gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+              call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
+              ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+              ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          end do
           if(lin%plotBasisFunctions) then
               call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
                   .5d0*input%hy, .5d0*input%hz, 1)
@@ -825,10 +731,21 @@ end if
               ', consecutive successes=', icountSDSatur, ', DIIS=', message
           end if
       end if
-      if(.not. diisLIN%switchSD) call improveOrbitals()
-  
+
+
+      !!!ldiis%mis=mod(ldiis%is,ldiis%isx)+1
+      !!!ldiis%is=ldiis%is+1
+      !!!if(iproc==0) write(*,'(a,2i8)') 'ldiis%is, ldiis%mis', ldiis%is, ldiis%mis
+      !!!call mpi_barrier(mpi_comm_world, ierr)
+
+      !call dscal(lin%lorbs%npsidim, 100.d0, lhphi(1), 1)
+      !call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%lzd, lin%onWhichAtom, lhphi, lphi, ldiis, it)
+      call improveOrbitals()
+
+
      ! Flush the standard output
       call flush(6) 
+
   end do iterLoop
 
   ! Store the mean alpha.
@@ -981,33 +898,51 @@ contains
     ! ========
     !   This subroutine improves the basis functions by following the gradient 
     ! For DIIS 
-    if (diisLIN%idsx > 0) then
-       diisLIN%mids=mod(diisLIN%ids,diisLIN%idsx)+1
-       diisLIN%ids=diisLIN%ids+1
+    !!if (diisLIN%idsx > 0) then
+    !!   diisLIN%mids=mod(diisLIN%ids,diisLIN%idsx)+1
+    !!   diisLIN%ids=diisLIN%ids+1
+    !!end if
+    if (ldiis%isx > 0) then
+        ldiis%mis=mod(ldiis%is,ldiis%isx)+1
+        ldiis%is=ldiis%is+1
     end if
 
     ! Follow the gradient using steepest descent.
     ! The same, but transposed
-    call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
+    !call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, hphi, work=phiWork)
     
     ! steepest descent
-    if(diisLIN%idsx==0) then
+    if(ldiis%isx==0) then
+        !!istart=1
+        !!nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+        !!do iorb=1,lin%orbs%norb
+        !!    call daxpy(nvctrp*orbs%nspinor, -alpha(iorb), hphi(istart), 1, phi(istart), 1)
+        !!    istart=istart+nvctrp*orbs%nspinor
+        !!end do
         istart=1
-        nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
-        do iorb=1,lin%orbs%norb
-            call daxpy(nvctrp*orbs%nspinor, -alpha(iorb), hphi(istart), 1, phi(istart), 1)
-            istart=istart+nvctrp*orbs%nspinor
+        do iorb=1,lin%orbs%norbp
+            ilr=lin%onWhichAtom(iorb)
+            ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+            call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, lphi(istart), 1)
+            istart=istart+ncount
         end do
     else
-        ! DIIS
-        quiet=.true. ! less output
-        istart=1
-        nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
-        do iorb=1,lin%orbs%norb
-            call dscal(nvctrp, alphaDIIS(iorb), hphi(istart), 1)
-            istart=istart+nvctrp*orbs%nspinor
-        end do
-        call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, hphi, phi, quiet)
+        !!! DIIS
+        !!!quiet=.true. ! less output
+        !!quiet=.false. ! more output
+        !!istart=1
+        !!nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+        !!do iorb=1,lin%orbs%norb
+        !!    call dscal(nvctrp, alphaDIIS(iorb), hphi(istart), 1)
+        !!    istart=istart+nvctrp*orbs%nspinor
+        !!end do
+        !!call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, hphi, phi, quiet)
+
+
+        if(iproc==0) write(*,'(a,2i8)') 'ldiis%is, ldiis%mis', ldiis%is, ldiis%mis
+
+        !call dscal(lin%lorbs%npsidim, 100.d0, lhphi(1), 1)
+        call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%lzd, lin%onWhichAtom, lhphi, lphi, ldiis, it)
     end if
     end subroutine improveOrbitals
 
@@ -1049,6 +984,8 @@ contains
       allocate(lhphi(lin%Lorbs%npsidim), stat=istat)
       call memocc(istat, lhphi, 'lhphi', subname)
     
+      allocate(lhphiold(lin%Lorbs%npsidim), stat=istat)
+      call memocc(istat, lhphiold, 'lhphiold', subname)
 
     end subroutine allocateLocalArrays
 
@@ -1099,6 +1036,10 @@ contains
       iall=-product(shape(lhphi))*kind(lhphi)
       deallocate(lhphi, stat=istat)
       call memocc(istat, iall, 'lhphi', subname)
+
+      iall=-product(shape(lhphiold))*kind(lhphiold)
+      deallocate(lhphiold, stat=istat)
+      call memocc(istat, iall, 'lhphiold', subname)
       
       ! if diisLIN%idsx==0, these arrays have already been deallocated
       if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN,subname)

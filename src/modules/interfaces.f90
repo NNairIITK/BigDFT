@@ -2667,6 +2667,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
      end subroutine orthonormalizeLocalized
 
+     subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, onWhichAtom, hphi, phi, ldiis, it)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, it
+       type(orbitals_data),intent(in):: orbs, lorbs
+       type(linear_zone_descriptors),intent(in):: lzd
+       integer,dimension(orbs%norbp),intent(in):: onWhichAtom
+       real(8),dimension(lorbs%npsidim),intent(in):: hphi
+       real(8),dimension(lorbs%npsidim),intent(inout):: phi
+       type(localizedDIISParameters),intent(inout):: ldiis
+     end subroutine optimizeDIIS
+
+
 
 
   end interface

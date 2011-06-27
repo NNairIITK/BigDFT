@@ -454,6 +454,12 @@ end type largeBasis
     integer,dimension(:),pointer:: norb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
   end type inguessParameters
 
+  type,public:: localizedDIISParameters
+    integer:: is, isx, mis
+    real(8),dimension(:),pointer:: phiHist, hphiHist
+    real(8),dimension(:,:,:),pointer:: mat
+  end type localizedDIISParameters
+
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG

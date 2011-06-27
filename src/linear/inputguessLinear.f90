@@ -170,7 +170,7 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
 
   !call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, locrad)
   call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
-   allocate(lchi(lzdig%orbs%npsidim+ndebug),stat=i_stat)
+  allocate(lchi(lzdig%orbs%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,chi,'lchi',subname)
   allocate(lhchi(lzdig%orbs%npsidim,at%nat),stat=i_stat)
   call memocc(i_stat,lhchi,'lhchi',subname)
