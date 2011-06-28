@@ -439,7 +439,7 @@ type(localizedDIISParameters):: ldiis
 real(8),dimension(:),allocatable:: lphiovrlp
 real(8),dimension(:,:),allocatable:: lagMult, lovrlp
 real(8),dimension(:,:),allocatable:: ovrlp
-integer:: jstart, jorb, ist, jst, i, ncount
+integer:: jstart, jorb, ist, jst, i, ncount, offset, istsource, istdest
 
 allocate(lagMult(lin%orbs%norb,lin%orbs%norb), stat=istat)
 lagMult=1.d-1
@@ -470,6 +470,8 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   alpha=lin%alphaSD
   alphaDIIS=lin%alphaDIIS
   adapt=.false.
+
+  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%onWhichAtom, ldiis)
 
   ! Cut off outside localization region -- experimental
   call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
@@ -537,17 +539,6 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   ! Gather the potential
   call gatherPotential(iproc, nproc, lin%comgp)
 
-  !! TRY THIS
-  ldiis%isx=10
-  ldiis%is=0
-  allocate(ldiis%mat(ldiis%isx,ldiis%isx,lin%orbs%norbp), stat=istat)
-  ii=0
-  do iorb=1,lin%orbs%norbp
-      ilr=lin%onWhichAtom(iorb)
-      ii=ii+ldiis%isx*(lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f)
-  end do
-  allocate(ldiis%phiHist(ii), stat=istat)
-  allocate(ldiis%hphiHist(ii), stat=istat)
 
   ! THIS IS NEW
   ! Transform the global phi to the local phi
@@ -577,7 +568,12 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
       if(iproc==0) then
           write(*,'(x,a)', advance='no') 'Orthonormalization... '
       end if
+      call cpu_time(t1)
       call orthonormalizeLocalized(iproc, nproc, lin, input, lphi)
+      call cpu_time(t2)
+      time=t2-t1
+      call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+      if(iproc==0) write(*,'(x,a,es10.3)') 'time for orthonormalization:', time/dble(nproc)
   
       ! Calculate the unconstrained gradient.
       if(iproc==0) then
@@ -718,8 +714,11 @@ allocate(lagMatDiag(lin%orbs%norb), stat=istat)
   
       call DIISorSD()
       if(iproc==0) then
-          if(diisLIN%idsx>0) then
-              write(*,'(x,3(a,i0))') 'DIIS informations: history length=',diisLIN%idsx, ', consecutive failures=', &
+          !if(diisLIN%idsx>0) then
+          if(ldiis%isx>0) then
+              !write(*,'(x,3(a,i0))') 'DIIS informations: history length=',diisLIN%idsx, ', consecutive failures=', &
+              !    icountDIISFailureCons, ', total failures=', icountDIISFailureTot
+              write(*,'(x,3(a,i0))') 'DIIS informations: history length=',ldiis%isx, ', consecutive failures=', &
                   icountDIISFailureCons, ', total failures=', icountDIISFailureTot
           else
               if(allowDIIS) then
@@ -811,24 +810,33 @@ contains
 
       ! Switch to SD if the flag indicating that we should start with SD is true.
       ! If this is the case, this flag is set to false, since this flag concerns only the beginning.
-      if(startWithSD .and. diisLIN%idsx>0) then
-          call deallocate_diis_objects(diisLIN, subname)
-          diisLIN%idsx=0
-          diisLIN%switchSD=.false.
+      !if(startWithSD .and. diisLIN%idsx>0) then
+      if(startWithSD .and. ldiis%isx>0) then
+          !call deallocate_diis_objects(diisLIN, subname)
+          call deallocateDIIS(ldiis)
+          !!diisLIN%idsx=0
+          !!diisLIN%switchSD=.false.
+          ldiis%isx=0
+          ldiis%switchSD=.false.
           startWithSD=.false.
       end if
 
       ! Decide whether we should switch from DIIS to SD in case we are using DIIS and it 
       ! is not allowed.
-      if(.not.startWithSD .and. .not.allowDIIS .and. diisLIN%idsx>0) then
+      !if(.not.startWithSD .and. .not.allowDIIS .and. diisLIN%idsx>0) then
+      if(.not.startWithSD .and. .not.allowDIIS .and. ldiis%isx>0) then
           if(iproc==0) write(*,'(x,a,es10.3)') 'The force is too large, switch to SD with stepsize', alpha(1)
-          call deallocate_diis_objects(diisLIN, subname)
-          diisLIN%idsx=0
-          diisLIN%switchSD=.true.
+          !call deallocate_diis_objects(diisLIN, subname)
+          call deallocateDIIS(ldiis)
+          !diisLIN%idsx=0
+          !diisLIN%switchSD=.true.
+          ldiis%isx=0
+          ldiis%switchSD=.true.
       end if
 
       ! If we swicthed to SD in the previous iteration, reset this flag.
-      if(diisLIN%switchSD) diisLIN%switchSD=.false.
+      !if(diisLIN%switchSD) diisLIN%switchSD=.false.
+      if(ldiis%switchSD) ldiis%switchSD=.false.
 
       ! Now come some checks whether the trace is descreasing or not. This further decides
       ! whether we should use DIIS or SD.
@@ -836,22 +844,27 @@ contains
       ! Determine wheter the trace is decreasing (as it should) or increasing.
       ! This is done by comparing the current value with diisLIN%energy_min, which is
       ! the minimal value of the trace so far.
-      if(trH<=diisLIN%energy_min) then
+      !if(trH<=diisLIN%energy_min) then
+      if(trH<=ldiis%trmin) then
           ! Everything ok
-          diisLIN%energy_min=trH
-          diisLIN%switchSD=.false.
+          !diisLIN%energy_min=trH
+          !diisLIN%switchSD=.false.
+          ldiis%trmin=trH
+          ldiis%switchSD=.false.
           itBest=it
           icountSDSatur=icountSDSatur+1
           icountDIISFailureCons=0
 
           ! If we are using SD (i.e. diisLIN%idsx==0) and the trace has been decreasing
           ! for at least 10 iterations, switch to DIIS. However the history length is decreased.
-          if(icountSDSatur>=10 .and. diisLIN%idsx==0 .and. allowDIIS) then
+          !if(icountSDSatur>=10 .and. diisLIN%idsx==0 .and. allowDIIS) then
+          if(icountSDSatur>=10 .and. ldiis%isx==0 .and. allowDIIS) then
               icountSwitch=icountSwitch+1
               idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
               if(idsx>0) then
                   if(iproc==0) write(*,'(x,a,i0)') 'switch to DIIS with new history length ', idsx
-                  call initializeDIISParameters(idsx)
+                  !call initializeDIISParameters(idsx)
+                  call initializeDIIS(idsx, lin%lzd, lin%onWhichAtom, ldiis)
                   icountDIISFailureTot=0
                   icountDIISFailureCons=0
               end if
@@ -863,7 +876,8 @@ contains
           icountDIISFailureCons=icountDIISFailureCons+1
           icountDIISFailureTot=icountDIISFailureTot+1
           icountSDSatur=0
-          if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3) .and. diisLIN%idsx>0) then
+          !if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3) .and. diisLIN%idsx>0) then
+          if((icountDIISFailureCons>=2 .or. icountDIISFailureTot>=3) .and. ldiis%isx>0) then
               ! Switch back to SD. The initial step size is 1.d0.
               alpha=lin%alphaSD
               if(iproc==0) then
@@ -874,18 +888,34 @@ contains
               end if
               ! Try to get back the orbitals of the best iteration. This is possible if
               ! these orbitals are still present in the DIIS history.
-              if(it-itBest<diisLIN%idsx) then
+              !if(it-itBest<diisLIN%idsx) then
+              if(it-itBest<ldiis%isx) then
                  if(iproc==0) then
                      if(iproc==0) write(*,'(x,a,i0,a)')  'Recover the orbitals from iteration ', &
                          itBest, ' which are the best so far.'
                  end if
-                 ii=modulo(diisLIN%mids-(it-itBest),diisLIN%mids)
-                 nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
-                 call dcopy(lin%orbs%norb*nvctrp, diisLIN%psidst(ii*nvctrp*lin%orbs%norb+1), 1, phi(1), 1)
+                 !ii=modulo(diisLIN%mids-(it-itBest),diisLIN%mids)
+                 ii=modulo(ldiis%mis-(it-itBest),ldiis%mis)
+                 !nvctrp=lin%comms%nvctr_par(iproc,1) ! 1 for k-point
+                 !call dcopy(lin%orbs%norb*nvctrp, diisLIN%psidst(ii*nvctrp*lin%orbs%norb+1), 1, phi(1), 1)
+                 offset=0
+                 istdest=1
+                 do iorb=1,lin%lzd%orbs%norbp
+                     ilr=lin%onWhichAtom(iorb)
+                     ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+                     istsource=offset+ii*ncount+1
+                     write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
+                     call dcopy(ncount, ldiis%phiHist(istsource), 1, lphi(istdest), 1)
+                     offset=offset+ldiis%isx*ncount
+                     istdest=istdest+ncount
+                 end do
               end if
-              call deallocate_diis_objects(diisLIN, subname)
-              diisLIN%idsx=0
-              diisLIN%switchSD=.true.
+              !call deallocate_diis_objects(diisLIN, subname)
+              !diisLIN%idsx=0
+              !diisLIN%switchSD=.true.
+              call deallocateDIIS(ldiis)
+              ldiis%isx=0
+              ldiis%switchSD=.true.
           end if
       end if
 
@@ -939,9 +969,9 @@ contains
         !!call psimix(iproc, nproc, lin%orbs, lin%comms, diisLIN, hphi, phi, quiet)
 
 
-        if(iproc==0) write(*,'(a,2i8)') 'ldiis%is, ldiis%mis', ldiis%is, ldiis%mis
-
-        !call dscal(lin%lorbs%npsidim, 100.d0, lhphi(1), 1)
+        if(lin%alphaDIIS/=0.d0) then
+            call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi(1), 1)
+        end if
         call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%lzd, lin%onWhichAtom, lhphi, lphi, ldiis, it)
     end if
     end subroutine improveOrbitals

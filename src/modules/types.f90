@@ -458,6 +458,8 @@ end type largeBasis
     integer:: is, isx, mis
     real(8),dimension(:),pointer:: phiHist, hphiHist
     real(8),dimension(:,:,:),pointer:: mat
+    real(8):: trmin, trold
+    logical:: switchSD
   end type localizedDIISParameters
 
 !> Contains all parameters related to the linear scaling version.

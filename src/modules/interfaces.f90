@@ -2156,6 +2156,22 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine psi_to_locreg
 
 
+    subroutine psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in) :: iproc                  ! process ID
+      integer,intent(in) :: nproc                  ! number of processes
+      integer,intent(in) :: ldim          ! dimension of lpsi 
+      integer,intent(in) :: gdim          ! dimension of gpsi 
+      type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
+      type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+      real(wp),dimension(gdim),intent(in) :: gpsi       !Wavefunction (compressed format)
+      real(wp),dimension(ldim),intent(out) :: lpsi   !Wavefunction in localization region
+    end subroutine psi_to_locreg2
+
+
+
     subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
          hfac,nscatterarr,spinsgn,psir,rho_p,&
          ibyyzz_r)
@@ -2475,13 +2491,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),intent(out):: ehart, eexcu, vexcu
      end subroutine updatePotential
 
-     subroutine initCommsOrtho(iproc, nproc, lin)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       type(linearParameters),intent(inout):: lin
-     end subroutine initCommsOrtho
      
      subroutine getIndices(lr, is1, ie1, is2, ie2, is3, ie3)
        use module_base
@@ -2527,17 +2536,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(inout):: op
      end subroutine determineOverlapDescriptors
      
-     subroutine setCommsOrtho(iproc, nproc, orbs, onWhichAtom, lzd, op, comon)
+     subroutine initCommsOrtho(iproc, nproc, lzd, onWhichAtomAll, op, comon)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(orbitals_data),intent(in):: orbs
-       integer,dimension(orbs%norb),intent(in):: onWhichAtom
        type(linear_zone_descriptors),intent(in):: lzd
-       type(overlapParameters),intent(inout):: op
+       integer,dimension(lzd%orbs%norb),intent(in):: onWhichAtomAll
+       type(overlapParameters),intent(out):: op
        type(p2pCommsOrthonormality),intent(out):: comon
-     end subroutine setCommsOrtho
+     end subroutine initCommsOrtho
      
      subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)
        use module_base
@@ -2557,16 +2565,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine postCommsOverlap
      
      
-     subroutine extractOrbital(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, phi, comon)
+     subroutine extractOrbital(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, phi, comon)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc
-       type(orbitals_data),intent(in):: orbs, lorbs
+       integer,intent(in):: iproc, nproc, sizePhi
+       type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
        type(linear_zone_descriptors),intent(in):: lzd
        type(overlapParameters),intent(inout):: op
-       real(8),dimension(lorbs%npsidim),intent(in):: phi
+       real(8),dimension(sizePhi),intent(in):: phi
        type(p2pCommsOrthonormality),intent(out):: comon
      end subroutine extractOrbital
      

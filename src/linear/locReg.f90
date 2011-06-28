@@ -1989,3 +1989,223 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, orbse)
 
 end subroutine assignToLocreg2
 
+
+
+
+
+
+!##############################################################################################################################################
+!!****f* BigDFT/get_overlap_region2
+!##############################################################################################################################################
+!! FUNCTION Given two localization regions, A and B, this routine returns a localization region corresponding to the intersection of A & B. 
+!!          This is the same as get_overlap_region_periodic, but does not allocate the bound arrays to save memory.
+!!
+!! SOURCE
+!!
+subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
+
+  use module_base
+  use module_types
+ 
+ implicit none
+
+  !#######################################
+  ! Subroutine Scalar Arguments
+  !#######################################
+  integer, intent(in) :: alr,blr              ! index of the two localization regions
+  integer, intent(in) :: nlr                  ! number of localization regions
+  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+  integer, intent(in) :: isovrlp              ! Number of overlap regions
+  !########################################
+  !Subroutine Array Arguments
+  !########################################
+  type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors 
+  type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr ! Overlap localization regions
+  !#############################################
+  !local variables
+  !############################################
+  integer :: axmin,axmax,aymin,aymax,azmin,azmax ! bounds of localization region A
+  integer :: bxmin,bxmax,bymin,bymax,bzmin,bzmax ! bounds of localization region B
+  integer :: isx,isy,isz,iex,iey,iez             ! bounds of the overlap region
+  character(len=*), parameter :: subname='get_overlap_region_periodic'
+  !# NEW
+  integer :: ii,azones,bzones,i_stat,i_all,index
+  integer :: izones,jzones
+  integer,allocatable :: astart(:,:),aend(:,:),bstart(:,:),bend(:,:)
+  logical :: go1,go2,go3
+
+  azones = 1
+  bzones = 1
+! Calculate the number of regions to cut alr and blr
+  do ii=1,3
+     if(Llr(alr)%outofzone(ii) > 0) azones = azones * 2
+     if(Llr(blr)%outofzone(ii) > 0) bzones = bzones * 2
+  end do
+
+!allocate astart and aend
+  allocate(astart(3,azones),stat=i_stat)
+  call memocc(i_stat,astart,'astart',subname)
+  allocate(aend(3,azones),stat=i_stat)
+  call memocc(i_stat,aend,'aend',subname)
+
+!FRACTURE THE FIRST LOCALIZATION REGION
+  call fracture_periodic_zone(azones,Glr,Llr(alr),Llr(alr)%outofzone(:),astart,aend)
+
+!allocate bstart and bend
+  allocate(bstart(3,bzones),stat=i_stat)
+  call memocc(i_stat,bstart,'bstart',subname)
+  allocate(bend(3,bzones),stat=i_stat)
+  call memocc(i_stat,bend,'bend',subname)
+
+!FRACTURE SECOND LOCREG
+  call fracture_periodic_zone(bzones,Glr,Llr(blr),Llr(blr)%outofzone(:),bstart,bend)
+
+! Now check the number of overlapping zones
+  index = 0
+  do izones=1,azones
+    do jzones=1,bzones
+      go1 = (bstart(1,jzones) .le. aend(1,izones) .and. bend(1,jzones) .ge. astart(1,izones)) 
+      go2 = (bstart(2,jzones) .le. aend(2,izones) .and. bend(2,jzones) .ge. astart(2,izones)) 
+      go3 = (bstart(3,jzones) .le. aend(3,izones) .and. bend(3,jzones) .ge. astart(3,izones)) 
+      if(go1 .and. go2 .and. go3) then
+        index = index + 1
+
+! Now construct the Overlap localization region descriptor
+! only if there is an overlap. The following only works
+! when the previous test is successful. Note also that
+! isx, isy and isz are necessarily in the Glr by construction
+! of the Llrs, so don't need to test them.
+         
+        ! Determine the limits of the overlap region
+        isx = max(astart(1,izones),bstart(1,jzones))
+        isy = max(astart(2,izones),bstart(2,jzones))
+        isz = max(astart(3,izones),bstart(3,jzones))
+
+        iex = min(aend(1,izones),bend(1,jzones))
+        iey = min(aend(2,izones),bend(2,jzones))
+        iez = min(aend(3,izones),bend(3,jzones))
+
+!       Checks to assign the geometric code of the overlap region (TO DO,could be interesting for Pascal?)
+!       This could change the values of the bounds, so do it here
+!       for now, in sandbox,put free boundary to all zones
+        Olr(index)%geocode = 'F'  
+
+!       Values for the starting point of the cube
+        Olr(index)%ns1 = isx
+        Olr(index)%ns2 = isy
+        Olr(index)%ns3 = isz
+
+!       Dimensions of the overlap region
+        Olr(index)%d%n1 = iex - isx 
+        Olr(index)%d%n2 = iey - isy 
+        Olr(index)%d%n3 = iez - isz 
+    
+!       Dimensions of the fine grid inside the overlap region
+        if (isx < iex) then
+           Olr(index)%d%nfl1=max(isx,Glr%d%nfl1)-isx
+           Olr(index)%d%nfu1=min(iex,Glr%d%nfu1)-isx
+        else
+           write(*,*)'Yet to be implemented (little effort?)'
+           stop
+        end if
+
+        if (isy < iey) then
+           Olr(index)%d%nfl2=max(isy,Glr%d%nfl2)-isy
+           Olr(index)%d%nfu2=min(iey,Glr%d%nfu2)-isy
+        else
+           write(*,*)'Yet to be implemented (little effort?)'
+           stop
+        end if
+
+        if (isz < iez) then
+           Olr(index)%d%nfl3=max(isz,Glr%d%nfl3)-isz
+           Olr(index)%d%nfu3=min(iez,Glr%d%nfu3)-isz
+        else
+           write(*,*)'Yet to be implemented (little effort?)'
+           stop
+        end if
+
+!       Dimensions of the interpolating scaling function grid 
+!       (geocode already taken into acount because it is simple)
+        select case(Olr(index)%geocode)
+        case('F')
+          Olr(index)%d%n1i=2*Olr(index)%d%n1+31
+          Olr(index)%d%n2i=2*Olr(index)%d%n2+31
+          Olr(index)%d%n3i=2*Olr(index)%d%n3+31
+        case('S')
+          Olr(index)%d%n1i=2*Olr(index)%d%n1+2
+          Olr(index)%d%n2i=2*Olr(index)%d%n2+31
+          Olr(index)%d%n3i=2*Olr(index)%d%n3+2
+        case('P')
+          Olr(index)%d%n1i=2*Olr(index)%d%n1+2
+          Olr(index)%d%n2i=2*Olr(index)%d%n2+2
+          Olr(index)%d%n3i=2*Olr(index)%d%n3+2
+        end select
+ 
+!       Now define the wavefunction descriptors inside the overlap region
+!       First calculate the number of points and segments for the region
+!       Coarse part:
+        call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+         Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+         Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c)
+!       Fine part:
+        call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+         Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+         Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+         Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+         Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f)
+
+!       Now allocate the wavefunction descriptors (keyg,keyv) following the needs
+        call allocate_wfd(Olr(index)%wfd,subname)
+
+!       At last, fill the wavefunction descriptors
+!       Coarse part
+        call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+          Olr(index)%wfd%nseg_c,Olr(index)%wfd%nvctr_c,&
+          Olr(index)%wfd%keyg(1,1),Olr(index)%wfd%keyv(1))
+!       Fine part
+        call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+          Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+          Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),&
+          Olr(index)%wfd%nseg_f,Olr(index)%wfd%nvctr_f,&
+          Olr(index)%wfd%keyg(1,Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)),&
+          Olr(index)%wfd%keyv(Olr(index)%wfd%nseg_c+min(1,Olr(index)%wfd%nseg_f)))
+
+!       If the localisation region is isolated build also the bounds
+        !!!if (Olr(index)%geocode=='F') then
+        !!!   call locreg_bounds(Olr(index)%d%n1,Olr(index)%d%n2,Olr(index)%d%n3,&
+        !!!     Olr(index)%d%nfl1,Olr(index)%d%nfu1,Olr(index)%d%nfl2,Olr(index)%d%nfu2,&
+        !!!     Olr(index)%d%nfl3,Olr(index)%d%nfu3,Olr(index)%wfd,Olr(index)%bounds)
+     
+        !!!end if
+     end if ! go1 .and. go2 .and. go3
+   end do !jzones
+ end do !izones
+
+! Deallocation block
+  i_all = -product(shape(astart))*kind(astart)
+  deallocate(astart,stat=i_stat)
+  call memocc(i_stat,i_all,'astart',subname)
+  i_all = -product(shape(aend))*kind(aend)
+  deallocate(aend,stat=i_stat)
+  call memocc(i_stat,i_all,'aend',subname)
+  i_all = -product(shape(bstart))*kind(bstart)
+  deallocate(bstart,stat=i_stat)
+  call memocc(i_stat,i_all,'bstart',subname)
+  i_all = -product(shape(bend))*kind(bend)
+  deallocate(bend,stat=i_stat)
+  call memocc(i_stat,i_all,'bend',subname)
+
+! Check on the number of zones
+  if (index /= isovrlp) then
+      write(*,*)&
+          'ERROR: problem in get_overlap_region_periodic ',&
+          'index:',index,'not equal to isovrlp:',isovrlp,&
+          'The number of overlap descriptors constructed does not',&
+          'correspond to the number of overlap regions.'
+     stop
+  end if
+
+END SUBROUTINE get_overlap_region_periodic2

@@ -1965,4 +1965,78 @@ end subroutine orthonormalizeCoefficients_parallel
 
 
 
+subroutine getHamiltonianMatrix(iproc, nproc, lzdig, Glr, onWhichAtom, onWhichAtomp, chi, hchi, ham)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linear_zone_descriptors),intent(in):: lzdig
+type(locreg_descriptors),intent(in):: Glr
+integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom
+integer,dimension(lzdig%orbs%norbp),intent(in):: onWhichAtomp
+real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi, hchi
+real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb),intent(out):: ham
+
+! Local variables
+integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim
+type(overlapParameters):: op
+type(p2pCommsOrthonormality):: comon
+real(8),dimension(:),allocatable:: lchi, lhchi, lphiovrlp
+character(len=*),parameter:: subname='getHamiltonianMatrix'
+
+
+
+! Initialize the parameters for calculating the matrix.
+call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, op, comon)
+
+allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
+call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+
+
+
+! Calculate the dimension of the wave function for each process.
+sizeChi=0
+do iorb=1,lzdig%orbs%norbp
+    ilr=onWhichAtomp(iorb)
+    sizeChi = sizeChi + (lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f)
+end do
+
+allocate(lchi(sizeChi), stat=istat)
+call memocc(istat, lchi, 'lchi', subname)
+allocate(lhchi(sizeChi), stat=istat)
+call memocc(istat, lhchi, 'lhchi', subname)
+
+! Transform chi to the localization region. This is not needed if we really habe O(N).
+ind1=1
+ind2=1
+do iorb=1,lzdig%orbs%norbp
+    ilr = onWhichAtomp(iorb)
+    ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+    call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdig%Llr(ilr), Glr, chi(ind1), lchi(ind2))
+    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+    ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+end do
+
+! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
+call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lchi, comon)
+call postCommsOverlap(iproc, nproc, comon)
+call gatherOrbitals(iproc, nproc, comon)
+! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
+call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lhchi, comon)
+call calculateOverlapMatrix2(iproc, nproc, lzdig%orbs, op, comon, onWhichAtom, ham)
+
+
+iall=-product(shape(lchi))*kind(lchi)
+deallocate(lchi, stat=istat)
+call memocc(istat, iall, 'lchi', subname)
+
+iall=-product(shape(lhchi))*kind(lhchi)
+deallocate(lhchi, stat=istat)
+call memocc(istat, iall, 'lhchi', subname)
+
+
+end subroutine getHamiltonianMatrix
 
