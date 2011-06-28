@@ -774,8 +774,8 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
         iacc_add=ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mod(diis%ids,diis%idsx))*orbs%norb*orbs%nspinor*nvctrp
         if (diis%ids < diis%idsx) then
            !some arrays still has to be filled
-           call vscal(nvctrp*orbs%nspinor*norbi,0.0_tp,diis%psidst(iacc_add),1)
-           !call razero(nvctrp*orbs%nspinor*norbi,diis%psidst(iacc_add))
+           !call vscal(nvctrp*orbs%nspinor*norbi,0.0_tp,diis%psidst(iacc_add),1)
+           call razero(nvctrp*orbs%nspinor*norbi,diis%psidst(iacc_add))
         end if
 
         jj=0

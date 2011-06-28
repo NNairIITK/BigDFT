@@ -25,6 +25,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   real(gp), dimension(3) :: fd_step
   integer, dimension(:), allocatable :: kmoves
   real(gp), dimension(:), allocatable :: functional,dfunctional
+  real(gp), dimension(:,:), allocatable :: rxyz_ref
 
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
@@ -102,8 +103,13 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   call memocc(i_stat,functional,'functional',subname)
   allocate(dfunctional(3*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,dfunctional,'dfunctional',subname)
+  allocate(rxyz_ref(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz_ref,'rxyz_ref',subname)
 
   call razero(3*atoms%nat,dfunctional)
+
+  !write reference in the array
+  call dcopy(3*atoms%nat,rst%rxyz_new,1,rxyz_ref,1)
 
   do iat=1,atoms%nat
 
@@ -140,11 +146,11 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
                    '=FD Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
            end if
            if (atoms%geocode == 'P') then
-              rst%rxyz_new(i,iat)=modulo(rst%rxyz_new(i,iat)+dd,alat)
+              rst%rxyz_new(i,iat)=modulo(rxyz_ref(i,iat)+dd,alat)
            else if (atoms%geocode == 'S') then
-              rst%rxyz_new(i,iat)=modulo(rst%rxyz_new(i,iat)+dd,alat)
+              rst%rxyz_new(i,iat)=modulo(rxyz_ref(i,iat)+dd,alat)
            else
-              rst%rxyz_new(i,iat)=rst%rxyz_new(i,iat)+dd
+              rst%rxyz_new(i,iat)=rxyz_ref(i,iat)+dd
            end if
            inputs%inputPsiId=1
            !here we should call cluster
@@ -183,7 +189,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   !copy the final value of the energy and of the dfunctional
   call dcopy(3*atoms%nat,dfunctional,1,fxyz,1)
   !clean the center mass shift and the torque in isolated directions
-  call clean_forces(iproc,atoms,rst%rxyz_new,fxyz,fnoise)
+  call clean_forces(iproc,atoms,rxyz_ref,fxyz,fnoise)
 
   energy=functional_ref
 
@@ -196,6 +202,10 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   i_all=-product(shape(dfunctional))*kind(dfunctional)
   deallocate(dfunctional,stat=i_stat)
   call memocc(i_stat,i_all,'dfunctional',subname)
+  i_all=-product(shape(rxyz_ref))*kind(rxyz_ref)
+  deallocate(rxyz_ref,stat=i_stat)
+  call memocc(i_stat,i_all,'rxyz_ref',subname)
+
 
 end subroutine forces_via_finite_differences
 
