@@ -24,6 +24,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
+  logical :: exists
   integer :: i_stat,i_all,ierr,inputPsiId_orig,iat
 
   !temporary interface
@@ -94,6 +95,11 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
      call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,fnoise,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
           rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+     !experimental, finite difference method for calculating forces on particular quantities
+     inquire(file='input.finite_difference_forces',exist=exists)
+     if (exists) then
+        call forces_via_finite_differences(iproc,nproc,atoms,in,energy,fxyz,fnoise,rst,infocode)
+     end if
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then

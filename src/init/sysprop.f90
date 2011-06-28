@@ -182,6 +182,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   !integer, dimension(nmax,0:lmax-1) :: neleconf
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
   integer, dimension(lmax) :: nl
+  real(gp), dimension(0:4) :: fake_nlcc
   real(gp), dimension(noccmax,lmax) :: occup
 
 
@@ -373,9 +374,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         end if
         nlcc_dim=nlcc_dim+(ngv*(ngv+1)/2)
         do ig=1,(ngv*(ngv+1))/2
-           do j=0,4
-              read(79,*) !jump the suitable lines (the file is organised with one element per line)
-           end do
+           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
         end do
         read(79,*)ngc
         if (ngc==0) then
@@ -384,20 +383,21 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
            atoms%nlcc_ngc(ityp)=ngc
         end if
         nlcc_dim=nlcc_dim+(ngc*(ngc+1))/2
-!!$        !better to read values in a fake array
-!!$        do ig=1,(ngc*(ngc+1))/2
-!!$           do j=0,4
-!!$              read(79,*) !jump the suitable lines (the file is organised with one element per line)
-!!$           end do
-!!$        end do
+        !better to read values in a fake array
+        do ig=1,(ngc*(ngc+1))/2
+           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
+        end do
+        !un-initialize the IG array
         do j=0,4
            atoms%ig_nlccpar(j,ityp)=UNINITIALIZED(1.0_gp)
         end do
-
-!!$        read(79,*)
-!!$        read(79,*)
-!!$        read(79,*,iostat=i_stat)rcore2,gcore !SONO ARRIVATO QUI DEVO AGGIUNGERE LA LETTURA CON ISTAT
-!!$
+        !continue searching for one line
+        read(79,*,iostat=ierror) !blank line
+        if (ierror ==0) read(79,*,iostat=ierror) !blank line
+        read(79,*,iostat=ierror)fake_nlcc(0)
+        if (ierror ==0) atoms%ig_nlccpar(0,ityp)=fake_nlcc(0)
+        if (ierror ==0) read(79,*,iostat=ierror)fake_nlcc(1)
+        if (ierror ==0) atoms%ig_nlccpar(1,ityp)=fake_nlcc(1)
         !no need to go further for the moment
         close(unit=79)
      else
