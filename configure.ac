@@ -277,12 +277,18 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   AC_LANG_PUSH(C)
   LIBS_OLD=$LIBS
   ac_cuda_lib_path="$ac_with_cuda_path/lib"
-  LIBS="-L$ac_cuda_lib_path $LIBS"
+  LIBS="-L$ac_cuda_lib_path $LIBS_OLD"
   AC_CHECK_LIB(cublas, cublasSsymv, withlibcublas=yes, withlibcublas=no, [-lcudart])
+  if test "$withlibcublas" = "no"; then
+    AC_CHECK_LIB(cublas, cublasSsymv_v2, withlibcublas=yes, withlibcublas=no, [-lcudart])
+  fi
   if test "$withlibcublas" = "no"; then
     ac_cuda_lib_path="$ac_with_cuda_path/lib64"
     LIBS="-L$ac_cuda_lib_path $LIBS_OLD"
     AC_CHECK_LIB(cublas, cublasScopy, withlibcublas=yes, withlibcublas=no, [-lcudart])
+    if test "$withlibcublas" = "no"; then
+      AC_CHECK_LIB(cublas, cublasScopy_v2, withlibcublas=yes, withlibcublas=no, [-lcudart])
+    fi
   fi
   if test "$withlibcublas" = "no"; then
     AC_MSG_ERROR(["No 'cublas' library found, link will fail."])
@@ -412,13 +418,13 @@ if test x"$ac_use_archive" != x"no" ; then
                      [ac_use_archive=warn])
    if test x"$ac_use_archive" = x"yes" ; then
       AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
-      AC_LANG_PUSH(C)
-      AC_CHECK_FUNCS([strndup])
-      AC_LANG_POP(C)
    else
       AC_MSG_WARN([libarchive is not available])
    fi
 fi
+AC_LANG_PUSH(C)
+AC_CHECK_FUNCS([strndup])
+AC_LANG_POP(C)
 AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
 AC_SUBST(LIB_ARCHIVE_CFLAGS)
 AC_SUBST(LIB_ARCHIVE_LIBS)
