@@ -772,10 +772,6 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,proj
   real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,Llr%localnorb*nspin) :: hpsi_tmp
   real(wp),dimension(Lnlpspd%nprojel):: Lproj  !local projectors
 
-!allocate(inthisLocreg(Llr%localnorb*nspin))
-!allocate(psi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor))
-!allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor))
-
 
 !  First reshape the wavefunctions: psi_tmp(nels,norbs,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f

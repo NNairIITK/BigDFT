@@ -59,6 +59,7 @@ real(8),dimension(:),allocatable:: eval
 integer:: istat
 real(8),dimension(:),allocatable:: chi, lchi
 real(8),dimension(:,:),allocatable:: hchi, lhchi
+real(8),dimensioN(:,:,:),allocatable:: ham
 integer,dimension(:),allocatable:: onWhichAtom, onWhichAtomp, norbsPerAt, onWhichAtomTemp, onWhichAtomPhi
 integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
 logical:: withConfinement
@@ -430,6 +431,22 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
    call cpu_time(t1)
    !call buildLinearCombinations(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
    !     onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
+   allocate(ham(orbsig%norb,orbsig%norb,at%nat), stat=istat)
+   call memocc(i_stat,ham,'ham',subname)
+   call getHamiltonianMatrix(iproc, nproc, lzdig, Glr, onWhichAtom, onWhichAtomp, at%nat, chi, hchi, ham)
+   do iat=1,at%nat
+       do iorb=1,orbsig%norb
+           do jorb=1,orbsig%norb
+               write(200+iproc,*) iat, iorb, jorb, ham(iorb,jorb,iat)
+           end do
+       end do
+   end do
+   do iat=1,at%nat
+       do i_all=1,size(chi)
+           write(500+iproc,*) iat, i_all, chi(i_all)
+           write(520+iproc,*) iat, i_all, hchi(i_all,iat)
+       end do
+   end do
    call buildLinearCombinations2(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
         onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
    call cpu_time(t2)
@@ -438,6 +455,8 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
    if(iproc==0) write(*,'(x,a,es10.3)') 'time for "buildLinearCombinations":', time/dble(nproc)
 
   if(iproc==0) write(*,'(x,a)') '------------------------------------------------------------- Input guess generated.'
+call mpi_barrier(mpi_comm_world, ierr)
+stop
 
 
 
@@ -570,6 +589,14 @@ type(inguessParameters):: ip
       end do
   end do
   call mpiallred(Ham(1,1,1), orbsig%norb**2*at%nat, mpi_sum, mpi_comm_world, ierr)
+
+   do iat=1,at%nat
+       do iorb=1,orbsig%norb
+           do jorb=1,orbsig%norb
+               write(300+iproc,*) iat, iorb, jorb, ham(iorb,jorb,iat)
+           end do
+       end do
+   end do
 
 
 
@@ -1965,22 +1992,23 @@ end subroutine orthonormalizeCoefficients_parallel
 
 
 
-subroutine getHamiltonianMatrix(iproc, nproc, lzdig, Glr, onWhichAtom, onWhichAtomp, chi, hchi, ham)
+subroutine getHamiltonianMatrix(iproc, nproc, lzdig, Glr, onWhichAtom, onWhichAtomp, nat, chi, hchi, ham)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, nat
 type(linear_zone_descriptors),intent(in):: lzdig
 type(locreg_descriptors),intent(in):: Glr
 integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom
 integer,dimension(lzdig%orbs%norbp),intent(in):: onWhichAtomp
-real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi, hchi
-real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb),intent(out):: ham
+real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi
+real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: hchi
+real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb,nat),intent(out):: ham
 
 ! Local variables
-integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim
+integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat
 type(overlapParameters):: op
 type(p2pCommsOrthonormality):: comon
 real(8),dimension(:),allocatable:: lchi, lhchi, lphiovrlp
@@ -2008,25 +2036,38 @@ call memocc(istat, lchi, 'lchi', subname)
 allocate(lhchi(sizeChi), stat=istat)
 call memocc(istat, lhchi, 'lhchi', subname)
 
-! Transform chi to the localization region. This is not needed if we really habe O(N).
-ind1=1
-ind2=1
-do iorb=1,lzdig%orbs%norbp
-    ilr = onWhichAtomp(iorb)
-    ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
-    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-    call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdig%Llr(ilr), Glr, chi(ind1), lchi(ind2))
-    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-    ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
-end do
+do iat=1,nat
+    ! Transform chi to the localization region. This is not needed if we really habe O(N).
+    ind1=1
+    ind2=1
+    do iorb=1,lzdig%orbs%norbp
+        ilr = onWhichAtomp(iorb)
+        ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+        gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+        call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdig%Llr(ilr), Glr, chi(ind1), lchi(ind2))
+        call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdig%Llr(ilr), Glr, hchi(ind1,iat), lhchi(ind2))
+        ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+        ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+    end do
+    do iall=1,sizeChi
+        write(400+iproc,*) iat, iall, lchi(iall)
+        write(420+iproc,*) iat, iall, lhchi(iall)
+    end do
 
-! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
-call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lchi, comon)
-call postCommsOverlap(iproc, nproc, comon)
-call gatherOrbitals(iproc, nproc, comon)
-! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
-call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lhchi, comon)
-call calculateOverlapMatrix2(iproc, nproc, lzdig%orbs, op, comon, onWhichAtom, ham)
+    ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
+    call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lchi(1), comon)
+    do iall=1,comon%nsendBuf
+        write(600+iproc,*) iall, mod(iall,sizeChi), comon%sendBuf(iall)
+    end do
+    call postCommsOverlap(iproc, nproc, comon)
+    call gatherOrbitals(iproc, nproc, comon)
+    ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
+    call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lhchi(1), comon)
+    do iall=1,comon%nsendBuf
+        write(620,*) iall, mod(iall,sizeChi), iall/sizeChi, comon%sendBuf(iall)
+    end do
+    call calculateOverlapMatrix2(iproc, nproc, lzdig%orbs, op, comon, onWhichAtom, ham(1,1,iat))
+end do
 
 
 iall=-product(shape(lchi))*kind(lchi)
