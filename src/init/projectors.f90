@@ -1812,17 +1812,16 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
      endif
   enddo
 
-  !control the strategy to be applied following the memory limit
-  !if the projectors takes too much memory allocate only one atom at the same time
-  !control the memory of the projectors expressed in GB
-  if (memorylimit /= 0.e0 .and. .not. DistProjApply .and. &
-       real(istart-1,kind=4) > memorylimit*134217728.0e0) then
-     if (iproc == 0) then
-        write(*,'(44x,a)') '------ On-the-fly paw projectors application'
-     end if
-     DistProjApply =.true.
-  end if
-
+  
+  
+  !   if (memorylimit /= 0.e0 .and. .not. DistProjApply .and. &
+  !        real(istart-1,kind=4) > memorylimit*134217728.0e0) then
+  !      if (iproc == 0) then
+  !         write(*,'(44x,a)') '------ On-the-fly paw projectors application'
+  !      end if
+  !      DistProjApply =.true.
+  !   end if
+  
   !calculate the fraction of the projector array used for allocate zero values
   !control the hardest and the softest gaussian
   totzerovol=0.0_gp
@@ -1855,7 +1854,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
   !assign the total quantity per atom
   zerovol=0.d0
   if (totfullvol /= 0.0_gp) then
-     if (DistProjApply) then
+     if (PAWD%DistProjApply) then
         zerovol=maxzerovol
      else
         zerovol=totzerovol/totfullvol
@@ -1866,14 +1865,16 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
   !DistProjApply shoud never change after this point
 
   !number of elements of the projectors
-  if (.not. DistProjApply) PAWD%paw_nlpspd%nprojel=istart-1
+  if (.not. PAWD%DistProjApply) PAWD%paw_nlpspd%nprojel=istart-1
 
   nkptsproj=1
-  if ((.not.DistProjApply) .and. orbs%norbp > 0) then
+  if ((.not.PAWD%DistProjApply) .and. orbs%norbp > 0) then
      nkptsproj = 0
      !the new solution did not work when there is no orbital on the processor
      do ikptp=1,orbs%nkptsp! orbs%iokpt(1), orbs%iokpt(orbs%norbp)
         ikpt=orbs%iskpts+ikptp
+        print *, " k points ", orbs%kpts
+
         if (orbs%kpts(1,ikpt)**2+orbs%kpts(2,ikpt)**2+orbs%kpts(3,ikpt)**2 >0 .and. &
              &  orbs%nspinor > 1) then
            nkptsproj = nkptsproj + 2
@@ -1881,7 +1882,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
            nkptsproj = nkptsproj + 1
         end if
      end do
-  else if (DistProjApply) then
+  else if (PAWD%DistProjApply) then
      !the new solution did not work when there is no orbital on the processor
      do ikptp=1,orbs%nkptsp! orbs%iokpt(1), orbs%iokpt(orbs%norbp)
         ikpt=orbs%iskpts+ikptp
@@ -1891,11 +1892,13 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
         end if
      end do
   end if
-  PAWD%paw_nlpspd%nprojel=nkptsproj*PAWD%paw_nlpspd%nprojel
+  !   print *, " nkptsproj EST    ", nkptsproj
+  !   print *, " PAWD%paw_nlpspd%nprojel EST  ", PAWD%paw_nlpspd%nprojel
 
+  PAWD%paw_nlpspd%nprojel=nkptsproj*PAWD%paw_nlpspd%nprojel
   if (iproc == 0) then
-     if (DistProjApply) then
-        write(*,'(44x,a)') '------   On-the-fly projectors application'
+     if (PAWD%DistProjApply) then
+        write(*,'(44x,a)') '------  PAWD: On-the-fly projectors application'
      else
         write(*,'(44x,a)') '------'
      end if

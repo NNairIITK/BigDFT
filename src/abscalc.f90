@@ -475,6 +475,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   ! then calculate the size in units of the grid space
 
   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+  if ( orbs%nspinor.gt.1) then
+     !!  hybrid_on is not compatible with kpoints
+     Glr%hybrid_on=.false.
+  endif
 
   !variables substitution for the PSolver part
   hxh=0.5d0*hx
@@ -503,9 +507,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      ! Calculate all paw_projectors, or allocate array for on-the-fly calculation
      call timing(iproc,'CrtPawProjects ','ON')
      PAWD%DistProjApply =  .false. !! .true.
+     ! the following routine calls a specialized version of localize_projectors
+     ! which does not interfere with the global DistProjApply
      call createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
           radii_cf,cpmult,fpmult,hx,hy,hz,-0.1_gp, &
-          PAWD, Glr  )
+          PAWD, Glr )
      call timing(iproc,'CrtPawProjects ','OF')
   endif
 
@@ -514,6 +520,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      ! Calculate all pc_projectors, or allocate array for on-the-fly calculation
      call timing(iproc,'CrtPcProjects ','ON')
      PPD%DistProjApply  =  DistProjApply
+     ! the following routine calls  localize_projectors again
+     ! but this should be in coherence with the previous call for psp projectos 
      call createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
           radii_cf,cpmult,fpmult,hx,hy,hz,-0.1_gp, &
           PPD, Glr  )
@@ -1650,6 +1658,7 @@ subroutine applyPCprojectors(orbs,at,&
      ikpt=ikpt+1
      ispsi_k=ispsi
   end do loop_kpt
+  
 end subroutine applyPCprojectors
 
 
@@ -1680,14 +1689,17 @@ subroutine applyPAWprojectors(orbs,at,&
   type(locreg_descriptors) :: Plr
   integer :: ikpt, istart_ck, ispsi_k, isorb,ieorb, ispsi, iproj, istart_c,&
        mproj, mdone, ispinor, istart_c_i, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
-       jseg_c, iproj_old, iorb, ncplx, l, i, jorb, lsign
+       jseg_c, iproj_old, iorb, ncplx, l, i, jorb, lsign, ncplx_global
   real(gp) eproj_spinor,psppar_aux(0:4, 0:6)
 
   integer , parameter :: dotbuffersize = 1000
   real(dp)  :: dotbuffer(dotbuffersize), dotbufferbis(dotbuffersize)
   integer ibuffer, ichannel, nchannels, imatrix, ilim
   logical lfound_sup
-                          
+                   
+
+  if (orbs%norbp.gt.0) then
+
 
   !apply the projectors  k-point of the processor
   !starting k-point
@@ -1704,6 +1716,7 @@ subroutine applyPAWprojectors(orbs,at,&
   if(dosuperposition) then 
      lfound_sup=.false.
   endif
+  ncplx_global=min(orbs%nspinor,2)
 
   loop_kpt: do
      
@@ -1733,10 +1746,8 @@ subroutine applyPAWprojectors(orbs,at,&
               ky=orbs%kpts(2,ikpt)
               kz=orbs%kpts(3,ikpt)
               call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
-              if(ncplx.ne.1) then
-                 STOP '  ncplx.ne.1 in  applyPAWprojectors   '
-              end if
-              do ispinor=1,orbs%nspinor,ncplx
+
+              do ispinor=1,orbs%nspinor,ncplx_global
                  eproj_spinor=0.0_gp
                  if (ispinor >= 2) istart_c=istart_c_i
                  mbvctr_c=PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
@@ -1922,6 +1933,6 @@ subroutine applyPAWprojectors(orbs,at,&
      
      
   end do loop_kpt
-
+  end if
 end subroutine applyPAWprojectors
   

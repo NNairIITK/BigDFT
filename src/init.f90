@@ -862,7 +862,6 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   type(PAWproj_data_type) ::PAWD
 
   type(locreg_descriptors),  intent(in):: Glr
-
   
   !local variables
   character(len=*), parameter :: subname='createPawProjectorsArrays'
@@ -910,8 +909,6 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   allocate(Gocc(PAWD%G%ncoeff+ndebug),stat=i_stat)
   call memocc(i_stat,Gocc,'Gocc',subname)
   call razero(PAWD%G%ncoeff,Gocc)
-
-
 
   ! allocated  : gaenes, Gocc , PAWD%iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg, iorbto_paw_nchannels
 
@@ -1030,8 +1027,8 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   end if
 
   istart_c=1
-
   do ikpt=iskpt,iekpt     
+
      !features of the k-point ikpt
      kx=orbs%kpts(1,ikpt)
      ky=orbs%kpts(2,ikpt)

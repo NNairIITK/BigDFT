@@ -356,83 +356,87 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   call EP_inizializza(ha)  
   print *, "  initialization OK   "
  
-  if(.false.) then
-
-     ! trova il valore massimo 
-     shift =-0.0
-     tol   =1.0D-8
-     accontentati_di=1
-     
-     cercacount = LB_cerca( 10, shift, tol, set_EP_shift, EP_allocate_for_eigenprob, EP_make_dummy_vectors, &
-          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
-          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
-     
-     if(iproc==0) then
-        print *, " maximal eigenvalues " 
-        print *, LB_eval
-     endif
-     eval_max = LB_eval(0)
-     
-     ! trova il valore minimo 
-     shift =-10000
-     
-     
-     cercacount = LB_cerca( 10, shift, tol, set_EP_shift, EP_allocate_for_eigenprob, EP_make_dummy_vectors, &
-          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
-          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
-     
-     if(iproc==0) then
-        print *, " minima eigenvalues" 
-        print *, LB_eval
-     endif
-     eval_min = LB_eval(0)+10000
-
-  else
+!!$  if(.false.) then
+!!$
+!!$     ! trova il valore massimo 
+!!$     shift =-0.0
+!!$     tol   =1.0D-8
+!!$     accontentati_di=1
+!!$     
+!!$     cercacount = LB_cerca( 10, shift, tol, set_EP_shift, EP_allocate_for_eigenprob, EP_make_dummy_vectors, &
+!!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
+!!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
+!!$     
+!!$     if(iproc==0) then
+!!$        print *, " maximal eigenvalues " 
+!!$        print *, LB_eval
+!!$     endif
+!!$     eval_max = LB_eval(0)
+!!$     
+!!$     ! trova il valore minimo 
+!!$     shift =-10000
+!!$     
+!!$     
+!!$     cercacount = LB_cerca( 10, shift, tol, set_EP_shift, EP_allocate_for_eigenprob, EP_make_dummy_vectors, &
+!!$          get_EP_dim, EP_initialize_start , EP_normalizza, EP_Moltiplica, EP_GramSchmidt, &
+!!$          EP_set_all_random, EP_copy , EP_mat_mult,  EP_scalare,EP_add_from_vect_with_fact,accontentati_di)
+!!$     
+!!$     if(iproc==0) then
+!!$        print *, " minima eigenvalues" 
+!!$        print *, LB_eval
+!!$     endif
+!!$     eval_min = LB_eval(0)+10000
+!!$
+!!$  else
 
      eval_min = GetBottom(  at, iproc)-1.0
      eval_max = 4.0*Pi*Pi*(1.0/hx/hx + 1.0/hy/hy + 1.0/hz/hz  )/2.0*1.1 +2
 
-  endif
+!   endif
 
 
 
 
   cheb_shift=0.5*(eval_min+ eval_max) 
   fact_cheb = (2-0.0001)/(eval_max-eval_min)
-     
-  if(.true.) then
   
-     LB_nsteps = in%nsteps
- 
-     call LB_allocate_for_chebychev( )
-     call EP_allocate_for_eigenprob(6) ! invece di nsteps, giusto qualche vettore per fare i calcoli
-     call EP_make_dummy_vectors(4)
+  LB_nsteps = in%nsteps
+  LB_norbp  = ha%orbs%norbp
+  LB_nproc=nproc
+  LB_iproc=iproc
   
+  call LB_allocate_for_chebychev( )
+  call EP_allocate_for_eigenprob(6) ! invece di nsteps, giusto qualche vettore per fare i calcoli
+  call EP_make_dummy_vectors(4)
 
-     !! call set_EP_shift(-cheb_shift) 
-     call set_EP_shift(0.0_gp) 
 
-     if( sum( ha%at%paw_NofL ).gt.0 ) then
-        dopaw=.true.
-     else
-        dopaw=.false.
-     endif
+  !! call set_EP_shift(-cheb_shift) 
+  call set_EP_shift(0.0_gp) 
 
-     call LB_passeggia_Chebychev (LB_nsteps, cheb_shift,  fact_cheb,     get_EP_dim, EP_initialize_start , EP_normalizza,&
-          EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
-          EP_scalare,EP_add_from_vect_with_fact  , EP_multbyfact, EP_ApplySinv, EP_ApplyS, dopaw, &
-          in%abscalc_S_do_cg,  in%abscalc_Sinv_do_cg, in%xabs_res_prefix )
+  if( sum( ha%at%paw_NofL ).gt.0 ) then
+     dopaw=.true.
+  else
+     dopaw=.false.
+  endif
+  if(ha%iproc==0) then
+     print *, "weigths ", ha%orbs%kwgts
+  endif
 
-     if(ha%iproc==0) then
-        print *, "coefficients from Chebychev "
-        WRITE(*,'(I5,2ES23.16)')   2*LB_nsteps, cheb_shift,  fact_cheb
-        print *,"... " 
-        do i=0, 2*LB_nsteps-1
-           if(i>2*LB_nsteps-1 -10) then
-              WRITE(*,'(1ES23.16)')   LB_alpha(i)
-           endif
-        enddo
-     endif
+  call LB_passeggia_Chebychev (LB_nsteps, cheb_shift,  fact_cheb,     get_EP_dim, EP_initialize_start , EP_normalizza,&
+       EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
+       EP_scalare_multik,EP_add_from_vect_with_fact  , EP_multbyfact, EP_ApplySinv, EP_ApplyS, dopaw, &
+       in%abscalc_S_do_cg,  in%abscalc_Sinv_do_cg, in%xabs_res_prefix, ha%orbs%nkpts , ha%orbs%norb_par, &
+       ha%orbs%kwgts(   ha%orbs%iskpts+1    :    ha%orbs%iskpts + ha%orbs%norb_par(ha%iproc))   )
+
+  if(ha%iproc==0) then
+     print *, "coefficients from Chebychev "
+     WRITE(*,'(I5,2ES23.16)')   2*LB_nsteps, cheb_shift,  fact_cheb
+     print *,"... " 
+     do i=0, 2*LB_nsteps-1
+        if(i>2*LB_nsteps-1 -10) then
+           WRITE(*,'(1ES23.16)')   LB_alpha_cheb(1, i)
+        endif
+     enddo
   endif
 
   call free_full_potential(nproc,pot,subname)
@@ -443,7 +447,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   call deallocate_comms(ha%comms,subname)
 
   call EP_free()
-  call  LB_de_allocate_for_lanczos( )
+  call  LB_de_allocate_for_cheb( )
 
 !!$ this free is already executed by bigdft
 !!$

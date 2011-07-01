@@ -862,6 +862,8 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
         l=abs(G%nam(ishell)  )
         !print *,iproc,iat,ishell,G%nam(ishell),G%nshell(iat)
         !multiply the values of the gaussian contraction times the orbital coefficient
+    
+
 
         test_wf=0.0
 
@@ -1155,8 +1157,9 @@ function re_re_cmplx_prod(a,b,c)
   implicit none
   real(wp), dimension(2,2), intent(in) :: a,b,c
   real(wp) :: re_re_cmplx_prod
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
   
-  re_cmplx_prod=re_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
+  re_re_cmplx_prod=re_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
        -re_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
        -re_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
        -re_cmplx_prod( a(1,2),b(1,2),c(1,1))
@@ -1168,6 +1171,7 @@ function im_re_cmplx_prod(a,b,c)
   implicit none
   real(wp), dimension(2,2), intent(in) :: a,b,c
   real(wp) :: im_re_cmplx_prod
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
   
   im_re_cmplx_prod=-re_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
                    +re_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
@@ -1181,8 +1185,9 @@ function re_im_cmplx_prod(a,b,c)
   implicit none
   real(wp), dimension(2,2), intent(in) :: a,b,c
   real(wp) :: re_im_cmplx_prod
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
   
-  re_cmplx_prod=im_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
+  re_im_cmplx_prod=im_cmplx_prod( a(1,1),b(1,1),c(1,1)) &
        -im_cmplx_prod( a(1,1),b(1,2),c(1,2)) &
        -im_cmplx_prod( a(1,2),b(1,1),c(1,2)) &
        -im_cmplx_prod( a(1,2),b(1,2),c(1,1))
@@ -1194,6 +1199,7 @@ function im_im_cmplx_prod(a,b,c)
   implicit none
   real(wp), dimension(2,2), intent(in) :: a,b,c
   real(wp) :: im_im_cmplx_prod
+  real(wp) :: re_cmplx_prod,im_cmplx_prod
   
   im_im_cmplx_prod=-im_cmplx_prod(a(1,2),b(1,2),c(1,2)) &
                    +im_cmplx_prod(a(1,2),b(1,1),c(1,1)) &
@@ -1225,6 +1231,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
   !local variables
   integer :: iseg,i,i0,i1,i2,i3,jj,ind_c,ind_f,iterm,nvctr
   real(wp) :: re_cmplx_prod,im_cmplx_prod
+  real(wp) :: re_re_cmplx_prod,re_im_cmplx_prod,im_re_cmplx_prod,im_im_cmplx_prod 
 
   !!$omp parallel default(private) shared(lr%nseg_c,lr%wfd%keyv,lr%wfd%keyg,lr%d) &
   !!$omp shared(psi,wx,wy,wz,lr%wfd%nvctr_c) &
@@ -1237,7 +1244,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
            ind_c=i-i0+jj
            do iterm=1,nterm
               psi(ind_c)=psi(ind_c)+re_cmplx_prod(&
-                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))*cossinfacts(1,iterm)
+                   wx(1,1,i,1,iterm),wy(1,1,i2,1,iterm),wz(1,1,i3,1,iterm))*cossinfacts(1,iterm)
            end do
            nvctr=nvctr+1
         end do
@@ -1291,7 +1298,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
            ind_c=i-i0+jj
            do iterm=1,nterm
               psi(ind_c)=psi(ind_c)+im_cmplx_prod(&
-                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))*cossinfacts(2,iterm)
+                   wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(2,iterm)
            end do
         end do
      end do
@@ -1335,7 +1342,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
            ind_c=i-i0+jj
            do iterm=1,nterm
               psi(ind_c)=psi(ind_c)+re_re_cmplx_prod(&
-                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))*cossinfacts(1,iterm)
+                   wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(1,iterm)
            end do
            nvctr=nvctr+1
         end do
@@ -1344,7 +1351,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
            ind_c= lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f + i-i0+jj 
            do iterm=1,nterm
               psi(ind_c)=psi(ind_c)+im_re_cmplx_prod(&
-                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))*cossinfacts(1,iterm)
+                   wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(1,iterm)
            end do
         end do
 
@@ -1423,7 +1430,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
            ind_c=i-i0+jj
            do iterm=1,nterm
               psi(ind_c)=psi(ind_c)+re_im_cmplx_prod(&
-                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))*cossinfacts(2,iterm)
+                   wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(2,iterm)
            end do
         end do
 
@@ -1431,7 +1438,7 @@ subroutine wfn_from_tensprod_cossin(lr,ncplx,  cossinfacts ,nterm,wx,wy,wz,psi)
            ind_c=lr%wfd%nvctr_c + 7*lr%wfd%nvctr_f + i-i0+jj
            do iterm=1,nterm
               psi(ind_c)=psi(ind_c)+im_im_cmplx_prod(&
-                   wx(1,i,1,iterm),wy(1,i2,1,iterm),wz(1,i3,1,iterm))*cossinfacts(2,iterm)
+                   wx(1,1, i,1,iterm),wy(1,1, i2,1,iterm),wz(1,1, i3,1,iterm))*cossinfacts(2,iterm)
            end do
         end do
 

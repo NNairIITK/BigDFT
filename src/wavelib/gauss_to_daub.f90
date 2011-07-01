@@ -502,7 +502,7 @@ contains
 END SUBROUTINE gauss_to_daub_k
 
 
-subroutine gauss_c_to_daub_k(hgrid,kval, ,ncplx,gau_bf,ncs_s,factor , &
+subroutine gauss_c_to_daub_k(hgrid,kval,ncplx,gau_bf,ncs_s,factor , &
      gau_cen,gau_a, n_gau,&!no err, errsuc
      nmax,n_left,n_right,c,& 
      ww,nwork,periodic, hcutoff)      !added work arrays ww with dimension nwork
@@ -515,6 +515,7 @@ subroutine gauss_c_to_daub_k(hgrid,kval, ,ncplx,gau_bf,ncs_s,factor , &
   integer, intent(out) :: n_left,n_right
   real(wp), dimension(  ncs_s,ncplx,0:nmax,2), intent(out) :: c
   real(gp)  hcutoff
+  integer   ncplx
 
   !local variables
   integer :: rightx,leftx,right_t,i0,i,k,length,j,ics, icplx
@@ -623,7 +624,7 @@ contains
 
     !loop for each complex component
     do icplx=1,ncplx
-       pishift=(icplx-1)*pi/2.0_gp
+       pishift=-(icplx-1)*pi/2.0_gp
        do ics=1,ncs_s
           !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
           if( mod(nforwards,2)==0) then

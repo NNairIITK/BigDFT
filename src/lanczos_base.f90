@@ -15,12 +15,13 @@ module lanczos_base
   implicit none
   private
 
-  public ::LB_alpha , LB_beta, LB_eval, LB_shift, LB_nsteps, LB_allocate_for_lanczos, &
+  public ::LB_alpha ,LB_alpha_cheb , LB_beta, LB_eval, LB_shift, LB_nsteps, LB_allocate_for_lanczos, &
        LB_de_allocate_for_lanczos, LB_cerca, LB_passeggia, LB_allocate_for_chebychev,&
-        LB_iproc, LB_nproc, LB_passeggia_Chebychev, LB_cg
+        LB_iproc, LB_nproc, LB_passeggia_Chebychev, LB_cg, LB_norbp , LB_de_allocate_for_cheb
   
   character(len=*), parameter :: subname='lanczos_base'
 
+  real(kind=8), pointer :: LB_alpha_cheb(:,:)
   real(kind=8), pointer :: LB_alpha(:)
   real(kind=8), pointer :: LB_beta(:)
   real(kind=8), pointer :: omega(:,:)
@@ -33,36 +34,44 @@ module lanczos_base
   integer :: LB_nsteps
   integer :: hasoldalpha
   integer :: i_stat,i_all
-  integer :: LB_iproc, LB_nproc
+  integer :: LB_iproc, LB_nproc, LB_norbp 
 
 contains
 
   subroutine LB_allocate_for_chebychev( )
-   if(associated(LB_alpha )) then
-      call  LB_de_allocate_for_lanczos( )
+   if(associated(LB_alpha_cheb )) then
+      call  LB_de_allocate_for_cheb ( )
    endif
 
-   allocate(LB_alpha(0: 3*LB_nsteps+ndebug ) , stat=i_stat)
-   call memocc(i_stat,LB_alpha,'LB_alpha',subname)
+   if(LB_norbp.gt.0) then
+      allocate(LB_alpha_cheb( LB_norbp  ,   0: 3*LB_nsteps+ndebug ) , stat=i_stat)
+   else
+      allocate(LB_alpha_cheb( LB_norbp+1  ,   0: 3*LB_nsteps+ndebug ) , stat=i_stat)      
+   endif
 
-   allocate(LB_beta(0: 1+ndebug ) , stat=i_stat)
-   call memocc(i_stat,LB_beta,'LB_beta',subname)
+   call memocc(i_stat,LB_alpha_cheb,'LB_alpha_cheb',subname)
 
-   allocate(omega( 0:1,  0:1    +ndebug  )  , stat=i_stat)
-   call memocc(i_stat,omega,'omega',subname)
+!    allocate(LB_alpha(0: 3*LB_nsteps+ndebug ) , stat=i_stat)
+!    call memocc(i_stat,LB_alpha,'LB_alpha',subname)
+
+!    allocate(LB_beta(0: 1+ndebug ) , stat=i_stat)
+!    call memocc(i_stat,LB_beta,'LB_beta',subname)
+
+!    allocate(omega( 0:1,  0:1    +ndebug  )  , stat=i_stat)
+!    call memocc(i_stat,omega,'omega',subname)
 
    
-   allocate(evect( 0:1,  0:1   +ndebug )   , stat=i_stat)
-   call memocc(i_stat,evect,'evect',subname)
+!    allocate(evect( 0:1,  0:1   +ndebug )   , stat=i_stat)
+!    call memocc(i_stat,evect,'evect',subname)
 
-   allocate(LB_eval(0: 1+ndebug )   , stat=i_stat)
-   call memocc(i_stat,LB_eval,'LB_eval',subname)
+!    allocate(LB_eval(0: 1+ndebug )   , stat=i_stat)
+!    call memocc(i_stat,LB_eval,'LB_eval',subname)
 
-   allocate(diagwork( 0:1*(3+1)+ndebug   )  , stat=i_stat)
-   call memocc(i_stat,diagwork,'diagwork',subname)
+!    allocate(diagwork( 0:1*(3+1)+ndebug   )  , stat=i_stat)
+!    call memocc(i_stat,diagwork,'diagwork',subname)
 
-   allocate(oldalpha (0: 1 +ndebug )        , stat=i_stat  )
-   call memocc(i_stat,oldalpha,'oldalpha',subname)
+!    allocate(oldalpha (0: 1 +ndebug )        , stat=i_stat  )
+!    call memocc(i_stat,oldalpha,'oldalpha',subname)
 
   END SUBROUTINE LB_allocate_for_chebychev
 
@@ -133,6 +142,17 @@ contains
     call memocc(i_stat,i_all,'oldalpha',subname)
 
   END SUBROUTINE LB_de_allocate_for_lanczos
+
+  subroutine LB_de_allocate_for_cheb( )
+
+    i_all=-product(shape(LB_alpha_cheb))*kind(LB_alpha_cheb)
+    deallocate(LB_alpha_cheb)
+    call memocc(i_stat,i_all,'LB_alpha_cheb',subname)
+
+  END SUBROUTINE LB_de_allocate_for_cheb
+
+
+
    
   integer function converged(m)
     implicit none
@@ -295,12 +315,9 @@ contains
     call EP_allocate_for_eigenprob(LB_nsteps)
     call EP_make_dummy_vectors(LB_nsteps)
 
-
-
     k=0
     nc=0
  
-
     call LB_passeggia(k,m,      get_EP_dim, EP_initialize_start , EP_normalizza,&
          EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
          EP_scalare,EP_add_from_vect_with_fact     )
@@ -673,24 +690,24 @@ contains
   END SUBROUTINE LB_passeggia
 
 
-  subroutine CalcolaSpettroChebychev( cheb_shift, fact_cheb,   Nu, xabs_res_prefix ) 
+  subroutine CalcolaSpettroChebychev( cheb_shift, fact_cheb,   Nu, xabs_res_prefix, norbp , wgts) 
     real(gp) cheb_shift, fact_cheb
-    integer Nu
+    integer Nu, norbp
     character(len=*) :: xabs_res_prefix
+    real(gp) wgts(norbp)
 
-    real(gp), pointer :: Xs(:), res(:), cfftreal(:), cfftimag(:), zinout(:,:,:)
+
+    real(gp), pointer :: Xs(:), res(:), cfftreal(:),result(:), cfftimag(:), zinout(:,:,:)
     complex(kind=8), pointer :: alphas(:), expn(:)
     complex(kind=8) :: ctemp
     integer :: inzee
 
     integer :: Nbar
-    integer :: i
+    integer :: i, iorb, ierr
     real(gp) :: Pi
     character(len=1000) :: filename
     real(gp) :: fact
 
-    write(filename,'(a,a,I0)') trim(xabs_res_prefix),  "cheb_spectra_", Nu
-    write(*, '(a,1x, a)') " writing spectra to " , filename 
 
     Pi=acos(-1.0_gp)
     Nbar =1
@@ -716,19 +733,26 @@ contains
 
     allocate(cfftreal(0:2*Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,cfftreal,'cfftreal',subname)
-  
+
+    allocate(result(0:2*Nbar-1+ndebug) , stat=i_stat)
+    call memocc(i_stat,result,'result',subname)
+
+
     allocate(cfftimag(0:2*Nbar-1+ndebug) , stat=i_stat)
     call memocc(i_stat,cfftimag,'cfftimag',subname)
     
     allocate(zinout (2,2*Nbar,2+ndebug) , stat=i_stat)
     call memocc(i_stat,zinout,'zinout',subname)
     
+    result=0.0_gp
+    
+    do iorb=1, norbp
+       
+       cfftreal=0
+       cfftimag=0
 
-
-    cfftreal=0
-    cfftimag=0
-    do i=0,Nbar-1
-       Xs(i)=cos( (Nbar-1 - i +0.5_gp)*Pi/Nbar)
+       do i=0,Nbar-1
+          Xs(i)=cos( (Nbar-1 - i +0.5_gp)*Pi/Nbar)
 !!$       res(i)=LB_alpha(0)
 !!$       alphas(i) = exp(   ((0.0_gp,1.0_gp) * ( Nbar-1 - i +0.5_gp)) *Pi/Nbar     ) 
 !!$       expn(i)=(1.0_gp,0)
@@ -737,39 +761,39 @@ contains
 !!$
 !!$       exp(   ((0.0_gp,1.0_gp) * (  - i )) *Pi/Nbar     ) 
 !!$       exp(   ((0.0_gp,1.0_gp) * ( Nbar-1  +0.5_gp)) *Pi/Nbar     ) = -exp(   ((0.0_gp,1.0_gp) * ( -0.5_gp)) *Pi/Nbar     )
-       
-       if(i<Nu) then
-          fact = 1.0/(Nu+1)*( (Nu-i +1.0)*cos(pi* i /(Nu+1.0))+ &
-               sin(pi* i /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
-          ctemp= LB_alpha(i)*fact*exp(   ((0.0_gp,1.0_gp) * ( Nbar -0.5_gp)) *i*Pi/Nbar     )
-          cfftreal(i)=REAL(ctemp)
-          cfftimag(i)=AIMAG(ctemp)
-       else
-          cfftreal(i)=0
-          cfftimag(i)=0
-       endif
-    enddo
 
-    zinout=0.0
-    
-    zinout(1,1:2*Nbar,1) = cfftreal(:)
-    zinout(2,1:2*Nbar,1) = cfftimag(:)
+          if(i<Nu) then
+             fact = 1.0/(Nu+1)*( (Nu-i +1.0)*cos(pi* i /(Nu+1.0))+ &
+                  sin(pi* i /(Nu+1.0))* cos(pi/(Nu+1))/sin(pi/(Nu+1))    )
+             ctemp= LB_alpha_cheb(iorb, i)*fact*exp(   ((0.0_gp,1.0_gp) * ( Nbar -0.5_gp)) *i*Pi/Nbar     )
+             cfftreal(i)=REAL(ctemp) *wgts(iorb)
+             cfftimag(i)=AIMAG(ctemp) *wgts(iorb)
+          else
+             cfftreal(i)=0
+             cfftimag(i)=0
+          endif
+       enddo
 
+       zinout=0.0
 
-    call dcopy(2*Nbar,cfftreal(0),1,zinout(1,1,1),2)
-    call dcopy(2*Nbar,cfftimag(0),1,zinout(2,1,1),2)
-    !zinout(1,1:2*Nbar,1) = cfftreal(:)
-    !zinout(2,1:2*Nbar,1) = cfftimag(:)
+       zinout(1,1:2*Nbar,1) = cfftreal(:)
+       zinout(2,1:2*Nbar,1) = cfftimag(:)
 
 
-    call fft_1d_ctoc(1 ,1, 2*Nbar ,zinout(1,1,1) ,inzee)
+       call dcopy(2*Nbar,cfftreal(0),1,zinout(1,1,1),2)
+       call dcopy(2*Nbar,cfftimag(0),1,zinout(2,1,1),2)
+       !zinout(1,1:2*Nbar,1) = cfftreal(:)
+       !zinout(2,1:2*Nbar,1) = cfftimag(:)
 
-    call dcopy(2*Nbar,zinout(1,1,inzee),2,cfftreal(0),1)
-    call dcopy(2*Nbar,zinout(2,1,inzee),2,cfftimag(0),1)
-    !cfftreal(:)  =   zinout(1,1:2*Nbar,inzee)   
-    !cfftimag(:)  =   zinout(2,1:2*Nbar,inzee)    
-    
-    cfftreal=cfftreal-LB_alpha(0)*0.5
+
+       call fft_1d_ctoc(1 ,1, 2*Nbar ,zinout(1,1,1) ,inzee)
+
+       call dcopy(2*Nbar,zinout(1,1,inzee),2,cfftreal(0),1)
+       call dcopy(2*Nbar,zinout(2,1,inzee),2,cfftimag(0),1)
+       !cfftreal(:)  =   zinout(1,1:2*Nbar,inzee)   
+       !cfftimag(:)  =   zinout(2,1:2*Nbar,inzee)    
+
+       cfftreal=cfftreal-(LB_alpha_cheb(iorb, 0)*0.5) *wgts(iorb)
 
 !!$    do n=1,Nu-1
 !!$       expn(:)=expn(:)*alphas(:)
@@ -778,18 +802,45 @@ contains
 !!$       res(:)=res(:)+2*REAL(expn(:))*LB_alpha(n)*fact
 !!$    enddo
 
-    print *, " done " 
-    
+       print *, " done " 
+
 !!$    res =res/Pi/sqrt(1-Xs*Xs)
 
-    cfftreal(0:Nbar-1) =2*cfftreal(0:Nbar-1)/Pi/sqrt(1-Xs*Xs)*fact_cheb
+       cfftreal(0:Nbar-1) =2*cfftreal(0:Nbar-1)/Pi/sqrt(1-Xs*Xs)*fact_cheb
+
+
+       result=result+cfftreal
+
+
+          write(filename,'(a,a,I0,a,I0)') trim(xabs_res_prefix),  "cheb_spectra_proc_", LB_iproc,"_orbp_", iorb
+          write(*, '(a,1x, a)') " writing spectra to " , trim(filename) 
+          open(unit=22,file=filename)
+          do i=0, Nbar-1
+             write(22,*) Xs(i) / fact_cheb + cheb_shift , cfftreal(i)/wgts(iorb)
+          enddo
+          close(unit=22)
+       
+    end do
+
+    cfftreal=0
     
-    
-    open(unit=22,file=filename)
-    do i=0, Nbar-1
-       write(22,*) Xs(i) / fact_cheb + cheb_shift , cfftreal(i)
-    enddo
-    close(unit=22)
+    if(LB_nproc/=1) then
+       call MPI_REDUCE(result(0),cfftreal(0), 2*Nbar ,mpidtypd,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+    else
+       cfftreal=result
+    endif
+
+
+    if(LB_iproc==0) then
+       write(filename,'(a,a,I0)') trim(xabs_res_prefix),  "cheb_spectra_", Nu
+       write(*, '(a,1x, a)') " writing spectra to " , trim(filename) 
+
+       open(unit=22,file=filename)
+       do i=0, Nbar-1
+          write(22,*) Xs(i) / fact_cheb + cheb_shift , cfftreal(i)
+       enddo
+       close(unit=22)
+    endif
 
     i_all=-product(shape(Xs))*kind(Xs)
     deallocate(Xs)
@@ -814,6 +865,10 @@ contains
     deallocate(cfftreal)
     call memocc(i_stat,i_all,'cfftreal',subname)
     
+    i_all=-product(shape(result))*kind(result)
+    deallocate(result)
+    call memocc(i_stat,i_all,'result',subname)
+    
     i_all=-product(shape(cfftimag))*kind(cfftimag)
     deallocate(cfftimag)
     call memocc(i_stat,i_all,'cfftimag',subname)
@@ -828,15 +883,18 @@ contains
   
   subroutine LB_passeggia_Chebychev (  m, cheb_shift,  fact_cheb,  get_EP_dim,  EP_initialize_start , EP_normalizza, &
        EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,  EP_mat_mult,&
-       EP_scalare,EP_add_from_vect_with_fact , EP_multbyfact, EP_ApplySinv, EP_ApplyS, dopaw, &
-       S_do_cg ,Sinv_do_cg , xabs_res_prefix)
+       EP_scalare_multik,EP_add_from_vect_with_fact , EP_multbyfact, EP_ApplySinv, EP_ApplyS, dopaw, &
+       S_do_cg ,Sinv_do_cg , xabs_res_prefix, nkpts, norb_par, wgts)
     use module_base
     implicit none
     integer, intent(in) :: m
     real(gp) :: cheb_shift, fact_cheb
-    integer :: i
     logical dopaw
     character(len=*) :: xabs_res_prefix
+    integer, intent(in) :: nkpts, norb_par(0:LB_nproc-1)
+    real(gp) wgts(LB_nproc )
+    integer ierr
+
     interface
        subroutine EP_mat_mult(m,k ,  EV )
          integer, intent(in)::  m,k
@@ -854,7 +912,14 @@ contains
        END SUBROUTINE 
        real(kind=8) function EP_scalare(i,j)
          integer, intent(in) :: i,j
-       end function 
+       end function
+       subroutine EP_scalare_multik(i,j, scalari)
+         use module_base
+         integer, intent(in) :: i,j
+         real(wp) :: scalari(*)
+       end subroutine EP_scalare_multik
+
+ 
        subroutine EP_add_from_vect_with_fact( i, j  ,   a )
          integer, intent(in) :: i,j
          real(kind=8), intent(in) :: a
@@ -890,11 +955,22 @@ contains
     end interface
 
 
-    integer :: ipa
+    integer :: ipa, i
     integer :: tmp1, attuale, precedente
-    integer :: Stmp1, Sattuale, Sprecedente
+    integer :: Stmp1, Sattuale, Sprecedente, dspl( 0:LB_nproc-1)
     logical :: S_do_cg ,Sinv_do_cg 
     real(gp) tol
+    real(wp) alphacollect(nkpts)
+
+    print *, "LB_nproc= ", LB_nproc
+
+    if(LB_nproc/=1) then
+       dspl(0)=0
+       do i=1, LB_nproc-1
+          dspl(i ) = dspl(i-1)+norb_par(i-1)
+       end do
+    endif
+
     attuale= 1
     Sattuale= 2
     tmp1 = 3
@@ -903,19 +979,19 @@ contains
     Stmp1 = 5
     Sprecedente= 6
 
-    
-
-
     call EP_initialize_start()
+    print *, " EP_initialize_start    OK "
     call EP_copy(attuale,0)
     call EP_copy(precedente,0)
     if(dopaw) then
        tol=1.0D-20
        
        if(   S_do_cg ) then
-          call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
-               EP_ApplySinv ,  EP_copy,  &
-               EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, Sattuale, attuale)
+!!$          call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
+!!$               EP_ApplySinv ,  EP_copy,  &
+!!$               EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, Sattuale, attuale)
+          STOP " S_do_cg temporarily disactivate beacause chebychev is potentially multik " 
+
           
 !!$       call  EP_ApplySinv( tmp1 , Sattuale)
 !!$       call EP_add_from_vect_with_fact( tmp1  , attuale ,-1.0_gp ) 
@@ -926,20 +1002,22 @@ contains
           call  EP_ApplyS(Sattuale   ,attuale )
        endif
        
-       LB_alpha(0)=EP_scalare(attuale,Sattuale) 
+       call EP_scalare_multik(attuale,Sattuale, LB_alpha_cheb(:,0)  ) 
     else
-       LB_alpha(0)=EP_scalare(attuale,attuale)
+       call EP_scalare_multik(attuale,attuale, LB_alpha_cheb(:,0) )
     endif
     
     do i=0, m-1
-       if(LB_iproc==0 .and. modulo( m-1-i   ,100)==0 ) then
-          open(unit=22,file=(trim(xabs_res_prefix)//"coeffs_chebychev"))
-          write(22,*) 2*i+1,  cheb_shift, fact_cheb
-          do ipa=0, 2*i
-             write(22,*) LB_alpha(ipa)
-          enddo
-          close(unit=22)
-          call CalcolaSpettroChebychev( cheb_shift, fact_cheb,   2*i+1 , xabs_res_prefix) 
+       if( modulo( m-1-i   ,100)==0 ) then
+!!$          open(unit=22,file=(trim(xabs_res_prefix)//"coeffs_chebychev"))
+!!$          write(22,*) 2*i+1,  cheb_shift, fact_cheb
+!!$          do ipa=0, 2*i
+!!$             write(22,*) LB_alpha(ipa)
+!!$          enddo
+!!$          close(unit=22)
+          call CalcolaSpettroChebychev( cheb_shift,&
+               fact_cheb,   2*i+1 , xabs_res_prefix, &
+               norb_par(LB_iproc), wgts) 
        endif
        
        call EP_Moltiplica(tmp1, attuale )
@@ -952,15 +1030,16 @@ contains
        
        call EP_multbyfact(tmp1,fact_cheb)
        if(i==0) then
-          LB_alpha(1)=EP_scalare(tmp1,attuale)  
+!!$          LB_alpha(1)=EP_scalare(tmp1,attuale)  
+          call EP_scalare_multik(tmp1,attuale, LB_alpha_cheb(:, 1))  
           if(dopaw) then
              call EP_copy(Stmp1,tmp1)
-             
-             
              if(   Sinv_do_cg ) then
-                call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
-                     EP_ApplyS ,  EP_copy,  &
-                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol,tmp1 ,Stmp1 )  
+!!$                call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
+!!$                     EP_ApplyS ,  EP_copy,  &
+!!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol,tmp1 ,Stmp1 )  
+                     STOP " Sinv_do_cg temporarily disactivate beacaause chebychev is potentially multik" 
+
              else
                 call EP_ApplySinv(tmp1, Stmp1 )             
              endif
@@ -972,9 +1051,10 @@ contains
              call EP_add_from_vect_with_fact( Stmp1 , Sprecedente,-1.0_gp ) 
              
              if(   Sinv_do_cg ) then
-                call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
-                     EP_ApplyS ,  EP_copy,  &
-                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, tmp1,Stmp1 )
+!!$                call  LB_generic_cg(    get_EP_dim,EP_normalizza,&
+!!$                     EP_ApplyS ,  EP_copy,  &
+!!$                     EP_scalare,EP_add_from_vect_with_fact    , EP_multbyfact,  tol, tmp1,Stmp1 )
+                STOP " Sinv_do_cg temporarily disactivate beacaause chebychev is potentially multik " 
              else
                 call EP_ApplySinv(tmp1, Stmp1 )             
              endif
@@ -985,15 +1065,43 @@ contains
        endif
        if(dopaw) then
           if(i.gt.0) then
-             LB_alpha(2*i+1) = 2*EP_scalare(tmp1,Sattuale)-LB_alpha(1)
+             call  EP_scalare_multik(tmp1,Sattuale,  LB_alpha_cheb(:,2*i+1)  )
+             LB_alpha_cheb(:,2*i+1)= 2.0_wp * LB_alpha_cheb(:,2*i+1)  - LB_alpha_cheb(:, 1)
+             !!$ LB_alpha(2*i+1) = 2*EP_scalare(tmp1,Sattuale)-LB_alpha(1)
           endif
-          LB_alpha(2*i+2) = 2*EP_scalare(tmp1,Stmp1)-LB_alpha(0)
+          call EP_scalare_multik(tmp1,Stmp1, LB_alpha_cheb(:, 2*i+2) )
+          LB_alpha_cheb(:, 2*i+2) = 2_wp*LB_alpha_cheb(:, 2*i+2)  -LB_alpha_cheb(:,0)
+          !!$ LB_alpha(2*i+2) = 2*EP_scalare(tmp1,Stmp1)-LB_alpha(0)
        else
-          LB_alpha(2*i+1) = 2*EP_scalare(tmp1,attuale)-LB_alpha(1)
-          LB_alpha(2*i+2) = 2*EP_scalare(tmp1,tmp1)-LB_alpha(0)
+
+          call  EP_scalare_multik(tmp1, attuale,  LB_alpha_cheb(:,2*i+1)  )
+          LB_alpha_cheb(:,2*i+1)= 2.0_wp * LB_alpha_cheb(:,2*i+1)  - LB_alpha_cheb(:, 1)
+
+          !!$ LB_alpha(2*i+1) = 2*EP_scalare(tmp1,attuale)-LB_alpha(1)
+
+
+          call EP_scalare_multik(tmp1,tmp1, LB_alpha_cheb(:, 2*i+2))
+          LB_alpha_cheb(:, 2*i+2) = 2_wp*LB_alpha_cheb(:, 2*i+2)  -LB_alpha_cheb(:,0)
+
+          !!$ LB_alpha(2*i+2) = 2*EP_scalare(tmp1,tmp1)-LB_alpha(0)
        end if
-       print *, "new cheb coeffs " ,  LB_alpha(2*i+1) , LB_alpha(2*i+2)
-       
+
+       if(LB_nproc/=1) then
+          call MPI_Gatherv( LB_alpha_cheb(1,2*i+1) , norb_par(LB_iproc),mpidtypw, &
+               alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr )
+          if(LB_iproc==0) then
+             print *, "  new cheb coeffs (nkpts=", nkpts, ")"
+             print *, alphacollect
+          endif
+          call MPI_Gatherv( LB_alpha_cheb(1,2*i+2) , norb_par(LB_iproc),mpidtypw, &
+               alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD , ierr)
+          if(LB_iproc==0) then
+             print *, "  and  "
+             print *, alphacollect
+          endif
+       else
+          print *, "new cheb coeffs " ,  LB_alpha_cheb(1:LB_norbp ,2*i+1) , LB_alpha_cheb(1:LB_norbp,2*i+2)
+       endif
        call EP_copy(precedente,attuale)
        call EP_copy(attuale,tmp1)
        
