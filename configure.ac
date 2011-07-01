@@ -555,12 +555,18 @@ if test "$internallibxc" = "yes" ; then
   AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libXC/src)
   AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libXC/src)
   LDFLAGS="$LDFLAGS -L\$(top_builddir)/libXC/src"
+  LIBXC_LIBS="-lxc"
 else
   if test -n "$ac_libxc_dir" ; then
     LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
     
     dnl Test the given implementation of libXC.
-    AC_CHECK_LIB(xc, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    ac_libxc_libname="xc"
+    AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    if test x"$withlibxc" = x"no" ; then
+      ac_libxc_libname="dft_xc"
+      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    fi
     AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
     AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
     AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
@@ -568,13 +574,17 @@ else
       ac_use_libxc="yes"
       AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
       AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
+      LIBXC_LIBS="-l"$ac_libxc_libname
     fi
+  else
+    LIBXC_CFLAGS="-I/usr/include"
+    PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
+    AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
 if test x"$ac_use_libxc" = x"yes" ; then
   AC_DEFINE([HAVE_LIBXC], [1], [use libXC in BigDFT.])
-  LIBXC_LIBS="-lxc"
 fi
 
 dnl Test the ABINIT library
