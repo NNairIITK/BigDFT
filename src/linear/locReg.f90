@@ -1854,12 +1854,12 @@ END SUBROUTINE get_overlap_region_periodic
 !============================================================================
 !WARNING: assignToLocreg does not take into account the Kpts yet !!
 !============================================================================
-subroutine assignToLocreg(iproc, natom, natsc, nlr,noncoll, nspin, Localnorb, orbse, norbsc_arr, iasctype,norbsc)
+subroutine assignToLocreg(iproc, nproc, natom, natsc, nlr,noncoll, nspin, Localnorb, orbse, norbsc_arr, iasctype,norbsc)
   use module_base
   use module_types
   implicit none
   
-  integer,intent(in):: nlr,iproc,nspin,natom,noncoll
+  integer,intent(in):: nlr,iproc,nproc,nspin,natom,noncoll
   integer, intent(in) :: natsc                                          !> number of atoms having semicore states
   integer,dimension(nlr),intent(in):: Localnorb
   type(orbitals_data),intent(inout):: orbse
@@ -1868,11 +1868,11 @@ subroutine assignToLocreg(iproc, natom, natsc, nlr,noncoll, nspin, Localnorb, or
   integer,dimension(nlr),intent(out) :: norbsc
   ! Local variables
   integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsctot,orbsc,ispin
-  integer :: iat,ind
+  integer :: iat,ind,ierr
   integer, dimension(natom,nspin) :: orbscToAtom                        !> array olding the number of semicore states for each atom and spin
   character(len=*), parameter :: subname='assignToLocreg'
 
-  allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
+  allocate(orbse%inWhichLocreg(orbse%norb_par(iproc)),stat=i_stat)
   call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
 
   ! There are four counters:
@@ -2077,7 +2077,7 @@ subroutine determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
   Lzd%Lpsidimtot = dimtot
 
 ! Determine inwhichlocreg
-  call assignToLocreg(iproc,at%nat,at%natsc,Lzd%nlr,noncoll,nspin_ig,Localnorb,Lzd%orbs,norbsc_arr,at%iasctype,norbsc)
+  call assignToLocreg(iproc,nproc,at%nat,at%natsc,Lzd%nlr,noncoll,nspin_ig,Localnorb,Lzd%orbs,norbsc_arr,at%iasctype,norbsc)
 
 ! DEBUG for inWhichLocreg(ilr)
 !  print *,'at%iasctype:',at%iasctype,Lzd%orbs%norb
@@ -2274,17 +2274,37 @@ subroutine linear_orbitals_descriptors(ilr,iproc,nproc,Gorbs,norb,norbu,norbd,ns
 
   ! allocate inwhichlocreg 
   ! WARNING: assigntoLocreg does not work with Kpts yet!!
-  allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
+  allocate(orbs%inwhichlocreg(orbs%norbp*orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
 
   ! Define inwhichlocreg for the locregs
   ! this gives the mapping of the local orbitals to the Global one,
   ! because orbitals are reordered by locreg
+  ! Does not work with semicore states yet
+  jat=1
+  jorb=0
+  iiOrb=0
+  do jproc=0,nproc-1
+     do iorb=1,Gorbs%norb_par(jproc)
+        ! Switch to the next atom if the number of basis functions for this atom is reached.
+        if(iiOrb==(Localnorb(jat)*noncoll) then
+            jat=jat+1
+            iiOrb=0
+        end if
+        if(jat > natom) then
+          jat = 1
+        end if
+        jorb=jorb+1
+        iiOrb=iiOrb+1
+        iWL(jorb)=jat
+       end do
+  end do
+
   ii = 0
   do iorb=1,Gorbs%norb*Gorbs%nkpts
-     if (Gorbs%inWhichLocreg(iorb) == ilr) then
+     if (iWL(iorb) == ilr) then
         ii = ii + 1
-        orbs%inWhichLocreg(ii) = iorb
+        orbs%inWhichLocreg(ii) = iorb + Gorbs%isorb 
      end if
   end do
 
@@ -2294,7 +2314,7 @@ subroutine linear_orbitals_descriptors(ilr,iproc,nproc,Gorbs,norb,norbu,norbd,ns
   call memocc(i_stat,orbs%occup,'orbs%occup',subname)
   allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
-  
+  print *,'orbs%inWhichLocreg',orbs%inWhichLocreg
   do iorb=1,norb*orbs%nkpts
      orbs%occup(iorb)= Gorbs%occup(orbs%inWhichLocreg(iorb))
      orbs%spinsgn(iorb) = Gorbs%spinsgn(orbs%inWhichLocreg(iorb))

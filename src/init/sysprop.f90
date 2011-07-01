@@ -959,11 +959,10 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%efermi = UNINITIALISED
 
   ! allocate inwhichlocreg
-  allocate(orbs%inwhichlocreg(orbs%norbp),stat=i_stat)
+  allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
   ! default for inwhichlocreg
   orbs%inwhichlocreg = 1
-
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
@@ -977,7 +976,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !   is located.
   allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
   call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
-  allocate(orbs%onWhichMPI(orbs%norbp), stat=i_stat)
+  allocate(orbs%onWhichMPI(orbs%norb), stat=i_stat)
   call memocc(i_stat, orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
   iiorb=0
   orbs%isorb_par=0

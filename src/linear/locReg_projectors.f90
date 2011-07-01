@@ -766,12 +766,21 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorb
   integer :: jj,orbtot,ispin,ind
   integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
-  real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,orbs%norb) :: psi_tmp
-  real(wp),dimension(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f,orbs%nspinor,orbs%norb) :: hpsi_tmp
-  real(wp),dimension(Lnlpspd%nprojel):: Lproj  !local projectors
+  real(wp),allocatable,dimension(:,:,:) :: psi_tmp
+  real(wp),allocatable,dimension(:,:,:) :: hpsi_tmp
+  real(wp),allocatable,dimension(:):: Lproj  !local projectors
+  character(len=*), parameter :: subname='apply_local_projectors'
 
 !  First reshape the wavefunctions: psi_tmp(nels,norbs,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
+
+! Allocate arrays
+   allocate(psi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
+   call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+   allocate(hpsi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
+   call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
+   allocate(Lproj(Lnlpspd%nprojel),stat=i_stat)
+   call memocc(i_stat,Lproj,'Lproj',subname)
 
    ! reshape the wavefunction
    ii=0
@@ -889,6 +898,17 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorb
       if (ieorb == Gorbs%norbp) exit loop_kpt
       ikpt=ikpt+1
    end do loop_kpt
+
+   !deallocate arrays
+    i_all = -product(shape(psi_tmp))*kind(psi_tmp)
+    deallocate(psi_tmp,stat=i_stat)
+    call memocc(i_stat,i_all,'psi_tmp',subname)
+    i_all = -product(shape(hpsi_tmp))*kind(hpsi_tmp)
+    deallocate(hpsi_tmp,stat=i_stat)
+    call memocc(i_stat,i_all,'hpsi_tmp',subname)
+    i_all = -product(shape(Lproj))*kind(Lproj)
+    deallocate(Lproj,stat=i_stat)
+    call memocc(i_stat,i_all,'Lproj',subname)
 
 END SUBROUTINE apply_local_projectors
 !%***

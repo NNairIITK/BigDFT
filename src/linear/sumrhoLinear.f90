@@ -601,7 +601,6 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
   real(gp), dimension(3,2) :: wrkallred
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
 
-
   !check if the potential has been associated
   if (.not. associated(pot)) then
      if (iproc ==0) then
@@ -649,7 +648,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
  
      ! Cut the potential into locreg pieces
      call global_to_local(Lzd%Glr,Lzd%Llr(ilr),nspin,size_pot,size_Lpot,pot,Lpot)
-
+  
      ! Set some quantities: ispot=shift for potential, dimwf=dimension of wavefunction
      ispot=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin+1
      dimwf=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Lorbs(ilr)%norb*&
@@ -664,7 +663,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
         if (present(psirocc) .and. present(orbsocc)) then
            call exact_exchange_potential_virt(iproc,nproc,Lzd%Llr(ilr)%geocode,nspin,&
                 Lzd%Llr(ilr),orbsocc,Lzd%Lorbs(ilr),ngatherarr(0,1),n3p,&
-                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi(ind:ind+dimwf-1),Lpot)
+                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi(ind:ind+dimwf-1),Lpot(ispot))
            eexctX = 0._gp
         else
    !!$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
@@ -674,12 +673,12 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
            if (.not. op2p) then
               call exact_exchange_potential(iproc,nproc,Lzd%Llr(ilr)%geocode,nspin,&
                    Lzd%Llr(ilr),Lzd%Lorbs(ilr),ngatherarr(0,1),n3p,&
-                   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi(ind:ind+dimwf-1),Lpot,eexctX)
+                   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi(ind:ind+dimwf-1),Lpot(ispot),eexctX)
            else
               !the psi should be transformed in real space
               call exact_exchange_potential_round(iproc,nproc,Lzd%Llr(ilr)%geocode,nspin,&
                    Lzd%Llr(ilr),Lzd%Lorbs(ilr),0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
-                   psi(ind:ind+dimwf-1),Lpot,eexctX)
+                   psi(ind:ind+dimwf-1),Lpot(ispot),eexctX)
    
            end if
         end if
@@ -848,12 +847,11 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
      eproj_sum=wrkallred(3,1)
   endif
 
-
-
   !up to this point, the value of the potential energy is 
   !only taking into account the local potential part
   !whereas it should consider also the value coming from the 
   !exact exchange operator (twice the exact exchange energy)
+    
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
 END SUBROUTINE LinearHamiltonianApplication
@@ -989,6 +987,13 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
         scstr= scstr + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbscToAtom(ilr,1)*Lzd%Lorbs(ilr)%nspinor
         psishift1 = psishift1 + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbscToAtom(ilr,1)*Lzd%Lorbs(ilr)%nspinor
      end if
+
+! DEBUG
+!  print *,'size(hamovr)',size(hamovr,1),size(hamovr,2),size(hamovr,3)
+!  do i_all=1,size(hamovr,1)
+!     print *,'iel, ham, ovr:',i_all,hamovr(i_all,1,:),hamovr(i_all,2,:)
+!  end do
+! END DEBUG
      
      !Now calculate the hamiltonian/overlap matrix for the non semicore states (FOR SPINS THIS DOES NOT WORK)
      firstcol = 1 + norbsc   !This assumes that number of semicore orbitals are the same for each spin. CHECK IF NONCOLL is a problem
@@ -1000,7 +1005,7 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
         norb2 = Lzd%Lorbs(ilr2)%norb/Lzd%Lorbs(ilr2)%nspin 
         ! don't use the semicore states
         psishift2 = psishift2 + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*&
-                    orbscToAtom(ilr2,1)*nspin*Lzd%Lorbs(ilr2)%nspinor
+                    orbscToAtom(ilr2,1)*Lzd%Lorbs(ilr2)%nspinor
 
         call get_number_of_overlap_region(ilr,ilr2,Lzd%Glr,isovrlp,Lzd%Llr,Lzd%nlr)!,outofzone)
         
@@ -1026,6 +1031,13 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
         call overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nspin,orbscToAtom,psidim1,psidim2,psishift1,&
            psishift2,Lzd,Lpsi,Lhpsi,dim_Lhamovr,Lhamovr)
 
+! DEBUG
+!  print *,'size(Lhamovr)',size(Lhamovr,1),size(Lhamovr,2),size(Lhamovr,3)
+!  do i_all=1,size(Lhamovr,1)
+!     print *,'iel, ham, ovr:',i_all,Lhamovr(i_all,1,:),Lhamovr(i_all,2,:)
+!  end do
+! END DEBUG
+
      ! update the shift for second wavefunction
         psishift2 = psishift2 + psidim2*nspin
 
@@ -1047,7 +1059,6 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
              end do
              iel = iel + norbsc_arr(natsc+1,1)
           end do
-             
        end do
 
      ! deallocate this instance of Lhamovr
@@ -1069,8 +1080,10 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
 
 
 ! DEBUG
-!  print *,'hamovr, ham:',hamovr(:,1,:)
-!  print *,'hamovr, ovr:',hamovr(:,2,:)
+  print *,'size(hamovr)',size(hamovr,1),size(hamovr,2),size(hamovr,3)
+  do i_all=1,size(hamovr,1)
+     print *,'iel, ham, ovr:',i_all,hamovr(i_all,1,:),hamovr(i_all,2,:)
+  end do
 ! END DEBUG
 
   ! Don't need Lhpsi anymore
@@ -1204,7 +1217,7 @@ subroutine local_hamiltonian_Linear(iproc,ilr,orbs,lr,hx,hy,hz,&
   real(gp) :: ekin,epot,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir
-
+ 
   exctXcoeff=libxc_functionals_exctXfac()
 
   !initialise the work arrays
@@ -1238,7 +1251,6 @@ subroutine local_hamiltonian_Linear(iproc,ilr,orbs,lr,hx,hy,hz,&
      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
      !the psir wavefunction is given in the spinorial form
      call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
-
      !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
      !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
      !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
@@ -1272,11 +1284,11 @@ subroutine local_hamiltonian_Linear(iproc,ilr,orbs,lr,hx,hy,hz,&
         !add to the psir function the part of the potential coming from the exact exchange
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
      end if
-
+     
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin)
-!     print *,iorb, ekin+epot, epot
+ 
      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(ii))*orbs%occup(ii+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(ii))*orbs%occup(ii+orbs%isorb)*epot
   enddo

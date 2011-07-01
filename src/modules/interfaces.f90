@@ -2241,6 +2241,26 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr 
      end subroutine
 
+     subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
+          psi,hpsi,psit,input,& !mandatory
+          orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,natsc,nspin
+       type(linear_zone_descriptors) :: Lzd                                  !> Information about the locregs
+       type(communications_arrays), target, intent(in) :: comms
+       type(orbitals_data), target, intent(inout) :: orbs
+       type(input_variables):: input
+       real(wp), dimension(:), pointer :: psi,hpsi,psit
+       !optional arguments
+       real(gp), optional, intent(in) :: etol
+       type(orbitals_data), optional, intent(in) :: orbsv
+       type(orbitals_data), optional, target, intent(in) :: orbse
+       type(communications_arrays), optional, target, intent(in) :: commse
+       integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
+       real(wp), dimension(:), pointer, optional :: psivirt
+     end subroutine LDiagHam
 
   end interface
 

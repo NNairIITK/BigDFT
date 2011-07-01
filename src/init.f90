@@ -450,15 +450,15 @@ subroutine input_wf_diag(iproc,nproc,at,&
 ! ###################################################################
 
   linear  = .true.
+  linear2 = .true.
   if (linear) then
      ! For now, set locrad by hand HERE
      locrad = 30.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
+
+     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear2)
   end if
-
-  linear2 = .true.
-  call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear2)
-
-  if (linear .and. linear2 .and. (nspin < 4) .and. (nproc < 2)) then
+  
+  if (linear .and. linear2 .and. (nspin < 4) ) then
 
      nspincomp = 1
      if (nspin > 1) then
@@ -619,7 +619,17 @@ subroutine input_wf_diag(iproc,nproc,at,&
     allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
     call memocc(i_stat,psit,'psit',subname)       
 
-    call LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,at%natsc,Lhpsi,Lpsi,psit,norbsc_arr=norbsc_arr)!,orbsv)
+    !use DiagHam to verify the transposition between the 
+    !localized orbital distribution (LOD) scheme and the global components distribution scheme (GCD)
+    !in principle LDiagHam should
+    ! 1) take the Lpsi and Lhpsi in the LOD 
+    ! 2) create the IG transposed psit in the GCD
+    ! 3) deallocate Lpsi
+
+    call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,comms,&
+         Lpsi,Lhpsi,psit,input,orbse,commse,etol,norbsc_arr)
+
+!    call LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,at%natsc,Lhpsi,Lpsi,psit,norbsc_arr=norbsc_arr)!,orbsv)
     
     ! Don't need Lzd anymore (if only input guess)
     call deallocate_Lzd(Lzd,subname)
