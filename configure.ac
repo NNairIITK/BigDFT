@@ -551,10 +551,10 @@ ac_build_libxc=$ac_internal_libxc
 if test "$ac_internal_libxc" = "yes" ; then
   ac_build_libxc="yes"
   ac_use_libxc="yes"
-  ac_libxc_dir="$top_builddir"/libXC/src
-  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libXC/src)
-  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libXC/src)
-  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libXC/src"
+  ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
+  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
+  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
+  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
   LIBXC_LIBS="-lxc"
 else
   if test -n "$ac_libxc_dir" ; then
@@ -622,7 +622,7 @@ fi
 
 ac_build_libsgpu="no"
 ac_use_libsgpu="no"
-AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="yes")
+AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
 ac_build_libsgpu=$ac_internal_sgpu
 if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl Test S_GPU library.
@@ -728,7 +728,7 @@ tests/tutorials/Makefile
 # Call libXC ./configure script recursively.
 # Call S_GPU ./configure script recursively.
 if test x"$ac_build_libxc" != x"skip" ; then
-   AC_CONFIG_SUBDIRS([libXC])
+   AC_CONFIG_SUBDIRS([libxc-1.1.0])
 fi
 if test x"$ac_build_libsgpu" != x"skip" ; then
    AC_CONFIG_SUBDIRS([S_GPU])

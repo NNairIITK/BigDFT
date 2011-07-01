@@ -98,7 +98,7 @@ report:
 	$(abs_top_builddir)/src/memguess 1 > $@
 %.out.out: $(abs_top_builddir)/src/bigdft
 	$(run_parallel) $(abs_top_builddir)/src/bigdft > $@
-%.geopt.mon.out:
+%.geopt.mon.out: $(abs_top_builddir)/src/bigdft
 	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
 
 %.report: %.ref
