@@ -178,16 +178,23 @@ end subroutine optimizeDIIS
 
 
 
-subroutine initializeDIIS(isx, lzd, onWhichAtom, ldiis)
+subroutine initializeDIIS(isx, lzd, onWhichAtom, startWithSDx, alphaSDx, alphaDIISx, norb, icountSDSatur, &
+           icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, startWithSD, &
+           ldiis, alpha, alphaDIIS)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: isx
+integer,intent(in):: isx, norb
 type(linear_zone_descriptors),intent(in):: lzd
 integer,dimension(lzd%orbs%norb),intent(in):: onWhichAtom
+logical,intent(in):: startWithSDx
+real(8),intent(in):: alphaSDx, alphaDIISx
+integer,intent(out):: icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons
+logical,intent(out):: allowDIIS, startWithSD
 type(localizedDIISParameters),intent(out):: ldiis
+real(8),dimension(norb),intent(out):: alpha, alphaDIIS
 
 ! Local variables
 integer:: iorb, ii, istat, ilr
@@ -210,6 +217,26 @@ allocate(ldiis%phiHist(ii), stat=istat)
 call memocc(istat, ldiis%phiHist, 'ldiis%phiHist', subname)
 allocate(ldiis%hphiHist(ii), stat=istat)
 call memocc(istat, ldiis%hphiHist, 'ldiis%hphiHist', subname)
+
+! Initialize the DIIS parameters 
+icountSDSatur=0
+icountSwitch=0
+icountDIISFailureTot=0
+icountDIISFailureCons=0
+if(startWithSDx) then
+    allowDIIS=.false.
+    ldiis%switchSD=.false.
+    startWithSD=.true.
+else
+    allowDIIS=.true.
+    startWithSD=.false.
+end if
+
+! Assign the step size for SD iterations.
+alpha=alphaSDx
+alphaDIIS=alphaDIISx
+
+
 
 end subroutine initializeDIIS
 
