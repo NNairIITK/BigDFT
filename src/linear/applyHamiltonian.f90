@@ -1438,7 +1438,6 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   ind = 1
   istorb=1
   do ilr= 1, Lzd%nlr
-
      ! Cycle if the process does not have any orbitals belonging
      ! to this localization region.
      !write(*,'(a,3i8)') 'iproc, ilr, Lzd%Llr(ilr)%Localnorb', iproc, ilr, Lzd%Llr(ilr)%Localnorb

@@ -2689,6 +2689,24 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine optimizeDIIS
 
 
+     subroutine getHamiltonianMatrix(iproc, nproc, lzdig, Glr, onWhichAtom, onWhichAtomp, nat, chi, hchi, ham, orbsig)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, nat
+       type(linear_zone_descriptors),intent(in):: lzdig
+       type(locreg_descriptors),intent(in):: Glr
+       integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom
+       integer,dimension(lzdig%orbs%norbp),intent(in):: onWhichAtomp
+       type(orbitals_data),intent(in):: orbsig
+       !real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi
+       !real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: hchi
+       real(8),dimension(orbsig%npsidim),intent(in):: chi
+       real(8),dimension(orbsig%npsidim,nat),intent(in):: hchi
+       real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb,nat),intent(out):: ham
+     end subroutine getHamiltonianMatrix
+
+
 
 
   end interface
