@@ -27,7 +27,7 @@
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  
- --- (file: input.perf) ----------------------------------------- Performance Options
+ --- (file: input.perf -- not present) -------------------------- Performance Options
  |   debug                   !Option disabled
  |   fftcache 8192           !Cache size for the FFT
  |   accel NO                !Acceleration (NO, CUDAGPU, OCLGPU)
@@ -37,7 +37,7 @@
  |   ig_diag  T              !Input guess: Direct diagonalization of Hamiltonian
  |   ig_blocks 300 800       !Input guess: Block size for orthonormalisation
  |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
- |   methortho 2             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+ |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  
  --- (file: posinp.xyz  ) --------------------------------------- Input atomic system
    Atomic system                  Fixed positions           Additional data
@@ -128,15 +128,15 @@
  ion-ion interaction energy  2.65633855517418E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -14.000000099281   0.000E+00
- iproc, psoffset           1  6.953274296630606E-310
- iproc, psoffset           2  6.953243713034333E-310
- iproc, psoffset           3  6.953168935526905E-310
- iproc, psoffset           4  6.953254447827076E-310
- iproc, psoffset           5  6.953180755101247E-310
- iproc, psoffset           6  6.953243841083500E-310
- iproc, psoffset           7  6.953322791900988E-310
+ iproc, psoffset           1  6.953247044481829E-310
+ iproc, psoffset           2  6.953200706721024E-310
+ iproc, psoffset           3  6.953252686720990E-310
+ iproc, psoffset           4  6.953259486695879E-310
+ iproc, psoffset           5  6.953325083410654E-310
+ iproc, psoffset           6  6.953260369544549E-310
+ iproc, psoffset           7  6.953208368163003E-310
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
- iproc, psoffset           0  6.953194554232998E-310
+ iproc, psoffset           0  6.953319403859655E-310
  ************************************************************************************
  ****************************** LINEAR SCALING VERSION ******************************
  ********* Use the selfconsistent potential for the linear scaling version. *********
@@ -208,7 +208,7 @@
  Calculation of charge density... done. Total electronic charge=      13.999999351492
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
- statistics: - 54 point to point communications, of which 7 could be overlapped with computation.
+ statistics: - 54 point to point communications, of which 50 could be overlapped with computation.
              - 8 copies on the same processor.
  Hamiltonian application for all atoms. This may take some time.
    Hamiltonian application for atom 1... done.
@@ -219,7 +219,7 @@
    Hamiltonian application for atom 6... done.
    Hamiltonian application for atom 7... done.
    Hamiltonian application for atom 8... done.
- time for applying potential: 6.038E-01
+ time for applying potential: 6.025E-01
  Calculating Hamiltonian matrix for all atoms. This may take some time.
    Calculating matrix for atom 1... done.
    Calculating matrix for atom 2... done.
@@ -561,1334 +561,1453 @@ The minimization is performed using 1 processes.
  converged in 163 iterations.
    Final values for fnrm, trace:   9.21285E-04   4.98237E-02
  ====================================================================================
- time for "buildLinearCombinations": 6.050E-01
+ time for "buildLinearCombinations": 6.075E-01
  ------------------------------------------------------------- Input guess generated.
  cutting of outside localization region:
    before cut; average weights in / out:   9.99632624E-01   3.67284242E-04
-   after cut; average weights in / out:   9.99986256E-01   1.36518083E-05
+   after cut; average weights in / out:   9.99985938E-01   1.39703566E-05
  Posting sends / receives for communicating the potential... done.
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 54 point to point communications, of which 12 could be overlapped with computation.
+ statistics: - 54 point to point communications, of which 5 could be overlapped with computation.
              - 8 copies on the same processor.
  done. ------------------------------------- Building linear combinations... done.
  ---------------------------------------------------------------- Updating potential.
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 14 copies on the same processor.
- TOTAL CHARGE =   1.400014609236E+01
- time for sumrho: 1.062E-01
+ TOTAL CHARGE =   1.400017766244E+01
+ time for sumrho: 9.875E-02
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ======================== Creation of the basis functions... ========================
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99986256E-01   1.36518026E-05
-   after cut; average weights in / out:   9.99992439E-01   7.46921302E-06
- statistics: - 54 point to point communications, of which 42 could be overlapped with computation.
+   before cut; average weights in / out:   9.99985937E-01   1.39703508E-05
+   after cut; average weights in / out:   9.99992349E-01   7.55853996E-06
+ statistics: - 54 point to point communications, of which 49 could be overlapped with computation.
              - 8 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... 
-   maximal deviation from unity:  2.1873E-04
-   maximal deviation from unity:  5.3977E-05
+   maximal deviation from unity:  2.8796E-04
+   maximal deviation from unity:  7.1171E-05
    done in 2 iterations.
-   time for computation:7.375E-02=78.7%
-   time for communication:2.000E-02=21.3%
+   time for computation:7.625E-02=76.2%
+   time for communication:2.375E-02=23.8%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  1.6355786E+00  4.9104876E-01     1.5219181725
+ iter, fnrm, fnrmMax, trace     1  1.6359440E+00  4.9177620E-01     1.5222635046
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
-   maximal deviation from unity:  1.3266E-01
-   maximal deviation from unity:  8.4381E-04
-   maximal deviation from unity:  2.5629E-04
-   maximal deviation from unity:  7.7951E-05
+   maximal deviation from unity:  1.3267E-01
+   maximal deviation from unity:  7.1360E-04
+   maximal deviation from unity:  2.1676E-04
+   maximal deviation from unity:  6.5937E-05
    done in 4 iterations.
-   time for computation:1.750E-01=65.1%
-   time for communication:9.375E-02=34.9%
+   time for computation:1.738E-01=63.8%
+   time for communication:9.875E-02=36.2%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  8.7507365E-01  2.7457316E-01     0.6540318571
+ iter, fnrm, fnrmMax, trace     2  8.7517291E-01  2.7487472E-01     0.6542688027
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
    maximal deviation from unity:  1.0697E-01
-   maximal deviation from unity:  1.3920E-03
-   maximal deviation from unity:  5.4749E-04
-   maximal deviation from unity:  2.1132E-04
-   maximal deviation from unity:  8.1502E-05
+   maximal deviation from unity:  1.3573E-03
+   maximal deviation from unity:  5.3427E-04
+   maximal deviation from unity:  2.0627E-04
+   maximal deviation from unity:  7.9574E-05
    done in 5 iterations.
-   time for computation:2.350E-01=68.6%
-   time for communication:1.075E-01=31.4%
+   time for computation:2.250E-01=48.5%
+   time for communication:2.387E-01=51.5%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  5.6676334E-01  2.0205922E-01     0.0766945850
+ iter, fnrm, fnrmMax, trace     3  5.6671176E-01  2.0212549E-01     0.0767645984
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
-   maximal deviation from unity:  4.2900E-02
-   maximal deviation from unity:  2.5172E-03
-   maximal deviation from unity:  1.1181E-03
-   maximal deviation from unity:  4.9085E-04
-   maximal deviation from unity:  2.1535E-04
-   maximal deviation from unity:  9.4473E-05
+   maximal deviation from unity:  4.2898E-02
+   maximal deviation from unity:  2.5139E-03
+   maximal deviation from unity:  1.1171E-03
+   maximal deviation from unity:  4.9061E-04
+   maximal deviation from unity:  2.1533E-04
+   maximal deviation from unity:  9.4501E-05
    done in 6 iterations.
-   time for computation:2.725E-01=67.7%
-   time for communication:1.300E-01=32.3%
+   time for computation:2.725E-01=66.3%
+   time for communication:1.387E-01=33.7%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  3.8720453E-01  1.5098248E-01    -0.0975754381
+ iter, fnrm, fnrmMax, trace     4  3.8695685E-01  1.5076409E-01    -0.0975082119
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... 
-   maximal deviation from unity:  2.0020E-02
-   maximal deviation from unity:  2.2336E-03
-   maximal deviation from unity:  1.0270E-03
-   maximal deviation from unity:  4.6916E-04
-   maximal deviation from unity:  2.1425E-04
-   maximal deviation from unity:  9.7842E-05
+   maximal deviation from unity:  1.9993E-02
+   maximal deviation from unity:  2.2073E-03
+   maximal deviation from unity:  1.0151E-03
+   maximal deviation from unity:  4.6380E-04
+   maximal deviation from unity:  2.1183E-04
+   maximal deviation from unity:  9.6749E-05
    done in 6 iterations.
-   time for computation:2.700E-01=69.9%
-   time for communication:1.162E-01=30.1%
+   time for computation:2.750E-01=67.3%
+   time for communication:1.338E-01=32.7%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     5  2.9203060E-01  1.1712287E-01    -0.1489642358
+ iter, fnrm, fnrmMax, trace     5  2.9191965E-01  1.1707572E-01    -0.1488554470
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=6
  Orthonormalization... 
-   maximal deviation from unity:  1.1359E-02
-   maximal deviation from unity:  1.7687E-03
-   maximal deviation from unity:  8.3215E-04
-   maximal deviation from unity:  3.9089E-04
-   maximal deviation from unity:  1.8361E-04
-   maximal deviation from unity:  8.6241E-05
+   maximal deviation from unity:  1.1433E-02
+   maximal deviation from unity:  1.7672E-03
+   maximal deviation from unity:  8.3148E-04
+   maximal deviation from unity:  3.9062E-04
+   maximal deviation from unity:  1.8349E-04
+   maximal deviation from unity:  8.6198E-05
    done in 6 iterations.
-   time for computation:2.812E-01=69.4%
-   time for communication:1.237E-01=30.6%
+   time for computation:2.788E-01=68.0%
+   time for communication:1.312E-01=32.0%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     6  2.3120342E-01  8.1053458E-02    -0.1840809888
+ iter, fnrm, fnrmMax, trace     6  2.3105519E-01  8.0749369E-02    -0.1839683160
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=7
  Orthonormalization... 
-   maximal deviation from unity:  5.3670E-03
-   maximal deviation from unity:  1.7015E-03
-   maximal deviation from unity:  8.2368E-04
-   maximal deviation from unity:  3.9674E-04
-   maximal deviation from unity:  1.9105E-04
-   maximal deviation from unity:  9.1999E-05
+   maximal deviation from unity:  5.3975E-03
+   maximal deviation from unity:  1.7142E-03
+   maximal deviation from unity:  8.2996E-04
+   maximal deviation from unity:  3.9984E-04
+   maximal deviation from unity:  1.9258E-04
+   maximal deviation from unity:  9.2754E-05
    done in 6 iterations.
-   time for computation:2.787E-01=69.0%
-   time for communication:1.250E-01=31.0%
+   time for computation:2.888E-01=73.1%
+   time for communication:1.063E-01=26.9%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     7  2.0520616E-01  7.5709287E-02    -0.2068768297
+ iter, fnrm, fnrmMax, trace     7  2.0515268E-01  7.5613138E-02    -0.2067525202
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=8
  Orthonormalization... 
-   maximal deviation from unity:  8.7750E-03
-   maximal deviation from unity:  1.7452E-03
-   maximal deviation from unity:  8.5395E-04
-   maximal deviation from unity:  4.1564E-04
-   maximal deviation from unity:  2.0226E-04
-   maximal deviation from unity:  9.8419E-05
+   maximal deviation from unity:  8.6286E-03
+   maximal deviation from unity:  1.7534E-03
+   maximal deviation from unity:  8.5811E-04
+   maximal deviation from unity:  4.1774E-04
+   maximal deviation from unity:  2.0331E-04
+   maximal deviation from unity:  9.8951E-05
    done in 6 iterations.
-   time for computation:2.863E-01=69.6%
-   time for communication:1.250E-01=30.4%
+   time for computation:2.737E-01=66.8%
+   time for communication:1.363E-01=33.2%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     8  1.8532520E-01  6.9395461E-02    -0.2226495465
+ iter, fnrm, fnrmMax, trace     8  1.8535055E-01  6.9517639E-02    -0.2224883823
  WARNING: not converged within 8 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.8532520E-01  6.9395461E-02  -0.2226495
+ Final values for fnrm, fnrmMax, trace:   1.8535055E-01  6.9517639E-02  -0.2224884
  ============================= Basis functions created. =============================
  timings:
-   -total time: 5.514E+00
-     - orthonormalization: 2.715E+00=49.2%
-     - Hamiltonian application: 6.238E-01=11.3%
-     - orthoconstraint: 7.100E-01=12.9%
-     - preconditioning: 1.342E+00=24.3%
-     - other: 1.225E-01= 2.2%
+   -total time: 5.624E+00
+     - orthonormalization: 2.873E+00=51.1%
+     - Hamiltonian application: 5.525E-01= 9.8%
+     - orthoconstraint: 7.138E-01=12.7%
+     - preconditioning: 1.350E+00=24.0%
+     - other: 1.350E-01= 2.4%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done. ------------------------------------- Building linear combinations... done.
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99806837E-01   1.93131211E-04
-   after cut; average weights in / out:   9.99978465E-01   2.14980582E-05
+   before cut; average weights in / out:   9.99806813E-01   1.93155272E-04
+   after cut; average weights in / out:   9.99969317E-01   3.06455450E-05
  ---------------------------------------------------------------- Updating potential.
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 14 copies on the same processor.
- TOTAL CHARGE =   1.400003314218E+01
- time for sumrho: 9.875E-02
+ TOTAL CHARGE =   1.400003333356E+01
+ time for sumrho: 9.000E-02
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000033773379
+ Calculation of charge density... done. Total electronic charge=      14.000033967936
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   5.19544325E-03
- average noise along y direction:   8.25788388E-04
- average noise along z direction:   1.96763360E-03
- total average noise            :   5.61659497E-03
- clean forces norm (Ha/Bohr): maxval=  2.873544897957E-01  fnrm2=  3.169256068374E-01
- raw forces:                  maxval=  2.859200993262E-01  fnrm2=  3.169601037558E-01
+ average noise along x direction:   5.22854010E-03
+ average noise along y direction:   9.50620747E-04
+ average noise along z direction:   1.93667760E-03
+ total average noise            :   5.65614989E-03
+ clean forces norm (Ha/Bohr): maxval=  2.873585578020E-01  fnrm2=  3.168880909361E-01
+ raw forces:                  maxval=  2.859398501262E-01  fnrm2=  3.169230936373E-01
  Force values for all atoms in x, y, z direction.
-   1      C  -2.40832E-01  1.55322E-01 -2.11497E-02
-   2      C   2.37050E-01 -1.48978E-01  1.74143E-02
-   3      H  -1.48720E-01 -6.37361E-02  5.79408E-04
-   4      H  -4.51026E-02  1.11837E-01  1.03695E-01
-   5      H  -3.83894E-02  9.44383E-02 -1.19846E-01
-   6      H   4.53766E-02 -1.11237E-01 -1.06667E-01
-   7      H   3.90690E-02 -9.89065E-02  1.24869E-01
-   8      H   1.51549E-01  6.12594E-02  1.10482E-03
+   1      C  -2.40752E-01  1.55461E-01 -2.11034E-02
+   2      C   2.36912E-01 -1.48827E-01  1.72910E-02
+   3      H  -1.48736E-01 -6.37827E-02  5.85522E-04
+   4      H  -4.51155E-02  1.11778E-01  1.03654E-01
+   5      H  -3.83832E-02  9.43907E-02 -1.19818E-01
+   6      H   4.53941E-02 -1.11318E-01 -1.06706E-01
+   7      H   3.90616E-02 -9.89970E-02  1.24986E-01
+   8      H   1.51619E-01  6.12955E-02  1.11197E-03
  Posting sends / receives for communicating the potential... done.
  ##################################################################
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - WARNING: coefficients not converged!
-   it, Delta POT, energy    1   2.77E-05   -1.17672641148505015E+01
+   it, Delta POT, energy    1   2.77E-05   -1.17665718003372852E+01
  ##################################################################
  ======================== Creation of the basis functions... ========================
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99978464E-01   2.14981796E-05
-   after cut; average weights in / out:   9.99988223E-01   1.17353406E-05
- statistics: - 54 point to point communications, of which 51 could be overlapped with computation.
+   before cut; average weights in / out:   9.99969317E-01   3.06456664E-05
+   after cut; average weights in / out:   9.99982234E-01   1.77239805E-05
+ statistics: - 54 point to point communications, of which 44 could be overlapped with computation.
              - 8 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... 
-   maximal deviation from unity:  1.8211E-03
-   maximal deviation from unity:  8.8880E-04
-   maximal deviation from unity:  4.3270E-04
-   maximal deviation from unity:  2.1063E-04
-   maximal deviation from unity:  1.0253E-04
-   maximal deviation from unity:  4.9907E-05
+   maximal deviation from unity:  2.0821E-03
+   maximal deviation from unity:  1.0111E-03
+   maximal deviation from unity:  4.9210E-04
+   maximal deviation from unity:  2.3961E-04
+   maximal deviation from unity:  1.1667E-04
+   maximal deviation from unity:  5.6812E-05
    done in 6 iterations.
-   time for computation:2.800E-01=74.4%
-   time for communication:9.625E-02=25.6%
+   time for computation:2.737E-01=77.4%
+   time for communication:8.000E-02=22.6%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  7.1883054E-01  2.4654641E-01    -1.0374625686
+ iter, fnrm, fnrmMax, trace     1  7.2895853E-01  2.9848763E-01    -1.0372574348
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
-   maximal deviation from unity:  1.0806E-02
-   maximal deviation from unity:  3.0846E-03
-   maximal deviation from unity:  1.4910E-03
-   maximal deviation from unity:  7.1926E-04
-   maximal deviation from unity:  3.4694E-04
-   maximal deviation from unity:  1.6735E-04
-   maximal deviation from unity:  8.0725E-05
+   maximal deviation from unity:  1.0711E-02
+   maximal deviation from unity:  2.5375E-03
+   maximal deviation from unity:  1.2289E-03
+   maximal deviation from unity:  5.9312E-04
+   maximal deviation from unity:  2.8622E-04
+   maximal deviation from unity:  1.3812E-04
+   maximal deviation from unity:  6.6655E-05
    done in 7 iterations.
-   time for computation:3.387E-01=72.8%
-   time for communication:1.263E-01=27.2%
+   time for computation:3.287E-01=69.6%
+   time for communication:1.438E-01=30.4%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  2.2521916E-01  8.8289602E-02    -1.0699241349
+ iter, fnrm, fnrmMax, trace     2  2.2933139E-01  9.4005488E-02    -1.0699899286
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
-   maximal deviation from unity:  9.8653E-03
-   maximal deviation from unity:  2.1408E-03
-   maximal deviation from unity:  1.0338E-03
-   maximal deviation from unity:  4.9820E-04
-   maximal deviation from unity:  2.4008E-04
-   maximal deviation from unity:  1.1569E-04
-   maximal deviation from unity:  5.5751E-05
-   done in 7 iterations.
-   time for computation:3.237E-01=69.3%
-   time for communication:1.437E-01=30.7%
+   maximal deviation from unity:  9.7947E-03
+   maximal deviation from unity:  1.7427E-03
+   maximal deviation from unity:  8.4323E-04
+   maximal deviation from unity:  4.0660E-04
+   maximal deviation from unity:  1.9603E-04
+   maximal deviation from unity:  9.4514E-05
+   done in 6 iterations.
+   time for computation:2.762E-01=68.0%
+   time for communication:1.300E-01=32.0%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  1.7308079E-01  7.3163289E-02    -1.0790668067
+ iter, fnrm, fnrmMax, trace     3  1.7557048E-01  7.7643280E-02    -1.0792146444
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
-   maximal deviation from unity:  7.4453E-03
-   maximal deviation from unity:  1.3862E-03
-   maximal deviation from unity:  6.6739E-04
-   maximal deviation from unity:  3.2105E-04
-   maximal deviation from unity:  1.5444E-04
-   maximal deviation from unity:  7.4295E-05
+   maximal deviation from unity:  7.3098E-03
+   maximal deviation from unity:  1.3123E-03
+   maximal deviation from unity:  6.3254E-04
+   maximal deviation from unity:  3.0446E-04
+   maximal deviation from unity:  1.4654E-04
+   maximal deviation from unity:  7.0532E-05
    done in 6 iterations.
-   time for computation:2.775E-01=68.1%
-   time for communication:1.300E-01=31.9%
+   time for computation:2.787E-01=71.2%
+   time for communication:1.125E-01=28.8%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  1.3781562E-01  5.8270315E-02    -1.0900347826
+ iter, fnrm, fnrmMax, trace     4  1.3860984E-01  5.9713732E-02    -1.0902716613
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... 
-   maximal deviation from unity:  1.5116E-02
-   maximal deviation from unity:  1.3224E-03
-   maximal deviation from unity:  6.3692E-04
-   maximal deviation from unity:  3.0690E-04
-   maximal deviation from unity:  1.4789E-04
-   maximal deviation from unity:  7.1269E-05
+   maximal deviation from unity:  1.4611E-02
+   maximal deviation from unity:  1.2686E-03
+   maximal deviation from unity:  6.1109E-04
+   maximal deviation from unity:  2.9460E-04
+   maximal deviation from unity:  1.4204E-04
+   maximal deviation from unity:  6.8482E-05
    done in 6 iterations.
-   time for computation:2.837E-01=68.8%
-   time for communication:1.287E-01=31.2%
+   time for computation:2.738E-01=68.0%
+   time for communication:1.288E-01=32.0%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     5  1.2018114E-01  5.7013228E-02    -1.0990823223
+ iter, fnrm, fnrmMax, trace     5  1.2059496E-01  5.8079961E-02    -1.0993500490
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.2018114E-01  5.7013228E-02  -1.0990823
+ Final values for fnrm, fnrmMax, trace:   1.2059496E-01  5.8079961E-02  -1.0993500
  ============================= Basis functions created. =============================
  timings:
-   -total time: 3.863E+00
-     - orthonormalization: 2.131E+00=55.2%
-     - Hamiltonian application: 3.787E-01= 9.8%
-     - orthoconstraint: 4.412E-01=11.4%
-     - preconditioning: 8.425E-01=21.8%
-     - other: 6.875E-02= 1.8%
+   -total time: 3.740E+00
+     - orthonormalization: 2.029E+00=54.2%
+     - Hamiltonian application: 3.538E-01= 9.5%
+     - orthoconstraint: 4.387E-01=11.7%
+     - preconditioning: 8.487E-01=22.7%
+     - other: 7.000E-02= 1.9%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done. ------------------------------------- Building linear combinations... done.
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99814669E-01   1.85298622E-04
-   after cut; average weights in / out:   9.99979145E-01   2.08156557E-05
+   before cut; average weights in / out:   9.99814290E-01   1.85676811E-04
+   after cut; average weights in / out:   9.99969769E-01   3.01912247E-05
  ---------------------------------------------------------------- Updating potential.
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 14 copies on the same processor.
- TOTAL CHARGE =   1.400002193328E+01
- time for sumrho: 9.875E-02
+ TOTAL CHARGE =   1.400002094240E+01
+ time for sumrho: 9.000E-02
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000022400100
+ Calculation of charge density... done. Total electronic charge=      14.000021417715
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   1.40337117E-04
- average noise along y direction:  -7.21948334E-03
- average noise along z direction:   6.99270517E-04
- total average noise            :   7.25462704E-03
- clean forces norm (Ha/Bohr): maxval=  8.057480205255E-02  fnrm2=  2.401306241747E-02
- raw forces:                  maxval=  8.238611619979E-02  fnrm2=  2.407573120947E-02
+ average noise along x direction:   2.13180187E-04
+ average noise along y direction:  -7.02991127E-03
+ average noise along z direction:   7.31538647E-04
+ total average noise            :   7.07108528E-03
+ clean forces norm (Ha/Bohr): maxval=  8.089301620678E-02  fnrm2=  2.403163825491E-02
+ raw forces:                  maxval=  8.267855211466E-02  fnrm2=  2.409206974341E-02
  Force values for all atoms in x, y, z direction.
-   1      C  -7.01849E-02  3.74618E-02 -5.66684E-03
-   2      C   6.01907E-02 -5.35546E-02  1.13280E-03
-   3      H  -4.09671E-02 -9.62772E-03  2.99629E-04
-   4      H  -1.48315E-02  3.18738E-02  2.52761E-02
-   5      H  -1.35226E-02  2.79500E-02 -2.98689E-02
-   6      H   1.83138E-02 -2.55608E-02 -2.32250E-02
-   7      H   1.51856E-02 -2.41052E-02  3.12321E-02
-   8      H   4.58161E-02  1.55629E-02  8.20118E-04
+   1      C  -7.00863E-02  3.77306E-02 -5.66970E-03
+   2      C   6.05602E-02 -5.36190E-02  1.07234E-03
+   3      H  -4.11771E-02 -9.67325E-03  3.04849E-04
+   4      H  -1.48544E-02  3.18284E-02  2.52914E-02
+   5      H  -1.35289E-02  2.78724E-02 -2.98800E-02
+   6      H   1.83225E-02 -2.54783E-02 -2.29917E-02
+   7      H   1.52005E-02 -2.41073E-02  3.10456E-02
+   8      H   4.55636E-02  1.54464E-02  8.27328E-04
  Posting sends / receives for communicating the potential... done.
  ##################################################################
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - WARNING: coefficients not converged!
-   it, Delta POT, energy    2   7.82E-06   -1.42191676115533632E+01
+   it, Delta POT, energy    2   7.82E-06   -1.42197108567553379E+01
  ##################################################################
  ======================== Creation of the basis functions... ========================
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99979145E-01   2.08157935E-05
-   after cut; average weights in / out:   9.99988650E-01   1.13057542E-05
- statistics: - 54 point to point communications, of which 49 could be overlapped with computation.
+   before cut; average weights in / out:   9.99969769E-01   3.01913626E-05
+   after cut; average weights in / out:   9.99983005E-01   1.69494066E-05
+ statistics: - 54 point to point communications, of which 48 could be overlapped with computation.
              - 8 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... 
-   maximal deviation from unity:  1.7760E-03
-   maximal deviation from unity:  8.5770E-04
-   maximal deviation from unity:  4.1349E-04
-   maximal deviation from unity:  1.9932E-04
-   maximal deviation from unity:  9.6079E-05
-   done in 5 iterations.
-   time for computation:2.250E-01=74.1%
-   time for communication:7.875E-02=25.9%
+   maximal deviation from unity:  1.9395E-03
+   maximal deviation from unity:  9.3340E-04
+   maximal deviation from unity:  4.5008E-04
+   maximal deviation from unity:  2.1709E-04
+   maximal deviation from unity:  1.0471E-04
+   maximal deviation from unity:  5.0507E-05
+   done in 6 iterations.
+   time for computation:2.800E-01=74.7%
+   time for communication:9.500E-02=25.3%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  7.1629456E-01  2.6178351E-01    -1.2558972949
+ iter, fnrm, fnrmMax, trace     1  7.3836056E-01  3.3888598E-01    -1.2552846061
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
-   maximal deviation from unity:  8.0775E-03
-   maximal deviation from unity:  2.6628E-03
-   maximal deviation from unity:  1.2864E-03
-   maximal deviation from unity:  6.2086E-04
-   maximal deviation from unity:  2.9962E-04
-   maximal deviation from unity:  1.4460E-04
-   maximal deviation from unity:  6.9783E-05
+   maximal deviation from unity:  7.9393E-03
+   maximal deviation from unity:  2.0636E-03
+   maximal deviation from unity:  9.9872E-04
+   maximal deviation from unity:  4.8238E-04
+   maximal deviation from unity:  2.3296E-04
+   maximal deviation from unity:  1.1251E-04
+   maximal deviation from unity:  5.4335E-05
    done in 7 iterations.
-   time for computation:3.163E-01=68.9%
-   time for communication:1.425E-01=31.1%
+   time for computation:3.188E-01=68.7%
+   time for communication:1.450E-01=31.3%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  1.9618025E-01  9.0065710E-02    -1.2782501946
+ iter, fnrm, fnrmMax, trace     2  2.0273524E-01  9.8040268E-02    -1.2781850507
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
-   maximal deviation from unity:  1.0829E-02
-   maximal deviation from unity:  2.0186E-03
-   maximal deviation from unity:  9.7653E-04
-   maximal deviation from unity:  4.7200E-04
-   maximal deviation from unity:  2.2813E-04
-   maximal deviation from unity:  1.1026E-04
-   maximal deviation from unity:  5.3294E-05
-   done in 7 iterations.
-   time for computation:3.262E-01=69.0%
-   time for communication:1.463E-01=31.0%
+   maximal deviation from unity:  1.0525E-02
+   maximal deviation from unity:  1.4964E-03
+   maximal deviation from unity:  7.2524E-04
+   maximal deviation from unity:  3.5082E-04
+   maximal deviation from unity:  1.6969E-04
+   maximal deviation from unity:  8.2076E-05
+   done in 6 iterations.
+   time for computation:2.563E-01=65.3%
+   time for communication:1.363E-01=34.7%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  1.5210921E-01  8.2106831E-02    -1.2836924999
+ iter, fnrm, fnrmMax, trace     3  1.5637216E-01  8.8465358E-02    -1.2838022697
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
-   maximal deviation from unity:  4.2595E-03
-   maximal deviation from unity:  1.3829E-03
-   maximal deviation from unity:  6.7111E-04
-   maximal deviation from unity:  3.2546E-04
-   maximal deviation from unity:  1.5783E-04
-   maximal deviation from unity:  7.6539E-05
+   maximal deviation from unity:  3.8401E-03
+   maximal deviation from unity:  1.3072E-03
+   maximal deviation from unity:  6.3545E-04
+   maximal deviation from unity:  3.0846E-04
+   maximal deviation from unity:  1.4972E-04
+   maximal deviation from unity:  7.2673E-05
    done in 6 iterations.
-   time for computation:2.837E-01=69.2%
-   time for communication:1.263E-01=30.8%
+   time for computation:2.775E-01=67.3%
+   time for communication:1.350E-01=32.7%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  1.1640279E-01  5.6017330E-02    -1.2903024391
+ iter, fnrm, fnrmMax, trace     4  1.1809987E-01  5.8731861E-02    -1.2906022142
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... 
-   maximal deviation from unity:  7.4933E-03
-   maximal deviation from unity:  1.1563E-03
-   maximal deviation from unity:  5.6322E-04
-   maximal deviation from unity:  2.7438E-04
-   maximal deviation from unity:  1.3367E-04
-   maximal deviation from unity:  6.5119E-05
+   maximal deviation from unity:  6.7191E-03
+   maximal deviation from unity:  1.1692E-03
+   maximal deviation from unity:  5.7000E-04
+   maximal deviation from unity:  2.7791E-04
+   maximal deviation from unity:  1.3551E-04
+   maximal deviation from unity:  6.6071E-05
    done in 6 iterations.
-   time for computation:2.738E-01=68.0%
-   time for communication:1.287E-01=32.0%
+   time for computation:2.788E-01=68.0%
+   time for communication:1.312E-01=32.0%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     5  1.0533858E-01  5.6449195E-02    -1.2979966939
+ iter, fnrm, fnrmMax, trace     5  1.0672335E-01  5.9082557E-02    -1.2982737155
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.0533858E-01  5.6449195E-02  -1.2979967
+ Final values for fnrm, fnrmMax, trace:   1.0672335E-01  5.9082557E-02  -1.2982737
  ============================= Basis functions created. =============================
  timings:
-   -total time: 3.790E+00
-     - orthonormalization: 2.047E+00=54.0%
-     - Hamiltonian application: 3.888E-01=10.3%
-     - orthoconstraint: 4.425E-01=11.7%
-     - preconditioning: 8.363E-01=22.1%
-     - other: 7.500E-02= 2.0%
+   -total time: 3.756E+00
+     - orthonormalization: 2.054E+00=54.7%
+     - Hamiltonian application: 3.475E-01= 9.3%
+     - orthoconstraint: 4.425E-01=11.8%
+     - preconditioning: 8.388E-01=22.3%
+     - other: 7.375E-02= 2.0%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done. ------------------------------------- Building linear combinations... done.
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99831111E-01   1.68855092E-04
-   after cut; average weights in / out:   9.99979710E-01   2.02498440E-05
+   before cut; average weights in / out:   9.99830627E-01   1.69339094E-04
+   after cut; average weights in / out:   9.99969957E-01   3.00030139E-05
  ---------------------------------------------------------------- Updating potential.
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 14 copies on the same processor.
- TOTAL CHARGE =   1.400001909331E+01
- time for sumrho: 9.875E-02
+ TOTAL CHARGE =   1.400001928603E+01
+ time for sumrho: 8.875E-02
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000019530564
+ Calculation of charge density... done. Total electronic charge=      14.000019736172
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   1.38673138E-03
- average noise along y direction:  -2.94177946E-03
- average noise along z direction:   7.62759795E-04
- total average noise            :   3.34049290E-03
- clean forces norm (Ha/Bohr): maxval=  3.136744047913E-02  fnrm2=  4.066762076765E-03
- raw forces:                  maxval=  3.248929704447E-02  fnrm2=  4.087976592990E-03
+ average noise along x direction:   1.29185305E-03
+ average noise along y direction:  -2.82697225E-03
+ average noise along z direction:   4.91230313E-04
+ total average noise            :   3.14673857E-03
+ clean forces norm (Ha/Bohr): maxval=  3.130940709081E-02  fnrm2=  4.070171100479E-03
+ raw forces:                  maxval=  3.239887546964E-02  fnrm2=  4.090890537321E-03
  Force values for all atoms in x, y, z direction.
-   1      C  -2.69095E-02  1.39622E-02 -1.57711E-03
-   2      C   2.23283E-02 -2.19968E-02 -1.22558E-03
-   3      H  -1.93850E-02 -3.05111E-03 -6.62364E-05
-   4      H  -7.21310E-03  1.37544E-02  9.87159E-03
-   5      H  -6.65572E-03  1.20484E-02 -1.23093E-02
-   6      H   8.82837E-03 -1.00279E-02 -8.86536E-03
-   7      H   7.72592E-03 -1.04809E-02  1.35317E-02
-   8      H   2.12807E-02  5.79168E-03  6.40270E-04
+   1      C  -2.70411E-02  1.40414E-02 -1.70772E-03
+   2      C   2.21806E-02 -2.20152E-02 -1.90488E-03
+   3      H  -1.94276E-02 -3.06881E-03 -5.60114E-06
+   4      H  -7.20986E-03  1.38462E-02  9.95691E-03
+   5      H  -6.57520E-03  1.20194E-02 -1.22017E-02
+   6      H   9.00447E-03 -9.93402E-03 -8.42960E-03
+   7      H   7.84069E-03 -1.05948E-02  1.35673E-02
+   8      H   2.12279E-02  5.70588E-03  7.25269E-04
  Posting sends / receives for communicating the potential... done.
  ##################################################################
  at iteration 3 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - WARNING: coefficients not converged!
-   it, Delta POT, energy    3   4.09E-06   -1.47059367240759293E+01
+   it, Delta POT, energy    3   4.09E-06   -1.47060174467938687E+01
  ##################################################################
  ======================== Creation of the basis functions... ========================
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99979710E-01   2.02500096E-05
-   after cut; average weights in / out:   9.99988912E-01   1.10434010E-05
- statistics: - 54 point to point communications, of which 50 could be overlapped with computation.
+   before cut; average weights in / out:   9.99969957E-01   3.00031801E-05
+   after cut; average weights in / out:   9.99983215E-01   1.67397403E-05
+ statistics: - 54 point to point communications, of which 44 could be overlapped with computation.
              - 8 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... 
-   maximal deviation from unity:  1.8572E-03
-   maximal deviation from unity:  9.0666E-04
-   maximal deviation from unity:  4.4189E-04
-   maximal deviation from unity:  2.1534E-04
-   maximal deviation from unity:  1.0494E-04
-   maximal deviation from unity:  5.1138E-05
+   maximal deviation from unity:  1.9956E-03
+   maximal deviation from unity:  9.7222E-04
+   maximal deviation from unity:  4.7414E-04
+   maximal deviation from unity:  2.3127E-04
+   maximal deviation from unity:  1.1281E-04
+   maximal deviation from unity:  5.5026E-05
    done in 6 iterations.
-   time for computation:2.825E-01=74.6%
-   time for communication:9.625E-02=25.4%
+   time for computation:2.788E-01=75.3%
+   time for communication:9.125E-02=24.7%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  6.9068474E-01  2.5534547E-01    -1.3250620505
+ iter, fnrm, fnrmMax, trace     1  7.1004318E-01  3.2437014E-01    -1.3245295695
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
-   maximal deviation from unity:  5.8040E-03
-   maximal deviation from unity:  2.5480E-03
-   maximal deviation from unity:  1.2478E-03
-   maximal deviation from unity:  6.1079E-04
-   maximal deviation from unity:  2.9896E-04
-   maximal deviation from unity:  1.4633E-04
-   maximal deviation from unity:  7.1625E-05
+   maximal deviation from unity:  5.7989E-03
+   maximal deviation from unity:  1.9738E-03
+   maximal deviation from unity:  9.6808E-04
+   maximal deviation from unity:  4.7434E-04
+   maximal deviation from unity:  2.3240E-04
+   maximal deviation from unity:  1.1386E-04
+   maximal deviation from unity:  5.5787E-05
    done in 7 iterations.
-   time for computation:3.263E-01=68.9%
-   time for communication:1.475E-01=31.1%
+   time for computation:3.125E-01=66.5%
+   time for communication:1.575E-01=33.5%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  1.8551308E-01  8.7993201E-02    -1.3442326578
+ iter, fnrm, fnrmMax, trace     2  1.9225137E-01  9.5448756E-02    -1.3442333707
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
-   maximal deviation from unity:  9.6259E-03
-   maximal deviation from unity:  2.0038E-03
-   maximal deviation from unity:  9.8291E-04
-   maximal deviation from unity:  4.8201E-04
-   maximal deviation from unity:  2.3638E-04
-   maximal deviation from unity:  1.1592E-04
-   maximal deviation from unity:  5.6844E-05
-   done in 7 iterations.
-   time for computation:3.375E-01=69.9%
-   time for communication:1.450E-01=30.1%
+   maximal deviation from unity:  9.0272E-03
+   maximal deviation from unity:  1.4374E-03
+   maximal deviation from unity:  7.0624E-04
+   maximal deviation from unity:  3.4674E-04
+   maximal deviation from unity:  1.7023E-04
+   maximal deviation from unity:  8.3573E-05
+   done in 6 iterations.
+   time for computation:2.675E-01=67.5%
+   time for communication:1.288E-01=32.5%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  1.4542529E-01  8.5672498E-02    -1.3486559803
+ iter, fnrm, fnrmMax, trace     3  1.4923553E-01  9.0387663E-02    -1.3488381533
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
-   maximal deviation from unity:  3.7443E-03
-   maximal deviation from unity:  1.5875E-03
-   maximal deviation from unity:  7.8193E-04
-   maximal deviation from unity:  3.8509E-04
-   maximal deviation from unity:  1.8965E-04
-   maximal deviation from unity:  9.3402E-05
+   maximal deviation from unity:  3.0936E-03
+   maximal deviation from unity:  1.3494E-03
+   maximal deviation from unity:  6.6606E-04
+   maximal deviation from unity:  3.2852E-04
+   maximal deviation from unity:  1.6203E-04
+   maximal deviation from unity:  7.9915E-05
    done in 6 iterations.
-   time for computation:2.850E-01=72.2%
-   time for communication:1.100E-01=27.8%
+   time for computation:2.737E-01=66.4%
+   time for communication:1.388E-01=33.6%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  1.0770620E-01  5.6464995E-02    -1.3535182507
+ iter, fnrm, fnrmMax, trace     4  1.0882405E-01  5.7707109E-02    -1.3539107349
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... 
-   maximal deviation from unity:  4.5940E-03
-   maximal deviation from unity:  1.4221E-03
-   maximal deviation from unity:  7.0469E-04
-   maximal deviation from unity:  3.4920E-04
-   maximal deviation from unity:  1.7304E-04
-   maximal deviation from unity:  8.5750E-05
+   maximal deviation from unity:  3.7414E-03
+   maximal deviation from unity:  1.3487E-03
+   maximal deviation from unity:  6.6937E-04
+   maximal deviation from unity:  3.3211E-04
+   maximal deviation from unity:  1.6478E-04
+   maximal deviation from unity:  8.1757E-05
    done in 6 iterations.
-   time for computation:2.838E-01=69.2%
-   time for communication:1.262E-01=30.8%
+   time for computation:2.737E-01=66.8%
+   time for communication:1.363E-01=33.2%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     5  9.6298860E-02  5.4090110E-02    -1.3596003770
+ iter, fnrm, fnrmMax, trace     5  9.7869877E-02  5.6850379E-02    -1.3598241735
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   9.6298860E-02  5.4090110E-02  -1.3596004
+ Final values for fnrm, fnrmMax, trace:   9.7869877E-02  5.6850379E-02  -1.3598242
  ============================= Basis functions created. =============================
  timings:
-   -total time: 3.870E+00
-     - orthonormalization: 2.140E+00=55.3%
-     - Hamiltonian application: 3.725E-01= 9.6%
-     - orthoconstraint: 4.462E-01=11.5%
-     - preconditioning: 8.363E-01=21.6%
-     - other: 7.500E-02= 1.9%
+   -total time: 3.769E+00
+     - orthonormalization: 2.059E+00=54.6%
+     - Hamiltonian application: 3.463E-01= 9.2%
+     - orthoconstraint: 4.487E-01=11.9%
+     - preconditioning: 8.475E-01=22.5%
+     - other: 6.750E-02= 1.8%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done. ------------------------------------- Building linear combinations... done.
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99841928E-01   1.58038804E-04
-   after cut; average weights in / out:   9.99980686E-01   1.92750858E-05
+   before cut; average weights in / out:   9.99841742E-01   1.58224602E-04
+   after cut; average weights in / out:   9.99971642E-01   2.83186747E-05
  ---------------------------------------------------------------- Updating potential.
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 14 copies on the same processor.
- TOTAL CHARGE =   1.400002470203E+01
- time for sumrho: 9.500E-02
+ TOTAL CHARGE =   1.400002334599E+01
+ time for sumrho: 9.000E-02
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000025109312
+ Calculation of charge density... done. Total electronic charge=      14.000023737585
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   1.36270748E-03
- average noise along y direction:  -1.39731524E-03
- average noise along z direction:  -1.38736623E-04
- total average noise            :   1.95670882E-03
- clean forces norm (Ha/Bohr): maxval=  1.962643709127E-02  fnrm2=  1.709888594429E-03
- raw forces:                  maxval=  2.042019707081E-02  fnrm2=  1.726192961302E-03
+ average noise along x direction:   1.08178498E-03
+ average noise along y direction:  -1.57460747E-03
+ average noise along z direction:   1.31894549E-04
+ total average noise            :   1.91495263E-03
+ clean forces norm (Ha/Bohr): maxval=  1.961032931906E-02  fnrm2=  1.706428940871E-03
+ raw forces:                  maxval=  2.033120928717E-02  fnrm2=  1.721371435958E-03
  Force values for all atoms in x, y, z direction.
-   1      C  -1.72518E-02  8.63115E-03 -1.27343E-03
-   2      C   1.42105E-02 -1.32356E-02 -2.84236E-03
-   3      H  -1.35768E-02 -1.08804E-03 -4.76825E-05
-   4      H  -5.21960E-03  8.91547E-03  5.95249E-03
-   5      H  -4.71281E-03  7.41001E-03 -7.13695E-03
-   6      H   6.20780E-03 -6.15247E-03 -4.77326E-03
-   7      H   5.73025E-03 -7.37036E-03  9.29080E-03
-   8      H   1.46125E-02  2.88982E-03  8.30393E-04
+   1      C  -1.75450E-02  8.48761E-03 -1.41549E-03
+   2      C   1.37459E-02 -1.38278E-02 -2.09912E-03
+   3      H  -1.34673E-02 -1.03804E-03 -8.71142E-05
+   4      H  -5.11944E-03  9.05577E-03  5.96508E-03
+   5      H  -4.70739E-03  7.57341E-03 -7.16637E-03
+   6      H   6.40220E-03 -5.98801E-03 -4.58448E-03
+   7      H   6.03398E-03 -7.10660E-03  8.63814E-03
+   8      H   1.46571E-02  2.84368E-03  7.49359E-04
  Posting sends / receives for communicating the potential... done.
  ##################################################################
  at iteration 4 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - WARNING: coefficients not converged!
-   it, Delta POT, energy    4   2.76E-06   -1.48260764679636488E+01
+   it, Delta POT, energy    4   2.76E-06   -1.48275167905213330E+01
  ##################################################################
  ======================== Creation of the basis functions... ========================
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99980685E-01   1.92752714E-05
-   after cut; average weights in / out:   9.99989378E-01   1.05779709E-05
+   before cut; average weights in / out:   9.99971642E-01   2.83188602E-05
+   after cut; average weights in / out:   9.99984135E-01   1.58199755E-05
  statistics: - 54 point to point communications, of which 49 could be overlapped with computation.
              - 8 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... 
-   maximal deviation from unity:  1.8690E-03
-   maximal deviation from unity:  9.2818E-04
-   maximal deviation from unity:  4.6016E-04
-   maximal deviation from unity:  2.2810E-04
-   maximal deviation from unity:  1.1306E-04
-   maximal deviation from unity:  5.6044E-05
+   maximal deviation from unity:  1.9866E-03
+   maximal deviation from unity:  9.8565E-04
+   maximal deviation from unity:  4.8918E-04
+   maximal deviation from unity:  2.4280E-04
+   maximal deviation from unity:  1.2051E-04
+   maximal deviation from unity:  5.9813E-05
    done in 6 iterations.
-   time for computation:2.812E-01=78.4%
-   time for communication:7.750E-02=21.6%
+   time for computation:2.738E-01=73.5%
+   time for communication:9.875E-02=26.5%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  6.6707046E-01  2.4508625E-01    -1.3542133805
+ iter, fnrm, fnrmMax, trace     1  6.8494788E-01  3.0771760E-01    -1.3532866895
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
-   maximal deviation from unity:  5.8207E-03
-   maximal deviation from unity:  2.5208E-03
-   maximal deviation from unity:  1.2562E-03
-   maximal deviation from unity:  6.2574E-04
-   maximal deviation from unity:  3.1169E-04
-   maximal deviation from unity:  1.5526E-04
-   maximal deviation from unity:  7.7335E-05
+   maximal deviation from unity:  5.8078E-03
+   maximal deviation from unity:  1.9440E-03
+   maximal deviation from unity:  9.7009E-04
+   maximal deviation from unity:  4.8383E-04
+   maximal deviation from unity:  2.4130E-04
+   maximal deviation from unity:  1.2035E-04
+   maximal deviation from unity:  6.0020E-05
    done in 7 iterations.
-   time for computation:3.275E-01=71.0%
-   time for communication:1.338E-01=29.0%
+   time for computation:3.312E-01=69.2%
+   time for communication:1.475E-01=30.8%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  1.7841474E-01  8.4840014E-02    -1.3717273178
+ iter, fnrm, fnrmMax, trace     2  1.8549231E-01  9.2688969E-02    -1.3712873778
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
-   maximal deviation from unity:  8.6570E-03
-   maximal deviation from unity:  2.0414E-03
-   maximal deviation from unity:  1.0186E-03
-   maximal deviation from unity:  5.0821E-04
-   maximal deviation from unity:  2.5355E-04
-   maximal deviation from unity:  1.2650E-04
-   maximal deviation from unity:  6.3111E-05
-   done in 7 iterations.
-   time for computation:3.275E-01=71.8%
-   time for communication:1.288E-01=28.2%
+   maximal deviation from unity:  8.1539E-03
+   maximal deviation from unity:  1.4331E-03
+   maximal deviation from unity:  7.1619E-04
+   maximal deviation from unity:  3.5784E-04
+   maximal deviation from unity:  1.7879E-04
+   maximal deviation from unity:  8.9330E-05
+   done in 6 iterations.
+   time for computation:2.787E-01=68.8%
+   time for communication:1.263E-01=31.2%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  1.4076983E-01  8.6340803E-02    -1.3756077142
+ iter, fnrm, fnrmMax, trace     3  1.4493357E-01  9.1386256E-02    -1.3753519583
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
-   maximal deviation from unity:  3.5869E-03
-   maximal deviation from unity:  1.7963E-03
-   maximal deviation from unity:  8.9926E-04
-   maximal deviation from unity:  4.5021E-04
-   maximal deviation from unity:  2.2539E-04
-   maximal deviation from unity:  1.1284E-04
-   maximal deviation from unity:  5.6493E-05
-   done in 7 iterations.
-   time for computation:3.125E-01=66.7%
-   time for communication:1.562E-01=33.3%
+   maximal deviation from unity:  2.7948E-03
+   maximal deviation from unity:  1.3960E-03
+   maximal deviation from unity:  7.0061E-04
+   maximal deviation from unity:  3.5149E-04
+   maximal deviation from unity:  1.7634E-04
+   maximal deviation from unity:  8.8464E-05
+   done in 6 iterations.
+   time for computation:2.862E-01=68.8%
+   time for communication:1.300E-01=31.2%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  1.0503909E-01  6.1374808E-02    -1.3794566762
+ iter, fnrm, fnrmMax, trace     4  1.0422338E-01  5.9160689E-02    -1.3794702765
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... 
-   maximal deviation from unity:  4.3489E-03
-   maximal deviation from unity:  1.8657E-03
-   maximal deviation from unity:  9.3934E-04
-   maximal deviation from unity:  4.7298E-04
-   maximal deviation from unity:  2.3816E-04
-   maximal deviation from unity:  1.1992E-04
-   maximal deviation from unity:  6.0382E-05
+   maximal deviation from unity:  3.6493E-03
+   maximal deviation from unity:  1.5499E-03
+   maximal deviation from unity:  7.8239E-04
+   maximal deviation from unity:  3.9481E-04
+   maximal deviation from unity:  1.9922E-04
+   maximal deviation from unity:  1.0053E-04
+   maximal deviation from unity:  5.0728E-05
    done in 7 iterations.
-   time for computation:3.388E-01=70.4%
-   time for communication:1.425E-01=29.6%
+   time for computation:3.288E-01=68.8%
+   time for communication:1.487E-01=31.2%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     5  8.8999304E-02  5.1085453E-02    -1.3844949648
+ iter, fnrm, fnrmMax, trace     5  9.0471050E-02  5.3595954E-02    -1.3843282153
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   8.8999304E-02  5.1085453E-02  -1.3844950
+ Final values for fnrm, fnrmMax, trace:   9.0471050E-02  5.3595954E-02  -1.3843282
  ============================= Basis functions created. =============================
  timings:
-   -total time: 3.951E+00
-     - orthonormalization: 2.226E+00=56.3%
-     - Hamiltonian application: 3.700E-01= 9.4%
-     - orthoconstraint: 4.513E-01=11.4%
-     - preconditioning: 8.388E-01=21.2%
-     - other: 6.500E-02= 1.6%
+   -total time: 3.880E+00
+     - orthonormalization: 2.151E+00=55.4%
+     - Hamiltonian application: 3.588E-01= 9.2%
+     - orthoconstraint: 4.462E-01=11.5%
+     - preconditioning: 8.563E-01=22.1%
+     - other: 6.750E-02= 1.7%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done. ------------------------------------- Building linear combinations... done.
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99848699E-01   1.51267059E-04
-   after cut; average weights in / out:   9.99981625E-01   1.83358325E-05
+   before cut; average weights in / out:   9.99848307E-01   1.51659234E-04
+   after cut; average weights in / out:   9.99973265E-01   2.66959598E-05
  ---------------------------------------------------------------- Updating potential.
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 14 copies on the same processor.
- TOTAL CHARGE =   1.400001679810E+01
- time for sumrho: 9.875E-02
+ TOTAL CHARGE =   1.400001380828E+01
+ time for sumrho: 9.250E-02
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000017166703
+ Calculation of charge density... done. Total electronic charge=      14.000014158579
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   1.69869029E-03
- average noise along y direction:  -3.40331862E-04
- average noise along z direction:  -1.71921943E-06
- total average noise            :   1.73244839E-03
- clean forces norm (Ha/Bohr): maxval=  1.933186118368E-02  fnrm2=  1.339756648094E-03
- raw forces:                  maxval=  1.990543284607E-02  fnrm2=  1.354704410961E-03
+ average noise along x direction:   1.26067594E-03
+ average noise along y direction:  -5.11727000E-04
+ average noise along z direction:   2.44722541E-04
+ total average noise            :   1.38241002E-03
+ clean forces norm (Ha/Bohr): maxval=  1.960436147916E-02  fnrm2=  1.338838025976E-03
+ raw forces:                  maxval=  1.957306494445E-02  fnrm2=  1.350875789870E-03
  Force values for all atoms in x, y, z direction.
-   1      C  -1.66917E-02  9.60286E-03 -1.70074E-03
-   2      C   1.52970E-02 -1.16074E-02 -1.67380E-03
-   3      H  -1.15875E-02 -4.37164E-04 -1.21026E-04
-   4      H  -4.47856E-03  6.66322E-03  4.13168E-03
-   5      H  -4.19659E-03  5.36574E-03 -4.82824E-03
-   6      H   5.05691E-03 -4.91711E-03 -3.43872E-03
-   7      H   4.95728E-03 -6.07053E-03  6.90943E-03
-   8      H   1.16432E-02  1.40039E-03  7.21432E-04
+   1      C  -1.69494E-02  9.67601E-03 -1.84993E-03
+   2      C   1.45003E-02 -1.23762E-02 -9.19594E-04
+   3      H  -1.14308E-02 -4.93887E-04 -1.55569E-04
+   4      H  -4.37688E-03  6.79222E-03  4.15844E-03
+   5      H  -4.19833E-03  5.53758E-03 -4.86413E-03
+   6      H   5.34199E-03 -4.76024E-03 -3.27020E-03
+   7      H   5.30844E-03 -5.78823E-03  6.28190E-03
+   8      H   1.18048E-02  1.41272E-03  6.19093E-04
  Posting sends / receives for communicating the potential... done.
  ##################################################################
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - WARNING: coefficients not converged!
-   it, Delta POT, energy    5   1.92E-06   -1.48635709698914873E+01
+   it, Delta POT, energy    5   1.95E-06   -1.48632721187728727E+01
  ##################################################################
  ======================== Creation of the basis functions... ========================
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99981625E-01   1.83360338E-05
-   after cut; average weights in / out:   9.99989851E-01   1.01060712E-05
- statistics: - 54 point to point communications, of which 51 could be overlapped with computation.
+   before cut; average weights in / out:   9.99973265E-01   2.66961613E-05
+   after cut; average weights in / out:   9.99985015E-01   1.49412291E-05
+ statistics: - 54 point to point communications, of which 45 could be overlapped with computation.
              - 8 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... 
-   maximal deviation from unity:  1.8233E-03
-   maximal deviation from unity:  9.2022E-04
-   maximal deviation from unity:  4.6356E-04
-   maximal deviation from unity:  2.3348E-04
-   maximal deviation from unity:  1.1760E-04
-   maximal deviation from unity:  5.9229E-05
+   maximal deviation from unity:  1.9352E-03
+   maximal deviation from unity:  9.7722E-04
+   maximal deviation from unity:  4.9328E-04
+   maximal deviation from unity:  2.4900E-04
+   maximal deviation from unity:  1.2569E-04
+   maximal deviation from unity:  6.3445E-05
    done in 6 iterations.
-   time for computation:2.863E-01=77.6%
-   time for communication:8.250E-02=22.4%
+   time for computation:2.787E-01=75.6%
+   time for communication:9.000E-02=24.4%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  6.4743588E-01  2.3522629E-01    -1.3688796214
+ iter, fnrm, fnrmMax, trace     1  6.6415546E-01  2.9383852E-01    -1.3680523117
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
-   maximal deviation from unity:  5.4877E-03
-   maximal deviation from unity:  2.5321E-03
-   maximal deviation from unity:  1.2824E-03
-   maximal deviation from unity:  6.4918E-04
-   maximal deviation from unity:  3.2861E-04
-   maximal deviation from unity:  1.6634E-04
-   maximal deviation from unity:  8.4203E-05
+   maximal deviation from unity:  5.4744E-03
+   maximal deviation from unity:  1.9456E-03
+   maximal deviation from unity:  9.8701E-04
+   maximal deviation from unity:  5.0055E-04
+   maximal deviation from unity:  2.5384E-04
+   maximal deviation from unity:  1.2873E-04
+   maximal deviation from unity:  6.5282E-05
    done in 7 iterations.
-   time for computation:3.225E-01=65.3%
-   time for communication:1.712E-01=34.7%
+   time for computation:3.250E-01=69.3%
+   time for communication:1.438E-01=30.7%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  1.7206972E-01  8.1346491E-02    -1.3852893818
+ iter, fnrm, fnrmMax, trace     2  1.7969298E-01  8.9719136E-02    -1.3848440080
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
-   maximal deviation from unity:  3.4822E-03
-   maximal deviation from unity:  1.4089E-03
-   maximal deviation from unity:  7.1732E-04
-   maximal deviation from unity:  3.6478E-04
-   maximal deviation from unity:  1.8548E-04
-   maximal deviation from unity:  9.4311E-05
+   maximal deviation from unity:  6.8420E-03
+   maximal deviation from unity:  1.4227E-03
+   maximal deviation from unity:  7.2282E-04
+   maximal deviation from unity:  3.6722E-04
+   maximal deviation from unity:  1.8655E-04
+   maximal deviation from unity:  9.4775E-05
    done in 6 iterations.
-   time for computation:2.775E-01=67.9%
-   time for communication:1.312E-01=32.1%
+   time for computation:2.913E-01=70.0%
+   time for communication:1.250E-01=30.0%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  1.1991794E-01  5.6661527E-02    -1.3892039201
+ iter, fnrm, fnrmMax, trace     3  1.3826416E-01  8.7239929E-02    -1.3885596677
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
-   maximal deviation from unity:  3.9084E-03
-   maximal deviation from unity:  1.4170E-03
-   maximal deviation from unity:  7.2260E-04
-   maximal deviation from unity:  3.6829E-04
-   maximal deviation from unity:  1.8769E-04
-   maximal deviation from unity:  9.5656E-05
+   maximal deviation from unity:  2.6778E-03
+   maximal deviation from unity:  1.3681E-03
+   maximal deviation from unity:  6.9777E-04
+   maximal deviation from unity:  3.5576E-04
+   maximal deviation from unity:  1.8139E-04
+   maximal deviation from unity:  9.2478E-05
    done in 6 iterations.
-   time for computation:2.787E-01=67.8%
-   time for communication:1.325E-01=32.2%
+   time for computation:2.750E-01=69.0%
+   time for communication:1.238E-01=31.0%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  9.6580750E-02  5.5155677E-02    -1.3921635724
+ iter, fnrm, fnrmMax, trace     4  9.9562341E-02  5.8966221E-02    -1.3919706642
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... 
-   maximal deviation from unity:  2.8050E-03
-   maximal deviation from unity:  1.2313E-03
-   maximal deviation from unity:  6.3190E-04
-   maximal deviation from unity:  3.2404E-04
-   maximal deviation from unity:  1.6616E-04
-   maximal deviation from unity:  8.5201E-05
-   done in 6 iterations.
-   time for computation:2.788E-01=72.4%
-   time for communication:1.062E-01=27.6%
+   maximal deviation from unity:  3.2645E-03
+   maximal deviation from unity:  1.5181E-03
+   maximal deviation from unity:  7.7877E-04
+   maximal deviation from unity:  3.9925E-04
+   maximal deviation from unity:  2.0467E-04
+   maximal deviation from unity:  1.0492E-04
+   maximal deviation from unity:  5.3789E-05
+   done in 7 iterations.
+   time for computation:3.225E-01=69.0%
+   time for communication:1.450E-01=31.0%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     5  8.1297717E-02  4.6997636E-02    -1.3959766600
+ iter, fnrm, fnrmMax, trace     5  8.4079318E-02  5.0897463E-02    -1.3959170239
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   8.1297717E-02  4.6997636E-02  -1.3959767
+ Final values for fnrm, fnrmMax, trace:   8.4079318E-02  5.0897463E-02  -1.3959170
  ============================= Basis functions created. =============================
  timings:
-   -total time: 3.795E+00
-     - orthonormalization: 2.067E+00=54.5%
-     - Hamiltonian application: 3.738E-01= 9.8%
-     - orthoconstraint: 4.425E-01=11.7%
-     - preconditioning: 8.413E-01=22.2%
-     - other: 7.000E-02= 1.8%
+   -total time: 3.840E+00
+     - orthonormalization: 2.120E+00=55.2%
+     - Hamiltonian application: 3.550E-01= 9.2%
+     - orthoconstraint: 4.437E-01=11.6%
+     - preconditioning: 8.450E-01=22.0%
+     - other: 7.625E-02= 2.0%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done. ------------------------------------- Building linear combinations... done.
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99852011E-01   1.47955595E-04
-   after cut; average weights in / out:   9.99982303E-01   1.76587071E-05
+   before cut; average weights in / out:   9.99852875E-01   1.47091194E-04
+   after cut; average weights in / out:   9.99974595E-01   2.53664843E-05
  ---------------------------------------------------------------- Updating potential.
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 14 copies on the same processor.
- TOTAL CHARGE =   1.400002319851E+01
- time for sumrho: 9.250E-02
+ TOTAL CHARGE =   1.400001430428E+01
+ time for sumrho: 9.750E-02
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000023533083
+ Calculation of charge density... done. Total electronic charge=      14.000014627415
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   1.43740786E-03
- average noise along y direction:  -1.33619254E-04
- average noise along z direction:   2.33913479E-05
- total average noise            :   1.44379452E-03
- clean forces norm (Ha/Bohr): maxval=  2.257317090952E-02  fnrm2=  1.424861934160E-03
- raw forces:                  maxval=  2.235051102538E-02  fnrm2=  1.436865161709E-03
+ average noise along x direction:   1.27872492E-03
+ average noise along y direction:   1.21274161E-04
+ average noise along z direction:   2.14391920E-04
+ total average noise            :   1.30223222E-03
+ clean forces norm (Ha/Bohr): maxval=  2.232039891019E-02  fnrm2=  1.377302251031E-03
+ raw forces:                  maxval=  2.194302919484E-02  fnrm2=  1.388414187953E-03
  Force values for all atoms in x, y, z direction.
-   1      C  -1.88108E-02  1.22894E-02 -2.16138E-03
-   2      C   1.73896E-02 -1.32435E-02 -6.84607E-04
-   3      H  -1.01457E-02 -6.30689E-05 -1.61274E-04
-   4      H  -4.21054E-03  5.30223E-03  2.97908E-03
-   5      H  -4.05085E-03  4.22185E-03 -3.38901E-03
-   6      H   4.70787E-03 -4.11412E-03 -2.64102E-03
-   7      H   4.74965E-03 -5.15509E-03  5.47558E-03
-   8      H   1.03709E-02  7.62296E-04  5.82631E-04
+   1      C  -1.86582E-02  1.20412E-02 -2.25446E-03
+   2      C   1.69118E-02 -1.28732E-02 -2.32835E-04
+   3      H  -1.01899E-02 -1.89177E-04 -1.79642E-04
+   4      H  -4.01249E-03  5.35448E-03  3.00431E-03
+   5      H  -3.96061E-03  4.28565E-03 -3.40531E-03
+   6      H   4.83300E-03 -4.06372E-03 -2.43126E-03
+   7      H   4.92007E-03 -5.06193E-03  4.96642E-03
+   8      H   1.01563E-02  5.06717E-04  5.32781E-04
  Posting sends / receives for communicating the potential... done.
  ##################################################################
  at iteration 6 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - WARNING: coefficients not converged!
-   it, Delta POT, energy    6   1.46E-06   -1.48722475562921552E+01
+   it, Delta POT, energy    6   1.41E-06   -1.48748733239940556E+01
  ##################################################################
  ======================== Creation of the basis functions... ========================
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99982302E-01   1.76589226E-05
-   after cut; average weights in / out:   9.99990206E-01   9.75157793E-06
- statistics: - 54 point to point communications, of which 52 could be overlapped with computation.
+   before cut; average weights in / out:   9.99974595E-01   2.53667002E-05
+   after cut; average weights in / out:   9.99985744E-01   1.42129258E-05
+ statistics: - 54 point to point communications, of which 44 could be overlapped with computation.
              - 8 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... 
-   maximal deviation from unity:  1.8281E-03
-   maximal deviation from unity:  9.3970E-04
-   maximal deviation from unity:  4.8207E-04
-   maximal deviation from unity:  2.4726E-04
-   maximal deviation from unity:  1.2682E-04
-   maximal deviation from unity:  6.5047E-05
+   maximal deviation from unity:  1.9003E-03
+   maximal deviation from unity:  9.7536E-04
+   maximal deviation from unity:  5.0020E-04
+   maximal deviation from unity:  2.5651E-04
+   maximal deviation from unity:  1.3154E-04
+   maximal deviation from unity:  6.7454E-05
    done in 6 iterations.
-   time for computation:2.713E-01=75.6%
-   time for communication:8.750E-02=24.4%
+   time for computation:2.912E-01=78.7%
+   time for communication:7.875E-02=21.3%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  6.3343264E-01  2.2639974E-01    -1.3778442105
+ iter, fnrm, fnrmMax, trace     1  6.4681741E-01  2.8121246E-01    -1.3764991902
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
-   maximal deviation from unity:  5.4547E-03
-   maximal deviation from unity:  2.4256E-03
-   maximal deviation from unity:  1.2494E-03
-   maximal deviation from unity:  6.4315E-04
-   maximal deviation from unity:  3.3104E-04
-   maximal deviation from unity:  1.7039E-04
-   maximal deviation from unity:  8.7706E-05
+   maximal deviation from unity:  5.3708E-03
+   maximal deviation from unity:  1.9241E-03
+   maximal deviation from unity:  9.9091E-04
+   maximal deviation from unity:  5.1021E-04
+   maximal deviation from unity:  2.6270E-04
+   maximal deviation from unity:  1.3526E-04
+   maximal deviation from unity:  6.9640E-05
    done in 7 iterations.
-   time for computation:3.325E-01=70.4%
-   time for communication:1.400E-01=29.6%
+   time for computation:3.312E-01=70.5%
+   time for communication:1.387E-01=29.5%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  1.7046958E-01  8.1805396E-02    -1.3931712948
+ iter, fnrm, fnrmMax, trace     2  1.7541558E-01  8.7647516E-02    -1.3922489258
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
-   maximal deviation from unity:  6.0748E-03
-   maximal deviation from unity:  1.8388E-03
-   maximal deviation from unity:  9.4880E-04
-   maximal deviation from unity:  4.8922E-04
-   maximal deviation from unity:  2.5224E-04
-   maximal deviation from unity:  1.3005E-04
-   maximal deviation from unity:  6.7052E-05
-   done in 7 iterations.
-   time for computation:3.313E-01=70.1%
-   time for communication:1.412E-01=29.9%
- Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  1.2774426E-01  7.7350159E-02    -1.3965846337
- DIIS informations: history length=8, consecutive failures=0, total failures=0
- ----------------------------------------------------------------------------- iter=4
- Orthonormalization... 
-   maximal deviation from unity:  2.8686E-03
-   maximal deviation from unity:  1.3977E-03
-   maximal deviation from unity:  7.2380E-04
-   maximal deviation from unity:  3.7450E-04
-   maximal deviation from unity:  1.9375E-04
-   maximal deviation from unity:  1.0024E-04
-   maximal deviation from unity:  5.1861E-05
-   done in 7 iterations.
-   time for computation:3.125E-01=67.2%
-   time for communication:1.525E-01=32.8%
- Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  8.9563571E-02  4.9656888E-02    -1.3994314315
- converged in 4 iterations.
- Final values for fnrm, fnrmMax, trace:   8.9563571E-02  4.9656888E-02  -1.3994314
- ============================= Basis functions created. =============================
- timings:
-   -total time: 3.166E+00
-     - orthonormalization: 1.770E+00=55.9%
-     - Hamiltonian application: 3.100E-01= 9.8%
-     - orthoconstraint: 3.538E-01=11.2%
-     - preconditioning: 6.675E-01=21.1%
-     - other: 6.500E-02= 2.1%
- Posting sends / receives for the calculation of the charge density... done.
- ----------------------------------- Determination of the orbitals in this new basis.
- done. ------------------------------------- Building linear combinations... done.
- cutting of outside localization region:
-   before cut; average weights in / out:   9.99873201E-01   1.26765466E-04
-   after cut; average weights in / out:   9.99984632E-01   1.53302899E-05
- ---------------------------------------------------------------- Updating potential.
- statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
-             - 14 copies on the same processor.
- TOTAL CHARGE =   1.400001362241E+01
- time for sumrho: 1.000E-01
- PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
- Posting sends / receives for communicating the potential... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000013882296
- PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
- Calculate local forces...done. Leaked force:  0.00000E+00
- Calculate nonlocal forces... done.
- average noise along x direction:   1.70849098E-03
- average noise along y direction:   4.55495390E-04
- average noise along z direction:  -1.20584918E-04
- total average noise            :   1.77227487E-03
- clean forces norm (Ha/Bohr): maxval=  2.562553308628E-02  fnrm2=  1.669951577661E-03
- raw forces:                  maxval=  2.536161837375E-02  fnrm2=  1.682409990054E-03
- Force values for all atoms in x, y, z direction.
-   1      C  -2.06643E-02  1.49313E-02 -2.59072E-03
-   2      C   2.04308E-02 -1.42516E-02 -1.77685E-04
-   3      H  -1.02228E-02 -1.81857E-04 -1.08804E-04
-   4      H  -4.13258E-03  4.58630E-03  2.50371E-03
-   5      H  -4.10622E-03  3.74753E-03 -2.79396E-03
-   6      H   4.61682E-03 -4.10344E-03 -2.39217E-03
-   7      H   4.63206E-03 -5.00625E-03  5.00767E-03
-   8      H   9.44620E-03  2.78037E-04  5.51962E-04
- Posting sends / receives for communicating the potential... done.
- ##################################################################
- at iteration 7 of the self consistency cycle:
-   - basis functions converged in 4 iterations.
-   - WARNING: coefficients not converged!
-   it, Delta POT, energy    7   1.13E-06   -1.48691676768608367E+01
- ##################################################################
- ======================== Creation of the basis functions... ========================
- cutting of outside localization region:
-   before cut; average weights in / out:   9.99984631E-01   1.53305108E-05
-   after cut; average weights in / out:   9.99991369E-01   8.58991187E-06
- statistics: - 54 point to point communications, of which 50 could be overlapped with computation.
-             - 8 copies on the same processor.
- ----------------------------------------------------------------------------- iter=1
- Orthonormalization... 
-   maximal deviation from unity:  1.5949E-03
-   maximal deviation from unity:  8.2723E-04
-   maximal deviation from unity:  4.2817E-04
-   maximal deviation from unity:  2.2157E-04
-   maximal deviation from unity:  1.1466E-04
-   maximal deviation from unity:  5.9333E-05
+   maximal deviation from unity:  6.1039E-03
+   maximal deviation from unity:  1.4052E-03
+   maximal deviation from unity:  7.2468E-04
+   maximal deviation from unity:  3.7370E-04
+   maximal deviation from unity:  1.9271E-04
+   maximal deviation from unity:  9.9374E-05
    done in 6 iterations.
-   time for computation:2.800E-01=75.2%
-   time for communication:9.250E-02=24.8%
+   time for computation:2.750E-01=68.8%
+   time for communication:1.250E-01=31.2%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  6.1405655E-01  2.1940693E-01    -1.3822834238
- DIIS informations: history length=8, consecutive failures=0, total failures=0
- ----------------------------------------------------------------------------- iter=2
- Orthonormalization... 
-   maximal deviation from unity:  5.4197E-03
-   maximal deviation from unity:  2.3305E-03
-   maximal deviation from unity:  1.2110E-03
-   maximal deviation from unity:  6.2882E-04
-   maximal deviation from unity:  3.2648E-04
-   maximal deviation from unity:  1.6951E-04
-   maximal deviation from unity:  8.8007E-05
-   done in 7 iterations.
-   time for computation:3.338E-01=72.2%
-   time for communication:1.287E-01=27.8%
- Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  1.6845478E-01  8.1152588E-02    -1.3968318081
- DIIS informations: history length=8, consecutive failures=0, total failures=0
- ----------------------------------------------------------------------------- iter=3
- Orthonormalization... 
-   maximal deviation from unity:  5.7029E-03
-   maximal deviation from unity:  1.7554E-03
-   maximal deviation from unity:  9.1363E-04
-   maximal deviation from unity:  4.7513E-04
-   maximal deviation from unity:  2.4706E-04
-   maximal deviation from unity:  1.2847E-04
-   maximal deviation from unity:  6.6805E-05
-   done in 7 iterations.
-   time for computation:3.262E-01=68.3%
-   time for communication:1.513E-01=31.7%
- Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  1.2586254E-01  7.7129339E-02    -1.4001203532
+ iter, fnrm, fnrmMax, trace     3  1.3388511E-01  8.5726543E-02    -1.3956800324
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
-   maximal deviation from unity:  2.7844E-03
-   maximal deviation from unity:  1.4635E-03
-   maximal deviation from unity:  7.6369E-04
-   maximal deviation from unity:  3.9820E-04
-   maximal deviation from unity:  2.0761E-04
-   maximal deviation from unity:  1.0824E-04
-   maximal deviation from unity:  5.6431E-05
-   done in 7 iterations.
-   time for computation:3.312E-01=70.7%
-   time for communication:1.375E-01=29.3%
+   maximal deviation from unity:  2.5814E-03
+   maximal deviation from unity:  1.3390E-03
+   maximal deviation from unity:  6.9311E-04
+   maximal deviation from unity:  3.5860E-04
+   maximal deviation from unity:  1.8553E-04
+   maximal deviation from unity:  9.5983E-05
+   done in 6 iterations.
+   time for computation:2.900E-01=69.3%
+   time for communication:1.288E-01=30.7%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  9.0911768E-02  5.4780948E-02    -1.4026035003
+ iter, fnrm, fnrmMax, trace     4  9.3971982E-02  5.6204784E-02    -1.3986207151
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... 
-   maximal deviation from unity:  2.6587E-03
-   maximal deviation from unity:  1.3035E-03
-   maximal deviation from unity:  6.8351E-04
-   maximal deviation from unity:  3.5801E-04
-   maximal deviation from unity:  1.8751E-04
-   maximal deviation from unity:  9.8204E-05
-   done in 6 iterations.
-   time for computation:2.875E-01=71.9%
-   time for communication:1.125E-01=28.1%
+   maximal deviation from unity:  2.7852E-03
+   maximal deviation from unity:  1.4589E-03
+   maximal deviation from unity:  7.5897E-04
+   maximal deviation from unity:  3.9448E-04
+   maximal deviation from unity:  2.0502E-04
+   maximal deviation from unity:  1.0655E-04
+   maximal deviation from unity:  5.5378E-05
+   done in 7 iterations.
+   time for computation:3.287E-01=70.1%
+   time for communication:1.400E-01=29.9%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     5  7.5009239E-02  4.7371778E-02    -1.4055017271
+ iter, fnrm, fnrmMax, trace     5  7.8559847E-02  4.8810384E-02    -1.4017785391
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   7.5009239E-02  4.7371778E-02  -1.4055017
+ Final values for fnrm, fnrmMax, trace:   7.8559847E-02  4.8810384E-02  -1.4017785
  ============================= Basis functions created. =============================
  timings:
-   -total time: 3.907E+00
-     - orthonormalization: 2.181E+00=55.8%
-     - Hamiltonian application: 3.625E-01= 9.3%
-     - orthoconstraint: 4.562E-01=11.7%
-     - preconditioning: 8.388E-01=21.5%
-     - other: 6.875E-02= 1.8%
+   -total time: 3.839E+00
+     - orthonormalization: 2.129E+00=55.5%
+     - Hamiltonian application: 3.525E-01= 9.2%
+     - orthoconstraint: 4.462E-01=11.6%
+     - preconditioning: 8.525E-01=22.2%
+     - other: 5.875E-02= 1.5%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done. ------------------------------------- Building linear combinations... done.
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99858199E-01   1.41767675E-04
-   after cut; average weights in / out:   9.99983416E-01   1.65466146E-05
+   before cut; average weights in / out:   9.99856768E-01   1.43198685E-04
+   after cut; average weights in / out:   9.99975764E-01   2.41983311E-05
  ---------------------------------------------------------------- Updating potential.
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 14 copies on the same processor.
- TOTAL CHARGE =   1.400002585871E+01
+ TOTAL CHARGE =   1.400001438098E+01
  time for sumrho: 9.875E-02
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000026152554
+ Calculation of charge density... done. Total electronic charge=      14.000014681102
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   1.52695865E-03
- average noise along y direction:   1.87364226E-04
- average noise along z direction:   2.63414770E-04
- total average noise            :   1.56079960E-03
- clean forces norm (Ha/Bohr): maxval=  2.623288154618E-02  fnrm2=  1.601296447840E-03
- raw forces:                  maxval=  2.584507357112E-02  fnrm2=  1.612222216851E-03
+ average noise along x direction:   1.39240327E-03
+ average noise along y direction:   6.17601377E-04
+ average noise along z direction:   2.06868359E-04
+ total average noise            :   1.53720944E-03
+ clean forces norm (Ha/Bohr): maxval=  2.512029557082E-02  fnrm2=  1.516739054058E-03
+ raw forces:                  maxval=  2.481155867643E-02  fnrm2=  1.528174711467E-03
  Force values for all atoms in x, y, z direction.
-   1      C  -2.13999E-02  1.49395E-02 -2.64937E-03
-   2      C   2.06939E-02 -1.47531E-02  6.27888E-04
-   3      H  -8.36189E-03  4.33963E-04 -1.98454E-04
-   4      H  -3.67660E-03  3.62338E-03  1.56135E-03
-   5      H  -3.76311E-03  2.88061E-03 -1.73379E-03
-   6      H   3.99258E-03 -2.96178E-03 -1.57095E-03
-   7      H   4.21786E-03 -3.93872E-03  3.54970E-03
-   8      H   8.29711E-03 -2.23921E-04  4.13627E-04
+   1      C  -2.05512E-02  1.42236E-02 -2.52334E-03
+   2      C   1.95818E-02 -1.35461E-02  2.72028E-04
+   3      H  -9.19556E-03  8.44660E-05 -2.04866E-04
+   4      H  -3.76079E-03  4.18397E-03  2.04243E-03
+   5      H  -3.81290E-03  3.31958E-03 -2.26880E-03
+   6      H   4.40150E-03 -3.47045E-03 -1.68481E-03
+   7      H   4.56641E-03 -4.47114E-03  3.90032E-03
+   8      H   8.77073E-03 -3.23993E-04  4.67040E-04
+ Posting sends / receives for communicating the potential... done.
+ ##################################################################
+ at iteration 7 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - WARNING: coefficients not converged!
+   it, Delta POT, energy    7   1.02E-06   -1.48820501528375253E+01
+ ##################################################################
+ ======================== Creation of the basis functions... ========================
+ cutting of outside localization region:
+   before cut; average weights in / out:   9.99975763E-01   2.41985597E-05
+   after cut; average weights in / out:   9.99986395E-01   1.35635104E-05
+ statistics: - 54 point to point communications, of which 43 could be overlapped with computation.
+             - 8 copies on the same processor.
+ ----------------------------------------------------------------------------- iter=1
+ Orthonormalization... 
+   maximal deviation from unity:  1.8597E-03
+   maximal deviation from unity:  9.6813E-04
+   maximal deviation from unity:  5.0336E-04
+   maximal deviation from unity:  2.6169E-04
+   maximal deviation from unity:  1.3605E-04
+   maximal deviation from unity:  7.0727E-05
+   done in 6 iterations.
+   time for computation:2.850E-01=78.9%
+   time for communication:7.625E-02=21.1%
+ Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     1  6.3129456E-01  2.7045970E-01    -1.3805701319
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=2
+ Orthonormalization... 
+   maximal deviation from unity:  5.1542E-03
+   maximal deviation from unity:  1.8980E-03
+   maximal deviation from unity:  9.9038E-04
+   maximal deviation from unity:  5.1666E-04
+   maximal deviation from unity:  2.6953E-04
+   maximal deviation from unity:  1.4061E-04
+   maximal deviation from unity:  7.3351E-05
+   done in 7 iterations.
+   time for computation:3.363E-01=71.5%
+   time for communication:1.337E-01=28.5%
+ Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     2  1.7136466E-01  8.5369395E-02    -1.3954339335
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=3
+ Orthonormalization... 
+   maximal deviation from unity:  5.2309E-03
+   maximal deviation from unity:  1.3649E-03
+   maximal deviation from unity:  7.1321E-04
+   maximal deviation from unity:  3.7262E-04
+   maximal deviation from unity:  1.9467E-04
+   maximal deviation from unity:  1.0170E-04
+   maximal deviation from unity:  5.3133E-05
+   done in 7 iterations.
+   time for computation:3.250E-01=66.3%
+   time for communication:1.650E-01=33.7%
+ Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     3  1.2842016E-01  8.1922288E-02    -1.3986405483
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=4
+ Orthonormalization... 
+   maximal deviation from unity:  2.3636E-03
+   maximal deviation from unity:  1.2445E-03
+   maximal deviation from unity:  6.5259E-04
+   maximal deviation from unity:  3.4197E-04
+   maximal deviation from unity:  1.7918E-04
+   maximal deviation from unity:  9.3887E-05
+   done in 6 iterations.
+   time for computation:2.738E-01=68.4%
+   time for communication:1.263E-01=31.6%
+ Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     4  8.8861839E-02  5.3585209E-02    -1.4011660918
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=5
+ Orthonormalization... 
+   maximal deviation from unity:  2.4562E-03
+   maximal deviation from unity:  1.3088E-03
+   maximal deviation from unity:  6.8941E-04
+   maximal deviation from unity:  3.6270E-04
+   maximal deviation from unity:  1.9079E-04
+   maximal deviation from unity:  1.0036E-04
+   maximal deviation from unity:  5.2795E-05
+   done in 7 iterations.
+   time for computation:3.387E-01=69.8%
+   time for communication:1.463E-01=30.2%
+ Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     5  7.3670163E-02  4.7021711E-02    -1.4036924693
+ WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   7.3670163E-02  4.7021711E-02  -1.4036925
+ ============================= Basis functions created. =============================
+ timings:
+   -total time: 3.926E+00
+     - orthonormalization: 2.206E+00=56.2%
+     - Hamiltonian application: 3.613E-01= 9.2%
+     - orthoconstraint: 4.425E-01=11.3%
+     - preconditioning: 8.437E-01=21.5%
+     - other: 7.250E-02= 1.8%
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ done. ------------------------------------- Building linear combinations... done.
+ cutting of outside localization region:
+   before cut; average weights in / out:   9.99860183E-01   1.39783695E-04
+   after cut; average weights in / out:   9.99976774E-01   2.31888625E-05
+ ---------------------------------------------------------------- Updating potential.
+ statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
+             - 14 copies on the same processor.
+ TOTAL CHARGE =   1.400001333676E+01
+ time for sumrho: 9.875E-02
+ PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ----------------------------------------------------------------- Forces Calculation
+ Calculation of charge density... done. Total electronic charge=      14.000013616540
+ PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ Calculate nonlocal forces... done.
+ average noise along x direction:   1.39987045E-03
+ average noise along y direction:   9.20008434E-04
+ average noise along z direction:   2.18611161E-04
+ total average noise            :   1.68933230E-03
+ clean forces norm (Ha/Bohr): maxval=  2.758592396312E-02  fnrm2=  1.683156548374E-03
+ raw forces:                  maxval=  2.734564172879E-02  fnrm2=  1.694700872111E-03
+ Force values for all atoms in x, y, z direction.
+   1      C  -2.22540E-02  1.60797E-02 -2.68042E-03
+   2      C   2.17440E-02 -1.43897E-02  6.78823E-04
+   3      H  -8.24550E-03  3.44210E-04 -2.32156E-04
+   4      H  -3.54577E-03  3.19941E-03  1.20130E-03
+   5      H  -3.68624E-03  2.54441E-03 -1.33819E-03
+   6      H   4.07520E-03 -2.88186E-03 -1.00838E-03
+   7      H   4.30042E-03 -3.90137E-03  2.97379E-03
+   8      H   7.61186E-03 -9.94879E-04  4.05237E-04
  Posting sends / receives for communicating the potential... done.
  ##################################################################
  at iteration 8 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - WARNING: coefficients not converged!
-   it, Delta POT, energy    8   7.38E-07   -1.48846738298167303E+01
+   it, Delta POT, energy    8   7.53E-07   -1.48867895080599446E+01
  ##################################################################
  ======================== Creation of the basis functions... ========================
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99983415E-01   1.65468497E-05
-   after cut; average weights in / out:   9.99990829E-01   9.13065844E-06
- statistics: - 54 point to point communications, of which 49 could be overlapped with computation.
+   before cut; average weights in / out:   9.99976773E-01   2.31891026E-05
+   after cut; average weights in / out:   9.99986964E-01   1.29946710E-05
+ statistics: - 54 point to point communications, of which 50 could be overlapped with computation.
              - 8 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... 
-   maximal deviation from unity:  1.7754E-03
-   maximal deviation from unity:  9.3235E-04
-   maximal deviation from unity:  4.8855E-04
-   maximal deviation from unity:  2.5595E-04
-   maximal deviation from unity:  1.3408E-04
-   maximal deviation from unity:  7.0242E-05
+   maximal deviation from unity:  1.8219E-03
+   maximal deviation from unity:  9.6031E-04
+   maximal deviation from unity:  5.0538E-04
+   maximal deviation from unity:  2.6593E-04
+   maximal deviation from unity:  1.3993E-04
+   maximal deviation from unity:  7.3630E-05
    done in 6 iterations.
-   time for computation:2.800E-01=75.4%
-   time for communication:9.125E-02=24.6%
+   time for computation:2.950E-01=77.9%
+   time for communication:8.375E-02=22.1%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  6.0795149E-01  2.1411632E-01    -1.3841920256
+ iter, fnrm, fnrmMax, trace     1  6.1813619E-01  2.6140205E-01    -1.3814379914
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
-   maximal deviation from unity:  5.0732E-03
-   maximal deviation from unity:  2.3466E-03
-   maximal deviation from unity:  1.2341E-03
-   maximal deviation from unity:  6.4841E-04
-   maximal deviation from unity:  3.4065E-04
-   maximal deviation from unity:  1.7896E-04
-   maximal deviation from unity:  9.4021E-05
+   maximal deviation from unity:  4.9455E-03
+   maximal deviation from unity:  1.8607E-03
+   maximal deviation from unity:  9.8211E-04
+   maximal deviation from unity:  5.1825E-04
+   maximal deviation from unity:  2.7347E-04
+   maximal deviation from unity:  1.4430E-04
+   maximal deviation from unity:  7.6145E-05
    done in 7 iterations.
-   time for computation:3.388E-01=70.6%
-   time for communication:1.412E-01=29.4%
+   time for computation:3.225E-01=66.2%
+   time for communication:1.650E-01=33.8%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  1.6322034E-01  7.7283568E-02    -1.3981563588
+ iter, fnrm, fnrmMax, trace     2  1.6804838E-01  8.3597531E-02    -1.3955355414
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
-   maximal deviation from unity:  5.1729E-03
-   maximal deviation from unity:  1.8027E-03
-   maximal deviation from unity:  9.4931E-04
-   maximal deviation from unity:  4.9941E-04
-   maximal deviation from unity:  2.6269E-04
-   maximal deviation from unity:  1.3818E-04
-   maximal deviation from unity:  7.2684E-05
+   maximal deviation from unity:  4.5195E-03
+   maximal deviation from unity:  1.3140E-03
+   maximal deviation from unity:  6.9456E-04
+   maximal deviation from unity:  3.6703E-04
+   maximal deviation from unity:  1.9394E-04
+   maximal deviation from unity:  1.0248E-04
+   maximal deviation from unity:  5.4151E-05
    done in 7 iterations.
-   time for computation:3.300E-01=69.8%
-   time for communication:1.425E-01=30.2%
+   time for computation:3.325E-01=70.6%
+   time for communication:1.387E-01=29.4%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  1.2138638E-01  7.5203704E-02    -1.4011391135
+ iter, fnrm, fnrmMax, trace     3  1.2369254E-01  7.8667953E-02    -1.3985668405
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
-   maximal deviation from unity:  2.7652E-03
-   maximal deviation from unity:  1.4710E-03
-   maximal deviation from unity:  7.7649E-04
-   maximal deviation from unity:  4.0946E-04
-   maximal deviation from unity:  2.1589E-04
-   maximal deviation from unity:  1.1383E-04
-   maximal deviation from unity:  6.0018E-05
-   done in 7 iterations.
-   time for computation:3.375E-01=70.1%
-   time for communication:1.437E-01=29.9%
+   maximal deviation from unity:  2.1878E-03
+   maximal deviation from unity:  1.1691E-03
+   maximal deviation from unity:  6.2012E-04
+   maximal deviation from unity:  3.2858E-04
+   maximal deviation from unity:  1.7409E-04
+   maximal deviation from unity:  9.2232E-05
+   done in 6 iterations.
+   time for computation:2.788E-01=70.1%
+   time for communication:1.187E-01=29.9%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  8.4678411E-02  5.0893910E-02    -1.4032773581
+ iter, fnrm, fnrmMax, trace     4  8.3952649E-02  5.0546527E-02    -1.4007664863
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... 
-   maximal deviation from unity:  2.5430E-03
-   maximal deviation from unity:  1.3615E-03
-   maximal deviation from unity:  7.2116E-04
-   maximal deviation from unity:  3.8155E-04
-   maximal deviation from unity:  2.0185E-04
-   maximal deviation from unity:  1.0678E-04
-   maximal deviation from unity:  5.6489E-05
-   done in 7 iterations.
-   time for computation:3.150E-01=68.3%
-   time for communication:1.463E-01=31.7%
+   maximal deviation from unity:  2.2016E-03
+   maximal deviation from unity:  1.1904E-03
+   maximal deviation from unity:  6.3381E-04
+   maximal deviation from unity:  3.3694E-04
+   maximal deviation from unity:  1.7909E-04
+   maximal deviation from unity:  9.5190E-05
+   done in 6 iterations.
+   time for computation:2.762E-01=66.6%
+   time for communication:1.388E-01=33.4%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     5  6.9057702E-02  4.3535513E-02    -1.4054619666
+ iter, fnrm, fnrmMax, trace     5  6.9375361E-02  4.5423876E-02    -1.4027867645
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   6.9057702E-02  4.3535513E-02  -1.4054620
+ Final values for fnrm, fnrmMax, trace:   6.9375361E-02  4.5423876E-02  -1.4027868
  ============================= Basis functions created. =============================
  timings:
-   -total time: 4.004E+00
-     - orthonormalization: 2.266E+00=56.6%
-     - Hamiltonian application: 3.850E-01= 9.6%
-     - orthoconstraint: 4.438E-01=11.1%
-     - preconditioning: 8.337E-01=20.8%
-     - other: 7.500E-02= 1.9%
+   -total time: 3.954E+00
+     - orthonormalization: 2.151E+00=54.4%
+     - Hamiltonian application: 4.238E-01=10.7%
+     - orthoconstraint: 4.550E-01=11.5%
+     - preconditioning: 8.400E-01=21.2%
+     - other: 8.375E-02= 2.1%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done. ------------------------------------- Building linear combinations... done.
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99861831E-01   1.38135598E-04
-   after cut; average weights in / out:   9.99983965E-01   1.59976231E-05
+   before cut; average weights in / out:   9.99863338E-01   1.36629255E-04
+   after cut; average weights in / out:   9.99977641E-01   2.23222532E-05
  ---------------------------------------------------------------- Updating potential.
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 14 copies on the same processor.
- TOTAL CHARGE =   1.400001428138E+01
+ TOTAL CHARGE =   1.400002409221E+01
  time for sumrho: 1.000E-01
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000014554946
+ Calculation of charge density... done. Total electronic charge=      14.000024353847
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   1.88313407E-03
- average noise along y direction:   7.72155629E-04
- average noise along z direction:   3.54704467E-04
- total average noise            :   2.06597036E-03
- clean forces norm (Ha/Bohr): maxval=  2.861964245930E-02  fnrm2=  1.811351549511E-03
- raw forces:                  maxval=  2.847305905052E-02  fnrm2=  1.824603215413E-03
+ average noise along x direction:   1.42728827E-03
+ average noise along y direction:   1.17670124E-03
+ average noise along z direction:   2.63231187E-04
+ total average noise            :   1.86844006E-03
+ clean forces norm (Ha/Bohr): maxval=  2.968311153591E-02  fnrm2=  1.857372187756E-03
+ raw forces:                  maxval=  2.949683099168E-02  fnrm2=  1.869325165538E-03
  Force values for all atoms in x, y, z direction.
-   1      C  -2.31215E-02  1.66651E-02 -2.59862E-03
-   2      C   2.35883E-02 -1.51012E-02  1.02366E-03
-   3      H  -7.74056E-03  6.93177E-04 -2.71055E-04
-   4      H  -3.53873E-03  2.71512E-03  7.59565E-04
-   5      H  -3.70425E-03  2.19599E-03 -9.79450E-04
-   6      H   3.60085E-03 -2.57599E-03 -9.72932E-04
-   7      H   3.85015E-03 -3.54365E-03  2.69229E-03
-   8      H   7.06582E-03 -1.04855E-03  3.46541E-04
+   1      C  -2.37408E-02  1.76041E-02 -2.74847E-03
+   2      C   2.36559E-02 -1.51081E-02  1.04171E-03
+   3      H  -7.39505E-03  5.86160E-04 -2.66930E-04
+   4      H  -3.35500E-03  2.35176E-03  4.62303E-04
+   5      H  -3.57652E-03  1.90199E-03 -5.73920E-04
+   6      H   3.77316E-03 -2.35212E-03 -4.10471E-04
+   7      H   4.05285E-03 -3.39006E-03  2.14860E-03
+   8      H   6.58546E-03 -1.59377E-03  3.47176E-04
  Posting sends / receives for communicating the potential... done.
  ##################################################################
  at iteration 9 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - WARNING: coefficients not converged!
-   it, Delta POT, energy    9   5.46E-07   -1.48890319942267730E+01
+   it, Delta POT, energy    9   5.72E-07   -1.48902701744985286E+01
  ##################################################################
  ======================== Creation of the basis functions... ========================
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99983965E-01   1.59978685E-05
-   after cut; average weights in / out:   9.99991136E-01   8.82368349E-06
- statistics: - 54 point to point communications, of which 51 could be overlapped with computation.
+   before cut; average weights in / out:   9.99977640E-01   2.23225035E-05
+   after cut; average weights in / out:   9.99987457E-01   1.25019656E-05
+ statistics: - 54 point to point communications, of which 42 could be overlapped with computation.
              - 8 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
  Orthonormalization... 
-   maximal deviation from unity:  1.7055E-03
-   maximal deviation from unity:  9.0490E-04
-   maximal deviation from unity:  4.7896E-04
-   maximal deviation from unity:  2.5345E-04
-   maximal deviation from unity:  1.3411E-04
-   maximal deviation from unity:  7.0964E-05
+   maximal deviation from unity:  1.7943E-03
+   maximal deviation from unity:  9.5589E-04
+   maximal deviation from unity:  5.0831E-04
+   maximal deviation from unity:  2.7026E-04
+   maximal deviation from unity:  1.4369E-04
+   maximal deviation from unity:  7.6395E-05
    done in 6 iterations.
-   time for computation:2.825E-01=81.3%
-   time for communication:6.500E-02=18.7%
+   time for computation:2.800E-01=75.7%
+   time for communication:9.000E-02=24.3%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  5.9632921E-01  2.0860010E-01    -1.3832636545
+ iter, fnrm, fnrmMax, trace     1  6.0646048E-01  2.5381615E-01    -1.3798885200
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
-   maximal deviation from unity:  4.7839E-03
-   maximal deviation from unity:  2.3219E-03
-   maximal deviation from unity:  1.2333E-03
-   maximal deviation from unity:  6.5431E-04
-   maximal deviation from unity:  3.4710E-04
-   maximal deviation from unity:  1.8413E-04
-   maximal deviation from unity:  9.7679E-05
+   maximal deviation from unity:  4.7206E-03
+   maximal deviation from unity:  1.8228E-03
+   maximal deviation from unity:  9.7160E-04
+   maximal deviation from unity:  5.1776E-04
+   maximal deviation from unity:  2.7591E-04
+   maximal deviation from unity:  1.4702E-04
+   maximal deviation from unity:  7.8347E-05
    done in 7 iterations.
-   time for computation:3.338E-01=74.0%
-   time for communication:1.175E-01=26.0%
+   time for computation:3.400E-01=68.2%
+   time for communication:1.588E-01=31.8%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  1.5976489E-01  7.5207494E-02    -1.3966211516
+ iter, fnrm, fnrmMax, trace     2  1.6495988E-01  8.1782706E-02    -1.3933352235
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
-   maximal deviation from unity:  4.4717E-03
-   maximal deviation from unity:  1.7595E-03
-   maximal deviation from unity:  9.3578E-04
-   maximal deviation from unity:  4.9707E-04
-   maximal deviation from unity:  2.6399E-04
-   maximal deviation from unity:  1.4021E-04
-   maximal deviation from unity:  7.4463E-05
+   maximal deviation from unity:  3.8611E-03
+   maximal deviation from unity:  1.2576E-03
+   maximal deviation from unity:  6.7142E-04
+   maximal deviation from unity:  3.5829E-04
+   maximal deviation from unity:  1.9118E-04
+   maximal deviation from unity:  1.0201E-04
+   maximal deviation from unity:  5.4433E-05
    done in 7 iterations.
-   time for computation:3.413E-01=71.3%
-   time for communication:1.375E-01=28.7%
+   time for computation:3.450E-01=71.0%
+   time for communication:1.413E-01=29.0%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  1.1694382E-01  7.2145492E-02    -1.3994189344
+ iter, fnrm, fnrmMax, trace     3  1.1895252E-01  7.4875839E-02    -1.3962208651
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
-   maximal deviation from unity:  2.6337E-03
-   maximal deviation from unity:  1.4184E-03
-   maximal deviation from unity:  7.5601E-04
-   maximal deviation from unity:  4.0244E-04
-   maximal deviation from unity:  2.1420E-04
-   maximal deviation from unity:  1.1400E-04
-   maximal deviation from unity:  6.0677E-05
-   done in 7 iterations.
-   time for computation:3.275E-01=68.9%
-   time for communication:1.475E-01=31.1%
+   maximal deviation from unity:  2.0222E-03
+   maximal deviation from unity:  1.0947E-03
+   maximal deviation from unity:  5.8639E-04
+   maximal deviation from unity:  3.1367E-04
+   maximal deviation from unity:  1.6776E-04
+   maximal deviation from unity:  8.9726E-05
+   done in 6 iterations.
+   time for computation:2.825E-01=70.0%
+   time for communication:1.212E-01=30.0%
  Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  8.0664430E-02  4.9059986E-02    -1.4012639641
+ iter, fnrm, fnrmMax, trace     4  7.9848928E-02  4.8183920E-02    -1.3981396674
  converged in 4 iterations.
- Final values for fnrm, fnrmMax, trace:   8.0664430E-02  4.9059986E-02  -1.4012640
+ Final values for fnrm, fnrmMax, trace:   7.9848928E-02  4.8183920E-02  -1.3981397
  ============================= Basis functions created. =============================
  timings:
-   -total time: 3.120E+00
-     - orthonormalization: 1.752E+00=56.2%
-     - Hamiltonian application: 2.900E-01= 9.3%
-     - orthoconstraint: 3.575E-01=11.5%
-     - preconditioning: 6.725E-01=21.6%
-     - other: 4.750E-02= 1.5%
+   -total time: 3.170E+00
+     - orthonormalization: 1.759E+00=55.5%
+     - Hamiltonian application: 3.150E-01= 9.9%
+     - orthoconstraint: 3.588E-01=11.3%
+     - preconditioning: 6.712E-01=21.2%
+     - other: 6.625E-02= 2.1%
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
  done. ------------------------------------- Building linear combinations... done.
  cutting of outside localization region:
-   before cut; average weights in / out:   9.99880557E-01   1.19409943E-04
-   after cut; average weights in / out:   9.99985908E-01   1.40546264E-05
+   before cut; average weights in / out:   9.99881214E-01   1.18753556E-04
+   after cut; average weights in / out:   9.99980453E-01   1.95095367E-05
  ---------------------------------------------------------------- Updating potential.
  statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
              - 14 copies on the same processor.
- TOTAL CHARGE =   1.400001520174E+01
- time for sumrho: 1.188E-01
+ TOTAL CHARGE =   1.400002224060E+01
+ time for sumrho: 9.875E-02
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000015421894
+ Calculation of charge density... done. Total electronic charge=      14.000022457504
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   2.17981289E-03
- average noise along y direction:   1.37152829E-03
- average noise along z direction:   1.20598390E-04
- total average noise            :   2.57821994E-03
- clean forces norm (Ha/Bohr): maxval=  3.091309970916E-02  fnrm2=  2.083087960488E-03
- raw forces:                  maxval=  3.099994238576E-02  fnrm2=  2.098845078407E-03
+ average noise along x direction:   1.63393868E-03
+ average noise along y direction:   1.62697756E-03
+ average noise along z direction:   6.05516570E-05
+ total average noise            :   2.30661615E-03
+ clean forces norm (Ha/Bohr): maxval=  3.152030137411E-02  fnrm2=  2.081419144123E-03
+ raw forces:                  maxval=  3.139241509222E-02  fnrm2=  2.095125845154E-03
  Force values for all atoms in x, y, z direction.
-   1      C  -2.45609E-02  1.85462E-02 -2.90132E-03
-   2      C   2.63257E-02 -1.54261E-02  1.16628E-03
-   3      H  -7.97895E-03  6.24843E-04 -2.14799E-04
-   4      H  -3.54096E-03  2.21062E-03  4.41755E-04
-   5      H  -3.77003E-03  1.90014E-03 -5.73136E-04
-   6      H   3.52232E-03 -2.68272E-03 -7.70693E-04
-   7      H   3.72076E-03 -3.57755E-03  2.50090E-03
-   8      H   6.28207E-03 -1.59552E-03  3.51016E-04
+   1      C  -2.48059E-02  1.92199E-02 -2.96542E-03
+   2      C   2.58106E-02 -1.56245E-02  1.09545E-03
+   3      H  -7.55446E-03  4.92822E-04 -2.15821E-04
+   4      H  -3.34912E-03  1.92435E-03  1.85260E-04
+   5      H  -3.63768E-03  1.67066E-03 -2.55751E-04
+   6      H   3.72295E-03 -2.30777E-03 -8.46476E-05
+   7      H   3.97829E-03 -3.32675E-03  1.87195E-03
+   8      H   5.83534E-03 -2.04864E-03  3.68988E-04
  Posting sends / receives for communicating the potential... done.
  ###################################################################
  at iteration 10 of the self consistency cycle:
    - basis functions converged in 4 iterations.
    - WARNING: coefficients not converged!
-   it, Delta POT, energy    10   4.99E-07   -1.48823834845444303E+01
+   it, Delta POT, energy    10   5.29E-07   -1.48842444457952006E+01
  ###################################################################
+ ======================== Creation of the basis functions... ========================
+ cutting of outside localization region:
+   before cut; average weights in / out:   9.99980453E-01   1.95097910E-05
+   after cut; average weights in / out:   9.99988884E-01   1.10753600E-05
+ statistics: - 54 point to point communications, of which 44 could be overlapped with computation.
+             - 8 copies on the same processor.
+ ----------------------------------------------------------------------------- iter=1
+ Orthonormalization... 
+   maximal deviation from unity:  1.5558E-03
+   maximal deviation from unity:  8.3416E-04
+   maximal deviation from unity:  4.4634E-04
+   maximal deviation from unity:  2.3878E-04
+   maximal deviation from unity:  1.2774E-04
+   maximal deviation from unity:  6.8335E-05
+   done in 6 iterations.
+   time for computation:2.787E-01=74.1%
+   time for communication:9.750E-02=25.9%
+ Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     1  5.9510140E-01  2.5513871E-01    -1.3772447315
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=2
+ Orthonormalization... 
+   maximal deviation from unity:  4.6885E-03
+   maximal deviation from unity:  1.7505E-03
+   maximal deviation from unity:  9.3841E-04
+   maximal deviation from unity:  5.0301E-04
+   maximal deviation from unity:  2.6963E-04
+   maximal deviation from unity:  1.4453E-04
+   maximal deviation from unity:  7.7469E-05
+   done in 7 iterations.
+   time for computation:3.262E-01=69.6%
+   time for communication:1.425E-01=30.4%
+ Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     2  1.6451176E-01  8.2885832E-02    -1.3901642333
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=3
+ Orthonormalization... 
+   maximal deviation from unity:  3.4186E-03
+   maximal deviation from unity:  1.1700E-03
+   maximal deviation from unity:  6.2827E-04
+   maximal deviation from unity:  3.3725E-04
+   maximal deviation from unity:  1.8102E-04
+   maximal deviation from unity:  9.7163E-05
+   done in 6 iterations.
+   time for computation:2.862E-01=70.9%
+   time for communication:1.175E-01=29.1%
+ Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     3  1.1722516E-01  7.3800199E-02    -1.3930372758
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=4
+ Orthonormalization... 
+   maximal deviation from unity:  1.9386E-03
+   maximal deviation from unity:  1.0539E-03
+   maximal deviation from unity:  5.6764E-04
+   maximal deviation from unity:  3.0533E-04
+   maximal deviation from unity:  1.6421E-04
+   maximal deviation from unity:  8.8317E-05
+   done in 6 iterations.
+   time for computation:2.750E-01=65.5%
+   time for communication:1.450E-01=34.5%
+ Hamiltonian application... done. Orthoconstraint... done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     4  7.9955154E-02  4.9715394E-02    -1.3947983547
+ converged in 4 iterations.
+ Final values for fnrm, fnrmMax, trace:   7.9955154E-02  4.9715394E-02  -1.3947984
+ ============================= Basis functions created. =============================
+ timings:
+   -total time: 3.045E+00
+     - orthonormalization: 1.670E+00=54.8%
+     - Hamiltonian application: 2.888E-01= 9.5%
+     - orthoconstraint: 3.613E-01=11.9%
+     - preconditioning: 6.688E-01=22.0%
+     - other: 5.625E-02= 1.8%
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ done. ------------------------------------- Building linear combinations... done.
+ cutting of outside localization region:
+   before cut; average weights in / out:   9.99883908E-01   1.16059387E-04
+   after cut; average weights in / out:   9.99981228E-01   1.87356315E-05
+ ---------------------------------------------------------------- Updating potential.
+ statistics: - 95 point to point communications, of which 95 could be overlapped with computation.
+             - 14 copies on the same processor.
+ TOTAL CHARGE =   1.400002156123E+01
+ time for sumrho: 9.875E-02
+ PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      14.000015421894
+ Calculation of charge density... done. Total electronic charge=      14.000021767850
  PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   2.17981289E-03
- average noise along y direction:   1.37152829E-03
- average noise along z direction:   1.20598390E-04
- total average noise            :   2.57821994E-03
- clean forces norm (Ha/Bohr): maxval=  3.091309970916E-02  fnrm2=  2.083087960488E-03
- raw forces:                  maxval=  3.099994238576E-02  fnrm2=  2.098845078407E-03
+ average noise along x direction:   1.68600461E-03
+ average noise along y direction:   1.73952360E-03
+ average noise along z direction:   1.45152930E-04
+ total average noise            :   2.42685461E-03
+ clean forces norm (Ha/Bohr): maxval=  3.207673874228E-02  fnrm2=  2.132297246307E-03
+ raw forces:                  maxval=  3.196392699912E-02  fnrm2=  2.146676457530E-03
  Force values for all atoms in x, y, z direction.
-   1      C  -2.45609E-02  1.85462E-02 -2.90132E-03
-   2      C   2.63257E-02 -1.54261E-02  1.16628E-03
-   3      H  -7.97895E-03  6.24843E-04 -2.14799E-04
-   4      H  -3.54096E-03  2.21062E-03  4.41755E-04
-   5      H  -3.77003E-03  1.90014E-03 -5.73136E-04
-   6      H   3.52232E-03 -2.68272E-03 -7.70693E-04
-   7      H   3.72076E-03 -3.57755E-03  2.50090E-03
-   8      H   6.28207E-03 -1.59552E-03  3.51016E-04
+   1      C  -2.51634E-02  1.96882E-02 -2.84549E-03
+   2      C   2.64957E-02 -1.57373E-02  1.24921E-03
+   3      H  -7.11713E-03  5.83722E-04 -2.45698E-04
+   4      H  -3.19650E-03  1.46782E-03 -2.32978E-04
+   5      H  -3.52605E-03  1.34413E-03  1.00702E-04
+   6      H   3.52092E-03 -1.97426E-03  2.53143E-04
+   7      H   3.78496E-03 -2.99864E-03  1.38814E-03
+   8      H   5.20151E-03 -2.37361E-03  3.32968E-04
+ Posting sends / receives for communicating the potential... done.
+ ###################################################################
+ at iteration 11 of the self consistency cycle:
+   - basis functions converged in 4 iterations.
+   - WARNING: coefficients not converged!
+   it, Delta POT, energy    11   3.98E-07   -1.48852542342798877E+01
+ ###################################################################
+ ----------------------------------------------------------------- Forces Calculation
+ Calculation of charge density... done. Total electronic charge=      14.000021767850
+ PSolver, free  BC, dimensions:   107  101   99   proc    8 ... done.
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ Calculate nonlocal forces... done.
+ average noise along x direction:   1.68600461E-03
+ average noise along y direction:   1.73952360E-03
+ average noise along z direction:   1.45152930E-04
+ total average noise            :   2.42685461E-03
+ clean forces norm (Ha/Bohr): maxval=  3.207673874228E-02  fnrm2=  2.132297246307E-03
+ raw forces:                  maxval=  3.196392699912E-02  fnrm2=  2.146676457530E-03
+ Force values for all atoms in x, y, z direction.
+   1      C  -2.51634E-02  1.96882E-02 -2.84549E-03
+   2      C   2.64957E-02 -1.57373E-02  1.24921E-03
+   3      H  -7.11713E-03  5.83722E-04 -2.45698E-04
+   4      H  -3.19650E-03  1.46782E-03 -2.32978E-04
+   5      H  -3.52605E-03  1.34413E-03  1.00702E-04
+   6      H   3.52092E-03 -1.97426E-03  2.53143E-04
+   7      H   3.78496E-03 -2.99864E-03  1.38814E-03
+   8      H   5.20151E-03 -2.37361E-03  3.32968E-04
  Final values of the Forces for each atom
-     1      C -2.45609E-02  1.85462E-02 -2.90132E-03
-     2      C  2.63257E-02 -1.54261E-02  1.16628E-03
-     3      H -7.97895E-03  6.24843E-04 -2.14799E-04
-     4      H -3.54096E-03  2.21062E-03  4.41755E-04
-     5      H -3.77003E-03  1.90014E-03 -5.73136E-04
-     6      H  3.52232E-03 -2.68272E-03 -7.70693E-04
-     7      H  3.72076E-03 -3.57755E-03  2.50090E-03
-     8      H  6.28207E-03 -1.59552E-03  3.51016E-04
+     1      C -2.51634E-02  1.96882E-02 -2.84549E-03
+     2      C  2.64957E-02 -1.57373E-02  1.24921E-03
+     3      H -7.11713E-03  5.83722E-04 -2.45698E-04
+     4      H -3.19650E-03  1.46782E-03 -2.32978E-04
+     5      H -3.52605E-03  1.34413E-03  1.00702E-04
+     6      H  3.52092E-03 -1.97426E-03  2.53143E-04
+     7      H  3.78496E-03 -2.99864E-03  1.38814E-03
+     8      H  5.20151E-03 -2.37361E-03  3.32968E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 37814 allocations and 9112 deallocations, remaining memory(B): 850827942804
- memory occupation peak: 811442 MB
+ 40551 allocations and 9713 deallocations, remaining memory(B): 746988837092
+ memory occupation peak: 712413 MB
  for the array  psir in the routine local_partial_density

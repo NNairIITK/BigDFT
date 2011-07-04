@@ -138,14 +138,14 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
      call cpu_time(t2)
      time=t2-t1
      call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-     if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
+     !if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
 !!do iall=1,size(rhopot)
 !!    write(500+iproc*10,*) iall, rhopot(iall)
 !!end do
 !!call mpi_barrier(mpi_comm_world, iall)
 !!stop
 
-write(6000+iproc,*) rhopot
+!!write(6000+iproc,*) rhopot
 
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
@@ -1908,7 +1908,7 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
      call cpu_time(t2)
      time=t2-t1
      call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-     if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
+     !!if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
 
 
      if(orbs%nspinor==4) then

@@ -150,8 +150,8 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
 
-  call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-    .5d0*input%hy, .5d0*input%hz, 0)
+  !!call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+  !!  .5d0*input%hy, .5d0*input%hz, 0)
 
   call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
       rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &

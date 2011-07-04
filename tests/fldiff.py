@@ -105,7 +105,13 @@ if bigdft:
             or "WRITING WAVES" in line \
             or "READING WAVES" in line \
             or "average CG stepsize" in line \
-            or "GPU data" in line
+            or "GPU data" in line \
+            or "time for" in line \
+            or "orthonormalization:" in line \
+            or "Hamiltonian application:" in line \
+            or "orthoconstraint:" in line \
+            or "preconditioning:" in line \
+            or "other:" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
     def line_junk(line):
