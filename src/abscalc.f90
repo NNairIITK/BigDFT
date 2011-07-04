@@ -102,6 +102,7 @@ program abscalc_main
      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
 
      call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
+     call deallocate_abscalc_input(inputs, subname)
 
      if (iproc.eq.0) then
         sumx=0.d0
@@ -217,6 +218,7 @@ end program abscalc_main
 
         stop 'ERROR'
      else
+
         call abscalc(nproc,iproc,atoms,rxyz,&
              rst%psi,rst%Glr,rst%orbs,&
              rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
@@ -394,12 +396,19 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   real(gp) dumvect3D(3)
   real(gp) shiftdiff
   real(gp) potmodified_maxr, potmodified_shift
-
+  real(gp), pointer :: deldel(:)
 
   type(atoms_data) :: atoms_clone
   integer :: nsp, nspinor, noncoll
   integer, parameter :: nelecmax=32,nmax=6,lmax=4
   integer, parameter :: noccmax=2
+  
+
+
+  !! to apply pc_projector
+  type(pcproj_data_type) ::PPD
+  !! to apply paw projectors
+  type(PAWproj_data_type) ::PAWD
 
 
   if (in%potshortcut==0) then
@@ -471,6 +480,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   ! then calculate the size in units of the grid space
 
   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr,shift)
+  if ( orbs%nspinor.gt.1) then
+     !!  hybrid_on is not compatible with kpoints
+     Glr%hybrid_on=.false.
+  endif
 
   !variables substitution for the PSolver part
   hxh=0.5d0*hx
@@ -494,6 +507,33 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
+
+  if(sum(atoms%paw_NofL).gt.0) then
+     ! Calculate all paw_projectors, or allocate array for on-the-fly calculation
+     call timing(iproc,'CrtPawProjects ','ON')
+     PAWD%DistProjApply =  .false. !! .true.
+     ! the following routine calls a specialized version of localize_projectors
+     ! which does not interfere with the global DistProjApply
+     call createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
+          radii_cf,cpmult,fpmult,hx,hy,hz,-0.1_gp, &
+          PAWD, Glr )
+     call timing(iproc,'CrtPawProjects ','OF')
+  endif
+
+  
+  if (in%iabscalc_type==3) then
+     ! Calculate all pc_projectors, or allocate array for on-the-fly calculation
+     call timing(iproc,'CrtPcProjects ','ON')
+     PPD%DistProjApply  =  DistProjApply
+     ! the following routine calls  localize_projectors again
+     ! but this should be in coherence with the previous call for psp projectos 
+     call createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
+          radii_cf,cpmult,fpmult,hx,hy,hz,-0.1_gp, &
+          PPD, Glr  )
+     call timing(iproc,'CrtPcProjects ','OF')
+  endif
+
+
 
 
   !calculate the partitioning of the orbitals between the different processors
@@ -668,6 +708,19 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
      
+     
+     
+     if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
+        print *, " ============== TESTING PC_PROJECTORS =========== "
+        allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+        hpsi=0.0_wp
+        PPD%iproj_to_factor(1:PPD%mprojtot) = 2.0_gp
+        call applyPCprojectors(orbs,atoms,rxyz,hx,hy,hz,Glr,PPD,psi,hpsi, .true.)
+        deallocate(hpsi)
+     end if
+
+
+
      if( iand( in%potshortcut,16)>0) then
         if(iproc==0) write(*,*) "re-reading electronic_density for Xanes energy dependent potential "
         call read_density_cube_old("electronic_density", n1i,n2i,n3i,1, hx ,hy ,hz, atoms%nat, rxyz_b2B, pot_bB )
@@ -763,7 +816,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   allocate(orbs%eval(2+ndebug),stat=i_stat)
   call memocc(i_stat, orbs%eval,'eval',subname)
 
-  if (in%c_absorbtion ) then
+
+  if ( in%c_absorbtion ) then
 
      !put i3xcsh=0 for the moment, should be eliminated from the potential
      i3xcsh=0
@@ -811,7 +865,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 
         inquire(file=trim(trim(filename)//'.cube'),exist=exists)
-        print *, "controllo ",  trim(filename)//'.cube', exists
+        print *, "control ",  trim(filename)//'.cube', exists
         if(exists) then
 
            call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, &
@@ -922,7 +976,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               enddo
            enddo
 
-           print '(a,i6,a,3(1x,f18.14))',"for replica ", ireplica,  "SHIFT " , shift_b2B
+           write(*,'(a,1x,i2,1x,a,1x,3ES13.6)')  "for replica ", ireplica,  "SHIFT " , shift_b2B
 
            rhopottmp=0.0_gp
            do iz_bB = 1,n3i_bB
@@ -933,13 +987,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               enddo
            enddo
 
-           i_all=-product(shape(pot_bB))*kind(pot_bB)
-           deallocate(pot_bB,stat=i_stat)
-           call memocc(i_stat,i_all,'rho',subname)
+           if (ireplica==Nreplicas-1) then
+              i_all=-product(shape(pot_bB))*kind(pot_bB)
+              deallocate(pot_bB,stat=i_stat)
+              call memocc(i_stat,i_all,'rho',subname)
+           endif
 
 
-
-           do iz_bB = 1,n3i_bB-1
+           do iz_bB = 1,n3i_bB
               do iy_bB=1,n2i_bB
                  auxint = 0.0_gp
                  do ix_bB=1,n1i_bB
@@ -971,7 +1026,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               enddo
            enddo
 
-           do iz_bB = 1,n3i_bB-1
+           do iz_bB = 1,n3i_bB
               do ix_bB=1,n1i
                  auxint = 0.0_gp
                  do iy_bB=1,n2i_bB
@@ -1005,7 +1060,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            do ix_bB=1,n1i
               do iy_bB=1,n2i
                  auxint = 0.0_gp
-                 do iz_bB = 1,n3i_bB-1
+                 do iz_bB = 1,n3i_bB
                     rz_bB = hz_old*(iz_bB-1)           /2.0   +  shift_b2B(3)
 
                     minZ_B  =  max(1  ,  NINT((rz_bB -8*hz_old/2)/(hz/2.0)))
@@ -1037,10 +1092,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'rxyz',subname)
-        i_all=-product(shape(iatype_b2B))*kind(rxyz_b2B)
+        i_all=-product(shape(iatype_b2B))*kind(iatype_b2B)
         deallocate(iatype_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'iatype',subname)
-        i_all=-product(shape(znucl_b2B))*kind(rxyz_b2B)
+        i_all=-product(shape(znucl_b2B))*kind(znucl_b2B)
         deallocate(znucl_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'znucl',subname)
         i_all=-product(shape(rhopottmp))*kind(rhopottmp)
@@ -1082,20 +1137,17 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         call memocc(i_stat,i_all,'rhopotExtra',subname)
      endif
      
-
-
-
-     if(in%abscalc_alterpot) then
+     alteration: if(  in%abscalc_alterpot) then
         ! Attention :  modification of the  potential for the  
         ! exactly resolvable case 
 
         lpot_a=1
-        rpot_a = 6.0d0
-        spot_a = 1.0d0
+        rpot_a = 7.5d0
+        spot_a = 0.8d0
         hpot_a = 3.0d0
 
-        allocate(radpot(30000 ,2+ndebug ))
-        radpotcount=30000
+        allocate(radpot(60000 ,2+ndebug ))
+        radpotcount=60000
 
         open(unit=22,file='pot.dat', status='old')
         do igrid=1, radpotcount
@@ -1118,7 +1170,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
                  r  = sqrt( rx*rx+ry*ry+rz*rz)
 
-                 if(r>2.0) then
+                 if(r>3.5) then
                     
                     if( r>29) then
                        rhopot(ix,iy,iz+i3xcsh,1)=0.0
@@ -1141,8 +1193,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                  
                  if(r<minr) minr=r
                  
-                 if( r.ge.2.0) then
-                    harmo = (rx+ry+rz)/sqrt(3.0)/r *sqrt( 3.0/4.0/3.1415926535)
+                 if( r.ge.3.5) then
+                    harmo = (rx+2*ry+3*rz)/sqrt(14.0)/r *sqrt( 3.0/4.0/3.1415926535)
+                    !! harmo = sqrt( 1.0/4.0/3.1415926535)
+                    ! harmo = (rz)/sqrt(1.0)/r *sqrt( 3.0/4.0/3.1415926535)
                  else
                     harmo=0.0_gp
                  endif
@@ -1163,37 +1217,43 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
                  r  = sqrt( rx*rx+ry*ry+rz*rz)
 
-                 if(r<=2.0) then
-                    print *, " potmodified_shift ", potmodified_shift
-                    rhopot(ix,iy,iz+i3xcsh,1)=rhopot(ix,iy,iz+i3xcsh,1)+potmodified_shift
+                 if(r<=3.5) then
+                    rhopot(ix,iy,iz+i3xcsh,1)=rhopot(ix,iy,iz+i3xcsh,1)+potmodified_shift*0
                  endif
               enddo
            enddo
         enddo
-     end if
+        print *, "  potmodified_shift =", potmodified_shift
+     end if alteration
+
      infocode=0
 
      if (in%iabscalc_type==2) then
         call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-             , in%iat_absorber  , in )
+             , in%iat_absorber  , in , PAWD)
         
      else if (in%iabscalc_type==1) then
         call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-             , in%iat_absorber, in)
+             , in%iat_absorber, in, PAWD)
      else if (in%iabscalc_type==3) then
         call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
              rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
-             , in%iat_absorber, in, rhoXanes(1,1,1,1))
+             , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD)
      else
         if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
      endif
+  
+
      
+
   end if
+  !!$ call deallocate_abscalc_input(in, subname)
+
 
   !    No tail calculation
   if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -1397,6 +1457,14 @@ contains
 
     call deallocate_rho_descriptors(rhodsc,subname)
 
+    if( in%iabscalc_type==3) then
+       call deallocate_pcproj_data(PPD,subname)
+    endif
+    if(sum(atoms%paw_NofL).gt.0) then
+       call deallocate_pawproj_data(PAWD,subname)       
+    endif
+    call deallocate_atomdatapaw(atoms,subname)
+
     ! Free the libXC stuff if necessary.
     if (ixc < 0) then
        call libxc_functionals_end()
@@ -1414,3 +1482,471 @@ contains
   END SUBROUTINE deallocate_before_exiting
 
 END SUBROUTINE abscalc
+
+
+subroutine applyPCprojectors(orbs,at,&
+     rxyz,hx,hy,hz,Glr,PPD,psi,hpsi, dotest)
+
+  use module_base
+  use module_types
+  use module_interfaces
+
+  type(orbitals_data), intent(inout) :: orbs
+  type(atoms_data) :: at
+  real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: Glr
+  type(pcproj_data_type) ::PPD
+  real(wp), dimension(:), pointer :: psi, hpsi
+  logical, optional :: dotest
+ 
+  
+  ! local variables
+  character(len=*), parameter :: subname='applyPCprojectors'
+  character(len=11) :: orbname
+  type(locreg_descriptors) :: Plr
+  integer :: ikpt, istart_ck, ispsi_k, isorb,ieorb, ispsi, iproj, istart_c,&
+       mproj, mdone, ispinor, istart_c_i, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
+       jseg_c, iproj_old, iorb, ncplx, l, i, jorb
+  real(gp) eproj_spinor,psppar_aux(0:4, 0:6)
+  
+  !apply the projectors  k-point of the processor
+  !starting k-point
+  ikpt=orbs%iokpt(1)
+  istart_ck=1
+  ispsi_k=1
+  loop_kpt: do
+     
+     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+     
+     ! loop over all my orbitals
+     istart_c=1
+     iproj=1
+     
+     do iat=1,at%nat
+        istart_c_i=istart_c
+        iproj_old=iproj
+        ispsi=ispsi_k
+        do iorb=isorb,ieorb
+           
+           mproj= PPD%ilr_to_mproj(iat)
+           
+           call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
+           
+           
+           do ispinor=1,orbs%nspinor,ncplx
+              eproj_spinor=0.0_gp
+              
+              if (ispinor >= 2) istart_c=istart_c_i
+              
+              mbvctr_c=PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+              mbvctr_f=PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+              
+              mbseg_c=PPD%pc_nlpspd%nseg_p(2*iat-1)-PPD%pc_nlpspd%nseg_p(2*iat-2)
+              mbseg_f=PPD%pc_nlpspd%nseg_p(2*iat  )-PPD%pc_nlpspd%nseg_p(2*iat-1)
+              jseg_c=PPD%pc_nlpspd%nseg_p(2*iat-2)+1
+              
+              
+              mdone=0
+              iproj=iproj_old
+
+              if(mproj>0) then
+                 if(  PPD%DistProjApply) then
+                    jorb=1
+                    do while( jorb<=PPD%G%ncoeff         .and. PPD%iorbtolr(jorb)/= iat) 
+                       jorb=jorb+1
+                    end do
+                    if(jorb<PPD%G%ncoeff) then
+
+                       call fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz, jorb,PPD%ecut_pc ,  istart_c ) 
+                       
+                    endif
+                 end if
+              endif
+
+              
+              do while(mdone< mproj)
+                 
+                 l = PPD%iproj_to_l(iproj)
+                 
+                 i=1
+                 psppar_aux=0.0_gp
+                 !! psppar_aux(l,i)=1.0_gp/PPD%iproj_to_ene(iproj)
+                 !! psppar_aux(l,i)=1.0_gp  ! *iorb
+                 psppar_aux(l,i)=PPD%iproj_to_factor(iproj)  
+                 
+                 
+                 call applyprojector(ncplx,l,i, psppar_aux(0,0), 2 ,&
+                      Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+                      Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
+                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                      PPD%pc_nlpspd%keyv_p(jseg_c),PPD%pc_nlpspd%keyg_p(1,jseg_c),&
+                      PPD%pc_proj(istart_c),&
+                      psi(ispsi+ (ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),&
+                      hpsi(ispsi+(ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),&
+                      eproj_spinor)
+                 
+
+                 if(iorb==1) then         
+                    if( present(dotest) ) then
+                       eproj_spinor=0.0_gp
+                       call wpdot_wrap(ncplx,  &
+                            mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PPD%pc_nlpspd%keyv_p(jseg_c),&
+                            PPD%pc_nlpspd%keyg_p(1,jseg_c),PPD%pc_proj(istart_c),& 
+                            mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PPD%pc_nlpspd%keyv_p(jseg_c),&
+                            PPD%pc_nlpspd%keyg_p(1,jseg_c),&
+                            PPD%pc_proj(istart_c),&
+                            eproj_spinor)
+                       print *, " IL PROIETTORE HA MODULO QUADRO  " ,eproj_spinor 
+                       if(dotest) then
+                          !! ---------------  use this to plot projectors
+                          write(orbname,'(A,i4.4)')'pc_',iproj                     
+                          Plr%d%n1=Glr%d%n1
+                          Plr%d%n2=Glr%d%n2
+                          Plr%d%n3=Glr%d%n3
+                          Plr%geocode = at%geocode                    
+                          Plr%wfd%nvctr_c  =PPD%pc_nlpspd%nvctr_p(2*iat-1)-PPD%pc_nlpspd%nvctr_p(2*iat-2)
+                          Plr%wfd%nvctr_f  =PPD%pc_nlpspd%nvctr_p(2*iat  )-PPD%pc_nlpspd%nvctr_p(2*iat-1)
+                          Plr%wfd%nseg_c   =PPD%pc_nlpspd%nseg_p(2*iat-1 )-PPD%pc_nlpspd%nseg_p(2*iat-2)
+                          Plr%wfd%nseg_f   =PPD%pc_nlpspd%nseg_p(2*iat  ) -PPD%pc_nlpspd%nseg_p(2*iat-1)
+                          call allocate_wfd(Plr%wfd,subname)
+                          Plr%wfd%keyv(:)  = PPD%pc_nlpspd%keyv_p(  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
+                               PPD%pc_nlpspd%nseg_p(2*iat)   )
+                          Plr%wfd%keyg(1:2, :)  = PPD%pc_nlpspd%keyg_p( 1:2,  PPD%pc_nlpspd%nseg_p(2*iat-2)+1:&
+                               PPD%pc_nlpspd%nseg_p(2*iat)   )
+                          Plr%bounds = Glr%bounds
+                          Plr%d          = Glr%d                    
+                          !! call plot_wf_cube(orbname,at,Plr,hx,hy,hz,rxyz, PPD%pc_proj(istart_c) ,"1234567890" ) 
+                          call deallocate_wfd(Plr%wfd,subname)
+                       endif
+                    endif
+
+                 endif
+                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
+                 iproj=iproj+(2*l-1)
+                 mdone=mdone+(2*l-1)
+              end do
+           end  do
+           istart_c=istart_c_i
+
+           if( present(dotest) ) then
+              if(dotest) then
+                 eproj_spinor=0.0_gp
+                 call wpdot_wrap(ncplx,  &
+                      Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+                      Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ), &
+                      Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+                      Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), hpsi(ispsi + 0 ),  &
+                      eproj_spinor)
+                 print *, "hpsi  HA MODULO QUADRO  " ,eproj_spinor 
+                 eproj_spinor=0.0_gp
+                 call wpdot_wrap(ncplx,  &
+                      Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+                      Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ), &
+                      Glr%wfd%nvctr_c,Glr%wfd%nvctr_f, Glr%wfd%nseg_c, Glr%wfd%nseg_f,&
+                      Glr%wfd%keyv(1),Glr%wfd%keyg(1,1), psi(ispsi + 0 ),  &
+                      eproj_spinor)
+                 print *, "psi  HA MODULO QUADRO  " ,eproj_spinor         
+                 !! CECCARE IPROJ = mproj tot, istart_c=nelproj 
+                 write(orbname,'(A,i4.4)')'pcorb_',iorb
+                 !! call plot_wf_cube(orbname,at,Glr,hx,hy,hz,rxyz,hpsi(ispsi + 0 ),"dopoprec.." ) ! solo spinore 1
+              end if
+           endif
+           
+           ispsi=ispsi+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*nspinor
+           
+        end do
+
+
+        if( PPD%DistProjApply ) then
+           istart_c=1
+        else
+           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*mproj
+        endif
+
+     end do
+     
+     !! istart_ck=istart_c  non si incrementa
+     
+     if (ieorb == orbs%norbp) exit loop_kpt
+     ikpt=ikpt+1
+     ispsi_k=ispsi
+  end do loop_kpt
+  
+end subroutine applyPCprojectors
+
+
+
+
+
+subroutine applyPAWprojectors(orbs,at,&
+     rxyz,hx,hy,hz,Glr,PAWD,psi,hpsi,  paw_matrix, dosuperposition , &
+     sup_iatom, sup_l, sup_arraym)
+
+  use module_base
+  use module_types
+  use module_interfaces
+
+  type(orbitals_data), intent(inout) :: orbs
+  type(atoms_data) :: at
+  real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: Glr
+  type(pawproj_data_type) ::PAWD
+  real(wp), dimension(:), pointer :: psi, hpsi, paw_matrix
+  logical ::  dosuperposition
+  integer , optional :: sup_iatom, sup_l
+  real(wp) , dimension(:), pointer, optional :: sup_arraym 
+  ! local variables
+  character(len=*), parameter :: subname='applyPAWprojectors'
+  character(len=11) :: orbname
+  type(locreg_descriptors) :: Plr
+  integer :: ikpt, istart_ck, ispsi_k, isorb,ieorb, ispsi, iproj, istart_c,&
+       mproj, mdone, ispinor, istart_c_i, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
+       jseg_c, iproj_old, iorb, ncplx, l, i, jorb, lsign, ncplx_global
+  real(gp) eproj_spinor,psppar_aux(0:4, 0:6)
+
+  integer , parameter :: dotbuffersize = 1000
+  real(dp)  :: dotbuffer(dotbuffersize), dotbufferbis(dotbuffersize)
+  integer ibuffer, ichannel, nchannels, imatrix, ilim
+  logical lfound_sup
+                   
+
+  if (orbs%norbp.gt.0) then
+
+
+  !apply the projectors  k-point of the processor
+  !starting k-point
+  ikpt=orbs%iokpt(1)
+  istart_ck=1
+  ispsi_k=1
+  imatrix=1
+
+  !!$ check that the coarse wavelets cover the whole box
+  if(Glr%wfd%nvctr_c .ne. ( (Glr%d%n1+1) *(Glr%d%n2+1) * (Glr%d%n3+1)  ) ) then
+     print *, " WARNING : coarse wavelets dont cover the whole box "
+  endif
+  
+  if(dosuperposition) then 
+     lfound_sup=.false.
+  endif
+  ncplx_global=min(orbs%nspinor,2)
+
+  loop_kpt: do
+     
+     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+     
+     ! loop over all my orbitals
+     do iorb=isorb,ieorb
+        istart_c=istart_ck
+        iproj=1
+        iat=0
+
+        do iatat=1, at%nat
+           if (  at%paw_NofL(at%iatype(iatat)).gt.0  ) then
+              iat=iat+1
+              istart_c_i=istart_c
+              iproj_old=iproj
+              ispsi=ispsi_k
+              !!!! do iorb=isorb,ieorb
+
+
+              mproj= PAWD%ilr_to_mproj(iat)
+              
+              if( ikpt .ne. orbs%iokpt(iorb) ) then
+                 STOP " ikpt .ne. orbs%iokpt(iorb) in applypawprojectors " 
+              end if
+              kx=orbs%kpts(1,ikpt)
+              ky=orbs%kpts(2,ikpt)
+              kz=orbs%kpts(3,ikpt)
+              call ncplx_kpt(orbs%iokpt(iorb),orbs,ncplx)
+
+              do ispinor=1,orbs%nspinor,ncplx_global
+                 eproj_spinor=0.0_gp
+                 if (ispinor >= 2) istart_c=istart_c_i
+                 mbvctr_c=PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+                 mbvctr_f=PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
+                 mbseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
+                 mbseg_f=PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
+                 jseg_c=PAWD%paw_nlpspd%nseg_p(2*iat-2)+1
+                 mdone=0
+                 iproj=iproj_old
+                 if(mproj>0) then
+                    if(  PAWD%DistProjApply) then
+                       jorb=1
+                       do while( jorb<=PAWD%G%ncoeff         .and. PAWD%iorbtolr(jorb)/= iat) 
+                          jorb=jorb+1
+                       end do
+                       if(jorb<PAWD%G%ncoeff) then
+                          call fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,&
+                               kx,ky,kz, &
+                               jorb, istart_c,  at%geocode, at, iatat ) 
+                       endif
+                    end if
+                 endif
+                 
+                 do while(mdone< mproj)
+                    lsign = PAWD%iproj_to_l(iproj)
+                    l=abs(lsign)
+                    ibuffer = 0
+                    nchannels =  PAWD% iproj_to_paw_nchannels(iproj)
+                    imatrix=PAWD%iprojto_imatrixbeg(iproj)
+!!$
+!!$                    if(.not. dosuperposition) then
+!!$                       print *, "applying paw for l= ", l,&
+!!$                            "  primo elemento ", paw_matrix(PAWD%iprojto_imatrixbeg(iproj))
+!!$                    end if
+                    old_istart_c=istart_c
+                    do ichannel=1, nchannels
+                       do m=1,2*l-1
+                          ibuffer=ibuffer+1
+                          if(ibuffer.gt.dotbuffersize ) then
+                             STOP 'ibuffer.gt.dotbuffersize'
+                          end if
+                          
+                          if( .not. dosuperposition .and. lsign>0 ) then
+                             call wpdot_wrap(ncplx,  &
+                                  Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
+                                  Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
+                                  psi(ispsi+ (ispinor-1)*(orbs%npsidim/orbs%nspinor)  ),  &
+                                  mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                                  PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
+                                  PAWD%paw_proj(istart_c),&
+                                  dotbuffer( ibuffer ) )
+                          end if
+                          ibuffer=ibuffer + (ncplx-1)
+                          
+!!$                          !! TTTTTTTTTTTTTTTTTTTt TEST TTTTTTTTTTTTTTTTTTT
+!!$                          call wpdot_wrap(ncplx,  &
+!!$                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PAWD%paw_nlpspd%keyv_p(jseg_c),&
+!!$                               PAWD%paw_nlpspd%keyg_p(1,jseg_c),PAWD%paw_proj(istart_c),& 
+!!$                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,PAWD%paw_nlpspd%keyv_p(jseg_c),&
+!!$                               PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
+!!$                               PAWD%paw_proj(istart_c),&
+!!$                               eproj_spinor)
+!!$                          print *, "TEST:  THE PROJECTOR ichannel = ", ichannel, " m=",m, " HAS SQUARED MODULUS  " ,eproj_spinor 
+                          
+!!$                          !! plot -------------------------------------------------------------
+!!$                          Plr%d%n1 = Glr%d%n1
+!!$                          Plr%d%n2 = Glr%d%n2
+!!$                          Plr%d%n3 = Glr%d%n3
+!!$                          Plr%geocode = at%geocode
+!!$                          Plr%wfd%nvctr_c  =PAWD%paw_nlpspd%nvctr_p(2*iat-1)-PAWD%paw_nlpspd%nvctr_p(2*iat-2)
+!!$                          Plr%wfd%nvctr_f  =PAWD%paw_nlpspd%nvctr_p(2*iat  )-PAWD%paw_nlpspd%nvctr_p(2*iat-1)
+!!$                          Plr%wfd%nseg_c   =PAWD%paw_nlpspd%nseg_p(2*iat-1)-PAWD%paw_nlpspd%nseg_p(2*iat-2)
+!!$                          Plr%wfd%nseg_f   =PAWD%paw_nlpspd%nseg_p(2*iat  )-PAWD%paw_nlpspd%nseg_p(2*iat-1)
+!!$                          call allocate_wfd(Plr%wfd,subname)
+!!$                          Plr%wfd%keyv(:)  = PAWD%paw_nlpspd%keyv_p( PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:&
+!!$                               PAWD%paw_nlpspd%nseg_p(2*iat)   )
+!!$                          Plr%wfd%keyg(1:2, :)  = PAWD%paw_nlpspd%keyg_p( 1:2,  PAWD%paw_nlpspd%nseg_p(2*iat-2)+1:&
+!!$                               PAWD%paw_nlpspd%nseg_p(2*iat)   )
+!!$
+!!$                          !! ---------------  use this to plot projectors
+!!$                          write(orbname,'(A,i4.4)')'paw_',iproj
+!!$                          Plr%bounds = Glr%bounds
+!!$                          Plr%d          = Glr%d
+!!$                          call plot_wf_cube(orbname,at,Plr,hx,hy,hz,rxyz, PAWD%paw_proj(istart_c) ,"1234567890" ) 
+!!$                          !! END plot ----------------------------------------------------------
+                          
+                          
+                          !! TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+                          
+                          istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                          iproj=iproj+1
+                          mdone=mdone+1
+                       end do
+                    end do
+                    
+!!$                    call DGEMM('N','N', nchannels ,(2*l-1)  , nchannels  ,&
+!!$                         1.0d0 , paw_matrix(imatrix) , nchannels ,&
+!!$                         dotbuffer  ,(2*l-1), 0.0D0 , dotbufferbis  ,(2*l-1))
+                    
+                    
+                    if( .not. dosuperposition) then
+                       if(lsign>0) then
+                          call DGEMM('N','N',(2*l-1)*ncplx  , nchannels , nchannels  ,&
+                               1.0d0 ,dotbuffer , (2*l-1)*ncplx ,&
+                               paw_matrix(imatrix)  ,nchannels , 0.0D0 , dotbufferbis  ,(2*l-1)*ncplx )
+                       else
+                          dotbufferbis=0.0_wp
+                       endif
+                    else
+                       if( sup_iatom .eq. iatat .and. (-sup_l) .eq. lsign ) then
+                          do ichannel=1, nchannels
+                             do m=1,2*l-1
+                                dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx           ) = 0.0_gp ! keep this before
+                                dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx -(ncplx-1)) = sup_arraym(m)
+                             end do
+                          enddo
+                          lfound_sup=.true.
+                       else
+                          do ichannel=1, nchannels
+                             do m=1,2*l-1
+                                dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx           ) = 0.0_gp 
+                                dotbufferbis((ichannel-1)*(2*l-1)*ncplx+m*ncplx -(ncplx-1)) = 0.0_gp
+                             end do
+                          enddo
+                       endif
+                    endif
+                    
+                    
+                    ibuffer=0
+                    iproj    =  iproj  - nchannels * ( 2*l-1 )
+                    istart_c = old_istart_c
+                    
+                    do ichannel=1, nchannels
+                       do m=1,2*l-1
+                          ibuffer=ibuffer+1
+                          
+                          call waxpy_wrap(ncplx,dotbufferbis( ibuffer ) ,&
+                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                               PAWD%paw_nlpspd%keyv_p(jseg_c),PAWD%paw_nlpspd%keyg_p(1,jseg_c),&
+                               PAWD%paw_proj(istart_c),&
+                               Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,Glr%wfd%nseg_c,Glr%wfd%nseg_f,&
+                               Glr%wfd%keyv(1),Glr%wfd%keyg(1,1),&
+                               hpsi(ispsi+(ispinor-1)*(orbs%npsidim/orbs%nspinor)  )&
+                               )
+                          
+                          
+                          istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                          iproj=iproj+1
+                          ibuffer=ibuffer + (ncplx-1)
+                       end do
+                    end do
+                 end do
+                 
+                 mdone=0
+!!$ iproj=iproj_old
+                 istart_c=istart_c_i
+                 ispsi=ispsi+(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*nspinor
+                 
+              end do
+
+              if( PAWD%DistProjApply ) then
+                 istart_c=1
+              else
+                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*mproj*ncplx
+              endif
+           end if
+        end do
+        
+        ispsi_k=ispsi
+     end do
+     istart_ck=istart_c
+     
+     if(  dosuperposition ) then
+        if(.not. lfound_sup) then
+           print *, " initial state not found in routine ",subname
+           STOP 
+        endif
+     endif
+     
+     
+     if (ieorb == orbs%norbp) exit loop_kpt
+     ikpt=ikpt+1
+     
+     
+  end do loop_kpt
+  end if
+end subroutine applyPAWprojectors
+  

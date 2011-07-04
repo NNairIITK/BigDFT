@@ -90,6 +90,7 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
+
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
 END SUBROUTINE read_input_variables
@@ -1064,6 +1065,10 @@ subroutine abscalc_input_variables_default(in)
   in%c_absorbtion=.false.
   in%potshortcut=0
   in%iat_absorber=0
+  in%abscalc_S_do_cg=.false.
+  in%abscalc_Sinv_do_cg=.false.
+
+
 
 END SUBROUTINE abscalc_input_variables_default
 
@@ -1099,7 +1104,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
 
   read(iunit,*,iostat=ierror)  in%iat_absorber
   call check()
-  read(iunit,*,iostat=ierror)  in%L_absorber
+  read(iunit,*,iostat=ierror)  in%N_absorber,in%Linit_absorber      ,in%rpower_absorber,  in%L_absorber,  in%NPaw_absorber
   call check()
 
   allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
@@ -1117,15 +1122,21 @@ subroutine abscalc_input_variables(iproc,filename,in)
   if( iand( in%potshortcut,4)>0) then
      read(iunit,'(a100)',iostat=ierror) in%extraOrbital
   end if
-
-
   
   read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
+  !!, &
+  !!     in%abscalc_S_do_cg ,in%abscalc_Sinv_do_cg
   if(ierror==0) then
-
   else
      in%abscalc_alterpot=.false.
      in%abscalc_eqdiff =.false.
+  endif
+
+
+  read(iunit, '(a100)' ,iostat=ierror) in%xabs_res_prefix
+  if(ierror==0) then
+  else
+     in%xabs_res_prefix=""
   endif
 
   in%c_absorbtion=.true.
@@ -1343,6 +1354,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      stop 
   end if
 
+
   if (atoms%format == "xyz") then
      !read atomic positions
      if (.not.archive) then
@@ -1486,6 +1498,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
   end if
   read(line,*) atoms%nat,atoms%units
 
+  print *, "alloco rxyz "
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
 

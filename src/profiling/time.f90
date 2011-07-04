@@ -12,7 +12,7 @@
 module timeData
 
   implicit none
-  integer, parameter :: ncat=31   ! define timimg categories
+  integer, parameter :: ncat=33   ! define timimg categories
 
   integer :: istart, ittime, ncounters, ncaton!, nskip
   logical :: parallel,init
@@ -46,6 +46,8 @@ subroutine timing(iproc,category,action)
        'CrtDescriptors'    ,  &  !< Calculation of descriptor arrays
        'CrtLocPot     '    ,  &  !< Calculation of local potential
        'CrtProjectors '    ,  &  !< Calculation of projectors
+       'CrtPcProjects '    ,  &  !< Calculation of preconditioning projectors
+       'CrtPawProjects'    ,  &  !< Calculation of abscalc-pawprojectors
        'ApplyLocPotKin'    ,  &  !< Application of PSP, kinetic energy
        'ApplyProj     '    ,  &  !< Application of nonlocal PSP
        'Precondition  '    ,  &  !< Precondtioning

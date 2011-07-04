@@ -6,8 +6,9 @@ EXTRA_DIST = \
 	inputRef.dft \
 	inputRef.abscalc \
 	posinpRef.xyz \
-	gproje_Fe_1s_1 \
-	XabsCheb.out.ref
+	XabsCheb.out.ref \
+	psppar.Fe_patched_plus_initialwave	\
+	input.kpt
 
 PPFILES = \
 	psppar.Fe
@@ -19,12 +20,9 @@ CLEANFILES = $(PPFILES) Xabs*.out posout* *.pot *.prc \
 
 #dependencies
 $(PPFILES):
-	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
+	@ln -fs $(srcdir)/psppar.Fe_patched_plus_initialwave   psppar.Fe
 
 XabsCheb.out: $(top_builddir)/src/abscalc $(PPFILES)
-	@if ! test x"$(srcdir)" = x"." ; then \
-	  ln -fs $(srcdir)/gproje_Fe_1s_1 ; \
-	fi
 	@ln -fs $(srcdir)/inputRef.abscalc input.abscalc
 	@ln -fs $(srcdir)/inputRef.dft input.dft
 	@ln -fs $(srcdir)/posinpRef.xyz posinp.xyz
@@ -32,14 +30,8 @@ XabsCheb.out: $(top_builddir)/src/abscalc $(PPFILES)
 	@rm -f input.dft
 	@rm -f posinp.xyz
 	@rm -f input.abscalc
-	@if ! test x"$(srcdir)" = x"." ; then \
-	  rm -f gproje_Fe_1s_1 ; \
-	fi
 
 XabsLanc.out: $(top_builddir)/src/abscalc $(PPFILES)
-	@if ! test x"$(srcdir)" = x"." ; then \
-	  ln -fs $(srcdir)/gproje_Fe_1s_1 ; \
-	fi
 	@ln -fs $(srcdir)/inputRef.dft input.dft
 	@ln -fs $(srcdir)/posinpRef.xyz posinp.xyz
 	@ln -fs $(srcdir)/input.abscalcLanc input.abscalc
@@ -47,15 +39,9 @@ XabsLanc.out: $(top_builddir)/src/abscalc $(PPFILES)
 	@rm -f input.dft
 	@rm -f posinp.xyz
 	@rm -f input.abscalc
-	@if ! test x"$(srcdir)" = x"." ; then \
-	  rm -f gproje_Fe_1s_1 ; \
-	fi
 
 
 Xabsb2B.out: $(top_builddir)/src/abscalc $(PPFILES)
-	@if ! test x"$(srcdir)" = x"." ; then \
-	  ln -fs $(srcdir)/gproje_Fe_1s_1 ; \
-	fi
 	@ln -fs $(srcdir)/inputGenPot.dft input.dft
 	@ln -fs $(srcdir)/posinpGenPot.xyz posinp.xyz
 	@ln -fs $(srcdir)/inputRef.abscalc input.abscalc
@@ -68,18 +54,29 @@ Xabsb2B.out: $(top_builddir)/src/abscalc $(PPFILES)
 	@ln -fs $(srcdir)/inputRef.dft input.dft
 	@ln -fs $(srcdir)/posinpRef.xyz posinp.xyz
 	@ln -fs $(srcdir)/inputb2B.abscalc input.abscalc
+	@ln -fs $(srcdir)/input.kpt input.kpt
 	$(top_builddir)/src/abscalc > $@
 	rm -f  b2B_xanes.xyz
 	rm -f  b2B_xanes.cube
 	@rm -f input.dft
 	@rm -f posinp.xyz
 	@rm -f input.abscalc
-	@if ! test x"$(srcdir)" = x"." ; then \
-	  rm -f gproje_Fe_1s_1 ; \
-	fi
+	@rm -f input.kpt
 
 
-check: XabsCheb.out  XabsLanc.out Xabsb2B.out
-	cat XabsCheb.out  XabsLanc.out  Xabsb2B.out >  XabsChebLanc.out 
+XabsCG.out: $(top_builddir)/src/abscalc $(PPFILES)
+	@ln -fs $(srcdir)/inputCG.abscalc input.abscalc
+	@ln -fs $(srcdir)/inputRef.dft input.dft
+	@ln -fs $(srcdir)/posinpRef.xyz posinp.xyz
+	$(top_builddir)/src/abscalc > $@
+	@rm -f input.dft
+	@rm -f posinp.xyz
+	@rm -f input.abscalc
+
+
+
+
+check: XabsCheb.out  XabsLanc.out Xabsb2B.out  XabsCG.out
+	cat XabsCheb.out  XabsLanc.out  Xabsb2B.out XabsCG.out >  XabsChebLanc.out 
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft XabsChebLanc.out \
 		$(top_srcdir)/tests/XabsCheb/XabsCheb.out.ref | tee fldiff.report
