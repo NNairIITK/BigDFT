@@ -111,7 +111,9 @@ if bigdft:
             or "Hamiltonian application:" in line \
             or "orthoconstraint:" in line \
             or "preconditioning:" in line \
-            or "other:" in line
+            or "other:" in line \
+            or "statistics:" in line \
+            or "total time:" in line
 elif neb:
     # Test if the line should not be compared (NEB output)
     def line_junk(line):

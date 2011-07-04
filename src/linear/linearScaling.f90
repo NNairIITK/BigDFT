@@ -329,8 +329,10 @@ real(8),intent(in):: pnrm, energy
       end if
       if(infoCoeff<0) then
           write(*,'(3x,a)') '- WARNING: coefficients not converged!'
-      else
+      else if(infoCoeff>0) then
           write(*,'(3x,a,i0,a)') '- coefficients converged in ', infoCoeff, ' iterations.'
+      else
+          write(*,'(3x,a)') '- coefficients obtained by diagonalization.'
       end if
       write(*,'(3x,a,3x,i0,es11.2,es27.17)') 'it, Delta POT, energy ', itSCC, pnrm, energy
       write(*,'(x,a)') repeat('#',66 + int(log(real(itSCC))/log(10.)))
