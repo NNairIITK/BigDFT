@@ -10,12 +10,12 @@ type(input_variables),intent(in):: input
 real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
 
 ! Local variables
-integer:: it, istat, iall, iorb, jorb
+integer:: it, istat, iall, iorb, jorb, ierr
 real(8),dimension(:),allocatable:: lphiovrlp
 real(8),dimension(:,:),allocatable:: ovrlp
 character(len=*),parameter:: subname='orthonormalize'
 logical:: converged
-real(8):: maxError
+real(8):: maxError, t1, t2, timeCommun, timeComput
 
   allocate(ovrlp(lin%orbs%norb,lin%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp',subname)
@@ -23,30 +23,54 @@ real(8):: maxError
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
 
-  do it=1,10
+  timeComput=0.d0
+  timeCommun=0.d0
+  do it=1,lin%nItOrtho
       !if(iproc==0) write(*,'(a,i0)') 'at it=',it
+      call cpu_time(t1)
       call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+      call cpu_time(t2)
+      timeComput=timeComput+t2-t1
+      call cpu_time(t1)
       call postCommsOverlap(iproc, nproc, lin%comon)
       call gatherOrbitals(iproc, nproc, lin%comon)
+      call cpu_time(t2)
+      timeCommun=timeCommun+t2-t1
+      call cpu_time(t1)
       call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, ovrlp)
-  do iorb=1,lin%orbs%norb
-      do jorb=1,lin%orbs%norb
-          write(500+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-      end do
-  end do
-      call checkUnity(iproc, lin%lzd%orbs%norb, ovrlp, converged, maxError)
-      if(iproc==0) write(*,'(a,es12.4)') 'maximal deviation from unity:', maxError
+      !!do iorb=1,lin%orbs%norb
+      !!    do jorb=1,lin%orbs%norb
+      !!        write(500+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+      !!    end do
+      !!end do
+      call checkUnity(iproc, lin%lzd%orbs%norb, ovrlp, maxError)
+      if(iproc==0) write(*,'(3x,a,es12.4)') 'maximal deviation from unity:', maxError
+      if(maxError<lin%convCritOrtho) then
+          converged=.true.
+          call cpu_time(t2)
+          timeComput=timeComput+t2-t1
+          exit
+      end if
       call transformOverlapMatrix(iproc, nproc, lin%lzd%orbs, ovrlp)
       !call transformOverlapMatrix2(iproc, nproc, lin%lzd%orbs, ovrlp)
       call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
       call globalLoewdin(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, ovrlp, lphiovrlp, lphi)
-      if(converged) then
-          if(iproc==0) write(*,'(a,i0,a)') 'done in ', it, ' iterations.'
-          exit
-      else if(it==10) then
-          if(iproc==0) write(*,'(a,i0,a)') 'WARNING: orthonormalization not converged within ', it, ' iterations.'
-      end if
+      call cpu_time(t2)
+      timeComput=timeComput+t2-t1
   end do
+
+  if(converged) then
+      if(iproc==0) write(*,'(3x,a,i0,a)') 'done in ', it, ' iterations.'
+  else 
+      if(iproc==0) write(*,'(3x,a,i0,a)') 'WARNING: orthonormalization not converged within ', lin%nItOrtho, ' iterations.'
+  end if
+
+  call mpiallred(timeComput, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeCommun, 1, mpi_sum, mpi_comm_world, ierr)
+  timeComput=timeComput/dble(nproc)
+  timeCommun=timeCommun/dble(nproc)
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for computation:', timeComput, '=', 100.d0*timeComput/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for communication:', timeCommun, '=', 100.d0*timeCommun/(timeComput+timeCommun), '%'
 
   iall=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp, stat=istat)
@@ -448,11 +472,11 @@ do jproc=0,nproc-1
             end if
         end do 
         op%noverlaps(iiorb)=ioverlaporb
-        if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
+        !if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
         ilrold=ilr
     end do
     comon%noverlaps(jproc)=ioverlapMpi
-    if(iproc==0) write(*,'(a,2i8)') 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
+    !if(iproc==0) write(*,'(a,2i8)') 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
 end do
 
 end subroutine countOverlaps
@@ -801,7 +825,6 @@ do iorb=1,orbs%norb
             end do
             !write(*,'(a,5i9)') 'iproc, iorb, jorb, korb, lorb', iproc, iorb, jorb, korb, lorb
             gdim=lzd%llr(jjlr)%wfd%nvctr_c+7*lzd%llr(jjlr)%wfd%nvctr_f
-            !ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
             ldim=op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
             ind=1
             do kkorb=orbs%isorb+1,jjorb-1
@@ -809,10 +832,8 @@ do iorb=1,orbs%norb
                 ind = ind + lzd%llr(klr)%wfd%nvctr_c + 7*lzd%llr(klr)%wfd%nvctr_f
             end do
             !write(*,'(5(a,i0))') 'process ',iproc,' adds ',op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f,' elements at position ',indovrlp,' from orbital ',jjorb,' for orbital ', iorb
-            !call psi_to_locreg2(iproc, nproc, ldim, gdim, op%olr(jorb,iorb), lzd%llr(jjlr), phi(ind), comon%sendBuf(indovrlp))
             call psi_to_locreg2(iproc, nproc, ldim, gdim, op%olr(lorb,korb), lzd%llr(jjlr), phi(ind), comon%sendBuf(indovrlp))
             op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
-            !indovrlp=indovrlp+op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
             indovrlp=indovrlp+op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
         end if
     end do
@@ -1139,7 +1160,7 @@ end subroutine expandOrbital
 
 
 
-subroutine checkUnity(iproc, norb, ovrlp, converged, maxError)
+subroutine checkUnity(iproc, norb, ovrlp, maxError)
   use module_base
   use module_types
   implicit none
@@ -1147,14 +1168,12 @@ subroutine checkUnity(iproc, norb, ovrlp, converged, maxError)
   ! Calling arguments
   integer,intent(in):: iproc, norb
   real(8),dimension(norb,norb),intent(in):: ovrlp
-  logical,intent(out):: converged
   real(8),intent(out):: maxError
   
   ! Local variables
   integer:: iorb, jorb
   real(8):: error
   
-  converged=.true.
   maxError=0.d0
   do iorb=1,norb
       do jorb=1,norb
@@ -1168,7 +1187,6 @@ subroutine checkUnity(iproc, norb, ovrlp, converged, maxError)
           end if
       end do
   end do
-  if(maxError>1.d-6) converged=.false.
 
 end subroutine checkUnity
 

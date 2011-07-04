@@ -490,7 +490,7 @@ real(8),dimension(4):: time
   
       ! Orthonormalize the orbitals.
       if(iproc==0) then
-          write(*,'(x,a)', advance='no') 'Orthonormalization... '
+          write(*,'(x,a)') 'Orthonormalization... '
       end if
       call cpu_time(t1)
       call orthonormalizeLocalized(iproc, nproc, lin, input, lphi)
@@ -499,7 +499,7 @@ real(8),dimension(4):: time
   
       ! Calculate the unconstrained gradient.
       if(iproc==0) then
-          write(*,'(a)', advance='no') 'Hamiltonian application... '
+          write(*,'(x,a)', advance='no') 'Hamiltonian application... '
       end if
       call cpu_time(t1)
       withConfinement=.true.
@@ -509,15 +509,21 @@ real(8),dimension(4):: time
            pkernel=pkernelseq)
       call cpu_time(t2)
       time(2)=time(2)+t2-t1
+      if(iproc==0) then
+          write(*,'(a)', advance='no') 'done. '
+      end if
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
-          write(*,'(a)', advance='no') 'orthoconstraint... '
+          write(*,'(a)', advance='no') 'Orthoconstraint... '
       end if
       call cpu_time(t1)
       call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
       call cpu_time(t2)
       time(3)=time(3)+t2-t1
+      if(iproc==0) then
+          write(*,'(a)', advance='no') 'done. '
+      end if
   
       ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
       ! of the previous iteration (fnrmOvrlpArr).
@@ -565,7 +571,7 @@ real(8),dimension(4):: time
 
       ! Precondition the gradient
       if(iproc==0) then
-          write(*,'(a)') 'preconditioning. '
+          write(*,'(a)', advance='no') 'Preconditioning... '
       end if
       gnrm=1.d3 ; gnrm_zero=1.d3
       call cpu_time(t1)
@@ -586,6 +592,9 @@ real(8),dimension(4):: time
       end do
       call cpu_time(t2)
       time(4)=time(4)+t2-t1
+      if(iproc==0) then
+          write(*,'(a)') 'done. '
+      end if
 
 
       ! Determine the mean step size for steepest descent iterations.
@@ -594,7 +603,6 @@ real(8),dimension(4):: time
   
       ! Write some informations to the screen.
       if(iproc==0) write(*,'(x,a,i6,2es15.7,f17.10)') 'iter, fnrm, fnrmMax, trace', it, fnrm, fnrmMax, trH
-      if(iproc==0) write(1000,'(i6,2es15.7,f18.10,es12.4)') it, fnrm, fnrmMax, trH, meanAlpha
       if(fnrmMax<lin%convCrit .or. it>=nit) then
           if(it>=nit) then
               if(iproc==0) write(*,'(x,a,i0,a)') 'WARNING: not converged within ', it, &

@@ -100,7 +100,7 @@ real(8):: fnoise
 ! Local variables
 integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot
 real(8),dimension(:),pointer:: phi, phid
-real(8),dimension(:,:),pointer:: occupForInguess, coeff, coeffd
+real(8),dimension(:,:),pointer:: coeff, coeffd
 real(8):: ebs, ebsMod, alpha, pnrm, tt, ehart, eexcu, vexcu
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld
@@ -124,7 +124,6 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'
       write(*,'(x,a)') '********* Use the selfconsistent potential for the linear scaling version. *********'
   end if
-  allocate(occupForInguess(32,at%nat))
 
   ! Initialize the parameters for the linear scaling version and allocate all arrays.
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
@@ -187,15 +186,14 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
 
-      ! Calculate the energy that we get with psi.
+      ! Copy the current potential
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
-      !!call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
-      !!    rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      !!    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
 
+      ! Calculate the new potential.
       call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
           rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           coeff, ehart, eexcu, vexcu)
+      ! Calculate the total energy.
       energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
       ! Post communications for gathering the potential

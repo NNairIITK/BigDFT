@@ -465,8 +465,8 @@ end type largeBasis
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
-    integer:: nItInguess, nlr, nLocregOverlap
-    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix
+    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho
+    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho
     real(8),dimension(:),pointer:: potentialPrefac, locrad, phiRestart
     type(orbitals_data):: orbs, Lorbs
     type(communications_arrays):: comms, Lcomms

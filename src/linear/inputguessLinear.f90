@@ -433,7 +433,6 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
    !     onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
    allocate(ham(orbsig%norb,orbsig%norb,at%nat), stat=istat)
    call memocc(i_stat,ham,'ham',subname)
-   write(*,'(a,3i12)') 'iproc, lzdig%orbs%npsidim, size(hchi)', iproc, lzdig%orbs%npsidim, size(hchi)
    call getHamiltonianMatrix(iproc, nproc, lzdig, Glr, onWhichAtom, onWhichAtomp, at%nat, chi, hchi, ham, orbsig)
    call buildLinearCombinations2(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
         onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin, ham)
@@ -1999,7 +1998,9 @@ allocate(lhchi(sizeChi), stat=istat)
 call memocc(istat, lhchi, 'lhchi', subname)
 
 
+if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
 do iat=1,nat
+    if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Calculating matrix for atom ', iat, '... '
     ! Transform chi to the localization region. This is not needed if we really habe O(N).
     ind1=1
     ind2=1
@@ -2020,6 +2021,7 @@ do iat=1,nat
     ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
     call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lhchi(1), comon)
     call calculateOverlapMatrix2(iproc, nproc, lzdig%orbs, op, comon, onWhichAtom, ham(1,1,iat))
+    if(iproc==0) write(*,'(a)') 'done.'
 end do
 
 
