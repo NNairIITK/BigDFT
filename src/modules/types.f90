@@ -237,8 +237,12 @@ module module_types
      integer, dimension(:), pointer :: ifrztyp     !< ifrztyp(nat) Frozen atoms
      real(gp), dimension(:), pointer :: amu        !< amu(ntypes)  Atomic Mass Unit for each type of atoms
      real(gp), dimension(:,:), pointer :: aocc
-     real(gp), dimension(:,:,:), pointer :: psppar
-     integer :: symObj                             !< The symmetry object from ABINIT
+     real(gp), dimension(:,:,:), pointer :: psppar !< pseudopotential parameters (HGH SR section)
+     logical :: donlcc                             !< activate non-linear core correction treatment
+     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !<number of valence and core gaussians describing NLCC 
+     real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
+     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
+     integer :: symObj                               !< The symmetry object from ABINIT
      integer :: iat_absorber 
   end type atoms_data
 

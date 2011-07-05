@@ -9,66 +9,83 @@
 
 
 !>    Calculate the array of the core density for the atom iat
-subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore)
   use module_base
+  use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc
+  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
+  type(atoms_data), intent(in) :: atoms
   real(dp), dimension(n1i*n2i*n3d), intent(inout) :: rhocore
   !local variables
   character(len=*), parameter :: subname='calc_rhocore'
   real(gp), parameter :: oneo4pi=.079577471545947_wp
   logical :: gox,goy,goz,perx,pery,perz
   integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
-  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
-  integer :: i1,i2,i3,j1,j2,j3,i_stat,i_all,ind,j
-  real(gp) :: x,y,z,r2,rhov,rhoc,arg,chv,chc
-  real(gp), dimension(:), allocatable :: rhovxp,rhocxp
-  real(gp), dimension(:,:), allocatable :: rhovc,rhocc
+  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,ilcc,islcc
+  integer :: i1,i2,i3,j1,j2,j3,i_stat,i_all,ind,j,jtyp
+  real(gp) :: x,y,z,r2,rhov,rhoc,arg,chv,chc,charge_from_gaussians,spherical_gaussian_value
+  !real(gp), dimension(:), allocatable :: rhovxp,rhocxp
+  !real(gp), dimension(:,:), allocatable :: rhovc,rhocc
 
   !read the values of the gaussian for valence and core densities
-  open(unit=79,file=filename,status='unknown')
-  read(79,*)ngv
+!!$  open(unit=79,file=filename,status='unknown')
+!!$  read(79,*)ngv
+!!$
+!!$  allocate(rhovxp((ngv*(ngv+1)/2)+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rhovxp,'rhovxp',subname)
+!!$  allocate(rhovc((ngv*(ngv+1)/2),4+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rhovc,'rhovc',subname)
 
-  allocate(rhovxp((ngv*(ngv+1)/2)+ndebug),stat=i_stat)
-  call memocc(i_stat,rhovxp,'rhovxp',subname)
-  allocate(rhovc((ngv*(ngv+1)/2),4+ndebug),stat=i_stat)
-  call memocc(i_stat,rhovc,'rhovc',subname)
+  !find the correct position of the nlcc parameters
+  ilcc=0
+  do jtyp=1,ityp-1
+     ngv=atoms%nlcc_ngv(jtyp)
+     if (ngv /= UNINITIALIZED(ngv)) ilcc=ilcc+(ngv*(ngv+1)/2)
+     ngc=atoms%nlcc_ngc(jtyp)
+     if (ngc /= UNINITIALIZED(ngc)) ilcc=ilcc+(ngc*(ngc+1))/2
+  end do
+  islcc=ilcc
+
+  ngv=atoms%nlcc_ngv(ityp)
+  if (ngv==UNINITIALIZED(1)) ngv=0
+  ngc=atoms%nlcc_ngc(ityp)
+  if (ngc==UNINITIALIZED(1)) ngc=0
 
   chv=0.0_gp
   do ig=1,(ngv*(ngv+1))/2
-     read(79,*)rhovxp(ig),(rhovc(ig,j),j=1,4)
-     chv=chv+rhovc(ig,1)*rhovxp(ig)**3+3.0_gp*rhovc(ig,2)*rhovxp(ig)**5+&
-          15.0_gp*rhovc(ig,3)*rhovxp(ig)**7+105.0_gp*rhovc(ig,4)*rhovxp(ig)**9
+     ilcc=ilcc+1
+     !read(79,*)rhovxp(ig),(rhovc(ig,j),j=1,4)
+     chv=chv+charge_from_gaussians(atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc))
   end do
   chv=sqrt(2.0_gp*atan(1.0_gp))*chv
 
-  read(79,*)ngc
+  !read(79,*)ngc
 
-  allocate(rhocxp((ngc*(ngc+1)/2)+ndebug),stat=i_stat)
-  call memocc(i_stat,rhocxp,'rhocxp',subname)
-  allocate(rhocc((ngc*(ngc+1)/2),4+ndebug),stat=i_stat)
-  call memocc(i_stat,rhocc,'rhocc',subname)
-
+!!$  allocate(rhocxp((ngc*(ngc+1)/2)+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rhocxp,'rhocxp',subname)
+!!$  allocate(rhocc((ngc*(ngc+1)/2),4+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,rhocc,'rhocc',subname)
   chc=0.0_gp
   do ig=1,(ngc*(ngc+1))/2
-     read(79,*)rhocxp(ig),(rhocc(ig,j),j=1,4)
-     chc=chc+rhocc(ig,1)*rhocxp(ig)**3+3.0_gp*rhocc(ig,2)*rhocxp(ig)**5+&
-          15.0_gp*rhocc(ig,3)*rhocxp(ig)**7+105.0_gp*rhocc(ig,4)*rhocxp(ig)**9
+     ilcc=ilcc+1
+     !read(79,*)rhocxp(ig),(rhocc(ig,j),j=1,4)
+     chc=chc+charge_from_gaussians(atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc))
+     !rhocc(ig,1)*rhocxp(ig)**3+3.0_gp*rhocc(ig,2)*rhocxp(ig)**5+&
+     !     15.0_gp*rhocc(ig,3)*rhocxp(ig)**7+105.0_gp*rhocc(ig,4)*rhocxp(ig)**9
   end do
   chc=sqrt(2.0_gp*atan(1.0_gp))*chc
 
-  close(unit=79)
+  !close(unit=79)
+
  
   if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
 
   !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
-  pery=(geocode == 'P')
-  perz=(geocode /= 'F')
+  perx=(atoms%geocode /= 'F')
+  pery=(atoms%geocode == 'P')
+  perz=(atoms%geocode /= 'F')
 
   call ext_buffers(perx,nbl1,nbr1)
   call ext_buffers(pery,nbl2,nbr2)
@@ -86,61 +103,111 @@ subroutine calc_rhocore_iat(iproc,geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 
      do i3=isz,iez
         z=real(i3,kind=8)*hzh-rz
-        call ind_positions(perz,i3,n3,j3,goz) 
+        call ind_positions(perz,i3,n3,j3,goz)
         j3=j3+nbl3+1
-        do i2=isy,iey
-           y=real(i2,kind=8)*hyh-ry
-           call ind_positions(pery,i2,n2,j2,goy)
-           do i1=isx,iex
-              x=real(i1,kind=8)*hxh-rx
-              call ind_positions(perx,i1,n1,j1,gox)
-              r2=x**2+y**2+z**2
-              !here we can sum up the gaussians for the
-              !valence density and the core density
-              rhov=0.0_dp
-              do ig=1,(ngv*(ngv+1))/2
-                 arg=r2/rhovxp(ig)**2
-                 rhov=rhov+&
-                      (rhovc(ig,1)+r2*rhovc(ig,2)+r2**2*rhovc(ig,3)+r2**3*rhovc(ig,4))*&
-                      exp(-0.5_gp*arg)
-              end do
-              rhoc=0.0_dp
-              do ig=1,(ngc*(ngc+1))/2
-                 arg=r2/rhocxp(ig)**2
-                 rhoc=rhoc+&
-                      (rhocc(ig,1)+r2*rhocc(ig,2)+r2**2*rhocc(ig,3)+r2**3*rhocc(ig,4))*&
-                      exp(-0.5_gp*arg)
-              end do
+        if (j3 >= i3s .and. j3 <= i3s+n3d-1) then
+           do i2=isy,iey
+              y=real(i2,kind=8)*hyh-ry
+              call ind_positions(pery,i2,n2,j2,goy)
+              if (goy) then
+                 do i1=isx,iex
+                    x=real(i1,kind=8)*hxh-rx
+                    call ind_positions(perx,i1,n1,j1,gox)
+                    if (gox) then
+                       r2=x**2+y**2+z**2
+                       !here we can sum up the gaussians for the
+                       !valence density and the core density
+                       !restart again from the previously calculated index
+                       ilcc=islcc
+                       rhov=0.0_dp
+                       do ig=1,(ngv*(ngv+1))/2
+                          ilcc=ilcc+1
+                          rhov=rhov+&
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),0)
+                          !arg=r2/rhovxp(ig)**2
+                          !(rhovc(ig,1)+r2*rhovc(ig,2)+r2**2*rhovc(ig,3)+r2**3*rhovc(ig,4))*&
+                          !     exp(-0.5_gp*arg)
+                       end do
+                       rhoc=0.0_dp
+                       do ig=1,(ngc*(ngc+1))/2
+                          ilcc=ilcc+1
+                          !arg=r2/rhocxp(ig)**2
+                          rhoc=rhoc+&
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),0)
+                          !(rhocc(ig,1)+r2*rhocc(ig,2)+r2**2*rhocc(ig,3)+r2**3*rhocc(ig,4))*&
+                          !     exp(-0.5_gp*arg)
+                       end do
 
-              if (j3 >= i3s .and. j3 <= i3s+n3d-1  .and. goy  .and. gox ) then
-                 ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                 rhocore(ind)=rhocore(ind)+oneo4pi*(rhoc-rhov)
+                       !if (j3 >= i3s .and. j3 <= i3s+n3d-1  .and. goy  .and. gox ) then
+                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                       rhocore(ind)=rhocore(ind)+oneo4pi*(rhoc-rhov)
 !!$                 !print out the result, to see what happens
 !!$                 if (z==0.0_gp .and. y==0.0_gp) then
 !!$                    write(16,'(3(1x,i0),10(1pe25.17))')j1+1+nbl1,j2+1+nbl2,j3,rhocore(ind),rhoc,rhov,r2,x
 !!$                 end if
-              endif
+                    endif
+                 enddo
+              end if
            enddo
-        enddo
+        end if
      enddo
   end if
 
-  i_all=-product(shape(rhovxp))*kind(rhovxp)
-  deallocate(rhovxp,stat=i_stat)
-  call memocc(i_stat,i_all,'rhovxp',subname)
-  i_all=-product(shape(rhovc))*kind(rhovc)
-  deallocate(rhovc,stat=i_stat)
-  call memocc(i_stat,i_all,'rhovc',subname)
-  i_all=-product(shape(rhocxp))*kind(rhocxp)
-  deallocate(rhocxp,stat=i_stat)
-  call memocc(i_stat,i_all,'rhocxp',subname)
-  i_all=-product(shape(rhocc))*kind(rhocc)
-  deallocate(rhocc,stat=i_stat)
-  call memocc(i_stat,i_all,'rhocc',subname)
+!!$  i_all=-product(shape(rhovxp))*kind(rhovxp)
+!!$  deallocate(rhovxp,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'rhovxp',subname)
+!!$  i_all=-product(shape(rhovc))*kind(rhovc)
+!!$  deallocate(rhovc,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'rhovc',subname)
+!!$  i_all=-product(shape(rhocxp))*kind(rhocxp)
+!!$  deallocate(rhocxp,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'rhocxp',subname)
+!!$  i_all=-product(shape(rhocc))*kind(rhocc)
+!!$  deallocate(rhocc,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'rhocc',subname)
         
         
   
 END SUBROUTINE calc_rhocore_iat
+
+!> Calculate the core charge describe by a sum of spherical harmonics of s-channel with 
+!! principal quantum number increased wit a given exponent.
+!! the principal quantum numbers admitted are from 1 to 4
+function charge_from_gaussians(expo,rhoc)
+  use module_base
+  implicit none
+  real(gp), intent(in) :: expo
+  real(gp), dimension(4), intent(in) :: rhoc
+  real(gp) :: charge_from_gaussians
+
+  charge_from_gaussians=rhoc(1)*expo**3+3.0_gp*rhoc(2)*expo**5+&
+       15.0_gp*rhoc(3)*expo**7+105.0_gp*rhoc(4)*expo**9
+
+end function charge_from_gaussians
+
+!> Calculate the value of the gaussian described by a sum of spherical harmonics of s-channel with 
+!! principal quantum number increased wit a given exponent.
+!! the principal quantum numbers admitted are from 1 to 4
+function spherical_gaussian_value(r2,expo,rhoc,ider)
+  use module_base
+  implicit none
+  integer, intent(in) :: ider
+  real(gp), intent(in) :: expo,r2
+  real(gp), dimension(4), intent(in) :: rhoc
+  real(gp) :: spherical_gaussian_value
+  !local variables
+  real(gp) :: arg,der1
+  
+  arg=r2/(expo**2)
+  spherical_gaussian_value=&
+       (rhoc(1)+r2*rhoc(2)+r2**2*rhoc(3)+r2**3*rhoc(4))*exp(-0.5_gp*arg)
+  if (ider ==1) then !first derivative with respect to r2
+     spherical_gaussian_value=-0.5_gp*spherical_gaussian_value/(expo**2)+&
+         (rhoc(2)+2.0_gp*r2*rhoc(3)+3.0_gp*r2**2*rhoc(4))*exp(-0.5_gp*arg)           
+     !other derivatives to be implemented
+  end if
+
+end function spherical_gaussian_value
 
 
 
