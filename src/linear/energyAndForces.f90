@@ -1,6 +1,6 @@
-subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, lind, phi, phid, psi, rxyz, rxyzParab, &
+subroutine potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, phi, psi, rxyz, rxyzParab, &
     rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff, phibuffd)
+    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
 !
 ! Purpose:
 ! ========
@@ -59,14 +59,13 @@ use Poisson_Solver
 implicit none
 
 ! Calling arguments
-integer:: iproc, nproc, n3d, n3p
+integer:: iproc, nproc, n3d, n3p, sizeLphir, sizePhibuffr
 type(locreg_descriptors) :: Glr
 type(orbitals_data):: orbs
 type(atoms_data):: atoms
 type(input_variables):: in
-type(linearParameters):: lin, lind
-real(8),dimension(lin%orbs%npsidim):: phi
-real(8),dimension(lind%orbs%npsidim):: phid
+type(linearParameters):: lin
+real(8),dimension(lin%lb%orbs%npsidim):: phi
 real(8),dimension(orbs%npsidim):: psi
 real(dp), dimension(lin%as%size_rhopot) :: rhopot
 integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -86,12 +85,9 @@ real(dp),dimension(lin%as%size_pkernelseq),intent(in):: pkernelseq
 real(8),dimension(3,atoms%nat),intent(in):: rxyz
 real(8),dimension(3,atoms%nat),intent(in):: rxyzParab
 real(gp):: eion, edisp, eexctX, energy
-real(8),dimension(lin%orbs%norb,orbs%norb):: coeff
-real(8),dimension(lind%orbs%norb,orbs%norb):: coeffd
+real(8),dimension(lin%lb%orbs%norb,orbs%norb):: coeff
 real(8):: ebsMod
 logical:: scpot
-real(8),dimension(lin%comsr%sizePhibuff),intent(inout):: phibuff
-real(8),dimension(lind%comsr%sizePhibuff),intent(inout):: phibuffd
 
 ! Local variables
 real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, ekin_sum, epot_sum, eproj_sum, energybs, energyMod
@@ -125,25 +121,31 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
      !call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rhopot,&
      !     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
      !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, rhopot, atoms, rxyz, nscatterarr)
-     if(.not. lin%useDerivativeBasisFunctions) then
-         call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
-              rhopot, atoms, rxyz, nscatterarr, phibuff)
-     else
-         call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lind, coeffd, phid, Glr%d%n1i*Glr%d%n2i*n3d, &
-              rhopot, atoms, rxyz, nscatterarr, phibuffd)
-     end if
+     !if(.not. lin%useDerivativeBasisFunctions) then
+         !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+         !     rhopot, atoms, rxyz, nscatterarr, phibuff)
+         !call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+         !     rhopot, atoms, rxyz, nscatterarr, lphir, phibuffr)
+     !! THIS IS CORRECT
+     call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+          rhopot, atoms, nscatterarr)
+     !else
+     !    !call sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, in, lind, coeffd, phid, Glr%d%n1i*Glr%d%n2i*n3d, &
+     !    !     rhopot, atoms, rxyz, nscatterarr, phibuffd)
+     !    call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lind, coeffd, phid, Glr%d%n1i*Glr%d%n2i*n3d, &
+     !         rhopot, atoms, rxyz, nscatterarr, lphird, phibuffrd)
+     !end if
      call cpu_time(t2)
      time=t2-t1
      call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
      if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
-!!call mpi_barrier(mpi_comm_world, iall)
-!!write(*,*) 'iproc, size(rhopot)', iproc, size(rhopot)
 !!do iall=1,size(rhopot)
 !!    write(500+iproc*10,*) iall, rhopot(iall)
 !!end do
 !!call mpi_barrier(mpi_comm_world, iall)
 !!stop
 
+write(6000+iproc,*) rhopot
 
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
@@ -172,6 +174,7 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
 
      end if
   end if
+write(7000+iproc,*) rhopot
 
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
@@ -187,6 +190,7 @@ if(iproc==0) write(*,'(x,a)') '-------------------------------------------------
   call free_full_potential(nproc,potential,subname)
 
   energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
+write(*,*) 'energybs', energybs
   energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
 
@@ -1678,3 +1682,261 @@ subroutine createIonicPotentialModified(geocode,iproc,nproc,at,lin, iiAt, rxyz,&
   call timing(iproc,'CrtLocPot     ','OF')
 
 END SUBROUTINE createIonicPotentialModified
+
+
+
+
+!!!subroutine updatePotential(iproc, nproc, Glr, orbs, atoms, in, lin, phi, rhopot, &
+!!!           nscatterarr, ngatherarr, GPU, rhocore, potxc, PSquiet, coeff, ehart, eexcu, vexcu)
+!!!!
+!!!! Purpose:
+!!!! ========
+!!!!   Calculates the potential and energy and writes them. This is subroutine is copied
+!!!!   from cluster.
+!!!!
+!!!! Calling arguments:
+!!!! ==================
+!!!!   Input arguments:
+!!!!   -----------------
+!!!!     iproc       process ID
+!!!!     nproc       total number of processes
+!!!!     Glr         type describing the localization region
+!!!!     orbs        type describing the physical orbitals psi
+!!!!     atoms       type containing the parameters for the atoms
+!!!!     in          type  containing some very general parameters
+!!!!     lin         type containing parameters for the linear version
+!!!!     rhopot      the charge density
+!!!!     nscatterarr ??
+!!!!     ngatherarr  ??
+!!!!     GPU         parameters for GPUs?
+!!!!     radii_cf    coarse and fine radii around the atoms
+!!!!     rhocore     ??
+!!!!     potxc       ??
+!!!!     PSquiet     flag to control the output from the Poisson solver
+!!!!     fion        ionic forces
+!!!!     fdisp       dispersion forces
+!!!!   Input / Output arguments
+!!!!   ------------------------
+!!!!     GPU         parameters for GPUs?
+!!!!     rhopot      the charge density
+!!!!   Output arguments:
+!!!!   -----------------
+!!!
+!!!
+!!!use module_base
+!!!use module_types
+!!!use module_interfaces, exceptThisOne => updatePotential
+!!!use Poisson_Solver
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer:: iproc, nproc
+!!!type(locreg_descriptors) :: Glr
+!!!type(orbitals_data):: orbs
+!!!type(atoms_data):: atoms
+!!!type(input_variables):: in
+!!!type(linearParameters):: lin
+!!!real(8),dimension(lin%lb%orbs%npsidim):: phi
+!!!real(dp), dimension(lin%as%size_rhopot) :: rhopot
+!!!integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+!!!integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr
+!!!type(GPU_pointers),intent(in out):: GPU
+!!!real(dp), dimension(lin%as%size_pkernel):: pkernel
+!!!real(wp), dimension(lin%as%size_pot_ion):: pot_ion
+!!!!real(wp), dimension(lin%as%size_rhocore):: rhocore 
+!!!real(wp), dimension(:),pointer:: rhocore 
+!!!real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
+!!!character(len=3):: PSquiet
+!!!real(8),dimension(lin%lb%orbs%norb,orbs%norb):: coeff
+!!!real(8):: ehart, eexcu, vexcu
+!!!
+!!!! Local variables
+!!!real(8):: hxh, hyh, hzh, ekin_sum, epot_sum, eproj_sum, energybs, energyMod
+!!!real(8):: energyMod2, ehartMod, t1, t2, time
+!!!real(wp), dimension(:), pointer :: potential
+!!!real(8),dimension(:),allocatable:: hpsi, hphi
+!!!real(8),dimension(:,:,:),allocatable:: matrixElements
+!!!integer:: istat, iall, infoCoeff, ilr, ierr, n3d, n3p
+!!!character(len=*),parameter:: subname='updatePotential'
+!!!
+!!!
+!!!n3d=nscatterarr(iproc,1)
+!!!n3p=nscatterarr(iproc,2)
+!!!
+!!!hxh=0.5d0*in%hx
+!!!hyh=0.5d0*in%hy
+!!!hzh=0.5d0*in%hz
+!!!
+!!!
+!!!if(iproc==0) write(*,'(x,a)') '---------------------------------------------------------------- Updating potential.'
+!!!
+!!!  !calculate the self-consistent potential
+!!!     ! Potential from electronic charge density
+!!!     call cpu_time(t1)
+!!!     call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+!!!          rhopot, atoms, nscatterarr)
+!!!     call cpu_time(t2)
+!!!     time=t2-t1
+!!!     call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+!!!     if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
+!!!write(6000+iproc,*) rhopot
+!!!
+!!!
+!!!     if(orbs%nspinor==4) then
+!!!        !this wrapper can be inserted inside the poisson solver 
+!!!        call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+!!!             in%ixc,hxh,hyh,hzh,&
+!!!             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+!!!     else
+!!!        call XC_potential(atoms%geocode,'D',iproc,nproc,&
+!!!             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
+!!!             rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+!!!
+!!!        call H_potential(atoms%geocode,'D',iproc,nproc,&
+!!!             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!!             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+!!!             quiet=PSquiet) !optional argument
+!!!
+!!!        !sum the two potentials in rhopot array
+!!!        !fill the other part, for spin, polarised
+!!!        if (in%nspin == 2) then
+!!!           call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+!!!                rhopot(1+Glr%d%n1i*Glr%d%n2i*n3p),1)
+!!!        end if
+!!!        !spin up and down together with the XC part
+!!!        call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
+!!!             rhopot(1),1)
+!!!
+!!!     end if
+!!!write(7000+iproc,*) rhopot
+!!!
+!!!end subroutine updatePotential
+
+
+subroutine updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, atoms, in, lin, phi, &
+    rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+    coeff, ehart, eexcu, vexcu)
+!
+! Purpose:
+! ========
+!   Calculates the potential and energy and writes them. This is subroutine is copied
+!   from cluster.
+!
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   -----------------
+!     iproc       process ID
+!     nproc       total number of processes
+!     n3d         ??
+!     n3p         ??
+!     Glr         type describing the localization region
+!     orbs        type describing the physical orbitals psi
+!     atoms       type containing the parameters for the atoms
+!     in          type  containing some very general parameters
+!     lin         type containing parameters for the linear version
+!     psi         the physical orbitals
+!     rxyz        atomic positions
+!     rhopot      the charge density
+!     nscatterarr ??
+!     nlpspd      ??
+!     proj        ??
+!     pkernelseq  ??
+!     radii_cf    coarse and fine radii around the atoms
+!     irrzon      ??
+!     phnons      ??
+!     pkernel     ??
+!     pot_ion     the ionic potential
+!     rhocore     ??
+!     potxc       ??
+!     PSquiet     flag to control the output from the Poisson solver
+!     eion        ionic energy
+!     edisp       dispersion energy
+!     fion        ionic forces
+!     fdisp       dispersion forces
+!   Input / Output arguments
+!   ------------------------
+!     rhopot      the charge density
+!   Output arguments:
+!   -----------------
+
+
+use module_base
+use module_types
+use module_interfaces, exceptThisOne => updatePotential
+use Poisson_Solver
+implicit none
+
+! Calling arguments
+integer:: iproc, nproc, n3d, n3p, sizeLphir, sizePhibuffr
+type(locreg_descriptors) :: Glr
+type(orbitals_data):: orbs
+type(atoms_data):: atoms
+type(input_variables):: in
+type(linearParameters):: lin
+real(8),dimension(lin%lb%orbs%npsidim):: phi
+real(dp), dimension(lin%as%size_rhopot) :: rhopot
+integer,dimension(0:nproc-1,4) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+real(dp), dimension(lin%as%size_pkernel):: pkernel
+real(wp), dimension(lin%as%size_pot_ion):: pot_ion
+!real(wp), dimension(lin%as%size_rhocore):: rhocore 
+real(wp), dimension(:),pointer:: rhocore 
+real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)):: potxc
+character(len=3):: PSquiet
+real(8),dimension(lin%lb%orbs%norb,orbs%norb):: coeff
+real(8),intent(out):: ehart, eexcu, vexcu
+
+
+! Local variables
+real(8):: hxh, hyh, hzh, ekin_sum, epot_sum, eproj_sum, energybs, energyMod
+real(8):: energyMod2, ehartMod, t1, t2, time
+integer:: istat, iall, infoCoeff, ilr, ierr
+
+
+hxh=0.5d0*in%hx
+hyh=0.5d0*in%hy
+hzh=0.5d0*in%hz
+
+
+if(iproc==0) write(*,'(x,a)') '---------------------------------------------------------------- Updating potential.'
+
+  !calculate the self-consistent potential
+     ! Potential from electronic charge density
+     call cpu_time(t1)
+     call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+          rhopot, atoms, nscatterarr)
+     call cpu_time(t2)
+     time=t2-t1
+     call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+     if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
+
+
+     if(orbs%nspinor==4) then
+        !this wrapper can be inserted inside the poisson solver 
+        call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+             in%ixc,hxh,hyh,hzh,&
+             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+     else
+        call XC_potential(atoms%geocode,'D',iproc,nproc,&
+             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
+             rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+
+        call H_potential(atoms%geocode,'D',iproc,nproc,&
+             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+             rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+             quiet=PSquiet) !optional argument
+
+        !sum the two potentials in rhopot array
+        !fill the other part, for spin, polarised
+        if (in%nspin == 2) then
+           call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+                rhopot(1+Glr%d%n1i*Glr%d%n2i*n3p),1)
+        end if
+        !spin up and down together with the XC part
+        call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
+             rhopot(1),1)
+
+     end if
+
+
+end subroutine updatePotential

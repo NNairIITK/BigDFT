@@ -98,15 +98,15 @@ real(8):: fnoise
 
 
 ! Local variables
-integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut
-real(8),dimension(:),allocatable:: phi, phid
-real(8),dimension(:,:),allocatable:: occupForInguess, coeff, coeffd
-real(8):: ebsMod, alpha, pnrm, tt
+integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot
+real(8),dimension(:),pointer:: phi, phid
+real(8),dimension(:,:),pointer:: occupForInguess, coeff, coeffd
+real(8):: ebs, ebsMod, alpha, pnrm, tt, ehart, eexcu, vexcu
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld
 type(linearParameters):: lind
 logical:: updatePhi
-real(8),dimension(:),pointer:: phibuff, lphi, phibuffd, lphid
+real(8),dimension(:),pointer:: lphi, lphid, lphir, lphird, phibuffr, phibuffrd
 
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(8),dimension(:),allocatable:: phiTemp
@@ -114,7 +114,7 @@ real(wp),dimension(:),allocatable:: projTemp
 
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
-integer:: iorb, istart
+integer:: iorb, istart, sizeLphir, sizePhibuffr
 
 
 
@@ -126,29 +126,40 @@ integer:: iorb, istart
   end if
   allocate(occupForInguess(32,at%nat))
 
-  ! Initialize the parameters for the linear scaling version. This will not affect the parameters for the cubic version.
-  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, lin, lind, phi, phid, &
-      input, rxyz, nscatterarr, occupForInguess, coeff, coeffd, phibuff, lphi, phibuffd, lphid)
+  ! Initialize the parameters for the linear scaling version and allocate all arrays.
+  call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
+       input, rxyz, nscatterarr, coeff, lphi)
 
   potshortcut=0 ! What is this?
   call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
-       nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, &
-       phi)
+       nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
+       phi, ehart, eexcu, vexcu)
   ! Cut off outside localization region -- experimental
-  !call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+  call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+
+  ! Post communications for gathering the potential
+  ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+
 
   updatePhi=.false.
-  call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyz, &
-      nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
+  call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
+      nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, phibuff, lphi, phibuffd, lphid)
+      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
+
   call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
     .5d0*input%hy, .5d0*input%hz, 0)
-  call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, lind, phi, phid, psi, rxyz, rxyz, &
-      rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff, phibuffd)
+
+  call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
+      rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      coeff, ehart, eexcu, vexcu)
+
+  ! Post communications for gathering the potential
+  ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
 
 
@@ -167,17 +178,31 @@ integer:: iorb, istart
   updatePhi=.true.
   do itSCC=1,nitSCC
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
-      call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, lind, rxyz, rxyz, &
-          nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, phid, psi, psit, updatePhi, &
+      call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
+          nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, coeffd, phibuff, lphi, phibuffd, lphid)
+          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
+      ! Cut off outside localization region -- experimental
+      call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
 
       ! Calculate the energy that we get with psi.
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
-      call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, lind, phi, phid, psi, rxyz, rxyz, &
-          rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, coeffd, ebsMod, energy, phibuff, phibuffd)
+      !!call potentialAndEnergySub(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi, psi, rxyz, rxyz, &
+      !!    rhopot, nscatterarr, ngatherarr, GPU, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+      !!    proj, nlpspd, pkernelseq, eion, edisp, eexctX, scpot, coeff, ebsMod, energy)
+
+      call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
+          rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
+          coeff, ehart, eexcu, vexcu)
+      energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
+
+      ! Post communications for gathering the potential
+      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+
+      ! Post communications for gathering the potential
+      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
 
       !!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! Calculate the forces we get with psi.
@@ -208,9 +233,11 @@ integer:: iorb, istart
 
       ! Mix the potential
       call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
       ! Write some informations
       call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy)
+      if(pnrm<lin%convCritMix) exit
   end do
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
   deallocate(rhopotOld, stat=istat)
@@ -222,7 +249,8 @@ integer:: iorb, istart
       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 
   ! Deallocate all arrays related to the linear scaling version.
-  call deallocateLinear(iproc, lin, lind, phi, coeff, phid, coeffd)
+  call deallocateLinear(iproc, lin, phi, lphi, coeff)
+
 
 
 end subroutine linearScaling

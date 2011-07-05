@@ -494,14 +494,16 @@ subroutine input_wf_diag(iproc,nproc,at,&
    ! determine the localization regions
      call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
 
-   ! Define new orbital descriptors
+   ! Define new orbital descriptors IS THIS STILL NEEDED? IF YES, change for MPI
      call determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
-
+print *,iproc,'here'
+print *,iproc,'Lzd%Lpsidimtot'
+stop
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(Lpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
      call razero(Lzd%Lpsidimtot,Lpsi)
-   
+ 
     ! Construct wavefunction inside the locregs (the orbitals are ordered by locreg)
      call gaussians_to_wavelets_new2(iproc,nproc,Lzd,hx,hy,hz,G,&
           psigau(1,1,min(orbse%isorb+1,orbse%norb)),Lpsi(1))

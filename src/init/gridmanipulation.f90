@@ -463,15 +463,34 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
         mu1=floor((rxyz(1,iat)+rad)/hx + eps_mach)
         mu2=floor((rxyz(2,iat)+rad)/hy + eps_mach)
         mu3=floor((rxyz(3,iat)+rad)/hz + eps_mach)
+!write(*,'(a,i4,3es14.5,6i12)') 'iat, radii(iatype(iat)), rmult, rad, ml1, ml2, ml3, mu1, mu2, mu3', iat, radii(iatype(iat)), rmult, rad, ml1, ml2, ml3, mu1, mu2, mu3
         !for Free BC, there must be no incoherences with the previously calculated delimiters
         if (geocode == 'F') then
-           if (ml1 < nl1) stop 'ml1 < nl1'
-           if (ml2 < nl2) stop 'ml2 < nl2'
-           if (ml3 < nl3) stop 'ml3 < nl3'
+           if (ml1 < nl1) then
+               write(*,'(a,i0,3x,i0)')  'ERROR: ml1 < nl1  ', ml1, nl1
+               stop
+           end if
+           if (ml2 < nl2) then
+               write(*,'(a,i0,3x,i0)')  'ERROR: ml2 < nl2  ', ml2, nl2
+               stop
+           end if
+           if (ml3 < nl3) then
+               write(*,'(a,i0,3x,i0)')  'ERROR: ml3 < nl3  ', ml3, nl3
+               stop
+           end if
 
-           if (mu1 > nu1) stop 'mu1 > nu1'
-           if (mu2 > nu2) stop 'mu2 > nu2'
-           if (mu3 > nu3) stop 'mu3 > nu3'
+           if (mu1 > nu1) then
+               write(*,'(a,i0,3x,i0)')  'ERROR: mu1 > nu1  ', mu1, nu1
+               stop
+           end if
+           if (mu2 > nu2) then
+               write(*,'(a,i0,3x,i0)')  'ERROR: mu2 > nu2  ', mu2, nu2
+               stop
+           end if
+           if (mu3 > nu3) then
+               write(*,'(a,i0,3x,i0)')  'ERROR: mu3 > nu3  ', mu3, nu3
+               stop
+           end if
         end if
         !what follows works always provided the check before
 !$omp parallel default(shared) private(i3,dz2,j3,i2,dy2,j2,i1,j1,dx)

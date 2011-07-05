@@ -1100,14 +1100,16 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
      Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
 
 !DEBUG
-!     write(*,*)'Description of zone:',ilr
-!     write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
-!     write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
-!     write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
-!     write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
-!     write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
-!     write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
-!     write(*,*)'outofzone',ilr,':',outofzone(:)
+!     if (iproc == 0) then
+!        write(*,*)'Description of zone:',ilr
+!        write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
+!        write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
+!        write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
+!        write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
+!        write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
+!        write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
+!        write(*,*)'outofzone',ilr,':',outofzone(:)
+!     end if
 !DEBUG
 
     ! construct the wavefunction descriptors (wfd)
@@ -1854,7 +1856,7 @@ END SUBROUTINE get_overlap_region_periodic
 !============================================================================
 !WARNING: assignToLocreg does not take into account the Kpts yet !!
 !============================================================================
-subroutine assignToLocreg(iproc, nproc, natom, natsc, nlr,noncoll, nspin, Localnorb, orbse, norbsc_arr, iasctype,norbsc)
+subroutine assignToLocreg(iproc, nproc, natom, natsc, nlr,noncoll, nspin, Localnorb, orbse, norbsc_arr, iasctype,norbsc,iwl)
   use module_base
   use module_types
   implicit none
@@ -1866,6 +1868,7 @@ subroutine assignToLocreg(iproc, nproc, natom, natsc, nlr,noncoll, nspin, Localn
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr           !> number of semicore orbitals for the semicore atoms 
   integer,dimension(natom),intent(in) :: iasctype                       !> mapping of semicore atoms: >0 if atom has semicore states
   integer,dimension(nlr),intent(out) :: norbsc
+  integer,dimension(orbse%norbp,nproc),intent(out) :: iwl               !> mapping of the orbitals to the logregs for all processors
   ! Local variables
   integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsctot,orbsc,ispin
   integer :: iat,ind,ierr
@@ -1923,6 +1926,7 @@ subroutine assignToLocreg(iproc, nproc, natom, natsc, nlr,noncoll, nspin, Localn
       if(jorb==orbse%norb_par(jproc)) then
           jproc=jproc+1
           jorb=ind
+          if (jproc==nproc) exit
       end if
       orbsc = 0
       do ispin=1,nspin
@@ -1939,9 +1943,59 @@ subroutine assignToLocreg(iproc, nproc, natom, natsc, nlr,noncoll, nspin, Localn
       jorb=jorb+1
       iiOrb=iiOrb+1
       if(iproc==jproc) orbse%inWhichLocreg(jorb)=jat
+      iwl(jorb,jproc+1) = jat 
+  end do
+end subroutine assignToLocreg
+
+subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, orbse)
+  use module_base
+  use module_types
+  implicit none
+
+  integer,intent(in):: nlr,iproc,nspin,natom
+  integer,dimension(nlr),intent(in):: Localnorb
+  type(orbitals_data),intent(inout):: orbse
+
+  ! Local variables
+  integer:: jproc, iiOrb, iorb, jorb, jat,i_stat
+  character(len=*), parameter :: subname='assignToLocreg'
+
+  allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
+  call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
+
+  ! There are four counters:
+  !   jproc: indicates which MPI process is handling the basis function which is being treated
+  !   jat: counts the atom numbers
+  !   jorb: counts the orbitals handled by a given process
+  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
+  jproc=0
+  jat=1
+  jorb=0
+  iiOrb=0
+
+  do iorb=1,orbse%norb
+
+      ! Switch to the next MPI process if the numbers of orbitals for a given
+      ! MPI process is reached.
+      if(jorb==orbse%norb_par(jproc)) then
+          jproc=jproc+1
+          jorb=0
+      end if
+
+      ! Switch to the next atom if the number of basis functions for this atom is reached.
+      if(iiOrb==Localnorb(jat)) then
+          jat=jat+1
+          iiOrb=0
+      end if
+      if(jat > natom) then
+        jat = 1
+      end if
+      jorb=jorb+1
+      iiOrb=iiOrb+1
+      if(iproc==jproc) orbse%inWhichLocreg(jorb)=jat
   end do
 
-end subroutine assignToLocreg
+end subroutine assignToLocreg2
 
 !determine a set of localisation regions from the centers and the radii.
 !cut in cubes the global reference system
@@ -2032,11 +2086,12 @@ subroutine determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
   integer :: noncoll
   integer :: npsidim
   integer :: dimtot
-  integer :: i_stat,i_all
+  integer :: i_stat,i_all,ierr
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   integer, dimension(lmax+1) :: nmoments
   integer, dimension(Lzd%nlr) :: norbsc
   integer, dimension(:), allocatable :: Localnorb
+  integer, dimension(:,:),allocatable :: iwl
   real(gp), dimension(noccmax,lmax) :: occup              !dummy variable
   character(len=*), parameter :: subname='determine_Lorbs'
 
@@ -2076,8 +2131,12 @@ subroutine determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
 ! Right total dimension of the wavefunctions
   Lzd%Lpsidimtot = dimtot
 
+  allocate(iwl(Lzd%orbs%norbp,nproc),stat=i_stat)
+  call memocc(i_stat,iwl,'iwl',subname)
+  call razero(Lzd%orbs%norbp*nproc,iwl)
+
 ! Determine inwhichlocreg
-  call assignToLocreg(iproc,nproc,at%nat,at%natsc,Lzd%nlr,noncoll,nspin_ig,Localnorb,Lzd%orbs,norbsc_arr,at%iasctype,norbsc)
+  call assignToLocreg(iproc,nproc,at%nat,at%natsc,Lzd%nlr,noncoll,nspin_ig,Localnorb,Lzd%orbs,norbsc_arr,at%iasctype,norbsc,iwl)
 
 ! DEBUG for inWhichLocreg(ilr)
 !  print *,'at%iasctype:',at%iasctype,Lzd%orbs%norb
@@ -2087,7 +2146,7 @@ subroutine determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
 !  do ilr=1,Lzd%orbs%norbp
 !    write(*,*) 'iorb, iwl', ilr, Lzd%orbs%inWhichLocreg(ilr),Lzd%orbs%occup(ilr)
 !  end do
-!  print *,'Global region:'
+!  print *,'Global region:',iproc
 !  print *,'norb,norbp,norbu,norbd,nspin,nspinor:',Lzd%orbs%norb,Lzd%orbs%norbp,Lzd%orbs%norbu,&
 !             Lzd%orbs%norbd,Lzd%orbs%nspin,Lzd%orbs%nspinor
 !  print *,'isorb,nkpts,nkptsp,iskpts:',Lzd%orbs%isorb,Lzd%orbs%nkpts,Lzd%orbs%nkptsp,Lzd%orbs%iskpts
@@ -2102,17 +2161,15 @@ subroutine determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
 ! END DEBUG
 
   do ilr=1,Lzd%nlr
-
      ! Set our new variable
      Lzd%Lorbs(ilr)%norbsc = norbsc(ilr)
-
      ! sets almost all of Lorbs(ilr) components
-     call linear_orbitals_descriptors(ilr,iproc,nproc,Lzd%orbs,nspin_ig*noncoll*Localnorb(ilr),noncoll*Localnorb(ilr),&
+     call linear_orbitals_descriptors(ilr,Lzd%nlr,iwl,iproc,nproc,Lzd%orbs,nspin_ig*noncoll*Localnorb(ilr),noncoll*Localnorb(ilr),&
         (nspin_ig-1)*noncoll*Localnorb(ilr),nspin_ig,Lzd%orbs%nspinor,Lzd%orbs%nkpts,Lzd%orbs%kpts,&
         Lzd%orbs%kwgts,Lzd%Lorbs(ilr))
 
 !DEBUG
-!    print *,'ilr:',ilr
+!    print *,'ilr:',ilr,iproc
 !    print *,'norb,norbp,norbu,norbd,nspin,nspinor:',Lzd%Lorbs(ilr)%norb,Lzd%Lorbs(ilr)%norbp,Lzd%Lorbs(ilr)%norbu,&
 !             Lzd%Lorbs(ilr)%norbd,Lzd%Lorbs(ilr)%nspin,Lzd%Lorbs(ilr)%nspinor
 !    print *,'isorb,nkpts,nkptsp,iskpts:',Lzd%Lorbs(ilr)%isorb,Lzd%Lorbs(ilr)%nkpts,Lzd%Lorbs(ilr)%nkptsp,Lzd%Lorbs(ilr)%iskpts
@@ -2124,12 +2181,12 @@ subroutine determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
 !    print *,'spinsgn',Lzd%Lorbs(ilr)%spinsgn
 !    print *,'kwgts',Lzd%Lorbs(ilr)%kwgts
 !    print *,'kpts',Lzd%Lorbs(ilr)%kpts
-!     if (iproc ==0) then
-!        write(*,'(a,i0)')'For locreg:',ilr
-!        write(*,'(1x,a,i0,a)')'Distributing ',nspin_ig*noncoll*Localnorb(ilr),' Atomic Input Orbitals'
-!        if (norbsc(ilr) /=0)   write(*,'(1x,a,i0,a)')'  of which ',norbsc(ilr),&
-!             ' are semicore orbitals'
-!     end if
+     if (iproc ==0) then
+        write(*,'(a,i0)')'For locreg:',ilr
+        write(*,'(1x,a,i0,a)')'Distributing ',nspin_ig*noncoll*Localnorb(ilr),' Atomic Input Orbitals'
+        if (norbsc(ilr) /=0)   write(*,'(1x,a,i0,a)')'  of which ',norbsc(ilr),&
+             ' are semicore orbitals'
+     end if
 !END DEBUG
 
   end do
@@ -2138,22 +2195,28 @@ subroutine determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
     i_all=-product(shape(Localnorb))*kind(Localnorb)
     deallocate(Localnorb,stat=i_stat)
     call memocc(i_stat,i_all,'Localnorb',subname)
+    i_all=-product(shape(iwl))*kind(iwl)
+    deallocate(iwl,stat=i_stat)
+    call memocc(i_stat,i_all,'iwl',subname)
+
 
 end subroutine determine_Lorbs
 
 
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
-subroutine linear_orbitals_descriptors(ilr,iproc,nproc,Gorbs,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
+subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
   use module_base
   use module_types
   implicit none
+  integer, intent(in) :: nlr
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
   integer, intent(in) :: nspinor,ilr
   type(orbitals_data), intent(in) :: Gorbs
   type(orbitals_data), intent(out) :: orbs
   real(gp), dimension(nkpt), intent(in) :: wkpt
   real(gp), dimension(3,nkpt), intent(in) :: kpt
+  integer, dimension(Gorbs%norbp,nproc), intent(in) :: iwl
   !local variables
   character(len=*), parameter :: subname='linear_orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,iiorb,ii
@@ -2205,22 +2268,22 @@ subroutine linear_orbitals_descriptors(ilr,iproc,nproc,Gorbs,norb,norbu,norbd,ns
      call memocc(i_stat,i_all,'GPU_for_orbs',subname)
   end if
 
-  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
-
+  call parallel_repartition_with_kpoints(nproc,Gorbs%nkpts,Gorbs%norb,orbs%norb_par)
+  
   !check the distribution
   norb_tot=0
   do jproc=0,iproc-1
-     norb_tot=norb_tot+orbs%norb_par(jproc)
+     norb_tot=norb_tot+Gorbs%norb_par(jproc)
   end do
   !reference orbital for process
   orbs%isorb=norb_tot
   do jproc=iproc,nproc-1
-     norb_tot=norb_tot+orbs%norb_par(jproc)
+     norb_tot=norb_tot+Gorbs%norb_par(jproc)
   end do
 
-  if(norb_tot /= norb*orbs%nkpts) then
+  if(norb_tot /= Gorbs%norb*Gorbs%nkpts) then
      write(*,*)'ERROR: partition of orbitals incorrect'
-     write(*,*)orbs%norb_par(:),norb*orbs%nkpts
+     write(*,*)orbs%norb_par(:),Gorbs%norb*Gorbs%nkpts
      stop
   end if
 
@@ -2231,7 +2294,7 @@ subroutine linear_orbitals_descriptors(ilr,iproc,nproc,Gorbs,norb,norbu,norbd,ns
   allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,mykpts,'mykpts',subname)
 
-  call parallel_repartition_per_kpoints(iproc,nproc,orbs%nkpts,norb,orbs%norb_par,&
+  call parallel_repartition_per_kpoints(iproc,nproc,Gorbs%nkpts,Gorbs%norb,orbs%norb_par,&
        orbs%nkptsp,mykpts,norb_par)
   if (orbs%norb_par(iproc) >0) then
      orbs%iskpts=mykpts(1)-1
@@ -2263,8 +2326,8 @@ subroutine linear_orbitals_descriptors(ilr,iproc,nproc,Gorbs,norb,norbu,norbd,ns
 
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=0
-  do ikpt=1,orbs%nkpts
-     do iorb=1,orbs%norb
+  do ikpt=1,Gorbs%nkpts
+     do iorb=1,Gorbs%norb
         jorb=jorb+1 !this runs over norb*nkpts values
         if (jorb > orbs%isorb .and. jorb <= orbs%isorb+orbs%norbp) then
            orbs%iokpt(jorb-orbs%isorb)=ikpt
@@ -2277,44 +2340,18 @@ subroutine linear_orbitals_descriptors(ilr,iproc,nproc,Gorbs,norb,norbu,norbd,ns
   allocate(orbs%inwhichlocreg(orbs%norbp*orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
 
+
   ! Define inwhichlocreg for the locregs
   ! this gives the mapping of the local orbitals to the Global one,
   ! because orbitals are reordered by locreg
-  ! Does not work with semicore states yet
-  jat=1
-  jorb=0
-  iiOrb=0
-  do jproc=0,nproc-1
-     do iorb=1,Gorbs%norb_par(jproc)
-        ! Switch to the next atom if the number of basis functions for this atom is reached.
-        if(iiOrb==(Localnorb(jat)*noncoll) then
-            jat=jat+1
-            iiOrb=0
-        end if
-        if(jat > natom) then
-          jat = 1
-        end if
-        jorb=jorb+1
-        iiOrb=iiOrb+1
-        iWL(jorb)=jat
-       end do
-  end do
-
-  ii = 0
-  do iorb=1,Gorbs%norb*Gorbs%nkpts
-     if (iWL(iorb) == ilr) then
-        ii = ii + 1
-        orbs%inWhichLocreg(ii) = iorb + Gorbs%isorb 
-     end if
-  end do
-
+  call orbital_ordering_by_locreg(ilr,iproc,Gorbs%isorb_par,nproc,orbs%norb,Gorbs%norbp,nlr,&
+       Gorbs%norb_par,iwl,orbs)
   !allocate occupation number and spinsign
   !fill them in normal way
   allocate(orbs%occup(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%occup,'orbs%occup',subname)
   allocate(orbs%spinsgn(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%spinsgn,'orbs%spinsgn',subname)
-  print *,'orbs%inWhichLocreg',orbs%inWhichLocreg
   do iorb=1,norb*orbs%nkpts
      orbs%occup(iorb)= Gorbs%occup(orbs%inWhichLocreg(iorb))
      orbs%spinsgn(iorb) = Gorbs%spinsgn(orbs%inWhichLocreg(iorb))
@@ -2332,7 +2369,6 @@ subroutine linear_orbitals_descriptors(ilr,iproc,nproc,Gorbs,norb,norbu,norbd,ns
      orbs%ikptproc(ii) = Gorbs%ikptproc(ii)
   end do
 
-
   ! Define to new arrays:
   ! - orbs%isorb_par is the same as orbs%isorb, but every process also knows
   !   the reference orbital of each other process.
@@ -2340,7 +2376,7 @@ subroutine linear_orbitals_descriptors(ilr,iproc,nproc,Gorbs,norb,norbu,norbd,ns
   !   is located.
   allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
   call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
-  allocate(orbs%onWhichMPI(orbs%norbp), stat=i_stat)
+  allocate(orbs%onWhichMPI(Gorbs%norb), stat=i_stat)
   call memocc(i_stat, orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
   iiorb=0
   orbs%isorb_par=0
@@ -2355,6 +2391,44 @@ subroutine linear_orbitals_descriptors(ilr,iproc,nproc,Gorbs,norb,norbu,norbd,ns
   end do
   call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
 
-
 END SUBROUTINE linear_orbitals_descriptors
+
+subroutine orbital_ordering_by_locreg(ilr,iproc,isorb_par,nproc,norb,norbp,nlr,norb_par,inwhichlocreg,orbs)
+  use module_base
+  use module_types
+
+  implicit none
+  integer, intent(in) :: ilr                                     ! number of this locreg
+  integer, intent(in) :: iproc                                   ! number of this process
+  integer, intent(in) :: nproc                                   ! number of processes
+  integer, intent(in) :: norbp                                   ! number of orbitals on this processor
+  integer, intent(in) :: nlr                                     ! number of localization regions
+  integer, intent(in) :: norb                                    ! total number of orbitals
+  integer, dimension(nproc), intent(in) :: isorb_par             ! reference orbital for the processes
+  integer, dimension(nproc), intent(in) :: norb_par              ! number of orbitals on this processor
+  integer, dimension(norbp,nproc),intent(in) :: inwhichlocreg    ! mapping of the orbitals on this processor to the locregs
+  type(orbitals_data), intent(inout) :: orbs                     ! Local orbitals_data types
+  ! local variables
+  character(len=*), parameter :: subname='orbital_ordering_by_locreg'
+  integer :: jproc,ii
+  integer :: iorb,i_stat
+  
+  ! Allocate inWhichLocreg
+  allocate(orbs%inWhichLocreg(norb),stat=i_stat)
+  call memocc(i_stat,orbs%inWhichLocreg,'orbs%inWhichLocreg',subname)
+
+  iorb = 0
+     do jproc=1,nproc
+        do ii=1,norb_par(jproc)
+           if (inwhichlocreg(ii,jproc) .ne. ilr) cycle
+           iorb = iorb + 1
+           orbs%inWhichLocreg(iorb) = ii+isorb_par(jproc)
+        end do
+     end do       
+
+  if(iorb .ne. norb) then
+    write(*,'(a,i4,a,i4)') 'Error in orbital_ordering_by_locreg: iorb=',iorb,'is not equal to norb=',norb
+  end if
+
+end subroutine orbital_ordering_by_locreg
 

@@ -734,8 +734,10 @@ END SUBROUTINE allocate_projd
 !!
 subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorbs,projflg,psi,rxyz,hpsi,eproj)
 
+
   use module_base
   use module_types
+  !use module_interfaces, exceptThisOne => apply_local_projectors
  
   implicit none
 
@@ -762,14 +764,20 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorb
   !#######################################
   integer :: ikpt,istart_c,ncplx,jseg_c,iproj,iat,ityp,l,i,nwarnings
   integer :: isorb,ieorb,nspinor,iorb,istart_o,ispinor
-  integer :: nels,ipsi,ii,iatom,iel
+  integer :: nels,ipsi,ii,iatom,iel,i_all,i_stat
   integer :: jj,orbtot,ispin,ind
   integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
+  !integer,dimension(:),allocatable :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
   real(wp),allocatable,dimension(:,:,:) :: psi_tmp
   real(wp),allocatable,dimension(:,:,:) :: hpsi_tmp
   real(wp),allocatable,dimension(:):: Lproj  !local projectors
   character(len=*), parameter :: subname='apply_local_projectors'
+
+!allocate(inthisLocreg(Llr%localnorb*nspin))
+!allocate(psi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor))
+!allocate(hpsi_tmp(Llr%localnorb*nspin,(Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f),orbs%nspinor))
+
 
 !  First reshape the wavefunctions: psi_tmp(nels,norbs,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
@@ -985,12 +993,12 @@ subroutine local_projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,Llr,&
         if (abs(1.d0-scpr) > 1.d-2) then
            if (abs(1.d0-scpr) > 1.d-1) then
               !if (iproc == 0) then
-                write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
-                      'The norm of the nonlocal PSP for atom n=',iat,&
-                      ' (',trim(atomname),&
-                      ') labeled by l=',l,' m=',m,' is ',scpr
-                 write(*,'(1x,a)')&
-                      'while it is supposed to be about 1.0.'
+                !!write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
+                !!      'The norm of the nonlocal PSP for atom n=',iat,&
+                !!      ' (',trim(atomname),&
+                !!      ') labeled by l=',l,' m=',m,' is ',scpr
+                !! write(*,'(1x,a)')&
+                !!      'while it is supposed to be about 1.0.'
               !end if
            else
               nwarnings=nwarnings+1

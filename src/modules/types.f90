@@ -388,48 +388,34 @@ module module_types
 !! for sumrho in the linear scaling version.
   type,public:: p2pCommsSumrho
     integer,dimension(:),pointer:: noverlaps, overlaps, istarr, istrarr
+    real(8),dimension(:),pointer:: sendBuf, recvBuf
     integer,dimension(:,:,:),pointer:: comarr
-    integer:: sizePhibuff, sizePhibuffr
+    integer:: nsendBuf, nrecvBuf
     logical,dimension(:,:),pointer:: communComplete, computComplete
-  end type
+  end type p2pCommsSumrho
+
+!> Contains the parameters neeed for the point to point communications
+!! for gathering the potential (for the application of the Hamiltonian)
+   type,public::p2pCommsGatherPot
+       integer,dimension(:),pointer:: noverlaps, overlaps
+       integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
+       integer,dimension(:,:,:),pointer:: comarr
+       real(8),dimension(:),pointer:: recvBuf
+       integer:: nrecvBuf
+       logical,dimension(:,:),pointer:: communComplete
+   end type p2pCommsGatherPot
 
 
-!!!!> Contains all parameters related to the linear scaling version.
-!!!  type,public:: linearParameters
-!!!    integer:: DIISHistMin, DIISHistMax, nItMax, nItPrecond
-!!!    real(8):: convCrit, alphaSD
-!!!    real(8),dimension(:),allocatable:: potentialPrefac
-!!!    type(orbitals_data):: orbs
-!!!    type(communications_arrays):: comms
-!!!    type(locreg_descriptors):: lr
-!!!    type(wavefunctions_descriptors),dimension(:,:),allocatable :: wfds
-!!!    integer,dimension(:),allocatable:: onWhichAtom
-!!!    integer,dimension(:),allocatable:: MPIComms, norbPerComm
-!!!    integer,dimension(:,:),allocatable:: procsInComm
-!!!    integer:: ncomms
-!!!    type(arraySizes):: as
-!!!  end type
-!> Contains all parameters related to the linear scaling version.
-  type,public:: linearParameters
-    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder
-    integer:: nItInguess, nlr, nLocregOverlap
-    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix
-    real(8),dimension(:),pointer:: potentialPrefac, locrad
+!> Contains all parameters for the basis with which we calculate the properties
+!! like energy and forces. Since we may also use the derivative of the trace
+!! minimizing orbitals, this basis may be larger than only the trace minimizing
+!! orbitals. In case we don't use the derivatives, these parameters are identical
+!! from those in lin%orbs etc.
+type,public:: largeBasis
+    type(communications_arrays):: comms
     type(orbitals_data):: orbs, Lorbs
-    type(communications_arrays):: comms, Lcomms
-    type(locreg_descriptors):: lr
-    type(locreg_descriptors),dimension(:),pointer:: Llr
-    type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
-    integer,dimension(:),pointer:: onWhichAtom, norbsPerType, onWhichAtomAll
-    integer,dimension(:),pointer:: MPIComms, norbPerComm
-    integer,dimension(:,:),pointer:: procsInComm, outofzone
-    integer,dimension(:,:,:),pointer:: receiveArr
-    integer:: ncomms
-    type(arraySizes):: as
-    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
-    character(len=4):: getCoeff
-    type(p2pCommsSumrho):: comsr
-  end type
+    integer,dimension(:),pointer:: onWhichAtom, onWhichAtomAll
+end type largeBasis
 
 !!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: linear_zone_descriptors
@@ -445,6 +431,36 @@ module module_types
     type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
   end type
 
+  !> Contains the parameters for the parallel input guess for the O(N) version.
+  type,public:: inguessParameters
+    integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
+    integer,dimension(:),pointer:: norb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
+  end type inguessParameters
+
+!> Contains all parameters related to the linear scaling version.
+  type,public:: linearParameters
+    integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
+    integer:: nItInguess, nlr, nLocregOverlap
+    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, phiRestart
+    type(orbitals_data):: orbs, Lorbs
+    type(communications_arrays):: comms, Lcomms
+    type(locreg_descriptors):: lr
+    type(locreg_descriptors),dimension(:),pointer:: Llr
+    type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
+    integer,dimension(:),pointer:: onWhichAtom, norbsPerType, onWhichAtomAll
+    integer,dimension(:),pointer:: MPIComms, norbPerComm
+    integer,dimension(:,:),pointer:: procsInComm, outofzone
+    integer,dimension(:,:,:),pointer:: receiveArr
+    integer:: ncomms
+    type(arraySizes):: as
+    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
+    character(len=4):: getCoeff
+    type(p2pCommsSumrho):: comsr
+    type(p2pCommsGatherPot):: comgp
+    type(largeBasis):: lb
+    type(linear_zone_descriptors):: lzd
+  end type linearParameters
 
 !> Contains the arguments needed for the diis procedure
   type, public :: diis_objects
