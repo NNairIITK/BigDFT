@@ -35,7 +35,8 @@ libs_dgemmsy=
 endif
 
 
-CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
+CLEANFILES = module_base.@MODULE_EXT@ module_defs.@MODULE_EXT@ \
+			 fort.1 fort.98 *linkinfo
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 AM_CFLAGS = -Wall -Werror -O2 -msse3 -mtune=core2 -ftree-vectorize -ftree-vectorizer-verbose=9 -ffast-math
