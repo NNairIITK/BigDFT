@@ -197,6 +197,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
       ! Post communications for gathering the potential
+      !! IS THIS CORRECT HERE???
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
       call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
@@ -232,6 +233,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
 
       ! Mix the potential
       call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
       call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
       ! Write some informations

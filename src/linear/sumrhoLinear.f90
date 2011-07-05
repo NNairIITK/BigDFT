@@ -1420,22 +1420,24 @@ nfast=0
 nsameproc=0
 testLoop: do
     !do korb=1,nreceives
-    do korb=1,lin%comsr%noverlaps(iproc)
-        if(lin%comsr%communComplete(korb,iproc)) cycle
-        call mpi_test(lin%comsr%comarr(8,korb,iproc), sendComplete, stat, ierr)      !COMMENTED BY PB
-        call mpi_test(lin%comsr%comarr(9,korb,iproc), receiveComplete, stat, ierr)   !COMMENTED BY PB
-        if(sendComplete .and. receiveComplete) lin%comsr%communComplete(korb,iproc)=.true.
-        if(lin%comsr%communComplete(korb,iproc)) then
-            !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
-            mpisource=lin%comsr%comarr(1,korb,iproc)
-            mpidest=lin%comsr%comarr(5,korb,iproc)
-            if(mpisource/=mpidest) then
-                nfast=nfast+1
-            else
-                nsameproc=nsameproc+1
+    do jproc=0,nproc-1
+        do korb=1,lin%comsr%noverlaps(jproc)
+            if(lin%comsr%communComplete(korb,jproc)) cycle
+            call mpi_test(lin%comsr%comarr(8,korb,jproc), sendComplete, stat, ierr)      !COMMENTED BY PB
+            call mpi_test(lin%comsr%comarr(9,korb,jproc), receiveComplete, stat, ierr)   !COMMENTED BY PB
+            if(sendComplete .and. receiveComplete) lin%comsr%communComplete(korb,jproc)=.true.
+            if(lin%comsr%communComplete(korb,jproc)) then
+                !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
+                mpisource=lin%comsr%comarr(1,korb,jproc)
+                mpidest=lin%comsr%comarr(5,korb,jproc)
+                if(mpisource/=mpidest) then
+                    nfast=nfast+1
+                else
+                    nsameproc=nsameproc+1
+                end if
+                lin%comsr%computComplete(korb,jproc)=.true.
             end if
-            lin%comsr%computComplete(korb,iproc)=.true.
-        end if
+        end do
     end do
     ! If we made it until here, either all all the communication is
     ! complete or we better wait for each single orbital.
@@ -1447,14 +1449,16 @@ end do testLoop
 ! Wait for the communications that have not completed yet
 !do korb=1,nreceives
 nslow=0
-do korb=1,lin%comsr%noverlaps(iproc)
-    if(lin%comsr%communComplete(korb,iproc)) cycle
-    !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
-    nslow=nslow+1
-    call mpi_wait(lin%comsr%comarr(8,korb,iproc), stat, ierr)   !COMMENTED BY PB
-    call mpi_wait(lin%comsr%comarr(9,korb,iproc), stat, ierr)   !COMMENTED BY PB
-    lin%comsr%communComplete(korb,iproc)=.true.
-    lin%comsr%computComplete(korb,iproc)=.true.
+do jproc=0,nproc-1
+    do korb=1,lin%comsr%noverlaps(jproc)
+        if(lin%comsr%communComplete(korb,jproc)) cycle
+        !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
+        nslow=nslow+1
+        call mpi_wait(lin%comsr%comarr(8,korb,jproc), stat, ierr)   !COMMENTED BY PB
+        call mpi_wait(lin%comsr%comarr(9,korb,jproc), stat, ierr)   !COMMENTED BY PB
+        lin%comsr%communComplete(korb,jproc)=.true.
+        lin%comsr%computComplete(korb,jproc)=.true.
+    end do
 end do
 
 call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)

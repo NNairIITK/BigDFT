@@ -689,6 +689,7 @@ real(8),dimension(4):: time
   ! Store the mean alpha.
   lastAlpha=meanAlpha
 
+  call deallocateDIIS(ldiis)
   call deallocateLocalArrays()
 
 contains
@@ -2152,6 +2153,9 @@ procLoop1: do jproc=0,nproc-1
                 nsends=nsends+1
                 nreceives=nreceives+1
                 lin%comsr%communComplete(iorb,iproc)=.true.
+            else
+                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
             end if
         end if
     end do orbsLoop1
@@ -2418,6 +2422,9 @@ destLoop: do jproc=0,nproc-1
                 nsends=nsends+1
                 nreceives=nreceives+1
                 comgp%communComplete(kproc,iproc)=.true.
+            else
+                comgp%comarr(7,kproc,jproc)=mpi_request_null
+                comgp%comarr(8,kproc,jproc)=mpi_request_null
             end if
         end if
     end do sourceLoop
@@ -2446,7 +2453,7 @@ integer,intent(in):: iproc, nproc
 type(p2pCommsGatherPot),intent(inout):: comgp
 
 ! Local variables
-integer:: kproc, mpisource, mpidest, nfast, nslow, nsameproc, ierr
+integer:: kproc, mpisource, mpidest, nfast, nslow, nsameproc, ierr, jproc
 integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
 
@@ -2456,21 +2463,23 @@ comgp%communComplete=.false.
 nfast=0
 nsameproc=0
 testLoop: do 
-    do kproc=1,comgp%noverlaps(iproc)
-       if(comgp%communComplete(kproc,iproc)) cycle
-        call mpi_test(comgp%comarr(7,kproc,iproc), sendComplete, stat, ierr)      
-        call mpi_test(comgp%comarr(8,kproc,iproc), receiveComplete, stat, ierr)   
-        if(sendComplete .and. receiveComplete) comgp%communComplete(kproc,iproc)=.true.
-        if(comgp%communComplete(kproc,iproc)) then
-            !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
-            mpisource=comgp%comarr(1,kproc,iproc)
-            mpidest=comgp%comarr(4,kproc,iproc)
-            if(mpisource/=mpidest) then
-                nfast=nfast+1
-            else
-                nsameproc=nsameproc+1
+    do jproc=0,nproc-1
+        do kproc=1,comgp%noverlaps(jproc)
+           if(comgp%communComplete(kproc,jproc)) cycle
+            call mpi_test(comgp%comarr(7,kproc,jproc), sendComplete, stat, ierr)      
+            call mpi_test(comgp%comarr(8,kproc,jproc), receiveComplete, stat, ierr)   
+            if(sendComplete .and. receiveComplete) comgp%communComplete(kproc,jproc)=.true.
+            if(comgp%communComplete(kproc,jproc)) then
+                !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
+                mpisource=comgp%comarr(1,kproc,jproc)
+                mpidest=comgp%comarr(4,kproc,jproc)
+                if(mpisource/=mpidest) then
+                    nfast=nfast+1
+                else
+                    nsameproc=nsameproc+1
+                end if
             end if
-        end if
+        end do
     end do
     ! If we made it until here, either all all the communication is
     ! complete or we better wait for each single orbital.
@@ -2480,13 +2489,15 @@ end do testLoop
 
 ! Wait for the communications that have not completed yet
 nslow=0
-do kproc=1,comgp%noverlaps(iproc)
-    if(comgp%communComplete(kproc,iproc)) cycle
-    !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
-    nslow=nslow+1
-    call mpi_wait(comgp%comarr(7,kproc,iproc), stat, ierr)   !COMMENTED BY PB
-    call mpi_wait(comgp%comarr(8,kproc,iproc), stat, ierr)   !COMMENTED BY PB
-    comgp%communComplete(kproc,iproc)=.true.
+do jproc=0,nproc-1
+    do kproc=1,comgp%noverlaps(jproc)
+        if(comgp%communComplete(kproc,jproc)) cycle
+        !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
+        nslow=nslow+1
+        call mpi_wait(comgp%comarr(7,kproc,jproc), stat, ierr)   !COMMENTED BY PB
+        call mpi_wait(comgp%comarr(8,kproc,jproc), stat, ierr)   !COMMENTED BY PB
+        comgp%communComplete(kproc,jproc)=.true.
+    end do
 end do
 
 call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)

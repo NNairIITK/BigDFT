@@ -41,18 +41,19 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       timeComput=timeComput+t2-t1
       call cpu_time(t1)
       call postCommsOverlap(iproc, nproc, lin%comon)
-      call gatherOrbitals(iproc, nproc, lin%comon)
+      !call gatherOrbitals(iproc, nproc, lin%comon)
+      call gatherOrbitals2(iproc, nproc, lin%comon)
       call cpu_time(t2)
       timeCommun=timeCommun+t2-t1
       call cpu_time(t1)
       call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, ovrlp)
       call cpu_time(t2)
       timeCalcOvrlp=timeCalcOvrlp+t2-t1
-      do iorb=1,lin%orbs%norb
-          do jorb=1,lin%orbs%norb
-              write(500+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-          end do
-      end do
+      !!do iorb=1,lin%orbs%norb
+      !!    do jorb=1,lin%orbs%norb
+      !!        write(500+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+      !!    end do
+      !!end do
       call checkUnity(iproc, lin%lzd%orbs%norb, ovrlp, maxError)
       if(iproc==0) write(*,'(3x,a,es12.4)') 'maximal deviation from unity:', maxError
       if(maxError<lin%convCritOrtho) then
@@ -149,7 +150,8 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
   call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
-  call gatherOrbitals(iproc, nproc, lin%comon)
+  !call gatherOrbitals(iproc, nproc, lin%comon)
+  call gatherOrbitals2(iproc, nproc, lin%comon)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
   call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
@@ -677,7 +679,7 @@ comon%nrecvBuf=0
 op%indexInRecvBuf=0
 
 iiorb=0
-tag=0
+tag=2000
 jprocold=-1
 do jproc=0,nproc-1
     receivedOrbital=.false.
@@ -829,6 +831,9 @@ do jproc=0,nproc-1
                 nsends=nsends+1
                 nreceives=nreceives+1
                 comon%communComplete(iorb,iproc)=.true.
+            else
+                comon%comarr(7,iorb,jproc)=mpi_request_null
+                comon%comarr(8,iorb,jproc)=mpi_request_null
             end if
 
         end if
@@ -1010,7 +1015,7 @@ testLoop: do
         call mpi_test(comon%comarr(8,kproc,iproc), receiveComplete, stat, ierr)
         if(sendComplete .and. receiveComplete) comon%communComplete(kproc,iproc)=.true.
         if(comon%communComplete(kproc,iproc)) then
-            !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
+            !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', kproc
             mpisource=comon%comarr(1,kproc,iproc)
             mpidest=comon%comarr(4,kproc,iproc)
             if(mpisource/=mpidest) then
@@ -1047,9 +1052,81 @@ call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
 
 
 
-
-
 end subroutine gatherOrbitals
+
+
+
+
+
+subroutine gatherOrbitals2(iproc, nproc, comon)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(p2pCommsOrthonormality),intent(inout):: comon
+
+! Local variables
+integer:: jorb, mpisource, mpidest, nfast, nslow, nsameproc, ierr, jproc
+integer,dimension(mpi_status_size):: stat
+logical:: sendComplete, receiveComplete
+
+
+! Check whether the communications have completed.
+nfast=0
+nsameproc=0
+testLoop: do
+    do jproc=0,nproc-1
+        do jorb=1,comon%noverlaps(jproc)
+            if(comon%communComplete(jorb,jproc)) cycle
+            call mpi_test(comon%comarr(7,jorb,jproc), sendComplete, stat, ierr)
+            call mpi_test(comon%comarr(8,jorb,jproc), receiveComplete, stat, ierr)
+            if(sendComplete .and. receiveComplete) comon%communComplete(jorb,jproc)=.true.
+            if(comon%communComplete(jorb,jproc)) then
+                !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', jorb
+                mpisource=comon%comarr(1,jorb,jproc)
+                mpidest=comon%comarr(4,jorb,jproc)
+                if(mpisource/=mpidest) then
+                    nfast=nfast+1
+                else
+                    nsameproc=nsameproc+1
+                end if
+            end if
+        end do
+    end do
+    ! If we made it until here, either all all the communication is
+    ! complete or we better wait for each single orbital.
+    exit testLoop
+end do testLoop
+
+
+! Wait for the communications that have not completed yet
+nslow=0
+do jproc=0,nproc-1
+    do jorb=1,comon%noverlaps(jproc)
+        if(comon%communComplete(jorb,jproc)) cycle
+        !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
+        nslow=nslow+1
+        call mpi_wait(comon%comarr(7,jorb,jproc), stat, ierr)   !COMMENTED BY PB
+        call mpi_wait(comon%comarr(8,jorb,jproc), stat, ierr)   !COMMENTED BY PB
+        comon%communComplete(jorb,jproc)=.true.
+    end do
+end do
+
+!call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
+!if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
+!                       nfast, ' could be overlapped with computation.'
+!if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
+
+
+
+
+
+end subroutine gatherOrbitals2
 
 
 
@@ -1130,6 +1207,7 @@ real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 ! Local variables
 integer:: iorb, jorb, iiorb, jjorb, jjproc, ii, ist, jst, jjlr, istat, ncount, ierr, jj, korb, kkorb, iilr, iiproc
 real(8):: ddot
+real(8),dimension(orbs%norb**2):: buffer
 
 
 ovrlp=0.d0
@@ -1172,9 +1250,15 @@ end do
 
 call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
+!!call dcopy(orbs%norb**2, ovrlp(1,1), 1, buffer(1), 1)
+!!call mpi_allreduce(buffer(1), ovrlp(1,1), orbs%norb**2, mpi_double_precision, &
+!!     mpi_sum, mpi_comm_world, ierr)
+
 
 
 end subroutine calculateOverlapMatrix2
+
+
 
 
 
@@ -1241,6 +1325,12 @@ call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), &
 call dcopy(orbs%norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
 
 
+iall=-product(shape(eval))*kind(eval)
+deallocate(eval, stat=istat)
+call memocc(istat, iall, 'eval', subname)
+iall=-product(shape(tempArr))*kind(tempArr)
+deallocate(tempArr, stat=istat)
+call memocc(istat, iall, 'tempArr', subname)
 
 
 endsubroutine transformOverlapMatrix

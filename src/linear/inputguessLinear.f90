@@ -2052,7 +2052,8 @@ do iat=1,nat
     !call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lchi(1), comon)
     call extractOrbital2(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lchi(1), comon)
     call postCommsOverlap(iproc, nproc, comon)
-    call gatherOrbitals(iproc, nproc, comon)
+    !call gatherOrbitals(iproc, nproc, comon)
+    call gatherOrbitals2(iproc, nproc, comon)
     ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
     !call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lhchi(1), comon)
     call extractOrbital2(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lhchi(1), comon)
