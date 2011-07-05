@@ -1,4 +1,4 @@
-subroutine orthonormalizeLocalized(iproc, nproc, lin, input, lphi)
+subroutine orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
 use module_base
 use module_types
 implicit none
@@ -8,17 +8,15 @@ integer,intent(in):: iproc, nproc
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
 real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
+real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
 
 ! Local variables
 integer:: it, istat, iall, iorb, jorb, ierr
 real(8),dimension(:),allocatable:: lphiovrlp
-real(8),dimension(:,:),allocatable:: ovrlp
 character(len=*),parameter:: subname='orthonormalize'
 logical:: converged
 real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeExpand, timeLoewdin, timeTransform, timeExtract
 
-  allocate(ovrlp(lin%orbs%norb,lin%orbs%norb), stat=istat)
-  call memocc(istat, ovrlp, 'ovrlp',subname)
   allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
@@ -58,6 +56,10 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       if(iproc==0) write(*,'(3x,a,es12.4)') 'maximal deviation from unity:', maxError
       if(maxError<lin%convCritOrtho) then
           converged=.true.
+          call cpu_time(t2)
+          timeComput=timeComput+t2-t1
+          exit
+      else if(it==lin%nItOrtho) then
           call cpu_time(t2)
           timeComput=timeComput+t2-t1
           exit
@@ -108,9 +110,6 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
   if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for transform:', timeTransform, '=', 100.d0*timeTransform/(timeComput+timeCommun), '%'
   if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=', 100.d0*timeExtract/(timeComput+timeCommun), '%'
 
-  iall=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp, stat=istat)
-  call memocc(istat, iall, 'ovrlp', subname)
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
   deallocate(lphiovrlp, stat=istat)
   call memocc(istat, iall, 'lphiovrlp', subname)
@@ -175,6 +174,72 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
 
 end subroutine orthoconstraintLocalized
 
+
+subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, trH)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(inout):: lin
+type(input_variables),intent(in):: input
+real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(in):: ovrlp
+real(8),dimension(lin%lorbs%npsidim),intent(in):: lphi
+real(8),dimension(lin%lorbs%npsidim),intent(inout):: lhphi
+real(8),intent(out):: trH
+
+! Local variables
+integer:: it, istat, iall, iorb
+real(8),dimension(:),allocatable:: lphiovrlp, lhphiovrlp
+real(8),dimension(:,:),allocatable:: lagmat
+character(len=*),parameter:: subname='orthoconstraintLocalized'
+
+
+
+  allocate(lagmat(lin%orbs%norb,lin%orbs%norb), stat=istat)
+  call memocc(istat, lagmat, 'lagmat',subname)
+  allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
+  call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+  allocate(lhphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
+  call memocc(istat, lhphiovrlp, 'lhphiovrlp',subname)
+
+
+  ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+  call postCommsOverlap(iproc, nproc, lin%comon)
+  call gatherOrbitals2(iproc, nproc, lin%comon)
+  ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
+  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, lagmat)
+  trH=0.d0
+  do iorb=1,lin%orbs%norb
+      trH=trH+lagmat(iorb,iorb)
+  end do
+  ! Expand the receive buffer, i.e. lphi
+  !call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+
+  ! Now we also have to send lhphi
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
+  call postCommsOverlap(iproc, nproc, lin%comon)
+  call gatherOrbitals2(iproc, nproc, lin%comon)
+  ! Expand the receive buffer, i.e. lhphi
+  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lhphiovrlp)
+  call applyOrthoconstraintNonorthogonal(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+
+  iall=-product(shape(lagmat))*kind(lagmat)
+  deallocate(lagmat, stat=istat)
+  call memocc(istat, iall, 'lagmat', subname)
+  iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
+  deallocate(lphiovrlp, stat=istat)
+  call memocc(istat, iall, 'lphiovrlp', subname)
+  iall=-product(shape(lhphiovrlp))*kind(lhphiovrlp)
+  deallocate(lhphiovrlp, stat=istat)
+  call memocc(istat, iall, 'lhphiovrlp', subname)
+
+
+end subroutine orthoconstraintNonorthogonal
 
 
 
@@ -1624,6 +1689,52 @@ end subroutine applyOrthoconstraint
 
 
 
+subroutine applyOrthoconstraintNonorthogonal(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs, lorbs
+integer,dimension(orbs%norb),intent(in):: onWhichAtom
+type(linear_zone_descriptors),intent(in):: lzd
+type(overlapParameters),intent(in):: op
+real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagmat, ovrlp
+real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp, lhphiovrlp
+real(8),dimension(lorbs%npsidim),intent(out):: lhphi
+
+! Local variables
+integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount
+
+
+
+ist=1
+jst=1
+ilrold=-1
+do iorb=1,orbs%norbp
+    iiorb=orbs%isorb+iorb
+    ilr=onWhichAtom(iiorb)
+    if(ilr==ilrold) then
+        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+        jst=jst-op%noverlaps(iiorb)*ncount
+    end if
+    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+    call dscal(ncount, 1.5d0, lhphi(ist), 1)
+    do jorb=1,op%noverlaps(iiorb)
+        jjorb=op%overlaps(jorb,iiorb)
+        call daxpy(ncount, -.5d0*ovrlp(jjorb,iiorb), lhphiovrlp(jst), 1, lhphi(ist), 1)
+        call daxpy(ncount, -.5d0*lagmat(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
+        call daxpy(ncount, -.5d0*lagmat(iiorb,jjorb), lphiovrlp(jst), 1, lhphi(ist), 1)
+        jst=jst+ncount
+    end do
+    ist=ist+ncount
+    ilrold=ilr
+end do
+
+
+
+end subroutine applyOrthoconstraintNonorthogonal
 
 
 

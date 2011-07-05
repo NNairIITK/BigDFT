@@ -426,7 +426,7 @@ integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountD
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
 real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, alphaDIIS, lphi, lhphi, lhphiold
-real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
+real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr, ovrlp
 logical:: quiet, allowDIIS, startWithSD, withConfinement
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
@@ -491,7 +491,7 @@ real(8),dimension(4):: time
           write(*,'(x,a)') 'Orthonormalization... '
       end if
       call cpu_time(t1)
-      call orthonormalizeLocalized(iproc, nproc, lin, input, lphi)
+      call orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
       call cpu_time(t2)
       time(1)=time(1)+t2-t1
   
@@ -516,7 +516,8 @@ real(8),dimension(4):: time
           write(*,'(a)', advance='no') 'Orthoconstraint... '
       end if
       call cpu_time(t1)
-      call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
+      !call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
+      call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, trH)
       call cpu_time(t2)
       time(3)=time(3)+t2-t1
       if(iproc==0) then
@@ -891,6 +892,9 @@ contains
       allocate(lhphiold(lin%Lorbs%npsidim), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
 
+      allocate(ovrlp(lin%lzd%orbs%norb,lin%lzd%orbs%norb), stat=istat)
+      call memocc(istat, ovrlp, 'ovrlp', subname)
+
     end subroutine allocateLocalArrays
 
 
@@ -940,6 +944,10 @@ contains
       iall=-product(shape(lhphiold))*kind(lhphiold)
       deallocate(lhphiold, stat=istat)
       call memocc(istat, iall, 'lhphiold', subname)
+
+      iall=-product(shape(ovrlp))*kind(ovrlp)
+      deallocate(ovrlp, stat=istat)
+      call memocc(istat, iall, 'ovrlp', subname)
       
       ! if diisLIN%idsx==0, these arrays have already been deallocated
       !if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN,subname)
