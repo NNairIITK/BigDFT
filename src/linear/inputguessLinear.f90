@@ -2049,11 +2049,13 @@ do iat=1,nat
     end do
 
     ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
-    call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lchi(1), comon)
+    !call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lchi(1), comon)
+    call extractOrbital2(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lchi(1), comon)
     call postCommsOverlap(iproc, nproc, comon)
     call gatherOrbitals(iproc, nproc, comon)
     ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
-    call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lhchi(1), comon)
+    !call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lhchi(1), comon)
+    call extractOrbital2(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lhchi(1), comon)
     call calculateOverlapMatrix2(iproc, nproc, lzdig%orbs, op, comon, onWhichAtom, ham(1,1,iat))
     if(iproc==0) write(*,'(a)') 'done.'
 end do

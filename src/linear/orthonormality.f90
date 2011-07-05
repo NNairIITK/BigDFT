@@ -48,11 +48,11 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, ovrlp)
       call cpu_time(t2)
       timeCalcOvrlp=timeCalcOvrlp+t2-t1
-      !!do iorb=1,lin%orbs%norb
-      !!    do jorb=1,lin%orbs%norb
-      !!        write(500+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-      !!    end do
-      !!end do
+      do iorb=1,lin%orbs%norb
+          do jorb=1,lin%orbs%norb
+              write(500+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+          end do
+      end do
       call checkUnity(iproc, lin%lzd%orbs%norb, ovrlp, maxError)
       if(iproc==0) write(*,'(3x,a,es12.4)') 'maximal deviation from unity:', maxError
       if(maxError<lin%convCritOrtho) then
@@ -146,18 +146,21 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
 
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
-  call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+  !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   call gatherOrbitals(iproc, nproc, lin%comon)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
-  call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
+  !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
   call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, lagmat)
   trH=0.d0
   do iorb=1,lin%orbs%norb
       trH=trH+lagmat(iorb,iorb)
   end do
   ! Expand the receive buffer, i.e. lphi
-  call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+  !call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
   call applyOrthoconstraint(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, lphiovrlp, lhphi)
 
   iall=-product(shape(lagmat))*kind(lagmat)
