@@ -76,8 +76,6 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   real(wp), dimension(:), pointer :: rhocore
   !local variables
   character(len=*), parameter :: subname='calculate_rhocore'
-  character(len=27) :: filename
-  logical :: exists,donlcc
   integer :: ityp,iat,i_stat,j3,i1,i2,ind,ierr
   real(wp) :: tt
   real(gp) :: rx,ry,rz,rloc,cutoff

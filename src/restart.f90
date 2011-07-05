@@ -290,8 +290,6 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   character(len=*), intent(in) :: filename
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
-  character(len=4) :: f4
-  character(len=50) :: filename_
   logical :: perx,pery,perz,exists
   integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor
   real(kind=4) :: tr0,tr1
@@ -516,8 +514,6 @@ subroutine writemywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   character(len=*), intent(in) :: filename
   !Local variables
-  character(len=4) :: f4
-  character(len=50) :: filename_
   integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,isuffix,iorb_out,ispinor
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
