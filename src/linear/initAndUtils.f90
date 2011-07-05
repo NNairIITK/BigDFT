@@ -167,6 +167,10 @@ end do
 !call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%onWhichAtomAll)
 
+! Initialize the parameters for the communication for the orthonormalization.
+!!call initCommsOrtho(iproc, nproc, lin)
+call initCommsOrtho(iproc, nproc, lin%lzd, lin%onWhichAtomAll, lin%op, lin%comon)
+
 ! Deallocate all local arrays.
 iall=-product(shape(atomNames))*kind(atomNames)
 deallocate(atomNames, stat=istat)
@@ -217,6 +221,7 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%startWithSD, lin%startDIIS
   read(99,*) lin%nItPrecond
   read(99,*) lin%getCoeff
+  read(99,*) lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%nItSCC, lin%alphaMix, lin%convCritMix
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
@@ -284,7 +289,7 @@ if(iproc==0) write(*,'(4x,a)') '|  in SC cycle  |           |    for mixing     
 if(iproc==0) write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a,8x,l,10x,a,7x,i1,8x,a)') '|', &
      repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
      lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|', lin%useDerivativeBasisFunctions, '|', lin%confPotOrder, '|'
-if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------------------'
+if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------------------------'
 if(iproc==0) write(*,'(4x,a)') '| iterations in | orbitals per |'
 if(iproc==0) write(*,'(4x,a)') '|  input guess  |   process    |'
 if(iproc==0) write(*,'(4x,a,a,i0,5x,a,a,i0,6x,a)') '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
@@ -302,13 +307,14 @@ if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| '
       lin%getCoeff, '    |  ', &
       lin%plotBasisFunctions, '   |'
 if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS |'
-if(iproc==0) write(*,'(4x,a)') '|  min   max   |            |          | with SD |            |'
-if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a)') '|', &
+if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: |'
+if(iproc==0) write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit |'
+if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a,a,i0,7x,es7.1,2x,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
-    lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |'
-if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------'
+    lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |', &
+    repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, lin%convCritOrtho, '|'
+if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the coefficients.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence |'
 if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  |'
@@ -448,6 +454,84 @@ integer:: jproc, iiOrb, iorb, jorb, jat
   end do    
 
 end subroutine assignOrbitalsToAtoms
+
+
+
+!!subroutine assignOrbitalsToAtoms2(iproc, orbs, nat, norbsPerAt, onWhichAtom, onWhichAtomAll)
+!!!
+!!! Purpose:
+!!! ========
+!!!   Assigns the orbitals to the atoms, using the array lin%onWhichAtom.
+!!!   If orbital i is centered on atom j, we have lin%onWhichAtom(i)=j.
+!!!
+!!! Calling arguments:
+!!! ==================
+!!!   Input arguments:
+!!!   ----------------
+!!!     iproc         process ID
+!!!     nat           number of atoms
+!!!     norbsPerAt    indicates how many orbitals are centered on each atom.
+!!!  Input / Output arguments
+!!!  ---------------------
+!!!     lin           type containing parameters for the linear version
+!!!
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!! Calling arguments
+!!integer,intent(in):: iproc, nat
+!!type(orbitals_data):: orbs
+!!integer,dimension(nat):: norbsPerAt
+!!integer,dimension(orbs%norbp):: onWhichAtom
+!!integer,dimension(orbs%norb):: onWhichAtomAll
+!!
+!!! Local variables
+!!integer:: jproc, iiOrb, iorb, jorb, jat
+!!
+!!
+!!  ! Count the total 'weighted orbitals', i.e. the sum of 1/(number of orbitals for this atom).
+!!  weightLocreg=0.d0
+!!  do iat=1,nat
+!!      weightLocreg=weightLocreg+1.d0/dble(norbsPerAt(iat))
+!!  end do
+!!
+!!
+!!  ! There are four counters:
+!!  !   jproc: indicates which MPI process is handling the basis function which is being treated
+!!  !   jat: counts the atom numbers
+!!  !   jorb: counts the orbitals handled by a given process
+!!  !   iiOrb: counts the number of orbitals for a given atoms thas has already been assigned
+!!  jproc=0
+!!  jat=1
+!!  jorb=0
+!!  iiOrb=0
+!!  
+!!  do iorb=1,orbs%norb
+!!  
+!!      ! Switch to the next MPI process if the numbers of orbitals for a given
+!!      ! MPI process is reached.
+!!      if(jorb==orbs%norb_par(jproc)) then
+!!          jproc=jproc+1
+!!          jorb=0
+!!      end if
+!!      
+!!      ! Get the atom number. First calculate the 'weighted localization region, i.e. 1/(number of basis functions for this atom).
+!!      ! Switch to the next atom if the number of basis functions for this atom is reached.
+!!      if(iiOrb==norbsPerAt(jat)) then
+!!          jat=jat+1
+!!          iiOrb=0
+!!      end if
+!!      jorb=jorb+1
+!!      iiOrb=iiOrb+1
+!!      if(iproc==jproc) onWhichAtom(jorb)=jat
+!!
+!!      ! Global assignment, i.e. without taking in account
+!!      ! the various MPI processes.
+!!      onWhichAtomAll(iorb)=jat
+!!  end do    
+!!
+!!end subroutine assignOrbitalsToAtoms2
 
 
 
@@ -1199,13 +1283,13 @@ call memocc(istat,lin%outofzone,'lin%outofzone',subname)
  call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
  call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
 
-!do ilr=1,lin%nlr
-!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
-!    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
-!    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
-!    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
-!    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
-!end do
+!!do ilr=1,lin%nlr
+!!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
+!!    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
+!!    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
+!!    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
+!!    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
+!!end do
 
 ! Calculate the dimension of the wave function for each process.
 npsidim=0

@@ -1,13 +1,16 @@
-15  10               max number of iterations for optimizing the basis functions in the very first iteration, the same for the other iterations in the SCC                                                                                   
-1.d-2                convergence criterion                                                                                                                                                                                                   
-0  8  2.d-1 1.d-1    DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD                                                                                                                                                         
-F   2.d2             start with SD, start criterion for DIIS                                                                                                                                                                                 
-4                    number of iterations in the preconditioner                                                                                                                                                                              
-min                  getCoeff: diag or min                                                                                                                                                                                                   
-2000 1.d-5           max number of iterations in the minimization of the coefficients, convergence criterion                                                                                                                                 
-4  .3d0              number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter                                                                                                                        
-T  4                 use the derivative basis functions, order of confinement potential                                                                                                                                                      
-10000                number of iterations for the input guess                                                                                                                                                                                
-F                    plot basis functions: true or false                                                                                                                                                                                     
-C  4  1.d-3   5.0    number of basis functions per atom, prefactor for confinement potential, localization radius
-H  1  1.d-3   5.0    number of basis functions per atom, prefactor for confinement potential, localization radius 
+8  5                 max number of iterations for optimizing the basis functions in the very first iteration, the same for the other iterations in the SCC
+5.d-2                convergence criterion
+0  8  1.d0  1.d-1    DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD
+F   2.d2             start with SD, start criterion for DIIS
+5                    number of iterations in the preconditioner
+diag                 getCoeff: diag or min
+10  1.d-4            maximal number of iterations for the orthonormalization, convergence criterion
+2000 1.d-5           max number of iterations in the minimization of the coefficients, convergence criterion
+1000  .3d0  5.d-7    number of iterations in the selfconsistency cycle where the potential is mixed, mixing parameter, convergence criterion
+F  4                 use the derivative basis functions, order of confinement potential
+5000                 number of iterations for the input guess
+F                    plot basis functions: true or false
+20                   number of processes for trace minimization during input guess.
+C  4  1.6d-3  6.0    number of basis functions per atom, prefactor for confinement potential, localization radius
+H  1  1.6d-3  6.0    number of basis functions per atom, prefactor for confinement potential, localization radius
+

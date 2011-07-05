@@ -405,6 +405,27 @@ module module_types
        logical,dimension(:,:),pointer:: communComplete
    end type p2pCommsGatherPot
 
+!> Contains the parameter needed for the point to point communication for
+!! the orthonormlization.
+   type,public:: p2pCommsOrthonormality
+       integer:: nsendBuf, nrecvBuf
+       integer,dimension(:),pointer:: noverlaps
+       integer,dimension(:,:),pointer:: overlaps
+       integer,dimension(:,:,:),pointer:: comarr
+       real(8),dimension(:),pointer:: sendBuf, recvBuf
+       logical,dimension(:,:),pointer:: communComplete
+   end type p2pCommsOrthonormality
+
+!! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
+  type,public:: overlapParameters
+      integer:: ndim_lphiovrlp
+      integer,dimension(:),pointer:: noverlaps
+      integer,dimension(:,:),pointer:: overlaps
+      integer,dimension(:,:),pointer:: indexInRecvBuf
+      integer,dimension(:,:),pointer:: indexInSendBuf
+      type(locreg_descriptors),dimension(:,:),pointer:: olr
+  end type overlapParameters
+
 
 !> Contains all parameters for the basis with which we calculate the properties
 !! like energy and forces. Since we may also use the derivative of the trace
@@ -437,11 +458,19 @@ end type largeBasis
     integer,dimension(:),pointer:: norb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
   end type inguessParameters
 
+  type,public:: localizedDIISParameters
+    integer:: is, isx, mis
+    real(8),dimension(:),pointer:: phiHist, hphiHist
+    real(8),dimension(:,:,:),pointer:: mat
+    real(8):: trmin, trold
+    logical:: switchSD
+  end type localizedDIISParameters
+
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
-    integer:: nItInguess, nlr, nLocregOverlap
-    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix
+    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho
+    real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho
     real(8),dimension(:),pointer:: potentialPrefac, locrad, phiRestart
     type(orbitals_data):: orbs, Lorbs
     type(communications_arrays):: comms, Lcomms
@@ -460,6 +489,8 @@ end type largeBasis
     type(p2pCommsGatherPot):: comgp
     type(largeBasis):: lb
     type(linear_zone_descriptors):: lzd
+    type(p2pCommsOrthonormality):: comon
+    type(overlapParameters):: op
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure
