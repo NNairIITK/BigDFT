@@ -62,12 +62,13 @@ real(8),dimension(:,:),allocatable:: hchi, lhchi
 real(8),dimensioN(:,:,:),allocatable:: ham
 integer,dimension(:),allocatable:: onWhichAtom, onWhichAtomp, norbsPerAt, onWhichAtomTemp, onWhichAtomPhi
 integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-logical:: withConfinement
-
+logical:: withConfinement, ovrlpx, ovrlpy, ovrlpz
+logical,dimension(:),allocatable:: doNotCalculate
 integer, dimension(lmax+1) :: nl
 real(gp), dimension(noccmax,lmax+1) :: occup
-real(8):: dnrm2, ddot, dasum, t1, t2, time
-integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr
+real(8):: dnrm2, ddot, dasum, t1, t2, time, cut
+integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr
+integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
 
 
@@ -357,6 +358,8 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
   ! onWhichAtomTemp indicates indicating that all orbitals feel the potential from atom iat.
   allocate(onWhichAtomTemp(lzdig%orbs%norbp), stat=istat)
   call memocc(i_stat,onWhichAtomTemp,'onWhichAtomTemp',subname)
+  allocate(doNotCalculate(lzdig%nlr), stat=istat)
+  call memocc(i_stat, doNotCalculate, 'doNotCalculate', subname)
   if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
 
   ! Transform chi to the localization region. This is not needed if we really habe O(N).
@@ -371,21 +374,40 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
       ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
   end do
 
+
   hchi=0.d0
+  lhchi=0.d0
   call cpu_time(t1)
   withConfinement=.true.
   do iat=1,at%nat
-      do iorb=1,orbsig%norbp
-          onWhichAtomTemp(iorb)=iat
+      doNotCalculate=.false.
+      call mpi_barrier(mpi_comm_world, ierr)
+      call getIndices(lzdig%llr(iat), is1, ie1, is2, ie2, is3, ie3)
+      do jorb=1,orbsig%norbp
+          onWhichAtomTemp(jorb)=iat
+          jlr=onWhichAtomp(jorb)
+          call getIndices(lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
+          ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+          ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+          ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+          if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+          else
+              doNotCalculate(ilr)=.true.
+          end if
       end do
+      !write(*,'(a,2i4,4x,100l4)') 'iat, iproc, doNotCalculate', iat, iproc, doNotCalculate
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
       !!call HamiltonianApplicationConfinement(iproc, nproc, at, orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
       !!     nlpspd, proj, Glr, ngatherarr, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), &
       !!     rhopot(1), &
       !!     chi(1), hchi(1,iat), ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, rxyz, onWhichAtomTemp, pkernel=pkernelseq)
+      !call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lzdig, lin, input%hx, input%hy, input%hz, rxyz,&
+      !     proj, ngatherarr, comgp%nrecvBuf, comgp%recvBuf, lchi, lhchi(1,iat), &
+      !     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp, withConfinement, doNotCalculate=doNotCalculate, pkernel=pkernelseq)
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lzdig, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, comgp%nrecvBuf, comgp%recvBuf, lchi, lhchi(1,iat), &
            ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp, withConfinement, pkernel=pkernelseq)
+      !write(*,'(a,2i5,es15.6)') 'iat, iproc, sum(lhchi(:,iat))', iat, iproc, sum(lhchi(:,iat))
       ind1=1
       ind2=1
       do iorb=1,lzdig%orbs%norbp
@@ -393,6 +415,7 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
           ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
           gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
           call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdig%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lzdig%Llr(ilr), lhchi(ind2,iat), hchi(ind1,iat))
+          !write(*,'(a,3i5,es15.6)') 'iat, iproc, iorb, sum(hchi(ind1:ind1+gdim-1,iat))', iat, iproc, iorb, sum(hchi(ind1:ind1+gdim-1,iat))
           ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
           ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
       end do
@@ -424,6 +447,7 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
    do iorb=1,lin%orbs%norbp
        onWhichAtomPhi(lin%orbs%isorb+iorb)=lin%onWhichAtom(iorb)
    end do
+   write(*,*) 'before, mpiallred, iproc',iproc
    call mpiallred(onWhichAtomPhi(1), lin%orbs%norb, mpi_sum, mpi_comm_world, iorb)
 
    ! Build a linear combination of atomic orbitals to get a goor input guess for phi.
@@ -433,7 +457,15 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
    !     onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
    allocate(ham(orbsig%norb,orbsig%norb,at%nat), stat=istat)
    call memocc(i_stat,ham,'ham',subname)
-   call getHamiltonianMatrix(iproc, nproc, lzdig, Glr, onWhichAtom, onWhichAtomp, at%nat, chi, hchi, ham, orbsig)
+   write(*,*) 'calling getHamiltonianMatrix, iproc', iproc
+   call getHamiltonianMatrix(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, at%nat, chi, hchi, ham, orbsig)
+   do iat=1,at%nat
+       do iorb=1,lzdig%orbs%norb
+           do jorb=1,lzdig%orbs%norb
+               write(300+iproc,*) iat, iorb, jorb, ham(iorb,jorb,iat)
+           end do 
+       end do
+   end do
    call buildLinearCombinations2(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
         onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin, ham)
    call cpu_time(t2)
@@ -603,7 +635,7 @@ type(inguessParameters):: ip
     
       ii=0
       do iorb=1,ip%norb_par(iproc)
-          iiAt=onWhichAtom(ip%isorb+iorb)
+          iiAt=onWhichAtomPhi(ip%isorb+iorb)
           ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
           cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
           do jorb=1,ip%norbtot
@@ -1950,15 +1982,17 @@ end subroutine orthonormalizeCoefficients_parallel
 
 
 
-subroutine getHamiltonianMatrix(iproc, nproc, lzdig, Glr, onWhichAtom, onWhichAtomp, nat, chi, hchi, ham, orbsig)
+subroutine getHamiltonianMatrix(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, nat, chi, hchi, ham, orbsig)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => getHamiltonianMatrix
 implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nat
 type(linear_zone_descriptors),intent(in):: lzdig
 type(locreg_descriptors),intent(in):: Glr
+type(input_variables),intent(in):: input
 integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom
 integer,dimension(lzdig%orbs%norbp),intent(in):: onWhichAtomp
 type(orbitals_data),intent(in):: orbsig
@@ -1978,7 +2012,7 @@ character(len=*),parameter:: subname='getHamiltonianMatrix'
 
 
 ! Initialize the parameters for calculating the matrix.
-call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, op, comon)
+call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, input, op, comon)
 
 allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lphiovrlp, 'lphiovrlp',subname)

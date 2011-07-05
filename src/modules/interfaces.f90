@@ -2365,7 +2365,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
           proj,ngatherarr,ndimpot,pot,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, &
-          pkernel,orbsocc,psirocc)
+          doNotCalculate, pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        use libxc_functionals
@@ -2389,6 +2389,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(p2pCommsGatherPot), intent(in):: comgp
        integer,dimension(lzd%orbs%norbp),intent(in):: onWhichAtomp
        logical,intent(in):: withConfinement
+       logical,dimension(lzd%nlr),intent(in),optional:: doNotCalculate
        real(dp), dimension(*), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
@@ -2536,13 +2537,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(inout):: op
      end subroutine determineOverlapDescriptors
      
-     subroutine initCommsOrtho(iproc, nproc, lzd, onWhichAtomAll, op, comon)
+     subroutine initCommsOrtho(iproc, nproc, lzd, onWhichAtomAll, input, op, comon)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
        type(linear_zone_descriptors),intent(in):: lzd
        integer,dimension(lzd%orbs%norb),intent(in):: onWhichAtomAll
+       type(input_variables),intent(in):: input
        type(overlapParameters),intent(out):: op
        type(p2pCommsOrthonormality),intent(out):: comon
      end subroutine initCommsOrtho
@@ -2689,13 +2691,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine optimizeDIIS
 
 
-     subroutine getHamiltonianMatrix(iproc, nproc, lzdig, Glr, onWhichAtom, onWhichAtomp, nat, chi, hchi, ham, orbsig)
+     subroutine getHamiltonianMatrix(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, nat, chi, hchi, ham, orbsig)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, nat
        type(linear_zone_descriptors),intent(in):: lzdig
        type(locreg_descriptors),intent(in):: Glr
+       type(input_variables),intent(in):: input
        integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom
        integer,dimension(lzdig%orbs%norbp),intent(in):: onWhichAtomp
        type(orbitals_data),intent(in):: orbsig

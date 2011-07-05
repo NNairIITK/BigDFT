@@ -201,7 +201,7 @@ END SUBROUTINE apply_potentialConfinement2
 subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
      proj,ngatherarr,ndimpot,pot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, &
-     pkernel,orbsocc,psirocc)
+     doNotCalculate, pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use libxc_functionals
@@ -226,6 +226,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   type(p2pCommsgatherPot), intent(in):: comgp
   integer,dimension(lzd%orbs%norbp),intent(in):: onWhichAtomp
   logical,intent(in):: withConfinement
+  logical,dimension(lzd%nlr),intent(in),optional:: doNotCalculate
   real(dp), dimension(*), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
@@ -271,7 +272,18 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
      ! to this localization region.
      !write(*,'(a,3i8)') 'iproc, ilr, Lzd%Llr(ilr)%Localnorb', iproc, ilr, Lzd%Llr(ilr)%Localnorb
      if(Lzd%Llr(ilr)%Localnorb == 0) cycle
- 
+
+     ! If no calculation for this localization region is required, only increase the index
+     if(present(doNotCalculate)) then
+         if(doNotCalculate(ilr)) then
+             dimwf=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*&
+                   Lzd%orbs%nspinor*nspin
+             ind = ind + dimwf
+             write(*,'(a,i0,a,i0)') 'process ',iproc,' cycles for locreg ',ilr
+             cycle
+         end if
+     end if
+
      allocate(Lpot(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin), stat=i_stat)
      call memocc(i_stat,Lpot,'Lpot',subname)
  
@@ -474,12 +486,17 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
 
 
   ! Now that all is accumulated, rename hpsi_proj to hpsi
-  hpsi = hpsi_proj
+  ! Do this only if hpsi_proj is allcoated, i.e. if it has some content. It is not
+  ! allocated if we cycled all the times.
+  if(allocated(hpsi_proj)) then
+      hpsi = hpsi_proj
 
-  !deallocate hpsi_proj
-  i_all=-product(shape(hpsi_proj))*kind(hpsi_proj)
-  deallocate(hpsi_proj,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi_proj',subname)
+      !deallocate hpsi_proj
+      i_all=-product(shape(hpsi_proj))*kind(hpsi_proj)
+      deallocate(hpsi_proj,stat=i_stat)
+      call memocc(i_stat,i_all,'hpsi_proj',subname)
+  end if
+
 
   !! local potential and kinetic energy for all orbitals belonging to iproc
   !if (iproc==0 .and. verbose > 1) then

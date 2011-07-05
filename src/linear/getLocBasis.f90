@@ -97,20 +97,16 @@ real(8),dimension(lin%lb%Lorbs%npsidim),intent(inout):: lphi
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 
 ! Local variables 
-integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff
+integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb
 real(8),dimension(:),allocatable:: hphi, eval, lhphi
 real(8),dimension(:,:),allocatable:: HamSmall
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, ddot, trace, lastAlpha
+real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, lastAlpha, tt
 real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
-
-
-real(8):: hxh, hyh, hzh, ehart, eexcu, vexcu, tt, energybs
-integer:: iorb, jorb, it, istart, korb
 character(len=11):: procName, orbNumber, orbName
 character(len=30):: filename
 
@@ -160,6 +156,7 @@ integer:: ist, ierr
       end do
       call dcopy(nphibuff, phi(1), 1, lin%phiRestart(1), 1)
       call getDerivativeBasisFunctions(iproc, nproc, input%hx, Glr, lin, nphibuff, lin%phiRestart, phi)
+      !call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, nphibuff, lin%phiRestart, phi)
 
       ! Orthonormalize
       call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
@@ -179,7 +176,7 @@ integer:: ist, ierr
       ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
   end do
-  ! Transfom all orbitals to real space
+  ! Transform all orbitals to real space
   ist=1
   istr=1
   do iorb=1,lin%lb%orbs%norbp
@@ -296,19 +293,20 @@ integer:: ist, ierr
   end if
 
 
-  !!!!! Improve the coefficients -- EXPERIMENTAL
-  !!!if(updatePhi) then
-  !!!    do iorb=1,orbs%norb
-  !!!        do jorb=1,lin%lb%orbs%norb
-  !!!            tt=0.d0
-  !!!            do korb=1,lin%lb%orbs%norb
-  !!!                tt=tt+coeff(korb,iorb)*matrixElements(jorb,korb,1)
-  !!!            end do
-  !!!            coeff(jorb,iorb) = coeff(jorb,iorb)-1.d-1*tt
-  !!!        end do 
-  !!!    end do
-  !!!end if
-  !!!!!
+  !! Improve the coefficients -- EXPERIMENTAL
+  !!if(updatePhi) then
+  !!    call dcopy(lin%lb%orbs%norb*orbs%norb, coeff(1,1), 1, matrixElements(1,1,2), 1)
+  !!    do iorb=1,orbs%norb
+  !!        do jorb=1,lin%lb%orbs%norb
+  !!            tt=0.d0
+  !!            do korb=1,lin%lb%orbs%norb
+  !!                tt=tt+matrixElements(korb,iorb,2)*matrixElements(jorb,korb,1)
+  !!            end do
+  !!            coeff(jorb,iorb) = coeff(jorb,iorb)-1.d-1*tt
+  !!        end do 
+  !!    end do
+  !!end if
+  !!
 
 
   
@@ -2503,3 +2501,335 @@ if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the 
 
 
 end subroutine gatherPotential
+
+
+
+
+
+
+
+subroutine getDerivativeBasisFunctions2(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
+use module_base
+use module_types
+use module_interfaces, exceptThisOne => getDerivativeBasisFunctions
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, nphi
+real(8),intent(in):: hgrid
+type(locreg_descriptors),intent(in):: Glr
+type(linearParameters),intent(in):: lin
+real(8),dimension(nphi),intent(in):: phi
+real(8),dimension(lin%lb%orbs%npsidim),intent(out):: phid
+
+! Local variables
+integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc, ierr
+integer:: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f, istLoc, istRoot
+integer:: jjorb, jlr, jj, offset, ilr, jorb
+real(8),dimension(0:3),parameter:: scal=1.d0
+real(8),dimension(:),allocatable:: w_f1, w_f2, w_f3, phiLoc, phiRoot
+real(8),dimension(:,:,:),allocatable:: w_c, phix_c, phiy_c, phiz_c
+real(8),dimension(:,:,:,:),allocatable:: w_f, phix_f, phiy_f, phiz_f
+character(len=*),parameter:: subname='getDerivativeBasisFunctions'
+integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
+
+
+
+  ! THIS IS COPIED FROM allocate_work_arrays. Works only for free boundary.
+  nf=(Glr%d%nfu1-Glr%d%nfl1+1)*(Glr%d%nfu2-Glr%d%nfl2+1)*(Glr%d%nfu3-Glr%d%nfl3+1)
+  ! Allocate work arrays
+  allocate(w_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3+ndebug), stat=istat)
+  call memocc(istat, w_c, 'w_c', subname)
+  allocate(w_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3+ndebug), stat=istat)
+  call memocc(istat, w_f, 'w_f', subname)
+
+  allocate(w_f1(nf+ndebug), stat=istat)
+  call memocc(istat, w_f1, 'w_f1', subname)
+  allocate(w_f2(nf+ndebug), stat=istat)
+  call memocc(istat, w_f2, 'w_f2', subname)
+  allocate(w_f3(nf+ndebug), stat=istat)
+  call memocc(istat, w_f3, 'w_f3', subname)
+
+
+  allocate(phix_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
+  call memocc(istat, phix_f, 'phix_f', subname)
+  allocate(phix_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
+  call memocc(istat, phix_c, 'phix_c', subname)
+  allocate(phiy_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
+  call memocc(istat, phiy_f, 'phiy_f', subname)
+  allocate(phiy_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
+  call memocc(istat, phiy_c, 'phiy_c', subname)
+  allocate(phiz_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
+  call memocc(istat, phiz_f, 'phiz_f', subname)
+  allocate(phiz_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
+  call memocc(istat, phiz_c, 'phiz_c', subname)
+
+  allocate(phiLoc(4*lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)), stat=istat)
+  call memocc(istat, phiLoc, 'phiLoc', subname)
+ 
+  ! Initialize to zero
+  w_c=0.d0
+  w_f=0.d0
+  w_f1=0.d0
+  w_f2=0.d0
+  w_f3=0.d0
+  phix_c=0.d0
+  phix_f=0.d0
+  phiy_c=0.d0
+  phiy_f=0.d0
+  phiz_c=0.d0
+  phiz_f=0.d0
+
+
+
+!write(*,'(a,i12,i5,i12)') 'Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, lind%orbs%norbp, lind%orbs%npsidim', Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, lind%orbs%norbp, lind%orbs%npsidim
+!write(*,*) 'size(phid)', size(phid)
+
+
+  ! These are the starting indices in phiLoc:
+  ! ist0: start index of the orginal phi
+  ist0_c=1
+  ist0_f=ist0_c+Glr%wfd%nvctr_c
+  ! istx: start index of the derivative with respect to x
+  istx_c=1+lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  istx_f=istx_c+Glr%wfd%nvctr_c
+  ! isty: start index of the derivative with respect to y
+  isty_c=1+lin%orbs%norbp*2*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  isty_f=isty_c+Glr%wfd%nvctr_c
+  ! istz: start index of the derivative with respect to z
+  istz_c=1+lin%orbs%norbp*3*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  istz_f=istz_c+Glr%wfd%nvctr_c
+
+
+
+  ist1_c=1
+  ist2_c=1
+  ist0_c=1
+  istx_c=lin%lzd%orbs%npsidim+1
+  isty_c=2*lin%lzd%orbs%npsidim+1
+  istz_c=3*lin%lzd%orbs%npsidim+1
+
+  do iorb=1,lin%orbs%norbp
+
+      ilr=lin%onWhichAtom(iorb)
+
+      ist1_f=ist1_c+lin%llr(ilr)%wfd%nvctr_c
+      ist2_f=ist2_c+lin%llr(ilr)%wfd%nvctr_c
+      ! ist0: start index of the orginal phi
+      ist0_f=ist0_c+lin%llr(ilr)%wfd%nvctr_c
+      ! istx: start index of the derivative with respect to x
+      istx_f=istx_c+lin%llr(ilr)%wfd%nvctr_c
+      ! isty: start index of the derivative with respect to y
+      isty_f=isty_c+lin%llr(ilr)%wfd%nvctr_c
+      ! istz: start index of the derivative with respect to z
+      istz_f=istz_c+lin%llr(ilr)%wfd%nvctr_c
+
+      ! Uncompress the wavefunction.
+      call uncompress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, & 
+           Glr%d%nfl2, Glr%d%nfu2, Glr%d%nfl3, Glr%d%nfu3,  &
+           Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv,  &
+           Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
+           scal, phi(ist1_c), phi(ist1_f), w_c, w_f, w_f1, w_f2, w_f3)
+
+      call createDerivativeBasis(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
+           Glr%d%nfl1, Glr%d%nfu1, Glr%d%nfl2, Glr%d%nfu2, Glr%d%nfl3, Glr%d%nfu3,  &
+           hgrid, Glr%bounds%kb%ibyz_c, Glr%bounds%kb%ibxz_c, Glr%bounds%kb%ibxy_c, &
+           Glr%bounds%kb%ibyz_f, Glr%bounds%kb%ibxz_f, Glr%bounds%kb%ibxy_f, &
+           w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
+
+      ! Copy phi to phiLoc
+      call dcopy(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
+      ist0_c = ist0_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
+      ist1_c = ist1_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
+
+      ! Compress the x wavefunction.
+      call compress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, &
+           Glr%d%nfl2, Glr%d%nfu2, Glr%d%nfl3, Glr%d%nfu3, &
+           Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv, &
+           Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
+           scal, phix_c, phix_f, phiLoc(istx_c), phiLoc(istx_f))
+      istx_c = istx_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
+
+      ! Compress the y wavefunction.
+      call compress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, &
+           Glr%d%nfl2, Glr%d%nfu2, Glr%d%nfl3, Glr%d%nfu3, &
+           Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv, &
+           Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
+           scal, phiy_c, phiy_f, phiLoc(isty_c), phiLoc(isty_f))
+      isty_c = isty_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
+
+      ! Compress the z wavefunction.
+      call compress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, &
+           Glr%d%nfl2, Glr%d%nfu2, Glr%d%nfl3, Glr%d%nfu3, &
+           Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv, &
+           Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
+           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
+           scal, phiz_c, phiz_f, phiLoc(istz_c), phiLoc(istz_f))
+      istz_c = istz_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
+
+
+  end do
+
+  ! Now copy phiLoc to phid. This requires some communication, since the partition of phiLoc
+  ! is not identical to the partition of phid.
+  ! Collect on root and then redistribute.
+  ! THIS MUST BE IMPROVED.
+  allocate(recvcounts(0:nproc-1), stat=istat)
+  call memocc(istat, recvcounts, 'recvcounts', subname)
+  allocate(sendcounts(0:nproc-1), stat=istat)
+  call memocc(istat, sendcounts, 'sendcounts', subname)
+  allocate(displs(0:nproc-1), stat=istat)
+  call memocc(istat, displs, 'displs', subname)
+  !if(iproc==0) then
+      jj=0
+      do jorb=1,lin%lorbs%norb
+          jlr=lin%onWhichAtomAll(iorb)
+          jj=jj+lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f
+      end do
+      jj=4*jj
+      allocate(phiRoot(jj), stat=istat)
+      call memocc(istat, phiRoot, 'phiRoot', subname)
+  !end if
+
+  ! Gather the original phi
+  istLoc=1
+  istRoot=1
+  displs(0)=1
+  offset=0
+  do jproc=0,nproc-1
+      if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
+      jj=0
+      do jorb=1,lin%lzd%orbs%norb_par(jproc)
+          jjorb=lin%lzd%orbs%isorb_par(jproc)+jorb
+          jlr=lin%onWhichAtomAll(jjorb)
+          jj=jj+lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f
+      end do
+      offset=offset+jj
+      recvcounts(jproc)=jj
+      !if(iproc==0) write(*,'(a,i4,2i6)') '0: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  end do
+  call mpi_gatherv(phiLoc(istLoc), recvcounts(iproc),  mpi_double_precision, &
+       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+
+  ! Gather the derivatives with respect to x
+  istLoc=lin%lzd%orbs%npsidim+1
+  istRoot=istRoot+offset
+  !!displs(0)=1
+  !!do jproc=0,nproc-1
+  !!    if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
+  !!    recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  !!    !if(iproc==0) write(*,'(a,i4,2i6)') 'x: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  !!end do
+  call mpi_gatherv(phiLoc(istLoc), recvcounts(iproc), mpi_double_precision, &
+       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+
+  ! Gather the derivatives with respect to y
+  istLoc=2*lin%lzd%orbs%npsidim+1
+  istRoot=istRoot+offset
+  !!displs(0)=1
+  !!do jproc=0,nproc-1
+  !!    if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
+  !!    recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  !!    !if(iproc==0) write(*,'(a,i4,2i6)') 'y: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  !!end do
+  call mpi_gatherv(phiLoc(istLoc), recvcounts(iproc), mpi_double_precision, &
+       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+
+  ! Gather the derivatives with respect to z
+  istLoc=3*lin%lzd%orbs%npsidim+1
+  istRoot=istRoot+offset
+  !!displs(0)=1
+  !!do jproc=0,nproc-1
+  !!    if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
+  !!    recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  !!    !if(iproc==0) write(*,'(a,i4,2i6)') 'z: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  !!end do
+  call mpi_gatherv(phiLoc(istLoc), recvcounts(iproc), mpi_double_precision, &
+       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+
+
+  displs(0)=1
+  do jproc=0,nproc-1
+      if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+      jj=0
+      do jorb=1,lin%lb%lorbs%norb_par(jproc)
+          jjorb=lin%lb%lorbs%isorb_par(jproc)+jorb
+          jlr=lin%lb%onWhichAtomAll(jjorb)
+          jj=jj+lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f
+      end do
+      sendcounts(jproc)=jj
+       !if(iproc==0) write(*,'(a,i4,2i6)') 'jproc, sendcounts(jproc)/size, displs(jproc)/size', jproc, sendcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
+  end do
+  call mpi_scatterv(phiRoot(1), sendcounts, displs, mpi_double_precision, phid(1), &
+       lin%lb%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, 0, mpi_comm_world, ierr)
+
+  ! Deallocate all local arrays
+  iall=-product(shape(w_c))*kind(w_c)
+  deallocate(w_c, stat=istat)
+  call memocc(istat, iall, 'w_c', subname)
+
+  iall=-product(shape(w_f))*kind(w_f)
+  deallocate(w_f, stat=istat)
+  call memocc(istat, iall, 'w_f', subname)
+
+  iall=-product(shape(w_f1))*kind(w_f1)
+  deallocate(w_f1, stat=istat)
+  call memocc(istat, iall, 'w_f1', subname)
+
+  iall=-product(shape(w_f2))*kind(w_f2)
+  deallocate(w_f2, stat=istat)
+  call memocc(istat, iall, 'w_f2', subname)
+
+  iall=-product(shape(w_f3))*kind(w_f3)
+  deallocate(w_f3, stat=istat)
+  call memocc(istat, iall, 'w_f3', subname)
+
+  iall=-product(shape(phix_f))*kind(phix_f)
+  deallocate(phix_f, stat=istat)
+  call memocc(istat, iall, 'phix_f', subname)
+
+  iall=-product(shape(phix_c))*kind(phix_c)
+  deallocate(phix_c, stat=istat)
+  call memocc(istat, iall, 'phix_c', subname)
+
+  iall=-product(shape(phiy_f))*kind(phiy_f)
+  deallocate(phiy_f, stat=istat)
+  call memocc(istat, iall, 'phiy_f', subname)
+
+  iall=-product(shape(phiy_c))*kind(phiy_c)
+  deallocate(phiy_c, stat=istat)
+  call memocc(istat, iall, 'phiy_c', subname)
+
+  iall=-product(shape(phiz_f))*kind(phiz_f)
+  deallocate(phiz_f, stat=istat)
+  call memocc(istat, iall, 'phiz_f', subname)
+
+  iall=-product(shape(phiz_c))*kind(phiz_c)
+  deallocate(phiz_c, stat=istat)
+  call memocc(istat, iall, 'phiz_c', subname)
+
+  iall=-product(shape(phiLoc))*kind(phiLoc)
+  deallocate(phiLoc, stat=istat)
+  call memocc(istat, iall, 'phiLoc', subname)
+
+  iall=-product(shape(phiRoot))*kind(phiRoot)
+  deallocate(phiRoot, stat=istat)
+  call memocc(istat, iall, 'phiRoot', subname)
+
+  iall=-product(shape(recvcounts))*kind(recvcounts)
+  deallocate(recvcounts, stat=istat)
+  call memocc(istat, iall, 'recvcounts', subname)
+
+  iall=-product(shape(sendcounts))*kind(sendcounts)
+  deallocate(sendcounts, stat=istat)
+  call memocc(istat, iall, 'sendcounts', subname)
+
+  iall=-product(shape(displs))*kind(displs)
+  deallocate(displs, stat=istat)
+  call memocc(istat, iall, 'displs', subname)
+
+
+end subroutine getDerivativeBasisFunctions2

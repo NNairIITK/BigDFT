@@ -15,7 +15,7 @@ real(8),dimension(:),allocatable:: lphiovrlp
 real(8),dimension(:,:),allocatable:: ovrlp
 character(len=*),parameter:: subname='orthonormalize'
 logical:: converged
-real(8):: maxError, t1, t2, timeCommun, timeComput
+real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeExpand, timeLoewdin, timeTransform, timeExtract
 
   allocate(ovrlp(lin%orbs%norb,lin%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp',subname)
@@ -25,11 +25,19 @@ real(8):: maxError, t1, t2, timeCommun, timeComput
 
   timeComput=0.d0
   timeCommun=0.d0
+  timeCalcOvrlp=0.d0
+  timeExpand=0.d0
+  timeLoewdin=0.d0
+  timeTransform=0.d0
+  timeExtract=0.d0
+  converged=.false.
   do it=1,lin%nItOrtho
       !if(iproc==0) write(*,'(a,i0)') 'at it=',it
       call cpu_time(t1)
-      call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+      !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+      call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
       call cpu_time(t2)
+      timeExtract=timeExtract+t2-t1
       timeComput=timeComput+t2-t1
       call cpu_time(t1)
       call postCommsOverlap(iproc, nproc, lin%comon)
@@ -38,6 +46,8 @@ real(8):: maxError, t1, t2, timeCommun, timeComput
       timeCommun=timeCommun+t2-t1
       call cpu_time(t1)
       call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, ovrlp)
+      call cpu_time(t2)
+      timeCalcOvrlp=timeCalcOvrlp+t2-t1
       !!do iorb=1,lin%orbs%norb
       !!    do jorb=1,lin%orbs%norb
       !!        write(500+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
@@ -51,10 +61,20 @@ real(8):: maxError, t1, t2, timeCommun, timeComput
           timeComput=timeComput+t2-t1
           exit
       end if
+      call cpu_time(t3)
       call transformOverlapMatrix(iproc, nproc, lin%lzd%orbs, ovrlp)
+      call cpu_time(t4)
+      timeTransform=timeTransform+t4-t3
       !call transformOverlapMatrix2(iproc, nproc, lin%lzd%orbs, ovrlp)
-      call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+      call cpu_time(t3)
+      !call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+      call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+      call cpu_time(t4)
+      timeExpand=timeExpand+t4-t3
+      call cpu_time(t3)
       call globalLoewdin(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, ovrlp, lphiovrlp, lphi)
+      call cpu_time(t4)
+      timeLoewdin=timeLoewdin+t4-t3
       call cpu_time(t2)
       timeComput=timeComput+t2-t1
   end do
@@ -67,10 +87,25 @@ real(8):: maxError, t1, t2, timeCommun, timeComput
 
   call mpiallred(timeComput, 1, mpi_sum, mpi_comm_world, ierr)
   call mpiallred(timeCommun, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeCalcOvrlp, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeExpand, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeLoewdin, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeTransform, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeExtract, 1, mpi_sum, mpi_comm_world, ierr)
   timeComput=timeComput/dble(nproc)
   timeCommun=timeCommun/dble(nproc)
+  timeCalcOvrlp=timeCalcOvrlp/dble(nproc)
+  timeExpand=timeExpand/dble(nproc)
+  timeLoewdin=timeLoewdin/dble(nproc)
+  timeTransform=timeTransform/dble(nproc)
+  timeExtract=timeExtract/dble(nproc)
   if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for computation:', timeComput, '=', 100.d0*timeComput/(timeComput+timeCommun), '%'
   if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for communication:', timeCommun, '=', 100.d0*timeCommun/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for calculating overlap:', timeCalcOvrlp, '=', 100.d0*timeCalcOvrlp/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expansion:', timeExpand, '=', 100.d0*timeExpand/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for Loewdin:', timeLoewdin, '=', 100.d0*timeLoewdin/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for transform:', timeTransform, '=', 100.d0*timeTransform/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=', 100.d0*timeExtract/(timeComput+timeCommun), '%'
 
   iall=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp, stat=istat)
@@ -327,7 +362,7 @@ END SUBROUTINE orthoconstraintLocalized2
 
 
 
-subroutine initCommsOrtho(iproc, nproc, lzd, onWhichAtomAll, op, comon)
+subroutine initCommsOrtho(iproc, nproc, lzd, onWhichAtomAll, input, op, comon)
 use module_base
 use module_types
 implicit none
@@ -336,6 +371,7 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(linear_zone_descriptors),intent(in):: lzd
 integer,dimension(lzd%orbs%norb),intent(in):: onWhichAtomAll
+type(input_variables),intent(in):: input
 type(overlapParameters),intent(out):: op
 type(p2pCommsOrthonormality),intent(out):: comon
 
@@ -385,6 +421,25 @@ comon%recvBuf=555.55d0
 
 !call postCommsOverlap(iproc, nproc, comon)
 
+! Initialize the index arrays for the transformations from overlap region
+! to ordinary localization region.
+allocate(op%indexExpand(comon%nrecvBuf), stat=istat)
+call memocc(istat, op%indexExpand, 'op%indexExpand',subname)
+call indicesForExpansion(iproc, nproc, lzd%orbs, input, onWhichAtomAll, lzd, op, comon)
+
+! Initialize the index arrays for the transformations from the ordinary localization region
+! to the overlap region.
+allocate(op%indexExtract(comon%nsendBuf), stat=istat)
+call memocc(istat, op%indexExtract, 'op%indexExtract',subname)
+call indicesForExtraction(iproc, nproc, lzd%orbs, lzd%orbs%npsidim, onWhichAtomAll, lzd, op, comon)
+
+
+!!do istat=1,comon%nrecvBuf
+!!    write(400+iproc,*) istat, op%indexExpand(istat)
+!!end do
+!!do istat=1,comon%nsendBuf
+!!    write(450+iproc,*) istat, op%indexExtract(istat)
+!!end do
 
 
 !!call mpi_barrier(mpi_comm_world, istat)
@@ -472,7 +527,7 @@ do jproc=0,nproc-1
             end if
         end do 
         op%noverlaps(iiorb)=ioverlaporb
-        !if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
+        if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
         ilrold=ilr
     end do
     comon%noverlaps(jproc)=ioverlapMpi
@@ -852,6 +907,81 @@ end subroutine extractOrbital
 
 
 
+
+subroutine extractOrbital2(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, phi, comon)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, sizePhi
+type(orbitals_data),intent(in):: orbs
+integer,dimension(orbs%norb),intent(in):: onWhichAtom
+type(linear_zone_descriptors),intent(in):: lzd
+type(overlapParameters),intent(inout):: op
+real(8),dimension(sizePhi),intent(in):: phi
+type(p2pCommsOrthonormality),intent(out):: comon
+
+! Local variables
+integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
+integer:: i, indSource
+
+indovrlp=1
+op%indexInSendBuf=0
+
+ilrold=-1
+do iorb=1,orbs%norb
+    ilr=onWhichAtom(iorb)
+    iiproc=orbs%onWhichMPI(iorb)
+    if(ilr==ilrold .and. iiproc==iiprocold) cycle ! otherwise we would extract the same again
+    do jorb=1,op%noverlaps(iorb)
+        jjorb=op%overlaps(jorb,iorb)
+        jjlr=onWhichAtom(jjorb)
+        jjproc=orbs%onWhichMPI(jjorb)
+        if(iproc==jjproc) then
+            ! Get the correct descriptors
+            korb=jjorb-orbs%isorb
+            !write(*,'(a,5i8)') 'iorb, jorb, jjorb, jjproc, korb', iorb, jorb, jjorb, jjproc, korb
+            do i=1,op%noverlaps(jjorb)
+                !write(*,'(a,5i8)') 'iproc, iorb, korb, i, op%overlaps(i,korb)', iproc, iorb, korb, i, op%overlaps(i,korb)
+                if(op%overlaps(i,jjorb)==iorb) then
+                    lorb=i
+                    exit
+                end if
+            end do
+            !write(*,'(a,5i9)') 'iproc, iorb, jorb, korb, lorb', iproc, iorb, jorb, korb, lorb
+            gdim=lzd%llr(jjlr)%wfd%nvctr_c+7*lzd%llr(jjlr)%wfd%nvctr_f
+            ldim=op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
+            ind=1
+            do kkorb=orbs%isorb+1,jjorb-1
+                klr=onWhichAtom(kkorb)
+                ind = ind + lzd%llr(klr)%wfd%nvctr_c + 7*lzd%llr(klr)%wfd%nvctr_f
+            end do
+            !write(*,'(5(a,i0))') 'process ',iproc,' adds ',op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f,' elements at position ',indovrlp,' from orbital ',jjorb,' for orbital ', iorb
+            !call psi_to_locreg2(iproc, nproc, ldim, gdim, op%olr(lorb,korb), lzd%llr(jjlr), phi(ind), comon%sendBuf(indovrlp))
+            do i=0,ldim-1
+                indSource=ind+op%indexExtract(indovrlp+i)-1
+                comon%sendBuf(indovrlp+i)=phi(indSource)
+            end do
+            op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
+            indovrlp=indovrlp+op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
+        end if
+    end do
+    ilrold=ilr
+    iiprocold=iiproc
+end do
+
+if(indovrlp/=comon%nsendBuf+1) then
+    write(*,'(x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=comon%nsendBuf+1', indovrlp, comon%nsendBuf+1
+    stop
+end if
+
+end subroutine extractOrbital2
+
+
+
+
+
 subroutine gatherOrbitals(iproc, nproc, comon)
 use module_base
 use module_types
@@ -1160,6 +1290,57 @@ end subroutine expandOrbital
 
 
 
+subroutine expandOrbital2(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon, lphiovrlp)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs
+type(input_variables),intent(in):: input
+integer,dimension(orbs%norb),intent(in):: onWhichAtom
+type(linear_zone_descriptors),intent(in):: lzd
+type(overlapParameters),intent(in):: op
+type(p2pCommsOrthonormality),intent(in):: comon
+real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+
+! Local variables
+integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, i, indDest
+
+
+lphiovrlp=0.d0
+
+ind=1
+ilrold=-1
+do iorb=1,orbs%norbp
+    iiorb=orbs%isorb+iorb
+    ilr=onWhichAtom(iiorb)
+    if(ilr==ilrold) cycle
+    gdim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+    do jorb=1,op%noverlaps(iiorb)
+        jjorb=op%overlaps(jorb,iiorb)
+        ! Starting index of orbital jjorb
+        jst=op%indexInRecvBuf(iorb,jjorb)
+        !ldim=op%olr(jorb,iiorb)%wfd%nvctr_c+7*op%olr(jorb,iiorb)%wfd%nvctr_f
+        ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
+        !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), comon%recvBuf(jst), lphiovrlp(ind))
+        !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), comon%recvBuf(jst), lphiovrlp(ind))
+        do i=0,ldim-1
+            indDest=ind+op%indexExpand(jst+i)-1
+            lphiovrlp(indDest)=comon%recvBuf(jst+i)
+        end do
+        ind=ind+gdim
+    end do
+    ilrold=ilr
+end do
+
+end subroutine expandOrbital2
+
+
+
+
+
 subroutine checkUnity(iproc, norb, ovrlp, maxError)
   use module_base
   use module_types
@@ -1389,3 +1570,121 @@ end do
 
 
 endsubroutine transformOverlapMatrix2
+
+
+
+
+
+subroutine indicesForExpansion(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs
+type(input_variables),intent(in):: input
+integer,dimension(orbs%norb),intent(in):: onWhichAtom
+type(linear_zone_descriptors),intent(in):: lzd
+type(overlapParameters),intent(in):: op
+type(p2pCommsOrthonormality),intent(in):: comon
+
+! Local variables
+integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold
+
+
+
+ind=1
+ilrold=-1
+do iorb=1,orbs%norbp
+    iiorb=orbs%isorb+iorb
+    ilr=onWhichAtom(iiorb)
+    if(ilr==ilrold) cycle
+    gdim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+    do jorb=1,op%noverlaps(iiorb)
+        jjorb=op%overlaps(jorb,iiorb)
+        ! Starting index of orbital jjorb
+        jst=op%indexInRecvBuf(iorb,jjorb)
+        !ldim=op%olr(jorb,iiorb)%wfd%nvctr_c+7*op%olr(jorb,iiorb)%wfd%nvctr_f
+        ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
+        !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), comon%recvBuf(jst), lphiovrlp(ind))
+        !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), comon%recvBuf(jst), lphiovrlp(ind))
+        call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), op%indexExpand(jst))
+        ind=ind+gdim
+    end do
+    ilrold=ilr
+end do
+
+end subroutine indicesForExpansion
+
+
+
+
+
+subroutine indicesForExtraction(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, comon)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, sizePhi
+type(orbitals_data),intent(in):: orbs
+integer,dimension(orbs%norb),intent(in):: onWhichAtom
+type(linear_zone_descriptors),intent(in):: lzd
+type(overlapParameters),intent(inout):: op
+type(p2pCommsOrthonormality),intent(out):: comon
+
+! Local variables
+integer:: iorb, jorb, korb, ind, indovrlp, ilr, klr, ilrold, jjorb, jjlr, jjproc, iiproc, iiprocold, gdim, ldim, kkorb, lorb
+integer:: i
+
+indovrlp=1
+op%indexInSendBuf=0
+
+ilrold=-1
+do iorb=1,orbs%norb
+    ilr=onWhichAtom(iorb)
+    iiproc=orbs%onWhichMPI(iorb)
+    if(ilr==ilrold .and. iiproc==iiprocold) cycle ! otherwise we would extract the same again
+    do jorb=1,op%noverlaps(iorb)
+        jjorb=op%overlaps(jorb,iorb)
+        jjlr=onWhichAtom(jjorb)
+        jjproc=orbs%onWhichMPI(jjorb)
+        if(iproc==jjproc) then
+            ! Get the correct descriptors
+            korb=jjorb-orbs%isorb
+            !write(*,'(a,5i8)') 'iorb, jorb, jjorb, jjproc, korb', iorb, jorb, jjorb, jjproc, korb
+            do i=1,op%noverlaps(jjorb)
+                !write(*,'(a,5i8)') 'iproc, iorb, korb, i, op%overlaps(i,korb)', iproc, iorb, korb, i, op%overlaps(i,korb)
+                if(op%overlaps(i,jjorb)==iorb) then
+                    lorb=i
+                    exit
+                end if
+            end do
+            !write(*,'(a,5i9)') 'iproc, iorb, jorb, korb, lorb', iproc, iorb, jorb, korb, lorb
+            gdim=lzd%llr(jjlr)%wfd%nvctr_c+7*lzd%llr(jjlr)%wfd%nvctr_f
+            ldim=op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
+            ind=1
+            do kkorb=orbs%isorb+1,jjorb-1
+                klr=onWhichAtom(kkorb)
+                ind = ind + lzd%llr(klr)%wfd%nvctr_c + 7*lzd%llr(klr)%wfd%nvctr_f
+            end do
+            !write(*,'(5(a,i0))') 'process ',iproc,' adds ',op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f,' elements at position ',indovrlp,' from orbital ',jjorb,' for orbital ', iorb
+            !call psi_to_locreg2(iproc, nproc, ldim, gdim, op%olr(lorb,korb), lzd%llr(jjlr), phi(ind), comon%sendBuf(indovrlp))
+            call index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, op%olr(lorb,korb), lzd%llr(jjlr), op%indexExtract(indovrlp))
+            op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
+            indovrlp=indovrlp+op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f
+        end if
+    end do
+    ilrold=ilr
+    iiprocold=iiproc
+end do
+
+if(indovrlp/=comon%nsendBuf+1) then
+    write(*,'(x,a,i0,a,3x,i0,2x,i0)') 'ERROR on process ', iproc, ': indovrlp/=comon%nsendBuf+1', indovrlp, comon%nsendBuf+1
+    stop
+end if
+
+
+
+end subroutine indicesForExtraction

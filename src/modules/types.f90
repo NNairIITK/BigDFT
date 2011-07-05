@@ -418,7 +418,7 @@ module module_types
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
       integer:: ndim_lphiovrlp
-      integer,dimension(:),pointer:: noverlaps
+      integer,dimension(:),pointer:: noverlaps, indexExpand, indexExtract
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:,:),pointer:: indexInRecvBuf
       integer,dimension(:,:),pointer:: indexInSendBuf
