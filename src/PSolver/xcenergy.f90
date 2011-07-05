@@ -39,20 +39,9 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 !!$  call memocc(i_stat,rhovc,'rhovc',subname)
 
   !find the correct position of the nlcc parameters
-  ilcc=0
-  do jtyp=1,ityp-1
-     ngv=atoms%nlcc_ngv(jtyp)
-     if (ngv /= UNINITIALIZED(ngv)) ilcc=ilcc+(ngv*(ngv+1)/2)
-     ngc=atoms%nlcc_ngc(jtyp)
-     if (ngc /= UNINITIALIZED(ngc)) ilcc=ilcc+(ngc*(ngc+1))/2
-  end do
-  islcc=ilcc
+  call nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
 
-  ngv=atoms%nlcc_ngv(ityp)
-  if (ngv==UNINITIALIZED(1)) ngv=0
-  ngc=atoms%nlcc_ngc(ityp)
-  if (ngc==UNINITIALIZED(1)) ngc=0
-
+  ilcc=islcc
   chv=0.0_gp
   do ig=1,(ngv*(ngv+1))/2
      ilcc=ilcc+1

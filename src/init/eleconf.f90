@@ -267,6 +267,20 @@ neleconf(3,0)=2
 neleconf(3,1)=1
 amu=26.981539d0
 
+case(14*1000+12) !silicon semicore(experimental)
+! -----------------------          18
+! Si          14           12     Symbol, Z, Zion
+symbol = "Si"
+rcov=2.09d0
+rprb=4.19d0
+ehomo=-0.153293d0
+neleconf(2,0)=2
+neleconf(2,1)=6
+neleconf(3,0)=2
+neleconf(3,1)=2
+amu=28.0855d0
+
+
 case(14*1000+4)
 ! -----------------------          18
 ! Si          14           4     Symbol, Z, Zion

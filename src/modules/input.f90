@@ -231,7 +231,7 @@ contains
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
     end if
-    var = i - 1
+    var = j - 1
     if (output) then
        write(*,"(1x,a,3x,a,1x,a,t30,3a)", advance = "NO") &
             & "|", name, buf, '!', description, " ("

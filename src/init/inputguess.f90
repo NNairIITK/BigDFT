@@ -285,7 +285,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
   character(len=*), parameter :: subname= 'AtomicOrbitals'
   integer, parameter :: nterm_max=3,noccmax=2,lmax=4,nmax=6,nelecmax=32!actually is 24
   logical :: orbpol_nc,occeq
-  integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp
+  integer :: iatsc,i_all,i_stat,ispin,nsccode,iexpo,ishltmp,ngv,ngc,islcc
   integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
   integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng
   real(gp) :: ek,mx,my,mz,ma,mb,mc,md
@@ -390,9 +390,12 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                 at%aocc(1,iat),at%iasctype(iat))
         end if
 
+        !positions for the nlcc arrays
+        call nlcc_start_position(ity,at,ngv,ngc,islcc)
+
         call iguess_generator(at%nzatom(ity),at%nelpsp(ity),&
              real(at%nelpsp(ity),gp),at%psppar(0,0,ity),&
-             at%npspcode(ity),&
+             at%npspcode(ity),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
              ng-1,nl,5,noccmax,lmax,occup,xp(1,ityx),&
              psiat(1,1,ityx),.false.)
         ntypesx=ntypesx+1
@@ -883,15 +886,16 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 END SUBROUTINE calc_coeff_inguess
 
 
-subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
+subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,ng,nl,&
      nmax_occ,noccmax,lmax,occup,expo,psiat,enlargerprb)
   use module_base
   implicit none
   logical, intent(in) :: enlargerprb
-  integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom
+  integer, intent(in) :: ng,npspcode,nmax_occ,lmax,noccmax,ielpsp,izatom,ngv,ngc
   real(gp), intent(in) :: zion
   integer, dimension(lmax+1), intent(in) :: nl
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
+  real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
   real(gp), dimension(noccmax,lmax+1), intent(in) :: occup
   real(gp), dimension(ng+1), intent(out) :: expo
   real(gp), dimension(ng+1,nmax_occ), intent(out) :: psiat
@@ -900,7 +904,7 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
   integer, parameter :: n_int=100
   real(gp), parameter :: fact=4.0_gp
   character(len=2) :: symbol
-  integer :: lpx,nsccode,mxpl,mxchg
+  integer :: lpx,nsccode,mxpl,mxchg,ilcc
   integer :: l,i,j,iocc,i_all,i_stat
   real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
   !integer, dimension(6,4) :: neleconf
@@ -1046,7 +1050,7 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
 
   call crtvh(ng,lmax-1,xp,vh,rprb,fact,n_int,rmt)
   call gatom(rcov,rprb,lmax-1,lpx,noccmax,occup,&
-       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
+       zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,n_int,&
        aeval,ng,psi,res,chrg)
 
   !post-treatment of the inguess data
@@ -1086,11 +1090,10 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ng,nl,&
 
 END SUBROUTINE iguess_generator
 
-
 !>  Calculates the solution of the radial Schroedinger equation for a given
 !!  pseudoptential.
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
-                 zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
+                 zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
@@ -1105,6 +1108,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
+  real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
   if (nintp.ne.n_int) stop 'n_int/=nintp'
 
   do l=0,lmax
@@ -1207,6 +1211,18 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
      dr=fact*rprb/real(n_int,gp)
      do k=1,n_int
         r=(real(k,gp)-.5_gp)*dr
+        !terms for nlcc, if present
+        ilcc=0
+        do ig=1,(ngv*(ngv+1))/2
+           ilcc=ilcc+1
+           xcgrd(k)=xcgrd(k)-&
+                spherical_gaussian_value(r*r,nlccpar(0,ilcc),nlccpar(1,ilcc),0)
+        end do
+        do ig=1,(ngc*(ngc+1))/2
+           ilcc=ilcc+1
+           xcgrd(k)=xcgrd(k)+&
+                spherical_gaussian_value(r*r,nlccpar(0,ilcc),nlccpar(1,ilcc),0)
+        end do
 ! divide by 4 pi
         tt=xcgrd(k)*0.07957747154594768_gp
 ! multiply with r^2 to speed up calculation of matrix elements

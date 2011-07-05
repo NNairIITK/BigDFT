@@ -21,6 +21,19 @@ subroutine razero(n,x)
   end do
 END SUBROUTINE razero
 
+!>   Set to zero an array x(n)
+subroutine razero_simple(n,x)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n
+  real(kind=4), intent(out) :: x(n)
+  !Local variables
+  integer :: i
+  do i=1,n
+     x(i)=0.e0
+  end do
+END SUBROUTINE razero_simple
+
 
 !>   Set to zero an array x(n): omp version of razero
 subroutine omp_razero(n,x)
@@ -53,7 +66,23 @@ subroutine tenminustwenty(n,x,nproc)
   end do
 END SUBROUTINE tenminustwenty
 
+subroutine copy_from_double_to_simple(n,dx,incx,dy,incy)
+  implicit none
+  integer, intent(in) :: n,incx,incy
+  real(kind=8), dimension(*), intent(in) :: dx
+  real(kind=4), dimension(*), intent(out) :: dy
+  !local variables
+  integer :: i,ix,iy
 
+  ix=0
+  iy=0
+  do i=1,n
+     ix=ix+incx
+     iy=iy+incy
+     dy(iy)=real(dx(ix),kind=4)
+  end do
+
+end subroutine copy_from_double_to_simple
 !>   To be used in the following function.
 module randomData
   implicit none

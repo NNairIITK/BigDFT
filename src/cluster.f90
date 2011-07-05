@@ -699,8 +699,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,"wavefunction", &
+     !since each processor read only few eigenvalues, initialise them to zero for all
+     call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+
+     call readmywaves(iproc,"wavefunction" // trim(wfformat), &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
+
+     !reduce the value for all the eigenvectors
+     call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      if (in%itrpmax /= 1) then
         !recalculate orbitals occupation numbers
@@ -937,7 +943,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            endif
 
            !evaluate the functional of the wavefucntions and put it into the diis structure
-           !the energy values is printed out here
+           !the energy values is printed out in this routine
            call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,hx,hy,hz,in%ncong,in%iscf,&
                 ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,eexctX,eion,edisp,&
                 psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)

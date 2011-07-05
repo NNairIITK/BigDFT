@@ -89,6 +89,12 @@ module module_defs
      module procedure uninitialized_dbl,uninitialized_int,uninitialized_real
   end interface
 
+  !initialize to zero an array
+  interface to_zero
+     module procedure put_to_zero_simple,put_to_zero_double
+  end interface
+
+
   !> interfaces for LAPACK routines
   interface potrf
      module procedure potrf_simple,potrf_double
@@ -113,6 +119,12 @@ module module_defs
   end interface
   interface hegv
      module procedure hegv_simple,hegv_double
+  end interface
+  interface gesv
+     module procedure gesv_simple,gesv_double
+  end interface
+  interface c_gesv
+     module procedure c_gesv_simple,c_gesv_double
   end interface
 
 
@@ -486,6 +498,26 @@ module module_defs
       call chegv(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,rwork,info)
     end subroutine hegv_simple
 
+    subroutine gesv_double(n,nrhs,a,lda,ipiv,b,ldb,info)
+      implicit none
+      integer, intent(in) :: n,lda,nrhs,ldb
+      integer, intent(out) :: info
+      real(kind=8), intent(inout) :: a,b
+      integer, intent(out) :: ipiv
+      !call to LAPACK routine
+      call dgesv(n,nrhs,a,lda,ipiv,b,ldb,info)
+    end subroutine gesv_double
+
+    subroutine gesv_simple(n,nrhs,a,lda,ipiv,b,ldb,info)
+      implicit none
+      integer, intent(in) :: n,lda,nrhs,ldb
+      integer, intent(out) :: info
+      real(kind=4), intent(inout) :: a,b
+      integer, intent(out) :: ipiv
+      !call to LAPACK routine
+      call sgesv(n,nrhs,a,lda,ipiv,b,ldb,info)
+    end subroutine gesv_simple
+
     subroutine hegv_double(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,rwork,info)
       implicit none
       character(len=1), intent(in) :: jobz,uplo
@@ -496,6 +528,26 @@ module module_defs
       !call to LAPACK routine
       call zhegv(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,rwork,info)
     end subroutine hegv_double
+
+    subroutine c_gesv_double(n,nrhs,a,lda,ipiv,b,ldb,info)
+      implicit none
+      integer, intent(in) :: n,lda,nrhs,ldb
+      integer, intent(out) :: info
+      real(kind=8), intent(inout) :: a,b
+      integer, intent(out) :: ipiv
+      !call to LAPACK routine
+      call zgesv(n,nrhs,a,lda,ipiv,b,ldb,info)
+    end subroutine c_gesv_double
+
+    subroutine c_gesv_simple(n,nrhs,a,lda,ipiv,b,ldb,info)
+      implicit none
+      integer, intent(in) :: n,lda,nrhs,ldb
+      integer, intent(out) :: info
+      real(kind=4), intent(inout) :: a,b
+      integer, intent(out) :: ipiv
+      !call to LAPACK routine
+      call cgesv(n,nrhs,a,lda,ipiv,b,ldb,info)
+    end subroutine c_gesv_simple
 
 
     !> Interfaces for BLAS routines
@@ -522,6 +574,23 @@ module module_defs
       !call to BLAS routine
       call DSCAL(n,da,dx,incx)
     end subroutine scal_double
+
+    subroutine put_to_zero_simple(n,da)
+      implicit none
+      integer, intent(in) :: n
+      real(kind=4), intent(out) :: da
+      !call to BLAS routine
+      call razero_simple(n,da)
+    end subroutine put_to_zero_simple
+
+    subroutine put_to_zero_double(n,da)
+      implicit none
+      integer, intent(in) :: n
+      real(kind=8), intent(out) :: da
+      !call to BLAS routine
+      call razero(n,da)
+    end subroutine put_to_zero_double
+
 
     subroutine c_scal_simple(n,da,dx,incx)
       implicit none
@@ -583,6 +652,14 @@ module module_defs
       call DCOPY(n,dx,incx,dy,incy)
     end subroutine copy_double
 
+    subroutine copy_double_to_simple(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      real(kind=8), intent(in) :: dx
+      real(kind=4), intent(out) :: dy
+      !local variables
+      call copy_from_double_to_simple(n,dx,incx,dy,incy)
+    end subroutine copy_double_to_simple
 
     subroutine trmm_simple(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
       implicit none

@@ -241,7 +241,6 @@ module module_types
      logical :: donlcc                             !< activate non-linear core correction treatment
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !<number of valence and core gaussians describing NLCC 
      real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
-     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
      integer :: symObj                               !< The symmetry object from ABINIT
      integer :: iat_absorber 
   end type atoms_data

@@ -207,8 +207,6 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
   allocate(atoms%nlcc_ngc(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
-  allocate(atoms%ig_nlccpar(0:4,atoms%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%ig_nlccpar,'atoms%ig_nlccpar',subname)
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -387,31 +385,17 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         do ig=1,(ngc*(ngc+1))/2
            read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
         end do
-        !un-initialize the IG array
-        do j=0,4
-           atoms%ig_nlccpar(j,ityp)=UNINITIALIZED(1.0_gp)
-        end do
-        !continue searching for one line
-        read(79,*,iostat=ierror) !blank line
-        if (ierror ==0) read(79,*,iostat=ierror) !blank line
-        read(79,*,iostat=ierror)fake_nlcc(0)
-        if (ierror ==0) atoms%ig_nlccpar(0,ityp)=fake_nlcc(0)
-        if (ierror ==0) read(79,*,iostat=ierror)fake_nlcc(1)
-        if (ierror ==0) atoms%ig_nlccpar(1,ityp)=fake_nlcc(1)
         !no need to go further for the moment
         close(unit=79)
      else
         atoms%nlcc_ngv(ityp)=UNINITIALIZED(1)
         atoms%nlcc_ngc(ityp)=UNINITIALIZED(1)
-        do j=0,4
-           atoms%ig_nlccpar(j,ityp)=UNINITIALIZED(1.0_gp)
-        end do
      end if
   enddo
 
   !process the nlcc parameters if present 
   !(allocation is performed also with zero size)
-  allocate(atoms%nlccpar(0:4,nlcc_dim+ndebug),stat=i_stat)
+  allocate(atoms%nlccpar(0:4,max(nlcc_dim,1)+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlccpar,'atoms%nlccpar',subname)
   !start again the file inspection to fill nlcc parameters
   if (atoms%donlcc) then
@@ -730,6 +714,31 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
 
 END SUBROUTINE read_system_variables
 
+!>find the correct position of the nlcc parameters
+subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ityp
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(out) :: ngv,ngc,islcc
+  !local variables
+  integer :: ilcc,jtyp
+
+  ilcc=0
+  do jtyp=1,ityp-1
+     ngv=atoms%nlcc_ngv(jtyp)
+     if (ngv /= UNINITIALIZED(ngv)) ilcc=ilcc+(ngv*(ngv+1)/2)
+     ngc=atoms%nlcc_ngc(jtyp)
+     if (ngc /= UNINITIALIZED(ngc)) ilcc=ilcc+(ngc*(ngc+1))/2
+  end do
+  islcc=ilcc
+
+  ngv=atoms%nlcc_ngv(ityp)
+  if (ngv==UNINITIALIZED(1)) ngv=0
+  ngc=atoms%nlcc_ngc(ityp)
+  if (ngc==UNINITIALIZED(1)) ngc=0
+END SUBROUTINE nlcc_start_position
 
 !>   Fix all the atomic occupation numbers of the atoms which has the same type
 !!   look also at the input polarisation and spin
