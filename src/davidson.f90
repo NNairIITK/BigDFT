@@ -317,6 +317,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call free_gpu_OCL(GPU,orbsv,in%nspin)
   end if
 
+  call calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
+
   !the plotting should be added here (perhaps build a common routine?)
   call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
   
@@ -1148,6 +1150,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   deallocate(e,stat=i_stat)
   call memocc(i_stat,i_all,'e',subname)
 
+  !calculate gap
+  call calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
+
   !write the results on the screen
   call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,v)
 
@@ -1821,6 +1826,44 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
 
 
 END SUBROUTINE write_eigen_objects
+
+!> calculate the gap and fill the value in the orbs structure
+subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  type(orbitals_data), intent(in) :: orbsv
+  type(orbitals_data), intent(inout) :: orbs
+  !local variables
+  integer :: ikpt
+  
+  if (orbs%nkpts /= orbsv%nkpts) then
+     stop 'HL gap with Band structure not implemented yet'
+  end if
+
+  !depending on nspin
+  orbs%HLgap=1.e100_gp
+  if (orbs%nspin==1) then
+     !the minimum wrt all the k-points
+     do ikpt=1,orbs%nkpts
+        orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)&
+             -orbs%eval(orbs%norb+(ikpt-1)*orbs%norb))
+     end do
+  else if (orbs%nspin==2) then
+     do ikpt=1,orbs%nkpts
+        orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
+             orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
+    end do
+  end if
+
+  !warning if gap is negative
+  if (orbs%HLgap < 0.0_gp) then
+     if (iproc==0) write(*,*)'WARNING!! HLgap is negative, convergence problem?' 
+  end if
+
+end subroutine calculate_HOMO_LUMO_gap
+  
 
 subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rxyz,pot)
   use module_base

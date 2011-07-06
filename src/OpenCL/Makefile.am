@@ -53,7 +53,8 @@ else
 mpi_source = ../MPIfake.f90
 endif
 
-CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
+CLEANFILES = module_base.@MODULE_EXT@ module_defs.@MODULE_EXT@ \
+			 fort.1 fort.98 *linkinfo
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 AM_CPPFLAGS = -I@OCL_INCLUDE_PATH@

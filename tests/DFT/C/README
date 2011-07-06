@@ -1,4 +1,4 @@
- C atom calculation
+tests non-local pseudo-potential for isolated system 
 
  We use the file occup.dat in order to populate equally the 3 p states.
 

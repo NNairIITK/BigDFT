@@ -24,8 +24,8 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   logical :: gox,goy,goz,perx,pery,perz
   integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,ilcc,islcc
-  integer :: i1,i2,i3,j1,j2,j3,i_stat,i_all,ind,j,jtyp
-  real(gp) :: x,y,z,r2,rhov,rhoc,arg,chv,chc,charge_from_gaussians,spherical_gaussian_value
+  integer :: i1,i2,i3,j1,j2,j3,ind,jtyp
+  real(gp) :: x,y,z,r2,rhov,rhoc,chv,chc,charge_from_gaussians,spherical_gaussian_value
   !real(gp), dimension(:), allocatable :: rhovxp,rhocxp
   !real(gp), dimension(:,:), allocatable :: rhovc,rhocc
 
@@ -185,7 +185,7 @@ function spherical_gaussian_value(r2,expo,rhoc,ider)
   real(gp), dimension(4), intent(in) :: rhoc
   real(gp) :: spherical_gaussian_value
   !local variables
-  real(gp) :: arg,der1
+  real(gp) :: arg
   
   arg=r2/(expo**2)
   spherical_gaussian_value=&

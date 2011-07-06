@@ -72,9 +72,16 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   !assign the reference
   if (iorb_ref==0) then
      functional_ref=energy
+  else if (iorb_ref == -1) then
+     if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
+        functional_ref=rst%orbs%HLgap
+     else
+        stop ' ERROR (FDforces): gap not defined' 
+     end if
   else
      functional_ref=rst%orbs%eval(iorb_ref)
   end if
+
 
 
   if (order == -1) then
@@ -161,6 +168,8 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            !assign the quantity which should be differentiated
            if (iorb_ref==0) then
               functional(km)=energy
+           else if (iorb_ref==-1) then
+              functional(km)=rst%orbs%HLgap
            else
               functional(km)=rst%orbs%eval(iorb_ref)
            end if

@@ -76,8 +76,6 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   real(wp), dimension(:), pointer :: rhocore
   !local variables
   character(len=*), parameter :: subname='calculate_rhocore'
-  character(len=27) :: filename
-  logical :: exists,donlcc
   integer :: ityp,iat,i_stat,j3,i1,i2,ind,ierr
   real(wp) :: tt
   real(gp) :: rx,ry,rz,rloc,cutoff
@@ -1025,6 +1023,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
   !put a default value for the fermi energy
   orbs%efermi = UNINITIALIZED(orbs%efermi)
+  !and also for the gap
+  orbs%HLgap = UNINITIALIZED(orbs%HLgap)
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
