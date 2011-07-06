@@ -356,7 +356,6 @@ subroutine local_partial_densityLinear(iproc,nproc,Lzd,rsflag,nscatterarr,&
          !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
          hfac=Lzd%Lorbs(ilr)%kwgts(Lzd%Lorbs(ilr)%iokpt(ii))*(Lzd%Lorbs(ilr)%occup(Lzd%Lorbs(ilr)%isorb+ii)/(hxh*hyh*hzh))
          spinval=Lzd%Lorbs(ilr)%spinsgn(Lzd%Lorbs(ilr)%isorb+ii)
-
          if (hfac /= 0.d0) then
 
             !sum for complex function case, npsir=1 in that case

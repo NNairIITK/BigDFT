@@ -625,7 +625,8 @@ real(8),dimension(4):: time
               ilr = lin%onWhichAtom(iorb)
               ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
               gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-              call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
+              call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin,&
+                   Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
               ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
               ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
           end do

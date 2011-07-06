@@ -470,14 +470,39 @@ subroutine input_wf_diag(iproc,nproc,at,&
      ! Begin to define the Linear_Zone_descriptors
      Lzd%Glr = Glr
      Lzd%Gnlpspd = nlpspd
-     Lzd%orbs = orbse
-     Lzd%comms = comms 
+     Lzd%orbs = orbse 
+     Lzd%comms = comms
+
+!FOR NOW
+     allocate(Lzd%Lorbs(Lzd%nlr))
+     do i_all=1,Lzd%nlr
+        Lzd%Lorbs(i_all) = orbse
+        nullify(Lzd%Lorbs(i_all)%inwhichlocreg)
+        nullify(Lzd%Lorbs(i_all)%occup)
+        allocate(Lzd%Lorbs(i_all)%inwhichlocreg(4))
+        allocate(Lzd%Lorbs(i_all)%occup(4))
+        if(i_all>1) allocate(Lzd%Lorbs(i_all)%inwhichlocreg(1))
+        if(i_all>1) allocate(Lzd%Lorbs(i_all)%occup(1))
+     end do
+     Lzd%Lorbs(1)%norb=4
+     Lzd%Lorbs(2:5)%norb=1
+     Lzd%orbs%inwhichlocreg = (/ 1, 1, 1, 1, 2, 3, 4,  5/)
+     Lzd%Lorbs(1)%inwhichlocreg(1:4)= (/ 1, 2, 3, 4/)
+     Lzd%Lorbs(2)%inwhichlocreg(1)= 5
+     Lzd%Lorbs(3)%inwhichlocreg(1)= 6
+     Lzd%Lorbs(4)%inwhichlocreg(1)= 7
+     Lzd%Lorbs(5)%inwhichlocreg(1)= 8
+     Lzd%Lorbs(1)%occup(1:4)= (/ 2.000000, 0.666666666666666, 0.666666666666666, 0.666666666666666/)
+     Lzd%Lorbs(2)%occup(1)= 1.0000000000
+     Lzd%Lorbs(3)%occup(1)= 1.0000000000
+     Lzd%Lorbs(4)%occup(1)= 1.0000000000
+     Lzd%Lorbs(5)%occup(1)= 1.0000000000
+     Lzd%Lpsidimtot = orbse%npsidim
+!END FOR NOW
 
      !allocate the array of localisation regions (memocc does not work)
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
-     !call memocc(i_stat,Llr,'Llr',subname)
    
-
 ! DEBUG
       ! Write some physical information on the Glr
 !     if(iproc == 0) then
@@ -495,10 +520,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
 
    ! Define new orbital descriptors IS THIS STILL NEEDED? IF YES, change for MPI
-     call determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
-print *,iproc,'here'
-print *,iproc,'Lzd%Lpsidimtot'
-stop
+!     call determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
+
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(Lpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
@@ -703,6 +726,13 @@ stop
    !use only the part of the arrays for building the hamiltonian matrix
      call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
           psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+
+     open(44,file='psi',status='unknown')
+     do ilr = 1,size(psi)
+     write(44,*)psi(ilr)
+     end do
+     close(44)
+
  
      i_all=-product(shape(locrad))*kind(locrad)
      deallocate(locrad,stat=i_stat)

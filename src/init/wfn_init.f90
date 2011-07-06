@@ -457,12 +457,12 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   end if
 
 ! DEBUG
-  if(iproc == 0) then
-     print *,'size(hamovr)',size(hamovr,1),size(hamovr,2),size(hamovr,3)
-     do i_all=1,size(hamovr,1)
-        print *,'iel, ham, ovr:',i_all,hamovr(i_all,1,:),hamovr(i_all,2,:)
-     end do
-  end if
+!  if(iproc == 0) then
+!     print *,'size(hamovr)',size(hamovr,1),size(hamovr,2),size(hamovr,3)
+!     do i_all=1,size(hamovr,1)
+!        print *,'iel, ham, ovr:',i_all,hamovr(i_all,1,:),hamovr(i_all,2,:)
+!     end do
+!  end if
 ! END DEBUG
 
   !in the case of minimal basis allocate now the transposed wavefunction

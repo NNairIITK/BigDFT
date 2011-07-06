@@ -662,6 +662,7 @@ subroutine gaussians_to_wavelets_new2(iproc,nproc,Lzd,hx,hy,hz,G,wfn_gau,psi)
        ! jorb is the index of the orbital in the Glr
         jorb = Lzd%Lorbs(ilr)%inWhichLocreg(iorb)
        !features of the k-point ikpt
+        print *,'Lzd%Lorbs(ilr)%iokpt(iorb)',ilr,iorb,Lzd%Lorbs(ilr)%iokpt(iorb)
         kx=Lzd%Lorbs(ilr)%kpts(1,Lzd%Lorbs(ilr)%iokpt(iorb))
         ky=Lzd%Lorbs(ilr)%kpts(2,Lzd%Lorbs(ilr)%iokpt(iorb))
         kz=Lzd%Lorbs(ilr)%kpts(3,Lzd%Lorbs(ilr)%iokpt(iorb))
