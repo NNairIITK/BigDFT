@@ -107,7 +107,7 @@ contains
     if (iproc == 0) then
        if (funcs(1)%id < 0) then
           write(*,"(1x,A41,1x,A1)") "XC functional provided by ABINIT.", "|"
-       else
+       else if (minval(funcs(:)%id) > 0) then
           call xc_f90_info_name(funcs(1)%info,message)
           call xc_f90_info_name(funcs(2)%info,message2)
           write(*,"(1x,a41,1x,A1,1x,A40)") trim(message), "|", trim(message2)
@@ -124,7 +124,7 @@ contains
              end if
              write(*, "(1x,A1,1x)", advance = "NO") "|"
              if (jj >= 0) then
-                write(*,"(1x,a40)") trim(message2)
+                write(*,"(a40)") trim(message2)
                 call xc_f90_info_refs(funcs(2)%info,jj,str,message2)
              else
                 write(*,"(a40)") " "
@@ -197,7 +197,7 @@ contains
     real(dp),intent(in)  :: rho(npts,nspden)
     real(dp),intent(out) :: vxc(npts,nspden), exc(npts)
     real(dp),intent(in), optional :: grho2(npts,2*min(nspden,2)-1)
-    real(dp),intent(out), optional :: vxcgr(npts,2*min(nspden,2)-1)
+    real(dp),intent(out), optional :: vxcgr(npts,3)
     real(dp),intent(out), optional :: dvxci(npts,nspden + 1)
 
     !Local variables-------------------------------

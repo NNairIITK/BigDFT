@@ -179,10 +179,11 @@ run_message:
 
 %.recheck: %.in
 	@dir=`basename $@ .recheck` ; \
-        reps="$$dir/*.report" ; \
-	for r in $$reps ; do \
-	  if ! grep -qs "succeeded" $$r ; then \
-	    target=` basename $$r .report` ; \
+        refs="$$dir/*.ref" ; \
+	for r in $$refs ; do \
+	  rep=`basename $$r .ref`".report" ; \
+	  if ! grep -qs "succeeded" $$dir/$$rep ; then \
+	    target=` basename $$r .ref` ; \
 	    $(MAKE) $*".in" && rm -f $*".in" ; \
 	    rm -f $$dir/$$target".out" $$dir/$$target".report" ; \
 	    cd $$dir && $(MAKE) -f ../Makefile $$target".out" $$target".report" && cd - ; \

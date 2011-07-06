@@ -76,8 +76,6 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   real(wp), dimension(:), pointer :: rhocore
   !local variables
   character(len=*), parameter :: subname='calculate_rhocore'
-  character(len=27) :: filename
-  logical :: exists,donlcc
   integer :: ityp,iat,i_stat,j3,i1,i2,ind,ierr
   real(wp) :: tt
   real(gp) :: rx,ry,rz,rloc,cutoff
@@ -1247,7 +1245,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
 
      rs_i=ikpt*nproc
      n_ip=rs_i/nkpts
-!!$     if (iproc == 0) print *,'ikpt,ni,nip',ikpt,n_i,n_ip
+!!$     print *,'ikpt,ni,nip',ikpt,n_i,n_ip
      ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
      if (n_ip >= n_i) then
         ntmp = (n_i*nkpts-(ikpt-1)*nproc) * nobj
@@ -1285,7 +1283,8 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
         N_c = N_c - 1
         N_b = 0
      end if
-!!$     if (iproc == 0) write(*,*) ikpt, N_a, N_b, N_c
+!!$     write(*,*) ikpt, N_a, N_b, N_c
+     if (nkpts > 1 .and. N_b < n_ip - n_i) stop 1
      !assign to procs the objects.
      if (N_a>0) nobj_par(n_i-1)=nobj_par(n_i-1)+N_a
      if (N_b>0) then

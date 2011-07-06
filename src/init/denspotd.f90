@@ -79,7 +79,7 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
      nullify(rhodsc%dpkey)
      nullify(rhodsc%cseg_b)
      nullify(rhodsc%fseg_b)
-     if (xc_isgga()) then
+     if (.not.xc_isgga()) then
         rhodsc%icomm=1
      else
         rhodsc%icomm=0
