@@ -470,34 +470,38 @@ subroutine input_wf_diag(iproc,nproc,at,&
      ! Begin to define the Linear_Zone_descriptors
      Lzd%Glr = Glr
      Lzd%Gnlpspd = nlpspd
-     Lzd%orbs = orbse 
-     Lzd%comms = comms
+
+     ! Define global orbs for Lzd
+     call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+       orbs,lzd%orbs,norbsc_arr,locrad,G,psigau,eks)
+     ! Define global communicators
+     call orbitals_communicators(iproc,nproc,Glr,lzd%orbs,lzd%comms)
 
 !FOR NOW
-     allocate(Lzd%Lorbs(Lzd%nlr))
-     do i_all=1,Lzd%nlr
-        Lzd%Lorbs(i_all) = orbse
-        nullify(Lzd%Lorbs(i_all)%inwhichlocreg)
-        nullify(Lzd%Lorbs(i_all)%occup)
-        allocate(Lzd%Lorbs(i_all)%inwhichlocreg(4))
-        allocate(Lzd%Lorbs(i_all)%occup(4))
-        if(i_all>1) allocate(Lzd%Lorbs(i_all)%inwhichlocreg(1))
-        if(i_all>1) allocate(Lzd%Lorbs(i_all)%occup(1))
-     end do
-     Lzd%Lorbs(1)%norb=4
-     Lzd%Lorbs(2:5)%norb=1
-     Lzd%orbs%inwhichlocreg = (/ 1, 1, 1, 1, 2, 3, 4,  5/)
-     Lzd%Lorbs(1)%inwhichlocreg(1:4)= (/ 1, 2, 3, 4/)
-     Lzd%Lorbs(2)%inwhichlocreg(1)= 5
-     Lzd%Lorbs(3)%inwhichlocreg(1)= 6
-     Lzd%Lorbs(4)%inwhichlocreg(1)= 7
-     Lzd%Lorbs(5)%inwhichlocreg(1)= 8
-     Lzd%Lorbs(1)%occup(1:4)= (/ 2.000000, 0.666666666666666, 0.666666666666666, 0.666666666666666/)
-     Lzd%Lorbs(2)%occup(1)= 1.0000000000
-     Lzd%Lorbs(3)%occup(1)= 1.0000000000
-     Lzd%Lorbs(4)%occup(1)= 1.0000000000
-     Lzd%Lorbs(5)%occup(1)= 1.0000000000
-     Lzd%Lpsidimtot = orbse%npsidim
+!     allocate(Lzd%Lorbs(Lzd%nlr))
+!     do i_all=1,Lzd%nlr
+!        Lzd%Lorbs(i_all) = orbse
+!        nullify(Lzd%Lorbs(i_all)%inwhichlocreg)
+!        nullify(Lzd%Lorbs(i_all)%occup)
+!        allocate(Lzd%Lorbs(i_all)%inwhichlocreg(4))
+!        allocate(Lzd%Lorbs(i_all)%occup(4))
+!        if(i_all>1) allocate(Lzd%Lorbs(i_all)%inwhichlocreg(1))
+!        if(i_all>1) allocate(Lzd%Lorbs(i_all)%occup(1))
+!     end do
+!     Lzd%Lorbs(1)%norb=4
+!     Lzd%Lorbs(2:5)%norb=1
+!     Lzd%orbs%inwhichlocreg = (/ 1, 1, 1, 1, 2, 3, 4,  5/)
+!     Lzd%Lorbs(1)%inwhichlocreg(1:4)= (/ 1, 2, 3, 4/)
+!     Lzd%Lorbs(2)%inwhichlocreg(1)= 5
+!     Lzd%Lorbs(3)%inwhichlocreg(1)= 6
+!     Lzd%Lorbs(4)%inwhichlocreg(1)= 7
+!     Lzd%Lorbs(5)%inwhichlocreg(1)= 8
+!     Lzd%Lorbs(1)%occup(1:4)= (/ 2.000000, 0.666666666666666, 0.666666666666666, 0.666666666666666/)
+!     Lzd%Lorbs(2)%occup(1)= 1.0000000000
+!     Lzd%Lorbs(3)%occup(1)= 1.0000000000
+!     Lzd%Lorbs(4)%occup(1)= 1.0000000000
+!     Lzd%Lorbs(5)%occup(1)= 1.0000000000
+!     Lzd%Lpsidimtot = orbse%npsidim
 !END FOR NOW
 
      !allocate the array of localisation regions (memocc does not work)
@@ -519,8 +523,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
    ! determine the localization regions
      call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
 
-   ! Define new orbital descriptors IS THIS STILL NEEDED? IF YES, change for MPI
-!     call determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
+   ! Define new orbital descriptors: IS THIS STILL NEEDED? IF YES, change for MPI
+     call determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(Lpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
