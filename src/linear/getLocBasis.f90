@@ -99,7 +99,7 @@ real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 ! Local variables 
 integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb
 real(8),dimension(:),allocatable:: hphi, eval, lhphi
-real(8),dimension(:,:),allocatable:: HamSmall
+real(8),dimension(:,:),allocatable:: HamSmall, ovrlp
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, lastAlpha, tt
@@ -124,6 +124,8 @@ integer:: ist, ierr
   call memocc(istat, phiWork, 'phiWork', subname)
   allocate(eval(lin%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
+  allocate(ovrlp(lin%orbs%norb,lin%orbs%norb), stat=istat)
+  call memocc(istat, ovrlp, 'ovrlp', subname)
   
 
   ! This is a flag whether the basis functions shall be updated.
@@ -134,7 +136,7 @@ integer:: ist, ierr
       ! Optimize the localized basis functions by minimizing the trace of <phi|H|phi>.
       call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
           nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trace, rxyzParab, &
-          itSCC, lastAlpha, infoBasisFunctions, radii_cf)
+          itSCC, lastAlpha, infoBasisFunctions, radii_cf, ovrlp)
   end if
 
 !!! 3D plot of the basis functions
@@ -163,6 +165,9 @@ integer:: ist, ierr
       call orthonormalizeOnlyDerivatives(iproc, nproc, lin, phi)
       call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
   end if
+
+  ! Get the overlap matrix.. This should be adapted for the derivative basis functions.
+  call orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
 
   ! Transform the global phi to the local phi
   ! This part will not be needed if we really have O(N)
@@ -252,7 +257,12 @@ integer:: ist, ierr
       ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
       ! are still needed later.
       call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      call diagonalizeHamiltonian(iproc, nproc, lin%orbs, matrixElements(1,1,2), eval)
+      if(.not.updatePhi) then
+          ! Because at the moment the phis are orthogonal. Change later.
+          call diagonalizeHamiltonian(iproc, nproc, lin%orbs, matrixElements(1,1,2), eval)
+      else
+          call diagonalizeHamiltonian2(iproc, nproc, lin%orbs, matrixElements(1,1,2), ovrlp, eval)
+      end if
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
   end if
 
@@ -330,6 +340,9 @@ integer:: ist, ierr
   deallocate(eval, stat=istat)
   call memocc(istat, iall, 'eval', subname)
 
+  iall=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp, stat=istat)
+  call memocc(istat, iall, 'ovrlp', subname)
 
 
 
@@ -344,7 +357,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trH, rxyzParabola, &
-    itScc, lastAlpha, infoBasisFunctions, radii_cf)
+    itScc, lastAlpha, infoBasisFunctions, radii_cf, ovrlp)
 !
 ! Purpose:
 ! ========
@@ -418,6 +431,7 @@ real(dp), dimension(:), pointer :: pkernelseq
 real(8),dimension(lin%orbs%npsidim):: phi
 real(8):: trH, lastAlpha
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
 
 ! Local variables
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot, t2tot, timetot
@@ -426,7 +440,7 @@ integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountD
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
 real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, alphaDIIS, lphi, lhphi, lhphiold
-real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr, ovrlp
+real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 logical:: quiet, allowDIIS, startWithSD, withConfinement
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
@@ -892,9 +906,6 @@ contains
       allocate(lhphiold(lin%Lorbs%npsidim), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
 
-      allocate(ovrlp(lin%lzd%orbs%norb,lin%lzd%orbs%norb), stat=istat)
-      call memocc(istat, ovrlp, 'ovrlp', subname)
-
     end subroutine allocateLocalArrays
 
 
@@ -945,10 +956,6 @@ contains
       deallocate(lhphiold, stat=istat)
       call memocc(istat, iall, 'lhphiold', subname)
 
-      iall=-product(shape(ovrlp))*kind(ovrlp)
-      deallocate(ovrlp, stat=istat)
-      call memocc(istat, iall, 'ovrlp', subname)
-      
       ! if diisLIN%idsx==0, these arrays have already been deallocated
       !if(diisLIN%idsx>0 .and. lin%DIISHistMax>0) call deallocate_diis_objects(diisLIN,subname)
 
@@ -1106,6 +1113,78 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
 
 end subroutine diagonalizeHamiltonian
 
+
+
+subroutine diagonalizeHamiltonian2(iproc, nproc, orbs, HamSmall, ovrlp, eval)
+!
+! Purpose:
+! ========
+!   Diagonalizes the Hamiltonian HamSmall and makes sure that all MPI processes give
+!   the same result. This is done by requiring that the first entry of each vector
+!   is positive.
+!
+! Calling arguments:
+! ==================
+!   Input arguments:
+!   ----------------
+!     iproc     process ID
+!     nproc     number of MPI processes
+!     orbs      type describing the physical orbitals psi
+!   Input / Putput arguments
+!     HamSmall  on input: the Hamiltonian
+!               on exit: the eigenvectors
+!   Output arguments
+!     eval      the associated eigenvalues 
+!
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer:: iproc, nproc
+type(orbitals_data), intent(inout) :: orbs
+real(8),dimension(orbs%norb, orbs%norb):: HamSmall, ovrlp
+real(8),dimension(orbs%norb):: eval
+
+! Local variables
+integer:: lwork, info, istat, iall, i, iorb, jorb
+real(8),dimension(:),allocatable:: work
+character(len=*),parameter:: subname='diagonalizeHamiltonian'
+
+  ! Get the optimal work array size
+  lwork=-1 
+  allocate(work(1), stat=istat)
+  call memocc(istat, work, 'work', subname)
+  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+  lwork=work(1) 
+
+  ! Deallocate the work array ane reallocate it with the optimal size
+  iall=-product(shape(work))*kind(work)
+  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+  call memocc(istat, iall, 'work', subname)
+  allocate(work(lwork), stat=istat) ; if(istat/=0) stop 'ERROR in allocating work' 
+  call memocc(istat, work, 'work', subname)
+
+  ! Diagonalize the Hamiltonian
+  call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+
+  ! Deallocate the work array.
+  iall=-product(shape(work))*kind(work)
+  deallocate(work, stat=istat) ; if(istat/=0) stop 'ERROR in deallocating work' 
+  call memocc(istat, iall, 'work', subname)
+  
+  ! Make sure that the eigenvectors are the same for all MPI processes. To do so, require that 
+  ! the first entry of each vector is positive.
+  do iorb=1,orbs%norb
+      if(HamSmall(1,iorb)<0.d0) then
+          do jorb=1,orbs%norb
+              HamSmall(jorb,iorb)=-HamSmall(jorb,iorb)
+          end do
+      end if
+  end do
+
+
+end subroutine diagonalizeHamiltonian2
 
 
 
