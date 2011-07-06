@@ -14,7 +14,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   use module_base
   use module_types
   use module_interfaces
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nspin
   real(gp), intent(in) :: hx,hy,hz
@@ -33,7 +33,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir
 
-  exctXcoeff=libxc_functionals_exctXfac()
+  exctXcoeff=xc_exctXfac()
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  

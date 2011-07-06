@@ -15,7 +15,7 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
   use module_base
   use module_types
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
   implicit none
   !Arguments
   character(len=1), intent(in) :: datacode
@@ -68,8 +68,7 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
   !create rhopot descriptors
     !allocate rho_descriptors if the density repartition is activated
   !decide rho communication strategy
-  if (rho_commun=='MIX' .and. ((atoms%geocode.eq.'F').and.(nproc > 1).and.(((ixc >= 11 .and. ixc <= 16) .or. &
-       & (ixc < 0 .and. libxc_functionals_isgga()))))) then
+  if (rho_commun=='MIX' .and. (atoms%geocode.eq.'F') .and. (nproc > 1) .and. xc_isgga()) then
      call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
           gdim%n1,gdim%n2,gdim%n3,gdim%n1i,gdim%n2i,gdim%n3i,&
           hxh,hyh,hzh,nspin,rhodsc,.false.)
@@ -80,8 +79,7 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
      nullify(rhodsc%dpkey)
      nullify(rhodsc%cseg_b)
      nullify(rhodsc%fseg_b)
-     if (.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-          (ixc < 0 .and. libxc_functionals_isgga()))) then
+     if (xc_isgga()) then
         rhodsc%icomm=1
      else
         rhodsc%icomm=0

@@ -302,7 +302,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   use module_types
   use module_interfaces
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
   implicit none
@@ -426,9 +426,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   hy=in%hy
   hz=in%hz
 
-  if (ixc < 0) then
-     call libxc_functionals_init(ixc, nspin)
-  end if
+  call xc_init(iproc, ixc, nspin)
 
   !character string for quieting the Poisson solver
   if (verbose >1) then
@@ -1398,9 +1396,7 @@ contains
     call deallocate_rho_descriptors(rhodsc,subname)
 
     ! Free the libXC stuff if necessary.
-    if (ixc < 0) then
-       call libxc_functionals_end()
-    end if
+    call xc_end()
 
     !end of wavefunction minimisation
     call timing(iproc,'LAST','PR')

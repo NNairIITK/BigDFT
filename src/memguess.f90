@@ -721,7 +721,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   use module_types
   use module_interfaces
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
 
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
@@ -813,8 +813,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   end if
 
   !flag for toggling the REDUCE_SCATTER stategy
-  rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-       & (ixc < 0 .and. libxc_functionals_isgga()))
+  rsflag = .not.xc_isgga()
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
