@@ -226,7 +226,8 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   call gatherOrbitals2(iproc, nproc, lin%comon)
   ! Expand the receive buffer, i.e. lhphi
   call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lhphiovrlp)
-  call applyOrthoconstraintNonorthogonal(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+  !call applyOrthoconstraintNonorthogonal(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
@@ -429,6 +430,38 @@ integer:: istart, jstart
 END SUBROUTINE orthoconstraintLocalized2
 
 
+subroutine getOverlapMatrix(iproc, nproc, lin, input, lphi, ovrlp)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(inout):: lin
+type(input_variables),intent(in):: input
+real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
+real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
+
+! Local variables
+integer:: it, istat, iall, iorb, jorb, ierr
+real(8),dimension(:),allocatable:: lphiovrlp
+character(len=*),parameter:: subname='orthonormalize'
+logical:: converged
+
+  allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
+  call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+  call postCommsOverlap(iproc, nproc, lin%comon)
+  call gatherOrbitals2(iproc, nproc, lin%comon)
+  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, ovrlp)
+
+  iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
+  deallocate(lphiovrlp, stat=istat)
+  call memocc(istat, iall, 'lphiovrlp', subname)
+
+
+end subroutine getOverlapMatrix
 
 
 
@@ -1735,6 +1768,101 @@ end do
 
 
 end subroutine applyOrthoconstraintNonorthogonal
+
+
+
+
+subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(orbitals_data),intent(in):: orbs, lorbs
+integer,dimension(orbs%norb),intent(in):: onWhichAtom
+type(linear_zone_descriptors),intent(in):: lzd
+type(overlapParameters),intent(in):: op
+real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagmat, ovrlp
+real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp, lhphiovrlp
+real(8),dimension(lorbs%npsidim),intent(out):: lhphi
+
+! Local variables
+integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, info, i, istat, iall
+real(8):: tt
+real(8),dimension(orbs%norb,orbs%norb):: ovrlp2, ovrlp3
+real(8),dimension(:,:),allocatable:: lagmat2
+character(len=*),parameter:: subname='applyOrthoconstraintNonorthogonal2'
+
+allocate(lagmat2(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, lagmat2, 'lagmat2', subname)
+
+ovrlp2=ovrlp
+! Invert the overlap matrix
+call dpotrf('l', orbs%norb, ovrlp(1,1), orbs%norb, info)
+if(info/=0) then
+    write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+    stop
+end if
+call dpotri('l', orbs%norb, ovrlp(1,1), orbs%norb, info)
+if(info/=0) then
+    write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+    stop
+end if
+
+!!call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, ovrlp(1,1), orbs%norb, &
+!!     0.d0, ovrlp3(1,1), orbs%norb)
+!!do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!        !tt=0.d0
+!!        !do i=1,orbs%norb
+!!        !    tt=tt+ovrlp2(iorb,i)*ovrlp(i,jorb)
+!!        !end do
+!!        !if(iproc==0) write(100,*) iorb, jorb, tt
+!!        if(iproc==0) write(100,*) iorb, jorb, ovrlp3(iorb,jorb)
+!!    end do
+!!end do
+!!
+!!call mpi_barrier(mpi_comm_world, info)
+!!stop
+
+! Multiply the Lagrange multiplier matrix with S^-1/2.
+call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+     0.d0, lagmat2(1,1), orbs%norb)
+
+
+ist=1
+jst=1
+ilrold=-1
+do iorb=1,orbs%norbp
+    iiorb=orbs%isorb+iorb
+    ilr=onWhichAtom(iiorb)
+    if(ilr==ilrold) then
+        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+        jst=jst-op%noverlaps(iiorb)*ncount
+    end if
+    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+    !call dscal(ncount, 1.5d0, lhphi(ist), 1)
+    do jorb=1,op%noverlaps(iiorb)
+        jjorb=op%overlaps(jorb,iiorb)
+        !call daxpy(ncount, -.5d0*ovrlp(jjorb,iiorb), lhphiovrlp(jst), 1, lhphi(ist), 1)
+        call daxpy(ncount, -.5d0*lagmat2(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
+        call daxpy(ncount, -.5d0*lagmat2(iiorb,jjorb), lphiovrlp(jst), 1, lhphi(ist), 1)
+        jst=jst+ncount
+    end do
+    ist=ist+ncount
+    ilrold=ilr
+end do
+
+
+iall=-product(shape(lagmat2))*kind(lagmat2)
+deallocate(lagmat2, stat=istat)
+call memocc(istat, iall, 'lagmat2', subname)
+
+
+end subroutine applyOrthoconstraintNonorthogonal2
+
+
 
 
 

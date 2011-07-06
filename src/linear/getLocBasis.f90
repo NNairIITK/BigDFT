@@ -122,7 +122,7 @@ integer:: ist, ierr
   call memocc(istat, HamSmall, 'HamSmall', subname)
   allocate(phiWork(max(size(phi),size(psi))), stat=istat)
   call memocc(istat, phiWork, 'phiWork', subname)
-  allocate(eval(lin%orbs%norb), stat=istat)
+  allocate(eval(lin%lb%orbs%norb), stat=istat)
   call memocc(istat, eval, 'eval', subname)
   allocate(ovrlp(lin%orbs%norb,lin%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
@@ -134,9 +134,39 @@ integer:: ist, ierr
           call dcopy(lin%orbs%npsidim, lin%phiRestart(1), 1, phi(1), 1)
       end if
       ! Optimize the localized basis functions by minimizing the trace of <phi|H|phi>.
+      do iall=1,lin%orbs%npsidim
+          write(100+iproc,*) iall, phi(iall)
+      end do
+      do iall=1,size(rhopot)
+          write(150+iproc,*) iall, rhopot(iall)
+      end do
+      ind1=1
+      ind2=1
+      do iorb=1,lin%lb%orbs%norbp
+          ilr = lin%lb%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+      !if(lin%useDerivativeBasisFunctions) then
+      !    call dcopy(lin%lzd%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
+      !end if
       call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
-          nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trace, rxyzParab, &
+          nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trace, rxyzParab, &
           itSCC, lastAlpha, infoBasisFunctions, radii_cf, ovrlp)
+      ind1=1
+      ind2=1
+      phi=0.d0
+      do iorb=1,lin%lb%orbs%norbp
+          ilr = lin%lb%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
   end if
 
 !!! 3D plot of the basis functions
@@ -152,11 +182,33 @@ integer:: ist, ierr
 
   if(lin%useDerivativeBasisFunctions) then
       ! Create the derivative basis functions.
+      ind1=1
+      ind2=1
+      do iorb=1,lin%orbs%norbp
+          ilr = lin%lb%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+      ind1=1
+      ind2=1
+      phi=0.d0
+      do iorb=1,lin%orbs%norbp
+          ilr = lin%lb%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
       nphibuff=0
       do iorb=1,lin%orbs%norbp
           nphibuff = nphibuff + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
       end do
-      call dcopy(nphibuff, phi(1), 1, lin%phiRestart(1), 1)
+      call dcopy(lin%orbs%npsidim, phi(1), 1, lin%phiRestart(1), 1)
+      call dcopy(lin%lzd%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
       call getDerivativeBasisFunctions(iproc, nproc, input%hx, Glr, lin, nphibuff, lin%phiRestart, phi)
       !call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, nphibuff, lin%phiRestart, phi)
 
@@ -167,7 +219,30 @@ integer:: ist, ierr
   end if
 
   ! Get the overlap matrix.. This should be adapted for the derivative basis functions.
-  call orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
+  if(.not.updatePhi) then
+      ind1=1
+      ind2=1
+      do iorb=1,lin%lb%orbs%norbp
+          ilr = lin%lb%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+      call getOverlapMatrix(iproc, nproc, lin, input, lphi, ovrlp)
+      ind1=1
+      ind2=1
+      phi=0.d0
+      do iorb=1,lin%lb%orbs%norbp
+          ilr = lin%lb%onWhichAtom(iorb)
+          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
+          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      end do
+  end if
 
   ! Transform the global phi to the local phi
   ! This part will not be needed if we really have O(N)
@@ -197,6 +272,22 @@ integer:: ist, ierr
   ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
   ! to point communication, the program will continue immediately.
   call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
+  write(*,'(a,i5,2i14)') 'iproc, size(lin%comsr%sendBuf), size(lin%comsr%recvBuf)', iproc, size(lin%comsr%sendBuf), size(lin%comsr%recvBuf)
+  tt=0.d0
+  do iall=1,size(lin%comsr%sendBuf)
+      tt=tt+lin%comsr%sendBuf(iall)**2
+  end do
+  write(*,*) 'real: iproc, tt', iproc, tt
+  tt=0.d0
+  do iall=1,size(phi)
+      tt=tt+phi(iall)**2
+  end do
+  write(*,*) 'scf/wvl phi: iproc, tt', iproc, tt
+  tt=0.d0
+  do iall=1,size(lphi)
+      tt=tt+lphi(iall)**2
+  end do
+  write(*,*) 'scf/wvl lphi: iproc, tt', iproc, tt
   
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
@@ -257,12 +348,12 @@ integer:: ist, ierr
       ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
       ! are still needed later.
       call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      if(.not.updatePhi) then
-          ! Because at the moment the phis are orthogonal. Change later.
-          call diagonalizeHamiltonian(iproc, nproc, lin%orbs, matrixElements(1,1,2), eval)
-      else
+      !if(.not.updatePhi) then
+      !    ! Because at the moment the phis are orthogonal. Change later.
+      !    call diagonalizeHamiltonian(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), eval)
+      !else
           call diagonalizeHamiltonian2(iproc, nproc, lin%orbs, matrixElements(1,1,2), ovrlp, eval)
-      end if
+      !end if
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
   end if
 
@@ -299,8 +390,13 @@ integer:: ist, ierr
       call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
       call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
   else
+      ! The first one was commented..?
+      !call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
       call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
   end if
+  do iall=1,lin%orbs%npsidim
+      write(110+iproc,*) iall, phi(iall)
+  end do
 
 
   !! Improve the coefficients -- EXPERIMENTAL
@@ -356,7 +452,7 @@ end subroutine getLinearPsi
 
 
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trH, rxyzParabola, &
+    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
     itScc, lastAlpha, infoBasisFunctions, radii_cf, ovrlp)
 !
 ! Purpose:
@@ -428,7 +524,7 @@ integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
 real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(lin%orbs%npsidim):: phi
+real(8),dimension(lin%lzd%orbs%npsidim):: lphi
 real(8):: trH, lastAlpha
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
@@ -439,7 +535,7 @@ real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
-real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, alphaDIIS, lphi, lhphi, lhphiold
+real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 logical:: quiet, allowDIIS, startWithSD, withConfinement
 character(len=*),parameter:: subname='getLocalizedBasis'
@@ -460,8 +556,8 @@ real(8),dimension(4):: time
        lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, &
        startWithSD, ldiis, alpha, alphaDIIS)
 
-  ! Cut off outside localization region -- experimental
-  call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+  !!! Cut off outside localization region -- experimental
+  !!call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
 
   if(itSCC==1) then
@@ -474,20 +570,20 @@ real(8),dimension(4):: time
   call gatherPotential(iproc, nproc, lin%comgp)
 
 
-  ! THIS IS NEW
-  ! Transform the global phi to the local phi
-  ! This part will not be needed if we really have O(N)
-  ind1=1
-  ind2=1
-  do iorb=1,lin%orbs%norbp
-      ilr = lin%onWhichAtom(iorb)
-      ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !write(*,'(a,3i8)') 'iproc, iorb, ldim', iproc, iorb, ldim
-      call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-  end do
+  !!! THIS IS NEW
+  !!! Transform the global phi to the local phi
+  !!! This part will not be needed if we really have O(N)
+  !!ind1=1
+  !!ind2=1
+  !!do iorb=1,lin%orbs%norbp
+  !!    ilr = lin%onWhichAtom(iorb)
+  !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    !write(*,'(a,3i8)') 'iproc, iorb, ldim', iproc, iorb, ldim
+  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+  !!end do
 
   time=0.d0
   call cpu_time(t1tot)
@@ -630,21 +726,21 @@ real(8),dimension(4):: time
               infoBasisFunctions=it
           end if
           if(iproc==0) write(*,'(x,a)') '============================= Basis functions created. ============================='
-          ind1=1
-          ind2=1
-          phi=0.d0
-          do iorb=1,lin%orbs%norbp
-              ilr = lin%onWhichAtom(iorb)
-              ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-              gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-              call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
-              ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-              ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-          end do
-          if(lin%plotBasisFunctions) then
-              call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-                  .5d0*input%hy, .5d0*input%hz, 1)
-          end if
+          !!ind1=1
+          !!ind2=1
+          !!phi=0.d0
+          !!do iorb=1,lin%orbs%norbp
+          !!    ilr = lin%onWhichAtom(iorb)
+          !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
+          !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+          !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+          !!end do
+          !!if(lin%plotBasisFunctions) then
+          !!    call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
+          !!        .5d0*input%hy, .5d0*input%hz, 1)
+          !!end if
           exit iterLoop
       end if
   
@@ -666,13 +762,6 @@ real(8),dimension(4):: time
       end if
 
 
-      !!!ldiis%mis=mod(ldiis%is,ldiis%isx)+1
-      !!!ldiis%is=ldiis%is+1
-      !!!if(iproc==0) write(*,'(a,2i8)') 'ldiis%is, ldiis%mis', ldiis%is, ldiis%mis
-      !!!call mpi_barrier(mpi_comm_world, ierr)
-
-      !call dscal(lin%lorbs%npsidim, 100.d0, lhphi(1), 1)
-      !call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%lzd, lin%onWhichAtom, lhphi, lphi, ldiis, it)
       call improveOrbitals()
 
 
@@ -704,7 +793,10 @@ real(8),dimension(4):: time
   ! Store the mean alpha.
   lastAlpha=meanAlpha
 
-  call deallocateDIIS(ldiis)
+  ! Deallocate all quantities related to DIIS,
+  if(ldiis%isx>0) call deallocateDIIS(ldiis)
+
+  ! Deallocate all local arrays.
   call deallocateLocalArrays()
 
 contains
@@ -897,9 +989,6 @@ contains
       allocate(fnrmOvrlpArr(lin%orbs%norb,2), stat=istat)
       call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
 
-      allocate(lphi(lin%Lorbs%npsidim), stat=istat)
-      call memocc(istat, lphi, 'lphi', subname)
-
       allocate(lhphi(lin%Lorbs%npsidim), stat=istat)
       call memocc(istat, lhphi, 'lhphi', subname)
     
@@ -943,10 +1032,6 @@ contains
       iall=-product(shape(fnrmOvrlpArr))*kind(fnrmOvrlpArr)
       deallocate(fnrmOvrlpArr, stat=istat)
       call memocc(istat, iall, 'fnrmOvrlpArr', subname)
-
-      iall=-product(shape(lphi))*kind(lphi)
-      deallocate(lphi, stat=istat)
-      call memocc(istat, iall, 'lphi', subname)
 
       iall=-product(shape(lhphi))*kind(lhphi)
       deallocate(lhphi, stat=istat)

@@ -1183,7 +1183,7 @@ module module_interfaces
     END SUBROUTINE free_full_potential
 
     subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-        proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, phi, trH, rxyzParabola, &
+        proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
         itSCC, lastAlpha, infoBasisFunctions, radii_cf, ovrlp)
       use module_base
       use module_types
@@ -1203,7 +1203,7 @@ module module_interfaces
       real(dp), dimension(*), intent(inout) :: rhopot
       type(GPU_pointers), intent(in out) :: GPU
       real(dp), dimension(:), pointer :: pkernelseq
-      real(8),dimension(lin%orbs%npsidim):: phi
+      real(8),dimension(lin%lzd%orbs%npsidim):: lphi
       real(8):: trH, lastAlpha
       real(8),dimension(3,at%nat):: rxyzParabola
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf

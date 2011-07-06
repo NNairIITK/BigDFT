@@ -55,6 +55,7 @@ call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 ! Number of localization regions.
 lin%nlr=at%nat
 lin%lzd%nlr=at%nat
+!lin%lb%lzd%nlr=at%nat
 
 ! Allocate the basic arrays that are needed for reading the input parameters.
 call allocateBasicArrays(at, lin)
@@ -95,6 +96,7 @@ else
 end if
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%Lorbs)
+!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%lzd%orbs)
 
 
 ! Assign the parameters needed for the communication to lin%comms. Again distinguish
@@ -102,6 +104,7 @@ call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%ns
 call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%orbs,lin%lb%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lzd%orbs,lin%lzd%comms)
+!call orbitals_communicators(iproc,nproc,Glr,lin%lb%lzd%orbs,lin%lb%lzd%comms)
 
 
 ! Write all parameters related to the linear scaling version to the screen.
@@ -115,10 +118,12 @@ call allocateLinArrays(lin)
 call assignOrbitalsToAtoms(iproc, lin%orbs, at%nat, norbsPerAtom, lin%onWhichAtom, lin%onWhichAtomAll)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignOrbitalsToAtoms(iproc, lin%lb%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
+!call assignOrbitalsToAtoms(iproc, lin%lb%lzd%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
+!call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%lzd%orbs)
 
 ! Initialize the localization regions.
 call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
@@ -146,6 +151,7 @@ call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin)
 
 ! Copy Glr to lin%lzd
 lin%lzd%Glr = Glr
+!lin%lb%lzd%Glr = Glr
 
 ! Copy nlpspd to lin%lzd
 lin%lzd%Gnlpspd = nlpspd
@@ -159,6 +165,15 @@ do ilr=1,lin%lzd%nlr
         end if
     end do
 end do
+!! The same for the derivatives
+!do ilr=1,lin%lzd%nlr
+!    lin%lzd%Llr(ilr)%localnorb=0
+!    do iorb=1,lin%lb%lzd%orbs%norbp
+!        if(lin%lb%onWhichAtom(iorb)==ilr) then
+!            lin%lb%lzd%Llr(ilr)%localnorb = lin%lb%lzd%Llr(ilr)%localnorb+1
+!        end if
+!    end do
+!end do
 
 ! Initialize the parameters for the communication for the
 ! potential.
@@ -168,6 +183,11 @@ call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%l
 ! Initialize the parameters for the communication for the orthonormalization.
 !!call initCommsOrtho(iproc, nproc, lin)
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%onWhichAtomAll, input, lin%op, lin%comon)
+!call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%onWhichAtomAll, input, lin%op_lb, lin%comon_lb)
+
+! Restart array for the basis functions (only needed if we use the derivative basis functions).
+allocate(lin%lphiRestart(lin%lzd%orbs%npsidim), stat=istat)
+call memocc(istat, lin%lphiRestart, 'lin%lphiRestart', subname)
 
 ! Deallocate all local arrays.
 iall=-product(shape(atomNames))*kind(atomNames)
@@ -1259,6 +1279,7 @@ character(len=*),parameter:: subname='initLocregs'
 ! Allocate the array of localisation regions
 allocate(lin%Llr(lin%nlr),stat=istat)
 allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
+!allocate(lin%lb%lzd%Llr(lin%lzd%nlr),stat=istat)
 allocate(lin%outofzone(3,lin%nlr),stat=istat)
 call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 
@@ -1277,7 +1298,8 @@ call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 !end if
 
  call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
- call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
+ call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
+ !call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr)
 
 !!do ilr=1,lin%nlr
 !!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
@@ -1306,6 +1328,7 @@ else
         !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
     end do
     lin%lb%Lorbs%npsidim=npsidim
+    !lin%lb%lzd%orbs%npsidim=npsidim
 end if
 
 
