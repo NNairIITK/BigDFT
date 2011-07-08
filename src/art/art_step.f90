@@ -102,8 +102,9 @@ subroutine apply_diis( diter, saddle_energy )
     ! Test of While_diis loop 
     if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. &
        & (diter > maxdiis) .or. (delta_e < delta_thr .and. delr < delr_thr) ) then
+
        saddle_energy = total_energy
-       end_activation = .true.  
+       end_activation = .true.
        exit
     end if
 
@@ -185,6 +186,7 @@ subroutine apply_diis( diter, saddle_energy )
   
          if ( maxter < 2 ) then   ! DIIS does not have memory to continue
 
+            switchDIIS = .False.
             if ( .not. ITERATIVE ) then         
 
                ! If not ITERATIVE, we can not continue with this event. 
@@ -196,6 +198,11 @@ subroutine apply_diis( diter, saddle_energy )
                ! If we have accepted at least one DIIS step, we check the
                ! projection vector up to four times if the resulting lowest 
                ! eigenvalue is positive at each iteration.
+
+               if ( clean_wf ) then 
+                  a1 = 0.0d0
+                  call clean_wavefunction ( a1 )
+               end if
 
                new_projection = .false.   ! Let's start with the last projection.  
 
@@ -212,7 +219,7 @@ subroutine apply_diis( diter, saddle_energy )
                new_projection = .false.       
                call lanczos( NVECTOR_LANCZOS_C, new_projection, a1 )
             end if
-
+            
             return ! c'est la fin. If ITERATIVE Let's try again with Lanczos.
 
          end if ! if (maxter<2)
@@ -252,7 +259,7 @@ subroutine apply_diis( diter, saddle_energy )
          eigen_min = 0.0d0
          eigenvalue = 0.0d0
          nsteps_after_eigen_min = 0
-         a1 = 0
+         a1 = 0.0d0
          call write_step ( 'D', diter, a1, total_energy )
 
          if ( SAVE_CONF_INT ) call save_intermediate( 'D' ) 
@@ -363,6 +370,7 @@ subroutine  apply_lanczos ( liter, saddle_energy )
 
   !Local variables
   logical      :: get_proj
+  real(kind=8) :: a1
   !_______________________ 
 
   if ( .not. restart ) then 
@@ -385,13 +393,17 @@ subroutine  apply_lanczos ( liter, saddle_energy )
      restart = .false.
   end if
 
+  a1 = 0.0d0
+
   While_lanczos: do
        
       ! Test of While_lanczos loop 
       if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) .or. (liter > 280) .or. (eigenvalue > 0.0) ) then
-         saddle_energy = total_energy
+
+         saddle_energy = total_energy 
          end_activation = .true.  
          exit
+
       end if
 
       if ( USE_DIIS ) then 
@@ -399,6 +411,11 @@ subroutine  apply_lanczos ( liter, saddle_energy )
          if ( (ftot < DIIS_FORCE_THRESHOLD .and. (.not. ITERATIVE) ) .or. &
               (ftot < DIIS_FORCE_THRESHOLD .and. liter > 2 .and. ITERATIVE) .or. &
               (nsteps_after_eigen_min >= INFLECTION .and. ITERATIVE) ) then
+
+            if ( clean_wf ) then
+                switchDIIS = .True. ! only for the next subroutine
+                call clean_wavefunction ( a1 ) 
+            end if
 
             ! If  previous_forces(1,:) is .ne. 0.0d0 is a restart
             ! from a lanczos_step in the next IF statement. 
@@ -412,7 +429,7 @@ subroutine  apply_lanczos ( liter, saddle_energy )
                ! call lanczos_step; but without the calculation
                ! of a new projection vector
                get_proj = .False.
-               call lanczos_step ( saddle_energy, liter, get_proj )
+               call lanczos_step ( saddle_energy, a1, liter, get_proj )
                pas = pas + 1
                liter = liter + 1
             end if
@@ -427,14 +444,22 @@ subroutine  apply_lanczos ( liter, saddle_energy )
                previous_forces(2,:) = force(:)
                previous_pos(2,:)    = pos(:)
                previous_norm(2)     = ftot*DIIS_STEP
-               switchDIIS = .true.   ! let's make DIIS.
+               switchDIIS = .True.   ! let's make DIIS.
                exit                  ! We go back
             end if
          end if    
       end if
 
-      get_proj = .True.
-      call lanczos_step ( saddle_energy, liter, get_proj ) 
+
+      ! Hide option: if the test is true; we calculate the projection only
+      ! at every two steps but after 4 steps above of an inflection in the eigenvalue
+      if ( nsteps_after_eigen_min>=4 .and. mod(pas,2)==0 .and. a1>0.9d0 .and. calc_proj ) then 
+         get_proj = .False.
+      else
+         get_proj = .True.
+      end if
+
+      call lanczos_step ( saddle_energy, a1, liter, get_proj ) 
       pas = pas + 1
       liter = liter + 1
         
@@ -448,7 +473,7 @@ END SUBROUTINE apply_lanczos
 !! Finally we get the eigenvector at the relaxed configuration.
 !! Modified by:
 !! -Laurent Karim Beland, UdeM 2011: Collinear
-subroutine lanczos_step ( current_energy, liter, get_proj ) 
+subroutine lanczos_step ( current_energy, a1, liter, get_proj ) 
 
   use defs 
   use bigdft_forces
@@ -459,6 +484,7 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
 
   !Arguments
   real(kind=8), intent(out) :: current_energy      ! Accept energy.
+  real(kind=8), intent(out) :: a1                  ! dot product between two eigenvectors
   integer, intent(in)  :: liter 
   logical, intent(in)  :: get_proj  ! If we need get the projection vector.
 
@@ -478,7 +504,6 @@ subroutine lanczos_step ( current_energy, liter, get_proj )
   real(kind=8) :: current_fperp              ! fperp as a criteria of minimization.
 
   logical      :: new_projection 
-  real(kind=8) :: a1
   !_______________________
   boxl = box * scala                  ! We compute at constant volume.
 
@@ -770,7 +795,7 @@ subroutine apply_glisse( giter, saddle_energy )
 
              !  get_proj = .true.
              !  liter = 1
-             !  call lanczos_step ( saddle_energy, liter, get_proj)
+             !  call lanczos_step ( saddle_energy, a1, liter, get_proj)
 
             if ( (ftot < EXITTHRESH) .or. (pas > MAXPAS) &
                & .or. (eigenvalue > 0.0) ) then
@@ -781,7 +806,7 @@ subroutine apply_glisse( giter, saddle_energy )
               ! previous_forces(2,:) = force(:)
               ! previous_pos(2,:)    = pos(:)
               ! previous_norm(2)     = ftot*DIIS_STEP
-               switchDIIS = .true.   ! let's make DIIS.
+               switchDIIS = .True.   ! let's make DIIS.
                exit                  ! We go back
             end if
         endif

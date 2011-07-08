@@ -32,6 +32,10 @@ module lanczos_defs
   real(kind=8), dimension(:), allocatable :: old_projection, projection 
   logical :: LANCZOS_MIN, IN_MINIMUN
 
+  ! for new projection vector but starting with a random displacement localized 
+  ! only around a given atom. This is only for Type_of_events == local or list_local 
+  
+
 END MODULE lanczos_defs
 
 
@@ -88,7 +92,7 @@ subroutine lanczos( maxvec, new_projection, produit )
      dz = 0.0d0
      if ( iproc == 0 ) then           ! Initial movement.
         do i = 1, natoms, 1
-           if ( constr(i) == 0 ) then
+           if ( constr(i) == 0 .and. in_system(i) == 0 ) then
               !do
                 dx(i) = 0.5d0 - ran3()
                 dy(i) = 0.5d0 - ran3()
@@ -103,8 +107,7 @@ subroutine lanczos( maxvec, new_projection, produit )
         call center( z0, VECSIZE )    ! Center of mass at zero.
      end if
                                       ! Broadcast z0 to all notes
-     nat = 3 * NATOMS
-     call MPI_Bcast(z0,nat,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
+     call MPI_Bcast(z0,3*NATOMS,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
      old_projection = 0.0d0
   end if
                                       ! We normalize the displacement to  
@@ -226,9 +229,8 @@ subroutine lanczos( maxvec, new_projection, produit )
      proj_energy = lanc_energy 
   end if
                                       ! Broadcast eigenvalue and projection to all nodes.
-  nat = 3 * NATOMS
   call MPI_Bcast(eigenvalue,1,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
-  call MPI_Bcast(projection,nat,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
+  call MPI_Bcast(projection,3*NATOMS,MPI_REAL8,0,MPI_COMM_WORLD,ierror)
 
 END SUBROUTINE lanczos
 
@@ -240,6 +242,7 @@ END SUBROUTINE lanczos
 subroutine center( vector, vecsize )
 
   use defs, only : natoms, constr
+  use bigdft_forces, only : in_system
   implicit none
 
   !Arguments
@@ -254,7 +257,7 @@ subroutine center( vector, vecsize )
   !_______________________
 
   ! degrees of freedom 
-  mask = constr .eq. 0
+  mask = constr .eq. 0 .and. in_system .eq. 0 
   natoms_f = count(mask)
 
   ! We first set-up pointers for the x, y, z components 
@@ -277,7 +280,7 @@ subroutine center( vector, vecsize )
   ztotal = ztotal / natoms_f
 
   do i = 1, natoms
-     if ( constr(i) == 0 ) then
+     if ( mask(i) ) then
         x(i) = x(i) - xtotal
         y(i) = y(i) - ytotal
         z(i) = z(i) - ztotal
@@ -285,3 +288,4 @@ subroutine center( vector, vecsize )
   end do
 
 END SUBROUTINE center
+

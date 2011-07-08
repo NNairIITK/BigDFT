@@ -22,17 +22,28 @@ subroutine read_parameters( )
   ! Hide Option, by default .false.
   ! Only Lanczos analysis for the minimum and the inflection point.
   call getenv('Setup_Initial',temporary)
-  if (temporary .eq. '') then
+  if (temporary == '') then
      setup_initial = .false. 
   else
      read(temporary,*)  setup_initial
   end if
 
+  ! Hide option: if it is true; it calculates the projection only
+  ! at every two steps but after 4 steps above of an
+  ! inflection in the eigenvalue
+
+  call getenv('calc_of_projection',temporary)
+  if (temporary == '') then
+     calc_proj = .false. 
+  else
+     read(temporary,*) calc_proj 
+  end if
+
   ! Convergence criterion for the wavefunction optimization in Lanczos
   ! If not defined, we use that one in input.dft 
   call getenv('gnrm',temporary)
-  if (temporary .eq. '') then
-     my_gnrm = 1
+  if (temporary == '') then
+     my_gnrm = 1.0d0
   else
      read(temporary,*) my_gnrm 
   end if
@@ -40,26 +51,19 @@ subroutine read_parameters( )
   ! if delta_e < delta_thr .and. delr < delr_thr => end_activation = .true. 
   ! Set up them to zero if you dont want to use these criteria.
   call getenv('delta_threshold',temporary)
-  if (temporary .eq. '') then
+  if (temporary == '') then
      delta_thr = 0.0d0
   else
      read(temporary,*) delta_thr  
   end if
 
   call getenv('delr_threshold',temporary)
-  if (temporary .eq. '') then
+  if (temporary == '') then
      delr_thr = 0.0d0
   else
      read(temporary,*) delr_thr  
   end if
   !__________________
-  call getenv('Inflection', temporary)
-  if (temporary .eq. '') then
-     write(*,*) 'Error: Inflection is not defined'
-     stop
-  else
-     read(temporary,*) INFLECTION
-  end if
 
   call getenv('EVENT_TYPE', temporary)
   if (temporary .eq. '') then
@@ -119,6 +123,22 @@ subroutine read_parameters( )
      read(temporary,*) energy_type   
   endif
 
+  ! Hide Option, by default .false.
+  ! we do not use the previously calculated wave function at some key
+  ! points. This is for charged systems.
+  call getenv('Clean_wavefunct',temporary)
+  if (temporary == '') then
+     clean_wf = .false. 
+  else
+     read(temporary,*) clean_wf  
+     if (.not.( energy_type=="BSW" .or. energy_type=="OTF" .or. &
+                energy_type=="BAY" .or. energy_type=="BIG" )     & 
+          .and. clean_wf ) then
+        write(*,*) "Error : Clean_wavefunct option is only for bigdft"
+        stop
+     end if
+  end if
+
    ! number of quantum atoms
   call getenv('NBR_QUNT', temporary)
   if (temporary .eq. '' .and. energy_type .ne. "BSW" &
@@ -128,6 +148,7 @@ subroutine read_parameters( )
            &) .and. temporary .eq. "" ) then
      write(*,*) "Error : you have not given the number of quantum atoms"
      write(*,*) "The program will stop"
+     stop
   elseif (temporary .ne. "") then
      read(temporary,*) nbr_quantum
   endif
@@ -238,7 +259,8 @@ subroutine read_parameters( )
   ! Read type of events - local or global
   call getenv('Type_of_Events', TYPE_EVENTS)
   if ( (TYPE_EVENTS .ne. 'global') .and. (TYPE_EVENTS .ne. 'local') .and. &
-     &  (TYPE_EVENTS .ne. 'list') .and. (TYPE_EVENTS .ne. 'list_local') ) then
+     & (TYPE_EVENTS .ne. 'list')   .and. (TYPE_EVENTS .ne. 'list_local') .and. &
+     & (TYPE_EVENTS .ne. 'local_coord') ) then
      write(*,*) 'Error : only global, local, or list type of events are accepted - provided: ',&
      & TYPE_EVENTS
      stop
@@ -258,6 +280,69 @@ subroutine read_parameters( )
         preferred_atom = -1
      else
         read(temporary,*) preferred_atom
+     end if
+  end if
+
+
+  if (TYPE_EVENTS == 'local_coord') then
+
+     call getenv('Radius_Initial_Deformation', temporary)
+     if (temporary .eq. '') then
+        write(*,*) 'Error: Radius_Initial_Deformation must be defined when TYPE_EVENTS is local'
+        stop
+     else
+        read(temporary,*) LOCAL_CUTOFF
+     end if
+
+     call getenv('Coord_radius', temporary)
+     if (temporary .eq. '') then
+        write(*,*) 'Error: Coord_radius must be defined when TYPE_EVENTS is local_coord'
+        stop
+     else
+        read(temporary,*) coord_length
+     end if
+
+     call getenv('Coord_number',temporary)
+     if (temporary .eq. '') then
+        write(*,*) 'Error: Coord_number must be defined when TYPE_EVENTS is local_coord'
+        stop
+     else
+        read(temporary,*) coord_number
+     end if
+
+     call getenv('Type_selected',temporary)
+     if (temporary .eq. '') then
+        type_sel = 0
+     else
+        read(temporary,*) type_sel 
+     end if
+     
+  end if
+
+  call getenv('Dual_system',temporary)
+  if (temporary == '') then
+     dual_search = .false. 
+  else
+     read(temporary,*) dual_search 
+     if ( .not. (TYPE_EVENTS=='local' .or. TYPE_EVENTS=='list_local') & 
+          .and.  dual_search ) then
+        write(*,*) 'Error: Dual_system is defined only for local or list_local'
+        write(*,*)  dual_search, TYPE_EVENTS
+        stop
+     end if
+  end if
+
+  if ( dual_search ) then
+     call getenv('Size_system', temporary)
+     if (temporary .eq. '') then
+        write(*,*) 'Error: size_system must be defined if dual_search'
+        stop
+     else    
+        read(temporary,*) size_system
+        if ( size_system <= LOCAL_CUTOFF ) then 
+           write(*,*) 'Error: Radius_Initial_Deformation > Size_system'
+           stop
+        end if
      end if
   end if
 
@@ -468,6 +553,13 @@ subroutine read_parameters( )
      MAXPAS = 100 
   else
      read(temporary,*) MAXPAS
+  end if
+
+  call getenv('Inflection', temporary)
+  if (temporary == '') then
+     INFLECTION = MAXPAS
+  else
+     read(temporary,*) INFLECTION
   end if
 
   ! If diis is used, we define a number of parameters

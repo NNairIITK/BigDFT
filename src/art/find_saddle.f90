@@ -43,6 +43,10 @@ module saddles
   integer :: nsteps_after_eigen_min 
   real(kind=8) :: eigen_min
 
+  !____DEV              
+  real(kind=8) :: coord_length
+  integer      :: coord_number
+
 END MODULE saddles
 
 
@@ -64,7 +68,8 @@ END MODULE saddles
 subroutine find_saddle( success, saddle_energy )
 
   use defs
-  use saddles, only : TYPE_EVENTS 
+  use saddles, only : type_events
+  use bigdft_forces, only : in_system
   implicit none
 
   !Arguments
@@ -91,21 +96,29 @@ subroutine find_saddle( success, saddle_energy )
      scala = scalaref
      box   = boxref
      pos   = posref  
-                                      ! These  subroutines modify the vector pos
+
+  ! _______
+     ! for dual_search:
+     central_atom = 0                 ! default for central_atom 
+     in_system = 0                    ! reset of the list
+  !________
+
+                                      ! These subroutines modify the vector pos
                                       ! and generate a vector of length 1 indicating
                                       ! the direction of the random displacement.
-     if ( TYPE_EVENTS == 'global' ) then
-        call global_move( )
-     else if ( TYPE_EVENTS == 'local' ) then 
-        call symmetry_break( )        !Breaks the initial symmetry.
-        call local_move( )
-     else if ( TYPE_EVENTS == 'list' ) then 
-        call symmetry_break( )
-        call list_of_atoms ( )
-     else if ( TYPE_EVENTS == 'list_local' ) then 
-        call symmetry_break( )
-        call list_and_local ( )
-     end if
+                                      ! There is not case default.
+     selectcase( type_events )
+       case( 'global' )
+           call global_move( )
+       case( 'local' )
+           call local_move( )
+       case( 'list_local' ) 
+           call list_and_local( )
+       case( 'list' )
+           call list_of_atoms( )
+       case( 'local_coord' )
+           call coord_based_move( )
+     end selecT
 
   end if
                                       ! Now, activate per se.
@@ -115,7 +128,58 @@ subroutine find_saddle( success, saddle_energy )
                                       ! and do not accept the new position.
   call end_report( success, ret, saddle_energy )
 
+
 END SUBROUTINE find_saddle
+
+
+!> ART global_move
+!!   The initial random direction is taken from the full 3N-dimensional space
+subroutine global_move( )
+
+  use defs
+  use random
+  use saddles
+  implicit none
+
+  !Local variables
+  integer :: i
+  real(kind=8) :: dr2
+  real(kind=8) :: ran3
+  real(kind=8), dimension(:), pointer :: dx, dy, dz
+
+  allocate(dr(3*natoms))
+  allocate(atom_displaced(natoms))
+                                      ! We assign a few pointers. 
+  dx => dr(1:NATOMS)
+  dy => dr(NATOMS+1:2*NATOMS)
+  dz => dr(2*NATOMS+1:3*NATOMS)
+
+  atom_displaced = 0 
+  natom_displaced = 0 
+  dr = 0.0d0 
+
+  if ( iproc == 0 ) then              ! Only on the master node.
+                                      ! Generate a random displacement.
+     do i = 1, natoms, 1
+        if ( constr(i) == 0 ) then
+           do
+             dx(i) = 0.5d0 - ran3()
+             dy(i) = 0.5d0 - ran3()
+             dz(i) = 0.5d0 - ran3()
+                                      ! Ensures that the random
+                                      ! displacement is isotropic
+             dr2 = dx(i)**2 + dy(i)**2 + dz(i)**2
+             if ( dr2 < 0.25d0 ) exit 
+           end do
+           natom_displaced = natom_displaced + 1
+           atom_displaced(i) = 1
+        end if
+     end do
+  end if
+
+  call center_and_norm ( INITSTEPSIZE )
+
+END SUBROUTINE global_move
 
 
 !> ART local_move
@@ -147,7 +211,6 @@ subroutine local_move( )
           if ( constr(that) == 0 ) exit 
         end do
      end if
-     call MPI_Bcast(that, 1,MPI_INTEGER,0,MPI_COMM_WORLD,ierror)
   else 
      that = preferred_atom
      if ( constr(that) .ne. 0 ) then  ! die !
@@ -155,6 +218,17 @@ subroutine local_move( )
         call end_art()                          
      end if 
   end if
+
+  call MPI_Bcast(that, 1,MPI_INTEGER,0,MPI_COMM_WORLD,ierror)
+
+  ! for dual_search:
+  if ( dual_search ) then
+     central_atom = that 
+     call neighbours_local( )
+  end if 
+
+  call symmetry_break( )              !Breaks the initial symmetry.
+
                                       ! Write
   if ( iproc == 0 ) then
    open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
@@ -221,105 +295,6 @@ subroutine local_move( )
    call center_and_norm ( INITSTEPSIZE )
 
 END SUBROUTINE local_move
-
-
-!> ART global_move
-!!   The initial random direction is taken from the full 3N-dimensional space
-subroutine global_move( )
-
-  use defs
-  use random
-  use saddles
-  implicit none
-
-  !Local variables
-  integer :: i
-  real(kind=8) :: dr2
-  real(kind=8) :: ran3
-  real(kind=8), dimension(:), pointer :: dx, dy, dz
-
-  allocate(dr(3*natoms))
-  allocate(atom_displaced(natoms))
-                                      ! We assign a few pointers. 
-  dx => dr(1:NATOMS)
-  dy => dr(NATOMS+1:2*NATOMS)
-  dz => dr(2*NATOMS+1:3*NATOMS)
-
-  atom_displaced = 0 
-  natom_displaced = 0 
-  dr = 0.0d0 
-
-  if ( iproc == 0 ) then              ! Only on the master node.
-                                      ! Generate a random displacement.
-     do i = 1, natoms, 1
-        if ( constr(i) == 0 ) then
-           do
-             dx(i) = 0.5d0 - ran3()
-             dy(i) = 0.5d0 - ran3()
-             dz(i) = 0.5d0 - ran3()
-                                      ! Ensures that the random
-                                      ! displacement is isotropic
-             dr2 = dx(i)**2 + dy(i)**2 + dz(i)**2
-             if ( dr2 < 0.25d0 ) exit 
-           end do
-           natom_displaced = natom_displaced + 1
-           atom_displaced(i) = 1
-        end if
-     end do
-  end if
-
-  call center_and_norm ( INITSTEPSIZE )
-
-END SUBROUTINE global_move
-
-
-!> ART symmetry_break
-subroutine symmetry_break( )
-
-  use defs
-  use random
-  use saddles
-  implicit none
-
-  !Local variables
-  integer :: i
-  real(kind=8) :: dr2
-  real(kind=8) :: ran3
-  real(kind=8), dimension(:), pointer :: dx, dy, dz
-
-  allocate(dr(3*natoms))
-  allocate(atom_displaced(natoms))
-                                      ! We assign a few pointers.
-  dx => dr(1:NATOMS)
-  dy => dr(NATOMS+1:2*NATOMS)
-  dz => dr(2*NATOMS+1:3*NATOMS)
-
-  atom_displaced = 0 
-  natom_displaced = 0 
-  dr = 0.0d0                          ! Initialization of dr.
-
-  if ( iproc == 0 ) then              ! Only on the master node.
-                                      ! Generate a random displacement. 
-     do i = 1, NATOMS
-        if ( constr(i) == 0 ) then 
-           do
-             dx(i) = 0.5d0 - ran3()
-             dy(i) = 0.5d0 - ran3()
-             dz(i) = 0.5d0 - ran3()
-                                      ! Ensures that the random
-                                      ! displacement is isotropic
-             dr2 = dx(i)**2 + dy(i)**2 + dz(i)**2
-             if ( dr2 < 0.25d0 ) exit 
-           end do
-           natom_displaced = natom_displaced + 1
-           atom_displaced(i) = 1
-        end if
-     end do
-  end if
-
-  call center_and_norm ( sym_break_dist )
-
-END SUBROUTINE symmetry_break
 
 
 !> ART list_of_atoms
@@ -395,6 +370,8 @@ subroutine list_of_atoms ( )
      read(line,*, iostat = i_stat)  list_atoms(i) 
   end do
   deallocate(lines)
+
+  call symmetry_break( )              !Breaks the initial symmetry.
 
   allocate(dr(3*natoms))
   allocate(atom_displaced(natoms))
@@ -527,6 +504,14 @@ subroutine list_and_local ()
   end if
   call MPI_Bcast(that, 1,MPI_INTEGER,0,MPI_COMM_WORLD,ierror)
 
+  ! for dual_search:
+  if ( dual_search ) then
+     central_atom = that 
+     call neighbours_local( )
+  end if 
+
+  call symmetry_break( )              !Breaks the initial symmetry.
+
                                       ! Write
   if ( iproc == 0 ) then
    open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
@@ -593,6 +578,56 @@ subroutine list_and_local ()
    call center_and_norm ( INITSTEPSIZE )
 
 END SUBROUTINE list_and_local  
+
+
+!> ART symmetry_break
+subroutine symmetry_break( )
+
+  use defs
+  use random
+  use saddles
+  use bigdft_forces, only : in_system
+  implicit none
+
+  !Local variables
+  integer :: i
+  real(kind=8) :: dr2
+  real(kind=8) :: ran3
+  real(kind=8), dimension(:), pointer :: dx, dy, dz
+
+  allocate(dr(3*natoms))
+  allocate(atom_displaced(natoms))
+                                      ! We assign a few pointers.
+  dx => dr(1:NATOMS)
+  dy => dr(NATOMS+1:2*NATOMS)
+  dz => dr(2*NATOMS+1:3*NATOMS)
+
+  atom_displaced = 0 
+  natom_displaced = 0 
+  dr = 0.0d0                          ! Initialization of dr.
+
+  if ( iproc == 0 ) then              ! Only on the master node.
+                                      ! Generate a random displacement. 
+     do i = 1, NATOMS
+        if ( constr(i) == 0 .and. in_system(i) == 0 ) then 
+           do
+             dx(i) = 0.5d0 - ran3()
+             dy(i) = 0.5d0 - ran3()
+             dz(i) = 0.5d0 - ran3()
+                                      ! Ensures that the random
+                                      ! displacement is isotropic
+             dr2 = dx(i)**2 + dy(i)**2 + dz(i)**2
+             if ( dr2 < 0.25d0 ) exit 
+           end do
+           natom_displaced = natom_displaced + 1
+           atom_displaced(i) = 1
+        end if
+     end do
+  end if
+
+  call center_and_norm ( sym_break_dist )
+
+END SUBROUTINE symmetry_break
 
 
 !> ART center_and_norm
@@ -663,3 +698,209 @@ subroutine center_and_norm ( step )
   deallocate(dr)
 
 END SUBROUTINE center_and_norm 
+
+
+! for dual_search:
+! Based on the Laurent Karim Beland's subroutine neighbours in neighbour.f9O.
+! But here, what we only want is a list of neighbours of a given atom.
+subroutine neighbours_local( )
+
+  use defs
+  use bigdft_forces, only : in_system
+  implicit none
+ 
+  !Local variable
+  integer i, j
+  real(kind=8) :: lcutoff2    ! Cut-off for local moves, squared
+  real(kind=8) :: dr2
+  real(kind=8) :: xi, yi, zi, xij, yij, zij 
+  real(kind=8), dimension(3) :: boxl, invbox
+
+  !_______________________
+
+  lcutoff2 = size_system*size_system
+  boxl = box*scala                    ! without periodic boundary conditions box
+                                      ! is zero so we set invbox to 1 
+  do i = 1, 3
+     if ( boxl(i) .lt. 1.d-08 ) then 
+        invbox(i) = 1.0d0
+     else
+        invbox(i) = 1.0d0 / boxl(i)
+     end if
+  end do
+
+  in_system = 4                       ! Vectorial assignment, if the atom_i is in the
+                                      ! local system in_system(i)= 0 if not then = 4
+  i = central_atom 
+  in_system(i) = 0
+
+  xi = x(i)
+  yi = y(i)
+  zi = z(i)
+
+  do j = 1, NATOMS
+     if ( j == i ) cycle
+
+     xij = x(j) - xi - boxl(1) * nint((x(j)-xi) * invbox(1))
+     yij = y(j) - yi - boxl(2) * nint((y(j)-yi) * invbox(2))
+     zij = z(j) - zi - boxl(3) * nint((z(j)-zi) * invbox(3))
+
+     dr2 = xij*xij + yij*yij + zij*zij
+
+     if ( dr2 < lcutoff2 ) then
+        in_system(j) = 0 
+     end if
+
+  end do
+
+END SUBROUTINE neighbours_local
+
+
+subroutine coord_based_move( ) 
+
+  use defs
+  use random
+  use saddles
+  implicit none
+ 
+  !Local variable
+  integer :: i, j, that, ierror
+  integer :: numnei 
+  real(kind=8) :: lcutoff2    ! Cut-off for local moves, squared
+  real(kind=8) :: dr2
+  real(kind=8) :: xi, yi, zi, xij, yij, zij 
+  real(kind=8) :: ran3
+  real(kind=8), dimension(3) :: boxl, invbox
+  real(kind=8), dimension(:), pointer  :: dx, dy, dz
+
+  integer, dimension(natoms) :: in_list
+
+  !_______________________
+
+  lcutoff2 = coord_length*coord_length
+  boxl = box*scala                    ! without periodic boundary conditions box
+                                      ! is zero so we set invbox to 1 
+  do i = 1, 3
+     if ( boxl(i) .lt. 1.d-08 ) then 
+        invbox(i) = 1.0d0
+     else
+        invbox(i) = 1.0d0 / boxl(i)
+     end if
+  end do
+
+  in_list = 0                       ! Initial vectorial assignment
+ 
+  do i = 1, NATOMS
+     
+     numnei = 0
+     xi = x(i)
+     yi = y(i)
+     zi = z(i)
+
+     do j = 1, NATOMS
+        if ( j == i ) cycle
+
+        xij = x(j) - xi - boxl(1) * nint((x(j)-xi) * invbox(1))
+        yij = y(j) - yi - boxl(2) * nint((y(j)-yi) * invbox(2))
+        zij = z(j) - zi - boxl(3) * nint((z(j)-zi) * invbox(3))
+
+        dr2 = xij*xij + yij*yij + zij*zij
+
+        if ( dr2 < lcutoff2 ) then
+           numnei = numnei + 1
+        end if
+
+     end do
+
+     if ( numnei < coord_number ) in_list(i) = 1 
+
+  end do
+
+  call MPI_Barrier(MPI_COMM_WORLD,ierror) 
+  if (iproc==0) then
+                                           ! Only between totally free atoms 
+     do 
+       that = int( NATOMS * ran3() + 1 ) 
+
+       if ( in_list(that) ==1 .and. constr(that) == 0 ) then
+
+          if ( typat(that) == type_sel .and. type_sel/= 0 ) then
+              exit 
+          else if ( type_sel == 0 ) then 
+              exit
+          else 
+              cycle
+          end if
+
+       else 
+          cycle
+       end if 
+
+     end do
+ 
+     if ( that == 0 ) then
+        write(*,*)  'BART ERROR: There is no atom with lower coord than ', coord_number
+        stop
+     end if
+  end if
+
+  call MPI_Bcast(that, 1,MPI_INTEGER,0,MPI_COMM_WORLD,ierror)
+
+  call symmetry_break( )              !Breaks the initial symmetry.
+
+  if ( iproc == 0 ) then
+   open( unit = FLOG, file = LOGFILE, status = 'unknown',& 
+       & action = 'write', position = 'append', iostat = ierror )
+   write(FLOG,*) ' '
+   write(FLOG,'(1X,A34,I17)') ' - That atom                    : ', that
+   close(FLOG)
+   write(*,*) 'BART: That atom = ', that
+  end if
+                                      ! Square the cut-off
+  lcutoff2 = LOCAL_CUTOFF * LOCAL_CUTOFF  
+
+  allocate(dr(3*natoms))
+  allocate(atom_displaced(natoms))
+                                      ! We assign a few pointers 
+  dx => dr(1:NATOMS)
+  dy => dr(NATOMS+1:2*NATOMS)
+  dz => dr(2*NATOMS+1:3*NATOMS)
+
+  dr = 0.0d0  
+  natom_displaced = 0
+  atom_displaced  = 0  
+
+  if ( iproc == 0 ) then              ! Work only on the master node.
+                                      ! Now we also displace all atoms within
+                                      ! a cut-off distance, LOCAL_CUTOFF.
+     xi = x(that)
+     yi = y(that)
+     zi = z(that)
+     do j = 1, NATOMS
+        if ( constr(j) == 0 ) then
+           xij = x(j) - xi - boxl(1) * nint((x(j)-xi) * invbox(1))
+           yij = y(j) - yi - boxl(2) * nint((y(j)-yi) * invbox(2))
+           zij = z(j) - zi - boxl(3) * nint((z(j)-zi) * invbox(3))
+           
+           dr2 = xij*xij + yij*yij + zij*zij
+           if ( dr2 < lcutoff2 ) then ! Close enough, give a random displacement.
+              do
+                dx(j) = 0.5d0 - ran3()
+                dy(j) = 0.5d0 - ran3()
+                dz(j) = 0.5d0 - ran3()
+                                      ! Ensures that the random
+                                      ! displacement is isotropic
+                dr2 = dx(j)**2 + dy(j)**2 + dz(j)**2
+                if ( dr2 < 0.25d0 ) exit  
+              end do
+              natom_displaced = natom_displaced + 1
+              atom_displaced(j) = 1
+           end if
+        end if
+     end do
+   end if
+
+   call center_and_norm ( INITSTEPSIZE )
+
+
+END SUBROUTINE coord_based_move 

@@ -45,8 +45,11 @@ subroutine min_converge ( success )
                                  ! Relaxation subroutine in bigdft_forces.f90                     
      boxl = box * scala          ! We compute at constant volume.
                                  ! Report.
-
      call mingeo( pos, force, boxl, evalf_number, total_energy, success )
+
+     if ( clean_wf ) then 
+        call check_force_clean_wf ( pos, boxl, evalf_number, total_energy, success )
+     end if 
 
  
      elseif (energy_type == "BSW") then

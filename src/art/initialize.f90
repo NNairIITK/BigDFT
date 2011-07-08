@@ -63,14 +63,16 @@ subroutine initialize()
   ! Format:
   ! Counter:     1000
 
-  inquire( file = COUNTER, exist = flag )
-  if ( flag .and. iproc == 0 ) then 
-     open(unit=FCOUNTER,file=COUNTER,status='old',action='read',iostat=ierror)
-     read(FCOUNTER,'(A12,I6)') dummy, mincounter 
-     close(FCOUNTER)
-  else
-     mincounter = 1000
-  end if
+  if (.not. restart) then 
+     inquire( file = COUNTER, exist = flag )
+     if ( flag .and. iproc == 0 ) then 
+        open(unit=FCOUNTER,file=COUNTER,status='old',action='read',iostat=ierror)
+        read(FCOUNTER,'(A12,I6)') dummy, mincounter 
+        close(FCOUNTER)
+     else
+        mincounter = 1000
+     end if
+  end if 
 
   ! Read atomic file
   call init_all_atoms( nat_test, typa, posa, const_, boxref_, boundary, nproc, iproc )
@@ -88,6 +90,8 @@ subroutine initialize()
      boxref(:)  = boxref_(:)
      refcounter = mincounter
      box = boxref
+  else if ( restart .and. dual_search) then
+     call neighbours_local( )
   endif
 
   deallocate(posa)
@@ -95,7 +99,6 @@ subroutine initialize()
   deallocate(const_)
 
   !atomic positions are now all read
-
 
   do i = 1, NATOMS
      Atom(i) = type_name(typat(i))
@@ -140,9 +143,12 @@ subroutine initialize()
         end if
         close(FLOG)
      end if
-
-     if ( LANCZOS_MIN .and. success ) call check_min( 'M' ) 
-
+                                      ! if dual_search we dont do this check at the
+                                      ! beginning. It is not well defined.
+     if ( LANCZOS_MIN .and. success .and. ( .not. dual_search ) ) call check_min( 'M' ) 
+  else if ( (.not. new_event) .and. (.not. restart) ) then
+     posref = pos
+     ref_energy = total_energy
   end if If_ne
 
 END SUBROUTINE initialize

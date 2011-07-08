@@ -44,7 +44,7 @@ subroutine restart_states( istatus, ieventcurrent, iterations, iatp )
      diis_norm_restart   = 0.0d0
   end if 
 
-  read(FRESTART,*) ieventcurrent, evalf_number, boundary
+  read(FRESTART,*) ieventcurrent, evalf_number, boundary, central_atom 
   read(FRESTART,*) box(1), box(2), box(3), scala
   read(FRESTART,*) boxref(1), boxref(2), boxref(3), scalaref
   read(FRESTART,*) total_energy, ref_energy
@@ -80,6 +80,7 @@ subroutine restart_states( istatus, ieventcurrent, iterations, iatp )
   if ( iproc == 0 ) then
      write(*,*) 'BART: restart file'
      write(*,*) 'BART: box: ', box
+     write(*,*) 'BART: central_atom ', central_atom  
      write(*,'(a,(1p,e17.10,0p))') ' BART: total energy: ', total_energy
      write(*,'(a,(1p,e17.10,0p))') ' BART: ref   energy: ', ref_energy 
      write(*,'(a,3f20.8)') ' BART: xref(1): ', xref(1), yref(1), zref(1)
@@ -119,7 +120,7 @@ subroutine save_state( istatus, iter, direction )
 
   open(unit=FRESTART,file=RESTARTFILE,status='unknown',action='write',iostat=ierror)
   write(FRESTART,*) istatus, iter, mincounter, refcounter, pas+1, atp
-  write(FRESTART,*) ievent, evalf_number, boundary
+  write(FRESTART,*) ievent, evalf_number, boundary, central_atom
   write(FRESTART,*) box(1), box(2), box(3), scala
   write(FRESTART,*) boxref(1), boxref(2), boxref(3), scalaref
   write(FRESTART,*) total_energy, ref_energy
@@ -163,7 +164,7 @@ subroutine save_state2( istatus, iter, direction, maxter, pf, px, pn, &
 
   open(unit=FRESTART,file=RESTARTFILE,status='unknown',action='write',iostat=ierror)
   write(FRESTART,*) istatus, iter, mincounter, refcounter, pas+1, atp
-  write(FRESTART,*) ievent, evalf_number, boundary
+  write(FRESTART,*) ievent, evalf_number, boundary, central_atom
   write(FRESTART,*) box(1), box(2), box(3), scala
   write(FRESTART,*) boxref(1), boxref(2), boxref(3), scalaref
   write(FRESTART,*) total_energy, ref_energy

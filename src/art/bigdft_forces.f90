@@ -43,6 +43,12 @@ module bigdft_forces
   public :: copy_atoms_object
   public :: prepare_quantum_atoms_Si
 
+  ! development : At some key points we do not use the previously 
+  ! calculated wave function
+  logical, public :: new_wf
+  public :: check_force_clean_wf
+  integer, dimension(:), allocatable, public :: in_system   ! Constraint over atoms
+
 contains
 
 !> ART init_all_atoms
@@ -91,7 +97,11 @@ subroutine init_all_atoms( nat, typa, posa, const_, boxl, boxtype, nproc_, me_ )
   boxl(3) = atoms_all%alat3 * bohr2ang
                                       ! Blocked atoms 
   const_ = 0                          ! Initialization, everyone is free.
-  const_(:) = atoms_all%ifrztyp(:)  
+  const_(:) = atoms_all%ifrztyp(:)
+
+  ! for dual_search:
+  allocate ( in_system(nat) )   
+  in_system = 0 
 
   if ( iproc == 0 ) then
   do i=1,atoms_all%nat
@@ -151,9 +161,9 @@ subroutine bigdft_init( nat, me_, my_gnrm,passivate,total_nb_atoms )
                                       ! Read inputs.
   call read_input_parameters(me_, in, at, rxyz)
 
-                                      ! Transfer at data to ART variables.
+                                      ! Transfer "at" data to ART variables.
   gnrm_l = in%gnrm_cv
-  if ( my_gnrm == 1 ) then 
+  if ( my_gnrm == 1.0d0 ) then 
      gnrm_h = in%gnrm_cv 
   else
      gnrm_h = my_gnrm
@@ -182,6 +192,7 @@ subroutine calcforce_bigdft( posa, forca, boxl, energy, evalf_number, conv )
   integer  :: infocode, i, ierror 
   real(gp) :: fnoise
   real(gp), allocatable :: xcart(:,:), fcart(:,:)
+  !_______________________
 
   if ( conv ) then                    ! Convergence criterion for the wavefunction optimization
      in%gnrm_cv = gnrm_h              ! in Lanczos procedure.              
@@ -201,8 +212,9 @@ subroutine calcforce_bigdft( posa, forca, boxl, energy, evalf_number, conv )
 
   allocate(fcart(3, at%nat))
 
-  if ( first_time ) then
+  if ( first_time ) then              ! This is done by default at the beginning.
 
+     
      in%inputPsiId = 0
      call MPI_Barrier(MPI_COMM_WORLD,ierror)
      call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
@@ -211,6 +223,7 @@ subroutine calcforce_bigdft( posa, forca, boxl, energy, evalf_number, conv )
      in%inputPsiId = 1
      initialised   = .true.
      first_time    = .False.
+     new_wf        = .False.
 
   else 
 
@@ -218,6 +231,13 @@ subroutine calcforce_bigdft( posa, forca, boxl, energy, evalf_number, conv )
       write(0,*) "No previous call to bigdft_init(). On strike, refuse to work."
       write(*,*) "No previous call to bigdft_init(). On strike, refuse to work."
       stop
+     end if
+
+     if ( new_wf ) then               ! if true,  we do not use the previously 
+                                      ! calculated wave function.
+        in%inputPsiId = 0
+     else 
+        in%inputPsiId = 1
      end if
 
                                       ! Get into BigDFT
@@ -238,13 +258,13 @@ subroutine calcforce_bigdft( posa, forca, boxl, energy, evalf_number, conv )
                                       ! But, up to now, ART only works with totally frozen atoms
                                       ! ( i.e "f" ). Therefore, this is a safe action.
   do i = 1, at%nat, 1
-     if ( at%ifrztyp(i) .ne. 0 ) fcart(:,i) = 0.0d0 
+     if ( at%ifrztyp(i) /= 0  .or. in_system(i) /= 0 ) fcart(:,i) = 0.0d0 
   end do 
 
   call center_f( fcart, at%nat )         ! We remove the net force over our free atomos.
 
   do i = 1, at%nat, 1                    ! Forces into ev/ang and in 1D array.
-     forca( i )           = fcart(1, i) * ht2ev / bohr2ang
+     forca( i )              = fcart(1, i) * ht2ev / bohr2ang
      forca( at%nat + i )     = fcart(2, i) * ht2ev / bohr2ang
      forca( 2 * at%nat + i ) = fcart(3, i) * ht2ev / bohr2ang
   end do
@@ -317,7 +337,7 @@ subroutine mingeo( posa, forca, boxl, evalf_number, total_energy, success )
   boxl(3) = at%alat3 * bohr2ang
                                       ! Positions into ang.
   do i = 1, at%nat, 1
-     posa(i)           = xcart(1, i) * bohr2ang
+     posa(i)              = xcart(1, i) * bohr2ang
      posa(at%nat + i)     = xcart(2, i) * bohr2ang
      posa(2 * at%nat + i) = xcart(3, i) * bohr2ang
   end do
@@ -372,7 +392,7 @@ subroutine center_f( vector, natoms )
   logical, dimension(natoms) :: mask
 
   ! degrees of freedom 
-  mask = at%ifrztyp .eq. 0
+  mask = at%ifrztyp .eq. 0 .and. in_system .eq. 0
   natoms_f = count(mask)
 
   xtotal = 0.0d0
@@ -381,7 +401,7 @@ subroutine center_f( vector, natoms )
 
  ! Do over free atoms ( although, the frozen ones add zero ) 
   do i = 1, natoms
-     if ( at%ifrztyp(i) == 0 ) then
+     if ( mask(i) ) then
         xtotal = xtotal + vector(1,i)
         ytotal = ytotal + vector(2,i)
         ztotal = ztotal + vector(3,i)
@@ -405,7 +425,7 @@ subroutine center_f( vector, natoms )
 
   ! Do over free atoms 
   do i = 1, natoms, 1
-     if ( at%ifrztyp(i) == 0 ) then
+     if ( mask(i) ) then
         vector(1,i) = vector(1,i) - xtotal
         vector(2,i) = vector(2,i) - ytotal
         vector(3,i) = vector(3,i) - ztotal
@@ -597,6 +617,82 @@ subroutine prepare_quantum_atoms_Si(atoms,posquant,nat)
 
 
 end subroutine prepare_quantum_atoms_Si
+
+
+!!****f* bigdft_forces/check_force_clean_wf
+!! FUNCTION
+!! SOURCE
+!!
+subroutine check_force_clean_wf( posa, boxl, evalf_number, total_energy, success )
+
+implicit none
+
+  real(kind=8), intent(inout), dimension(3*atoms_all%nat) :: posa
+  real(kind=8), intent(inout), dimension(3)     :: boxl
+  integer,      intent(inout)                   :: evalf_number
+  real(kind=8), intent(out)                     :: total_energy
+  logical,      intent(out)                     :: success
+
+  !Local variables
+  integer      :: infocode, i, ierror, ncount_bigdft 
+  real(kind=8) :: energy
+  real(gp)     :: fnoise
+  real(gp)     ::  fmax, fnrm
+  real(gp), allocatable :: xcart(:,:), fcart(:,:)
+  !_______________________
+
+  in%inputPsiId = 0 
+  in%gnrm_cv = gnrm_l 
+                                      ! We transfer acell into 'at'
+  at%alat1 = boxl(1)/bohr2ang
+  at%alat2 = boxl(2)/bohr2ang
+  at%alat3 = boxl(3)/bohr2ang
+
+  allocate(xcart(3, at%nat))
+  do i = 1, at%nat, 1
+     xcart(:, i) = (/ posa(i), posa(at%nat + i), posa(2 * at%nat + i) /) / bohr2ang
+  end do
+
+  allocate(fcart(3, at%nat))
+
+  call MPI_Barrier(MPI_COMM_WORLD,ierror)
+  call call_bigdft( nproc, me, at, xcart, in, energy, fcart, fnoise, rst, infocode )
+  evalf_number = evalf_number + 1
+  in%inputPsiId = 1
+
+  call fnrmandforcemax(fcart,fnrm,fmax, at%nat)
+
+  if ( fmax > in%forcemax ) then
+
+     if ( iproc == 0 ) then
+        write(*,*) 'BART:check_force_clean_wf'
+        write(*,*) 'BART: fmax =', fmax,'H/Bohr. We relax again!' 
+     end if
+
+     call MPI_Barrier(MPI_COMM_WORLD,ierror)
+     call geopt( nproc, me, xcart, at, fcart, total_energy, rst, in, ncount_bigdft )
+     evalf_number = evalf_number + ncount_bigdft 
+     if (ncount_bigdft > in%ncount_cluster_x) success = .False.
+
+     total_energy = total_energy * ht2ev
+                                         ! box in ang
+     boxl(1) = at%alat1 * bohr2ang
+     boxl(2) = at%alat2 * bohr2ang
+     boxl(3) = at%alat3 * bohr2ang
+                                         ! Positions into ang.
+     do i = 1, at%nat, 1
+        posa(i)              = xcart(1, i) * bohr2ang
+        posa(at%nat + i)     = xcart(2, i) * bohr2ang
+        posa(2 * at%nat + i) = xcart(3, i) * bohr2ang
+     end do
+  
+  end if 
+
+  deallocate(xcart)
+  deallocate(fcart)
+
+END SUBROUTINE check_force_clean_wf
+
 
 END MODULE bigdft_forces
 !!***

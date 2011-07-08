@@ -217,6 +217,8 @@ program art90
         close(FLOG)
      end if
                                       ! Is a real minimum ?
+                                      ! If dual_search, this check is done only on
+                                      ! one system 
      if ( LANCZOS_MIN .and. success ) call check_min( 'M' ) 
 
      if ( eventtype == "REFINE_AND_RELAX" ) call end_art() 

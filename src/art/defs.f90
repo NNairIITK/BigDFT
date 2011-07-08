@@ -134,9 +134,25 @@ module defs
  
   ! Development :
   ! if delta_e < delta_thr .and. delr < delr_thr => end_activation = .true.                              
+
+  logical      :: calc_proj                 ! if it is true; it calculates the projection only
+                                            ! at every two steps but after 4 steps above of an
+                                            ! inflection in the eigenvalue
   
   real(kind=8) :: delta_thr                 ! default = 0.0 
   real(kind=8) :: delr_thr                  ! default = 0.0
+  logical      :: clean_wf                  ! we are not going to use previously calculated wave
+                                            ! function at some key points. This is for charged systems.
+
+  ! for dual_search:
+  ! for new projection vector. It will be start with a random displacement localized 
+  ! only around a given atom. 
+  ! Forces in the other molecule will be zero
+  ! This is only for Type_of_events == local or list_local 
+  logical      :: dual_search              
+  integer      :: central_atom
+  real(kind=8) :: size_system
+  integer      :: type_sel
   !__________________
   
   character(len=20) :: LOGFILE
