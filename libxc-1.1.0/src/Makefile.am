@@ -128,6 +128,13 @@ xc_funcs.h libxc_funcs.f90: get_funcs.pl
 $(LIBFUNCMOD):
 	$(MAKE) libxc_funcs.o
 
+libxc_la-libxc.lo: libxc_la-libxc_funcs.lo libxc.f90
+	$(LIBTOOL)  --tag=FC $(libxc_la_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(FC) $(AM_FCFLAGS) $(FCFLAGS) -c -o libxc_la-libxc.lo $(FCFLAGS_f90) `test -f 'libxc.f90' || echo '$(srcdir)/'`libxc.f90
+
+libxc_la-libxc_s.lo: libxc_la-libxc_funcs.lo libxc_s.f90
+	$(LIBTOOL)  --tag=FC $(libxc_la_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(FC) $(AM_FCFLAGS) $(FCFLAGS) -c -o libxc_la-libxc_s.lo $(FCFLAGS_f90) `test -f 'libxc_s.f90' || echo '$(srcdir)/'`libxc_s.f90
+
+
 libxc.f90 $(XCLIBMODS): libxc_master.F90
 	@FCCPP@ @CPPFLAGS@ $(AM_CPPFLAGS) $(srcdir)/libxc_master.F90 > $(top_builddir)/src/libxc.f90
 	@if [ "@F90_ACCEPTS_LINE_NUMBERS@" = "no" ]; then \
