@@ -56,7 +56,7 @@ type(p2pCommsGatherPot):: comgp
 type(orbitals_data):: orbsLIN
 type(communications_arrays):: commsLIN
 real(8),dimension(:),allocatable:: eval
-integer:: istat
+integer:: istat, tag
 real(8),dimension(:),allocatable:: chi, lchi
 real(8),dimension(:,:),allocatable:: hchi, lhchi
 real(8),dimensioN(:,:,:),allocatable:: ham
@@ -336,7 +336,8 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
 
   ! Initialize the parameters for the communications of the potential.
-  call initializeCommunicationPotential(iproc, nproc, nscatterarr, lzdig%orbs, lzdig, comgp, onWhichAtom)
+  tag=20000 !! CHANGE LATER!!
+  call initializeCommunicationPotential(iproc, nproc, nscatterarr, lzdig%orbs, lzdig, comgp, onWhichAtom, tag)
 
   ! Post the messages for the communication of the potential.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -2003,16 +2004,17 @@ real(8),dimension(orbsig%npsidim,nat),intent(in):: hchi
 real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb,nat),intent(out):: ham
 
 ! Local variables
-integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat
+integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, tag
 type(overlapParameters):: op
 type(p2pCommsOrthonormality):: comon
 real(8),dimension(:),allocatable:: lchi, lhchi, lphiovrlp
 character(len=*),parameter:: subname='getHamiltonianMatrix'
 
 
-
+!! CHANGE THIS LATER?
+tag=10000
 ! Initialize the parameters for calculating the matrix.
-call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, input, op, comon)
+call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, input, op, comon, tag)
 
 allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lphiovrlp, 'lphiovrlp',subname)

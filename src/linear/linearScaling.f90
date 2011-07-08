@@ -142,6 +142,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+  if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
 
 
   updatePhi=.false.
@@ -160,6 +161,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+  if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
 
 
 
@@ -235,6 +237,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
       call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+      if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
 
       ! Write some informations
       call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy)

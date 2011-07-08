@@ -1844,8 +1844,6 @@ END SUBROUTINE ConvolkineticSextic
 
 
 
-!>  Applies the following operation: 
-!!  y = [kinetic energy operator) + (cprec*I) + ((r-r0)^4)]*x
 subroutine createDerivativeBasis(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&

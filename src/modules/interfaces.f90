@@ -2026,7 +2026,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine initializeCommsSumrho
 
 
-    subroutine initializeCommsSumrho2(iproc, nproc, nscatterarr, lin)
+    subroutine initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
       use module_base
       use module_types
       implicit none
@@ -2035,6 +2035,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer,intent(in):: iproc, nproc
       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       type(linearParameters),intent(inout):: lin
+      integer,intent(inout):: tag
     end subroutine initializeCommsSumrho2
 
 
@@ -2538,7 +2539,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(inout):: op
      end subroutine determineOverlapDescriptors
      
-     subroutine initCommsOrtho(iproc, nproc, lzd, onWhichAtomAll, input, op, comon)
+     subroutine initCommsOrtho(iproc, nproc, lzd, onWhichAtomAll, input, op, comon, tag)
        use module_base
        use module_types
        implicit none
@@ -2548,6 +2549,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(input_variables),intent(in):: input
        type(overlapParameters),intent(out):: op
        type(p2pCommsOrthonormality),intent(out):: comon
+       integer,intent(inout):: tag
      end subroutine initCommsOrtho
      
      subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)
@@ -2710,6 +2712,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(orbsig%npsidim,nat),intent(in):: hchi
        real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb,nat),intent(out):: ham
      end subroutine getHamiltonianMatrix
+
+
+     subroutine initializeCommunicationPotential(iproc, nproc, nscatterarr, orbs, lzd, comgp, onWhichAtomAll, tag)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+       type(orbitals_data),intent(in):: orbs
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(p2pCommsGatherPot),intent(out):: comgp
+       integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+       integer,intent(inout):: tag
+     end subroutine initializeCommunicationPotential
 
 
 

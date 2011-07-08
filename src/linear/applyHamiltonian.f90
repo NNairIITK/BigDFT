@@ -216,11 +216,13 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
-  real(wp), dimension(lin%Lorbs%npsidim), intent(in) :: psi
+  !real(wp), dimension(lin%Lorbs%npsidim), intent(in) :: psi
+  real(wp), dimension(lzd%orbs%npsidim), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1)*nspin), intent(in) :: pot
   !real(wp), dimension(:), pointer :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
-  real(wp), target, dimension(lin%Lorbs%npsidim), intent(out) :: hpsi
+  !real(wp), target, dimension(lin%Lorbs%npsidim), intent(out) :: hpsi
+  real(wp), target, dimension(lzd%orbs%npsidim), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
   type(p2pCommsgatherPot), intent(in):: comgp
@@ -305,10 +307,12 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
      ! Extract the part of the potential which is needed for the current localization region.
      i3s=lzd%Llr(ilr)%nsi3-comgp%ise3(1,iproc)+2 ! starting index of localized potential with respect to total potential in comgp%recvBuf
      i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise3(1,iproc)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
+     !write(*,'(a,2i4,3i7)') 'iproc, ilr, lzd%Llr(ilr)%nsi3, comgp%ise3(1,iproc), lzd%Llr(ilr)%d%n3i', iproc, ilr, lzd%Llr(ilr)%nsi3, comgp%ise3(1,iproc), lzd%Llr(ilr)%d%n3i
      if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
          write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i', i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
          stop
      end if
+     !write(*,'(a,i4,3x,2i8,i15)') 'iproc, i3s, i3e, (i3e-i3s+1)*lzd%glr%d%n2i*lzd%glr%d%n1i', iproc, i3s, i3e, (i3e-i3s+1)*lzd%glr%d%n2i*lzd%glr%d%n1i
      call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), nspin, ndimpot, size_Lpot, pot, Lpot, i3s, i3e)
 
      ! Set some quantities: ispot=shift for potential, dimwf=dimension of wavefunction
