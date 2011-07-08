@@ -7,6 +7,208 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s,n3p,nspin,refill_proj,&
+     rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise)
+  use module_base
+  use module_types
+  implicit none
+  logical, intent(in) :: refill_proj
+  integer, intent(in) :: iproc,nproc,i3s,n3p,nspin
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: Glr
+  type(atoms_data), intent(in) :: atoms
+  type(orbitals_data), intent(in) :: orbs
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(wp), dimension(Glr%d%n1i,Glr%d%n2i,n3p), intent(in) :: rho,pot,potxc
+  real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz,fion,fdisp
+  real(gp), intent(out) :: fnoise
+  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+  !local variables
+  integer :: ierr,iat
+
+  !! @todo Symmetrize forces with k points
+  call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,rho,pot,fxyz)
+
+  !calculate forces originated by rhocore
+  call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
+       0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
+
+  if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
+  
+  call nonlocal_forces(iproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,atoms,rxyz,&
+       orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj)
+
+  if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
+
+  ! Add up all the force contributions
+  if (nproc > 1) then
+     call mpiallred(fxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+  end if
+
+!!$  if (iproc == 0) then
+!!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
+!!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
+!!$     do iat=1,atoms%nat
+!!$        sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
+!!$        fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
+!!$     enddo
+!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
+!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
+!!$  endif
+
+  !add to the forces the ionic and dispersion contribution 
+  do iat=1,atoms%nat
+     fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
+     fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
+     fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
+  enddo
+  !clean the center mass shift and the torque in isolated directions
+  call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+  ! Apply symmetries when needed
+  if (atoms%symObj >= 0) call symmetrise_forces(iproc, fxyz, atoms)
+end subroutine calculate_forces
+
+!> calculate the contribution to the forces given by the core density charge
+subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,n1i,n2i,n3p,i3s,nspin,n1,n2,n3
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(atoms_data), intent(in) :: atoms
+  real(wp), dimension(n1i*n2i*n3p*nspin), intent(in) :: potxc
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+  !local variables
+  real(gp), parameter :: oneo4pi=.079577471545947_wp
+  logical :: perx,pery,perz,gox,goy,goz
+  integer :: ispin,ilcc,ityp,iat,jtyp,islcc,ngv,ngc,ig,ispinsh,ind
+  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,isx,isy,isz,iex,iey,iez
+  integer :: i1,i2,i3,j1,j2,j3
+  real(gp) :: spinfac,rx,ry,rz,frcx,frcy,frcz,rloc,cutoff,x,y,z,r2
+  real(gp) :: spherical_gaussian_value,drhoc,drhov,drhodr2
+
+  if (atoms%donlcc) then
+     if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate NLCC forces...'
+
+     if (nspin==1) then
+        spinfac=2.0_gp
+     else if (nspin ==2) then
+        spinfac=1.0_gp
+     end if
+     !perform the loop on any of the atoms which have this feature
+     do iat=1,atoms%nat
+        rx=rxyz(1,iat) 
+        ry=rxyz(2,iat)
+        rz=rxyz(3,iat)
+
+        ityp=atoms%iatype(iat)
+        frcx=0.0_gp
+        frcy=0.0_gp
+        frcz=0.0_gp
+        if (atoms%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or. atoms%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
+
+           !find the correct position of the nlcc parameters
+           ilcc=0
+           do jtyp=1,ityp-1
+              ngv=atoms%nlcc_ngv(jtyp)
+              if (ngv /= UNINITIALIZED(ngv)) ilcc=ilcc+(ngv*(ngv+1)/2)
+              ngc=atoms%nlcc_ngc(jtyp)
+              if (ngc /= UNINITIALIZED(ngc)) ilcc=ilcc+(ngc*(ngc+1))/2
+           end do
+           islcc=ilcc
+
+           !find the maximum exponent of the core density
+           ngv=atoms%nlcc_ngv(ityp)
+           if (ngv==UNINITIALIZED(1)) ngv=0
+           ngc=atoms%nlcc_ngc(ityp)
+           if (ngc==UNINITIALIZED(1)) ngc=0
+           rloc=0.0_gp
+           do ig=1,(ngv*(ngv+1))/2+(ngc*(ngc+1))/2
+              ilcc=ilcc+1
+              rloc=max(rloc,atoms%nlccpar(0,ilcc))
+           end do
+
+           cutoff=10.d0*rloc
+
+           !conditions for periodicity in the three directions
+           perx=(atoms%geocode /= 'F')
+           pery=(atoms%geocode == 'P')
+           perz=(atoms%geocode /= 'F')
+
+           call ext_buffers(perx,nbl1,nbr1)
+           call ext_buffers(pery,nbl2,nbr2)
+           call ext_buffers(perz,nbl3,nbr3)
+
+           if (n3p >0) then
+
+              isx=floor((rx-cutoff)/hxh)
+              isy=floor((ry-cutoff)/hyh)
+              isz=floor((rz-cutoff)/hzh)
+
+              iex=ceiling((rx+cutoff)/hxh)
+              iey=ceiling((ry+cutoff)/hyh)
+              iez=ceiling((rz+cutoff)/hzh)
+              do ispin=1,nspin
+                 ispinsh=0
+                 if (ispin==2) ispinsh=n1i*n2i*n3p
+                 do i3=isz,iez
+                    z=real(i3,kind=8)*hzh-rz
+                    call ind_positions(perz,i3,n3,j3,goz)
+                    j3=j3+nbl3+1
+                    if (j3 >= i3s .and. j3 <= i3s+n3p-1) then
+                       do i2=isy,iey
+                          y=real(i2,kind=8)*hyh-ry
+                          call ind_positions(pery,i2,n2,j2,goy)
+                          if (goy) then
+                             do i1=isx,iex
+                                x=real(i1,kind=8)*hxh-rx
+                                call ind_positions(perx,i1,n1,j1,gox)
+                                if (gox) then
+                                   r2=x**2+y**2+z**2
+                                   ilcc=islcc
+                                   drhov=0.0_dp
+                                   do ig=1,(ngv*(ngv+1))/2
+                                      ilcc=ilcc+1
+                                      !derivative wrt r2
+                                      drhov=drhov+&
+                                           spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+                                   end do
+                                   drhoc=0.0_dp
+                                   do ig=1,(ngc*(ngc+1))/2
+                                      ilcc=ilcc+1
+                                      !derivative wrt r2
+                                      drhoc=drhoc+&
+                                           spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+                                   end do
+                                   !forces in all the directions for the given atom
+                                   ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i+ispinsh
+                                   drhodr2=drhoc-drhov
+                                   frcx=frcx+potxc(ind)*x*drhodr2
+                                   frcy=frcy+potxc(ind)*y*drhodr2
+                                   frcz=frcz+potxc(ind)*z*drhodr2
+                                endif
+                             enddo
+                          end if
+                       enddo
+                    end if
+                 enddo
+              end do
+           end if
+        end if
+        !assign contribution per atom
+        fxyz(1,iat)=fxyz(1,iat)+frcx*hxh*hyh*hzh*spinfac*oneo4pi
+        fxyz(2,iat)=fxyz(2,iat)+frcy*hxh*hyh*hzh*spinfac*oneo4pi
+        fxyz(3,iat)=fxyz(3,iat)+frcz*hxh*hyh*hzh*spinfac*oneo4pi
+        !print *,'iat,iproc',iat,iproc,frcx*hxh*hyh*hzh*spinfac*oneo4pi
+     end do
+
+     if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
+  end if
+end subroutine rhocore_forces
 
 !>   Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
@@ -129,7 +331,12 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
                     fyerf=fyerf+xp*Vel*y
                     fzerf=fzerf+xp*Vel*z
                  else if (.not. goz) then
-                    forceleaked=forceleaked+xp*tt*rho(1) !(as a sample value)
+                    !derivative of the polynomial
+                    tt=cprime(nloc)
+                    do iloc=nloc-1,1,-1
+                       tt=arg*tt+cprime(iloc)
+                    enddo
+                    forceleaked=forceleaked+prefactor*xp*tt*rho(1) !(as a sample value)
                  endif
               end do
            end do
@@ -149,7 +356,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 
   end do
 
-  forceleaked=forceleaked*prefactor*hxh*hyh*hzh
+  forceleaked=forceleaked*hxh*hyh*hzh
   if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
 END SUBROUTINE local_forces
@@ -3072,3 +3279,71 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   &  write(*,'(2(1x,a,1pe20.12))') 'raw forces:                  maxval=', fmax1, ' fnrm2=', fnrm1
   end if
 END SUBROUTINE clean_forces
+
+subroutine symmetrise_forces(iproc, fxyz, at)
+  use defs_basis
+  use ab6_symmetry
+  use module_types
+
+  implicit none
+
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(inout) :: fxyz(3, at%nat)
+
+  integer :: ia, mu, isym, errno, ind, nsym
+  integer :: indsym(4, AB6_MAX_SYMMETRIES)
+  real(gp) :: summ
+  real(gp) :: alat(3)
+  real(gp), allocatable :: dedt(:,:)
+  integer, allocatable :: symrec(:,:,:)
+  integer, pointer  :: sym(:,:,:)
+  integer, pointer  :: symAfm(:)
+  real(gp), pointer :: transNon(:,:)
+
+  call ab6_symmetry_get_matrices_p(at%symObj, nsym, sym, transNon, symAfm, errno)
+  if (errno /= AB6_NO_ERROR) stop
+  if (nsym < 2) return
+
+  if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
+
+  !Get the symmetry matrices in terms of reciprocal basis
+  allocate(symrec(3, 3, nsym))
+  do isym = 1, nsym, 1
+     call mati3inv(sym(:,:,isym), symrec(:,:,isym))
+  end do
+
+  alat = (/ at%alat1, at%alat2, at%alat3 /)
+  if (at%geocode == 'S') alat(2) = real(1, gp)
+
+  !Save fxyz into dedt.
+  allocate(dedt(3,at%nat))
+  do ia = 1, at%nat
+     dedt(:, ia) = fxyz(:, ia) / alat
+  end do
+
+  ! actually conduct symmetrization
+  do ia = 1, at%nat
+     call ab6_symmetry_get_equivalent_atom(at%symObj, indsym, ia, errno)
+     if (errno /= AB6_NO_ERROR) stop
+     do mu = 1, 3
+        summ = real(0, gp)
+        do isym = 1, nsym
+           ind = indsym(4, isym)
+           summ = summ + real(symrec(mu,1,isym), gp) * dedt(1, ind) + &
+                & real(symrec(mu,2,isym), gp) * dedt(2, ind) + &
+                & real(symrec(mu,3,isym), gp) * dedt(3, ind)
+        end do
+        fxyz(mu, ia) = summ / real(nsym, gp)
+        ! if (abs(fred(mu, ia))<tol)fred(mu,ia)=0.0_dp
+     end do
+  end do
+
+  deallocate(dedt)
+  deallocate(symrec)
+  
+  ! fxyz is in reduced coordinates, we expand here.
+  do ia = 1, at%nat
+     fxyz(:, ia) = fxyz(:, ia) * alat
+  end do
+end subroutine symmetrise_forces

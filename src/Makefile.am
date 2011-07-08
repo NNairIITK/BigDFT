@@ -163,6 +163,7 @@ modules_source = modules/base.f90 \
 	modules/defs.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
+	modules/input.f90 \
 	$(GPU_BLAS)
 
 modules_objects = $(modules_source:.f90=.o)
@@ -178,6 +179,7 @@ high_level = cluster.f90 \
 	restart.f90 \
 	geometry.f90 \
 	davidson.f90 \
+	ConstrainedDavidson.f90 \
 	pdos.f90 \
 	vdwcorrection.f90 \
 	lanczos_interface.f90 \
@@ -383,7 +385,9 @@ CLEANFILES = \
 	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@ \
 	minimization_sp.@MODULE_EXT@ MINIMIZATION_SP.@MODULE_EXT@ \
 	modulesplinedsaddle.@MODULE_EXT@ MODULESPLINEDSADDLE.@MODULE_EXT@ \
-	randomdata.@MODULE_EXT@ RANDOMDATA.@MODULE_EXT@ 
+	randomdata.@MODULE_EXT@ RANDOMDATA.@MODULE_EXT@ \
+	module_input.@MODULE_EXT@ MODULE_INPUT.@MODULE_EXT@ \
+	position_files.@MODULE_EXT@ POSITION_FILES.@MODULE_EXT@
 
 
 check:
@@ -406,7 +410,7 @@ xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 #BigDFT_API.o: base.o types.o interfaces.o
 
-#$(high_level:.f90=.o) : base.o types.o
+$(high_level:.f90=.o) : $(modules_objects)
 
 test_forces.o: $(mod_bigdft)
 

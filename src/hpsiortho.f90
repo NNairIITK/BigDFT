@@ -488,7 +488,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspi
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
-  integer :: ierr,iorb,k,i_stat,i_all,nzeroorbs
 
   !adjust the save variables for DIIS/SD switch
   if (iter == 1) then
@@ -563,8 +562,8 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
   real(wp), dimension(:), pointer :: psi_as
   !local variables
   character(len=*), parameter :: subname='select_active_space'
-  integer :: iorb,ikpt,norb_as,norbu_as,norbd_as,icnt,ikptp,ispsi,ispsi_as
-  integer :: i_all,i_stat,nvctrp
+  integer :: iorb,ikpt,norbu_as,norbd_as,icnt,ikptp,ispsi,ispsi_as
+  integer :: i_stat,nvctrp
     
   !count the number of orbitals of the active space
   norbu_as=-1
@@ -881,7 +880,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
 
  if (wf > 0.0_gp) then
     ii=0
-    if (orbs%efermi == UNINITIALISED) then
+    if (orbs%efermi == UNINITIALIZED(orbs%efermi)) then
        ! Take initial value at gamma point.
        do iorb = 1, orbs%norbu
           if (orbs%occup(iorb) < 1.0_gp) then

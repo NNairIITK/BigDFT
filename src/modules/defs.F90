@@ -77,13 +77,17 @@ module module_defs
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp ! 1 atomic mass unit, in electronic mass
 
   !> Code constants.
-  real(gp), parameter :: UNINITIALISED = -123456789._gp
+  !real(gp), parameter :: UNINITIALISED = -123456789._gp
 
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
-     module procedure mpiallred_int,mpiallred_real,mpiallred_double
+     module procedure mpiallred_int,mpiallred_real,mpiallred_double,mpiallred_log
   end interface
 
+  !interface for uninitialized variable
+  interface UNINITIALIZED
+     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real
+  end interface
 
   !> interfaces for LAPACK routines
   interface potrf
@@ -192,6 +196,8 @@ module module_defs
       deallocate(copybuf,stat=i_stat)
       call memocc(i_stat,i_all,'copybuf',subname)
 #endif
+      if (ierr /=0) stop 'MPIALLRED_INT'
+
     end subroutine mpiallred_int
 
     subroutine mpiallred_real(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -222,6 +228,8 @@ module module_defs
       deallocate(copybuf,stat=i_stat)
       call memocc(i_stat,i_all,'copybuf',subname)
 #endif
+      if (ierr /=0) stop 'MPIALLRED_REAL'
+
     end subroutine mpiallred_real
 
     subroutine mpiallred_double(buffer,ntot,mpi_op,mpi_comm,ierr)
@@ -252,7 +260,66 @@ module module_defs
       deallocate(copybuf,stat=i_stat)
       call memocc(i_stat,i_all,'copybuf',subname)
 #endif
+      if (ierr /=0) stop 'MPIALLRED_DBL'
     end subroutine mpiallred_double
+
+    !interface for MPI_ALLREDUCE operations
+    subroutine mpiallred_log(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      logical, intent(in) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_LOGICAL,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      logical, dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+
+      !not appropriate for logical, to be seen if it works
+      call scopy(ntot,buffer,1,copybuf,1) 
+
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_LOGICAL,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+
+      !inform and stop if an error occurs
+      if (ierr /=0) stop 'MPIALLRED_LOG'
+
+    end subroutine mpiallred_log
+
+    function uninitialized_int(one)
+      implicit none
+      integer, intent(in) :: one
+      integer :: uninitialized_int
+      uninitialized_int=-123456789
+    end function uninitialized_int
+
+    function uninitialized_real(one)
+      implicit none
+      real(kind=4), intent(in) :: one
+      real(kind=4) :: uninitialized_real
+      uninitialized_real=-123456789.e0
+    end function uninitialized_real
+
+    function uninitialized_dbl(one)
+      implicit none
+      real(kind=8), intent(in) :: one
+      real(kind=8) :: uninitialized_dbl
+      
+      uninitialized_dbl=-123456789.d0
+    end function uninitialized_dbl
 
 
     !> Interfaces for LAPACK routines

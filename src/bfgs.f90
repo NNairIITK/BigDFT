@@ -80,7 +80,7 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
            call  write_atomic_file('posout_'//fn4,epot,rxyz,at,trim(comment))
         endif
         call bfgs_reza(iproc,nr,x,epot,f,nwork,work,in%betax,sqrt(fnrm),fmax, &
-            ncount_bigdft,fluct*in%frac_fluct,fluct)
+            ncount_bigdft,fluct*in%frac_fluct,fluct,at)
         !x(1:nr)=x(1:nr)+1.d-2*f(1:nr)
         call atomic_copymoving_backward(at,nr,x,3*at%nat,rxyz)
         if(parmin%converged) then
@@ -105,50 +105,225 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     deallocate(f,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating f.'
 END SUBROUTINE bfgsdriver
 !*****************************************************************************************
-!subroutine inithess(iproc,nat,rat,at)
-!    use module_types
-!    implicit none
-!    integer::iproc,nat,iat
-!    real(8)::rat(3,nat)
-!    type(atoms_data), intent(inout) :: at
-!    integer, allocatable::ita(:)
-!    allocate(ita(nat))
-!    do iat=1,nat
-!        if(trim(atoms%atomnames(atoms%iatype(iat)))=='H') then
-!            ita(iat)=1
-!        elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='C') then
-!            ita(iat)=2
-!        elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='N') then
-!            ita(iat)=3
-!        elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='O') then
-!            ita(iat)=4
-!        else
-!            write(*,*) 'This subroutine works only for systems which '
-!            write(*,*) 'contain only ogganic elements, namely H,C,N,O.'
-!            stop
-!        endif
-!    enddo
-!    do iat=1,nat
-!        do jat=iat+1,nat
-!            dx=rat(1,jat)-rat(1,iat)
-!            dy=rat(2,jat)-rat(2,iat)
-!            dz=rat(3,jat)-rat(3,iat)
-!            r=sqrt(dx**2+dy**2+dz**2)
-!            if(r<1.35d0*r0(ita(iat),ita(iat))) then
-!                nln(iat)=nln(iat)+1
-!                nln(jat)=nln(jat)+1
-!            endif
-!        enddo
-!    enddo
-!    deallocate(ita)
-!end subroutine inithess
+subroutine inithess(iproc,nr,nat,rat,atoms,hess)
+    use module_types
+    implicit none
+    integer::iproc,nr,nat,iat,jat,nsb,nrsqtwo,i,j,k,info
+    real(8)::rat(3,nat),hess(nr,nr),r0types(4,4),fctypes(4,4),soft,hard
+    type(atoms_data), intent(inout) :: atoms
+    integer, allocatable::ita(:),isb(:,:)
+    real(8), allocatable::r0bonds(:),fcbonds(:),evec(:,:),eval(:),wa(:)
+    real(8)::dx,dy,dz,r,tt,ep
+    nrsqtwo=2*nr**2
+    if(nr/=3*atoms%nat) then
+        stop 'ERROR: This subroutine works only for systems without fixed atoms.'
+    endif
+    allocate(ita(nat),isb(10*nat,2),r0bonds(10*nat),fcbonds(10*nat))
+    allocate(evec(nr,nr),eval(nr),wa(nrsqtwo))
+    do iat=1,nat
+        if(trim(atoms%atomnames(atoms%iatype(iat)))=='H') then
+            ita(iat)=1
+        elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='C') then
+            ita(iat)=2
+        elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='N') then
+            ita(iat)=3
+        elseif(trim(atoms%atomnames(atoms%iatype(iat)))=='O') then
+            ita(iat)=4
+        else
+            if(iproc==0) then
+                write(*,'(a)') 'ERROR: This PBFGS is only implemented for systems which '
+                write(*,'(a)') '       contain only organic elements, namely H,C,N,O.'
+                write(*,'(a)') '       so use BFGS instead.'
+            endif
+            stop
+        endif
+    enddo
+    call init_parameters(r0types,fctypes)
+    !r0types(1:4,1:4)=2.d0 ; fctypes(1:4,1:4)=5.d2
+    nsb=0
+    do iat=1,nat
+        do jat=iat+1,nat
+            dx=rat(1,jat)-rat(1,iat)
+            dy=rat(2,jat)-rat(2,iat)
+            dz=rat(3,jat)-rat(3,iat)
+            r=sqrt(dx**2+dy**2+dz**2)
+            !if(iat==21 .and. jat==27 .and. iproc==0) then
+            !    write(*,*) 'REZA ',r,1.35d0*r0types(ita(iat),ita(jat))
+            !endif
+            if(r<1.35d0*r0types(ita(iat),ita(jat))) then
+                nsb=nsb+1
+                if(nsb>10*nat) stop 'ERROR: too many stretching bonds, is everything OK?'
+                isb(nsb,1)=iat
+                isb(nsb,2)=jat
+                r0bonds(nsb)=r0types(ita(iat),ita(jat)) !CAUTION: equil. bond length from amber
+                !r0bonds(nsb)=r !CAUTION: current bond length assumed as equil. 
+                fcbonds(nsb)=fctypes(ita(iat),ita(jat))
+            endif
+        enddo
+    enddo
+    if(iproc==0) write(*,*) 'NSB ',nsb
+    !if(iproc==0) then
+    !    do i=1,nsb
+    !        write(*,'(a,i5,2f20.10,2i4,2(x,a))') 'PAR ', &
+    !            i,r0bonds(i),fcbonds(i),isb(i,1),isb(i,2), &
+    !            trim(atoms%atomnames(atoms%iatype(isb(i,1)))),trim(atoms%atomnames(atoms%iatype(isb(i,2))))
+    !    enddo
+    !endif
+    call pseudohess(nat,rat,nsb,isb(1,1),isb(1,2),fcbonds,r0bonds,hess)
+    evec(1:nr,1:nr)=hess(1:nr,1:nr)
+    !if(iproc==0) write(*,*) 'HESS ',hess(:,:)
+    call DSYEV('V','L',nr,evec,nr,eval,wa,nrsqtwo,info)
+    if(info/=0) stop 'ERROR: DSYEV in inithess failed.'
+    if(iproc==0) then
+        do i=1,nr
+            write(*,'(i5,es20.10)') i,eval(i)
+        enddo
+    endif
+    !stop
+    hard=eval(nr)
+    soft=eval(nr-nsb+1)
+    do k=1,nr
+        if(eval(k)<soft) then
+            eval(k)=soft
+        endif
+        eval(k)=1.d0/sqrt(eval(k)**2+soft**2)
+    enddo
+    do i=1,nr
+    do j=i,nr
+        tt=0.d0
+        do k=1,nr
+            !ep=1.d0/max(1.d-5,eval(k))
+            !ep=sqrt(ep**2+(20.d0/eval(nr))**2)
+            !if(eval(k
+            !ep=sqrt(eval(k)**2+constant**2)
+            tt=tt+eval(k)*evec(i,k)*evec(j,k)
+        enddo
+        hess(i,j)=tt
+    enddo
+    enddo
+    do i=1,nr
+    do j=1,i-1
+        hess(i,j)=hess(j,i)
+    enddo
+    enddo
+    deallocate(ita,isb,r0bonds,fcbonds,evec,eval,wa)
+end subroutine inithess
 !*****************************************************************************************
-subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft,flt1,flt2)
-    use minpar
+subroutine init_parameters(r0,fc)
+    implicit none
+    integer::i,j
+    real(8)::r0(4,4),fc(4,4)
+    !((0.0104 / 0.239) / 27.2114) * (0.529177^2) = 0.000447802457
+    r0(1,1)=0.80d0/0.529d0
+    r0(2,1)=1.09d0/0.529d0 ; r0(2,2)=1.51d0/0.529d0
+    r0(3,1)=1.01d0/0.529d0 ; r0(3,2)=1.39d0/0.529d0 ; r0(3,3)=1.10d0/0.529d0
+    r0(4,1)=0.96d0/0.529d0 ; r0(4,2)=1.26d0/0.529d0 ; r0(4,3)=1.10d0/0.529d0 ; r0(4,4)=1.10/0.529d0
+    do i=1,4
+        do j=i+1,4
+            r0(i,j)=r0(j,i)
+        enddo
+    enddo
+    fc(1,1)=1.00d3*4.48d-4
+    fc(2,1)=3.40d2*4.48d-4 ; fc(2,2)=3.31d2*4.48d-4
+    fc(3,1)=4.34d2*4.48d-4 ; fc(3,2)=4.13d2*4.48d-4 ; fc(3,3)=4.56d3*4.48d-4
+    fc(4,1)=5.53d2*4.48d-4 ; fc(4,2)=5.43d2*4.48d-4 ; fc(4,3)=4.56d3*4.48d-4 ; fc(4,4)=4.56d3*4.48d-4
+    do i=1,4
+        do j=i+1,4
+            fc(i,j)=fc(j,i)
+        enddo
+    enddo
+end subroutine init_parameters
+!*****************************************************************************************
+subroutine pseudohess(nat,rat,nbond,indbond1,indbond2,sprcons,xl0,hess)
+    implicit none
+    integer::nat,nbond,indbond1(nbond),indbond2(nbond)
+    real(8)::rat(3,nat),sprcons(nbond),xl0(nbond),hess(3*nat,3*nat)
+    integer::iat,jat,i,j,ibond
+    real(8)::xiat,yiat,ziat,dx,dy,dz,r2,r,rinv,r3inv !,rinv2,rinv4,rinv8,rinv10,rinv14,rinv16
+    real(8)::dxsq,dysq,dzsq,dxdy,dxdz,dydz,tt1,tt2,tt3,tt4
+    real(8)::h11,h22,h33,h12,h13,h23
+    do j=1,3*nat
+        do i=1,3*nat
+            hess(i,j)=0.d0
+        enddo
+    enddo
+    do ibond=1,nbond
+        iat=indbond1(ibond)
+        jat=indbond2(ibond)
+        dx=rat(1,iat)-rat(1,jat)
+        dy=rat(2,iat)-rat(2,jat)
+        dz=rat(3,iat)-rat(3,jat)
+        r2=dx**2+dy**2+dz**2
+        r=sqrt(r2) ; rinv=1.d0/r ; r3inv=rinv**3
+        !rinv2=1.d0/r2
+        !rinv4=rinv2*rinv2
+        !rinv8=rinv4*rinv4
+        !rinv10=rinv8*rinv2
+        !rinv14=rinv10*rinv4
+        !rinv16=rinv8*rinv8
+        dxsq=dx*dx ; dysq=dy*dy ; dzsq=dz*dz
+        dxdy=dx*dy ; dxdz=dx*dz ; dydz=dy*dz
+        !tt1=672.d0*rinv16
+        !tt2=48.d0*rinv14
+        !tt3=192.d0*rinv10
+        !tt4=24.d0*rinv8
+        tt1=sprcons(ibond)
+        tt2=xl0(ibond)*rinv
+        tt3=tt2*rinv**2
+        !calculating the six distinct elements of 6 by 6 block
+        !h11=dxsq*tt1-tt2-dxsq*tt3+tt4
+        !h22=dysq*tt1-tt2-dysq*tt3+tt4
+        !h33=dzsq*tt1-tt2-dzsq*tt3+tt4
+        !h12=dxdy*tt1-dxdy*tt3
+        !h13=dxdz*tt1-dxdz*tt3
+        !h23=dydz*tt1-dydz*tt3
+
+        !k_b*(1-l0/l+l0*(x_i-x_j)^2/l^3)
+        h11=tt1*(1.d0-tt2+dxsq*tt3)
+        h22=tt1*(1.d0-tt2+dysq*tt3)
+        h33=tt1*(1.d0-tt2+dzsq*tt3)
+        h12=tt1*dxdy*tt3
+        h13=tt1*dxdz*tt3
+        h23=tt1*dydz*tt3
+        i=3*(iat-1)+1 ; j=3*(jat-1)+1
+        !filling upper-left traingle (summing-up is necessary)
+        hess(i+0,i+0)=hess(i+0,i+0)+h11
+        hess(i+0,i+1)=hess(i+0,i+1)+h12
+        hess(i+1,i+1)=hess(i+1,i+1)+h22
+        hess(i+0,i+2)=hess(i+0,i+2)+h13
+        hess(i+1,i+2)=hess(i+1,i+2)+h23
+        hess(i+2,i+2)=hess(i+2,i+2)+h33
+        !filling lower-right traingle (summing-up is necessary)
+        hess(j+0,j+0)=hess(j+0,j+0)+h11
+        hess(j+0,j+1)=hess(j+0,j+1)+h12
+        hess(j+1,j+1)=hess(j+1,j+1)+h22
+        hess(j+0,j+2)=hess(j+0,j+2)+h13
+        hess(j+1,j+2)=hess(j+1,j+2)+h23
+        hess(j+2,j+2)=hess(j+2,j+2)+h33
+        !filling 3 by 3 block
+        !summing-up is not needed but it may be necessary for PBC
+        hess(i+0,j+0)=-h11 ; hess(i+1,j+0)=-h12 ; hess(i+2,j+0)=-h13
+        hess(i+0,j+1)=-h12 ; hess(i+1,j+1)=-h22 ; hess(i+2,j+1)=-h23
+        hess(i+0,j+2)=-h13 ; hess(i+1,j+2)=-h23 ; hess(i+2,j+2)=-h33
+        !write(*,'(i3,5es20.10)') ibond,hess(i+0,i+0),tt1,tt2,tt3,xl0(ibond)
+    enddo
+    !filling the lower triangle of 3Nx3N Hessian matrix
+    do i=1,3*nat-1
+        do j =i+1,3*nat
+            hess(j,i)=hess(i,j)
+        enddo
+    enddo
+    !---------------------------------------------------------------------------
+end subroutine pseudohess
+!*****************************************************************************************
+subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft,flt1,flt2,atoms)
+    use minpar, only:parmin
+    use module_types
     implicit none
     integer::iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,iw4,info,i,j,l,mx
     integer::ncount_bigdft
     real(8)::x(nr),f(nr),epot,work(nwork),alphax,flt1,flt2
+    type(atoms_data), intent(inout) :: atoms
     integer, allocatable::ipiv(:)
     !real(8), allocatable::eval(:),umat(:)
     !type(parameterminimization)::parmin
@@ -241,10 +416,15 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
         !    reset=.false.
         !    !alpha=5.d-1
         !endif
-        work(1:nr*nr)=0.d0
-        do i=1,nr
-            work(i+(i-1)*nr)=zeta*alphax
-        enddo
+
+        if(trim(parmin%approach)=='PBFGS') then
+            call inithess(iproc,nr,atoms%nat,x,atoms,work(1))
+        else
+            work(1:nr*nr)=0.d0
+            do i=1,nr
+                work(i+(i-1)*nr)=zeta*alphax
+            enddo
+        endif
         work(iw3:iw3-1+nr)=zeta*alphax*f(1:nr)
     else
         work(ms:ms-1+nr)=x(1:nr)-work(mx:mx-1+nr)
@@ -288,11 +468,11 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
         endif
         work(iw3:iw3-1+nr)=0.d0
         if(isatur<3) then
-            beta=1.d0/alphax
-        elseif(isatur<6) then
             beta=1.d-1/alphax
-        elseif(isatur<10) then
+        elseif(isatur<6) then
             beta=1.d-2/alphax
+        elseif(isatur<10) then
+            beta=1.d-3/alphax
         else
             beta=1.d-3/alphax
         endif

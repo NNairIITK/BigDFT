@@ -862,6 +862,12 @@ END SUBROUTINE read_density_cube_old
 
 
 !>   Write a (sum of two) field in the ISF basis in the cube format
+!!   Recent changes by Ali:
+!!   1) Filling the 2nd column in atomic coordinates rows by the pseudo-cores charge. I found it standard in few other packages. 
+!!      In particular it is needed by the recent charge analysis tool.
+!!   2) Outputting the electric-dipole moment is an useful piece of data both for the end-user and for developing step 
+!!      as a tool to investigate the consistency  (e.g. for symmetrical directions). 
+!!      I already did it in this subroutine, but we can do it as a separate subroutine.
 subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
   use module_base
@@ -877,6 +883,7 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   character(len=3) :: advancestring
   integer :: nl1,nl2,nl3,nbx,nby,nbz,i1,i2,i3,icount,j,iat
   real(dp) :: later_avg
+  real(gp) :: dipole_el(3) , dipole_cores(3),q
   !conditions for periodicity in the three directions
   !value of the buffer in the x and z direction
   if (at%geocode /= 'F') then
@@ -908,9 +915,15 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
   write(22,'(i5,3(f12.6))') 2*(n2+nby),0.0_gp,hyh,0.0_gp
   write(22,'(i5,3(f12.6))') 2*(n3+nbz),0.0_gp,0.0_gp,hzh
   !atomic number and positions
+  dipole_el   (1:3)=0_gp
+  dipole_cores(1:3)=0_gp
   do iat=1,at%nat
-     write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+     !write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
+     write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)), at%nelpsp(at%iatype(iat))*1. &
+          ,(rxyz(j,iat),j=1,3)
+     dipole_cores(1:3)=dipole_cores(1:3)+at%nelpsp(at%iatype(iat)) * rxyz(1:3,iat)
   end do
+
 
   !the loop is reverted for a cube file
   !charge normalised to the total charge
@@ -928,57 +941,72 @@ subroutine write_cube_fields(filename,message,at,rxyz,n1,n2,n3,n1i,n2i,n3i,hxh,h
            !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
            write(22,'(1x,1pe13.6)',advance=advancestring)&
                 a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
+           q= ( a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3) )* hxh*hyh*hzh 
+           dipole_el(1)=dipole_el(1)+ q* at%alat1/real(2*(n1+nbx),dp)*i1 
+           dipole_el(2)=dipole_el(2)+ q* at%alat2/real(2*(n2+nby),dp)*i2
+           dipole_el(3)=dipole_el(3)+ q* at%alat3/real(2*(n3+nbz),dp)*i3
         end do
      end do
   end do
   close(22)
-
   !average in x direction
   open(unit=23,file=trim(filename)//'_avg_x',status='unknown')
-  do i1=0,2*n1+1
+  !  do i1=0,2*n1+1
+  do i1=0,2*(n1+nbx) - 1
      later_avg=0.0_dp
-     do i3=0,2*n3+1
-        do i2=0,2*n2+1
+     do i3=0,2*(n3+nbz) -1
+        do i2=0,2*(n2+nby) - 1
            later_avg=later_avg+&
                 a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
         end do
      end do
-     later_avg=later_avg/real((2*n2+2)*(2*n3+2),dp) !2D integration/2D Volume
+     later_avg=later_avg/real((2*(n2+nby))*(2*(n3+nbz)),dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i1,at%alat1/real(2*n1+2,dp)*i1,later_avg
+     Write(23,*)i1,at%alat1/real(2*(n1+nbx),dp)*i1,later_avg
   end do
   close(23)
   !average in y direction
   open(unit=23,file=trim(filename)//'_avg_y',status='unknown')
-  do i2=0,2*n2+1
+  do i2=0,2*(n2+nby) - 1
      later_avg=0.0_dp
-     do i3=0,2*n3+1
-        do i1=0,2*n1+1
+     do i3=0,2*(n3+nbz) - 1
+        do i1=0,2*(n1+nbx) -1 
            later_avg=later_avg+&
                 a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
         end do
      end do
-     later_avg=later_avg/real((2*n1+2)*(2*n3+2),dp) !2D integration/2D Volume
+     later_avg=later_avg/real((2*(n1+nbx))*(2*(n3+nbz)),dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i2,at%alat2/real(2*n2+2,dp)*i2,later_avg
+     write(23,*)i2,at%alat2/real(2*(n2+nby),dp)*i2,later_avg
   end do
   close(23)
   !average in z direction
   open(unit=23,file=trim(filename)//'_avg_z',status='unknown')
-  do i3=0,2*n3+1
+  do i3=0,2*(n3+nbz) - 1
      later_avg=0.0_dp
-     do i2=0,2*n2+1
-        do i1=0,2*n1+1
+     do i2=0,2*(n2+nby) - 1
+        do i1=0,2*(n1+nbx) -1 
            later_avg=later_avg+&
                 a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
         end do
      end do
-     later_avg=later_avg/real((2*n1+2)*(2*n2+2),dp) !2D integration/2D Volume
+     later_avg=later_avg/real((2*(n1+nbx))*(2*(n2+nby)),dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i3,at%alat3/real(2*n3+2,dp)*i3,later_avg
+     write(23,*)i3,at%alat3/real(2*(n3+nbz),dp)*i3,later_avg
   end do
   close(23)
-
+  if (trim(filename)=='electronic_density') then
+     dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
+     dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
+     open(unit=24,file='dipole',status='unknown')
+     write(24,'(a)') " #  Dipole moment of the whole system  (Px, Py, Pz,  |P| [e.bohr])"  ! or [D] 
+     write(24,99) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
+     write(24,99) "pseudo cores:      ", dipole_cores(1:3) , sqrt(sum(dipole_cores**2))
+     write(24,99) "Total (cores-el.): ", dipole_cores-dipole_el , sqrt(sum((dipole_cores-dipole_el)**2))
+99   format (a20,3f15.7,"    ==> ",f15.5)
+     !99 format (a20,4ES15.7)
+     close(24)
+  endif
 END SUBROUTINE write_cube_fields
 
 

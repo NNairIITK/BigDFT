@@ -383,8 +383,15 @@ If this file exists, BigDFT will do a geometry optimization and the file contain
 \item {\bf geopt\_approach}: This character string specifies the method used for the geometry optimization.
       \begin{itemize}
       \item  \emph{VSSD}:  Variable Stepsize Steepest Descent method;
-      \item  \emph{SDCG}:  A combination of Steepest Descent and Conjugate Gradient;
-      \item  \emph{BFGS}:  Limited Memory BFGS;
+      \item  \emph{SDCG}: A combination of Steepest Descent and Conjugate Gradient;
+      \item  \emph{LBFGS}: Limited Memory BFGS;
+      \item  \emph{BFGS}: Preconditioned steepest descent with energy feedback.
+                          A preconditioning matrix is build up according to the  BFGS algorithm.
+                          The initial Hessian is a diagonal matrix where the diagonal elements are the 
+                          inverse of the step size. This method is usually the most efficient one.
+      \item  \emph{PBFGS}: Same as BFGS except that an initial Hessian is obtained from a force field.
+                           Force field parameters are only available for systems consisting of H,C,N,O.
+                           For such systems the method is the most efficient one in general
       \item  \emph{AB6MD}: The molecular dynamic routines from ABINIT~6.
       \end{itemize}
 \item {\bf  ncount\_cluster\_x}: Maximum number of force evaluations to be used for the geometry optimization.
@@ -808,12 +815,12 @@ In progress
 \bibitem{Taillefumier}** This reversed PAW procedure, that we describe and document here, looks similar to the one which seems to be  used in Taillefumier et al., Phys. Rev. B 66, 195107 (2002) 
 \bibitem{blume}   M. Blume, in Resonant Anomalous X-Ray Scattering, edited by G. Materlik, J. Sparks and K. Fisher (Elsevier, Amsterdam, 1994), p. 495.
 \bibitem{weiss} A. Weiss, G. Wellein, A. Alvermann and H. Fehske Rev. Mod. Phys. 78, 275 (2006) 
-
-
 \end{thebibliography}
 
-\chapter*{Native ABINIT XC functionals}
 
+\chapter*{XC functionals codes}
+
+\section{Native ABINIT XC codes}
 \begin{longtable}{ll}
 0  & NO xc\\
 1  & LDA or LSD, Teter Pade parametrization\\
@@ -852,7 +859,7 @@ In progress
 27 & GGA, HTCH407 of A.D. Boese, and N.C. Handy, J. Chem. Phys 114, 5497 (2001)\\
 \end{longtable}
 
-\chapter*{libXC functional codes}
+\section{libXC functional codes}
 \label{appendix-libXC}
 
 In the input file 'input.dft', you have to specify a code from this table made with a negative sign

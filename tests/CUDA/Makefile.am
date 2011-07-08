@@ -1,6 +1,7 @@
 
 if USE_CUDA_GPU
-check_PROGRAMS = conv_check 
+check_PROGRAMS = conv_check
+my_tests = CUDA.report
 else
 check_PROGRAMS = 
 endif
@@ -27,12 +28,17 @@ CLEANFILES = module_base.@MODULE_EXT@ fort.1 fort.98 *linkinfo
 
 AM_FCFLAGS = -I../../src/modules @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@
 
-conv_check_SOURCES = ../../src/CUDA/conv_check.f90  ../../src/modules/defs.F90 ../../src/modules/base.f90 $(mpi_source)
+conv_check_SOURCES = ../../src/CUDA/conv_check.f90  ../../src/CUDA/timing.c ../../src/modules/defs.F90 ../../src/modules/base.f90 $(mpi_source)
 conv_check_LDFLAGS = -lrt
 conv_check_LDADD = $(top_builddir)/src/libbigdft.a \
 	$(top_builddir)/src/PSolver/libpoissonsolver.a \
 	$(top_builddir)/src/CUDA/libGPU.a $(libs_ocl) $(libs_dgemmsy)
 
-check:
+conv_check.out: conv_check
 	echo 1 64 64 2048 2048 2 > fort.1
-	./conv_check
+	./conv_check > conv_check.out
+
+CUDA.report: conv_check.out
+	awk -f $(srcdir)/conv_check.awk $< | tee CUDA.report
+
+check: $(my_tests)

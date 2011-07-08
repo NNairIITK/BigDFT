@@ -84,18 +84,18 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
   
 
   !check for the need of a nonlinear core correction
-  donlcc=.false.
-  chk_nlcc: do ityp=1,at%ntypes
-     filename = 'nlcc.'//at%atomnames(ityp)
+!!$  donlcc=.false.
+!!$  chk_nlcc: do ityp=1,at%ntypes
+!!$     filename = 'nlcc.'//at%atomnames(ityp)
+!!$
+!!$     inquire(file=filename,exist=exists)
+!!$     if (exists) then
+!!$        donlcc=.true.
+!!$        exit chk_nlcc
+!!$     end if
+!!$  end do chk_nlcc
 
-     inquire(file=filename,exist=exists)
-     if (exists) then
-        donlcc=.true.
-        exit chk_nlcc
-     end if
-  end do chk_nlcc
-
-  if (donlcc) then
+  if (at%donlcc) then
      !allocate pointer rhocore
      allocate(rhocore(d%n1i*d%n2i*n3d+ndebug),stat=i_stat)
      call memocc(i_stat,rhocore,'rhocore',subname)
@@ -104,9 +104,10 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%nat
         ityp=at%iatype(iat)
-        filename = 'nlcc.'//at%atomnames(ityp)
-        inquire(file=filename,exist=exists)
-        if (exists) then
+!!$        filename = 'nlcc.'//at%atomnames(ityp)
+!!$        inquire(file=filename,exist=exists)
+!!$        if (exists) then
+        if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or. at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
            if (iproc == 0) write(*,'(1x,a)',advance='no')&
                 'NLCC: calculate core density for atom: '//&
                 trim(at%atomnames(ityp))//';'
@@ -117,7 +118,7 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
            rloc=at%psppar(0,0,ityp)
            cutoff=10.d0*rloc
 
-           call calc_rhocore_iat(iproc,at%geocode,filename,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+           call calc_rhocore_iat(iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                 d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,&
                 i3s,n3d,rhocore)
 
@@ -173,8 +174,8 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   character(len=27) :: filename
   character(len=50) :: format
   character(len=100) :: line
-  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,ixcpsp,ispinsum,mxpl
-  integer :: ispol,mxchg,ichg,ichgsum,nsccode,ierror1,norbe,norbat,nspinor,nspin
+  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,ixcpsp,ispinsum,mxpl,ig
+  integer :: ispol,mxchg,ichg,ichgsum,nsccode,ierror1,norbe,norbat,nspinor,nspin,nlcc_dim,ngv,ngc
   real(gp) :: rcov,rprb,ehomo,radfine,minrad,maxrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
@@ -200,11 +201,22 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 
+  !parameters for NLCC
+  allocate(atoms%nlcc_ngv(atoms%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
+  allocate(atoms%nlcc_ngc(atoms%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
+  allocate(atoms%ig_nlccpar(0:4,atoms%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%ig_nlccpar,'atoms%ig_nlccpar',subname)
+
   if (iproc == 0) then
      write(*,'(1x,a)')&
           ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
   end if
 
+  !logical variable for non-linear core correction
+  atoms%donlcc=.false.
+  nlcc_dim=0
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
 
@@ -345,7 +357,86 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      call atomic_occupation_numbers(fileocc,ityp,in%nspin,atoms,nmax,lmax,nelecmax,&
           neleconf,nsccode,mxpl,mxchg)
 
+     !inquire for non-linear core correction and count the components
+     filename ='nlcc.'//atoms%atomnames(ityp)
+
+     inquire(file=filename,exist=exists)
+     if (exists) then
+        atoms%donlcc=.true. !just one atom would be enough
+        !associate the number of gaussians
+        open(unit=79,file=filename,status='unknown')
+        read(79,*)ngv
+        if (ngv==0) then
+           atoms%nlcc_ngv(ityp)=UNINITIALIZED(1)
+        else
+           atoms%nlcc_ngv(ityp)=ngv
+        end if
+        nlcc_dim=nlcc_dim+(ngv*(ngv+1)/2)
+        do ig=1,(ngv*(ngv+1))/2
+           do j=0,4
+              read(79,*) !jump the suitable lines (the file is organised with one element per line)
+           end do
+        end do
+        read(79,*)ngc
+        if (ngc==0) then
+           atoms%nlcc_ngc(ityp)=UNINITIALIZED(1)
+        else
+           atoms%nlcc_ngc(ityp)=ngc
+        end if
+        nlcc_dim=nlcc_dim+(ngc*(ngc+1))/2
+!!$        !better to read values in a fake array
+!!$        do ig=1,(ngc*(ngc+1))/2
+!!$           do j=0,4
+!!$              read(79,*) !jump the suitable lines (the file is organised with one element per line)
+!!$           end do
+!!$        end do
+        do j=0,4
+           atoms%ig_nlccpar(j,ityp)=UNINITIALIZED(1.0_gp)
+        end do
+
+!!$        read(79,*)
+!!$        read(79,*)
+!!$        read(79,*,iostat=i_stat)rcore2,gcore !SONO ARRIVATO QUI DEVO AGGIUNGERE LA LETTURA CON ISTAT
+!!$
+        !no need to go further for the moment
+        close(unit=79)
+     else
+        atoms%nlcc_ngv(ityp)=UNINITIALIZED(1)
+        atoms%nlcc_ngc(ityp)=UNINITIALIZED(1)
+        do j=0,4
+           atoms%ig_nlccpar(j,ityp)=UNINITIALIZED(1.0_gp)
+        end do
+     end if
   enddo
+
+  !process the nlcc parameters if present 
+  !(allocation is performed also with zero size)
+  allocate(atoms%nlccpar(0:4,nlcc_dim+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%nlccpar,'atoms%nlccpar',subname)
+  !start again the file inspection to fill nlcc parameters
+  if (atoms%donlcc) then
+     nlcc_dim=0
+     fill_nlcc: do ityp=1,atoms%ntypes
+        filename = 'nlcc.'//atoms%atomnames(ityp)
+        inquire(file=filename,exist=exists)
+        if (exists) then
+           !read the values of the gaussian for valence and core densities
+           open(unit=79,file=filename,status='unknown')
+           read(79,*)ngv
+           do ig=1,(ngv*(ngv+1))/2
+              nlcc_dim=nlcc_dim+1
+              read(79,*)(atoms%nlccpar(j,nlcc_dim),j=0,4)!rhovxp(ig),(rhovc(ig,j),j=1,4)
+           end do
+           read(79,*)ngc
+           do ig=1,(ngc*(ngc+1))/2
+              nlcc_dim=nlcc_dim+1
+              read(79,*)(atoms%nlccpar(j,nlcc_dim),j=0,4)!rhocxp(ig),(rhocc(ig,j),j=1,4)
+           end do
+           close(unit=79)
+        end if
+     end do fill_nlcc
+  end if
+
   !print *,'iatsctype',atOMS%iasctype(:)
 
   !print the pseudopotential matrices
@@ -924,7 +1015,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   end do
 
   !put a default value for the fermi energy
-  orbs%efermi = UNINITIALISED
+  orbs%efermi = UNINITIALIZED(orbs%efermi)
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)

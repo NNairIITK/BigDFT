@@ -78,7 +78,7 @@ CLEANFILES = *~ *.bak *.mod *.il *.d *.pc* ifc* funcs_*.c funcs.h \
 	libxc.f90 libxc_funcs.f90 xc_funcs.h *_s.c *_s.f90
 
 lda.o: xc_funcs.h xc.h xc_s.h
-util.h: xc_funcs.h 
+util.h xc.h: xc_funcs.h 
 xc_funcs.h: get_funcs.pl
 	$(srcdir)/get_funcs.pl $(srcdir) $(top_builddir)
 
