@@ -274,7 +274,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
      ! to this localization region.
      !write(*,'(a,3i8)') 'iproc, ilr, Lzd%Llr(ilr)%Localnorb', iproc, ilr, Lzd%Llr(ilr)%Localnorb
      if(Lzd%Llr(ilr)%Localnorb == 0) then
-         write(*,'(a,i0,a,i0)') 'process ',iproc,' cycles for ilr=',ilr
+         !write(*,'(a,i0,a,i0)') 'process ',iproc,' cycles for ilr=',ilr
          cycle
      end if
 

@@ -245,10 +245,12 @@ integer:: ist, ierr
       !!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
       !!end do
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
-      write(*,*) 'writing to 500+iproc, iproc', iproc
-      do iall=1,lin%lb%lzd%orbs%npsidim
-          write(500+iproc,*) iall, lphi(iall)
-      end do
+      !!write(*,*) 'writing to 500+iproc, iproc', iproc
+      !!do iall=1,lin%lb%lzd%orbs%npsidim
+      !!    write(500+iproc,*) iall, lphi(iall)
+      !!end do
+      !!call mpi_barrier(mpi_comm_world, ierr)
+      !!stop
       !!ist=0
       !!do iorb=1,lin%lb%lzd%orbs%norbp
       !!    ilr=lin%lb%onWhichAtom(iorb)
@@ -258,8 +260,6 @@ integer:: ist, ierr
       !!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
       !!end do
 
-call mpi_barrier(mpi_comm_world, ierr)
-stop
 
       ! Normalize the derivative basis functions
       ! Normalize all to keep it easy
@@ -3031,72 +3031,9 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
 
 
 
-  ! THIS IS COPIED FROM allocate_work_arrays. Works only for free boundary.
-  nf=(Glr%d%nfu1-Glr%d%nfl1+1)*(Glr%d%nfu2-Glr%d%nfl2+1)*(Glr%d%nfu3-Glr%d%nfl3+1)
-  ! Allocate work arrays
-  allocate(w_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3+ndebug), stat=istat)
-  call memocc(istat, w_c, 'w_c', subname)
-  allocate(w_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3+ndebug), stat=istat)
-  call memocc(istat, w_f, 'w_f', subname)
-
-  allocate(w_f1(nf+ndebug), stat=istat)
-  call memocc(istat, w_f1, 'w_f1', subname)
-  allocate(w_f2(nf+ndebug), stat=istat)
-  call memocc(istat, w_f2, 'w_f2', subname)
-  allocate(w_f3(nf+ndebug), stat=istat)
-  call memocc(istat, w_f3, 'w_f3', subname)
-
-
-  allocate(phix_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
-  call memocc(istat, phix_f, 'phix_f', subname)
-  allocate(phix_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
-  call memocc(istat, phix_c, 'phix_c', subname)
-  allocate(phiy_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
-  call memocc(istat, phiy_f, 'phiy_f', subname)
-  allocate(phiy_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
-  call memocc(istat, phiy_c, 'phiy_c', subname)
-  allocate(phiz_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
-  call memocc(istat, phiz_f, 'phiz_f', subname)
-  allocate(phiz_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
-  call memocc(istat, phiz_c, 'phiz_c', subname)
-
-  allocate(phiLoc(4*lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)), stat=istat)
+  allocate(phiLoc(4*lin%lzd%orbs%npsidim), stat=istat)
   call memocc(istat, phiLoc, 'phiLoc', subname)
  
-  ! Initialize to zero
-  w_c=0.d0
-  w_f=0.d0
-  w_f1=0.d0
-  w_f2=0.d0
-  w_f3=0.d0
-  phix_c=0.d0
-  phix_f=0.d0
-  phiy_c=0.d0
-  phiy_f=0.d0
-  phiz_c=0.d0
-  phiz_f=0.d0
-
-
-
-!write(*,'(a,i12,i5,i12)') 'Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, lind%orbs%norbp, lind%orbs%npsidim', Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, lind%orbs%norbp, lind%orbs%npsidim
-!write(*,*) 'size(phid)', size(phid)
-
-
-  !!! These are the starting indices in phiLoc:
-  !!! ist0: start index of the orginal phi
-  !!ist0_c=1
-  !!ist0_f=ist0_c+Glr%wfd%nvctr_c
-  !!! istx: start index of the derivative with respect to x
-  !!istx_c=1+lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  !!istx_f=istx_c+Glr%wfd%nvctr_c
-  !!! isty: start index of the derivative with respect to y
-  !!isty_c=1+lin%orbs%norbp*2*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  !!isty_f=isty_c+Glr%wfd%nvctr_c
-  !!! istz: start index of the derivative with respect to z
-  !!istz_c=1+lin%orbs%norbp*3*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  !!istz_f=istz_c+Glr%wfd%nvctr_c
-
-
 
   ist1_c=1
   ist2_c=1
@@ -3112,6 +3049,7 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
   do iorb=1,lin%orbs%norbp
 
       ilr=lin%onWhichAtom(iorb)
+      call allocateWorkarrays()
 
       ist1_f=ist1_c+lin%llr(ilr)%wfd%nvctr_c
       ist2_f=ist2_c+lin%llr(ilr)%wfd%nvctr_c
@@ -3179,254 +3117,110 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
           istz_c = istz_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f + 3*(lin%llr(jlr)%wfd%nvctr_c + 7*lin%llr(jlr)%wfd%nvctr_f)
       end if
 
+      call deallocateWorkarrays()
 
   end do
-
-  !!if(ist1_f+7*lin%llr(ilr)%wfd%nvctr_f /= lin%lzd%orbs%npsidim+1) then
-  !!    write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index ist1_f.'
-  !!    write(*,*) ist1_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
-  !!    stop
-  !!end if
-  !!if(istx_f+7*lin%llr(ilr)%wfd%nvctr_f /= 2*lin%lzd%orbs%npsidim+1) then
-  !!    write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index istx_f.'
-  !!    write(*,*) istx_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
-  !!    stop
-  !!end if
-  !!if(isty_f+7*lin%llr(ilr)%wfd%nvctr_f /= 3*lin%lzd%orbs%npsidim+1) then
-  !!    write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index isty_f.'
-  !!    write(*,*) isty_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
-  !!    stop
-  !!end if
-  !!if(istz_f+7*lin%llr(ilr)%wfd%nvctr_f /= 4*lin%lzd%orbs%npsidim+1) then
-  !!    write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index istz_f.'
-  !!    write(*,*) istz_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
-  !!    stop
-  !!end if
 
  
   ! Communicate the orbitals to meet the partition.
   call postCommsRepartition(iproc, nproc, lin%lzd%orbs, lin%lb%comrp, size(phiLoc), phiLoc, size(phid), phid)
   call gatherDerivativeOrbitals(iproc, nproc, lin%lzd%orbs, lin%lb%comrp)
-  !!call mpi_barrier(mpi_comm_world, ierr)
-  !!stop
 
-   
-
-!!!!  ! Now copy phiLoc to phid. This requires some communication, since the partition of phiLoc
-!!!!  ! is not identical to the partition of phid.
-!!!!  ! Collect on root and then redistribute.
-!!!!  ! THIS MUST BE IMPROVED.
-!!!!  ! Before the communication the orbitals on each process are distributed as follows:
-!!!!  ! ( phi1_0 , phi2_0 , phi1_x , phi2_x ,phi1_y , phi2_y , phi1_z , phi2_z )
-!!!!  ! After the communication is is distributed as follows:
-!!!!  ! ( phi1_0 , phi1_x , phi1_y , phi1_z , phi2_0 , phi2_x , phi2_y , phi2_z)
-!!!!  allocate(recvcounts(0:nproc-1), stat=istat)
-!!!!  call memocc(istat, recvcounts, 'recvcounts', subname)
-!!!!  allocate(sendcounts(0:nproc-1), stat=istat)
-!!!!  call memocc(istat, sendcounts, 'sendcounts', subname)
-!!!!  allocate(displs(0:nproc-1), stat=istat)
-!!!!  call memocc(istat, displs, 'displs', subname)
-!!!!  !if(iproc==0) then
-!!!!      jj=0
-!!!!      do jorb=1,lin%lorbs%norb
-!!!!          jlr=lin%onWhichAtomAll(jorb)
-!!!!          jj=jj+lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f
-!!!!          if(iproc==0) write(*,'(a,i5,i14)') 'first: jorb, lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f', jorb, lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f
-!!!!      end do
-!!!!      jj=4*jj
-!!!!      allocate(phiRoot(jj), stat=istat)
-!!!!      call memocc(istat, phiRoot, 'phiRoot', subname)
-!!!!  !end if
-!!!!
-!!!!  ! Gather the original phi
-!!!!  istLoc=1
-!!!!  istRoot=1
-!!!!  displs(0)=0
-!!!!  offset=0
-!!!!  do jproc=0,nproc-1
-!!!!      if(jproc>0) displs(jproc)=displs(jproc-1)+4*recvcounts(jproc-1)
-!!!!      jj=0
-!!!!      do jorb=1,lin%lzd%orbs%norb_par(jproc)
-!!!!          jjorb=lin%lzd%orbs%isorb_par(jproc)+jorb
-!!!!          jlr=lin%onWhichAtomAll(jjorb)
-!!!!          jj=jj+lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f
-!!!!          if(iproc==0) write(*,'(a,i5,i14)') 'second: jorb, lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f', jorb, lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f
-!!!!      end do
-!!!!      offset=offset+jj
-!!!!      recvcounts(jproc)=jj
-!!!!      !if(iproc==0) write(*,'(a,i4,2i6)') '0: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-!!!!      if(iproc==0) write(*,'(a,i4,3i14)') '0: jproc, recvcounts(jproc), displs(jproc), size(phiRoot)', jproc, recvcounts(jproc), displs(jproc), size(phiRoot)
-!!!!  end do
-!!!!
-!!!!  if(iproc==0 .and. 4*offset /=  size(phiRoot)) then
-!!!!      write(*,'(x,a,i0,a)') 'ERROR on process ',iproc,' : offset is wrong'
-!!!!      write(*,*) 4*offset, size(phiRoot)
-!!!!      stop
-!!!!  end if
-!!!!  if(recvcounts(iproc) /= lin%lzd%orbs%npsidim) then
-!!!!      write(*,'(x,a,i0,a)') 'ERROR on process ',iproc,' : recvcounts is wrong'
-!!!!      write(*,*) recvcounts(iproc),lin%lzd%orbs%npsidim
-!!!!      stop
-!!!!  end if
-!!!!  !!do iall=1,size(phiLoc)
-!!!!  !!    write(950+iproc,*) iall, phiLoc(iall)
-!!!!  !!end do
-!!!!  if(iproc==0) write(*,*) '0: iproc, istRoot', iproc, istRoot
-!!!!  call mpi_gatherv(phiLoc(istLoc), recvcounts(iproc),  mpi_double_precision, &
-!!!!       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
-!!!!
-!!!!  ! Gather the derivatives with respect to x
-!!!!  istLoc=lin%lzd%orbs%npsidim+1
-!!!!  !istRoot=istRoot+offset
-!!!!  istRoot=istRoot+recvcounts(0)
-!!!!  !!displs(0)=1
-!!!!  !!do jproc=0,nproc-1
-!!!!  !!    if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
-!!!!  !!    recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-!!!!  !!    !if(iproc==0) write(*,'(a,i4,2i6)') 'x: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-!!!!  !!end do
-!!!!  if(iproc==0) write(*,*) 'x: iproc, istRoot', iproc, istRoot
-!!!!  displs(0)=0
-!!!!  do jproc=0,nproc-1
-!!!!      if(jproc>0) displs(jproc)=displs(jproc-1)+3*recvcounts(jproc-1)+recvcounts(jproc)
-!!!!      if(iproc==0) write(*,'(a,i4,3i14)') 'z: jproc, recvcounts(jproc), displs(jproc), size(phiRoot)', jproc, recvcounts(jproc), displs(jproc), size(phiRoot)
-!!!!  end do
-!!!!  call mpi_gatherv(phiLoc(istLoc), recvcounts(iproc), mpi_double_precision, &
-!!!!       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
-!!!!
-!!!!  ! Gather the derivatives with respect to y
-!!!!  istLoc=2*lin%lzd%orbs%npsidim+1
-!!!!  !istRoot=istRoot+offset
-!!!!  istRoot=istRoot+recvcounts(0)
-!!!!  !!displs(0)=1
-!!!!  !!do jproc=0,nproc-1
-!!!!  !!    if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
-!!!!  !!    recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-!!!!  !!    !if(iproc==0) write(*,'(a,i4,2i6)') 'y: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-!!!!  !!end do
-!!!!  if(iproc==0) write(*,*) 'y: iproc, istRoot', iproc, istRoot
-!!!!  displs(0)=0
-!!!!  do jproc=0,nproc-1
-!!!!      if(jproc>0) displs(jproc)=displs(jproc-1)+2*recvcounts(jproc-1)+2*recvcounts(jproc)
-!!!!      if(iproc==0) write(*,'(a,i4,3i14)') 'y: jproc, recvcounts(jproc), displs(jproc), size(phiRoot)', jproc, recvcounts(jproc), displs(jproc), size(phiRoot)
-!!!!  end do
-!!!!  call mpi_gatherv(phiLoc(istLoc), recvcounts(iproc), mpi_double_precision, &
-!!!!       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
-!!!!
-!!!!  ! Gather the derivatives with respect to z
-!!!!  istLoc=3*lin%lzd%orbs%npsidim+1
-!!!!  !istRoot=istRoot+offset
-!!!!  istRoot=istRoot+recvcounts(0)
-!!!!  !!displs(0)=1
-!!!!  !!do jproc=0,nproc-1
-!!!!  !!    if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
-!!!!  !!    recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-!!!!  !!    !if(iproc==0) write(*,'(a,i4,2i6)') 'z: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-!!!!  !!end do
-!!!!  if(iproc==0) write(*,*) 'z: iproc, istRoot', iproc, istRoot
-!!!!  displs(0)=0
-!!!!  do jproc=0,nproc-1
-!!!!      if(jproc>0) displs(jproc)=displs(jproc-1)+1*recvcounts(jproc-1)+3*recvcounts(jproc)
-!!!!      if(iproc==0) write(*,'(a,i4,3i14)') 'z: jproc, recvcounts(jproc), displs(jproc), size(phiRoot)', jproc, recvcounts(jproc), displs(jproc), size(phiRoot)
-!!!!  end do
-!!!!  call mpi_gatherv(phiLoc(istLoc), recvcounts(iproc), mpi_double_precision, &
-!!!!       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
-!!!!
-!!!!
-!!!!  displs(0)=0
-!!!!  do jproc=0,nproc-1
-!!!!      if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
-!!!!      jj=0
-!!!!      do jorb=1,lin%lb%lorbs%norb_par(jproc)
-!!!!          jjorb=lin%lb%lorbs%isorb_par(jproc)+jorb
-!!!!          jlr=lin%lb%onWhichAtomAll(jjorb)
-!!!!          jj=jj+lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f
-!!!!      end do
-!!!!      sendcounts(jproc)=jj
-!!!!      if(iproc==0) write(*,'(a,i4,2i12)') 'jproc, sendcounts(jproc), displs(jproc)', jproc, sendcounts(jproc), displs(jproc)
-!!!!  end do
-!!!!  if(sendcounts(iproc) /= lin%lb%lzd%orbs%npsidim) then
-!!!!      write(*,*) 'ERROR on process ',iproc,' : Wrong sendounts.'
-!!!!      write(*,*) sendcounts(iproc), lin%lb%lzd%orbs%npsidim
-!!!!      stop
-!!!!  end if
-!!!!  !call mpi_scatterv(phiRoot(1), sendcounts, displs, mpi_double_precision, phid(1), &
-!!!!  !     lin%lb%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, 0, mpi_comm_world, ierr)
-!!!!  !!do iall=1,size(phiRoot)
-!!!!  !!    write(970+iproc,*) iall, phiRoot(iall)
-!!!!  !!end do
-!!!!
-!!!!  call mpi_scatterv(phiRoot(1), sendcounts, displs, mpi_double_precision, phid(1), &
-!!!!       sendcounts(iproc), mpi_double_precision, 0, mpi_comm_world, ierr)
-!!!!  !!do iall=1,size(phid)
-!!!!  !!    write(960+iproc,*) iall, phid(iall)
-!!!!  !!end do
-
-  ! Deallocate all local arrays
-  iall=-product(shape(w_c))*kind(w_c)
-  deallocate(w_c, stat=istat)
-  call memocc(istat, iall, 'w_c', subname)
-
-  iall=-product(shape(w_f))*kind(w_f)
-  deallocate(w_f, stat=istat)
-  call memocc(istat, iall, 'w_f', subname)
-
-  iall=-product(shape(w_f1))*kind(w_f1)
-  deallocate(w_f1, stat=istat)
-  call memocc(istat, iall, 'w_f1', subname)
-
-  iall=-product(shape(w_f2))*kind(w_f2)
-  deallocate(w_f2, stat=istat)
-  call memocc(istat, iall, 'w_f2', subname)
-
-  iall=-product(shape(w_f3))*kind(w_f3)
-  deallocate(w_f3, stat=istat)
-  call memocc(istat, iall, 'w_f3', subname)
-
-  iall=-product(shape(phix_f))*kind(phix_f)
-  deallocate(phix_f, stat=istat)
-  call memocc(istat, iall, 'phix_f', subname)
-
-  iall=-product(shape(phix_c))*kind(phix_c)
-  deallocate(phix_c, stat=istat)
-  call memocc(istat, iall, 'phix_c', subname)
-
-  iall=-product(shape(phiy_f))*kind(phiy_f)
-  deallocate(phiy_f, stat=istat)
-  call memocc(istat, iall, 'phiy_f', subname)
-
-  iall=-product(shape(phiy_c))*kind(phiy_c)
-  deallocate(phiy_c, stat=istat)
-  call memocc(istat, iall, 'phiy_c', subname)
-
-  iall=-product(shape(phiz_f))*kind(phiz_f)
-  deallocate(phiz_f, stat=istat)
-  call memocc(istat, iall, 'phiz_f', subname)
-
-  iall=-product(shape(phiz_c))*kind(phiz_c)
-  deallocate(phiz_c, stat=istat)
-  call memocc(istat, iall, 'phiz_c', subname)
 
   iall=-product(shape(phiLoc))*kind(phiLoc)
   deallocate(phiLoc, stat=istat)
   call memocc(istat, iall, 'phiLoc', subname)
+  
 
-!!!!  iall=-product(shape(phiRoot))*kind(phiRoot)
-!!!!  deallocate(phiRoot, stat=istat)
-!!!!  call memocc(istat, iall, 'phiRoot', subname)
 
-!!!!  iall=-product(shape(recvcounts))*kind(recvcounts)
-!!!!  deallocate(recvcounts, stat=istat)
-!!!!  call memocc(istat, iall, 'recvcounts', subname)
-!!!!
-!!!!  iall=-product(shape(sendcounts))*kind(sendcounts)
-!!!!  deallocate(sendcounts, stat=istat)
-!!!!  call memocc(istat, iall, 'sendcounts', subname)
-!!!!
-!!!!  iall=-product(shape(displs))*kind(displs)
-!!!!  deallocate(displs, stat=istat)
-!!!!  call memocc(istat, iall, 'displs', subname)
+contains
 
+  subroutine allocateWorkarrays()
+  
+    ! THIS IS COPIED FROM allocate_work_arrays. Works only for free boundary.
+    nf=(lin%lzd%llr(ilr)%d%nfu1-lin%lzd%llr(ilr)%d%nfl1+1)*(lin%lzd%llr(ilr)%d%nfu2-lin%lzd%llr(ilr)%d%nfl2+1)* &
+       (lin%lzd%llr(ilr)%d%nfu3-lin%lzd%llr(ilr)%d%nfl3+1)
+    ! Allocate work arrays
+    allocate(w_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3+ndebug), stat=istat)
+    call memocc(istat, w_c, 'w_c', subname)
+    allocate(w_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
+                 lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3+ndebug), stat=istat)
+    call memocc(istat, w_f, 'w_f', subname)
+  
+    allocate(w_f1(nf+ndebug), stat=istat)
+    call memocc(istat, w_f1, 'w_f1', subname)
+    allocate(w_f2(nf+ndebug), stat=istat)
+    call memocc(istat, w_f2, 'w_f2', subname)
+    allocate(w_f3(nf+ndebug), stat=istat)
+    call memocc(istat, w_f3, 'w_f3', subname)
+  
+  
+    allocate(phix_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
+                    lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
+    call memocc(istat, phix_f, 'phix_f', subname)
+    allocate(phix_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
+    call memocc(istat, phix_c, 'phix_c', subname)
+    allocate(phiy_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
+                    lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
+    call memocc(istat, phiy_f, 'phiy_f', subname)
+    allocate(phiy_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
+    call memocc(istat, phiy_c, 'phiy_c', subname)
+    allocate(phiz_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
+                    lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
+    call memocc(istat, phiz_f, 'phiz_f', subname)
+    allocate(phiz_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
+    call memocc(istat, phiz_c, 'phiz_c', subname)
+  
+  end subroutine allocateWorkarrays
+
+
+  subroutine deallocateWorkarrays
+
+    iall=-product(shape(w_c))*kind(w_c)
+    deallocate(w_c, stat=istat)
+    call memocc(istat, iall, 'w_c', subname)
+
+    iall=-product(shape(w_f))*kind(w_f)
+    deallocate(w_f, stat=istat)
+    call memocc(istat, iall, 'w_f', subname)
+
+    iall=-product(shape(w_f1))*kind(w_f1)
+    deallocate(w_f1, stat=istat)
+    call memocc(istat, iall, 'w_f1', subname)
+
+    iall=-product(shape(w_f2))*kind(w_f2)
+    deallocate(w_f2, stat=istat)
+    call memocc(istat, iall, 'w_f2', subname)
+
+    iall=-product(shape(w_f3))*kind(w_f3)
+    deallocate(w_f3, stat=istat)
+    call memocc(istat, iall, 'w_f3', subname)
+
+    iall=-product(shape(phix_f))*kind(phix_f)
+    deallocate(phix_f, stat=istat)
+    call memocc(istat, iall, 'phix_f', subname)
+
+    iall=-product(shape(phix_c))*kind(phix_c)
+    deallocate(phix_c, stat=istat)
+    call memocc(istat, iall, 'phix_c', subname)
+
+    iall=-product(shape(phiy_f))*kind(phiy_f)
+    deallocate(phiy_f, stat=istat)
+    call memocc(istat, iall, 'phiy_f', subname)
+
+    iall=-product(shape(phiy_c))*kind(phiy_c)
+    deallocate(phiy_c, stat=istat)
+    call memocc(istat, iall, 'phiy_c', subname)
+
+    iall=-product(shape(phiz_f))*kind(phiz_f)
+    deallocate(phiz_f, stat=istat)
+    call memocc(istat, iall, 'phiz_f', subname)
+
+    iall=-product(shape(phiz_c))*kind(phiz_c)
+    deallocate(phiz_c, stat=istat)
+    call memocc(istat, iall, 'phiz_c', subname)
+
+  end subroutine deallocateWorkarrays
 
 end subroutine getDerivativeBasisFunctions2
 
@@ -3550,13 +3344,13 @@ do jproc=0,nproc-1
         if(mpisource/=mpidest) then
             ! The orbitals are on different processes, so we need a point to point communication.
             if(iproc==mpisource) then
-                write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
                 call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, comrp%comarr(7,jorb,jproc), ierr)
                 !call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
                 comrp%comarr(8,jorb,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
-                write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                 call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world, comrp%comarr(8,jorb,jproc), ierr)
                 comrp%comarr(7,jorb,jproc)=mpi_request_null !is this correct?
                 nreceives=nreceives+1
@@ -3568,7 +3362,7 @@ do jproc=0,nproc-1
             ! The orbitals are on the same process, so simply copy them.
             if(iproc==mpisource) then
                 call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
-                write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
                 comrp%comarr(7,jorb,jproc)=mpi_request_null
                 comrp%comarr(8,jorb,jproc)=mpi_request_null
                 nsends=nsends+1
@@ -3659,4 +3453,6 @@ call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
 
 
 end subroutine gatherDerivativeOrbitals
+
+
 
