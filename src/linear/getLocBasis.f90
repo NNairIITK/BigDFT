@@ -97,12 +97,12 @@ real(8),dimension(lin%lb%Lorbs%npsidim),intent(inout):: lphi
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 
 ! Local variables 
-integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp
+integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount
 real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, lastAlpha, tt, ddot, tt2
+real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, lastAlpha, tt, ddot, tt2, dnrm2
 real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
@@ -236,7 +236,37 @@ integer:: ist, ierr
       !!do iall=1,lin%lzd%orbs%npsidim
       !!    write(750+iproc,*) iall, lphi(iall)
       !!end do
+      !!ist=0
+      !!do iorb=1,lin%lzd%orbs%norbp
+      !!    ilr=lin%onWhichAtom(iorb)
+      !!    do iall=1,lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!        write(2000+lin%lzd%orbs%isorb+iorb,*) iall, lphi(ist+iall)
+      !!    end do
+      !!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!end do
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
+      !!ist=0
+      !!do iorb=1,lin%lb%lzd%orbs%norbp
+      !!    ilr=lin%lb%onWhichAtom(iorb)
+      !!    do iall=1,lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!        write(2100+lin%lb%lzd%orbs%isorb+iorb,*) iall, lphi(ist+iall)
+      !!    end do
+      !!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      !!end do
+
+!!call mpi_barrier(mpi_comm_world, ierr)
+!!stop
+
+      ! Normalize the derivative basis functions
+      ! Normalize all to keep it easy
+      ist=1
+      do iorb=1,lin%lb%lzd%orbs%norbp
+          ilr=lin%lb%onWhichAtom(iorb)
+          ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+          tt=dnrm2(ncount, lphi(ist), 1)
+          call dscal(ncount, 1/tt, lphi(ist), 1)
+          ist=ist+ncount
+      end do
       !!do iall=1,lin%lb%lzd%orbs%npsidim
       !!    write(800+iproc,*) iall, lphi(iall)
       !!end do
@@ -258,19 +288,19 @@ integer:: ist, ierr
 !!call mpi_barrier(mpi_comm_world, ierr)
 !!stop
       ! Orthonormalize
-      call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
+      !call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
       !call orthonormalizeOnlyDerivatives(iproc, nproc, lin, phi)
-      call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-      ind1=1
-      ind2=1
-      do iorb=1,lin%lb%orbs%norbp
-          ilr = lin%lb%onWhichAtom(iorb)
-          ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      end do
+      !call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
+      !!ind1=1
+      !!ind2=1
+      !!do iorb=1,lin%lb%orbs%norbp
+      !!    ilr = lin%lb%onWhichAtom(iorb)
+      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      !!end do
   end if
 
   ! Get the overlap matrix.. This should be adapted for the derivative basis functions.
@@ -371,6 +401,10 @@ integer:: ist, ierr
       ist = ist + lin%Llr(ilr)%wfd%nvctr_c + 7*lin%Llr(ilr)%wfd%nvctr_f
       istr = istr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
   end do
+  if(istr/=lin%comsr%nsendBuf+1) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=lin%comsr%nsendBuf+1'
+      stop
+  end if
   
   ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
   ! to point communication, the program will continue immediately.
@@ -408,6 +442,13 @@ integer:: ist, ierr
   allocate(lhphi(lin%lb%Lorbs%npsidim), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
 
+  !!do iall=1,lin%lb%orbs%npsidim
+  !!    if(lin%locrad(1)==800.d0) then
+  !!        write(600+iproc,*) iall, phi(iall)
+  !!    else
+  !!        read(600+iproc,*) istat, phi(iall)
+  !!    end if
+  !!end do
   ind1=1
   ind2=1
   do iorb=1,lin%lb%orbs%norbp
@@ -419,22 +460,41 @@ integer:: ist, ierr
       ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
   end do
 
-  withConfinement=.false.
+  !withConfinement=.false.
+  !do iall=1,lin%lb%lzd%orbs%npsidim
+  !    read(800+iproc,*) istat, lphi(iall)
+  !end do
+  !do iall=1,lin%comgp_lb%nrecvBuf
+  !    read(820+iproc,*) istat, lin%comgp_lb%recvBuf(iall)
+  !end do
   if(.not.lin%useDerivativeBasisFunctions) then
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, &
            pkernel=pkernelseq)
   else
-      write(*,'(a,i5,2i15)') 'iproc, lin%comgp%nrecvBuf, size(lin%comgp%recvBuf)', iproc, lin%comgp%nrecvBuf, size(lin%comgp%recvBuf)
+      !write(*,'(a,i5,2i15)') 'iproc, lin%comgp_lb%nrecvBuf, size(lin%comgp_lb%recvBuf)', iproc, lin%comgp_lb%nrecvBuf, size(lin%comgp_lb%recvBuf)
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp_lb%nrecvBuf, lin%comgp_lb%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp_lb, lin%lb%onWhichAtom, withConfinement, &
            pkernel=pkernelseq)
   end if
+  !!write(*,*) 'size first orbital', lin%lb%lzd%llr(1)%wfd%nvctr_c+7*lin%lb%lzd%llr(1)%wfd%nvctr_f
   !!do iall=1,lin%lb%lzd%orbs%npsidim
-  !!    write(800+iproc,*) iall, lphi(iall)
-  !!    write(810+iproc,*) iall, lhphi(iall)
+  !!    if(lin%locrad(1)==800.d0) then
+  !!        write(800+iproc,*) iall, lphi(iall)
+  !!        write(810+iproc,*) iall, lhphi(iall)
+  !!    else
+  !!        write(900+iproc,*) iall, lphi(iall)
+  !!        write(910+iproc,*) iall, lhphi(iall)
+  !!    end if
+  !!end do
+  !!do iall=1,lin%comgp_lb%nrecvBuf
+  !!    if(lin%locrad(1)==800.d0) then
+  !!        write(820+iproc,*) iall, lin%comgp_lb%recvBuf(iall)
+  !!    else
+  !!        write(920+iproc,*) iall, lin%comgp_lb%recvBuf(iall)
+  !!    end if
   !!end do
   ind1=1
   ind2=1
@@ -447,13 +507,31 @@ integer:: ist, ierr
       ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
   end do
+  !!do iall=1,lin%lb%orbs%npsidim
+  !!    if(lin%locrad(1)==800.d0) then
+  !!        write(830+iproc,*) iall, hphi(iall)
+  !!    else
+  !!        write(930+iproc,*) iall, hphi(iall)
+  !!    end if
+  !!end do
 
+!call mpi_barrier(mpi_comm_world, ierr)
+!stop
 
   if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
 
 
   ! Calculate the matrix elements <phi|H|phi>.
   call getMatrixElements(iproc, nproc, Glr, lin%lb%orbs, lin%lb%comms, phi, hphi, matrixElements)
+  !!do iorb=1,lin%lb%orbs%norb
+  !!    do jorb=1,lin%lb%orbs%norb
+  !!        if(lin%locrad(1)==800.d0) then
+  !!            if(iproc==0) write(1000,*) iorb, jorb, matrixElements(iorb,jorb,1)
+  !!        else
+  !!            if(iproc==0) write(1010,*) iorb, jorb, matrixElements(iorb,jorb,1)
+  !!        end if
+  !!    end do
+  !!end do
 
   if(trim(lin%getCoeff)=='min') then
       call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
@@ -471,6 +549,15 @@ integer:: ist, ierr
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
   end if
+  do iorb=1,orbs%norb
+      do jorb=1,lin%lb%orbs%norb
+          if(lin%locrad(1)==800.d0) then
+              if(iproc==0) write(1100,*) iorb, jorb, coeff(jorb,iorb)
+          else
+              if(iproc==0) write(1110,*) iorb, jorb, coeff(jorb,iorb)
+          end if
+      end do
+  end do
 
   ! Calculate the band structure energy with matrixElements.
   ebs=0.d0
@@ -483,6 +570,10 @@ integer:: ist, ierr
   end do
   ! If closed shell multiply by two
   if(input%nspin==1) ebs=2.d0*ebs
+!!write(*,*) '>>> ebs', ebs
+
+!!call mpi_barrier(mpi_comm_world, ierr)
+!!stop
 
   
   call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
@@ -3006,9 +3097,13 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
   ist1_c=1
   ist2_c=1
   ist0_c=1
-  istx_c=lin%lzd%orbs%npsidim+1
-  isty_c=2*lin%lzd%orbs%npsidim+1
-  istz_c=3*lin%lzd%orbs%npsidim+1
+  ! Dimension of the first orbital on each process
+  ilr=lin%onWhichAtom(1)
+  offset=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+
+  istx_c=offset+1
+  isty_c=2*offset+1
+  istz_c=3*offset+1
 
   do iorb=1,lin%orbs%norbp
 
@@ -3041,7 +3136,7 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
 
       ! Copy phi to phiLoc
       call dcopy(lin%llr(ilr)%wfd%nvctr_c+7*lin%llr(ilr)%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
-      ist0_c = ist0_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
+      ist0_c = ist0_c + 4*(lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f)
       ist1_c = ist1_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
 
       ! Compress the x wavefunction.
@@ -3051,7 +3146,10 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
            lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f, lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
            lin%llr(ilr)%wfd%keyv(lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)),  &
            scal, phix_c, phix_f, phiLoc(istx_c), phiLoc(istx_f))
-      istx_c = istx_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
+      if(iorb<lin%orbs%norbp) then
+          jlr=lin%onWhichAtom(iorb+1)
+          istx_c = istx_c + 3*(lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f) + lin%llr(jlr)%wfd%nvctr_c + 7*lin%llr(jlr)%wfd%nvctr_f
+      end if
 
       ! Compress the y wavefunction.
       call compress_forstandard(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, lin%llr(ilr)%d%nfl1, lin%llr(ilr)%d%nfu1, &
@@ -3060,7 +3158,10 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
            lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f, lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
            lin%llr(ilr)%wfd%keyv(lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)),  &
            scal, phiy_c, phiy_f, phiLoc(isty_c), phiLoc(isty_f))
-      isty_c = isty_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
+      if(iorb<lin%orbs%norbp) then
+          jlr=lin%onWhichAtom(iorb+1)
+          isty_c = isty_c + 2*(lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f) + 2*(lin%llr(jlr)%wfd%nvctr_c + 7*lin%llr(jlr)%wfd%nvctr_f)
+      end if
 
       ! Compress the z wavefunction.
       call compress_forstandard(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, lin%llr(ilr)%d%nfl1, lin%llr(ilr)%d%nfu1, &
@@ -3069,31 +3170,39 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
            lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f, lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
            lin%llr(ilr)%wfd%keyv(lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)),  &
            scal, phiz_c, phiz_f, phiLoc(istz_c), phiLoc(istz_f))
-      istz_c = istz_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
+      if(iorb<lin%orbs%norbp) then
+          jlr=lin%onWhichAtom(iorb+1)
+          istz_c = istz_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f + 3*(lin%llr(jlr)%wfd%nvctr_c + 7*lin%llr(jlr)%wfd%nvctr_f)
+      end if
 
 
   end do
 
-  if(ist1_f+7*lin%llr(ilr)%wfd%nvctr_f /= lin%lzd%orbs%npsidim+1) then
-      write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index ist1_f.'
-      write(*,*) ist1_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
-      stop
-  end if
-  if(istx_f+7*lin%llr(ilr)%wfd%nvctr_f /= 2*lin%lzd%orbs%npsidim+1) then
-      write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index istx_f.'
-      write(*,*) istx_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
-      stop
-  end if
-  if(isty_f+7*lin%llr(ilr)%wfd%nvctr_f /= 3*lin%lzd%orbs%npsidim+1) then
-      write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index isty_f.'
-      write(*,*) isty_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
-      stop
-  end if
-  if(istz_f+7*lin%llr(ilr)%wfd%nvctr_f /= 4*lin%lzd%orbs%npsidim+1) then
-      write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index istz_f.'
-      write(*,*) istz_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
-      stop
-  end if
+  !!if(ist1_f+7*lin%llr(ilr)%wfd%nvctr_f /= lin%lzd%orbs%npsidim+1) then
+  !!    write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index ist1_f.'
+  !!    write(*,*) ist1_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
+  !!    stop
+  !!end if
+  !!if(istx_f+7*lin%llr(ilr)%wfd%nvctr_f /= 2*lin%lzd%orbs%npsidim+1) then
+  !!    write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index istx_f.'
+  !!    write(*,*) istx_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
+  !!    stop
+  !!end if
+  !!if(isty_f+7*lin%llr(ilr)%wfd%nvctr_f /= 3*lin%lzd%orbs%npsidim+1) then
+  !!    write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index isty_f.'
+  !!    write(*,*) isty_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
+  !!    stop
+  !!end if
+  !!if(istz_f+7*lin%llr(ilr)%wfd%nvctr_f /= 4*lin%lzd%orbs%npsidim+1) then
+  !!    write(*,'(x,a,i0,a)') 'ERROR on process ',iproc, ' in getDerivativeBasisFunctions2: There is something wrong with the index istz_f.'
+  !!    write(*,*) istz_f+7*lin%llr(ilr)%wfd%nvctr_f, lin%lzd%orbs%npsidim+1
+  !!    stop
+  !!end if
+
+ 
+  ! Communicate the orbitals to meet the partition.
+
+   
 
   ! Now copy phiLoc to phid. This requires some communication, since the partition of phiLoc
   ! is not identical to the partition of phid.
@@ -3312,3 +3421,14 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
 
 
 end subroutine getDerivativeBasisFunctions2
+
+
+
+
+
+
+subroutine repartitionOrbitals
+use module_base
+use module_types
+implicit none
+end subroutine repartitionOrbitals

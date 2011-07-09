@@ -135,12 +135,26 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        phi, ehart, eexcu, vexcu)
+  do iall=1,size(phi)
+      if(lin%locrad(1)==800.d0) then
+          write(500+iproc,*) iall, phi(iall)
+      else
+          write(510+iproc,*) iall, phi(iall)
+      end if
+  end do
 
   ! Cut off outside localization region -- experimental
   call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  !!do iall=1,ndimpot
+  !!    if(lin%locrad(1)==800.d0) then
+  !!        write(700+iproc,*) iall, rhopot(iall)
+  !!    else
+  !!        read(700+iproc,*) istat, rhopot(iall)
+  !!    end if
+  !!end do
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
   if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
 

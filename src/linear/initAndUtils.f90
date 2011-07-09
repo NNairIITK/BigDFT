@@ -178,9 +178,9 @@ do ilr=1,lin%lzd%nlr
             lin%lb%lzd%Llr(ilr)%localnorb = lin%lb%lzd%Llr(ilr)%localnorb+1
         end if
     end do
-    write(*,'(a,2i4,3x,i8)') 'iproc, ilr, lin%lb%lzd%Llr(ilr)%localnorb', iproc, ilr, lin%lb%lzd%Llr(ilr)%localnorb
+    !write(*,'(a,2i4,3x,i8)') 'iproc, ilr, lin%lb%lzd%Llr(ilr)%localnorb', iproc, ilr, lin%lb%lzd%Llr(ilr)%localnorb
 end do
-write(*,'(a,i4,4x,100i6)') 'iproc, lin%lb%lzd%orbs%inwhichlocreg(:)', iproc, lin%lb%lzd%orbs%inwhichlocreg(:)
+!write(*,'(a,i4,4x,100i6)') 'iproc, lin%lb%lzd%orbs%inwhichlocreg(:)', iproc, lin%lb%lzd%orbs%inwhichlocreg(:)
 
 ! Initialize the parameters for the communication for the
 ! potential.

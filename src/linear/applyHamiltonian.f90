@@ -273,7 +273,10 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
      ! Cycle if the process does not have any orbitals belonging
      ! to this localization region.
      !write(*,'(a,3i8)') 'iproc, ilr, Lzd%Llr(ilr)%Localnorb', iproc, ilr, Lzd%Llr(ilr)%Localnorb
-     if(Lzd%Llr(ilr)%Localnorb == 0) cycle
+     if(Lzd%Llr(ilr)%Localnorb == 0) then
+         write(*,'(a,i0,a,i0)') 'process ',iproc,' cycles for ilr=',ilr
+         cycle
+     end if
 
      ! If no calculation for this localization region is required, only increase the index
      if(present(doNotCalculate)) then
@@ -609,6 +612,7 @@ subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb
      write(*,'(3(a,i0))') 'process ',iproc, ': Problem in local_hamiltonian_Linear, orbtot=',orbtot,' is not equal to localnorb=',lr%localnorb*nspin
      stop
   end if
+  write(*,'(4(a,i0))') 'iproc ',iproc,' handles ',orbtot,' orbitals in locreg ',ilr,'. Data per orbital=',lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
 
   do ii=1,orbtot
 
