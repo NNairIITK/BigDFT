@@ -2727,6 +2727,39 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,intent(inout):: tag
      end subroutine initializeCommunicationPotential
 
+     subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lin)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       integer,intent(inout):: tag
+       type(linearParameters),intent(inout):: lin
+     end subroutine initializeRepartitionOrbitals
+
+     subroutine postCommsRepartition(iproc, nproc, orbs, comrp, nsendBuf, sendBuf, nrecvBuf, recvBuf)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
+       type(orbitals_data),intent(in):: orbs
+       type(p2pCommsRepartition),intent(inout):: comrp
+       real(8),dimension(nsendBuf),intent(in):: sendBuf
+       real(8),dimension(nrecvBuf),intent(out):: recvBuf
+     end subroutine postCommsRepartition
+
+
+     subroutine gatherDerivativeOrbitals(iproc, nproc, orbs, comrp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs
+       type(p2pCommsRepartition),intent(inout):: comrp
+     end subroutine gatherDerivativeOrbitals
+
+
+
+
 
 
 

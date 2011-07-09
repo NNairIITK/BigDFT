@@ -193,6 +193,9 @@ call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, li
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%onWhichAtomAll, input, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%onWhichAtomAll, input, lin%op_lb, lin%comon_lb, tag)
 
+! Initialize the parameters for the repartitioning of the orbitals.
+if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
+
 ! Restart array for the basis functions (only needed if we use the derivative basis functions).
 allocate(lin%lphiRestart(lin%lzd%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lphiRestart, 'lin%lphiRestart', subname)

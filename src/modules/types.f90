@@ -415,6 +415,14 @@ module module_types
        logical,dimension(:,:),pointer:: communComplete
    end type p2pCommsOrthonormality
 
+
+!> Contains the parameters for the communications of the derivative orbitals
+!! to mathc their partition.
+  type,public:: p2pCommsRepartition
+      integer,dimension(:,:,:),pointer:: comarr
+       logical,dimension(:,:),pointer:: communComplete
+  end type p2pCommsRepartition
+
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
       integer:: ndim_lphiovrlp
@@ -447,6 +455,7 @@ type,public:: largeBasis
     type(orbitals_data):: orbs, Lorbs
     type(linear_zone_descriptors):: lzd
     integer,dimension(:),pointer:: onWhichAtom, onWhichAtomAll
+    type(p2pCommsRepartition):: comrp
 end type largeBasis
 
   !> Contains the parameters for the parallel input guess for the O(N) version.
