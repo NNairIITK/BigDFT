@@ -233,9 +233,9 @@ integer:: ist, ierr
       call dcopy(lin%orbs%npsidim, phi(1), 1, lin%phiRestart(1), 1)
       call dcopy(lin%lzd%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
       !call getDerivativeBasisFunctions(iproc, nproc, input%hx, Glr, lin, nphibuff, lin%phiRestart, phi)
-      !!do iall=1,lin%lzd%orbs%npsidim
-      !!    write(750+iproc,*) iall, lphi(iall)
-      !!end do
+      do iall=1,lin%lzd%orbs%npsidim
+          write(750+iproc,*) iall, lphi(iall)
+      end do
       !!ist=0
       !!do iorb=1,lin%lzd%orbs%norbp
       !!    ilr=lin%onWhichAtom(iorb)
@@ -245,10 +245,10 @@ integer:: ist, ierr
       !!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
       !!end do
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
-      !!write(*,*) 'writing to 500+iproc, iproc', iproc
-      !!do iall=1,lin%lb%lzd%orbs%npsidim
-      !!    write(500+iproc,*) iall, lphi(iall)
-      !!end do
+      write(*,*) 'writing to 500+iproc, iproc', iproc
+      do iall=1,lin%lb%lzd%orbs%npsidim
+          write(500+iproc,*) iall, lphi(iall)
+      end do
       !!call mpi_barrier(mpi_comm_world, ierr)
       !!stop
       !!ist=0
@@ -271,9 +271,9 @@ integer:: ist, ierr
           call dscal(ncount, 1/tt, lphi(ist), 1)
           ist=ist+ncount
       end do
-      !!do iall=1,lin%lb%lzd%orbs%npsidim
-      !!    write(800+iproc,*) iall, lphi(iall)
-      !!end do
+      do iall=1,lin%lb%lzd%orbs%npsidim
+          write(800+iproc,*) iall, lphi(iall)
+      end do
 
       ind1=1
       ind2=1
@@ -286,9 +286,9 @@ integer:: ist, ierr
           ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
           ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
       end do
-      !!do iall=1,lin%lb%orbs%npsidim
-      !!    write(850+iproc,*) iall, phi(iall)
-      !!end do
+      do iall=1,lin%lb%orbs%npsidim
+          write(850+iproc,*) iall, phi(iall)
+      end do
 !!call mpi_barrier(mpi_comm_world, ierr)
 !!stop
       ! Orthonormalize
@@ -380,6 +380,8 @@ integer:: ist, ierr
           end do
       end do
   end if
+call mpi_barrier(mpi_comm_world, ierr)
+stop
 
   ! Transform the global phi to the local phi
   ! This part will not be needed if we really have O(N)
@@ -3033,6 +3035,7 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
 
   allocate(phiLoc(4*lin%lzd%orbs%npsidim), stat=istat)
   call memocc(istat, phiLoc, 'phiLoc', subname)
+  phiLoc=0.d0
  
 
   ist1_c=1
@@ -3121,10 +3124,18 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
 
   end do
 
+  do iall=1,size(phiLoc)
+      write(900+iproc,*) iall, phiLoc(iall)
+  end do
+
  
   ! Communicate the orbitals to meet the partition.
   call postCommsRepartition(iproc, nproc, lin%lzd%orbs, lin%lb%comrp, size(phiLoc), phiLoc, size(phid), phid)
   call gatherDerivativeOrbitals(iproc, nproc, lin%lzd%orbs, lin%lb%comrp)
+
+  do iall=1,size(phid)
+      write(910+iproc,*) iall, phid(iall)
+  end do
 
 
   iall=-product(shape(phiLoc))*kind(phiLoc)
@@ -3364,13 +3375,16 @@ do jproc=0,nproc-1
         if(mpisource/=mpidest) then
             ! The orbitals are on different processes, so we need a point to point communication.
             if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
                 call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, comrp%comarr(7,jorb,jproc), ierr)
+                do ierr=istsource,istsource+ncount-1
+                    write(tag,*) ierr, sendBuf(ierr)
+                end do
                 !call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
                 comrp%comarr(8,jorb,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                 call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world, comrp%comarr(8,jorb,jproc), ierr)
                 comrp%comarr(7,jorb,jproc)=mpi_request_null !is this correct?
                 nreceives=nreceives+1
@@ -3382,7 +3396,10 @@ do jproc=0,nproc-1
             ! The orbitals are on the same process, so simply copy them.
             if(iproc==mpisource) then
                 call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
-                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                do ierr=istsource,istsource+ncount-1
+                    write(tag,*) ierr, sendBuf(ierr)
+                end do
+                write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
                 comrp%comarr(7,jorb,jproc)=mpi_request_null
                 comrp%comarr(8,jorb,jproc)=mpi_request_null
                 nsends=nsends+1
@@ -3424,7 +3441,7 @@ nfast=0
 nsameproc=0
 testLoop: do
     do jproc=0,nproc-1
-        do jorb=1,orbs%norb_par(jproc)
+        do jorb=1,4*orbs%norb_par(jproc)
             if(comrp%communComplete(jorb,jproc)) cycle
             call mpi_test(comrp%comarr(7,jorb,jproc), sendComplete, stat, ierr)
             call mpi_test(comrp%comarr(8,jorb,jproc), receiveComplete, stat, ierr)
@@ -3450,7 +3467,7 @@ end do testLoop
 ! Wait for the communications that have not completed yet
 nslow=0
 do jproc=0,nproc-1
-    do jorb=1,orbs%norb_par(jproc)
+    do jorb=1,4*orbs%norb_par(jproc)
         if(comrp%communComplete(jorb,jproc)) cycle
         !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
         nslow=nslow+1

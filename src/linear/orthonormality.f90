@@ -473,8 +473,8 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
-real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
-real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
+real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(inout):: lphi
+real(8),dimension(lin%lb%lzd%orbs%norb,lin%lb%lzd%orbs%norb),intent(out):: ovrlp
 
 ! Local variables
 integer:: it, istat, iall, iorb, jorb, ierr
