@@ -3140,36 +3140,56 @@ contains
     ! THIS IS COPIED FROM allocate_work_arrays. Works only for free boundary.
     nf=(lin%lzd%llr(ilr)%d%nfu1-lin%lzd%llr(ilr)%d%nfl1+1)*(lin%lzd%llr(ilr)%d%nfu2-lin%lzd%llr(ilr)%d%nfl2+1)* &
        (lin%lzd%llr(ilr)%d%nfu3-lin%lzd%llr(ilr)%d%nfl3+1)
+
     ! Allocate work arrays
     allocate(w_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3+ndebug), stat=istat)
     call memocc(istat, w_c, 'w_c', subname)
+    w_c=0.d0
+
     allocate(w_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
                  lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3+ndebug), stat=istat)
     call memocc(istat, w_f, 'w_f', subname)
+    w_f=0.d0
   
     allocate(w_f1(nf+ndebug), stat=istat)
     call memocc(istat, w_f1, 'w_f1', subname)
+    w_f1=0.d0
+    
     allocate(w_f2(nf+ndebug), stat=istat)
     call memocc(istat, w_f2, 'w_f2', subname)
+    w_f2=0.d0
+
     allocate(w_f3(nf+ndebug), stat=istat)
     call memocc(istat, w_f3, 'w_f3', subname)
+    w_f3=0.d0
   
   
     allocate(phix_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
                     lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
     call memocc(istat, phix_f, 'phix_f', subname)
+    phix_f=0.d0
+
     allocate(phix_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
     call memocc(istat, phix_c, 'phix_c', subname)
+    phix_c=0.d0
+
     allocate(phiy_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
                     lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
     call memocc(istat, phiy_f, 'phiy_f', subname)
+    phiy_f=0.d0
+
     allocate(phiy_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
     call memocc(istat, phiy_c, 'phiy_c', subname)
+    phiy_c=0.d0
+
     allocate(phiz_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
                     lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
     call memocc(istat, phiz_f, 'phiz_f', subname)
+    phiz_f=0.d0
+
     allocate(phiz_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
     call memocc(istat, phiz_c, 'phiz_c', subname)
+    phiz_c=0.d0
   
   end subroutine allocateWorkarrays
 
