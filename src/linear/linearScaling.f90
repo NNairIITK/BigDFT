@@ -135,13 +135,13 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        phi, ehart, eexcu, vexcu)
-  do iall=1,size(phi)
-      if(lin%locrad(1)==800.d0) then
-          write(500+iproc,*) iall, phi(iall)
-      else
-          write(510+iproc,*) iall, phi(iall)
-      end if
-  end do
+  !!do iall=1,size(phi)
+  !!    if(lin%locrad(1)==800.d0) then
+  !!        write(500+iproc,*) iall, phi(iall)
+  !!    else
+  !!        write(510+iproc,*) iall, phi(iall)
+  !!    end if
+  !!end do
 
   ! Cut off outside localization region -- experimental
   call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
