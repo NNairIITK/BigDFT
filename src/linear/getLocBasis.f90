@@ -146,10 +146,6 @@ integer:: ist, ierr
       ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
   end do
-  !!do iall=1,lin%lzd%orbs%npsidim
-  !!    write(690+iproc,*) iall, lphi(iall)
-  !!end do
-  
 
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
@@ -184,14 +180,7 @@ integer:: ist, ierr
 
   if(lin%useDerivativeBasisFunctions) then
       call getOverlapMatrix2(iproc, nproc, lin, input, lphi, ovrlp)
-      do iorb=1,lin%lb%orbs%norb
-          do jorb=1,lin%lb%orbs%norb
-               if(iproc==0) write(200+iproc,*) iorb, jorb, ovrlp(iorb,jorb)
-          end do
-      end do
   end if
-!!call mpi_barrier(mpi_comm_world, ierr)
-!!stop
 
   ! Transform all orbitals to real space
   ist=1
@@ -235,72 +224,16 @@ integer:: ist, ierr
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%onWhichAtom, withConfinement, &
            pkernel=pkernelseq)
   else
-      !write(*,'(a,i5,2i15)') 'iproc, lin%comgp_lb%nrecvBuf, size(lin%comgp_lb%recvBuf)', iproc, lin%comgp_lb%nrecvBuf, size(lin%comgp_lb%recvBuf)
-      !!close(600+iproc)
-      !!close(610+iproc)
-      !!write(*,*) 'ERROR in subsub:  iproc, jj', iproc, 1
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp_lb%nrecvBuf, lin%comgp_lb%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp_lb, lin%lb%onWhichAtom, withConfinement, &
            pkernel=pkernelseq)
   end if
-
-
-
-  !!do iall=1,lin%lb%lzd%orbs%npsidim
-  !!    write(150+iproc,*) iall, lphi(iall)
-  !!    write(160+iproc,*) iall, lhphi(iall)
-  !!end do
-  ind1=1
-  ind2=1
-  hphi=0.d0
-  phi=0.d0
-  do iorb=1,lin%lb%orbs%norbp
-      ilr = lin%lb%onWhichAtom(iorb)
-      ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
-      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-  end do
-  !!do iall=1,lin%lb%lzd%orbs%npsidim
-  !!    write(170+iproc,*) iall, lphi(iall)
-  !!    write(180+iproc,*) iall, lhphi(iall)
-  !!end do
-  !!do iall=1,lin%lb%orbs%npsidim
-  !!    write(500+iproc,*) iall, phi(iall)
-  !!    write(510+iproc,*) iall, hphi(iall)
-  !!    if((phi(iall)==0.d0 .and. hphi(iall)/=0.d0) .or. (hphi(iall)==0.d0 .and. phi(iall)/=0.d0))  then
-  !!        write(*,*) 'ERROR: iproc, iall', iproc, iall
-  !!    end if
-  !!end do
-
   if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
 
 
   ! Calculate the matrix elements <phi|H|phi>.
-  !hphi=phi
-  call getMatrixElements(iproc, nproc, Glr, lin%lb%orbs, lin%lb%comms, phi, hphi, matrixElements)
-  !!do iall=1,lin%lb%orbs%npsidim
-  !!    write(90+iproc,*) iall, phi(iall)
-  !!end do
-  !call getMatrixElements(iproc, nproc, Glr, lin%lb%orbs, lin%lb%comms, phi, hphi, matrixElements)
-  !!do iorb=1,lin%lb%orbs%norb
-  !!    do jorb=1,lin%lb%orbs%norb
-  !!         write(1000+iproc,*) iorb, jorb, matrixElements(iorb,jorb,1)
-  !!    end do
-  !!end do
-  !call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
-  !lhphi=lphi
   call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
-  !!do iorb=1,lin%lb%orbs%norb
-  !!    do jorb=1,lin%lb%orbs%norb
-  !!         write(1100+iproc,*) iorb, jorb, matrixElements(iorb,jorb,1)
-  !!    end do
-  !!end do
-!!call mpi_barrier(mpi_comm_world, ierr)
-!!stop
 
   if(trim(lin%getCoeff)=='min') then
       call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
@@ -318,15 +251,6 @@ integer:: ist, ierr
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
   end if
-  !!do iorb=1,orbs%norb
-  !!    do jorb=1,lin%lb%orbs%norb
-  !!        if(lin%locrad(1)==800.d0) then
-  !!            if(iproc==0) write(1100,*) iorb, jorb, coeff(jorb,iorb)
-  !!        else
-  !!            if(iproc==0) write(1110,*) iorb, jorb, coeff(jorb,iorb)
-  !!        end if
-  !!    end do
-  !!end do
 
   ! Calculate the band structure energy with matrixElements.
   ebs=0.d0
@@ -345,6 +269,17 @@ integer:: ist, ierr
 !!stop
 
   
+  ind1=1
+  ind2=1
+  phi=0.d0
+  do iorb=1,lin%lb%orbs%norbp
+      ilr = lin%lb%onWhichAtom(iorb)
+      ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
+      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+  end do
   call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
 
   
@@ -2801,7 +2736,7 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
 
   allocate(phiLoc(4*lin%lzd%orbs%npsidim), stat=istat)
   call memocc(istat, phiLoc, 'phiLoc', subname)
-  phiLoc=0.d0
+  !phiLoc=0.d0
   !write(*,*) '>>>> phiLoc(1)', phiLoc(1)
  
 
@@ -2864,46 +2799,6 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
            hgrid, lin%llr(ilr)%bounds%kb%ibyz_c, lin%llr(ilr)%bounds%kb%ibxz_c, lin%llr(ilr)%bounds%kb%ibxy_c, &
            lin%llr(ilr)%bounds%kb%ibyz_f, lin%llr(ilr)%bounds%kb%ibxz_f, lin%llr(ilr)%bounds%kb%ibxy_f, &
            w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
-      !!do i3=0,lin%lzd%llr(ilr)%d%n3
-      !!  do i2=0,lin%lzd%llr(ilr)%d%n2
-      !!    do i1=0,lin%lzd%llr(ilr)%d%n1
-      !!        if(logrid_c(i1,i2,i3) .and. w_c(i1,i2,i3)==0.d0) write(*,*) 'HEAVY ERROR: i1, i2, i3', i1, i2, i3
-      !!        if(logrid_c(i1,i2,i3) .and. (phix_c(i1,i2,i3)==0.d0 .or. phiy_c(i1,i2,i3)==0.d0 .or. phiz_c(i1,i2,i3)==0.d0)) write(*,'(a,4i8)') 'small problem: iproc, i1, i2, i3', iproc, i1, i2, i3
-      !!        write(4000+iproc,'(3i8,l,4es25.16)') i1, i2, i3, logrid_c(i1,i2,i3), w_c(i1,i2,i3), phix_c(i1,i2,i3), phiy_c(i1,i2,i3), phiz_c(i1,i2,i3)
-      !!    end do
-      !!  end do
-      !!end do
-      !!write(3050,*) phix_c
-      !!write(3060,*) phix_f
-      !!write(3070,*) phiy_c
-      !!write(3080,*) phiy_f
-      !!write(3090,*) phiz_c
-      !!write(3100,*) phiz_f
-      !!deallocate(logrid_c)
-      !!deallocate(logrid_f)
-      !!do jj=1,lin%llr(ilr)%wfd%nvctr_c+7*lin%llr(ilr)%wfd%nvctr_f
-      !!    if(phi(ist1_c+jj-1)==0.d0) write(*,'(a,3i9)') 'phi=0, ist1_c, jj, iproc', ist1_c, jj, iproc
-      !!end do
-      !!do i3=0,lin%lzd%llr(ilr)%d%n3
-      !!  do i2=0,lin%lzd%llr(ilr)%d%n2
-      !!    do i1=0,lin%lzd%llr(ilr)%d%n1
-      !!        if(phix_c(i1,i2,i3)==0.d0) write(*,'(a,6i9)') 'phix_c=0, jj, i1, i2, i3, ist1_c, iproc', jj, i1, i2, i3, ist1_c, iproc
-      !!        if(phiy_c(i1,i2,i3)==0.d0) write(*,'(a,6i9)') 'phiy_c=0, jj, i1, i2, i3, ist1_c, iproc', jj, i1, i2, i3, ist1_c, iproc
-      !!        if(phiz_c(i1,i2,i3)==0.d0) write(*,'(a,6i9)') 'phiz_c=0, jj, i1, i2, i3, ist1_c, iproc', jj, i1, i2, i3, ist1_c, iproc
-      !!    end do
-      !!  end do
-      !!end do
-      !!do i3=lin%lzd%llr(ilr)%d%nfl3,lin%lzd%llr(ilr)%d%nfu3
-      !!  do i2=lin%lzd%llr(ilr)%d%nfl2,lin%lzd%llr(ilr)%d%nfu2
-      !!    do i1=lin%lzd%llr(ilr)%d%nfl1,lin%lzd%llr(ilr)%d%nfu1
-      !!      do jj=1,7
-      !!          if(phix_f(jj,i1,i2,i3)==0.d0) write(*,'(a,6i9)') 'phix_f=0, jj, i1, i2, i3, ist1_f, iproc', jj, i1, i2, i3, ist1_f, iproc
-      !!          if(phiy_f(jj,i1,i2,i3)==0.d0) write(*,'(a,6i9)') 'phiy_f=0, jj, i1, i2, i3, ist1_f, iproc', jj, i1, i2, i3, ist1_f, iproc
-      !!          if(phiz_f(jj,i1,i2,i3)==0.d0) write(*,'(a,6i9)') 'phiz_f=0, jj, i1, i2, i3, ist1_f, iproc', jj, i1, i2, i3, ist1_f, iproc
-      !!      end do
-      !!    end do
-      !!  end do
-      !!end do
 
       ! Copy phi to phiLoc
       call dcopy(lin%llr(ilr)%wfd%nvctr_c+7*lin%llr(ilr)%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
@@ -3117,13 +3012,13 @@ end do
 allocate(lin%lb%comrp%communComplete(4*maxval(lin%lzd%orbs%norb_par),0:nproc-1), stat=istat)
 call memocc(istat, lin%lb%comrp%communComplete, 'lin%lb%comrp%communComplete', subname)
 
-if(iproc==0) then
-    do jproc=0,nproc-1
-        do jorb=1,4*lin%lzd%orbs%norb_par(jproc)
-            write(*,*) 'jproc, jorb, mpi, orb', jproc, jorb, move(1,jorb,jproc), move(2,jorb,jproc)
-        end do
-    end do
-end if
+!!if(iproc==0) then
+!!    do jproc=0,nproc-1
+!!        do jorb=1,4*lin%lzd%orbs%norb_par(jproc)
+!!            write(*,*) 'jproc, jorb, mpi, orb', jproc, jorb, move(1,jorb,jproc), move(2,jorb,jproc)
+!!        end do
+!!    end do
+!!end if
 
 
 allocate(lin%lb%comrp%comarr(8,4*maxval(lin%lzd%orbs%norb_par),0:nproc-1), stat=istat)
