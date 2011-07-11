@@ -385,6 +385,13 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
      else
         call local_hamiltonian_LinearConfinement(iproc, nproc, ilr, lzd%orbs, lzd%Llr(ilr), lzd%Llr(ilr)%localnorb, hx, hy, hz, &
               nspin, size_Lpot, Lpot, psi(ind), hpsi(ind), tmp_ekin_sum, tmp_epot_sum, lin, at, rxyz, onWhichAtomp, withConfinement)
+        do i_all=ind,ind+dimwf-1
+            !!write(600+iproc,*) i_all, psi(i_all)
+            !!write(610+iproc,*) i_all, hpsi(i_all)
+            !!if((psi(i_all)==0.d0 .and. hpsi(i_all)/=0.d0) .or. (hpsi(i_all)==0.d0 .and. psi(i_all)/=0.d0))  then
+            !!    write(*,*) 'ERRORi hamapp: iproc, i_all', iproc, i_all
+            !!end if
+        end do
      end if
 
      ekin_sum = ekin_sum + tmp_ekin_sum
@@ -575,6 +582,7 @@ subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb
   real(gp) :: ekin,epot,kx,ky,kz,etest, hxh, hyh, hzh
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir
+integer:: i, j, jj
 
   hxh=.5d0*hx
   hyh=.5d0*hy
@@ -612,7 +620,8 @@ subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb
      write(*,'(3(a,i0))') 'process ',iproc, ': Problem in local_hamiltonian_Linear, orbtot=',orbtot,' is not equal to localnorb=',lr%localnorb*nspin
      stop
   end if
-  write(*,'(4(a,i0))') 'iproc ',iproc,' handles ',orbtot,' orbitals in locreg ',ilr,'. Data per orbital=',lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+  !write(*,'(4(a,i0))') 'iproc ',iproc,' handles ',orbtot,' orbitals in locreg ',ilr,'. Data per orbital=',lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+
 
   do ii=1,orbtot
 
@@ -696,6 +705,7 @@ subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb
   call memocc(i_stat,i_all,'psir',subname)
 
   call deallocate_work_arrays_locham(lr,wrk_lh)
+
 
 END SUBROUTINE local_hamiltonian_LinearConfinement
 
