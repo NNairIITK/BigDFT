@@ -2758,6 +2758,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine gatherDerivativeOrbitals
 
 
+     subroutine getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(linearParameters),intent(inout):: lin
+       real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(in):: lphi, lhphi
+       real(8),dimension(lin%lb%lzd%orbs%norb,lin%lb%lzd%orbs%norb),intent(out):: matrixElements
+     end subroutine getMatrixElements2
+
 
 
 

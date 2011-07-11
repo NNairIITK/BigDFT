@@ -2069,3 +2069,56 @@ end if
 
 
 end subroutine indicesForExtraction
+
+
+
+
+
+
+subroutine getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
+use module_base
+use module_types
+use module_interfaces, exceptThisOne => getMatrixElements2
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(inout):: lin
+real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(in):: lphi, lhphi
+real(8),dimension(lin%lb%lzd%orbs%norb,lin%lb%lzd%orbs%norb),intent(out):: matrixElements
+
+! Local variables
+integer:: it, istat, iall, iorb
+real(8),dimension(:),allocatable:: lphiovrlp
+character(len=*),parameter:: subname='getMatrixElements'
+
+
+
+  allocate(lphiovrlp(lin%op_lb%ndim_lphiovrlp), stat=istat)
+  call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+
+
+  ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
+  !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%lb%lorbs, lin%lb%lorbs%npsidim, lin%lb%onWhichAtomAll, lin%lb%lzd, lin%op_lb, lphi, lin%comon_lb)
+  call postCommsOverlap(iproc, nproc, lin%comon_lb)
+  !call gatherOrbitals(iproc, nproc, lin%comon)
+  call gatherOrbitals2(iproc, nproc, lin%comon_lb)
+  ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
+  !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%lb%lorbs, lin%lb%lorbs%npsidim, lin%lb%onWhichAtomAll, lin%lb%lzd, lin%op_lb, lhphi, lin%comon_lb)
+  call calculateOverlapMatrix2(iproc, nproc, lin%lb%lzd%orbs, lin%op_lb, lin%comon_lb, lin%lb%onWhichAtomAll, matrixElements)
+
+  !!!allocate(lphiovrlp(lin%op_lb%ndim_lphiovrlp), stat=istat)
+  !!!call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+
+  !!!call extractOrbital2(iproc, nproc, lin%lb%orbs, lin%lb%lorbs%npsidim, lin%lb%onWhichAtomAll, lin%lb%lzd, lin%op_lb, lphi, lin%comon_lb)
+  !!!call postCommsOverlap(iproc, nproc, lin%comon_lb)
+  !!!call gatherOrbitals2(iproc, nproc, lin%comon_lb)
+  !!!call calculateOverlapMatrix2(iproc, nproc, lin%lb%lzd%orbs, lin%op_lb, lin%comon_lb, lin%lb%onWhichAtomAll, ovrlp)
+
+  !!!iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
+  !!!deallocate(lphiovrlp, stat=istat)
+  !!!call memocc(istat, iall, 'lphiovrlp', subname)
+
+end subroutine getMatrixElements2

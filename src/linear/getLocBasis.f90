@@ -151,128 +151,16 @@ integer:: ist, ierr
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
       if(lin%useDerivativeBasisFunctions) then
-          !!call dcopy(lin%orbs%npsidim, lin%phiRestart(1), 1, phi(1), 1)
           call dcopy(lin%lzd%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
       end if
-      !!    call dcopy(lin%orbs%npsidim, lin%phiRestart(1), 1, phi(1), 1)
-      !!do iall=1,lin%orbs%npsidim
-      !!    write(760+iproc,*) iall, phi(iall)
-      !!end do
-      ! Optimize the localized basis functions by minimizing the trace of <phi|H|phi>.
-      !do iall=1,lin%orbs%npsidim
-      !    write(100+iproc,*) iall, phi(iall)
-      !end do
-      !do iall=1,size(rhopot)
-      !    write(150+iproc,*) iall, rhopot(iall)
-      !end do
-      !!ind1=1
-      !!ind2=1
-      !!do iorb=1,lin%orbs%norbp
-      !!    ilr = lin%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
-      !if(lin%useDerivativeBasisFunctions) then
-      !    call dcopy(lin%lzd%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
-      !end if
-      !!do iall=1,lin%lzd%orbs%npsidim
-      !!    write(780+iproc,*) iall, lphi(iall)
-      !!end do
       call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
           nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trace, rxyzParab, &
           itSCC, lastAlpha, infoBasisFunctions, radii_cf, ovrlp)
-      !!ind1=1
-      !!ind2=1
-      !!phi=0.d0
-      !!do iorb=1,lin%orbs%norbp
-      !!    ilr = lin%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
   end if
 
-!!! 3D plot of the basis functions
-!!write(procName,'(i0)') iproc
-!!istart=1
-!!do iorb=1,lin%orbs%norbp
-!!  write(orbNumber,'(i0)') iorb
-!!  orbName='orb_'//trim(procName)//'_'//trim(orbNumber)
-!!  call plot_wfSquare_cube(orbName, at, Glr, input%hx, input%hy, input%hz, rxyz, phi(istart), 'comment   ')
-!!  istart=istart+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!!end do
-
-
-  !!!! THIS IS A TEST
-  !!call dcopy(lin%orbs%npsidim, phi(1), 1, lin%phiRestart(1), 1)
-  !!do iall=1,lin%orbs%npsidim
-  !!    write(770+iproc,*) iall, phi(iall)
-  !!end do
   if(lin%useDerivativeBasisFunctions) then
-      !!do iall=1,lin%orbs%npsidim
-      !!    write(700+iproc,*) iall, phi(iall)
-      !!end do
-      ! Create the derivative basis functions.
-      !!ind1=1
-      !!ind2=1
-      !!do iorb=1,lin%orbs%norbp
-      !!    ilr = lin%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
-      !!ind1=1
-      !!ind2=1
-      !!phi=0.d0
-      !!do iorb=1,lin%orbs%norbp
-      !!    ilr = lin%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
-      !!nphibuff=0
-      do iorb=1,lin%orbs%norbp
-          nphibuff = nphibuff + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-      end do
-      !!call dcopy(lin%orbs%npsidim, phi(1), 1, lin%phiRestart(1), 1)
       call dcopy(lin%lzd%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
-      !call getDerivativeBasisFunctions(iproc, nproc, input%hx, Glr, lin, nphibuff, lin%phiRestart, phi)
-      !!do iall=1,lin%lzd%orbs%npsidim
-      !!    write(750+iproc,*) iall, lphi(iall)
-      !!end do
-      !!ist=0
-      !!do iorb=1,lin%lzd%orbs%norbp
-      !!    ilr=lin%onWhichAtom(iorb)
-      !!    do iall=1,lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      !!        write(2000+lin%lzd%orbs%isorb+iorb,*) iall, lphi(ist+iall)
-      !!    end do
-      !!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      !!end do
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
-      !!write(*,*) 'writing to 500+iproc, iproc', iproc
-      !!do iall=1,lin%lb%lzd%orbs%npsidim
-      !!    write(500+iproc,*) iall, lphi(iall)
-      !!end do
-      !!call mpi_barrier(mpi_comm_world, ierr)
-      !!stop
-      !!ist=0
-      !!do iorb=1,lin%lb%lzd%orbs%norbp
-      !!    ilr=lin%lb%onWhichAtom(iorb)
-      !!    do iall=1,lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      !!        write(2100+lin%lb%lzd%orbs%isorb+iorb,*) iall, lphi(ist+iall)
-      !!    end do
-      !!    ist=ist+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      !!end do
-
 
       ! Normalize the derivative basis functions
       ! Normalize all to keep it easy
@@ -284,130 +172,24 @@ integer:: ist, ierr
           call dscal(ncount, 1/tt, lphi(ist), 1)
           ist=ist+ncount
       end do
-      !!do iall=1,lin%lb%lzd%orbs%npsidim
-      !!    write(800+iproc,*) iall, lphi(iall)
-      !!end do
-
-      !!ind1=1
-      !!ind2=1
-      !!phi=0.d0
-      !!do iorb=1,lin%lb%orbs%norbp
-      !!    ilr = lin%lb%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
-      !!do iall=1,lin%lb%orbs%npsidim
-      !!    write(850+iproc,*) iall, phi(iall)
-      !!end do
-!!call mpi_barrier(mpi_comm_world, ierr)
-!!stop
-      ! Orthonormalize
-      !call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-      !call orthonormalizeOnlyDerivatives(iproc, nproc, lin, phi)
-      !call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-      !!ind1=1
-      !!ind2=1
-      !!do iorb=1,lin%lb%orbs%norbp
-      !!    ilr = lin%lb%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
   end if
 
   ! Get the overlap matrix.. This should be adapted for the derivative basis functions.
   if(.not.updatePhi) then
-      !!ind1=1
-      !!ind2=1
-      !!do iorb=1,lin%lb%orbs%norbp
-      !!    ilr = lin%lb%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
       call getOverlapMatrix(iproc, nproc, lin, input, lphi, ovrlp)
-      !!ind1=1
-      !!ind2=1
-      !!phi=0.d0
-      !!do iorb=1,lin%lb%orbs%norbp
-      !!    ilr = lin%lb%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
   end if
 
   if(lin%useDerivativeBasisFunctions) then
-      !!ind1=1
-      !!ind2=1
-      !!do iorb=1,lin%lb%orbs%norbp
-      !!    ilr = lin%lb%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
       call getOverlapMatrix2(iproc, nproc, lin, input, lphi, ovrlp)
-      !!do iorb=1,lin%lb%orbs%norb
-      !!    do jorb=1,lin%lb%orbs%norb
-      !!        if(iproc==0) write(200,*) iorb, jorb, ovrlp(iorb,jorb)
-      !!    end do
-      !!end do
-      !!ind1=1
-      !!ind2=1
-      !!phi=0.d0
-      !!do iorb=1,lin%lb%orbs%norbp
-      !!    ilr = lin%lb%onWhichAtom(iorb)
-      !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
-      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      !!end do
-      !!call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-      !!nvctrp=sum(lin%lb%comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-      !!ist=1
-      !!do iorb=1,lin%lb%orbs%norb
-      !!    jst=1
-      !!    do jorb=1,lin%lb%orbs%norb
-      !!        ovrlp(jorb,iorb)=ddot(nvctrp, phi(jst), 1, phi(ist), 1)
-      !!        jst=jst+nvctrp
-      !!    end do
-      !!    ist=ist+nvctrp
-      !!end do
-      !!call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-      !!call mpiallred(ovrlp(1,1), lin%lb%orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-      !!do iorb=1,lin%lb%orbs%norb
-      !!    do jorb=1,lin%lb%orbs%norb
-      !!        if(iproc==0) write(201,*) iorb, jorb, ovrlp(iorb,jorb)
-      !!    end do
-      !!end do
+      do iorb=1,lin%lb%orbs%norb
+          do jorb=1,lin%lb%orbs%norb
+               if(iproc==0) write(200+iproc,*) iorb, jorb, ovrlp(iorb,jorb)
+          end do
+      end do
   end if
 !!call mpi_barrier(mpi_comm_world, ierr)
 !!stop
 
-  ! Transform the global phi to the local phi
-  ! This part will not be needed if we really have O(N)
-  !!ind1=1
-  !!ind2=1
-  !!do iorb=1,lin%lb%orbs%norbp
-  !!    ilr = lin%lb%onWhichAtom(iorb)
-  !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-  !!end do
   ! Transform all orbitals to real space
   ist=1
   istr=1
@@ -428,22 +210,6 @@ integer:: ist, ierr
   ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
   ! to point communication, the program will continue immediately.
   call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
-  !!write(*,'(a,i5,2i14)') 'iproc, size(lin%comsr%sendBuf), size(lin%comsr%recvBuf)', iproc, size(lin%comsr%sendBuf), size(lin%comsr%recvBuf)
-  !!tt=0.d0
-  !!do iall=1,size(lin%comsr%sendBuf)
-  !!    tt=tt+lin%comsr%sendBuf(iall)**2
-  !!end do
-  !!write(*,*) 'real: iproc, tt', iproc, tt
-  !!tt=0.d0
-  !!do iall=1,size(phi)
-  !!    tt=tt+phi(iall)**2
-  !!end do
-  !!write(*,*) 'scf/wvl phi: iproc, tt', iproc, tt
-  !!tt=0.d0
-  !!do iall=1,size(lphi)
-  !!    tt=tt+lphi(iall)**2
-  !!end do
-  !!write(*,*) 'scf/wvl lphi: iproc, tt', iproc, tt
   
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
@@ -460,32 +226,6 @@ integer:: ist, ierr
   ! This part will not be needed if we really have O(N)
   allocate(lhphi(lin%lb%Lorbs%npsidim), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
-
-  !!do iall=1,lin%lb%orbs%npsidim
-  !!    if(lin%locrad(1)==800.d0) then
-  !!        write(600+iproc,*) iall, phi(iall)
-  !!    else
-  !!        read(600+iproc,*) istat, phi(iall)
-  !!    end if
-  !!end do
-  !!ind1=1
-  !!ind2=1
-  !!do iorb=1,lin%lb%orbs%norbp
-  !!    ilr = lin%lb%onWhichAtom(iorb)
-  !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-  !!end do
-
-  !withConfinement=.false.
-  !do iall=1,lin%lb%lzd%orbs%npsidim
-  !    read(800+iproc,*) istat, lphi(iall)
-  !end do
-  !do iall=1,lin%comgp_lb%nrecvBuf
-  !    read(820+iproc,*) istat, lin%comgp_lb%recvBuf(iall)
-  !end do
   if(.not.lin%useDerivativeBasisFunctions) then
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
@@ -498,23 +238,9 @@ integer:: ist, ierr
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp_lb, lin%lb%onWhichAtom, withConfinement, &
            pkernel=pkernelseq)
   end if
-  !!write(*,*) 'size first orbital', lin%lb%lzd%llr(1)%wfd%nvctr_c+7*lin%lb%lzd%llr(1)%wfd%nvctr_f
-  !!do iall=1,lin%lb%lzd%orbs%npsidim
-  !!    if(lin%locrad(1)==800.d0) then
-  !!        write(800+iproc,*) iall, lphi(iall)
-  !!        write(810+iproc,*) iall, lhphi(iall)
-  !!    else
-  !!        write(900+iproc,*) iall, lphi(iall)
-  !!        write(910+iproc,*) iall, lhphi(iall)
-  !!    end if
-  !!end do
-  !!do iall=1,lin%comgp_lb%nrecvBuf
-  !!    if(lin%locrad(1)==800.d0) then
-  !!        write(820+iproc,*) iall, lin%comgp_lb%recvBuf(iall)
-  !!    else
-  !!        write(920+iproc,*) iall, lin%comgp_lb%recvBuf(iall)
-  !!    end if
-  !!end do
+
+
+
   ind1=1
   ind2=1
   hphi=0.d0
@@ -523,36 +249,35 @@ integer:: ist, ierr
       ilr = lin%lb%onWhichAtom(iorb)
       ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
       gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
+      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphi(ind2), hphi(ind1))
+      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
       ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
   end do
-  !!do iall=1,lin%lb%orbs%npsidim
-  !!    if(lin%locrad(1)==800.d0) then
-  !!        write(830+iproc,*) iall, hphi(iall)
-  !!    else
-  !!        write(930+iproc,*) iall, hphi(iall)
-  !!    end if
-  !!end do
-
-!call mpi_barrier(mpi_comm_world, ierr)
-!stop
 
   if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
 
 
   ! Calculate the matrix elements <phi|H|phi>.
   call getMatrixElements(iproc, nproc, Glr, lin%lb%orbs, lin%lb%comms, phi, hphi, matrixElements)
-  !!do iorb=1,lin%lb%orbs%norb
-  !!    do jorb=1,lin%lb%orbs%norb
-  !!        if(lin%locrad(1)==800.d0) then
-  !!            if(iproc==0) write(1000,*) iorb, jorb, matrixElements(iorb,jorb,1)
-  !!        else
-  !!            if(iproc==0) write(1010,*) iorb, jorb, matrixElements(iorb,jorb,1)
-  !!        end if
-  !!    end do
+  !!do iall=1,lin%lb%orbs%npsidim
+  !!    write(90+iproc,*) iall, phi(iall)
   !!end do
+  !call getMatrixElements(iproc, nproc, Glr, lin%lb%orbs, lin%lb%comms, phi, hphi, matrixElements)
+  do iorb=1,lin%lb%orbs%norb
+      do jorb=1,lin%lb%orbs%norb
+           write(1000+iproc,*) iorb, jorb, matrixElements(iorb,jorb,1)
+      end do
+  end do
+  !call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
+  call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
+  do iorb=1,lin%lb%orbs%norb
+      do jorb=1,lin%lb%orbs%norb
+           write(1100+iproc,*) iorb, jorb, matrixElements(iorb,jorb,1)
+      end do
+  end do
+call mpi_barrier(mpi_comm_world, ierr)
+stop
 
   if(trim(lin%getCoeff)=='min') then
       call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
@@ -1733,14 +1458,22 @@ integer:: istart, jstart, nvctrp, iorb, jorb, istat, iall, ierr
 real(8):: ddot
 real(8),dimension(:),pointer:: phiWork
 character(len=*),parameter:: subname='getMatrixELements'
+real(8),dimension(:),allocatable:: phi2, hphi2
 
 
+
+  allocate(phi2(orbs%npsidim), stat=istat)
+  call memocc(istat, phi2, 'phi2', subname)
+  allocate(hphi2(orbs%npsidim), stat=istat)
+  call memocc(istat, hphi2, 'hphi2', subname)
   allocate(phiWork(orbs%npsidim), stat=istat)
   call memocc(istat, phiWork, 'phiWork', subname)
+  phiWork=0.d0
+  call dcopy(orbs%npsidim, phi(1), 1, phi2(1), 1)
+  call dcopy(orbs%npsidim, hphi(1), 1, hphi2(1), 1)
 
-
-  call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, phi, work=phiWork)
-  call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, hphi, work=phiWork)
+  call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, phi2, work=phiWork)
+  call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, hphi2, work=phiWork)
 
   matrixElements=0.d0
 
@@ -1750,42 +1483,31 @@ character(len=*),parameter:: subname='getMatrixELements'
   do jorb=1,orbs%norb
       istart=1
       do iorb=1,orbs%norb
-          matrixElements(iorb,jorb,2)=ddot(nvctrp, phi(istart), 1, hphi(jstart), 1)
+          matrixElements(iorb,jorb,2)=ddot(nvctrp, phi2(istart), 1, hphi2(jstart), 1)
+          !write(*,'(a,3i7,3es16.7)') 'iorb, jorb, iproc, ddot', iorb, jorb, iproc,  matrixElements(iorb,jorb,2), phi2(istart), hphi2(jstart)
           istart=istart+nvctrp
       end do
       jstart=jstart+nvctrp
   end do
   call mpi_allreduce(matrixElements(1,1,2), matrixElements(1,1,1), orbs%norb**2, &
       mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
-!!if(iproc==0) then
-!!    write(*,*) 'matrix Elements'
-!!    do iorb=1,lin%orbs%norb
-!!        write(*,'(80es9.2)') (matrixElements(iorb,jorb,1), jorb=1,lin%orbs%norb)
-!!    end do
-!!end if
+
+  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, phi2, work=phiWork)
+  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, hphi2, work=phiWork)
 
 
-  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, phi, work=phiWork)
-  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, hphi, work=phiWork)
 
   iall=-product(shape(phiWork))*kind(phiWork)
   deallocate(phiWork)
   call memocc(istat, iall, 'phiWork', subname)
 
+  iall=-product(shape(phi2))*kind(phi2)
+  deallocate(phi2)
+  call memocc(istat, iall, 'phi2', subname)
 
-  !!! Calculate the modified band structure energy
-  !!tt=0.d0
-  !!do iorb=1,orbs%norb
-  !!    do jorb=1,orbsLIN%norb
-  !!        do korb=1,orbsLIN%norb
-  !!            tt=tt+HamSmall(korb,iorb)*HamSmall(jorb,iorb)*matrixElements(korb,jorb,1)
-  !!        end do
-  !!    end do
-  !!end do
-  !!if(present(ebs_mod)) then
-  !!    if(nspin==1) ebs_mod=2.d0*tt ! 2 for closed shell
-  !!end if
-
+  iall=-product(shape(hphi2))*kind(hphi2)
+  deallocate(hphi2)
+  call memocc(istat, iall, 'hphi2', subname)
 
 
 end subroutine getMatrixElements
@@ -3147,6 +2869,9 @@ integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
   ! Communicate the orbitals to meet the partition.
   call postCommsRepartition(iproc, nproc, lin%lzd%orbs, lin%lb%comrp, size(phiLoc), phiLoc, size(phid), phid)
   call gatherDerivativeOrbitals(iproc, nproc, lin%lzd%orbs, lin%lb%comrp)
+  !!do iall=1,size(phid)
+  !!    phid(iall)=dble(1000000000*iproc+iall)
+  !!end do
 
   !!do iall=1,size(phid)
   !!    write(910+iproc,*) iall, phid(iall)
