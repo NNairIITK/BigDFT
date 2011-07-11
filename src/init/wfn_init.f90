@@ -303,9 +303,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   semicore=present(norbsc_arr)
 
-  !check for linear approach
-  
-
   !assign total orbital number for calculating the overlap matrix and diagonalise the system
 
   if(minimal) then
@@ -425,7 +422,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   !this is possible since the semicore orbitals are the first in the 
   !order, so the linear algebra on the transposed wavefunctions 
   !may be splitted
-
   ispsi=1
   do ikptp=1,orbsu%nkptsp
      ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
@@ -623,7 +619,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
   type(input_variables):: input
-  real(wp), dimension(:), pointer :: psi,hpsi,psit
+  real(wp), dimension(:), pointer,intent(inout) :: psi,hpsi,psit
   !optional arguments
   real(gp), optional, intent(in) :: etol
   type(orbitals_data), optional, intent(in) :: orbsv
@@ -635,7 +631,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   character(len=*), parameter :: subname='DiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal,linear_nosemicore
-  integer :: ikptp,ikpt,nvctrp,ilr,norb1,psishift1,ldim,totshift
+  integer :: ikptp,ikpt,nvctrp,ilr,psishift1,ldim,totshift,iorb
   integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(gp) :: tolerance
@@ -664,13 +660,13 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   !check for semicore approach (not allowed in the linear case)
   semicore=present(norbsc_arr) .and. natsc > 0
 
-  if (semicore) then
-     write(*,*) 'ERROR: LDiagHam not allowed with semicore IG orbitals'
-     stop
-  end if
+!!  if (semicore) then
+!!     write(*,*) 'ERROR: LDiagHam not allowed with semicore IG orbitals'
+!!     stop
+!!  end if
 
   if (.not. minimal) then
-     write(*,*) 'ERROR: LDiagHam not allowed only for IG orbitals'
+     write(*,*) 'ERROR: LDiagHam allowed only for IG orbitals'
      stop
   end if
   
@@ -699,14 +695,15 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   !fill psiw work array
   psishift1 = 1
   totshift = 0
-  do ilr = 1,Lzd%nlr
-     norb1 = Lzd%Lorbs(ilr)%norb/Lzd%Lorbs(ilr)%nspin
-     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Lorbs(ilr)%norb*Lzd%Lorbs(ilr)%nspinor
+  do iorb=1,Lzd%orbs%norbp
+     ilr = Lzd%orbs%inwhichlocreg(iorb+Lzd%orbs%isorb)
+     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%orbs%nspinor
      call Lpsi_to_global(Lzd%Glr,npsidim,Lzd%Llr(ilr),psi(psishift1),&
-          ldim,norb1,Lzd%Lorbs(ilr)%nspinor,nspin,totshift,psiw)
+          ldim,Lzd%orbs%norbp,Lzd%orbs%nspinor,nspin,totshift,psiw)
      psishift1 = psishift1 + ldim
-     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norb1*Lzd%orbs%nspinor
+     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*Lzd%orbs%nspinor
   end do
+
   !reallocate psi
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
@@ -718,18 +715,20 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   call dcopy(npsidim,psiw,1,psi,1) !psi=psiw
     
   call razero(npsidim,psiw)
+
   !fill psiw work array
   psishift1 = 1
   totshift = 0
-  do ilr = 1,Lzd%nlr
-     norb1 = Lzd%Lorbs(ilr)%norb/Lzd%Lorbs(ilr)%nspin
-     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Lorbs(ilr)%norb*Lzd%Lorbs(ilr)%nspinor
+  do iorb=1,Lzd%orbs%norbp
+     ilr = Lzd%orbs%inwhichlocreg(iorb+Lzd%orbs%isorb)
+     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%orbs%nspinor
      call Lpsi_to_global(Lzd%Glr,npsidim,Lzd%Llr(ilr),hpsi(psishift1),&
-          ldim,norb1,Lzd%Lorbs(ilr)%nspinor,nspin,totshift,psiw)
+          ldim,Lzd%orbs%norbp,Lzd%orbs%nspinor,nspin,totshift,psiw)
      psishift1 = psishift1 + ldim
-     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norb1*Lzd%orbs%nspinor
+     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*Lzd%orbs%nspinor
   end do
-  !reallocate psi
+
+  !reallocate hpsi
   i_all=-product(shape(hpsi))*kind(hpsi)
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
@@ -738,7 +737,6 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   call memocc(i_stat,psi,'psi',subname)
 
   call dcopy(npsidim,psiw,1,hpsi,1) !hpsi=psiw
-
 
   !transpose all the wavefunctions for having a piece of all the orbitals 
   !for each processor
@@ -867,12 +865,12 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   end if
 
 ! DEBUG
-  if(nproc == 1) then
-     print *,'size(hamovr)',size(hamovr,1),size(hamovr,2),size(hamovr,3)
-     do i_all=1,size(hamovr,1)
-        print *,'iel, ham, ovr:',i_all,hamovr(i_all,1,:),hamovr(i_all,2,:)
-     end do
-  end if
+!  if(iproc == 0) then
+!     print *,'size(hamovr)',size(hamovr,1),size(hamovr,2),size(hamovr,3)
+!     do i_all=1,size(hamovr,1)
+!        print *,'iel, ham, ovr:',i_all,hamovr(i_all,1,:),hamovr(i_all,2,:)
+!     end do
+!  end if
 ! END DEBUG
 
   !in the case of minimal basis allocate now the transposed wavefunction
@@ -975,6 +973,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   deallocate(norbgrp,stat=i_stat)
   call memocc(i_stat,i_all,'norbgrp',subname)
 
+
   !print * ,'debug2,iproc',iproc,orbsv%norb,orbsv%norbp,orbsv%norbu,orbsv%norbd,orbsv%npsidim
   if (minimal) then
      !deallocate the old psi
@@ -991,33 +990,6 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      nullify(psi)
      psi => psit
   end if
-
-
-!!$  !orthogonalise the orbitals in the case of semi-core atoms
-!!$  if (norbsc > 0) then
-!!$     call orthogonalize(iproc,nproc,orbs,comms,Lzd%Glr%wfd,psit,input)
-!!$  end if
-!!$
-!!$  if (minimal) then
-!!$     allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,hpsi,'hpsi',subname)
-!!$!     hpsi=0.0d0
-!!$     if (nproc > 1) then
-!!$        !allocate the direct wavefunction
-!!$        allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
-!!$        call memocc(i_stat,psi,'psi',subname)
-!!$     else
-!!$        psi => psit
-!!$     end if
-!!$  end if
-!!$
-!!$  !this untranspose also the wavefunctions 
-!!$  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
-!!$       psit,work=hpsi,outadd=psi(1))
-!!$
-!!$  if (nproc == 1) then
-!!$     nullify(psit)
-!!$  end if
 
 END SUBROUTINE LDiagHam
 

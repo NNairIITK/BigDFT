@@ -662,24 +662,12 @@ subroutine deallocate_Lnlpspd(Lnlpspd,subname)
   !#######################################
   integer :: i_stat,i_all
 
-  i_all=-product(shape(Lnlpspd%nvctr_p)*kind(Lnlpspd%nvctr_p))
-  deallocate(Lnlpspd%nvctr_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_p',subname)
-  i_all=-product(shape(Lnlpspd%nseg_p)*kind(Lnlpspd%nseg_p))
-  deallocate(Lnlpspd%nseg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nseg_p',subname)
-  i_all=-product(shape(Lnlpspd%nboxp_c)*kind(Lnlpspd%nboxp_c))
-  deallocate(Lnlpspd%nboxp_c,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_c',subname)
-  i_all=-product(shape(Lnlpspd%nboxp_f)*kind(Lnlpspd%nboxp_f))
-  deallocate(Lnlpspd%nboxp_f,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_f',subname)
-  i_all=-product(shape(Lnlpspd%keyg_p)*kind(Lnlpspd%keyg_p))
-  deallocate(Lnlpspd%keyg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'keyg_p',subname)
-  i_all=-product(shape(Lnlpspd%keyv_p)*kind(Lnlpspd%keyv_p))
-  deallocate(Lnlpspd%keyv_p,stat=i_stat)
-  call memocc(i_stat,i_all,'keyv_p',subname)
+  nullify(Lnlpspd%nvctr_p)
+  nullify(Lnlpspd%nseg_p)
+  nullify(Lnlpspd%nboxp_c)
+  nullify(Lnlpspd%nboxp_f)
+  nullify(Lnlpspd%keyg_p)
+  nullify(Lnlpspd%keyv_p)
 
 END SUBROUTINE deallocate_Lnlpspd
 !%***
@@ -732,7 +720,7 @@ END SUBROUTINE allocate_projd
 !!         
 !! SOURCE:
 !!
-subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorbs,projflg,psi,rxyz,hpsi,eproj)
+subroutine apply_local_projectors(iorb,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
 
 
   use module_base
@@ -744,59 +732,64 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorb
   !#######################################
   ! Subroutine Scalar Arguments
   !#######################################
-  integer, intent(in) :: ilr,nspin
+  integer, intent(in) :: iorb,nspin,iproc
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data),intent(in) :: atoms
   type(locreg_descriptors),intent(in) :: Llr
   type(nonlocal_psp_descriptors),intent(in) :: Lnlpspd  ! Local descriptors for the projectors
   type(orbitals_data),intent(in) :: orbs
-  type(orbitals_data),intent(in) :: Gorbs
   real(gp), intent(inout) :: eproj
   !#######################################
   ! Subroutine Array Arguments
   !#######################################
   integer,dimension(atoms%nat),intent(in) :: projflg
-  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norb),intent(in) :: psi  !local wavefunction
-  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*orbs%norb),intent(inout):: hpsi ! local |p><p|Psi>
+  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor),intent(in) :: psi  !local wavefunction
+  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor),intent(inout):: hpsi ! local |p><p|Psi>
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !#######################################
   ! Local Variables 
   !#######################################
   integer :: ikpt,istart_c,ncplx,jseg_c,iproj,iat,ityp,l,i,nwarnings
-  integer :: isorb,ieorb,nspinor,iorb,istart_o,ispinor
+  integer :: isorb,ieorb,nspinor,istart_o,ispinor
   integer :: nels,ipsi,ii,iatom,iel,i_all,i_stat
   integer :: jj,orbtot,ispin,ind
   integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
   !integer,dimension(:),allocatable :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
-  real(wp),allocatable,dimension(:,:,:) :: psi_tmp
-  real(wp),allocatable,dimension(:,:,:) :: hpsi_tmp
+  real(wp),allocatable,dimension(:,:) :: psi_tmp
+  real(wp),allocatable,dimension(:,:) :: hpsi_tmp
   real(wp),allocatable,dimension(:):: Lproj  !local projectors
   character(len=*), parameter :: subname='apply_local_projectors'
-
 
 !  First reshape the wavefunctions: psi_tmp(nels,norbs,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
 
 ! Allocate arrays
-   allocate(psi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
+!   allocate(psi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
+!   call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+!   allocate(hpsi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
+!   call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
+   allocate(psi_tmp(nels,orbs%nspinor),stat=i_stat)
    call memocc(i_stat,psi_tmp,'psi_tmp',subname)
-   allocate(hpsi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
+   allocate(hpsi_tmp(nels,orbs%nspinor),stat=i_stat)
    call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
+   
    allocate(Lproj(Lnlpspd%nprojel),stat=i_stat)
    call memocc(i_stat,Lproj,'Lproj',subname)
 
    ! reshape the wavefunction
    ii=0
-   do iorb=1,orbs%norb
+!   do iorb=1,orbs%norb
        do ispinor=1,orbs%nspinor
            do iel=1,nels
                ii=ii+1
-               psi_tmp(iel,ispinor,iorb)=psi(ii)
-               hpsi_tmp(iel,ispinor,iorb)=hpsi(ii)
+!               psi_tmp(iel,ispinor,iorb)=psi(ii)
+!               hpsi_tmp(iel,ispinor,iorb)=hpsi(ii)
+               psi_tmp(iel,ispinor)=psi(ii)
+               hpsi_tmp(iel,ispinor)=hpsi(ii)
            end do
        end do
-   end do
+!   end do
    
    ieorb = orbs%norbp   ! give an initial value because could skip whole loop on atoms (i.e. Li+ test)
    ikpt=orbs%iokpt(1)
@@ -813,7 +806,7 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorb
          ncplx=2
       end if
 
-      ieorb = Gorbs%norbp  !initialize value in case no atoms have projectors
+      ieorb = orbs%norbp  !initialize value in case no atoms have projectors
       jseg_c = 1
       iproj = 0
       iatom = 0
@@ -844,14 +837,13 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorb
             enddo
          enddo
 
-
 !        Apply them on the wavefunctions in the overlap region
 !        hpsi contains the new wavefunctions
-         call orbs_in_kpt(ikpt,Gorbs,isorb,ieorb,nspinor) 
+         call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor) 
 
-         do iorb=isorb,ieorb
-            do ii=1,orbs%norb
-               if (orbs%inWhichLocreg(ii) == iorb) then   !using ii and iorb to identify the orbitals because in linear case, the ordering is different
+!         do iorb=isorb,ieorb
+!            do ii=1,orbs%norb
+!               if (orbs%inWhichLocreg(ii) == iorb) then   !using ii and iorb to identify the orbitals because in linear case, the ordering is different
                                                           !orbitals are now orderer by locreg. So, iorb is the old numbering (i.e. in Global region)
                                                           !while ii is it's numbering in the locreg.
 
@@ -869,37 +861,35 @@ subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorb
                                    Llr%wfd%nseg_f,Llr%wfd%keyv,Llr%wfd%keyg,&
                                    Lnlpspd%nvctr_p(2*iatom-1),Lnlpspd%nvctr_p(2*iatom),Lnlpspd%nseg_p(2*iatom-1),&
                                    Lnlpspd%nseg_p(2*iatom),Lnlpspd%keyv_p(jseg_c),Lnlpspd%keyg_p(1,jseg_c),&
-                                   Lproj(istart_o),psi_tmp(1,ispinor,ii),hpsi_tmp(1,ispinor,ii),eproj_spinor)
+                                   Lproj(istart_o),psi_tmp(1,ispinor),hpsi_tmp(1,ispinor),eproj_spinor)
                                
                                istart_o=istart_o+(Lnlpspd%nvctr_p(2*iatom-1)+7*Lnlpspd%nvctr_p(2*iatom))*(2*l-1)*ncplx
                            end if
                         enddo
                      enddo
                      eproj=eproj+&
-                          orbs%kwgts(orbs%iokpt(ii))*orbs%occup(ii+orbs%isorb)*eproj_spinor      
+                          orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj_spinor      
                   end do
-               end if
-            end do
-         end do
+!               end if
+!            end do
+!         end do
          jseg_c = jseg_c + Lnlpspd%nseg_p(2*iatom - 1)+ Lnlpspd%nseg_p(2*iatom) 
       end do  !on iat
-      
-     ! hpsi = reshape(hpsi_tmp,(/ (Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin/))!,order=(/ 2, 3, 1 /))
 
       ind = 0
-      hpsi = 0.0_wp
-      do ispin = 1,nspin                 !is the order correct for spin and spinor?
+!      do ispin = 1,nspin                 !is the order correct for spin and spinor?
          do ispinor=1,orbs%nspinor
-            do ii=1,orbs%norb/orbs%nspin
+!            do ii=1,orbs%norb/orbs%nspin
                do jj=1,Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
-                  hpsi(ind+jj) = hpsi_tmp(jj,ispinor,ii+(ispin-1)*orbs%norb/orbs%nspin)
+                  hpsi(ind+jj) = hpsi_tmp(jj,ispinor)
                end do
                ind = ind + Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
-            end do
+!            end do
          end do
-      end do
+!      end do
+
       if (iproj /= Lnlpspd%nproj) stop 'incorrect number of projectors created'
-      if (ieorb == Gorbs%norbp) exit loop_kpt
+      if (ieorb == orbs%norbp) exit loop_kpt
       ikpt=ikpt+1
    end do loop_kpt
 

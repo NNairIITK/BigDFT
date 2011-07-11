@@ -1902,7 +1902,6 @@ subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
      ln3 = iez-isz
 
      ! First check if localization region fits inside box
-     if (iproc == 0 .and. verbose > 1) then
         if (iex - isx >= Glr%d%n1 - 14) then
            warningx = .true.
         end if
@@ -1912,7 +1911,6 @@ subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
         if (iez - isz >= Glr%d%n3 - 14) then
            warningz = .true.
         end if 
-     end if
 
      !If not, then don't use linear input guess (set linear to false)
      if(warningx .and. warningy .and. warningz .and. (Glr%geocode .ne. 'F')) then

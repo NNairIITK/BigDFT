@@ -2122,21 +2122,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
     end subroutine nlpspd_to_locreg
 
-    subroutine apply_local_projectors(ilr,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,Gorbs,projflg,psi,rxyz,hpsi,eproj)
+    subroutine apply_local_projectors(iorb,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
      use module_base
      use module_types
      implicit none
-     integer,intent(in) :: ilr,nspin
+     integer,intent(in) :: iorb,nspin,iproc
      real(gp), intent(in) :: hx,hy,hz
      type(atoms_data),intent(in) :: atoms
      type(locreg_descriptors),intent(in) :: Llr
      type(nonlocal_psp_descriptors),intent(in) :: Lnlpspd  ! Local descriptors for the projectors
      type(orbitals_data),intent(in) :: orbs
-     type(orbitals_data),intent(in) :: Gorbs
      real(gp), intent(inout) :: eproj
      integer,dimension(atoms%nat),intent(in) :: projflg
-     real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(in) :: psi  !local wavefunction
-     real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(inout):: hpsi ! local |p><p|Psi>
+     real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*nspin),intent(in) :: psi  !local wavefunction
+     real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*nspin),intent(inout):: hpsi ! local |p><p|Psi>
      real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
     end subroutine apply_local_projectors
 

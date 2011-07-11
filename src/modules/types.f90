@@ -245,7 +245,6 @@ module module_types
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
-     integer :: norbsc
      real(gp) :: efermi
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,inwhichlocreg, inWhichLocregP !,ikptsp
      integer,dimension(:),pointer:: onWhichMPI, isorb_par
@@ -911,9 +910,10 @@ END SUBROUTINE deallocate_orbs
 
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
     if(associated(lr%projflg)) then
-       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
-       deallocate(lr%projflg,stat=i_stat)
-       call memocc(i_stat,i_all,'lr%projflg',subname)
+       nullify(lr%projflg)
+!       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
+!       deallocate(lr%projflg,stat=i_stat)
+!       call memocc(i_stat,i_all,'lr%projflg',subname)
     end if
 
   END SUBROUTINE deallocate_lr
@@ -924,20 +924,45 @@ END SUBROUTINE deallocate_orbs
     type(linear_zone_descriptors) :: Lzd
     integer :: i_all,i_stat,ilr
 
-!    call deallocate_orbs(Lzd%orbs,subname)
- 
 !    call deallocate_comms(Lzd%comms,subname)
 
 !    call deallocate_lr(Lzd%Glr,subname)
 
+!   nullify the bounds of Glr
+    if ((Lzd%Glr%geocode == 'P' .and. Lzd%Glr%hybrid_on) .or. Lzd%Glr%geocode == 'F') then
+       nullify(Lzd%Glr%bounds%kb%ibyz_f)
+       nullify(Lzd%Glr%bounds%kb%ibxz_f)
+       nullify(Lzd%Glr%bounds%kb%ibxy_f)
+       nullify(Lzd%Glr%bounds%sb%ibxy_ff)
+       nullify(Lzd%Glr%bounds%sb%ibzzx_f)
+       nullify(Lzd%Glr%bounds%sb%ibyyzz_f)
+       nullify(Lzd%Glr%bounds%gb%ibyz_ff)
+       nullify(Lzd%Glr%bounds%gb%ibzxx_f)
+       nullify(Lzd%Glr%bounds%gb%ibxxyy_f)
+    end if
+    !the arrays which are needed only for free BC
+    if (Lzd%Glr%geocode == 'F') then
+       nullify(Lzd%Glr%bounds%kb%ibyz_c)
+       nullify(Lzd%Glr%bounds%kb%ibxz_c)
+       nullify(Lzd%Glr%bounds%kb%ibxy_c)
+       nullify(Lzd%Glr%bounds%sb%ibzzx_c)
+       nullify(Lzd%Glr%bounds%sb%ibyyzz_c)
+       nullify(Lzd%Glr%bounds%gb%ibzxx_c)
+       nullify(Lzd%Glr%bounds%gb%ibxxyy_c)
+       nullify(Lzd%Glr%bounds%ibyyzz_r)
+    end if
+
+! nullify the wfd of Glr
+   nullify(Lzd%Glr%wfd%keyg)
+   nullify(Lzd%Glr%wfd%keyv)
+ 
+!Now destroy the Llr
     do ilr = 1, Lzd%nlr 
        call deallocate_lr(Lzd%Llr(ilr),subname)
        call deallocate_Lnlpspd(Lzd%Lnlpspd(ilr),subname)
     end do
-
-    deallocate(Lzd%Llr,stat=i_stat)
-    deallocate(Lzd%Lnlpspd,stat=i_stat)
-   
+     nullify(Lzd%Llr)
+     nullify(Lzd%Lnlpspd)
 
   END SUBROUTINE deallocate_Lzd
 

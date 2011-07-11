@@ -1,28 +1,197 @@
+!###########################################################################
+! NOT USED ANYMORE
+! DOES NOT WORK WITH MODERN MODIFICATIONS
+!##########################################################################
+subroutine determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: nspin
+  type(atoms_data), intent(in) :: at
+  type(linear_zone_descriptors), intent(inout) :: Lzd
+  integer, dimension(at%natsc+1,nspin), intent(in) :: norbsc_arr
+  ! local variables
+  integer :: ilr
+  integer :: Lnorb
+  integer :: nspin_ig
+  integer :: noncoll
+  integer :: npsidim
+  integer :: dimtot
+  integer :: i_stat,i_all,ierr
+  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+  integer, dimension(lmax+1) :: nmoments
+  integer, dimension(Lzd%nlr) :: norbsc
+  integer, dimension(:), allocatable :: Localnorb
+  integer, dimension(:,:),allocatable :: iwl
+  real(gp), dimension(noccmax,lmax) :: occup              !dummy variable
+  character(len=*), parameter :: subname='determine_Lorbs'
+
+!spin for orbitals
+  if (nspin == 4) then
+     nspin_ig=1
+  else
+     nspin_ig=nspin
+  end if
+
+! in the non-collinear case the number of orbitals double
+! nspin_ig*noncoll is always <= 2
+  if (Lzd%orbs%nspinor == 4) then
+     noncoll=2
+  else
+     noncoll=1
+  end if
+
+  ! allocate statements
+
+  allocate(Localnorb(Lzd%nlr+ndebug),stat=i_stat)
+  call memocc(i_stat,Localnorb,'Localnorb',subname)
+  allocate(Lzd%Lorbs(Lzd%nlr+ndebug),stat=i_stat) !cannot call memocc because they are types
+                                                  ! it seems to associate all the pointers.
+
+! Calculate the dimension of the total wavefunction
+! NOTES: WORKS ONLY BECAUSE Llr coincides with the atoms !!
+! NOTES: K-Points??
+  dimtot = 0
+  do ilr = 1, Lzd%nlr
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin_ig,Lzd%orbs%nspinor,at%aocc(1,ilr),occup,nmoments)
+     Lnorb=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
+     Localnorb(ilr) = Lnorb
+     npsidim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lnorb*Lzd%orbs%nspinor*nspin_ig*noncoll
+     dimtot = dimtot + npsidim
+     Lzd%Lorbs(ilr)%npsidim = npsidim
+  end do
+
+! Right total dimension of the wavefunctions
+  Lzd%Lpsidimtot = dimtot
+
+  allocate(iwl(Lzd%orbs%norbp,nproc),stat=i_stat)
+  call memocc(i_stat,iwl,'iwl',subname)
+  call razero(Lzd%orbs%norbp*nproc,iwl)
+
+! Determine inwhichlocreg (removed semicore treatement... to DEBUG)
+!  call assignToLocreg(iproc,nproc,at%nat,at%natsc,Lzd%nlr,noncoll,nspin_ig,Localnorb,Lzd%orbs,norbsc_arr,at%iasctype,norbsc,iwl)
+
+  call mpiallred(Lzd%orbs%inWhichLocreg(1), Lzd%orbs%norb, mpi_sum, mpi_comm_world, ierr)
+
+! DEBUG for inWhichLocreg(ilr)
+!  print *,'at%iasctype:',at%iasctype,Lzd%orbs%norb
+!  do ilr=1,Lzd%nlr
+!    print *,'ilr,localnorb:',ilr,Localnorb(ilr)
+!  end do
+!  do ilr=1,Lzd%orbs%norbp
+!    write(*,*) 'iorb, iwl', ilr, Lzd%orbs%inWhichLocreg(ilr),Lzd%orbs%occup(ilr)
+!  end do
+!  print *,'Global region:',iproc
+!  print *,'norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts,norbsc,efermi',&
+!          Lzd%orbs%norb,Lzd%orbs%norbp,Lzd%orbs%norbu,Lzd%orbs%norbd,Lzd%orbs%nspin,Lzd%orbs%nspinor,&
+!          Lzd%orbs%isorb,Lzd%orbs%npsidim,Lzd%orbs%nkpts,Lzd%orbs%nkptsp,Lzd%orbs%iskpts,Lzd%orbs%norbsc,Lzd%orbs%efermi
+!  print *,'Lzd%orbs%norb_par',Lzd%orbs%norb_par
+!  print *,'Lzd%orbs%iokpt',Lzd%orbs%iokpt
+!  print *,'Lzd%orbs%ikptproc',Lzd%orbs%ikptproc
+!  print *,'inwhichlocreg',Lzd%orbs%inwhichlocreg
+!  print *,'inwhichlocregP',Lzd%orbs%inwhichlocregP
+!  print *,'onwhichMPI',Lzd%orbs%onwhichMPI
+!  print *,'Lzd%orbs%isorb_par',Lzd%orbs%isorb_par
+!  print *,'Lzd%orbs%occup',Lzd%orbs%occup
+!  print *,'Lzd%orbs%spinsgn',Lzd%orbs%spinsgn
+!  print *,'Lzd%orbs%kwgts',Lzd%orbs%kwgts
+!  print *,'Lzd%orbs%kpts',Lzd%orbs%kpts
+! END DEBUG
+
+  do ilr=1,Lzd%nlr
+     ! Set our new variable
+     Lzd%Lorbs(ilr)%norbsc = norbsc(ilr)
+     ! sets almost all of Lorbs(ilr) components
+     call linear_orbitals_descriptors(ilr,Lzd%nlr,iwl,iproc,nproc,Lzd%orbs,nspin_ig*noncoll*Localnorb(ilr),noncoll*Localnorb(ilr),&
+        (nspin_ig-1)*noncoll*Localnorb(ilr),nspin_ig,Lzd%orbs%nspinor,Lzd%orbs%nkpts,Lzd%orbs%kpts,&
+        Lzd%orbs%kwgts,Lzd%Lorbs(ilr))
+
+!DEBUG
+!    print *,'ilr:',ilr,iproc
+!    print *,'norb,norbp,norbu,norbd,nspin,nspinor:',Lzd%Lorbs(ilr)%norb,Lzd%Lorbs(ilr)%norbp,Lzd%Lorbs(ilr)%norbu,&
+!             Lzd%Lorbs(ilr)%norbd,Lzd%Lorbs(ilr)%nspin,Lzd%Lorbs(ilr)%nspinor
+!    print *,'isorb,nkpts,nkptsp,iskpts:',Lzd%Lorbs(ilr)%isorb,Lzd%Lorbs(ilr)%nkpts,Lzd%Lorbs(ilr)%nkptsp,Lzd%Lorbs(ilr)%iskpts
+!    print *,'norb_par',Lzd%Lorbs(ilr)%norb_par
+!    print *,'iokpt',Lzd%Lorbs(ilr)%iokpt
+!    print *,'ikptproc',Lzd%Lorbs(ilr)%ikptproc
+!    print *,'isorb_par',Lzd%Lorbs(ilr)%isorb_par
+!    print *,'occup',Lzd%Lorbs(ilr)%occup
+!    print *,'spinsgn',Lzd%Lorbs(ilr)%spinsgn
+!    print *,'kwgts',Lzd%Lorbs(ilr)%kwgts
+!    print *,'kpts',Lzd%Lorbs(ilr)%kpts
+!     if (iproc ==0) then
+!        write(*,'(a,i0)')'For locreg:',ilr
+!        write(*,'(1x,a,i0,a)')'Distributing ',nspin_ig*noncoll*Localnorb(ilr),' Atomic Input Orbitals'
+!        if (norbsc(ilr) /=0)   write(*,'(1x,a,i0,a)')'  of which ',norbsc(ilr),&
+!             ' are semicore orbitals'
+!     end if
+!END DEBUG
+
+  end do
+
+  !Deallocations
+!  i_all=-product(shape(Localnorb))*kind(Localnorb)
+!  deallocate(Localnorb,stat=i_stat)
+!  call memocc(i_stat,i_all,'Localnorb',subname)
+!  i_all=-product(shape(iwl))*kind(iwl)
+!  deallocate(iwl,stat=i_stat)
+!  call memocc(i_stat,i_all,'iwl',subname)
+
+
+end subroutine determine_Lorbs
+
 !============================================================================
 !WARNING: assignToLocreg does not take into account the Kpts yet !!
 !============================================================================
-subroutine assignToLocreg(iproc, nproc, natom, natsc, nlr,noncoll, nspin, Localnorb, orbs, norbsc_arr, iasctype,norbsc,iwl)
+subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,norbsc)
   use module_base
   use module_types
   implicit none
 
-  integer,intent(in):: nlr,iproc,nproc,nspin,natom,noncoll
-  integer, intent(in) :: natsc                                          !> number of atoms having semicore states
-  integer,dimension(nlr),intent(in):: Localnorb
+  integer,intent(in):: iproc,nproc,nspin,nspinor
+  type(atoms_data),intent(in) :: atoms 
   type(orbitals_data),intent(inout):: orbs
-  integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr           !> number of semicore orbitals for the semicore atoms 
-  integer,dimension(natom),intent(in) :: iasctype                       !> mapping of semicore atoms: >0 if atom has semicore states
-  integer,dimension(nlr),intent(out) :: norbsc
-  integer,dimension(orbs%norbp,nproc),intent(out) :: iwl               !> mapping of the orbitals to the logregs for all processors
+  type(linear_zone_descriptors) :: Lzd
+  integer, dimension(atoms%natsc+1,nspin), intent(in) :: norbsc_arr           !> number of semicore orbitals for the semicore atoms 
+  integer,dimension(Lzd%nlr),intent(out) :: norbsc
   ! Local variables
   integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsctot,orbsc,ispin
-  integer :: iat,ind,i_all
+  integer :: iat,ind,i_all,noncoll,Lnorb,dimtot,ilr,npsidim,ierr
   character(len=*), parameter :: subname='assignToLocreg'
   integer, dimension(:,:), allocatable :: orbscToAtom                   !> array olding the number of semicore states for each atom and spin
+  integer, dimension(:), allocatable :: Localnorb
+  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
+  integer, dimension(lmax+1) :: nmoments
+  real(gp), dimension(noccmax,lmax) :: occup              !dummy variable
+
+
+! in the non-collinear case the number of orbitals double
+! nspin_ig*noncoll is always <= 2
+  if (nspinor == 4) then
+     noncoll=2
+  else
+     noncoll=1
+  end if
+
+  allocate(Localnorb(Lzd%nlr+ndebug),stat=i_stat)
+  call memocc(i_stat,Localnorb,'Localnorb',subname)
+
+! NOTES: WORKS ONLY BECAUSE Llr coincides with the atoms !!
+! NOTES: K-Points??
+  do ilr = 1, Lzd%nlr
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,ilr),occup,nmoments)
+     Lnorb=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
+     Localnorb(ilr) = Lnorb
+  end do
+
 
 !  already associated = 1 by default
-  nullify(orbs%inWhichLocreg)
-  allocate(orbs%inWhichLocreg(orbs%norb_par(iproc)),stat=i_stat)
+  allocate(orbs%inWhichLocregP(max(1,orbs%norb_par(iproc))),stat=i_stat)
+
+! initialize inwhichlocreg
+  orbs%inWhichLocreg = 0
+  orbs%inWhichLocregP = 0
 
 !  allocate(orbscToAtom(natom,nspin),stat=i_stat)
 !  call memocc(i_stat,orbscToAtom,'orbscToAtom',subname)
@@ -47,7 +216,7 @@ subroutine assignToLocreg(iproc, nproc, natom, natsc, nlr,noncoll, nspin, Localn
 !
 !  ! Now distribute the semicore states
 !  ind = 0
-!  norbsc = 0
+  norbsc = 0
 !  do ispin=1,nspin
 !     do jat=1,natom
 !        do iorb=1,orbscToAtom(jat,ispin)
@@ -64,7 +233,7 @@ subroutine assignToLocreg(iproc, nproc, natom, natsc, nlr,noncoll, nspin, Localn
 !       write(*,*) 'iorb, iwl', ispin, orbs%inWhichLocreg(ispin),orbs%occup(ispin)
 !     end do
 ! END DEBUG
-
+  ind = 0
   jproc=0
   jat=1
   jorb=ind
@@ -79,22 +248,45 @@ subroutine assignToLocreg(iproc, nproc, natom, natsc, nlr,noncoll, nspin, Localn
           if (jproc==nproc) exit
       end if
       orbsc = 0
-      do ispin=1,nspin
+!      do ispin=1,nspin
 !         orbsc = orbsc + orbscToAtom(jat,ispin)
-      end do
+!      end do
       ! Switch to the next atom if the number of basis functions for this atom is reached.
       if(iiOrb==(Localnorb(jat)-orbsc)*noncoll) then
           jat=jat+1
           iiOrb=0
       end if
-      if(jat > natom) then
+      if(jat > atoms%nat) then
         jat = 1
       end if
       jorb=jorb+1
       iiOrb=iiOrb+1
-      if(iproc==jproc) orbs%inWhichLocreg(jorb)=jat
-      iwl(jorb,jproc+1) = jat
+      if(iproc==jproc .and. orbs%norb_par(jproc)> 0) then
+         orbs%inWhichLocregP(jorb)=jat
+         orbs%inWhichLocreg(jorb+orbs%isorb)=jat
+      end if
   end do
+
+  call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+
+! Calculate the dimension of the total wavefunction
+  dimtot = 0
+  if(orbs%norbp > 0) then
+     do iorb = 1,orbs%norbp
+        ilr = orbs%inwhichlocregP(iorb)
+        npsidim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
+        dimtot = dimtot + npsidim
+     end do
+  else if (orbs%norbp == 0) then
+       dimtot = orbs%npsidim
+  end if
+  Lzd%Lpsidimtot = dimtot
+
+
+  i_all=-product(shape(Localnorb))*kind(Localnorb)
+  deallocate(Localnorb,stat=i_stat)
+  call memocc(i_stat,i_all,'Localnorb',subname)
 
 !  i_all = -product(shape(orbscToAtom))*kind(orbscToAtom)
 !  deallocate(orbscToAtom,stat=i_stat)
@@ -152,139 +344,6 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, orbse)
 
 end subroutine assignToLocreg2
 
-subroutine determine_Lorbs(iproc,nproc,at,Lzd,norbsc_arr,nspin)
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  integer, intent(in) :: nspin
-  type(atoms_data), intent(in) :: at
-  type(linear_zone_descriptors), intent(inout) :: Lzd
-  integer, dimension(at%natsc+1,nspin), intent(in) :: norbsc_arr
-  ! local variables
-  integer :: ilr
-  integer :: Lnorb
-  integer :: nspin_ig
-  integer :: noncoll
-  integer :: npsidim
-  integer :: dimtot
-  integer :: i_stat,i_all,ierr
-  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  integer, dimension(lmax+1) :: nmoments
-  integer, dimension(Lzd%nlr) :: norbsc
-  integer, dimension(:), allocatable :: Localnorb
-  integer, dimension(:,:),allocatable :: iwl
-  real(gp), dimension(noccmax,lmax) :: occup              !dummy variable
-  character(len=*), parameter :: subname='determine_Lorbs'
-
-!spin for orbitals
-  if (nspin == 4) then
-     nspin_ig=1
-  else
-     nspin_ig=nspin
-  end if
-
-! in the non-collinear case the number of orbitals double
-! nspin_ig*noncoll is always <= 2
-  if (Lzd%orbs%nspinor == 4) then
-     noncoll=2
-  else
-     noncoll=1
-  end if
-
-  ! allocate statements
-  allocate(Localnorb(Lzd%nlr+ndebug),stat=i_stat)
-  call memocc(i_stat,Localnorb,'Localnorb',subname)
-  allocate(Lzd%Lorbs(Lzd%nlr+ndebug),stat=i_stat) !cannot call memocc because they are types
-                                                  ! it seems to associate all the pointers.
-
-! Calculate the dimension of the total wavefunction
-! NOTES: WORKS ONLY BECAUSE Llr coincides with the atoms !!
-! NOTES: K-Points??
-  dimtot = 0
-  do ilr = 1, Lzd%nlr
-     call count_atomic_shells(lmax,noccmax,nelecmax,nspin_ig,Lzd%orbs%nspinor,at%aocc(1,ilr),occup,nmoments)
-     Lnorb=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
-     Localnorb(ilr) = Lnorb
-     npsidim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lnorb*Lzd%orbs%nspinor*nspin_ig*noncoll
-     dimtot = dimtot + npsidim
-     Lzd%Lorbs(ilr)%npsidim = npsidim
-  end do
-
-! Right total dimension of the wavefunctions
-  Lzd%Lpsidimtot = dimtot
-
-  allocate(iwl(Lzd%orbs%norbp,nproc),stat=i_stat)
-  call memocc(i_stat,iwl,'iwl',subname)
-  call razero(Lzd%orbs%norbp*nproc,iwl)
-
-! Determine inwhichlocreg (removed semicore treatement... to DEBUG)
-  call assignToLocreg(iproc,nproc,at%nat,at%natsc,Lzd%nlr,noncoll,nspin_ig,Localnorb,Lzd%orbs,norbsc_arr,at%iasctype,norbsc,iwl)
-
-! DEBUG for inWhichLocreg(ilr)
-!  print *,'at%iasctype:',at%iasctype,Lzd%orbs%norb
-!  do ilr=1,Lzd%nlr
-!    print *,'ilr,localnorb:',ilr,Localnorb(ilr)
-!  end do
-!  do ilr=1,Lzd%orbs%norbp
-!    write(*,*) 'iorb, iwl', ilr, Lzd%orbs%inWhichLocreg(ilr),Lzd%orbs%occup(ilr)
-!  end do
-!  print *,'Global region:',iproc
-!  print *,'norb,norbp,norbu,norbd,nspin,nspinor:',Lzd%orbs%norb,Lzd%orbs%norbp,Lzd%orbs%norbu,&
-!             Lzd%orbs%norbd,Lzd%orbs%nspin,Lzd%orbs%nspinor
-!  print *,'isorb,nkpts,nkptsp,iskpts:',Lzd%orbs%isorb,Lzd%orbs%nkpts,Lzd%orbs%nkptsp,Lzd%orbs%iskpts
-!  print *,'norb_par',Lzd%orbs%norb_par
-!  print *,'iokpt',Lzd%orbs%iokpt
-!  print *,'ikptproc',Lzd%orbs%ikptproc
-!  print *,'isorb_par',Lzd%orbs%isorb_par
-!  print *,'occup',Lzd%orbs%occup
-!  print *,'spinsgn',Lzd%orbs%spinsgn
-!  print *,'kwgts',Lzd%orbs%kwgts
-!  print *,'kpts',Lzd%orbs%kpts
-! END DEBUG
-
-  do ilr=1,Lzd%nlr
-     ! Set our new variable
-     Lzd%Lorbs(ilr)%norbsc = norbsc(ilr)
-     ! sets almost all of Lorbs(ilr) components
-     call linear_orbitals_descriptors(ilr,Lzd%nlr,iwl,iproc,nproc,Lzd%orbs,nspin_ig*noncoll*Localnorb(ilr),noncoll*Localnorb(ilr),&
-        (nspin_ig-1)*noncoll*Localnorb(ilr),nspin_ig,Lzd%orbs%nspinor,Lzd%orbs%nkpts,Lzd%orbs%kpts,&
-        Lzd%orbs%kwgts,Lzd%Lorbs(ilr))
-stop
-!DEBUG
-!    print *,'ilr:',ilr,iproc
-!    print *,'norb,norbp,norbu,norbd,nspin,nspinor:',Lzd%Lorbs(ilr)%norb,Lzd%Lorbs(ilr)%norbp,Lzd%Lorbs(ilr)%norbu,&
-!             Lzd%Lorbs(ilr)%norbd,Lzd%Lorbs(ilr)%nspin,Lzd%Lorbs(ilr)%nspinor
-!    print *,'isorb,nkpts,nkptsp,iskpts:',Lzd%Lorbs(ilr)%isorb,Lzd%Lorbs(ilr)%nkpts,Lzd%Lorbs(ilr)%nkptsp,Lzd%Lorbs(ilr)%iskpts
-!    print *,'norb_par',Lzd%Lorbs(ilr)%norb_par
-!    print *,'iokpt',Lzd%Lorbs(ilr)%iokpt
-!    print *,'ikptproc',Lzd%Lorbs(ilr)%ikptproc
-!    print *,'isorb_par',Lzd%Lorbs(ilr)%isorb_par
-!    print *,'occup',Lzd%Lorbs(ilr)%occup
-!    print *,'spinsgn',Lzd%Lorbs(ilr)%spinsgn
-!    print *,'kwgts',Lzd%Lorbs(ilr)%kwgts
-!    print *,'kpts',Lzd%Lorbs(ilr)%kpts
-     if (iproc ==0) then
-        write(*,'(a,i0)')'For locreg:',ilr
-        write(*,'(1x,a,i0,a)')'Distributing ',nspin_ig*noncoll*Localnorb(ilr),' Atomic Input Orbitals'
-        if (norbsc(ilr) /=0)   write(*,'(1x,a,i0,a)')'  of which ',norbsc(ilr),&
-             ' are semicore orbitals'
-     end if
-!END DEBUG
-
-  end do
-
-    !Deallocations
-    i_all=-product(shape(Localnorb))*kind(Localnorb)
-    deallocate(Localnorb,stat=i_stat)
-    call memocc(i_stat,i_all,'Localnorb',subname)
-    i_all=-product(shape(iwl))*kind(iwl)
-    deallocate(iwl,stat=i_stat)
-    call memocc(i_stat,i_all,'iwl',subname)
-
-
-end subroutine determine_Lorbs
-
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
 subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
@@ -306,8 +365,7 @@ subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,
   integer, dimension(:), allocatable :: mykpts
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
-!  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
-  allocate(orbs%norb_par(0:1+ndebug),stat=i_stat)
+  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
   !assign the value of the k-points

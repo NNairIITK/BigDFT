@@ -392,7 +392,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
         end do
         norbsc_arr(iatsc,1)=iorbsc_count
         norbsc=norbsc+iorbsc_count
-        !if (iproc == 0) write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
+        !write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
      end if
 
   end do

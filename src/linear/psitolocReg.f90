@@ -278,8 +278,8 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
              do i1=Llr%nsi1+1,Llr%d%n1i+Llr%nsi1
                  ! indSmall is the index in the local localization region
                  indSmall=indSmall+1
-                 if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                  !This initializes the buffers of locreg to zeros if outside the simulation box.
-                     i3 < Glr%d%n3i .and. i2 < Glr%d%n2i .and. i1 < Glr%d%n1i) then           !Should use periodic image instead... MUST FIX THIS.
+                 if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                        !This initializes the buffers of locreg to zeros if outside the simulation box.
+                     i3 < Glr%d%n3i+1 .and. i2 < Glr%d%n2i+1 .and. i1 < Glr%d%n1i+1) then           !Should use periodic image instead... MUST FIX THIS.
                     ! indLarge is the index in the global localization region. 
                     indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
                     Lrho(indSmall)=rho(indLarge+indSpin)
@@ -350,7 +350,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
   lincrement = Llr%wfd%nvctr_c + 7*Llr%wfd%nvctr_f
   Gincrement = Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
   icheck = 0
-  spinshift = Gdim / nspin
+  spinshift = Gdim / nspin                  !MUST CHANGE THIS
  
 ! Get the keymask: shift for every segment of Llr (with respect to Glr)
   allocate(keymask(2,nseg),stat=i_stat)
@@ -386,13 +386,16 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
         do ix = 0,length
            icheck = icheck + 1
            ! loop over the orbitals
-           do iorbs=1,norb*nspinor
-              do ispin=1,nspin
-                 Gindex = Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+shift+spinshift*(ispin-1)
-                 Lindex = icheck+lincrement*(iorbs-1)+lincrement*norb*(ispin-1)
+!           do iorbs=1,norb*nspinor
+!              do ispin=1,nspin
+!                 Gindex = Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+shift+spinshift*(ispin-1)
+!                 Lindex = icheck+lincrement*(iorbs-1)+lincrement*norb*(ispin-1)
+                 Gindex = Glr%wfd%keyv(isegG)+offset+ix+shift!+spinshift*(ispin-1)
+                 Lindex = icheck!+lincrement*norb*(ispin-1)
+
                  psi(Gindex) = psi(Gindex) + lpsi(Lindex)
-              end do
-           end do
+!              end do
+!           end do
         end do
      end do
   end do
@@ -436,14 +439,16 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
         do ix = 0,length
            icheck = icheck + 1
            do igrid=0,6
-              do iorbs=1,norb*nspinor
-                do ispin = 1, nspin
-                   Gindex = Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc+&
-                            shift + spinshift*(ispin-1)
-                   Lindex = start+icheck+lincrement*(iorbs-1)+igrid*lfinc + lincrement*norb*(ispin-1) 
+!              do iorbs=1,norb*nspinor
+!                do ispin = 1, nspin
+!                   Gindex = Gstart+Glr%wfd%keyv(isegG)+offset+ix+Gincrement*(iorbs-1)+igrid*Gfinc+&
+!                            shift + spinshift*(ispin-1)
+!                   Lindex = start+icheck+lincrement*(iorbs-1)+igrid*lfinc + lincrement*norb*(ispin-1) 
+                   Gindex=Gstart+Glr%wfd%keyv(isegG)+offset+ix+igrid*Gfinc+shift!+spinshift*(ispin-1)
+                   Lindex=start+icheck+igrid*lfinc !+ lincrement*norb*(ispin-1)
                    psi(Gindex) = psi(Gindex) + lpsi(Lindex)
-                end do
-              end do
+!                end do
+!              end do
            end do
         end do
      end do
