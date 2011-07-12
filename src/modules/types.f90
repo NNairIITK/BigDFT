@@ -433,6 +433,21 @@ module module_types
       type(locreg_descriptors),dimension(:,:),pointer:: olr
   end type overlapParameters
 
+
+  type,public:: matrixLocalizationRegion
+      integer:: norbinlr
+      integer,dimension(:),pointer:: indexInGlobal
+  end type matrixLocalizationRegion
+
+  type,public:: matrixMinimization
+    type(matrixLocalizationRegion),dimension(:),pointer:: mlr
+    integer:: norbmax ! maximal matrix size handled by a given process
+    integer:: nlrp ! number of localization regions handled by a given process
+    integer,dimension(:),pointer:: inWhichLocregExtracted
+    integer,dimension(:),pointer:: indexInLocreg
+  end type matrixMinimization
+
+
 !!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: linear_zone_descriptors
     integer :: nlr                                              !> Number of localization regions 
@@ -442,6 +457,7 @@ module module_types
     type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
     type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
+    type(matrixMinimization):: matmin
   end type
 
 
@@ -462,6 +478,7 @@ end type largeBasis
   type,public:: inguessParameters
     integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
     integer,dimension(:),pointer:: norb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
+    type(matrixLocalizationRegion),dimension(:),pointer:: mlr
   end type inguessParameters
 
   type,public:: localizedDIISParameters

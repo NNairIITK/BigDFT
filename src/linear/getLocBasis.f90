@@ -161,8 +161,9 @@ integer:: ist, ierr
       call dcopy(lin%lzd%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%lzd%orbs%npsidim, lin%lphiRestart, lphi)
 
-      ! Normalize the derivative basis functions
-      ! Normalize all to keep it easy
+      ! Normalize the derivative basis functions.
+      ! Normalize all to keep it easy.
+      ! Do not orthogonalize them, since the 'normal' phis are not exactly orthogonal either.
       ist=1
       do iorb=1,lin%lb%lzd%orbs%norbp
           ilr=lin%lb%onWhichAtom(iorb)
@@ -173,8 +174,10 @@ integer:: ist, ierr
       end do
   end if
 
-  ! Get the overlap matrix.. This should be adapted for the derivative basis functions.
-  if(.not.updatePhi) then
+  ! Get the overlap matrix. If we updated the derivative basis functions, the overlap matrix has been
+  ! calculated in that subroutine. If we use the derivative basis functions, we have to recalculate
+  ! it anyway.
+  if(.not.updatePhi .and. .not.lin%useDerivativeBasisFunctions) then
       call getOverlapMatrix(iproc, nproc, lin, input, lphi, ovrlp)
   end if
 
@@ -241,13 +244,7 @@ integer:: ist, ierr
       ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
       ! are still needed later.
       call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      !if(.not.updatePhi) then
-      !    ! Because at the moment the phis are orthogonal. Change later.
-      !    call diagonalizeHamiltonian(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), eval)
-      !else
-          call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
-      !end if
-      !if(.not.updatePhi) call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
+      call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
   end if
@@ -263,12 +260,8 @@ integer:: ist, ierr
   end do
   ! If closed shell multiply by two
   if(input%nspin==1) ebs=2.d0*ebs
-!!write(*,*) '>>> ebs', ebs
-
-!!call mpi_barrier(mpi_comm_world, ierr)
-!!stop
-
   
+
   ind1=1
   ind2=1
   phi=0.d0
@@ -304,9 +297,6 @@ integer:: ist, ierr
       call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
       call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
   end if
-  !!do iall=1,lin%orbs%npsidim
-  !!    write(110+iproc,*) iall, phi(iall)
-  !!end do
 
 
   !! Improve the coefficients -- EXPERIMENTAL

@@ -2769,6 +2769,31 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine getMatrixElements2
 
 
+     subroutine determineLocalizationRegions(iproc, nproc, nlr, norb, at, onWhichAtomALl, locrad, rxyz, lzd, mlr)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, nlr, norb
+       type(atoms_data),intent(in):: at
+       integer,dimension(norb),intent(in):: onWhichAtomAll
+       real(8),dimension(at%nat),intent(in):: locrad
+       real(8),dimension(3,at%nat),intent(in):: rxyz
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
+     end subroutine determineLocalizationRegions
+
+
+     subroutine extractMatrix(iproc, nproc, orbs, orbstot, onWhichAtomPhi, onWhichMPI, nmat, ham, matmin, hamextract)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, nmat
+       type(orbitals_data),intent(in):: orbs, orbstot
+       integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi, onWhichMPI
+       real(8),dimension(orbstot%norb,orbstot%norb,nmat),intent(in):: ham
+       type(matrixMinimization),intent(inout):: matmin
+       real(8),dimension(:,:,:),pointer,intent(out):: hamextract
+     end subroutine extractMatrix
 
 
 
