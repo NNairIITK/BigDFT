@@ -14,6 +14,7 @@ module module_xc
   use xc_f90_types_m
   use libxc_funcs_m
   use xc_f90_lib_m
+  use interfaces_56_xc
 
   implicit none
 
@@ -30,7 +31,9 @@ module module_xc
 
   private
   public :: xc_init, &
+       &    xc_dump, &
        &    xc_init_rho, &
+       &    xc_clean_rho, &
        &    xc_getvxc, &
        &    xc_isgga, &
        &    xc_exctXfac, &
@@ -39,7 +42,7 @@ module module_xc
 contains
 
   !>  Initialize the desired XC functional, from LibXC.
-  subroutine xc_init(iproc,ixc,nspden)
+  subroutine xc_init(ixc,nspden)
 
     implicit none
 
@@ -47,7 +50,6 @@ contains
     !scalars
     integer, intent(in) :: nspden
     integer, intent(in) :: ixc
-    integer, intent(in) :: iproc
 
     !Local variables-------------------------------
     !scalars
@@ -80,7 +82,7 @@ contains
           case (XC_FAMILY_LDA, XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
              call xc_f90_func_init(funcs(i)%conf,funcs(i)%info,funcs(i)%id,nspden)
           case default
-             if (iproc == 0) write(*,*) "Error: unsupported functional, change ixc."
+             write(*,*) "Error: unsupported functional, change ixc."
              call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
           end select
 
@@ -88,7 +90,7 @@ contains
           ! ABINIT case
 
           ! Get XC functional family
-          if (-funcs(i)%id >= 1 .and. -funcs(i)%id < 11) then
+          if ((-funcs(i)%id >= 1 .and. -funcs(i)%id < 11) .or. -funcs(i)%id == 24) then
              funcs(i)%family = XC_FAMILY_LDA
           else if (-funcs(i)%id >= 11 .and. -funcs(i)%id < 18) then
              funcs(i)%family = XC_FAMILY_GGA
@@ -97,42 +99,65 @@ contains
           else if (-funcs(i)%id >= 31 .and. -funcs(i)%id < 35) then
              funcs(i)%family = XC_FAMILY_LDA
           else
-             if (iproc == 0) write(*,*) "Error: unsupported functional, change ixc."
+             write(*,*) "Error: unsupported functional, change ixc."
              call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
           end if
        end if
     end do
+  end subroutine xc_init
+
+  !>  Dump XC info on screen.
+  subroutine xc_dump()
+    implicit none
+
+    integer :: ii, jj
+    type(xc_f90_pointer_t) :: str
+    character(len=500) :: message, message2
 
     ! Dump functional information
-    if (iproc == 0) then
-       if (funcs(1)%id < 0) then
-          write(*,"(1x,A41,1x,A1)") "XC functional provided by ABINIT.", "|"
-       else if (minval(funcs(:)%id) > 0) then
+    if (funcs(1)%id < 0) then
+       write(*,"(1x,A41,1x,A1)") "XC functional provided by ABINIT.", "|"
+    else if (any(funcs(:)%id > 0)) then
+       if (funcs(1)%id > 0) then
           call xc_f90_info_name(funcs(1)%info,message)
-          call xc_f90_info_name(funcs(2)%info,message2)
-          write(*,"(1x,a41,1x,A1,1x,A40)") trim(message), "|", trim(message2)
-          ii = 0
-          jj = 0
-          call xc_f90_info_refs(funcs(1)%info,ii,str,message)
-          call xc_f90_info_refs(funcs(2)%info,jj,str,message2)
-          do while (ii >= 0 .or. jj >= 0)
-             if (ii >= 0) then
-                write(*,"(1x,a41)", advance = "NO") trim(message)
-                call xc_f90_info_refs(funcs(1)%info,ii,str,message)
-             else
-                write(*,"(1x,a41)", advance = "NO") " "
-             end if
-             write(*, "(1x,A1,1x)", advance = "NO") "|"
-             if (jj >= 0) then
-                write(*,"(a40)") trim(message2)
-                call xc_f90_info_refs(funcs(2)%info,jj,str,message2)
-             else
-                write(*,"(a40)") " "
-             end if
-          end do
+       else
+          write(message, "(A)") ""
        end if
+       if (funcs(2)%id > 0) then
+          call xc_f90_info_name(funcs(2)%info,message2)
+       else
+          write(message2, "(A)") ""
+       end if
+       write(*,"(1x,a41,1x,A1,1x,A40)") trim(message), "|", trim(message2)
+       ii = 0
+       jj = 0
+       if (funcs(1)%id > 0) then
+          call xc_f90_info_refs(funcs(1)%info,ii,str,message)
+       else
+          ii = -1
+       end if
+       if (funcs(2)%id > 0) then
+          call xc_f90_info_refs(funcs(2)%info,jj,str,message2)
+       else
+          jj = -1
+       end if
+       do while (ii >= 0 .or. jj >= 0)
+          if (ii >= 0) then
+             write(*,"(1x,a41)", advance = "NO") trim(message)
+             call xc_f90_info_refs(funcs(1)%info,ii,str,message)
+          else
+             write(*,"(1x,a41)", advance = "NO") " "
+          end if
+          write(*, "(1x,A1,1x)", advance = "NO") "|"
+          if (jj >= 0) then
+             write(*,"(a40)") trim(message2)
+             call xc_f90_info_refs(funcs(2)%info,jj,str,message2)
+          else
+             write(*,"(a40)") " "
+          end if
+       end do
     end if
-  end subroutine xc_init
+  end subroutine xc_dump
 
   !>  End usage of LibXC functional. Call LibXC end function,
   !!  and deallocate module contents.
@@ -179,17 +204,38 @@ contains
     integer :: n,nproc
     real(dp) :: rho(n)
 
-     if (any(funcs%id < 0)) then
-        call tenminustwenty(n,rho,nproc)
-     else
-        call razero(n,rho)
-     end if
-   end subroutine xc_init_rho
+    if (any(funcs%id < 0)) then
+       call tenminustwenty(n,rho,nproc)
+    else
+       call razero(n,rho)
+    end if
+  end subroutine xc_init_rho
+
+  subroutine xc_clean_rho(n, rho, nproc)
+    implicit none
+    ! Arguments
+    integer :: n,nproc
+    real(dp) :: rho(n)
+
+    integer :: i
+
+    if (any(funcs%id < 0)) then
+       do i = 1, n, 1
+          if (rho(i) < 1d-20) then
+             rho(i) = 1d-20 / nproc
+          end if
+       end do
+    else
+       do i = 1, n, 1
+          if (rho(i) < 0.) then
+             rho(i) = 0.
+          end if
+       end do
+    end if
+  end subroutine xc_clean_rho
 
   !>  Return XC potential and energy, from input density (even gradient etc...)
   subroutine xc_getvxc(npts,exc,nspden,rho,vxc,grho2,vxcgr,dvxci)
-    use interfaces_56_xc
-
     implicit none
 
     !Arguments ------------------------------------

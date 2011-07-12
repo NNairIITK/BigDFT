@@ -57,7 +57,7 @@ types.o: base.o
 defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
 input.o: base.o
-libxc.o: base.o
+xc.o: base.o
 
 $(mod_bigdft) : base.o types.o interfaces.o
 

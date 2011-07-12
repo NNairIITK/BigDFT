@@ -306,7 +306,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           in%inputPsiId
      call print_dft_parameters(in,atoms)
   end if
-  call xc_init(iproc, ixc, nspin)
+  call xc_init(ixc, nspin)
+  if (iproc == 0) call xc_dump()
   if (nproc > 1) then
      call timing(iproc,'parallel     ','IN')
   else

@@ -723,6 +723,7 @@ tests/OpenCL/Makefile
 tests/CUDA/Makefile
 tests/ETSF_IO/Makefile
 tests/tutorials/Makefile
+tests/xc/Makefile
 ])
 
 # Call libXC ./configure script recursively.
