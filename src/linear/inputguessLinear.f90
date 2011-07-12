@@ -2673,20 +2673,71 @@ do jorb=1,orbs%norb
     end if
 end do
 
-do jlr=1,nmat
-    do ind=1,orbstot%norb
-        write(200+10*iproc+jlr,'(100es9.1)') (ham(ind,jnd,jlr), jnd=1,orbstot%norb)
-    end do
-end do
-
-do jlr=1,matmin%nlrp
-    jjlr=matmin%indexInLocreg(jlr)
-    do ind=1,matmin%mlr(jjlr)%norbinlr
-        write(100+10*iproc+jlr,'(100es9.1)') (hamextract(ind,jnd,jlr), jnd=1,matmin%mlr(jjlr)%norbinlr)
-    end do
-end do
+!!do jlr=1,nmat
+!!    do ind=1,orbstot%norb
+!!        write(200+10*iproc+jlr,'(100es9.1)') (ham(ind,jnd,jlr), jnd=1,orbstot%norb)
+!!    end do
+!!end do
+!!
+!!do jlr=1,matmin%nlrp
+!!    jjlr=matmin%indexInLocreg(jlr)
+!!    do ind=1,matmin%mlr(jjlr)%norbinlr
+!!        write(100+10*iproc+jlr,'(100es9.1)') (hamextract(ind,jnd,jlr), jnd=1,matmin%mlr(jjlr)%norbinlr)
+!!    end do
+!!end do
 
 
 
 
 end subroutine extractMatrix
+
+
+
+
+subroutine vectorGlobalToLocal(norbtot, mlr, vglobal, vlocal)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: norbtot
+type(matrixLocalizationRegion),intent(in):: mlr
+real(8),dimension(norbtot),intent(in):: vglobal
+real(8),dimension(mlr%norbinlr),intent(out):: vlocal
+
+! Local variables
+integer:: ilocal, iglobal
+
+do ilocal=1,mlr%norbinlr
+    iglobal=mlr%indexInGlobal(ilocal)
+    vlocal(ilocal)=vglobal(iglobal)
+end do
+
+
+end subroutine vectorGlobalToLocal
+
+
+
+
+subroutine vectorLocalToGlobal(norbtot, mlr, vglobal, vlocal)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: norbtot
+type(matrixLocalizationRegion),intent(in):: mlr
+real(8),dimension(mlr%norbinlr),intent(in):: vlocal
+real(8),dimension(norbtot),intent(out):: vglobal
+
+! Local variables
+integer:: ilocal, iglobal
+
+vglobal=0.d0
+do ilocal=1,mlr%norbinlr
+    iglobal=mlr%indexInGlobal(ilocal)
+    vglobal(iglobal)=vlocal(ilocal)
+end do
+
+
+end subroutine vectorLocalToGlobal
