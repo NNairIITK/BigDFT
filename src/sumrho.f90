@@ -498,7 +498,6 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   !case without bounds
   i1s=1
   i1e=n1i
-  
   loop_xc_overlap: do jproc=0,nproc-1
      !case for REDUCE_SCATTER approach, not used for GGA since it enlarges the 
      !communication buffer

@@ -112,7 +112,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
      !for each of the orbitals treated by the processor build the partial densities
      !call system_clock(ncount2,ncount_rate,ncount_max)
-     call local_partial_densityLinear(iproc,nproc,Lzd,rsflag,nscatterarr,nrhotot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,&
+     call local_partial_densityLinear(iproc,nproc,ixc,Lzd,rsflag,nscatterarr,nrhotot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,&
           rho_p,hxh,hyh,hzh,nspin,psi)
      !call system_clock(ncount3,ncount_rate,ncount_max)
   end if
@@ -273,7 +273,7 @@ END SUBROUTINE sumrhoLinear
 
 !>   Here starts the routine for building partial density inside the localisation region
 !!   This routine should be treated as a building-block for the linear scaling code
-subroutine local_partial_densityLinear(iproc,nproc,Lzd,rsflag,nscatterarr,&
+subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,rsflag,nscatterarr,&
      nrhotot,nrho,rho,hxh,hyh,hzh,nspin,psi)
   use module_base
   use module_types
@@ -281,7 +281,7 @@ subroutine local_partial_densityLinear(iproc,nproc,Lzd,rsflag,nscatterarr,&
   use libxc_functionals
   implicit none
   logical, intent(in) :: rsflag
-  integer, intent(in) :: iproc,nproc,nrho
+  integer, intent(in) :: iproc,nproc,nrho,ixc
   integer,intent(inout):: nrhotot
   integer, intent(in) :: nspin
   real(dp),dimension(max(nrho,1),nspin),intent(out):: rho
@@ -299,8 +299,10 @@ subroutine local_partial_densityLinear(iproc,nproc,Lzd,rsflag,nscatterarr,&
   real(wp), dimension(:,:), allocatable :: psir
   real(dp), dimension(:),allocatable :: rho_p
   real(8):: dnrm2
+  integer, dimension(:,:), allocatable :: Lnscatterarr,Lngatherarr
+  integer :: n3d,n3p,n3pi,i3xcsh,i3tmp
 
-  !components of wavefunction in real space which must be considered simultaneously
+ !components of wavefunction in real space which must be considered simultaneously
   !and components of the charge density
   if (Lzd%orbs%nspinor ==4) then
      npsir=4
@@ -326,6 +328,13 @@ subroutine local_partial_densityLinear(iproc,nproc,Lzd,rsflag,nscatterarr,&
   else
       call tenminustwenty(max(nrho,1)*nspin,rho,nproc)
   end if
+  
+ !allocate Lnscatterarr
+  allocate(Lnscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
+  call memocc(i_stat,Lnscatterarr,'Lnscatterarr',subname)
+  allocate(Lngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,Lngatherarr,'Lngatherarr',subname)
+
 
 !  locRegLoop: do ilr=1,Lzd%nlr
 !      call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
@@ -344,6 +353,10 @@ subroutine local_partial_densityLinear(iproc,nproc,Lzd,rsflag,nscatterarr,&
 
          iorb = ii + Lzd%orbs%isorb
          ilr = Lzd%orbs%inwhichLocreg(iorb)
+
+        ! create descriptors for local potential (for Lnscatterarr)
+         call createDensPotDescriptors(iproc,nproc,Lzd%Llr(ilr)%geocode,'D',Lzd%Llr(ilr)%d%n1i,&
+              Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,ixc,n3d,n3p,n3pi,i3xcsh,i3tmp,Lnscatterarr,Lngatherarr) 
          
          call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
          allocate(rho_p(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn), stat=i_stat) !must redefine the size of rho_p?
@@ -381,19 +394,19 @@ subroutine local_partial_densityLinear(iproc,nproc,Lzd,rsflag,nscatterarr,&
                case('F')
                   call partial_density_linear(rsflag,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,&
                        npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
-                       hfac,nscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
+                       hfac,Lnscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
 
                case('P')
 
                   call partial_density_linear(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
                        npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
-                       hfac,nscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
+                       hfac,Lnscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
 
                case('S')
 
                   call partial_density_linear(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
                        npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
-                       hfac,nscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
+                       hfac,Lnscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
 
                end select
 
@@ -436,7 +449,14 @@ subroutine local_partial_densityLinear(iproc,nproc,Lzd,rsflag,nscatterarr,&
   !i_all=-product(shape(psir))*kind(psir)
   !deallocate(psir,stat=i_stat)
   !call memocc(i_stat,i_all,'psir',subname)
-  
+ 
+  i_all=-product(shape(Lnscatterarr))*kind(Lnscatterarr)
+  deallocate(Lnscatterarr,stat=i_stat)
+  call memocc(i_stat,i_all,'Lnscatterarr',subname)
+  i_all=-product(shape(Lngatherarr))*kind(Lngatherarr)
+  deallocate(Lngatherarr,stat=i_stat)
+  call memocc(i_stat,i_all,'Lngatherarr',subname)
+ 
 
 END SUBROUTINE local_partial_densityLinear
 
