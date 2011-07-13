@@ -426,7 +426,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   hy=in%hy
   hz=in%hz
 
-  call xc_init(iproc, ixc, nspin)
+  if (ixc < 0) then
+     call xc_init(ixc, XC_MIXED, nspin)
+  else
+     call xc_init(ixc, XC_ABINIT, nspin)
+  end if
 
   !character string for quieting the Poisson solver
   if (verbose >1) then

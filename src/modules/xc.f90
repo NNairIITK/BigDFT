@@ -18,16 +18,26 @@ module module_xc
 
   implicit none
 
+  integer, public, parameter :: XC_ABINIT = 1
+  integer, public, parameter :: XC_LIBXC  = 2
+  integer, public, parameter :: XC_MIXED  = 3
+
   type libxc_functional
      private
-     integer         :: family ! LDA, GGA, etc.
-     integer         :: id     ! identifier
-
      type(xc_f90_pointer_t) :: conf ! the pointer used to call the library
      type(xc_f90_pointer_t) :: info ! information about the functional
   end type libxc_functional
 
-  type(libxc_functional) :: funcs(2)
+  type xc_info
+     private
+     integer :: kind       ! ABINIT or LibXC
+     integer :: family(2)  ! LDA, GGA, etc.
+     integer :: id(2)      ! identifier
+
+     type(libxc_functional) :: funcs(2)
+  end type xc_info
+
+  type(xc_info) :: xc
 
   private
   public :: xc_init, &
@@ -42,68 +52,66 @@ module module_xc
 contains
 
   !>  Initialize the desired XC functional, from LibXC.
-  subroutine xc_init(ixc,nspden)
+  subroutine xc_init(ixc,kind,nspden)
 
     implicit none
 
     !Arguments ------------------------------------
     !scalars
     integer, intent(in) :: nspden
+    integer, intent(in) :: kind
     integer, intent(in) :: ixc
 
     !Local variables-------------------------------
     !scalars
-    integer :: i, ii, ierr, jj
-    type(xc_f90_pointer_t) :: str
-    character(len=500) :: message, message2
+    integer :: i, ierr
 
     ! *************************************************************************
 
-    if (ixc < 0) then
-       funcs(1)%id = -ixc/1000
-       funcs(2)%id = -ixc - funcs(1)%id*1000
-    else if (ixc > 0) then
+    xc%kind = kind
+    if (kind == XC_LIBXC .or. kind == XC_MIXED) then
+       xc%id(2) = abs(ixc) / 1000
+       xc%id(1) = abs(ixc) - xc%id(2) * 1000
+    else if (kind == XC_ABINIT) then
        ! ABINIT functional.
-       funcs(1)%id = -ixc
-       funcs(2)%id = 0
-    else
-       funcs(1)%id = 0
-       funcs(2)%id = 0
+       xc%id(1) = abs(ixc)
+       xc%id(2) = 0
     end if
 
-    do i = 1, 2
-       funcs(i)%family = 0
-       if (funcs(i)%id > 0) then
-          ! LibXC case.
+    xc%family = 0
+    if (xc%kind == XC_LIBXC .or. xc%kind == XC_MIXED) then
+       ! LibXC case.
 
+       do i = 1, 2
+          if (xc%id(i) == 0) cycle
           ! Get XC functional family
-          funcs(i)%family = xc_f90_family_from_id(funcs(i)%id)
-          select case (funcs(i)%family)
+          xc%family(i) = xc_f90_family_from_id(xc%id(i))
+          select case (xc%family(i))
           case (XC_FAMILY_LDA, XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
-             call xc_f90_func_init(funcs(i)%conf,funcs(i)%info,funcs(i)%id,nspden)
+             call xc_f90_func_init(xc%funcs(i)%conf,xc%funcs(i)%info,xc%id(i),nspden)
           case default
              write(*,*) "Error: unsupported functional, change ixc."
              call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
           end select
+       end do
 
-       else if (funcs(i)%id < 0) then
-          ! ABINIT case
+    else if (xc%kind == XC_ABINIT) then
+       ! ABINIT case
 
-          ! Get XC functional family
-          if ((-funcs(i)%id >= 1 .and. -funcs(i)%id < 11) .or. -funcs(i)%id == 24) then
-             funcs(i)%family = XC_FAMILY_LDA
-          else if (-funcs(i)%id >= 11 .and. -funcs(i)%id < 18) then
-             funcs(i)%family = XC_FAMILY_GGA
-          else if (-funcs(i)%id >= 23 .and. -funcs(i)%id < 28) then
-             funcs(i)%family = XC_FAMILY_GGA
-          else if (-funcs(i)%id >= 31 .and. -funcs(i)%id < 35) then
-             funcs(i)%family = XC_FAMILY_LDA
-          else
-             write(*,*) "Error: unsupported functional, change ixc."
-             call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
-          end if
+       ! Get XC functional family
+       if ((xc%id(1) >= 1 .and. xc%id(1) < 11) .or. xc%id(1) == 24) then
+          xc%family(1) = XC_FAMILY_LDA
+       else if (xc%id(1) >= 11 .and. xc%id(1) < 18) then
+          xc%family(1) = XC_FAMILY_GGA
+       else if (xc%id(1) >= 23 .and. xc%id(1) < 28) then
+          xc%family(1) = XC_FAMILY_GGA
+       else if (xc%id(1) >= 31 .and. xc%id(1) < 35) then
+          xc%family(1) = XC_FAMILY_LDA
+       else
+          write(*,*) "Error: unsupported functional, change ixc."
+          call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
        end if
-    end do
+    end if
   end subroutine xc_init
 
   !>  Dump XC info on screen.
@@ -115,43 +123,43 @@ contains
     character(len=500) :: message, message2
 
     ! Dump functional information
-    if (funcs(1)%id < 0) then
+    if (xc%kind == XC_ABINIT) then
        write(*,"(1x,A41,1x,A1)") "XC functional provided by ABINIT.", "|"
-    else if (any(funcs(:)%id > 0)) then
-       if (funcs(1)%id > 0) then
-          call xc_f90_info_name(funcs(1)%info,message)
+    else
+       if (xc%id(1) > 0) then
+          call xc_f90_info_name(xc%funcs(1)%info,message)
        else
           write(message, "(A)") ""
        end if
-       if (funcs(2)%id > 0) then
-          call xc_f90_info_name(funcs(2)%info,message2)
+       if (xc%id(2) > 0) then
+          call xc_f90_info_name(xc%funcs(2)%info,message2)
        else
           write(message2, "(A)") ""
        end if
        write(*,"(1x,a41,1x,A1,1x,A40)") trim(message), "|", trim(message2)
        ii = 0
        jj = 0
-       if (funcs(1)%id > 0) then
-          call xc_f90_info_refs(funcs(1)%info,ii,str,message)
+       if (xc%id(1) > 0) then
+          call xc_f90_info_refs(xc%funcs(1)%info,ii,str,message)
        else
           ii = -1
        end if
-       if (funcs(2)%id > 0) then
-          call xc_f90_info_refs(funcs(2)%info,jj,str,message2)
+       if (xc%id(2) > 0) then
+          call xc_f90_info_refs(xc%funcs(2)%info,jj,str,message2)
        else
           jj = -1
        end if
        do while (ii >= 0 .or. jj >= 0)
           if (ii >= 0) then
              write(*,"(1x,a41)", advance = "NO") trim(message)
-             call xc_f90_info_refs(funcs(1)%info,ii,str,message)
+             call xc_f90_info_refs(xc%funcs(1)%info,ii,str,message)
           else
              write(*,"(1x,a41)", advance = "NO") " "
           end if
           write(*, "(1x,A1,1x)", advance = "NO") "|"
           if (jj >= 0) then
              write(*,"(a40)") trim(message2)
-             call xc_f90_info_refs(funcs(2)%info,jj,str,message2)
+             call xc_f90_info_refs(xc%funcs(2)%info,jj,str,message2)
           else
              write(*,"(a40)") " "
           end if
@@ -164,11 +172,10 @@ contains
   subroutine xc_end()
     implicit none
 
-    integer :: i
-
-    do i = 1, 2
-       if (funcs(i)%id > 0) call xc_f90_func_end(funcs(i)%conf)
-    end do
+    if (xc%kind == XC_LIBXC .or. xc%kind == XC_MIXED) then
+       if (xc%id(1) > 0) call xc_f90_func_end(xc%funcs(1)%conf)
+       if (xc%id(2) > 0) call xc_f90_func_end(xc%funcs(2)%conf)
+    end if
   end subroutine xc_end
 
   !>  Test function to identify whether the presently used functional
@@ -178,8 +185,8 @@ contains
 
     logical :: xc_isgga
 
-    if (any(funcs%family == XC_FAMILY_GGA) .or. &
-         & any(funcs%family == XC_FAMILY_HYB_GGA)) then
+    if (any(xc%family == XC_FAMILY_GGA) .or. &
+         & any(xc%family == XC_FAMILY_HYB_GGA)) then
        xc_isgga = .true.
     else
        xc_isgga = .false.
@@ -190,9 +197,9 @@ contains
     implicit none
 
     xc_exctXfac = 0.d0
-    if (any(funcs%family == XC_FAMILY_HYB_GGA)) then
+    if (any(xc%family == XC_FAMILY_HYB_GGA)) then
        !factors for the exact exchange contribution of different hybrid functionals
-       if (any(funcs%id == XC_HYB_GGA_XC_PBEH)) then
+       if (any(xc%id == XC_HYB_GGA_XC_PBEH)) then
           xc_exctXfac = 0.25d0 
        end if
     end if
@@ -204,7 +211,7 @@ contains
     integer :: n,nproc
     real(dp) :: rho(n)
 
-    if (any(funcs%id < 0)) then
+    if (xc%kind == XC_ABINIT) then
        call tenminustwenty(n,rho,nproc)
     else
        call razero(n,rho)
@@ -219,7 +226,7 @@ contains
 
     integer :: i
 
-    if (any(funcs%id < 0)) then
+    if (xc%kind == XC_ABINIT) then
        do i = 1, n, 1
           if (rho(i) < 1d-20) then
              rho(i) = 1d-20 / nproc
@@ -247,9 +254,13 @@ contains
     real(dp),intent(out), optional :: dvxci(npts,nspden + 1)
 
     !Local variables-------------------------------
-    integer  :: i, ipts, ixc, ndvxc, ngr2, nd2vxc, nvxcdgr, order
-    real(dp) :: rhotmp(nspden), exctmp, sigma(3), vsigma(3), vxctmp(nspden)
-    real(dp) :: v2rho2(3), v2rhosigma(6), v2sigma2(6)
+    integer  :: i, j, ipts, ixc, ndvxc, ngr2, nd2vxc, nvxcdgr, order
+    integer, parameter :: n_blocks = 128
+    integer :: ipte, nb
+    real(dp) :: rhotmp(nspden, n_blocks), exctmp(n_blocks), vxctmp(nspden, n_blocks)
+    real(dp) :: sigma(3, n_blocks), vsigma(3, n_blocks)
+    real(dp) :: v2rho2(3, n_blocks), v2rhosigma(6, n_blocks), v2sigma2(6, n_blocks)
+    real(dp), allocatable :: rho_(:,:), exc_(:), vxc_(:,:)
     character(len=*), parameter :: subname='xc_getvxc'
 
     ! Inititalize all relevant arrays to zero
@@ -260,9 +271,9 @@ contains
     if (present(vxcgr)) vxcgr=real(0,dp)
     if (present(dvxci)) dvxci=real(0,dp)
 
-    if (any(funcs%id < 0)) then
+    if (xc%kind == XC_ABINIT) then
        ! ABINIT case, call drivexc
-       ixc = -funcs(1)%id
+       ixc = xc%id(1)
        !Allocations of the exchange-correlation terms, depending on the ixc value
        order = 1
        if (present(dvxci) .and. nspden == 1) order = -2
@@ -271,7 +282,7 @@ contains
        call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
        !let us apply ABINIT routines
-       select case (funcs(1)%family)
+       select case (xc%family(1))
        case (XC_FAMILY_LDA)
           if (order**2 <=1 .or. ixc >= 31 .and. ixc <= 34) then
              call drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
@@ -293,91 +304,105 @@ contains
                   grho2_updn=grho2) 
           end if
        end select
-    else
-       ! LibXC case.
+    else if (xc%kind == XC_MIXED) then
+       ! LibXC case with ABINIT rho distribution.
 
        !Loop over points
-       do ipts = 1, npts
+       do ipts = 1, npts, n_blocks
+          ipte = min(ipts + n_blocks - 1, npts)
+          nb = ipte - ipts + 1
 
           ! Convert the quantities provided by ABINIT to the ones needed by libxc
           if (nspden == 1) then
              ! ABINIT passes rho_up in the spin-unpolarized case, while the libxc
              ! expects the total density
-             rhotmp(1:nspden) = real(2,dp)*rho(ipts,1:nspden)
+             rhotmp(1, 1:nb) = real(2,dp) * rho(ipts:ipte,1)
           else
-             rhotmp(1:nspden) = rho(ipts,1:nspden)
+             do i = 1, nb
+                rhotmp(1, i) = rho(ipts + i - 1,1)
+                rhotmp(2, i) = rho(ipts + i - 1,2)
+             end do
           end if
           if (xc_isgga()) then
              sigma=real(0,dp)
              if (present(grho2)) then
                 if (nspden==1) then
                    ! ABINIT passes |rho_up|^2 while Libxc needs |rho_tot|^2
-                   sigma(1) = real(4,dp)*grho2(ipts,1)
+                   sigma(1, 1:nb) = real(4,dp)*grho2(ipts:ipte,1)
                 else
                    ! ABINIT passes |rho_up|^2, |rho_dn|^2, and |rho_tot|^2
                    ! while Libxc needs |rho_up|^2, rho_up.rho_dn, and |rho_dn|^2
-                   sigma(1) = grho2(ipts,1)
-                   sigma(2) = (grho2(ipts,3) - grho2(ipts,1) - grho2(ipts,2))/real(2,dp)
-                   sigma(3) = grho2(ipts,2)
+                   do i = 1, nb
+                      sigma(1, i) = grho2(ipts + i - 1,1)
+                      sigma(2, i) = (grho2(ipts + i - 1,3) - &
+                           & grho2(ipts + i - 1,1) - grho2(ipts + i - 1,2))/real(2,dp)
+                      sigma(3, i) = grho2(ipts + i - 1,2)
+                   end do
                 end if
              end if
           end if
 
           !Loop over functionals
           do i = 1,2
-             if (funcs(i)%id == 0) cycle
+             if (xc%id(i) == 0) cycle
 
              !Get the potential (and possibly the energy)
-             if (iand(xc_f90_info_flags(funcs(i)%info), XC_FLAGS_HAVE_EXC) .ne. 0) then
-                select case (funcs(i)%family)
+             if (iand(xc_f90_info_flags(xc%funcs(i)%info), XC_FLAGS_HAVE_EXC) .ne. 0) then
+                select case (xc%family(i))
                 case (XC_FAMILY_LDA)
-                   call xc_f90_lda_exc_vxc(funcs(i)%conf,1,rhotmp(1),exctmp,vxctmp(1))
+                   call xc_f90_lda_exc_vxc(xc%funcs(i)%conf,nb,rhotmp(1,1),exctmp(1),vxctmp(1,1))
                 case (XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
-                   call xc_f90_gga_exc_vxc(funcs(i)%conf,1,rhotmp(1),sigma(1),exctmp,vxctmp(1),vsigma(1))
+                   call xc_f90_gga_exc_vxc(xc%funcs(i)%conf,nb,rhotmp(1,1),sigma(1,1),exctmp(1),vxctmp(1,1),vsigma(1,1))
                 end select
 
              else
                 exctmp=real(0,dp)
-                select case (funcs(i)%family)
+                select case (xc%family(i))
                 case (XC_FAMILY_LDA)
-                   call xc_f90_lda_vxc(funcs(i)%conf,1,rhotmp(1),vxctmp(1))
+                   call xc_f90_lda_vxc(xc%funcs(i)%conf,nb,rhotmp(1,1),vxctmp(1,1))
                 case (XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
-                   call xc_f90_gga_vxc(funcs(i)%conf,1,rhotmp(1),sigma(1),vxctmp(1),vsigma(1))
+                   call xc_f90_gga_vxc(xc%funcs(i)%conf,nb,rhotmp(1,1),sigma(1,1),vxctmp(1,1),vsigma(1,1))
                 end select
              end if
              if (present(dvxci)) then
                 v2rho2     = real(0, dp)
                 v2rhosigma = real(0, dp)
                 v2sigma2   = real(0, dp)
-                if (iand(xc_f90_info_flags(funcs(i)%info), XC_FLAGS_HAVE_FXC) .ne. 0) then
-                   select case (funcs(i)%family)
+                if (iand(xc_f90_info_flags(xc%funcs(i)%info), XC_FLAGS_HAVE_FXC) .ne. 0) then
+                   select case (xc%family(i))
                    case (XC_FAMILY_LDA)
-                      call xc_f90_lda_fxc(funcs(i)%conf,1,rhotmp(1),v2rho2(1))
+                      call xc_f90_lda_fxc(xc%funcs(i)%conf,nb,rhotmp(1,1),v2rho2(1,1))
                    case (XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
-                      call xc_f90_gga_fxc(funcs(i)%conf,1,rhotmp(1),sigma(1), &
-                           & v2rho2(1),v2rhosigma(1), v2sigma2(1))
+                      call xc_f90_gga_fxc(xc%funcs(i)%conf,nb,rhotmp(1,1),sigma(1,1), &
+                           & v2rho2(1,1),v2rhosigma(1,1), v2sigma2(1,1))
                    end select
                 end if
              end if
 
-             exc(ipts) = exc(ipts) + exctmp
-             vxc(ipts,1:nspden) = vxc(ipts,1:nspden) + vxctmp(1:nspden)
+             exc(ipts:ipte) = exc(ipts:ipte) + exctmp(1:nb)
+             do j = 1, nb
+                vxc(ipts + j - 1,1:nspden) = vxc(ipts + j - 1,1:nspden) + vxctmp(1:nspden, j)
+             end do
 
              if (xc_isgga() .and. present(vxcgr)) then
                 !Convert the quantities returned by Libxc to the ones needed by ABINIT
                 if (nspden == 1) then
-                   vxcgr(ipts,3) = vxcgr(ipts,3) + vsigma(1)*real(2,dp)
+                   vxcgr(ipts:ipte,3) = &
+                        & vxcgr(ipts:ipte,3) + vsigma(1, 1:nb)*real(2,dp)
                 else
-                   vxcgr(ipts,1) = vxcgr(ipts,1) + real(2,dp)*vsigma(1) - vsigma(2)
-                   vxcgr(ipts,2) = vxcgr(ipts,2) + real(2,dp)*vsigma(3) - vsigma(2)
-                   vxcgr(ipts,3) = vxcgr(ipts,3) + vsigma(2)
+                   vxcgr(ipts:ipte,3) = &
+                        & vxcgr(ipts:ipte,3) + real(2,dp)*vsigma(1, 1:nb) - vsigma(2, 1:nb)
+                   vxcgr(ipts:ipte,3) = &
+                        & vxcgr(ipts:ipte,3) + real(2,dp)*vsigma(3, 1:nb) - vsigma(2, 1:nb)
+                   vxcgr(ipts:ipte,3) = &
+                        & vxcgr(ipts:ipte,3) + vsigma(2, 1:nb)
                 end if
              end if
 
              if (present(dvxci)) then
                 !Convert the quantities returned by Libxc to the ones needed by ABINIT
                 if (nspden == 1) then
-                   dvxci(ipts,1) = dvxci(ipts,1) + v2rho2(1)*real(2,dp)
+                   dvxci(ipts:ipte,1) = dvxci(ipts:ipte,1) + v2rho2(1,1:nb)*real(2,dp)
                 else
                    ! TODO
 !!$                dvxci(ipts,1) = dvxci(ipts,1) + real(2,dp)*vsigma(1) - vsigma(2)
@@ -388,6 +413,51 @@ contains
 
           end do
        end do
+    else if (xc%kind == XC_LIBXC) then
+       ! Pure LibXC case.
+       ! WARNING: LDA implementation only, first derivative.
+
+       allocate(rho_(nspden, npts))
+       allocate(exc_(npts))
+       allocate(vxc_(nspden, npts))
+
+       ! Convert the quantities provided by BigDFT to the ones needed by libxc
+       if (nspden == 1) then
+          rho_ = real(2,dp) * reshape(rho, (/ nspden, npts /))
+       else
+          call dcopy(npts * nspden, rho, 1, rho_, 1)
+       end if
+
+       exc(1) = UNINITIALIZED(1.d0)
+       !Loop over functionals
+       do i = 1,2
+          if (xc%id(i) == 0) cycle
+
+          !Get the potential (and possibly the energy)
+          if (iand(xc_f90_info_flags(xc%funcs(i)%info), XC_FLAGS_HAVE_EXC) .ne. 0) then
+             select case (xc%family(i))
+             case (XC_FAMILY_LDA)
+                call xc_f90_lda_exc_vxc(xc%funcs(i)%conf,npts,rho_(1,1),exc_(1),vxc_(1,1))
+             end select
+          else
+             exc_=real(0,dp)
+             select case (xc%family(i))
+             case (XC_FAMILY_LDA)
+                call xc_f90_lda_vxc(xc%funcs(i)%conf,npts,rho_(1,1),vxc_(1,1))
+             end select
+          end if
+
+          if (exc(1) == UNINITIALIZED(1.d0)) then
+             call dcopy(npts, exc_, 1, exc, 1)
+             call dcopy(npts * nspden, vxc_, 1, vxc, 1)
+          else
+             call daxpy(npts, 1.d0, exc_, 1, exc, 1)
+             call daxpy(npts * nspden, 1.d0, vxc_, 1, vxc, 1)
+          end if
+       end do
+       deallocate(rho_)
+       deallocate(exc_)
+       deallocate(vxc_)
     end if
 
   end subroutine xc_getvxc

@@ -293,6 +293,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   hy=in%hy
   hz=in%hz
 
+  ! Initialise XC calculation
+  if (ixc < 0) then
+     call xc_init(ixc, XC_MIXED, nspin)
+  else
+     call xc_init(ixc, XC_ABINIT, nspin)
+  end if
+
   !character string for quieting the Poisson solver
   if (verbose >1) then
      PSquiet='NO'
@@ -306,7 +313,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           in%inputPsiId
      call print_dft_parameters(in,atoms)
   end if
-  call xc_init(ixc, nspin)
   if (iproc == 0) call xc_dump()
   if (nproc > 1) then
      call timing(iproc,'parallel     ','IN')
