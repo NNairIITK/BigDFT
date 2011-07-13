@@ -621,7 +621,6 @@ character(len=*),parameter:: subname='deallocateLinear'
   deallocate(lin%norbsPerType, stat=istat)
   call memocc(istat, iall, 'lin%norbsPerType', subname)
 
-  
   call deallocate_orbs(lin%orbs,subname)
 
   call deallocate_comms(lin%comms,subname)
@@ -629,7 +628,7 @@ character(len=*),parameter:: subname='deallocateLinear'
   call deallocate_orbs(lin%lb%orbs,subname)
 
   call deallocate_comms(lin%lb%comms,subname)
-  
+
   iall=-product(shape(phi))*kind(phi)
   deallocate(phi, stat=istat)
   call memocc(istat, iall, 'phi', subname)

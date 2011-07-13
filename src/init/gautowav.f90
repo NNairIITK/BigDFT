@@ -738,7 +738,6 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
 
   allocate(work(0:nw,2,2+ndebug),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
-
   allocate(wx(ncplx,0:lr%d%n1,2,nterms_max+ndebug),stat=i_stat)
   call memocc(i_stat,wx,'wx',subname)
   allocate(wy(ncplx,0:lr%d%n2,2,nterms_max+ndebug),stat=i_stat)
@@ -827,6 +826,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   !accumulate wavefunction
   call wfn_from_tensprod(lr,ncplx,nterms,wx,wy,wz,psi)
 !psi=1.d0
+
   i_all=-product(shape(wx))*kind(wx)
   deallocate(wx,stat=i_stat)
   call memocc(i_stat,i_all,'wx',subname)

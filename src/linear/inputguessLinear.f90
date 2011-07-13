@@ -1982,8 +1982,8 @@ character(len=*),parameter:: subname='getHamiltonianMatrix'
 ! Initialize the parameters for calculating the matrix.
 call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, op, comon)
 
-allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
-call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+!allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
+!call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
 
 

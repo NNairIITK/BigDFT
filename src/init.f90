@@ -500,7 +500,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
 
    ! Assign orbitals to locreg
-     call assignToLocreg(iproc,nproc,orbse%nspinor,nspin_ig,at,orbse,Lzd,norbsc_arr,norbsc)
+     call assignToLocreg(iproc,nproc,orbse%nspinor,nspin_ig,at,Lzd%orbs,Lzd,norbsc_arr,norbsc)
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(Lpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)

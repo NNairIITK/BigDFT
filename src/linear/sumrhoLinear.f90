@@ -380,19 +380,19 @@ subroutine local_partial_densityLinear(iproc,nproc,Lzd,rsflag,nscatterarr,&
                select case(Lzd%Llr(ilr)%geocode)
                case('F')
                   call partial_density_linear(rsflag,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,&
-                       npsir,nspinn,nrhotot,&
+                       npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
                        hfac,nscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
 
                case('P')
 
                   call partial_density_linear(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
-                       npsir,nspinn,nrhotot,&
+                       npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
                        hfac,nscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
 
                case('S')
 
                   call partial_density_linear(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
-                       npsir,nspinn,nrhotot,&
+                       npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
                        hfac,nscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
 
                end select
@@ -474,17 +474,17 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
   !case without bounds
   i1s=1
   i1e=n1i
-!  loop_xc_overlap: do jproc=0,nproc-1
+  loop_xc_overlap: do jproc=0,nproc-1
      !case for REDUCE_SCATTER approach, not used for GGA since it enlarges the 
      !communication buffer
-!     if (rsflag) then
-!        i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
-!        n3d=nscatterarr(jproc,1)
-!        if (n3d==0) exit loop_xc_overlap
-!     else
+     if (rsflag) then
+        i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
+        n3d=nscatterarr(jproc,1)
+        if (n3d==0) exit loop_xc_overlap
+     else
         i3off=0
         n3d=n3i
-!     end if
+     end if
      !here the condition for the MPI_ALLREDUCE should be entered
      if(spinsgn > 0.0_gp) then
         isjmp=1
@@ -538,8 +538,8 @@ subroutine partial_density_linear(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,
 !$omp end critical
 
      end do
-!     if (.not. rsflag) exit loop_xc_overlap !the whole range is already done
-!  end do loop_xc_overlap
+     if (.not. rsflag) exit loop_xc_overlap !the whole range is already done
+  end do loop_xc_overlap
 !$omp end parallel
 
   if (i3sg /= nrhotot) then

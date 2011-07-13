@@ -1114,12 +1114,6 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
 
     ! construct the wavefunction descriptors (wfd)
      call determine_wfd_periodicity(ilr,nlr,Glr,Llr)
-     
-!     print *,'Before locreg_bounds'
-!     print *,'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
-!     print *,'nl,nu:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3
-!     print *,'wfd(nseg):',Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nseg_f
-!     print *,'wfd(nvctr):',Llr(ilr)%wfd%nvctr_c,Llr(ilr)%wfd%nvctr_f
 
      ! Sould check if nfu works properly... also relative to locreg!!
      !if the localisation region is isolated build also the bounds
@@ -1915,8 +1909,10 @@ subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
      !If not, then don't use linear input guess (set linear to false)
      if(warningx .and. warningy .and. warningz .and. (Glr%geocode .ne. 'F')) then
        linear = .false.
-       write(*,*)'Not using the linear scaling input guess, because localization'
-       write(*,*)'region greater or equal to simulation box.'
+       if(iproc == 0) then
+          write(*,*)'Not using the linear scaling input guess, because localization'
+          write(*,*)'region greater or equal to simulation box.'
+       end if
        exit 
      end if
   end do

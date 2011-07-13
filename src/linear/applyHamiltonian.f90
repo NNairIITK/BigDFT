@@ -458,9 +458,10 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
         !call dcopy(Lzd%Lnlpspd(ilr)%nprojel, proj, 1, projCopy, 1)
         !call apply_local_projectors(ilr,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),projCopy,Lzd%orbs,&
         !         Lzd%Llr(ilr)%projflg,psi(ind:ind+dimwf-1),rxyz,hpsi(ind:ind+dimwf-1),eproj_sum)
-                                   
-        call apply_local_projectors(ilr,iproc,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),Lzd%orbs,&
-                 Lzd%Llr(ilr)%projflg,psi(ind:ind+dimwf-1),rxyz,hpsi(ind:ind+dimwf-1),eproj_sum)
+                                                                    
+        call apply_local_projectors2(ilr,iproc,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),Lzd%orbs,&
+                 Lzd%Llr(ilr)%projflg,psi(ind),rxyz,hpsi(ind),eproj_sum)
+
         !deallocate(projCopy, stat=i_stat)
         ! accumulate the new hpsi
         hpsi_proj(ind:ind+dimwf-1) = hpsi_proj(ind:ind+dimwf-1) + hpsi(ind:ind+dimwf-1)
@@ -722,9 +723,10 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
   logical :: exctX,op2p
   integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
-  integer :: ii,ilr,dimwf,ind,size_Lpot,size_pot
-  integer :: tmp_norbp,nspincomp
+  integer :: ii,ilr,dimwf,ind,size_Lpot,size_pot,size_potxc
+  integer :: tmp_norbp,nspincomp,iels
   real(wp),dimension(:),pointer :: Lpot
+  real(wp),dimension(:),allocatable :: potxc
   real(wp),dimension(:),allocatable :: hpsi_proj
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
@@ -755,6 +757,26 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
   ! Allocate the nonlocal descriptors for the locregs
   allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
 
+
+  ! NOW do Exact Exchange potential
+  ! Still using the cubic approach using the whole simulation box
+  ! and total orbitals
+    size_potxc = 0
+    if (exctX) then
+       size_potxc = max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*Lzd%orbs%norb,ngatherarr(0,1)*Lzd%orbs%norb),1)
+       allocate(potxc(size_potxc+ndebug),stat=i_stat)
+       if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
+          call cubic_exact_exchange(iproc,nproc,nspin,Lzd%Lpsidimtot,size_potxc,hx,hy,hz,Lzd%Glr,Lzd%orbs,&
+               ngatherarr,psi,potxc,eexctX,pkernel,orbsocc,psirocc)
+       else if(present(pkernel)) then
+           call cubic_exact_exchange(iproc,nproc,nspin,Lzd%Lpsidimtot,size_potxc,hx,hy,hz,Lzd%Glr,Lzd%orbs,&
+               ngatherarr,psi,potxc,eexctX,pkernel=pkernel)
+       else 
+           call cubic_exact_exchange(iproc,nproc,nspin,Lzd%Lpsidimtot,size_potxc,hx,hy,hz,Lzd%Glr,Lzd%orbs,&
+               ngatherarr,psi,potxc,eexctX)
+       end if
+    end if
+
   !initialize accumulators
   ekin_sum = 0.0_gp
   epot_sum = 0.0_gp
@@ -766,11 +788,8 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
      !determine the dimension of the potential array (copied from full_local_potential)
      ! For now, using the whole set of orbitals in the Glr (could diminish to the Llr??)
      if (exctX) then
-        size_pot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin + &
-         max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*Lzd%orbs%norb,ngatherarr(0,1)*Lzd%orbs%norb),1) !part which refers to exact exchange
-        size_Lpot=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin + &
-           max(max(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*Lzd%orbs%norb,&
-           ngatherarr(0,1)*Lzd%orbs%norb),1) 
+        size_pot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin + size_potxc
+        size_Lpot=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin + size_potxc 
      else
         size_pot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin
         size_Lpot = Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin
@@ -787,48 +806,44 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
      ispot=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin+1
      dimwf = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%orbs%nspinor
 
-     !fill the rest of the potential with the exact-exchange terms
-     if (present(pkernel) .and. exctX .and. ii==1) then
-        n3p=ngatherarr(iproc,1)/(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i)
-        !exact exchange for virtual orbitals (needs psirocc)
-        !here we have to add the round part
-        if (present(psirocc) .and. present(orbsocc)) then
-           call exact_exchange_potential_virt(iproc,nproc,Lzd%Llr(ilr)%geocode,nspin,&
-                Lzd%Llr(ilr),orbsocc,Lzd%orbs,ngatherarr(0,1),n3p,&
-                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi(ind),Lpot(ispot))
-           eexctX = 0._gp
-        else
-   !!$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
-   !!$             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
-
-           !here the condition for the scheme should be chosen
-           if (.not. op2p) then
-              call exact_exchange_potential(iproc,nproc,Lzd%Llr(ilr)%geocode,nspin,&
-                   Lzd%Llr(ilr),Lzd%orbs,ngatherarr(0,1),n3p,&
-                   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi(ind),Lpot(ispot),eexctX)
-           else
-              !the psi should be transformed in real space
-              call exact_exchange_potential_round(iproc,nproc,Lzd%Llr(ilr)%geocode,nspin,&
-                   Lzd%Llr(ilr),Lzd%orbs,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
-                   psi(ind),Lpot(ispot),eexctX)
-
-           end if
-        end if
-     else
-        eexctX = 0._gp
-        !print *,'iproc,eexctX',iproc,eexctX
+     ! fill in the exact-exchange part
+     if (size_potxc > 0) then
+        do iels = 1, size_potxc
+           Lpot(ispot+iels-1) = potxc(iels)
+        end do
      end if
 
-!     call timing(iproc,'ApplyLocPotKin','ON')
-
-     !apply the local hamiltonian for each of the orbitals
-     !given to each processor
-     !pot=0.d0
-     !psi=1.d0
-     !switch between GPU/CPU treatment
-!     do i=1,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
-!          call random_number(psi(i))
-!     end do
+!!     !fill the rest of the potential with the exact-exchange terms
+!!     if (present(pkernel) .and. exctX .and. ii==1) then
+!!        n3p=ngatherarr(iproc,1)/(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i)
+!!        !exact exchange for virtual orbitals (needs psirocc)
+!!        !here we have to add the round part
+!!        if (present(psirocc) .and. present(orbsocc)) then
+!!           call exact_exchange_potential_virt(iproc,nproc,Lzd%Llr(ilr)%geocode,nspin,&
+!!                Lzd%Llr(ilr),orbsocc,Lzd%orbs,ngatherarr(0,1),n3p,&
+!!                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi(ind),Lpot(ispot))
+!!           eexctX = 0._gp
+!!        else
+!!   !!$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
+!!   !!$             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+!!
+!!           !here the condition for the scheme should be chosen
+!!           if (.not. op2p) then
+!!              call exact_exchange_potential(iproc,nproc,Lzd%Llr(ilr)%geocode,nspin,&
+!!                   Lzd%Llr(ilr),Lzd%orbs,ngatherarr(0,1),n3p,&
+!!                   0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi(ind),Lpot(ispot),eexctX)
+!!           else
+!!              !the psi should be transformed in real space
+!!              call exact_exchange_potential_round(iproc,nproc,Lzd%Llr(ilr)%geocode,nspin,&
+!!                   Lzd%Llr(ilr),Lzd%orbs,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
+!!                   psi(ind),Lpot(ispot),eexctX)
+!!
+!!           end if
+!!        end if
+!!     else
+!!        eexctX = 0._gp
+!!        !print *,'iproc,eexctX',iproc,eexctX
+!!     end if
 
      if(OCLconv .and. ASYNCconv) then
        allocate(hpsi2((Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%orbs%nspinor*&
@@ -941,6 +956,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
      ind = ind + dimwf
 
      ! deallocate Lpot
+     deallocate(Lpot,stat=i_stat)
      !call free_full_potential(nproc,Lpot,subname)
   end do
 ! END LINEAR MODIFICATIONS
@@ -1098,4 +1114,67 @@ subroutine local_hamiltonian_Linear(iproc,iorb,orbs,lr,hx,hy,hz,&
 
 END SUBROUTINE local_hamiltonian_Linear
 
+
+subroutine cubic_exact_exchange(iproc,nproc,nspin,npsidim,size_potxc,hx,hy,hz,Glr,orbs,&
+           ngatherarr,psi,potxc,eexctX,pkernel,orbsocc,psirocc)
+  use module_base
+  use module_types
+  use libxc_functionals
+  implicit none
+  integer, intent(in) :: iproc,nproc,nspin,npsidim,size_potxc
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors) :: Glr
+  type(orbitals_data) :: orbs
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+  real(wp), dimension(npsidim), intent(in) :: psi
+  real(wp), dimension(size_potxc),intent(out) :: potxc
+  real(gp), intent(out) :: eexctX
+  real(dp), dimension(*), optional :: pkernel
+  type(orbitals_data), intent(in), optional :: orbsocc
+  real(wp), dimension(:), pointer, optional :: psirocc
+!  local variables
+  character(len=*), parameter :: subname='cubic_exact_exchange'
+  logical :: exctX,op2p
+  integer :: n3p
+
+  !initialise exact exchange energy 
+  op2p=(eexctX == -99.0_gp)
+  eexctX=0.0_gp
+
+  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+
+  !fill the rest of the potential with the exact-exchange terms
+  if (present(pkernel) .and. exctX ) then
+     n3p=ngatherarr(iproc,1)/(Glr%d%n1i*Glr%d%n2i)
+
+     !exact exchange for virtual orbitals (needs psirocc)
+     !here we have to add the round part
+     if (present(psirocc) .and. present(orbsocc)) then
+        call exact_exchange_potential_virt(iproc,nproc,Glr%geocode,nspin,&
+             Glr,orbsocc,orbs,ngatherarr(0,1),n3p,&
+             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,potxc)
+        eexctX = 0._gp
+     else
+ !$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
+ !$             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+
+        !here the condition for the scheme should be chosen
+        if (.not. op2p) then
+           call exact_exchange_potential(iproc,nproc,Glr%geocode,nspin,&
+                Glr,orbs,ngatherarr(0,1),n3p,&
+                0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,potxc,eexctX)
+        else
+           !the psi should be transformed in real space
+           call exact_exchange_potential_round(iproc,nproc,Glr%geocode,nspin,&
+                Glr,orbs,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
+                psi,potxc,eexctX)
+
+        end if
+     end if
+  else
+     eexctX = 0._gp
+     !print *,'iproc,eexctX',iproc,eexctX
+  end if
+
+end subroutine cubic_exact_exchange
 
