@@ -629,14 +629,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
     ! 1) take the Lpsi and Lhpsi in the LOD 
     ! 2) create the IG transposed psit in the GCD
     ! 3) deallocate Lpsi
-    if(iproc==0) then
-     open(44,file='Lhpsi',status='unknown')
-     do ilr = 1, size(Lhpsi)
-     write(44,*)Lhpsi(ilr)
-     end do
-     close(44)
-    end if
-
 
     call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,comms,&
          Lpsi,Lhpsi,psit,input,orbse,commse,etol,norbsc_arr)
@@ -952,13 +944,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
      !with a gaussian basis
    !!$  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
    !!$       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
-     if(iproc==0) then
-     open(44,file='hpsi',status='unknown')
-     do ilr = 1,size(hpsi)
-     write(44,*)hpsi(ilr)
-     end do
-     close(44)
-     end if
  
      call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
           psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
