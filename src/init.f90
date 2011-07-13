@@ -455,7 +455,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   linear2 = .true.
   if (linear) then
      ! For now, set locrad by hand HERE
-     locrad = 15.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
+     locrad = 30.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
 
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear2)
   end if
@@ -476,7 +476,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      ! Define global orbs for Lzd
      call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
        orbs,lzd%orbs,norbsc_arr,locrad,G,psigau,eks)
-     locrad = 15.0d+0   ! because inputguess_gaussian_orbitals resets locrad
+     locrad = 30.0d+0   ! because inputguess_gaussian_orbitals resets locrad
      ! Define global communicators
      call orbitals_communicators(iproc,nproc,Glr,lzd%orbs,lzd%comms)
 
