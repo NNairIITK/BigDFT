@@ -439,11 +439,20 @@ module module_types
       integer,dimension(:),pointer:: indexInGlobal
   end type matrixLocalizationRegion
 
+
+  type,public:: p2pCommsOrthonormalityMatrix
+      integer,dimension(:),pointer:: noverlap
+      integer,dimension(:,:),pointer:: overlaps
+      type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
+  end type p2pCommsOrthonormalityMatrix
+
+
   type,public:: matrixMinimization
     type(matrixLocalizationRegion),dimension(:),pointer:: mlr
     integer:: norbmax ! maximal matrix size handled by a given process
     integer:: nlrp ! number of localization regions handled by a given process
     integer,dimension(:),pointer:: inWhichLocregExtracted
+    integer,dimension(:),pointer:: inWhichLocregOnMPI
     integer,dimension(:),pointer:: indexInLocreg
   end type matrixMinimization
 
