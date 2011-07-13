@@ -263,14 +263,6 @@ contains
     real(dp), allocatable :: rho_(:,:), exc_(:), vxc_(:,:)
     character(len=*), parameter :: subname='xc_getvxc'
 
-    ! Inititalize all relevant arrays to zero
-    vxc=real(0,dp)
-    exc=real(0,dp)
-    vxctmp=real(0,dp)
-    exctmp=real(0,dp)
-    if (present(vxcgr)) vxcgr=real(0,dp)
-    if (present(dvxci)) dvxci=real(0,dp)
-
     if (xc%kind == XC_ABINIT) then
        ! ABINIT case, call drivexc
        ixc = xc%id(1)
@@ -307,6 +299,12 @@ contains
     else if (xc%kind == XC_MIXED) then
        ! LibXC case with ABINIT rho distribution.
 
+       ! Inititalize all relevant arrays to zero
+       vxc=real(0,dp)
+       exc=real(0,dp)
+       if (present(vxcgr)) vxcgr=real(0,dp)
+       if (present(dvxci)) dvxci=real(0,dp)
+
        !Loop over points
        do ipts = 1, npts, n_blocks
           ipte = min(ipts + n_blocks - 1, npts)
@@ -318,10 +316,8 @@ contains
              ! expects the total density
              rhotmp(1, 1:nb) = real(2,dp) * rho(ipts:ipte,1)
           else
-             do i = 1, nb
-                rhotmp(1, i) = rho(ipts + i - 1,1)
-                rhotmp(2, i) = rho(ipts + i - 1,2)
-             end do
+             rhotmp(1, 1:nb) = rho(ipts:ipte,1)
+             rhotmp(2, 1:nb) = rho(ipts:ipte,2)
           end if
           if (xc_isgga()) then
              sigma=real(0,dp)
@@ -380,8 +376,8 @@ contains
              end if
 
              exc(ipts:ipte) = exc(ipts:ipte) + exctmp(1:nb)
-             do j = 1, nb
-                vxc(ipts + j - 1,1:nspden) = vxc(ipts + j - 1,1:nspden) + vxctmp(1:nspden, j)
+             do j = 1, nspden
+                vxc(ipts:ipte,j) = vxc(ipts:ipte,j) + vxctmp(j, 1:nb)
              end do
 
              if (xc_isgga() .and. present(vxcgr)) then

@@ -47,7 +47,7 @@ contains
     integer, intent(in), optional :: option
 
     integer :: i, n, type
-    integer, parameter :: n_rho = 100000, n_runs = 2
+    integer, parameter :: n_rho = 100000, n_runs = 20
     real(dp), dimension(n_rho, 2) :: rho, vxc
     real(dp), dimension(n_rho, 3) :: rhogr, vxcgr
     real(dp), dimension(n_rho) :: exc
@@ -83,7 +83,7 @@ contains
     end do
     call system_clock(end)
 
-    dt = real(end - start) / real(countPerSecond) / real(n - 1)
+    dt = real(end - start) / real(countPerSecond) / real(n_runs)
   end subroutine test
 
   subroutine gauss(rho, n_rho, nspin, type)
