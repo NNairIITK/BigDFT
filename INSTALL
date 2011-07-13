@@ -124,7 +124,7 @@
   pass to configure is <code>--with-ext-linalg</code>.</p>
 
 <pre>
-  ../configure --with-ext-linalg="-lmkl ia32 -lmkl lapack"
+  ../configure --with-ext-linalg="-lmkl_ia32 -lmkl_lapack"
   --with-ext-linalg-path="-L/opt/intel/mkl72/lib/32"
   --prefix=/home/caliste/usr FC=ifort
 </pre>

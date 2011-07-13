@@ -14,7 +14,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   use module_base
   use module_types
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
 
   implicit none
   character(len=1), intent(in) :: geocode
@@ -39,7 +39,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
-  exctXfac = libxc_functionals_exctXfac()
+  exctXfac = xc_exctXfac()
 
   eexctX=0.0_gp
 
@@ -699,7 +699,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   use module_base
   use module_types
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,nspin
@@ -729,7 +729,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
-  exctXfac = libxc_functionals_exctXfac()
+  exctXfac = xc_exctXfac()
 
   eexctX=0.0_gp
 
@@ -1367,7 +1367,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  use module_base
 !!$  use module_types
 !!$  use Poisson_Solver
-!!$  use libxc_functionals
+!!$  use module_xc
 !!$  implicit none
 !!$  character(len=1), intent(in) :: geocode
 !!$  integer, intent(in) :: iproc,nproc,nspin
@@ -1397,7 +1397,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$
 !!$  !call timing(iproc,'Exchangecorr  ','ON')
 !!$
-!!$  exctXfac = libxc_functionals_exctXfac()
+!!$  exctXfac = xc_exctXfac()
 !!$
 !!$  eexctX=0.0_gp
 !!$

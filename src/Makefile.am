@@ -164,6 +164,7 @@ modules_source = modules/base.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
 	modules/input.f90 \
+	modules/xc.f90 \
 	$(GPU_BLAS)
 
 modules_objects = $(modules_source:.f90=.o)
@@ -378,7 +379,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
+$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o : $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
 

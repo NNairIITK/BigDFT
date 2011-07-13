@@ -18,6 +18,7 @@ program PS_Check
 
   use module_base
   use module_interfaces
+  use module_xc
   use Poisson_Solver
 
   implicit none
@@ -100,6 +101,8 @@ program PS_Check
   nullify(rhocore)
 
   do ispden=1,2
+     call xc_init(iproc, ixc, ispden)
+
      if (iproc == 0) write(unit=*,fmt="(1x,a,i0)")  '===================== nspden:  ',ispden
      !then assign the value of the analytic density and the potential
      !allocate the rhopot also for complex routines
@@ -161,6 +164,8 @@ program PS_Check
      end if
 
      if (ixc == 0) exit
+
+     call xc_end()
   end do
 
   if (ixc == 0) then

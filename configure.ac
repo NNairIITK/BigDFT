@@ -542,25 +542,31 @@ fi
 fi # End of the if library compilation
 
 dnl Test the libXC library
-internallibxc="yes"
-AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), internallibxc=$enval, internallibxc="yes")
+ac_internal_libxc="yes"
+AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_internal_libxc=$enableval, ac_internal_libxc="yes")
 AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
             ac_libxc_dir=$withval, ac_libxc_dir=)
 ac_use_libxc="no"
-ac_build_libxc="no"
-if test "$internallibxc" = "yes" ; then
+ac_build_libxc=$ac_internal_libxc
+if test "$ac_internal_libxc" = "yes" ; then
   ac_build_libxc="yes"
   ac_use_libxc="yes"
-  ac_libxc_dir="$top_builddir"/libXC/src
-  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libXC/src)
-  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libXC/src)
-  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libXC/src"
+  ac_libxc_dir="$top_builddir"/libxc-1.1.0/src
+  AC_SUBST(LIBXC_DIR, "\$(top_builddir)"/libxc-1.1.0/src)
+  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-1.1.0/src)
+  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-1.1.0/src/.libs"
+  LIBXC_LIBS="-lxc"
 else
   if test -n "$ac_libxc_dir" ; then
     LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
     
     dnl Test the given implementation of libXC.
-    AC_CHECK_LIB(xc, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    ac_libxc_libname="xc"
+    AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    if test x"$withlibxc" = x"no" ; then
+      ac_libxc_libname="dft_xc"
+      AC_CHECK_LIB($ac_libxc_libname, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    fi
     AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
     AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
     AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
@@ -568,23 +574,27 @@ else
       ac_use_libxc="yes"
       AC_SUBST(LIBXC_DIR, $ac_libxc_dir/include)
       AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
+      LIBXC_LIBS="-l"$ac_libxc_libname
     fi
+  else
+    LIBXC_CFLAGS="-I/usr/include"
+    PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
+    AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
 if test x"$ac_use_libxc" = x"yes" ; then
   AC_DEFINE([HAVE_LIBXC], [1], [use libXC in BigDFT.])
-  LIBXC_LIBS="-lxc"
 fi
 
 dnl Test the ABINIT library
-internallibabinit="yes"
-AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), internallibabinit=$enval, internallibabinit="yes")
+ac_internal_libabinit="yes"
+AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), ac_internal_libabinit=$enableval, ac_internal_libabinit="yes")
 AC_ARG_WITH(libabinit-path, AS_HELP_STRING([--with-libabinit-path], [Give the path for an external libABINIT library, lib and module files (default = None).]),
             ac_libabinit_dir=$withval, ac_libabinit_dir=)
 ac_use_libabinit="no"
-ac_build_libabinit="no"
-if test "$internallibabinit" = "yes" ; then
+ac_build_libabinit=$ac_internal_libabinit
+if test "$ac_internal_libabinit" = "yes" ; then
   ac_build_libabinit="yes"
   ac_use_libabinit="yes"
   AC_SUBST(LIBABINIT_INCLUDE, "-I\$(top_builddir)"/libABINIT/src)
@@ -612,13 +622,14 @@ fi
 
 ac_build_libsgpu="no"
 ac_use_libsgpu="no"
+AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
+ac_build_libsgpu=$ac_internal_sgpu
 if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl Test S_GPU library.
-  internalsgpu="yes"
-  AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), internalsgpu=$enval, internalsgpu="yes")
+  ac_internal_sgpu="yes"
   AC_ARG_WITH(libsgpu-path, AS_HELP_STRING([--with-libsgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
             ac_libsgpu_dir=$withval, ac_libsgpu_dir=)
-  if test "$internalsgpu" = "yes" ; then
+  if test "$ac_internal_sgpu" = "yes" ; then
     ac_build_libsgpu="yes"
     ac_use_libsgpu="yes"
     AC_SUBST(LIBSGPU_INCLUDE, "-I\$(top_srcdir)"/S_GPU/src)
@@ -637,7 +648,7 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   fi
   if test x"$ac_use_libsgpu" = x"yes" ; then
     AC_DEFINE([HAVE_LIBSGPU], [1], [use S_GPU in BigDFT.])
-    if test "$internalsgpu" = "yes" ; then
+    if test "$ac_internal_sgpu" = "yes" ; then
       LIBSGPU_LIBS="\$(top_builddir)/S_GPU/src/.libs/libs_gpu.a -lstdc++"
     else
       LIBSGPU_LIBS="-ls_gpu -lstdc++"
@@ -712,11 +723,17 @@ tests/OpenCL/Makefile
 tests/CUDA/Makefile
 tests/ETSF_IO/Makefile
 tests/tutorials/Makefile
+tests/xc/Makefile
 ])
 
 # Call libXC ./configure script recursively.
 # Call S_GPU ./configure script recursively.
-AC_CONFIG_SUBDIRS([libXC S_GPU])
+if test x"$ac_build_libxc" != x"skip" ; then
+   AC_CONFIG_SUBDIRS([libxc-1.1.0])
+fi
+if test x"$ac_build_libsgpu" != x"skip" ; then
+   AC_CONFIG_SUBDIRS([S_GPU])
+fi
 
 
 AC_OUTPUT

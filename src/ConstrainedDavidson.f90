@@ -53,7 +53,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   use module_base
   use module_types
   use module_interfaces, except_this_one => constrained_davidson
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i
   integer, intent(in) :: nvirt,n3p
@@ -125,7 +125,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be preformed
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = (xc_exctXfac() /= 0.0_gp)
 
   !last index of e and hamovr are for mpi_allreduce. 
   !e (eigenvalues) is also used as 2 work arrays
