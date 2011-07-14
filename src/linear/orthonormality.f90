@@ -65,7 +65,8 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
           exit
       end if
       call cpu_time(t3)
-      call transformOverlapMatrix(iproc, nproc, lin%lzd%orbs, ovrlp)
+      !call transformOverlapMatrix(iproc, nproc, lin%lzd%orbs, ovrlp)
+      call transformOverlapMatrix(iproc, nproc, lin%lzd%orbs%norb, ovrlp)
       call cpu_time(t4)
       timeTransform=timeTransform+t4-t3
       !call transformOverlapMatrix2(iproc, nproc, lin%lzd%orbs, ovrlp)
@@ -1397,15 +1398,14 @@ end subroutine calculateOverlapMatrix2
 
 
 
-subroutine transformOverlapMatrix(iproc, nproc, orbs, ovrlp)
+subroutine transformOverlapMatrix(iproc, nproc, norb, ovrlp)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
-type(orbitals_data),intent(in):: orbs
-real(8),dimension(orbs%norb,orbs%norb),intent(inout):: ovrlp
+integer,intent(in):: iproc, nproc, norb
+real(8),dimension(norb,norb),intent(inout):: ovrlp
 
 ! Local variables
 integer:: lwork, istat, iall, iorb, jorb, info
@@ -1414,49 +1414,73 @@ real(8),dimension(:,:,:),allocatable:: tempArr
 character(len=*),parameter:: subname='transformOverlapMatrix'
 
 
-allocate(eval(orbs%norb), stat=istat)
+allocate(eval(norb), stat=istat)
 call memocc(istat, eval, 'eval', subname)
-allocate(tempArr(orbs%norb,orbs%norb,2), stat=istat)
+allocate(tempArr(norb,norb,2), stat=istat)
 call memocc(istat, tempArr, 'tempArr', subname)
 
-do iorb=1,orbs%norb
-  do jorb=1,orbs%norb
-      !write(450+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-      if(abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))>1.d-10 ) then
-          if(iproc==0) write(*,'(a,3i7,3es20.12)') 'ERROR: not symmetric, iproc, iorb, jorb, ovrlp(iorb,jorb), &
-               &ovrlp(jorb,iorb), abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))', iproc, iorb, jorb, ovrlp(iorb,jorb), &
-               ovrlp(jorb,iorb), abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))
-          !stop
-      end if
-  end do
-end do
+!!write(450+iproc,*) '---------------------------------------'
+!!do iorb=1,norb
+!!  do jorb=1,norb
+!!      write(450+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+!!      if(abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))>1.d-10 ) then
+!!          if(iproc==0) write(*,'(a,3i7,3es20.12)') 'ERROR: not symmetric, iproc, iorb, jorb, ovrlp(iorb,jorb), &
+!!               &ovrlp(jorb,iorb), abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))', iproc, iorb, jorb, ovrlp(iorb,jorb), &
+!!               ovrlp(jorb,iorb), abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))
+!!          !stop
+!!      end if
+!!  end do
+!!end do
+!!do iorb=1,norb
+!!    do jorb=1,norb
+!!        if(iproc==0) write(1401,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
+!!    end do
+!!end do
 
-lwork=1000*orbs%norb
+
+lwork=1000*norb
 allocate(work(lwork), stat=istat)
 call memocc(istat, work, 'work', subname)
-call dsyev('v', 'l', orbs%norb, ovrlp(1,1), orbs%norb, eval, work, lwork, info)
+call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
 if(info/=0) then
     write(*,'(a,i0)') 'ERROR in dsyev, info=', info
+    stop
 end if
 iall=-product(shape(work))*kind(work)
 deallocate(work, stat=istat)
 call memocc(istat, iall, 'work', subname)
+!!do iorb=1,norb
+!!    do jorb=1,norb
+!!        if(iproc==0) write(1402,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
+!!    end do
+!!    if(iproc==0) write(1450,*) iorb, eval(iorb)
+!!end do
 
 ! Calculate S^{-1/2}. 
 ! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
 ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
-do iorb=1,orbs%norb
-    do jorb=1,orbs%norb
+do iorb=1,norb
+    do jorb=1,norb
         tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
     end do
 end do
+!!do iorb=1,norb
+!!    do jorb=1,norb
+!!        if(iproc==0) write(1403,'(2i6,es26.17)') iorb, jorb, temparr(iorb,jorb,1)
+!!    end do
+!!end do
 
 ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
 ! This will give S^{-1/2}.
-call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), &
-     orbs%norb, tempArr(1,1,1), orbs%norb, 0.d0, &
-     tempArr(1,1,2), orbs%norb)
-call dcopy(orbs%norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
+call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
+     norb, tempArr(1,1,1), norb, 0.d0, &
+     tempArr(1,1,2), norb)
+call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
+!!do iorb=1,norb
+!!    do jorb=1,norb
+!!        if(iproc==0) write(1405,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
+!!    end do
+!!end do
 
 
 iall=-product(shape(eval))*kind(eval)
@@ -1467,7 +1491,7 @@ deallocate(tempArr, stat=istat)
 call memocc(istat, iall, 'tempArr', subname)
 
 
-endsubroutine transformOverlapMatrix
+end subroutine transformOverlapMatrix
 
 
 

@@ -2616,13 +2616,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
      end subroutine calculateOverlapMatrix2
      
-     subroutine transformOverlapMatrix(iproc, nproc, orbs, ovrlp)
+     subroutine transformOverlapMatrix(iproc, nproc, norb, ovrlp)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc
-       type(orbitals_data),intent(in):: orbs
-       real(8),dimension(orbs%norb,orbs%norb),intent(inout):: ovrlp
+       integer,intent(in):: iproc, nproc, norb
+       real(8),dimension(norb,norb),intent(inout):: ovrlp
      end subroutine transformOverlapMatrix
      
      subroutine expandOrbital(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon, lphiovrlp)
@@ -2783,17 +2782,151 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine determineLocalizationRegions
 
 
-     subroutine extractMatrix(iproc, nproc, orbs, orbstot, onWhichAtomPhi, onWhichMPI, nmat, ham, matmin, hamextract)
+     subroutine extractMatrix(iproc, nproc, norb, norbp, orbstot, onWhichAtomPhi, onWhichMPI, nmat, ham, matmin, hamextract)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, nmat
-       type(orbitals_data),intent(in):: orbs, orbstot
-       integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi, onWhichMPI
+       integer,intent(in):: iproc, nproc, nmat, norb, norbp
+       type(orbitals_data),intent(in):: orbstot
+       integer,dimension(norb),intent(in):: onWhichAtomPhi, onWhichMPI
        real(8),dimension(orbstot%norb,orbstot%norb,nmat),intent(in):: ham
        type(matrixMinimization),intent(inout):: matmin
        real(8),dimension(:,:,:),pointer,intent(out):: hamextract
      end subroutine extractMatrix
+
+
+     subroutine orthonormalizeVectors(iproc, nproc, orbs, onWhichAtom, norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, norbmax, norbp, isorb, nlr, newComm
+       type(orbitals_data),intent(in):: orbs
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+       real(8),dimension(norbmax,norbp),intent(inout):: vec
+       type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+     end subroutine orthonormalizeVectors
+
+
+
+     subroutine initCommsMatrixOrtho(iproc, nproc, norb, norb_par, isorb_par, onWhichAtomPhi, onWhichMPI, tag, comom)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, norb
+       integer,dimension(norb),intent(in):: onWhichAtomPhi, onWhichMPI
+       integer,dimension(nproc),intent(in):: norb_par, isorb_par
+       integer,intent(inout):: tag
+       type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+     end subroutine initCommsMatrixOrtho
+
+
+
+     subroutine determineOverlapRegionMatrix(iproc, nproc, lzd, mlr, orbs, orbstot, onWhichAtom, onWhichAtomPhi, comom)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(orbitals_data),intent(in):: orbs, orbstot
+       integer,dimension(orbstot%norb),intent(in):: onWhichAtom
+       integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi
+       type(matrixLocalizationRegion),dimension(lzd%nlr),intent(in):: mlr
+       type(p2pCommsOrthonormalityMatrix),intent(out):: comom
+     end subroutine determineOverlapRegionMatrix
+
+
+     subroutine postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
+     use module_base
+     use module_types
+     implicit none
+     integer,intent(in):: iproc, nproc, newComm
+     type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+     end subroutine postCommsVectorOrthonormalization
+
+
+     subroutine gatherVectors(iproc, nproc, newComm, comom)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, newComm
+       type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+     end subroutine gatherVectors
+
+
+     subroutine extractToOverlapregion(iproc, nproc, orbs, onWhichAtom, norbmax, norbp, vec, comom)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, norbmax, norbp
+       type(orbitals_data),intent(in):: orbs
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       real(8),dimension(norbmax,norbp),intent(in):: vec
+       type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+     end subroutine extractToOverlapregion
+
+
+     subroutine expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, isorb, norbp, norbmax, noverlaps
+       type(orbitals_data),intent(in):: orbs
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+       real(8),dimension(norbmax,noverlaps),intent(out):: vecOvrlp
+     end subroutine expandFromOverlapregion
+
+     subroutine calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, comom, mlr, onWhichAtom, vec, vecOvrlp, newComm, ovrlp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, newComm
+       type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+       type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+       integer,dimension(norb),intent(in):: onWhichAtom
+       real(8),dimension(norbmax,norbp),intent(in):: vec
+       real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
+       real(8),dimension(norb,norb),intent(out):: ovrlp
+     end subroutine calculateOverlap
+
+
+     subroutine orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, norb
+       type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+       type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+       integer,dimension(norb),intent(in):: onWhichAtom
+       real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
+       real(8),dimension(norb,norb),intent(in):: ovrlp
+       real(8),dimension(norbmax,norbp),intent(inout):: vec
+     end subroutine orthonormalLinearCombinations
+
+
+     subroutine buildLinearCombinationsLocalized(iproc, nproc, orbsig, orbs, commsig, comms, at, Glr, norbsPerType, &
+           onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbsig, orbs
+       type(communications_arrays),intent(in):: commsig, comms
+       type(atoms_data),intent(in):: at
+       type(locreg_descriptors),intent(in):: Glr
+       integer,dimension(at%ntypes):: norbsPerType
+       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
+       real(8),dimension(orbsig%npsidim):: chi
+       real(8),dimension(orbsig%npsidim,at%nat):: hchi
+       real(8),dimension(orbs%npsidim):: phi
+       real(8),dimension(3,at%nat):: rxyz
+       integer,dimension(orbs%norb):: onWhichAtomPhi
+       type(linearParameters),intent(in):: lin
+       type(linear_zone_descriptors),intent(inout):: lzdig
+       real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
+     end subroutine buildLinearCombinationsLocalized
+
 
 
 
