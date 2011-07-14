@@ -441,8 +441,12 @@ module module_types
 
 
   type,public:: p2pCommsOrthonormalityMatrix
-      integer,dimension(:),pointer:: noverlap
-      integer,dimension(:,:),pointer:: overlaps
+      integer:: nrecvBuf, nsendBuf
+      integer,dimension(:),pointer:: noverlap, noverlapProc
+      integer,dimension(:,:),pointer:: overlaps, indexInRecvBuf, overlapsProc
+      integer,dimension(:,:,:),pointer:: comarr, olrForExpansion
+      real(8),dimension(:),pointer:: recvBuf, sendBuf
+      logical,dimension(:,:),pointer:: communComplete
       type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
   end type p2pCommsOrthonormalityMatrix
 

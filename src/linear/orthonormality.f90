@@ -1071,6 +1071,7 @@ indovrlp=1
 op%indexInSendBuf=0
 
 ilrold=-1
+iiprocold=-1
 do iorb=1,orbs%norb
     ilr=onWhichAtom(iorb)
     iiproc=orbs%onWhichMPI(iorb)
