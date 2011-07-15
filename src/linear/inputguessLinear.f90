@@ -184,14 +184,16 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   hyh=.5_gp*input%hy
   hzh=.5_gp*input%hz
 
+write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig%orbs%npsidim, orbsig%npsidim
+
 
   ! Allocate the atomic orbitals chi and hchi (i.e. the Hamiltonian applied to them).
   allocate(chi(orbsig%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,chi,'chi',subname)
-  allocate(hchi(orbsig%npsidim,at%nat),stat=i_stat)
-  call memocc(i_stat,hchi,'hchi',subname)
+  !!allocate(hchi(orbsig%npsidim,at%nat),stat=i_stat)
+  !!call memocc(i_stat,hchi,'hchi',subname)
   chi=0.d0
-  hchi=0.d0
+  !!hchi=0.d0
 
   !allocate arrays for the GPU if a card is present
   switchGPUconv=.false.
@@ -351,7 +353,7 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   call gatherPotential(iproc, nproc, comgp)
 
   ! Build the potential.
-  ! This is not required at the moment since HamiltonianApplicationConfinement has a different (old) structure.
+  !!! This is not required at the moment since HamiltonianApplicationConfinement has a different (old) structure.
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,input%nspin,&
        orbsig%norb,orbsig%norbp,ngatherarr,rhopot,pot)
 
@@ -376,7 +378,7 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   end do
 
 
-  hchi=0.d0
+  !!hchi=0.d0
   lhchi=0.d0
   call cpu_time(t1)
   withConfinement=.true.
@@ -409,17 +411,17 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
            proj, ngatherarr, comgp%nrecvBuf, comgp%recvBuf, lchi, lhchi(1,iat), &
            ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp,&
            withConfinement, pkernel=pkernelseq)
-      ind1=1
-      ind2=1
-      do iorb=1,lzdig%orbs%norbp
-          ilr = onWhichAtomp(iorb)
-          ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
-          gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdig%orbs%norb, lin%orbs%nspinor, input%nspin,&
-               Glr, lzdig%Llr(ilr), lhchi(ind2,iat), hchi(ind1,iat))
-          ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
-      end do
+      !!ind1=1
+      !!ind2=1
+      !!do iorb=1,lzdig%orbs%norbp
+      !!    ilr = onWhichAtomp(iorb)
+      !!    ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+      !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdig%orbs%norb, lin%orbs%nspinor, input%nspin,&
+      !!         Glr, lzdig%Llr(ilr), lhchi(ind2,iat), hchi(ind1,iat))
+      !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      !!    ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+      !!end do
 
       if(iproc==0) write(*,'(a)') 'done.'
   end do
@@ -459,7 +461,8 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
    allocate(ham(orbsig%norb,orbsig%norb,at%nat), stat=istat)
    call memocc(i_stat,ham,'ham',subname)
    write(*,*) 'calling getHamiltonianMatrix, iproc', iproc
-   call getHamiltonianMatrix(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, at%nat, chi, hchi, ham, orbsig)
+   !call getHamiltonianMatrix(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, at%nat, chi, hchi, ham, orbsig)
+   call getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, at%nat, lchi, lhchi, ham, orbsig)
    do iat=1,at%nat
        do iorb=1,lzdig%orbs%norb
            do jorb=1,lzdig%orbs%norb
@@ -468,7 +471,7 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
        end do
    end do
    call buildLinearCombinationsLocalized(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
-        onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
+        onWhichAtom, chi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
    !!call buildLinearCombinations2(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
    !!     onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin, ham)
    call cpu_time(t2)
@@ -519,9 +522,9 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   deallocate(chi, stat=i_stat)
   call memocc(i_stat, i_all, 'chi',subname)
 
-  i_all=-product(shape(hchi))*kind(hchi)
-  deallocate(hchi, stat=i_stat)
-  call memocc(i_stat, i_all, 'hchi',subname)
+  !!i_all=-product(shape(hchi))*kind(hchi)
+  !!deallocate(hchi, stat=i_stat)
+  !!call memocc(i_stat, i_all, 'hchi',subname)
 
 
 END SUBROUTINE inputguessConfinement
@@ -2098,12 +2101,104 @@ call memocc(istat, iall, 'lhchi', subname)
 end subroutine getHamiltonianMatrix
 
 
+subroutine getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, nat, lchi, lhchi, ham, orbsig)
+use module_base
+use module_types
+use module_interfaces, exceptThisOne => getHamiltonianMatrix2
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, nat
+type(linear_zone_descriptors),intent(in):: lzdig
+type(locreg_descriptors),intent(in):: Glr
+type(input_variables),intent(in):: input
+integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom
+integer,dimension(lzdig%orbs%norbp),intent(in):: onWhichAtomp
+type(orbitals_data),intent(in):: orbsig
+!real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi
+!real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: hchi
+real(8),dimension(lzdig%orbs%npsidim),intent(in):: lchi
+real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: lhchi
+real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb,nat),intent(out):: ham
+
+! Local variables
+integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, tag
+type(overlapParameters):: op
+type(p2pCommsOrthonormality):: comon
+!real(8),dimension(:),allocatable:: lchi, lhchi, lphiovrlp
+real(8),dimension(:),allocatable:: lphiovrlp
+character(len=*),parameter:: subname='getHamiltonianMatrix'
+
+
+!! CHANGE THIS LATER?
+tag=10000
+! Initialize the parameters for calculating the matrix.
+call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, input, op, comon, tag)
+
+!allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
+!call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+
+
+
+!!! Calculate the dimension of the wave function for each process.
+!!sizeChi=0
+!!do iorb=1,lzdig%orbs%norbp
+!!    ilr=onWhichAtomp(iorb)
+!!    sizeChi = sizeChi + (lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f)
+!!end do
+!!
+!!allocate(lchi(sizeChi), stat=istat)
+!!call memocc(istat, lchi, 'lchi', subname)
+!!allocate(lhchi(sizeChi), stat=istat)
+!!call memocc(istat, lhchi, 'lhchi', subname)
+
+
+if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
+do iat=1,nat
+    if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Calculating matrix for atom ', iat, '... '
+    !!! Transform chi to the localization region. This is not needed if we really habe O(N).
+    !!ind1=1
+    !!ind2=1
+    !!do iorb=1,lzdig%orbs%norbp
+    !!    ilr = onWhichAtomp(iorb)
+    !!    ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+    !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+    !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdig%Llr(ilr), Glr, chi(ind1), lchi(ind2))
+    !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdig%Llr(ilr), Glr, hchi(ind1,iat), lhchi(ind2))
+    !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+    !!    ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+    !!end do
+
+    ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
+    !call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lchi(1), comon)
+    call extractOrbital2(iproc, nproc, lzdig%orbs, lzdig%orbs%npsidim, onWhichAtom, lzdig, op, lchi(1), comon)
+    call postCommsOverlap(iproc, nproc, comon)
+    !call gatherOrbitals(iproc, nproc, comon)
+    call gatherOrbitals2(iproc, nproc, comon)
+    ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
+    !call extractOrbital(iproc, nproc, lzdig%orbs, sizeChi, onWhichAtom, lzdig, op, lhchi(1), comon)
+    call extractOrbital2(iproc, nproc, lzdig%orbs, lzdig%orbs%npsidim, onWhichAtom, lzdig, op, lhchi(1,iat), comon)
+    call calculateOverlapMatrix2(iproc, nproc, lzdig%orbs, op, comon, onWhichAtom, ham(1,1,iat))
+    if(iproc==0) write(*,'(a)') 'done.'
+end do
+
+
+!!iall=-product(shape(lchi))*kind(lchi)
+!!deallocate(lchi, stat=istat)
+!!call memocc(istat, iall, 'lchi', subname)
+!!
+!!iall=-product(shape(lhchi))*kind(lhchi)
+!!deallocate(lhchi, stat=istat)
+!!call memocc(istat, iall, 'lhchi', subname)
+
+
+end subroutine getHamiltonianMatrix2
 
 
 
 
 subroutine buildLinearCombinationsLocalized(iproc, nproc, orbsig, orbs, commsig, comms, at, Glr, norbsPerType, &
-           onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
+           onWhichAtom, chi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
 !
 use module_base
 use module_types
@@ -2119,7 +2214,6 @@ type(locreg_descriptors),intent(in):: Glr
 integer,dimension(at%ntypes):: norbsPerType
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
 real(8),dimension(orbsig%npsidim):: chi
-real(8),dimension(orbsig%npsidim,at%nat):: hchi
 real(8),dimension(orbs%npsidim):: phi
 real(8),dimension(3,at%nat):: rxyz
 integer,dimension(orbs%norb):: onWhichAtomPhi
@@ -2161,9 +2255,9 @@ type(p2pCommsOrthonormalityMatrix):: comom
   allocate(chiw(orbsig%npsidim+ndebug),stat=istat)
   call memocc(istat,chiw, 'chiw', subname)
   call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, chi(1), work=chiw)
-  do iat=1,at%nat
-      call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, hchi(1,iat), work=chiw)
-  end do
+  !!do iat=1,at%nat
+  !!    call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, hchi(1,iat), work=chiw)
+  !!end do
   iall=-product(shape(chiw))*kind(chiw)
   deallocate(chiw,stat=istat)
   call memocc(istat, iall, 'chiw', subname)

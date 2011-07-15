@@ -34,7 +34,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: iorbtolr
-write(*,*) 'in inputguess_gaussian_orbitals: nspin',nspin
 
 
   allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)

@@ -2926,7 +2926,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine buildLinearCombinationsLocalized(iproc, nproc, orbsig, orbs, commsig, comms, at, Glr, norbsPerType, &
-           onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
+           onWhichAtom, chi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
        use module_base
        use module_types
        implicit none
@@ -2938,7 +2938,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(at%ntypes):: norbsPerType
        integer,dimension(orbsig%norb),intent(in):: onWhichAtom
        real(8),dimension(orbsig%npsidim):: chi
-       real(8),dimension(orbsig%npsidim,at%nat):: hchi
        real(8),dimension(orbs%npsidim):: phi
        real(8),dimension(3,at%nat):: rxyz
        integer,dimension(orbs%norb):: onWhichAtomPhi
@@ -2982,6 +2981,24 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
      end subroutine
+
+
+     subroutine getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, nat, lchi, lhchi, ham, orbsig)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, nat
+       type(linear_zone_descriptors),intent(in):: lzdig
+       type(locreg_descriptors),intent(in):: Glr
+       type(input_variables),intent(in):: input
+       integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom
+       integer,dimension(lzdig%orbs%norbp),intent(in):: onWhichAtomp
+       type(orbitals_data),intent(in):: orbsig
+       real(8),dimension(lzdig%orbs%npsidim),intent(in):: lchi
+       real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: lhchi
+       real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb,nat),intent(out):: ham
+     end subroutine getHamiltonianMatrix2
+
 
   end interface
 
