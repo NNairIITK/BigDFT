@@ -2795,17 +2795,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine extractMatrix
 
 
-     subroutine orthonormalizeVectors(iproc, nproc, orbs, onWhichAtom, norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
+     subroutine orthonormalizeVectors(iproc, nproc, orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, norbmax, norbp, isorb, nlr, newComm
        type(orbitals_data),intent(in):: orbs
-       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
+       integer,dimension(0:nproc-1),intent(in):: isorb_par
        type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
        real(8),dimension(norbmax,norbp),intent(inout):: vec
        type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
      end subroutine orthonormalizeVectors
+
 
 
 
@@ -2854,16 +2856,17 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine gatherVectors
 
 
-     subroutine extractToOverlapregion(iproc, nproc, orbs, onWhichAtom, norbmax, norbp, vec, comom)
+     subroutine extractToOverlapregion(iproc, nproc, norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, norbmax, norbp
-       type(orbitals_data),intent(in):: orbs
-       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       integer,intent(in):: iproc, nproc, norbmax, norb, norbp
+       integer,dimension(norb),intent(in):: onWhichAtom, onWhichMPI
+       integer,dimension(0:nproc-1),intent(in):: isorb_par
        real(8),dimension(norbmax,norbp),intent(in):: vec
        type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
      end subroutine extractToOverlapregion
+
 
 
      subroutine expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
