@@ -464,8 +464,11 @@ module module_types
 !!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: linear_zone_descriptors
     integer :: nlr                                              !> Number of localization regions 
-    type(orbitals_data):: orbs                                  !> Global orbitals descriptors
+    integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
+    type(orbitals_data) :: orbs                                !> Global orbitals descriptors
+    type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
     type(communications_arrays) :: comms                        !> Global communication descriptors
+    type(communications_arrays) :: Lcomms                       !> Local communication arrays
     type(locreg_descriptors) :: Glr                             !> Global region descriptors
     type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
@@ -530,8 +533,6 @@ end type largeBasis
     type(p2pCommsOrthonormality):: comon, comon_lb
     type(overlapParameters):: op, op_lb
   end type linearParameters
-
-
 
 !> Contains the arguments needed for the diis procedure
   type, public :: diis_objects
@@ -685,7 +686,7 @@ subroutine deallocate_orbs(orbs,subname)
     call memocc(i_stat,i_all,'orbs%iokpt',subname)
     i_all=-product(shape(orbs%ikptproc))*kind(orbs%ikptproc)
     deallocate(orbs%ikptproc,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
+    call memocc(i_stat,i_all,'ikptproc',subname)
     i_all=-product(shape(orbs%inwhichlocreg))*kind(orbs%inwhichlocreg)
     deallocate(orbs%inwhichlocreg,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%inwhichlocreg',subname)
@@ -951,9 +952,10 @@ END SUBROUTINE deallocate_orbs
 
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
     if(associated(lr%projflg)) then
-       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
-       deallocate(lr%projflg,stat=i_stat)
-       call memocc(i_stat,i_all,'lr%projflg',subname)
+       nullify(lr%projflg)
+!       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
+!       deallocate(lr%projflg,stat=i_stat)
+!       call memocc(i_stat,i_all,'lr%projflg',subname)
     end if
 
   END SUBROUTINE deallocate_lr
@@ -964,20 +966,45 @@ END SUBROUTINE deallocate_orbs
     type(linear_zone_descriptors) :: Lzd
     integer :: i_all,i_stat,ilr
 
-!    call deallocate_orbs(Lzd%orbs,subname)
- 
 !    call deallocate_comms(Lzd%comms,subname)
 
 !    call deallocate_lr(Lzd%Glr,subname)
 
+!   nullify the bounds of Glr
+    if ((Lzd%Glr%geocode == 'P' .and. Lzd%Glr%hybrid_on) .or. Lzd%Glr%geocode == 'F') then
+       nullify(Lzd%Glr%bounds%kb%ibyz_f)
+       nullify(Lzd%Glr%bounds%kb%ibxz_f)
+       nullify(Lzd%Glr%bounds%kb%ibxy_f)
+       nullify(Lzd%Glr%bounds%sb%ibxy_ff)
+       nullify(Lzd%Glr%bounds%sb%ibzzx_f)
+       nullify(Lzd%Glr%bounds%sb%ibyyzz_f)
+       nullify(Lzd%Glr%bounds%gb%ibyz_ff)
+       nullify(Lzd%Glr%bounds%gb%ibzxx_f)
+       nullify(Lzd%Glr%bounds%gb%ibxxyy_f)
+    end if
+    !the arrays which are needed only for free BC
+    if (Lzd%Glr%geocode == 'F') then
+       nullify(Lzd%Glr%bounds%kb%ibyz_c)
+       nullify(Lzd%Glr%bounds%kb%ibxz_c)
+       nullify(Lzd%Glr%bounds%kb%ibxy_c)
+       nullify(Lzd%Glr%bounds%sb%ibzzx_c)
+       nullify(Lzd%Glr%bounds%sb%ibyyzz_c)
+       nullify(Lzd%Glr%bounds%gb%ibzxx_c)
+       nullify(Lzd%Glr%bounds%gb%ibxxyy_c)
+       nullify(Lzd%Glr%bounds%ibyyzz_r)
+    end if
+
+! nullify the wfd of Glr
+   nullify(Lzd%Glr%wfd%keyg)
+   nullify(Lzd%Glr%wfd%keyv)
+ 
+!Now destroy the Llr
     do ilr = 1, Lzd%nlr 
        call deallocate_lr(Lzd%Llr(ilr),subname)
        call deallocate_Lnlpspd(Lzd%Lnlpspd(ilr),subname)
     end do
-
-    deallocate(Lzd%Llr,stat=i_stat)
-    deallocate(Lzd%Lnlpspd,stat=i_stat)
-   
+     nullify(Lzd%Llr)
+     nullify(Lzd%Lnlpspd)
 
   END SUBROUTINE deallocate_Lzd
 

@@ -696,7 +696,7 @@ write(*,*) 'iproc, psoffset', iproc, psoffset
      end if
 
   case(INPUT_PSI_LINEAR)
-
+     
      lin%as%size_rhopot=size(rhopot)
      lin%as%size_potxc(1)=size(potxc,1)
      lin%as%size_potxc(2)=size(potxc,2)

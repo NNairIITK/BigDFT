@@ -824,6 +824,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,iiorb
+  integer :: mpiflag
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:), allocatable :: mykpts
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
@@ -959,11 +960,10 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%efermi = UNINITIALISED
 
   ! allocate inwhichlocreg
-  allocate(orbs%inwhichlocreg(orbs%norbp),stat=i_stat)
+  allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
   ! default for inwhichlocreg
   orbs%inwhichlocreg = 1
-
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)
@@ -977,7 +977,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !   is located.
   allocate(orbs%isorb_par(0:nproc-1), stat=i_stat)
   call memocc(i_stat, orbs%isorb_par, 'orbs%isorb_par', subname)
-  allocate(orbs%onWhichMPI(orbs%norb), stat=i_stat)
+  allocate(orbs%onWhichMPI(sum(orbs%norb_par)), stat=i_stat)
   call memocc(i_stat, orbs%onWhichMPI, 'orbs%onWhichMPI', subname)
   iiorb=0
   orbs%isorb_par=0
@@ -990,8 +990,9 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
           orbs%isorb_par(jproc)=orbs%isorb
       end if
   end do
-  call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
-
+  call MPI_Initialized(mpiflag,ierr)
+  if(mpiflag == 1) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+  
 
 END SUBROUTINE orbitals_descriptors
 

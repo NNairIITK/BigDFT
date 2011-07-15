@@ -1100,24 +1100,20 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
      Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
 
 !DEBUG
-!     write(*,*)'Description of zone:',ilr
-!     write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
-!     write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
-!     write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
-!     write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
-!     write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
-!     write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
-!     write(*,*)'outofzone',ilr,':',outofzone(:)
+!     if (iproc == 0) then
+!        write(*,*)'Description of zone:',ilr
+!        write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
+!        write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
+!        write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
+!        write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
+!        write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
+!        write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
+!        write(*,*)'outofzone',ilr,':',outofzone(:)
+!     end if
 !DEBUG
 
     ! construct the wavefunction descriptors (wfd)
      call determine_wfd_periodicity(ilr,nlr,Glr,Llr)
-     
-!     print *,'Before locreg_bounds'
-!     print *,'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
-!     print *,'nl,nu:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3
-!     print *,'wfd(nseg):',Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nseg_f
-!     print *,'wfd(nvctr):',Llr(ilr)%wfd%nvctr_c,Llr(ilr)%wfd%nvctr_f
 
      ! Sould check if nfu works properly... also relative to locreg!!
      !if the localisation region is isolated build also the bounds
@@ -1851,153 +1847,82 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 END SUBROUTINE get_overlap_region_periodic
 !%***
 
-subroutine assignToLocreg(iproc, natom, natsc, nlr, nspin, Localnorb, orbse, norbsc_arr, iasctype)
+!determine a set of localisation regions from the centers and the radii.
+!cut in cubes the global reference system
+subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
   use module_base
   use module_types
   implicit none
+  integer, intent(in) :: iproc
+  integer, intent(in) :: nlr
+  logical,intent(out) :: linear
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: Glr
+  real(gp), dimension(nlr), intent(in) :: locrad
+  real(gp), dimension(3,nlr), intent(in) :: cxyz
+  !local variables
+  character(len=*), parameter :: subname='check_linear_inputguess'
+  logical :: warningx,warningy,warningz
+  integer :: ilr,isx,isy,isz,iex,iey,iez
+  integer :: ln1,ln2,ln3
+  real(gp) :: rx,ry,rz,cutoff
   
-  integer,intent(in):: nlr,iproc,nspin,natom
-  integer, intent(in) :: natsc                                          !> number of atoms having semicore states
-  integer,dimension(nlr),intent(in):: Localnorb
-  type(orbitals_data),intent(inout):: orbse
-  integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr           !> number of semicore orbitals for the semicore atoms 
-  integer,dimension(natom),intent(in) :: iasctype                       !> mapping of semicore atoms: >0 if atom has semicore states
-  ! Local variables
-  integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsctot,orbsc,ispin
-  integer :: iat,ind
-  integer, dimension(natom,nspin) :: orbscToAtom                        !> array olding the number of semicore states for each atom and spin
-  character(len=*), parameter :: subname='assignToLocreg'
+  linear = .true.
 
-  allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
-  call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
+  !determine the limits of the different localisation regions
+  do ilr=1,nlr
 
-  ! There are four counters:
-  !   jproc: indicates which MPI process is handling the basis function which is being treated
-  !   jat: counts the atom numbers
-  !   jorb: counts the orbitals handled by a given process
-  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
+     !initialize logicals
+     warningx = .false.
+     warningy = .false.
+     warningz = .false.
 
-  ! First build the number of semicore states for each atom
-  orbscToAtom = 0
-  do ispin=1,nspin
-     iat = 0
-     do jat=1,natom
-        if(iasctype(jat) == 0)cycle
-         iat = iat + 1
-        orbscToAtom(jat,ispin) = norbsc_arr(iat,ispin)
-        print *,'jat,ispin,oTA:',jat,ispin,orbscToAtom(jat,ispin)
-     end do
+     rx=cxyz(1,ilr)
+     ry=cxyz(2,ilr)
+     rz=cxyz(3,ilr)
+
+     cutoff=locrad(ilr)
+
+     isx=floor((rx-cutoff)/hx)
+     isy=floor((ry-cutoff)/hy)
+     isz=floor((rz-cutoff)/hz)
+
+     iex=ceiling((rx+cutoff)/hx)
+     iey=ceiling((ry+cutoff)/hy)
+     iez=ceiling((rz+cutoff)/hz)
+
+     ln1 = iex-isx
+     ln2 = iey-isy
+     ln3 = iez-isz
+
+     ! First check if localization region fits inside box
+        if (iex - isx >= Glr%d%n1 - 14) then
+           warningx = .true.
+        end if
+        if (iey - isy >= Glr%d%n2 - 14) then
+           warningy = .true.
+        end if
+        if (iez - isz >= Glr%d%n3 - 14) then
+           warningz = .true.
+        end if 
+
+     !If not, then don't use linear input guess (set linear to false)
+     if(warningx .and. warningy .and. warningz .and. (Glr%geocode .ne. 'F')) then
+       linear = .false.
+       if(iproc == 0) then
+          write(*,*)'Not using the linear scaling input guess, because localization'
+          write(*,*)'region greater or equal to simulation box.'
+       end if
+       exit 
+     end if
   end do
-
-  ! Now distribute the semicore states
-  ind = 0
-  do ispin=1,nspin
-     do jat=1,natom
-        do iorb=1,orbscToAtom(jat,ispin)
-            orbse%inWhichLocreg(iorb+ind) = jat
-        end do
-        ind = ind + orbscToAtom(jat,ispin)
-     end do
-  end do
- 
-! DEBUG
-!     print *,'ind',ind 
-!     do ispin=1,orbse%norb
-!       write(*,*) 'iorb, iwl', ispin, orbse%inWhichLocreg(ispin),orbse%occup(ispin)
-!     end do
-! END DEBUG
-
-  jproc=0
-  jat=1
-  jorb=ind
-  iiOrb=0
-  do iorb=ind,orbse%norb
-
-      ! Switch to the next MPI process if the numbers of orbitals for a given
-      ! MPI process is reached.
-      if(jorb==orbse%norb_par(jproc)) then
-          jproc=jproc+1
-          jorb=ind
-      end if
-      orbsc = 0
-      do ispin=1,nspin
-         orbsc = orbsc + orbscToAtom(jat,ispin)
-      end do
-      ! Switch to the next atom if the number of basis functions for this atom is reached.
-      if(iiOrb==Localnorb(jat)-orbsc) then
-          jat=jat+1
-          iiOrb=0
-      end if
-      if(jat > natom) then
-        jat = 1
-      end if
-      jorb=jorb+1
-      iiOrb=iiOrb+1
-      if(iproc==jproc) orbse%inWhichLocreg(jorb)=jat
-  end do
-
-end subroutine assignToLocreg
-
-
-subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, orbse)
-  use module_base
-  use module_types
-  implicit none
-
-  integer,intent(in):: nlr,iproc,nspin,natom
-  integer,dimension(nlr),intent(in):: Localnorb
-  type(orbitals_data),intent(inout):: orbse
-
-  ! Local variables
-  integer:: jproc, iiOrb, iorb, jorb, jat,i_stat
-  character(len=*), parameter :: subname='assignToLocreg'
-
-  allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
-  call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
-
-  ! There are four counters:
-  !   jproc: indicates which MPI process is handling the basis function which is being treated
-  !   jat: counts the atom numbers
-  !   jorb: counts the orbitals handled by a given process
-  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
-  jproc=0
-  jat=1
-  jorb=0
-  iiOrb=0
-
-  do iorb=1,orbse%norb
-
-      ! Switch to the next MPI process if the numbers of orbitals for a given
-      ! MPI process is reached.
-      if(jorb==orbse%norb_par(jproc)) then
-          jproc=jproc+1
-          jorb=0
-      end if
-
-      ! Switch to the next atom if the number of basis functions for this atom is reached.
-      if(iiOrb==Localnorb(jat)) then
-          jat=jat+1
-          iiOrb=0
-      end if
-      if(jat > natom) then
-        jat = 1
-      end if
-      jorb=jorb+1
-      iiOrb=iiOrb+1
-      if(iproc==jproc) orbse%inWhichLocreg(jorb)=jat
-  end do
-
-end subroutine assignToLocreg2
-
-
-
-
-
+      
+end subroutine check_linear_inputguess
 
 !##############################################################################################################################################
 !!****f* BigDFT/get_overlap_region2
 !##############################################################################################################################################
-!! FUNCTION Given two localization regions, A and B, this routine returns a localization region corresponding to the intersection of A & B. 
+!! FUNCTION Given two localization regions, A and B, this routine returns a localization region corresponding to the intersection of A & B.
 !!          This is the same as get_overlap_region_periodic, but does not allocate the bound arrays to save memory.
 !!
 !! SOURCE
@@ -2006,7 +1931,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 
   use module_base
   use module_types
- 
+
  implicit none
 
   !#######################################
@@ -2019,7 +1944,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
   !########################################
   !Subroutine Array Arguments
   !########################################
-  type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors 
+  type(locreg_descriptors), dimension(nlr), intent(in) :: Llr  ! Localization grid descriptors
   type(locreg_descriptors),dimension(isovrlp),intent(out) :: Olr ! Overlap localization regions
   !#############################################
   !local variables
@@ -2065,9 +1990,9 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
   index = 0
   do izones=1,azones
     do jzones=1,bzones
-      go1 = (bstart(1,jzones) .le. aend(1,izones) .and. bend(1,jzones) .ge. astart(1,izones)) 
-      go2 = (bstart(2,jzones) .le. aend(2,izones) .and. bend(2,jzones) .ge. astart(2,izones)) 
-      go3 = (bstart(3,jzones) .le. aend(3,izones) .and. bend(3,jzones) .ge. astart(3,izones)) 
+      go1 = (bstart(1,jzones) .le. aend(1,izones) .and. bend(1,jzones) .ge. astart(1,izones))
+      go2 = (bstart(2,jzones) .le. aend(2,izones) .and. bend(2,jzones) .ge. astart(2,izones))
+      go3 = (bstart(3,jzones) .le. aend(3,izones) .and. bend(3,jzones) .ge. astart(3,izones))
       if(go1 .and. go2 .and. go3) then
         index = index + 1
 
@@ -2076,7 +2001,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 ! when the previous test is successful. Note also that
 ! isx, isy and isz are necessarily in the Glr by construction
 ! of the Llrs, so don't need to test them.
-         
+
         ! Determine the limits of the overlap region
         isx = max(astart(1,izones),bstart(1,jzones))
         isy = max(astart(2,izones),bstart(2,jzones))
@@ -2089,7 +2014,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 !       Checks to assign the geometric code of the overlap region (TO DO,could be interesting for Pascal?)
 !       This could change the values of the bounds, so do it here
 !       for now, in sandbox,put free boundary to all zones
-        Olr(index)%geocode = 'F'  
+        Olr(index)%geocode = 'F'
 
 !       Values for the starting point of the cube
         Olr(index)%ns1 = isx
@@ -2097,10 +2022,10 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
         Olr(index)%ns3 = isz
 
 !       Dimensions of the overlap region
-        Olr(index)%d%n1 = iex - isx 
-        Olr(index)%d%n2 = iey - isy 
-        Olr(index)%d%n3 = iez - isz 
-    
+        Olr(index)%d%n1 = iex - isx
+        Olr(index)%d%n2 = iey - isy
+        Olr(index)%d%n3 = iez - isz
+
 !       Dimensions of the fine grid inside the overlap region
         if (isx < iex) then
            Olr(index)%d%nfl1=max(isx,Glr%d%nfl1)-isx
@@ -2126,7 +2051,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
            stop
         end if
 
-!       Dimensions of the interpolating scaling function grid 
+!       Dimensions of the interpolating scaling function grid
 !       (geocode already taken into acount because it is simple)
         select case(Olr(index)%geocode)
         case('F')
@@ -2142,7 +2067,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
           Olr(index)%d%n2i=2*Olr(index)%d%n2+2
           Olr(index)%d%n3i=2*Olr(index)%d%n3+2
         end select
- 
+
 !       Now define the wavefunction descriptors inside the overlap region
 !       First calculate the number of points and segments for the region
 !       Coarse part:
@@ -2179,7 +2104,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
         !!!   call locreg_bounds(Olr(index)%d%n1,Olr(index)%d%n2,Olr(index)%d%n3,&
         !!!     Olr(index)%d%nfl1,Olr(index)%d%nfu1,Olr(index)%d%nfl2,Olr(index)%d%nfu2,&
         !!!     Olr(index)%d%nfl3,Olr(index)%d%nfu3,Olr(index)%wfd,Olr(index)%bounds)
-     
+
         !!!end if
      end if ! go1 .and. go2 .and. go3
    end do !jzones
@@ -2210,3 +2135,4 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
   end if
 
 END SUBROUTINE get_overlap_region_periodic2
+

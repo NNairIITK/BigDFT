@@ -232,6 +232,7 @@ integer:: ist, ierr
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp_lb, lin%lb%onWhichAtom, withConfinement, &
            pkernel=pkernelseq)
   end if
+
   if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
 
 
@@ -2303,12 +2304,14 @@ procLoop1: do jproc=0,nproc-1
             if(iproc==mpisource) then
                 !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
                 !call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
-                call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
+                call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                     lin%comsr%comarr(8,iorb,jproc), ierr)
                 lin%comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
                 !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world, lin%comsr%comarr(9,iorb,jproc), ierr)
+                call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                     lin%comsr%comarr(9,iorb,jproc), ierr)
                 lin%comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
                 nreceives=nreceives+1
             else
@@ -2335,7 +2338,8 @@ end do procLoop1
 if(iproc==0) write(*,'(a)') 'done.'
 
 if(nreceives/=lin%comsr%noverlaps(iproc)) then
-    write(*,'(x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=lin%comsr%noverlaps(iproc)', nreceives, lin%comsr%noverlaps(iproc)
+    write(*,'(x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=lin%comsr%noverlaps(iproc)', nreceives,&
+         lin%comsr%noverlaps(iproc)
     stop
 end if
 call mpi_barrier(mpi_comm_world, ierr)
@@ -2474,7 +2478,8 @@ do jproc=0,nproc-1
                 ie3max=ie3
             end if
             !write(*,'(a,8i8)') 'jproc, kproc, is3j, ie3j, is3k, ie3k, is3, ie3', jproc, kproc, is3j, ie3j, is3k, ie3k, is3, ie3
-            call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc, istdest, tag, comgp%comarr(1,ioverlap,jproc))
+            call setCommunicationPotential(kproc, is3, ie3, ioffset, lzd%Glr%d%n1i, lzd%Glr%d%n2i, jproc,&
+                 istdest, tag, comgp%comarr(1,ioverlap,jproc))
             !if(iproc==0) write(*,'(6(a,i0))') 'process ',comgp%comarr(1,ioverlap,jproc),' sends ',comgp%comarr(3,ioverlap,jproc),' elements from position ',&
             !                        comgp%comarr(2,ioverlap,jproc),' to position ',comgp%comarr(5,ioverlap,jproc),' on process ',&
             !                        comgp%comarr(4,ioverlap,jproc),'; tag=',comgp%comarr(6,ioverlap,jproc)
@@ -2572,12 +2577,14 @@ destLoop: do jproc=0,nproc-1
         if(mpisource/=mpidest) then
             if(iproc==mpisource) then
                 !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
-                call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, comgp%comarr(7,kproc,jproc), ierr)
+                call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                     comgp%comarr(7,kproc,jproc), ierr)
                 comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
                 !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world, comgp%comarr(8,kproc,jproc), ierr)
+                call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                    comgp%comarr(8,kproc,jproc), ierr)
                 comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
                 nreceives=nreceives+1
             else
@@ -2604,7 +2611,8 @@ end do destLoop
 if(iproc==0) write(*,'(a)') 'done.'
 
 if(nreceives/=comgp%noverlaps(iproc)) then
-    write(*,'(x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=comgp%noverlaps(iproc)', nreceives, comgp%noverlaps(iproc)
+    write(*,'(x,a,i0,a,i0,2x,i0)') 'ERROR on process ', iproc, ': nreceives/=comgp%noverlaps(iproc)',&
+         nreceives, comgp%noverlaps(iproc)
     stop
 end if
 

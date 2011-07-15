@@ -47,7 +47,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
   real(gp), dimension(3,2) :: wrkallred
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-
+ integer :: size_pot
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
@@ -69,6 +69,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
 
   ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
+       size_pot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin + &
+         max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norb,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
+
 
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
@@ -101,6 +104,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      eexctX = 0._gp
      !print *,'iproc,eexctX',iproc,eexctX
   end if
+        size_pot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin + &
+         max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norb,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
 
   call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -214,6 +219,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !only taking into account the local potential part
   !whereas it should consider also the value coming from the 
   !exact exchange operator (twice the exact exchange energy)
+  
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
 END SUBROUTINE HamiltonianApplication

@@ -290,7 +290,6 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir
-real(8):: dnrm2
 
   call initialize_work_arrays_sumrho(lr,w)
 
@@ -499,7 +498,6 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   !case without bounds
   i1s=1
   i1e=n1i
-  
   loop_xc_overlap: do jproc=0,nproc-1
      !case for REDUCE_SCATTER approach, not used for GGA since it enlarges the 
      !communication buffer

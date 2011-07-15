@@ -101,6 +101,8 @@ call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%ns
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%lzd%orbs)
 
 
+
+
 ! Assign the parameters needed for the communication to lin%comms. Again distinguish
 ! between the 'normal' basis and the 'large' basis inlcuding the derivtaives.
 call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
@@ -654,7 +656,6 @@ character(len=*),parameter:: subname='deallocateLinear'
   deallocate(lin%norbsPerType, stat=istat)
   call memocc(istat, iall, 'lin%norbsPerType', subname)
 
-  
   call deallocate_orbs(lin%orbs,subname)
 
   call deallocate_comms(lin%comms,subname)
@@ -662,7 +663,7 @@ character(len=*),parameter:: subname='deallocateLinear'
   call deallocate_orbs(lin%lb%orbs,subname)
 
   call deallocate_comms(lin%lb%comms,subname)
-  
+
   iall=-product(shape(phi))*kind(phi)
   deallocate(phi, stat=istat)
   call memocc(istat, iall, 'phi', subname)
@@ -1039,7 +1040,8 @@ end do
 call mpiallred(ttIntot, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(ttOuttot, 1, mpi_sum, mpi_comm_world, ierr)
 if(iproc==0) write(*,'(x,a)') 'cutting of outside localization region:'
-if(iproc==0) write(*,'(3x,a,2es17.8)') 'before cut; average weights in / out:', ttIntot/dble(lin%orbs%norb), ttOuttot/dble(lin%orbs%norb)
+if(iproc==0) write(*,'(3x,a,2es17.8)') 'before cut; average weights in / out:', ttIntot/dble(lin%orbs%norb),&
+             ttOuttot/dble(lin%orbs%norb)
 
 
 call mpi_barrier(mpi_comm_world, ierr)
@@ -1093,7 +1095,8 @@ end do
 
 call mpiallred(ttIntot, 1, mpi_sum, mpi_comm_world, ierr)
 call mpiallred(ttOuttot, 1, mpi_sum, mpi_comm_world, ierr)
-if(iproc==0) write(*,'(3x,a,2es17.8)') 'after cut; average weights in / out:', ttIntot/dble(lin%orbs%norb), ttOuttot/dble(lin%orbs%norb)
+if(iproc==0) write(*,'(3x,a,2es17.8)') 'after cut; average weights in / out:', ttIntot/dble(lin%orbs%norb),&
+            ttOuttot/dble(lin%orbs%norb)
 
 iall=-product(shape(phir))*kind(phir)
 deallocate(phir, stat=istat)

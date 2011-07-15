@@ -150,6 +150,7 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
   ! Create the atomic orbitals in a Gaussian basis.
   nvirt=0
+  write(*,*) 'nspin_ig',nspin_ig
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
        lin%orbs,orbsig,norbsc_arr,locrad,G,psigau,eks)
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
@@ -406,16 +407,16 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
       !     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp, withConfinement, doNotCalculate=doNotCalculate, pkernel=pkernelseq)
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lzdig, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, comgp%nrecvBuf, comgp%recvBuf, lchi, lhchi(1,iat), &
-           ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp, withConfinement, pkernel=pkernelseq)
-      !write(*,'(a,2i5,es15.6)') 'iat, iproc, sum(lhchi(:,iat))', iat, iproc, sum(lhchi(:,iat))
+           ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp,&
+           withConfinement, pkernel=pkernelseq)
       ind1=1
       ind2=1
       do iorb=1,lzdig%orbs%norbp
           ilr = onWhichAtomp(iorb)
           ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
           gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdig%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lzdig%Llr(ilr), lhchi(ind2,iat), hchi(ind1,iat))
-          !write(*,'(a,3i5,es15.6)') 'iat, iproc, iorb, sum(hchi(ind1:ind1+gdim-1,iat))', iat, iproc, iorb, sum(hchi(ind1:ind1+gdim-1,iat))
+          call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdig%orbs%norb, lin%orbs%nspinor, input%nspin,&
+               Glr, lzdig%Llr(ilr), lhchi(ind2,iat), hchi(ind1,iat))
           ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
           ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
       end do
@@ -2037,8 +2038,8 @@ tag=10000
 ! Initialize the parameters for calculating the matrix.
 call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, input, op, comon, tag)
 
-allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
-call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+!allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
+!call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
 
 

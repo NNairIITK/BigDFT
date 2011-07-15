@@ -34,6 +34,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: iorbtolr
+write(*,*) 'in inputguess_gaussian_orbitals: nspin',nspin
 
 
   allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
@@ -392,7 +393,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
         end do
         norbsc_arr(iatsc,1)=iorbsc_count
         norbsc=norbsc+iorbsc_count
-        !if (iproc == 0) write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
+        !write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
      end if
 
   end do
