@@ -2188,24 +2188,24 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer, dimension(:,:,:),pointer :: ibyyzz_r
     end subroutine partial_density_linear
 
-    subroutine local_partial_densityLinear(iproc,nproc,nlr,rsflag,nscatterarr,&
-         nrhotot,Glr,Llr,nrho,rho,hxh,hyh,hzh,nspin,orbs,psi)
+
+    subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,rsflag,nscatterarr,&
+         nrhotot,nrho,rho,hxh,hyh,hzh,nspin,psi)
       use module_base
       use module_types
       use libxc_functionals
       implicit none
       logical, intent(in) :: rsflag
-      integer, intent(in) :: iproc,nproc,nlr,nrho
+      integer, intent(in) :: iproc,nproc,nrho,ixc
       integer,intent(inout):: nrhotot
       integer, intent(in) :: nspin
-      real(dp),dimension(max(nrho,1),nspin):: rho
+      real(dp),dimension(max(nrho,1),nspin),intent(out):: rho
       real(gp), intent(in) :: hxh,hyh,hzh
-      type(orbitals_data), intent(in) :: orbs
-      type(locreg_descriptors), intent(in) :: Glr
-      type(locreg_descriptors),dimension(nlr),intent(in) :: Llr
+      type(linear_zone_descriptors), intent(in) :: Lzd
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      real(wp), dimension(orbs%npsidim), intent(in) :: psi
+      real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
     end subroutine local_partial_densityLinear
+
 
     subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
       use module_base

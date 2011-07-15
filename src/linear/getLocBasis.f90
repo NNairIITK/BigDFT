@@ -114,8 +114,6 @@ character(len=30):: filename
 integer:: ist, ierr
 
   ! Allocate the local arrays.  
-  allocate(hphi(lin%lb%orbs%npsidim), stat=istat) 
-  call memocc(istat, hphi, 'hphi', subname)
   allocate(matrixElements(lin%lb%orbs%norb,lin%lb%orbs%norb,2), stat=istat)
   call memocc(istat, matrixElements, 'matrixElements', subname)
   allocate(HamSmall(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
@@ -126,14 +124,6 @@ integer:: ist, ierr
   call memocc(istat, eval, 'eval', subname)
   allocate(ovrlp(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
-
-  allocate(lphiold(lin%lb%lorbs%npsidim), stat=istat)
-  allocate(phiold(lin%lb%orbs%npsidim), stat=istat)
-  allocate(lhphiold(lin%lb%lorbs%npsidim), stat=istat)
-  allocate(hphiold(lin%lb%orbs%npsidim), stat=istat)
-  allocate(ovrlpold(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
-  allocate(hamold(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
-  allocate(eps(orbs%norb), stat=istat)
 
   ! Transform phi to the lphi.
   ind1=1
@@ -159,7 +149,9 @@ integer:: ist, ierr
 
   if(lin%useDerivativeBasisFunctions) then
       call dcopy(lin%lzd%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
+      if(iproc==0) write(*,'(x,a)',advance='no') 'calculating derivative basis functions...'
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%lzd%orbs%npsidim, lin%lphiRestart, lphi)
+      if(iproc==0) write(*,'(a)') 'done.'
 
       ! Normalize the derivative basis functions.
       ! Normalize all to keep it easy.
@@ -300,109 +292,11 @@ integer:: ist, ierr
   end if
 
 
-  !! Improve the coefficients -- EXPERIMENTAL
-  !!if(updatePhi) then
-  !!    call dcopy(lin%lb%orbs%norb*orbs%norb, coeff(1,1), 1, matrixElements(1,1,2), 1)
-  !!    do iorb=1,orbs%norb
-  !!        do jorb=1,lin%lb%orbs%norb
-  !!            tt=0.d0
-  !!            do korb=1,lin%lb%orbs%norb
-  !!                tt=tt+matrixElements(korb,iorb,2)*matrixElements(jorb,korb,1)
-  !!            end do
-  !!            coeff(jorb,iorb) = coeff(jorb,iorb)-1.d-1*tt
-  !!        end do 
-  !!    end do
-  !!end if
-  !!
-
-  !!if(updatePhi) then
-  !!    call dcopy(lin%lb%Lorbs%npsidim, lin%lphiold(1), 1, lphiold(1), 1)
-  !!    call dcopy(lin%lb%Lorbs%npsidim, lin%lhphiold(1), 1, lhphiold(1), 1)
-  !!    ind1=1
-  !!    ind2=1
-  !!    phiold=0.d0
-  !!    hphiold=0.d0
-  !!    do iorb=1,lin%lb%orbs%norbp
-  !!        ilr = lin%lb%onWhichAtom(iorb)
-  !!        ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-  !!        gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!        call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphiold(ind2), phiold(ind1))
-  !!        call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lhphiold(ind2), hphiold(ind1))
-  !!        ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!        ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-  !!    end do
-  !!    call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-  !!    call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, hphi, work=phiWork)
-  !!    call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phiold, work=phiWork)
-  !!    call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, hphiold, work=phiWork)
-  !!    nvctrp=sum(lin%lb%comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-  !!    ist=1
-  !!    do iorb=1,lin%lb%orbs%norb
-  !!        jst=1
-  !!        do jorb=1,lin%lb%orbs%norb
-  !!            ovrlpold(jorb,iorb)=ddot(nvctrp, phi(jst), 1, phiold(ist), 1)
-  !!            hamold(jorb,iorb)=ddot(nvctrp, phi(jst), 1, hphiold(ist), 1)
-  !!            jst=jst+nvctrp
-  !!        end do
-  !!        ist=ist+nvctrp
-  !!    end do
-  !!    call mpiallred(ovrlpold(1,1), lin%lb%orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-  !!    call mpiallred(hamold(1,1), lin%lb%orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-  !!    do iorb=1,lin%lb%orbs%norb
-  !!        do jorb=1,lin%lb%orbs%norb
-  !!            if(iproc==0) write(400,'(a,2i7,es16.7)') 'iorb, jorb, ovrlpold(iorb,jorb)', iorb, jorb, ovrlpold(iorb,jorb)
-  !!            if(iproc==0) write(410,'(a,2i7,es16.7)') 'iorb, jorb, hamold(iorb,jorb)', iorb, jorb, hamold(iorb,jorb)
-  !!        end do
-  !!    end do
-
-  !!    ! Calculate epsilon
-  !!    do iorb=1,orbs%norb
-  !!        tt=0.d0
-  !!        do jorb=1,lin%lb%orbs%norb
-  !!            do korb=1,lin%lb%orbs%norb
-  !!                tt = tt + coeff(jorb,iorb)*coeff(korb,iorb)*lin%hamold(korb,jorb)
-  !!            end do
-  !!        end do
-  !!        eps(iorb)=tt
-  !!    end do
-
-  !!    call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-  !!    call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, hphi, work=phiWork)
-  !!    call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phiold, work=phiWork)
-  !!    call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, hphiold, work=phiWork)
-
-  !!    call dcopy(lin%lb%orbs%norb*orbs%norb, coeff(1,1), 1, matrixElements(1,1,2), 1)
-  !!    do iorb=1,orbs%norb
-  !!        tt2=0.d0
-  !!        do jorb=1,lin%lb%orbs%norb
-  !!            tt=0.d0
-  !!            do korb=1,lin%lb%orbs%norb
-  !!                !tt = tt + matrixElements(korb,iorb,2)*ovrlpold(jorb,korb) - 1.d0*matrixElements(korb,iorb,2)*hamold(jorb,korb) + 1.d0*eps(iorb)*matrixElements(korb,iorb,2)*ovrlpold(jorb,korb)
-  !!                tt = tt + matrixElements(korb,iorb,2)*ovrlpold(jorb,korb) - 1.d0*matrixElements(korb,iorb,2)*hamold(jorb,korb) + 1.d0*lin%hamold(jorb,korb)*matrixElements(korb,iorb,2)*ovrlpold(jorb,korb)
-  !!                tt2=tt2+matrixElements(korb,iorb,2)*matrixElements(jorb,iorb,2)*hamold(jorb,korb)
-  !!                !if(iproc==0) write(*,'(a,3i7,3es15.6)') 'iorb, jorb, korb, hamold(jorb,korb), eps(iorb),ovrlpold(jorb,korb)', iorb, jorb, korb, hamold(jorb,korb), eps(iorb),ovrlpold(jorb,korb)
-  !!            end do
-  !!            coeff(jorb,iorb)=tt
-  !!        end do
-  !!        !if(iproc==0) write(*,'(a,i7,2es14.6)') '>>> iorb, tt2, eps(iorb)', iorb, tt2, eps(iorb)
-  !!    end do
-
-  !!    ! Normalize
-  !!    do iorb=1,orbs%norb
-  !!        tt=0.d0
-  !!        do jorb=1,lin%lb%orbs%norb
-  !!            tt=tt+coeff(jorb,iorb)**2
-  !!        end do
-  !!        tt=sqrt(tt)
-  !!        call dscal(lin%lb%orbs%norb, 1/tt, coeff(1,iorb), 1)
-  !!    end do
-  !!        
-  !!end if
 
   ! Copy phi.
   call dcopy(lin%lb%Lorbs%npsidim, lphi(1), 1, lin%lphiold(1), 1)
 
-  ! Copy hphi.
+  ! Copy lhphi.
   call dcopy(lin%lb%Lorbs%npsidim, lhphi(1), 1, lin%lhphiold(1), 1)
 
   ! Copy the Hamiltonian
@@ -413,10 +307,6 @@ integer:: ist, ierr
   iall=-product(shape(HamSmall))*kind(HamSmall)
   deallocate(HamSmall, stat=istat)
   call memocc(istat, iall, 'HamSmall', subname)
-
-  iall=-product(shape(hphi))*kind(hphi)
-  deallocate(hphi, stat=istat)
-  call memocc(istat, iall, 'hphi', subname)
 
   iall=-product(shape(lhphi))*kind(lhphi)
   deallocate(lhphi, stat=istat)
@@ -3019,6 +2909,7 @@ call memocc(istat, lin%lb%comrp%communComplete, 'lin%lb%comrp%communComplete', s
 !!end if
 
 
+
 allocate(lin%lb%comrp%comarr(8,4*maxval(lin%lzd%orbs%norb_par),0:nproc-1), stat=istat)
 call memocc(istat, lin%lb%comrp%comarr, 'lin%lb%comrp%comarr', subname)
 
@@ -3038,6 +2929,7 @@ do jproc=0,nproc-1
             istdest=istdest+lin%lzd%llr(klr)%wfd%nvctr_c+7*lin%lzd%llr(klr)%wfd%nvctr_f
         end do
         tag=tag+1
+        !write(*,'(10(a,i0))') 'init on iproc=',iproc,': process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,'; tag=',tag,', jlr=',jlr,', jjorb=',jjorb,', offset=',lin%lzd%orbs%isorb_par(jproc)
         call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, lin%lb%comrp%comarr(1,jorb,jproc))
         istsource=istsource+ncount
     end do
@@ -3081,10 +2973,11 @@ do jproc=0,nproc-1
         mpidest=comrp%comarr(4,jorb,jproc)
         istdest=comrp%comarr(5,jorb,jproc)
         tag=comrp%comarr(6,jorb,jproc)
+        !write(*,'(10(a,i0))') 'post on iproc=',iproc,': process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,'; tag=',tag,'  jproc=',jproc,' jorb=',jorb,' ncnt=',comrp%comarr(3,jorb,jproc)
         if(mpisource/=mpidest) then
             ! The orbitals are on different processes, so we need a point to point communication.
             if(iproc==mpisource) then
-                !!write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                !write(*,'(9(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag,'  jproc=',jproc,' jorb=',jorb,' ncnt=',comrp%comarr(3,jorb,jproc)
                 call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, comrp%comarr(7,jorb,jproc), ierr)
                 !!do ierr=istsource,istsource+ncount-1
                 !!    write(tag,*) ierr, sendBuf(ierr)
@@ -3093,7 +2986,7 @@ do jproc=0,nproc-1
                 comrp%comarr(8,jorb,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
-                !!write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                !write(*,'(9(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag,'  jproc=',jproc,' jorb=',jorb,' ncnt=',comrp%comarr(3,jorb,jproc)
                 call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world, comrp%comarr(8,jorb,jproc), ierr)
                 comrp%comarr(7,jorb,jproc)=mpi_request_null !is this correct?
                 nreceives=nreceives+1
@@ -3108,7 +3001,7 @@ do jproc=0,nproc-1
                 !!do ierr=istsource,istsource+ncount-1
                 !!    write(tag,*) ierr, sendBuf(ierr)
                 !!end do
-                !!write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
                 comrp%comarr(7,jorb,jproc)=mpi_request_null
                 comrp%comarr(8,jorb,jproc)=mpi_request_null
                 nsends=nsends+1

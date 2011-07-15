@@ -991,7 +991,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
       end if
   end do
   call MPI_Initialized(mpiflag,ierr)
-  if(mpiflag == 1) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+  if(mpiflag /= 0) call mpiallred(orbs%isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
   
 
 END SUBROUTINE orbitals_descriptors

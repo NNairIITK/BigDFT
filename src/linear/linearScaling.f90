@@ -160,6 +160,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
 
 
   updatePhi=.false.
+  call mpi_barrier(mpi_comm_world, ierr)
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &

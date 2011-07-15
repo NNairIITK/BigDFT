@@ -503,6 +503,7 @@ end subroutine getOverlapMatrix2
 subroutine initCommsOrtho(iproc, nproc, lzd, onWhichAtomAll, input, op, comon, tag)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => initCommsOrtho
 implicit none
 
 ! Calling arguments
