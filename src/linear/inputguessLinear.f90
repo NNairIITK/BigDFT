@@ -463,13 +463,13 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
    write(*,*) 'calling getHamiltonianMatrix, iproc', iproc
    !call getHamiltonianMatrix(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, at%nat, chi, hchi, ham, orbsig)
    call getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, at%nat, lchi, lhchi, ham, orbsig)
-   do iat=1,at%nat
-       do iorb=1,lzdig%orbs%norb
-           do jorb=1,lzdig%orbs%norb
-               write(300+iproc,*) iat, iorb, jorb, ham(iorb,jorb,iat)
-           end do 
-       end do
-   end do
+   !!do iat=1,at%nat
+   !!    do iorb=1,lzdig%orbs%norb
+   !!        do jorb=1,lzdig%orbs%norb
+   !!            write(300+iproc,*) iat, iorb, jorb, ham(iorb,jorb,iat)
+   !!        end do 
+   !!    end do
+   !!end do
    call buildLinearCombinationsLocalized(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
         onWhichAtom, chi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
    !!call buildLinearCombinations2(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
@@ -2387,9 +2387,9 @@ type(p2pCommsOrthonormalityMatrix):: comom
                    lcoeff(1,iorb), 1, 0.d0, lgrad(1,iorb), 1)
           end do
       
-          do jorb=1,lzdig%matmin%norbmax
-              write(650+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
-          end do
+          !!do jorb=1,lzdig%matmin%norbmax
+          !!    write(650+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
+          !!end do
           if(it>1) then
               traceOld=trace
           else
@@ -3269,11 +3269,11 @@ call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, como
 
 ! Calculate the Lagrange multiplier matrix <vec|grad>.
 call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec, gradOvrlp, newComm, lagmat)
-do iorb=1,orbs%norb
-    do jorb=1,orbs%norb
-        write(500+iproc,*) iorb, jorb, lagmat(iorb,jorb)
-    end do
-end do
+!!do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!        write(500+iproc,*) iorb, jorb, lagmat(iorb,jorb)
+!!    end do
+!!end do
 trace=0.d0
 do iorb=1,orbs%norb
     trace=trace+lagmat(iorb,iorb)
