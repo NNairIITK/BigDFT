@@ -1850,7 +1850,7 @@ real(8),dimension(lorbs%npsidim),intent(out):: lhphi
 ! Local variables
 integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, info, i, istat, iall
 real(8):: tt
-real(8),dimension(orbs%norb,orbs%norb):: ovrlp2, ovrlp3
+real(8),dimension(:,:),allocatable:: ovrlp2
 real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
 character(len=*),parameter:: subname='applyOrthoconstraintNonorthogonal2'
 
@@ -1858,8 +1858,10 @@ allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
 allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+allocate(ovrlp2(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, orbs%norb, 'orbs%norb', subname)
 
-ovrlp2=ovrlp
+call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 ! Invert the overlap matrix
 call dpotrf('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
 if(info/=0) then
@@ -1874,28 +1876,12 @@ end if
 
 
 ! Multiply the Lagrange multiplier matrix with S^-1/2.
-! First fill the upper triangle
-
-!!do iorb=1,orbs%norb
-!!    do jorb=1,orbs%norb
-!!        if(iproc==0) write(100,*) iorb, jorb, ovrlp2(iorb,jorb)
-!!    end do
-!!end do
-!!do iorb=1,orbs%norb
-!!   do jorb=1,iorb-1 
-!!        ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
-!!   end do
-!!end do
-!!do iorb=1,orbs%norb
-!!    do jorb=1,orbs%norb
-!!        if(iproc==0) write(101,*) iorb, jorb, ovrlp2(iorb,jorb)
-!!    end do
-!!end do
-!!
-!!call mpi_barrier(mpi_comm_world, info)
-!!stop
-!call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-!     0.d0, lagmat2(1,1), orbs%norb)
+! First fill the upper triangle.
+do iorb=1,orbs%norb
+    do jorb=1,iorb-1
+        ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
+    end do
+end do
 call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
      0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
 call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
@@ -1932,6 +1918,9 @@ call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
 iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
 deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
 call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
+iall=-product(shape(ovrlp2))*kind(ovrlp2)
+deallocate(ovrlp2, stat=istat)
+call memocc(istat, iall, 'ovrlp2', subname)
 
 
 end subroutine applyOrthoconstraintNonorthogonal2

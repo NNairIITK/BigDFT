@@ -2294,8 +2294,13 @@ type(p2pCommsOrthonormalityMatrix):: comom
     
       ! The optimization loop.
     
-      ! Transpose the coefficients for the first orthonormalization.
-      call transposeInguess(iproc, ip, newComm, coeffPad)
+      !!! Transpose the coefficients for the first orthonormalization.
+      !!call transposeInguess(iproc, ip, newComm, coeffPad)
+      ! Transform to localization regions.
+      do iorb=1,ip%norb_par(iproc)
+          ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
+          call vectorGlobalToLocal(ip%norbtotPad, lzdig%matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
+      end do
     
       iterLoop: do it=1,lin%nItInguess
     
@@ -2306,14 +2311,14 @@ type(p2pCommsOrthonormalityMatrix):: comom
     
           ! Othonormalize the coefficients.
           !call orthonormalizeCoefficients(orbs, orbsig, coeff)
-          call orthonormalizeCoefficients_parallel(iproc, ip, newComm, coeffPad)
-          call untransposeInguess(iproc, ip, newComm, coeffPad)
+          !call orthonormalizeCoefficients_parallel(iproc, ip, newComm, coeffPad)
+          !call untransposeInguess(iproc, ip, newComm, coeffPad)
     
-          ! Transform to localization regions.
-          do iorb=1,ip%norb_par(iproc)
-              ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
-              call vectorGlobalToLocal(ip%norbtotPad, lzdig%matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
-          end do
+          !!! Transform to localization regions.
+          !!do iorb=1,ip%norb_par(iproc)
+          !!    ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
+          !!    call vectorGlobalToLocal(ip%norbtotPad, lzdig%matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
+          !!end do
 
           !!!!call orthonormalizeVectors(iproc, nproc, lin%lzd%orbs, onWhichAtom, lzdig%matmin%norbmax, ip%norb_par(iproc), lcoeff, comom)
           !!!call orthonormalizeVectors(iproc, nproc, lin%lzd%orbs, onWhichAtom, lzdig%matmin%norbmax, ip%norb_par(iproc), ip%isorb, lcoeff, comom)
@@ -2321,10 +2326,10 @@ type(p2pCommsOrthonormalityMatrix):: comom
           !!!call orthonormalizeVectors(iproc, ip%nproc, lin%lzd%orbs, onWhichAtom, lzdig%matmin%norbmax, ip%norb_par(iproc), ip%isorb, lin%lzd%nlr, newComm, lzdig%matmin%mlr, lcoeff, comom)
           call orthonormalizeVectors(iproc, ip%nproc, lin%lzd%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par,lzdig%matmin% norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, lzdig%matmin%mlr, lcoeff, comom)
           ! Transform back to global ragion.
-          do iorb=1,ip%norb_par(iproc)
-              ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
-              call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
-          end do
+          !!do iorb=1,ip%norb_par(iproc)
+          !!    ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
+          !!    call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+          !!end do
 !!call mpi_barrier(mpi_comm_world, ierr)
 !!stop
     
@@ -2350,48 +2355,77 @@ type(p2pCommsOrthonormalityMatrix):: comom
           !!    write(750+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
           !!end do
 
-          ! Transform back to global ragion.
-          do iorb=1,ip%norb_par(iproc)
-              ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
-              call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lgrad(1,iorb), grad((iorb-1)*ip%norbtotPad+1))
-          end do
+          !!! Transform back to global ragion.
+          !!do iorb=1,ip%norb_par(iproc)
+          !!    ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
+          !!    call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lgrad(1,iorb), grad((iorb-1)*ip%norbtotPad+1))
+          !!end do
 
           !!do jorb=1,ip%norbtot
           !!    write(800+iproc,'(100f15.5)') (grad((iorb-1)*ip%norbtotPad+jorb), iorb=1,ip%norb_par(iproc))
           !!end do
       
-          ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
-          ! multiplier matrix.
-          lagMat=0.d0
+          do jorb=1,lzdig%matmin%norbmax
+              write(650+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
+          end do
           if(it>1) then
               traceOld=trace
           else
               traceOld=1.d10
           end if
-          trace=0.d0
-          call transposeInguess(iproc, ip, newComm, coeffPad)
-          call transposeInguess(iproc, ip, newComm, grad)
-          call gemm('t', 'n', ip%norb, ip%norb, ip%nvctrp, 1.0d0, coeffPad(1), &
-               ip%nvctrp, grad(1), ip%nvctrp, 0.d0, lagMat(1,1), ip%norb)
-          call mpiallred(lagMat(1,1), ip%norb**2, mpi_sum, newComm, ierr)
-          do iorb=1,orbs%norb
-              trace=trace+lagMat(iorb,iorb)
+          ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
+          ! multiplier matrix.
+          call orthoconstraintVectors(iproc, ip%nproc, lin%lzd%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
+               lzdig%matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
+               lzdig%matmin%mlr, lcoeff, lgrad, comom, trace)
+          !!! Transform back to global ragion.
+          !!do iorb=1,ip%norb_par(iproc)
+          !!    ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
+          !!    call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lgrad(1,iorb), grad((iorb-1)*ip%norbtotPad+1))
+          !!end do
+          do jorb=1,lzdig%matmin%norbmax
+              write(700+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
           end do
+          !!! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
+          !!! multiplier matrix.
+          !!lagMat=0.d0
+          !!if(it>1) then
+          !!    traceOld=trace
+          !!else
+          !!    traceOld=1.d10
+          !!end if
+          !!trace=0.d0
+          !!call transposeInguess(iproc, ip, newComm, coeffPad)
+          !!call transposeInguess(iproc, ip, newComm, grad)
+          !!call gemm('t', 'n', ip%norb, ip%norb, ip%nvctrp, 1.0d0, coeffPad(1), &
+          !!     ip%nvctrp, grad(1), ip%nvctrp, 0.d0, lagMat(1,1), ip%norb)
+          !!call mpiallred(lagMat(1,1), ip%norb**2, mpi_sum, newComm, ierr)
+          !!do iorb=1,orbs%norb
+          !!    do jorb=1,orbs%norb
+          !!        write(400+iproc,*) iorb, jorb, lagmat(iorb,jorb)
+          !!    end do
+          !!end do
+          !!do iorb=1,orbs%norb
+          !!    trace=trace+lagMat(iorb,iorb)
+          !!end do
     
     
-          ! Now apply the orthoconstraint.
-          call dgemm('n', 'n', ip%nvctrp, ip%norb, ip%norb, -.5d0, coeffPad(1), ip%nvctrp, &
-               lagMat(1,1), ip%norb, 1.d0, grad(1), ip%nvctrp)
-          call dgemm('n', 't', ip%nvctrp, ip%norb, ip%norb, -.5d0, coeffPad(1), ip%nvctrp, &
-               lagMat(1,1), ip%norb, 1.d0, grad(1), ip%nvctrp)
+          !!! Now apply the orthoconstraint.
+          !!call dgemm('n', 'n', ip%nvctrp, ip%norb, ip%norb, -.5d0, coeffPad(1), ip%nvctrp, &
+          !!     lagMat(1,1), ip%norb, 1.d0, grad(1), ip%nvctrp)
+          !!call dgemm('n', 't', ip%nvctrp, ip%norb, ip%norb, -.5d0, coeffPad(1), ip%nvctrp, &
+          !!     lagMat(1,1), ip%norb, 1.d0, grad(1), ip%nvctrp)
     
-          ! Transform to localization regions.
-          call untransposeInguess(iproc, ip, newComm, grad)
-          do iorb=1,ip%norb_par(iproc)
-              ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
-              call vectorGlobalToLocal(ip%norbtotPad, lzdig%matmin%mlr(ilr), grad((iorb-1)*ip%norbtotPad+1), lgrad(1,iorb))
-          end do
-          call transposeInguess(iproc, ip, newComm, grad)
+          !!! Transform to localization regions.
+          !!call untransposeInguess(iproc, ip, newComm, grad)
+          !!do iorb=1,ip%norb_par(iproc)
+          !!    ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
+          !!    call vectorGlobalToLocal(ip%norbtotPad, lzdig%matmin%mlr(ilr), grad((iorb-1)*ip%norbtotPad+1), lgrad(1,iorb))
+          !!end do
+          !!do jorb=1,lzdig%matmin%norbmax
+          !!    write(750+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
+          !!end do
+          !!call transposeInguess(iproc, ip, newComm, grad)
 
 
           !!! Calculate the gradient norm.
@@ -2495,6 +2529,11 @@ type(p2pCommsOrthonormalityMatrix):: comom
               if(iproc==0) write(*,'(3x,a,2es14.5)') 'Final values for fnrm, trace:', fnrm, trace
               converged=.true.
               infoCoeff=it
+              ! Transform back to global ragion.
+              do iorb=1,ip%norb_par(iproc)
+                  ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
+                  call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+              end do
               exit
           end if
       
@@ -2504,6 +2543,11 @@ type(p2pCommsOrthonormalityMatrix):: comom
                   ' iterations! Exiting loop due to limitations of iterations.'
               if(iproc==0) write(*,'(x,a,2es15.7,f12.7)') 'Final values for fnrm, trace: ', fnrm, trace
               infoCoeff=-1
+              ! Transform back to global ragion.
+              do iorb=1,ip%norb_par(iproc)
+                  ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
+                  call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+              end do
               exit
           end if
     
@@ -2511,25 +2555,25 @@ type(p2pCommsOrthonormalityMatrix):: comom
           !!do iorb=1,orbs%norb
           !!    call daxpy(ip%nvctrp, -alpha(iorb), grad((iorb-1)*ip%nvctrp+1), 1, coeffPad((iorb-1)*ip%nvctrp+1), 1)
           !!end do
-          call untransposeInguess(iproc, ip, newComm, coeffPad)
-          call untransposeInguess(iproc, ip, newComm, grad)
-          do iorb=1,ip%norb_par(iproc)
-              ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
-              call vectorGlobalToLocal(ip%norbtotPad, lzdig%matmin%mlr(ilr), grad((iorb-1)*ip%norbtotPad+1), lgrad(1,iorb))
-              call vectorGlobalToLocal(ip%norbtotPad, lzdig%matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
-          end do
+          !!call untransposeInguess(iproc, ip, newComm, coeffPad)
+          !!call untransposeInguess(iproc, ip, newComm, grad)
+          !!do iorb=1,ip%norb_par(iproc)
+          !!    ilr=lzdig%matmin%inWhichLocregExtracted(iorb)
+          !!    call vectorGlobalToLocal(ip%norbtotPad, lzdig%matmin%mlr(ilr), grad((iorb-1)*ip%norbtotPad+1), lgrad(1,iorb))
+          !!    call vectorGlobalToLocal(ip%norbtotPad, lzdig%matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
+          !!end do
           !do iorb=1,orbs%norb_par(iproc)
           do iorb=1,ip%norb_par(iproc)
               ilr=onWhichAtom(ip%isorb+iorb)
               call daxpy(lzdig%matmin%mlr(ilr)%norbinlr, -alpha(iorb), lgrad(1,iorb), 1, lcoeff(1,iorb), 1)
           end do
-          do iorb=1,ip%norb_par(iproc)
-              ilr=onWhichAtom(ip%isorb+iorb)
-              call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lgrad(1,iorb), grad((iorb-1)*ip%norbtotPad+1))
-              call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
-          end do
-          call transposeInguess(iproc, ip, newComm, coeffPad)
-          call transposeInguess(iproc, ip, newComm, grad)
+          !!do iorb=1,ip%norb_par(iproc)
+          !!    ilr=onWhichAtom(ip%isorb+iorb)
+          !!    call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lgrad(1,iorb), grad((iorb-1)*ip%norbtotPad+1))
+          !!    call vectorLocalToGlobal(ip%norbtotPad, lzdig%matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+          !!end do
+          !!call transposeInguess(iproc, ip, newComm, coeffPad)
+          !!call transposeInguess(iproc, ip, newComm, grad)
     
     
       end do iterLoop
@@ -2539,7 +2583,7 @@ type(p2pCommsOrthonormalityMatrix):: comom
     
     
       ! Cut out the zeros
-      call untransposeInguess(iproc, ip, newComm, coeffPad)
+      !call untransposeInguess(iproc, ip, newComm, coeffPad)
       allocate(coeff2(ip%norbtot*ip%norb_par(iproc)), stat=istat)
       call memocc(istat, coeff2, 'coeff2', subname)
       do iorb=1,ip%norb_par(iproc)
@@ -3266,6 +3310,101 @@ end subroutine orthonormalizeVectors
 
 
 
+
+subroutine orthoconstraintVectors(iproc, nproc, orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, grad, comom, trace)
+use module_base
+use module_types
+use module_interfaces, exceptThisOne => orthoconstraintVectors
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, norbmax, norbp, isorb, nlr, newComm
+type(orbitals_data),intent(in):: orbs
+integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
+integer,dimension(0:nproc-1),intent(in):: isorb_par
+type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
+type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+real(8),intent(out):: trace
+
+! Local variables
+integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall
+real(8),dimension(:,:),allocatable:: gradOvrlp, vecOvrlp, lagmat, ovrlp
+character(len=*),parameter:: subname='orthonormalizeVectors'
+
+
+noverlaps=0
+ilrold=0
+do iorb=1,norbp
+    iiorb=isorb+iorb
+    ilr=onWhichAtom(iiorb)
+    if(ilr>ilrold) then
+        noverlaps=noverlaps+comom%noverlap(ilr)
+    end if
+    ilrold=ilr
+end do
+allocate(gradOvrlp(norbmax,noverlaps), stat=istat)
+call memocc(istat, gradOvrlp, 'gradOvrlp', subname)
+allocate(vecOvrlp(norbmax,noverlaps), stat=istat)
+call memocc(istat, vecOvrlp, 'vecOvrlp', subname)
+allocate(lagmat(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, lagmat, 'lagmat', subname)
+allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, ovrlp, 'ovrlp', subname)
+
+call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, grad, comom)
+call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
+call gatherVectors(iproc, nproc, newComm, comom)
+
+call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, gradOvrlp)
+
+! Calculate the Lagrange multiplier matrix <vec|grad>.
+call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec, gradOvrlp, newComm, lagmat)
+do iorb=1,orbs%norb
+    do jorb=1,orbs%norb
+        write(500+iproc,*) iorb, jorb, lagmat(iorb,jorb)
+    end do
+end do
+trace=0.d0
+do iorb=1,orbs%norb
+    trace=trace+lagmat(iorb,iorb)
+end do
+
+! Now we also have to calculate the overlap matrix.
+call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
+call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
+call gatherVectors(iproc, nproc, newComm, comom)
+call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
+call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec, vecOvrlp, newComm, ovrlp)
+
+! Now apply the orthoconstraint.
+call applyOrthoconstraintVectors(iproc, nproc, orbs%norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, grad)
+
+!call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
+!call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
+
+iall=-product(shape(lagmat))*kind(lagmat)
+deallocate(lagmat, stat=istat)
+call memocc(istat, iall, 'lagmat', subname)
+
+iall=-product(shape(gradOvrlp))*kind(gradOvrlp)
+deallocate(gradOvrlp, stat=istat)
+call memocc(istat, iall, 'gradOvrlp', subname)
+
+iall=-product(shape(ovrlp))*kind(ovrlp)
+deallocate(ovrlp, stat=istat)
+call memocc(istat, iall, 'ovrlp', subname)
+
+iall=-product(shape(vecOvrlp))*kind(vecOvrlp)
+deallocate(vecOvrlp, stat=istat)
+call memocc(istat, iall, 'vecOvrlp', subname)
+
+end subroutine orthoconstraintVectors
+
+
+
+
+
 subroutine postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
 use module_base
 use module_types
@@ -3599,3 +3738,93 @@ deallocate(vecTemp, stat=istat)
 call memocc(istat, iall, 'vecTemp', subname)
 
 end subroutine orthonormalLinearCombinations
+
+
+
+
+subroutine applyOrthoconstraintVectors(iproc, nproc, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, grad)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, norb, norbmax, norbp, isorb, nlr, noverlaps
+integer,dimension(norb),intent(in):: onWhichAtom
+real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
+real(8),dimension(norb,norb),intent(in):: ovrlp, lagmat
+type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+real(8),dimension(norbmax,norbp),intent(inout):: grad
+
+! Local variables
+integer:: info, iorb, ilrold, iiorb, jjorb, ilr, ncount, jorb, ijorb, istat, iall
+real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+character(len=*),parameter:: subname='applyOrthoconstarintVectors'
+
+
+allocate(ovrlp_minus_one_lagmat(norb,norb), stat=istat)
+call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
+allocate(ovrlp_minus_one_lagmat_trans(norb,norb), stat=istat)
+call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
+allocate(ovrlp2(norb,norb), stat=istat)
+call memocc(istat, ovrlp2, 'ovrlp2', subname)
+
+call dcopy(norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
+! Invert the overlap matrix
+call dpotrf('l', norb, ovrlp2(1,1), norb, info)
+if(info/=0) then
+    write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+    stop
+end if
+call dpotri('l', norb, ovrlp2(1,1), norb, info)
+if(info/=0) then
+    write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+    stop
+end if
+
+
+! Multiply the Lagrange multiplier matrix with S^-1/2.
+! First fill the upper triangle.
+do iorb=1,norb
+    do jorb=1,iorb-1
+        ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
+    end do
+end do
+call dgemm('n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
+call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
+
+
+ilrold=-1
+ijorb=0
+do iorb=1,norbp
+    iiorb=isorb+iorb
+    ilr=onWhichAtom(iiorb)
+    if(ilr==ilrold) then
+        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+        ijorb=ijorb-comom%noverlap(ilr)
+    end if
+    ncount=mlr(ilr)%norbinlr
+    do jorb=1,comom%noverlap(ilr)
+        ijorb=ijorb+1
+        jjorb=comom%overlaps(jorb,ilr)
+        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+        call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), vecOvrlp(1,ijorb), 1, grad(1,iorb), 1)
+    end do
+    ilrold=ilr
+end do
+
+
+iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
+deallocate(ovrlp_minus_one_lagmat, stat=istat)
+call memocc(istat, iall, 'ovrlp_minus_one_lagmat', subname)
+iall=-product(shape(ovrlp_minus_one_lagmat_trans))*kind(ovrlp_minus_one_lagmat_trans)
+deallocate(ovrlp_minus_one_lagmat_trans, stat=istat)
+call memocc(istat, iall, 'ovrlp_minus_one_lagmat_trans', subname)
+iall=-product(shape(ovrlp2))*kind(ovrlp2)
+deallocate(ovrlp2, stat=istat)
+call memocc(istat, iall, 'ovrlp2', subname)
+
+
+end subroutine applyOrthoconstraintVectors

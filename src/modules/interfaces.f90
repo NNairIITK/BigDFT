@@ -2931,6 +2931,22 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine buildLinearCombinationsLocalized
 
 
+     subroutine orthoconstraintVectors(iproc, nproc, orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, &
+                norbp, isorb, nlr, newComm, mlr, vec, grad, comom, trace)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, norbmax, norbp, isorb, nlr, newComm
+       type(orbitals_data),intent(in):: orbs
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
+       integer,dimension(0:nproc-1),intent(in):: isorb_par
+       type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+       real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
+       type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+       real(8),intent(out):: trace
+     end subroutine orthoconstraintVectors
+
+
 
 
 
