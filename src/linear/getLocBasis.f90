@@ -2601,18 +2601,20 @@ real(8),intent(in):: hgrid
 type(locreg_descriptors),intent(in):: Glr
 type(linearParameters),intent(inout):: lin
 real(8),dimension(nphi),intent(in):: phi
-real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(out):: phid
+real(8),dimension(lin%lb%lzd%orbs%npsidim),target,intent(out):: phid
 
 ! Local variables
 integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc, ierr
 integer:: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f, istLoc, istRoot
 integer:: jjorb, jlr, jj, offset, ilr, jorb
 real(8),dimension(0:3),parameter:: scal=1.d0
-real(8),dimension(:),allocatable:: w_f1, w_f2, w_f3, phiLoc, phiRoot
+real(8),dimension(:),allocatable:: w_f1, w_f2, w_f3
+real(8),dimension(:),pointer:: phiLoc
 real(8),dimension(:,:,:),allocatable:: w_c, phix_c, phiy_c, phiz_c
 real(8),dimension(:,:,:,:),allocatable:: w_f, phix_f, phiy_f, phiz_f
 character(len=*),parameter:: subname='getDerivativeBasisFunctions'
 integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
+logical:: repartition
 
 integer:: i1, i2, i3
 logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
@@ -2621,9 +2623,24 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
   !!    write(700+iproc,*) jj, phi(jj)
   !!end do
 
+  ! Determine whether the orbitals must be redistributed after the calculation of the derivatives.
+  ! If each orbital has the same number of orbitals, this is never required.
+  repartition=.false.
+  do jproc=1,nproc-1
+     if(lin%lzd%orbs%norb_par(jproc)/=lin%lzd%orbs%norb_par(jproc-1)) then 
+         repartition=.true.
+         exit
+     end if
+  end do
+  write(*,*) 'repartition', repartition
 
-  allocate(phiLoc(4*lin%lzd%orbs%npsidim), stat=istat)
-  call memocc(istat, phiLoc, 'phiLoc', subname)
+
+  if(repartition) then
+      allocate(phiLoc(4*lin%lzd%orbs%npsidim), stat=istat)
+      call memocc(istat, phiLoc, 'phiLoc', subname)
+  else
+      phiLoc => phid
+  end if
   !phiLoc=0.d0
   !write(*,*) '>>>> phiLoc(1)', phiLoc(1)
  
@@ -2733,13 +2750,16 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
 
   end do
 
-  ! Communicate the orbitals to meet the partition.
-  call postCommsRepartition(iproc, nproc, lin%lzd%orbs, lin%lb%comrp, size(phiLoc), phiLoc, size(phid), phid)
-  call gatherDerivativeOrbitals(iproc, nproc, lin%lzd%orbs, lin%lb%comrp)
 
-  iall=-product(shape(phiLoc))*kind(phiLoc)
-  deallocate(phiLoc, stat=istat)
-  call memocc(istat, iall, 'phiLoc', subname)
+  if(repartition) then
+      ! Communicate the orbitals to meet the partition.
+      call postCommsRepartition(iproc, nproc, lin%lzd%orbs, lin%lb%comrp, size(phiLoc), phiLoc, size(phid), phid)
+      call gatherDerivativeOrbitals(iproc, nproc, lin%lzd%orbs, lin%lb%comrp)
+
+      iall=-product(shape(phiLoc))*kind(phiLoc)
+      deallocate(phiLoc, stat=istat)
+      call memocc(istat, iall, 'phiLoc', subname)
+  end if
   
 
 
