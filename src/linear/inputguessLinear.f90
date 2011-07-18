@@ -51,7 +51,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:,:), pointer :: psigau
-type(linear_zone_descriptors):: lzdig
+type(linear_zone_descriptors):: lzdig, lzdGauss
 type(p2pCommsGatherPot):: comgp
 type(orbitals_data):: orbsLIN
 type(communications_arrays):: commsLIN
@@ -80,6 +80,7 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
   ! number of localization regions
   lzdig%nlr=at%nat
+  lzdGauss%nlr=at%nat
 
 
   if (iproc == 0) then
@@ -154,26 +155,40 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
        lin%orbs,orbsig,norbsc_arr,locrad,G,psigau,eks)
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
        lin%orbs,lzdig%orbs,norbsc_arr,locrad,G,psigau,eks)
+  !call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+  !     lin%orbs,lzdGauss%orbs,norbsc_arr,locrad,G,psigau,eks)
+ write(*,'(a,i4,100f9.2)') 'iproc, locrad', iproc, locrad
+write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdig%orbs%inwhichlocreg)', iproc, size(lzdig%orbs%inwhichlocreg)
 
   ! Allocate communications arrays for inputguess orbitals.
   call orbitals_communicators(iproc,nproc,Glr,orbsig,commsig)  
   call orbitals_communicators(iproc,nproc,Glr,lzdig%orbs,lzdig%comms)  
+  !call orbitals_communicators(iproc,nproc,Glr,lzdGauss%orbs,lzdGauss%comms)  
+write(*,'(a,2i7)') 'after call to orbitals_communicators: iproc, size(lzdig%orbs%inwhichlocreg)', iproc, size(lzdig%orbs%inwhichlocreg)
 
   allocate(onWhichAtomp(lzdig%orbs%norbp), stat=istat)
   call memocc(i_stat, onWhichAtomp, 'onWhichAtomp', subname)
   !call assignOrbitalsToAtoms(iproc, lzdig%orbs, at%nat, norbsPerAt, onWhichAtomp)
   call assignOrbitalsToAtoms(iproc, lzdig%orbs, at%nat, norbsPerAt, onWhichAtomp, onWhichAtom)
   ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
-  call assignToLocreg2(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
+
+  !! THIS WOULD ALLOCATE LZDIG%ORBS%INWHICHLOCREG WITH SIZE ORBS%NORBP
+  !call assignToLocreg2(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
+
   !!write(*,'(a,i3,3x,100i4)') 'iproc, owa', iproc, onWhichAtom(:)
   !!write(*,'(a,i3,3x,100i4)') 'iproc, iwi', iproc, lzdig%orbs%inwhichlocreg(:)
   !!write(*,'(a,i3,3x,100i4)') 'iproc, owap', iproc, onWhichAtomp(:)
 
   !call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, locrad)
+  !!allocate(locrad(lzdig%nlr), stat=istat)
+  !!call memocc(i_stat, locrad, 'locrad', subname)
+  !locrad=200.d0
+  !call initLocregs2(iproc, at%nat, rxyz, lzdGauss, input, Glr, locrad)
   call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
-  allocate(lchi(lzdig%orbs%npsidim+ndebug),stat=i_stat)
+  !call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, locrad)
+  allocate(lchi(max(lzdig%orbs%npsidim+ndebug,lzdGauss%orbs%npsidim)),stat=i_stat)
   call memocc(i_stat,lchi,'lchi',subname)
-  allocate(lhchi(lzdig%orbs%npsidim,at%nat),stat=i_stat)
+  allocate(lhchi(max(lzdig%orbs%npsidim,lzdGauss%orbs%npsidim),at%nat),stat=i_stat)
   call memocc(i_stat,lhchi,'lhchi',subname)
   lchi=0.d0
   lhchi=0.d0
@@ -213,12 +228,38 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
      OCLconv=.false.
   end if
 
+  write(*,*) 'iproc, size(lzdig%orbs%inWhichLocreg)', iproc, size(lzdig%orbs%inWhichLocreg)
+
+  lzdig%lpsidimtot=lzdig%orbs%npsidim
+  lzdGauss%lpsidimtot=lzdGauss%orbs%npsidim
 
   ! Transform the Gaussian based orbitals to wavelets.
   !call gaussians_to_wavelets_new(iproc,nproc,Glr,orbsig,input%hx,input%hy,input%hz,G,&
   !     psigau(1,1,min(orbsig%isorb+1,orbsig%norb)),chi)
   call gaussians_to_wavelets_new(iproc,nproc,Glr,lzdig%orbs,input%hx,input%hy,input%hz,G,&
        psigau(1,1,min(lzdig%orbs%isorb+1,lzdig%orbs%norb)),chi)
+  
+  !!call gaussians_to_wavelets_new2(iproc, nproc, lzdGauss, input%hx, input%hy, input%hz, G, &
+  !!     psigau(1,1,min(lzdGauss%orbs%isorb+1, lzdGauss%orbs%norb)), lchi(1))
+  !!! Transform to global region
+  !!ind1=1
+  !!ind2=1
+  !!chi=0.d0
+  !!do iorb=1,lzdGauss%orbs%norbp
+  !!    ilr = onWhichAtomp(iorb)
+  !!    ldim=lzdGauss%Llr(ilr)%wfd%nvctr_c+7*lzdGauss%Llr(ilr)%wfd%nvctr_f
+  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdGauss%orbs%norb, lin%orbs%nspinor, input%nspin,&
+  !!         Glr, lzdGauss%Llr(ilr), lchi(ind2), chi(ind1))
+  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    ind2=ind2+lzdGauss%Llr(ilr)%wfd%nvctr_c+7*lzdGauss%Llr(ilr)%wfd%nvctr_f
+  !!end do
+
+  !! Go back the 'real' localization region.
+  !call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
+  ! THIS WILL ALLOCATE LZDIG%ORBS%INWHICHLOCREG WITH SIZE ORBS%NORBP
+  call assignToLocreg2(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
+
 
 
   i_all=-product(shape(locrad))*kind(locrad)

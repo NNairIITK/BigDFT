@@ -143,6 +143,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   deallocate(iorbtolr,stat=i_stat)
   call memocc(i_stat,i_all,'iorbtolr',subname)
 
+write(*,'(a,2i7)') 'at end inputguess_gaussian_orbitals: iproc, size(orbse%inwhichlocreg)', iproc, size(orbse%inwhichlocreg)
+
 END SUBROUTINE inputguess_gaussian_orbitals
 
 

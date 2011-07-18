@@ -78,8 +78,8 @@ norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
-     input%nkpt, input%kpt, input%wkpt, lin%Lorbs)
+!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+!     input%nkpt, input%kpt, input%wkpt, lin%Lorbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%lzd%orbs)
 
@@ -138,9 +138,12 @@ call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 call memocc(istat, lin%orbs%eval, 'lin%orbs%eval', subname)
 lin%orbs%eval=-.5d0
-allocate(lin%Lorbs%eval(lin%Lorbs%norb), stat=istat)
-call memocc(istat, lin%Lorbs%eval, 'lin%Lorbs%eval', subname)
-lin%Lorbs%eval=-.5d0
+!allocate(lin%Lorbs%eval(lin%Lorbs%norb), stat=istat)
+!call memocc(istat, lin%Lorbs%eval, 'lin%Lorbs%eval', subname)
+!lin%Lorbs%eval=-.5d0
+allocate(lin%lzd%orbs%eval(lin%lzd%orbs%norb), stat=istat)
+call memocc(istat, lin%lzd%orbs%eval, 'lin%lzd%orbs%eval', subname)
+lin%lzd%orbs%eval=-.5d0
 allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
 call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
 lin%lb%orbs%eval=-.5d0
@@ -1339,7 +1342,7 @@ do iorb=1,lin%orbs%norbp
     ilr=lin%onWhichAtom(iorb)
     npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
 end do
-lin%Lorbs%npsidim=npsidim
+!lin%Lorbs%npsidim=npsidim
 lin%lzd%orbs%npsidim=npsidim
 
 if(.not. lin%useDerivativeBasisFunctions) then

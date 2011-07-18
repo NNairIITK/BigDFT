@@ -512,7 +512,7 @@ end type largeBasis
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho
     real(8),dimension(:),pointer:: potentialPrefac, locrad, phiRestart, lphiRestart, lphiold, lhphiold
     real(8),dimension(:,:),pointer:: hamold
-    type(orbitals_data):: orbs, Lorbs
+    type(orbitals_data):: orbs
     type(communications_arrays):: comms, Lcomms
     type(locreg_descriptors):: lr
     type(locreg_descriptors),dimension(:),pointer:: Llr

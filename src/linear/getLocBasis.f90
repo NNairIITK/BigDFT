@@ -568,7 +568,8 @@ real(8),dimension(4):: time
       fnrm=sqrt(fnrm)
       fnrmMax=sqrt(fnrmMax)
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
-      call dcopy(lin%lorbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
+      !call dcopy(lin%lorbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
+      call dcopy(lin%lzd%orbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
   
   
 
@@ -848,9 +849,11 @@ contains
     else
         ! DIIS
         if(lin%alphaDIIS/=0.d0) then
-            call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi(1), 1)
+            !call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi(1), 1)
+            call dscal(lin%lzd%orbs%npsidim, lin%alphaDIIS, lphi(1), 1)
         end if
-        call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%lzd, lin%onWhichAtom, lhphi, lphi, ldiis, it)
+        !call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%lzd, lin%onWhichAtom, lhphi, lphi, ldiis, it)
+        call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lzd%orbs, lin%lzd, lin%onWhichAtom, lhphi, lphi, ldiis, it)
     end if
     end subroutine improveOrbitals
 
@@ -883,10 +886,12 @@ contains
       allocate(fnrmOvrlpArr(lin%orbs%norb,2), stat=istat)
       call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
 
-      allocate(lhphi(lin%Lorbs%npsidim), stat=istat)
+      !allocate(lhphi(lin%Lorbs%npsidim), stat=istat)
+      allocate(lhphi(lin%lzd%orbs%npsidim), stat=istat)
       call memocc(istat, lhphi, 'lhphi', subname)
     
-      allocate(lhphiold(lin%Lorbs%npsidim), stat=istat)
+      !allocate(lhphiold(lin%Lorbs%npsidim), stat=istat)
+      allocate(lhphiold(lin%lzd%orbs%npsidim), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
 
     end subroutine allocateLocalArrays
