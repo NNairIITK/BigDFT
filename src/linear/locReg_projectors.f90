@@ -753,8 +753,6 @@ subroutine apply_local_projectors(iorb,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
   integer :: isorb,ieorb,nspinor,istart_o,ispinor
   integer :: nels,ipsi,ii,iatom,iel,i_all,i_stat
   integer :: jj,orbtot,ispin,ind
-  integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
-  !integer,dimension(:),allocatable :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
   real(wp),allocatable,dimension(:,:) :: psi_tmp
   real(wp),allocatable,dimension(:,:) :: hpsi_tmp
