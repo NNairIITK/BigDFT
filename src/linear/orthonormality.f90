@@ -483,17 +483,17 @@ real(8),dimension(:),allocatable:: lphiovrlp
 character(len=*),parameter:: subname='orthonormalize'
 logical:: converged
 
-  allocate(lphiovrlp(lin%op_lb%ndim_lphiovrlp), stat=istat)
-  call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+  !!allocate(lphiovrlp(lin%op_lb%ndim_lphiovrlp), stat=istat)
+  !!call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
   call extractOrbital2(iproc, nproc, lin%lb%orbs, lin%lb%lorbs%npsidim, lin%lb%onWhichAtomAll, lin%lb%lzd, lin%op_lb, lphi, lin%comon_lb)
   call postCommsOverlap(iproc, nproc, lin%comon_lb)
   call gatherOrbitals2(iproc, nproc, lin%comon_lb)
   call calculateOverlapMatrix2(iproc, nproc, lin%lb%lzd%orbs, lin%op_lb, lin%comon_lb, lin%lb%onWhichAtomAll, ovrlp)
 
-  iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
-  deallocate(lphiovrlp, stat=istat)
-  call memocc(istat, iall, 'lphiovrlp', subname)
+  !!iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
+  !!deallocate(lphiovrlp, stat=istat)
+  !!call memocc(istat, iall, 'lphiovrlp', subname)
 
 
 end subroutine getOverlapMatrix2
@@ -669,7 +669,7 @@ do jproc=0,nproc-1
             end if
         end do 
         op%noverlaps(iiorb)=ioverlaporb
-        if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
+        !!if(iproc==0) write(*,'(a,2i8)') 'iiorb, op%noverlaps(iiorb)', iiorb, op%noverlaps(iiorb)
         ilrold=ilr
     end do
     comon%noverlaps(jproc)=ioverlapMpi

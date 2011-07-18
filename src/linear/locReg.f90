@@ -911,9 +911,9 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
   integer,dimension(3) :: outofzone
   real(gp) :: rx,ry,rz,cutoff  
 
-  if (iproc == 0) then
-     write(*,*)'Inside determine_locreg_periodic:'
-  end if
+  !!if (iproc == 0) then
+  !!   write(*,*)'Inside determine_locreg_periodic:'
+  !!end if
 
   !initialize out of zone and logicals
   outofzone (:) = 0     

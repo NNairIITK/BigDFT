@@ -2592,7 +2592,7 @@ end subroutine gatherPotential
 subroutine getDerivativeBasisFunctions2(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => getDerivativeBasisFunctions
+use module_interfaces, exceptThisOne => getDerivativeBasisFunctions2
 implicit none
 
 ! Calling arguments
@@ -2632,7 +2632,6 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
          exit
      end if
   end do
-  write(*,*) 'repartition', repartition
 
 
   if(repartition) then
@@ -2641,8 +2640,6 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
   else
       phiLoc => phid
   end if
-  !phiLoc=0.d0
-  !write(*,*) '>>>> phiLoc(1)', phiLoc(1)
  
 
   ist1_c=1
@@ -2680,24 +2677,6 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
            lin%llr(ilr)%wfd%keyv(lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)),  &
            scal, phi(ist1_c), phi(ist1_f), w_c, w_f, w_f1, w_f2, w_f3)
 
-      !!!!! TEST
-      !!allocate(logrid_c(0:lin%llr(ilr)%d%n1,0:lin%llr(ilr)%d%n2,0:lin%llr(ilr)%d%n3))
-      !!allocate(logrid_f(0:lin%llr(ilr)%d%n1,0:lin%llr(ilr)%d%n2,0:lin%llr(ilr)%d%n3))
-      !!call wfd_to_logrids(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, lin%llr(ilr)%wfd, logrid_c, logrid_f)
-      !!do i3=0,lin%lzd%llr(ilr)%d%n3
-      !!  do i2=0,lin%lzd%llr(ilr)%d%n2
-      !!    do i1=0,lin%lzd%llr(ilr)%d%n1
-      !!        if(logrid_c(i1,i2,i3) .and. w_c(i1,i2,i3)==0.d0) write(*,*) 'HEAVY ERROR: i1, i2, i3', i1, i2, i3
-      !!        write(3000+iproc,'(3i8,l,es25.16,2i12)') i1, i2, i3, logrid_c(i1,i2,i3), w_c(i1,i2,i3), lin%llr(ilr)%bounds%kb%ibyz_c(2,i2,i3), lin%llr(ilr)%bounds%kb%ibyz_c(1,i2,i3)
-      !!    end do
-      !!  end do
-      !!end do
-      !!write(*,*) '>>>>> iproc, w_c(17,2,35)', iproc, w_c(17,2,35)
-      !!!write(3000+iproc,*) w_c
-      !!write(3010+iproc,*) w_f
-      !!write(3020+iproc,*) w_f1
-      !!write(3030+iproc,*) w_f2
-      !!write(3040+iproc,*) w_f3
 
       call createDerivativeBasis(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, &
            lin%llr(ilr)%d%nfl1, lin%llr(ilr)%d%nfu1, lin%llr(ilr)%d%nfl2, lin%llr(ilr)%d%nfu2, lin%llr(ilr)%d%nfl3, lin%llr(ilr)%d%nfu3,  &

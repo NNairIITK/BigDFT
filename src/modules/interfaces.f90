@@ -3000,6 +3000,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine getHamiltonianMatrix2
 
 
+     subroutine getDerivativeBasisFunctions2(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
+     use module_base
+     use module_types
+     implicit none
+     integer,intent(in):: iproc, nproc, nphi
+     real(8),intent(in):: hgrid
+     type(locreg_descriptors),intent(in):: Glr
+     type(linearParameters),intent(inout):: lin
+     real(8),dimension(nphi),intent(in):: phi
+     real(8),dimension(lin%lb%lzd%orbs%npsidim),target,intent(out):: phid
+     end subroutine getDerivativeBasisFunctions2
+
+
   end interface
 
 end module module_interfaces

@@ -258,6 +258,7 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%getCoeff
   read(99,*) lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%nItCoeff, lin%convCritCoeff
+  read(99,*) lin%mixingMethod
   read(99,*) lin%nItSCC, lin%alphaMix, lin%convCritMix
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess
@@ -319,17 +320,17 @@ do itype=1,at%ntypes
 end do
 close(unit=99)
 if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| iterations in | alpha mix | convergence crit. | use the derivative | order of conf. |'
-if(iproc==0) write(*,'(4x,a)') '|  in SC cycle  |           |    for mixing     |  basis functions   |   potential    |'
-if(iproc==0) write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a,8x,l,10x,a,7x,i1,8x,a)') '|', &
-     repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
-     lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|', lin%useDerivativeBasisFunctions, '|', lin%confPotOrder, '|'
-if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| iterations in | orbitals per |'
-if(iproc==0) write(*,'(4x,a)') '|  input guess  |   process    |'
-if(iproc==0) write(*,'(4x,a,a,i0,5x,a,a,i0,6x,a)') '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
+if(iproc==0) write(*,'(4x,a)') '| mixing | iterations in | alpha mix | convergence crit. |'
+if(iproc==0) write(*,'(4x,a)') '| scheme |  in SC cycle  |           |    for mixing     |'
+if(iproc==0) write(*,'(4x,a,2x,a,2x,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)') '|', &
+     lin%mixingMethod, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
+     lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|'
+if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------'
+if(iproc==0) write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals |'
+if(iproc==0) write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  |'
+if(iproc==0) write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a)')  '|', lin%useDerivativeBasisFunctions, '|', lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
      lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|'
-if(iproc==0) write(*,'(4x,a)') '--------------------------------'
+if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
 if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
@@ -1319,18 +1320,18 @@ call memocc(istat,lin%outofzone,'lin%outofzone',subname)
  call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
  call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr)
 
-do ilr=1,lin%nlr
-    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
-    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
-    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
-    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
-    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
-    if(iproc==0) write(*,*) '---------------------------------'
-    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%lb%lzd%Llr(ilr)%wfd%nseg_c, lin%lb%lzd%Llr(ilr)%wfd%nseg_f, lin%lb%lzd%Llr(ilr)%wfd%nvctr_c, lin%lb%lzd%Llr(ilr)%wfd%nvctr_f
-    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%lb%lzd%Llr(ilr)%d%n1i, lin%lb%lzd%Llr(ilr)%d%n2i, lin%lb%lzd%Llr(ilr)%d%n3i', lin%lb%lzd%Llr(ilr)%d%n1i, lin%lb%lzd%Llr(ilr)%d%n2i, lin%lb%lzd%Llr(ilr)%d%n3i
-    if(iproc==0) write(*,'(a,6i8)') 'lin%lb%lzd%Llr(ilr)%d%nfl1,lin%lb%lzd%Llr(ilr)%d%nfu1,lin%lb%lzd%Llr(ilr)%d%nfl2,lin%lb%lzd%Llr(ilr)%d%nfu2,lin%lb%lzd%Llr(ilr)%d%nfl3,lin%lb%lzd%Llr(ilr)%d%nfu3',&
-    lin%lb%lzd%Llr(ilr)%d%nfl1,lin%lb%lzd%Llr(ilr)%d%nfu1,lin%lb%lzd%Llr(ilr)%d%nfl2,lin%lb%lzd%Llr(ilr)%d%nfu2,lin%lb%lzd%Llr(ilr)%d%nfl3,lin%lb%lzd%Llr(ilr)%d%nfu3
-end do
+!!do ilr=1,lin%nlr
+!!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
+!!    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
+!!    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
+!!    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
+!!    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
+!!    if(iproc==0) write(*,*) '---------------------------------'
+!!    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%lb%lzd%Llr(ilr)%wfd%nseg_c, lin%lb%lzd%Llr(ilr)%wfd%nseg_f, lin%lb%lzd%Llr(ilr)%wfd%nvctr_c, lin%lb%lzd%Llr(ilr)%wfd%nvctr_f
+!!    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%lb%lzd%Llr(ilr)%d%n1i, lin%lb%lzd%Llr(ilr)%d%n2i, lin%lb%lzd%Llr(ilr)%d%n3i', lin%lb%lzd%Llr(ilr)%d%n1i, lin%lb%lzd%Llr(ilr)%d%n2i, lin%lb%lzd%Llr(ilr)%d%n3i
+!!    if(iproc==0) write(*,'(a,6i8)') 'lin%lb%lzd%Llr(ilr)%d%nfl1,lin%lb%lzd%Llr(ilr)%d%nfu1,lin%lb%lzd%Llr(ilr)%d%nfl2,lin%lb%lzd%Llr(ilr)%d%nfu2,lin%lb%lzd%Llr(ilr)%d%nfl3,lin%lb%lzd%Llr(ilr)%d%nfu3',&
+!!    lin%lb%lzd%Llr(ilr)%d%nfl1,lin%lb%lzd%Llr(ilr)%d%nfu1,lin%lb%lzd%Llr(ilr)%d%nfl2,lin%lb%lzd%Llr(ilr)%d%nfu2,lin%lb%lzd%Llr(ilr)%d%nfl3,lin%lb%lzd%Llr(ilr)%d%nfu3
+!!end do
 
 ! Calculate the dimension of the wave function for each process.
 npsidim=0

@@ -1901,14 +1901,14 @@ hzh=0.5d0*in%hz
 if(iproc==0) write(*,'(x,a)') '---------------------------------------------------------------- Updating potential.'
 
   !calculate the self-consistent potential
-     ! Potential from electronic charge density
-     call cpu_time(t1)
-     call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
-          rhopot, atoms, nscatterarr)
-     call cpu_time(t2)
-     time=t2-t1
-     call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-     !!if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
+     !!! Potential from electronic charge density
+     !!call cpu_time(t1)
+     !!call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, in, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+     !!     rhopot, atoms, nscatterarr)
+     !!call cpu_time(t2)
+     !!time=t2-t1
+     !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
+     !!!!if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
 
 
      if(orbs%nspinor==4) then

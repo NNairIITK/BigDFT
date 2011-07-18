@@ -524,7 +524,7 @@ end type largeBasis
     integer:: ncomms
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
-    character(len=4):: getCoeff
+    character(len=4):: getCoeff, mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
     type(p2pCommsGatherPot):: comgp_lb

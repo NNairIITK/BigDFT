@@ -150,7 +150,6 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
   ! Create the atomic orbitals in a Gaussian basis.
   nvirt=0
-  write(*,*) 'nspin_ig',nspin_ig
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
        lin%orbs,orbsig,norbsc_arr,locrad,G,psigau,eks)
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
