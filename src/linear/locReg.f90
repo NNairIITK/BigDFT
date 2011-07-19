@@ -1741,7 +1741,7 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
            Olr(index)%d%nfl1=max(isx,Glr%d%nfl1)-isx
            Olr(index)%d%nfu1=min(iex,Glr%d%nfu1)-isx
         else
-           write(*,*)'Yet to be implemented (little effort?)'
+           write(*,*)'1: Yet to be implemented (little effort?)'
            stop
         end if
 
@@ -1749,7 +1749,7 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
            Olr(index)%d%nfl2=max(isy,Glr%d%nfl2)-isy
            Olr(index)%d%nfu2=min(iey,Glr%d%nfu2)-isy
         else
-           write(*,*)'Yet to be implemented (little effort?)'
+           write(*,*)'2: Yet to be implemented (little effort?)'
            stop
         end if
 
@@ -1757,7 +1757,7 @@ subroutine get_overlap_region_periodic(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
            Olr(index)%d%nfl3=max(isz,Glr%d%nfl3)-isz
            Olr(index)%d%nfu3=min(iez,Glr%d%nfu3)-isz
         else
-           write(*,*)'Yet to be implemented (little effort?)'
+           write(*,*)'3: Yet to be implemented (little effort?)'
            stop
         end if
 
@@ -1984,7 +1984,12 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
   call memocc(i_stat,bend,'bend',subname)
 
 !FRACTURE SECOND LOCREG
+write(*,'(a,6i9)') 'llr(alr)%ns1, llr(alr)%d%n1, llr(blr)%ns1, llr(blr)%d%n1, glr%ns1, glr%d%n1', llr(alr)%ns1, llr(alr)%d%n1, llr(blr)%ns1, llr(blr)%d%n1, glr%ns1, glr%d%n1
   call fracture_periodic_zone(bzones,Glr,Llr(blr),Llr(blr)%outofzone(:),bstart,bend)
+write(*,*) 'astart', astart
+write(*,*) 'bstart', bstart
+write(*,*) 'aend', aend
+write(*,*) 'bend', bend
 
 ! Now check the number of overlapping zones
   index = 0
@@ -2031,7 +2036,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
            Olr(index)%d%nfl1=max(isx,Glr%d%nfl1)-isx
            Olr(index)%d%nfu1=min(iex,Glr%d%nfu1)-isx
         else
-           write(*,*)'Yet to be implemented (little effort?)'
+           write(*,*)'4: Yet to be implemented (little effort?), isx, iex', isx, iex
            stop
         end if
 
@@ -2039,7 +2044,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
            Olr(index)%d%nfl2=max(isy,Glr%d%nfl2)-isy
            Olr(index)%d%nfu2=min(iey,Glr%d%nfu2)-isy
         else
-           write(*,*)'Yet to be implemented (little effort?)'
+           write(*,*)'5: Yet to be implemented (little effort?)'
            stop
         end if
 
@@ -2047,7 +2052,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
            Olr(index)%d%nfl3=max(isz,Glr%d%nfl3)-isz
            Olr(index)%d%nfu3=min(iez,Glr%d%nfu3)-isz
         else
-           write(*,*)'Yet to be implemented (little effort?)'
+           write(*,*)'6: Yet to be implemented (little effort?)'
            stop
         end if
 

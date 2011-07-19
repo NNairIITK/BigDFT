@@ -1,15 +1,21 @@
-subroutine orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
+subroutine orthonormalizeLocalized(iproc, nproc, nItOrtho, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
-type(linearParameters),intent(inout):: lin
+integer,intent(in):: iproc, nproc, nItOrtho
+!type(linearParameters),intent(inout):: lin
+type(orbitals_data),intent(in):: orbs
+type(overlapParameters),intent(inout):: op
+type(p2pCommsOrthonormality),intent(inout):: comon
+type(linear_zone_descriptors),intent(in):: lzd
+integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+real(8),intent(in):: convCritOrtho
 type(input_variables),intent(in):: input
 !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
-real(8),dimension(lin%lzd%orbs%npsidim),intent(inout):: lphi
-real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
+real(8),dimension(lzd%orbs%npsidim),intent(inout):: lphi
+real(8),dimension(lzd%orbs%norb,lzd%orbs%norb),intent(out):: ovrlp
 
 ! Local variables
 integer:: it, istat, iall, iorb, jorb, ierr
@@ -18,7 +24,7 @@ character(len=*),parameter:: subname='orthonormalize'
 logical:: converged
 real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeExpand, timeLoewdin, timeTransform, timeExtract
 
-  allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
+  allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
 
@@ -30,23 +36,23 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
   timeTransform=0.d0
   timeExtract=0.d0
   converged=.false.
-  do it=1,lin%nItOrtho
+  do it=1,nItOrtho
       !if(iproc==0) write(*,'(a,i0)') 'at it=',it
       call cpu_time(t1)
       !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
       !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-      call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+      call extractOrbital2(iproc, nproc, orbs, lzd%orbs%npsidim, onWhichAtomAll, lzd, op, lphi, comon)
       call cpu_time(t2)
       timeExtract=timeExtract+t2-t1
       timeComput=timeComput+t2-t1
       call cpu_time(t1)
-      call postCommsOverlap(iproc, nproc, lin%comon)
+      call postCommsOverlap(iproc, nproc, comon)
       !call gatherOrbitals(iproc, nproc, lin%comon)
-      call gatherOrbitals2(iproc, nproc, lin%comon)
+      call gatherOrbitals2(iproc, nproc, comon)
       call cpu_time(t2)
       timeCommun=timeCommun+t2-t1
       call cpu_time(t1)
-      call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, ovrlp)
+      call calculateOverlapMatrix2(iproc, nproc, lzd%orbs, op, comon, onWhichAtomAll, ovrlp)
       call cpu_time(t2)
       timeCalcOvrlp=timeCalcOvrlp+t2-t1
       !!do iorb=1,lin%orbs%norb
@@ -54,32 +60,32 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       !!        write(500+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
       !!    end do
       !!end do
-      call checkUnity(iproc, lin%lzd%orbs%norb, ovrlp, maxError)
+      call checkUnity(iproc, lzd%orbs%norb, ovrlp, maxError)
       if(iproc==0) write(*,'(3x,a,es12.4)') 'maximal deviation from unity:', maxError
-      if(maxError<lin%convCritOrtho) then
+      if(maxError<convCritOrtho) then
           converged=.true.
           call cpu_time(t2)
           timeComput=timeComput+t2-t1
           exit
-      else if(it==lin%nItOrtho) then
+      else if(it==nItOrtho) then
           call cpu_time(t2)
           timeComput=timeComput+t2-t1
           exit
       end if
       call cpu_time(t3)
       !call transformOverlapMatrix(iproc, nproc, lin%lzd%orbs, ovrlp)
-      call transformOverlapMatrix(iproc, nproc, lin%lzd%orbs%norb, ovrlp)
+      call transformOverlapMatrix(iproc, nproc, lzd%orbs%norb, ovrlp)
       call cpu_time(t4)
       timeTransform=timeTransform+t4-t3
       !call transformOverlapMatrix2(iproc, nproc, lin%lzd%orbs, ovrlp)
       call cpu_time(t3)
       !call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
-      call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+      call expandOrbital2(iproc, nproc, lzd%orbs, input, onWhichAtomAll, lzd, op, comon, lphiovrlp)
       call cpu_time(t4)
       timeExpand=timeExpand+t4-t3
       call cpu_time(t3)
       !call globalLoewdin(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, ovrlp, lphiovrlp, lphi)
-      call globalLoewdin(iproc, nproc, lin%lzd%orbs, lin%lzd%orbs, lin%onWhichAtomAll, lin%lzd, lin%op, ovrlp, lphiovrlp, lphi)
+      call globalLoewdin(iproc, nproc, lzd%orbs, lzd%orbs, onWhichAtomAll, lzd, op, ovrlp, lphiovrlp, lphi)
       call cpu_time(t4)
       timeLoewdin=timeLoewdin+t4-t3
       call cpu_time(t2)
@@ -89,7 +95,7 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
   if(converged) then
       if(iproc==0) write(*,'(3x,a,i0,a)') 'done in ', it, ' iterations.'
   else 
-      if(iproc==0) write(*,'(3x,a,i0,a)') 'WARNING: orthonormalization not converged within ', lin%nItOrtho, ' iterations.'
+      if(iproc==0) write(*,'(3x,a,i0,a)') 'WARNING: orthonormalization not converged within ', nItOrtho, ' iterations.'
   end if
 
   call mpiallred(timeComput, 1, mpi_sum, mpi_comm_world, ierr)

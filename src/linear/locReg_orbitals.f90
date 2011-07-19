@@ -305,8 +305,11 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, orbse)
   integer:: jproc, iiOrb, iorb, jorb, jat,i_stat
   character(len=*), parameter :: subname='assignToLocreg'
 
-  allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
+  !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
+  allocate(orbse%inWhichLocreg(orbse%norb),stat=i_stat)
   call memocc(i_stat,orbse%inWhichLocreg,'orbse%inWhichLocreg',subname)
+  allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
+  call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
 
   ! There are four counters:
   !   jproc: indicates which MPI process is handling the basis function which is being treated
@@ -337,7 +340,8 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, orbse)
       end if
       jorb=jorb+1
       iiOrb=iiOrb+1
-      if(iproc==jproc) orbse%inWhichLocreg(jorb)=jat
+      if(iproc==jproc) orbse%inWhichLocregp(jorb)=jat
+      orbse%inWhichLocreg(iorb)=jat
   end do
 
 end subroutine assignToLocreg2

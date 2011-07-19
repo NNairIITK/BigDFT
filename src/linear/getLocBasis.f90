@@ -495,7 +495,8 @@ real(8),dimension(4):: time
           write(*,'(x,a)') 'Orthonormalization... '
       end if
       call cpu_time(t1)
-      call orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
+      !call orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
+      call orthonormalizeLocalized(iproc, nproc, lin%nItOrtho, lin%orbs, lin%op, lin%comon, lin%lzd, lin%onWhichAtomAll, lin%convCritOrtho, input, lphi, ovrlp)
       call cpu_time(t2)
       time(1)=time(1)+t2-t1
   

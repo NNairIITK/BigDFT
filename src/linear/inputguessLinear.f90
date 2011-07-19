@@ -243,9 +243,31 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
   !     psigau(1,1,min(orbsig%isorb+1,orbsig%norb)),chi)
   !!call gaussians_to_wavelets_new(iproc,nproc,Glr,lzdig%orbs,input%hx,input%hy,input%hz,G,&
   !!     psigau(1,1,min(lzdig%orbs%isorb+1,lzdig%orbs%norb)),chi)
+  !!! Transform chi to the localization region. This is not needed if we really habe O(N).
+  !!ind1=1
+  !!ind2=1
+  !!do iorb=1,lzdig%orbs%norbp
+  !!    ilr = onWhichAtomp(iorb)
+  !!    ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, chi(ind1), lchi(ind2))
+  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+  !!end do
+  !!do iorb=1,size(lchi)
+  !!    write(20+iproc,*) lchi(iorb)
+  !!end do
+  !!call mpi_barrier(mpi_comm_world, ierr)
+  !!stop
   
+  lchi2=0.d0
   call gaussians_to_wavelets_new2(iproc, nproc, lzdGauss, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(lzdGauss%orbs%isorb+1, lzdGauss%orbs%norb)), lchi2(1))
+  lzdGauss%Glr=Glr
+  call orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzdGauss, input, lchi2)
+  !!do iorb=1,size(lchi2)
+  !!    write(50+iproc,*) lchi2(iorb)
+  !!end do
 
   !!! Transform to global region - should be used if the locrad for the input guess is smaller than our localization radius.
   !!ind1=1
@@ -268,27 +290,37 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
       ilr = onWhichAtomp(iorb)
       ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
       gdim=lzdGauss%llr(ilr)%wfd%nvctr_c+7*lzdGauss%llr(ilr)%wfd%nvctr_f
+      if(iproc==0) write(*,'(a,3i9)') 'iorb, ldim, gdim', iorb, ldim, gdim
       call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdig%llr(ilr), lzdGauss%llr(ilr), lchi2(ind1), lchi(ind2))
       ind1=ind1+lzdGauss%llr(ilr)%wfd%nvctr_c+7*lzdGauss%llr(ilr)%wfd%nvctr_f
       ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
   end do
+  !!do iorb=1,size(lchi)
+  !!    write(60+iproc,*) lchi(iorb)
+  !!end do
   ! Transform to real global region.
   ind1=1
   ind2=1
-  do iorb=1,lzdig%orbs%norbp
+  do iorb=1,lzdGauss%orbs%norbp
       ilr = onWhichAtomp(iorb)
-      ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+      ldim=lzdGauss%Llr(ilr)%wfd%nvctr_c+7*lzdGauss%Llr(ilr)%wfd%nvctr_f
       gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdig%orbs%norb, lin%orbs%nspinor, input%nspin,&
-           Glr, lzdig%Llr(ilr), lchi(ind2), chi(ind1))
+      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdGauss%orbs%norb, lin%orbs%nspinor, input%nspin,&
+           Glr, lzdGauss%Llr(ilr), lchi2(ind2), chi(ind1))
       ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+      ind2=ind2+lzdGauss%Llr(ilr)%wfd%nvctr_c+7*lzdGauss%Llr(ilr)%wfd%nvctr_f
   end do
 
   !! Go back the 'real' localization region.
   !call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
   ! THIS WILL ALLOCATE LZDIG%ORBS%INWHICHLOCREG WITH SIZE ORBS%NORBP
   call assignToLocreg2(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
+
+  !!do iorb=1,size(chi)
+  !!    write(100+iproc,*) chi(iorb)
+  !!end do
+  !!call mpi_barrier(mpi_comm_world, ierr)
+  !!stop
 
 
 
@@ -297,11 +329,10 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
   call memocc(i_stat,i_all,'locrad',subname)
 
   
-  ! Create the potential.
+  !!! Create the potential.
   !!call sumrho(iproc,nproc,orbsig,Glr,input%ixc,hxh,hyh,hzh,chi,rhopot,&
   !!     & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,input%nspin,GPU, &
   !!     & at%symObj, irrzon, phnons)
-  lzdGauss%Glr=Glr
   call sumrhoLinear(iproc, nproc, lzdGauss, input%ixc, hxh, hyh, hzh, lchi2, rhopot,&
     & lzdGauss%Glr%d%n1i*lzdGauss%Glr%d%n2i*nscatterarr(iproc,1), nscatterarr, input%nspin, GPU, &
     & at%symObj, irrzon, phnons)
@@ -423,7 +454,7 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
 
 
   ! Orthogonalize the atomic basis functions (Loewdin).
-  call orthonormalizeAtomicOrbitals(iproc, nproc, orbsig, commsig, Glr, chi)
+  !call orthonormalizeAtomicOrbitals(iproc, nproc, orbsig, commsig, Glr, chi)
   
   ! Gather the potential
   call gatherPotential(iproc, nproc, comgp)
@@ -441,16 +472,22 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
   call memocc(i_stat, doNotCalculate, 'doNotCalculate', subname)
   if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
 
-  !!! Transform chi to the localization region. This is not needed if we really habe O(N).
-  !!ind1=1
-  !!ind2=1
-  !!do iorb=1,lzdig%orbs%norbp
-  !!    ilr = onWhichAtomp(iorb)
-  !!    ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
-  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, chi(ind1), lchi(ind2))
-  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+  ! Transform chi to the localization region. This is not needed if we really habe O(N).
+  !!do iorb=1,size(chi)
+  !!    write(30+iproc,*) chi(iorb)
+  !!end do
+  ind1=1
+  ind2=1
+  do iorb=1,lzdig%orbs%norbp
+      ilr = onWhichAtomp(iorb)
+      ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, chi(ind1), lchi(ind2))
+      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+  end do
+  !!do iorb=1,size(lchi)
+  !!    write(70+iproc,*) lchi(iorb)
   !!end do
 
 
@@ -1523,6 +1560,149 @@ call memocc(istat, iall, 'chiw', subname)
 end subroutine orthonormalizeAtomicOrbitals
 
 
+
+
+
+subroutine orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzd, input, lchi)
+!
+! Purpose:
+! ========
+!  Orthonormalizes the atomic orbitals chi using a Lowedin orthonormalization.
+!
+! Calling arguments:
+!    
+
+use module_base
+use module_types
+use module_interfaces
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linear_zone_descriptors),intent(in):: lzd
+type(input_variables),intent(in):: input
+real(8),dimension(lzd%orbs%npsidim),intent(inout):: lchi
+
+! Local variables
+integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, tag, ilr
+real(8),dimension(:),allocatable:: eval, work
+real(8),dimension(:,:),allocatable:: chiTemp, ovrlp
+real(8),dimension(:,:,:),allocatable:: tempArr
+real(8),dimension(:),pointer:: chiw
+character(len=*),parameter:: subname='orthonormalizeAtomicOrbitals'
+type(overlapParameters):: op
+type(p2pCommsOrthonormality):: comon
+
+do ilr=1,lzd%nlr
+    write(*,'(a,4i8)') 'ilr, iproc, ns1, n1', ilr, iproc, lzd%llr(ilr)%ns1, lzd%llr(ilr)%d%n1
+end do
+call mpi_barrier(mpi_comm_world, ierr)
+
+! Initialize the communication parameters.
+tag=5000
+call initCommsOrtho(iproc, nproc, lzd, lzd%orbs%inWhichLocreg, input, op, comon, tag)
+!!call orthonormalizeLocalized(iproc, nproc, lin%nItOrtho, lin%orbs, lin%op, lin%comon, lin%lzd, lin%onWhichAtomAll, lin%convCritOrtho, input, lphi, ovrlp)
+allocate(ovrlp(lzd%orbs%norb,lzd%orbs%norb), stat=istat)
+call memocc(istat, ovrlp, 'ovrlp', subname)
+call orthonormalizeLocalized(iproc, nproc, 2, lzd%orbs, op, comon, lzd, lzd%orbs%inWhichLocreg, 1.d-6, input, lchi, ovrlp)
+
+iall=-product(shape(ovrlp))*kind(ovrlp)
+deallocate(ovrlp, stat=istat)
+call memocc(istat, iall, 'ovrlp', subname)
+
+!!allocate(chiw(orbsig%npsidim),stat=istat)
+!!call memocc(istat, chiw, 'chiw', subname)
+!!
+!!call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, chi, work=chiw)
+!!
+!!allocate(ovrlp(orbsig%norb,orbsig%norb), stat=istat)
+!!call memocc(istat, ovrlp, 'ovrlp', subname)
+!!
+!!
+!!nvctrp=commsig%nvctr_par(iproc,1) ! 1 for k-points
+!!
+!!! Calculate the overlap matrix
+!!call dsyrk('l', 't', orbsig%norb, nvctrp, 1.d0, chi(1), nvctrp, &
+!!     0.d0, ovrlp(1,1), orbsig%norb)
+!!! MPI
+!!call mpiallred(ovrlp(1,1), orbsig%norb**2, mpi_sum, mpi_comm_world, ierr)
+!!
+!!
+!!allocate(eval(orbsig%norb), stat=istat)
+!!call memocc(istat, eval, 'eval', subname)
+!!
+!!! Diagonalize overlap matrix.
+!!allocate(work(1), stat=istat)
+!!call memocc(istat, work, 'work', subname)
+!!call dsyev('v', 'l', orbsig%norb, ovrlp(1,1), orbsig%norb, eval, &
+!!     work, -1, info)
+!!lwork=work(1)
+!!iall=-product(shape(work))*kind(work)
+!!deallocate(work, stat=istat)
+!!call memocc(istat, iall, 'work', subname)
+!!allocate(work(lwork), stat=istat)
+!!call memocc(istat, work, 'work', subname)
+!!call dsyev('v', 'l', orbsig%norb, ovrlp(1,1), orbsig%norb, eval, &
+!!     work, lwork, info)
+!!
+!!! Calculate S^{-1/2}. 
+!!! First calulate ovrlp*diag(1/sqrt(eval)) (ovrlp is the diagonalized overlap
+!!! matrix and diag(1/sqrt(eval)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
+!!allocate(tempArr(orbsig%norb,orbsig%norb,2), stat=istat)
+!!call memocc(istat, tempArr, 'tempArr', subname)
+!!do iorb=1,orbsig%norb
+!!    do jorb=1,orbsig%norb
+!!        tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
+!!    end do
+!!end do
+!!
+!!! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
+!!! This will give S^{-1/2}.
+!!call dgemm('n', 't', orbsig%norb, orbsig%norb, orbsig%norb, 1.d0, ovrlp(1,1), &
+!!     orbsig%norb, tempArr(1,1,1), orbsig%norb, 0.d0, &
+!!     tempArr(1,1,2), orbsig%norb)
+!!
+!!! Now calculate the orthonormal orbitals by applying S^{-1/2} to the orbitals.
+!!! This requires the use of a temporary variable phidTemp.
+!!allocate(chiTemp(nvctrp,1:orbsig%norb), stat=istat)
+!!call memocc(istat, chiTemp, 'chiTemp', subname)
+!!call dgemm('n', 'n', nvctrp, orbsig%norb, orbsig%norb, 1.d0, chi(1), &
+!!     nvctrp, tempArr(1,1,2),  orbsig%norb, 0.d0, &
+!!     chiTemp(1,1), nvctrp)
+!!
+!!! Now copy the orbitals from the temporary variable to phid.
+!!call dcopy(orbsig%norb*nvctrp, chiTemp(1,1), 1, chi(1), 1)
+!!
+!!
+!!call untranspose_v(iproc, nproc, orbsig, Glr%wfd, commsig, chi, work=chiw)
+!!
+!!
+!!iall=-product(shape(ovrlp))*kind(ovrlp)
+!!deallocate(ovrlp, stat=istat)
+!!call memocc(istat, iall, 'ovrlp', subname)
+!!
+!!iall=-product(shape(work))*kind(work)
+!!deallocate(work, stat=istat)
+!!call memocc(istat, iall, 'work', subname)
+!!
+!!iall=-product(shape(eval))*kind(eval)
+!!deallocate(eval, stat=istat)
+!!call memocc(istat, iall, 'eval', subname)
+!!
+!!iall=-product(shape(chiTemp))*kind(chiTemp)
+!!deallocate(chiTemp, stat=istat)
+!!call memocc(istat, iall, 'chiTemp', subname)
+!!
+!!iall=-product(shape(tempArr))*kind(tempArr)
+!!deallocate(tempArr, stat=istat)
+!!call memocc(istat, iall, 'tempArr', subname)
+!!
+!!iall=-product(shape(chiw))*kind(chiw)
+!!deallocate(chiw, stat=istat)
+!!call memocc(istat, iall, 'chiw', subname)
+
+
+end subroutine orthonormalizeAtomicOrbitalsLocalized
 
 
 
@@ -2632,6 +2812,8 @@ type(p2pCommsOrthonormalityMatrix):: comom
   ! Gather the coefficients.
   call mpi_allgatherv(coeff2(1), sendcount, mpi_double_precision, coeff(1,1), recvcounts, &
        displs, mpi_double_precision, mpi_comm_world, ierr)
+
+  ! 
 
 
   ! Now every process has all coefficients, so we can build the linear combinations.
@@ -3819,3 +4001,26 @@ call memocc(istat, iall, 'ovrlp2', subname)
 
 
 end subroutine applyOrthoconstraintVectors
+
+
+
+
+!!subroutine getOverlappingOrbitals
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!! Calling arguments
+!!integer,intent(in):: iproc, nproc
+!!type(linear_zone_descriptors),intent(in):: lzd
+!!type(input_variables),intent(in):: input
+!!
+!!call initCommsOrtho(iproc, nproc, lzd, lzd%orbs%inWhichLocreg, input, op, comon, tag)
+!!call extractOrbital2(iproc, nproc, orbs, lzd%orbs%npsidim, onWhichAtomAll, lzd, op, lphi, comon)
+!!call postCommsOverlap(iproc, nproc, comon)
+!!call gatherOrbitals2(iproc, nproc, comon)
+!!call expandOrbital2(iproc, nproc, lzd%orbs, input, lzd%orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
+!!
+!!
+!!
+!!end subroutine getOverlappingOrbitals

@@ -2686,17 +2686,33 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine globalLoewdin
 
 
-     subroutine orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
+     subroutine orthonormalizeLocalized(iproc, nproc, nItOrtho, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc
-       type(linearParameters),intent(inout):: lin
+       integer,intent(in):: iproc, nproc, nItOrtho
+       type(orbitals_data),intent(in):: orbs
+       type(overlapParameters),intent(inout):: op
+       type(p2pCommsOrthonormality),intent(inout):: comon
+       type(linear_zone_descriptors),intent(in):: lzd
+       integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+       real(8),intent(in):: convCritOrtho
        type(input_variables),intent(in):: input
-       !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
-       real(8),dimension(lin%lzd%orbs%npsidim),intent(inout):: lphi
-       real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
+       real(8),dimension(lzd%orbs%npsidim),intent(inout):: lphi
+       real(8),dimension(lzd%orbs%norb,lzd%orbs%norb),intent(out):: ovrlp
      end subroutine orthonormalizeLocalized
+
+     !!subroutine orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  integer,intent(in):: iproc, nproc
+     !!  type(linearParameters),intent(inout):: lin
+     !!  type(input_variables),intent(in):: input
+     !!  !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
+     !!  real(8),dimension(lin%lzd%orbs%npsidim),intent(inout):: lphi
+     !!  real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
+     !!end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, onWhichAtom, hphi, phi, ldiis, it)
        use module_base
