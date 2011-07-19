@@ -29,7 +29,8 @@ integer:: i
 real(8):: fac, fac2, prefac1, prefac2a, hgrid2, hgrid3, x02, x03
 real(8):: scale
 
-scale=1.d0
+!scale=1.d0
+scale=1.d-4
 !scale=5.d-2
 
 prefac1=-.5d0/hgrid**2
@@ -1843,8 +1844,6 @@ END SUBROUTINE ConvolkineticSextic
 
 
 
-!>  Applies the following operation: 
-!!  y = [kinetic energy operator) + (cprec*I) + ((r-r0)^4)]*x
 subroutine createDerivativeBasis(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&

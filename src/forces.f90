@@ -187,6 +187,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
 
+
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
      

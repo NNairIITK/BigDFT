@@ -911,9 +911,9 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
   integer,dimension(3) :: outofzone
   real(gp) :: rx,ry,rz,cutoff  
 
-  if (iproc == 0) then
-     write(*,*)'Inside determine_locreg_periodic:'
-  end if
+  !!if (iproc == 0) then
+  !!   write(*,*)'Inside determine_locreg_periodic:'
+  !!end if
 
   !initialize out of zone and logicals
   outofzone (:) = 0     
@@ -1952,7 +1952,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
   integer :: axmin,axmax,aymin,aymax,azmin,azmax ! bounds of localization region A
   integer :: bxmin,bxmax,bymin,bymax,bzmin,bzmax ! bounds of localization region B
   integer :: isx,isy,isz,iex,iey,iez             ! bounds of the overlap region
-  character(len=*), parameter :: subname='get_overlap_region_periodic'
+  character(len=*), parameter :: subname='get_overlap_region_periodic2'
   !# NEW
   integer :: ii,azones,bzones,i_stat,i_all,index
   integer :: izones,jzones
@@ -1966,6 +1966,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
      if(Llr(alr)%outofzone(ii) > 0) azones = azones * 2
      if(Llr(blr)%outofzone(ii) > 0) bzones = bzones * 2
   end do
+
 
 !allocate astart and aend
   allocate(astart(3,azones),stat=i_stat)

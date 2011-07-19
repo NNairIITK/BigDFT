@@ -415,10 +415,18 @@ module module_types
        logical,dimension(:,:),pointer:: communComplete
    end type p2pCommsOrthonormality
 
+
+!> Contains the parameters for the communications of the derivative orbitals
+!! to mathc their partition.
+  type,public:: p2pCommsRepartition
+      integer,dimension(:,:,:),pointer:: comarr
+       logical,dimension(:,:),pointer:: communComplete
+  end type p2pCommsRepartition
+
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
       integer:: ndim_lphiovrlp
-      integer,dimension(:),pointer:: noverlaps
+      integer,dimension(:),pointer:: noverlaps, indexExpand, indexExtract
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:,:),pointer:: indexInRecvBuf
       integer,dimension(:,:),pointer:: indexInSendBuf
@@ -426,16 +434,32 @@ module module_types
   end type overlapParameters
 
 
-!> Contains all parameters for the basis with which we calculate the properties
-!! like energy and forces. Since we may also use the derivative of the trace
-!! minimizing orbitals, this basis may be larger than only the trace minimizing
-!! orbitals. In case we don't use the derivatives, these parameters are identical
-!! from those in lin%orbs etc.
-type,public:: largeBasis
-    type(communications_arrays):: comms
-    type(orbitals_data):: orbs, Lorbs
-    integer,dimension(:),pointer:: onWhichAtom, onWhichAtomAll
-end type largeBasis
+  type,public:: matrixLocalizationRegion
+      integer:: norbinlr
+      integer,dimension(:),pointer:: indexInGlobal
+  end type matrixLocalizationRegion
+
+
+  type,public:: p2pCommsOrthonormalityMatrix
+      integer:: nrecvBuf, nsendBuf
+      integer,dimension(:),pointer:: noverlap, noverlapProc
+      integer,dimension(:,:),pointer:: overlaps, indexInRecvBuf, overlapsProc
+      integer,dimension(:,:,:),pointer:: comarr, olrForExpansion
+      real(8),dimension(:),pointer:: recvBuf, sendBuf
+      logical,dimension(:,:),pointer:: communComplete
+      type(matrixLocalizationRegion),dimension(:,:),pointer:: olr
+  end type p2pCommsOrthonormalityMatrix
+
+
+  type,public:: matrixMinimization
+    type(matrixLocalizationRegion),dimension(:),pointer:: mlr
+    integer:: norbmax ! maximal matrix size handled by a given process
+    integer:: nlrp ! number of localization regions handled by a given process
+    integer,dimension(:),pointer:: inWhichLocregExtracted
+    integer,dimension(:),pointer:: inWhichLocregOnMPI
+    integer,dimension(:),pointer:: indexInLocreg
+  end type matrixMinimization
+
 
 !!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: linear_zone_descriptors
@@ -449,12 +473,28 @@ end type largeBasis
     type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
     type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
+    type(matrixMinimization):: matmin
   end type
+
+
+!> Contains all parameters for the basis with which we calculate the properties
+!! like energy and forces. Since we may also use the derivative of the trace
+!! minimizing orbitals, this basis may be larger than only the trace minimizing
+!! orbitals. In case we don't use the derivatives, these parameters are identical
+!! from those in lin%orbs etc.
+type,public:: largeBasis
+    type(communications_arrays):: comms
+    type(orbitals_data):: orbs, Lorbs
+    type(linear_zone_descriptors):: lzd
+    integer,dimension(:),pointer:: onWhichAtom, onWhichAtomAll
+    type(p2pCommsRepartition):: comrp
+end type largeBasis
 
   !> Contains the parameters for the parallel input guess for the O(N) version.
   type,public:: inguessParameters
     integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
-    integer,dimension(:),pointer:: norb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
+    integer,dimension(:),pointer:: norb_par, onWhichMPI, isorb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
+    type(matrixLocalizationRegion),dimension(:),pointer:: mlr
   end type inguessParameters
 
   type,public:: localizedDIISParameters
@@ -470,7 +510,8 @@ end type largeBasis
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, phiRestart
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, phiRestart, lphiRestart, lphiold, lhphiold
+    real(8),dimension(:,:),pointer:: hamold
     type(orbitals_data):: orbs, Lorbs
     type(communications_arrays):: comms, Lcomms
     type(locreg_descriptors):: lr
@@ -483,13 +524,14 @@ end type largeBasis
     integer:: ncomms
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
-    character(len=4):: getCoeff
+    character(len=4):: getCoeff, mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
+    type(p2pCommsGatherPot):: comgp_lb
     type(largeBasis):: lb
     type(linear_zone_descriptors):: lzd
-    type(p2pCommsOrthonormality):: comon
-    type(overlapParameters):: op
+    type(p2pCommsOrthonormality):: comon, comon_lb
+    type(overlapParameters):: op, op_lb
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure

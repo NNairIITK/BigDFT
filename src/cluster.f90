@@ -467,7 +467,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,&
        in%nvacancy,in%correct_offset)
-write(*,*) 'iproc, psoffset', iproc, psoffset
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
