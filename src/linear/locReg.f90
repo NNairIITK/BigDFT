@@ -1984,12 +1984,7 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
   call memocc(i_stat,bend,'bend',subname)
 
 !FRACTURE SECOND LOCREG
-write(*,'(a,6i9)') 'llr(alr)%ns1, llr(alr)%d%n1, llr(blr)%ns1, llr(blr)%d%n1, glr%ns1, glr%d%n1', llr(alr)%ns1, llr(alr)%d%n1, llr(blr)%ns1, llr(blr)%d%n1, glr%ns1, glr%d%n1
   call fracture_periodic_zone(bzones,Glr,Llr(blr),Llr(blr)%outofzone(:),bstart,bend)
-write(*,*) 'astart', astart
-write(*,*) 'bstart', bstart
-write(*,*) 'aend', aend
-write(*,*) 'bend', bend
 
 ! Now check the number of overlapping zones
   index = 0

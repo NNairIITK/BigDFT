@@ -3001,7 +3001,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine
 
 
-     subroutine getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, nat, lchi, lhchi, ham, orbsig)
+     subroutine getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, nat, lchi, lhchi, ham)
        use module_base
        use module_types
        implicit none
@@ -3011,7 +3011,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(input_variables),intent(in):: input
        integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom
        integer,dimension(lzdig%orbs%norbp),intent(in):: onWhichAtomp
-       type(orbitals_data),intent(in):: orbsig
        real(8),dimension(lzdig%orbs%npsidim),intent(in):: lchi
        real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: lhchi
        real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb,nat),intent(out):: ham

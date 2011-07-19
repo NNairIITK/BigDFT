@@ -1434,7 +1434,8 @@ allocate(lzd%Llr(lzd%nlr),stat=istat)
 npsidim=0
 do iorb=1,lzd%orbs%norbp
     !ilr=lin%onWhichAtom(iorb)
-    ilr=lzd%orbs%inWhichLocreg(iorb)
+    ilr=lzd%orbs%inWhichLocregp(iorb)
+    write(*,'(a,5i12)') 'iproc, iorb, ilr, ncount, npsidim', iproc, iorb, ilr,  (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*lzd%orbs%nspinor, npsidim 
     npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*lzd%orbs%nspinor
 end do
 !! WARNING: CHECHK THIS

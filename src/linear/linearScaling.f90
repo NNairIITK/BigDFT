@@ -156,6 +156,9 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   !!        read(700+iproc,*) istat, rhopot(iall)
   !!    end if
   !!end do
+  do istat=1,size(rhopot)
+      write(900+iproc,*) istat, rhopot(istat)
+  end do
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
   if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
 
@@ -166,6 +169,14 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
+  do istat=1,size(lphi)
+      write(1000+iproc,*) istat, lphi(istat)
+  end do
+  do istat=1,size(coeff,1)
+      write(1100+iproc,*) (coeff(istat,iall), iall=1,size(coeff,2))
+  end do
+  call mpi_barrier(mpi_comm_world, ierr)
+  stop
 
   !!call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
   !!  .5d0*input%hy, .5d0*input%hz, 0)
