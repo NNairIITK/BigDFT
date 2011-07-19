@@ -103,13 +103,20 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
   timeLoewdin=timeLoewdin/dble(nproc)
   timeTransform=timeTransform/dble(nproc)
   timeExtract=timeExtract/dble(nproc)
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for computation:', timeComput, '=', 100.d0*timeComput/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for communication:', timeCommun, '=', 100.d0*timeCommun/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for calculating overlap:', timeCalcOvrlp, '=', 100.d0*timeCalcOvrlp/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expansion:', timeExpand, '=', 100.d0*timeExpand/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for Loewdin:', timeLoewdin, '=', 100.d0*timeLoewdin/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for transform:', timeTransform, '=', 100.d0*timeTransform/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=', 100.d0*timeExtract/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for computation:', timeComput, '=',&
+                100.d0*timeComput/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for communication:', timeCommun, '=',&
+               100.d0*timeCommun/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for calculating overlap:', timeCalcOvrlp, '=',&
+               100.d0*timeCalcOvrlp/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expansion:', timeExpand, '=',&
+               100.d0*timeExpand/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for Loewdin:', timeLoewdin, '=',&
+               100.d0*timeLoewdin/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for transform:', timeTransform, '=',&
+               100.d0*timeTransform/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=',&
+               100.d0*timeExtract/(timeComput+timeCommun), '%'
 
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
   deallocate(lphiovrlp, stat=istat)
@@ -228,7 +235,8 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   ! Expand the receive buffer, i.e. lhphi
   call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lhphiovrlp)
   !call applyOrthoconstraintNonorthogonal(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op,&
+       lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
@@ -486,7 +494,7 @@ logical:: converged
   !!allocate(lphiovrlp(lin%op_lb%ndim_lphiovrlp), stat=istat)
   !!call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
-  call extractOrbital2(iproc, nproc, lin%lb%orbs, lin%lb%lorbs%npsidim, lin%lb%onWhichAtomAll, lin%lb%lzd, lin%op_lb, lphi, lin%comon_lb)
+  call extractOrbital2(iproc,nproc,lin%lb%orbs,lin%lb%lorbs%npsidim,lin%lb%onWhichAtomAll,lin%lb%lzd,lin%op_lb,lphi,lin%comon_lb)
   call postCommsOverlap(iproc, nproc, lin%comon_lb)
   call gatherOrbitals2(iproc, nproc, lin%comon_lb)
   call calculateOverlapMatrix2(iproc, nproc, lin%lb%lzd%orbs, lin%op_lb, lin%comon_lb, lin%lb%onWhichAtomAll, ovrlp)
@@ -1788,7 +1796,7 @@ end subroutine applyOrthoconstraint
 
 
 
-subroutine applyOrthoconstraintNonorthogonal(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+subroutine applyOrthoconstraintNonorthogonal(iproc,nproc,orbs,lorbs,onWhichAtom,lzd,op,lagmat,ovrlp,lphiovrlp,lhphiovrlp,lhphi)
 use module_base
 use module_types
 implicit none
@@ -1838,7 +1846,7 @@ end subroutine applyOrthoconstraintNonorthogonal
 
 
 
-subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+subroutine applyOrthoconstraintNonorthogonal2(iproc,nproc,orbs,lorbs,onWhichAtom,lzd,op,lagmat,ovrlp,lphiovrlp,lhphiovrlp,lhphi)
 use module_base
 use module_types
 implicit none
@@ -2010,7 +2018,8 @@ do iorb=1,orbs%norbp
         ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), comon%recvBuf(jst), lphiovrlp(ind))
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), comon%recvBuf(jst), lphiovrlp(ind))
-        call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), op%indexExpand(jst))
+        call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr),&
+             op%olr(jorb,iorb), op%indexExpand(jst))
         ind=ind+gdim
     end do
     ilrold=ilr
@@ -2120,13 +2129,13 @@ character(len=*),parameter:: subname='getMatrixElements'
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%lb%lorbs, lin%lb%lorbs%npsidim, lin%lb%onWhichAtomAll, lin%lb%lzd, lin%op_lb, lphi, lin%comon_lb)
+  call extractOrbital2(iproc,nproc,lin%lb%lorbs,lin%lb%lorbs%npsidim,lin%lb%onWhichAtomAll,lin%lb%lzd,lin%op_lb,lphi,lin%comon_lb)
   call postCommsOverlap(iproc, nproc, lin%comon_lb)
   !call gatherOrbitals(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon_lb)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%lb%lorbs, lin%lb%lorbs%npsidim, lin%lb%onWhichAtomAll, lin%lb%lzd, lin%op_lb, lhphi, lin%comon_lb)
+  call extractOrbital2(iproc,nproc,lin%lb%lorbs,lin%lb%lorbs%npsidim,lin%lb%onWhichAtomAll,lin%lb%lzd,lin%op_lb,lhphi,lin%comon_lb)
   call calculateOverlapMatrix2(iproc, nproc, lin%lb%lzd%orbs, lin%op_lb, lin%comon_lb, lin%lb%onWhichAtomAll, matrixElements)
 
   !!!allocate(lphiovrlp(lin%op_lb%ndim_lphiovrlp), stat=istat)

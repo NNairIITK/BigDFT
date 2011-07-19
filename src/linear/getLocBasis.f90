@@ -262,7 +262,8 @@ integer:: ist, ierr
       ilr = lin%lb%onWhichAtom(iorb)
       ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
       gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
+      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr,&
+           lin%Llr(ilr), lphi(ind2), phi(ind1))
       ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
   end do
@@ -2670,17 +2671,18 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
       istz_f=istz_c+lin%llr(ilr)%wfd%nvctr_c
 
       ! Uncompress the wavefunction.
-      call uncompress_forstandard(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, lin%llr(ilr)%d%nfl1, lin%llr(ilr)%d%nfu1, & 
-           lin%llr(ilr)%d%nfl2, lin%llr(ilr)%d%nfu2, lin%llr(ilr)%d%nfl3, lin%llr(ilr)%d%nfu3,  &
+      call uncompress_forstandard(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, lin%llr(ilr)%d%nfl1,&
+           lin%llr(ilr)%d%nfu1,lin%llr(ilr)%d%nfl2, lin%llr(ilr)%d%nfu2, lin%llr(ilr)%d%nfl3, lin%llr(ilr)%d%nfu3,&
            lin%llr(ilr)%wfd%nseg_c, lin%llr(ilr)%wfd%nvctr_c, lin%llr(ilr)%wfd%keyg, lin%llr(ilr)%wfd%keyv,  &
-           lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f, lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
+           lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f,&
+           lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
            lin%llr(ilr)%wfd%keyv(lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)),  &
            scal, phi(ist1_c), phi(ist1_f), w_c, w_f, w_f1, w_f2, w_f3)
 
 
       call createDerivativeBasis(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, &
-           lin%llr(ilr)%d%nfl1, lin%llr(ilr)%d%nfu1, lin%llr(ilr)%d%nfl2, lin%llr(ilr)%d%nfu2, lin%llr(ilr)%d%nfl3, lin%llr(ilr)%d%nfu3,  &
-           hgrid, lin%llr(ilr)%bounds%kb%ibyz_c, lin%llr(ilr)%bounds%kb%ibxz_c, lin%llr(ilr)%bounds%kb%ibxy_c, &
+           lin%llr(ilr)%d%nfl1, lin%llr(ilr)%d%nfu1, lin%llr(ilr)%d%nfl2, lin%llr(ilr)%d%nfu2, lin%llr(ilr)%d%nfl3,&
+           lin%llr(ilr)%d%nfu3,hgrid,lin%llr(ilr)%bounds%kb%ibyz_c,lin%llr(ilr)%bounds%kb%ibxz_c,lin%llr(ilr)%bounds%kb%ibxy_c, &
            lin%llr(ilr)%bounds%kb%ibyz_f, lin%llr(ilr)%bounds%kb%ibxz_f, lin%llr(ilr)%bounds%kb%ibxy_f, &
            w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
 
@@ -2690,39 +2692,44 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
       ist1_c = ist1_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f
 
       ! Compress the x wavefunction.
-      call compress_forstandard(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, lin%llr(ilr)%d%nfl1, lin%llr(ilr)%d%nfu1, &
+      call compress_forstandard(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, lin%llr(ilr)%d%nfl1, lin%llr(ilr)%d%nfu1,&
            lin%llr(ilr)%d%nfl2, lin%llr(ilr)%d%nfu2, lin%llr(ilr)%d%nfl3, lin%llr(ilr)%d%nfu3, &
            lin%llr(ilr)%wfd%nseg_c, lin%llr(ilr)%wfd%nvctr_c, lin%llr(ilr)%wfd%keyg, lin%llr(ilr)%wfd%keyv, &
-           lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f, lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
+           lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f,&
+           lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
            lin%llr(ilr)%wfd%keyv(lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)),  &
            scal, phix_c, phix_f, phiLoc(istx_c), phiLoc(istx_f))
       if(iorb<lin%orbs%norbp) then
           jlr=lin%onWhichAtom(iorb+1)
-          istx_c = istx_c + 3*(lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f) + lin%llr(jlr)%wfd%nvctr_c + 7*lin%llr(jlr)%wfd%nvctr_f
+          istx_c=istx_c+3*(lin%llr(ilr)%wfd%nvctr_c+7*lin%llr(ilr)%wfd%nvctr_f)+lin%llr(jlr)%wfd%nvctr_c+7*lin%llr(jlr)%wfd%nvctr_f
       end if
 
       ! Compress the y wavefunction.
       call compress_forstandard(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, lin%llr(ilr)%d%nfl1, lin%llr(ilr)%d%nfu1, &
            lin%llr(ilr)%d%nfl2, lin%llr(ilr)%d%nfu2, lin%llr(ilr)%d%nfl3, lin%llr(ilr)%d%nfu3, &
            lin%llr(ilr)%wfd%nseg_c, lin%llr(ilr)%wfd%nvctr_c, lin%llr(ilr)%wfd%keyg, lin%llr(ilr)%wfd%keyv, &
-           lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f, lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
+           lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f,&
+           lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
            lin%llr(ilr)%wfd%keyv(lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)),  &
            scal, phiy_c, phiy_f, phiLoc(isty_c), phiLoc(isty_f))
       if(iorb<lin%orbs%norbp) then
           jlr=lin%onWhichAtom(iorb+1)
-          isty_c = isty_c + 2*(lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f) + 2*(lin%llr(jlr)%wfd%nvctr_c + 7*lin%llr(jlr)%wfd%nvctr_f)
+          isty_c = isty_c + 2*(lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f) +&
+                   2*(lin%llr(jlr)%wfd%nvctr_c + 7*lin%llr(jlr)%wfd%nvctr_f)
       end if
 
       ! Compress the z wavefunction.
       call compress_forstandard(lin%llr(ilr)%d%n1, lin%llr(ilr)%d%n2, lin%llr(ilr)%d%n3, lin%llr(ilr)%d%nfl1, lin%llr(ilr)%d%nfu1, &
            lin%llr(ilr)%d%nfl2, lin%llr(ilr)%d%nfu2, lin%llr(ilr)%d%nfl3, lin%llr(ilr)%d%nfu3, &
            lin%llr(ilr)%wfd%nseg_c, lin%llr(ilr)%wfd%nvctr_c, lin%llr(ilr)%wfd%keyg, lin%llr(ilr)%wfd%keyv, &
-           lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f, lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
+           lin%llr(ilr)%wfd%nseg_f, lin%llr(ilr)%wfd%nvctr_f,&
+           lin%llr(ilr)%wfd%keyg(1,lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)), &
            lin%llr(ilr)%wfd%keyv(lin%llr(ilr)%wfd%nseg_c+min(1,lin%llr(ilr)%wfd%nseg_f)),  &
            scal, phiz_c, phiz_f, phiLoc(istz_c), phiLoc(istz_f))
       if(iorb<lin%orbs%norbp) then
           jlr=lin%onWhichAtom(iorb+1)
-          istz_c = istz_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f + 3*(lin%llr(jlr)%wfd%nvctr_c + 7*lin%llr(jlr)%wfd%nvctr_f)
+          istz_c = istz_c + lin%llr(ilr)%wfd%nvctr_c + 7*lin%llr(ilr)%wfd%nvctr_f +&
+                   3*(lin%llr(jlr)%wfd%nvctr_c + 7*lin%llr(jlr)%wfd%nvctr_f)
       end if
 
       call deallocateWorkarrays()
@@ -2977,7 +2984,8 @@ do jproc=0,nproc-1
             ! The orbitals are on different processes, so we need a point to point communication.
             if(iproc==mpisource) then
                 !write(*,'(9(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag,'  jproc=',jproc,' jorb=',jorb,' ncnt=',comrp%comarr(3,jorb,jproc)
-                call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, comrp%comarr(7,jorb,jproc), ierr)
+                call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                     comrp%comarr(7,jorb,jproc), ierr)
                 !!do ierr=istsource,istsource+ncount-1
                 !!    write(tag,*) ierr, sendBuf(ierr)
                 !!end do
@@ -2986,7 +2994,8 @@ do jproc=0,nproc-1
                 nsends=nsends+1
             else if(iproc==mpidest) then
                 !write(*,'(9(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag,'  jproc=',jproc,' jorb=',jorb,' ncnt=',comrp%comarr(3,jorb,jproc)
-                call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world, comrp%comarr(8,jorb,jproc), ierr)
+                call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                     comrp%comarr(8,jorb,jproc), ierr)
                 comrp%comarr(7,jorb,jproc)=mpi_request_null !is this correct?
                 nreceives=nreceives+1
             else
