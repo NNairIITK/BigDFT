@@ -1962,7 +1962,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
          nlpspd, proj, pkernel, pkernelseq, &
          nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-         phi, ehart, eexcu, vexcu)
+         lphi, ehart, eexcu, vexcu)
       use module_base
       use module_types
       implicit none
@@ -1987,7 +1987,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
       real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-      real(8),dimension(lin%orbs%npsidim),intent(out):: phi
+      real(8),dimension(lin%lzd%orbs%npsidim),intent(out):: lphi
       real(8),intent(out):: ehart, eexcu, vexcu
     end subroutine inputguessConfinement
 
@@ -2942,8 +2942,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine orthonormalLinearCombinations
 
 
-     subroutine buildLinearCombinationsLocalized(iproc, nproc, orbsig, orbs, commsig, comms, at, Glr, norbsPerType, &
-           onWhichAtom, chi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
+     subroutine buildLinearCombinationsLocalized(iproc, nproc, orbsig, orbs, commsig, comms, at, Glr, input, norbsPerType, &
+           onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
        use module_base
        use module_types
        implicit none
@@ -2952,14 +2952,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(communications_arrays),intent(in):: commsig, comms
        type(atoms_data),intent(in):: at
        type(locreg_descriptors),intent(in):: Glr
-       integer,dimension(at%ntypes):: norbsPerType
-       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-       real(8),dimension(orbsig%npsidim):: chi
-       real(8),dimension(orbs%npsidim):: phi
-       real(8),dimension(3,at%nat):: rxyz
-       integer,dimension(orbs%norb):: onWhichAtomPhi
+       type(input_variables),intent(in):: input
        type(linearParameters),intent(in):: lin
        type(linear_zone_descriptors),intent(inout):: lzdig
+       integer,dimension(at%ntypes):: norbsPerType
+       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
+       real(8),dimension(lzdig%orbs%npsidim):: lchi
+       real(8),dimension(lin%lzd%orbs%npsidim):: lphi
+       real(8),dimension(3,at%nat):: rxyz
+       integer,dimension(orbs%norb):: onWhichAtomPhi
        real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
      end subroutine buildLinearCombinationsLocalized
 

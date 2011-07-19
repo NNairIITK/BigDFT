@@ -125,17 +125,17 @@ integer:: ist, ierr
   allocate(ovrlp(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
-  ! Transform phi to the lphi.
-  ind1=1
-  ind2=1
-  do iorb=1,lin%orbs%norbp
-      ilr = lin%onWhichAtom(iorb)
-      ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
-      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
-  end do
+  !!! Transform phi to the lphi.
+  !!ind1=1
+  !!ind2=1
+  !!do iorb=1,lin%orbs%norbp
+  !!    ilr = lin%onWhichAtom(iorb)
+  !!    ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, phi(ind1), lphi(ind2))
+  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
+  !!end do
 
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then

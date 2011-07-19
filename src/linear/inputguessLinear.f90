@@ -3,7 +3,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
      comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
      nlpspd, proj, pkernel, pkernelseq, &
      nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf,  &
-     phi, ehart, eexcu, vexcu)
+     lphi, ehart, eexcu, vexcu)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -34,7 +34,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
   real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
   real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-  real(8),dimension(lin%orbs%npsidim),intent(out):: phi
+  real(8),dimension(lin%lzd%orbs%npsidim),intent(out):: lphi
   real(8),intent(out):: ehart, eexcu, vexcu
   !local variables
   type(gaussian_basis):: G !basis for davidson IG
@@ -57,7 +57,7 @@ type(orbitals_data):: orbsLIN
 type(communications_arrays):: commsLIN
 real(8),dimension(:),allocatable:: eval
 integer:: istat, tag
-real(8),dimension(:),allocatable:: chi, lchi, lchi2
+real(8),dimension(:),allocatable:: lchi, lchi2
 real(8),dimension(:,:),allocatable:: hchi, lhchi
 real(8),dimensioN(:,:,:),allocatable:: ham
 integer,dimension(:),allocatable:: onWhichAtom, onWhichAtomp, norbsPerAt, onWhichAtomTemp, onWhichAtomPhi
@@ -207,11 +207,8 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
 
 
   ! Allocate the atomic orbitals chi and hchi (i.e. the Hamiltonian applied to them).
-  allocate(chi(orbsig%npsidim+ndebug),stat=i_stat)
-  call memocc(i_stat,chi,'chi',subname)
   !!allocate(hchi(orbsig%npsidim,at%nat),stat=i_stat)
   !!call memocc(i_stat,hchi,'hchi',subname)
-  chi=0.d0
   !!hchi=0.d0
 
   !allocate arrays for the GPU if a card is present
@@ -299,17 +296,17 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
   !!    write(60+iproc,*) lchi(iorb)
   !!end do
   ! Transform to real global region.
-  ind1=1
-  ind2=1
-  do iorb=1,lzdGauss%orbs%norbp
-      ilr = onWhichAtomp(iorb)
-      ldim=lzdGauss%Llr(ilr)%wfd%nvctr_c+7*lzdGauss%Llr(ilr)%wfd%nvctr_f
-      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdGauss%orbs%norb, lin%orbs%nspinor, input%nspin,&
-           Glr, lzdGauss%Llr(ilr), lchi2(ind2), chi(ind1))
-      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      ind2=ind2+lzdGauss%Llr(ilr)%wfd%nvctr_c+7*lzdGauss%Llr(ilr)%wfd%nvctr_f
-  end do
+  !!ind1=1
+  !!ind2=1
+  !!do iorb=1,lzdGauss%orbs%norbp
+  !!    ilr = onWhichAtomp(iorb)
+  !!    ldim=lzdGauss%Llr(ilr)%wfd%nvctr_c+7*lzdGauss%Llr(ilr)%wfd%nvctr_f
+  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lzdGauss%orbs%norb, lin%orbs%nspinor, input%nspin,&
+  !!         Glr, lzdGauss%Llr(ilr), lchi2(ind2), chi(ind1))
+  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    ind2=ind2+lzdGauss%Llr(ilr)%wfd%nvctr_c+7*lzdGauss%Llr(ilr)%wfd%nvctr_f
+  !!end do
 
   !! Go back the 'real' localization region.
   !call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
@@ -476,16 +473,16 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
   !!do iorb=1,size(chi)
   !!    write(30+iproc,*) chi(iorb)
   !!end do
-  ind1=1
-  ind2=1
-  do iorb=1,lzdig%orbs%norbp
-      ilr = onWhichAtomp(iorb)
-      ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
-      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, chi(ind1), lchi(ind2))
-      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
-  end do
+  !!ind1=1
+  !!ind2=1
+  !!do iorb=1,lzdig%orbs%norbp
+  !!    ilr = onWhichAtomp(iorb)
+  !!    ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%Llr(ilr), Glr, chi(ind1), lchi(ind2))
+  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+  !!end do
   !!do iorb=1,size(lchi)
   !!    write(70+iproc,*) lchi(iorb)
   !!end do
@@ -589,8 +586,8 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
    !!        end do 
    !!    end do
    !!end do
-   call buildLinearCombinationsLocalized(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
-        onWhichAtom, chi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
+   call buildLinearCombinationsLocalized(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, input, lin%norbsPerType, &
+        onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
    !!call buildLinearCombinations2(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
    !!     onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin, ham)
    call cpu_time(t2)
@@ -637,13 +634,6 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
   deallocate(norbsPerAt, stat=i_stat)
   call memocc(i_stat, i_all, 'norbsPerAt',subname)
 
-  i_all=-product(shape(chi))*kind(chi)
-  deallocate(chi, stat=i_stat)
-  call memocc(i_stat, i_all, 'chi',subname)
-
-  !!i_all=-product(shape(hchi))*kind(hchi)
-  !!deallocate(hchi, stat=i_stat)
-  !!call memocc(i_stat, i_all, 'hchi',subname)
 
 
 END SUBROUTINE inputguessConfinement
@@ -2459,8 +2449,8 @@ end subroutine getHamiltonianMatrix2
 
 
 
-subroutine buildLinearCombinationsLocalized(iproc, nproc, orbsig, orbs, commsig, comms, at, Glr, norbsPerType, &
-           onWhichAtom, chi, phi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
+subroutine buildLinearCombinationsLocalized(iproc, nproc, orbsig, orbs, commsig, comms, at, Glr, input, norbsPerType, &
+           onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
 !
 use module_base
 use module_types
@@ -2473,14 +2463,15 @@ type(orbitals_data),intent(in):: orbsig, orbs
 type(communications_arrays),intent(in):: commsig, comms
 type(atoms_data),intent(in):: at
 type(locreg_descriptors),intent(in):: Glr
-integer,dimension(at%ntypes):: norbsPerType
-integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-real(8),dimension(orbsig%npsidim):: chi
-real(8),dimension(orbs%npsidim):: phi
-real(8),dimension(3,at%nat):: rxyz
-integer,dimension(orbs%norb):: onWhichAtomPhi
+type(input_variables),intent(in):: input
 type(linearParameters),intent(in):: lin
 type(linear_zone_descriptors),intent(inout):: lzdig
+integer,dimension(at%ntypes):: norbsPerType
+integer,dimension(orbsig%norb),intent(in):: onWhichAtom
+real(8),dimension(lzdig%orbs%npsidim):: lchi
+real(8),dimension(lin%lzd%orbs%npsidim):: lphi
+real(8),dimension(3,at%nat):: rxyz
+integer,dimension(orbs%norb):: onWhichAtomPhi
 real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
 
 ! Local variables
@@ -2512,17 +2503,17 @@ type(p2pCommsOrthonormalityMatrix):: comom
   allocate(coeff(orbsig%norb,orbs%norb), stat=istat)
   call memocc(istat, coeff, 'coeff', subname)
 
-  ! Transpose all the wavefunctions for having a piece of all the orbitals 
-  ! for each processor
-  allocate(chiw(orbsig%npsidim+ndebug),stat=istat)
-  call memocc(istat,chiw, 'chiw', subname)
-  call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, chi(1), work=chiw)
-  !!do iat=1,at%nat
-  !!    call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, hchi(1,iat), work=chiw)
-  !!end do
-  iall=-product(shape(chiw))*kind(chiw)
-  deallocate(chiw,stat=istat)
-  call memocc(istat, iall, 'chiw', subname)
+  !!! Transpose all the wavefunctions for having a piece of all the orbitals 
+  !!! for each processor
+  !!allocate(chiw(orbsig%npsidim+ndebug),stat=istat)
+  !!call memocc(istat,chiw, 'chiw', subname)
+  !!call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, chi(1), work=chiw)
+  !!!!do iat=1,at%nat
+  !!!!    call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, hchi(1,iat), work=chiw)
+  !!!!end do
+  !!iall=-product(shape(chiw))*kind(chiw)
+  !!deallocate(chiw,stat=istat)
+  !!call memocc(istat, iall, 'chiw', subname)
 
 
 
@@ -2817,27 +2808,37 @@ type(p2pCommsOrthonormalityMatrix):: comom
 
 
   ! Now every process has all coefficients, so we can build the linear combinations.
-  phi=0.d0
-  nvctrp=commsig%nvctr_par(iproc,1) ! 1 for k-points
-  ist=1
-  do iorb=1,orbs%norb
-      jst=1
-      do jorb=1,orbsig%norb
-          call daxpy(nvctrp, coeff(jorb,iorb), chi(jst), 1, phi(ist), 1)
-          jst=jst+nvctrp
-      end do
-      ist=ist+nvctrp
-  end do
+  !!phi=0.d0
+  !!nvctrp=commsig%nvctr_par(iproc,1) ! 1 for k-points
+  !!ist=1
+  !!do iorb=1,orbs%norb
+  !!    jst=1
+  !!    do jorb=1,orbsig%norb
+  !!        call daxpy(nvctrp, coeff(jorb,iorb), chi(jst), 1, phi(ist), 1)
+  !!        jst=jst+nvctrp
+  !!    end do
+  !!    ist=ist+nvctrp
+  !!end do
+
+  ! Do this in a localized way -- TEST
+  call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, input, coeff, lchi, lphi)
 
   
 
-  ! Untranpose the orbitals.
-  allocate(chiw(orbs%npsidim+ndebug),stat=istat)
-  call memocc(istat, chiw, 'chiw', subname)
-  call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, phi, work=chiw)
-  iall=-product(shape(chiw))*kind(chiw)
-  deallocate(chiw, stat=istat)
-  call memocc(istat, iall, 'chiw', subname)
+  !!! Untranpose the orbitals.
+  !!allocate(chiw(orbs%npsidim+ndebug),stat=istat)
+  !!call memocc(istat, chiw, 'chiw', subname)
+  !!call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, phi, work=chiw)
+  !!iall=-product(shape(chiw))*kind(chiw)
+  !!deallocate(chiw, stat=istat)
+  !!call memocc(istat, iall, 'chiw', subname)
+
+  !!do istat=1,size(phi)
+  !!    write(100+iproc,*) istat, phi(istat)
+  !!end do
+  do istat=1,size(lphi)
+      write(110+iproc,*) istat, lphi(istat)
+  end do
 
 
   ! Deallocate the local arrays.
@@ -4005,22 +4006,73 @@ end subroutine applyOrthoconstraintVectors
 
 
 
-!!subroutine getOverlappingOrbitals
-!!use module_base
-!!use module_types
-!!implicit none
-!!
-!!! Calling arguments
-!!integer,intent(in):: iproc, nproc
-!!type(linear_zone_descriptors),intent(in):: lzd
-!!type(input_variables),intent(in):: input
-!!
-!!call initCommsOrtho(iproc, nproc, lzd, lzd%orbs%inWhichLocreg, input, op, comon, tag)
-!!call extractOrbital2(iproc, nproc, orbs, lzd%orbs%npsidim, onWhichAtomAll, lzd, op, lphi, comon)
-!!call postCommsOverlap(iproc, nproc, comon)
-!!call gatherOrbitals2(iproc, nproc, comon)
-!!call expandOrbital2(iproc, nproc, lzd%orbs, input, lzd%orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
-!!
-!!
-!!
-!!end subroutine getOverlappingOrbitals
+subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, input, coeff, lchi, lphi)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linear_zone_descriptors),intent(in):: lzdig, lzd
+type(input_variables),intent(in):: input
+real(8),dimension(lzdig%orbs%norb,lzd%orbs%norb),intent(in):: coeff
+real(8),dimension(lzdig%orbs%npsidim),intent(in):: lchi
+real(8),dimension(lzd%orbs%npsidim),intent(out):: lphi
+
+! Local variables
+integer:: tag, istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb
+type(overlapParameters):: op
+type(p2pCommsOrthonormality):: comon
+real(8),dimension(:),allocatable:: lchiovrlp
+character(len=*),parameter:: subname='buildLinearCombinations'
+
+tag=10000
+call initCommsOrtho(iproc, nproc, lzdig, lzdig%orbs%inWhichLocreg, input, op, comon, tag)
+allocate(lchiovrlp(op%ndim_lphiovrlp), stat=istat)
+call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
+
+call extractOrbital2(iproc, nproc, lzdig%orbs, lzdig%orbs%npsidim, lzdig%orbs%inWhichLocreg, lzdig, op, lchi, comon)
+call postCommsOverlap(iproc, nproc, comon)
+call gatherOrbitals2(iproc, nproc, comon)
+call expandOrbital2(iproc, nproc, lzdig%orbs, input, lzdig%orbs%inWhichLocreg, lzdig, op, comon, lchiovrlp)
+
+
+
+lphi=0.d0
+
+ist=1
+jst=1
+ilrold=-1
+do iorb=1,lzd%orbs%norbp
+    iiorb=lzd%orbs%isorb+iorb
+    ilr=lzd%orbs%inWhichLocreg(iiorb)
+    if(ilr==ilrold) then
+        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+        jst=jst-op%noverlaps(iiorb)*ncount
+    end if
+    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+    do jorb=1,op%noverlaps(iiorb)
+        jjorb=op%overlaps(jorb,iiorb)
+        !call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
+        call daxpy(ncount, coeff(jjorb,iiorb), lchiovrlp(jst), 1, lphi(ist), 1)
+        jst=jst+ncount
+    end do
+
+    ist=ist+ncount
+    ilrold=ilr
+
+end do
+
+
+
+
+
+
+
+iall=-product(shape(lchiovrlp))*kind(lchiovrlp)
+deallocate(lchiovrlp, stat=istat)
+call memocc(istat, iall, 'lchiovrlp', subname)
+
+
+
+end subroutine buildLinearCombinations

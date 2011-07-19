@@ -135,7 +135,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
        comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-       phi, ehart, eexcu, vexcu)
+       lphi, ehart, eexcu, vexcu)
   !!do iall=1,size(phi)
   !!    if(lin%locrad(1)==800.d0) then
   !!        write(500+iproc,*) iall, phi(iall)
@@ -144,8 +144,8 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   !!    end if
   !!end do
 
-  ! Cut off outside localization region -- experimental
-  call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+  !!! Cut off outside localization region -- experimental
+  !!call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
