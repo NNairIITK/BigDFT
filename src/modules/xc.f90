@@ -107,6 +107,8 @@ contains
           xc%family(1) = XC_FAMILY_GGA
        else if (xc%id(1) >= 31 .and. xc%id(1) < 35) then
           xc%family(1) = XC_FAMILY_LDA
+       else if (xc%id(1) == 0) then
+          xc%family(1) = 0
        else
           write(*,*) "Error: unsupported functional, change ixc."
           call MPI_ABORT(MPI_COMM_WORLD,0,ierr)

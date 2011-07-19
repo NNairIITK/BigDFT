@@ -12,9 +12,10 @@ endif
 
 if BUILD_LIBXC
 LIBXC_MODULE =
+xc.o: base.o
 else
 LIBXC_MODULE = libxc_fake.f90
-xc.o: libxc_fake.o
+xc.o: base.o libxc_fake.o
 endif
 
 if CAPITALIZE
@@ -57,7 +58,6 @@ types.o: base.o
 defs.o: $(mpi_include) configure.inc 
 base.o: defs.o
 input.o: base.o
-xc.o: base.o
 
 $(mod_bigdft) : base.o types.o interfaces.o
 

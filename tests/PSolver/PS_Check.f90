@@ -101,7 +101,11 @@ program PS_Check
   nullify(rhocore)
 
   do ispden=1,2
-     call xc_init(iproc, ixc, ispden)
+     if (ixc < 0) then
+        call xc_init(ixc, XC_MIXED, ispden)
+     else
+        call xc_init(ixc, XC_ABINIT, ispden)
+     end if
 
      if (iproc == 0) write(unit=*,fmt="(1x,a,i0)")  '===================== nspden:  ',ispden
      !then assign the value of the analytic density and the potential
