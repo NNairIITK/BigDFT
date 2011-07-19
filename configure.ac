@@ -707,6 +707,7 @@ tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
 tests/SPLSAD/Makefile
 tests/TDDFT/Makefile
+tests/OP2P/Makefile
 tests/DFT/Makefile
 tests/OpenCL/Makefile
 tests/CUDA/Makefile

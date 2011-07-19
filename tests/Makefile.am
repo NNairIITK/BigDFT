@@ -9,6 +9,7 @@ SUBDIRS = \
 	  XabsCheb \
 	  SPLSAD \
 	  TDDFT \
+	  OP2P \
 	  tutorials
 
 
