@@ -1,0 +1,16 @@
+ Ne
+ PADE
+ relativistic 
+  20.0      10.0 60.0       	znuc,rmax,aa,bb 
+       1.35d0   2.7d0		rcov,rprb
+    1    9			 number of core and valence orbitals
+    2    0     2.00      0.00		   
+    3    0     0.00      0.00		   
+    4    0     0.00      0.00		   
+    2    1     6.00      0.00		   
+    3    1     0.00      0.00		   
+    4    1     0.00      0.00		   
+    3    2     0.00      0.00		   
+    4    2     0.00      0.00		   
+    4    3     0.00      0.00		   
+
