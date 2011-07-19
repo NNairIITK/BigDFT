@@ -3847,6 +3847,7 @@ end subroutine applyOrthoconstraintVectors
 subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, input, coeff, lchi, lphi)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => buildLinearCombinations
 implicit none
 
 ! Calling arguments

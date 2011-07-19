@@ -3030,6 +3030,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine getDerivativeBasisFunctions2
 
 
+     subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, input, coeff, lchi, lphi)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(linear_zone_descriptors),intent(in):: lzdig, lzd
+       type(input_variables),intent(in):: input
+       real(8),dimension(lzdig%orbs%norb,lzd%orbs%norb),intent(in):: coeff
+       real(8),dimension(lzdig%orbs%npsidim),intent(in):: lchi
+       real(8),dimension(lzd%orbs%npsidim),intent(out):: lphi
+     end subroutine buildLinearCombinations
+
+
+
   end interface
 
 end module module_interfaces

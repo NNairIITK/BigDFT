@@ -247,11 +247,11 @@ integer:: ist, ierr
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
   end if
-  do iorb=1,lin%lb%orbs%norb
-      do jorb=1,orbs%norb
-          write(1600+iproc,*) iorb, jorb, coeff(iorb,jorb) 
-      end do
-  end do
+  !do iorb=1,lin%lb%orbs%norb
+  !    do jorb=1,orbs%norb
+  !        write(1600+iproc,*) iorb, jorb, coeff(iorb,jorb) 
+  !    end do
+  !end do
 
   ! Calculate the band structure energy with matrixElements.
   ebs=0.d0
