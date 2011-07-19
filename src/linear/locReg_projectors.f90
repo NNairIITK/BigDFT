@@ -1062,7 +1062,8 @@ subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
 !  format the number of orbitals in this locreg orbitals
    orbtot = 0
    do iorb=1,orbs%norbp
-      if (orbs%inWhichLocreg(iorb) == ilr) then
+      !if (orbs%inWhichLocreg(iorb) == ilr) then
+      if (orbs%inWhichLocregp(iorb) == ilr) then
          orbtot = orbtot+1
          inthisLocreg(orbtot) = iorb
       end if
