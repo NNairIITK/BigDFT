@@ -109,6 +109,7 @@ c     lo ..... l do.
 c     so ..... spin (+/- 0.5, or 0 for unpolarized)
 c     zo ..... # electrons
 c     znuc ... atomic number
+c     zel .... core electrons + valence electrons
 c
 
 c       if (zsold == zsh .and. naold == nameat .and.

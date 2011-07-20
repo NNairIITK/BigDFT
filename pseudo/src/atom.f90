@@ -1160,7 +1160,15 @@ end subroutine prdiff
 !      4l+2           'n' or ''
 !      2l+(1 or 2)    'r'
 !      2l+1           's'
-
+!      Answer:
+!          n or blank
+!           only one specie and 2l+1 orbitals
+!          s
+!           2l+1 orbitals but two species ( up and down )
+!          r
+!           spin-orbit makes that \vect l in not conserved
+!           we have instead j=l-1/2 with molteplicity 2*l
+!           and             j=l+1/2 with molteplicity 2l+2 
 
        zcore = zcore + zo(norb)
        if (abs(zo(norb)) .lt. 0.1D0) norb=norb-1

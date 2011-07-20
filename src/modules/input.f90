@@ -99,6 +99,7 @@ contains
     integer :: i, j, ierror, ierr
 
     write(var, "(A)") default
+
     call find(name, i, j)
     if (i > 0) then
        read(input_lines(i)(j + 2:), fmt = *, iostat = ierror) var
@@ -137,7 +138,7 @@ contains
     integer, intent(out) :: var
 
     integer :: i, j, ierror, ierr
-
+    
     var = default
     call find(name, i, j)
     if (i > 0) then
@@ -215,7 +216,7 @@ contains
     end do
     buf = list(var)
     call find(name, i, j)
-    if (i > 0) then
+    if (i > 0) then 
        read(input_lines(i)(j + 2:), fmt = *, iostat = ierror) buf
        if (ierror/=0) then
           if (output) write(*,'(1x,a,a,a,i3)')  'Error while reading the file "', &
@@ -231,7 +232,7 @@ contains
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
     end if
-    var = i - 1
+    var = j - 1
     if (output) then
        write(*,"(1x,a,3x,a,1x,a,t30,3a)", advance = "NO") &
             & "|", name, buf, '!', description, " ("

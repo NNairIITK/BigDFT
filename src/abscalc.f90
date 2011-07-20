@@ -1194,9 +1194,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                  if(r<minr) minr=r
                  
                  if( r.ge.3.5) then
-                    harmo = (rx+2*ry+3*rz)/sqrt(14.0)/r *sqrt( 3.0/4.0/3.1415926535)
+                    ! harmo = (rx+2*ry+3*rz)/sqrt(14.0)/r *sqrt( 3.0/4.0/3.1415926535)
                     !! harmo = sqrt( 1.0/4.0/3.1415926535)
                     ! harmo = (rz)/sqrt(1.0)/r *sqrt( 3.0/4.0/3.1415926535)
+                    harmo = (rx)/sqrt(1.0)/r *sqrt( 3.0/4.0/3.1415926535)
                  else
                     harmo=0.0_gp
                  endif

@@ -1873,7 +1873,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
      !the new solution did not work when there is no orbital on the processor
      do ikptp=1,orbs%nkptsp! orbs%iokpt(1), orbs%iokpt(orbs%norbp)
         ikpt=orbs%iskpts+ikptp
-        print *, " k points ", orbs%kpts
+!!$         print *, " k points ", orbs%kpts
 
         if (orbs%kpts(1,ikpt)**2+orbs%kpts(2,ikpt)**2+orbs%kpts(3,ikpt)**2 >0 .and. &
              &  orbs%nspinor > 1) then
