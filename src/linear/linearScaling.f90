@@ -131,45 +131,14 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
        input, rxyz, nscatterarr, coeff, lphi)
 
   potshortcut=0 ! What is this?
-  !!call inputguessConfinement(iproc, nproc, at, &
-  !!     comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
-  !!     nlpspd, proj, pkernel, pkernelseq, &
-  !!     nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-  !!     lphi, ehart, eexcu, vexcu)
-  do istat=1,size(rhopot)
-      read(2000+iproc,*) rhopot(istat)
-      !write(2000+iproc,*) rhopot(istat)
-  end do
-  call mpi_barrier(mpi_comm_world, ierr)
-  do istat=1,size(lphi)
-      !lphi(istat)=cos(dble(mod(13*istat+18945*iproc,259)))
-      read(110+iproc,*) ierr, lphi(istat)
-      !write(110+iproc,*) ierr, lphi(istat)
-  end do
-
-  !!do iall=1,size(phi)
-  !!    if(lin%locrad(1)==800.d0) then
-  !!        write(500+iproc,*) iall, phi(iall)
-  !!    else
-  !!        write(510+iproc,*) iall, phi(iall)
-  !!    end if
-  !!end do
-
-  !!! Cut off outside localization region -- experimental
-  !!call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+  call inputguessConfinement(iproc, nproc, at, &
+       comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
+       nlpspd, proj, pkernel, pkernelseq, &
+       nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
+       lphi, ehart, eexcu, vexcu)
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-  !!do iall=1,ndimpot
-  !!    if(lin%locrad(1)==800.d0) then
-  !!        write(700+iproc,*) iall, rhopot(iall)
-  !!    else
-  !!        read(700+iproc,*) istat, rhopot(iall)
-  !!    end if
-  !!end do
-  !do istat=1,size(rhopot)
-  !    write(900+iproc,*) istat, rhopot(istat)
-  !end do
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
   if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
 
@@ -184,40 +153,9 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
-  !do istat=1,size(lin%comgp%recvBuf)
-  !    write(2400+iproc,*) lin%comgp%recvBuf(istat)
-  !end do
-  !do istat=1,size(rhopot)
-  !    write(2900+iproc,*) rhopot(istat)
-  !end do
-  !do istat=1,size(coeff,2)
-  !    do ierr=1,size(coeff,1)
-  !        !write(2100+iproc,*) coeff(ierr,istat)
-  !        read(2100+iproc,*) coeff(ierr,istat)
-  !    end do
-  !end do
-  !call mpi_barrier(mpi_comm_world, ierr)
-  !do istat=1,size(coeff,1)
-  !    write(1100+iproc,*) (coeff(istat,iall), iall=1,size(coeff,2))
-  !end do
-  !call mpi_barrier(mpi_comm_world, ierr)
-  !stop
-
-  !!call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-  !!  .5d0*input%hy, .5d0*input%hz, 0)
-
-
-  !do istat=1,size(rhopot)
-  !    write(3000+iproc,*) rhopot(istat)
-  !end do
   call cpu_time(t1)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
        rhopot, at, nscatterarr)
-  do istat=1,size(rhopot)
-      !read(3100+iproc,*) rhopot(istat)
-      !write(3110+iproc,*) rhopot(istat)
-      !write(3100+iproc,*) rhopot(istat)
-  end do
   call cpu_time(t2)
   time=t2-t1
   call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
@@ -231,35 +169,15 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
   end if
 
-  !do istat=1,size(rhopot)
-  !    read(4000+iproc,*) rhopot(istat)
-  !    !write(4000+iproc,*) rhopot(istat)
-  !    !write(4010+iproc,*) rhopot(istat)
-  !end do
-  !write(*,'(a,i13)') 'size(rhopot)', size(rhopot)
   call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
       rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       coeff, ehart, eexcu, vexcu)
-  !do istat=1,size(rhopot)
-  !    write(2800+iproc,*) rhopot(istat)
-  !    !write(2810+iproc,*) rhopot(istat)
-  !end do
 
 
   ! Copy the current potential.
   if(trim(lin%mixingMethod)=='pot') then
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
   end if
-  !!do istat=1,size(rhopot)
-  !!    !read(3000+iproc,*) rhopot(istat)
-  !!    write(3010+iproc,*) rhopot(istat)
-  !!end do
-  call mpi_barrier(mpi_comm_world, ierr)
-  !!do istat=1,size(lphi)
-  !!    !lphi(istat)=cos(dble(mod(13*istat+18945*iproc,259)))
-  !!    read(3100+iproc,*) ierr, lphi(istat)
-  !!    !write(3100+iproc,*) ierr, lphi(istat)
-  !!end do
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)

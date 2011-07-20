@@ -252,10 +252,10 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   real(gp), dimension(3,2) :: wrkallred
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
 
-  do i_all=1,size(psi)
-      write(7100+iproc,*) psi(i_all)
-      !write(7110+iproc,*) psi(i_all)
-  end do
+  !!do i_all=1,size(psi)
+  !!    write(7100+iproc,*) psi(i_all)
+  !!    !write(7110+iproc,*) psi(i_all)
+  !!end do
 
 
   !initialise exact exchange energy 
@@ -389,17 +389,17 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
      else
         call local_hamiltonian_LinearConfinement(iproc, nproc, ilr, lzd%orbs, lzd%Llr(ilr), lzd%Llr(ilr)%localnorb, hx, hy, hz, &
               nspin, size_Lpot, Lpot, psi(ind), hpsi(ind), tmp_ekin_sum, tmp_epot_sum, lin, at, rxyz, onWhichAtomp, withConfinement)
-        do i_stat=ind,ind+dimwf-1
-            !write(7300+iproc,*) hpsi(i_stat)
-            write(7310+iproc,*) hpsi(i_stat)
-        end do
-        do i_all=ind,ind+dimwf-1
-            !!write(600+iproc,*) i_all, psi(i_all)
-            !!write(610+iproc,*) i_all, hpsi(i_all)
-            !!if((psi(i_all)==0.d0 .and. hpsi(i_all)/=0.d0) .or. (hpsi(i_all)==0.d0 .and. psi(i_all)/=0.d0))  then
-            !!    write(*,*) 'ERRORi hamapp: iproc, i_all', iproc, i_all
-            !!end if
-        end do
+        !!do i_stat=ind,ind+dimwf-1
+        !!    !write(7300+iproc,*) hpsi(i_stat)
+        !!    write(7310+iproc,*) hpsi(i_stat)
+        !!end do
+        !!do i_all=ind,ind+dimwf-1
+        !!    !!write(600+iproc,*) i_all, psi(i_all)
+        !!    !!write(610+iproc,*) i_all, hpsi(i_all)
+        !!    !!if((psi(i_all)==0.d0 .and. hpsi(i_all)/=0.d0) .or. (hpsi(i_all)==0.d0 .and. psi(i_all)/=0.d0))  then
+        !!    !!    write(*,*) 'ERRORi hamapp: iproc, i_all', iproc, i_all
+        !!    !!end if
+        !!end do
      end if
 
      ekin_sum = ekin_sum + tmp_ekin_sum
@@ -495,10 +495,10 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
                                                                     
         call apply_local_projectors2(ilr,iproc,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),Lzd%orbs,&
                  Lzd%Llr(ilr)%projflg,psi(ind),rxyz,hpsi(ind),eproj_sum)
-        do i_stat=ind,ind+dimwf-1
-            !write(7200+iproc,*) psi(i_stat)
-            write(7210+iproc,*) psi(i_stat)
-        end do
+        !!do i_stat=ind,ind+dimwf-1
+        !!    !write(7200+iproc,*) psi(i_stat)
+        !!    write(7210+iproc,*) psi(i_stat)
+        !!end do
 
         !deallocate(projCopy, stat=i_stat)
         ! accumulate the new hpsi
@@ -562,10 +562,10 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   !exact exchange operator (twice the exact exchange energy)
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
-  do i_all=1,size(hpsi)
-      !write(7000+iproc,*) hpsi(i_all)
-      write(7010+iproc,*) hpsi(i_all)
-  end do
+  !!do i_all=1,size(hpsi)
+  !!    !write(7000+iproc,*) hpsi(i_all)
+  !!    write(7010+iproc,*) hpsi(i_all)
+  !!end do
 
 END SUBROUTINE HamiltonianApplicationConfinement2
 

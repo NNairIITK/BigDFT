@@ -47,25 +47,22 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
-  type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:,:), pointer :: psigau
 type(linear_zone_descriptors):: lzdig, lzdGauss
 type(p2pCommsGatherPot):: comgp
-type(orbitals_data):: orbsLIN
-type(communications_arrays):: commsLIN
 real(8),dimension(:),allocatable:: eval
 integer:: istat, tag
 real(8),dimension(:),allocatable:: lchi, lchi2
-real(8),dimension(:,:),allocatable:: hchi, lhchi
+real(8),dimension(:,:),allocatable::  lhchi
 real(8),dimensioN(:,:,:),allocatable:: ham
-integer,dimension(:),allocatable:: onWhichAtom, onWhichAtomp, norbsPerAt, onWhichAtomTemp, onWhichAtomPhi
+integer,dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp
 integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
 logical:: withConfinement, ovrlpx, ovrlpy, ovrlpz
 logical,dimension(:),allocatable:: doNotCalculate
 integer, dimension(lmax+1) :: nl
 real(gp), dimension(noccmax,lmax+1) :: occup
-real(8):: dnrm2, ddot, dasum, t1, t2, time, cut
+real(8):: dnrm2, ddot, dasum, t1, t2, time
 integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr
 integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
@@ -132,36 +129,15 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
   ! Assign the orbitals to the atoms. onWhichAtom(i)=j means that orbital i belongs to atom j.
   ! onWhichAtom is the 'global' distribution and onWhichAtomp is the one for each MPI process.
-  allocate(onWhichAtom(norbat),stat=i_stat)
-  call memocc(i_stat, onWhichAtom, 'onWhichAtom', subname)
-
-  ist=0
-  do iat=1,at%nat
-      do i=1,norbsPerAt(iat)
-          onWhichAtom(ist+i)=iat
-      end do
-      ist=ist+norbsPerAt(iat)
-  end do
-  !write(*,'(a,i3,3x,100i4)') 'iproc, owa', iproc, onWhichAtom(:)
-
 
   ! Create the atomic orbitals in a Gaussian basis.
   nvirt=0
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
        lin%orbs,lzdig%orbs,norbsc_arr,locrad,G,psigau,eks)
-  !call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
-  !     lin%orbs,lzdGauss%orbs,norbsc_arr,locrad,G,psigau,eks)
   call assignToLocreg2(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
   lzdGauss%orbs=lzdig%orbs
   lzdGauss%Glr=Glr
- write(*,'(a,i4,100f9.2)') 'iproc, locrad', iproc, locrad
-write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdig%orbs%inwhichlocreg)', iproc, size(lzdig%orbs%inwhichlocreg)
 
-
-  allocate(onWhichAtomp(lzdig%orbs%norbp), stat=istat)
-  call memocc(i_stat, onWhichAtomp, 'onWhichAtomp', subname)
-  !call assignOrbitalsToAtoms(iproc, lzdig%orbs, at%nat, norbsPerAt, onWhichAtomp)
-  call assignOrbitalsToAtoms(iproc, lzdig%orbs, at%nat, norbsPerAt, onWhichAtomp, onWhichAtom)
 
   locrad=20.d0
   call initLocregs2(iproc, at%nat, rxyz, lzdGauss, input, Glr, locrad)
@@ -182,7 +158,6 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
   hzh=.5_gp*input%hz
 
 
-
   lzdig%lpsidimtot=lzdig%orbs%npsidim
   lzdGauss%lpsidimtot=lzdGauss%orbs%npsidim
 
@@ -195,11 +170,10 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
   ind1=1
   ind2=1
   do iorb=1,lzdGauss%orbs%norbp
-      ilr = onWhichAtomp(iorb)
+      !ilr = onWhichAtomp(iorb)
+      ilr = lzdig%orbs%inWhichLocregp(iorb)
       ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
       gdim=lzdGauss%llr(ilr)%wfd%nvctr_c+7*lzdGauss%llr(ilr)%wfd%nvctr_f
-      write(*,'(a,8i10)') 'iproc, iorb, ilr, ldim, ind2, size(lchi), lzdig%orbs%npsidim, ndebug', iproc, iorb, ilr, ldim, ind2, size(lchi), lzdig%orbs%npsidim, ndebug
-      if(iproc==0) write(*,'(a,3i9)') 'iorb, ldim, gdim', iorb, ldim, gdim
       call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdig%llr(ilr), lzdGauss%llr(ilr), lchi2(ind1), lchi(ind2))
       ind1=ind1+lzdGauss%llr(ilr)%wfd%nvctr_c+7*lzdGauss%llr(ilr)%wfd%nvctr_f
       ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
@@ -212,11 +186,6 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
       write(*,'(2(a,i0))') 'ERROR on process ',iproc,': ind2/=lzdig%orbs%npsidim+1',ind2,lzdig%orbs%npsidim+1
       stop
   end if
-
-  !! Go back the 'real' localization region.
-  !call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
-  ! THIS WILL ALLOCATE LZDIG%ORBS%INWHICHLOCREG WITH SIZE ORBS%NORBP
-
 
 
   i_all=-product(shape(locrad))*kind(locrad)
@@ -299,7 +268,6 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
         OCLconv=.true.
      end if
 
-     !!call deallocate_orbs(orbsig,subname)
      
      !deallocate the gaussian basis descriptors
      call deallocate_gwf(G,subname)
@@ -329,7 +297,8 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
   do ilr=1,lzdig%nlr
       lzdig%Llr(ilr)%localnorb=0
       do iorb=1,lzdig%orbs%norbp
-          if(onWhichAtomp(iorb)==ilr) then
+          !if(onWhichAtomp(iorb)==ilr) then
+          if(lzdig%orbs%inWhichLocregp(iorb)==ilr) then
               lzdig%Llr(ilr)%localnorb = lzdig%Llr(ilr)%localnorb+1
           end if
       end do
@@ -338,16 +307,12 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
 
   ! Initialize the parameters for the communications of the potential.
   tag=20000 !! CHANGE LATER!!
-  call initializeCommunicationPotential(iproc, nproc, nscatterarr, lzdig%orbs, lzdig, comgp, onWhichAtom, tag)
+  call initializeCommunicationPotential(iproc, nproc, nscatterarr, lzdig%orbs, lzdig, comgp, lzdig%orbs%inWhichLocreg, tag)
 
   ! Post the messages for the communication of the potential.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-  write(*,'(a,2i12)') 'iproc, ndimpot',iproc, ndimpot
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, comgp)
 
-
-  ! Orthogonalize the atomic basis functions (Loewdin).
-  !call orthonormalizeAtomicOrbitals(iproc, nproc, orbsig, commsig, Glr, chi)
   
   ! Gather the potential
   call gatherPotential(iproc, nproc, comgp)
@@ -369,7 +334,8 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
       call getIndices(lzdig%llr(iat), is1, ie1, is2, ie2, is3, ie3)
       do jorb=1,lzdig%orbs%norbp
           onWhichAtomTemp(jorb)=iat
-          jlr=onWhichAtomp(jorb)
+          !jlr=onWhichAtomp(jorb)
+          jlr=lzdig%orbs%inWhichLocreg(jorb)
           call getIndices(lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
@@ -395,56 +361,19 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
   if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time/dble(nproc)
 
 
-   ! onWhichAtomPhi indicates on which atom the basis functions phi are centered.
-   allocate(onWhichAtomPhi(lin%orbs%norb))
-   call memocc(i_stat,onWhichAtomPhi,'onWhichAtomPhi',subname)
-   onWhichAtomPhi=0
-   do iorb=1,lin%orbs%norbp
-       onWhichAtomPhi(lin%orbs%isorb+iorb)=lin%onWhichAtom(iorb)
-   end do
-   write(*,*) 'before, mpiallred, iproc',iproc
-   call mpiallred(onWhichAtomPhi(1), lin%orbs%norb, mpi_sum, mpi_comm_world, iorb)
-
-   ! Build a linear combination of atomic orbitals to get a goor input guess for phi.
-   !! THIS IS THE ORIGINAL
    call cpu_time(t1)
-   !call buildLinearCombinations(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
-   !     onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin)
    allocate(ham(lzdig%orbs%norb,lzdig%orbs%norb,at%nat), stat=istat)
    call memocc(i_stat,ham,'ham',subname)
-   write(*,*) 'calling getHamiltonianMatrix, iproc', iproc
-   !call getHamiltonianMatrix(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, at%nat, chi, hchi, ham, orbsig)
-   call getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, at%nat, lchi, lhchi, ham)
-   !!do iat=1,at%nat
-   !!    do iorb=1,lzdig%orbs%norb
-   !!        do jorb=1,lzdig%orbs%norb
-   !!            write(300+iproc,*) iat, iorb, jorb, ham(iorb,jorb,iat)
-   !!        end do 
-   !!    end do
-   !!end do
+   call getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, lzdig%orbs%inWhichLocreg, lzdig%orbs%inWhichLocregp, at%nat, lchi, lhchi, ham)
    call buildLinearCombinationsLocalized(iproc, nproc, lzdig%orbs, lin%orbs, commsig, lin%comms, at, Glr, input, lin%norbsPerType, &
-        onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
+        lzdig%orbs%inWhichLocreg, lchi, lphi, rxyz, lin%lzd%orbs%inWhichLocreg, lin, lzdig, ham)
    !!do istat=1,size(lphi)
-   !!    lphi(istat)=cos(dble(mod(13*istat+18945*iproc,259)))
-   !!end do
-
-   !!call buildLinearCombinations2(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
-   !!     onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin, ham)
    call cpu_time(t2)
    time=t2-t1
    call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
    if(iproc==0) write(*,'(x,a,es10.3)') 'time for "buildLinearCombinations":', time/dble(nproc)
 
   if(iproc==0) write(*,'(x,a)') '------------------------------------------------------------- Input guess generated.'
-  !!do istat=1,size(lphi)
-  !!    write(200+iproc,*) istat, lphi(istat)
-  !!end do
-  !!do istat=1,size(rhopot)
-  !!    write(300+iproc,*) istat, rhopot(istat)
-  !!end do
-  !!call mpi_barrier(mpi_comm_world, ierr)
-  !!stop
-
 
 
   ! Deallocate all local arrays.
@@ -458,21 +387,6 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-  !!call deallocate_comms(commsig,subname)
-
-  !!call deallocate_orbs(orbsig,subname)
-
-  i_all=-product(shape(onWhichAtom))*kind(onWhichAtom)
-  deallocate(onWhichAtom, stat=i_stat)
-  call memocc(i_stat, i_all, 'onWhichAtom',subname)
-
-  i_all=-product(shape(onWhichAtomPhi))*kind(onWhichAtomPhi)
-  deallocate(onWhichAtomPhi, stat=i_stat)
-  call memocc(i_stat, i_all, 'onWhichAtomPhi',subname)
-
-  !!i_all=-product(shape(onWhichAtomp))*kind(onWhichAtomp)
-  !!deallocate(onWhichAtomp, stat=i_stat)
-  !!call memocc(i_stat, i_all, 'onWhichAtomp',subname)
 
   i_all=-product(shape(onWhichAtomTemp))*kind(onWhichAtomTemp)
   deallocate(onWhichAtomTemp, stat=i_stat)

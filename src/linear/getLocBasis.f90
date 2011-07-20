@@ -221,19 +221,12 @@ integer:: ist, ierr
       call gatherPotential(iproc, nproc, lin%comgp)
   end if
   if(lin%useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lin%comgp_lb)
-  !do istat=1,lin%comgp%nrecvBuf
-  do istat=1,0
-      write(1400+iproc,*) lin%comgp%recvBuf(istat)
-  end do
 
 
-!!  ! Transform the global phi to the local phi
-!!  ! This part will not be needed if we really have O(N)
+  ! Transform the global phi to the local phi
+  ! This part will not be needed if we really have O(N)
   allocate(lhphi(lin%lb%lzd%orbs%npsidim), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
-  !do istat=1,size(lphi)
-  !    write(2800+iproc,*) lphi(istat)
-  !end do
   withConfinement=.false.
   if(.not.lin%useDerivativeBasisFunctions) then
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
@@ -248,24 +241,11 @@ integer:: ist, ierr
   end if
 
   if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
-  !do istat=1,size(lhphi)
-  !   !write(2700+iproc,*) lhphi(istat)
-  !   !read(2700+iproc,*) lhphi(istat)
-  !   write(2710+iproc,*) lhphi(istat)
-  !end do
-  !allocate(temparr(lin%lb%lzd%orbs%npsidim), stat=istat)
-  !temparr=lhphi
 
 
   ! Calculate the matrix elements <phi|H|phi>.
-  !write(*,'(a,3i15)') 'iproc, lin%op_lb%ndim_lphiovrlp, lin%op%ndim_lphiovrlp', iproc, lin%op_lb%ndim_lphiovrlp, lin%op%ndim_lphiovrlp
   call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
 
-  do iorb=1,lin%lb%orbs%norb
-      do jorb=1,lin%lb%orbs%norb
-          write(1500+iproc,*) iorb, jorb, matrixElements(iorb,jorb,1) 
-      end do
-  end do
 
   if(trim(lin%getCoeff)=='min') then
       call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
@@ -277,11 +257,6 @@ integer:: ist, ierr
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
   end if
-  !do iorb=1,lin%lb%orbs%norb
-  !    do jorb=1,orbs%norb
-  !        write(1600+iproc,*) iorb, jorb, coeff(iorb,jorb) 
-  !    end do
-  !end do
 
   ! Calculate the band structure energy with matrixElements.
   ebs=0.d0
