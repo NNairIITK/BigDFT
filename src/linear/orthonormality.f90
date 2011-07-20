@@ -1,6 +1,7 @@
 subroutine orthonormalizeLocalized(iproc, nproc, nItOrtho, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => orthonormalizeLocalized
 implicit none
 
 ! Calling arguments
@@ -490,6 +491,7 @@ end subroutine getOverlapMatrix
 subroutine getOverlapMatrix2(iproc, nproc, lin, input, lphi, ovrlp)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => getOverlapMatrix2
 implicit none
 
 ! Calling arguments
@@ -837,6 +839,7 @@ comon%nrecvBuf=0
 
 
 op%indexInRecvBuf=0
+op%ndim_lphiovrlp=0
 
 iiorb=0
 jprocold=-1
@@ -966,14 +969,14 @@ do jproc=0,nproc-1
         if(mpisource/=mpidest) then
             ! The orbitals are on different processes, so we need a point to point communication.
             if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                !write(*,'(6(a,i0))') 'overlap: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
                 call mpi_isend(comon%sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag,&
                      mpi_comm_world, comon%comarr(7,iorb,jproc), ierr)
                 !call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
                 comon%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                 call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
                      mpi_comm_world, comon%comarr(8,iorb,jproc), ierr)
                 comon%comarr(7,iorb,jproc)=mpi_request_null !is this correct?
@@ -986,7 +989,7 @@ do jproc=0,nproc-1
             ! The orbitals are on the same process, so simply copy them.
             if(iproc==mpisource) then
                 call dcopy(ncount, comon%sendBuf(istsource), 1, comon%recvBuf(istdest), 1)
-                !write(*,'(6(a,i0),a,2es15.7)') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag,'. comon%sendBuf(istsource), comon%recvBuf(istdest)', comon%sendBuf(istsource), comon%recvBuf(istdest)
+                !write(*,'(6(a,i0))') 'overlap: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
                 comon%comarr(7,iorb,jproc)=mpi_request_null
                 comon%comarr(8,iorb,jproc)=mpi_request_null
                 nsends=nsends+1
@@ -2136,8 +2139,8 @@ character(len=*),parameter:: subname='getMatrixElements'
 
 
 
-  allocate(lphiovrlp(lin%op_lb%ndim_lphiovrlp), stat=istat)
-  call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+  !allocate(lphiovrlp(lin%op_lb%ndim_lphiovrlp), stat=istat)
+  !call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.

@@ -633,7 +633,8 @@ do iorb=1,lin%lb%orbs%norb
             tt = tt + coeff(iorb,korb)*coeff(jorb,korb)
         end do
         densKern(iorb,jorb)=tt
-        !write(*,'(a,2i6,es15.7)') 'iorb, jorb, densKern(iorb,jorb)', iorb, jorb, densKern(iorb,jorb)
+        !write(6000+iproc,'(a,2i6,es15.7)') 'iorb, jorb, densKern(iorb,jorb)', iorb, jorb, densKern(iorb,jorb)
+        write(6010+iproc,'(a,2i6,es15.7)') 'iorb, jorb, densKern(iorb,jorb)', iorb, jorb, densKern(iorb,jorb)
     end do
 end do
 
@@ -729,6 +730,11 @@ do iorb=1,lin%comsr%noverlaps(iproc)
         !quit=.true.
         stop
     end if
+end do
+
+do istat=1,size(lin%comsr%recvBuf)
+    !write(5000+iproc,*) lin%comsr%recvBuf(istat)
+    write(5010+iproc,*) lin%comsr%recvBuf(istat)
 end do
 
 

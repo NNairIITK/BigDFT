@@ -98,7 +98,7 @@ real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 
 ! Local variables 
 integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount
-real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps
+real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps, temparr
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
@@ -112,6 +112,10 @@ character(len=30):: filename
 
 
 integer:: ist, ierr
+  !do istat=1,size(lphi)
+  !    write(1010+iproc,*) lphi(istat)
+  !end do
+!write(*,'(a,3i14)') 'iproc, lin%lb%Lorbs%npsidim, lin%lb%lzd%orbs%npsidim', iproc, lin%lb%Lorbs%npsidim, lin%lb%lzd%orbs%npsidim
 
   ! Allocate the local arrays.  
   allocate(matrixElements(lin%lb%orbs%norb,lin%lb%orbs%norb,2), stat=istat)
@@ -136,12 +140,22 @@ integer:: ist, ierr
   !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
   !!    ind2=ind2+lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
   !!end do
+  !do istat=1,size(lphi)
+  !    write(1500+iproc,*) lphi(istat)
+  !end do
 
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
       if(lin%useDerivativeBasisFunctions) then
           call dcopy(lin%lzd%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
       end if
+      !do istat=1,size(rhopot)
+      !    write(2500+iproc,*) rhopot(istat)
+      !end do
+      !do istat=1,size(lphi)
+      !    write(2600+iproc,*) lphi(istat)
+      !end do
+
       call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
           nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trace, rxyzParab, &
           itSCC, lastAlpha, infoBasisFunctions, radii_cf, ovrlp)
@@ -207,12 +221,20 @@ integer:: ist, ierr
       call gatherPotential(iproc, nproc, lin%comgp)
   end if
   if(lin%useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lin%comgp_lb)
+  !do istat=1,lin%comgp%nrecvBuf
+  do istat=1,0
+      write(1400+iproc,*) lin%comgp%recvBuf(istat)
+  end do
 
 
-  ! Transform the global phi to the local phi
-  ! This part will not be needed if we really have O(N)
-  allocate(lhphi(lin%lb%Lorbs%npsidim), stat=istat)
+!!  ! Transform the global phi to the local phi
+!!  ! This part will not be needed if we really have O(N)
+  allocate(lhphi(lin%lb%lzd%orbs%npsidim), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
+  !do istat=1,size(lphi)
+  !    write(2800+iproc,*) lphi(istat)
+  !end do
+  withConfinement=.false.
   if(.not.lin%useDerivativeBasisFunctions) then
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
@@ -226,9 +248,17 @@ integer:: ist, ierr
   end if
 
   if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
+  !do istat=1,size(lhphi)
+  !   !write(2700+iproc,*) lhphi(istat)
+  !   !read(2700+iproc,*) lhphi(istat)
+  !   write(2710+iproc,*) lhphi(istat)
+  !end do
+  !allocate(temparr(lin%lb%lzd%orbs%npsidim), stat=istat)
+  !temparr=lhphi
 
 
   ! Calculate the matrix elements <phi|H|phi>.
+  !write(*,'(a,3i15)') 'iproc, lin%op_lb%ndim_lphiovrlp, lin%op%ndim_lphiovrlp', iproc, lin%op_lb%ndim_lphiovrlp, lin%op%ndim_lphiovrlp
   call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
 
   do iorb=1,lin%lb%orbs%norb
@@ -288,7 +318,7 @@ integer:: ist, ierr
   ! this has to replaced, but at the moment it is still needed.
   call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
 
-  
+
   call dcopy(orbs%npsidim, psi, 1, psit, 1)
   if(iproc==0) write(*,'(a)') 'done.'
   
@@ -2209,14 +2239,14 @@ procLoop1: do jproc=0,nproc-1
         if(mpisource/=mpidest) then
             ! The orbitals are on different processes, so we need a point to point communication.
             if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                !write(*,'(6(a,i0))') 'sumrho: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
                 !call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
                 call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
                      lin%comsr%comarr(8,iorb,jproc), ierr)
                 lin%comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                 call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
                      lin%comsr%comarr(9,iorb,jproc), ierr)
                 lin%comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
@@ -2228,7 +2258,7 @@ procLoop1: do jproc=0,nproc-1
         else
             ! The orbitals are on the same process, so simply copy them.
             if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                !write(*,'(6(a,i0))') 'sumrho: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
                 call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
                 lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
                 lin%comsr%comarr(9,iorb,jproc)=mpi_request_null

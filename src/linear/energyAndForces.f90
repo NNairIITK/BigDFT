@@ -1892,6 +1892,8 @@ real(8):: hxh, hyh, hzh, ekin_sum, epot_sum, eproj_sum, energybs, energyMod
 real(8):: energyMod2, ehartMod, t1, t2, time
 integer:: istat, iall, infoCoeff, ilr, ierr
 
+write(*,'(a,i13)') 'lin%as%size_rhopot', lin%as%size_rhopot
+
 
 hxh=0.5d0*in%hx
 hyh=0.5d0*in%hy

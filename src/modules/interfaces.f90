@@ -2829,7 +2829,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine extractMatrix
 
 
-     subroutine orthonormalizeVectors(iproc, nproc, orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
+     subroutine orthonormalizeVectors(iproc, nproc, orbs, onWhichAtom, onWhichMPI, isorb_par, &
+                norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
        use module_base
        use module_types
        implicit none
@@ -3041,6 +3042,77 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(lzdig%orbs%npsidim),intent(in):: lchi
        real(8),dimension(lzd%orbs%npsidim),intent(out):: lphi
      end subroutine buildLinearCombinations
+
+
+     subroutine postCommunicationsPotential(iproc, nproc, ndimpot, pot, comgp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, ndimpot
+       real(8),dimension(ndimpot),intent(in):: pot
+       type(p2pCommsGatherPot),intent(inout):: comgp
+     end subroutine postCommunicationsPotential
+
+
+     subroutine gatherPotential(iproc, nproc, comgp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(p2pCommsGatherPot),intent(inout):: comgp
+     end subroutine gatherPotential
+
+
+     subroutine extractOrbital2(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, phi, comon)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, sizePhi
+       type(orbitals_data),intent(in):: orbs
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(overlapParameters),intent(inout):: op
+       real(8),dimension(sizePhi),intent(in):: phi
+       type(p2pCommsOrthonormality),intent(out):: comon
+     end subroutine extractOrbital2
+
+
+     subroutine gatherOrbitals2(iproc, nproc, comon)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(p2pCommsOrthonormality),intent(inout):: comon
+     end subroutine gatherOrbitals2
+
+
+     subroutine expandOrbital2(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon, lphiovrlp)
+       use module_base
+       use module_types
+       implicit none
+       
+       ! Calling arguments
+       integer,intent(in):: iproc, nproc
+       type(orbitals_data),intent(in):: orbs
+       type(input_variables),intent(in):: input
+       integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(overlapParameters),intent(in):: op
+       type(p2pCommsOrthonormality),intent(in):: comon
+       real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+     end subroutine expandOrbital2
+
+
+     subroutine getOverlapMatrix2(iproc, nproc, lin, input, lphi, ovrlp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(linearParameters),intent(inout):: lin
+       type(input_variables),intent(in):: input
+       real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(inout):: lphi
+       real(8),dimension(lin%lb%lzd%orbs%norb,lin%lb%lzd%orbs%norb),intent(out):: ovrlp
+     end subroutine getOverlapMatrix2
 
 
 

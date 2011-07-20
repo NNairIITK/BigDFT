@@ -149,8 +149,8 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   nvirt=0
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
        lin%orbs,lzdig%orbs,norbsc_arr,locrad,G,psigau,eks)
-  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
-       lin%orbs,lzdGauss%orbs,norbsc_arr,locrad,G,psigau,eks)
+  !call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+  !     lin%orbs,lzdGauss%orbs,norbsc_arr,locrad,G,psigau,eks)
   call assignToLocreg2(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
   lzdGauss%orbs=lzdig%orbs
   lzdGauss%Glr=Glr
@@ -342,6 +342,7 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
 
   ! Post the messages for the communication of the potential.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  write(*,'(a,2i12)') 'iproc, ndimpot',iproc, ndimpot
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, comgp)
 
 
@@ -423,6 +424,10 @@ write(*,'(a,2i7)') 'after call to inputguess_gaussian_orbitals: iproc, size(lzdi
    !!end do
    call buildLinearCombinationsLocalized(iproc, nproc, lzdig%orbs, lin%orbs, commsig, lin%comms, at, Glr, input, lin%norbsPerType, &
         onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
+   !!do istat=1,size(lphi)
+   !!    lphi(istat)=cos(dble(mod(13*istat+18945*iproc,259)))
+   !!end do
+
    !!call buildLinearCombinations2(iproc, nproc, orbsig, lin%orbs, commsig, lin%comms, at, Glr, lin%norbsPerType, &
    !!     onWhichAtom, chi, hchi, phi, rxyz, onWhichAtomPhi, lin, ham)
    call cpu_time(t2)
@@ -2468,7 +2473,9 @@ type(p2pCommsOrthonormalityMatrix):: comom
     
     
           ! Othonormalize the coefficients.
-          call orthonormalizeVectors(iproc, ip%nproc, lin%lzd%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par,lzdig%matmin% norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, lzdig%matmin%mlr, lcoeff, comom)
+          call orthonormalizeVectors(iproc, ip%nproc, lin%lzd%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
+               lzdig%matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
+               lzdig%matmin%mlr, lcoeff, comom)
     
           ! Calculate the gradient grad.
           do iorb=1,ip%norb_par(iproc)
@@ -2660,6 +2667,9 @@ type(p2pCommsOrthonormalityMatrix):: comom
 
   ! Do this in a localized way -- TEST
   call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, input, coeff, lchi, lphi)
+  !!do istat=1,size(lphi)
+  !!    lphi(istat)=cos(dble(mod(13*istat+18945*iproc,259)))
+  !!end do
 
   
 
@@ -2674,9 +2684,9 @@ type(p2pCommsOrthonormalityMatrix):: comom
   !!do istat=1,size(phi)
   !!    write(100+iproc,*) istat, phi(istat)
   !!end do
-  do istat=1,size(lphi)
-      write(110+iproc,*) istat, lphi(istat)
-  end do
+  !!do istat=1,size(lphi)
+  !!    write(110+iproc,*) istat, lphi(istat)
+  !!end do
 
 
   ! Deallocate the local arrays.
