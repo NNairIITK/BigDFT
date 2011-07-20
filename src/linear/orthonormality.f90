@@ -161,24 +161,24 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   !call gatherOrbitals(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, lagmat)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
+  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%lzd%orbs%inWhichLocreg, lagmat)
   trH=0.d0
   do iorb=1,lin%orbs%norb
       trH=trH+lagmat(iorb,iorb)
   end do
   ! Expand the receive buffer, i.e. lphi
   !call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
-  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
   !call applyOrthoconstraint(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, lphiovrlp, lhphi)
-  call applyOrthoconstraint(iproc, nproc, lin%lzd%orbs, lin%lzd%orbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, lphiovrlp, lhphi)
+  call applyOrthoconstraint(iproc, nproc, lin%lzd%orbs, lin%lzd%orbs, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, lphiovrlp, lhphi)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
@@ -225,31 +225,31 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, lagmat)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
+  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%lzd%orbs%inWhichLocreg, lagmat)
   trH=0.d0
   do iorb=1,lin%orbs%norb
       trH=trH+lagmat(iorb,iorb)
   end do
   ! Expand the receive buffer, i.e. lphi
   !call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
-  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
+  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
 
   ! Now we also have to send lhphi
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon)
   ! Expand the receive buffer, i.e. lhphi
-  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lhphiovrlp)
+  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
   !call applyOrthoconstraintNonorthogonal(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
   !call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%lzd%orbs, lin%lzd%orbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%lzd%orbs, lin%lzd%orbs, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
 
   iall=-product(shape(lagmat))*kind(lagmat)
   deallocate(lagmat, stat=istat)
@@ -475,10 +475,10 @@ logical:: converged
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon)
-  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%onWhichAtomAll, ovrlp)
+  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%lzd%orbs%inWhichLocreg, ovrlp)
 
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
   deallocate(lphiovrlp, stat=istat)

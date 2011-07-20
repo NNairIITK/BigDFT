@@ -67,6 +67,12 @@ integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim,
 integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
 
+  if (iproc == 0) then
+     write(*,'(1x,a)')&
+          '------------------------------------------------------- Input Wavefunctions Creation'
+  end if
+
+  ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
   allocate(locrad(at%nat+ndebug),stat=i_stat)
@@ -74,15 +80,11 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   allocate(norbsPerAt(at%nat), stat=istat)
   call memocc(istat, norbsPerAt, 'norbsPerAt', subname)
 
-  ! number of localization regions
+  ! Number of localization regions
   lzdig%nlr=at%nat
   lzdGauss%nlr=at%nat
 
 
-  if (iproc == 0) then
-     write(*,'(1x,a)')&
-          '------------------------------------------------------- Input Wavefunctions Creation'
-  end if
 
   !spin for inputguess orbitals
   if (input%nspin == 4) then

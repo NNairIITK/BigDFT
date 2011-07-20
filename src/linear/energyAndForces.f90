@@ -660,327 +660,327 @@ contains
 !!*************************************************************************************************************88
 
 
-subroutine pulayCorrection()
-implicit none
-
-real(8),dimension(:),allocatable:: dpsix, dpsiy, dpsiz, drhox, drhoy, drhoz, dpot_ionx, dpot_iony, dpot_ionz
-real(8),dimension(:),allocatable:: dpotx, dpoty, dpotz, rho, pot
-real(8),dimension(:,:,:,:),allocatable:: dpotxcx, dpotxcy, dpotxcz, potxc
-real(8),dimension(:,:,:),allocatable:: ovrlpx, ovrlpy, ovrlpz
-integer,dimension(:,:),allocatable:: ndimovrlp
-real(8),dimension(:),pointer:: psiWork
-integer:: iorb, jorb, istat, nvctrp, istart, jstart, ierr, i
-real(8):: tt, tt2, ddot, deexcux, dvexcux, deexcuy, dvexcuy, deexcuz, dvexcuz, dehartx, deharty, dehartz, psoffset
-real(8):: eexcu, vexcu, ehart
-real(8),dimension(:),pointer:: rhocore
-character(len=3),parameter:: PSquiet='yes'
-
-
-allocate(dpsix(orbs%npsidim), stat=istat)
-call memocc(istat, dpsix, 'dpsix', subname)
-allocate(dpsiy(orbs%npsidim), stat=istat)
-call memocc(istat, dpsiy, 'dpsiy', subname)
-allocate(dpsiz(orbs%npsidim), stat=istat)
-call memocc(istat, dpsiz, 'dpsiz', subname)
-allocate(psiWork(orbs%npsidim), stat=istat)
-call memocc(istat, psiWork, 'psiWork', subname)
-
-allocate(ovrlpx(orbs%norb,orbs%norb,2), stat=istat)
-call memocc(istat, ovrlpx, 'ovrlpx', subname)
-allocate(ovrlpy(orbs%norb,orbs%norb,2), stat=istat)
-call memocc(istat, ovrlpy, 'ovrlpy', subname)
-allocate(ovrlpz(orbs%norb,orbs%norb,2), stat=istat)
-call memocc(istat, ovrlpz, 'ovrlpz', subname)
-
-allocate(drhox(lin%as%size_rhopot), stat=istat)
-call memocc(istat, drhox, 'drhox', subname)
-allocate(drhoy(lin%as%size_rhopot), stat=istat)
-call memocc(istat, drhoy, 'drhoy', subname)
-allocate(drhoz(lin%as%size_rhopot), stat=istat)
-call memocc(istat, drhoz, 'drhoz', subname)
-allocate(rho(lin%as%size_rhopot), stat=istat)
-call memocc(istat, rho, 'rho', subname)
-
-allocate(dpotx(lin%as%size_rhopot), stat=istat)
-call memocc(istat, dpotx, 'dpotx', subname)
-allocate(dpoty(lin%as%size_rhopot), stat=istat)
-call memocc(istat, dpoty, 'dpoty', subname)
-allocate(dpotz(lin%as%size_rhopot), stat=istat)
-call memocc(istat, dpotz, 'dpotz', subname)
-allocate(pot(lin%as%size_rhopot), stat=istat)
-call memocc(istat, pot, 'pot', subname)
-
-allocate(dpotxcx(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
-call memocc(istat, dpotxcx, 'dpotxcx', subname)
-allocate(dpotxcy(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
-call memocc(istat, dpotxcy, 'dpotxcy', subname)
-allocate(dpotxcz(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
-call memocc(istat, dpotxcz, 'dpotxcz', subname)
-allocate(potxc(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
-call memocc(istat, potxc, 'potxc', subname)
-
-allocate(dpot_ionx(lin%as%size_pot_ion),stat=i_stat)
-call memocc(i_stat,dpot_ionx,'dpot_ionx',subname)
-allocate(dpot_iony(lin%as%size_pot_ion),stat=i_stat)
-call memocc(i_stat,dpot_iony,'dpot_iony',subname)
-allocate(dpot_ionz(lin%as%size_pot_ion),stat=i_stat)
-call memocc(i_stat,dpot_ionz,'dpot_ionz',subname)
-
-
-! Create an input guess for dpsi. At the moment only random.
-call random_number(dpsix)
-call random_number(dpsiy)
-call random_number(dpsiz)
-dpsix=psi
-dpsiy=psi
-dpsiz=psi
-do i=1,orbs%npsidim
-    call random_number(tt)
-    tt=tt-.5d0
-    tt=tt*.1d0
-    dpsix(i)=dpsix(i)*tt
-    call random_number(tt)
-    tt=tt-.5d0
-    tt=tt*.1d0
-    dpsiy(i)=dpsiy(i)*tt
-    call random_number(tt)
-    tt=tt-.5d0
-    tt=tt*.1d0
-    dpsiz(i)=dpsiz(i)*tt
-end do
-
-
-!!allocate(ndimovrlp(nspin,0:orbs%nkpts+ndebug),stat=istat)
-!!call memocc(istat, ndimovrlp, 'ndimovrlp', subname)
-!!! Allocate the overlap matrix
-!!allocate(ovrlp(ndimovrlp(nspin,orbs%nkpts)+ndebug),stat=istat)
-!!call memocc(i_stat, ovrlp, 'ovrlp', subname)
-
-! Othogonalize dpsi to psi
-call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=psiWork)
-nvctrp=comms%nvctr_par(iproc,1) ! 1 for k-point
-istart=1
-do iorb=1,orbs%norb
-    jstart=1
-    do jorb=1,orbs%norb
-        ovrlpx(jorb,iorb,2)=ddot(nvctrp, dpsix(istart), 1, psi(jstart), 1)
-        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
-        ovrlpy(jorb,iorb,2)=ddot(nvctrp, dpsiy(istart), 1, psi(jstart), 1)
-        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
-        ovrlpz(jorb,iorb,2)=ddot(nvctrp, dpsiz(istart), 1, psi(jstart), 1)
-        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
-        jstart=jstart+nvctrp
-    end do
-    istart=istart+nvctrp
-end do
-
-call mpi_allreduce(ovrlpx(1,1,2), ovrlpx(1,1,1), orbs%norb**2, mpi_double_precision, &
-    mpi_sum, mpi_comm_world, ierr)
-call mpi_allreduce(ovrlpy(1,1,2), ovrlpy(1,1,1), orbs%norb**2, mpi_double_precision, &
-    mpi_sum, mpi_comm_world, ierr)
-call mpi_allreduce(ovrlpz(1,1,2), ovrlpz(1,1,1), orbs%norb**2, mpi_double_precision, &
-    mpi_sum, mpi_comm_world, ierr)
-
-istart=1
-do iorb=1,orbs%norb
-    jstart=1
-    do jorb=1,orbs%norb
-        call daxpy(nvctrp, -ovrlpx(jorb,iorb,1), psi(jstart), 1, dpsix(istart), 1)
-        call daxpy(nvctrp, -ovrlpy(jorb,iorb,1), psi(jstart), 1, dpsiy(istart), 1)
-        call daxpy(nvctrp, -ovrlpz(jorb,iorb,1), psi(jstart), 1, dpsiz(istart), 1)
-        jstart=jstart+nvctrp
-    end do
-    istart=istart+nvctrp
-end do
-
-
-! Orthonormalize dpsi
-call orthogonalize(iproc, nproc, orbs, comms, Glr%wfd, dpsix, in)
-call orthogonalize(iproc, nproc, orbs, comms, Glr%wfd, dpsiy, in)
-call orthogonalize(iproc, nproc, orbs, comms, Glr%wfd, dpsiz, in)
-call dscal(orbs%norb*nvctrp, .1d0, dpsix, 1)
-call dscal(orbs%norb*nvctrp, .1d0, dpsiy, 1)
-call dscal(orbs%norb*nvctrp, .1d0, dpsiz, 1)
-
-!!! CHECK
-istart=1
-do iorb=1,orbs%norb
-    jstart=1
-    do jorb=1,orbs%norb
-        ovrlpx(jorb,iorb,2)=ddot(nvctrp, dpsix(istart), 1, dpsix(jstart), 1)
-        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
-        ovrlpy(jorb,iorb,2)=ddot(nvctrp, dpsiy(istart), 1, dpsiy(jstart), 1)
-        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
-        ovrlpz(jorb,iorb,2)=ddot(nvctrp, dpsiz(istart), 1, dpsiz(jstart), 1)
-        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
-        jstart=jstart+nvctrp
-    end do
-    istart=istart+nvctrp
-end do
-call mpi_allreduce(ovrlpx(1,1,2), ovrlpx(1,1,1), orbs%norb**2, mpi_double_precision, &
-    mpi_sum, mpi_comm_world, ierr)
-call mpi_allreduce(ovrlpy(1,1,2), ovrlpy(1,1,1), orbs%norb**2, mpi_double_precision, &
-    mpi_sum, mpi_comm_world, ierr)
-call mpi_allreduce(ovrlpz(1,1,2), ovrlpz(1,1,1), orbs%norb**2, mpi_double_precision, &
-    mpi_sum, mpi_comm_world, ierr)
-do iorb=1,orbs%norb
-    do jorb=1,orbs%norb
-        if(iproc==0) write(*,*) 'iorb, jorb, ovrlp_x', iorb, jorb, ovrlpx(jorb,iorb,1)
-        if(iproc==0) write(*,*) 'iorb, jorb, ovrlp_x', iorb, jorb, ovrlpy(jorb,iorb,1)
-        if(iproc==0) write(*,*) 'iorb, jorb, ovrlp_x', iorb, jorb, ovrlpz(jorb,iorb,1)
-    end do
-end do
-
-
-!!!!! ATTENTION !!!
-!!! DEBUG
-!!call orthogonalize(iproc, nproc, orbs, comms, Glr%wfd, psi, in)
-!!!!!!!!!!!!!!!!!!!
-
-call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=psiWork)
-call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, dpsix, work=psiWork)
-call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, dpsiy, work=psiWork)
-call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, dpsiz, work=psiWork)
-
-
-
-! Calculate the right hand side of the linear system. First apply the modified Hamiltonian to psi.
-
-!!!! ATTENTION
-!! DEBUG
-!dpsix=psi
-!!!!!!!!!!!!!!
-
-
-call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rho,&
-     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
-if(orbs%nspinor==4) then
-   !this wrapper can be inserted inside the poisson solver 
-   stop 'not yet implemented!!!'
-   !!call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
-   !!     in%ixc,hxh,hyh,hzh,&
-   !!     rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-else
-    ! rhocore is not associated... not used?
-    call XC_potential(atoms%geocode,'D',iproc,nproc,&
-         Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
-         rho,eexcu,vexcu,in%nspin,rhocore,potxc)
-
-     call H_potential(atoms%geocode,'D',iproc,nproc,&
-          Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-          rho,pkernel,pot,ehart,0.0_dp,.false.,&
-          quiet=PSquiet) !optional argument
-end if
-
-do iat=1,atoms%nat
-
-    ! First calculate the charge density.
-    call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,dpsix,drhox,&
-         Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
-    call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,dpsiy,drhoy,&
-         Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
-    call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,dpsiz,drhoz,&
-         Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
-
-    dpotx=drhox
-    dpoty=drhoy
-    dpotz=drhoz
-    
-    if(orbs%nspinor==4) then
-       !this wrapper can be inserted inside the poisson solver 
-       stop 'not yet implemented!!!'
-       !!call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
-       !!     in%ixc,hxh,hyh,hzh,&
-       !!     rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-    else
-        ! rhocore is not associated... not used?
-        call XC_potential(atoms%geocode,'D',iproc,nproc,&
-             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
-             drhox,deexcux,dvexcux,in%nspin,rhocore,dpotxcx)
-        call XC_potential(atoms%geocode,'D',iproc,nproc,&
-             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
-             drhoy,deexcuy,dvexcuy,in%nspin,rhocore,dpotxcy)
-        call XC_potential(atoms%geocode,'D',iproc,nproc,&
-             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
-             drhoz,deexcux,dvexcux,in%nspin,rhocore,dpotxcz)
-
-         call H_potential(atoms%geocode,'D',iproc,nproc,&
-              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-              drhox,pkernel,dpotx,dehartx,0.0_dp,.false.,&
-              quiet=PSquiet) !optional argument
-         call H_potential(atoms%geocode,'D',iproc,nproc,&
-              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-              drhoy,pkernel,dpoty,deharty,0.0_dp,.false.,&
-              quiet=PSquiet) !optional argument
-         call H_potential(atoms%geocode,'D',iproc,nproc,&
-              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-              drhoz,pkernel,dpotz,dehartz,0.0_dp,.false.,&
-              quiet=PSquiet) !optional argument
-    
-        !! POT_ION IS NOT CORRECT
-        ! We need the derivative of pot_ion with respect to the atomic
-        ! coordinates.
-
-         ! IS THIS CORRECT?
-         psoffset=0.d0
-
-         !call createIonicPotentialModified(atoms%geocode,iproc,nproc,atoms,lin, iat, rxyz,&
-         !hxh,hyh,hzh,in%elecfield,Glr%d%n1,Glr%d%n2,Glr%d%n3,n3pi,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,pkernel, &
-         !drhox, drhoy, drhoz, dpotx, dpoty, dpotz, dpot_ionx, dpot_iony, dpot_ionz, &
-         !psoffset,in%nvacancy,&
-         !in%correct_offset)
-         call createIonicPotentialModified(atoms%geocode,iproc,nproc,atoms,lin, iat, rxyz,&
-         hxh,hyh,hzh,in%elecfield,Glr%d%n1,Glr%d%n2,Glr%d%n3,n3pi,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,pkernel, &
-         rho, rho, rho, pot, pot, pot, dpot_ionx, dpot_iony, dpot_ionz, &
-         psoffset,in%nvacancy,&
-         in%correct_offset)
-
-    
-    
-         call H_potential(atoms%geocode,'D',iproc,nproc,&
-              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-              drhox,pkernel,dpot_ionx,dehartx,0.0_dp,.true.,&
-              quiet=PSquiet) !optional argument
-         call H_potential(atoms%geocode,'D',iproc,nproc,&
-              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-              drhoy,pkernel,dpot_iony,deharty,0.0_dp,.true.,&
-              quiet=PSquiet) !optional argument
-         call H_potential(atoms%geocode,'D',iproc,nproc,&
-              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-              drhoz,pkernel,dpot_ionz,dehartz,0.0_dp,.true.,&
-              quiet=PSquiet) !optional argument
-    end if
-
-end do
-
-
-     !!if(orbs%nspinor==4) then
-     !!   !this wrapper can be inserted inside the poisson solver 
-     !!   call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
-     !!        in%ixc,hxh,hyh,hzh,&
-     !!        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
-     !!else
-     !!   call XC_potential(atoms%geocode,'D',iproc,nproc,&
-     !!        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
-     !!        rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
-
-     !!   call H_potential(atoms%geocode,'D',iproc,nproc,&
-     !!        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
-     !!        rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
-     !!        quiet=PSquiet) !optional argument
-
-     !!   !sum the two potentials in rhopot array
-     !!   !fill the other part, for spin, polarised
-     !!   if (in%nspin == 2) then
-     !!      call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
-     !!           rhopot(1+Glr%d%n1i*Glr%d%n2i*n3p),1)
-     !!   end if
-     !!   !spin up and down together with the XC part
-     !!   call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
-     !!        rhopot(1),1)
-
-     !!end if
-end subroutine pulayCorrection
+!!subroutine pulayCorrection()
+!!implicit none
+!!
+!!real(8),dimension(:),allocatable:: dpsix, dpsiy, dpsiz, drhox, drhoy, drhoz, dpot_ionx, dpot_iony, dpot_ionz
+!!real(8),dimension(:),allocatable:: dpotx, dpoty, dpotz, rho, pot
+!!real(8),dimension(:,:,:,:),allocatable:: dpotxcx, dpotxcy, dpotxcz, potxc
+!!real(8),dimension(:,:,:),allocatable:: ovrlpx, ovrlpy, ovrlpz
+!!integer,dimension(:,:),allocatable:: ndimovrlp
+!!real(8),dimension(:),pointer:: psiWork
+!!integer:: iorb, jorb, istat, nvctrp, istart, jstart, ierr, i
+!!real(8):: tt, tt2, ddot, deexcux, dvexcux, deexcuy, dvexcuy, deexcuz, dvexcuz, dehartx, deharty, dehartz, psoffset
+!!real(8):: eexcu, vexcu, ehart
+!!real(8),dimension(:),pointer:: rhocore
+!!character(len=3),parameter:: PSquiet='yes'
+!!
+!!
+!!allocate(dpsix(orbs%npsidim), stat=istat)
+!!call memocc(istat, dpsix, 'dpsix', subname)
+!!allocate(dpsiy(orbs%npsidim), stat=istat)
+!!call memocc(istat, dpsiy, 'dpsiy', subname)
+!!allocate(dpsiz(orbs%npsidim), stat=istat)
+!!call memocc(istat, dpsiz, 'dpsiz', subname)
+!!allocate(psiWork(orbs%npsidim), stat=istat)
+!!call memocc(istat, psiWork, 'psiWork', subname)
+!!
+!!allocate(ovrlpx(orbs%norb,orbs%norb,2), stat=istat)
+!!call memocc(istat, ovrlpx, 'ovrlpx', subname)
+!!allocate(ovrlpy(orbs%norb,orbs%norb,2), stat=istat)
+!!call memocc(istat, ovrlpy, 'ovrlpy', subname)
+!!allocate(ovrlpz(orbs%norb,orbs%norb,2), stat=istat)
+!!call memocc(istat, ovrlpz, 'ovrlpz', subname)
+!!
+!!allocate(drhox(lin%as%size_rhopot), stat=istat)
+!!call memocc(istat, drhox, 'drhox', subname)
+!!allocate(drhoy(lin%as%size_rhopot), stat=istat)
+!!call memocc(istat, drhoy, 'drhoy', subname)
+!!allocate(drhoz(lin%as%size_rhopot), stat=istat)
+!!call memocc(istat, drhoz, 'drhoz', subname)
+!!allocate(rho(lin%as%size_rhopot), stat=istat)
+!!call memocc(istat, rho, 'rho', subname)
+!!
+!!allocate(dpotx(lin%as%size_rhopot), stat=istat)
+!!call memocc(istat, dpotx, 'dpotx', subname)
+!!allocate(dpoty(lin%as%size_rhopot), stat=istat)
+!!call memocc(istat, dpoty, 'dpoty', subname)
+!!allocate(dpotz(lin%as%size_rhopot), stat=istat)
+!!call memocc(istat, dpotz, 'dpotz', subname)
+!!allocate(pot(lin%as%size_rhopot), stat=istat)
+!!call memocc(istat, pot, 'pot', subname)
+!!
+!!allocate(dpotxcx(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
+!!call memocc(istat, dpotxcx, 'dpotxcx', subname)
+!!allocate(dpotxcy(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
+!!call memocc(istat, dpotxcy, 'dpotxcy', subname)
+!!allocate(dpotxcz(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
+!!call memocc(istat, dpotxcz, 'dpotxcz', subname)
+!!allocate(potxc(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)), stat=istat)
+!!call memocc(istat, potxc, 'potxc', subname)
+!!
+!!allocate(dpot_ionx(lin%as%size_pot_ion),stat=i_stat)
+!!call memocc(i_stat,dpot_ionx,'dpot_ionx',subname)
+!!allocate(dpot_iony(lin%as%size_pot_ion),stat=i_stat)
+!!call memocc(i_stat,dpot_iony,'dpot_iony',subname)
+!!allocate(dpot_ionz(lin%as%size_pot_ion),stat=i_stat)
+!!call memocc(i_stat,dpot_ionz,'dpot_ionz',subname)
+!!
+!!
+!!! Create an input guess for dpsi. At the moment only random.
+!!call random_number(dpsix)
+!!call random_number(dpsiy)
+!!call random_number(dpsiz)
+!!dpsix=psi
+!!dpsiy=psi
+!!dpsiz=psi
+!!do i=1,orbs%npsidim
+!!    call random_number(tt)
+!!    tt=tt-.5d0
+!!    tt=tt*.1d0
+!!    dpsix(i)=dpsix(i)*tt
+!!    call random_number(tt)
+!!    tt=tt-.5d0
+!!    tt=tt*.1d0
+!!    dpsiy(i)=dpsiy(i)*tt
+!!    call random_number(tt)
+!!    tt=tt-.5d0
+!!    tt=tt*.1d0
+!!    dpsiz(i)=dpsiz(i)*tt
+!!end do
+!!
+!!
+!!!!allocate(ndimovrlp(nspin,0:orbs%nkpts+ndebug),stat=istat)
+!!!!call memocc(istat, ndimovrlp, 'ndimovrlp', subname)
+!!!!! Allocate the overlap matrix
+!!!!allocate(ovrlp(ndimovrlp(nspin,orbs%nkpts)+ndebug),stat=istat)
+!!!!call memocc(i_stat, ovrlp, 'ovrlp', subname)
+!!
+!!! Othogonalize dpsi to psi
+!!call transpose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=psiWork)
+!!nvctrp=comms%nvctr_par(iproc,1) ! 1 for k-point
+!!istart=1
+!!do iorb=1,orbs%norb
+!!    jstart=1
+!!    do jorb=1,orbs%norb
+!!        ovrlpx(jorb,iorb,2)=ddot(nvctrp, dpsix(istart), 1, psi(jstart), 1)
+!!        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
+!!        ovrlpy(jorb,iorb,2)=ddot(nvctrp, dpsiy(istart), 1, psi(jstart), 1)
+!!        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
+!!        ovrlpz(jorb,iorb,2)=ddot(nvctrp, dpsiz(istart), 1, psi(jstart), 1)
+!!        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
+!!        jstart=jstart+nvctrp
+!!    end do
+!!    istart=istart+nvctrp
+!!end do
+!!
+!!call mpi_allreduce(ovrlpx(1,1,2), ovrlpx(1,1,1), orbs%norb**2, mpi_double_precision, &
+!!    mpi_sum, mpi_comm_world, ierr)
+!!call mpi_allreduce(ovrlpy(1,1,2), ovrlpy(1,1,1), orbs%norb**2, mpi_double_precision, &
+!!    mpi_sum, mpi_comm_world, ierr)
+!!call mpi_allreduce(ovrlpz(1,1,2), ovrlpz(1,1,1), orbs%norb**2, mpi_double_precision, &
+!!    mpi_sum, mpi_comm_world, ierr)
+!!
+!!istart=1
+!!do iorb=1,orbs%norb
+!!    jstart=1
+!!    do jorb=1,orbs%norb
+!!        call daxpy(nvctrp, -ovrlpx(jorb,iorb,1), psi(jstart), 1, dpsix(istart), 1)
+!!        call daxpy(nvctrp, -ovrlpy(jorb,iorb,1), psi(jstart), 1, dpsiy(istart), 1)
+!!        call daxpy(nvctrp, -ovrlpz(jorb,iorb,1), psi(jstart), 1, dpsiz(istart), 1)
+!!        jstart=jstart+nvctrp
+!!    end do
+!!    istart=istart+nvctrp
+!!end do
+!!
+!!
+!!! Orthonormalize dpsi
+!!call orthogonalize(iproc, nproc, orbs, comms, Glr%wfd, dpsix, in)
+!!call orthogonalize(iproc, nproc, orbs, comms, Glr%wfd, dpsiy, in)
+!!call orthogonalize(iproc, nproc, orbs, comms, Glr%wfd, dpsiz, in)
+!!call dscal(orbs%norb*nvctrp, .1d0, dpsix, 1)
+!!call dscal(orbs%norb*nvctrp, .1d0, dpsiy, 1)
+!!call dscal(orbs%norb*nvctrp, .1d0, dpsiz, 1)
+!!
+!!!!! CHECK
+!!istart=1
+!!do iorb=1,orbs%norb
+!!    jstart=1
+!!    do jorb=1,orbs%norb
+!!        ovrlpx(jorb,iorb,2)=ddot(nvctrp, dpsix(istart), 1, dpsix(jstart), 1)
+!!        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
+!!        ovrlpy(jorb,iorb,2)=ddot(nvctrp, dpsiy(istart), 1, dpsiy(jstart), 1)
+!!        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
+!!        ovrlpz(jorb,iorb,2)=ddot(nvctrp, dpsiz(istart), 1, dpsiz(jstart), 1)
+!!        !call daxpy(nvctrp, -tt, psi(jstart), 1, dpsix(istart), 1)
+!!        jstart=jstart+nvctrp
+!!    end do
+!!    istart=istart+nvctrp
+!!end do
+!!call mpi_allreduce(ovrlpx(1,1,2), ovrlpx(1,1,1), orbs%norb**2, mpi_double_precision, &
+!!    mpi_sum, mpi_comm_world, ierr)
+!!call mpi_allreduce(ovrlpy(1,1,2), ovrlpy(1,1,1), orbs%norb**2, mpi_double_precision, &
+!!    mpi_sum, mpi_comm_world, ierr)
+!!call mpi_allreduce(ovrlpz(1,1,2), ovrlpz(1,1,1), orbs%norb**2, mpi_double_precision, &
+!!    mpi_sum, mpi_comm_world, ierr)
+!!do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!        if(iproc==0) write(*,*) 'iorb, jorb, ovrlp_x', iorb, jorb, ovrlpx(jorb,iorb,1)
+!!        if(iproc==0) write(*,*) 'iorb, jorb, ovrlp_x', iorb, jorb, ovrlpy(jorb,iorb,1)
+!!        if(iproc==0) write(*,*) 'iorb, jorb, ovrlp_x', iorb, jorb, ovrlpz(jorb,iorb,1)
+!!    end do
+!!end do
+!!
+!!
+!!!!!!! ATTENTION !!!
+!!!!! DEBUG
+!!!!call orthogonalize(iproc, nproc, orbs, comms, Glr%wfd, psi, in)
+!!!!!!!!!!!!!!!!!!!!!
+!!
+!!call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=psiWork)
+!!call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, dpsix, work=psiWork)
+!!call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, dpsiy, work=psiWork)
+!!call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, dpsiz, work=psiWork)
+!!
+!!
+!!
+!!! Calculate the right hand side of the linear system. First apply the modified Hamiltonian to psi.
+!!
+!!!!!! ATTENTION
+!!!! DEBUG
+!!!dpsix=psi
+!!!!!!!!!!!!!!!!
+!!
+!!
+!!call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,psi,rho,&
+!!     Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+!!if(orbs%nspinor==4) then
+!!   !this wrapper can be inserted inside the poisson solver 
+!!   stop 'not yet implemented!!!'
+!!   !!call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+!!   !!     in%ixc,hxh,hyh,hzh,&
+!!   !!     rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+!!else
+!!    ! rhocore is not associated... not used?
+!!    call XC_potential(atoms%geocode,'D',iproc,nproc,&
+!!         Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
+!!         rho,eexcu,vexcu,in%nspin,rhocore,potxc)
+!!
+!!     call H_potential(atoms%geocode,'D',iproc,nproc,&
+!!          Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!          rho,pkernel,pot,ehart,0.0_dp,.false.,&
+!!          quiet=PSquiet) !optional argument
+!!end if
+!!
+!!do iat=1,atoms%nat
+!!
+!!    ! First calculate the charge density.
+!!    call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,dpsix,drhox,&
+!!         Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+!!    call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,dpsiy,drhoy,&
+!!         Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+!!    call sumrho(iproc,nproc,orbs,Glr,in%ixc,hxh,hyh,hzh,dpsiz,drhoz,&
+!!         Glr%d%n1i*Glr%d%n2i*n3d,nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+!!
+!!    dpotx=drhox
+!!    dpoty=drhoy
+!!    dpotz=drhoz
+!!    
+!!    if(orbs%nspinor==4) then
+!!       !this wrapper can be inserted inside the poisson solver 
+!!       stop 'not yet implemented!!!'
+!!       !!call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+!!       !!     in%ixc,hxh,hyh,hzh,&
+!!       !!     rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+!!    else
+!!        ! rhocore is not associated... not used?
+!!        call XC_potential(atoms%geocode,'D',iproc,nproc,&
+!!             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
+!!             drhox,deexcux,dvexcux,in%nspin,rhocore,dpotxcx)
+!!        call XC_potential(atoms%geocode,'D',iproc,nproc,&
+!!             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
+!!             drhoy,deexcuy,dvexcuy,in%nspin,rhocore,dpotxcy)
+!!        call XC_potential(atoms%geocode,'D',iproc,nproc,&
+!!             Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
+!!             drhoz,deexcux,dvexcux,in%nspin,rhocore,dpotxcz)
+!!
+!!         call H_potential(atoms%geocode,'D',iproc,nproc,&
+!!              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!              drhox,pkernel,dpotx,dehartx,0.0_dp,.false.,&
+!!              quiet=PSquiet) !optional argument
+!!         call H_potential(atoms%geocode,'D',iproc,nproc,&
+!!              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!              drhoy,pkernel,dpoty,deharty,0.0_dp,.false.,&
+!!              quiet=PSquiet) !optional argument
+!!         call H_potential(atoms%geocode,'D',iproc,nproc,&
+!!              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!              drhoz,pkernel,dpotz,dehartz,0.0_dp,.false.,&
+!!              quiet=PSquiet) !optional argument
+!!    
+!!        !! POT_ION IS NOT CORRECT
+!!        ! We need the derivative of pot_ion with respect to the atomic
+!!        ! coordinates.
+!!
+!!         ! IS THIS CORRECT?
+!!         psoffset=0.d0
+!!
+!!         !call createIonicPotentialModified(atoms%geocode,iproc,nproc,atoms,lin, iat, rxyz,&
+!!         !hxh,hyh,hzh,in%elecfield,Glr%d%n1,Glr%d%n2,Glr%d%n3,n3pi,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,pkernel, &
+!!         !drhox, drhoy, drhoz, dpotx, dpoty, dpotz, dpot_ionx, dpot_iony, dpot_ionz, &
+!!         !psoffset,in%nvacancy,&
+!!         !in%correct_offset)
+!!         call createIonicPotentialModified(atoms%geocode,iproc,nproc,atoms,lin, iat, rxyz,&
+!!         hxh,hyh,hzh,in%elecfield,Glr%d%n1,Glr%d%n2,Glr%d%n3,n3pi,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,pkernel, &
+!!         rho, rho, rho, pot, pot, pot, dpot_ionx, dpot_iony, dpot_ionz, &
+!!         psoffset,in%nvacancy,&
+!!         in%correct_offset)
+!!
+!!    
+!!    
+!!         call H_potential(atoms%geocode,'D',iproc,nproc,&
+!!              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!              drhox,pkernel,dpot_ionx,dehartx,0.0_dp,.true.,&
+!!              quiet=PSquiet) !optional argument
+!!         call H_potential(atoms%geocode,'D',iproc,nproc,&
+!!              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!              drhoy,pkernel,dpot_iony,deharty,0.0_dp,.true.,&
+!!              quiet=PSquiet) !optional argument
+!!         call H_potential(atoms%geocode,'D',iproc,nproc,&
+!!              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!              drhoz,pkernel,dpot_ionz,dehartz,0.0_dp,.true.,&
+!!              quiet=PSquiet) !optional argument
+!!    end if
+!!
+!!end do
+!!
+!!
+!!     !!if(orbs%nspinor==4) then
+!!     !!   !this wrapper can be inserted inside the poisson solver 
+!!     !!   call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+!!     !!        in%ixc,hxh,hyh,hzh,&
+!!     !!        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+!!     !!else
+!!     !!   call XC_potential(atoms%geocode,'D',iproc,nproc,&
+!!     !!        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,hxh,hyh,hzh,&
+!!     !!        rhopot,eexcu,vexcu,in%nspin,rhocore,potxc)
+!!
+!!     !!   call H_potential(atoms%geocode,'D',iproc,nproc,&
+!!     !!        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!     !!        rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.,&
+!!     !!        quiet=PSquiet) !optional argument
+!!
+!!     !!   !sum the two potentials in rhopot array
+!!     !!   !fill the other part, for spin, polarised
+!!     !!   if (in%nspin == 2) then
+!!     !!      call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(1),1,&
+!!     !!           rhopot(1+Glr%d%n1i*Glr%d%n2i*n3p),1)
+!!     !!   end if
+!!     !!   !spin up and down together with the XC part
+!!     !!   call axpy(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin,1.0_dp,potxc(1,1,1,1),1,&
+!!     !!        rhopot(1),1)
+!!
+!!     !!end if
+!!end subroutine pulayCorrection
 
 
 
