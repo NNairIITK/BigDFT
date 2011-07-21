@@ -194,13 +194,14 @@ end do
 !call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
 !call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%onWhichAtomAll, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%lzd%orbs%inWhichLocreg, tag)
-call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%comgp_lb, lin%lb%lzd%orbs%inWhichLocreg, tag)
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, lin%lb%lzd%orbs%inWhichLocreg, tag)
 
 ! Initialize the parameters for the communication for the orthonormalization.
 !!call initCommsOrtho(iproc, nproc, lin)
 !call initCommsOrtho(iproc, nproc, lin%lzd, lin%onWhichAtomAll, input, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%lzd%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs%inWhichLocreg, input, lin%op_lb, lin%comon_lb, tag)
+!call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs%inWhichLocreg, input, lin%op_lb, lin%comon_lb, tag)
+call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
@@ -1156,8 +1157,8 @@ do jproc=0,nproc-1
     ioverlap=0
     do iorb=1,lin%lb%orbs%norb
         ilr=lin%lb%lzd%orbs%inWhichLocreg(iorb)
-        i3s=2*lin%Llr(ilr)%ns3-14
-        i3e=i3s+lin%Llr(ilr)%d%n3i-1
+        i3s=2*lin%lzd%Llr(ilr)%ns3-14
+        i3e=i3s+lin%lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1
         end if
@@ -1187,24 +1188,24 @@ do jproc=0,nproc-1
     ioverlap=0
     do iorb=1,lin%lb%orbs%norb
         ilr=lin%lb%lzd%orbs%inWhichLocreg(iorb)
-        i3s=2*lin%Llr(ilr)%ns3-14
-        i3e=i3s+lin%Llr(ilr)%d%n3i-1
+        i3s=2*lin%lzd%Llr(ilr)%ns3-14
+        i3e=i3s+lin%lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1
             tag=tag+1
             is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
             n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
-            is3ovrlp=is3ovrlp-2*lin%Llr(ilr)%ns3+15
+            is3ovrlp=is3ovrlp-2*lin%lzd%Llr(ilr)%ns3+15
             !call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
-            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin%nlr, lin%Llr, &
+            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin%nlr, lin%lzd%Llr, &
                  lin%lb%lzd%orbs%inWhichLocreg, lin%lb%orbs, lin%comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
                 !lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
-                lin%comsr%nrecvBuf = lin%comsr%nrecvBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
+                lin%comsr%nrecvBuf = lin%comsr%nrecvBuf + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*n3ovrlp
                 lin%comsr%overlaps(ioverlap)=iorb
                                                         !lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
             end if
-            lin%comsr%istrarr(jproc) = lin%comsr%istrarr(jproc) + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
+            lin%comsr%istrarr(jproc) = lin%comsr%istrarr(jproc) + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*n3ovrlp
         end if
     end do
 end do
@@ -1222,7 +1223,7 @@ call memocc(istat, lin%comsr%computComplete, 'lin%comsr%computComplete', subname
 lin%comsr%nsendBuf=0
 do iorb=1,lin%lb%orbs%norbp
     ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
-    lin%comsr%nsendBuf = lin%comsr%nsendBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
+    lin%comsr%nsendBuf = lin%comsr%nsendBuf + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
 end do
 
 !!allocate(lin%comsr%sendBuf(lin%comsr%nsendBuf), stat=istat)
@@ -1364,7 +1365,7 @@ integer:: istat, npsidim, npsidimr, iorb, ilr
 character(len=*),parameter:: subname='initLocregs'
 
 ! Allocate the array of localisation regions
-allocate(lin%Llr(lin%nlr),stat=istat)
+!allocate(lin%Llr(lin%nlr),stat=istat)
 allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
 allocate(lin%lb%lzd%Llr(lin%lzd%nlr),stat=istat)
 allocate(lin%outofzone(3,lin%nlr),stat=istat)
@@ -1384,7 +1385,7 @@ call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 !    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
 !end if
 
- call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
+ !call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
  call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
  call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr)
 
@@ -1406,7 +1407,7 @@ npsidim=0
 do iorb=1,lin%orbs%norbp
     !ilr=lin%onWhichAtom(iorb)
     ilr=lin%lzd%orbs%inWhichLocregp(iorb)
-    npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
+    npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
 end do
 !lin%Lorbs%npsidim=npsidim
 lin%lzd%orbs%npsidim=npsidim
@@ -1418,7 +1419,7 @@ else
     npsidim=0
     do iorb=1,lin%lb%orbs%norbp
         ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
-        npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
+        npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
         !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
     end do
     !lin%lb%Lorbs%npsidim=npsidim

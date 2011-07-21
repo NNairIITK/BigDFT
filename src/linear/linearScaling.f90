@@ -141,7 +141,7 @@ type(mixrhopotDIISParameters):: mixdiis
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-  if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
+  if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
 
 
   updatePhi=.false.
@@ -184,7 +184,7 @@ type(mixrhopotDIISParameters):: mixdiis
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-  if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
+  if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
 
 
 
@@ -306,7 +306,7 @@ type(mixrhopotDIISParameters):: mixdiis
       end if
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
       call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-      if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
+      if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
 
       ! Write some informations
       call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, lin%mixingMethod)

@@ -487,6 +487,9 @@ type,public:: largeBasis
     type(orbitals_data):: orbs
     type(linear_zone_descriptors):: lzd
     type(p2pCommsRepartition):: comrp
+    type(p2pCommsOrthonormality):: comon
+    type(overlapParameters):: op
+    type(p2pCommsGatherPot):: comgp
 end type largeBasis
 
   !> Contains the parameters for the parallel input guess for the O(N) version.
@@ -518,10 +521,7 @@ end type largeBasis
     real(8),dimension(:),pointer:: potentialPrefac, locrad, phiRestart, lphiRestart, lphiold, lhphiold
     real(8),dimension(:,:),pointer:: hamold
     type(orbitals_data):: orbs
-    type(communications_arrays):: comms, Lcomms
-    type(locreg_descriptors):: lr
-    type(locreg_descriptors),dimension(:),pointer:: Llr
-    type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
+    type(communications_arrays):: comms
     integer,dimension(:),pointer:: norbsPerType
     integer,dimension(:),pointer:: MPIComms, norbPerComm
     integer,dimension(:,:),pointer:: procsInComm, outofzone
@@ -532,11 +532,10 @@ end type largeBasis
     character(len=4):: getCoeff, mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
-    type(p2pCommsGatherPot):: comgp_lb
     type(largeBasis):: lb
     type(linear_zone_descriptors):: lzd
-    type(p2pCommsOrthonormality):: comon, comon_lb
-    type(overlapParameters):: op, op_lb
+    type(p2pCommsOrthonormality):: comon
+    type(overlapParameters):: op
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure

@@ -755,29 +755,29 @@ do iorb=1,lin%comsr%noverlaps(iproc)
         jlr=lin%comsr%comarr(4,jorb,iproc)
         istrj=lin%comsr%comarr(6,jorb,iproc)-1
         ! Bounds in global coordinates
-        i1s=max(2*lin%Llr(ilr)%ns1-14,2*lin%Llr(jlr)%ns1-14)
-        i1e=min(2*lin%Llr(ilr)%ns1-14+lin%Llr(ilr)%d%n1i-1,2*lin%Llr(jlr)%ns1-14+lin%Llr(jlr)%d%n1i-1)
-        i2s=max(2*lin%Llr(ilr)%ns2-14,2*lin%Llr(jlr)%ns2-14)
-        i2e=min(2*lin%Llr(ilr)%ns2-14+lin%Llr(ilr)%d%n2i-1,2*lin%Llr(jlr)%ns2-14+lin%Llr(jlr)%d%n2i-1)
-        i3s=max(2*lin%Llr(ilr)%ns3-14,2*lin%Llr(jlr)%ns3-14,is)
-        i3e=min(2*lin%Llr(ilr)%ns3-14+lin%Llr(ilr)%d%n3i-1,2*lin%Llr(jlr)%ns3-14+lin%Llr(jlr)%d%n3i-1,ie)
+        i1s=max(2*lin%lzd%llr(ilr)%ns1-14,2*lin%lzd%llr(jlr)%ns1-14)
+        i1e=min(2*lin%lzd%llr(ilr)%ns1-14+lin%lzd%llr(ilr)%d%n1i-1,2*lin%lzd%llr(jlr)%ns1-14+lin%lzd%llr(jlr)%d%n1i-1)
+        i2s=max(2*lin%lzd%llr(ilr)%ns2-14,2*lin%lzd%llr(jlr)%ns2-14)
+        i2e=min(2*lin%lzd%llr(ilr)%ns2-14+lin%lzd%llr(ilr)%d%n2i-1,2*lin%lzd%llr(jlr)%ns2-14+lin%lzd%llr(jlr)%d%n2i-1)
+        i3s=max(2*lin%lzd%llr(ilr)%ns3-14,2*lin%lzd%llr(jlr)%ns3-14,is)
+        i3e=min(2*lin%lzd%llr(ilr)%ns3-14+lin%lzd%llr(ilr)%d%n3i-1,2*lin%lzd%llr(jlr)%ns3-14+lin%lzd%llr(jlr)%d%n3i-1,ie)
         factorTimesDensKern = factor*densKern(iiorb,jjorb)
         do i3=i3s,i3e
             i3d=i3-i3s+1
             j3d=i3-i3s+1
-            indi3=(i3d-1)*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n1i
-            indj3=(j3d-1)*lin%Llr(jlr)%d%n2i*lin%Llr(jlr)%d%n1i
+            indi3=(i3d-1)*lin%lzd%llr(ilr)%d%n2i*lin%lzd%llr(ilr)%d%n1i
+            indj3=(j3d-1)*lin%lzd%llr(jlr)%d%n2i*lin%lzd%llr(jlr)%d%n1i
             indl3=(i3-is)*Glr%d%n2i*Glr%d%n1i
             do i2=i2s,i2e
-                i2d=i2-2*lin%Llr(ilr)%ns2
-                j2d=i2-2*lin%Llr(jlr)%ns2
-                indi2=(i2d+15-1)*lin%Llr(ilr)%d%n1i
-                indj2=(j2d+15-1)*lin%Llr(jlr)%d%n1i
+                i2d=i2-2*lin%lzd%llr(ilr)%ns2
+                j2d=i2-2*lin%lzd%llr(jlr)%ns2
+                indi2=(i2d+15-1)*lin%lzd%llr(ilr)%d%n1i
+                indj2=(j2d+15-1)*lin%lzd%llr(jlr)%d%n1i
                 indl2=(i2+15-1)*Glr%d%n1i
                 !!!! This is the old version.
                 !!do i1=i1s,i1e
-                !!    i1d=i1-2*lin%Llr(ilr)%ns1
-                !!    j1d=i1-2*lin%Llr(jlr)%ns1
+                !!    i1d=i1-2*lin%lzd%llr(ilr)%ns1
+                !!    j1d=i1-2*lin%lzd%llr(jlr)%ns1
                 !!    ! Now calculate the index in the boxes.
                 !!    indri = indi3 + indi2 + i1d+15 + istri
                 !!    indrj = indj3 + indj2 + j1d+15 + istrj
@@ -790,8 +790,8 @@ do iorb=1,lin%comsr%noverlaps(iproc)
                 ! This is the new version.
                 m=mod(i1e-i1s+1,4)
                 if(m/=0) then
-                    i1d0=-2*lin%Llr(ilr)%ns1
-                    j1d0=-2*lin%Llr(jlr)%ns1
+                    i1d0=-2*lin%lzd%llr(ilr)%ns1
+                    j1d0=-2*lin%lzd%llr(jlr)%ns1
                     indri0 = indi3 + indi2 + 15 + istri
                     indrj0 = indj3 + indj2 + 15 + istrj
                     indLarge0 = indl3 + indl2 + 15
@@ -808,8 +808,8 @@ do iorb=1,lin%comsr%noverlaps(iproc)
                     end do
                 end if
                 if(i1e-i1s+1>4) then
-                    i1d0=-2*lin%Llr(ilr)%ns1
-                    j1d0=-2*lin%Llr(jlr)%ns1
+                    i1d0=-2*lin%lzd%llr(ilr)%ns1
+                    j1d0=-2*lin%lzd%llr(jlr)%ns1
                     indri0 = indi3 + indi2 + 15 + istri
                     indrj0 = indj3 + indj2 + 15 + istrj
                     indLarge0 = indl3 + indl2 + 15
@@ -879,14 +879,14 @@ ist=1
 do jorb=lin%orbs%isorb_par(mpisource)+1,iorb-1
     !jlr=lin%onWhichAtomAll(jorb)
     jlr=lin%lzd%orbs%inWhichLocreg(jorb)
-    ist=ist+lin%Llr(jlr)%wfd%nvctr_c+7*lin%Llr(jlr)%wfd%nvctr_f
+    ist=ist+lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
 end do
 commsSumrho(2)=ist
 
 ! amount of data to be sent
 !jlr=lin%onWhichAtomAll(iorb)
 jlr=lin%lzd%orbs%inWhichLocreg(iorb)
-commsSumrho(3)=lin%Llr(jlr)%wfd%nvctr_c+7*lin%Llr(jlr)%wfd%nvctr_f
+commsSumrho(3)=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
 
 ! localization region to which this orbital belongs to
 !commsSumrho(4)=lin%onWhichAtomAll(iorb)
@@ -946,7 +946,7 @@ commsSumrho(1)=mpisource
 ist=1
 do jorb=orbs%isorb_par(mpisource)+1,iorb-1
     jlr=onWhichAtomAll(jorb)
-    !ist=ist+lin%Llr(jlr)%wfd%nvctr_c+7*lin%Llr(jlr)%wfd%nvctr_f
+    !ist=ist+lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
     ist = ist + Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*Llr(jlr)%d%n3i
 end do
 jlr=onWhichAtomAll(iorb)
@@ -955,7 +955,7 @@ commsSumrho(2)=ist
 
 ! amount of data to be sent
 jlr=onWhichAtomAll(iorb)
-!commsSumrho(3)=lin%Llr(jlr)%wfd%nvctr_c+7*lin%Llr(jlr)%wfd%nvctr_f
+!commsSumrho(3)=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
 commsSumrho(3)=Llr(jlr)%d%n1i*Llr(jlr)%d%n2i*n3ovrlp
 
 ! localization region to which this orbital belongs to
