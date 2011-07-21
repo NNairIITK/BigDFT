@@ -1,4 +1,4 @@
-subroutine mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, pnrm)
+subroutine mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, mixMeth, pnrm)
 use module_base
 use module_types
 use libxc_functionals
@@ -6,7 +6,7 @@ use module_interfaces, exceptThisOne => mixrhopotDIIS
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, ndimpot, ndimtot
+integer,intent(in):: iproc, nproc, ndimpot, ndimtot, mixMeth
 real(8),dimension(ndimpot),intent(in):: rhopotold
 real(8),dimension(ndimpot),intent(out):: rhopot
 type(mixrhopotDIISParameters),intent(inout):: mixdiis
@@ -112,9 +112,10 @@ endif
 !!end do
 
 
-! Make a new guess for the potential.
-! ATTENTION - MAYBE TO BE CHANGED FOR POTENTIAL MIXING.
-if (libxc_functionals_isgga()) then
+! Make a new guess for the density/potential.
+! If we are mixing the density (mixMeth==1) it is initialized to 0 or 10^-20, depending on the functional.
+! If we are mixing the potential (mixMeth==2) it is always initialized to 0.
+if (libxc_functionals_isgga() .or. mixMeth==2) then
     call razero(ndimpot, rhopot)
 else
     ! There is no mpi_allreduce, therefore directly initialize to

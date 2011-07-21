@@ -97,7 +97,7 @@ else
     norbd=0
 end if
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%orbs)
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%Lorbs)
+!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%Lorbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%lzd%orbs)
 
 
@@ -121,8 +121,8 @@ call allocateLinArrays(lin)
 ! the 'large' basis.
 !call assignOrbitalsToAtoms(iproc, lin%orbs, at%nat, norbsPerAtom, lin%onWhichAtom, lin%onWhichAtomAll)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
-call assignOrbitalsToAtoms(iproc, lin%lb%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
-call assignOrbitalsToAtoms(iproc, lin%lb%lzd%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
+!call assignOrbitalsToAtoms(iproc, lin%lb%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
+!call assignOrbitalsToAtoms(iproc, lin%lb%lzd%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
@@ -147,9 +147,9 @@ lin%lzd%orbs%eval=-.5d0
 allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
 call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
 lin%lb%orbs%eval=-.5d0
-allocate(lin%lb%Lorbs%eval(lin%lb%Lorbs%norb), stat=istat)
-call memocc(istat, lin%lb%Lorbs%eval, 'lin%lb%Lorbs%eval', subname)
-lin%lb%Lorbs%eval=-.5d0
+!allocate(lin%lb%Lorbs%eval(lin%lb%Lorbs%norb), stat=istat)
+!call memocc(istat, lin%lb%Lorbs%eval, 'lin%lb%Lorbs%eval', subname)
+!lin%lb%Lorbs%eval=-.5d0
 
 ! Initialize the coefficients.
 call initCoefficients(iproc, orbs, lin, coeff)
@@ -181,7 +181,7 @@ end do
 do ilr=1,lin%lzd%nlr
     lin%lb%lzd%Llr(ilr)%localnorb=0
     do iorb=1,lin%lb%lzd%orbs%norbp
-        if(lin%lb%onWhichAtom(iorb)==ilr) then
+        if(lin%lb%lzd%orbs%inWhichLocregp(iorb)==ilr) then
             lin%lb%lzd%Llr(ilr)%localnorb = lin%lb%lzd%Llr(ilr)%localnorb+1
         end if
     end do
@@ -194,13 +194,13 @@ end do
 !call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
 !call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%onWhichAtomAll, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%lzd%orbs%inWhichLocreg, tag)
-call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%comgp_lb, lin%lb%onWhichAtomAll, tag)
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%comgp_lb, lin%lb%lzd%orbs%inWhichLocreg, tag)
 
 ! Initialize the parameters for the communication for the orthonormalization.
 !!call initCommsOrtho(iproc, nproc, lin)
 !call initCommsOrtho(iproc, nproc, lin%lzd, lin%onWhichAtomAll, input, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%lzd%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%onWhichAtomAll, input, lin%op_lb, lin%comon_lb, tag)
+call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs%inWhichLocreg, input, lin%op_lb, lin%comon_lb, tag)
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
@@ -266,7 +266,7 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
-  read(99,*) lin%nItSCC, lin%alphaMix, lin%convCritMix
+  read(99,*) lin%mixHist, lin%nItSCC, lin%alphaMix, lin%convCritMix
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess
   read(99,*) lin%plotBasisFunctions
@@ -314,6 +314,8 @@ integer,dimension(at%ntypes),intent(in):: norbsPerType
 ! Local variables
 integer:: itype, jproc, len1, len2, space1, space2
 logical:: written
+character(len=8):: mixingMethod
+character(len=2):: hist
 
 
 if(iproc==0) write(*,'(x,a)') '################################# Input parameters #################################'
@@ -327,12 +329,18 @@ do itype=1,at%ntypes
 end do
 close(unit=99)
 if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| mixing | iterations in | alpha mix | convergence crit. |'
-if(iproc==0) write(*,'(4x,a)') '| scheme |  in SC cycle  |           |    for mixing     |'
-if(iproc==0) write(*,'(4x,a,2x,a,2x,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)') '|', &
-     lin%mixingMethod, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
+if(iproc==0) write(*,'(4x,a)') '| mixing | mixing | iterations in | alpha mix | convergence crit. |'
+if(iproc==0) write(*,'(4x,a)') '| scheme | method |  in SC cycle  |           |    for mixing     |'
+if(lin%mixHist==0) then
+    mixingMethod=' linear '
+else
+    write(hist,'(i2)') lin%mixHist
+    mixingMethod=' DIIS'//hist//' '
+end if
+if(iproc==0) write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)') '|', &
+     lin%mixingMethod, '|', mixingMethod, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
      lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|'
-if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------'
+if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------'
 if(iproc==0) write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals |'
 if(iproc==0) write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  |'
 if(iproc==0) write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a)')  '|', lin%useDerivativeBasisFunctions, '|', lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
@@ -1147,7 +1155,7 @@ do jproc=0,nproc-1
     !if(iproc==0) write(*,'(a,3i8)') 'jproc, is, ie', jproc, is, ie
     ioverlap=0
     do iorb=1,lin%lb%orbs%norb
-        ilr=lin%lb%onWhichAtomAll(iorb)
+        ilr=lin%lb%lzd%orbs%inWhichLocreg(iorb)
         i3s=2*lin%Llr(ilr)%ns3-14
         i3e=i3s+lin%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
@@ -1178,7 +1186,7 @@ do jproc=0,nproc-1
     ie=is+nscatterarr(jproc,1)-1
     ioverlap=0
     do iorb=1,lin%lb%orbs%norb
-        ilr=lin%lb%onWhichAtomAll(iorb)
+        ilr=lin%lb%lzd%orbs%inWhichLocreg(iorb)
         i3s=2*lin%Llr(ilr)%ns3-14
         i3e=i3s+lin%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
@@ -1189,7 +1197,7 @@ do jproc=0,nproc-1
             is3ovrlp=is3ovrlp-2*lin%Llr(ilr)%ns3+15
             !call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
             call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin%nlr, lin%Llr, &
-                 lin%lb%onWhichAtomAll, lin%lb%orbs, lin%comsr%comarr(1,ioverlap,jproc))
+                 lin%lb%lzd%orbs%inWhichLocreg, lin%lb%orbs, lin%comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
                 !lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
                 lin%comsr%nrecvBuf = lin%comsr%nrecvBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
@@ -1213,7 +1221,7 @@ call memocc(istat, lin%comsr%computComplete, 'lin%comsr%computComplete', subname
 ! ('npsidimr') case.
 lin%comsr%nsendBuf=0
 do iorb=1,lin%lb%orbs%norbp
-    ilr=lin%lb%onWhichAtom(iorb)
+    ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
     lin%comsr%nsendBuf = lin%comsr%nsendBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
 end do
 
@@ -1297,11 +1305,11 @@ character(len=*),parameter:: subname='allocateLinArrays'
 !allocate(lin%onWhichAtomAll(lin%orbs%norb), stat=istat)
 !call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtomAll', subname)
 
-allocate(lin%lb%onWhichAtom(lin%lb%orbs%norbp), stat=istat)
-call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtom', subname)
+!allocate(lin%lb%onWhichAtom(lin%lb%orbs%norbp), stat=istat)
+!call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtom', subname)
 
-allocate(lin%lb%onWhichAtomAll(lin%lb%orbs%norb), stat=istat)
-call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtomAll', subname)
+!allocate(lin%lb%onWhichAtomAll(lin%lb%orbs%norb), stat=istat)
+!call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtomAll', subname)
 
 allocate(lin%phiRestart(lin%orbs%npsidim), stat=istat)
 call memocc(istat, lin%phiRestart, 'lin%phiRestart', subname)
@@ -1404,16 +1412,16 @@ end do
 lin%lzd%orbs%npsidim=npsidim
 
 if(.not. lin%useDerivativeBasisFunctions) then
-    lin%lb%Lorbs%npsidim=npsidim
+    !lin%lb%Lorbs%npsidim=npsidim
     lin%lb%lzd%orbs%npsidim=npsidim
 else
     npsidim=0
     do iorb=1,lin%lb%orbs%norbp
-        ilr=lin%lb%onWhichAtom(iorb)
+        ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
         npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
         !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
     end do
-    lin%lb%Lorbs%npsidim=npsidim
+    !lin%lb%Lorbs%npsidim=npsidim
     lin%lb%lzd%orbs%npsidim=npsidim
 end if
 
@@ -1422,13 +1430,13 @@ end if
 allocate(phi(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
 
-allocate(lphi(lin%lb%Lorbs%npsidim), stat=istat)
+allocate(lphi(lin%lb%lzd%orbs%npsidim), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
 
-allocate(lin%lphiold(lin%lb%Lorbs%npsidim), stat=istat)
+allocate(lin%lphiold(lin%lb%lzd%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
 
-allocate(lin%lhphiold(lin%lb%Lorbs%npsidim), stat=istat)
+allocate(lin%lhphiold(lin%lb%lzd%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lhphiold, 'lin%lhphiold', subname)
 
 end subroutine initLocregs

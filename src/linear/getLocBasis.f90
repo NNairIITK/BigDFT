@@ -93,7 +93,7 @@ real(8),intent(out):: ebs
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
 real(8),dimension(3,at%nat),intent(out):: fxyz
 real(8):: eion, edisp, fnoise
-real(8),dimension(lin%lb%Lorbs%npsidim),intent(inout):: lphi
+real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(inout):: lphi
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 
 ! Local variables 
@@ -172,7 +172,7 @@ integer:: ist, ierr
       ! Do not orthogonalize them, since the 'normal' phis are not exactly orthogonal either.
       ist=1
       do iorb=1,lin%lb%lzd%orbs%norbp
-          ilr=lin%lb%onWhichAtom(iorb)
+          ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
           ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
           tt=dnrm2(ncount, lphi(ist), 1)
           call dscal(ncount, 1/tt, lphi(ist), 1)
@@ -188,7 +188,8 @@ integer:: ist, ierr
   end if
 
   if(lin%useDerivativeBasisFunctions) then
-      call getOverlapMatrix2(iproc, nproc, lin, input, lphi, ovrlp)
+      !call getOverlapMatrix2(iproc, nproc, lin, input, lphi, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%comon_lb, lin%op_lb, lphi, ovrlp)
   end if
 
   call allocateCommunicationbufferSumrho(lin%comsr, subname)
@@ -196,7 +197,7 @@ integer:: ist, ierr
   ist=1
   istr=1
   do iorb=1,lin%lb%orbs%norbp
-      ilr=lin%lb%onWhichAtom(iorb)
+      ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
       call initialize_work_arrays_sumrho(lin%Llr(ilr), w)
       !call daub_to_isf(lin%Llr(ilr), w, lphi(ist), lphir(istr))
       call daub_to_isf(lin%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
@@ -245,7 +246,8 @@ integer:: ist, ierr
 
 
   ! Calculate the matrix elements <phi|H|phi>.
-  call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
+  !!call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
+  call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%op_lb, lin%comon_lb, lphi, lhphi, matrixElements)
 
 
   if(trim(lin%getCoeff)=='min') then
@@ -276,7 +278,7 @@ integer:: ist, ierr
   ind2=1
   phi=0.d0
   do iorb=1,lin%lb%orbs%norbp
-      ilr = lin%lb%onWhichAtom(iorb)
+      ilr = lin%lb%lzd%orbs%inWhichLocregp(iorb)
       ldim=lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f
       gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%Llr(ilr), lphi(ind2), phi(ind1))
@@ -311,10 +313,10 @@ integer:: ist, ierr
 
 
   ! Copy phi.
-  call dcopy(lin%lb%Lorbs%npsidim, lphi(1), 1, lin%lphiold(1), 1)
+  call dcopy(lin%lb%lzd%orbs%npsidim, lphi(1), 1, lin%lphiold(1), 1)
 
   ! Copy lhphi.
-  call dcopy(lin%lb%Lorbs%npsidim, lhphi(1), 1, lin%lhphiold(1), 1)
+  call dcopy(lin%lb%lzd%orbs%npsidim, lhphi(1), 1, lin%lhphiold(1), 1)
 
   ! Copy the Hamiltonian
   call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
@@ -2948,7 +2950,7 @@ do jproc=0,nproc-1
         norbdest=move(2,jorb,jproc)
         istdest=1
         do korb=1,norbdest-1
-            klr=lin%lb%onWhichAtomAll(korb+lin%lb%lzd%orbs%isorb_par(mpidest))
+            klr=lin%lb%lzd%orbs%inWhichLocreg(korb+lin%lb%lzd%orbs%isorb_par(mpidest))
             istdest=istdest+lin%lzd%llr(klr)%wfd%nvctr_c+7*lin%lzd%llr(klr)%wfd%nvctr_f
         end do
         tag=tag+1

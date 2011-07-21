@@ -202,7 +202,9 @@ type(mixrhopotDIISParameters):: mixdiis
   !call memocc(istat, rhopotOld, 'rhopotOld', subname)
   updatePhi=.true.
 
-  call initializeMixrhopotDIIS(5, ndimpot, mixdiis)
+  if(lin%mixHist>0) then
+      call initializeMixrhopotDIIS(lin%mixHist, ndimpot, mixdiis)
+  end if
 
   do itSCC=1,nitSCC
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
@@ -232,19 +234,15 @@ type(mixrhopotDIISParameters):: mixdiis
 
       ! Mix the density.
       if(trim(lin%mixingMethod)=='dens') then
-          call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
-          !!do iall=1,ndimpot
-          !!    write(300+iproc,*) iall, rhopot(iall)
-          !!end do
-          
-          !!ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-          !!ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
-          !!mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
-          !!mixdiis%is=mixdiis%is+1
-          !!call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, pnrm)
-          !!do iall=1,ndimpot
-          !!    write(200+iproc,*) iall, rhopot(iall)
-          !!end do
+          if(lin%mixHist==0) then
+              call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+          else 
+              ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+              ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+              mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+              mixdiis%is=mixdiis%is+1
+              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 1, pnrm)
+          end if
       end if
 
       ! Copy the current charge density.
@@ -296,7 +294,15 @@ type(mixrhopotDIISParameters):: mixdiis
 
       ! Mix the potential
       if(trim(lin%mixingMethod)=='pot') then
+          if(lin%mixHist==0) then
            call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+          else 
+              ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+              ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+              mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+              mixdiis%is=mixdiis%is+1
+              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 2, pnrm)
+          end if
       end if
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
       call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
@@ -309,6 +315,10 @@ type(mixrhopotDIISParameters):: mixdiis
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
   deallocate(rhopotOld, stat=istat)
   call memocc(istat, iall, 'rhopotOld', subname)
+
+  if(lin%mixHist>0) then
+      call deallocateMixrhopotDIIS(mixdiis)
+  end if
 
 
   ! Calculate the forces we get with psi.

@@ -484,9 +484,8 @@ module module_types
 !! from those in lin%orbs etc.
 type,public:: largeBasis
     type(communications_arrays):: comms
-    type(orbitals_data):: orbs, Lorbs
+    type(orbitals_data):: orbs
     type(linear_zone_descriptors):: lzd
-    integer,dimension(:),pointer:: onWhichAtom, onWhichAtomAll
     type(p2pCommsRepartition):: comrp
 end type largeBasis
 
@@ -514,7 +513,7 @@ end type largeBasis
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
-    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho
+    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho
     real(8),dimension(:),pointer:: potentialPrefac, locrad, phiRestart, lphiRestart, lphiold, lhphiold
     real(8),dimension(:,:),pointer:: hamold

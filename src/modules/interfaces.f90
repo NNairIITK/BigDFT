@@ -1462,7 +1462,7 @@ module module_interfaces
       real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
       real(8),dimension(3,at%nat),intent(out):: fxyz
       real(8):: eion, edisp, fnoise
-      real(8),dimension(lin%lb%Lorbs%npsidim),intent(inout):: lphi
+      real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(inout):: lphi
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
     end subroutine getLinearPsi
 
@@ -2791,15 +2791,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine gatherDerivativeOrbitals
 
 
-     subroutine getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
+     subroutine getMatrixElements2(iproc, nproc, lzd, op_lb, comon_lb, lphi, lhphi, matrixElements)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(linearParameters),intent(inout):: lin
-       real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(in):: lphi, lhphi
-       real(8),dimension(lin%lb%lzd%orbs%norb,lin%lb%lzd%orbs%norb),intent(out):: matrixElements
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(overlapParameters),intent(inout):: op_lb
+       type(p2pCommsOrthonormality),intent(inout):: comon_lb
+       real(8),dimension(lzd%orbs%npsidim),intent(in):: lphi, lhphi
+       real(8),dimension(lzd%orbs%norb,lzd%orbs%norb),intent(out):: matrixElements
      end subroutine getMatrixElements2
+
 
 
      subroutine determineLocalizationRegions(iproc, nproc, nlr, norb, at, onWhichAtomALl, locrad, rxyz, lzd, mlr)
@@ -3103,23 +3106,26 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine expandOrbital2
 
 
-     subroutine getOverlapMatrix2(iproc, nproc, lin, input, lphi, ovrlp)
+     subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, ovrlp)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(linearParameters),intent(inout):: lin
-       type(input_variables),intent(in):: input
-       real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(inout):: lphi
-       real(8),dimension(lin%lb%lzd%orbs%norb,lin%lb%lzd%orbs%norb),intent(out):: ovrlp
+       type(linear_zone_descriptors),intent(in):: lzd
+       type(orbitals_data),intent(in):: orbs
+       type(p2pCommsOrthonormality),intent(inout):: comon_lb
+       type(overlapParameters),intent(inout):: op_lb
+       real(8),dimension(lzd%orbs%npsidim),intent(inout):: lphi
+       real(8),dimension(lzd%orbs%norb,lzd%orbs%norb),intent(out):: ovrlp
      end subroutine getOverlapMatrix2
 
 
-     subroutine mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, pnrm)
+
+     subroutine mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, mixMeth, pnrm)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, ndimpot, ndimtot
+       integer,intent(in):: iproc, nproc, ndimpot, ndimtot, mixMeth
        real(8),dimension(ndimpot),intent(in):: rhopotold
        real(8),dimension(ndimpot),intent(out):: rhopot
        type(mixrhopotDIISParameters),intent(inout):: mixdiis
