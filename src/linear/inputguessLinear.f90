@@ -2072,6 +2072,7 @@ allocate(lhchi(sizeChi), stat=istat)
 call memocc(istat, lhchi, 'lhchi', subname)
 
 
+call allocateCommuncationBuffersOrtho(comon, subname)
 if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
 do iat=1,nat
     if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Calculating matrix for atom ', iat, '... '
@@ -2100,6 +2101,7 @@ do iat=1,nat
     call calculateOverlapMatrix2(iproc, nproc, lzdig%orbs, op, comon, onWhichAtom, ham(1,1,iat))
     if(iproc==0) write(*,'(a)') 'done.'
 end do
+call deallocateCommuncationBuffersOrtho(comon, subname)
 
 
 iall=-product(shape(lchi))*kind(lchi)
@@ -2165,6 +2167,7 @@ call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, input, op, comon, tag)
 !!call memocc(istat, lhchi, 'lhchi', subname)
 
 
+call allocateCommuncationBuffersOrtho(comon, subname)
 if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
 do iat=1,nat
     if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Calculating matrix for atom ', iat, '... '
@@ -2193,6 +2196,7 @@ do iat=1,nat
     call calculateOverlapMatrix2(iproc, nproc, lzdig%orbs, op, comon, onWhichAtom, ham(1,1,iat))
     if(iproc==0) write(*,'(a)') 'done.'
 end do
+call deallocateCommuncationBuffersOrtho(comon, subname)
 
 
 !!iall=-product(shape(lchi))*kind(lchi)
@@ -3797,10 +3801,12 @@ call initCommsOrtho(iproc, nproc, lzdig, lzdig%orbs%inWhichLocreg, input, op, co
 allocate(lchiovrlp(op%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
 
+call allocateCommuncationBuffersOrtho(comon, subname)
 call extractOrbital2(iproc, nproc, lzdig%orbs, lzdig%orbs%npsidim, lzdig%orbs%inWhichLocreg, lzdig, op, lchi, comon)
 call postCommsOverlap(iproc, nproc, comon)
 call gatherOrbitals2(iproc, nproc, comon)
 call expandOrbital2(iproc, nproc, lzdig%orbs, input, lzdig%orbs%inWhichLocreg, lzdig, op, comon, lchiovrlp)
+call deallocateCommuncationBuffersOrtho(comon, subname)
 
 
 

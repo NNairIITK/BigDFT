@@ -3169,6 +3169,22 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine deallocateCommunicationbufferSumrho
 
 
+     subroutine allocateCommuncationBuffersOrtho(comon, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(p2pCommsOrthonormality),intent(inout):: comon
+       character(len=*),intent(in):: subname
+     end subroutine allocateCommuncationBuffersOrtho
+
+
+     subroutine deallocateCommuncationBuffersOrtho(comon, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(p2pCommsOrthonormality),intent(inout):: comon
+       character(len=*),intent(in):: subname
+     end subroutine deallocateCommuncationBuffersOrtho
 
 
 

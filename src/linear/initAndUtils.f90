@@ -200,8 +200,10 @@ call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, li
 !!call initCommsOrtho(iproc, nproc, lin)
 !call initCommsOrtho(iproc, nproc, lin%lzd, lin%onWhichAtomAll, input, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%lzd%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
+!call allocateCommuncationBuffersOrtho(lin%comon, subname)
 !call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs%inWhichLocreg, input, lin%op_lb, lin%comon_lb, tag)
 call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
+!call allocateCommuncationBuffersOrtho(lin%lb%comon, subname)
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
@@ -727,34 +729,10 @@ character(len=*),parameter:: subname='deallocateLinear'
       call memocc(istat, iall, 'lin%comms%ndspltLIN', subname)
   end if
 
-  if(associated(lin%MPIComms)) then
-      iall=-product(shape(lin%MPIComms))*kind(lin%MPIComms)
-      deallocate(lin%MPIComms, stat=istat)
-      call memocc(istat, iall, 'lin%MPIComms', subname)
-  end if
-
-  if(associated(lin%procsInComm)) then
-      iall=-product(shape(lin%procsInComm))*kind(lin%procsInComm)
-      deallocate(lin%procsInComm, stat=istat)
-      call memocc(istat, iall, 'lin%procsInComm', subname)
-  end if
-
-  if(associated(lin%norbPerComm)) then
-      iall=-product(shape(lin%norbPerComm))*kind(lin%norbPerComm)
-      deallocate(lin%norbPerComm, stat=istat)
-      call memocc(istat, iall, 'lin%norbPerComm', subname)
-  end if
-
-
   iall=-product(shape(coeff))*kind(coeff)
   deallocate(coeff, stat=istat)
   call memocc(istat, iall, 'coeff', subname)
 
-  if(associated(lin%outofzone)) then
-      iall=-product(shape(lin%outofzone))*kind(lin%outofzone)
-      deallocate(lin%outofzone, stat=istat)
-      call memocc(istat, iall, 'lin%outofzone', subname)
-  end if
 
 end subroutine deallocateLinear
 
@@ -1312,9 +1290,6 @@ character(len=*),parameter:: subname='allocateLinArrays'
 !allocate(lin%lb%onWhichAtomAll(lin%lb%orbs%norb), stat=istat)
 !call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtomAll', subname)
 
-allocate(lin%phiRestart(lin%orbs%npsidim), stat=istat)
-call memocc(istat, lin%phiRestart, 'lin%phiRestart', subname)
-
 
 end subroutine allocateLinArrays
 
@@ -1368,8 +1343,6 @@ character(len=*),parameter:: subname='initLocregs'
 !allocate(lin%Llr(lin%nlr),stat=istat)
 allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
 allocate(lin%lb%lzd%Llr(lin%lzd%nlr),stat=istat)
-allocate(lin%outofzone(3,lin%nlr),stat=istat)
-call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 
 
 !! Write some physical information on the Glr
@@ -1468,8 +1441,6 @@ character(len=*),parameter:: subname='initLocregs'
 ! Allocate the array of localisation regions
 allocate(lzd%Llr(lzd%nlr),stat=istat)
 !! ATTENATION: WHAT ABAOUT OUTOFZONE??
-!allocate(lin%outofzone(3,lin%nlr),stat=istat)
-!call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 
 
 !! Write some physical information on the Glr
