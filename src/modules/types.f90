@@ -517,7 +517,7 @@ end type largeBasis
     type(locreg_descriptors):: lr
     type(locreg_descriptors),dimension(:),pointer:: Llr
     type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
-    integer,dimension(:),pointer:: onWhichAtom, norbsPerType, onWhichAtomAll
+    integer,dimension(:),pointer:: norbsPerType
     integer,dimension(:),pointer:: MPIComms, norbPerComm
     integer,dimension(:,:),pointer:: procsInComm, outofzone
     integer,dimension(:,:,:),pointer:: receiveArr

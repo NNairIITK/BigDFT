@@ -106,7 +106,8 @@ character(len=*),parameter:: subname='initializeLocRegLIN'
   radiusCut=4.d0
   do iorb=1,lin%orbs%norbp
   
-      iiAt=lin%onWhichAtom(iorb)
+      !iiAt=lin%onWhichAtom(iorb)
+      iiAt=lin%lzd%orbs%inWhichLocregp(iorb)
       iitype=at%iatype(iiAt)
       radius=radii_cf(1,iitype)
       ! Fill logridCut. The cutoff for the localization region is given by radiusCut*radius

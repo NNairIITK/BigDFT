@@ -119,7 +119,7 @@ call allocateLinArrays(lin)
 
 ! Decide which orbital is centered on which atom, again for the 'normal' and
 ! the 'large' basis.
-call assignOrbitalsToAtoms(iproc, lin%orbs, at%nat, norbsPerAtom, lin%onWhichAtom, lin%onWhichAtomAll)
+!call assignOrbitalsToAtoms(iproc, lin%orbs, at%nat, norbsPerAtom, lin%onWhichAtom, lin%onWhichAtomAll)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignOrbitalsToAtoms(iproc, lin%lb%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
 call assignOrbitalsToAtoms(iproc, lin%lb%lzd%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
@@ -170,7 +170,8 @@ lin%lb%lzd%Gnlpspd = nlpspd
 do ilr=1,lin%lzd%nlr
     lin%lzd%Llr(ilr)%localnorb=0
     do iorb=1,lin%lzd%orbs%norbp
-        if(lin%onWhichAtom(iorb)==ilr) then
+        !if(lin%onWhichAtom(iorb)==ilr) then
+        if(lin%lzd%orbs%inWhichLocregp(iorb)==ilr) then
             lin%lzd%Llr(ilr)%localnorb = lin%lzd%Llr(ilr)%localnorb+1
         end if
     end do
@@ -190,12 +191,14 @@ end do
 ! Initialize the parameters for the communication for the
 ! potential.
 !call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
-call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%onWhichAtomAll, tag)
+!call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%onWhichAtomAll, tag)
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%lzd%orbs%inWhichLocreg, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%comgp_lb, lin%lb%onWhichAtomAll, tag)
 
 ! Initialize the parameters for the communication for the orthonormalization.
 !!call initCommsOrtho(iproc, nproc, lin)
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%onWhichAtomAll, input, lin%op, lin%comon, tag)
+!call initCommsOrtho(iproc, nproc, lin%lzd, lin%onWhichAtomAll, input, lin%op, lin%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lzd, lin%lzd%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%onWhichAtomAll, input, lin%op_lb, lin%comon_lb, tag)
 
 ! Initialize the parameters for the repartitioning of the orbitals.
@@ -652,9 +655,9 @@ character(len=*),parameter:: subname='deallocateLinear'
   deallocate(lin%potentialPrefac, stat=istat)
   call memocc(istat, iall, 'lin%potentialPrefac', subname)
   
-  iall=-product(shape(lin%onWhichAtom))*kind(lin%onWhichAtom)
-  deallocate(lin%onWhichAtom, stat=istat)
-  call memocc(istat, iall, 'lin%onWhichAtom', subname)
+  !iall=-product(shape(lin%onWhichAtom))*kind(lin%onWhichAtom)
+  !deallocate(lin%onWhichAtom, stat=istat)
+  !call memocc(istat, iall, 'lin%onWhichAtom', subname)
 
   iall=-product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
   deallocate(lin%norbsPerType, stat=istat)
@@ -809,7 +812,8 @@ end do
 
     orbLoop: do iorb=1,orbs%norbp
         call daub_to_isf(Glr,w,phi(istart+1),phir(1))
-        iiAt=lin%onWhichAtom(iorb)
+        !iiAt=lin%onWhichAtom(iorb)
+        iiAt=lin%lzd%orbs%inWhichLocregp(iorb)
         ix0=nint(rxyz(1,iiAt)/hxh)
         iy0=nint(rxyz(2,iiAt)/hyh)
         iz0=nint(rxyz(3,iiAt)/hzh)
@@ -1008,7 +1012,8 @@ do iorb=1,lin%orbs%norbp
     phir=0.d0
     call daub_to_isf(Glr, w, phi(ist), phir(1))
     
-    iiAt=lin%onWhichAtom(iorb)
+    !iiAt=lin%onWhichAtom(iorb)
+    iiAt=lin%lzd%orbs%inWhichLocregp(iorb)
     cut=lin%locrad(iiAt)
     
     jj=0
@@ -1067,7 +1072,8 @@ do iorb=1,lin%orbs%norbp
     phir=0.d0
     call daub_to_isf(Glr, w, phi(ist), phir(1))
     
-    iiAt=lin%onWhichAtom(iorb)
+    !iiAt=lin%onWhichAtom(iorb)
+    iiAt=lin%lzd%orbs%inWhichLocregp(iorb)
     cut=lin%locrad(iiAt)
     !write(*,'(a,2i8,es10.3)') 'iorb, iiAt, cut', iorb, iiAt, cut
     
@@ -1234,11 +1240,11 @@ integer:: istat
 character(len=*),parameter:: subname='allocateLinArrays'
 
 
-allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
-call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
+!allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
+!call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
 
-allocate(lin%onWhichAtomAll(lin%orbs%norb), stat=istat)
-call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtomAll', subname)
+!allocate(lin%onWhichAtomAll(lin%orbs%norb), stat=istat)
+!call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtomAll', subname)
 
 allocate(lin%lb%onWhichAtom(lin%lb%orbs%norbp), stat=istat)
 call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtom', subname)
@@ -1339,7 +1345,8 @@ call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 ! Calculate the dimension of the wave function for each process.
 npsidim=0
 do iorb=1,lin%orbs%norbp
-    ilr=lin%onWhichAtom(iorb)
+    !ilr=lin%onWhichAtom(iorb)
+    ilr=lin%lzd%orbs%inWhichLocregp(iorb)
     npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
 end do
 !lin%Lorbs%npsidim=npsidim
