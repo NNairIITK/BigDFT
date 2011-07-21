@@ -191,6 +191,7 @@ integer:: ist, ierr
       call getOverlapMatrix2(iproc, nproc, lin, input, lphi, ovrlp)
   end if
 
+  call allocateCommunicationbufferSumrho(lin%comsr, subname)
   ! Transform all orbitals to real space
   ist=1
   istr=1

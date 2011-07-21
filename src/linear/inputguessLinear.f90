@@ -172,7 +172,6 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   ind1=1
   ind2=1
   do iorb=1,lzdGauss%orbs%norbp
-      !ilr = onWhichAtomp(iorb)
       ilr = lzdig%orbs%inWhichLocregp(iorb)
       ldim=lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
       gdim=lzdGauss%llr(ilr)%wfd%nvctr_c+7*lzdGauss%llr(ilr)%wfd%nvctr_f
@@ -196,9 +195,11 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
   
   !!! Create the potential.
+  if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
   call sumrhoLinear(iproc, nproc, lzdGauss, input%ixc, hxh, hyh, hzh, lchi2, rhopot,&
     & lzdGauss%Glr%d%n1i*lzdGauss%Glr%d%n2i*nscatterarr(iproc,1), nscatterarr, input%nspin, GPU, &
     & at%symObj, irrzon, phnons)
+  if(iproc==0) write(*,'(a)') 'done.'
 
      
   !-- if spectra calculation uses a energy dependent potential

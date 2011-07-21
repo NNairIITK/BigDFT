@@ -157,6 +157,7 @@ call initCoefficients(iproc, orbs, lin, coeff)
 ! Initialize the parameters for the point to point communication for the
 ! calculation of the charge density.
 call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
+!call allocateCommunicationbufferSumrho(lin%comsr, subname)
 
 ! Copy Glr to lin%lzd
 lin%lzd%Glr = Glr
@@ -1216,15 +1217,65 @@ do iorb=1,lin%lb%orbs%norbp
     lin%comsr%nsendBuf = lin%comsr%nsendBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
 end do
 
-allocate(lin%comsr%sendBuf(lin%comsr%nsendBuf), stat=istat)
-call memocc(istat, lin%comsr%sendBuf, 'lin%comsr%sendBuf', subname)
-call razero(lin%comsr%nSendBuf, lin%comsr%sendBuf)
-
-allocate(lin%comsr%recvBuf(lin%comsr%nrecvBuf), stat=istat)
-call memocc(istat, lin%comsr%recvBuf, 'lin%comsr%recvBuf', subname)
-call razero(lin%comsr%nrecvBuf, lin%comsr%recvBuf)
+!!allocate(lin%comsr%sendBuf(lin%comsr%nsendBuf), stat=istat)
+!!call memocc(istat, lin%comsr%sendBuf, 'lin%comsr%sendBuf', subname)
+!!call razero(lin%comsr%nSendBuf, lin%comsr%sendBuf)
+!!
+!!allocate(lin%comsr%recvBuf(lin%comsr%nrecvBuf), stat=istat)
+!!call memocc(istat, lin%comsr%recvBuf, 'lin%comsr%recvBuf', subname)
+!!call razero(lin%comsr%nrecvBuf, lin%comsr%recvBuf)
 
 end subroutine initializeCommsSumrho2
+
+
+
+subroutine allocateCommunicationbufferSumrho(comsr, subname)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(p2pCommsSumrho),intent(inout):: comsr
+character(len=*),intent(in):: subname
+
+! Local variables
+integer:: istat
+
+allocate(comsr%sendBuf(comsr%nsendBuf), stat=istat)
+call memocc(istat, comsr%sendBuf, 'comsr%sendBuf', subname)
+call razero(comsr%nSendBuf, comsr%sendBuf)
+
+allocate(comsr%recvBuf(comsr%nrecvBuf), stat=istat)
+call memocc(istat, comsr%recvBuf, 'comsr%recvBuf', subname)
+call razero(comsr%nrecvBuf, comsr%recvBuf)
+
+end subroutine allocateCommunicationbufferSumrho
+
+
+subroutine deallocateCommunicationbufferSumrho(comsr, subname)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(p2pCommsSumrho),intent(inout):: comsr
+character(len=*),intent(in):: subname
+
+! Local variables
+integer:: istat, iall
+
+iall=-product(shape(comsr%sendBuf))*kind(comsr%sendBuf)
+deallocate(comsr%sendBuf, stat=istat)
+call memocc(istat, iall, 'comsr%sendBuf', subname)
+
+iall=-product(shape(comsr%recvBuf))*kind(comsr%recvBuf)
+deallocate(comsr%recvBuf, stat=istat)
+call memocc(istat, iall, 'comsr%recvBuf', subname)
+
+
+end subroutine deallocateCommunicationbufferSumrho
+
+
 
 
 subroutine allocateLinArrays(lin)
