@@ -244,6 +244,9 @@ integer:: ist, ierr
 
   if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
 
+  call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
+  if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+
 
   ! Calculate the matrix elements <phi|H|phi>.
   !!call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
@@ -2411,8 +2414,6 @@ do jproc=0,nproc-1
 end do
 
 !write(*,'(a,i4,i12)') 'iproc, comgp%nrecvBuf', iproc, comgp%nrecvBuf
-allocate(comgp%recvBuf(comgp%nrecvBuf), stat=istat)
-call memocc(istat, comgp%recvBuf, 'comgp%recvBuf', subname)
 
 allocate(comgp%communComplete(maxval(comgp%noverlaps),0:nproc-1), stat=istat)
 call memocc(istat, comgp%communComplete, 'comgp%communComplete', subname)
@@ -2420,6 +2421,43 @@ call memocc(istat, comgp%communComplete, 'comgp%communComplete', subname)
 
 end subroutine initializeCommunicationPotential
 
+
+subroutine allocateCommunicationsBuffersPotential(comgp, subname)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(p2pCommsGatherPot),intent(inout):: comgp
+character(len=*),intent(in):: subname
+
+! Local variables
+integer:: istat
+
+allocate(comgp%recvBuf(comgp%nrecvBuf), stat=istat)
+call memocc(istat, comgp%recvBuf, 'comgp%recvBuf', subname)
+
+end subroutine allocateCommunicationsBuffersPotential
+
+
+
+subroutine deallocateCommunicationsBuffersPotential(comgp, subname)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(p2pCommsGatherPot),intent(inout):: comgp
+character(len=*),intent(in):: subname
+
+! Local variables
+integer:: istat, iall
+
+iall=-product(shape(comgp%recvBuf))*kind(comgp%recvBuf)
+deallocate(comgp%recvBuf, stat=istat)
+call memocc(istat, iall, 'comgp%recvBuf', subname)
+
+end subroutine deallocateCommunicationsBuffersPotential
 
 
 

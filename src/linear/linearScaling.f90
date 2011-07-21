@@ -140,8 +140,12 @@ type(mixrhopotDIISParameters):: mixdiis
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  call allocateCommunicationsBuffersPotential(lin%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-  if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+  if(lin%useDerivativeBasisFunctions) then
+      call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+  end if
 
 
   updatePhi=.false.
@@ -183,8 +187,12 @@ type(mixrhopotDIISParameters):: mixdiis
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  call allocateCommunicationsBuffersPotential(lin%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-  if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+  if(lin%useDerivativeBasisFunctions) then
+      call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+  end if
 
 
 
@@ -305,8 +313,12 @@ type(mixrhopotDIISParameters):: mixdiis
           end if
       end if
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+      call allocateCommunicationsBuffersPotential(lin%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-      if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+      if(lin%useDerivativeBasisFunctions) then
+          call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+          call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+      end if
 
       ! Write some informations
       call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, lin%mixingMethod)

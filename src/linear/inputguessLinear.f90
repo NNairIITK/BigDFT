@@ -314,12 +314,12 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
   ! Post the messages for the communication of the potential.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  call allocateCommunicationsBuffersPotential(comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, comgp)
 
   
   ! Gather the potential
   call gatherPotential(iproc, nproc, comgp)
-
 
   ! Apply the Hamiltonian for each atom.
   ! onWhichAtomTemp indicates indicating that all orbitals feel the potential from atom iat.
@@ -362,6 +362,8 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   time=t2-t1
   call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
   if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time/dble(nproc)
+
+   call deallocateCommunicationsBuffersPotential(comgp, subname)
 
 
    call cpu_time(t1)
