@@ -505,6 +505,12 @@ end type largeBasis
     logical:: switchSD
   end type localizedDIISParameters
 
+  type,public:: mixrhopotDIISParameters
+    integer:: is, isx, mis
+    real(8),dimension(:),pointer:: rhopotHist, rhopotresHist
+    real(8),dimension(:,:),pointer:: mat
+  end type mixrhopotDIISParameters
+
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG

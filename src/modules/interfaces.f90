@@ -3115,6 +3115,36 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine getOverlapMatrix2
 
 
+     subroutine mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, alphaMix, pnrm)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, ndimpot, ndimtot
+       real(8),dimension(ndimpot),intent(in):: rhopotold
+       real(8),dimension(ndimpot),intent(out):: rhopot
+       type(mixrhopotDIISParameters),intent(inout):: mixdiis
+       real(8),intent(in):: alphaMix
+       real(8),intent(out):: pnrm
+     end subroutine mixrhopotDIIS
+
+
+     subroutine initializeMixrhopotDIIS(isx, ndimpot, mixdiis)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: isx, ndimpot
+       type(mixrhopotDIISParameters),intent(out):: mixdiis
+     end subroutine initializeMixrhopotDIIS
+
+
+     subroutine deallocateMixrhopotDIIS(mixdiis)
+       use module_base
+       use module_types
+       implicit none
+       type(mixrhopotDIISParameters),intent(inout):: mixdiis
+     end subroutine deallocateMixrhopotDIIS
+
+
 
   end interface
 

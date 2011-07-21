@@ -115,7 +115,8 @@ real(8):: t1, t2, time
 
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
-integer:: iorb, istart, sizeLphir, sizePhibuffr
+integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot
+type(mixrhopotDIISParameters):: mixdiis
 
 
 
@@ -199,6 +200,9 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   !allocate(rhopotOld(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), stat=istat)
   !call memocc(istat, rhopotOld, 'rhopotOld', subname)
   updatePhi=.true.
+
+  call initializeMixrhopotDIIS(5, ndimpot, mixdiis)
+
   do itSCC=1,nitSCC
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
@@ -227,6 +231,18 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       ! Mix the density.
       if(trim(lin%mixingMethod)=='dens') then
           call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+          !!do iall=1,ndimpot
+          !!    write(300+iproc,*) iall, rhopot(iall)
+          !!end do
+          
+          !!ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+          !!ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+          !!mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+          !!mixdiis%is=mixdiis%is+1
+          !!call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, pnrm)
+          !!do iall=1,ndimpot
+          !!    write(200+iproc,*) iall, rhopot(iall)
+          !!end do
       end if
 
       ! Copy the current charge density.
