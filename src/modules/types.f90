@@ -275,8 +275,8 @@ module module_types
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
-  integer,dimension(:,:,:,:),pointer:: nvctr_parLIN
-  integer, dimension(:), pointer :: ncntdLIN,ncnttLIN,ndspldLIN,ndspltLIN
+  !integer,dimension(:,:,:,:),pointer:: nvctr_parLIN
+  !integer, dimension(:), pointer :: ncntdLIN,ncnttLIN,ndspldLIN,ndspltLIN
 
   end type communications_arrays
 
@@ -468,7 +468,6 @@ module module_types
     type(orbitals_data) :: orbs                                !> Global orbitals descriptors
     type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
     type(communications_arrays) :: comms                        !> Global communication descriptors
-    type(communications_arrays) :: Lcomms                       !> Local communication arrays
     type(locreg_descriptors) :: Glr                             !> Global region descriptors
     type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)

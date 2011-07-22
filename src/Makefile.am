@@ -245,6 +245,7 @@ low_level = init/projectors.f90  \
         linear/orbitalOptimization.f90 \
         linear/mixdiis.f90 \
         linear/copyTypes.f90 \
+        linear/cleanup.f90 \
 	$(DGEMMSY_INTERFACE)  
 
 libbigdft_a_SOURCES = \

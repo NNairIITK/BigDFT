@@ -3294,6 +3294,34 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine copy_orbitals_data
 
 
+     subroutine deallocate_matrixLocalizationRegion(mlr, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(matrixLocalizationRegion),intent(inout):: mlr
+       character(len=*),intent(in):: subname
+     end subroutine deallocate_matrixLocalizationRegion
+
+
+     subroutine deallocate_matrixMinimization(matmin, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(matrixMinimization),intent(inout):: matmin
+       character(len=*),intent(in):: subname
+     end subroutine deallocate_matrixMinimization
+
+
+     subroutine deallocate_linear_zone_descriptors(lzd, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(linear_zone_descriptors),intent(inout):: lzd
+       character(len=*),intent(in):: subname
+     end subroutine deallocate_linear_zone_descriptors
+
+
+
 
   end interface
 

@@ -682,35 +682,35 @@ character(len=*),parameter:: subname='deallocateLinear'
   deallocate(lin%lb%orbs%eval, stat=istat)
   call memocc(istat, iall, 'lin%lb%orbs%eval', subname)
 
-  if(associated(lin%comms%nvctr_parLIN)) then
-      iall=-product(shape(lin%comms%nvctr_parLIN))*kind(lin%comms%nvctr_parLIN)
-      deallocate(lin%comms%nvctr_parLIN, stat=istat)
-      call memocc(istat, iall, 'lin%comms%nvctr_parLIN', subname)
-  end if
+  !!if(associated(lin%comms%nvctr_parLIN)) then
+  !!    iall=-product(shape(lin%comms%nvctr_parLIN))*kind(lin%comms%nvctr_parLIN)
+  !!    deallocate(lin%comms%nvctr_parLIN, stat=istat)
+  !!    call memocc(istat, iall, 'lin%comms%nvctr_parLIN', subname)
+  !!end if
 
-  if(associated(lin%comms%ncntdLIN)) then
-      iall=-product(shape(lin%comms%ncntdLIN))*kind(lin%comms%ncntdLIN)
-      deallocate(lin%comms%ncntdLIN, stat=istat)
-      call memocc(istat, iall, 'lin%comms%ncntdLIN', subname)
-  end if
+  !!if(associated(lin%comms%ncntdLIN)) then
+  !!    iall=-product(shape(lin%comms%ncntdLIN))*kind(lin%comms%ncntdLIN)
+  !!    deallocate(lin%comms%ncntdLIN, stat=istat)
+  !!    call memocc(istat, iall, 'lin%comms%ncntdLIN', subname)
+  !!end if
 
-  if(associated(lin%comms%ndspldLIN)) then
-      iall=-product(shape(lin%comms%ndspldLIN))*kind(lin%comms%ndspldLIN)
-      deallocate(lin%comms%ndspldLIN, stat=istat)
-      call memocc(istat, iall, 'lin%comms%ndspldLIN', subname)
-  end if
+  !!if(associated(lin%comms%ndspldLIN)) then
+  !!    iall=-product(shape(lin%comms%ndspldLIN))*kind(lin%comms%ndspldLIN)
+  !!    deallocate(lin%comms%ndspldLIN, stat=istat)
+  !!    call memocc(istat, iall, 'lin%comms%ndspldLIN', subname)
+  !!end if
 
-  if(associated(lin%comms%ncnttLIN)) then
-      iall=-product(shape(lin%comms%ncnttLIN))*kind(lin%comms%ncnttLIN)
-      deallocate(lin%comms%ncnttLIN, stat=istat)
-      call memocc(istat, iall, 'lin%comms%ncnttLIN', subname)
-  end if
+  !!if(associated(lin%comms%ncnttLIN)) then
+  !!    iall=-product(shape(lin%comms%ncnttLIN))*kind(lin%comms%ncnttLIN)
+  !!    deallocate(lin%comms%ncnttLIN, stat=istat)
+  !!    call memocc(istat, iall, 'lin%comms%ncnttLIN', subname)
+  !!end if
 
-  if(associated(lin%comms%ndspltLIN)) then
-      iall=-product(shape(lin%comms%ndspltLIN))*kind(lin%comms%ndspltLIN)
-      deallocate(lin%comms%ndspltLIN, stat=istat)
-      call memocc(istat, iall, 'lin%comms%ndspltLIN', subname)
-  end if
+  !!if(associated(lin%comms%ndspltLIN)) then
+  !!    iall=-product(shape(lin%comms%ndspltLIN))*kind(lin%comms%ndspltLIN)
+  !!    deallocate(lin%comms%ndspltLIN, stat=istat)
+  !!    call memocc(istat, iall, 'lin%comms%ndspltLIN', subname)
+  !!end if
 
   iall=-product(shape(coeff))*kind(coeff)
   deallocate(coeff, stat=istat)

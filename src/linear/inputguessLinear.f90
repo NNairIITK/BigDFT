@@ -38,7 +38,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(8),intent(out):: ehart, eexcu, vexcu
   !local variables
   type(gaussian_basis):: G !basis for davidson IG
-  character(len=*), parameter :: subname='input_wf_diag'
+  character(len=*), parameter :: subname='inputguessConfinement'
   logical :: switchGPUconv,switchOCLconv
   integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0, nvirt, norbat
   real(kind=4) :: tt,builtin_rand
@@ -385,6 +385,9 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
   ! Deallocate all local arrays.
   call deallocate_gwf(G,subname)
+
+  call deallocate_linear_zone_descriptors(lzdig, subname)
+  call deallocate_linear_zone_descriptors(lzdGauss, subname)
 
   i_all=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=i_stat)
