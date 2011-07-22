@@ -388,10 +388,10 @@ contains
                    vxcgr(ipts:ipte,3) = &
                         & vxcgr(ipts:ipte,3) + vsigma(1, 1:nb)*real(2,dp)
                 else
-                   vxcgr(ipts:ipte,3) = &
-                        & vxcgr(ipts:ipte,3) + real(2,dp)*vsigma(1, 1:nb) - vsigma(2, 1:nb)
-                   vxcgr(ipts:ipte,3) = &
-                        & vxcgr(ipts:ipte,3) + real(2,dp)*vsigma(3, 1:nb) - vsigma(2, 1:nb)
+                   vxcgr(ipts:ipte,1) = &
+                        & vxcgr(ipts:ipte,1) + real(2,dp)*vsigma(1, 1:nb) - vsigma(2, 1:nb)
+                   vxcgr(ipts:ipte,2) = &
+                        & vxcgr(ipts:ipte,2) + real(2,dp)*vsigma(3, 1:nb) - vsigma(2, 1:nb)
                    vxcgr(ipts:ipte,3) = &
                         & vxcgr(ipts:ipte,3) + vsigma(2, 1:nb)
                 end if
