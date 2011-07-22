@@ -698,6 +698,37 @@ end module deallocatePointers
 
 
 
+subroutine deallocate_linearParameters(lin, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_linearParameters
+  implicit none
+
+  ! Calling arguments
+  type(linearParameters),intent(inout):: lin
+  character(len=*),intent(in):: subname
+
+  call checkAndDeallocatePointer(lin%potentialPrefac, 'lin%potentialPrefac', subname)
+  call checkAndDeallocatePointer(lin%locrad, 'lin%locrad', subname)
+  call checkAndDeallocatePointer(lin%lphiRestart, 'lphi%Restart', subname)
+  call checkAndDeallocatePointer(lin%lphiold, 'lphiold', subname)
+  call checkAndDeallocatePointer(lin%lhphiold, 'lhphiold', subname)
+  call checkAndDeallocatePointer(lin%hamold, 'lin%hamold', subname)
+  call deallocate_orbitals_data(lin%orbs, subname)
+  call deallocate_communications_arrays(lin%comms, subname)
+  call checkAndDeallocatePointer(lin%norbsPerType, 'lin%norbsPerType', subname)
+  call deallocate_p2pCommsSumrho(lin%comsr, subname)
+  call deallocate_p2pCommsGatherPot(lin%comgp, subname)
+  call deallocate_largeBasis(lin%lb, subname)
+  call deallocate_linear_zone_descriptors(lin%lzd, subname)
+  call deallocate_p2pCommsOrthonormality(lin%comon, subname)
+  call deallocate_overlapParameters(lin%op, subname)
+
+end subroutine deallocate_linearParameters
+
+
+
 subroutine deallocate_linear_zone_descriptors(lzd, subname)
   use module_base
   use module_types
@@ -973,4 +1004,138 @@ subroutine deallocate_matrixLocalizationRegion(mlr, subname)
 end subroutine deallocate_matrixLocalizationRegion
 
 
+subroutine deallocate_p2pCommsSumrho(comsr, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(p2pCommsSumrho),intent(inout):: comsr
+  character(len=*),intent(in):: subname
 
+  call checkAndDeallocatePointer(comsr%noverlaps, 'comsr%noverlaps', subname)
+  call checkAndDeallocatePointer(comsr%overlaps, 'comsr%overlaps', subname)
+  call checkAndDeallocatePointer(comsr%istarr, 'comsr%istarr', subname)
+  call checkAndDeallocatePointer(comsr%istrarr, 'comsr%istrarr', subname)
+  call checkAndDeallocatePointer(comsr%sendBuf, 'comsr%sendBuf', subname)
+  call checkAndDeallocatePointer(comsr%recvBuf, 'comsr%recvBuf', subname)
+  call checkAndDeallocatePointer(comsr%comarr, 'comsr%comarr', subname)
+  call checkAndDeallocatePointer(comsr%communComplete, 'comsr%communComplete', subname)
+  call checkAndDeallocatePointer(comsr%computComplete, 'comsr%computComplete', subname)
+
+end subroutine deallocate_p2pCommsSumrho
+
+
+subroutine deallocate_p2pCommsGatherPot(comgp, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(p2pCommsGatherPot),intent(inout):: comgp
+  character(len=*),intent(in):: subname
+
+  call checkAndDeallocatePointer(comgp%noverlaps, 'comgp%noverlaps', subname)
+  call checkAndDeallocatePointer(comgp%overlaps, 'comgp%overlaps', subname)
+  call checkAndDeallocatePointer(comgp%ise3, 'comgp%ise3', subname)
+  call checkAndDeallocatePointer(comgp%comarr, 'comgp%comarr', subname)
+  call checkAndDeallocatePointer(comgp%recvBuf, 'comgp%recvBuf', subname)
+  call checkAndDeallocatePointer(comgp%communComplete, 'comgp%communComplete', subname)
+
+end subroutine deallocate_p2pCommsGatherPot
+
+
+subroutine deallocate_largeBasis(lb, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_largeBasis
+  implicit none
+  
+  ! Calling arguments
+  type(largeBasis),intent(inout):: lb
+  character(len=*),intent(in):: subname
+
+  call deallocate_communications_arrays(lb%comms, subname)
+  call deallocate_orbitals_data(lb%orbs, subname)
+  call deallocate_linear_zone_descriptors(lb%lzd, subname)
+  call dealloctae_p2pCommsRepartition(lb%comrp, subname)
+  call deallocate_p2pCommsOrthonormality(lb%comon, subname)
+  call deallocate_overlapParameters(lb%op, subname)
+  call deallocate_p2pCommsGatherPot(lb%comgp, subname)
+
+
+end subroutine deallocate_largeBasis
+
+
+subroutine dealloctae_p2pCommsRepartition(comrp, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(p2pCommsRepartition),intent(inout):: comrp
+  character(len=*),intent(in):: subname
+
+  call checkAndDeallocatePointer(comrp%comarr, 'comrp%comarr', subname)
+  call checkAndDeallocatePointer(comrp%communComplete, 'comrp%communComplete', subname)
+
+end subroutine dealloctae_p2pCommsRepartition
+
+
+
+subroutine deallocate_p2pCommsOrthonormality(comon, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  implicit none
+  
+  ! Calling arguments
+  type(p2pCommsOrthonormality),intent(inout):: comon
+  character(len=*),intent(in):: subname
+
+  call checkAndDeallocatePointer(comon%noverlaps, 'comon%noverlaps', subname)
+  call checkAndDeallocatePointer(comon%overlaps, 'comon%overlaps', subname)
+  call checkAndDeallocatePointer(comon%comarr, 'comon%comarr', subname)
+  call checkAndDeallocatePointer(comon%sendBuf, 'comon%sendBuf', subname)
+  call checkAndDeallocatePointer(comon%recvBuf, 'comon%recvBuf', subname)
+  call checkAndDeallocatePointer(comon%communComplete, 'comon%communComplete', subname)
+
+end subroutine deallocate_p2pCommsOrthonormality
+
+
+subroutine deallocate_overlapParameters(op, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_overlapParameters
+  implicit none
+  
+  ! Calling arguments
+  type(overlapParameters),intent(inout):: op
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer:: iis1, iie1, iis2, iie2, i1, i2
+
+  call checkAndDeallocatePointer(op%noverlaps, 'op%noverlaps', subname)
+  call checkAndDeallocatePointer(op%indexExpand, 'op%indexExpand', subname)
+  call checkAndDeallocatePointer(op%indexExtract, 'op%indexExtract', subname)
+  call checkAndDeallocatePointer(op%overlaps, 'op%overlaps', subname)
+  call checkAndDeallocatePointer(op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
+  call checkAndDeallocatePointer(op%indexInSendBuf, 'op%indexInSendBuf', subname)
+
+  iis1=lbound(op%olr,1)
+  iie1=ubound(op%olr,1)
+  iis2=lbound(op%olr,2)
+  iie2=ubound(op%olr,2)
+  do i2=iis2,iie2
+      do i1=iis1,iie1
+          call deallocate_locreg_descriptors(op%olr(i1,i2), subname)
+      end do
+  end do
+
+end subroutine deallocate_overlapParameters

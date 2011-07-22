@@ -3506,17 +3506,58 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(matrixMinimization),intent(out):: matmin
     end subroutine nullify_matrixMinimization
 
-      subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad)
-        use module_base
-        use module_types
-        implicit none
-        integer,intent(in):: iproc, nat
-        real(8),dimension(3,nat),intent(in):: rxyz
-        type(linear_zone_descriptors),intent(inout):: lzd
-        type(input_variables),intent(in):: input
-        type(locreg_descriptors),intent(in):: Glr
-        real(8),dimension(lzd%nlr),intent(in):: locrad
-      end subroutine initLocregs2
+    subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nat
+      real(8),dimension(3,nat),intent(in):: rxyz
+      type(linear_zone_descriptors),intent(inout):: lzd
+      type(input_variables),intent(in):: input
+      type(locreg_descriptors),intent(in):: Glr
+      real(8),dimension(lzd%nlr),intent(in):: locrad
+    end subroutine initLocregs2
+
+    subroutine deallocate_linearParameters(lin, subname)
+      use module_base
+      use module_types
+      implicit none
+      ! Calling arguments
+      type(linearParameters),intent(inout):: lin
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_linearParameters
+
+    subroutine deallocate_largeBasis(lb, subname)
+      use module_base
+      use module_types
+      implicit none
+      type(largeBasis),intent(inout):: lb
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_largeBasis
+    
+    subroutine dealloctae_p2pCommsRepartition(comrp, subname)
+      use module_base
+      use module_types
+      implicit none
+      type(p2pCommsRepartition),intent(inout):: comrp
+      character(len=*),intent(in):: subname
+    end subroutine dealloctae_p2pCommsRepartition
+    
+    subroutine deallocate_p2pCommsOrthonormality(comon, subname)
+      use module_base
+      use module_types
+      implicit none
+      type(p2pCommsOrthonormality),intent(inout):: comon
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_p2pCommsOrthonormality
+    
+    subroutine deallocate_overlapParameters(op, subname)
+      use module_base
+      use module_types
+      implicit none
+      type(overlapParameters),intent(inout):: op
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_overlapParameters
 
 
 

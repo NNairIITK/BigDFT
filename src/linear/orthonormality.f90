@@ -562,7 +562,7 @@ integer,intent(inout):: tag
 ! Local variables
 integer:: iorb, jorb, iiorb, jproc, ioverlaporb, ioverlapMPI, ilr, jlr
 integer:: ilrold, is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3
-integer::  je3, istat
+integer::  je3, istat, i1, i2
 logical:: ovrlpx, ovrlpy, ovrlpz
 character(len=*),parameter:: subname='initCommsOrtho'
 
@@ -587,6 +587,11 @@ call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
 call determineOverlaps(iproc, nproc, lzd%orbs, lzd, onWhichAtomAll, op, comon)
 
 allocate(op%olr(maxval(op%noverlaps(lzd%orbs%isorb+1:lzd%orbs%isorb+lzd%orbs%norbp)),lzd%orbs%norbp), stat=istat)
+do i2=1,lzd%orbs%norbp
+    do i1=1,maxval(op%noverlaps(lzd%orbs%isorb+1:lzd%orbs%isorb+lzd%orbs%norbp))
+        call nullify_locreg_descriptors(op%olr(i1,i2))
+    end do
+end do
 
 ! Set the orbital descriptors for the overlap regions.
 call determineOverlapDescriptors(iproc, nproc, lzd%orbs, lzd, lzd%Glr, onWhichAtomAll, op)

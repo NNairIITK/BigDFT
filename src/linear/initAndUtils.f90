@@ -1325,7 +1325,13 @@ character(len=*),parameter:: subname='initLocregs'
 ! Allocate the array of localisation regions
 !allocate(lin%Llr(lin%nlr),stat=istat)
 allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
+do ilr=1,lin%lzd%nlr
+    call nullify_locreg_descriptors(lin%lzd%llr(ilr))
+end do
 allocate(lin%lb%lzd%Llr(lin%lzd%nlr),stat=istat)
+do ilr=1,lin%lzd%nlr
+    call nullify_locreg_descriptors(lin%lb%lzd%llr(ilr))
+end do
 
 
 !! Write some physical information on the Glr
