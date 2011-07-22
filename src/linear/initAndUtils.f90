@@ -646,26 +646,6 @@ integer:: istat, iall, iorb
 character(len=*),parameter:: subname='deallocateLinear'
 
 
-  iall=-product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-  deallocate(lin%potentialPrefac, stat=istat)
-  call memocc(istat, iall, 'lin%potentialPrefac', subname)
-  
-  !iall=-product(shape(lin%onWhichAtom))*kind(lin%onWhichAtom)
-  !deallocate(lin%onWhichAtom, stat=istat)
-  !call memocc(istat, iall, 'lin%onWhichAtom', subname)
-
-  iall=-product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
-  deallocate(lin%norbsPerType, stat=istat)
-  call memocc(istat, iall, 'lin%norbsPerType', subname)
-
-  call deallocate_orbs(lin%orbs,subname)
-
-  call deallocate_comms(lin%comms,subname)
-
-  call deallocate_orbs(lin%lb%orbs,subname)
-
-  call deallocate_comms(lin%lb%comms,subname)
-
   iall=-product(shape(phi))*kind(phi)
   deallocate(phi, stat=istat)
   call memocc(istat, iall, 'phi', subname)
@@ -674,47 +654,11 @@ character(len=*),parameter:: subname='deallocateLinear'
   deallocate(lphi, stat=istat)
   call memocc(istat, iall, 'lphi', subname)
 
-  iall=-product(shape(lin%orbs%eval))*kind(lin%orbs%eval)
-  deallocate(lin%orbs%eval, stat=istat)
-  call memocc(istat, iall, 'lin%orbs%eval', subname)
-
-  iall=-product(shape(lin%lb%orbs%eval))*kind(lin%lb%orbs%eval)
-  deallocate(lin%lb%orbs%eval, stat=istat)
-  call memocc(istat, iall, 'lin%lb%orbs%eval', subname)
-
-  !!if(associated(lin%comms%nvctr_parLIN)) then
-  !!    iall=-product(shape(lin%comms%nvctr_parLIN))*kind(lin%comms%nvctr_parLIN)
-  !!    deallocate(lin%comms%nvctr_parLIN, stat=istat)
-  !!    call memocc(istat, iall, 'lin%comms%nvctr_parLIN', subname)
-  !!end if
-
-  !!if(associated(lin%comms%ncntdLIN)) then
-  !!    iall=-product(shape(lin%comms%ncntdLIN))*kind(lin%comms%ncntdLIN)
-  !!    deallocate(lin%comms%ncntdLIN, stat=istat)
-  !!    call memocc(istat, iall, 'lin%comms%ncntdLIN', subname)
-  !!end if
-
-  !!if(associated(lin%comms%ndspldLIN)) then
-  !!    iall=-product(shape(lin%comms%ndspldLIN))*kind(lin%comms%ndspldLIN)
-  !!    deallocate(lin%comms%ndspldLIN, stat=istat)
-  !!    call memocc(istat, iall, 'lin%comms%ndspldLIN', subname)
-  !!end if
-
-  !!if(associated(lin%comms%ncnttLIN)) then
-  !!    iall=-product(shape(lin%comms%ncnttLIN))*kind(lin%comms%ncnttLIN)
-  !!    deallocate(lin%comms%ncnttLIN, stat=istat)
-  !!    call memocc(istat, iall, 'lin%comms%ncnttLIN', subname)
-  !!end if
-
-  !!if(associated(lin%comms%ndspltLIN)) then
-  !!    iall=-product(shape(lin%comms%ndspltLIN))*kind(lin%comms%ndspltLIN)
-  !!    deallocate(lin%comms%ndspltLIN, stat=istat)
-  !!    call memocc(istat, iall, 'lin%comms%ndspltLIN', subname)
-  !!end if
-
   iall=-product(shape(coeff))*kind(coeff)
   deallocate(coeff, stat=istat)
   call memocc(istat, iall, 'coeff', subname)
+
+  call deallocate_linearParameters(lin, subname)
 
 
 end subroutine deallocateLinear
@@ -1308,6 +1252,7 @@ end subroutine allocateBasicArrays
 subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => initLocregs2
 implicit none
 
 ! Calling arguments

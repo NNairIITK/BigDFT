@@ -152,6 +152,7 @@ subroutine psi_to_locreg(Glr,ilr,ldim,Olr,lpsi,nlr,orbs,psi)
     write(*,*)'is not equal to the number of fine points in the region',Olr(ilr)%wfd%nvctr_f
   end if
 
+  i_all=-product(shape(keymask))*kind(keymask)
   deallocate(keymask,stat=i_stat)
   call memocc(i_stat,i_all,'keymask',subname)
 
@@ -459,6 +460,7 @@ subroutine Lpsi_to_global(Glr,Gdim,Llr,lpsi,Ldim,norb,nspinor,nspin,shift,psi)
     write(*,*)'is not equal to the number of fine points in the region',Llr%wfd%nvctr_f
   end if
 
+  i_all=-product(shape(keymask))*kind(keymask)
   deallocate(keymask,stat=i_stat)
   call memocc(i_stat,i_all,'keymask',subname)
 

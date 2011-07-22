@@ -338,7 +338,6 @@ type(mixrhopotDIISParameters):: mixdiis
   call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
 
-  call deallocate_linearParameters(lin, subname)
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi, lphi, coeff)
