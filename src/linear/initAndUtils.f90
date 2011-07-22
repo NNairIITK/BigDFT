@@ -1406,6 +1406,7 @@ end subroutine initLocregs
 subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => initLocregs2
 implicit none
 
 ! Calling arguments
@@ -1423,6 +1424,9 @@ character(len=*),parameter:: subname='initLocregs'
 
 ! Allocate the array of localisation regions
 allocate(lzd%Llr(lzd%nlr),stat=istat)
+do ilr=1,lzd%nlr
+    call nullify_locreg_descriptors(lzd%llr(ilr))
+end do
 !! ATTENATION: WHAT ABAOUT OUTOFZONE??
 
 
@@ -1582,3 +1586,209 @@ end subroutine initCoefficients
 !!
 !!
 !!end subroutine allocateAndCopyLocreg
+
+
+
+
+
+subroutine nullify_linear_zone_descriptors(lzd)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_linear_zone_descriptors
+  implicit none
+
+  ! Calling arguments
+  type(linear_zone_descriptors),intent(out):: lzd
+  
+  call nullify_orbitals_data(lzd%orbs)
+  nullify(lzd%lorbs)
+  call nullify_communications_arrays(lzd%comms)
+  call nullify_locreg_descriptors(lzd%glr)
+  call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
+  nullify(lzd%llr)
+  nullify(lzd%lnlpspd)
+  call nullify_matrixMinimization(lzd%matmin)
+  
+end subroutine nullify_linear_zone_descriptors
+
+
+
+subroutine nullify_orbitals_data(orbs)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(orbitals_data),intent(out):: orbs
+  
+  nullify(orbs%norb_par)
+  nullify(orbs%iokpt)
+  nullify(orbs%ikptproc)
+  nullify(orbs%inwhichlocreg)
+  nullify(orbs%inWhichLocregP)
+  nullify(orbs%onWhichMPI)
+  nullify(orbs%isorb_par)
+  nullify(orbs%eval)
+  nullify(orbs%occup)
+  nullify(orbs%spinsgn)
+  nullify(orbs%kwgts)
+  nullify(orbs%kpts)
+
+end subroutine nullify_orbitals_data
+
+
+subroutine nullify_communications_arrays(comms)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(communications_arrays),intent(out):: comms
+
+  nullify(comms%ncntd)
+  nullify(comms%ncntt)
+  nullify(comms%ndspld)
+  nullify(comms%ndsplt)
+  nullify(comms%nvctr_par)
+  
+end subroutine nullify_communications_arrays
+
+
+subroutine nullify_locreg_descriptors(lr)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_locreg_descriptors
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(out):: lr
+
+
+  nullify(lr%projflg)
+  call nullify_wavefunctions_descriptors(lr%wfd)
+  call nullify_convolutions_bounds(lr%bounds)
+
+end subroutine nullify_locreg_descriptors
+
+
+subroutine nullify_wavefunctions_descriptors(wfd)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(wavefunctions_descriptors),intent(out):: wfd
+
+  nullify(wfd%keyg)
+  nullify(wfd%keyv)
+
+end subroutine nullify_wavefunctions_descriptors
+
+
+subroutine nullify_convolutions_bounds(bounds)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_convolutions_bounds
+  implicit none
+
+  ! Calling arguments
+  type(convolutions_bounds),intent(out):: bounds
+
+  call nullify_kinetic_bounds(bounds%kb)
+  call nullify_shrink_bounds(bounds%sb)
+  call nullify_grow_bounds(bounds%gb)
+  nullify(bounds%ibyyzz_r)
+
+end subroutine nullify_convolutions_bounds
+
+
+
+subroutine nullify_kinetic_bounds(kb)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(kinetic_bounds),intent(out):: kb
+
+  nullify(kb%ibyz_c)
+  nullify(kb%ibxz_c)
+  nullify(kb%ibxy_c)
+  nullify(kb%ibyz_f)
+  nullify(kb%ibxz_f)
+  nullify(kb%ibxy_f)
+
+end subroutine nullify_kinetic_bounds
+
+
+
+subroutine nullify_shrink_bounds(sb)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(shrink_bounds),intent(out):: sb
+
+  nullify(sb%ibzzx_c)
+  nullify(sb%ibyyzz_c)
+  nullify(sb%ibxy_ff)
+  nullify(sb%ibzzx_f)
+  nullify(sb%ibyyzz_f)
+
+end subroutine nullify_shrink_bounds
+
+
+
+subroutine nullify_grow_bounds(gb)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(grow_bounds),intent(out):: gb
+
+  nullify(gb%ibzxx_c)
+  nullify(gb%ibxxyy_c)
+  nullify(gb%ibyz_ff)
+  nullify(gb%ibzxx_f)
+  nullify(gb%ibxxyy_f)
+
+end subroutine nullify_grow_bounds
+
+
+
+subroutine nullify_nonlocal_psp_descriptors(nlpspd)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(nonlocal_psp_descriptors),intent(out):: nlpspd
+
+  nullify(nlpspd%nvctr_p)
+  nullify(nlpspd%nseg_p)
+  nullify(nlpspd%keyv_p)
+  nullify(nlpspd%keyg_p)
+  nullify(nlpspd%nboxp_c)
+  nullify(nlpspd%nboxp_f)
+
+end subroutine nullify_nonlocal_psp_descriptors
+
+
+
+subroutine nullify_matrixMinimization(matmin)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(matrixMinimization),intent(out):: matmin
+
+  nullify(matmin%mlr)
+  nullify(matmin%inWhichLocregExtracted)
+  nullify(matmin%inWhichLocregOnMPI)
+  nullify(matmin%indexInLocreg)
+
+end subroutine nullify_matrixMinimization
+

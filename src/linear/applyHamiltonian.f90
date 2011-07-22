@@ -266,6 +266,9 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
 
   ! Allocate the nonlocal descriptors for the locregs
   allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)   
+  do ilr=1,Lzd%nlr
+      call nullify_nonlocal_psp_descriptors(Lzd%Lnlpspd(ilr))
+  end do
 
   !initialize accumulators
   ekin_sum = 0.0_gp

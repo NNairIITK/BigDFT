@@ -3294,31 +3294,229 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine copy_orbitals_data
 
 
-     subroutine deallocate_matrixLocalizationRegion(mlr, subname)
-       use module_base
-       use module_types
-       implicit none
-       type(matrixLocalizationRegion),intent(inout):: mlr
-       character(len=*),intent(in):: subname
-     end subroutine deallocate_matrixLocalizationRegion
+     !!subroutine deallocate_matrixLocalizationRegion(mlr, subname)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  type(matrixLocalizationRegion),intent(inout):: mlr
+     !!  character(len=*),intent(in):: subname
+     !!end subroutine deallocate_matrixLocalizationRegion
 
 
-     subroutine deallocate_matrixMinimization(matmin, subname)
-       use module_base
-       use module_types
-       implicit none
-       type(matrixMinimization),intent(inout):: matmin
-       character(len=*),intent(in):: subname
-     end subroutine deallocate_matrixMinimization
+     !!subroutine deallocate_matrixMinimization(matmin, subname)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  type(matrixMinimization),intent(inout):: matmin
+     !!  character(len=*),intent(in):: subname
+     !!end subroutine deallocate_matrixMinimization
 
 
-     subroutine deallocate_linear_zone_descriptors(lzd, subname)
-       use module_base
-       use module_types
-       implicit none
-       type(linear_zone_descriptors),intent(inout):: lzd
-       character(len=*),intent(in):: subname
-     end subroutine deallocate_linear_zone_descriptors
+     !!subroutine deallocate_linear_zone_descriptors(lzd, subname)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  type(linear_zone_descriptors),intent(inout):: lzd
+     !!  character(len=*),intent(in):: subname
+     !!end subroutine deallocate_linear_zone_descriptors
+
+
+    subroutine deallocate_linear_zone_descriptors(lzd, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(linear_zone_descriptors),intent(inout):: lzd
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_linear_zone_descriptors
+
+    subroutine deallocate_orbitals_data(orbs, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(orbitals_data),intent(inout):: orbs
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_orbitals_data
+
+    subroutine deallocate_communications_arrays(comms, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(communications_arrays),intent(inout):: comms
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_communications_arrays
+
+    subroutine deallocate_locreg_descriptors(lr, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(locreg_descriptors),intent(inout):: lr
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_locreg_descriptors
+
+    subroutine deallocate_wavefunctions_descriptors(wfd, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(wavefunctions_descriptors),intent(inout):: wfd
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_wavefunctions_descriptors
+
+    subroutine deallocate_convolutions_bounds(bounds, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(convolutions_bounds),intent(inout):: bounds
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_convolutions_bounds
+
+    subroutine deallocate_kinetic_bounds(kb, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(kinetic_bounds),intent(inout):: kb
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_kinetic_bounds
+
+    subroutine deallocate_shrink_bounds(sb, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(shrink_bounds),intent(inout):: sb
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_shrink_bounds
+
+    subroutine deallocate_grow_bounds(gb, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(grow_bounds),intent(inout):: gb
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_grow_bounds
+
+    subroutine deallocate_nonlocal_psp_descriptors(nlpspd, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(nonlocal_psp_descriptors),intent(inout):: nlpspd
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_nonlocal_psp_descriptors
+
+    subroutine deallocate_matrixMinimization(matmin, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(matrixMinimization),intent(inout):: matmin
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_matrixMinimization
+
+    subroutine deallocate_matrixLocalizationRegion(mlr, subname)
+      use module_base
+      use module_types
+      !use deallocatePointers
+      implicit none
+      type(matrixLocalizationRegion),intent(inout):: mlr
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_matrixLocalizationRegion
+
+    subroutine nullify_linear_zone_descriptors(lzd)
+      use module_base
+      use module_types
+      implicit none
+      type(linear_zone_descriptors),intent(out):: lzd
+    end subroutine nullify_linear_zone_descriptors
+    
+    subroutine nullify_orbitals_data(orbs)
+      use module_base
+      use module_types
+      implicit none
+      type(orbitals_data),intent(out):: orbs
+    end subroutine nullify_orbitals_data
+    
+    subroutine nullify_communications_arrays(comms)
+      use module_base
+      use module_types
+      implicit none
+      type(communications_arrays),intent(out):: comms
+    end subroutine nullify_communications_arrays
+    
+    subroutine nullify_locreg_descriptors(lr)
+      use module_base
+      use module_types
+      implicit none
+      type(locreg_descriptors),intent(out):: lr
+    end subroutine nullify_locreg_descriptors
+    
+    subroutine nullify_wavefunctions_descriptors(wfd)
+      use module_base
+      use module_types
+      implicit none
+      type(wavefunctions_descriptors),intent(out):: wfd
+    end subroutine nullify_wavefunctions_descriptors
+    
+    subroutine nullify_convolutions_bounds(bounds)
+      use module_base
+      use module_types
+      implicit none
+      type(convolutions_bounds),intent(out):: bounds
+    end subroutine nullify_convolutions_bounds
+    
+    subroutine nullify_kinetic_bounds(kb)
+      use module_base
+      use module_types
+      implicit none
+      type(kinetic_bounds),intent(out):: kb
+    end subroutine nullify_kinetic_bounds
+    
+    subroutine nullify_shrink_bounds(sb)
+      use module_base
+      use module_types
+      implicit none
+      type(shrink_bounds),intent(out):: sb
+    end subroutine nullify_shrink_bounds
+    
+    subroutine nullify_grow_bounds(gb)
+      use module_base
+      use module_types
+      implicit none
+      type(grow_bounds),intent(out):: gb
+    end subroutine nullify_grow_bounds
+    
+    subroutine nullify_nonlocal_psp_descriptors(nlpspd)
+      use module_base
+      use module_types
+      implicit none
+      type(nonlocal_psp_descriptors),intent(out):: nlpspd
+    end subroutine nullify_nonlocal_psp_descriptors
+
+    subroutine nullify_matrixMinimization(matmin)
+      use module_base
+      use module_types
+      implicit none
+      type(matrixMinimization),intent(out):: matmin
+    end subroutine nullify_matrixMinimization
+
+      subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nat
+        real(8),dimension(3,nat),intent(in):: rxyz
+        type(linear_zone_descriptors),intent(inout):: lzd
+        type(input_variables),intent(in):: input
+        type(locreg_descriptors),intent(in):: Glr
+        real(8),dimension(lzd%nlr),intent(in):: locrad
+      end subroutine initLocregs2
 
 
 

@@ -72,6 +72,10 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
           '------------------------------------------------------- Input Wavefunctions Creation'
   end if
 
+  call nullify_linear_zone_descriptors(lzdig)
+  call nullify_linear_zone_descriptors(lzdGauss)
+
+
   ! Allocate some arrays we need for the input guess.
   allocate(norbsc_arr(at%natsc+1,input%nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -293,10 +297,12 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
 
   ! Copy Glr to lzd
-  lzdig%Glr = Glr
+  !lzdig%Glr = Glr
+  call copy_locreg_descriptors(Glr, lzdig%Glr, subname)
   
   ! Copy nlpspd to lin%lzd
-  lzdig%Gnlpspd = nlpspd
+  !lzdig%Gnlpspd = nlpspd
+  call copy_nonlocal_psp_descriptors(nlpspd, lzdig%Gnlpspd, subname)
   
   ! Set localnorb
   do ilr=1,lzdig%nlr
