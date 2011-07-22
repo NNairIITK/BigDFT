@@ -966,10 +966,6 @@ END SUBROUTINE deallocate_orbs
     type(linear_zone_descriptors) :: Lzd
     integer :: i_all,i_stat,ilr
 
-!    call deallocate_comms(Lzd%comms,subname)
-
-!    call deallocate_lr(Lzd%Glr,subname)
-
 !   nullify the bounds of Glr
     if ((Lzd%Glr%geocode == 'P' .and. Lzd%Glr%hybrid_on) .or. Lzd%Glr%geocode == 'F') then
        nullify(Lzd%Glr%bounds%kb%ibyz_f)
@@ -997,6 +993,14 @@ END SUBROUTINE deallocate_orbs
 ! nullify the wfd of Glr
    nullify(Lzd%Glr%wfd%keyg)
    nullify(Lzd%Glr%wfd%keyv)
+
+! nullify the Gnlpspd
+   nullify(Lzd%Gnlpspd%nvctr_p)
+   nullify(Lzd%Gnlpspd%nseg_p)
+   nullify(Lzd%Gnlpspd%keyv_p)
+   nullify(Lzd%Gnlpspd%keyg_p)
+   nullify(Lzd%Gnlpspd%nboxp_c)
+   nullify(Lzd%Gnlpspd%nboxp_f)
  
 !Now destroy the Llr
     do ilr = 1, Lzd%nlr 

@@ -887,11 +887,11 @@ END SUBROUTINE orbitalsCommunicatorsWithGroups
 
 !determine a set of localisation regions from the centers and the radii.
 !cut in cubes the global reference system
-subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,outofzone)
+subroutine determine_locreg_periodic(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,outofzone)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nlr
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: Glr
@@ -907,13 +907,15 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
   integer :: ln1,ln2,ln3
-  integer :: ii !tests
+  integer :: ierr 
   integer,dimension(3) :: outofzone
+  integer,dimension(0:nproc-1) :: nlr_par,islr_par
   real(gp) :: rx,ry,rz,cutoff  
-
+integer :: geocode_address
   !!if (iproc == 0) then
   !!   write(*,*)'Inside determine_locreg_periodic:'
   !!end if
+
 
   !initialize out of zone and logicals
   outofzone (:) = 0     
@@ -1123,9 +1125,6 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
              Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
      end if
   end do !on ilr
-
-  !after all localisation regions are determined draw them
-  !call draw_locregs(nlr,hx,hy,hz,Llr)
 
 END SUBROUTINE determine_locreg_periodic
 
@@ -2135,4 +2134,464 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
   end if
 
 END SUBROUTINE get_overlap_region_periodic2
+
+
+subroutine parallel_repartition_locreg(iproc,nproc,nlr,nlr_par,islr_par)
+  implicit none
+  integer, intent(in) :: iproc,nproc,nlr
+  integer, dimension(0:nproc-1), intent(out) :: nlr_par
+  integer, dimension(0:nproc-1), intent(out) :: islr_par
+  !local variables
+  integer :: jproc,numlr,difflr,ind
+
+  numlr = int(nlr/nproc)
+  difflr = nlr - numlr*nproc
+
+  nlr_par = numlr
+  ind = 0
+  do jproc=0,difflr-1
+     nlr_par(jproc) = nlr_par(jproc) + 1   
+     islr_par(jproc) = ind
+     ind = ind + nlr_par(jproc)
+  end do
+  do jproc=difflr,nproc
+     islr_par(jproc) = ind
+     ind = ind + nlr_par(jproc)
+  end do
+
+END SUBROUTINE parallel_repartition_locreg
+
+
+!!subroutine make_LLr_MpiType(Llr,nlr,mpiLlr)
+!!use module_types
+!!
+!!implicit none
+!!
+!!integer,intent(in) :: nlr
+!!type(locreg_descriptors), intent(in) :: Llr
+!!integer, intent(out) :: mpiLlr
+!!!Local variables
+!!integer :: ierr
+!!integer :: Llr_add
+!!integer :: geo_add, hyb_add, ns1_add, ns2_add,ns3_add
+!!integer :: n1_add,n2_add,n3_add,nfl1_add,nfl2_add,nfl3_add
+!!integer :: nfu1_add,nfu2_add,nfu3_add,n1i_add,n2i_add,n3i_add
+!!integer :: nvctrc_add,nvctrf_add,nsegc_add,nsegf_add
+!!integer :: keyg_add,keyv_add
+!!integer :: localnorb_add,outofzone_add,projflg_add
+!!integer :: ibyzc_add,ibxzc_add,ibxyc_add,ibyzf_add,ibxzf_add,ibxyf_add
+!!integer :: ibzzxc_add,ibyyzzc_add,ibxyff_add,ibzzxf_add,ibyyzzf_add
+!!integer :: ibzxxc_add,ibxxyyc_add,ibyzff_add,ibzxxf_add,ibxxyyf_add
+!!integer :: ibyyzzr_add
+!!integer :: geo_off,hyb_off,ns1_off,ns2_off,ns3_off,n1_off,n2_off,n3_off,nfl1_off,nfl2_off,nfl3_off
+!!integer :: nfu1_off,nfu2_off,nfu3_off,n1i_off,n2i_off,n3i_off,nvctrc_off,nvctrf_off,nsegc_off,nsegf_off 
+!!integer :: keyg_off,keyv_off,ibyzc_off,ibxzc_off,ibxyc_off,ibyzf_off,ibxzf_off,ibxyf_off,ibzzxc_off
+!!integer :: ibyyzzc_off,ibxyff_off,ibzzxf_off,ibyyzzf_off,ibzxxc_off,ibxxyyc_off,ibyzff_off,ibzxxf_off
+!!integer :: ibxxyyf_off,ibyyzzr_off,localnorb_off,outofzone_off,projflg_off
+!!
+!! ! Get all the adresses of the components of Llr
+!!  call MPI_Get_address(Llr, Llr_add,ierr)
+!!  call MPI_Get_address(Llr%geocode, geo_add,ierr)
+!!  call MPI_Get_address(Llr%hybrid_on, hyb_add,ierr)
+!!  call MPI_Get_address(Llr%ns1, ns1_add,ierr)
+!!  call MPI_Get_address(Llr%ns2, ns2_add,ierr)
+!!  call MPI_Get_address(Llr%ns3, ns3_add,ierr)
+!!  call MPI_Get_address(Llr%localnorb, localnorb_add,ierr)
+!!  call MPI_Get_address(Llr%outofzone, outofzone_add,ierr)
+!!  call MPI_Get_address(Llr%projflg, projflg_add,ierr)
+!!  call MPI_Get_address(Llr%d%n1, n1_add,ierr)
+!!  call MPI_Get_address(Llr%d%n2, n2_add,ierr)
+!!  call MPI_Get_address(Llr%d%n3, n3_add,ierr)
+!!  call MPI_Get_address(Llr%d%nfl1, nfl1_add,ierr)
+!!  call MPI_Get_address(Llr%d%nfl2, nfl2_add,ierr)
+!!  call MPI_Get_address(Llr%d%nfl3, nfl3_add,ierr)
+!!  call MPI_Get_address(Llr%d%nfu1, nfu1_add,ierr)
+!!  call MPI_Get_address(Llr%d%nfu2, nfu2_add,ierr)
+!!  call MPI_Get_address(Llr%d%nfu3, nfu3_add,ierr)
+!!  call MPI_Get_address(Llr%wfd%nvctr_c, nvctrc_add,ierr)
+!!  call MPI_Get_address(Llr%wfd%nvctr_f, nvctrf_add,ierr)
+!!  call MPI_Get_address(Llr%wfd%nseg_c, nsegc_add,ierr)
+!!  call MPI_Get_address(Llr%wfd%nseg_f, nsegf_add,ierr)
+!!  call MPI_Get_address(Llr%wfd%keyg, keyg_add,ierr)
+!!  call MPI_Get_address(Llr%wfd%keyv, keyv_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%kb%ibyz_c, ibyzc_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%kb%ibxz_c, ibxzc_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%kb%ibxy_c, ibxyc_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%kb%ibyz_f, ibyzf_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%kb%ibxz_f, ibxzf_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%kb%ibxy_f, ibxyf_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%sb%ibzzx_c, ibzzxc_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%sb%ibyyzz_c, ibyyzzc_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%sb%ibxy_ff, ibxyff_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%sb%ibzzx_f, ibzzxf_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%sb%ibyyzz_f, ibyyzzf_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%gb%ibzxx_c, ibzxxc_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%gb%ibxxyy_c, ibxxyyc_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%gb%ibyz_ff, ibyzff_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%gb%ibzxx_f, ibzxxf_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%gb%ibxxyy_f, ibxxyyf_add,ierr)
+!!  call MPI_Get_address(Llr%bounds%ibyyzz_r, ibyyzzr_add,ierr)
+!!
+!!!Calculate offsets
+!!  geo_off = geo_add - Llr_add
+!!  hyb_off = hyb_add - Llr_add
+!!  ns1_off = ns1_add - Llr_add
+!!  ns2_off = ns2_add - Llr_add
+!!  ns3_off = ns3_add - Llr_add
+!!  n1_off = n1_add - Llr_add
+!!  n2_off = n2_add - Llr_add
+!!  n3_off = n3_add - Llr_add
+!!  localnorb_off = localnorb_add - Llr_add
+!!  outofzone_off = outofzone_add - Llr_add
+!!  projflg_off = projflg_add - Llr_add
+!!  nfl1_off = nfl1_add - Llr_add
+!!  nfl2_off = nfl2_add - Llr_add
+!!  nfl3_off = nfl3_add - Llr_add
+!!  nfu1_off = nfu1_add - Llr_add
+!!  nfu2_off = nfu2_add - Llr_add
+!!  nfu3_off = nfu3_add - Llr_add
+!!  n1i_off = n1i_add - Llr_add
+!!  n2i_off = n2i_add - Llr_add
+!!  n3i_off = n3i_add - Llr_add
+!!  nvctrc_off = nvctrc_add - Llr_add
+!!  nvctrf_off = nvctrf_add - Llr_add
+!!  nsegc_off = nsegc_add - Llr_add
+!!  nsegf_off = nsegf_add - Llr_add
+!!  keyg_off = keyg_add - Llr_add
+!!  keyv_off = keyv_add - Llr_add
+!!  ibyzc_off = ibyzc_add - Llr_add
+!!  ibxzc_off = ibxzc_add - Llr_add
+!!  ibxyc_off = ibxyc_add - Llr_add
+!!  ibyzf_off = ibyzf_add - Llr_add
+!!  ibxzf_off = ibxzf_add - Llr_add
+!!  ibxyf_off = ibxyf_add - Llr_add
+!!  ibzzxc_off = ibzzxc_add - Llr_add
+!!  ibyyzzc_off = ibyyzzc_add - Llr_add
+!!  ibxyff_off = ibxyff_add - Llr_add
+!!  ibzzxf_off = ibzzxf_add - Llr_add
+!!  ibyyzzf_off = ibyyzzf_add - Llr_add
+!!  ibzxxc_off  = ibzxxc_add - Llr_add
+!!  ibxxyyc_off = ibxxyyc_add - Llr_add
+!!  ibyzff_off  = ibyzff_add - Llr_add
+!!  ibzxxf_off  = ibzxxf_add - Llr_add
+!!  ibxxyyf_off = ibxxyyf_add - Llr_add
+!!  ibyyzzr_off = ibyyzzr_add - Llr_add
+!!
+!!! Give sizes of all the components
+!!  geo_siz = kind(Llr%geocode)
+!!  hyb_siz = kind(Llr%hybrid_on)
+!!  ns1_siz = kind(Llr%ns1)
+!!  ns2_siz = kind(Llr%ns2)
+!!  ns3_siz = kind(Llr%ns3)
+!!  n1_siz = kind(Llr%d%n1)
+!!  n2_siz = kind(Llr%d%n2)
+!!  n3_siz = kind(Llr%d%n3)
+!!  localnorb_siz = product(shape(Llr%Localnorb))*kind(Llr%Localnorb)
+!!  outofzone_siz = product(shape(Llr%outofzone))*kind(Llr%outofzone)
+!!  projflg_siz = product(shape(Llr%projflg))*kind(Llr%projflg)
+!!  nfl1_siz = kind(Llr%d%nfl1)
+!!  nfl2_siz = kind(Llr%d%nfl2)
+!!  nfl3_siz = kind(Llr%d%nfl3)
+!!  nfu1_siz = kind(Llr%d%nfu1)
+!!  nfu2_siz = kind(Llr%d%nfu2)
+!!  nfu3_siz = kind(Llr%d%nfu3)
+!!  n1i_siz = kind(Llr%d%n1i)
+!!  n2i_siz = kind(Llr%d%n2i)
+!!  n3i_siz = kind(Llr%d%n3i)
+!!  nvctrc_siz = kind(Llr%wfd%nvctr_c)
+!!  nvctrf_siz = kind(Llr%wfd%nvctr_f)
+!!  nsegc_siz = kind(Llr%wfd%nseg_c)
+!!  nsegf_siz = kind(Llr%wfd%nseg_f)
+!!  keyg_siz = product(shape(Llr%keyg))*kind(Llr%wfd%keyg)
+!!  keyv_siz = product(shape(Llr%keyv))*kind(Llr%wfd%keyv)
+!!  ibyzc_siz = product(shape(Llr%bounds%kb%ibyz_c))*kind(Llr%bounds%kb%ibyz_c)
+!!  ibxzc_siz = product(shape(Llr%bounds%kb%ibxz_c))*kind(Llr%bounds%kb%ibxz_c)
+!!  ibxyc_siz = product(shape(Llr%bounds%kb%ibxy_c))*kind(Llr%bounds%kb%ibxy_c)
+!!  ibyzf_siz = product(shape(Llr%bounds%kb%ibyz_f))*kind(Llr%bounds%kb%ibyz_f)
+!!  ibxzf_siz = product(shape(Llr%bounds%kb%ibxz_f))*kind(Llr%bounds%kb%ibxz_f)
+!!  ibxyf_siz = product(shape(Llr%bounds%kb%ibxyf))*kind(Llr%bounds%kb%ibxyf)
+!!  ibzzxc_siz = product(shape(Llr%bounds%sb%ibzzxc))*kind(Llr%bounds%sb%ibzzxc)
+!!  ibyyzzc_siz = product(shape(Llr%bounds%sb%ibyyzz_c))*kind(Llr%bounds%sb%ibyyzz_c)
+!!  ibxyff_siz = product(shape(Llr%bounds%sb%ibxy_ff))*kind(Llr%bounds%sb%ibxy_ff)
+!!  ibzzxf_siz = product(shape(Llr%bounds%sb%ibzzx_f))*kind(Llr%bounds%sb%ibzzx_f)
+!!  ibyyzzf_siz = product(shape(Llr%bounds%sb%ibyyzz_f))*kind(Llr%bounds%sb%ibyyzz_f)
+!!  ibzxxc_siz  = product(shape(Llr%bounds%gb%ibzxx_c))*kind(Llr%bounds%gb%ibzxx_c)
+!!  ibxxyyc_siz = product(shape(Llr%bounds%gb%ibxxyy_c))*kind(Llr%bounds%gb%ibxxyy_c)
+!!  ibyzff_siz  = product(shape(Llr%bounds%gb%ibyz_ff))*kind(Llr%bounds%gb%ibyz_ff)
+!!  ibzxxf_siz  = product(shape(Llr%bounds%gb%ibzxx_f))*kind(Llr%bounds%gb%ibzxx_f)
+!!  ibxxyyf_siz = product(shape(Llr%bounds%gb%ibxxyy_f))*kind(Llr%bounds%gb%ibxxyy_f)
+!!  ibyyzzr_siz = product(shape(Llr%bounds%ibyyzz_r))*kind(Llr%bounds%ibyyzz_r)
+!!
+!!! Arrays
+!!  array_of_block_lengths = (/ geo_siz,hyb_siz,ns1_siz,ns2_siz,ns3_siz,localnorb_siz,outofzone_siz,projflg_siz,&
+!!                              n1_siz,n2_siz,n3_siz,nfl1_siz,nfl2_siz,nfl3_siz,nfu1_siz,nfu2_siz,nfu3_siz,&
+!!                              n1i_siz,n2i_siz,n3i_siz,nvctrc_siz,nvctrf_siz,nsegc_siz,nsegf_siz,keyg_siz,keyv_siz,&
+!!                              ibyzc_siz,ibxzc_siz,ibxyc_siz,ibyzf_siz,ibxzf_siz,ibxyf_siz,ibzzxc_siz,ibyyzzc_siz,&
+!!                              ibxyff_siz,ibzzxf_siz,ibyyzzf_siz,ibzxxc_siz,ibxxyyc_siz,ibyzff_siz,ibzxxf_siz,ibxxyyf_siz,&
+!!                              ibyyzzr_siz /)
+!!  array_of_displacements = (/ geo_off,hyb_off,ns1_off,ns2_off,ns3_off,localnorb_off,outofzone_off,projflg_off,&
+!!                              n1_off,n2_off,n3_off,nfl1_off,nfl2_off,nfl3_off,nfu1_off,nfu2_off,nfu3_off,&
+!!                              n1i_off,n2i_off,n3i_off,nvctrc_off,nvctrf_off,nsegc_off,nsegf_off,keyg_off,keyv_off,& 
+!!                              ibyzc_off,ibxzc_off,ibxyc_off,ibyzf_off,ibxzf_off,ibxyf_off,ibzzxc_off,ibyyzzc_off,& 
+!!                              ibxyff_off,ibzzxf_off,ibyyzzf_off,ibzxxc_off,ibxxyyc_off,ibyzff_off,ibzxxf_off,ibxxyyf_off,& 
+!!                              ibyyzzr_off /)
+!!  array_of_types         = (//)
+!!
+!!
+!!
+!!
+!!end subroutine
+
+
+!determine a set of localisation regions from the centers and the radii.
+!cut in cubes the global reference system
+subroutine determine_locreg_parallel(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,orbs)!,outofzone)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: nlr
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: Glr
+  real(gp), dimension(nlr), intent(in) :: locrad
+  real(gp), dimension(3,nlr), intent(in) :: cxyz
+  type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+  type(orbitals_data),intent(in) :: orbs
+!  integer, dimension(3,nlr),intent(out) :: outofzone
+  !local variables
+  character(len=*), parameter :: subname='determine_locreg_parallel'
+  logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz
+  logical :: warningx,warningy,warningz
+  integer :: Gnbl1,Gnbl2,Gnbl3,Gnbr1,Gnbr2,Gnbr3
+  integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
+  integer :: ilr,isx,isy,isz,iex,iey,iez
+  integer :: ln1,ln2,ln3
+  integer :: iilr,ierr
+  integer,dimension(3) :: outofzone
+  integer,dimension(0:nproc-1) :: nlr_par,islr_par
+  real(gp) :: rx,ry,rz,cutoff
+
+  !!if (iproc == 0) then
+  !!   write(*,*)'Inside determine_locreg_periodic:'
+  !!end if
+
+!  call parallel_repartition_locreg(iproc,nproc,nlr,nlr_par,islr_par)
+
+  !initialize out of zone and logicals
+  outofzone (:) = 0
+  warningx = .false.
+  warningy = .false.
+  warningz = .false.
+
+  !determine the limits of the different localisation regions
+  do iilr=1,orbs%norbp
+     ilr = orbs%inwhichLocreg(iilr+orbs%isorb)
+
+     rx=cxyz(1,ilr)
+     ry=cxyz(2,ilr)
+     rz=cxyz(3,ilr)
+
+     cutoff=locrad(ilr)
+
+     isx=floor((rx-cutoff)/hx)
+     isy=floor((ry-cutoff)/hy)
+     isz=floor((rz-cutoff)/hz)
+
+     iex=ceiling((rx+cutoff)/hx)
+     iey=ceiling((ry+cutoff)/hy)
+     iez=ceiling((rz+cutoff)/hz)
+
+     ln1 = iex-isx
+     ln2 = iey-isy
+     ln3 = iez-isz
+
+     ! First check if localization region fits inside box
+!!!     if (iproc == 0 .and. verbose > 1) then
+!!!        if ((iex - isx >= Glr%d%n1 - 14) .and. (warningx .eqv. .false.)) then
+!!!           write(*,*)'Width of direction x :',(iex - isx)*hx,' of localization region:',ilr
+!!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n1*hx
+!!!           write(*,*)'Increasing the simulation box is recommended. The code will use the '
+!!!           write(*,*)'simulation box width. This is the only warning for x direction.'
+!!!           warningx = .true.
+!!!        end if
+!!!        if ((iey - isy >= Glr%d%n2 - 14) .and. (warningy .eqv. .false.)) then
+!!!           write(*,*)'Width of direction y :',(iey - isy)*hy,' of localization region:',ilr
+!!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n2*hy,'.'
+!!!           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
+!!!           write(*,*)'of the simulation box. This is the only warning for y direction.'
+!!!           warningy = .true.
+!!!        end if
+!!!        if ((iez - isz >= Glr%d%n3 - 14) .and. (warningz .eqv. .false.)) then
+!!!           write(*,*)'Width of direction z :',(iez - isz)*hz,' of localization region:',ilr
+!!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n3*hz,'.'
+!!!           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
+!!!           write(*,*)'of the simulation box. This is the only warning for z direction.'
+!!!           warningz = .true.
+!!!        end if 
+!!!     end if
+
+     ! Localization regions should always have free boundary conditions
+     Llr(ilr)%geocode='F'
+
+     !assign the starting/ending points and outofzone for the different
+     ! geometries
+     select case(Glr%geocode)
+     case('F')
+        isx=max(isx,Glr%ns1)
+        isy=max(isy,Glr%ns2)
+        isz=max(isz,Glr%ns3)
+
+        iex=min(iex,Glr%ns1+Glr%d%n1)
+        iey=min(iey,Glr%ns2+Glr%d%n2)
+        iez=min(iez,Glr%ns3+Glr%d%n3)
+
+     case('S')
+        ! Get starting and ending for x direction     
+        if (iex - isx >= Glr%d%n1) then
+           isx=Glr%ns1
+           iex=Glr%ns1 + Glr%d%n1
+        else
+           isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
+           iex= ln1 + isx
+           if (iex > Glr%ns1+Glr%d%n1) then
+              outofzone(1)=modulo(iex,Glr%d%n1+1)
+           end if
+        end if
+
+        ! Get starting and ending for y direction (perpendicular to surface)
+        isy=max(isy,Glr%ns2)
+        iey=min(iey,Glr%ns2 + Glr%d%n2)
+        outofzone(2) = 0
+
+        !Get starting and ending for z direction
+        if (iez - isz >= Glr%d%n3) then
+           isz=Glr%ns3
+           iez=Glr%ns3 + Glr%d%n3
+        else
+           isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
+           iez= ln3 + isz
+           if (iez > Glr%ns3+Glr%d%n3) then
+              outofzone(3)=modulo(iez,Glr%d%n3+1)
+           end if
+        end if
+
+     case('P')
+         ! Get starting and ending for x direction     
+        if (iex - isx >= Glr%d%n1) then
+           isx=Glr%ns1
+           iex=Glr%ns1 + Glr%d%n1
+        else
+           isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
+           iex= ln1 + isx
+           if (iex > Glr%ns1+Glr%d%n1) then
+              outofzone(1)=modulo(iex,Glr%d%n1+1)
+           end if
+        end if
+
+        ! Get starting and ending for y direction (perpendicular to surface)
+        if (iey - isy >= Glr%d%n2) then
+           isy=Glr%ns2
+           iey=Glr%ns2 + Glr%d%n2
+         else
+           isy=modulo(isy,Glr%d%n2+1) + Glr%ns2
+           iey= ln2 + isy
+           if (iey > Glr%ns2+Glr%d%n2) then
+              outofzone(2)=modulo(iey,Glr%d%n2+1)
+           end if
+        end if
+
+        !Get starting and ending for z direction
+        if (iez - isz >= Glr%d%n3) then
+           isz=Glr%ns3
+           iez=Glr%ns3 + Glr%d%n3
+        else
+           isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
+           iez= ln3 + isz
+           if (iez > Glr%ns3+Glr%d%n3) then
+              outofzone(3)=modulo(iez,Glr%d%n3+1)
+           end if
+        end if
+     end select
+
+     !values for the starting point of the cube for wavelet grid
+     Llr(ilr)%ns1=isx
+     Llr(ilr)%ns2=isy
+     Llr(ilr)%ns3=isz
+
+     !dimensions of the localisation region
+     Llr(ilr)%d%n1=iex-isx
+     Llr(ilr)%d%n2=iey-isy
+     Llr(ilr)%d%n3=iez-isz
+
+     !assign outofzone
+     Llr(ilr)%outofzone(:) = outofzone(:)
+
+     ! Set the conditions for ext_buffers (conditions for buffer size)
+     Gperx=(Glr%geocode /= 'F')
+     Gpery=(Glr%geocode == 'P')
+     Gperz=(Glr%geocode /= 'F')
+     Lperx=(Llr(ilr)%geocode /= 'F')
+     Lpery=(Llr(ilr)%geocode == 'P')
+     Lperz=(Llr(ilr)%geocode /= 'F')
+
+     !calculate the size of the buffers of interpolating function grid
+     call ext_buffers(Gperx,Gnbl1,Gnbr1)
+     call ext_buffers(Gpery,Gnbl2,Gnbr2)
+     call ext_buffers(Gperz,Gnbl3,Gnbr3)
+     call ext_buffers(Lperx,Lnbl1,Lnbr1)
+     call ext_buffers(Lpery,Lnbl2,Lnbr2)
+     call ext_buffers(Lperz,Lnbl3,Lnbr3)
+
+     !starting point of the region for interpolating functions grid
+     Llr(ilr)%nsi1= 2 * Llr(ilr)%ns1 - (Lnbl1 - Gnbl1)
+     Llr(ilr)%nsi2= 2 * Llr(ilr)%ns2 - (Lnbl2 - Gnbl2)
+     Llr(ilr)%nsi3= 2 * Llr(ilr)%ns3 - (Lnbl3 - Gnbl3)
+
+     !dimensions of the fine grid inside the localisation region
+     Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx ! should we really substract isx (probably because the routines are coded with 0 as origin)?
+     Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
+     Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
+
+     !NOTE: This will not work with symmetries (must change it)
+     Llr(ilr)%d%nfu1=min(iex,Glr%d%nfu1)-isx
+     Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
+     Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
+
+     !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
+     Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+     Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+     Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+
+!DEBUG
+!     if (iproc == 0) then
+!        write(*,*)'Description of zone:',ilr
+!        write(*,*)'ns:',Llr(ilr)%ns1,Llr(ilr)%ns2,Llr(ilr)%ns3
+!        write(*,*)'ne:',Llr(ilr)%ns1+Llr(ilr)%d%n1,Llr(ilr)%ns2+Llr(ilr)%d%n2,Llr(ilr)%ns3+Llr(ilr)%d%n3
+!        write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
+!        write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
+!        write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
+!        write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
+!        write(*,*)'outofzone',ilr,':',outofzone(:)
+!     end if
+!DEBUG
+
+    ! construct the wavefunction descriptors (wfd)
+     call determine_wfd_periodicity(ilr,nlr,Glr,Llr)
+
+     ! Sould check if nfu works properly... also relative to locreg!!
+     !if the localisation region is isolated build also the bounds
+     if (Llr(ilr)%geocode=='F') then
+        call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
+             Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
+             Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+     end if
+  end do !on iilr
+
+!  call make_LLr_MpiType(Llr,nlr,mpiLlr)
+
+!  call MPI_ALLREDUCE(Llr(1),Llr(1),nlr,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+  !after all localisation regions are determined draw them
+  !call draw_locregs(nlr,hx,hy,hz,Llr)
+
+END SUBROUTINE determine_locreg_parallel
 

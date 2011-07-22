@@ -375,40 +375,22 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:,:), pointer :: psigau
 ! #### Linear Scaling Variables
-!  type(locreg_descriptors), dimension(:), allocatable :: Llr
-  integer :: npsidim,ilr,norbe,ind, indSmall, indLarge, indSpin, ispin, i1, i2, i3
-  integer,dimension(:,:), allocatable :: outofzone
-  integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-  integer,dimension(lmax+1) :: nmoments
-  real(gp), dimension(noccmax,lmax+1) :: occup
-  real(dp),dimension(:),pointer:: Lpot,Lpsi,Lhpsi
-  real(wp),dimension(:,:,:),allocatable :: Lhamovr,hamovr
-  real(wp),dimension(:,:,:,:,:),allocatable :: work1, work2
-  integer :: size_pot,size_Lpot,Gpsidim,norbp
-  logical :: exctX,linear,linear2
-  integer :: dim1,dim2
-  integer :: ilr2,isovrlp,psidim1,psishift1,psidim2,psishift2
-  integer :: dim_Lhamovr,Lnorbovr
-  real(dp) :: factor,sumrhop
-  integer,dimension(at%nat) :: projflg
-  type(nonlocal_psp_descriptors) :: Lnlpspd
-  integer :: norbi_max,ndim_hamovr
-  integer,dimension(5) :: sizes
-  integer :: lastrow,lastcol,firstrow,firstcol,spinshift,orbshift,totshift
-  integer :: ikpt,ikptp,natsceff,ispsi,ldim     ! for testing DiagHam
-  integer :: nvctrp,norbtot,ispsie,ispsiv              !
-  integer :: nspincomp                                 ! number of spin for orbitals
-  integer, dimension(:,:), allocatable :: norbgrp      !
-  real(wp), dimension(:), pointer :: psivirt           ! still for testing DiagHam
+!  integer :: ilr                           !for debugging
+  real(dp),dimension(:),pointer:: Lpsi,Lhpsi
+  logical :: linear,linear2
+!  integer :: dim1,dim2                    !debug plotting local wavefunctions
+!  real(dp) :: factor                      !debug plotting local wavefunctions
+!  integer,dimension(at%nat) :: projflg    !debug nonlocal_forces
   type(linear_zone_descriptors) :: Lzd                 
   integer,dimension(:),allocatable :: norbsc
+!  real(gp), dimension(3,at%nat) :: fsep                 !debug for debug nonlocal_forces
+!  real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
+!  integer :: ierr                                       !for debugging
 
   Lzd%nlr = at%nat   !!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-    allocate(norbsc(Lzd%nlr+ndebug),stat=i_stat)
-  call memocc(i_stat,norbsc,'norbsc',subname)
   allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
   call memocc(i_stat,locrad,'locrad',subname)
 
@@ -455,17 +437,14 @@ subroutine input_wf_diag(iproc,nproc,at,&
   linear2 = .true.
   if (linear) then
      ! For now, set locrad by hand HERE
-     locrad = 30.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
-
+     locrad = 15.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
+     call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear2)
+     call timing(iproc,'check_IG      ','OF')
   end if
 
   if (linear .and. linear2 .and. (nspin < 4) ) then
 
-     nspincomp = 1
-     if (nspin > 1) then
-        nspincomp = 2
-     end if
 
      ! Construct the Lzd
      ! Begin to define the Linear_Zone_descriptors
@@ -473,15 +452,10 @@ subroutine input_wf_diag(iproc,nproc,at,&
      Lzd%Glr = Glr
      Lzd%Gnlpspd = nlpspd
 
-     ! Define global orbs for Lzd
-     call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
-       orbs,lzd%orbs,norbsc_arr,locrad,G,psigau,eks)
-     locrad = 30.0d+0   ! because inputguess_gaussian_orbitals resets locrad
-     ! Define global communicators
-     call orbitals_communicators(iproc,nproc,Glr,lzd%orbs,lzd%comms)
-
      !allocate the array of localisation regions (memocc does not work)
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
+     allocate(norbsc(Lzd%nlr+ndebug),stat=i_stat)
+     call memocc(i_stat,norbsc,'norbsc',subname)
    
 ! DEBUG
       ! Write some physical information on the Glr
@@ -496,21 +470,74 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !     end if
 ! END DEBUG
 
-   ! determine the localization regions
-     call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
+     call timing(iproc,'constrc_locreg','ON')
 
    ! Assign orbitals to locreg
-     call assignToLocreg(iproc,nproc,orbse%nspinor,nspin_ig,at,Lzd%orbs,Lzd,norbsc_arr,norbsc)
+     call assignToLocreg(iproc,nproc,orbse%nspinor,nspin_ig,at,orbse,Lzd,norbsc_arr,norbsc)
+
+   ! determine the localization regions
+!     call determine_locreg_periodic(iproc,nproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
+     call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,orbse)
+
+   ! determine the wavefunction dimension
+     call wavefunction_dimension(Lzd,orbse)
+
+     call timing(iproc,'constrc_locreg','OF')
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(Lpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
      call razero(Lzd%Lpsidimtot,Lpsi)
- 
-    ! Construct wavefunction inside the locregs (the orbitals are ordered by locreg)
-     call gaussians_to_wavelets_new2(iproc,nproc,Lzd,hx,hy,hz,G,&
-          psigau(1,1,min(orbse%isorb+1,orbse%norb)),Lpsi(1))
 
+     call timing(iproc,'wavefunction  ','ON')
+    ! Construct wavefunction inside the locregs (the orbitals are ordered by locreg)
+     call gaussians_to_wavelets_new2(iproc,nproc,Lzd,orbse,hx,hy,hz,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),Lpsi(1))
+     call timing(iproc,'wavefunction  ','OF')
+!#####################
+!DEBUG nonlocal_forces
+
+!!   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+!!     allocate(psi(orbse%npsidim+ndebug),stat=i_stat)
+!!     call memocc(i_stat,psi,'psi',subname)
+!!
+!!   !use only the part of the arrays for building the hamiltonian matrix
+!!     call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
+!!          psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+!!     
+!!     projtmp = 0.0_wp
+!!     fsep = 0.0_wp
+!!     call nonlocal_forces(iproc,Glr,hx,hy,hz,at,rxyz,orbse,nlpspd,projtmp,Glr%wfd,psi,fsep,.false.)
+!!
+!!     do iat=1,at%nat
+!!     print *,'(C)Forces on atom',iat,' :',iproc,fsep(:,iat)
+!!     end do
+!!
+!!     ! Allocate the nonlocal descriptors for the locregs
+!!     allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
+!!
+!!     do ilr=1,Lzd%nlr
+!!
+!!     ! allocate projflg
+!!     allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=i_stat)
+!!     call memocc(i_stat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
+!!
+!!     call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,orbse,&
+!!      radii_cf,input%frmult,input%frmult,hx,hy,hz,Lzd%Gnlpspd,Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
+!!     end do
+!! 
+!!     projtmp = 0.0_wp
+!!     fsep = 0.0_wp
+!!     call Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,orbse,projtmp,psi,fsep,.false.)
+!!
+!!     do iat=1,at%nat
+!!     print *,'(L)Forces on atom',iat,' :',iproc,fsep(:,iat)
+!!     end do
+!!
+!!     call mpi_finalize(ierr)
+!!     stop
+
+!END DEBUG nonlocal_forces
+!#########################
 !DEBUG
      ! Print the wavefunctions
      !factor = real(Lzd%Glr%d%n1,dp)/real(Lzd%Llr(1)%d%n1,dp)
@@ -531,7 +558,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !END DEBUG
 
 
-     call sumrhoLinear(iproc,nproc,Lzd,ixc,hxh,hyh,hzh,Lpsi,rhopot,&
+     call sumrhoLinear(iproc,nproc,Lzd,orbse,ixc,hxh,hyh,hzh,Lpsi,rhopot,&
        & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)    
 
@@ -592,16 +619,25 @@ subroutine input_wf_diag(iproc,nproc,at,&
    
     call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
          Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,&
-         Lzd%orbs%norb,Lzd%orbs%norbp,ngatherarr,rhopot,pot)    
+         orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)    
  
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
     allocate(Lhpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
     call memocc(i_stat,Lhpsi,'Lhpsi',subname)
 
     ! the loop on locreg is inside LinearHamiltonianApplication
-    call LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
+    call LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,orbse,hx,hy,hz,rxyz,&
      proj,ngatherarr,pot,Lpsi,Lhpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel=pkernelseq)
+
+
+!     print *,'iproc,sum(Lhpsi)',iproc,sum(Lhpsi)
+!     open(44,file='Lhpsi',status='unknown')
+!     do ilr = 1,size(Lhpsi)
+!     write(44,*)Lhpsi(ilr)
+!     end do
+!     close(44)
+
 
     accurex=abs(eks-ekin_sum)
     !tolerance for comparing the eigenvalues in the case of degeneracies
@@ -633,10 +669,10 @@ subroutine input_wf_diag(iproc,nproc,at,&
     call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,comms,&
          Lpsi,Lhpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
-!    call LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,at%natsc,Lhpsi,Lpsi,psit,norbsc_arr=norbsc_arr)!,orbsv)
+!    call LinearDiagHam(iproc,at,etol,Lzd,orbse,orbs,nspin,at%natsc,Lhpsi,Lpsi,psit,norbsc_arr=norbsc_arr)!,orbsv)
     
     ! Don't need Lzd anymore (if only input guess)
-    call deallocate_Lzd(Lzd,subname)
+!    call deallocate_Lzd(Lzd,subname)
  
     ! Don't need Lhpsi anymore
     nullify(Lhpsi)
@@ -700,11 +736,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
         OCLconv=.false.
      end if
    
-   
+    call timing(iproc,'wavefunction  ','ON')   
    !use only the part of the arrays for building the hamiltonian matrix
      call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
           psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
-
+    call timing(iproc,'wavefunction  ','OF')
 !DEBUG
 !     print *,'iproc,sum(psi)',iproc,sum(psi)
 !     open(44,file='psi',status='unknown')

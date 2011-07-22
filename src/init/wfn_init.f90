@@ -691,17 +691,18 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
 
   call razero(npsidim,psiw)
 
+  call timing(iproc,'global_local  ','ON')
   !sequential approach: copy all the wavefuntions in the global region
   !fill psiw work array
   psishift1 = 1
   totshift = 0
-  do iorb=1,Lzd%orbs%norbp
-     ilr = Lzd%orbs%inwhichlocreg(iorb+Lzd%orbs%isorb)
-     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%orbs%nspinor
+  do iorb=1,orbsu%norbp
+     ilr = orbsu%inwhichlocreg(iorb+orbsu%isorb)
+     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbsu%nspinor
      call Lpsi_to_global(Lzd%Glr,npsidim,Lzd%Llr(ilr),psi(psishift1),&
-          ldim,Lzd%orbs%norbp,Lzd%orbs%nspinor,nspin,totshift,psiw)
+          ldim,orbsu%norbp,orbsu%nspinor,nspin,totshift,psiw)
      psishift1 = psishift1 + ldim
-     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*Lzd%orbs%nspinor
+     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbsu%nspinor
   end do
 
   !reallocate psi
@@ -719,13 +720,13 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   !fill psiw work array
   psishift1 = 1
   totshift = 0
-  do iorb=1,Lzd%orbs%norbp
-     ilr = Lzd%orbs%inwhichlocreg(iorb+Lzd%orbs%isorb)
-     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%orbs%nspinor
+  do iorb=1,orbsu%norbp
+     ilr = orbsu%inwhichlocreg(iorb+orbsu%isorb)
+     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbsu%nspinor
      call Lpsi_to_global(Lzd%Glr,npsidim,Lzd%Llr(ilr),hpsi(psishift1),&
-          ldim,Lzd%orbs%norbp,Lzd%orbs%nspinor,nspin,totshift,psiw)
+          ldim,orbsu%norbp,orbsu%nspinor,nspin,totshift,psiw)
      psishift1 = psishift1 + ldim
-     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*Lzd%orbs%nspinor
+     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbsu%nspinor
   end do
 
   !reallocate hpsi
@@ -737,7 +738,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   call memocc(i_stat,psi,'psi',subname)
 
   call dcopy(npsidim,psiw,1,hpsi,1) !hpsi=psiw
-
+  call timing(iproc,'global_local  ','OF')
   !transpose all the wavefunctions for having a piece of all the orbitals 
   !for each processor
   call transpose_v(iproc,nproc,orbsu,Lzd%Glr%wfd,commu,psi,work=psiw)

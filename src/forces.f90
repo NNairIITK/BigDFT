@@ -187,7 +187,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
 
-
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
      
@@ -228,7 +227,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
         end do
      end do
   end do
-  
+ 
   !look for the strategy of projectors application
   if (DistProjApply) then
      !apply the projectors on the fly for each k-point of the processor

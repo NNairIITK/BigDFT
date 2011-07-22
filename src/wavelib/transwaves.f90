@@ -111,7 +111,6 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
   !local variables
   integer :: ierr
 
-
   call timing(iproc,'Un-TransSwitch','ON')
 
   if (nproc > 1) then
@@ -163,6 +162,7 @@ subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
   real(wp), dimension(*), intent(out), optional :: outadd !< Optional argument
   !local variables
   integer :: ierr
+
 
   call timing(iproc,'Un-TransSwitch','ON')
 

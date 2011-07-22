@@ -132,7 +132,7 @@ call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, l
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! Initialize the localization regions.
-call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
+call initLocregs(iproc, nproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
 
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
@@ -1279,13 +1279,13 @@ end subroutine allocateBasicArrays
 
 
 
-subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
+subroutine initLocregs(iproc, nproc, nat, rxyz, lin, input, Glr, phi, lphi)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nat
+integer,intent(in):: iproc, nproc, nat
 real(8),dimension(3,nat),intent(in):: rxyz
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
@@ -1317,9 +1317,9 @@ call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 !    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
 !end if
 
- call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
- call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
- call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr)
+ call determine_locreg_periodic(iproc, nproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
+ call determine_locreg_periodic(iproc, nproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
+ call determine_locreg_periodic(iproc, nproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr)
 
 !!do ilr=1,lin%nlr
 !!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
@@ -1378,13 +1378,13 @@ end subroutine initLocregs
 !> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
 !! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
 !subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
-subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad)
+subroutine initLocregs2(iproc, nproc, nat, rxyz, lzd, input, Glr, locrad)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nat
+integer,intent(in):: iproc, nproc, nat
 real(8),dimension(3,nat),intent(in):: rxyz
 type(linear_zone_descriptors),intent(inout):: lzd
 type(input_variables),intent(in):: input
@@ -1416,7 +1416,7 @@ allocate(lzd%Llr(lzd%nlr),stat=istat)
 !    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
 !end if
 
- call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr)
+ call determine_locreg_periodic(iproc, nproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr)
 
 !do ilr=1,lin%nlr
 !    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr

@@ -11,7 +11,7 @@
 !> Calculates the charge density by summing the square of all orbitals
 !! Input: psi
 !! Output: rho
-subroutine sumrhoLinear(iproc,nproc,Lzd,ixc,hxh,hyh,hzh,psi,rho,nrho,&
+subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      & nscatterarr,nspin,GPU,symObj,irrzon,phnons)
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
@@ -22,6 +22,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   integer, intent(in) :: iproc,nproc,nrho,nspin,ixc,symObj
   real(gp), intent(in) :: hxh,hyh,hzh
   type(linear_zone_descriptors), intent(in) :: Lzd
+  type(orbitals_data),intent(in) :: orbs
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
   real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
@@ -53,7 +54,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   end if
 
   !components of the charge density
-  if (Lzd%orbs%nspinor ==4) then
+  if (orbs%nspinor ==4) then
      nspinn=4
   else
      nspinn=nspin
@@ -97,10 +98,10 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   !switch between GPU/CPU treatment of the density
   if (GPUconv) then
      stop 'local_partial_density_GPU not implemented!'
-     call local_partial_density_GPU(iproc,nproc,Lzd%orbs,nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
+     call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else if (OCLconv) then
      stop 'local_partial_density_OCL not implemented'
-     call local_partial_density_OCL(iproc,nproc,Lzd%orbs,nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
+     call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
      !otherwise use libXC routine
@@ -112,7 +113,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
      !for each of the orbitals treated by the processor build the partial densities
      !call system_clock(ncount2,ncount_rate,ncount_max)
-     call local_partial_densityLinear(iproc,nproc,ixc,Lzd,rsflag,nscatterarr,nrhotot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,&
+     call local_partial_densityLinear(iproc,nproc,ixc,Lzd,orbs,rsflag,nscatterarr,nrhotot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,&
           rho_p,hxh,hyh,hzh,nspin,psi)
      !call system_clock(ncount3,ncount_rate,ncount_max)
   end if
@@ -273,7 +274,7 @@ END SUBROUTINE sumrhoLinear
 
 !>   Here starts the routine for building partial density inside the localisation region
 !!   This routine should be treated as a building-block for the linear scaling code
-subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,rsflag,nscatterarr,&
+subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,orbs,rsflag,nscatterarr,&
      nrhotot,nrho,rho,hxh,hyh,hzh,nspin,psi)
   use module_base
   use module_types
@@ -287,6 +288,7 @@ subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,rsflag,nscatterarr,&
   real(dp),dimension(max(nrho,1),nspin),intent(out):: rho
   real(gp), intent(in) :: hxh,hyh,hzh
   type(linear_zone_descriptors), intent(in) :: Lzd
+  type(orbitals_data),intent(in) :: orbs
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
   !local variables
@@ -304,14 +306,14 @@ subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,rsflag,nscatterarr,&
 
  !components of wavefunction in real space which must be considered simultaneously
   !and components of the charge density
-  if (Lzd%orbs%nspinor ==4) then
+  if (orbs%nspinor ==4) then
      npsir=4
      nspinn=4
      ncomplex=0
   else
      npsir=1
      nspinn=nspin
-     ncomplex=Lzd%orbs%nspinor-1
+     ncomplex=orbs%nspinor-1
   end if
   nspincomp = 1
   if (nspin > 1) nspincomp = 2
@@ -349,10 +351,10 @@ subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,rsflag,nscatterarr,&
 !
 !      nrhotot=Lzd%Llr(ilr)%d%n3i
          
-      orbitalsLoop: do ii=1,Lzd%orbs%norbp
+      orbitalsLoop: do ii=1,orbs%norbp
 
-         iorb = ii + Lzd%orbs%isorb
-         ilr = Lzd%orbs%inwhichLocreg(iorb)
+         iorb = ii + orbs%isorb
+         ilr = orbs%inwhichLocreg(iorb)
 
         ! create descriptors for local potential (for Lnscatterarr)
          call createDensPotDescriptors(iproc,nproc,Lzd%Llr(ilr)%geocode,'D',Lzd%Llr(ilr)%d%n1i,&
@@ -376,8 +378,8 @@ subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,rsflag,nscatterarr,&
          end if
 
          !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
-         hfac=Lzd%orbs%kwgts(Lzd%orbs%iokpt(ii))*(Lzd%orbs%occup(iorb)/(hxh*hyh*hzh))
-         spinval=Lzd%orbs%spinsgn(iorb)
+         hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(iorb)/(hxh*hyh*hzh))
+         spinval=orbs%spinsgn(iorb)
 
          if (hfac /= 0.d0) then
 

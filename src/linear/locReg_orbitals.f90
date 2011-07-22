@@ -159,7 +159,6 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
   integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsctot,orbsc,ispin
   integer :: iat,ind,i_all,noncoll,Lnorb,dimtot,ilr,npsidim,ierr
   character(len=*), parameter :: subname='assignToLocreg'
-  integer, dimension(:,:), allocatable :: orbscToAtom                   !> array olding the number of semicore states for each atom and spin
   integer, dimension(:), allocatable :: Localnorb
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   integer, dimension(lmax+1) :: nmoments
@@ -179,6 +178,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
 
 ! NOTES: WORKS ONLY BECAUSE Llr coincides with the atoms !!
 ! NOTES: K-Points??
+  nmoments = 0
   do ilr = 1, Lzd%nlr
      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,ilr),occup,nmoments)
      Lnorb=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
@@ -192,46 +192,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
   orbs%inWhichLocreg = 0
   orbs%inWhichLocregP = 0
 
-!  allocate(orbscToAtom(natom,nspin),stat=i_stat)
-!  call memocc(i_stat,orbscToAtom,'orbscToAtom',subname)
-
-
-  ! There are four counters:
-  !   jproc: indicates which MPI process is handling the basis function which is being treated
-  !   jat: counts the atom numbers
-  !   jorb: counts the orbitals handled by a given process
-  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
-
-  ! First build the number of semicore states for each atom
-!  orbscToAtom = 0
-!  do ispin=1,nspin
-!     iat = 0
-!     do jat=1,natom
-!        if(iasctype(jat) == 0)cycle
-!        iat = iat + 1
-!        orbscToAtom(jat,ispin) = norbsc_arr(iat,ispin)
-!     end do
-!  end do
-!
-!  ! Now distribute the semicore states
-!  ind = 0
   norbsc = 0
-!  do ispin=1,nspin
-!     do jat=1,natom
-!        do iorb=1,orbscToAtom(jat,ispin)
-!            orbs%inWhichLocreg(iorb+ind) = jat
-!            norbsc(jat) = norbsc(jat) + 1
-!        end do
-!        ind = ind + orbscToAtom(jat,ispin)
-!     end do
-!  end do
-
-! DEBUG
-!     print *,'ind',ind 
-!     do ispin=1,orbs%norb
-!       write(*,*) 'iorb, iwl', ispin, orbs%inWhichLocreg(ispin),orbs%occup(ispin)
-!     end do
-! END DEBUG
   ind = 0
   jproc=0
   jat=1
@@ -247,9 +208,6 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
           if (jproc==nproc) exit
       end if
       orbsc = 0
-!      do ispin=1,nspin
-!         orbsc = orbsc + orbscToAtom(jat,ispin)
-!      end do
       ! Switch to the next atom if the number of basis functions for this atom is reached.
       if(iiOrb==(Localnorb(jat)-orbsc)*noncoll) then
           jat=jat+1
@@ -265,32 +223,49 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
          orbs%inWhichLocreg(jorb+orbs%isorb)=jat
       end if
   end do
-
   call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
 
+
 ! Calculate the dimension of the total wavefunction
+!!  dimtot = 0
+!!  if(orbs%norbp > 0) then
+!!     do iorb = 1,orbs%norbp
+!!        ilr = orbs%inwhichlocregP(iorb)
+!!        npsidim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
+!!        dimtot = dimtot + npsidim
+!!     end do
+!!  else if (orbs%norbp == 0) then
+!!       dimtot = orbs%npsidim
+!!  end if
+!!  Lzd%Lpsidimtot = dimtot
+
+  i_all=-product(shape(Localnorb))*kind(Localnorb)
+  deallocate(Localnorb,stat=i_stat)
+  call memocc(i_stat,i_all,'Localnorb',subname)
+
+end subroutine assignToLocreg
+
+subroutine wavefunction_dimension(Lzd,orbs)
+  use module_types
+  implicit none
+  type(linear_zone_descriptors),intent(inout) :: Lzd
+  type(orbitals_data),intent(in) :: orbs
+  !local variables
+  integer :: dimtot,iorb,ilr,npsidim
+
   dimtot = 0
   if(orbs%norbp > 0) then
      do iorb = 1,orbs%norbp
         ilr = orbs%inwhichlocregP(iorb)
-        npsidim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
+        npsidim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
         dimtot = dimtot + npsidim
      end do
   else if (orbs%norbp == 0) then
        dimtot = orbs%npsidim
   end if
   Lzd%Lpsidimtot = dimtot
+end subroutine wavefunction_dimension
 
-
-  i_all=-product(shape(Localnorb))*kind(Localnorb)
-  deallocate(Localnorb,stat=i_stat)
-  call memocc(i_stat,i_all,'Localnorb',subname)
-
-!  i_all = -product(shape(orbscToAtom))*kind(orbscToAtom)
-!  deallocate(orbscToAtom,stat=i_stat)
-!  call memocc(i_stat,i_all,'orbscToAtom',subname)
-
-end subroutine assignToLocreg
 
 subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, orbse)
   use module_base

@@ -170,7 +170,7 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   !!write(*,'(a,i3,3x,100i4)') 'iproc, owap', iproc, onWhichAtomp(:)
 
   !call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, locrad)
-  call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
+  call initLocregs2(iproc, nproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
   allocate(lchi(lzdig%orbs%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,lchi,'lchi',subname)
   allocate(lhchi(lzdig%orbs%npsidim,at%nat),stat=i_stat)
@@ -406,7 +406,7 @@ write(*,'(a,i4,2i13)') 'iproc, lzdig%orbs%npsidim, orbsig%npsidim', iproc, lzdig
       !call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lzdig, lin, input%hx, input%hy, input%hz, rxyz,&
       !     proj, ngatherarr, comgp%nrecvBuf, comgp%recvBuf, lchi, lhchi(1,iat), &
       !     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp, withConfinement, doNotCalculate=doNotCalculate, pkernel=pkernelseq)
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lzdig, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lzdig, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, comgp%nrecvBuf, comgp%recvBuf, lchi, lhchi(1,iat), &
            ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp,&
            withConfinement, pkernel=pkernelseq)

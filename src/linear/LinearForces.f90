@@ -1,35 +1,33 @@
 !>  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !!  belonging to iproc and adds them to the force array
 !!   recalculate the projectors at the end if refill flag is .true.
-subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpspd,proj,wfd,psi,fsep,refill)
+subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
+     orbs,proj,psi,fsep,refill)
   use module_base
   use module_types
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   logical, intent(in) :: refill
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
-  type(locreg_descriptors) :: lr
+  type(linear_zone_descriptors) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
-  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+  real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
+  real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
   !local variables--------------
-  character(len=*), parameter :: subname='nonlocal_forces'
-  integer :: istart_c,iproj,iat,ityp,i,j,l,m
-  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
+  character(len=*), parameter :: subname='Linearnonlocal_forces'
+  integer :: istart_c,iproj,iat,ityp,i,j,l,m,ilr,ilr2
+  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,iatom
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
-
+  
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
 
@@ -38,6 +36,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   !also nspinor for the moment is the biggest as possible
   allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
+  call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
 
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
@@ -71,7 +70,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
      end do
   end do
 
-  !look for the strategy of projectors application
   if (DistProjApply) then
      !apply the projectors on the fly for each k-point of the processor
      !starting k-point
@@ -84,43 +82,43 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 
         call ncplx_kpt(ikpt,orbs,ncplx)
 
+        !calculate the contribution for each orbital
+        !here the nspinor contribution should be adjusted
+        ! loop over all my orbitals
         nwarnings=0 !not used, simply initialised 
-        iproj=0 !should be equal to four times nproj at the end
-        jorbd=jorb
-        do iat=1,at%nat
-
-           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-           jseg_c=nlpspd%nseg_p(2*iat-2)+1
-           jseg_f=nlpspd%nseg_p(2*iat-1)+1
-           mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-           mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-           ityp=at%iatype(iat)
-
-           do idir=0,3
-              !calculate projectors
-              istart_c=1
-              call atom_projector(ikpt,iat,idir,istart_c,iproj,&
-                   lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
-
-              !calculate the contribution for each orbital
-              !here the nspinor contribution should be adjusted
-              ! loop over all my orbitals
-              ispsi=ispsi_k
-              jorb=jorbd
-              do iorb=isorb,ieorb
-                 do ispinor=1,nspinor,ncplx
-                    jorb=jorb+1
-                    istart_c=1
+        ispsi=ispsi_k
+        
+        do iorb=isorb,ieorb
+           ilr = orbs%inWhichLocreg(iorb+orbs%isorb)   !check for the locreg
+           do ispinor=1,nspinor,ncplx
+              jorb=jorb+1
+              iproj = 0 !should be equal to four times nproj at the end
+              jseg_c = 1
+              iatom = 0
+              do iat=1,at%nat
+                 if (Lzd%Llr(ilr)%projflg(iat) == 0) cycle
+                 iatom = iatom + 1
+                 mbseg_c=Lzd%Lnlpspd(ilr)%nseg_p(2*iatom-1)!-Lzd%Lnlpspd(ilr)%nseg_p(2*iat-2)
+                 mbseg_f=Lzd%Lnlpspd(ilr)%nseg_p(2*iatom  )!-Lzd%Lnlpspd(ilr)%nseg_p(2*iat-1)
+                 jseg_f = jseg_c + Lzd%Lnlpspd(ilr)%nseg_p(2*iatom - 1)
+                 mbvctr_c=Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1)!-Lzd%Lnlpspd(ilr)%nvctr_p(2*iat-2)
+                 mbvctr_f=Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom  )!-Lzd%Lnlpspd(ilr)%nvctr_p(2*iat-1)
+                 ityp=at%iatype(iat) 
+                 do idir=0,3
+                    istart_c = 1
+                    !calculate projectors
+                    call Linearatom_projector(ikpt,iatom,idir,istart_c,iproj,&
+                         Lzd%Llr(ilr),hx,hy,hz,rxyz,at,orbs,Lzd%Lnlpspd(ilr),proj,nwarnings)
+                    istart_c=1        !because it is changed in Linearatom_projector
                     do l=1,4
                        do i=1,3
                           if (at%psppar(l,i,ityp) /= 0.0_gp) then
                              do m=1,2*l-1
                                 call wpdot_wrap(ncplx,&
-                                     wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                                     wfd%keyv,wfd%keyg,psi(ispsi),&
+                                     Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,Lzd%Llr(ilr)%wfd%nseg_c,&
+                                     Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keyg,psi(ispsi),&
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                     nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
+                                     Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&
                                      proj(istart_c),&
                                      scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
@@ -128,12 +126,11 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                           end if
                        end do
                     end do
-                    ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*ncplx
                  end do
+                 jseg_c = jseg_c + Lzd%Lnlpspd(ilr)%nseg_p(2*iatom - 1)+ Lzd%Lnlpspd(ilr)%nseg_p(2*iatom)
               end do
-              if (istart_c-1  > nlpspd%nprojel) stop '2:applyprojectors'
+              ispsi=ispsi+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
            end do
-
         end do
 
         if (ieorb == orbs%norbp) exit loop_kptD
@@ -141,20 +138,23 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
         ispsi_k=ispsi
      end do loop_kptD
 
-
   else
      !calculate all the scalar products for each direction and each orbitals
      do idir=0,3
 
-        if (idir /= 0) then !for the first run the projectors are already allocated
-           call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
-        end if
+! Displaced to inside the loop on iorb because this loop decides the ilr
+! Should not be a problem, since for linear scaling, each wavefunction can be in a separate locreg
+!        if (idir /= 0) then !for the first run the projectors are already allocated
+!           call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
+!        end if
+
         !apply the projectors  k-point of the processor
         !starting k-point
         ikpt=orbs%iokpt(1)
         istart_ck=1
         ispsi_k=1
         jorb=0
+        ilr2 = 0
         loop_kpt: do
 
            call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
@@ -163,18 +163,32 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
            ! calculate the scalar product for all the orbitals
            ispsi=ispsi_k
            do iorb=isorb,ieorb
+
+              ilr = orbs%inWhichLocreg(iorb+orbs%isorb)   !check for the locreg
+
+              !must recalculate the projectors for each different locreg and each idir
+              if (ilr .ne. ilr2) then
+                 ilr2 = ilr
+                 call Linearfill_projectors(iproc,Lzd%Llr(ilr),hx,hy,hz,at,orbs,rxyz,Lzd%Lnlpspd(ilr),proj,idir)
+              end if
+
               do ispinor=1,nspinor,ncplx
                  jorb=jorb+1
                  ! loop over all projectors of this k-point
                  iproj=0
                  istart_c=istart_ck
+                 jseg_c = 1
+                 iatom = 0
                  do iat=1,at%nat
-                    mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-                    mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-                    jseg_c=nlpspd%nseg_p(2*iat-2)+1
-                    jseg_f=nlpspd%nseg_p(2*iat-1)+1
-                    mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-                    mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+                    if (Lzd%Llr(ilr)%projflg(iat) == 0) cycle
+                    iatom = iatom + 1
+                    mbseg_c=Lzd%Lnlpspd(ilr)%nseg_p(2*iatom-1)!-Lzd%Lnlpspd(ilr)%nseg_p(2*iat-2)
+                    mbseg_f=Lzd%Lnlpspd(ilr)%nseg_p(2*iatom  )!-Lzd%Lnlpspd(ilr)%nseg_p(2*iat-1)
+                    !jseg_c=Lzd%Lnlpspd(ilr)%nseg_p(2*iat-2)+1
+                    !jseg_f=Lzd%Lnlpspd(ilr)%nseg_p(2*iat-1)+1
+                    jseg_f = jseg_c + Lzd%Lnlpspd(ilr)%nseg_p(2*iatom - 1)
+                    mbvctr_c=Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1)!-Lzd%Lnlpspd(ilr)%nvctr_p(2*iat-2)
+                    mbvctr_f=Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom  )!-Lzd%Lnlpspd(ilr)%nvctr_p(2*iat-1)
                     ityp=at%iatype(iat)
                     do l=1,4
                        do i=1,3
@@ -182,33 +196,37 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
                              do m=1,2*l-1
                                 iproj=iproj+1
                                 call wpdot_wrap(ncplx,&
-                                     wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                                     wfd%keyv,wfd%keyg,psi(ispsi),  &
+                                     Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,Lzd%Llr(ilr)%wfd%nseg_c,&
+                                     Lzd%Llr(ilr)%wfd%nseg_f,&
+                                     Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keyg,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                     nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),&
+                                     Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                              end do
                           end if
                        end do
                     end do
+                    jseg_c = jseg_c + Lzd%Lnlpspd(ilr)%nseg_p(2*iatom - 1)+ Lzd%Lnlpspd(ilr)%nseg_p(2*iatom)
                  end do
-                 ispsi=ispsi+(wfd%nvctr_c+7*wfd%nvctr_f)*ncplx
+                 ispsi=ispsi+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*ncplx
               end do
-              if (iproj /= nlpspd%nproj) stop '1:applyprojectors'
+              if (iproj /= Lzd%Lnlpspd(ilr)%nproj) stop '1:applyprojectors'
            end do
            istart_ck=istart_c
            if (ieorb == orbs%norbp) exit loop_kpt
            ikpt=ikpt+1
            ispsi_k=ispsi
         end do loop_kpt
-        if (istart_ck-1  /= nlpspd%nprojel) stop '2:applyprojectors'
+! Test disabled for now
+!        if (istart_ck-1  /= nlpspd%nprojel) stop '2:applyprojectors'
 
      end do
 
      !restore the projectors in the proj array (for on the run forces calc., tails or so)
+     ! Chosen to be in the global box.
      if (refill) then
-        call fill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,0)
+        call Linearfill_projectors(iproc,Lzd%Glr,hx,hy,hz,at,orbs,rxyz,Lzd%Gnlpspd,proj,0)
      end if
 
   end if
@@ -228,11 +246,14 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
 
      ! loop over all my orbitals for calculating forces
      do iorb=isorb,ieorb
+        ilr = orbs%inWhichLocreg(iorb+orbs%isorb)   !check for the locreg
+
         ! loop over all projectors
         call razero(3*at%nat,fxyz_orb)
         do ispinor=1,nspinor,ncplx
            jorb=jorb+1
            do iat=1,at%nat
+              if (Lzd%Llr(ilr)%projflg(iat) == 0) cycle
               ityp=at%iatype(iat)
               do l=1,4
                  do i=1,3
@@ -289,6 +310,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
         !orbital-dependent factor for the forces
         orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*2.0_gp
 
+        ! For the basis functions, use coeff to build the linear combinations
         do iat=1,at%nat
            fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
            fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
@@ -315,5 +337,125 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   deallocate(scalprod,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod',subname)
 
-END SUBROUTINE nonlocal_forces
+END SUBROUTINE Linearnonlocal_forces
+
+!>   Fill the proj array with the PSP projectors or their derivatives, following idir value
+subroutine Linearfill_projectors(iproc,lr,hx,hy,hz,at,orbs,rxyz,nlpspd,proj,idir)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,idir
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors),intent(in) :: lr
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+  !Local variables
+  integer, parameter :: nterm_max=20 !if GTH nterm_max=4
+  integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
+
+  if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) write(*,'(1x,a)',advance='no') &
+       'Calculating wavelets expansion of projectors...'
+  !warnings related to the projectors norm
+  nwarnings=0
+  !allocate these vectors up to the maximum size we can get
+  istart_c=1
+
+  !create projectors for any of the k-point hosted by the processor
+  !starting kpoint
+  if (orbs%norbp > 0) then
+     iskpt=orbs%iokpt(1)
+     iekpt=orbs%iokpt(orbs%norbp)
+  else
+     iskpt=1
+     iekpt=1
+  end if
+
+  do ikpt=iskpt,iekpt
+     iproj=0
+     do iat=1,at%nat
+        if (lr%projflg(iat) == 0) cycle
+        !this routine is defined to uniformise the call for on-the-fly application
+        call Linearatom_projector(ikpt,iat,idir,istart_c,iproj,&
+             lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+     enddo
+     if (iproj /= nlpspd%nproj) stop 'incorrect number of projectors created'
+     ! projector part finished
+  end do
+  if (istart_c-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp generation'
+
+  if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
+     if (nwarnings == 0) then
+        write(*,'(1x,a)')'done.'
+     else
+        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
+        write(*,'(1x,a)')'Some projectors may be too rough.'
+        write(*,'(1x,a,f6.3)')&
+             'Consider the possibility of modifying hgrid and/or the localisation radii.'
+     end if
+  end if
+
+END SUBROUTINE Linearfill_projectors
+
+subroutine Linearatom_projector(ikpt,iat,idir,istart_c,iproj,&
+     lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iat,idir,ikpt
+  real(gp), intent(in) :: hx,hy,hz
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors),intent(in) :: lr
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  integer, intent(inout) :: istart_c,iproj,nwarnings
+  real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+  !Local variables
+  integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,ncplx
+  real(gp) :: kx,ky,kz
+
+  !features of the k-point ikpt
+  kx=orbs%kpts(1,ikpt)
+  ky=orbs%kpts(2,ikpt)
+  kz=orbs%kpts(3,ikpt)
+
+  !evaluate the complexity of the k-point
+  if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+     ncplx=1
+  else
+     ncplx=2
+  end if
+
+  ityp=at%iatype(iat)
+  mbvctr_c=nlpspd%nvctr_p(2*iat-1)!-nlpspd%nvctr_p(2*iat-2)
+  mbvctr_f=nlpspd%nvctr_p(2*iat  )!-nlpspd%nvctr_p(2*iat-1)
+
+  mbseg_c=nlpspd%nseg_p(2*iat-1)!-nlpspd%nseg_p(2*iat-2)
+  mbseg_f=nlpspd%nseg_p(2*iat  )!-nlpspd%nseg_p(2*iat-1)
+
+  jseg_c = 1
+  do l=1,iat-1
+     jseg_c = jseg_c +  nlpspd%nseg_p(2*l - 1) + nlpspd%nseg_p(2*l) 
+  end do
+
+  !decide the loop bounds
+  do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+     do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+        if (at%psppar(l,i,ityp) /= 0.0_gp) then
+           call local_projector(at%geocode,at%atomnames(ityp),iat,idir,l,i,&
+                at%psppar(l,0,ityp),rxyz(1,iat),lr,&
+                hx,hy,hz,kx,ky,kz,ncplx,&
+                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
+           iproj=iproj+2*l-1
+           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
+           !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,nlpspd%nprojel,ncplx
+           if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
+        endif
+     enddo
+  enddo
+END SUBROUTINE Linearatom_projector
 

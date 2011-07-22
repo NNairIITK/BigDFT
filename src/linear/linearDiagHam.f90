@@ -1,4 +1,5 @@
-subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbsv,norbsc_arr)
+! Needs to be cleaned up, changed the data structure of much Lzd !!!
+subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbsv,norbsc_arr,orbse,commse)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => LinearDiagHam
@@ -11,10 +12,12 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
   type(linear_zone_descriptors) :: Lzd                                  !> Information about the locregs
   type(orbitals_data), intent(in) :: orbs                               !> description of orbitals after the input guess (less orbitals)
   type(orbitals_data), optional, intent(in) :: orbsv                    !> description of virtual orbitals (for davidson?)
-  real(wp),dimension(Lzd%orbs%npsidim),intent(in):: Lhpsi               !> All the local H|Psi>
-  real(wp),dimension(Lzd%orbs%npsidim),intent(in):: Lpsi                !> All the local |Psi>
+  real(wp),dimension(Lzd%Lpsidimtot),intent(in):: Lhpsi                   !> All the local H|Psi>
+  real(wp),dimension(Lzd%Lpsidimtot),intent(in):: Lpsi                    !> All the local |Psi>
   real(wp),dimension(orbs%npsidim),intent(inout):: psit                 !> Eigenvectors
   integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr !> semicore description
+  type(orbitals_data),intent(in),optional,target :: orbse                      !> description of orbitals for input guess
+  type(communications_arrays), optional, target, intent(in) :: commse   !> communicators
   !Local variables
   integer :: ilr,ilr2,ikptp,ikpt,ii,jj                       !> loop integers
   integer :: i_stat,i_all                                    !> error handling for allocation/deallocation and memocc
@@ -33,6 +36,9 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
   integer :: noncoll                                         !> =2 for non collinear spins, =1 otherwise
   integer :: norb1,norb2
   integer :: i,ispin,ndh1,iat,iel,scshift,scstr              !> used for loops with semicore states
+  integer :: npsidim,nspinor
+  type(orbitals_data),pointer :: orbsu                               !> used to define the orbitals
+  logical :: minimal
   character(len=*),parameter :: subname='Linear_DiagHam'     ! name of subroutine
   integer, dimension(:,:), allocatable :: norbgrp            !>
   real(wp), dimension(:), pointer :: psivirt                 !> 
@@ -45,6 +51,27 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
   logical :: semicore
 
   semicore=present(norbsc_arr)
+
+  if (present(orbse) .neqv. present(commse)) then
+     !if (iproc ==0) 
+           write(*,'(1x,a)')&
+          'ERROR (DiagHam): the variables orbse and commse must be present at the same time'
+     stop
+  else
+     minimal=present(orbse)
+  end if
+
+  if(minimal) then
+     norbtot=orbse%norb !beware that norbe is equal both for spin up and down
+     orbsu => orbse
+     npsidim=orbse%npsidim
+     nspinor=orbse%nspinor
+  else
+   write(*,*) 'Linear InputGuess only with minimal.'
+   stop
+  end if
+
+
   if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
         'Overlap Matrix...'
 
@@ -91,16 +118,16 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
      end if
   else
      norbsc = 0
-     norbi_max=max(Lzd%orbs%norbu,Lzd%orbs%norbd)
+     norbi_max=max(orbse%norbu,orbse%norbd)
      ndim_hamovr = norbi_max**2
   end if
 
   !allocation of Global hamiltonian/overlap matrix
-  allocate(hamovr(nspin*ndim_hamovr,2,Lzd%orbs%nkpts+ndebug),stat=i_stat)
+  allocate(hamovr(nspin*ndim_hamovr,2,orbse%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,hamovr,'hamovr',subname)
 
   ! put it to zero
-  call razero(nspin*ndim_hamovr*2*Lzd%orbs%nkpts,hamovr)
+  call razero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr)
 
   ! First build the number of semicore states for each atom (hence each locreg)
   ! ONLY WORKS FOR INPUT GUESS where each atom has it's locreg
@@ -119,14 +146,14 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
   scstr = 1
   ! The loop on ilr gives the row indexes, the loop on ilr2 gives the column indexes
   do ilr = 1, Lzd%nlr
-     norb1 = Lzd%Lorbs(ilr)%norb/Lzd%Lorbs(ilr)%nspin
+     norb1 = Lzd%Llr(ilr)%Localnorb/orbsu%nspin
      if (orbscToAtom(ilr,1) > 0) then  !This assumes that number of semicore orbitals are the same for each spin.
         ! Calculate the hamiltonian/overlap matrix for the semicore states of locreg ilr
         ! These states only intersect with themselves, so only need to consider this locreg
-        call semicore_overlap_matrices(ilr,nspin,Lzd%Lorbs(ilr)%nspinor,Lzd%orbs%norb,Lzd,orbscToAtom,&
+        call semicore_overlap_matrices(ilr,nspin,nspinor,orbse%norb,Lzd,orbsu,orbscToAtom,&
              ndim_hamovr,hamovr,scstr,Lpsi,Lhpsi)
-        scstr= scstr + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbscToAtom(ilr,1)*Lzd%Lorbs(ilr)%nspinor
-        psishift1 = psishift1 + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbscToAtom(ilr,1)*Lzd%Lorbs(ilr)%nspinor
+        scstr= scstr + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbscToAtom(ilr,1)*nspinor
+        psishift1 = psishift1 + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbscToAtom(ilr,1)*nspinor
      end if
 
 ! DEBUG
@@ -140,17 +167,17 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
      firstcol = 1 + norbsc   !This assumes that number of semicore orbitals are the same for each spin. CHECK IF NONCOLL is a problem
      lastrow  = firstrow-1  + norb1 - orbscToAtom(ilr,1) !This assumes that number of semicore orbitals are the same for each spin.
      psidim1 = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*&
-               (norb1-orbscToAtom(ilr,1))*Lzd%Lorbs(ilr)%nspinor
+               (norb1-orbscToAtom(ilr,1))*nspinor
      psishift2 = 1
      do ilr2 = 1,Lzd%nlr
-        norb2 = Lzd%Lorbs(ilr2)%norb/Lzd%Lorbs(ilr2)%nspin
+        norb2 = Lzd%Llr(ilr2)%Localnorb/orbsu%nspin
         ! don't use the semicore states
         psishift2 = psishift2 + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*&
-                    orbscToAtom(ilr2,1)*Lzd%Lorbs(ilr2)%nspinor
+                    orbscToAtom(ilr2,1)*nspinor
 
         call get_number_of_overlap_region(ilr,ilr2,Lzd%Glr,isovrlp,Lzd%Llr,Lzd%nlr)!,outofzone)
 
-        psidim2=(Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*norb2*Lzd%Lorbs(ilr2)%nspinor
+        psidim2=(Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*norb2*nspinor
 
         ! If no overlap, increment the index of Lpsi and overlap matrix then cycle
         if(isovrlp == 0)then
@@ -161,16 +188,16 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
         end if
 
         !redefine psidim2 to remove the semicore states
-        psidim2=(Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*(norb2-orbscToAtom(ilr2,1))*Lzd%orbs%nspinor
+        psidim2=(Lzd%Llr(ilr2)%wfd%nvctr_c+7*Lzd%Llr(ilr2)%wfd%nvctr_f)*(norb2-orbscToAtom(ilr2,1))*orbse%nspinor
 
         ! dimensions and allocation of Local hamiltonian/overlap matrix
         dim_Lhamovr=(norb1-orbscToAtom(ilr,1))*(norb2-orbscToAtom(ilr2,1))
-        allocate(Lhamovr(nspin*dim_Lhamovr,2,Lzd%orbs%nkpts+ndebug),stat=i_stat)
+        allocate(Lhamovr(nspin*dim_Lhamovr,2,orbse%nkpts+ndebug),stat=i_stat)
         call memocc(i_stat,Lhamovr,'Lhamovr',subname)
 
      ! In this routine, we begin by calculating the hamiltonian/overlap matrix between two locregs.
         call overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nspin,orbscToAtom,psidim1,psidim2,psishift1,&
-           psishift2,Lzd,Lpsi,Lhpsi,dim_Lhamovr,Lhamovr)
+           psishift2,Lzd,orbsu,Lpsi,Lhpsi,dim_Lhamovr,Lhamovr)
 
 ! DEBUG
 !  print *,'size(Lhamovr)',size(Lhamovr,1),size(Lhamovr,2),size(Lhamovr,3)
@@ -183,9 +210,9 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
         psishift2 = psishift2 + psidim2*nspin
 
      ! reshape the hamiltonian/overlap matrix for easy assignations  
-       allocate(work1(norb1-orbscToAtom(ilr,1),norb2-orbscToAtom(ilr2,1),nspin,2,Lzd%orbs%nkpts+ndebug),stat=i_stat)
+       allocate(work1(norb1-orbscToAtom(ilr,1),norb2-orbscToAtom(ilr2,1),nspin,2,orbse%nkpts+ndebug),stat=i_stat)
        call memocc(i_stat,work1,'work1',subname)
-       sizes = (/ norb1-orbscToAtom(ilr,1),norb2-orbscToAtom(ilr2,1),nspin, 2, Lzd%orbs%nkpts+ndebug /)
+       sizes = (/ norb1-orbscToAtom(ilr,1),norb2-orbscToAtom(ilr2,1),nspin, 2, orbse%nkpts+ndebug /)
        work1 = reshape(Lhamovr,sizes)
 
      ! Assign the calculated values inside global matrix (for truly O(N) this should be replaced) 
@@ -255,16 +282,16 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
      allocate(norbgrp(1,nspin+ndebug),stat=i_stat)
      call memocc(i_stat,norbgrp,'norbgrp',subname)
      norbsc=0
-     norbgrp(1,1)=Lzd%orbs%norbu
-     if (nspin == 2) norbgrp(1,2)=Lzd%orbs%norbd
+     norbgrp(1,1)=orbse%norbu
+     if (nspin == 2) norbgrp(1,2)=orbse%norbd
   end if
   !it is important that the k-points repartition of the inputguess orbitals
   !coincides with the one of the SCF orbitals
   ! NOTE: USE ORBS OR ORBSE??
-  do ikptp=1,Lzd%orbs%nkptsp
-     ikpt=Lzd%orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
+  do ikptp=1,orbse%nkptsp
+     ikpt=orbse%iskpts+ikptp!orbs%ikptsp(ikptp)
      call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
-          ndim_hamovr,natsceff,nspin,Lzd%orbs%nspinor,etol,norbgrp,hamovr(1,1,ikpt),&
+          ndim_hamovr,natsceff,nspin,orbse%nspinor,etol,norbgrp,hamovr(1,1,ikpt),&
           orbs%eval((ikpt-1)*orbs%norb+1))
   end do
 
@@ -272,7 +299,7 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
 
 
 ! FOR NOW, just transform the Lpsi to psi in global region.
-  Gpsidim = (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*Lzd%orbs%norb*Lzd%orbs%nspinor
+  Gpsidim = (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbse%norb*orbse%nspinor
   allocate(psi(Gpsidim+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
   call razero(Gpsidim+ndebug,psi)
@@ -281,12 +308,12 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
   psishift1 = 1
   totshift = 0
   do ilr = 1,Lzd%nlr
-     norb1 = Lzd%Lorbs(ilr)%norb/Lzd%Lorbs(ilr)%nspin
-     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Lorbs(ilr)%norb*Lzd%Lorbs(ilr)%nspinor
-     call Lpsi_to_global(Lzd%Glr,Gpsidim,Lzd%Llr(ilr),Lpsi(psishift1:psishift1+ldim-1),&
-          ldim,norb1,Lzd%Lorbs(ilr)%nspinor,nspin,totshift,psi)
+     norb1 = Lzd%Llr(ilr)%Localnorb/orbsu%nspin
+     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*nspinor
+     call Lpsi_to_global(Lzd%Glr,Gpsidim,Lzd%Llr(ilr),Lpsi(psishift1),&
+          ldim,norb1,nspinor,nspin,totshift,psi)
      psishift1 = psishift1 + ldim
-     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norb1*Lzd%orbs%nspinor
+     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norb1*orbse%nspinor
   end do
 
 !  allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
@@ -295,9 +322,9 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
   ispsi=1
   ispsie=1
   ispsiv=1
-  norbtot = Lzd%orbs%norb
-  do ikptp=1,Lzd%orbs%nkptsp
-     ikpt=Lzd%orbs%iskpts+ikptp!orbsu%ikptsp(ikptp)\
+  norbtot = orbse%norb
+  do ikptp=1,orbse%nkptsp
+     ikpt=orbse%iskpts+ikptp!orbsu%ikptsp(ikptp)\
 
 !    nvctrp is not a simple quantity anymore has it depends on the locregs (can be different for every locreg)
 !    for an O(N) code, should change these routines.
@@ -305,10 +332,10 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
      nvctrp=Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f
      if (nvctrp == 0) cycle
      call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-          natsceff,nspin,Lzd%orbs%nspinor,Lzd%orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
+          natsceff,nspin,orbse%nspinor,orbse%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
           psi(ispsie:),psit(ispsi:))
-     ispsi=ispsi+nvctrp*orbs%norb*Lzd%orbs%nspinor
-     ispsie=ispsie+nvctrp*norbtot*Lzd%orbs%nspinor
+     ispsi=ispsi+nvctrp*orbs%norb*orbse%nspinor
+     ispsie=ispsie+nvctrp*norbtot*orbse%nspinor
   end do
 
 

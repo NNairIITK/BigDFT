@@ -825,7 +825,6 @@ subroutine apply_local_projectors(iorb,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
                        hx,hy,hz,kx,ky,kz,ncplx,Lnlpspd%nvctr_p(2*iatom-1),&
                        Lnlpspd%nvctr_p(2*iatom),Lnlpspd%nseg_p(2*iatom-1),Lnlpspd%nseg_p(2*iatom),&
                        Lnlpspd%keyv_p(jseg_c),Lnlpspd%keyg_p(1,jseg_c),Lproj(istart_c),nwarnings)
-
                   iproj=iproj+2*l-1
                   istart_c=istart_c+(Lnlpspd%nvctr_p(2*iatom-1)+7*Lnlpspd%nvctr_p(2*iatom))*(2*l-1)*ncplx
                   !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,Lnlpspd%nprojel,ncplx,nlpspd%nprojel
@@ -965,7 +964,7 @@ subroutine local_projector(geocode,atomname,iat,idir,l,i,gau_a,rxyz,Llr,&
            lz(iterm)=lxyz_arr(3,iterm,idir)
         end do
      end if
-     
+
      call crtproj(geocode,nterm,Llr,hx,hy,hz,kx,ky,kz,ncplx,&
           gau_a,factors,rx,ry,rz,lx,ly,lz,&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c))

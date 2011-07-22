@@ -2039,11 +2039,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine initializeCommsSumrho2
 
 
-   subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
+   subroutine determine_locreg_periodic(iproc,nproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
       use module_base
       use module_types
       implicit none
-      integer, intent(in) :: iproc
+      integer, intent(in) :: iproc,nproc
       integer, intent(in) :: nlr
       real(gp), intent(in) :: hx,hy,hz
       type(locreg_descriptors), intent(in) :: Glr
@@ -2220,7 +2220,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(wp),dimension(size_Lrho),intent(out) :: Lrho 
      end subroutine global_to_local
 
-     subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,hx,hy,hz,rxyz,&
+     subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,orbs,hx,hy,hz,rxyz,&
         proj,ngatherarr,pot,psi,hpsi,&
         ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel,orbsocc,psirocc)
        use module_base
@@ -2232,6 +2232,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(atoms_data), intent(in) :: at
        type(input_variables), intent(in) :: input
        type(linear_zone_descriptors),intent(inout) :: Lzd
+       type(orbitals_data),intent(in) :: orbs
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
@@ -2357,11 +2358,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine allocateLinArrays
 
 
-     subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
+     subroutine initLocregs(iproc, nproc, nat, rxyz, lin, input, Glr, phi, lphi)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nat
+       integer,intent(in):: iproc, nproc, nat
        real(8),dimension(3,nat),intent(in):: rxyz
        type(linearParameters),intent(inout):: lin
        type(input_variables),intent(in):: input
@@ -2382,7 +2383,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
 
-     subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
+     subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,hx,hy,hz,rxyz,&
           proj,ngatherarr,ndimpot,pot,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, &
           doNotCalculate, pkernel,orbsocc,psirocc)
@@ -2395,15 +2396,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(atoms_data), intent(in) :: at
        type(input_variables), intent(in) :: input
        type(linear_zone_descriptors),intent(inout) :: Lzd
+       type(orbitals_data),intent(in) :: orbs
        type(linearParameters),intent(in):: lin
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
-       real(wp), dimension(Lzd%orbs%npsidim), intent(in) :: psi
+       real(wp), dimension(orbs%npsidim), intent(in) :: psi
        real(wp), dimension(max(ndimpot,1)*nspin), intent(in) :: pot
        !real(wp), dimension(:), pointer :: pot
        real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
-       real(wp), target, dimension(Lzd%orbs%npsidim), intent(out) :: hpsi
+       real(wp), target, dimension(orbs%npsidim), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
        real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
        type(p2pCommsGatherPot), intent(in):: comgp
