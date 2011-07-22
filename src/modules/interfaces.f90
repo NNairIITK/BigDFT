@@ -3284,6 +3284,16 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine copy_nonlocal_psp_descriptors
 
 
+     subroutine copy_orbitals_data(orbsin, orbsout, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(orbitals_data),intent(in):: orbsin
+       type(orbitals_data),intent(out):: orbsout
+       character(len=*),intent(in):: subname
+     end subroutine copy_orbitals_data
+
+
 
   end interface
 

@@ -137,8 +137,10 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
        lin%orbs,lzdig%orbs,norbsc_arr,locrad,G,psigau,eks)
   call assignToLocreg2(iproc, at%nat, lzdig%nlr, input%nspin, norbsPerAt, lzdig%orbs)
-  lzdGauss%orbs=lzdig%orbs
-  lzdGauss%Glr=Glr
+  !lzdGauss%orbs=lzdig%orbs
+  call copy_orbitals_data(lzdig%orbs, lzdGauss%orbs, subname)
+  !lzdGauss%Glr=Glr
+  call copy_locreg_descriptors(Glr, lzdGauss%Glr, subname)
 
 
   locrad=20.d0

@@ -580,4 +580,143 @@ end subroutine copy_nonlocal_psp_descriptors
 
 
 
+subroutine copy_orbitals_data(orbsin, orbsout, subname)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(orbitals_data),intent(in):: orbsin
+type(orbitals_data),intent(out):: orbsout
+character(len=*),intent(in):: subname
+
+! Local variables
+integer:: iis1, iie1, iis2, iie2, i1, i2, istat
+
+orbsout%norb = orbsin%norb
+orbsout%norbp = orbsin%norbp
+orbsout%norbu = orbsin%norbu
+orbsout%norbd = orbsin%norbd
+orbsout%nspin = orbsin%nspin
+orbsout%nspinor = orbsin%nspinor
+orbsout%isorb = orbsin%isorb
+orbsout%npsidim = orbsin%npsidim
+orbsout%nkpts = orbsin%nkpts
+orbsout%nkptsp = orbsin%nkptsp
+orbsout%iskpts = orbsin%iskpts
+orbsout%efermi = orbsin%efermi
+
+iis1=lbound(orbsin%norb_par,1)
+iie1=ubound(orbsin%norb_par,1)
+allocate(orbsout%norb_par(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%norb_par, 'orbsout%norb_par', subname)
+do i1=iis1,iie1
+    orbsout%norb_par(i1) = orbsin%norb_par(i1)
+end do
+
+
+iis1=lbound(orbsin%iokpt,1)
+iie1=ubound(orbsin%iokpt,1)
+allocate(orbsout%iokpt(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%iokpt, 'orbsout%iokpt', subname)
+do i1=iis1,iie1
+    orbsout%iokpt(i1) = orbsin%iokpt(i1)
+end do
+
+
+iis1=lbound(orbsin%ikptproc,1)
+iie1=ubound(orbsin%ikptproc,1)
+allocate(orbsout%ikptproc(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%ikptproc, 'orbsout%ikptproc', subname)
+do i1=iis1,iie1
+    orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
+end do
+
+
+iis1=lbound(orbsin%inwhichlocreg,1)
+iie1=ubound(orbsin%inwhichlocreg,1)
+allocate(orbsout%inwhichlocreg(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%inwhichlocreg, 'orbsout%inwhichlocreg', subname)
+do i1=iis1,iie1
+    orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
+end do
+
+
+iis1=lbound(orbsin%inWhichLocregP,1)
+iie1=ubound(orbsin%inWhichLocregP,1)
+allocate(orbsout%inWhichLocregP(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%inWhichLocregP, 'orbsout%inWhichLocregP', subname)
+do i1=iis1,iie1
+    orbsout%inWhichLocregP(i1) = orbsin%inWhichLocregP(i1)
+end do
+
+
+iis1=lbound(orbsin%onWhichMPI,1)
+iie1=ubound(orbsin%onWhichMPI,1)
+allocate(orbsout%onWhichMPI(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%onWhichMPI, 'orbsout%onWhichMPI', subname)
+do i1=iis1,iie1
+    orbsout%onWhichMPI(i1) = orbsin%onWhichMPI(i1)
+end do
+
+
+iis1=lbound(orbsin%isorb_par,1)
+iie1=ubound(orbsin%isorb_par,1)
+allocate(orbsout%isorb_par(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%isorb_par, 'orbsout%isorb_par', subname)
+do i1=iis1,iie1
+    orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
+end do
+
+
+iis1=lbound(orbsin%eval,1)
+iie1=ubound(orbsin%eval,1)
+allocate(orbsout%eval(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%eval, 'orbsout%eval', subname)
+do i1=iis1,iie1
+    orbsout%eval(i1) = orbsin%eval(i1)
+end do
+
+
+iis1=lbound(orbsin%occup,1)
+iie1=ubound(orbsin%occup,1)
+allocate(orbsout%occup(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%occup, 'orbsout%occup', subname)
+do i1=iis1,iie1
+    orbsout%occup(i1) = orbsin%occup(i1)
+end do
+
+
+iis1=lbound(orbsin%spinsgn,1)
+iie1=ubound(orbsin%spinsgn,1)
+allocate(orbsout%spinsgn(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%spinsgn, 'orbsout%spinsgn', subname)
+do i1=iis1,iie1
+    orbsout%spinsgn(i1) = orbsin%spinsgn(i1)
+end do
+
+
+iis1=lbound(orbsin%kwgts,1)
+iie1=ubound(orbsin%kwgts,1)
+allocate(orbsout%kwgts(iis1:iie1), stat=istat)
+call memocc(istat, orbsout%kwgts, 'orbsout%kwgts', subname)
+do i1=iis1,iie1
+    orbsout%kwgts(i1) = orbsin%kwgts(i1)
+end do
+
+
+iis1=lbound(orbsin%kpts,1)
+iie1=ubound(orbsin%kpts,1)
+iis2=lbound(orbsin%kpts,2)
+iie2=ubound(orbsin%kpts,2)
+allocate(orbsout%kpts(iis1:iie1,iis2:iie2), stat=istat)
+call memocc(istat, orbsout%kpts, 'orbsout%kpts', subname)
+do i2=iis2,iie2
+    do i1=iis1,iie1
+        orbsout%kpts(i1,i2) = orbsin%kpts(i1,i2)
+    end do
+end do
+
+
+end subroutine copy_orbitals_data
 
