@@ -3205,6 +3205,86 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine deallocateCommunicationsBuffersPotential
 
 
+     subroutine copy_locreg_descriptors(glrin, glrout, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(locreg_descriptors),intent(in):: glrin
+       type(locreg_descriptors),intent(out):: glrout
+       character(len=*),intent(in):: subname
+     end subroutine copy_locreg_descriptors
+
+
+     subroutine copy_grid_dimensions(din, dout)
+       use module_base
+       use module_types
+       implicit none
+       type(grid_dimensions),intent(in):: din
+       type(grid_dimensions),intent(out):: dout
+     end subroutine copy_grid_dimensions
+
+
+     subroutine copy_wavefunctions_descriptors(wfdin, wfdout, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(wavefunctions_descriptors),intent(in):: wfdin
+       type(wavefunctions_descriptors),intent(out):: wfdout
+       character(len=*),intent(in):: subname
+     end subroutine copy_wavefunctions_descriptors
+
+
+     subroutine copy_convolutions_bounds(boundsin, boundsout, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(convolutions_bounds),intent(in):: boundsin
+       type(convolutions_bounds),intent(out):: boundsout
+       character(len=*),intent(in):: subname
+     end subroutine copy_convolutions_bounds
+
+
+     subroutine copy_kinetic_bounds(kbin, kbout, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(kinetic_bounds),intent(in):: kbin
+       type(kinetic_bounds),intent(out):: kbout
+       character(len=*),intent(in):: subname
+     end subroutine copy_kinetic_bounds
+
+
+     subroutine copy_shrink_bounds(sbin, sbout, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(shrink_bounds),intent(in):: sbin
+       type(shrink_bounds),intent(out):: sbout
+       character(len=*),intent(in):: subname
+     end subroutine copy_shrink_bounds
+
+
+     subroutine copy_grow_bounds(gbin, gbout, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(grow_bounds),intent(in):: gbin
+       type(grow_bounds),intent(out):: gbout
+       character(len=*),intent(in):: subname
+     end subroutine copy_grow_bounds
+
+
+     subroutine copy_nonlocal_psp_descriptors(nlpspin, nlpspout, subname)
+       use module_base
+       use module_types
+       implicit none
+       type(nonlocal_psp_descriptors),intent(in):: nlpspin
+       type(nonlocal_psp_descriptors),intent(out):: nlpspout
+       character(len=*),intent(in):: subname
+     end subroutine copy_nonlocal_psp_descriptors
+
+
+
   end interface
 
 end module module_interfaces

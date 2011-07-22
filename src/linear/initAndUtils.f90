@@ -78,8 +78,6 @@ norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
-!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
-!     input%nkpt, input%kpt, input%wkpt, lin%Lorbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%lzd%orbs)
 
@@ -97,7 +95,6 @@ else
     norbd=0
 end if
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%orbs)
-!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%Lorbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%lzd%orbs)
 
 
@@ -119,11 +116,6 @@ call allocateLinArrays(lin)
 
 ! Decide which orbital is centered on which atom, again for the 'normal' and
 ! the 'large' basis.
-!call assignOrbitalsToAtoms(iproc, lin%orbs, at%nat, norbsPerAtom, lin%onWhichAtom, lin%onWhichAtomAll)
-if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
-!call assignOrbitalsToAtoms(iproc, lin%lb%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
-!call assignOrbitalsToAtoms(iproc, lin%lb%lzd%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
-if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
@@ -138,18 +130,12 @@ call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 call memocc(istat, lin%orbs%eval, 'lin%orbs%eval', subname)
 lin%orbs%eval=-.5d0
-!allocate(lin%Lorbs%eval(lin%Lorbs%norb), stat=istat)
-!call memocc(istat, lin%Lorbs%eval, 'lin%Lorbs%eval', subname)
-!lin%Lorbs%eval=-.5d0
 allocate(lin%lzd%orbs%eval(lin%lzd%orbs%norb), stat=istat)
 call memocc(istat, lin%lzd%orbs%eval, 'lin%lzd%orbs%eval', subname)
 lin%lzd%orbs%eval=-.5d0
 allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
 call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
 lin%lb%orbs%eval=-.5d0
-!allocate(lin%lb%Lorbs%eval(lin%lb%Lorbs%norb), stat=istat)
-!call memocc(istat, lin%lb%Lorbs%eval, 'lin%lb%Lorbs%eval', subname)
-!lin%lb%Lorbs%eval=-.5d0
 
 ! Initialize the coefficients.
 call initCoefficients(iproc, orbs, lin, coeff)
@@ -160,12 +146,16 @@ call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
 !call allocateCommunicationbufferSumrho(lin%comsr, subname)
 
 ! Copy Glr to lin%lzd
-lin%lzd%Glr = Glr
-lin%lb%lzd%Glr = Glr
+!lin%lzd%Glr = Glr
+call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
+!lin%lb%lzd%Glr = Glr
+call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
 
 ! Copy nlpspd to lin%lzd
 lin%lzd%Gnlpspd = nlpspd
-lin%lb%lzd%Gnlpspd = nlpspd
+call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
+!lin%lb%lzd%Gnlpspd = nlpspd
+call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
 
 ! Set localnorb
 do ilr=1,lin%lzd%nlr
@@ -191,19 +181,12 @@ end do
 
 ! Initialize the parameters for the communication for the
 ! potential.
-!call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
-!call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%onWhichAtomAll, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%lzd%orbs%inWhichLocreg, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, lin%lb%lzd%orbs%inWhichLocreg, tag)
 
 ! Initialize the parameters for the communication for the orthonormalization.
-!!call initCommsOrtho(iproc, nproc, lin)
-!call initCommsOrtho(iproc, nproc, lin%lzd, lin%onWhichAtomAll, input, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%lzd%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
-!call allocateCommuncationBuffersOrtho(lin%comon, subname)
-!call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs%inWhichLocreg, input, lin%op_lb, lin%comon_lb, tag)
 call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
-!call allocateCommuncationBuffersOrtho(lin%lb%comon, subname)
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
@@ -1599,4 +1582,3 @@ end subroutine initCoefficients
 !!
 !!
 !!end subroutine allocateAndCopyLocreg
-
