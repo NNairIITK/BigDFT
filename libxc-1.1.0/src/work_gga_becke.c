@@ -64,7 +64,7 @@ work_gga_becke(const void *p_, int np, const FLOAT *rho, const FLOAT *sigma,
       dens  = rho[0];
     }
 
-    if(dens <= 0.0) continue;
+    if(dens <= 0.0) goto end_ip_loop;
 
     /* get spin-polarized LDA */
     switch (order){
@@ -232,6 +232,7 @@ work_gga_becke(const void *p_, int np, const FLOAT *rho, const FLOAT *sigma,
     if(zk != NULL)
       *zk /= dens; /* we want energy per particle */
 
+  end_ip_loop:
     /* increment pointers */
     rho   += p->n_rho;
     sigma += p->n_sigma;

@@ -260,7 +260,7 @@ contains
     integer, parameter :: n_blocks = 128
     integer :: ipte, nb
     real(dp) :: rhotmp(nspden, n_blocks), exctmp(n_blocks), vxctmp(nspden, n_blocks)
-    real(dp) :: sigma(3, n_blocks), vsigma(3, n_blocks)
+    real(dp) :: sigma(2*min(nspden,2)-1, n_blocks), vsigma(2*min(nspden,2)-1, n_blocks)
     real(dp) :: v2rho2(3, n_blocks), v2rhosigma(6, n_blocks), v2sigma2(6, n_blocks)
     real(dp), allocatable :: rho_(:,:), exc_(:), vxc_(:,:)
     character(len=*), parameter :: subname='xc_getvxc'
@@ -326,7 +326,7 @@ contains
              if (present(grho2)) then
                 if (nspden==1) then
                    ! ABINIT passes |rho_up|^2 while Libxc needs |rho_tot|^2
-                   sigma(1, 1:nb) = real(4,dp)*grho2(ipts:ipte,1)
+                   sigma(1, 1:nb) = real(4,dp) * grho2(ipts:ipte,1)
                 else
                    ! ABINIT passes |rho_up|^2, |rho_dn|^2, and |rho_tot|^2
                    ! while Libxc needs |rho_up|^2, rho_up.rho_dn, and |rho_dn|^2
