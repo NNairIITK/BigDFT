@@ -209,8 +209,8 @@ call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%l
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, lin%lb%lzd%orbs%inWhichLocreg, tag)
 
 ! Initialize the parameters for the communication for the orthonormalization.
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%lzd%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lzd, lin%lzd%orbs, lin%lzd%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs, lin%lb%lzd%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)

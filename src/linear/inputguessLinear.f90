@@ -1385,7 +1385,7 @@ type(p2pCommsOrthonormality):: comon
 
 ! Initialize the communication parameters.
 tag=5000
-call initCommsOrtho(iproc, nproc, lzd, lzd%orbs%inWhichLocreg, input, op, comon, tag)
+call initCommsOrtho(iproc, nproc, lzd, lzd%orbs, lzd%orbs%inWhichLocreg, input, op, comon, tag)
 allocate(ovrlp(lzd%orbs%norb,lzd%orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
@@ -1997,7 +1997,7 @@ character(len=*),parameter:: subname='getHamiltonianMatrix'
 !! CHANGE THIS LATER?
 tag=10000
 ! Initialize the parameters for calculating the matrix.
-call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, input, op, comon, tag)
+call initCommsOrtho(iproc, nproc, lzdig, lzdig%orbs, onWhichAtom, input, op, comon, tag)
 
 !allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
 !call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
@@ -2094,7 +2094,7 @@ character(len=*),parameter:: subname='getHamiltonianMatrix'
 !! CHANGE THIS LATER?
 tag=10000
 ! Initialize the parameters for calculating the matrix.
-call initCommsOrtho(iproc, nproc, lzdig, onWhichAtom, input, op, comon, tag)
+call initCommsOrtho(iproc, nproc, lzdig, lzdig%orbs, onWhichAtom, input, op, comon, tag)
 
 !allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
 !call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
@@ -3743,7 +3743,7 @@ real(8),dimension(:),allocatable:: lchiovrlp
 character(len=*),parameter:: subname='buildLinearCombinations'
 
 tag=10000
-call initCommsOrtho(iproc, nproc, lzdig, lzdig%orbs%inWhichLocreg, input, op, comon, tag)
+call initCommsOrtho(iproc, nproc, lzdig, lzdig%orbs, lzdig%orbs%inWhichLocreg, input, op, comon, tag)
 allocate(lchiovrlp(op%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
 

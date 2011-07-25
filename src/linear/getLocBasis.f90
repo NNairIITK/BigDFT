@@ -231,12 +231,12 @@ integer:: ist, ierr
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
   if(.not.lin%useDerivativeBasisFunctions) then
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lzd%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
   else
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%lb%lzd%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
@@ -506,7 +506,7 @@ real(8),dimension(4):: time
       end if
       call cpu_time(t1)
       withConfinement=.true.
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lzd%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)

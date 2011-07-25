@@ -2556,12 +2556,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(inout):: op
      end subroutine determineOverlapDescriptors
      
-     subroutine initCommsOrtho(iproc, nproc, lzd, onWhichAtomAll, input, op, comon, tag)
+     subroutine initCommsOrtho(iproc, nproc, lzd, orbs, onWhichAtomAll, input, op, comon, tag)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
        type(linear_zone_descriptors),intent(in):: lzd
+       type(orbitals_data),intent(in):: orbs
        integer,dimension(lzd%orbs%norb),intent(in):: onWhichAtomAll
        type(input_variables),intent(in):: input
        type(overlapParameters),intent(out):: op
