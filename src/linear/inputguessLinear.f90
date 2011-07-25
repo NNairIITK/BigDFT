@@ -2676,7 +2676,7 @@ do ilr=1,nlr
     end do
     allocate(mlr(ilr)%indexInGlobal(mlr(ilr)%norbinlr), stat=istat)
     call memocc(istat, mlr(ilr)%indexInGlobal, 'mlr(ilr)%indexInGlobal', subname)
-    if(iproc==0) write(*,'(a,i4,i7)') 'ilr, mlr(ilr)%norbinlr', ilr, mlr(ilr)%norbinlr
+    !if(iproc==0) write(*,'(a,i4,i7)') 'ilr, mlr(ilr)%norbinlr', ilr, mlr(ilr)%norbinlr
 end do
 
 
@@ -2698,7 +2698,7 @@ do ilr=1,nlr
     if(ii/=mlr(ilr)%norbinlr) then
         write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ', iproc, ': ii/=mlr(ilr)%norbinlr', ii, mlr(ilr)%norbinlr
     end if
-    if(iproc==0) write(*,'(a,i6,200i5)') 'ilr, mlr(ilr)%indexInGlobal(ii)', ilr, mlr(ilr)%indexInGlobal(:)
+    !if(iproc==0) write(*,'(a,i6,200i5)') 'ilr, mlr(ilr)%indexInGlobal(ii)', ilr, mlr(ilr)%indexInGlobal(:)
 end do
 
 
@@ -2753,9 +2753,6 @@ do jorb=1,norb
     end if
 end do
 
-write(*,*) 'iproc, matmin%norbmax, matmin%nlrp', iproc, matmin%norbmax, matmin%nlrp
-write(*,'(a,i4,3x,100i5)') 'iproc,  matmin%inWhichLocregExtracted', iproc,  matmin%inWhichLocregExtracted
-write(*,'(a,i4,3x,100i5)') 'iproc,  matmin%inWhichLocregOnMPI', iproc,  matmin%inWhichLocregOnMPI
 allocate(matmin%indexInLocreg(matmin%nlrp), stat=istat)
 call memocc(istat, matmin%indexInLocreg, 'matmin%indexInLocreg', subname)
 

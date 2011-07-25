@@ -1418,35 +1418,12 @@ end do
 ! ('npsidimr') case.
 npsidim=0
 do iorb=1,lzd%orbs%norbp
-    !ilr=lin%onWhichAtom(iorb)
     ilr=lzd%orbs%inWhichLocregp(iorb)
-    write(*,'(a,5i12)') 'iproc, iorb, ilr, ncount, npsidim', iproc, iorb, ilr,  (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*lzd%orbs%nspinor, npsidim 
     npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*lzd%orbs%nspinor
 end do
 !! WARNING: CHECHK THIS
-!lin%Lorbs%npsidim=npsidim
 lzd%orbs%npsidim=npsidim
 
-!! WARNING: CHECK THIS
-!if(.not. lin%useDerivativeBasisFunctions) then
-!    lin%lb%Lorbs%npsidim=npsidim
-!else
-!    npsidim=0
-!    do iorb=1,lin%lb%orbs%norbp
-!        ilr=lin%lb%onWhichAtom(iorb)
-!        npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
-!        npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
-!    end do
-!    lin%lb%Lorbs%npsidim=npsidim
-!end if
-
-
- !! WARNING: CHECKTHIS
-!allocate(phi(lin%lb%orbs%npsidim), stat=istat)
-!call memocc(istat, phi, 'phi', subname)
-!
-!allocate(lphi(lin%lb%Lorbs%npsidim), stat=istat)
-!call memocc(istat, lphi, 'lphi', subname)
 
 end subroutine initLocregs2
 
