@@ -68,7 +68,8 @@ real(8),dimension(3,atoms%nat),intent(in):: rxyz, fion, fdisp
 real(8),dimension(3,atoms%nat),intent(out):: fxyz
 real(8),intent(out):: fnoise
 real(8),dimension(orbs%npsidim),intent(inout):: psi
-real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
+!real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
+real(8),dimension(lin%gorbs%npsidim),intent(inout):: phi
 real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
 
 ! Local variables

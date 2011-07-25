@@ -1656,7 +1656,7 @@ module module_interfaces
       real(8),dimension(3,atoms%nat),intent(out):: fxyz
       real(8),intent(out):: fnoise
       real(8),dimension(orbs%npsidim),intent(inout):: psi
-      real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
+      real(8),dimension(lin%gorbs%npsidim),intent(inout):: phi
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
     end subroutine calculateForcesSub
 
@@ -2383,7 +2383,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
-          proj,ngatherarr,ndimpot,pot,psi,hpsi,&
+          ngatherarr,ndimpot,pot,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, &
           doNotCalculate, pkernel,orbsocc,psirocc)
        use module_base
@@ -2398,7 +2398,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(linearParameters),intent(in):: lin
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
-       real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
        real(wp), dimension(Lzd%orbs%npsidim), intent(in) :: psi
        real(wp), dimension(max(ndimpot,1)*nspin), intent(in) :: pot
        !real(wp), dimension(:), pointer :: pot

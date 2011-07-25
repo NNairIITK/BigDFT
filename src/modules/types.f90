@@ -482,7 +482,7 @@ module module_types
 !! from those in lin%orbs etc.
 type,public:: largeBasis
     type(communications_arrays):: comms
-    type(orbitals_data):: orbs
+    type(orbitals_data):: orbs, gorbs
     type(linear_zone_descriptors):: lzd
     type(p2pCommsRepartition):: comrp
     type(p2pCommsOrthonormality):: comon
@@ -518,7 +518,7 @@ end type largeBasis
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lhphiold
     real(8),dimension(:,:),pointer:: hamold
-    type(orbitals_data):: orbs
+    type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as

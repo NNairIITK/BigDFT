@@ -85,7 +85,7 @@ real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
 real(wp), dimension(:),pointer,intent(in):: rhocore                  
 real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
-real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: phi
+real(8),dimension(lin%lb%gorbs%npsidim),intent(inout):: phi
 real(8),dimension(orbs%npsidim),intent(out):: psi, psit
 integer,intent(out):: infoBasisFunctions, infoCoeff
 character(len=3),intent(in):: PSquiet
@@ -232,12 +232,12 @@ integer:: ist, ierr
   withConfinement=.false.
   if(.not.lin%useDerivativeBasisFunctions) then
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
-           proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+           ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%lzd%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
   else
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
-           proj, ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
+           ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%lzd%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
   end if
@@ -529,7 +529,7 @@ real(8),dimension(4):: time
       call cpu_time(t1)
       withConfinement=.true.
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
-           proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+           ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%lzd%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
       call cpu_time(t2)
@@ -886,10 +886,10 @@ contains
     ! ========
     !   This subroutine allocates all local arrays.
     !
-      allocate(hphi(lin%orbs%npsidim), stat=istat)
+      allocate(hphi(lin%gorbs%npsidim), stat=istat)
       call memocc(istat, hphi, 'hphi', subname)
 
-      allocate(hphiold(lin%orbs%npsidim), stat=istat)
+      allocate(hphiold(lin%gorbs%npsidim), stat=istat)
       call memocc(istat, hphiold, 'hphiold', subname)
 
       allocate(alpha(lin%orbs%norb), stat=istat)

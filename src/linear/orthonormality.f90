@@ -41,8 +41,6 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
   do it=1,nItOrtho
       !if(iproc==0) write(*,'(a,i0)') 'at it=',it
       call cpu_time(t1)
-      !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-      !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
       call extractOrbital2(iproc, nproc, orbs, lzd%orbs%npsidim, onWhichAtomAll, lzd, op, lphi, comon)
       call cpu_time(t2)
       timeExtract=timeExtract+t2-t1
@@ -57,11 +55,6 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       call calculateOverlapMatrix2(iproc, nproc, lzd%orbs, op, comon, onWhichAtomAll, ovrlp)
       call cpu_time(t2)
       timeCalcOvrlp=timeCalcOvrlp+t2-t1
-      !!do iorb=1,lin%orbs%norb
-      !!    do jorb=1,lin%orbs%norb
-      !!        write(500+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-      !!    end do
-      !!end do
       call checkUnity(iproc, lzd%orbs%norb, ovrlp, maxError)
       if(iproc==0) write(*,'(3x,a,es12.4)') 'maximal deviation from unity:', maxError
       if(maxError<convCritOrtho) then
@@ -162,8 +155,6 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   call allocateCommuncationBuffersOrtho(lin%comon, subname)
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
-  !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-  !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
   call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   !call gatherOrbitals(iproc, nproc, lin%comon)

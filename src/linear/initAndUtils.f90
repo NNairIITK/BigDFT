@@ -80,6 +80,8 @@ call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%ns
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%lzd%orbs)
+call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+     input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 
 
 ! Do the same again, but take into acount that we may also use the derivatives of the basis functions with
@@ -96,6 +98,7 @@ else
 end if
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%lzd%orbs)
+call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%gorbs)
 
 
 
@@ -104,8 +107,12 @@ call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%ns
 ! between the 'normal' basis and the 'large' basis inlcuding the derivtaives.
 call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%orbs,lin%lb%comms)
+call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
+call orbitals_communicators(iproc,nproc,Glr,lin%lb%gorbs,lin%lb%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lzd%orbs,lin%lzd%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%lzd%orbs,lin%lb%lzd%comms)
+write(*,*) 'lin%lb%gorbs%npsidim', lin%lb%gorbs%npsidim
+write(*,*) 'lin%lb%orbs%npsidim', lin%lb%orbs%npsidim
 
 
 ! Write all parameters related to the linear scaling version to the screen.
@@ -907,7 +914,7 @@ type(atoms_data),intent(in):: at
 type(input_variables),intent(in):: input
 type(linearParameters),intent(in):: lin
 real(8),dimension(3,at%nat),intent(in):: rxyz
-real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
+real(8),dimension(lin%gorbs%npsidim),intent(inout):: phi
 
 ! Local variables
 integer:: iorb, ist, i1, i2, i3, jj, iiAt, istat, iall, ierr
@@ -978,7 +985,7 @@ if(iproc==0) write(*,'(3x,a,2es17.8)') 'before cut; average weights in / out:', 
 
 
 call mpi_barrier(mpi_comm_world, ierr)
-allocate(phiWork(lin%orbs%npsidim), stat=istat)
+allocate(phiWork(lin%gorbs%npsidim), stat=istat)
 call memocc(istat, phiWork, 'phiWork', subname)
 call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
 call orthogonalize(iproc, nproc, lin%orbs, lin%comms, Glr%wfd, phi, input)
@@ -1261,7 +1268,7 @@ end subroutine allocateBasicArrays
 subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => initLocregs2
+use module_interfaces, exceptThisOne => initLocregs
 implicit none
 
 ! Calling arguments
@@ -1344,7 +1351,7 @@ end if
 
 
 
-allocate(phi(lin%lb%orbs%npsidim), stat=istat)
+allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
 
 allocate(lphi(lin%lb%lzd%orbs%npsidim), stat=istat)

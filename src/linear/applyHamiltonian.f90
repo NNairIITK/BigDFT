@@ -199,7 +199,7 @@ END SUBROUTINE apply_potentialConfinement2
 
 !> Application of the Hamiltonian
 subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
-     proj,ngatherarr,ndimpot,pot,psi,hpsi,&
+     ngatherarr,ndimpot,pot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, &
      doNotCalculate, pkernel,orbsocc,psirocc)
   use module_base
@@ -215,7 +215,6 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   type(linearParameters),intent(in):: lin
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(in) :: proj
   !real(wp), dimension(lin%Lorbs%npsidim), intent(in) :: psi
   real(wp), dimension(lzd%orbs%npsidim), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1)*nspin), intent(in) :: pot
