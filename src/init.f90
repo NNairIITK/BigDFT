@@ -445,7 +445,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
   if (linear .and. linear2 .and. (nspin < 4) ) then
 
-
      ! Construct the Lzd
      ! Begin to define the Linear_Zone_descriptors
      ! This is a problem.. should copy the information instead
