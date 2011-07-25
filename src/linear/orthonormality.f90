@@ -2016,7 +2016,7 @@ real(8),dimension(orbs%norb,orbs%norb),intent(inout):: ovrlp
 
 ! Local variables
 integer:: lwork, istat, iall, iorb, jorb, info
-real(8),dimension(:),allocatable:: work, eval
+real(8),dimension(:),allocatable:: eval
 real(8),dimension(:,:,:),allocatable:: tempArr
 character(len=*),parameter:: subname='transformOverlapMatrix'
 
@@ -2036,6 +2036,12 @@ do iorb=1,orbs%norb
     end do
 end do
 
+iall=-product(shape(eval))*kind(eval)
+deallocate(eval, stat=istat)
+call memocc(istat, iall, 'eval', subname)
+iall=-product(shape(tempArr))*kind(tempArr)
+deallocate(tempArr, stat=istat)
+call memocc(istat, iall, 'tempArr', subname)
 
 
 endsubroutine transformOverlapMatrix2
@@ -2192,7 +2198,7 @@ character(len=*),parameter:: subname='getMatrixElements'
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   call extractOrbital2(iproc, nproc, lzd%orbs, lzd%orbs%npsidim, lzd%orbs%inWhichLocreg, lzd, op_lb, lhphi, comon_lb)
   call calculateOverlapMatrix2(iproc, nproc, lzd%orbs, op_lb, comon_lb, lzd%orbs%inWhichLocreg, matrixElements)
-  call allocateCommuncationBuffersOrtho(comon_lb, subname)
+  call deallocateCommuncationBuffersOrtho(comon_lb, subname)
 
 
 end subroutine getMatrixElements2

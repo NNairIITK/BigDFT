@@ -118,6 +118,15 @@ call allocateLinArrays(lin)
 ! the 'large' basis.
 
 ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
+! The array inWhichLocreg has already been allocated in orbitals_descriptors. Since it will again be allocated
+! in assignToLocreg2, deallocate it first.
+iall=-product(shape(lin%lzd%orbs%inWhichLocreg))*kind(lin%lzd%orbs%inWhichLocreg)
+deallocate(lin%lzd%orbs%inWhichLocreg, stat=istat)
+call memocc(istat, iall, 'lin%lzd%orbs%inWhichLocreg', subname)
+iall=-product(shape(lin%lb%lzd%orbs%inWhichLocreg))*kind(lin%lb%lzd%orbs%inWhichLocreg)
+deallocate(lin%lb%lzd%orbs%inWhichLocreg, stat=istat)
+call memocc(istat, iall, 'lin%lb%lzd%orbs%inWhichLocreg', subname)
+
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%lzd%orbs)
@@ -1558,7 +1567,7 @@ subroutine nullify_linear_zone_descriptors(lzd)
   call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
   nullify(lzd%llr)
   nullify(lzd%lnlpspd)
-  call nullify_matrixMinimization(lzd%matmin)
+  !call nullify_matrixMinimization(lzd%matmin)
   
 end subroutine nullify_linear_zone_descriptors
 

@@ -2285,7 +2285,7 @@ integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 integer,intent(inout):: tag
 
 ! Local variables
-integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat
+integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, iall
 integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffset, is3min, ie3max
 integer,dimension(:,:),allocatable:: iStartEnd
 character(len=*),parameter:: subname='setCommunicationPotential'
@@ -2418,6 +2418,9 @@ end do
 allocate(comgp%communComplete(maxval(comgp%noverlaps),0:nproc-1), stat=istat)
 call memocc(istat, comgp%communComplete, 'comgp%communComplete', subname)
 
+iall=-product(shape(iStartEnd))*kind(iStartEnd)
+deallocate(iStartEnd, stat=istat)
+call memocc(istat, iall, 'iStartEnd', subname)
 
 end subroutine initializeCommunicationPotential
 

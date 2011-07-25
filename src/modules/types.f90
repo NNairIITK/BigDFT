@@ -472,7 +472,6 @@ module module_types
     type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
     type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
-    type(matrixMinimization):: matmin
   end type
 
 

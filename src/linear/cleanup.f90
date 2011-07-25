@@ -1157,18 +1157,13 @@ subroutine deallocate_inguessParameters(ip, subname)
   integer:: iis1, iie1, i1
 
   call checkAndDeallocatePointer(ip%norb_par, 'ip%norb_par', subname)
-  call checkAndDeallocatePointer(ip%isorb_par, 'isorb_par', subname)
-  call checkAndDeallocatePointer(ip%nvctrp_nz, 'nvctrp_nz', subname)
-  call checkAndDeallocatePointer(ip%sendcounts, 'sendcounts', subname)
-  call checkAndDeallocatePointer(ip%senddispls, 'senddispls', subname)
-  call checkAndDeallocatePointer(ip%recvcounts, 'recvcounts',  subname)
-  call checkAndDeallocatePointer(ip%recvdispls, 'recvdispls', subname)
-
-  !!iis1=lbound(ip%mlr,1)
-  !!iie1=ubound(ip%mlr,1)
-  !!do i1=iis1,iie1
-  !!    call deallocate_matrixLocalizationRegion(ip%mlr(i1), subname)
-  !!end do
+  call checkAndDeallocatePointer(ip%onWhichMPI, 'ip%onWhichMPI', subname)
+  call checkAndDeallocatePointer(ip%isorb_par, 'ip%isorb_par', subname)
+  call checkAndDeallocatePointer(ip%nvctrp_nz, 'ip%nvctrp_nz', subname)
+  call checkAndDeallocatePointer(ip%sendcounts, 'ip%sendcounts', subname)
+  call checkAndDeallocatePointer(ip%senddispls, 'ip%senddispls', subname)
+  call checkAndDeallocatePointer(ip%recvcounts, 'ip%recvcounts',  subname)
+  call checkAndDeallocatePointer(ip%recvdispls, 'ip%recvdispls', subname)
 
 end subroutine deallocate_inguessParameters
 

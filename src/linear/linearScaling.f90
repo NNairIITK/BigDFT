@@ -137,6 +137,7 @@ type(mixrhopotDIISParameters):: mixdiis
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        lphi, ehart, eexcu, vexcu)
+  !read(100+iproc,*) lphi
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -220,8 +221,8 @@ type(mixrhopotDIISParameters):: mixdiis
           nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
-      ! Cut off outside localization region -- experimental
-      call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+      !!! Cut off outside localization region -- experimental
+      !!call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
 
       ! Copy the current potential
@@ -324,6 +325,12 @@ type(mixrhopotDIISParameters):: mixdiis
       call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, lin%mixingMethod)
       if(pnrm<lin%convCritMix) exit
   end do
+
+  call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
+  if(lin%useDerivativeBasisFunctions) then
+      call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+  end if
+
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
   deallocate(rhopotOld, stat=istat)
   call memocc(istat, iall, 'rhopotOld', subname)
