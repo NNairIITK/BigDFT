@@ -236,7 +236,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   real(gp) :: tmp_ekin_sum,tmp_epot_sum,tmp_eproj_sum
   real(gp), dimension(2,Lzd%orbs%norbp) :: ekin
   real(gp), dimension(2,Lzd%orbs%norbp) :: epot
-  real(wp), dimension(:), pointer :: hpsi2, temparr
+  real(wp), dimension(:), pointer :: hpsi2
   character(len=*), parameter :: subname='LinearHamiltonianApplicationConfinement2'
   logical :: exctX,op2p
   integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat, i3s, i3e, ind1, ind2, ldim, gdim, jlr
@@ -245,7 +245,6 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   integer :: tmp_norbp, istorb
   real(dp),dimension(:),pointer:: Lpot
   real(wp),dimension(:),allocatable :: hpsi_proj
-  real(wp),dimension(:),allocatable:: projCopy
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
@@ -506,6 +505,11 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
         !deallocate(projCopy, stat=i_stat)
         ! accumulate the new hpsi
         hpsi_proj(ind:ind+dimwf-1) = hpsi_proj(ind:ind+dimwf-1) + hpsi(ind:ind+dimwf-1)
+
+        ! Deallocate projflg
+        i_all=-product(shape(Lzd%Llr(ilr)%projflg))*kind(Lzd%Llr(ilr)%projflg)
+        deallocate(Lzd%Llr(ilr)%projflg,stat=i_stat)
+        call memocc(i_stat,i_all,'Lzd%Llr(ilr)%projflg',subname)
      end if
      ind = ind + dimwf
 
@@ -564,6 +568,11 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   !whereas it should consider also the value coming from the 
   !exact exchange operator (twice the exact exchange energy)
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
+
+  do ilr=1,Lzd%nlr
+      call deallocate_nonlocal_psp_descriptors(Lzd%Lnlpspd(ilr), subname)
+  end do
+
 
   !!do i_all=1,size(hpsi)
   !!    !write(7000+iproc,*) hpsi(i_all)

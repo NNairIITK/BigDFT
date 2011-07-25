@@ -841,6 +841,10 @@ call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
 if(iproc==0) write(*,'(x,a,es20.12)') 'done. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh
 
 
+iall=-product(shape(densKern))*kind(densKern)
+deallocate(densKern, stat=istat)
+call memocc(istat, iall, 'densKern', subname)
+
 
 end subroutine sumrhoForLocalizedBasis2
 

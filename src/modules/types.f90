@@ -395,7 +395,7 @@ module module_types
 
 !> Contains the parameters neeed for the point to point communications
 !! for gathering the potential (for the application of the Hamiltonian)
-   type,public::p2pCommsGatherPot
+   type,public:: p2pCommsGatherPot
        integer,dimension(:),pointer:: noverlaps, overlaps
        integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
        integer,dimension(:,:,:),pointer:: comarr
@@ -495,7 +495,7 @@ end type largeBasis
   type,public:: inguessParameters
     integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
     integer,dimension(:),pointer:: norb_par, onWhichMPI, isorb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
-    type(matrixLocalizationRegion),dimension(:),pointer:: mlr
+    !!type(matrixLocalizationRegion),dimension(:),pointer:: mlr
   end type inguessParameters
 
   type,public:: localizedDIISParameters

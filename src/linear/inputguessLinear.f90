@@ -43,7 +43,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0, nvirt, norbat
   real(kind=4) :: tt,builtin_rand
   real(gp) :: hxh,hyh,hzh,eks,epot_sum,ekin_sum,eexctX,eproj_sum,etol,accurex
-  type(communications_arrays) :: commsig
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
@@ -265,31 +264,31 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   end if
 
 
-
-  if(potshortcut>0) then
-!!$    if (GPUconv) then
-!!$       call free_gpu(GPU,orbs%norbp)
-!!$    end if
-     if (switchGPUconv) then
-        GPUconv=.true.
-     end if
-     if (switchOCLconv) then
-        OCLconv=.true.
-     end if
-
-     
-     !deallocate the gaussian basis descriptors
-     call deallocate_gwf(G,subname)
-    
-     i_all=-product(shape(psigau))*kind(psigau)
-     deallocate(psigau,stat=i_stat)
-     call memocc(i_stat,i_all,'psigau',subname)
-     call deallocate_comms(commsig,subname)
-     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-     deallocate(norbsc_arr,stat=i_stat)
-     call memocc(i_stat,i_all,'norbsc_arr',subname)
-    return 
-  end if
+!!!! WHAT DOES THIS MEAN??
+!!  if(potshortcut>0) then
+!!!!$    if (GPUconv) then
+!!!!$       call free_gpu(GPU,orbs%norbp)
+!!!!$    end if
+!!     if (switchGPUconv) then
+!!        GPUconv=.true.
+!!     end if
+!!     if (switchOCLconv) then
+!!        OCLconv=.true.
+!!     end if
+!!
+!!     
+!!     !deallocate the gaussian basis descriptors
+!!     call deallocate_gwf(G,subname)
+!!    
+!!     i_all=-product(shape(psigau))*kind(psigau)
+!!     deallocate(psigau,stat=i_stat)
+!!     call memocc(i_stat,i_all,'psigau',subname)
+!!     call deallocate_comms(commsig,subname)
+!!     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+!!     deallocate(norbsc_arr,stat=i_stat)
+!!     call memocc(i_stat,i_all,'norbsc_arr',subname)
+!!    return 
+!!  end if
 
 
   !call dcopy(orbsig%npsidim,psi,1,hpsi,1)
@@ -372,13 +371,14 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time/dble(nproc)
 
    call deallocateCommunicationsBuffersPotential(comgp, subname)
+   call deallocate_p2pCommsGatherPot(comgp, subname)
 
 
    call cpu_time(t1)
    allocate(ham(lzdig%orbs%norb,lzdig%orbs%norb,at%nat), stat=istat)
    call memocc(i_stat,ham,'ham',subname)
    call getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, lzdig%orbs%inWhichLocreg, lzdig%orbs%inWhichLocregp, at%nat, lchi, lhchi, ham)
-   call buildLinearCombinationsLocalized(iproc, nproc, lzdig%orbs, lin%orbs, commsig, lin%comms, at, Glr, input, lin%norbsPerType, &
+   call buildLinearCombinationsLocalized(iproc, nproc, lzdig%orbs, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
         lzdig%orbs%inWhichLocreg, lchi, lphi, rxyz, lin%lzd%orbs%inWhichLocreg, lin, lzdig, ham)
    !!do istat=1,size(lphi)
    call cpu_time(t2)
@@ -403,7 +403,6 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-
   i_all=-product(shape(onWhichAtomTemp))*kind(onWhichAtomTemp)
   deallocate(onWhichAtomTemp, stat=i_stat)
   call memocc(i_stat, i_all, 'onWhichAtomTemp',subname)
@@ -412,6 +411,25 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   deallocate(norbsPerAt, stat=i_stat)
   call memocc(i_stat, i_all, 'norbsPerAt',subname)
 
+  i_all=-product(shape(lchi))*kind(lchi)
+  deallocate(lchi, stat=i_stat)
+  call memocc(i_stat, i_all, 'lchi',subname)
+
+  i_all=-product(shape(lhchi))*kind(lhchi)
+  deallocate(lhchi, stat=i_stat)
+  call memocc(i_stat, i_all, 'lhchi',subname)
+
+  i_all=-product(shape(lchi2))*kind(lchi2)
+  deallocate(lchi2, stat=i_stat)
+  call memocc(i_stat, i_all, 'lchi2',subname)
+
+  i_all=-product(shape(doNotCalculate))*kind(doNotCalculate)
+  deallocate(doNotCalculate, stat=i_stat)
+  call memocc(i_stat, i_all, 'doNotCalculate',subname)
+
+  i_all=-product(shape(ham))*kind(ham)
+  deallocate(ham, stat=i_stat)
+  call memocc(i_stat, i_all, 'ham',subname)
 
 
 END SUBROUTINE inputguessConfinement
@@ -1357,7 +1375,7 @@ real(8),dimension(:),allocatable:: eval, work
 real(8),dimension(:,:),allocatable:: chiTemp, ovrlp
 real(8),dimension(:,:,:),allocatable:: tempArr
 real(8),dimension(:),pointer:: chiw
-character(len=*),parameter:: subname='orthonormalizeAtomicOrbitals'
+character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized'
 type(overlapParameters):: op
 type(p2pCommsOrthonormality):: comon
 
@@ -1365,106 +1383,17 @@ type(p2pCommsOrthonormality):: comon
 ! Initialize the communication parameters.
 tag=5000
 call initCommsOrtho(iproc, nproc, lzd, lzd%orbs%inWhichLocreg, input, op, comon, tag)
-!!call orthonormalizeLocalized(iproc, nproc, lin%nItOrtho, lin%orbs, lin%op, lin%comon, lin%lzd, lin%onWhichAtomAll, lin%convCritOrtho, input, lphi, ovrlp)
 allocate(ovrlp(lzd%orbs%norb,lzd%orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
+
 call orthonormalizeLocalized(iproc, nproc, 2, lzd%orbs, op, comon, lzd, lzd%orbs%inWhichLocreg, 1.d-6, input, lchi, ovrlp)
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
 call memocc(istat, iall, 'ovrlp', subname)
 
-!!allocate(chiw(orbsig%npsidim),stat=istat)
-!!call memocc(istat, chiw, 'chiw', subname)
-!!
-!!call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, chi, work=chiw)
-!!
-!!allocate(ovrlp(orbsig%norb,orbsig%norb), stat=istat)
-!!call memocc(istat, ovrlp, 'ovrlp', subname)
-!!
-!!
-!!nvctrp=commsig%nvctr_par(iproc,1) ! 1 for k-points
-!!
-!!! Calculate the overlap matrix
-!!call dsyrk('l', 't', orbsig%norb, nvctrp, 1.d0, chi(1), nvctrp, &
-!!     0.d0, ovrlp(1,1), orbsig%norb)
-!!! MPI
-!!call mpiallred(ovrlp(1,1), orbsig%norb**2, mpi_sum, mpi_comm_world, ierr)
-!!
-!!
-!!allocate(eval(orbsig%norb), stat=istat)
-!!call memocc(istat, eval, 'eval', subname)
-!!
-!!! Diagonalize overlap matrix.
-!!allocate(work(1), stat=istat)
-!!call memocc(istat, work, 'work', subname)
-!!call dsyev('v', 'l', orbsig%norb, ovrlp(1,1), orbsig%norb, eval, &
-!!     work, -1, info)
-!!lwork=work(1)
-!!iall=-product(shape(work))*kind(work)
-!!deallocate(work, stat=istat)
-!!call memocc(istat, iall, 'work', subname)
-!!allocate(work(lwork), stat=istat)
-!!call memocc(istat, work, 'work', subname)
-!!call dsyev('v', 'l', orbsig%norb, ovrlp(1,1), orbsig%norb, eval, &
-!!     work, lwork, info)
-!!
-!!! Calculate S^{-1/2}. 
-!!! First calulate ovrlp*diag(1/sqrt(eval)) (ovrlp is the diagonalized overlap
-!!! matrix and diag(1/sqrt(eval)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
-!!allocate(tempArr(orbsig%norb,orbsig%norb,2), stat=istat)
-!!call memocc(istat, tempArr, 'tempArr', subname)
-!!do iorb=1,orbsig%norb
-!!    do jorb=1,orbsig%norb
-!!        tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
-!!    end do
-!!end do
-!!
-!!! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
-!!! This will give S^{-1/2}.
-!!call dgemm('n', 't', orbsig%norb, orbsig%norb, orbsig%norb, 1.d0, ovrlp(1,1), &
-!!     orbsig%norb, tempArr(1,1,1), orbsig%norb, 0.d0, &
-!!     tempArr(1,1,2), orbsig%norb)
-!!
-!!! Now calculate the orthonormal orbitals by applying S^{-1/2} to the orbitals.
-!!! This requires the use of a temporary variable phidTemp.
-!!allocate(chiTemp(nvctrp,1:orbsig%norb), stat=istat)
-!!call memocc(istat, chiTemp, 'chiTemp', subname)
-!!call dgemm('n', 'n', nvctrp, orbsig%norb, orbsig%norb, 1.d0, chi(1), &
-!!     nvctrp, tempArr(1,1,2),  orbsig%norb, 0.d0, &
-!!     chiTemp(1,1), nvctrp)
-!!
-!!! Now copy the orbitals from the temporary variable to phid.
-!!call dcopy(orbsig%norb*nvctrp, chiTemp(1,1), 1, chi(1), 1)
-!!
-!!
-!!call untranspose_v(iproc, nproc, orbsig, Glr%wfd, commsig, chi, work=chiw)
-!!
-!!
-!!iall=-product(shape(ovrlp))*kind(ovrlp)
-!!deallocate(ovrlp, stat=istat)
-!!call memocc(istat, iall, 'ovrlp', subname)
-!!
-!!iall=-product(shape(work))*kind(work)
-!!deallocate(work, stat=istat)
-!!call memocc(istat, iall, 'work', subname)
-!!
-!!iall=-product(shape(eval))*kind(eval)
-!!deallocate(eval, stat=istat)
-!!call memocc(istat, iall, 'eval', subname)
-!!
-!!iall=-product(shape(chiTemp))*kind(chiTemp)
-!!deallocate(chiTemp, stat=istat)
-!!call memocc(istat, iall, 'chiTemp', subname)
-!!
-!!iall=-product(shape(tempArr))*kind(tempArr)
-!!deallocate(tempArr, stat=istat)
-!!call memocc(istat, iall, 'tempArr', subname)
-!!
-!!iall=-product(shape(chiw))*kind(chiw)
-!!deallocate(chiw, stat=istat)
-!!call memocc(istat, iall, 'chiw', subname)
-
+call deallocate_overlapParameters(op, subname)
+call deallocate_p2pCommsOrthonormality(comon, subname)
 
 end subroutine orthonormalizeAtomicOrbitalsLocalized
 
@@ -2115,6 +2044,8 @@ do iat=1,nat
     if(iproc==0) write(*,'(a)') 'done.'
 end do
 call deallocateCommuncationBuffersOrtho(comon, subname)
+call deallocate_overlapParameters(op, subname)
+call deallocate_p2pCommsOrthonormality(comon, subname)
 
 
 iall=-product(shape(lchi))*kind(lchi)
@@ -2211,6 +2142,8 @@ do iat=1,nat
 end do
 call deallocateCommuncationBuffersOrtho(comon, subname)
 
+call deallocate_overlapParameters(op, subname)
+call deallocate_p2pCommsOrthonormality(comon, subname)
 
 !!iall=-product(shape(lchi))*kind(lchi)
 !!deallocate(lchi, stat=istat)
@@ -2226,7 +2159,7 @@ end subroutine getHamiltonianMatrix2
 
 
 
-subroutine buildLinearCombinationsLocalized(iproc, nproc, orbsig, orbs, commsig, comms, at, Glr, input, norbsPerType, &
+subroutine buildLinearCombinationsLocalized(iproc, nproc, orbsig, orbs, comms, at, Glr, input, norbsPerType, &
            onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, ham)
 !
 use module_base
@@ -2237,7 +2170,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbsig, orbs
-type(communications_arrays),intent(in):: commsig, comms
+type(communications_arrays),intent(in):: comms
 type(atoms_data),intent(in):: at
 type(locreg_descriptors),intent(in):: Glr
 type(input_variables),intent(in):: input
@@ -2261,7 +2194,7 @@ real(8),dimension(:),pointer:: chiw
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
 real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
 logical:: converged
-character(len=*),parameter:: subname='buildLinearCombinations'
+character(len=*),parameter:: subname='buildLinearCombinationsLocalized'
 real(4):: ttreal
 integer:: wholeGroup, newGroup, newComm, norbtot
 integer,dimension(:),allocatable:: newID
@@ -2279,19 +2212,6 @@ type(p2pCommsOrthonormalityMatrix):: comom
   ! Allocate the local arrays that are hold by all processes.
   allocate(coeff(orbsig%norb,orbs%norb), stat=istat)
   call memocc(istat, coeff, 'coeff', subname)
-
-  !!! Transpose all the wavefunctions for having a piece of all the orbitals 
-  !!! for each processor
-  !!allocate(chiw(orbsig%npsidim+ndebug),stat=istat)
-  !!call memocc(istat,chiw, 'chiw', subname)
-  !!call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, chi(1), work=chiw)
-  !!!!do iat=1,at%nat
-  !!!!    call transpose_v(iproc, nproc, orbsig, Glr%wfd, commsig, hchi(1,iat), work=chiw)
-  !!!!end do
-  !!iall=-product(shape(chiw))*kind(chiw)
-  !!deallocate(chiw,stat=istat)
-  !!call memocc(istat, iall, 'chiw', subname)
-
 
 
 
@@ -2583,52 +2503,54 @@ type(p2pCommsOrthonormalityMatrix):: comom
   call mpi_allgatherv(coeff2(1), sendcount, mpi_double_precision, coeff(1,1), recvcounts, &
        displs, mpi_double_precision, mpi_comm_world, ierr)
 
-  ! 
 
 
   ! Now every process has all coefficients, so we can build the linear combinations.
-  !!phi=0.d0
-  !!nvctrp=commsig%nvctr_par(iproc,1) ! 1 for k-points
-  !!ist=1
-  !!do iorb=1,orbs%norb
-  !!    jst=1
-  !!    do jorb=1,orbsig%norb
-  !!        call daxpy(nvctrp, coeff(jorb,iorb), chi(jst), 1, phi(ist), 1)
-  !!        jst=jst+nvctrp
-  !!    end do
-  !!    ist=ist+nvctrp
-  !!end do
-
   ! Do this in a localized way -- TEST
   call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, input, coeff, lchi, lphi)
-  !!do istat=1,size(lphi)
-  !!    lphi(istat)=cos(dble(mod(13*istat+18945*iproc,259)))
-  !!end do
 
-  
+  if(iproc<ip%nproc) then
+      call deallocate_inguessParameters(ip, subname)
+      call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
 
-  !!! Untranpose the orbitals.
-  !!allocate(chiw(orbs%npsidim+ndebug),stat=istat)
-  !!call memocc(istat, chiw, 'chiw', subname)
-  !!call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, phi, work=chiw)
-  !!iall=-product(shape(chiw))*kind(chiw)
-  !!deallocate(chiw, stat=istat)
-  !!call memocc(istat, iall, 'chiw', subname)
+      iall=-product(shape(lcoeff))*kind(lcoeff)
+      deallocate(lcoeff, stat=istat)
+      call memocc(istat, iall, 'lcoeff', subname)
 
-  !!do istat=1,size(phi)
-  !!    write(100+iproc,*) istat, phi(istat)
-  !!end do
-  !!do istat=1,size(lphi)
-  !!    write(110+iproc,*) istat, lphi(istat)
-  !!end do
+      iall=-product(shape(lgrad))*kind(lgrad)
+      deallocate(lgrad, stat=istat)
+      call memocc(istat, iall, 'lgrad', subname)
 
+      iall=-product(shape(lgradold))*kind(lgradold)
+      deallocate(lgradold, stat=istat)
+      call memocc(istat, iall, 'lgradold', subname)
+  end if
 
   ! Deallocate the local arrays.
+  iall=-product(shape(newID))*kind(newID)
+  deallocate(newID, stat=istat)
+  call memocc(istat, iall, 'newID', subname)
+
   iall=-product(shape(coeff))*kind(coeff)
   deallocate(coeff, stat=istat)
   call memocc(istat, iall, 'coeff', subname)
 
+  iall=-product(shape(coeff2))*kind(coeff2)
+  deallocate(coeff2, stat=istat)
+  call memocc(istat, iall, 'coeff2', subname)
 
+  iall=-product(shape(recvcounts))*kind(recvcounts)
+  deallocate(recvcounts, stat=istat)
+  call memocc(istat, iall, 'recvcounts', subname)
+
+  iall=-product(shape(displs))*kind(displs)
+  deallocate(displs, stat=istat)
+  call memocc(istat, iall, 'displs', subname)
+
+  iall=-product(shape(norb_par))*kind(norb_par)
+  deallocate(norb_par, stat=istat)
+  call memocc(istat, iall, 'norb_par', subname)
+  
   
   contains
 
@@ -3852,6 +3774,8 @@ end do
 
 
 
+call deallocate_overlapParameters(op, subname)
+call deallocate_p2pCommsOrthonormality(comon, subname)
 
 
 iall=-product(shape(lchiovrlp))*kind(lchiovrlp)
