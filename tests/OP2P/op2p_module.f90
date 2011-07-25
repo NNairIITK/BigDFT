@@ -317,25 +317,25 @@ contains
 
   END SUBROUTINE print_group_schemes
 
-  subroutine OP2P_communication(iproc,nproc,OP2P,objects_data,results_data,send_objects,receive_objects,&
-       confirm_receive,apply_symmetric_operator)
+  subroutine OP2P_communication(iproc,nproc,OP2P,objects_data,results_data,apply_symmetric_operator,&
+       send_op,receive_op,wait_op)
     implicit none
     interface
-       subroutine send_objects(istep,isendproc,irecvproc,ncount,itag,irequest,sendbuf)
+       subroutine send_op(istep,isendproc,irecvproc,ncount,itag,irequest,sendbuf)
          integer, intent(in) :: istep,isendproc,irecvproc,ncount,itag,irequest
          real(kind=8), intent(in) :: sendbuf
-       end subroutine send_objects
+       end subroutine send_op
 
-       subroutine receive_objects(istep,isendproc,irecvproc,ncount,itag,irequest,recvbuf)
+       subroutine receive_op(istep,isendproc,irecvproc,ncount,itag,irequest,recvbuf)
          integer, intent(in) :: istep,isendproc,irecvproc,ncount,itag,irequest
          real(kind=8), intent(in) :: recvbuf
-       end subroutine receive_objects
+       end subroutine receive_op
 
-       subroutine confirm_receive(iproc,istep,nreq,requests)
+       subroutine wait_op(iproc,istep,nreq,requests)
          implicit none
          integer, intent(in) :: iproc,istep,nreq
          integer, dimension(nreq), intent(in) :: requests
-       end subroutine confirm_receive
+       end subroutine wait_op
 
        !here a procedure can be added if the objects to be sent are not of double precision
        subroutine apply_symmetric_operator(istep,iproc,igroup,remote_result,idata_glob,jdata_glob,&
@@ -358,6 +358,7 @@ contains
     type(OP2P_descriptors), intent(in) :: OP2P
     real(kind=8), dimension(*), intent(inout) :: objects_data !< the dimension of the initial objects is not specified
     real(kind=8), dimension(*), intent(out) :: results_data
+    optional :: send_op,receive_op,wait_op
 
     !local variables
     character(len=*), parameter :: subname='op2p_communication'
@@ -397,11 +398,11 @@ contains
              nelems_to_send=OP2P%nvctr_par(OP2P%communication_schedule(1,istep,igroup,iproc),OP2P%igrpr(igroup,iproc),1) !objects
              iaddress_local=OP2P%ioffp_group(3,iproc,OP2P%igrpr(igroup,iproc))
              if (istep == 0) then
-                call send_objects(istep,iproc,jproc_to_send,nelems_to_send,&
+                call send_op(istep,iproc,jproc_to_send,nelems_to_send,&
                      iproc+2*nproc*istep,mpireq(ncommsstep,1),objects_data(iaddress_local))
              else
                 !multiply by two the sending objects for the accumulation array
-                call send_objects(istep,iproc,jproc_to_send,nelems_to_send,&
+                call send_op(istep,iproc,jproc_to_send,nelems_to_send,&
                      iproc+2*nproc*istep,mpireq(ncommsstep,1),sendreceive_buffer(1,isnow,igroup))
              end if
           end if
@@ -410,7 +411,7 @@ contains
              jproc_to_recv=OP2P%iprocpm1(2,1,igroup,iproc)
              nelems_to_recv=OP2P%nvctr_par(OP2P%communication_schedule(2,istep,igroup,iproc),OP2P%igrpr(igroup,iproc),1) !objects
              iaddress_local=OP2P%ioffp_group(3,iproc,OP2P%igrpr(igroup,iproc))
-             call receive_objects(istep,jproc_to_recv,iproc,nelems_to_recv,&
+             call receive_op(istep,jproc_to_recv,iproc,nelems_to_recv,&
                   jproc_to_recv+2*nproc*istep,mpireq(ncommsstep,1),sendreceive_buffer(1,irnow,igroup))
           end if
        end do
@@ -480,7 +481,7 @@ contains
 
        !check the sending of the results array (this operation can also be performed at the end of the cycle
        if (ncommsstep_results > 0) then
-          call confirm_receive(iproc,istep,ncommsstep_results,mpireq(1,2))
+          call wait_op(iproc,istep,ncommsstep_results,mpireq(1,2))
           !copy the results which have been received (the messages sending are after)
           !to be modified via the creation of an array which follows psi
           do igroup=1,OP2P%ngroupp(iproc)
@@ -508,7 +509,7 @@ contains
              call dcopy(nelems_to_send,restemp_buffer(1,3,igroup),1,&
                   restemp_buffer(1,isnow_results,igroup),1) !is this copy unavoidable? unfortunately yes...
 
-             call send_objects(istep,iproc,jproc_to_send,nelems_to_send,&
+             call send_op(istep,iproc,jproc_to_send,nelems_to_send,&
                   iproc+nproc+2*nproc*istep,mpireq(ncommsstep_results,2),restemp_buffer(1,isnow_results,igroup))
           end if
           if (OP2P%communication_schedule(4,istep,igroup,iproc) /= UNINITIALIZED(1)) then
@@ -516,7 +517,7 @@ contains
              jproc_to_recv=OP2P%communication_schedule(4,istep,igroup,iproc)
              nelems_to_recv=OP2P%nvctr_par(iproc,OP2P%igrpr(igroup,iproc),2) !results
 
-              call receive_objects(istep,jproc_to_recv,iproc,nelems_to_recv,&
+              call receive_op(istep,jproc_to_recv,iproc,nelems_to_recv,&
                    jproc_to_recv+nproc+2*nproc*istep,mpireq(ncommsstep_results,2),&
                    restemp_buffer(1,irnow_results,igroup))
            end if
@@ -524,7 +525,12 @@ contains
         if (istep>1) isnow_results=3-isnow_results
 
        if (ncommsstep /=0) then
-          call confirm_receive(iproc,istep,ncommsstep,mpireq(1,1))
+          !SONO ARRIVATO QUI DEVO TESTARE SE LE ROUTINE POSSONO ESSERE OPZIONALI
+          if (present(wait_op)) then
+             call wait_op(iproc,istep,ncommsstep,mpireq(1,1))
+          else
+             call wait_mpi(iproc,istep,ncommsstep,mpireq(1,1))
+          end if
        end if
        isnow=3-isnow
        ncommsstep=0
@@ -574,5 +580,24 @@ contains
     call memocc(i_stat,i_all,'communication_schedule',subname)
 
   end subroutine free_OP2P_descriptors
+
+  subroutine wait_mpi(iproc,istep,nreq,requests)
+    implicit none
+    integer, intent(in) :: iproc,istep,nreq
+    integer, dimension(nreq), intent(in) :: requests
+    !local variables
+    logical :: error_found
+    integer :: jproc,isr
+    integer, dimension(MPI_STATUS_SIZE,4) :: mpistat
+    !local variables
+    integer :: ierr
+
+    !verify that the messages have been passed
+    call MPI_WAITALL(nreq,requests,mpistat,ierr)
+    if (ierr /=0)  then
+       write(*,*),'ERROR WAITALL, iproc,step,ierr:',iproc,istep,ierr,mpistat,MPI_STATUSES_IGNORE
+    end if
+  end subroutine wait_mpi
+
 
 end module overlap_point_to_point

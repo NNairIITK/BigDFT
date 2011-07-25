@@ -388,9 +388,9 @@ module module_types
      logical :: switchSD
      integer :: idiistol,mids,ids,idsx
      real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
-     real(wp), dimension(:), pointer :: psidst
+     real(tp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
-     real(wp), dimension(:,:,:,:,:,:), pointer :: ads
+     real(tp), dimension(:,:,:,:,:,:), pointer :: ads
   end type diis_objects
 
 
@@ -427,7 +427,7 @@ contains
     call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
     allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
     call memocc(i_stat,diis%ads,'ads',subname)
-    call razero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads)
+    call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
 
     !initialize scalar variables
     !diis initialisation variables

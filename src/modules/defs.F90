@@ -30,7 +30,7 @@ module module_defs
   integer, parameter :: gp=kind(1.0d0)  !< general-type precision
   integer, parameter :: dp=kind(1.0d0)  !< density-type precision
   integer, parameter :: wp=kind(1.0d0)  !< wavefunction-type precision
-  integer, parameter :: tp=kind(1.0d0)  !< diis precision (single in this context, if double is only for non-regression)
+  integer, parameter :: tp=kind(1.0e0)  !< diis precision (single in this context, if double is only for non-regression)
 
   include 'mpif.h'      !< MPI definitions and datatypes for density and wavefunctions
 
@@ -151,7 +151,7 @@ module module_defs
      module procedure scal_simple,scal_double
   end interface
   interface vcopy
-     module procedure copy_simple,copy_double,&
+     module procedure copy_simple,copy_double,copy_double_to_simple,&
           copy_complex_real_simple,copy_complex_real_double
   end interface
   interface c_vscal
@@ -170,7 +170,7 @@ module module_defs
      module procedure c_trmm_simple,c_trmm_double
   end interface
   interface axpy
-     module procedure axpy_simple,axpy_double
+     module procedure axpy_simple,axpy_double,axpy_simple_to_double
   end interface
   interface c_axpy
      module procedure c_axpy_simple,c_axpy_double
@@ -657,8 +657,8 @@ module module_defs
       integer, intent(in) :: incx,incy,n
       real(kind=8), intent(in) :: dx
       real(kind=4), intent(out) :: dy
-      !local variables
-      call copy_from_double_to_simple(n,dx,incx,dy,incy)
+      !call to custom routine
+      call dscopy(n,dx,incx,dy,incy)
     end subroutine copy_double_to_simple
 
     subroutine trmm_simple(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
@@ -744,6 +744,16 @@ module module_defs
       !call to BLAS routine
       call DAXPY(n,da,dx,incx,dy,incy)
     end subroutine axpy_double
+
+    subroutine axpy_simple_to_double(n,da,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      real(kind=8), intent(in) :: da
+      real(kind=4), intent(in) :: dx
+      real(kind=8), intent(inout) :: dy
+      !call to custom routine, for mixed precision sum
+      call dasxpdy(n,da,dx,incx,dy,incy)
+    end subroutine axpy_simple_to_double
 
     subroutine c_axpy_simple(n,da,dx,incx,dy,incy)
       implicit none

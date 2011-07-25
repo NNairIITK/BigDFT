@@ -48,7 +48,7 @@ contains
     end if
   end subroutine send_mpi
 
-  subroutine wait_mpi(iproc,istep,nreq,requests)
+  subroutine wait_mpi_profile(iproc,istep,nreq,requests)
     implicit none
     integer, intent(in) :: iproc,istep,nreq
     integer, dimension(nreq), intent(in) :: requests
@@ -64,6 +64,6 @@ contains
     if (ierr /=0)  then
        write(*,*),'ERROR WAITALL, iproc,step,ierr:',iproc,istep,ierr,mpistat,MPI_STATUSES_IGNORE
     end if
-  end subroutine wait_mpi
+  end subroutine wait_mpi_profile
 
 end module mpi_layer

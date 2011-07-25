@@ -66,14 +66,32 @@ subroutine tenminustwenty(n,x,nproc)
   end do
 END SUBROUTINE tenminustwenty
 
-subroutine copy_from_double_to_simple(n,dx,incx,dy,incy)
+subroutine dasxpdy(n,da,dx,incx,dy,incy)
+  implicit none
+  integer, intent(in) :: n,incx,incy
+  real(kind=8), intent(in) :: da
+  real(kind=4), dimension(*), intent(in) :: dx
+  real(kind=8), dimension(*), intent(inout) :: dy
+  !local variables
+  integer :: i,ix,iy
+  
+  ix=0
+  iy=0
+  do i=1,n
+     ix=ix+incx
+     iy=iy+incy
+     dy(iy)=dy(iy)+da*real(dx(ix),kind=8)
+  end do
+end subroutine dasxpdy
+
+subroutine dscopy(n,dx,incx,dy,incy)
   implicit none
   integer, intent(in) :: n,incx,incy
   real(kind=8), dimension(*), intent(in) :: dx
   real(kind=4), dimension(*), intent(out) :: dy
   !local variables
   integer :: i,ix,iy
-
+  
   ix=0
   iy=0
   do i=1,n
@@ -82,7 +100,7 @@ subroutine copy_from_double_to_simple(n,dx,incx,dy,incy)
      dy(iy)=real(dx(ix),kind=4)
   end do
 
-end subroutine copy_from_double_to_simple
+end subroutine dscopy
 !>   To be used in the following function.
 module randomData
   implicit none
