@@ -10,16 +10,26 @@ else
 mpi_include = mpif.h
 endif
 
+if BUILD_LIBXC
+LIBXC_MODULE =
+xc.o: base.o
+else
+LIBXC_MODULE = libxc_fake.f90
+xc.o: base.o libxc_fake.o
+endif
+
 if CAPITALIZE
 mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_DEFS.@MODULE_EXT@ \
 	MODULE_TYPES.@MODULE_EXT@ \
-	MODULE_INTERFACES.@MODULE_EXT@
+	MODULE_INTERFACES.@MODULE_EXT@ \
+	MODULE_XC.@MODULE_EXT@
 else
 mod_bigdft = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ \
-	module_interfaces.@MODULE_EXT@
+	module_interfaces.@MODULE_EXT@ \
+	module_xc.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
 
@@ -30,19 +40,18 @@ modules_source = base.f90 \
 	types.f90 \
 	input.f90 \
 	interfaces.f90 \
+	xc.f90 \
+	$(LIBXC_MODULE) \
 	$(GPUBLAS_INTERFACE)
 
-AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 
 noinst_LIBRARIES = libmodules.a
 
 libmodules_a_SOURCES = $(modules_source)
 
-CLEANFILES = mpif.h MODULE_BASE.@MODULE_EXT@ module_base.@MODULE_EXT@ \
-	MODULE_DEFS.@MODULE_EXT@ module_defs.@MODULE_EXT@ \
-	MODULE_INPUT.@MODULE_EXT@ module_input.@MODULE_EXT@ \
-	MODULE_TYPES.@MODULE_EXT@ module_types.@MODULE_EXT@ \
-	MODULE_INTERFACES.@MODULE_EXT@ module_interfaces.@MODULE_EXT@
+CLEANFILES = mpif.h $(mod_bigdft) \
+	MODULE_INPUT.@MODULE_EXT@ module_input.@MODULE_EXT@ 
 
 #Fake mpif.h for serial compilation
 mpif.h:

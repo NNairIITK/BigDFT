@@ -257,7 +257,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(dp), dimension(*), intent(inout) :: rho
   real(wp), dimension(:), pointer :: rhocore !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
-  real(wp), dimension(*), intent(out), optional :: dvxcdrho
+  real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
   !local variables
   character(len=*), parameter :: subname='XC_potential'
   logical :: wrtmsg
@@ -270,8 +270,9 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rho_G
-  real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci
+  real(dp), dimension(:,:,:,:), allocatable :: vxci
   real(gp), dimension(:), allocatable :: energies_mpi
+  real(dp), dimension(:,:,:,:), pointer :: dvxci
 
   call timing(iproc,'Exchangecorr  ','ON')
 
@@ -399,13 +400,14 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      else
         order=2
      end if
+     ndvxc = size(dvxcdrho, 4)
+     dvxci => dvxcdrho
   else
      order=1
+     ndvxc=0
+     allocate(dvxci(m1,m3,max(1,nwb),ndvxc),stat=i_stat)
+     call memocc(i_stat,dvxci,'dvxci',subname)
   end if
-  call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspin,nvxcdgr,order)
-
-  allocate(dvxci(m1,m3,max(1,nwb),ndvxc+ndebug),stat=i_stat)
-  call memocc(i_stat,dvxci,'dvxci',subname)
 
   !if (present(dvxcdrho)) then
   !   write(*,*)'Array of second derivatives of Exc allocated, dimension',ndvxc,m1,m3,nwb
@@ -451,13 +453,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      call dcopy(m1*m3*nxc,vxci(1,1,nxcl,1),1,potxc(1),1)
      if (nspin == 2) then
         call dcopy(m1*m3*nxc,vxci(1,1,nxcl,2),1,potxc(1+m1*m3*nxc),1)
-     end if
-     if (present(dvxcdrho)) then
-        if (nxcl /= 1) then
-           write(*,*)'ERROR: only LDA calculations are allowed for the second derivative of the XC energy!'
-           stop
-        end if
-        call dcopy(m1*m3*nxc*ndvxc,dvxci(1,1,nxcl,1),1,dvxcdrho,1)
      end if
   end if
  
@@ -573,11 +568,11 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   deallocate(vxci,stat=i_stat)
   call memocc(i_stat,i_all,'vxci',subname)
 
-  i_all=-product(shape(dvxci))*kind(dvxci)
-  deallocate(dvxci,stat=i_stat)
-  call memocc(i_stat,i_all,'dvxci',subname)
-
-
+  if (.not.present(dvxcdrho)) then
+     i_all=-product(shape(dvxci))*kind(dvxci)
+     deallocate(dvxci,stat=i_stat)
+     call memocc(i_stat,i_all,'dvxci',subname)
+  end if
 
   if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
@@ -630,8 +625,7 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rho,vxci,exc,vxc,order,ndvxc,dvxci,nspden)
 
   use module_base
-  use libxc_functionals
-  use interfaces_56_xc
+  use module_xc
 
   implicit none
 
@@ -647,13 +641,12 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   !Local variables----------------
   character(len=*), parameter :: subname='xc_energy'
-  real(dp), dimension(:,:,:), allocatable :: exci,d2vxci
+  real(dp), dimension(:,:,:), allocatable :: exci
   real(dp), dimension(:,:,:,:), allocatable :: dvxcdgr
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp) :: elocal,vlocal,rhov,sfactor
-  integer :: npts,i_all,offset,i_stat,ispden,ndvxct
+  integer :: npts,i_all,offset,i_stat,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
-  integer :: nvxcdgr,ngr2,nd2vxc
   logical :: use_gradient
 
   !check for the dimensions
@@ -663,23 +656,10 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      stop
   end if
 
-  !these are always the same
-  !order=1
-
   !starting point of the density array for the GGA cases in parallel
   offset=nwbl+1
   !divide by two the density to applicate it in the ABINIT xc routines
-  use_gradient = (ixc >= 11 .and. ixc <= 16) .or. &
-       & (ixc < 0 .and. libxc_functionals_isgga())
-
-  !Allocations of the exchange-correlation terms, depending on the ixc value
-  nd2vxc=1
-  call size_dvxc(ixc,ndvxct,ngr2,nd2vxc,nspden,nvxcdgr,order)
-
-  !stop if the ndvxc differns from the input
-  if (ndvxc /= ndvxct) then
-     write(*,*)'ERROR: ndvxc differs from the input',ndvxc,ndvxct
-  end if
+  use_gradient = xc_isgga()
 
   if (use_gradient) then
      !computation of the gradient
@@ -692,95 +672,30 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      !the XC terms for spin up and then spin down
      call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho,nspden,&
           real(hx,dp),real(hy,dp),real(hz,dp),gradient)
+
+     allocate(dvxcdgr(m1,m3,nwb,3+ndebug),stat=i_stat)
+     call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
   end if
 
   !Allocations
   allocate(exci(m1,m3,nwb+ndebug),stat=i_stat)
   call memocc(i_stat,exci,'exci',subname)
 
-!!$  if (ndvxc/=0) then
-!!$     allocate(dvxci(m1,m3,nwb,ndvxc+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,dvxci,'dvxci',subname)
-!!$  end if
-  if (nvxcdgr/=0) then
-     allocate(dvxcdgr(m1,m3,nwb,nvxcdgr+ndebug),stat=i_stat)
-     call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
-  end if
-  if ((ixc==3 .or. (ixc>=7 .and. ixc<=15)) .and. order==3) then
-     allocate(d2vxci(m1,m3,nwb+ndebug),stat=i_stat)
-     call memocc(i_stat,d2vxci,'d2vxci',subname)
-  end if
-
-  if (.not.allocated(gradient) .and. nxc/=nxt ) then
-     print *,'xc_energy: if nxt/=nxc the gradient must be allocated'
-     stop
-  end if
-
   !this part can be commented out if you don't want to use ABINIT modules
   !of course it must be substituted with an alternative XC calculation
   npts=m1*m3*nwb
-  !let us apply ABINIT routines
-  !case with gradient
-  if (ixc >= 11 .and. ixc <= 16) then
-     if (order**2 <= 1 .or. ixc == 16) then
-        if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
-                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                grho2_updn=gradient,vxcgr=dvxcdgr) 
-        else
-           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
-                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                grho2_updn=gradient) 
-        end if
-     else if (order /= 3) then
-        if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
-                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
-        else
-           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
-                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                dvxc=dvxci,grho2_updn=gradient) 
-        end if
-     else if (order == 3) then
-        if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
-                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
-        else
-           call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
-                vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
-        end if
-     end if
 
-     !cases without gradient
-  else if (ixc >= 0) then
-     if (order**2 <=1 .or. ixc >= 31 .and. ixc<=34) then
-        call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),vxci,&
-             ndvxc,ngr2,nd2vxc,nvxcdgr)
-     else if (order==3 .and. (ixc==3 .or. ixc>=7 .and. ixc<=10)) then
-        call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),vxci,&
-             ndvxc,ngr2,nd2vxc,nvxcdgr,&
-             dvxc=dvxci,d2vxc=d2vxci)
-     else
-        call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),vxci,&
-             ndvxc,ngr2,nd2vxc,nvxcdgr,&
-             dvxc=dvxci)
-        end if
-     !case with libXC, with and without gradient
-  else if (ixc < 0) then
-     !here the abinit wrapper is used, but we can pass to the 
-     !libXC routines by eliminating one step
-     call drivexc(exci,ixc,npts,nspden,order,rho(1,1,offset,1),&
-          vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-          grho2_updn=gradient,vxcgr=dvxcdgr)
+  ! Do the calculation.
+  if (abs(order) == 1) then
+     call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
+  else if (abs(order) == 2) then
+     call xc_getvxc(npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
   end if
 
   if (use_gradient) then
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case
      if (ixc/=13) then
-        call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,nvxcdgr,gradient,&
+        call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,3,gradient,&
              real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci)
      end if
 
@@ -810,20 +725,10 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
   !end of the part that can be commented out
 
-!!$  if (allocated(dvxci)) then
-!!$     i_all=-product(shape(dvxci))*kind(dvxci)
-!!$     deallocate(dvxci,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'dvxci',subname)
-!!$  end if
   if (allocated(dvxcdgr)) then
      i_all=-product(shape(dvxcdgr))*kind(dvxcdgr)
      deallocate(dvxcdgr,stat=i_stat)
      call memocc(i_stat,i_all,'dvxcdgr',subname)
-  end if
-  if (allocated(d2vxci)) then
-     i_all=-product(shape(d2vxci))*kind(d2vxci)
-     deallocate(d2vxci,stat=i_stat)
-     call memocc(i_stat,i_all,'d2vxci',subname)
   end if
   if (allocated(gradient)) then
      i_all=-product(shape(gradient))*kind(gradient)
@@ -959,7 +864,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
 
   use module_base
-  use libxc_functionals
+  use module_xc
   use interfaces_56_xc
 
   implicit none
@@ -1020,8 +925,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 !           end do
 !        end do
 !     end do
-     use_gradient = (ixc >= 11 .and. ixc <= 16) .or. &
-          & (ixc < 0 .and. libxc_functionals_isgga())
+     use_gradient = xc_isgga()
 
      !Allocations of the exchange-correlation terms, depending on the ixc value
      nd2vxc=1

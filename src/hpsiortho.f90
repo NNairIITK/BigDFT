@@ -14,7 +14,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hx,hy,hz
@@ -64,7 +64,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   op2p=(eexctX == -99.0_gp)
   eexctX=0.0_gp
 
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
 
   ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
 
@@ -216,7 +216,7 @@ END SUBROUTINE HamiltonianApplication
 !> Build the potential in the whole box
 subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
   use module_base
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -229,7 +229,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
 
   call timing(iproc,'Rho_commun    ','ON')
   
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
   !determine the dimension of the potential array
   if (exctX) then
      npot=ndimgrid*nspin+&
@@ -271,7 +271,7 @@ END SUBROUTINE full_local_potential
 
 subroutine free_full_potential(nproc,pot,subname)
   use module_base
-  use libxc_functionals
+  use module_xc
   implicit none
   character(len=*), intent(in) :: subname
   integer, intent(in) :: nproc
@@ -280,7 +280,7 @@ subroutine free_full_potential(nproc,pot,subname)
   logical :: exctX
   integer :: i_all,i_stat
 
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
   if (nproc > 1 .or. exctX) then
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)

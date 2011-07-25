@@ -181,7 +181,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   use module_types
   use module_interfaces
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
   use ab6_symmetry
@@ -296,7 +296,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   hy=in%hy
   hz=in%hz
 
-  call libxc_functionals_init(ixc, nspin)
+  ! Initialise XC calculation
+  if (ixc < 0) then
+     call xc_init(ixc, XC_MIXED, nspin)
+  else
+     call xc_init(ixc, XC_ABINIT, nspin)
+  end if
 
   !character string for quieting the Poisson solver
   if (verbose >1) then
@@ -311,6 +316,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           in%inputPsiId
      call print_dft_parameters(in,atoms)
   end if
+  if (iproc == 0) call xc_dump()
   if (nproc > 1) then
      call timing(iproc,'parallel     ','IN')
   else
@@ -384,7 +390,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
        quiet=PSquiet)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
-  if (libxc_functionals_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .and. nproc > 1) then
+  if (xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .and. nproc > 1) then
      call createKernel(0,1,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
           pkernelseq,quiet='YES')
   else
@@ -1663,9 +1669,7 @@ contains
     end if
 
     ! Free the libXC stuff if necessary.
-    if (ixc < 0) then
-       call libxc_functionals_end()
-    end if
+    call xc_end()
 
     !deallocate the mixing
     if (in%itrpmax > 1) then

@@ -10,8 +10,8 @@ SUBDIRS = \
 	  SPLSAD \
 	  TDDFT \
 	  OP2P \
-	  tutorials
-
+	  tutorials \
+	  xc
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
