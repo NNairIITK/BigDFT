@@ -147,7 +147,7 @@ integer:: ist, ierr
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
       if(lin%useDerivativeBasisFunctions) then
-          call dcopy(lin%lzd%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
+          call dcopy(lin%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
       end if
       !do istat=1,size(rhopot)
       !    write(2500+iproc,*) rhopot(istat)
@@ -162,9 +162,9 @@ integer:: ist, ierr
   end if
 
   if(lin%useDerivativeBasisFunctions) then
-      call dcopy(lin%lzd%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
+      call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
       if(iproc==0) write(*,'(x,a)',advance='no') 'calculating derivative basis functions...'
-      call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%lzd%orbs%npsidim, lin%lphiRestart, lphi)
+      call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
       if(iproc==0) write(*,'(a)') 'done.'
 
       ! Normalize the derivative basis functions.
@@ -231,14 +231,14 @@ integer:: ist, ierr
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
   if(.not.lin%useDerivativeBasisFunctions) then
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%lzd%orbs%inWhichLocregp, withConfinement, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
   else
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%lzd%orbs%inWhichLocregp, withConfinement, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
   end if
 
@@ -434,10 +434,10 @@ integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
 real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(lin%lzd%orbs%npsidim):: lphi
+real(8),dimension(lin%orbs%npsidim):: lphi
 real(8):: trH
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
+real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
 
 ! Local variables
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot, t2tot, timetot
@@ -462,7 +462,7 @@ real(8),dimension(4):: time
   if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
 
 
-  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%lzd%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, lin%alphaDIIS, &
+  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, lin%alphaDIIS, &
        lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, &
        startWithSD, ldiis, alpha, alphaDIIS)
 
@@ -478,28 +478,6 @@ real(8),dimension(4):: time
 
   ! Gather the potential
   call gatherPotential(iproc, nproc, lin%comgp)
-  !!do iall=1,lin%comgp%nrecvBuf
-  !!    write(700+iproc,*) iall, lin%comgp%recvBuf(iall)
-  !!end do
-  !!do iall=1,lin%lzd%orbs%npsidim
-  !!    write(750+iproc,*) iall, lphi(iall)
-  !!end do
-
-
-  !!! THIS IS NEW
-  !!! Transform the global phi to the local phi
-  !!! This part will not be needed if we really have O(N)
-  !!ind1=1
-  !!ind2=1
-  !!do iorb=1,lin%orbs%norbp
-  !!    ilr = lin%onWhichAtom(iorb)
-  !!    ldim=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    !write(*,'(a,3i8)') 'iproc, iorb, ldim', iproc, iorb, ldim
-  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%lzd%llr(ilr), Glr, phi(ind1), lphi(ind2))
-  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    ind2=ind2+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  !!end do
 
   time=0.d0
   call cpu_time(t1tot)
@@ -518,7 +496,7 @@ real(8),dimension(4):: time
       end if
       call cpu_time(t1)
       !call orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
-      call orthonormalizeLocalized(iproc, nproc, lin%nItOrtho, lin%orbs, lin%op, lin%comon, lin%lzd, lin%lzd%orbs%inWhichLocreg, lin%convCritOrtho, input, lphi, ovrlp)
+      call orthonormalizeLocalized(iproc, nproc, lin%nItOrtho, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, input, lphi, ovrlp)
       call cpu_time(t2)
       time(1)=time(1)+t2-t1
   
@@ -528,9 +506,9 @@ real(8),dimension(4):: time
       end if
       call cpu_time(t1)
       withConfinement=.true.
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%lzd%orbs%inWhichLocregp, withConfinement, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
       call cpu_time(t2)
       time(2)=time(2)+t2-t1
@@ -555,7 +533,7 @@ real(8),dimension(4):: time
       ! of the previous iteration (fnrmOvrlpArr).
       istart=1
       do iorb=1,lin%orbs%norbp
-          ilr=lin%lzd%orbs%inWhichLocregp(iorb)
+          ilr=lin%orbs%inWhichLocregp(iorb)
           ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
           if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
           fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
@@ -592,7 +570,7 @@ real(8),dimension(4):: time
       fnrmMax=sqrt(fnrmMax)
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
       !call dcopy(lin%lorbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
-      call dcopy(lin%lzd%orbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
+      call dcopy(lin%orbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
   
   
 
@@ -612,7 +590,7 @@ real(8),dimension(4):: time
 
       ind2=1
       do iorb=1,lin%orbs%norbp
-          ilr = lin%lzd%orbs%inWhichLocregp(iorb)
+          ilr = lin%orbs%inWhichLocregp(iorb)
           call choosePreconditioner2(iproc, nproc, lin%orbs, lin, lin%lzd%Llr(ilr), input%hx, input%hy, input%hz, &
               lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, it, iorb, eval_zero)
           ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
@@ -788,7 +766,7 @@ contains
               idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
               if(idsx>0) then
                   if(iproc==0) write(*,'(x,a,i0)') 'switch to DIIS with new history length ', idsx
-                  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%lzd%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, &
+                  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, &
                        lin%alphaDIIS, lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, &
                        icountDIISFailureCons, allowDIIS, startWithSD, ldiis, alpha, alphaDIIS)
                   icountDIISFailureTot=0
@@ -821,8 +799,8 @@ contains
                  ii=modulo(ldiis%mis-(it-itBest),ldiis%mis)
                  offset=0
                  istdest=1
-                 do iorb=1,lin%lzd%orbs%norbp
-                     ilr=lin%lzd%orbs%inWhichLocregp(iorb)
+                 do iorb=1,lin%orbs%norbp
+                     ilr=lin%orbs%inWhichLocregp(iorb)
                      ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
                      istsource=offset+ii*ncount+1
                      write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
@@ -862,7 +840,7 @@ contains
     if(ldiis%isx==0) then
         istart=1
         do iorb=1,lin%orbs%norbp
-            ilr=lin%lzd%orbs%inWhichLocregp(iorb)
+            ilr=lin%orbs%inWhichLocregp(iorb)
             ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
             call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, lphi(istart), 1)
             istart=istart+ncount
@@ -871,10 +849,9 @@ contains
         ! DIIS
         if(lin%alphaDIIS/=0.d0) then
             !call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi(1), 1)
-            call dscal(lin%lzd%orbs%npsidim, lin%alphaDIIS, lphi(1), 1)
+            call dscal(lin%orbs%npsidim, lin%alphaDIIS, lphi(1), 1)
         end if
-        !call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%lzd, lin%onWhichAtom, lhphi, lphi, ldiis, it)
-        call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lzd%orbs, lin%lzd, lin%lzd%orbs%inWhichLocregp, lhphi, lphi, ldiis, it)
+        call optimizeDIIS(iproc, nproc, lin%orbs, lin%orbs, lin%lzd, lin%orbs%inWhichLocregp, lhphi, lphi, ldiis, it)
     end if
     end subroutine improveOrbitals
 
@@ -908,11 +885,11 @@ contains
       call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
 
       !allocate(lhphi(lin%Lorbs%npsidim), stat=istat)
-      allocate(lhphi(lin%lzd%orbs%npsidim), stat=istat)
+      allocate(lhphi(lin%orbs%npsidim), stat=istat)
       call memocc(istat, lhphi, 'lhphi', subname)
     
       !allocate(lhphiold(lin%Lorbs%npsidim), stat=istat)
-      allocate(lhphiold(lin%lzd%orbs%npsidim), stat=istat)
+      allocate(lhphiold(lin%orbs%npsidim), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
 
     end subroutine allocateLocalArrays
@@ -2691,7 +2668,7 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
   ! If each orbital has the same number of orbitals, this is never required.
   repartition=.false.
   do jproc=1,nproc-1
-     if(lin%lzd%orbs%norb_par(jproc)/=lin%lzd%orbs%norb_par(jproc-1)) then 
+     if(lin%orbs%norb_par(jproc)/=lin%orbs%norb_par(jproc-1)) then 
          repartition=.true.
          exit
      end if
@@ -2699,7 +2676,7 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
 
 
   if(repartition) then
-      allocate(phiLoc(4*lin%lzd%orbs%npsidim), stat=istat)
+      allocate(phiLoc(4*lin%orbs%npsidim), stat=istat)
       call memocc(istat, phiLoc, 'phiLoc', subname)
   else
       phiLoc => phid
@@ -2710,7 +2687,7 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
   ist2_c=1
   ist0_c=1
   ! Dimension of the first orbital on each process
-  ilr=lin%lzd%orbs%inWhichLocregp(1)
+  ilr=lin%orbs%inWhichLocregp(1)
   offset=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
 
   istx_c=offset+1
@@ -2719,7 +2696,7 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
 
   do iorb=1,lin%orbs%norbp
 
-      ilr=lin%lzd%orbs%inWhichLocregp(iorb)
+      ilr=lin%orbs%inWhichLocregp(iorb)
       call allocateWorkarrays()
 
       ist1_f=ist1_c+lin%lzd%llr(ilr)%wfd%nvctr_c
@@ -2761,7 +2738,7 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
            lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phix_c, phix_f, phiLoc(istx_c), phiLoc(istx_f))
       if(iorb<lin%orbs%norbp) then
-          jlr=lin%lzd%orbs%inWhichLocregp(iorb+1)
+          jlr=lin%orbs%inWhichLocregp(iorb+1)
           istx_c = istx_c + 3*(lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f) + lin%lzd%llr(jlr)%wfd%nvctr_c + 7*lin%lzd%llr(jlr)%wfd%nvctr_f
       end if
 
@@ -2773,7 +2750,7 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
            lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phiy_c, phiy_f, phiLoc(isty_c), phiLoc(isty_f))
       if(iorb<lin%orbs%norbp) then
-          jlr=lin%lzd%orbs%inWhichLocregp(iorb+1)
+          jlr=lin%orbs%inWhichLocregp(iorb+1)
           isty_c = isty_c + 2*(lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f) + 2*(lin%lzd%llr(jlr)%wfd%nvctr_c + 7*lin%lzd%llr(jlr)%wfd%nvctr_f)
       end if
 
@@ -2785,7 +2762,7 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
            lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
            scal, phiz_c, phiz_f, phiLoc(istz_c), phiLoc(istz_f))
       if(iorb<lin%orbs%norbp) then
-          jlr=lin%lzd%orbs%inWhichLocregp(iorb+1)
+          jlr=lin%orbs%inWhichLocregp(iorb+1)
           istz_c = istz_c + lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f + 3*(lin%lzd%llr(jlr)%wfd%nvctr_c + 7*lin%lzd%llr(jlr)%wfd%nvctr_f)
       end if
 
@@ -2796,8 +2773,8 @@ logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
 
   if(repartition) then
       ! Communicate the orbitals to meet the partition.
-      call postCommsRepartition(iproc, nproc, lin%lzd%orbs, lin%lb%comrp, size(phiLoc), phiLoc, size(phid), phid)
-      call gatherDerivativeOrbitals(iproc, nproc, lin%lzd%orbs, lin%lb%comrp)
+      call postCommsRepartition(iproc, nproc, lin%orbs, lin%lb%comrp, size(phiLoc), phiLoc, size(phid), phid)
+      call gatherDerivativeOrbitals(iproc, nproc, lin%orbs, lin%lb%comrp)
 
       iall=-product(shape(phiLoc))*kind(phiLoc)
       deallocate(phiLoc, stat=istat)
@@ -2942,13 +2919,13 @@ character(len=*),parameter:: subname='initializeRepartitionOrbitals'
 !  - move(1,i,j)=k -> orbital i on process j has to be sent to process k
 !  - move(2,i,j)=l -> orbital i on process j has to be sent to position l (orbital number l)
 
-allocate(move(2,4*maxval(lin%lzd%orbs%norb_par),0:nproc-1), stat=istat)
+allocate(move(2,4*maxval(lin%orbs%norb_par),0:nproc-1), stat=istat)
 call memocc(istat, move, 'move', subname)
 
 kproc=0
 korb=0
 do jproc=0,nproc-1
-    do jorb=1,4*lin%lzd%orbs%norb_par(jproc)
+    do jorb=1,4*lin%orbs%norb_par(jproc)
         korb=korb+1
         if(korb>lin%lb%lzd%orbs%norb_par(kproc)) then
             kproc=kproc+1
@@ -2960,29 +2937,20 @@ do jproc=0,nproc-1
 end do
 
 
-allocate(lin%lb%comrp%communComplete(4*maxval(lin%lzd%orbs%norb_par),0:nproc-1), stat=istat)
+allocate(lin%lb%comrp%communComplete(4*maxval(lin%orbs%norb_par),0:nproc-1), stat=istat)
 call memocc(istat, lin%lb%comrp%communComplete, 'lin%lb%comrp%communComplete', subname)
 
-!!if(iproc==0) then
-!!    do jproc=0,nproc-1
-!!        do jorb=1,4*lin%lzd%orbs%norb_par(jproc)
-!!            write(*,*) 'jproc, jorb, mpi, orb', jproc, jorb, move(1,jorb,jproc), move(2,jorb,jproc)
-!!        end do
-!!    end do
-!!end if
 
 
-
-allocate(lin%lb%comrp%comarr(8,4*maxval(lin%lzd%orbs%norb_par),0:nproc-1), stat=istat)
+allocate(lin%lb%comrp%comarr(8,4*maxval(lin%orbs%norb_par),0:nproc-1), stat=istat)
 call memocc(istat, lin%lb%comrp%comarr, 'lin%lb%comrp%comarr', subname)
 
 ! Determine the indices of starting and receive buffer.
 do jproc=0,nproc-1
     istsource=1
-    do jorb=1,4*lin%lzd%orbs%norb_par(jproc)
+    do jorb=1,4*lin%orbs%norb_par(jproc)
         jjorb=ceiling(dble(jorb)/4.d0)
-        !jlr=lin%onWhichAtomAll(jjorb+lin%lzd%orbs%isorb_par(jproc))
-        jlr=lin%lzd%orbs%inWhichLocreg(jjorb+lin%lzd%orbs%isorb_par(jproc))
+        jlr=lin%orbs%inWhichLocreg(jjorb+lin%orbs%isorb_par(jproc))
         mpisource=jproc
         ncount=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
         mpidest=move(1,jorb,jproc)
@@ -2993,7 +2961,7 @@ do jproc=0,nproc-1
             istdest=istdest+lin%lzd%llr(klr)%wfd%nvctr_c+7*lin%lzd%llr(klr)%wfd%nvctr_f
         end do
         tag=tag+1
-        !write(*,'(10(a,i0))') 'init on iproc=',iproc,': process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,'; tag=',tag,', jlr=',jlr,', jjorb=',jjorb,', offset=',lin%lzd%orbs%isorb_par(jproc)
+        !write(*,'(7(a,i0))') 'init on iproc=',iproc,': process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,'; tag=',tag
         call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, lin%lb%comrp%comarr(1,jorb,jproc))
         istsource=istsource+ncount
     end do

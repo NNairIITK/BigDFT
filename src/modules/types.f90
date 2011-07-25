@@ -481,7 +481,7 @@ module module_types
 !! orbitals. In case we don't use the derivatives, these parameters are identical
 !! from those in lin%orbs etc.
 type,public:: largeBasis
-    type(communications_arrays):: comms
+    type(communications_arrays):: comms, gcomms
     type(orbitals_data):: orbs, gorbs
     type(linear_zone_descriptors):: lzd
     type(p2pCommsRepartition):: comrp
@@ -519,7 +519,7 @@ end type largeBasis
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lhphiold
     real(8),dimension(:,:),pointer:: hamold
     type(orbitals_data):: orbs, gorbs
-    type(communications_arrays):: comms
+    type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions

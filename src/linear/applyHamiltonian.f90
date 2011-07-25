@@ -198,7 +198,7 @@ END SUBROUTINE apply_potentialConfinement2
 
 
 !> Application of the Hamiltonian
-subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
+subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,hx,hy,hz,rxyz,&
      ngatherarr,ndimpot,pot,psi,hpsi,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, &
      doNotCalculate, pkernel,orbsocc,psirocc)
@@ -212,20 +212,21 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
   type(atoms_data), intent(in) :: at
   type(input_variables), intent(in) :: input
   type(linear_zone_descriptors),intent(inout) :: Lzd
+  type(orbitals_data),intent(in):: orbs
   type(linearParameters),intent(in):: lin
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   !real(wp), dimension(lin%Lorbs%npsidim), intent(in) :: psi
-  real(wp), dimension(lzd%orbs%npsidim), intent(in) :: psi
+  real(wp), dimension(orbs%npsidim), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1)*nspin), intent(in) :: pot
   !real(wp), dimension(:), pointer :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
   !real(wp), target, dimension(lin%Lorbs%npsidim), intent(out) :: hpsi
-  real(wp), target, dimension(lzd%orbs%npsidim), intent(out) :: hpsi
+  real(wp), target, dimension(orbs%npsidim), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(at%ntypes,3+ndebug), intent(in) :: radii_cf
   type(p2pCommsgatherPot), intent(in):: comgp
-  integer,dimension(lzd%orbs%norbp),intent(in):: onWhichAtomp
+  integer,dimension(orbs%norbp),intent(in):: onWhichAtomp
   logical,intent(in):: withConfinement
   logical,dimension(lzd%nlr),intent(in),optional:: doNotCalculate
   real(dp), dimension(*), optional :: pkernel
@@ -388,7 +389,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy
         call local_hamiltonian_OCL(iproc,Lzd%orbs,Lzd%Llr(ilr),hx,hy,hz,nspin,Lpot,psi(ind:ind+dimwf-1),&
              hpsi2,tmp_ekin_sum,tmp_epot_sum,GPU,ekin,epot,ilr)
      else
-        call local_hamiltonian_LinearConfinement(iproc, nproc, ilr, lzd%orbs, lzd%Llr(ilr), lzd%Llr(ilr)%localnorb, hx, hy, hz, &
+        call local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lzd%Llr(ilr), lzd%Llr(ilr)%localnorb, hx, hy, hz, &
               nspin, size_Lpot, Lpot, psi(ind), hpsi(ind), tmp_ekin_sum, tmp_epot_sum, lin, at, rxyz, onWhichAtomp, withConfinement)
         !!do i_stat=ind,ind+dimwf-1
         !!    !write(7300+iproc,*) hpsi(i_stat)

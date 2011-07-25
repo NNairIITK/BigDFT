@@ -107,8 +107,8 @@ call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%ns
 ! between the 'normal' basis and the 'large' basis inlcuding the derivtaives.
 call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%orbs,lin%lb%comms)
-call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
-call orbitals_communicators(iproc,nproc,Glr,lin%lb%gorbs,lin%lb%comms)
+call orbitals_communicators(iproc,nproc,Glr,lin%gorbs,lin%gcomms)
+call orbitals_communicators(iproc,nproc,Glr,lin%lb%gorbs,lin%lb%gcomms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lzd%orbs,lin%lzd%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%lzd%orbs,lin%lb%lzd%comms)
 write(*,*) 'lin%lb%gorbs%npsidim', lin%lb%gorbs%npsidim
@@ -133,10 +133,18 @@ call memocc(istat, iall, 'lin%lzd%orbs%inWhichLocreg', subname)
 iall=-product(shape(lin%lb%lzd%orbs%inWhichLocreg))*kind(lin%lb%lzd%orbs%inWhichLocreg)
 deallocate(lin%lb%lzd%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%lb%lzd%orbs%inWhichLocreg', subname)
+iall=-product(shape(lin%orbs%inWhichLocreg))*kind(lin%orbs%inWhichLocreg)
+deallocate(lin%orbs%inWhichLocreg, stat=istat)
+call memocc(istat, iall, 'lin%orbs%inWhichLocreg', subname)
+iall=-product(shape(lin%lb%orbs%inWhichLocreg))*kind(lin%lb%orbs%inWhichLocreg)
+deallocate(lin%lb%orbs%inWhichLocreg, stat=istat)
+call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
 
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
+call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%lzd%orbs)
+call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! Initialize the localization regions.
@@ -1334,10 +1342,12 @@ do iorb=1,lin%orbs%norbp
 end do
 !lin%Lorbs%npsidim=npsidim
 lin%lzd%orbs%npsidim=npsidim
+lin%orbs%npsidim=npsidim
 
 if(.not. lin%useDerivativeBasisFunctions) then
     !lin%lb%Lorbs%npsidim=npsidim
     lin%lb%lzd%orbs%npsidim=npsidim
+    lin%lb%orbs%npsidim=npsidim
 else
     npsidim=0
     do iorb=1,lin%lb%orbs%norbp
@@ -1347,6 +1357,7 @@ else
     end do
     !lin%lb%Lorbs%npsidim=npsidim
     lin%lb%lzd%orbs%npsidim=npsidim
+    lin%lb%orbs%npsidim=npsidim
 end if
 
 
@@ -1354,13 +1365,13 @@ end if
 allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
 
-allocate(lphi(lin%lb%lzd%orbs%npsidim), stat=istat)
+allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
 
-allocate(lin%lphiold(lin%lb%lzd%orbs%npsidim), stat=istat)
+allocate(lin%lphiold(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
 
-allocate(lin%lhphiold(lin%lb%lzd%orbs%npsidim), stat=istat)
+allocate(lin%lhphiold(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lhphiold, 'lin%lhphiold', subname)
 
 end subroutine initLocregs

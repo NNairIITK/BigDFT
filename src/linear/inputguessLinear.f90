@@ -34,7 +34,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
   real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
   real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-  real(8),dimension(lin%lzd%orbs%npsidim),intent(out):: lphi
+  real(8),dimension(lin%orbs%npsidim),intent(out):: lphi
   real(8),intent(out):: ehart, eexcu, vexcu
   !local variables
   type(gaussian_basis):: G !basis for davidson IG
@@ -364,7 +364,7 @@ call memocc(i_stat, doNotCalculate, 'doNotCalculate', subname)
       end do
       !write(*,'(a,2i4,4x,100l4)') 'iat, iproc, doNotCalculate', iat, iproc, doNotCalculate
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lzdig, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lzdig, lzdig%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, comgp%nrecvBuf, comgp%recvBuf, lchi, lhchi(1,iat), &
            ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, comgp, onWhichAtomTemp,&
            withConfinement, pkernel=pkernelseq)
@@ -385,7 +385,7 @@ call memocc(i_stat, doNotCalculate, 'doNotCalculate', subname)
  call memocc(i_stat,ham,'ham',subname)
    call getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, lzdig%orbs%inWhichLocreg, lzdig%orbs%inWhichLocregp, at%nat, lchi, lhchi, ham)
    call buildLinearCombinationsLocalized(iproc, nproc, lzdig%orbs, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
-        lzdig%orbs%inWhichLocreg, lchi, lphi, rxyz, lin%lzd%orbs%inWhichLocreg, lin, lzdig, ham)
+        lzdig%orbs%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lzdig, ham)
    !!do istat=1,size(lphi)
    call cpu_time(t2)
    time=t2-t1
@@ -2182,7 +2182,7 @@ type(linear_zone_descriptors),intent(inout):: lzdig
 integer,dimension(at%ntypes):: norbsPerType
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
 real(8),dimension(lzdig%orbs%npsidim):: lchi
-real(8),dimension(lin%lzd%orbs%npsidim):: lphi
+real(8),dimension(lin%orbs%npsidim):: lphi
 real(8),dimension(3,at%nat):: rxyz
 integer,dimension(orbs%norb):: onWhichAtomPhi
 real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
@@ -2256,9 +2256,9 @@ type(matrixMinimization):: matmin
 
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, lzdig%orbs%norb, at, onWhichAtom, lin%locrad, rxyz, lin%lzd, matmin%mlr)
       call extractMatrix(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), lzdig%orbs, onWhichAtomPhi, ip%onWhichMPI, at%nat, ham, matmin, hamextract)
-      call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lin%lzd%orbs, lzdig%orbs, onWhichAtom, onWhichAtomPhi, comom)
+      call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lin%orbs, lzdig%orbs, onWhichAtom, onWhichAtomPhi, comom)
       tag=1
-      call initCommsMatrixOrtho(iproc, ip%nproc, lin%lzd%orbs%norb, ip%norb_par, ip%isorb_par, onWhichAtomPhi, ip%onWhichMPI, tag, comom)
+      call initCommsMatrixOrtho(iproc, ip%nproc, lin%orbs%norb, ip%norb_par, ip%isorb_par, onWhichAtomPhi, ip%onWhichMPI, tag, comom)
       allocate(lcoeff(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
       call memocc(istat, lcoeff, 'lcoeff', subname)
       allocate(lgrad(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
@@ -2332,7 +2332,7 @@ type(matrixMinimization):: matmin
     
     
           ! Othonormalize the coefficients.
-          call orthonormalizeVectors(iproc, ip%nproc, lin%lzd%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
+          call orthonormalizeVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
                matmin%mlr, lcoeff, comom)
     
@@ -2354,7 +2354,7 @@ type(matrixMinimization):: matmin
           end if
           ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
           ! multiplier matrix.
-          call orthoconstraintVectors(iproc, ip%nproc, lin%lzd%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
+          call orthoconstraintVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
                matmin%mlr, lcoeff, lgrad, comom, trace)
     

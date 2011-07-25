@@ -882,19 +882,19 @@ commsSumrho(1)=mpisource
 ist=1
 do jorb=lin%orbs%isorb_par(mpisource)+1,iorb-1
     !jlr=lin%onWhichAtomAll(jorb)
-    jlr=lin%lzd%orbs%inWhichLocreg(jorb)
+    jlr=lin%orbs%inWhichLocreg(jorb)
     ist=ist+lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
 end do
 commsSumrho(2)=ist
 
 ! amount of data to be sent
 !jlr=lin%onWhichAtomAll(iorb)
-jlr=lin%lzd%orbs%inWhichLocreg(iorb)
+jlr=lin%orbs%inWhichLocreg(iorb)
 commsSumrho(3)=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
 
 ! localization region to which this orbital belongs to
 !commsSumrho(4)=lin%onWhichAtomAll(iorb)
-commsSumrho(4)=lin%lzd%orbs%inWhichLocreg(iorb)
+commsSumrho(4)=lin%orbs%inWhichLocreg(iorb)
 
 ! to which MPI process should this orbital be sent
 commsSumrho(5)=jproc

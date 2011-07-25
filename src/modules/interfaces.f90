@@ -1203,11 +1203,11 @@ module module_interfaces
       real(dp), dimension(*), intent(inout) :: rhopot
       type(GPU_pointers), intent(in out) :: GPU
       real(dp), dimension(:), pointer :: pkernelseq
-      real(8),dimension(lin%lzd%orbs%npsidim):: lphi
+      real(8),dimension(lin%orbs%npsidim):: lphi
       real(8):: trH
       real(8),dimension(3,at%nat):: rxyzParabola
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-      real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
+      real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
     end subroutine getLocalizedBasis
 
 
@@ -1987,7 +1987,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
       real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-      real(8),dimension(lin%lzd%orbs%npsidim),intent(out):: lphi
+      real(8),dimension(lin%orbs%npsidim),intent(out):: lphi
       real(8),intent(out):: ehart, eexcu, vexcu
     end subroutine inputguessConfinement
 
@@ -2382,7 +2382,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
 
-     subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,lin,hx,hy,hz,rxyz,&
+     subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,hx,hy,hz,rxyz,&
           ngatherarr,ndimpot,pot,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, &
           doNotCalculate, pkernel,orbsocc,psirocc)
@@ -2395,6 +2395,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(atoms_data), intent(in) :: at
        type(input_variables), intent(in) :: input
        type(linear_zone_descriptors),intent(inout) :: Lzd
+       type(orbitals_data),intent(in):: orbs
        type(linearParameters),intent(in):: lin
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -2701,17 +2702,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(lzd%orbs%norb,lzd%orbs%norb),intent(out):: ovrlp
      end subroutine orthonormalizeLocalized
 
-     !!subroutine orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
-     !!  use module_base
-     !!  use module_types
-     !!  implicit none
-     !!  integer,intent(in):: iproc, nproc
-     !!  type(linearParameters),intent(inout):: lin
-     !!  type(input_variables),intent(in):: input
-     !!  !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
-     !!  real(8),dimension(lin%lzd%orbs%npsidim),intent(inout):: lphi
-     !!  real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
-     !!end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, nproc, orbs, lorbs, lzd, onWhichAtom, hphi, phi, ldiis, it)
        use module_base
@@ -2961,7 +2951,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(at%ntypes):: norbsPerType
        integer,dimension(orbsig%norb),intent(in):: onWhichAtom
        real(8),dimension(lzdig%orbs%npsidim):: lchi
-       real(8),dimension(lin%lzd%orbs%npsidim):: lphi
+       real(8),dimension(lin%orbs%npsidim):: lphi
        real(8),dimension(3,at%nat):: rxyz
        integer,dimension(orbs%norb):: onWhichAtomPhi
        real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham

@@ -68,18 +68,14 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
           exit
       end if
       call cpu_time(t3)
-      !call transformOverlapMatrix(iproc, nproc, lin%lzd%orbs, ovrlp)
       call transformOverlapMatrix(iproc, nproc, lzd%orbs%norb, ovrlp)
       call cpu_time(t4)
       timeTransform=timeTransform+t4-t3
-      !call transformOverlapMatrix2(iproc, nproc, lin%lzd%orbs, ovrlp)
       call cpu_time(t3)
-      !call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
       call expandOrbital2(iproc, nproc, lzd%orbs, input, onWhichAtomAll, lzd, op, comon, lphiovrlp)
       call cpu_time(t4)
       timeExpand=timeExpand+t4-t3
       call cpu_time(t3)
-      !call globalLoewdin(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, ovrlp, lphiovrlp, lphi)
       call globalLoewdin(iproc, nproc, lzd%orbs, lzd%orbs, onWhichAtomAll, lzd, op, ovrlp, lphiovrlp, lphi)
       call cpu_time(t4)
       timeLoewdin=timeLoewdin+t4-t3
@@ -134,9 +130,9 @@ integer,intent(in):: iproc, nproc
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
 !real(8),dimension(lin%lorbs%npsidim),intent(in):: lphi
-real(8),dimension(lin%lzd%orbs%npsidim),intent(in):: lphi
+real(8),dimension(lin%orbs%npsidim),intent(in):: lphi
 !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lhphi
-real(8),dimension(lin%lzd%orbs%npsidim),intent(inout):: lhphi
+real(8),dimension(lin%orbs%npsidim),intent(inout):: lhphi
 real(8),intent(out):: trH
 
 ! Local variables
@@ -155,24 +151,22 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   call allocateCommuncationBuffersOrtho(lin%comon, subname)
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   !call gatherOrbitals(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   !call extractOrbital(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
-  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%lzd%orbs%inWhichLocreg, lagmat)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
+  call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, lagmat)
   trH=0.d0
   do iorb=1,lin%orbs%norb
       trH=trH+lagmat(iorb,iorb)
   end do
   ! Expand the receive buffer, i.e. lphi
-  !call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
-  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
-  !call applyOrthoconstraint(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, lphiovrlp, lhphi)
-  call applyOrthoconstraint(iproc, nproc, lin%lzd%orbs, lin%lzd%orbs, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, lphiovrlp, lhphi)
+  call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
+  call applyOrthoconstraint(iproc, nproc, lin%orbs, lin%orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, lphiovrlp, lhphi)
 
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
 
@@ -196,11 +190,11 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
-real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(in):: ovrlp
+real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: ovrlp
 !real(8),dimension(lin%lorbs%npsidim),intent(in):: lphi
-real(8),dimension(lin%lzd%orbs%npsidim),intent(in):: lphi
+real(8),dimension(lin%orbs%npsidim),intent(in):: lphi
 !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lhphi
-real(8),dimension(lin%lzd%orbs%npsidim),intent(inout):: lhphi
+real(8),dimension(lin%orbs%npsidim),intent(inout):: lhphi
 real(8),intent(out):: trH
 
 ! Local variables
@@ -222,31 +216,28 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
-  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%lzd%orbs%inWhichLocreg, lagmat)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
+  call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, lagmat)
   trH=0.d0
   do iorb=1,lin%orbs%norb
       trH=trH+lagmat(iorb,iorb)
   end do
   ! Expand the receive buffer, i.e. lphi
-  !call expandOrbital(iproc, nproc, lin%lzd%orbs, input, lin%onWhichAtomAll, lin%lzd, lin%op, lin%comon, lphiovrlp)
-  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
+  call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
 
   ! Now we also have to send lhphi
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon)
   ! Expand the receive buffer, i.e. lhphi
-  call expandOrbital2(iproc, nproc, lin%lzd%orbs, input, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
-  !call applyOrthoconstraintNonorthogonal(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
-  !call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%onWhichAtomAll, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%lzd%orbs, lin%lzd%orbs, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+  call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%orbs, lin%orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
 
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
 
@@ -461,8 +452,8 @@ integer,intent(in):: iproc, nproc
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
 !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
-real(8),dimension(lin%lzd%orbs%npsidim),intent(inout):: lphi
-real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
+real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
+real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
 
 ! Local variables
 integer:: it, istat, iall, iorb, jorb, ierr
@@ -475,10 +466,10 @@ logical:: converged
   call allocateCommuncationBuffersOrtho(lin%comon, subname)
 
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%lzd%orbs%npsidim, lin%lzd%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
+  call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon)
-  call calculateOverlapMatrix2(iproc, nproc, lin%lzd%orbs, lin%op, lin%comon, lin%lzd%orbs%inWhichLocreg, ovrlp)
+  call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, ovrlp)
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
 
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
