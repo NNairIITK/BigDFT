@@ -1184,7 +1184,7 @@ module module_interfaces
 
     subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
         proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
-        itSCC, lastAlpha, infoBasisFunctions, radii_cf, ovrlp)
+        itSCC, infoBasisFunctions, radii_cf, ovrlp)
       use module_base
       use module_types
       implicit none
@@ -1204,7 +1204,7 @@ module module_interfaces
       type(GPU_pointers), intent(in out) :: GPU
       real(dp), dimension(:), pointer :: pkernelseq
       real(8),dimension(lin%lzd%orbs%npsidim):: lphi
-      real(8):: trH, lastAlpha
+      real(8):: trH
       real(8),dimension(3,at%nat):: rxyzParabola
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
       real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
@@ -3574,6 +3574,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
       character(len=*),intent(in):: subname
     end subroutine deallocate_p2pCommsOrthonormalityMatrix
+
+    subroutine cancelCommunicationPotential(iproc, nproc, comgp)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc
+      type(p2pCommsGatherPot),intent(inout):: comgp
+    end subroutine cancelCommunicationPotential
 
 
 

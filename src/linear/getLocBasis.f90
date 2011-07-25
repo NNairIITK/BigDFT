@@ -102,7 +102,7 @@ real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold,
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, lastAlpha, tt, ddot, tt2, dnrm2
+real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2
 real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
@@ -158,7 +158,7 @@ integer:: ist, ierr
 
       call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
           nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trace, rxyzParab, &
-          itSCC, lastAlpha, infoBasisFunctions, radii_cf, ovrlp)
+          itSCC, infoBasisFunctions, radii_cf, ovrlp)
   end if
 
   if(lin%useDerivativeBasisFunctions) then
@@ -363,7 +363,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
     proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
-    itScc, lastAlpha, infoBasisFunctions, radii_cf, ovrlp)
+    itScc, infoBasisFunctions, radii_cf, ovrlp)
 !
 ! Purpose:
 ! ========
@@ -435,7 +435,7 @@ real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
 real(8),dimension(lin%lzd%orbs%npsidim):: lphi
-real(8):: trH, lastAlpha
+real(8):: trH
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
 
@@ -708,8 +708,6 @@ real(8),dimension(4):: time
       write(*,'(5x,a,es10.3,a,f4.1,a)') '- other:', tt,  '=', 100.d0*tt/timetot, '%'
   end if
 
-  ! Store the mean alpha.
-  lastAlpha=meanAlpha
 
   ! Deallocate all quantities related to DIIS,
   if(ldiis%isx>0) call deallocateDIIS(ldiis)
@@ -1365,15 +1363,15 @@ real(8),dimension(:),allocatable:: phi2, hphi2
 
 
   iall=-product(shape(phiWork))*kind(phiWork)
-  deallocate(phiWork)
+  deallocate(phiWork, stat=istat)
   call memocc(istat, iall, 'phiWork', subname)
 
   iall=-product(shape(phi2))*kind(phi2)
-  deallocate(phi2)
+  deallocate(phi2, stat=istat)
   call memocc(istat, iall, 'phi2', subname)
 
   iall=-product(shape(hphi2))*kind(hphi2)
-  deallocate(hphi2)
+  deallocate(hphi2, stat=istat)
   call memocc(istat, iall, 'hphi2', subname)
 
 

@@ -1933,7 +1933,7 @@ call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
 allocate(ovrlp_minus_one_lagmat_trans(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp_minus_one_lagmat_trans, 'ovrlp_minus_one_lagmat_trans', subname)
 allocate(ovrlp2(orbs%norb,orbs%norb), stat=istat)
-call memocc(istat, orbs%norb, 'orbs%norb', subname)
+call memocc(istat, ovrlp2, 'ovrlp2', subname)
 
 call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 ! Invert the overlap matrix
