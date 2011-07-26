@@ -78,8 +78,8 @@ norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
-     input%nkpt, input%kpt, input%wkpt, lin%lzd%orbs)
+!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+!     input%nkpt, input%kpt, input%wkpt, lin%lzd%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 
@@ -97,7 +97,7 @@ else
     norbd=0
 end if
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%orbs)
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%lzd%orbs)
+!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%lzd%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%gorbs)
 
 
@@ -109,8 +109,8 @@ call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%orbs,lin%lb%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%gorbs,lin%gcomms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%gorbs,lin%lb%gcomms)
-call orbitals_communicators(iproc,nproc,Glr,lin%lzd%orbs,lin%lzd%comms)
-call orbitals_communicators(iproc,nproc,Glr,lin%lb%lzd%orbs,lin%lb%lzd%comms)
+!call orbitals_communicators(iproc,nproc,Glr,lin%lzd%orbs,lin%lzd%comms)
+!call orbitals_communicators(iproc,nproc,Glr,lin%lb%lzd%orbs,lin%lb%lzd%comms)
 write(*,*) 'lin%lb%gorbs%npsidim', lin%lb%gorbs%npsidim
 write(*,*) 'lin%lb%orbs%npsidim', lin%lb%orbs%npsidim
 
@@ -127,12 +127,12 @@ call allocateLinArrays(lin)
 ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
 ! The array inWhichLocreg has already been allocated in orbitals_descriptors. Since it will again be allocated
 ! in assignToLocreg2, deallocate it first.
-iall=-product(shape(lin%lzd%orbs%inWhichLocreg))*kind(lin%lzd%orbs%inWhichLocreg)
-deallocate(lin%lzd%orbs%inWhichLocreg, stat=istat)
-call memocc(istat, iall, 'lin%lzd%orbs%inWhichLocreg', subname)
-iall=-product(shape(lin%lb%lzd%orbs%inWhichLocreg))*kind(lin%lb%lzd%orbs%inWhichLocreg)
-deallocate(lin%lb%lzd%orbs%inWhichLocreg, stat=istat)
-call memocc(istat, iall, 'lin%lb%lzd%orbs%inWhichLocreg', subname)
+!iall=-product(shape(lin%lzd%orbs%inWhichLocreg))*kind(lin%lzd%orbs%inWhichLocreg)
+!deallocate(lin%lzd%orbs%inWhichLocreg, stat=istat)
+!call memocc(istat, iall, 'lin%lzd%orbs%inWhichLocreg', subname)
+!iall=-product(shape(lin%lb%lzd%orbs%inWhichLocreg))*kind(lin%lb%lzd%orbs%inWhichLocreg)
+!deallocate(lin%lb%lzd%orbs%inWhichLocreg, stat=istat)
+!call memocc(istat, iall, 'lin%lb%lzd%orbs%inWhichLocreg', subname)
 iall=-product(shape(lin%orbs%inWhichLocreg))*kind(lin%orbs%inWhichLocreg)
 deallocate(lin%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%orbs%inWhichLocreg', subname)
@@ -140,10 +140,10 @@ iall=-product(shape(lin%lb%orbs%inWhichLocreg))*kind(lin%lb%orbs%inWhichLocreg)
 deallocate(lin%lb%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
 
-call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
+!call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
-call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%lzd%orbs)
+!call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%lzd%orbs)
 call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
@@ -154,9 +154,9 @@ call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 call memocc(istat, lin%orbs%eval, 'lin%orbs%eval', subname)
 lin%orbs%eval=-.5d0
-allocate(lin%lzd%orbs%eval(lin%lzd%orbs%norb), stat=istat)
-call memocc(istat, lin%lzd%orbs%eval, 'lin%lzd%orbs%eval', subname)
-lin%lzd%orbs%eval=-.5d0
+!allocate(lin%lzd%orbs%eval(lin%lzd%orbs%norb), stat=istat)
+!call memocc(istat, lin%lzd%orbs%eval, 'lin%lzd%orbs%eval', subname)
+!lin%lzd%orbs%eval=-.5d0
 allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
 call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
 lin%lb%orbs%eval=-.5d0
@@ -184,9 +184,9 @@ call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
 ! Set localnorb
 do ilr=1,lin%lzd%nlr
     lin%lzd%Llr(ilr)%localnorb=0
-    do iorb=1,lin%lzd%orbs%norbp
+    do iorb=1,lin%orbs%norbp
         !if(lin%onWhichAtom(iorb)==ilr) then
-        if(lin%lzd%orbs%inWhichLocregp(iorb)==ilr) then
+        if(lin%orbs%inWhichLocregp(iorb)==ilr) then
             lin%lzd%Llr(ilr)%localnorb = lin%lzd%Llr(ilr)%localnorb+1
         end if
     end do
@@ -194,29 +194,28 @@ end do
 ! The same for the derivatives
 do ilr=1,lin%lzd%nlr
     lin%lb%lzd%Llr(ilr)%localnorb=0
-    do iorb=1,lin%lb%lzd%orbs%norbp
-        if(lin%lb%lzd%orbs%inWhichLocregp(iorb)==ilr) then
+    do iorb=1,lin%lb%orbs%norbp
+        if(lin%lb%orbs%inWhichLocregp(iorb)==ilr) then
             lin%lb%lzd%Llr(ilr)%localnorb = lin%lb%lzd%Llr(ilr)%localnorb+1
         end if
     end do
     !write(*,'(a,2i4,3x,i8)') 'iproc, ilr, lin%lb%lzd%Llr(ilr)%localnorb', iproc, ilr, lin%lb%lzd%Llr(ilr)%localnorb
 end do
-!write(*,'(a,i4,4x,100i6)') 'iproc, lin%lb%lzd%orbs%inwhichlocreg(:)', iproc, lin%lb%lzd%orbs%inwhichlocreg(:)
 
 ! Initialize the parameters for the communication for the
 ! potential.
-call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%lzd%orbs%inWhichLocreg, tag)
-call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, lin%lb%lzd%orbs%inWhichLocreg, tag)
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%orbs%inWhichLocreg, tag)
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, lin%lb%orbs%inWhichLocreg, tag)
 
 ! Initialize the parameters for the communication for the orthonormalization.
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%lzd%orbs, lin%lzd%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs, lin%lb%lzd%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
 
 ! Restart array for the basis functions (only needed if we use the derivative basis functions).
-allocate(lin%lphiRestart(lin%lzd%orbs%npsidim), stat=istat)
+allocate(lin%lphiRestart(lin%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lphiRestart, 'lin%lphiRestart', subname)
 
 ! Stores the Hamiltonian in the basis of the localized orbitals
@@ -752,7 +751,7 @@ end do
     orbLoop: do iorb=1,orbs%norbp
         call daub_to_isf(Glr,w,phi(istart+1),phir(1))
         !iiAt=lin%onWhichAtom(iorb)
-        iiAt=lin%lzd%orbs%inWhichLocregp(iorb)
+        iiAt=lin%orbs%inWhichLocregp(iorb)
         ix0=nint(rxyz(1,iiAt)/hxh)
         iy0=nint(rxyz(2,iiAt)/hyh)
         iz0=nint(rxyz(3,iiAt)/hzh)
@@ -952,7 +951,7 @@ do iorb=1,lin%orbs%norbp
     call daub_to_isf(Glr, w, phi(ist), phir(1))
     
     !iiAt=lin%onWhichAtom(iorb)
-    iiAt=lin%lzd%orbs%inWhichLocregp(iorb)
+    iiAt=lin%orbs%inWhichLocregp(iorb)
     cut=lin%locrad(iiAt)
     
     jj=0
@@ -1012,7 +1011,7 @@ do iorb=1,lin%orbs%norbp
     call daub_to_isf(Glr, w, phi(ist), phir(1))
     
     !iiAt=lin%onWhichAtom(iorb)
-    iiAt=lin%lzd%orbs%inWhichLocregp(iorb)
+    iiAt=lin%orbs%inWhichLocregp(iorb)
     cut=lin%locrad(iiAt)
     !write(*,'(a,2i8,es10.3)') 'iorb, iiAt, cut', iorb, iiAt, cut
     
@@ -1085,7 +1084,7 @@ do jproc=0,nproc-1
     !if(iproc==0) write(*,'(a,3i8)') 'jproc, is, ie', jproc, is, ie
     ioverlap=0
     do iorb=1,lin%lb%orbs%norb
-        ilr=lin%lb%lzd%orbs%inWhichLocreg(iorb)
+        ilr=lin%lb%orbs%inWhichLocreg(iorb)
         i3s=2*lin%lzd%Llr(ilr)%ns3-14
         i3e=i3s+lin%lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
@@ -1116,7 +1115,7 @@ do jproc=0,nproc-1
     ie=is+nscatterarr(jproc,1)-1
     ioverlap=0
     do iorb=1,lin%lb%orbs%norb
-        ilr=lin%lb%lzd%orbs%inWhichLocreg(iorb)
+        ilr=lin%lb%orbs%inWhichLocreg(iorb)
         i3s=2*lin%lzd%Llr(ilr)%ns3-14
         i3e=i3s+lin%lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
@@ -1127,7 +1126,7 @@ do jproc=0,nproc-1
             is3ovrlp=is3ovrlp-2*lin%lzd%Llr(ilr)%ns3+15
             !call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
             call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin%nlr, lin%lzd%Llr, &
-                 lin%lb%lzd%orbs%inWhichLocreg, lin%lb%orbs, lin%comsr%comarr(1,ioverlap,jproc))
+                 lin%lb%orbs%inWhichLocreg, lin%lb%orbs, lin%comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
                 !lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
                 lin%comsr%nrecvBuf = lin%comsr%nrecvBuf + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*n3ovrlp
@@ -1151,7 +1150,7 @@ call memocc(istat, lin%comsr%computComplete, 'lin%comsr%computComplete', subname
 ! ('npsidimr') case.
 lin%comsr%nsendBuf=0
 do iorb=1,lin%lb%orbs%norbp
-    ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
+    ilr=lin%lb%orbs%inWhichLocregp(iorb)
     lin%comsr%nsendBuf = lin%comsr%nsendBuf + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
 end do
 
@@ -1337,26 +1336,26 @@ end do
 npsidim=0
 do iorb=1,lin%orbs%norbp
     !ilr=lin%onWhichAtom(iorb)
-    ilr=lin%lzd%orbs%inWhichLocregp(iorb)
+    ilr=lin%orbs%inWhichLocregp(iorb)
     npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
 end do
 !lin%Lorbs%npsidim=npsidim
-lin%lzd%orbs%npsidim=npsidim
+lin%orbs%npsidim=npsidim
 lin%orbs%npsidim=npsidim
 
 if(.not. lin%useDerivativeBasisFunctions) then
     !lin%lb%Lorbs%npsidim=npsidim
-    lin%lb%lzd%orbs%npsidim=npsidim
+    lin%lb%orbs%npsidim=npsidim
     lin%lb%orbs%npsidim=npsidim
 else
     npsidim=0
     do iorb=1,lin%lb%orbs%norbp
-        ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
+        ilr=lin%lb%orbs%inWhichLocregp(iorb)
         npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
         !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
     end do
     !lin%lb%Lorbs%npsidim=npsidim
-    lin%lb%lzd%orbs%npsidim=npsidim
+    lin%lb%orbs%npsidim=npsidim
     lin%lb%orbs%npsidim=npsidim
 end if
 
@@ -1381,7 +1380,7 @@ end subroutine initLocregs
 !> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
 !! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
 !subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
-subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad)
+subroutine initLocregs2(iproc, nat, rxyz, lzd, orbs, input, Glr, locrad)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initLocregs2
@@ -1391,6 +1390,7 @@ implicit none
 integer,intent(in):: iproc, nat
 real(8),dimension(3,nat),intent(in):: rxyz
 type(linear_zone_descriptors),intent(inout):: lzd
+type(orbitals_data),intent(inout):: orbs
 type(input_variables),intent(in):: input
 type(locreg_descriptors),intent(in):: Glr
 real(8),dimension(lzd%nlr),intent(in):: locrad
@@ -1435,12 +1435,12 @@ end do
 ! Do it for both the compressed ('npsidim') and for the uncompressed real space
 ! ('npsidimr') case.
 npsidim=0
-do iorb=1,lzd%orbs%norbp
-    ilr=lzd%orbs%inWhichLocregp(iorb)
-    npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*lzd%orbs%nspinor
+do iorb=1,orbs%norbp
+    ilr=orbs%inWhichLocregp(iorb)
+    npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
 end do
 !! WARNING: CHECHK THIS
-lzd%orbs%npsidim=npsidim
+orbs%npsidim=npsidim
 
 
 end subroutine initLocregs2

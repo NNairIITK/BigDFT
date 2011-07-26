@@ -93,7 +93,7 @@ real(8),intent(out):: ebs
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
 real(8),dimension(3,at%nat),intent(out):: fxyz
 real(8):: eion, edisp, fnoise
-real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(inout):: lphi
+real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: lphi
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 
 ! Local variables 
@@ -115,7 +115,6 @@ integer:: ist, ierr
   !do istat=1,size(lphi)
   !    write(1010+iproc,*) lphi(istat)
   !end do
-!write(*,'(a,3i14)') 'iproc, lin%lb%Lorbs%npsidim, lin%lb%lzd%orbs%npsidim', iproc, lin%lb%Lorbs%npsidim, lin%lb%lzd%orbs%npsidim
 
   ! Allocate the local arrays.  
   allocate(matrixElements(lin%lb%orbs%norb,lin%lb%orbs%norb,2), stat=istat)
@@ -171,8 +170,8 @@ integer:: ist, ierr
       ! Normalize all to keep it easy.
       ! Do not orthogonalize them, since the 'normal' phis are not exactly orthogonal either.
       ist=1
-      do iorb=1,lin%lb%lzd%orbs%norbp
-          ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
+      do iorb=1,lin%lb%orbs%norbp
+          ilr=lin%lb%orbs%inWhichLocregp(iorb)
           ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
           tt=dnrm2(ncount, lphi(ist), 1)
           call dscal(ncount, 1/tt, lphi(ist), 1)
@@ -197,7 +196,7 @@ integer:: ist, ierr
   ist=1
   istr=1
   do iorb=1,lin%lb%orbs%norbp
-      ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
+      ilr=lin%lb%orbs%inWhichLocregp(iorb)
       call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
       !call daub_to_isf(lin%lzd%llr(ilr), w, lphi(ist), lphir(istr))
       call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
@@ -227,16 +226,16 @@ integer:: ist, ierr
 
   ! Transform the global phi to the local phi
   ! This part will not be needed if we really have O(N)
-  allocate(lhphi(lin%lb%lzd%orbs%npsidim), stat=istat)
+  allocate(lhphi(lin%lb%orbs%npsidim), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
   if(.not.lin%useDerivativeBasisFunctions) then
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lzd%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
   else
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%lb%lzd%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
@@ -249,8 +248,7 @@ integer:: ist, ierr
 
 
   ! Calculate the matrix elements <phi|H|phi>.
-  !!call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
-  call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
+  call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
 
 
   if(trim(lin%getCoeff)=='min') then
@@ -281,7 +279,7 @@ integer:: ist, ierr
   ind2=1
   phi=0.d0
   do iorb=1,lin%lb%orbs%norbp
-      ilr = lin%lb%lzd%orbs%inWhichLocregp(iorb)
+      ilr = lin%lb%orbs%inWhichLocregp(iorb)
       ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%lzd%Llr(ilr), lphi(ind2), phi(ind1))
@@ -316,10 +314,10 @@ integer:: ist, ierr
 
 
   ! Copy phi.
-  call dcopy(lin%lb%lzd%orbs%npsidim, lphi(1), 1, lin%lphiold(1), 1)
+  call dcopy(lin%lb%orbs%npsidim, lphi(1), 1, lin%lphiold(1), 1)
 
   ! Copy lhphi.
-  call dcopy(lin%lb%lzd%orbs%npsidim, lhphi(1), 1, lin%lhphiold(1), 1)
+  call dcopy(lin%lb%orbs%npsidim, lhphi(1), 1, lin%lhphiold(1), 1)
 
   ! Copy the Hamiltonian
   call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
@@ -462,7 +460,7 @@ real(8),dimension(4):: time
   if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
 
 
-  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, lin%alphaDIIS, &
+  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, lin%alphaDIIS, &
        lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, &
        startWithSD, ldiis, alpha, alphaDIIS)
 
@@ -506,7 +504,7 @@ real(8),dimension(4):: time
       end if
       call cpu_time(t1)
       withConfinement=.true.
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lzd%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, &
            pkernel=pkernelseq)
@@ -766,7 +764,7 @@ contains
               idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
               if(idsx>0) then
                   if(iproc==0) write(*,'(x,a,i0)') 'switch to DIIS with new history length ', idsx
-                  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, &
+                  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, &
                        lin%alphaDIIS, lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, &
                        icountDIISFailureCons, allowDIIS, startWithSD, ldiis, alpha, alphaDIIS)
                   icountDIISFailureTot=0
@@ -2278,7 +2276,7 @@ is3=0
 ie3=0
 iiorb=0
 do jproc=0,nproc-1
-    do iorb=1,lzd%orbs%norb_par(jproc)
+    do iorb=1,orbs%norb_par(jproc)
         
         iiorb=iiorb+1 
         ilr=onWhichAtomAll(iiorb)
@@ -2642,7 +2640,7 @@ real(8),intent(in):: hgrid
 type(locreg_descriptors),intent(in):: Glr
 type(linearParameters),intent(inout):: lin
 real(8),dimension(nphi),intent(in):: phi
-real(8),dimension(lin%lb%lzd%orbs%npsidim),target,intent(out):: phid
+real(8),dimension(lin%lb%orbs%npsidim),target,intent(out):: phid
 
 ! Local variables
 integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc, ierr
@@ -2927,7 +2925,7 @@ korb=0
 do jproc=0,nproc-1
     do jorb=1,4*lin%orbs%norb_par(jproc)
         korb=korb+1
-        if(korb>lin%lb%lzd%orbs%norb_par(kproc)) then
+        if(korb>lin%lb%orbs%norb_par(kproc)) then
             kproc=kproc+1
             korb=1
         end if
@@ -2957,7 +2955,7 @@ do jproc=0,nproc-1
         norbdest=move(2,jorb,jproc)
         istdest=1
         do korb=1,norbdest-1
-            klr=lin%lb%lzd%orbs%inWhichLocreg(korb+lin%lb%lzd%orbs%isorb_par(mpidest))
+            klr=lin%lb%orbs%inWhichLocreg(korb+lin%lb%orbs%isorb_par(mpidest))
             istdest=istdest+lin%lzd%llr(klr)%wfd%nvctr_c+7*lin%lzd%llr(klr)%wfd%nvctr_f
         end do
         tag=tag+1

@@ -178,7 +178,7 @@ end subroutine optimizeDIIS
 
 
 
-subroutine initializeDIIS(isx, lzd, onWhichAtom, startWithSDx, alphaSDx, alphaDIISx, norb, icountSDSatur, &
+subroutine initializeDIIS(isx, lzd, orbs, onWhichAtom, startWithSDx, alphaSDx, alphaDIISx, norb, icountSDSatur, &
            icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, startWithSD, &
            ldiis, alpha, alphaDIIS)
 use module_base
@@ -188,7 +188,8 @@ implicit none
 ! Calling arguments
 integer,intent(in):: isx, norb
 type(linear_zone_descriptors),intent(in):: lzd
-integer,dimension(lzd%orbs%norb),intent(in):: onWhichAtom
+type(orbitals_data),intent(in):: orbs
+integer,dimension(orbs%norb),intent(in):: onWhichAtom
 logical,intent(in):: startWithSDx
 real(8),intent(in):: alphaSDx, alphaDIISx
 integer,intent(out):: icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons
@@ -206,10 +207,10 @@ ldiis%is=0
 ldiis%switchSD=.false.
 ldiis%trmin=1.d100
 ldiis%trold=1.d100
-allocate(ldiis%mat(ldiis%isx,ldiis%isx,lzd%orbs%norbp), stat=istat)
+allocate(ldiis%mat(ldiis%isx,ldiis%isx,orbs%norbp), stat=istat)
 call memocc(istat, ldiis%mat, 'ldiis%mat', subname)
 ii=0
-do iorb=1,lzd%orbs%norbp
+do iorb=1,orbs%norbp
     ilr=onWhichAtom(iorb)
     ii=ii+ldiis%isx*(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)
 end do

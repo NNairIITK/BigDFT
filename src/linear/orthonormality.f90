@@ -525,7 +525,7 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(linear_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
-integer,dimension(lzd%orbs%norb),intent(in):: onWhichAtomAll
+integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 type(input_variables),intent(in):: input
 type(overlapParameters),intent(out):: op
 type(p2pCommsOrthonormality),intent(out):: comon
@@ -540,40 +540,40 @@ character(len=*),parameter:: subname='initCommsOrtho'
 
 allocate(comon%noverlaps(0:nproc-1), stat=istat)
 call memocc(istat, comon%noverlaps, 'comon%noverlaps',subname)
-allocate(op%noverlaps(lzd%orbs%norb), stat=istat)
+allocate(op%noverlaps(orbs%norb), stat=istat)
 call memocc(istat, op%noverlaps, 'op%noverlaps',subname)
 
 ! Count how many overlaping regions each orbital / process has.
-call countOverlaps(iproc, nproc, lzd%orbs, lzd, onWhichAtomAll, op, comon)
+call countOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
 
-allocate(op%overlaps(maxval(op%noverlaps),lzd%orbs%norb), stat=istat)
+allocate(op%overlaps(maxval(op%noverlaps),orbs%norb), stat=istat)
 call memocc(istat, op%overlaps, 'op%overlaps', subname)
 allocate(comon%overlaps(maxval(comon%noverlaps),0:nproc-1), stat=istat)
 call memocc(istat, comon%overlaps, 'comon%overlaps', subname)
-allocate(op%indexInRecvBuf(lzd%orbs%norbp,lzd%orbs%norb), stat=istat)
+allocate(op%indexInRecvBuf(orbs%norbp,orbs%norb), stat=istat)
 call memocc(istat, op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
-allocate(op%indexInSendBuf(lzd%orbs%norbp,lzd%orbs%norb), stat=istat)
+allocate(op%indexInSendBuf(orbs%norbp,orbs%norb), stat=istat)
 call memocc(istat, op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
 ! Determine the overlapping orbitals.
-call determineOverlaps(iproc, nproc, lzd%orbs, lzd, onWhichAtomAll, op, comon)
+call determineOverlaps(iproc, nproc, orbs, lzd, onWhichAtomAll, op, comon)
 
-allocate(op%olr(maxval(op%noverlaps(lzd%orbs%isorb+1:lzd%orbs%isorb+lzd%orbs%norbp)),lzd%orbs%norbp), stat=istat)
-do i2=1,lzd%orbs%norbp
-    do i1=1,maxval(op%noverlaps(lzd%orbs%isorb+1:lzd%orbs%isorb+lzd%orbs%norbp))
+allocate(op%olr(maxval(op%noverlaps(orbs%isorb+1:orbs%isorb+orbs%norbp)),orbs%norbp), stat=istat)
+do i2=1,orbs%norbp
+    do i1=1,maxval(op%noverlaps(orbs%isorb+1:orbs%isorb+orbs%norbp))
         call nullify_locreg_descriptors(op%olr(i1,i2))
     end do
 end do
 
 ! Set the orbital descriptors for the overlap regions.
-call determineOverlapDescriptors(iproc, nproc, lzd%orbs, lzd, lzd%Glr, onWhichAtomAll, op)
+call determineOverlapDescriptors(iproc, nproc, orbs, lzd, lzd%Glr, onWhichAtomAll, op)
 
 
 allocate(comon%comarr(8,maxval(comon%noverlaps),0:nproc-1), stat=istat)
 call memocc(istat, comon%comarr, 'comon%comarr', subname)
 allocate(comon%communComplete(maxval(comon%noverlaps),0:nproc-1), stat=istat)
 call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
-call setCommsOrtho(iproc, nproc, lzd%orbs, onWhichAtomAll, lzd, op, comon, tag)
+call setCommsOrtho(iproc, nproc, orbs, onWhichAtomAll, lzd, op, comon, tag)
 
 !write(*,'(a,2i11)') 'iproc, comon%nsendBuf', iproc, comon%nsendBuf
 
@@ -583,13 +583,13 @@ call setCommsOrtho(iproc, nproc, lzd%orbs, onWhichAtomAll, lzd, op, comon, tag)
 ! to ordinary localization region.
 allocate(op%indexExpand(comon%nrecvBuf), stat=istat)
 call memocc(istat, op%indexExpand, 'op%indexExpand',subname)
-call indicesForExpansion(iproc, nproc, lzd%orbs, input, onWhichAtomAll, lzd, op, comon)
+call indicesForExpansion(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon)
 
 ! Initialize the index arrays for the transformations from the ordinary localization region
 ! to the overlap region.
 allocate(op%indexExtract(comon%nsendBuf), stat=istat)
 call memocc(istat, op%indexExtract, 'op%indexExtract',subname)
-call indicesForExtraction(iproc, nproc, lzd%orbs, lzd%orbs%npsidim, onWhichAtomAll, lzd, op, comon)
+call indicesForExtraction(iproc, nproc, orbs, orbs%npsidim, onWhichAtomAll, lzd, op, comon)
 
 end subroutine initCommsOrtho
 
@@ -799,7 +799,7 @@ integer:: iorb, jorb, jjorb, ilr, jlr, iiorb
 
 
 do iorb=1,orbs%norbp
-    iiorb=lzd%orbs%isorb_par(iproc)+iorb
+    iiorb=orbs%isorb_par(iproc)+iorb
     ilr=onWhichAtom(iiorb)
 !if(iproc==0) write(*,'(a,2i10)') 'iorb, op%noverlaps(iorb)', iorb, op%noverlaps(iorb)
     do jorb=1,op%noverlaps(iiorb)
@@ -2141,7 +2141,7 @@ end subroutine indicesForExtraction
 
 
 
-subroutine getMatrixElements2(iproc, nproc, lzd, op_lb, comon_lb, lphi, lhphi, matrixElements)
+subroutine getMatrixElements2(iproc, nproc, lzd, orbs, op_lb, comon_lb, lphi, lhphi, matrixElements)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => getMatrixElements2
@@ -2150,10 +2150,11 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(linear_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(inout):: op_lb
 type(p2pCommsOrthonormality),intent(inout):: comon_lb
-real(8),dimension(lzd%orbs%npsidim),intent(in):: lphi, lhphi
-real(8),dimension(lzd%orbs%norb,lzd%orbs%norb),intent(out):: matrixElements
+real(8),dimension(orbs%npsidim),intent(in):: lphi, lhphi
+real(8),dimension(orbs%norb,orbs%norb),intent(out):: matrixElements
 
 ! Local variables
 integer:: it, istat, iall, iorb
@@ -2164,12 +2165,12 @@ character(len=*),parameter:: subname='getMatrixElements'
 
   call allocateCommuncationBuffersOrtho(comon_lb, subname)
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
-  call extractOrbital2(iproc, nproc, lzd%orbs, lzd%orbs%npsidim, lzd%orbs%inWhichLocreg, lzd, op_lb, lphi, comon_lb)
+  call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lphi, comon_lb)
   call postCommsOverlap(iproc, nproc, comon_lb)
   call gatherOrbitals2(iproc, nproc, comon_lb)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
-  call extractOrbital2(iproc, nproc, lzd%orbs, lzd%orbs%npsidim, lzd%orbs%inWhichLocreg, lzd, op_lb, lhphi, comon_lb)
-  call calculateOverlapMatrix2(iproc, nproc, lzd%orbs, op_lb, comon_lb, lzd%orbs%inWhichLocreg, matrixElements)
+  call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lhphi, comon_lb)
+  call calculateOverlapMatrix2(iproc, nproc, orbs, op_lb, comon_lb, orbs%inWhichLocreg, matrixElements)
   call deallocateCommuncationBuffersOrtho(comon_lb, subname)
 
 

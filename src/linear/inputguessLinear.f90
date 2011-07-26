@@ -1,6 +1,6 @@
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
-     comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
+     comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
      nlpspd, proj, pkernel, pkernelseq, &
      nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf,  &
      lphi, ehart, eexcu, vexcu)
@@ -21,6 +21,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(GPU_pointers), intent(inout) :: GPU
   type(input_variables):: input
   type(linearParameters),intent(inout):: lin
+  type(orbitals_data),intent(in):: orbs
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -137,7 +138,7 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   ! Create the atomic orbitals in a Gaussian basis.
   nvirt=0
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
-       lin%orbs,lzdig%orbs,norbsc_arr,locrad,G,psigau,eks)
+       orbs,lzdig%orbs,norbsc_arr,locrad,G,psigau,eks)
 
   ! lzdig%orbs%inWhichLocreg has been allocated in inputguess_gaussian_orbitals. SInce it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
@@ -153,8 +154,8 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
 
   locrad=20.d0
-  call initLocregs2(iproc, at%nat, rxyz, lzdGauss, input, Glr, locrad)
-  call initLocregs2(iproc, at%nat, rxyz, lzdig, input, Glr, lin%locrad)
+  call initLocregs2(iproc, at%nat, rxyz, lzdGauss, lzdGauss%orbs, input, Glr, locrad)
+  call initLocregs2(iproc, at%nat, rxyz, lzdig, lzdig%orbs, input, Glr, lin%locrad)
 allocate(lchi(lzdig%orbs%npsidim+ndebug),stat=i_stat)
 call memocc(i_stat,lchi,'lchi',subname)
 allocate(lhchi(lzdig%orbs%npsidim,at%nat),stat=i_stat)
@@ -178,7 +179,7 @@ call memocc(i_stat,lchi2,'lchi2',subname)
   lchi2=0.d0
   call gaussians_to_wavelets_new2(iproc, nproc, lzdGauss, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(lzdGauss%orbs%isorb+1, lzdGauss%orbs%norb)), lchi2(1))
-  call orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzdGauss, input, lchi2)
+  call orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzdGauss, lzdGauss%orbs, input, lchi2)
   ! Transform chi to the localization region - should be used if locrad for the input guess is larger than our localization radius.
   ind1=1
   ind2=1
@@ -1355,7 +1356,7 @@ end subroutine orthonormalizeAtomicOrbitals
 
 
 
-subroutine orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzd, input, lchi)
+subroutine orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzd, orbs, input, lchi)
 !
 ! Purpose:
 ! ========
@@ -1372,8 +1373,9 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(linear_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
-real(8),dimension(lzd%orbs%npsidim),intent(inout):: lchi
+real(8),dimension(orbs%npsidim),intent(inout):: lchi
 
 ! Local variables
 integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, tag, ilr
@@ -1385,11 +1387,11 @@ type(p2pCommsOrthonormality):: comon
 
 ! Initialize the communication parameters.
 tag=5000
-call initCommsOrtho(iproc, nproc, lzd, lzd%orbs, lzd%orbs%inWhichLocreg, input, op, comon, tag)
-allocate(ovrlp(lzd%orbs%norb,lzd%orbs%norb), stat=istat)
+call initCommsOrtho(iproc, nproc, lzd, orbs, orbs%inWhichLocreg, input, op, comon, tag)
+allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
-call orthonormalizeLocalized(iproc, nproc, 2, lzd%orbs, op, comon, lzd, lzd%orbs%inWhichLocreg, 1.d-6, input, lchi, ovrlp)
+call orthonormalizeLocalized(iproc, nproc, 2, orbs, op, comon, lzd, orbs%inWhichLocreg, 1.d-6, input, lchi, ovrlp)
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
@@ -2519,7 +2521,7 @@ type(matrixMinimization):: matmin
 
   ! Now every process has all coefficients, so we can build the linear combinations.
   ! Do this in a localized way -- TEST
-  call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, input, coeff, lchi, lphi)
+  call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, lzdig%orbs, lin%orbs, input, coeff, lchi, lphi)
 
   if(iproc<ip%nproc) then
       call deallocate_inguessParameters(ip, subname)
@@ -3721,7 +3723,7 @@ end subroutine applyOrthoconstraintVectors
 
 
 
-subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, input, coeff, lchi, lphi)
+subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, lphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => buildLinearCombinations
@@ -3730,10 +3732,11 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(linear_zone_descriptors),intent(in):: lzdig, lzd
+type(orbitals_data),intent(in):: orbsig, orbs
 type(input_variables),intent(in):: input
-real(8),dimension(lzdig%orbs%norb,lzd%orbs%norb),intent(in):: coeff
+real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
 real(8),dimension(lzdig%orbs%npsidim),intent(in):: lchi
-real(8),dimension(lzd%orbs%npsidim),intent(out):: lphi
+real(8),dimension(orbs%npsidim),intent(out):: lphi
 
 ! Local variables
 integer:: tag, istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb
@@ -3761,9 +3764,9 @@ lphi=0.d0
 ist=1
 jst=1
 ilrold=-1
-do iorb=1,lzd%orbs%norbp
-    iiorb=lzd%orbs%isorb+iorb
-    ilr=lzd%orbs%inWhichLocreg(iiorb)
+do iorb=1,orbs%norbp
+    iiorb=orbs%isorb+iorb
+    ilr=orbs%inWhichLocreg(iiorb)
     if(ilr==ilrold) then
         ! Set back the index of lphiovrlp, since we again need the same orbitals.
         jst=jst-op%noverlaps(iiorb)*ncount
