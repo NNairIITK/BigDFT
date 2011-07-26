@@ -2602,6 +2602,11 @@ end subroutine prdiff
 !
 !   printout
 !
+
+
+
+
+
       vshift=-15d0
       il(1) = 's'
       il(2) = 'p'
@@ -2713,6 +2718,8 @@ end subroutine prdiff
 
       endif
 
+
+
 !     c.chartwig:
 !     save data for plots
       write(cnum,'(i2)') nconf
@@ -2744,12 +2751,15 @@ end subroutine prdiff
 !     append the file name to the orbitals line in atom.ae
 !     if(iorb>ncore) write(40,'(1x,a)')trim(plotfile)
 
+
 !     if this was the last orbital, then close the current atom file
       if (iorb==ncore+nval)   close(40)
       dena=0
       denb=0
       i=iorb
       if(i>ncore)i=i-ncore
+
+
 
 !     new convention: dump all plots in two files
 !     ae.core.orbitals.plt and ae.orbitals.plt for non core states,

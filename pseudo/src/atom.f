@@ -2622,6 +2622,30 @@ c     dddd =  = int_0^rcov (f^2+g^2) r^6 dr
 c
 c   printout
 c
+
+
+
+
+      if(iorb==ncore+nval) then
+         write(plotfile, '(a,i0,a)') 'ae.pot.conf.',nconf ,'.plt'
+         open(unit=37,file=trim(plotfile),status='unknown')
+         write(37,'(20e20.10)') r(1), 0.0D0
+         do j=2,nr
+            if (ispp=='r') then
+               toplot = 0.5D0*(vid(j)+viu(j))
+            elseif(ispp=='s')then
+               toplot = 0.5D0*(vid(j)+viu(j))
+            else
+               toplot = vid(j)
+            endif
+            toplot = toplot + viod(1,j)/r(j)
+            write(37,'(2e20.10)') r(j), toplot
+         end do
+         close(37)
+      endif
+      
+
+
       vshift=-15d0
       il(1) = 's'
       il(2) = 'p'

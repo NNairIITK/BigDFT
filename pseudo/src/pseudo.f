@@ -66,6 +66,7 @@ c
       character(len=25) :: form
       character(len=80) :: label
       integer :: namoeb,nsmplx
+      integer ::  nconfpaw, npawchannels, npawl
       character(len=8) :: dateYMD
 
 
@@ -150,6 +151,13 @@ c
       info=.false.
       mixref=.false.
       ldump=.false.
+
+      npawconf=-1
+      npawl   = 3
+      npawchannels = 4
+      
+      
+      
 c
 c     DO NOT read command line options as in previous versions.
 c     Instead, read those options from the first line of a file input.dat
@@ -198,6 +206,15 @@ c     This modification is needed for a parallel run.
      :           'average nonlocal potential = 0 for l=N'
             write(6,*) '                            ',
      :           '(only for the highest projector)'
+            write(6,*) '                  -pawN       ',
+     :           ' no opt.,calculate  pawpatch projectors for'//
+     :           ' the Nth configuration '
+            write(6,*) '                  -noflpawN       ',
+     :           ' pawpatch patches for the first N Ls (defaults to 3)'
+            write(6,*) '                  -nchannelspawN       ',
+     :           ' set number of paw projectors to N (defaults to 4)'
+
+
             write(6,*)
         goto 11
         end if
@@ -295,11 +312,43 @@ c      No loop over command line arguments needed.
             if (ii.ne.0) then
                ldump=.true.
                write(6,*) 'dumpfile for ekin.test.f requested'
+
             endif
+            ii=index(string,'-paw')
+            if (ii.ne.0) then
+               label=string(ii+4:min(ii+12,120))
+               read(label,*) nconfpaw
+               write(6,*)  'will calculate pawpatches for conf No ',
+     :                 nconfpaw
+               
+
+            endif
+            ii=index(string,'-noflpaw')
+            if (ii.ne.0) then
+               label=string(ii+8:min(ii+15,120))
+               read(label,*) npawl
+               write(6,*)  'will calculate paw patches for the',
+     :          nconfpaw, ' first Ls '
+
+            endif
+            ii=index(string,'-nchannelspaw')
+            if (ii.ne.0) then
+               label=string(ii+13:min(ii+20,120))
+               read(label,*) npawchannels 
+               write(6,*)  'will consider',
+     :         npawchannels , ' paw channels  '
+
+            endif
+
 
 
 c           End of rading options from input.dat's first line 
  11         continue
+
+      if (nconfpaw /= -1) then
+         namoeb=0
+         write(6,*) ' fitting disactivated because paw option is active'
+      endif
 
       if (namoeb.eq.0) then
          write(6,*) 'Do one pseudopotential calculation.'
@@ -1476,34 +1525,51 @@ c                the following line differs from pseudo2.2
      :           ntrymax,excitAE,ntime,itertot,energ,verbose,time)
 c           write(6,*) 'Finished amoeba with ',iter,'iterations'
          else
-
-c            No fitting was requested, evaluate penalty contributions once
-
-         
-c        call penalty with the verbose flag to print the details
             verbose=.false.
             energ=.true.
-  
 c           if(ipspcod.le.9)lpx=-2
-            call ppack (verbose,rloc,gpot,hsep,r_l,pp(1),
-     :           lpx,lpmx,nspin,pol,nsmx,maxdim,nfit,'init',
-     :           avgl1,avgl2,avgl3,ortprj,litprj,
-     :           rcore,zcore,znuc,zion)
-            verbose=.true.
-            call penalty(energ,verbose,nfit,pp(1),yp(1),
-     :           noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,
-     :           no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,
-     :           occup,aeval,chrg,dhrg,ehrg,res,wght,
-     :           wfnode,psir0,wghtp0,
-     :           rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,
-     :           vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,
-     :           avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd,
-c                the following lines differ from pseudo2.2
-     :           iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,
-     :           nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,
-     :           excitAE,ntime,iter,itertot,penref,time)
-                 write(6,*)'Overall penalty value would be',yp(1)
+               call ppack (verbose,rloc,gpot,hsep,r_l,pp(1),
+     :              lpx,lpmx,nspin,pol,nsmx,maxdim,nfit,'init',
+     :              avgl1,avgl2,avgl3,ortprj,litprj,
+     :              rcore,zcore,znuc,zion)
 
+            if (nconfpaw/=-1) then
+               verbose=.true.
+
+               print *, "  ngrid ", ngrid
+               call pawpatch(energ,verbose,nfit,pp(1),yp(1),
+     :              noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,
+     :              no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,
+     :              occup,aeval,chrg,dhrg,ehrg,res,wght,
+     :              wfnode,psir0,wghtp0,
+     :              rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,
+     :              vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,
+     :              avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae,rw,rd,
+c                the following lines differ from pseudo2.2
+     :              iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,
+     :          wghthij,
+     :              nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,
+     :              excitAE,ntime,iter,itertot,penref,time,ngrid, 
+     :               nconfpaw, npawl, nchannelspaw )
+
+
+            else
+c              No fitting was requested, evaluate penalty contributions once         
+c              call penalty with the verbose flag to print the details
+               verbose=.true.
+               call penalty(energ,verbose,nfit,pp(1),yp(1),
+     :              noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,
+     :              no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,
+     :              occup,aeval,chrg,dhrg,ehrg,res,wght,
+     :              wfnode,psir0,wghtp0,
+     :              rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,
+     :              vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,
+     :              avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd,
+c                the following lines differ from pseudo2.2
+     :              iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,
+     :              nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,
+     :              excitAE,ntime,iter,itertot,penref,time)
+               write(6,*)'Overall penalty value would be',yp(1)
 
 c          IMPORTANT TEST: Calling gatom once more should not make any difference 
 c     call gatom(nspol,energ,verbose,
@@ -1514,6 +1580,9 @@ c    :     vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,igrad,
 c    :     rr,rw,rd,ntime,itertot,etotal)
 
 c          ...true
+
+            endif
+
           endif
 c         fit or evaluate once
 
@@ -2009,4 +2078,5 @@ c      REAL*8 X
 c      DERF=ERF(X)
 c      RETURN
 c      END
+
 

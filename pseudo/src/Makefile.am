@@ -37,7 +37,7 @@ atom_LDADD = \
 	$(libs_cuda)
 
 
-pseudo_SOURCES = pseudo.f $(low_level) $(f90_level) $(xc_level) $(cuda_level) $(mpi_source)
+pseudo_SOURCES = pseudo.f pawpatch.f90 $(low_level) $(f90_level) $(xc_level) $(cuda_level) $(mpi_source)
 pseudo_LDADD = \
 	$(LMPI) \
 	@MPI_LIBS@ \
