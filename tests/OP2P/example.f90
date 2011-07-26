@@ -39,7 +39,7 @@ program example_op2p
 
   !decide the number of groups to run with (maximum 10 groups)
   call random_integer(10,ngroups)
-  !ngroups=2 !for the moment only one group
+  ngroups=2 !for the moment only one group
   !decide the total number of elements for each group (maximum 1000 elements)       
   call random_integer(1000,norb)
   !the number of orbitals should be bigger than the number of groups
@@ -148,14 +148,14 @@ program example_op2p
   !print *,'a',norb_par,orbs_attributes
 
   !here any processor will initialise the global communications arrays needed for executing the op2p
-  call initialize_OP2P_descriptors(.false.,iproc,nproc,norb,orbs_attributes,norb_par,OP2P)
+  call initialize_OP2P_descriptors(.true.,iproc,nproc,norb,orbs_attributes,norb_par,OP2P)
 
   !this simulates the concurrent call of the op2p routine by all the processors
   !print *,'starting',iproc
   !adjust isorb followng the maximum
   if (norb_par(iproc)==0) isorb=norb-1
-  call OP2P_communication(iproc,nproc,OP2P,psi(isorb+1),results(isorb+1),send_mpi,receive_mpi,&
-       wait_mpi,fake_operation)
+  call OP2P_communication(iproc,nproc,OP2P,psi(isorb+1),results(isorb+1),fake_operation,send_mpi,receive_mpi,&
+       wait_mpi_profile)
 
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   !print *,'iproc,icount2',iproc,icount
