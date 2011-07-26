@@ -336,14 +336,24 @@ while not EOF:
             if not print_context:
                 print context,
             print_context = True
-            print left[i1],
+            print left[i1]
+            floats = list()
+            for (one,two) in re_float.findall(left[i1]):
+                floats.append((float(one), n_digits(one)))
+            if len(floats) > 0:
+                maximum = 99
     while i2 < n2-1:
         i2 += 1
         if n2 > 0 and not line_junk(right[i2]):
             if not print_context:
                 print context,
             print_context = True
-            print right[i2],
+            print right[i2]
+            floats = list()
+            for (one,two) in re_float.findall(right[i2]):
+                floats.append((float(one), n_digits(one)))
+            if len(floats) > 0:
+                maximum = 99
 
 if context_lines is not None:
     print context_lines,
