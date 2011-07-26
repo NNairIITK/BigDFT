@@ -6,7 +6,9 @@ aclocal.m4
 autom4te.cache
 config/*
 configure
-libXC/configure.bak
+libxc-1.1.0/configure.bak
+libxc-1.1.0/m4/*
+libxc-1.1.0/ltmain.sh
 config.status
 config.h
 config.h.in
@@ -22,8 +24,8 @@ src/PSolver/Exercise/PS_Exercise.pdf
 src/PSolver/PSolver
 src/OpenCL/.deps
 src/CUDA/.deps
-libXC/src/.deps/
-libXC/testsuite/.deps/
+libxc-1.1.0/src/.deps/
+libxc-1.1.0/testsuite/.deps/
 src/CUDA/S_GPU/.deps/
 src/CUDA/S_GPU/src/.deps/
 src/CUDA/S_GPU/src/.dirstamp

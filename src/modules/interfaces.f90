@@ -298,7 +298,6 @@ module module_interfaces
           n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
        use module_base
        use module_types
-       use libxc_functionals
        implicit none
        !Arguments
        character(len=1), intent(in) :: datacode
@@ -920,7 +919,7 @@ module module_interfaces
        character(len=2), intent(out) :: symbol
        real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
        integer, parameter :: nmax=6,lmax=3
-       integer, intent(out) :: neleconf(nmax,0:lmax)
+       real(kind=8), intent(out) :: neleconf(nmax,0:lmax)
        integer, intent(out) :: nsccode,mxpl,mxchg
      END SUBROUTINE eleconf
 
@@ -1087,7 +1086,7 @@ module module_interfaces
        real(dp), dimension(*), intent(inout) :: rho
        real(wp), dimension(:), pointer :: rhocore !associated if useful
        real(wp), dimension(*), intent(out) :: potxc
-       real(wp), dimension(*), intent(out), optional :: dvxcdrho
+       real(dp), dimension(:,:,:,:), intent(out), target, optional :: dvxcdrho
      END SUBROUTINE XC_potential
 
      subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
@@ -1234,7 +1233,6 @@ module module_interfaces
          hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
       use module_base
       use module_types
-      use libxc_functionals
       implicit none
       integer, intent(in) :: iproc,nproc,n1i,n2i
       integer, intent(in) :: nvirt,n3p

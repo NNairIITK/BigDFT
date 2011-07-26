@@ -14,7 +14,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hx,hy,hz
@@ -46,7 +46,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
   real(gp), dimension(3,2) :: wrkallred
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
@@ -65,7 +64,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   op2p=(eexctX == -99.0_gp)
   eexctX=0.0_gp
 
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
 
   ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
 
@@ -101,7 +100,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      !print *,'iproc,eexctX',iproc,eexctX
   end if
 
-  call timing(iproc,'ApplyLocPotKin','ON')
+  call timing(iproc,'ApplyLocPotKin','ON') 
 
   !apply the local hamiltonian for each of the orbitals
   !given to each processor
@@ -142,7 +141,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !!$     deallocate(hpsi_OCL,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'hpsi_OCL',subname)
 !!$  end if
-  call timing(iproc,'ApplyLocPotKin','OF')
+  call timing(iproc,'ApplyLocPotKin','OF') 
 
   ! apply all PSP projectors for all orbitals belonging to iproc
   call timing(iproc,'ApplyProj     ','ON')
@@ -217,7 +216,7 @@ END SUBROUTINE HamiltonianApplication
 !> Build the potential in the whole box
 subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
   use module_base
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -230,7 +229,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
 
   call timing(iproc,'Rho_commun    ','ON')
   
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
   !determine the dimension of the potential array
   if (exctX) then
      npot=ndimgrid*nspin+&
@@ -272,7 +271,7 @@ END SUBROUTINE full_local_potential
 
 subroutine free_full_potential(nproc,pot,subname)
   use module_base
-  use libxc_functionals
+  use module_xc
   implicit none
   character(len=*), intent(in) :: subname
   integer, intent(in) :: nproc
@@ -281,7 +280,7 @@ subroutine free_full_potential(nproc,pot,subname)
   logical :: exctX
   integer :: i_all,i_stat
 
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
   if (nproc > 1 .or. exctX) then
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
@@ -361,7 +360,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   if (iscf >1) then
      energy=trH
   else
-     energy=trH-ehart+exc-evxc-eexctX+eion+edisp
+     energy=energyKS!trH-ehart+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
   end if
 
   !check that the trace of the hamiltonian is compatible with the 
@@ -507,6 +506,9 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspi
   call transpose_v(iproc,nproc,orbs,lr%wfd,comms,&
        hpsi,work=psi)
 
+  !!experimental, orthogonalize the preconditioned gradient wrt wavefunction
+  !call orthon_virt_occup(iproc,nproc,orbs,orbs,comms,comms,psit,hpsi,(verbose > 2))
+
   !apply the minimization method (DIIS or steepest descent)
   call timing(iproc,'Diis          ','ON')
 
@@ -518,9 +520,9 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspi
      write(*,'(1x,a)',advance='no')&
           'Orthogonalization...'
   end if
-
+  
   call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,orthpar)
-
+  
   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
   call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,&
@@ -874,7 +876,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
  melec=nint(charge)
  !if (iproc == 0) write(*,*) 'charge',charge,melec
 
- ! Send all eigenvalues to all procs.
+ ! Send all eigenvalues to all procs (presumably not necessary)
  call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
       & orbs%eval(1), orbs%ikptproc)
 
@@ -1366,14 +1368,14 @@ subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
   use module_base
   implicit none
   integer, intent(in) :: nproc, nkpts, ndata
-  integer, intent(in) :: ikptproc(nkpts)
-  real(gp), intent(inout) :: data(ndata, nkpts)
+  integer, dimension(nkpts), intent(in) :: ikptproc
+  real(gp), dimension(ndata,nkpts), intent(inout) :: data
 
   integer :: ikpt, ierr
 
   if (nproc > 1) then
      do ikpt = 1, nkpts
-        call MPI_BCAST(data(1,ikpt), ndata, MPI_DOUBLE_PRECISION, &
+        call MPI_BCAST(data(1,ikpt), ndata,mpidtypg, &
              & ikptproc(ikpt), MPI_COMM_WORLD, ierr)
         !redundant barrier 
         call MPI_BARRIER(MPI_COMM_WORLD,ierr)

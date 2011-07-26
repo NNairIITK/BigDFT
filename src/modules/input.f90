@@ -210,10 +210,12 @@ contains
     integer :: i, j, ierror, ierr
     character(len = length) :: buf
 
+    ! Set the default value to var.
     do i = 1, size(list), 1
-       if (trim(default) == trim(list(i))) var = i
+       if (trim(default) == trim(list(i))) exit
     end do
-    buf = list(var)
+    var = i - 1
+    ! Find the keyword name in the file.
     call find(name, i, j)
     if (i > 0) then
        read(input_lines(i)(j + 2:), fmt = *, iostat = ierror) buf
@@ -222,6 +224,7 @@ contains
                & trim(input_file), '", line=', i
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
+       ! Look for buf in list.
        do j = 1, size(list), 1
           if (trim(buf) == trim(list(j))) exit
        end do
@@ -230,11 +233,11 @@ contains
                & trim(input_file), '", line=', i
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
+       var = j - 1
     end if
-    var = i - 1
     if (output) then
        write(*,"(1x,a,3x,a,1x,a,t30,3a)", advance = "NO") &
-            & "|", name, buf, '!', description, " ("
+            & "|", name, list(var + 1), '!', description, " ("
        write(*,"(A)", advance = "NO") trim(list(1))
        do i = 2, size(list), 1
           write(*,"(2A)", advance = "NO") ", ", trim(list(i))

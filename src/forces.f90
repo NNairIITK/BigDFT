@@ -72,9 +72,16 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   !assign the reference
   if (iorb_ref==0) then
      functional_ref=energy
+  else if (iorb_ref == -1) then
+     if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
+        functional_ref=rst%orbs%HLgap
+     else
+        stop ' ERROR (FDforces): gap not defined' 
+     end if
   else
      functional_ref=rst%orbs%eval(iorb_ref)
   end if
+
 
 
   if (order == -1) then
@@ -140,7 +147,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            !Displacement
            dd=real(k,gp)*fd_step(i)
            !We copy atomic positions (not necessary)
-           !call dcopy(3*atoms%nat,rxyz,1,rst%rxyz_new,1)
+           call dcopy(3*atoms%nat,rxyz_ref,1,rst%rxyz_new,1)
            if (iproc == 0) then
               write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
                    '=FD Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
@@ -161,27 +168,35 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            !assign the quantity which should be differentiated
            if (iorb_ref==0) then
               functional(km)=energy
+           else if (iorb_ref==-1) then
+              functional(km)=rst%orbs%HLgap
            else
               functional(km)=rst%orbs%eval(iorb_ref)
            end if
            
         end do
-        ! Build the finite-difference quantity
-        !Force is -dE/dR
-        if (order == -1) then
-           dd = - (functional_ref - functional(1))/fd_step(i)
-        else if (order == 1) then
-           dd = - (functional(1) - functional_ref)/fd_step(i)
-        else if (order == 2) then
-           dd = - (functional(2) - functional(1))/(2.0_gp*fd_step(i))
-        else if (order == 3) then
-           dd = - (functional(4) + functional(3) - functional(2) - functional(1))/(6.d0*fd_step(i))
+        ! Build the finite-difference quantity if the calculatio has converged properly
+        if (infocode ==0) then
+           !Force is -dE/dR
+           if (order == -1) then
+              dd = - (functional_ref - functional(1))/fd_step(i)
+           else if (order == 1) then
+              dd = - (functional(1) - functional_ref)/fd_step(i)
+           else if (order == 2) then
+              dd = - (functional(2) - functional(1))/(2.0_gp*fd_step(i))
+           else if (order == 3) then
+              dd = - (functional(4) + functional(3) - functional(2) - functional(1))/(6.d0*fd_step(i))
+           else
+              stop "BUG (FD_forces): this order is not defined"
+           end if
+           !if (abs(dd).gt.1.d-10) then
+           dfunctional(ii) = dd
+           !end if
         else
-           stop "BUG: frequencies this order is not defined"
+           if (iproc==0)&
+                write(*,*)'ERROR: the wavefunctions have not converged properly, meaningless result. Exiting. Infocode:',infocode
+           stop
         end if
-        !if (abs(dd).gt.1.d-10) then
-        dfunctional(ii) = dd
-        !end if
         
      end do
   end do

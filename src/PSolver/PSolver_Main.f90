@@ -1117,7 +1117,7 @@ END SUBROUTINE PS_dim4allocation
 !!    May 2008
 !!
 subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
-  use libxc_functionals
+  use module_xc
 
   implicit none
 
@@ -1129,8 +1129,7 @@ subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,
   logical :: use_gradient
 
   if (istart <= m2-1) then
-     use_gradient = (ixc >= 11 .and. ixc <= 16) .or. &
-          & (ixc < 0 .and. libxc_functionals_isgga())
+     use_gradient = xc_isgga()
      nxc=iend-istart
      if (use_gradient .and. geocode == 'F') then
         if (ixc==13) then

@@ -164,6 +164,7 @@ modules_source = modules/base.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
 	modules/input.f90 \
+	modules/xc.f90 \
 	$(GPU_BLAS)
 
 modules_objects = $(modules_source:.f90=.o)
@@ -249,7 +250,6 @@ bigdft_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 splsad_SOURCES = splinedsaddle.f90
@@ -258,7 +258,6 @@ splsad_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
 
 rism_SOURCES = rism.f90 rismlowlevel.f90
@@ -267,18 +266,15 @@ rism_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
- 
+
 oneatom_SOURCES = oneatom.f90
 oneatom_LDFLAGS = 
 oneatom_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)
-
 
 MDanalysis_SOURCES = distances.f90 
 MDanalysis_LDFLAGS = 
@@ -286,7 +282,6 @@ MDanalysis_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt)  
 
 abscalc_SOURCES = abscalc.f90 
@@ -295,7 +290,6 @@ abscalc_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 test_forces_SOURCES = test_forces.f90
@@ -304,7 +298,6 @@ test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 NEB_SOURCES = NEB.f90 \
@@ -312,7 +305,6 @@ NEB_SOURCES = NEB.f90 \
 NEB_LDFLAGS = 
 NEB_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
@@ -321,7 +313,6 @@ memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
@@ -331,7 +322,6 @@ frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 bart_SOURCES = \
@@ -352,7 +342,6 @@ bart_LDADD = art/libart.a \
 	PSolver/libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIB_ARCHIVE_LIBS@ \
 	$(libs_opt) 
 
 CLEANFILES = \
@@ -390,7 +379,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
+$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o : $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
 
@@ -413,8 +402,6 @@ test_forces.o: $(mod_bigdft)
 $(mod_bigdft) : BigDFT_API.o
 
 $(modules_objects) : $(mpi_include)
-
-modules/defs.o: modules/base.o
 
 #BigDFT.o: \
 #	base.o \

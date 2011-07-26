@@ -13,20 +13,20 @@
         -0.014952258337062199118D0,-0.00030292051472413308126D0, &
         0.0018899503327676891843D0,0.D0,0.D0 /
 !******** coefficints for wavelet transform *********************
-	do i=-mM,mM
-  	cht(i)=0.d0
-	cg(i)=0.d0
-	cgt(i)=0.d0
-	enddo
+      do i=-mM,mM
+         cht(i)=0.d0
+         cg(i)=0.d0
+         cgt(i)=0.d0
+      enddo
 
 
 ! orthonormal wavelet
-	do i=-mM,mM
-	cht(i)=ch(i)
-	enddo
+      do i=-mM,mM
+         cht(i)=ch(i)
+      enddo
 
 ! g coefficients from h coefficients
-        do i=-mM,mM-1
-        cg(i+1)=cht(-i)*(-1)**(i+1)
-        cgt(i+1)=ch(-i)*(-1)**(i+1)
-        enddo
+      do i=-mM,mM-1
+         cg(i+1)=cht(-i)*(-1)**(i+1)
+         cgt(i+1)=ch(-i)*(-1)**(i+1)
+      enddo

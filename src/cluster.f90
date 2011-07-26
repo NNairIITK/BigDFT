@@ -181,7 +181,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   use module_types
   use module_interfaces
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
   use ab6_symmetry
@@ -205,15 +205,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
-  character(len=4) :: f4
   character(len=5) :: gridformat, wfformat, final_out
-  character(len=50) :: filename
   character(len=500) :: errmess
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
-  integer :: nelec,ndegree_ip,j,i,iorb,npoints
+  integer :: nelec,ndegree_ip,j,i,npoints
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,ispin
@@ -221,7 +219,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
   real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,rpnrm,gnrm,gnrm_zero
-  real(gp) :: trH,energybs,tt,tel,ehart_fake,psoffset
+  real(gp) :: energybs,tt,tel,ehart_fake,psoffset
   real(kind=8) :: ttsum
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
@@ -230,11 +228,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
   type(diis_objects) :: diis
-  type(energy_terms) :: energs
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
-  real(gp), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi,band_structure_eval
+  real(gp), dimension(:,:), allocatable :: radii_cf,fion,thetaphi,band_structure_eval
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   type(ab6_mixing_object) :: mix
@@ -299,7 +296,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   hy=in%hy
   hz=in%hz
 
-  call libxc_functionals_init(ixc, nspin)
+  ! Initialise XC calculation
+  if (ixc < 0) then
+     call xc_init(ixc, XC_MIXED, nspin)
+  else
+     call xc_init(ixc, XC_ABINIT, nspin)
+  end if
 
   !character string for quieting the Poisson solver
   if (verbose >1) then
@@ -314,6 +316,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           in%inputPsiId
      call print_dft_parameters(in,atoms)
   end if
+  if (iproc == 0) call xc_dump()
   if (nproc > 1) then
      call timing(iproc,'parallel     ','IN')
   else
@@ -387,7 +390,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
        quiet=PSquiet)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
-  if (libxc_functionals_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .and. nproc > 1) then
+  if (xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .and. nproc > 1) then
      call createKernel(0,1,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
           pkernelseq,quiet='YES')
   else
@@ -699,8 +702,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,"wavefunction", &
+     !since each processor read only few eigenvalues, initialise them to zero for all
+     call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+
+     call readmywaves(iproc,"wavefunction" // trim(wfformat), &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
+
+     !reduce the value for all the eigenvectors
+     call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      if (in%itrpmax /= 1) then
         !recalculate orbitals occupation numbers
@@ -937,7 +946,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            endif
 
            !evaluate the functional of the wavefucntions and put it into the diis structure
-           !the energy values is printed out here
+           !the energy values is printed out in this routine
            call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,hx,hy,hz,in%ncong,in%iscf,&
                 ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,eexctX,eion,edisp,&
                 psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
@@ -1660,9 +1669,7 @@ contains
     end if
 
     ! Free the libXC stuff if necessary.
-    if (ixc < 0) then
-       call libxc_functionals_end()
-    end if
+    call xc_end()
 
     !deallocate the mixing
     if (in%itrpmax > 1) then

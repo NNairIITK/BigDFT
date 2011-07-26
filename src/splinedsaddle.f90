@@ -1893,7 +1893,8 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     alpha=min(alphamax,alpha*1.1d0)
     x(1:nr)=x(1:nr)+alpha*work(iw3:iw3-1+nr)
 end subroutine bfgs_splsad
-!*****************************************************************************************
+
+
 subroutine dfp_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     !use minimization, only:parameterminimization
     use minimization_sp, only:parameterminimization_sp

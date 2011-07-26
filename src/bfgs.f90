@@ -5,7 +5,9 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
+
+!> BFGS driver routine
 subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     use module_base
     use module_types
@@ -24,8 +26,8 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     character(len=4) :: fn4
     character(len=40) :: comment
     logical :: move_this_coordinate
-    integer:: nr
-    integer:: nwork
+    integer ::  nr
+    integer ::  nwork
     real(gp),allocatable:: x(:),f(:),work(:)
     !character(len=4) :: fn4
     !character(len=40) :: comment
@@ -104,16 +106,17 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     deallocate(x,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating x.'
     deallocate(f,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating f.'
 END SUBROUTINE bfgsdriver
-!*****************************************************************************************
+
+
 subroutine inithess(iproc,nr,nat,rat,atoms,hess)
     use module_types
     implicit none
-    integer::iproc,nr,nat,iat,jat,nsb,nrsqtwo,i,j,k,info
-    real(8)::rat(3,nat),hess(nr,nr),r0types(4,4),fctypes(4,4),soft,hard
+    integer :: iproc,nr,nat,iat,jat,nsb,nrsqtwo,i,j,k,info
+    real(kind=8) :: rat(3,nat),hess(nr,nr),r0types(4,4),fctypes(4,4),soft,hard
     type(atoms_data), intent(inout) :: atoms
     integer, allocatable::ita(:),isb(:,:)
     real(8), allocatable::r0bonds(:),fcbonds(:),evec(:,:),eval(:),wa(:)
-    real(8)::dx,dy,dz,r,tt,ep
+    real(kind=8) :: dx,dy,dz,r,tt
     nrsqtwo=2*nr**2
     if(nr/=3*atoms%nat) then
         stop 'ERROR: This subroutine works only for systems without fixed atoms.'
@@ -208,11 +211,12 @@ subroutine inithess(iproc,nr,nat,rat,atoms,hess)
     enddo
     deallocate(ita,isb,r0bonds,fcbonds,evec,eval,wa)
 end subroutine inithess
-!*****************************************************************************************
+
+
 subroutine init_parameters(r0,fc)
     implicit none
-    integer::i,j
-    real(8)::r0(4,4),fc(4,4)
+    integer :: i,j
+    real(kind=8) :: r0(4,4),fc(4,4)
     !((0.0104 / 0.239) / 27.2114) * (0.529177^2) = 0.000447802457
     r0(1,1)=0.80d0/0.529d0
     r0(2,1)=1.09d0/0.529d0 ; r0(2,2)=1.51d0/0.529d0
@@ -233,15 +237,16 @@ subroutine init_parameters(r0,fc)
         enddo
     enddo
 end subroutine init_parameters
-!*****************************************************************************************
+
+
 subroutine pseudohess(nat,rat,nbond,indbond1,indbond2,sprcons,xl0,hess)
     implicit none
-    integer::nat,nbond,indbond1(nbond),indbond2(nbond)
-    real(8)::rat(3,nat),sprcons(nbond),xl0(nbond),hess(3*nat,3*nat)
-    integer::iat,jat,i,j,ibond
-    real(8)::xiat,yiat,ziat,dx,dy,dz,r2,r,rinv,r3inv !,rinv2,rinv4,rinv8,rinv10,rinv14,rinv16
-    real(8)::dxsq,dysq,dzsq,dxdy,dxdz,dydz,tt1,tt2,tt3,tt4
-    real(8)::h11,h22,h33,h12,h13,h23
+    integer :: nat,nbond,indbond1(nbond),indbond2(nbond)
+    real(kind=8) :: rat(3,nat),sprcons(nbond),xl0(nbond),hess(3*nat,3*nat)
+    integer :: iat,jat,i,j,ibond
+    real(kind=8) :: dx,dy,dz,r2,r,rinv,r3inv !,rinv2,rinv4,rinv8,rinv10,rinv14,rinv16
+    real(kind=8) :: dxsq,dysq,dzsq,dxdy,dxdz,dydz,tt1,tt2,tt3
+    real(kind=8) :: h11,h22,h33,h12,h13,h23
     do j=1,3*nat
         do i=1,3*nat
             hess(i,j)=0.d0
@@ -313,22 +318,22 @@ subroutine pseudohess(nat,rat,nbond,indbond1,indbond2,sprcons,xl0,hess)
             hess(j,i)=hess(i,j)
         enddo
     enddo
-    !---------------------------------------------------------------------------
+    
 end subroutine pseudohess
-!*****************************************************************************************
+
+
 subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft,flt1,flt2,atoms)
     use minpar, only:parmin
     use module_types
     implicit none
-    integer::iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,iw4,info,i,j,l,mx
-    integer::ncount_bigdft
-    real(8)::x(nr),f(nr),epot,work(nwork),alphax,flt1,flt2
+    integer :: iproc,nr,nwork,mf,my,ms,nrsqtwo,iw1,iw2,iw3,iw4,info,i,j,l,mx
+    integer :: ncount_bigdft
+    real(kind=8) :: x(nr),f(nr),epot,work(nwork),alphax,flt1,flt2
     type(atoms_data), intent(inout) :: atoms
-    integer, allocatable::ipiv(:)
     !real(8), allocatable::eval(:),umat(:)
     !type(parameterminimization)::parmin
-    real(8)::DDOT,DNRM2,tt1,tt2,de,fnrm,fmax,beta
-    real(8)::tt3,tt4,tt5,tt6
+    real(kind=8) :: DDOT,tt1,tt2,de,fnrm,fmax,beta
+    real(kind=8) :: tt3,tt4,tt5,tt6
     real(8), save::epotold,alpha,alphamax,zeta
     logical, save::reset
     integer, save::isatur
@@ -502,11 +507,11 @@ subroutine bfgs_reza(iproc,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,ncount_bigdft
     alpha=min(alphamax,alpha*1.1d0)
     x(1:nr)=x(1:nr)+alpha*work(iw3:iw3-1+nr)
 end subroutine bfgs_reza
-!*****************************************************************************************
 
-!>   Driver for the LBFGS routine found on the Nocedal Homepage
-!!   The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
-!!   This is helpfull when we are looking for the source of problems during BFGS runs
+
+!> Driver for the LBFGS routine found on the Nocedal Homepage
+!! The subroutines have only been modified slightly, so a VIMDIFF will show all modifications!
+!! This is helpfull when we are looking for the source of problems during BFGS runs
 subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail) 
   use module_base
   use module_types
@@ -535,12 +540,12 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
   character(len=40) :: comment
   logical :: move_this_coordinate
 
-  integer:: n,nr,ndim
-  integer:: NWORK
+  integer ::  n,nr,ndim
+  integer ::  NWORK
   real(gp),allocatable:: X(:),G(:),DIAG(:),W(:)
   real(gp):: F,EPS!,XTOL,GTOL,,STPMIN,STPMAX
   real(gp), dimension(3*at%nat) :: rxyz0,rxyzwrite
-  INTEGER:: IPRINT(2),IFLAG,ICALL,M
+  integer ::  IPRINT(2),IFLAG,ICALL,M
   character(len=*), parameter :: subname='bfgs'
   integer :: i_stat,i_all
 
@@ -703,9 +708,9 @@ subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
-    integer::n,nr,i,iat,ixyz,ir
-    real(8)::x(n),xa(nr)
-    logical::move_this_coordinate
+    integer :: n,nr,i,iat,ixyz,ir
+    real(kind=8) :: x(n),xa(nr)
+    logical :: move_this_coordinate
     ir=0
     do i=1,3*atoms%nat
         iat=(i-1)/3+1
@@ -723,9 +728,9 @@ subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
     use module_types
     implicit none
     type(atoms_data), intent(inout) :: atoms
-    integer::n,nr,i,iat,ixyz,ir
-    real(8)::x(n),xa(nr)
-    logical::move_this_coordinate
+    integer :: n,nr,i,iat,ixyz,ir
+    real(kind=8) :: x(n),xa(nr)
+    logical :: move_this_coordinate
     ir=0
     do i=1,3*atoms%nat
         iat=(i-1)/3+1
