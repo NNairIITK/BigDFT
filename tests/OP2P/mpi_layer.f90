@@ -3,7 +3,7 @@ module mpi_layer
   implicit none
   private
 
-  public :: send_mpi,receive_mpi,wait_mpi
+  public :: send_mpi,receive_mpi,wait_mpi_profile
 
 contains
 
