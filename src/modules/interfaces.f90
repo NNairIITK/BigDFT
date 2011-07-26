@@ -2997,12 +2997,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine
 
 
-     subroutine getHamiltonianMatrix2(iproc, nproc, lzdig, Glr, input, onWhichAtom, onWhichAtomp, nat, lchi, lhchi, ham)
+     subroutine getHamiltonianMatrix2(iproc, nproc, lzdig, orbsig, Glr, input, onWhichAtom, onWhichAtomp, nat, lchi, lhchi, ham)
        use module_base
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, nat
        type(linear_zone_descriptors),intent(in):: lzdig
+       type(orbitals_data),intent(in):: orbsig
        type(locreg_descriptors),intent(in):: Glr
        type(input_variables),intent(in):: input
        integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom

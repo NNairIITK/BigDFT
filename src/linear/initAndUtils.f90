@@ -171,14 +171,18 @@ call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
 
 ! Copy Glr to lin%lzd
 !lin%lzd%Glr = Glr
+call nullify_locreg_descriptors(lin%lzd%Glr)
 call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
 !lin%lb%lzd%Glr = Glr
+call nullify_locreg_descriptors(lin%lb%lzd%Glr)
 call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
 
 ! Copy nlpspd to lin%lzd
-lin%lzd%Gnlpspd = nlpspd
+!lin%lzd%Gnlpspd = nlpspd
+call nullify_nonlocal_psp_descriptors(lin%lzd%Gnlpspd)
 call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
 !lin%lb%lzd%Gnlpspd = nlpspd
+call nullify_nonlocal_psp_descriptors(lin%lb%lzd%Gnlpspd)
 call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
 
 ! Set localnorb
