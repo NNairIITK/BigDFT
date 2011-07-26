@@ -675,6 +675,11 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
      allocate(dvxcdgr(m1,m3,nwb,3+ndebug),stat=i_stat)
      call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
+  else
+     allocate(gradient(1,1,1,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,gradient,'gradient',subname)
+     allocate(dvxcdgr(1,1,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
   end if
 
   !Allocations
