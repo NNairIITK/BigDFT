@@ -3853,14 +3853,13 @@ real(8),dimension(orbsig%npsidim),intent(in):: lchi
 real(8),dimension(orbs%npsidim),intent(out):: lphi
 
 ! Local variables
-integer:: tag, istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb
+integer:: tag, istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb, ii
 type(overlapParameters):: op
 type(p2pCommsOrthonormality):: comon
 real(8),dimension(:),allocatable:: lchiovrlp
 character(len=*),parameter:: subname='buildLinearCombinations'
 
 tag=10000
-write(*,'(a,2i4,4x,100i3)') 'in buildLinearCombinationsVariable: iproc, orbs%norb, orbs%inWhichLocreg', iproc, orbs%norb, orbs%inWhichLocreg
 call initCommsOrthoVariable(iproc, nproc, lzdig, orbs, orbsig, orbsig%inWhichLocreg, input, op, comon, tag)
 allocate(lchiovrlp(op%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
@@ -3872,6 +3871,21 @@ call gatherOrbitals2(iproc, nproc, comon)
 !call mpi_barrier(mpi_comm_world, ist)
 !stop
 call expandOrbital2Variable(iproc, nproc, orbs, input, lzdig, op, comon, lchiovrlp)
+ii=lzdig%llr(1)%wfd%nvctr_c+7*lzdig%llr(1)%wfd%nvctr_f
+ist=0
+do iorb=1,orbsig%norb
+    do iall=1,ii
+        ist=ist+1
+        write(1000*(iproc+1)+iorb,*) iall, lchiovrlp(ist)
+    end do
+end do
+ist=0
+do iorb=1,orbsig%norbp
+    do iall=1,ii
+        ist=ist+1
+        write(1000*(iproc+1)+100+iorb,*) iall, lchi(ist)
+    end do
+end do
 call deallocateCommuncationBuffersOrtho(comon, subname)
 
 
@@ -3888,7 +3902,6 @@ do iorb=1,orbs%norbp
         ! Set back the index of lphiovrlp, since we again need the same orbitals.
         jst=jst-op%noverlaps(iiorb-1)*ncount
     end if
-    write(*,'(a,6i13)') 'iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst', iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)

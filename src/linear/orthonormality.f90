@@ -866,7 +866,7 @@ do jproc=0,nproc-1
        iiorb=iiorb+1 
        ilr=onWhichAtom(iiorb)
        ! Check whether process jproc has already received orbital jjorb.
-       if(iproc==0) write(*,'(a,5i8)') 'jproc, iorb, iiorb, ilr, ilrold', jproc, iorb, iiorb, ilr, ilrold
+       !if(iproc==0) write(*,'(a,5i8)') 'jproc, iorb, iiorb, ilr, ilrold', jproc, iorb, iiorb, ilr, ilrold
        if(ilr==ilrold) cycle
        ildim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
        do jorb=1,op%noverlaps(iiorb)
@@ -891,7 +891,7 @@ do jproc=0,nproc-1
                comon%nsendBuf=comon%nsendBuf+ncount
            end if
            if(iproc==mpidest) then
-               write(*,'(3(a,i0))') 'process ',iproc,' will get orbital ',jjorb,' at position ',istdest
+               !write(*,'(3(a,i0))') 'process ',iproc,' will get orbital ',jjorb,' at position ',istdest
                op%indexInRecvBuf(iorb,jjorb)=istdest
                comon%nrecvBuf=comon%nrecvBuf+ncount
                op%ndim_lphiovrlp=op%ndim_lphiovrlp+ildim
@@ -975,7 +975,7 @@ nsends=0
 nreceives=0
 comon%communComplete=.false.
 do jproc=0,nproc-1
-    write(*,'(3(a,i0))') 'iproc=',iproc,', jproc=',jproc,', comon%noverlaps(jproc)=', comon%noverlaps(jproc)
+    !write(*,'(3(a,i0))') 'iproc=',iproc,', jproc=',jproc,', comon%noverlaps(jproc)=', comon%noverlaps(jproc)
     do iorb=1,comon%noverlaps(jproc)
         mpisource=comon%comarr(1,iorb,jproc)
         istsource=comon%comarr(2,iorb,jproc)
@@ -983,18 +983,18 @@ do jproc=0,nproc-1
         mpidest=comon%comarr(4,iorb,jproc)
         istdest=comon%comarr(5,iorb,jproc)
         tag=comon%comarr(6,iorb,jproc)
-        write(*,'(6(a,i0))') 'iproc=',iproc,', tag=',tag,', mpisource=',mpisource,', mpidest=',mpidest,' jproc=',jproc,', iorb=',iorb
+        !write(*,'(6(a,i0))') 'iproc=',iproc,', tag=',tag,', mpisource=',mpisource,', mpidest=',mpidest,' jproc=',jproc,', iorb=',iorb
         if(mpisource/=mpidest) then
             ! The orbitals are on different processes, so we need a point to point communication.
             if(iproc==mpisource) then
-                write(*,'(6(a,i0))') 'overlap: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                !write(*,'(6(a,i0))') 'overlap: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
                 call mpi_isend(comon%sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag,&
                      mpi_comm_world, comon%comarr(7,iorb,jproc), ierr)
                 !call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
                 comon%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
-                write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                 call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
                      mpi_comm_world, comon%comarr(8,iorb,jproc), ierr)
                 comon%comarr(7,iorb,jproc)=mpi_request_null !is this correct?
@@ -1007,7 +1007,7 @@ do jproc=0,nproc-1
             ! The orbitals are on the same process, so simply copy them.
             if(iproc==mpisource) then
                 call dcopy(ncount, comon%sendBuf(istsource), 1, comon%recvBuf(istdest), 1)
-                write(*,'(6(a,i0))') 'overlap: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                !write(*,'(6(a,i0))') 'overlap: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
                 comon%comarr(7,iorb,jproc)=mpi_request_null
                 comon%comarr(8,iorb,jproc)=mpi_request_null
                 nsends=nsends+1
@@ -1267,7 +1267,7 @@ testLoop: do
             call mpi_test(comon%comarr(8,jorb,jproc), receiveComplete, stat, ierr)
             if(sendComplete .and. receiveComplete) comon%communComplete(jorb,jproc)=.true.
             if(comon%communComplete(jorb,jproc)) then
-                if(iproc==jproc) write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', jorb
+                !if(iproc==jproc) write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', jorb
                 mpisource=comon%comarr(1,jorb,jproc)
                 mpidest=comon%comarr(4,jorb,jproc)
                 if(mpisource/=mpidest) then
@@ -1289,12 +1289,12 @@ nslow=0
 do jproc=0,nproc-1
     do jorb=1,comon%noverlaps(jproc)
         if(comon%communComplete(jorb,jproc)) cycle
-        write(*,'(3(a,i0))') 'process ', iproc, ' is waiting for orbital ',jorb,'; tag=',comon%comarr(6,jorb,jproc)
+        !write(*,'(3(a,i0))') 'process ', iproc, ' is waiting for orbital ',jorb,'; tag=',comon%comarr(6,jorb,jproc)
         nslow=nslow+1
         call mpi_wait(comon%comarr(7,jorb,jproc), stat, ierr)   !COMMENTED BY PB
         call mpi_wait(comon%comarr(8,jorb,jproc), stat, ierr)   !COMMENTED BY PB
         comon%communComplete(jorb,jproc)=.true.
-        write(*,'(3(a,i0))') 'process ', iproc, ' has finally received orbital ',jorb,'; tag=',comon%comarr(6,jorb,jproc)
+        !write(*,'(3(a,i0))') 'process ', iproc, ' has finally received orbital ',jorb,'; tag=',comon%comarr(6,jorb,jproc)
     end do
 end do
 
@@ -2401,18 +2401,18 @@ type(overlapParameters),intent(inout):: op
 ! Local variables
 integer:: iorb, jorb, jjorb, ilr, jlr, iiorb
 
-write(*,'(a,2i4,4x,100i3)') 'in determineOverlapDescriptorsVariable: iproc, orbs%norb, orbs%inWhichLocreg', iproc, orbs%norb, orbs%inWhichLocreg
+!write(*,'(a,2i4,4x,100i3)') 'in determineOverlapDescriptorsVariable: iproc, orbs%norb, orbs%inWhichLocreg', iproc, orbs%norb, orbs%inWhichLocreg
 do iiorb=1,orbs%norb
     !iiorb=orbs%isorb_par(iproc)+iorb
     ilr=orbs%inWhichLocreg(iiorb)
-    write(*,'(a,2i9)') 'debug in determineOverlapDescriptorsVariable: iiorb, ilr', iiorb, ilr
+    !write(*,'(a,2i9)') 'debug in determineOverlapDescriptorsVariable: iiorb, ilr', iiorb, ilr
 !if(iproc==0) write(*,'(a,2i10)') 'iorb, op%noverlaps(iorb)', iorb, op%noverlaps(iorb)
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
         jlr=orbsig%inWhichLocreg(jjorb)
 !write(*,*) 'calling get_overlap_region_periodic'
         !call get_overlap_region_periodic(ilr, jlr, Glr, 1, lzd%llr, lzd%nlr, op%olr(jorb,iorb))
-        write(*,'(6(a,i0))') 'iproc=',iproc,': op%olr(jorb,iiorb) is called with jorb=',jorb,', iiorb=',iiorb,' ilr=',ilr,' jlr=',jlr,' jjorb=',jjorb
+        !write(*,'(6(a,i0))') 'iproc=',iproc,': op%olr(jorb,iiorb) is called with jorb=',jorb,', iiorb=',iiorb,' ilr=',ilr,' jlr=',jlr,' jjorb=',jjorb
         call get_overlap_region_periodic2(ilr, jlr, Glr, 1, lzd%llr, lzd%nlr, op%olr(jorb,iiorb))
         !write(*,'(a,13i8)') 'iproc, iorb, jorb, iiorb, jjorb, ilr, jlr, nvctr_c, nvctr_f, ncount, n1, n2, n3', iproc, iorb, jorb, iiorb, jjorb, ilr, jlr, &
         !    op%olr(jorb,iorb)%wfd%nvctr_c, op%olr(jorb,iorb)%wfd%nvctr_f, op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f, op%olr(jorb,iorb)%d%n1, op%olr(jorb,iorb)%d%n2, op%olr(jorb,iorb)%d%n3
@@ -2459,8 +2459,8 @@ comon%nrecvBuf=0
 
 op%indexInRecvBuf=0
 op%ndim_lphiovrlp=0
-write(*,'(a,i3,4x,100i3)') 'iproc, orbs%norb_par', iproc, orbs%norb_par
-write(*,'(a,i3,4x,100i3)') 'iproc, orbsig%norb_par', iproc, orbsig%norb_par
+!write(*,'(a,i3,4x,100i3)') 'iproc, orbs%norb_par', iproc, orbs%norb_par
+!write(*,'(a,i3,4x,100i3)') 'iproc, orbsig%norb_par', iproc, orbsig%norb_par
 
 iiorb=0
 jprocold=-1
@@ -2472,7 +2472,7 @@ do jproc=0,nproc-1
        iiorb=iiorb+1 
        ilr=orbs%inWhichLocreg(iiorb)
        ! Check whether process jproc has already received orbital jjorb.
-       if(iproc==0) write(*,'(a,5i8)') 'jproc, iorb, iiorb, ilr, ilrold', jproc, iorb, iiorb, ilr, ilrold
+       !if(iproc==0) write(*,'(a,5i8)') 'jproc, iorb, iiorb, ilr, ilrold', jproc, iorb, iiorb, ilr, ilrold
        if(ilr==ilrold) cycle
        ildim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
        do jorb=1,op%noverlaps(iiorb)
@@ -2494,11 +2494,11 @@ do jproc=0,nproc-1
            call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comon%comarr(1,ijorb,jproc))
            !if(iproc==0) write(*,'(6(a,i0))') 'process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,', tag=',tag
            if(iproc==mpisource) then
-               write(*,'(5(a,i0))') 'adding ',ncount,' elements from orbital ',jjorb,' for orbital ',iiorb,' to nsendBuf, iproc=',iproc,', jproc=',jproc
+               !write(*,'(5(a,i0))') 'adding ',ncount,' elements from orbital ',jjorb,' for orbital ',iiorb,' to nsendBuf, iproc=',iproc,', jproc=',jproc
                comon%nsendBuf=comon%nsendBuf+ncount
            end if
            if(iproc==mpidest) then
-               write(*,'(3(a,i0))') 'process ',iproc,' will get orbital ',jjorb,' at position ',istdest
+               !write(*,'(3(a,i0))') 'process ',iproc,' will get orbital ',jjorb,' at position ',istdest
                op%indexInRecvBuf(iorb,jjorb)=istdest
                comon%nrecvBuf=comon%nrecvBuf+ncount
                op%ndim_lphiovrlp=op%ndim_lphiovrlp+ildim
@@ -2553,7 +2553,7 @@ do iorb=1,orbs%norbp
     ilr=orbs%inWhichLocreg(iiorb)
     if(ilr==ilrold) cycle
     gdim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-    write(*,'(a,4i8)') 'iproc, iorb, iiorb, op%noverlaps(iiorb)', iproc, iorb, iiorb, op%noverlaps(iiorb)
+    !write(*,'(a,4i8)') 'iproc, iorb, iiorb, op%noverlaps(iiorb)', iproc, iorb, iiorb, op%noverlaps(iiorb)
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
         ! Starting index of orbital jjorb
@@ -2562,7 +2562,7 @@ do iorb=1,orbs%norbp
         ldim=op%olr(jorb,iiorb)%wfd%nvctr_c+7*op%olr(jorb,iiorb)%wfd%nvctr_f
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), comon%recvBuf(jst), lphiovrlp(ind))
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), comon%recvBuf(jst), lphiovrlp(ind))
-        write(*,'(a,9i9)') 'iproc, iorb, iiorb, jorb, ilr, gdim, ldim, size(op%indexExpand), jst+ldim-1', iproc, iorb, iiorb, jorb, ilr, gdim, ldim, size(op%indexExpand), jst+ldim-1
+        !write(*,'(a,9i9)') 'iproc, iorb, iiorb, jorb, ilr, gdim, ldim, size(op%indexExpand), jst+ldim-1', iproc, iorb, iiorb, jorb, ilr, gdim, ldim, size(op%indexExpand), jst+ldim-1
         call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), op%indexExpand(jst:jst+ldim-1))
         !write(*,'(a,4i9)') 'after call to index_of_Lpsi_to_global2: iproc, iorb, iiorb, jorb', iproc, iorb, iiorb, jorb
         ind=ind+gdim
@@ -2639,7 +2639,7 @@ do iorb=1,orbs%norb
             end do
             !write(*,'(5(a,i0))') 'process ',iproc,' adds ',op%olr(lorb,korb)%wfd%nvctr_c+7*op%olr(lorb,korb)%wfd%nvctr_f,' elements at position ',indovrlp,' from orbital ',jjorb,' for orbital ', iorb
             !call psi_to_locreg2(iproc, nproc, ldim, gdim, op%olr(lorb,korb), lzd%llr(jjlr), phi(ind), comon%sendBuf(indovrlp))
-            write(*,'(a,8i9)') 'iproc, iorb, jorb, size(op%indexExtract), ldim, indovrlp+ldim-1, korb, lorb', iproc, iorb, jorb, size(op%indexExtract), ldim, indovrlp+ldim-1, korb, lorb
+            !write(*,'(a,8i9)') 'iproc, iorb, jorb, size(op%indexExtract), ldim, indovrlp+ldim-1, korb, lorb', iproc, iorb, jorb, size(op%indexExtract), ldim, indovrlp+ldim-1, korb, lorb
             call index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, op%olr(lorb,korb), lzd%llr(jjlr), op%indexExtract(indovrlp))
             !op%indexInSendBuf(jjorb-orbs%isorb,iorb)=indovrlp
             op%indexInSendBuf(jjorb-orbsig%isorb,iorb)=indovrlp
