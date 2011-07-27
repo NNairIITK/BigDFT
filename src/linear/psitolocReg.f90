@@ -1611,7 +1611,7 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
   call memocc(i_stat,keymask,'keymask',subname)
 
   call shift_locreg_indexes(Glr,Llr,keymask,nseg)
-
+  write(*,'(a,3i8)') 'iproc, gdim, ldim', iproc, gdim, ldim
 !####################################################
 ! Do coarse region
 !####################################################

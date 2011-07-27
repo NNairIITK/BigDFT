@@ -3578,8 +3578,144 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(p2pCommsGatherPot),intent(inout):: comgp
     end subroutine cancelCommunicationPotential
 
+    subroutine initCommsOrthoVariable(iproc, nproc, lzd, orbs, orbsig, onWhichAtomAll, input, op, comon, tag)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(orbitals_data),intent(in):: orbs, orbsig
+      integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+      type(input_variables),intent(in):: input
+      type(overlapParameters),intent(out):: op
+      type(p2pCommsOrthonormality),intent(out):: comon
+      integer,intent(inout):: tag
+    end subroutine initCommsOrthoVariable
+    
+    subroutine countOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc
+      type(orbitals_data),intent(in):: orbs, orbsig
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(overlapParameters),intent(out):: op
+      type(p2pCommsOrthonormality),intent(out):: comon
+    end subroutine countOverlapsVariable
+    
+    subroutine determineOverlapsVariable(iproc, nproc, orbs, orbsig, lzd, op, comon)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc
+      type(orbitals_data),intent(in):: orbs, orbsig
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(overlapParameters),intent(out):: op
+      type(p2pCommsOrthonormality),intent(out):: comon
+    end subroutine determineOverlapsVariable
+    
+    subroutine determineOverlapDescriptorsVariable(iproc, nproc, orbs, orbsig, lzd, Glr, onWhichAtom, op)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc
+      type(orbitals_data),intent(in):: orbs, orbsig
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(locreg_descriptors),intent(in):: Glr
+      integer,dimension(orbs%norb),intent(in):: onWhichAtom
+      type(overlapParameters),intent(inout):: op
+    end subroutine determineOverlapDescriptorsVariable
+    
+    subroutine setCommsOrthoVariable(iproc, nproc, orbs, orbsig, lzd, op, comon, tag)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc
+      type(orbitals_data),intent(in):: orbs, orbsig
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(overlapParameters),intent(inout):: op
+      type(p2pCommsOrthonormality),intent(out):: comon
+      integer,intent(inout):: tag
+    end subroutine setCommsOrthoVariable
+    
+    subroutine indicesForExpansionVariable(iproc, nproc, orbs, input, lzd, op, comon)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc
+      type(orbitals_data),intent(in):: orbs
+      type(input_variables),intent(in):: input
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(overlapParameters),intent(in):: op
+      type(p2pCommsOrthonormality),intent(in):: comon
+    end subroutine indicesForExpansionVariable
+    
+    subroutine indicesForExtractionVariable(iproc, nproc, orbs, orbsig, sizePhi, lzd, op, comon)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc, sizePhi
+      type(orbitals_data),intent(in):: orbs, orbsig
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(overlapParameters),intent(inout):: op
+      type(p2pCommsOrthonormality),intent(out):: comon
+    end subroutine indicesForExtractionVariable
+    
+    subroutine extractOrbital2Variable(iproc, nproc, orbs, orbsig, sizePhi, lzd, op, phi, comon)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc, sizePhi
+      type(orbitals_data),intent(in):: orbs, orbsig
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(overlapParameters),intent(inout):: op
+      real(8),dimension(sizePhi),intent(in):: phi
+      type(p2pCommsOrthonormality),intent(out):: comon
+    end subroutine extractOrbital2Variable
+    
+    subroutine expandOrbital2Variable(iproc, nproc, orbs, input, lzd, op, comon, lphiovrlp)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc
+      type(orbitals_data),intent(in):: orbs
+      type(input_variables),intent(in):: input
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(overlapParameters),intent(in):: op
+      type(p2pCommsOrthonormality),intent(in):: comon
+      real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+    end subroutine expandOrbital2Variable
 
+    subroutine buildLinearCombinationsVariable(iproc, nproc, lzdig, lzd, orbsig, &
+               orbs, input, coeff, lchi, lphi)
+      use module_base
+      use module_types
+      implicit none
 
+      ! Calling arguments
+      integer,intent(in):: iproc, nproc
+      type(linear_zone_descriptors),intent(in):: lzdig, lzd
+      type(orbitals_data),intent(in):: orbsig, orbs
+      type(input_variables),intent(in):: input
+      real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
+      real(8),dimension(orbsig%npsidim),intent(in):: lchi
+      real(8),dimension(orbs%npsidim),intent(out):: lphi
+    end subroutine buildLinearCombinationsVariable
+
+    subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, indexLpsi)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc
+      integer :: Gdim          ! dimension of psi 
+      integer :: Ldim          ! dimension of lpsi
+      integer :: norb          ! number of orbitals
+      integer :: nspinor       ! number of spinors
+      integer :: nspin         ! number of spins 
+      type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
+      type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
+      integer,dimension(Ldim),intent(out) :: indexLpsi         !Wavefunction in localization region
+    end subroutine index_of_Lpsi_to_global2
 
 
   end interface

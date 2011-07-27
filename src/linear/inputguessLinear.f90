@@ -1773,7 +1773,7 @@ character(len=*),parameter:: subname='initializeInguessParameters'
   ip%norb_par(0:kk-1)=ii+1
 
   ! ip%onWhichMPI indicates on which MPI process a given orbital is located.
-  allocate(ip%onWhichMPI(ip%norbtot), stat=istat)
+  allocate(ip%onWhichMPI(ip%norb), stat=istat)
   call memocc(istat, ip%onWhichMPI, 'ip%onWhichMPI', subname)
   iiorb=0
   do jproc=0,ip%nproc-1
@@ -2273,10 +2273,13 @@ type(matrixMinimization):: matmin
       ! Allocate the local arrays.
       call allocateArrays()
 
+      write(*,*) 'iproc, orbsig%norb', iproc, orbsig%norb
+      write(*,'(a,4i9)') 'iproc, ip%norb, ip%norbtot, ip%norbtotPad', iproc, ip%norb, ip%norbtot, ip%norbtotPad
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, lin%locrad, rxyz, lin%lzd, matmin%mlr)
       call extractMatrix(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, at%nat, ham, matmin, hamextract)
       call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lin%orbs, orbsig, onWhichAtom, onWhichAtomPhi, comom)
       tag=1
+      if(iproc==0) write(*,'(a,4x,100i3)') 'ip%onWhichMPI', ip%onWhichMPI
       call initCommsMatrixOrtho(iproc, ip%nproc, lin%orbs%norb, ip%norb_par, ip%isorb_par, onWhichAtomPhi, ip%onWhichMPI, tag, comom)
       allocate(lcoeff(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
       call memocc(istat, lcoeff, 'lcoeff', subname)
@@ -2351,9 +2354,12 @@ type(matrixMinimization):: matmin
     
     
           ! Othonormalize the coefficients.
-          call orthonormalizeVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
+          call orthonormalizeVectors(iproc, ip%nproc, lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
                matmin%mlr, lcoeff, comom)
+          !call orthonormalizeVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
+          !     matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
+          !     matmin%mlr, lcoeff, comom)
     
           ! Calculate the gradient grad.
           do iorb=1,ip%norb_par(iproc)
@@ -2373,7 +2379,7 @@ type(matrixMinimization):: matmin
           end if
           ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
           ! multiplier matrix.
-          call orthoconstraintVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
+          call orthoconstraintVectors(iproc, ip%nproc, lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
                matmin%mlr, lcoeff, lgrad, comom, trace)
     
@@ -2538,7 +2544,8 @@ type(matrixMinimization):: matmin
 
   ! Now every process has all coefficients, so we can build the linear combinations.
   ! Do this in a localized way -- TEST
-  call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+  !call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+  call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
 
   if(iproc<ip%nproc) then
       call deallocate_inguessParameters(ip, subname)
@@ -2679,6 +2686,7 @@ character(len=*),parameter:: subname='determineLocalizationRegions'
 
 allocate(mlr(nlr), stat=istat)
 
+write(*,'(a,i5,5x,100i3)') 'in determineLocalizationRegions: norb, owAA', norb, onWhichAtomAll
 ! Count for each localization region the number of matrix elements within the cutoff.
 do ilr=1,nlr
     mlr(ilr)%norbinlr=0
@@ -2749,11 +2757,11 @@ allocate(matmin%inWhichLocregOnMPI(norbp), stat=istat)
 call memocc(istat, matmin%inWhichLocregOnMPI, 'matmin%inWhichLocregOnMPI', subname)
 
 ! Allocate the matrices holding the extracted quantities. In principle this matrix
-! has a difefrent size for each localization region. To simplify the program, allocate them
+! has a different size for each localization region. To simplify the program, allocate them
 ! with the same size for all localization regions on a given MPI process.
 matmin%norbmax=0
 jlrold=-1
-matmin%nlrp=0
+matmin%nlrp=0 ! localization regions per process
 jjorb=0
 do jorb=1,norb
     jlr=onWhichAtomPhi(jorb)
@@ -3023,18 +3031,23 @@ end do
 ! comom%olrForExpansion(2,jorb,ilr)=iorb
 allocate(comom%olrForExpansion(2,maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
 call memocc(istat, comom%olrForExpansion, 'comom%olrForExpansion', subname)
+comom%olrForExpansion=55555
 do ilr=1,lzd%nlr
     do iorb=1,comom%noverlap(ilr)
         jorb=comom%overlaps(iorb,ilr)
-        jlr=onWhichAtom(jorb)
+        !jlr=onWhichAtom(jorb)
+        jlr=onWhichAtomPhi(jorb)
         comom%olrForExpansion(1,iorb,ilr)=jlr
         do korb=1,comom%noverlap(jlr)
              kkorb=comom%overlaps(korb,jlr)
-             klr=onWhichAtom(kkorb)
+             !klr=onWhichAtom(kkorb)
+             klr=onWhichAtomPhi(kkorb)
+             !if(iproc==0) write(*,'(a,5i9)') 'ilr, iorb, jlr, korb, klr', ilr, iorb, jlr, korb, klr
              if(klr==ilr) then
                  comom%olrForExpansion(2,iorb,ilr)=korb
              end if
         end do
+        !if(iproc==0) write(*,'(a,4i8)') 'ilr, iorb, comom%olrForExpansion(1,iorb,ilr), comom%olrForExpansion(2,iorb,ilr)', ilr, iorb, comom%olrForExpansion(1,iorb,ilr), comom%olrForExpansion(2,iorb,ilr)
     end do
 end do
 
@@ -3113,6 +3126,7 @@ comom%nrecvBuf=0
 do jproc=0,nproc-1
     jkorb=0
     jlrold=0
+    write(*,'(a,3i9)') 'iproc, jproc, norb_par(jproc)', iproc, jproc, norb_par(jproc)
     do jorb=1,norb_par(jproc)
         jjorb=isorb_par(jproc)+jorb
         jlr=onWhichAtomPhi(jjorb)
@@ -3531,6 +3545,7 @@ do iorb=1,norbp
         ijorb=ijorb+1
         klr=comom%olrForExpansion(1,jorb,ilr)
         korb=comom%olrForExpansion(2,jorb,ilr)
+        !if(iproc==0) write(*,'(a,4i8)') 'iorb, jorb, comom%olrForExpansion(1,jorb,ilr), comom%olrForExpansion(2,jorb,ilr)', iorb, jorb, comom%olrForExpansion(1,jorb,ilr), comom%olrForExpansion(2,jorb,ilr)
         do i=1,comom%olr(korb,klr)%norbinlr
             ind=comom%olr(korb,klr)%indexInGlobal(i)
             vecOvrlp(ind,ijorb)=comom%recvBuf(ist+i)
@@ -3786,8 +3801,9 @@ do iorb=1,orbs%norbp
     ilr=orbs%inWhichLocreg(iiorb)
     if(ilr==ilrold) then
         ! Set back the index of lphiovrlp, since we again need the same orbitals.
-        jst=jst-op%noverlaps(iiorb)*ncount
+        jst=jst-op%noverlaps(iiorb-1)*ncount
     end if
+    write(*,'(a,6i13)') 'iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst', iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
@@ -3801,7 +3817,10 @@ do iorb=1,orbs%norbp
 
 end do
 
-
+if(ist/=orbs%npsidim+1) then
+    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ist/=orbsig%npsidim+1',ist,orbsig%npsidim+1
+    stop
+end if
 
 
 
@@ -3816,3 +3835,85 @@ call memocc(istat, iall, 'lchiovrlp', subname)
 
 
 end subroutine buildLinearCombinations
+
+
+subroutine buildLinearCombinationsVariable(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, lphi)
+use module_base
+use module_types
+use module_interfaces, exceptThisOne => buildLinearCombinationsVariable
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linear_zone_descriptors),intent(in):: lzdig, lzd
+type(orbitals_data),intent(in):: orbsig, orbs
+type(input_variables),intent(in):: input
+real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
+real(8),dimension(orbsig%npsidim),intent(in):: lchi
+real(8),dimension(orbs%npsidim),intent(out):: lphi
+
+! Local variables
+integer:: tag, istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jjorb
+type(overlapParameters):: op
+type(p2pCommsOrthonormality):: comon
+real(8),dimension(:),allocatable:: lchiovrlp
+character(len=*),parameter:: subname='buildLinearCombinations'
+
+tag=10000
+call initCommsOrthoVariable(iproc, nproc, lzdig, orbs, orbsig, orbsig%inWhichLocreg, input, op, comon, tag)
+allocate(lchiovrlp(op%ndim_lphiovrlp), stat=istat)
+call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
+
+call allocateCommuncationBuffersOrtho(comon, subname)
+call extractOrbital2Variable(iproc, nproc, orbs, orbsig, orbsig%npsidim, lzdig, op, lchi, comon)
+call postCommsOverlap(iproc, nproc, comon)
+call gatherOrbitals2(iproc, nproc, comon)
+call expandOrbital2Variable(iproc, nproc, orbs, input, lzdig, op, comon, lchiovrlp)
+call deallocateCommuncationBuffersOrtho(comon, subname)
+
+
+
+lphi=0.d0
+
+ist=1
+jst=1
+ilrold=-1
+do iorb=1,orbs%norbp
+    iiorb=orbs%isorb+iorb
+    ilr=orbs%inWhichLocreg(iiorb)
+    if(ilr==ilrold) then
+        ! Set back the index of lphiovrlp, since we again need the same orbitals.
+        jst=jst-op%noverlaps(iiorb-1)*ncount
+    end if
+    write(*,'(a,6i13)') 'iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst', iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst
+    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+    do jorb=1,op%noverlaps(iiorb)
+        jjorb=op%overlaps(jorb,iiorb)
+        !call daxpy(ncount, ovrlp(jjorb,iiorb), lphiovrlp(jst), 1, lphi(ist), 1)
+        call daxpy(ncount, coeff(jjorb,iiorb), lchiovrlp(jst), 1, lphi(ist), 1)
+        jst=jst+ncount
+    end do
+
+    ist=ist+ncount
+    ilrold=ilr
+
+end do
+
+if(ist/=orbs%npsidim+1) then
+    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ist/=orbsig%npsidim+1',ist,orbsig%npsidim+1
+    stop
+end if
+
+
+
+call deallocate_overlapParameters(op, subname)
+call deallocate_p2pCommsOrthonormality(comon, subname)
+
+
+iall=-product(shape(lchiovrlp))*kind(lchiovrlp)
+deallocate(lchiovrlp, stat=istat)
+call memocc(istat, iall, 'lchiovrlp', subname)
+
+
+
+end subroutine buildLinearCombinationsVariable
