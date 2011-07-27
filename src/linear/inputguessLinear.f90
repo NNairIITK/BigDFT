@@ -3860,6 +3860,7 @@ real(8),dimension(:),allocatable:: lchiovrlp
 character(len=*),parameter:: subname='buildLinearCombinations'
 
 tag=10000
+write(*,'(a,2i4,4x,100i3)') 'in buildLinearCombinationsVariable: iproc, orbs%norb, orbs%inWhichLocreg', iproc, orbs%norb, orbs%inWhichLocreg
 call initCommsOrthoVariable(iproc, nproc, lzdig, orbs, orbsig, orbsig%inWhichLocreg, input, op, comon, tag)
 allocate(lchiovrlp(op%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
@@ -3868,6 +3869,8 @@ call allocateCommuncationBuffersOrtho(comon, subname)
 call extractOrbital2Variable(iproc, nproc, orbs, orbsig, orbsig%npsidim, lzdig, op, lchi, comon)
 call postCommsOverlap(iproc, nproc, comon)
 call gatherOrbitals2(iproc, nproc, comon)
+!call mpi_barrier(mpi_comm_world, ist)
+!stop
 call expandOrbital2Variable(iproc, nproc, orbs, input, lzdig, op, comon, lchiovrlp)
 call deallocateCommuncationBuffersOrtho(comon, subname)
 
