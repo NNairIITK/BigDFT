@@ -5,10 +5,10 @@
            wfnode,psir0,wghtp0,&
            rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,&
            vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,&
-           avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr,rw,rd, &
+           avgl1,avgl2,avgl3,ortprj,litprj,igrad,rr_fit,rw,rd, &
            iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,wghthij,&
            nhgrid,hgridmin,hgridmax, nhpow,ampl,crmult,frmult,&
-           excitAE,ntime,iter,itertot,penref,time,ngrid,&
+           excitAE,ntime,iter,itertot,penref,time,ngrid_fit,&
            nconfpaw, npawl, nchannelspaw )
 
 
@@ -27,7 +27,7 @@
            wfnode(noccmx,lmx,nsmx,3),&
            gpot(*),r_l(*),hsep(6,lpmx,nsmx),&
            vh(*),xp(*),rmt(*),rmtg(*),ud(*),psi(*),&
-           rr(*),rw(*),rd(*),pen_cont(7),&
+           rr_fit(*),rw(*),rd(*),pen_cont(7),&
            exverbose(4*nproc),time(3), penal, psir0,wghtp0,rcov,&
         rprb,rcore,zcore,znuc,zion,rloc,&
         wghtexci,wghtsoft,wghtrad,wghthij,&
@@ -36,30 +36,84 @@
 
       integer no(norb),lo(norb),nconfpaw, npawl, nchannelspaw , maxdim,&
            noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,nsmx,nint,ng,ngmx,iproc,&
-           nproc,nhgrid,nhpow,ntime, norb, ngrid, j
+           nproc,nhgrid,nhpow,ntime, norb, ngrid_fit, j
 
-   
+      
 
       logical:: energ, verbose, wpen, pol
       character(len=30) :: plotfile
-      real(8), pointer :: atom_potential(:)
+      real(8), pointer :: atom_potential_fit(:)
       real(8) rdum
+
+      integer Nsolm Npaw, ng, noccmax, lmax
+      integer Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl
+      real(8) boxradius, biggerboxradius, a,b
+      real(8), pointer :: rgrid
+
       include 'mpif.h'
       
-      if(iproc/=nconfpaw) return
-      print *, "IN PAWPATCH   ngrid=", ngrid 
-      allocate(atom_potential(ngrid))
+      if(iproc/=0) return
+      print *, "IN PAWPATCH   ngrid_fit=", ngrid_fit 
+      allocate(atom_potential_fit(ngrid_fit))
       write(plotfile, '(a,i0,a)') 'ae.pot.conf.',nconfpaw ,'.plt'
       open(unit=37,file=trim(plotfile),status='unknown')
       
-      do j=1,ngrid
-         read(37, *)   rdum, atom_potential(j)
-         if( abs(rdum-rr(j))>1.0e-6) then
+      do j=1,ngrid_fit
+         read(37, *)   rdum, atom_potential_fit(j)
+         if( abs(rdum-rr_fit(j))>1.0e-6) then
             STOP "rgrid not corresponding "
          end if
       end do
       close(37)
-      deallocate(atom_potential)
+
+      ng  = 30
+      noccmax = 5 
+      lmax=3
+      
+      Nsol=200
+      
+      Npaw= nchannelspaw
+
+      Ngrid=20000                      !! roughly the number of point of the 
+                                       !! oversampled grid
+  
+      boxradius=rcov                   !! this should be found in the original grid
+      biggerboxradius = 1.5_8 * rcov   !! this is an approximative goal
+
+      Ngrid_box=1
+      Ngrid_biggerbox=1
+
+      do j=1,ngrid_fit
+         if( abs(rr_fit(j) -boxradius) <  abs(rr_fit(Ngrid_box) -boxradius)) Ngrid_box = j
+         if( abs(rr_fit(j) -biggerboxradius) <  abs(rr_fit(Ngrid_biggerbox) -biggerboxradius)) Ngrid_biggerbox = j
+      end do
+      if(abs(rr_fit(Ngrid_box) -boxradius)>1.0e-8) STOP "the grid from pseudo should pass by rcov but it does not"
+      iovrsmpl=1 + (Ngrid-1)/ngrid_fit
+      Ngrid =  (iovrsmpl*(ngrid_fit-1)+1)
+      
+      allocate( rgrid(Ngrid ))
+
+      !! IN ATOM :    r(i) = a*(exp(b*(i-1))-1)
+      b=log( (rr_fit(201)-rr_fit(101))/(rr_fit(101)-rr_fit(1)))/100.0_8
+      a= rr_fit(201)/( exp(b*(201-1))-1)
+
+      !! IN PAWPATCH : more points
+      b=b/iovrsmpl            
+      Ngrid_box= 1+iovrsmpl*( Ngrid_box-1)
+      Ngrid_biggerbox=1+iovrsmpl*( Ngrid_biggerbox-1)
+      do i=1,Ngrid
+            rgrid( i ) =  a*(exp(b*(i-1))-1)
+            rgrid_ab(i)= (rgrid(i)+a)*b
+      end do
+      if(abs(rgrid(Ngrid_box) -boxradius)>1.0e-8) STOP "the finer grid should still pass by rcov but it does not"
+      
+      call splift(rr_fit,  atom_potential_fit
+
+
+
+
+
+      deallocate(atom_potential_fit)
       stop
     END subroutine pawpatch
     
