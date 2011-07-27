@@ -3871,21 +3871,7 @@ call gatherOrbitals2(iproc, nproc, comon)
 !call mpi_barrier(mpi_comm_world, ist)
 !stop
 call expandOrbital2Variable(iproc, nproc, orbs, input, lzdig, op, comon, lchiovrlp)
-ii=lzdig%llr(1)%wfd%nvctr_c+7*lzdig%llr(1)%wfd%nvctr_f
-ist=0
-do iorb=1,orbsig%norb
-    do iall=1,ii
-        ist=ist+1
-        write(1000*(iproc+1)+iorb,*) iall, lchiovrlp(ist)
-    end do
-end do
-ist=0
-do iorb=1,orbsig%norbp
-    do iall=1,ii
-        ist=ist+1
-        write(1000*(iproc+1)+100+iorb,*) iall, lchi(ist)
-    end do
-end do
+
 call deallocateCommuncationBuffersOrtho(comon, subname)
 
 
