@@ -253,10 +253,13 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   !integer,dimension(at%ntypes):: norbsPerType
   
   ! Local variables
-  integer:: istat, itype, ierr, iall, iat
-  logical:: fileExists
+  integer:: istat, itype, jtype, ierr, iall, iat, npt, ios
+  logical:: fileExists, found
   character(len=*),parameter:: subname='readLinearParameters'
+  character(len=20):: atomname
+  real(8):: pp, lt
   real(8),dimension(:),allocatable:: locradType
+  logical,dimension(at%ntypes):: parametersSpecified
   
   allocate(locradType(at%ntypes), stat=istat)
   call memocc(istat, locradType, 'locradType', subname)
@@ -285,8 +288,38 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%plotBasisFunctions
   read(99,*) lin%norbsPerProcIG
   call checkLinearParameters(iproc, lin)
+  parametersSpecified=.false.
   do itype=1,at%ntypes
-      read(99,*) atomNames(itype), lin%norbsPerType(itype), lin%potentialPrefac(itype), locradType(itype)
+      read(99,*,iostat=ios) atomname, npt, pp, lt
+      if(ios/=0) then
+          if(iproc==0) then
+              write(*,'(a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+                       & for the following atom types:"
+              do jtype=1,at%ntypes
+                  if(.not.parametersSpecified(jtype)) write(*,'(x,a)',advance='no') trim(at%atomnames(jtype))
+              end do
+          end if
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
+      found=.false.
+      do jtype=1,at%ntypes
+          if(trim(atomname)==trim(at%atomnames(jtype))) then
+              found=.true.
+              parametersSpecified(jtype)=.true.
+              atomNames(jtype)=atomname
+              lin%norbsPerType(jtype)=npt
+              lin%potentialPrefac(jtype)=pp
+              locradType(jtype)=lt
+          end if
+      end do
+      if(.not.found) then
+          if(iproc==0) write(*,'(3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
+                     "', which is not present in the file containing the atomic coordinates."
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
+      !read(99,*) atomNames(itype), lin%norbsPerType(itype), lin%potentialPrefac(itype), locradType(itype)
   end do
   close(unit=99)
   
