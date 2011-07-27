@@ -291,7 +291,7 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
   logical :: perx,pery,perz,exists
-  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor
+  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor,isuffix
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
@@ -319,7 +319,9 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
      allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
      call memocc(i_stat,psifscf,'psifscf',subname)
 
-     inquire(file=trim(filename)//".bin.0001",exist=exists)
+     !inquire(file=trim(filename)//".bin.0001",exist=exists) !old approach
+     isuffix = index(filename, ".bin", back = .true.)
+     exists=(isuffix > 0) !the file is written in binary format
      if (exists) then
         if (iproc ==0) write(*,*) "Reading wavefunctions in BigDFT binary file format."
      else

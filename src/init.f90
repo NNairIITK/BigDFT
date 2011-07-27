@@ -497,13 +497,11 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
           rhopot,eexcu,vexcu,nspin,rhocore,potxc)
 
-
      if( iand(potshortcut,4)==0) then
         call H_potential(at%geocode,'D',iproc,nproc,&
              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
      endif
-
 
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised

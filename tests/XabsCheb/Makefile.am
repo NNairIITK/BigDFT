@@ -7,7 +7,9 @@ EXTRA_DIST = \
 	inputRef.abscalc \
 	posinpRef.xyz \
 	gproje_Fe_1s_1 \
-	XabsCheb.out.ref
+	XabsCheb.out.ref \
+	inputGenPot.dft	\
+	posinpGenPot.xyz 
 
 PPFILES = \
 	psppar.Fe

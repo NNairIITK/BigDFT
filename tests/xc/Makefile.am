@@ -6,10 +6,16 @@ EXTRA_DIST = xc.out.ref
 
 CLEANFILES = xc.out xc.tmp.*
 
+if USE_DGEMMSY
+libs_dgemmsy = $(top_builddir)/src/dgemmsy/libdgemmsy.a
+else
+libs_dgemmsy =
+endif
+
 check_PROGRAMS = test_xc
 
 test_xc_SOURCES = test_xc.f90 
-test_xc_LDADD =  -lbigdft
+test_xc_LDADD =  -lbigdft $(libs_dgemmsy)
 test_xc_LDFLAGS = -L$(top_builddir)/src
 
 AM_FCFLAGS = -I$(top_builddir)/src/modules

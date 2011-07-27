@@ -50,16 +50,8 @@ noinst_LIBRARIES = libmodules.a
 
 libmodules_a_SOURCES = $(modules_source)
 
-CLEANFILES = mpif.h $(mod_bigdft)
-
-#dependencies
-interfaces.o input.o: base.o types.o
-types.o: base.o
-defs.o: $(mpi_include) configure.inc 
-base.o: defs.o
-input.o: base.o
-
-$(mod_bigdft) : base.o types.o interfaces.o
+CLEANFILES = mpif.h $(mod_bigdft) \
+	MODULE_INPUT.@MODULE_EXT@ module_input.@MODULE_EXT@ 
 
 #Fake mpif.h for serial compilation
 mpif.h:
@@ -69,3 +61,13 @@ mpif.h:
 	echo "integer, parameter :: MPI_STATUSES_IGNORE=1, MPI_LOGICAL=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MIN=1, MPI_MAX=1, MPI_CHARACTER=1, MPI_REAL8=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=1, MPI_STATUS_SIZE=1" >> mpif.h
+
+
+#dependencies
+defs.o: $(mpi_include) configure.inc 
+base.o: defs.o
+types.o: base.o
+input.o: base.o
+interfaces.o: base.o types.o
+
+$(mod_bigdft) : base.o types.o interfaces.o

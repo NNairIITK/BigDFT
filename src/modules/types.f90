@@ -241,7 +241,6 @@ module module_types
      logical :: donlcc                             !< activate non-linear core correction treatment
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !<number of valence and core gaussians describing NLCC 
      real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
-     real(gp), dimension(:,:), pointer :: ig_nlccpar !< parameters for the input NLCC
      integer :: symObj                               !< The symmetry object from ABINIT
      integer :: iat_absorber 
   end type atoms_data
@@ -266,7 +265,7 @@ module module_types
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
-     real(gp) :: efermi
+     real(gp) :: efermi,HLgap
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -389,9 +388,9 @@ module module_types
      logical :: switchSD
      integer :: idiistol,mids,ids,idsx
      real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
-     real(wp), dimension(:), pointer :: psidst
+     real(tp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
-     real(wp), dimension(:,:,:,:,:,:), pointer :: ads
+     real(tp), dimension(:,:,:,:,:,:), pointer :: ads
   end type diis_objects
 
 
@@ -428,7 +427,7 @@ contains
     call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
     allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
     call memocc(i_stat,diis%ads,'ads',subname)
-    call razero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads)
+    call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
 
     !initialize scalar variables
     !diis initialisation variables

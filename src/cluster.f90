@@ -24,6 +24,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
+  logical :: exists
   integer :: i_stat,i_all,ierr,inputPsiId_orig,iat
 
   !temporary interface
@@ -94,6 +95,11 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
      call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,fnoise,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
           rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+     !experimental, finite difference method for calculating forces on particular quantities
+     inquire(file='input.finite_difference_forces',exist=exists)
+     if (exists) then
+        call forces_via_finite_differences(iproc,nproc,atoms,in,energy,fxyz,fnoise,rst,infocode)
+     end if
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then
@@ -199,15 +205,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
-  character(len=4) :: f4
   character(len=5) :: gridformat, wfformat, final_out
-  character(len=50) :: filename
   character(len=500) :: errmess
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
-  integer :: nelec,ndegree_ip,j,i,iorb,npoints
+  integer :: nelec,ndegree_ip,j,i,npoints
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
   integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,ispin
@@ -215,7 +219,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
   real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,rpnrm,gnrm,gnrm_zero
-  real(gp) :: trH,energybs,tt,tel,ehart_fake,psoffset
+  real(gp) :: energybs,tt,tel,ehart_fake,psoffset
   real(kind=8) :: ttsum
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
@@ -224,11 +228,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   type(orbitals_data) :: orbsv
   type(gaussian_basis) :: Gvirt
   type(diis_objects) :: diis
-  type(energy_terms) :: energs
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: rho
-  real(gp), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi,band_structure_eval
+  real(gp), dimension(:,:), allocatable :: radii_cf,fion,thetaphi,band_structure_eval
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   type(ab6_mixing_object) :: mix
@@ -699,8 +702,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,"wavefunction", &
+     !since each processor read only few eigenvalues, initialise them to zero for all
+     call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+
+     call readmywaves(iproc,"wavefunction" // trim(wfformat), &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
+
+     !reduce the value for all the eigenvectors
+     call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      if (in%itrpmax /= 1) then
         !recalculate orbitals occupation numbers
@@ -937,7 +946,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            endif
 
            !evaluate the functional of the wavefucntions and put it into the diis structure
-           !the energy values is printed out here
+           !the energy values is printed out in this routine
            call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,hx,hy,hz,in%ncong,in%iscf,&
                 ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,eexctX,eion,edisp,&
                 psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
