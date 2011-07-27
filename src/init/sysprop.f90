@@ -155,6 +155,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,norbuempty,norbdempty,iunit)
   use module_base
   use module_types
+  use module_xc
   use ab6_symmetry
   implicit none
   character (len=*), intent(in) :: fileocc
@@ -181,6 +182,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
+  character(len=500) :: name_xc1, name_xc2
 
 
   !allocate atoms data variables
@@ -239,7 +241,17 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      read(11,*) atoms%nzatom(ityp),atoms%nelpsp(ityp)
      read(11,*) atoms%npspcode(ityp),ixcpsp
      !control if the PSP is calculated with the same XC value
-     if (ixcpsp /= in%ixc .and. iproc==0) then
+     if (ixcpsp < 0) then
+        call xc_get_name(name_xc1, ixcpsp, XC_MIXED)
+     else
+        call xc_get_name(name_xc1, ixcpsp, XC_ABINIT)
+     end if
+     if (in%ixc < 0) then
+        call xc_get_name(name_xc2, in%ixc, XC_MIXED)
+     else
+        call xc_get_name(name_xc2, in%ixc, XC_ABINIT)
+     end if
+     if (trim(name_xc1) /= trim(name_xc2) .and. iproc==0) then
         write(*,'(1x,a)')&
              'WARNING: The pseudopotential file "'//trim(filename)//'"'
         write(*,'(1x,a,i0,a,i0)')&
