@@ -150,38 +150,38 @@
  Calculation of charge density... done. Total electronic charge=      11.999997338367
  PSolver, free  BC, dimensions:   103  103  115   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- alpha=  2.000E+00
- Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  2.58242722443E+01 -3.49522185042E+01  2.63485305549E+00
     ehart,   eexcu,    vexcu  4.25912238658E+01 -7.02226007394E+00 -9.11679656623E+00
  iter,total energy,gnrm,gnrm_zero     1  -3.12195987991143866E+01  2.85E-01  1.58E-01
+ alpha=  2.000E+00
+ Orthogonalization... done.
  ---------------------------------------------------------------------------- iter= 2
  Calculation of charge density... done. Total electronic charge=      11.999997941357
  PSolver, free  BC, dimensions:   103  103  115   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- alpha=  2.000E+00
- Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  2.55031166083E+01 -3.45799808825E+01  2.78086146753E+00
     ehart,   eexcu,    vexcu  4.29328058177E+01 -7.04354114431E+00 -9.14362853942E+00
  iter,total energy,gnrm,gnrm_zero     2  -3.13585394504938009E+01  2.27E-01  9.76E-02
+ alpha=  2.000E+00
+ Orthogonalization... done.
  ---------------------------------------------------------------------------- iter= 3
  Calculation of charge density... done. Total electronic charge=      11.999997770848
  PSolver, free  BC, dimensions:   103  103  115   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- alpha=  2.000E+00
- Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  2.44375366706E+01 -3.47723766741E+01  2.60446199562E+00
     ehart,   eexcu,    vexcu  4.14428318438E+01 -6.82760427803E+00 -8.86095611076E+00
  iter,total energy,gnrm,gnrm_zero     3  -3.13696762401545541E+01  2.44E-01  1.01E-01
+ alpha=  2.000E+00
+ Orthogonalization... done.
  ---------------------------------------------------------------------------- iter= 4
  Calculation of charge density... done. Total electronic charge=      11.999997854135
  PSolver, free  BC, dimensions:   103  103  115   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- alpha=  1.000E+00
- Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  2.58378823571E+01 -3.50697070551E+01  2.97167749194E+00
     ehart,   eexcu,    vexcu  4.29739773184E+01 -7.08322327235E+00 -9.19269196209E+00
  iter,total energy,gnrm,gnrm_zero     4  -3.13544740558699218E+01  2.81E-01  1.10E-01
+ alpha=  1.000E+00
+ Orthogonalization... done.
  ---------------------------------------------------------------------------- iter= 5
  Calculation of charge density... done. Total electronic charge=      11.999997888977
  PSolver, free  BC, dimensions:   103  103  115   proc    2 ... done.
@@ -208,38 +208,38 @@
  Calculation of charge density... done. Total electronic charge=      11.999997961228
  PSolver, free  BC, dimensions:   103  103  115   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- alpha=  2.000E+00
- Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  2.42618962729E+01 -3.38311433232E+01  2.45268934229E+00
     ehart,   eexcu,    vexcu  4.26160234991E+01 -6.85885012285E+00 -8.90242901713E+00
  iter,total energy,gnrm,gnrm_zero     1  -3.19188205340088160E+01  5.41E-02  7.88E-02
+ alpha=  2.000E+00
+ Orthogonalization... done.
  ---------------------------------------------------------------------------- iter= 2
  Calculation of charge density... done. Total electronic charge=      11.999997950398
  PSolver, free  BC, dimensions:   103  103  115   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- alpha=  2.000E+00
- Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  2.44065048484E+01 -3.40572562431E+01  2.58512803803E+00
     ehart,   eexcu,    vexcu  4.26755958393E+01 -6.87420039640E+00 -8.92163477869E+00
  iter,total energy,gnrm,gnrm_zero     2  -3.19236030348909097E+01  4.16E-02  9.91E-02
+ alpha=  2.000E+00
+ Orthogonalization... done.
  ---------------------------------------------------------------------------- iter= 3
  Calculation of charge density... done. Total electronic charge=      11.999997936660
  PSolver, free  BC, dimensions:   103  103  115   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- alpha=  2.000E+00
- Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  2.42639401527E+01 -3.38972852202E+01  2.42209681031E+00
     ehart,   eexcu,    vexcu  4.25206975049E+01 -6.84176829886E+00 -8.87983654115E+00
  iter,total energy,gnrm,gnrm_zero     3  -3.19236957409415965E+01  4.30E-02  1.12E-01
+ alpha=  2.000E+00
+ Orthogonalization... done.
  ---------------------------------------------------------------------------- iter= 4
  Calculation of charge density... done. Total electronic charge=      11.999997931887
  PSolver, free  BC, dimensions:   103  103  115   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- alpha=  1.000E+00
- Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  2.44579375708E+01 -3.40716596771E+01  2.63684658206E+00
     ehart,   eexcu,    vexcu  4.27677284011E+01 -6.88763315774E+00 -8.93920696561E+00
  iter,total energy,gnrm,gnrm_zero     4  -3.19228483386162907E+01  5.08E-02  1.21E-01
+ alpha=  1.000E+00
+ Orthogonalization... done.
  ---------------------------------------------------------------------------- iter= 5
  Calculation of charge density... done. Total electronic charge=      11.999997943307
  PSolver, free  BC, dimensions:   103  103  115   proc    2 ... done.
