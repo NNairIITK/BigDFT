@@ -29,7 +29,7 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(locreg_descriptors),intent(in):: Glr
 type(orbitals_data),intent(in):: orbs
-type(atoms_data),intent(in):: at
+type(atoms_data),intent(inout):: at
 type(nonlocal_psp_descriptors),intent(in):: nlpspd
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
@@ -111,8 +111,6 @@ call orbitals_communicators(iproc,nproc,Glr,lin%gorbs,lin%gcomms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%gorbs,lin%lb%gcomms)
 !call orbitals_communicators(iproc,nproc,Glr,lin%lzd%orbs,lin%lzd%comms)
 !call orbitals_communicators(iproc,nproc,Glr,lin%lb%lzd%orbs,lin%lb%lzd%comms)
-write(*,*) 'lin%lb%gorbs%npsidim', lin%lb%gorbs%npsidim
-write(*,*) 'lin%lb%orbs%npsidim', lin%lb%orbs%npsidim
 
 
 ! Write all parameters related to the linear scaling version to the screen.
@@ -235,6 +233,12 @@ iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
 deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
+call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr)
+
+
+! Estimate the memory requirements.
+call estimateMemory(iproc, nproc, lin, nscatterarr)
+
 
 end subroutine allocateAndInitializeLinear
 
@@ -288,12 +292,15 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%plotBasisFunctions
   read(99,*) lin%norbsPerProcIG
   call checkLinearParameters(iproc, lin)
+
+  ! Now read in the parameters specific for each atom type.
   parametersSpecified=.false.
   do itype=1,at%ntypes
       read(99,*,iostat=ios) atomname, npt, pp, lt
       if(ios/=0) then
+          ! The parameters where not specified for all atom types.
           if(iproc==0) then
-              write(*,'(a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
+              write(*,'(x,a)',advance='no') "ERROR: the file 'input.lin' does not contain the parameters&
                        & for the following atom types:"
               do jtype=1,at%ntypes
                   if(.not.parametersSpecified(jtype)) write(*,'(x,a)',advance='no') trim(at%atomnames(jtype))
@@ -302,6 +309,7 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
           call mpi_barrier(mpi_comm_world, ierr)
           stop
       end if
+      ! The reading was succesful. Check whether this atom type is actually present.
       found=.false.
       do jtype=1,at%ntypes
           if(trim(atomname)==trim(at%atomnames(jtype))) then
@@ -314,12 +322,11 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
           end if
       end do
       if(.not.found) then
-          if(iproc==0) write(*,'(3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
+          if(iproc==0) write(*,'(x,3a)') "ERROR: you specified informations about the atomtype '",trim(atomname), &
                      "', which is not present in the file containing the atomic coordinates."
           call mpi_barrier(mpi_comm_world, ierr)
           stop
       end if
-      !read(99,*) atomNames(itype), lin%norbsPerType(itype), lin%potentialPrefac(itype), locradType(itype)
   end do
   close(unit=99)
   
@@ -1783,4 +1790,156 @@ subroutine nullify_matrixMinimization(matmin)
   nullify(matmin%indexInLocreg)
 
 end subroutine nullify_matrixMinimization
+
+
+subroutine nullify_matrixLocalizationRegion(mlr)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(matrixLocalizationRegion),intent(out):: mlr
+
+  nullify(mlr%indexInGlobal)
+
+end subroutine nullify_matrixLocalizationRegion
+
+
+
+
+
+subroutine estimateMemory(iproc, nproc, lin, nscatterarr)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(in):: lin
+integer,dimension(0:nproc-1,4),intent(in):: nscatterarr
+
+! Local variables
+integer,parameter:: nsection=4, narray=8
+integer,dimension(narray):: mem
+logical,dimension(nsection,narray):: loc
+integer:: mempeak, peaksection, isection, iarray, megabytes, memtot, iorb, ilr, ii, iimax
+character(len=100),dimension(nsection):: section
+
+if(iproc==0) then
+    write(*,'(x,a)') '################################# Memory estimator ##################################'
+    write(*,'(x,a)') 'Memory requirements of the largest arrays:'
+
+    ! For all large arrays determine the memory the occupy and in which code segment they are allcoated.
+    ! There are .. segments:
+    section(1)='Optimization of the basis functions'
+    section(2)='Calculation of the charge density'
+    section(3)='Calculate the derivative basis functions'
+    section(4)='Calculation the Hamiltonian matrix'
+
+    ! the trace minimizing orbitals:
+    mem(1)=8*lin%orbs%npsidim
+    loc(1,1)=.true.
+    loc(2,1)=.true.
+    loc(3,1)=.true.
+    loc(4,1)=.true.
+    write(*,'(3x,a,i0,a)') 'trace minimizing orbitals phi: ',megabytes(mem(1)),'MB'
+
+    ! DIIS history of the trace minimizing orbitals
+    mem(2)=8*lin%orbs%npsidim*lin%DIISHistMax
+    loc(1,2)=.true.
+    loc(2,2)=.false.
+    loc(3,2)=.false.
+    loc(4,2)=.false.
+    write(*,'(3x,a,i0,a)') 'DIIS history of the trace minimizing orbitals phi: ',megabytes(mem(2)),'MB'
+
+    ! charge density / potential (including rhopotold for the mixing, therefore times 2)
+    mem(3)=8*2*lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+    loc(1,3)=.true.
+    loc(2,3)=.true.
+    loc(3,3)=.true.
+    loc(4,3)=.true.
+    write(*,'(3x,a,i0,a)') 'charge density / potential: ',megabytes(mem(3)),'MB'
+
+    ! send / receive buffers for the charge density
+    mem(4)=8*(lin%comsr%nrecvBuf+lin%comsr%nsendBuf)
+    loc(1,4)=.false.
+    loc(2,4)=.true.
+    loc(3,4)=.false.
+    loc(4,4)=.true.
+    write(*,'(3x,a,i0,a)') 'communication buffers sumrho: ',megabytes(mem(4)),'MB'
+
+    ! send / receive buffers for the potential (use for the Hamiltonian application)
+    mem(5)=8*lin%comgp%nrecvBuf
+    loc(1,5)=.true.
+    loc(2,5)=.true.
+    loc(3,5)=.false.
+    loc(4,5)=.true.
+    write(*,'(3x,a,i0,a)') 'communication buffers for gathering the potential: ',megabytes(mem(5)),'MB'
+
+    ! send / receive buffers for the orthonormalization
+    mem(6)=8*(lin%comon%nrecvBuf+lin%comon%nsendBuf+lin%op%ndim_lphiovrlp)
+    loc(1,6)=.true.
+    loc(2,6)=.false.
+    loc(3,6)=.false.
+    loc(4,6)=.false.
+    write(*,'(3x,a,i0,a)') 'communication buffers / workk arrays for orthonormalization: ',megabytes(mem(6)),'MB'
+
+    ! auxiliary arrays for the orthonormalization (integer arrays)
+    mem(7)=4*(lin%comon%nrecvBuf+lin%comon%nsendBuf)
+    loc(1,4)=.true.
+    loc(2,4)=.false.
+    loc(3,4)=.false.
+    loc(4,4)=.false.
+    write(*,'(3x,a,i0,a)') 'auxilliary arrays for orthonormalization: ',megabytes(mem(7)),'MB'
+
+    ! full potential need for one localization region during Hamiltonian application and
+    ! one orbital in real space (same size)
+    iimax=0
+    do iorb=1,lin%orbs%norbp
+        ilr=lin%orbs%inWhichLocregp(iorb)
+        ii=lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
+        if(ii>iimax) iimax=ii
+    end do
+    mem(8)=8*2*iimax
+    loc(1,8)=.true.
+    loc(2,8)=.false.
+    loc(3,8)=.false.
+    loc(4,8)=.true.
+    write(*,'(3x,a,i0,a)') 'potential / orbital in real space (Hamiltonian application): ',megabytes(mem(8)),'MB'
+
+
+    ! Calculate the memory peak
+    mempeak=0
+    do isection=1,nsection
+        memtot=0
+        do iarray=1,narray
+            if(loc(isection,iarray)) then
+                memtot=memtot+mem(iarray)
+            end if
+        end do
+        if(memtot>mempeak) then
+            mempeak=memtot
+            peaksection=isection
+        end if
+    end do
+    write(*,'(x,a,i0,a)') '>>> estimated memory peak: ',megabytes(mempeak),'MB'
+    write(*,'(x,a,a)') '>>> peak section: ',trim(section(peaksection))
+
+    write(*,'(x,a)') '#####################################################################################'
+
+end if
+
+
+end subroutine estimateMemory
+
+
+function megabytes(bytes)
+  implicit none
+  
+  integer,intent(in):: bytes
+  integer:: megabytes
+  
+  megabytes=nint(dble(bytes)/1048576.d0)
+  
+end function megabytes
 

@@ -193,7 +193,13 @@ call memocc(i_stat,lchi2,'lchi2',subname)
   lchi2=0.d0
   call gaussians_to_wavelets_new2(iproc, nproc, lzdGauss, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(orbsGauss%isorb+1, orbsGauss%norb)), lchi2(1))
+  do i_all=1,size(lchi2)
+      write(100+iproc,*) i_all, lchi2(i_all)
+  end do
   call orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzdGauss, orbsGauss, input, lchi2)
+  do i_all=1,size(lchi2)
+      write(110+iproc,*) i_all, lchi2(i_all)
+  end do
   ! Transform chi to the localization region - should be used if locrad for the input guess is larger than our localization radius.
   ind1=1
   ind2=1
@@ -204,6 +210,9 @@ call memocc(i_stat,lchi2,'lchi2',subname)
       call psi_to_locreg2(iproc, nproc, ldim, gdim, lzdig%llr(ilr), lzdGauss%llr(ilr), lchi2(ind1), lchi(ind2))
       ind1=ind1+lzdGauss%llr(ilr)%wfd%nvctr_c+7*lzdGauss%llr(ilr)%wfd%nvctr_f
       ind2=ind2+lzdig%Llr(ilr)%wfd%nvctr_c+7*lzdig%Llr(ilr)%wfd%nvctr_f
+  end do
+  do i_all=1,size(lchi)
+      write(120+iproc,*) i_all, lchi(i_all)
   end do
   if(ind1/=orbsGauss%npsidim+1) then
       write(*,'(2(a,i0))') 'ERROR on process ',iproc,': ind1/=orbsGauss%npsidim+1',ind1,orbsGauss%npsidim+1
@@ -225,6 +234,9 @@ call memocc(i_stat,i_all,'locrad',subname)
   call sumrhoLinear(iproc, nproc, lzdGauss, input%ixc, hxh, hyh, hzh, lchi2, rhopot,&
     & lzdGauss%Glr%d%n1i*lzdGauss%Glr%d%n2i*nscatterarr(iproc,1), nscatterarr, input%nspin, GPU, &
     & at%symObj, irrzon, phnons)
+  do i_all=1,size(rhopot)
+      write(140+iproc,*) i_all, rhopot(i_all)
+  end do
   if(iproc==0) write(*,'(a)') 'done.'
 
      
@@ -343,11 +355,17 @@ call memocc(i_stat,i_all,'locrad',subname)
   ! Post the messages for the communication of the potential.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call allocateCommunicationsBuffersPotential(comgp, subname)
+  do i_all=1,size(rhopot)
+      write(160+iproc,*) i_all, rhopot(i_all)
+  end do
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, comgp)
 
   
   ! Gather the potential
   call gatherPotential(iproc, nproc, comgp)
+  do i_all=1,comgp%nrecvBuf
+      write(150,*) i_all, comgp%recvBuf(i_all)
+  end do
 
   ! Apply the Hamiltonian for each atom.
   ! onWhichAtomTemp indicates indicating that all orbitals feel the potential from atom iat.
@@ -385,6 +403,11 @@ call memocc(i_stat, doNotCalculate, 'doNotCalculate', subname)
            withConfinement, pkernel=pkernelseq)
 
       if(iproc==0) write(*,'(a)') 'done.'
+  end do
+  do iat=1,at%nat
+      do i_all=1,size(lchi)
+          write(130+iproc,*) iat, i_all, lhchi(i_all,iat)
+      end do
   end do
   call cpu_time(t2)
   time=t2-t1
@@ -1418,6 +1441,53 @@ call deallocate_p2pCommsOrthonormality(comon, subname)
 
 end subroutine orthonormalizeAtomicOrbitalsLocalized
 
+
+
+subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lzd, orbs, comon, op, input, lchi)
+!
+! Purpose:
+! ========
+!  Orthonormalizes the atomic orbitals chi using a Lowedin orthonormalization.
+!
+! Calling arguments:
+!    
+
+use module_base
+use module_types
+use module_interfaces
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linear_zone_descriptors),intent(in):: lzd
+type(orbitals_data),intent(in):: orbs
+type(input_variables),intent(in):: input
+type(p2pCommsOrthonormality),intent(inout):: comon
+type(overlapParameters),intent(inout):: op
+real(8),dimension(orbs%npsidim),intent(inout):: lchi
+
+! Local variables
+integer:: iorb, jorb, istat, iall, lwork, info, nvctrp, ierr, tag, ilr
+real(8),dimension(:,:),allocatable:: ovrlp
+character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized'
+
+
+! Initialize the communication parameters.
+!tag=5000
+!call initCommsOrtho(iproc, nproc, lzd, orbs, orbs%inWhichLocreg, input, op, comon, tag)
+allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
+call memocc(istat, ovrlp, 'ovrlp', subname)
+
+call orthonormalizeLocalized(iproc, nproc, 2, orbs, op, comon, lzd, orbs%inWhichLocreg, 1.d-6, input, lchi, ovrlp)
+
+iall=-product(shape(ovrlp))*kind(ovrlp)
+deallocate(ovrlp, stat=istat)
+call memocc(istat, iall, 'ovrlp', subname)
+
+call deallocate_overlapParameters(op, subname)
+call deallocate_p2pCommsOrthonormality(comon, subname)
+
+end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
 
 subroutine orthonormalizeCoefficients(orbs, orbsig, coeff)
@@ -2548,6 +2618,9 @@ type(matrixMinimization):: matmin
   call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
 
   if(iproc<ip%nproc) then
+      do ilr=1,lzdig%nlr
+          write(*,'(a,i4,l)') 'iproc, associated(matmin%mlr(ilr)%indexInGlobal)', iproc, associated(matmin%mlr(ilr)%indexInGlobal)
+      end do
       call deallocate_inguessParameters(ip, subname)
       call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
       call deallocate_matrixMinimization(matmin,subname)
@@ -2685,6 +2758,9 @@ character(len=*),parameter:: subname='determineLocalizationRegions'
 
 
 allocate(mlr(nlr), stat=istat)
+do ilr=1,nlr
+    call nullify_matrixLocalizationRegion(mlr(ilr))
+end do
 
 write(*,'(a,i5,5x,100i3)') 'in determineLocalizationRegions: norb, owAA', norb, onWhichAtomAll
 ! Count for each localization region the number of matrix elements within the cutoff.
@@ -2951,6 +3027,11 @@ do ilr=1,lzd%nlr
 end do
 
 allocate(comom%olr(maxval(comom%noverlap(:)),lzd%nlr), stat=istat)
+do ilr=1,lzd%nlr
+    do iorb=1,maxval(comom%noverlap(:))
+        call nullify_matrixLocalizationRegion(comom%olr(iorb,ilr))
+    end do
+end do
 
 
 
@@ -3919,3 +4000,12 @@ call memocc(istat, iall, 'lchiovrlp', subname)
 
 
 end subroutine buildLinearCombinationsVariable
+
+
+
+
+
+
+
+
+

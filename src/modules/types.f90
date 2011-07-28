@@ -511,6 +511,15 @@ end type largeBasis
     real(8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
+  type,public:: linearInputGuess
+      type(linear_zone_descriptors):: lzdig, lzdGauss
+      type(orbitals_data):: orbsig, orbsGauss
+      type(p2pCommsOrthonormality):: comon
+      type(overlapParameters):: op
+      type(p2pCommsGatherPot):: comgp
+  end type linearInputGuess
+
+
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
@@ -530,6 +539,7 @@ end type largeBasis
     type(linear_zone_descriptors):: lzd
     type(p2pCommsOrthonormality):: comon
     type(overlapParameters):: op
+    type(linearInputGuess):: lig
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure

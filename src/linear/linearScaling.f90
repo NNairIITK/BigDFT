@@ -132,7 +132,12 @@ type(mixrhopotDIISParameters):: mixdiis
        input, rxyz, nscatterarr, coeff, lphi)
 
   potshortcut=0 ! What is this?
-  call inputguessConfinement(iproc, nproc, at, &
+  !call inputguessConfinement(iproc, nproc, at, &
+  !     comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
+  !     nlpspd, proj, pkernel, pkernelseq, &
+  !     nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
+  !     lphi, ehart, eexcu, vexcu)
+  call inputguessConfinement2(iproc, nproc, at, &
        comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
