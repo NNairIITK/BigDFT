@@ -934,33 +934,33 @@ C.......OPTX in compact form..........................
 C
       RETURN
       END
+c$$$
+c$$$      subroutine zero(n,x)
+c$$$      implicit real*8 (a-h,o-z)
+c$$$      dimension x(n)
+c$$$      do 10,i=1,n-1,2
+c$$$         x(i)=0.d0
+c$$$         x(i+1)=0.d0
+c$$$ 10   continue
+c$$$      istart=i
+c$$$      do 11,i=istart,n
+c$$$         x(i)=0.d0
+c$$$ 11   continue
+c$$$      return
+c$$$      end
 
-      subroutine zero(n,x)
-      implicit real*8 (a-h,o-z)
-      dimension x(n)
-      do 10,i=1,n-1,2
-         x(i)=0.d0
-         x(i+1)=0.d0
- 10   continue
-      istart=i
-      do 11,i=istart,n
-         x(i)=0.d0
- 11   continue
-      return
-      end
 
-
-  SUBROUTINE SPLINT (X,Y,YPP,N,XI,YI,YPI,YPPI,NI,KERR)
+      SUBROUTINE SPLINT (X,Y,YPP,N,XI,YI,YPI,YPPI,NI,KERR)
          
          ! INPUT
     
          Integer, Intent(in) :: N,NI
-         Real(dp), Intent(in) :: X(N),Y(N),YPP(N),XI(NI)
+         Real(8), Intent(in) :: X(N),Y(N),YPP(N),XI(NI)
 
          ! OUTPUT
 
          Integer, Intent(out) :: KERR
-         Real(dp), Intent(out) :: YI(NI),YPI(NI),YPPI(NI)
+         Real(8), Intent(out) :: YI(NI),YPI(NI),YPPI(NI)
 
 
 
@@ -1046,82 +1046,84 @@ C
 
    ! *** Local
 
-    Integer :: nm1,i,K,IL,IR
-     Real(dp) :: H,H2,XR,XR2,XR3,XL,XL2,XL3,XX
+      Integer :: nm1,i,K,IL,IR
+      Real(8) :: H,H2,XR,XR2,XR3,XL,XL2,XL3,XX
   
 !
-!    CHECK INPUT
+!     CHECK INPUT
 !
-    IF (NI) 1,1,2
-1   CONTINUE
+      IF (NI) 1,1,2
+ 1    CONTINUE
     !    1 CALL ERRCHK(67,67HIN SPLINT,  THE REQUESTED NUMBER OF INTERPOLATI
     !     1NS WAS NOT POSITIVE)
-    KERR = 3
-    RETURN
-2   KERR = 1
-    NM1= N-1
+      KERR = 3
+      RETURN
+ 2    KERR = 1
+      NM1= N-1
 
     !
     !    K IS INDEX ON VALUE OF XI BEING WORKED ON.  XX IS THAT VALUE.
     !    I IS CURRENT INDEX INTO X ARRAY.
     !
-    K  = 1
-    XX = XI(1)
-    IF (XX.LT.X(1)) GO TO 90
-    IF (XX.GT.X(N)) GO TO 80
-    IL = 1
-    IR = N
-    !
-    !   BISECTION SEARCH
-    !
-10  I  = (IL+IR)/2
-    IF (I.EQ.IL) GO TO 100
-    IF (XX-X(I)) 20,100,30
-20  IR = I
-    GO TO 10
-30  IL = I
-    GO TO 10
-    !
-    !     LINEAR FORWARD SEARCH
-    !
-50  IF (XX-X(I+1)) 100,100,60
-60  IF (I.GE.NM1) GO TO 80
-    I  = I+1
-    GO TO 50
-    !
-    ! EXTRAPOLATION
-    !
-80  KERR = 2
-    I  = NM1
-    GO TO 100
-90  KERR = 2
-    I  = 1
-    !
-    !     INTERPOLATION
-    !
-100 H  = X(I+1) - X(I)
-    H2 = H*H
-    XR = (X(I+1)-XX)/H
-    XR2= XR*XR
-    XR3= XR*XR2
-    XL = (XX-X(I))/H
-    XL2= XL*XL
-    XL3= XL*XL2
-    YI(K) = Y(I)*XR + Y(I+1)*XL-H2*(YPP(I)*(XR-XR3) + YPP(I+1)*(XL-XL3))/6.0D0
-    YPI(K) = (Y(I+1)-Y(I))/H+H*(YPP(I)*(1.0D0-3.0D0*XR2)-YPP(I+1)*&
-         (1.0D0-3.0D0*XL2))/6.0D0
-    YPPI(K) = YPP(I)*XR + YPP(I+1)*XL
-    !
-    !     NEXT POINT
-    !
-    IF (K.GE.NI) RETURN
-    K = K+1
-    XX = XI(K)
-    IF (XX.LT.X(1)) GO TO 90
-    IF (XX.GT.X(N)) GO TO 80
-    IF (XX-XI(K-1)) 110,100,50
-110 IL = 1
-    IR = I+1
-    GO TO 10
-    !
-  END subroutine SPLINT
+      K  = 1
+      XX = XI(1)
+      IF (XX.LT.X(1)) GO TO 90
+      IF (XX.GT.X(N)) GO TO 80
+      IL = 1
+      IR = N
+!
+!   BISECTION SEARCH
+!
+ 10   I  = (IL+IR)/2
+      IF (I.EQ.IL) GO TO 100
+      IF (XX-X(I)) 20,100,30
+ 20   IR = I
+      GO TO 10
+ 30   IL = I
+      GO TO 10
+!
+!     LINEAR FORWARD SEARCH
+!
+ 50   IF (XX-X(I+1)) 100,100,60
+ 60   IF (I.GE.NM1) GO TO 80
+      I  = I+1
+      GO TO 50
+!
+! EXTRAPOLATION
+!
+ 80   KERR = 2
+      I  = NM1
+      GO TO 100
+ 90   KERR = 2
+      I  = 1
+!
+!     INTERPOLATION
+!
+ 100  H  = X(I+1) - X(I)
+      H2 = H*H
+      XR = (X(I+1)-XX)/H
+      XR2= XR*XR
+      XR3= XR*XR2
+      XL = (XX-X(I))/H
+      XL2= XL*XL
+      XL3= XL*XL2
+      YI(K) = Y(I)*XR + Y(I+1)*XL-H2*(YPP(I)*(XR-XR3) + 
+     C YPP(I+1)*(XL-XL3))/6.0D0
+      YPI(K) = (Y(I+1)-Y(I))/H+H*(YPP(I)*(1.0D0-3.0D0*XR2)-YPP(I+1)*
+     C  (1.0D0-3.0D0*XL2))/6.0D0
+      YPPI(K) = YPP(I)*XR + YPP(I+1)*XL
+!
+!     NEXT POINT
+!
+      IF (K.GE.NI) RETURN
+      K = K+1
+      XX = XI(K)
+      IF (XX.LT.X(1)) GO TO 90
+      IF (XX.GT.X(N)) GO TO 80
+      IF (XX-XI(K-1)) 110,100,50
+ 110  IL = 1
+      IR = I+1
+      GO TO 10
+!
+      END subroutine SPLINT
+      

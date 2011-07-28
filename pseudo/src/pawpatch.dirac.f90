@@ -17,7 +17,7 @@
       parameter(etol=-1.d-7)
       parameter(tol=1.0d-14)
 !
-      dimension v(nr),ar(nr),br(nr),r(nr),rab(nr),np 
+      dimension v(nr),ar(nr),br(nr),r(nr),rab(nr) 
 
 !
 !    Arrays added to gain speed.
@@ -51,9 +51,9 @@
        amc3 = 53.D0/360.D0
        amc4 = -19.D0/720.D0
       itmax = 100
-      lp = lo(iorb)+1
+      lp = lo+1
       ar(1) = 0.0d0
-      if (lo(iorb) == 0) then
+      if (lo == 0) then
         br(1) = b*a
       else
         br(1) = 0.0d0
@@ -68,7 +68,7 @@
         rlp(j)=r(j)**lp
  4    continue
       do 5 j=2,5
-        rabrlo(j)=rab(j)*r(j)**lo(iorb)
+        rabrlo(j)=rab(j)*r(j)**lo
  5    continue
       do 6 j=1,nr
         rab2(j)=rab(j)*rab(j)
@@ -98,7 +98,9 @@
 
 
       if (ev .gt. emax) ev = emax
- 10   if (itmax .lt. 2) write(6,15) ev,nodes
+      !! write(6,15) ev,nodes
+ 10   continue
+       !! if (itmax .lt. 2) write(6,15) ev,nodes
  15   format(' ev =',1pe18.10,' nodes =',i2)
 
       if (itmax == 0) return
@@ -112,6 +114,7 @@
 !   find practical infinity ninf and classical turning
 !   point nctp for orbital
 !
+
       icount=0
  20   continue
       icount=icount+1
@@ -208,10 +211,10 @@
 !   if number of nodes correct, start inward integration
 !   else modify energy stepwise and try again
 !
-      if (nodes /= no-lo-1) then
+      if (nodes /= np-lo-1) then
 !     c.hartwig
-!         write(6,*) 'nodes,ev',nodes,ev
-        if (nodes .lt. no-lo-1) then
+        !! write(6,*) 'nodes,ev',nodes,ev
+        if (nodes .lt. np-lo-1) then
 !
 !  too few nodes; increase ev
 !
@@ -359,7 +362,7 @@
       parameter (tol = 1.0d-14)
 !
       dimension v(nr),ar(nr),br(nr),r(nr),rab(nr),&
-       ev,rabkar(nr),rabai(nr),&
+       rabkar(nr),rabai(nr),&
        fa(nr),fb(nr)
 !
       dimension rs(5)
