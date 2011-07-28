@@ -3773,6 +3773,32 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
     end subroutine initInputguessConfinement
 
+    subroutine orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzd, orbs, input, lchi)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(orbitals_data),intent(in):: orbs
+      type(input_variables),intent(in):: input
+      real(8),dimension(orbs%npsidim),intent(inout):: lchi
+    end subroutine orthonormalizeAtomicOrbitalsLocalized
+
+
+    subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lzd, orbs, comon, op, input, lchi)
+      use module_base
+      use module_types
+      implicit none
+      ! Calling arguments
+      integer,intent(in):: iproc, nproc
+      type(linear_zone_descriptors),intent(in):: lzd
+      type(orbitals_data),intent(in):: orbs
+      type(input_variables),intent(in):: input
+      type(p2pCommsOrthonormality),intent(inout):: comon
+      type(overlapParameters),intent(inout):: op
+      real(8),dimension(orbs%npsidim),intent(inout):: lchi
+    end subroutine orthonormalizeAtomicOrbitalsLocalized2
+
 
   end interface
 

@@ -2505,13 +2505,13 @@ destLoop: do jproc=0,nproc-1
         tag=comgp%comarr(6,kproc,jproc)
         if(mpisource/=mpidest) then
             if(iproc==mpisource) then
-                write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
                 call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
                      comgp%comarr(7,kproc,jproc), ierr)
                 comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
-                write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
                 call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
                     comgp%comarr(8,kproc,jproc), ierr)
                 comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
@@ -2523,7 +2523,7 @@ destLoop: do jproc=0,nproc-1
         else
             ! The orbitals are on the same process, so simply copy them.
             if(iproc==mpisource) then
-                write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
                 call dcopy(ncount, pot(istsource), 1, comgp%recvBuf(istdest), 1)
                 comgp%comarr(7,kproc,jproc)=mpi_request_null
                 comgp%comarr(8,kproc,jproc)=mpi_request_null

@@ -2510,7 +2510,7 @@ end subroutine setCommsOrthoVariable
 subroutine indicesForExpansionVariable(iproc, nproc, orbs, input, lzd, op, comon)
 use module_base
 use module_types
-use module_interfaces
+use module_interfaces, exceptThisOne => indicesForExpansionVariable
 implicit none
 
 ! Calling arguments
