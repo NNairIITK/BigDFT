@@ -730,8 +730,6 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
   !end of the part that can be commented out
 
-print *,'allocated',allocated(dvxcdgr),allocated(gradient)
-
   if (allocated(dvxcdgr)) then
      i_all=-product(shape(dvxcdgr))*kind(dvxcdgr)
      deallocate(dvxcdgr,stat=i_stat)
@@ -742,7 +740,6 @@ print *,'allocated',allocated(dvxcdgr),allocated(gradient)
      deallocate(gradient,stat=i_stat)
      call memocc(i_stat,i_all,'gradient',subname)
   end if
-stop
   !     rewind(300)
   !     do ispden=1,nspden
   !        do i3=1,nxt
