@@ -116,6 +116,8 @@ call orbitals_communicators(iproc,nproc,Glr,lin%lb%gorbs,lin%lb%gcomms)
 ! Write all parameters related to the linear scaling version to the screen.
 call writeLinearParameters(iproc, nproc, at, lin, atomNames, lin%norbsPerType)
 
+if(iproc==0) write(*,'(x,a)',advance='no') 'Doing many initializations...'
+
 ! Allocate (almost) all remaining arrays.
 call allocateLinArrays(lin)
 
@@ -235,9 +237,11 @@ call memocc(istat, iall, 'norbsPerAtom', subname)
 
 call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr)
 
+! The initializations are done.
+if(iproc==0) write(*,'(a)') 'done.'
 
 ! Estimate the memory requirements.
-call estimateMemory(iproc, nproc, lin, nscatterarr)
+call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 
 
 end subroutine allocateAndInitializeLinear
@@ -1808,18 +1812,18 @@ end subroutine nullify_matrixLocalizationRegion
 
 
 
-subroutine estimateMemory(iproc, nproc, lin, nscatterarr)
+subroutine estimateMemory(iproc, nproc, nat, lin, nscatterarr)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, nat
 type(linearParameters),intent(in):: lin
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr
 
 ! Local variables
-integer,parameter:: nsection=4, narray=8
+integer,parameter:: nsection=5, narray=12
 integer,dimension(narray):: mem
 logical,dimension(nsection,narray):: loc
 integer:: mempeak, peaksection, isection, iarray, megabytes, memtot, iorb, ilr, ii, iimax
@@ -1827,6 +1831,7 @@ character(len=100),dimension(nsection):: section
 
 if(iproc==0) then
     write(*,'(x,a)') '################################# Memory estimator ##################################'
+    write(*,'(x,a)') 'WARNING: The memory requirements are underestimated by about 20-30%!'
     write(*,'(x,a)') 'Memory requirements of the largest arrays:'
 
     ! For all large arrays determine the memory the occupy and in which code segment they are allcoated.
@@ -1835,6 +1840,7 @@ if(iproc==0) then
     section(2)='Calculation of the charge density'
     section(3)='Calculate the derivative basis functions'
     section(4)='Calculation the Hamiltonian matrix'
+    section(5)='Input guess'
 
     ! the trace minimizing orbitals:
     mem(1)=8*lin%orbs%npsidim
@@ -1842,6 +1848,7 @@ if(iproc==0) then
     loc(2,1)=.true.
     loc(3,1)=.true.
     loc(4,1)=.true.
+    loc(5,1)=.true.
     write(*,'(3x,a,i0,a)') 'trace minimizing orbitals phi: ',megabytes(mem(1)),'MB'
 
     ! DIIS history of the trace minimizing orbitals
@@ -1850,47 +1857,64 @@ if(iproc==0) then
     loc(2,2)=.false.
     loc(3,2)=.false.
     loc(4,2)=.false.
+    loc(5,2)=.false.
     write(*,'(3x,a,i0,a)') 'DIIS history of the trace minimizing orbitals phi: ',megabytes(mem(2)),'MB'
 
-    ! charge density / potential (including rhopotold for the mixing, therefore times 2)
-    mem(3)=8*2*lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-    loc(1,3)=.true.
-    loc(2,3)=.true.
-    loc(3,3)=.true.
+
+    ! The Hamiltonian applied to the orbital, i.e. hphi
+    mem(3)=8*lin%orbs%npsidim*lin%DIISHistMax
+    loc(1,3)=.false.
+    loc(2,3)=.false.
+    loc(3,3)=.false.
     loc(4,3)=.true.
-    write(*,'(3x,a,i0,a)') 'charge density / potential: ',megabytes(mem(3)),'MB'
+    loc(5,3)=.false.
+    write(*,'(3x,a,i0,a)') 'The Hamiltonian applied to the orbital, i.e. hphi: ',megabytes(mem(3)),'MB'
+
+    ! charge density / potential (including rhopotold for the mixing or the partial density for the
+    ! input guess, therefore times 2)
+    mem(4)=8*2*lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+    loc(1,4)=.true.
+    loc(2,4)=.true.
+    loc(3,4)=.true.
+    loc(4,4)=.true.
+    loc(5,4)=.true.
+    write(*,'(3x,a,i0,a)') 'charge density / potential: ',megabytes(mem(4)),'MB'
 
     ! send / receive buffers for the charge density
-    mem(4)=8*(lin%comsr%nrecvBuf+lin%comsr%nsendBuf)
-    loc(1,4)=.false.
-    loc(2,4)=.true.
-    loc(3,4)=.false.
-    loc(4,4)=.true.
-    write(*,'(3x,a,i0,a)') 'communication buffers sumrho: ',megabytes(mem(4)),'MB'
-
-    ! send / receive buffers for the potential (use for the Hamiltonian application)
-    mem(5)=8*lin%comgp%nrecvBuf
-    loc(1,5)=.true.
+    mem(5)=8*(lin%comsr%nrecvBuf+lin%comsr%nsendBuf)
+    loc(1,5)=.false.
     loc(2,5)=.true.
     loc(3,5)=.false.
     loc(4,5)=.true.
-    write(*,'(3x,a,i0,a)') 'communication buffers for gathering the potential: ',megabytes(mem(5)),'MB'
+    loc(5,5)=.false.
+    write(*,'(3x,a,i0,a)') 'communication buffers sumrho: ',megabytes(mem(5)),'MB'
+
+    ! send / receive buffers for the potential (used for the Hamiltonian application)
+    mem(6)=8*lin%comgp%nrecvBuf
+    loc(1,6)=.true.
+    loc(2,6)=.true.
+    loc(3,6)=.false.
+    loc(4,6)=.true.
+    loc(5,6)=.false.
+    write(*,'(3x,a,i0,a)') 'communication buffers for gathering the potential: ',megabytes(mem(6)),'MB'
 
     ! send / receive buffers for the orthonormalization
-    mem(6)=8*(lin%comon%nrecvBuf+lin%comon%nsendBuf+lin%op%ndim_lphiovrlp)
-    loc(1,6)=.true.
-    loc(2,6)=.false.
-    loc(3,6)=.false.
-    loc(4,6)=.false.
-    write(*,'(3x,a,i0,a)') 'communication buffers / workk arrays for orthonormalization: ',megabytes(mem(6)),'MB'
+    mem(7)=8*(lin%comon%nrecvBuf+lin%comon%nsendBuf+lin%op%ndim_lphiovrlp)
+    loc(1,7)=.true.
+    loc(2,7)=.false.
+    loc(3,7)=.false.
+    loc(4,7)=.false.
+    loc(5,7)=.false.
+    write(*,'(3x,a,i0,a)') 'communication buffers / workk arrays for orthonormalization: ',megabytes(mem(7)),'MB'
 
     ! auxiliary arrays for the orthonormalization (integer arrays)
-    mem(7)=4*(lin%comon%nrecvBuf+lin%comon%nsendBuf)
-    loc(1,4)=.true.
-    loc(2,4)=.false.
-    loc(3,4)=.false.
-    loc(4,4)=.false.
-    write(*,'(3x,a,i0,a)') 'auxilliary arrays for orthonormalization: ',megabytes(mem(7)),'MB'
+    mem(8)=4*(lin%comon%nrecvBuf+lin%comon%nsendBuf)
+    loc(1,8)=.true.
+    loc(2,8)=.false.
+    loc(3,8)=.false.
+    loc(4,8)=.false.
+    loc(5,8)=.false.
+    write(*,'(3x,a,i0,a)') 'auxilliary arrays for orthonormalization: ',megabytes(mem(8)),'MB'
 
     ! full potential need for one localization region during Hamiltonian application and
     ! one orbital in real space (same size)
@@ -1900,12 +1924,41 @@ if(iproc==0) then
         ii=lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
         if(ii>iimax) iimax=ii
     end do
-    mem(8)=8*2*iimax
-    loc(1,8)=.true.
-    loc(2,8)=.false.
-    loc(3,8)=.false.
-    loc(4,8)=.true.
-    write(*,'(3x,a,i0,a)') 'potential / orbital in real space (Hamiltonian application): ',megabytes(mem(8)),'MB'
+    mem(9)=8*2*iimax
+    loc(1,9)=.true.
+    loc(2,9)=.false.
+    loc(3,9)=.false.
+    loc(4,9)=.true.
+    loc(5,9)=.false.
+    write(*,'(3x,a,i0,a)') 'potential / orbital in real space (Hamiltonian application): ',megabytes(mem(9)),'MB'
+
+    ! Input guess: atomic orbitals (larger cutoff), atomic orbitals (smaller cutoff), hphi for all atoms
+    mem(10)=8*( lin%lig%orbsGauss%npsidim + lin%lig%orbsig%npsidim + lin%lig%orbsig%npsidim*nat)
+    loc(1,10)=.false.
+    loc(2,10)=.false.
+    loc(3,10)=.false.
+    loc(4,10)=.false.
+    loc(5,10)=.true.
+    write(*,'(3x,a,i0,a)') 'input guess, all orbitals: ',megabytes(mem(10)),'MB'
+
+    ! Input guess: Buffers for the orthonormalization communication (8 for double precicion arrays
+    ! and 4 for single precision arrays -> factor 12)
+    mem(11)=12*( lin%lig%comon%nrecvBuf + lin%lig%comon%nsendBuf) + 8*lin%lig%op%ndim_lphiovrlp
+    loc(1,11)=.false.
+    loc(2,11)=.false.
+    loc(3,11)=.false.
+    loc(4,11)=.false.
+    loc(5,11)=.true.
+    write(*,'(3x,a,i0,a)') 'input guess, communication buffers and auxilliary arrays for orthonormalization : ',megabytes(mem(11)),'MB'
+
+    ! Input guess: Buffers for the communicatin the potential
+    mem(12)=8*lin%lig%comgp%nrecvBuf
+    loc(1,12)=.false.
+    loc(2,12)=.false.
+    loc(3,12)=.false.
+    loc(4,12)=.false.
+    loc(5,12)=.true.
+    write(*,'(3x,a,i0,a)') 'input guess, communication buffers for gathering the potential: ',megabytes(mem(12)),'MB'
 
 
     ! Calculate the memory peak
