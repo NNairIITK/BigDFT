@@ -661,6 +661,7 @@ subroutine gaussians_to_wavelets_new2(iproc,nproc,Lzd,orbs,hx,hy,hz,G,wfn_gau,ps
      do iorb=1,orbs%norbp
 !        if(orbs%inWhichLocreg(iorb+orbs%isorb) .ne. ilr) cycle ! do only the orbitals in this locreg
          ilr = orbs%inWhichLocreg(iorb+orbs%isorb)
+
        !features of the k-point ikpt
         kx=orbs%kpts(1,orbs%iokpt(iorb))
         ky=orbs%kpts(2,orbs%iokpt(iorb))

@@ -173,7 +173,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   type(locreg_descriptors) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
+  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(inout) :: psi
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
   !local variables--------------
@@ -186,7 +186,7 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
-
+  integer :: ierr,ilr
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
      
@@ -195,6 +195,8 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   !also nspinor for the moment is the biggest as possible
   allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
+  call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
+
 
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
@@ -259,7 +261,8 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
               istart_c=1
               call atom_projector(ikpt,iat,idir,istart_c,iproj,&
                    lr,hx,hy,hz,rxyz,at,orbs,nlpspd,proj,nwarnings)
-
+!              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
+ 
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
               ! loop over all my orbitals
@@ -297,6 +300,27 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
         ikpt=ikpt+1
         ispsi_k=ispsi
      end do loop_kptD
+
+    if(iproc==0) then
+    open(44,file='scalprod_ref',status='unknown')
+    do ilr = 1,size(scalprod,1)
+    do idir=0,3
+    do m=1,size(scalprod,3)
+    do i=1,3
+    do l=1,4
+    do iat=1,at%nat
+    do jorb=1,orbs%norbp
+!       write(44,*)ilr,idir,m,i,l,iat,jorb,scalprod(ilr,idir,m,i,l,iat,jorb)
+      write(44,*)scalprod(ilr,idir,m,i,l,iat,jorb)
+    end do
+    end do
+    end do
+    end do
+    end do
+    end do
+    end do
+    close(44)
+    end if
 
 
   else
@@ -468,7 +492,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
   deallocate(fxyz_orb,stat=i_stat)
   call memocc(i_stat,i_all,'fxyz_orb',subname)
-
   i_all=-product(shape(scalprod))*kind(scalprod)
   deallocate(scalprod,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod',subname)

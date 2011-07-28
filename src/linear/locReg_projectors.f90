@@ -300,7 +300,7 @@ subroutine check_projector_intersect_with_locreg(atoms,pmult,Glr,hx,hy,hz,iatom,
   real(gp) :: rad !radius of projectors
 
   intersect = .false.
-  rad=radii_cf*pmult 
+  rad=radii_cf!*pmult   !do I really need pmult? 
 
 !Check if zone is within the radius of the projectors
 ! Must also check the images in other cells  
@@ -1059,7 +1059,8 @@ subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
 !  format the number of orbitals in this locreg orbitals
    orbtot = 0
    do iorb=1,orbs%norbp
-      if (orbs%inWhichLocreg(iorb) == ilr) then
+      !if (orbs%inWhichLocreg(iorb) == ilr) then
+      if (orbs%inWhichLocregp(iorb) == ilr) then
          orbtot = orbtot+1
          inthisLocreg(orbtot) = iorb
       end if

@@ -79,8 +79,6 @@ norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
-     input%nkpt, input%kpt, input%wkpt, lin%Lorbs)
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%lzd%orbs)
 
 
@@ -97,7 +95,6 @@ else
     norbd=0
 end if
 call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
-call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%Lorbs)
 call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%lzd%orbs)
 
 
@@ -119,13 +116,17 @@ call allocateLinArrays(lin)
 
 ! Decide which orbital is centered on which atom, again for the 'normal' and
 ! the 'large' basis.
-call assignOrbitalsToAtoms(iproc, lin%orbs, at%nat, norbsPerAtom, lin%onWhichAtom, lin%onWhichAtomAll)
-if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
-call assignOrbitalsToAtoms(iproc, lin%lb%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
-call assignOrbitalsToAtoms(iproc, lin%lb%lzd%orbs, at%nat, norbsPerAtom, lin%lb%onWhichAtom, lin%lb%onWhichAtomAll)
-if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
+! The array inWhichLocreg has already been allocated in orbitals_descriptors. Since it will again be allocated
+! in assignToLocreg2, deallocate it first.
+iall=-product(shape(lin%lzd%orbs%inWhichLocreg))*kind(lin%lzd%orbs%inWhichLocreg)
+deallocate(lin%lzd%orbs%inWhichLocreg, stat=istat)
+call memocc(istat, iall, 'lin%lzd%orbs%inWhichLocreg', subname)
+iall=-product(shape(lin%lb%lzd%orbs%inWhichLocreg))*kind(lin%lb%lzd%orbs%inWhichLocreg)
+deallocate(lin%lb%lzd%orbs%inWhichLocreg, stat=istat)
+call memocc(istat, iall, 'lin%lb%lzd%orbs%inWhichLocreg', subname)
+
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%lzd%orbs)
@@ -138,15 +139,12 @@ call initLocregs(iproc, nproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 call memocc(istat, lin%orbs%eval, 'lin%orbs%eval', subname)
 lin%orbs%eval=-.5d0
-allocate(lin%Lorbs%eval(lin%Lorbs%norb), stat=istat)
-call memocc(istat, lin%Lorbs%eval, 'lin%Lorbs%eval', subname)
-lin%Lorbs%eval=-.5d0
+allocate(lin%lzd%orbs%eval(lin%lzd%orbs%norb), stat=istat)
+call memocc(istat, lin%lzd%orbs%eval, 'lin%lzd%orbs%eval', subname)
+lin%lzd%orbs%eval=-.5d0
 allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
 call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
 lin%lb%orbs%eval=-.5d0
-allocate(lin%lb%Lorbs%eval(lin%lb%Lorbs%norb), stat=istat)
-call memocc(istat, lin%lb%Lorbs%eval, 'lin%lb%Lorbs%eval', subname)
-lin%lb%Lorbs%eval=-.5d0
 
 ! Initialize the coefficients.
 call initCoefficients(iproc, orbs, lin, coeff)
@@ -154,20 +152,26 @@ call initCoefficients(iproc, orbs, lin, coeff)
 ! Initialize the parameters for the point to point communication for the
 ! calculation of the charge density.
 call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
+!call allocateCommunicationbufferSumrho(lin%comsr, subname)
 
 ! Copy Glr to lin%lzd
-lin%lzd%Glr = Glr
-lin%lb%lzd%Glr = Glr
+!lin%lzd%Glr = Glr
+call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
+!lin%lb%lzd%Glr = Glr
+call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
 
 ! Copy nlpspd to lin%lzd
 lin%lzd%Gnlpspd = nlpspd
-lin%lb%lzd%Gnlpspd = nlpspd
+call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
+!lin%lb%lzd%Gnlpspd = nlpspd
+call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
 
 ! Set localnorb
 do ilr=1,lin%lzd%nlr
     lin%lzd%Llr(ilr)%localnorb=0
     do iorb=1,lin%lzd%orbs%norbp
-        if(lin%onWhichAtom(iorb)==ilr) then
+        !if(lin%onWhichAtom(iorb)==ilr) then
+        if(lin%lzd%orbs%inWhichLocregp(iorb)==ilr) then
             lin%lzd%Llr(ilr)%localnorb = lin%lzd%Llr(ilr)%localnorb+1
         end if
     end do
@@ -176,7 +180,7 @@ end do
 do ilr=1,lin%lzd%nlr
     lin%lb%lzd%Llr(ilr)%localnorb=0
     do iorb=1,lin%lb%lzd%orbs%norbp
-        if(lin%lb%onWhichAtom(iorb)==ilr) then
+        if(lin%lb%lzd%orbs%inWhichLocregp(iorb)==ilr) then
             lin%lb%lzd%Llr(ilr)%localnorb = lin%lb%lzd%Llr(ilr)%localnorb+1
         end if
     end do
@@ -186,14 +190,13 @@ end do
 
 ! Initialize the parameters for the communication for the
 ! potential.
-!call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin)
-call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%onWhichAtomAll, tag)
-call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%comgp_lb, lin%lb%onWhichAtomAll, tag)
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%lzd%orbs%inWhichLocreg, tag)
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp,&
+     lin%lb%lzd%orbs%inWhichLocreg, tag)
 
 ! Initialize the parameters for the communication for the orthonormalization.
-!!call initCommsOrtho(iproc, nproc, lin)
-call initCommsOrtho(iproc, nproc, lin%lzd, lin%onWhichAtomAll, input, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%onWhichAtomAll, input, lin%op_lb, lin%comon_lb, tag)
+call initCommsOrtho(iproc, nproc, lin%lzd, lin%lzd%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%lzd%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
@@ -259,7 +262,7 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
-  read(99,*) lin%nItSCC, lin%alphaMix, lin%convCritMix
+  read(99,*) lin%mixHist, lin%nItSCC, lin%alphaMix, lin%convCritMix
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess
   read(99,*) lin%plotBasisFunctions
@@ -307,6 +310,8 @@ integer,dimension(at%ntypes),intent(in):: norbsPerType
 ! Local variables
 integer:: itype, jproc, len1, len2, space1, space2
 logical:: written
+character(len=8):: mixingMethod
+character(len=2):: hist
 
 
 if(iproc==0) write(*,'(x,a)') '################################# Input parameters #################################'
@@ -320,12 +325,18 @@ do itype=1,at%ntypes
 end do
 close(unit=99)
 if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| mixing | iterations in | alpha mix | convergence crit. |'
-if(iproc==0) write(*,'(4x,a)') '| scheme |  in SC cycle  |           |    for mixing     |'
-if(iproc==0) write(*,'(4x,a,2x,a,2x,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)') '|', &
-     lin%mixingMethod, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
+if(iproc==0) write(*,'(4x,a)') '| mixing | mixing | iterations in | alpha mix | convergence crit. |'
+if(iproc==0) write(*,'(4x,a)') '| scheme | method |  in SC cycle  |           |    for mixing     |'
+if(lin%mixHist==0) then
+    mixingMethod=' linear '
+else
+    write(hist,'(i2)') lin%mixHist
+    mixingMethod=' DIIS'//hist//' '
+end if
+if(iproc==0) write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)') '|', &
+     lin%mixingMethod, '|', mixingMethod, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
      lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|'
-if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------'
+if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------'
 if(iproc==0) write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals |'
 if(iproc==0) write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  |'
 if(iproc==0) write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
@@ -646,26 +657,6 @@ integer:: istat, iall, iorb
 character(len=*),parameter:: subname='deallocateLinear'
 
 
-  iall=-product(shape(lin%potentialPrefac))*kind(lin%potentialPrefac)
-  deallocate(lin%potentialPrefac, stat=istat)
-  call memocc(istat, iall, 'lin%potentialPrefac', subname)
-  
-  iall=-product(shape(lin%onWhichAtom))*kind(lin%onWhichAtom)
-  deallocate(lin%onWhichAtom, stat=istat)
-  call memocc(istat, iall, 'lin%onWhichAtom', subname)
-
-  iall=-product(shape(lin%norbsPerType))*kind(lin%norbsPerType)
-  deallocate(lin%norbsPerType, stat=istat)
-  call memocc(istat, iall, 'lin%norbsPerType', subname)
-
-  call deallocate_orbs(lin%orbs,subname)
-
-  call deallocate_comms(lin%comms,subname)
-
-  call deallocate_orbs(lin%lb%orbs,subname)
-
-  call deallocate_comms(lin%lb%comms,subname)
-
   iall=-product(shape(phi))*kind(phi)
   deallocate(phi, stat=istat)
   call memocc(istat, iall, 'phi', subname)
@@ -674,72 +665,12 @@ character(len=*),parameter:: subname='deallocateLinear'
   deallocate(lphi, stat=istat)
   call memocc(istat, iall, 'lphi', subname)
 
-  iall=-product(shape(lin%orbs%eval))*kind(lin%orbs%eval)
-  deallocate(lin%orbs%eval, stat=istat)
-  call memocc(istat, iall, 'lin%orbs%eval', subname)
-
-  iall=-product(shape(lin%lb%orbs%eval))*kind(lin%lb%orbs%eval)
-  deallocate(lin%lb%orbs%eval, stat=istat)
-  call memocc(istat, iall, 'lin%lb%orbs%eval', subname)
-
-  if(associated(lin%comms%nvctr_parLIN)) then
-      iall=-product(shape(lin%comms%nvctr_parLIN))*kind(lin%comms%nvctr_parLIN)
-      deallocate(lin%comms%nvctr_parLIN, stat=istat)
-      call memocc(istat, iall, 'lin%comms%nvctr_parLIN', subname)
-  end if
-
-  if(associated(lin%comms%ncntdLIN)) then
-      iall=-product(shape(lin%comms%ncntdLIN))*kind(lin%comms%ncntdLIN)
-      deallocate(lin%comms%ncntdLIN, stat=istat)
-      call memocc(istat, iall, 'lin%comms%ncntdLIN', subname)
-  end if
-
-  if(associated(lin%comms%ndspldLIN)) then
-      iall=-product(shape(lin%comms%ndspldLIN))*kind(lin%comms%ndspldLIN)
-      deallocate(lin%comms%ndspldLIN, stat=istat)
-      call memocc(istat, iall, 'lin%comms%ndspldLIN', subname)
-  end if
-
-  if(associated(lin%comms%ncnttLIN)) then
-      iall=-product(shape(lin%comms%ncnttLIN))*kind(lin%comms%ncnttLIN)
-      deallocate(lin%comms%ncnttLIN, stat=istat)
-      call memocc(istat, iall, 'lin%comms%ncnttLIN', subname)
-  end if
-
-  if(associated(lin%comms%ndspltLIN)) then
-      iall=-product(shape(lin%comms%ndspltLIN))*kind(lin%comms%ndspltLIN)
-      deallocate(lin%comms%ndspltLIN, stat=istat)
-      call memocc(istat, iall, 'lin%comms%ndspltLIN', subname)
-  end if
-
-  if(associated(lin%MPIComms)) then
-      iall=-product(shape(lin%MPIComms))*kind(lin%MPIComms)
-      deallocate(lin%MPIComms, stat=istat)
-      call memocc(istat, iall, 'lin%MPIComms', subname)
-  end if
-
-  if(associated(lin%procsInComm)) then
-      iall=-product(shape(lin%procsInComm))*kind(lin%procsInComm)
-      deallocate(lin%procsInComm, stat=istat)
-      call memocc(istat, iall, 'lin%procsInComm', subname)
-  end if
-
-  if(associated(lin%norbPerComm)) then
-      iall=-product(shape(lin%norbPerComm))*kind(lin%norbPerComm)
-      deallocate(lin%norbPerComm, stat=istat)
-      call memocc(istat, iall, 'lin%norbPerComm', subname)
-  end if
-
-
   iall=-product(shape(coeff))*kind(coeff)
   deallocate(coeff, stat=istat)
   call memocc(istat, iall, 'coeff', subname)
 
-  if(associated(lin%outofzone)) then
-      iall=-product(shape(lin%outofzone))*kind(lin%outofzone)
-      deallocate(lin%outofzone, stat=istat)
-      call memocc(istat, iall, 'lin%outofzone', subname)
-  end if
+  call deallocate_linearParameters(lin, subname)
+
 
 end subroutine deallocateLinear
 
@@ -807,7 +738,8 @@ end do
 
     orbLoop: do iorb=1,orbs%norbp
         call daub_to_isf(Glr,w,phi(istart+1),phir(1))
-        iiAt=lin%onWhichAtom(iorb)
+        !iiAt=lin%onWhichAtom(iorb)
+        iiAt=lin%lzd%orbs%inWhichLocregp(iorb)
         ix0=nint(rxyz(1,iiAt)/hxh)
         iy0=nint(rxyz(2,iiAt)/hyh)
         iz0=nint(rxyz(3,iiAt)/hzh)
@@ -1006,7 +938,8 @@ do iorb=1,lin%orbs%norbp
     phir=0.d0
     call daub_to_isf(Glr, w, phi(ist), phir(1))
     
-    iiAt=lin%onWhichAtom(iorb)
+    !iiAt=lin%onWhichAtom(iorb)
+    iiAt=lin%lzd%orbs%inWhichLocregp(iorb)
     cut=lin%locrad(iiAt)
     
     jj=0
@@ -1065,7 +998,8 @@ do iorb=1,lin%orbs%norbp
     phir=0.d0
     call daub_to_isf(Glr, w, phi(ist), phir(1))
     
-    iiAt=lin%onWhichAtom(iorb)
+    !iiAt=lin%onWhichAtom(iorb)
+    iiAt=lin%lzd%orbs%inWhichLocregp(iorb)
     cut=lin%locrad(iiAt)
     !write(*,'(a,2i8,es10.3)') 'iorb, iiAt, cut', iorb, iiAt, cut
     
@@ -1138,9 +1072,9 @@ do jproc=0,nproc-1
     !if(iproc==0) write(*,'(a,3i8)') 'jproc, is, ie', jproc, is, ie
     ioverlap=0
     do iorb=1,lin%lb%orbs%norb
-        ilr=lin%lb%onWhichAtomAll(iorb)
-        i3s=2*lin%Llr(ilr)%ns3-14
-        i3e=i3s+lin%Llr(ilr)%d%n3i-1
+        ilr=lin%lb%lzd%orbs%inWhichLocreg(iorb)
+        i3s=2*lin%lzd%Llr(ilr)%ns3-14
+        i3e=i3s+lin%lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1
         end if
@@ -1169,25 +1103,25 @@ do jproc=0,nproc-1
     ie=is+nscatterarr(jproc,1)-1
     ioverlap=0
     do iorb=1,lin%lb%orbs%norb
-        ilr=lin%lb%onWhichAtomAll(iorb)
-        i3s=2*lin%Llr(ilr)%ns3-14
-        i3e=i3s+lin%Llr(ilr)%d%n3i-1
+        ilr=lin%lb%lzd%orbs%inWhichLocreg(iorb)
+        i3s=2*lin%lzd%Llr(ilr)%ns3-14
+        i3e=i3s+lin%lzd%Llr(ilr)%d%n3i-1
         if(i3s<=ie .and. i3e>=is) then
             ioverlap=ioverlap+1
             tag=tag+1
             is3ovrlp=max(is,i3s) !start of overlapping zone in z direction
             n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
-            is3ovrlp=is3ovrlp-2*lin%Llr(ilr)%ns3+15
+            is3ovrlp=is3ovrlp-2*lin%lzd%Llr(ilr)%ns3+15
             !call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
-            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin%nlr, lin%Llr, &
-                 lin%lb%onWhichAtomAll, lin%lb%orbs, lin%comsr%comarr(1,ioverlap,jproc))
+            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin%nlr, lin%lzd%Llr, &
+                 lin%lb%lzd%orbs%inWhichLocreg, lin%lb%orbs, lin%comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
                 !lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
-                lin%comsr%nrecvBuf = lin%comsr%nrecvBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
+                lin%comsr%nrecvBuf = lin%comsr%nrecvBuf + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*n3ovrlp
                 lin%comsr%overlaps(ioverlap)=iorb
                                                         !lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i
             end if
-            lin%comsr%istrarr(jproc) = lin%comsr%istrarr(jproc) + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
+            lin%comsr%istrarr(jproc) = lin%comsr%istrarr(jproc) + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*n3ovrlp
         end if
     end do
 end do
@@ -1204,19 +1138,69 @@ call memocc(istat, lin%comsr%computComplete, 'lin%comsr%computComplete', subname
 ! ('npsidimr') case.
 lin%comsr%nsendBuf=0
 do iorb=1,lin%lb%orbs%norbp
-    ilr=lin%lb%onWhichAtom(iorb)
-    lin%comsr%nsendBuf = lin%comsr%nsendBuf + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
+    ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
+    lin%comsr%nsendBuf=lin%comsr%nsendBuf+lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
 end do
 
-allocate(lin%comsr%sendBuf(lin%comsr%nsendBuf), stat=istat)
-call memocc(istat, lin%comsr%sendBuf, 'lin%comsr%sendBuf', subname)
-call razero(lin%comsr%nSendBuf, lin%comsr%sendBuf)
-
-allocate(lin%comsr%recvBuf(lin%comsr%nrecvBuf), stat=istat)
-call memocc(istat, lin%comsr%recvBuf, 'lin%comsr%recvBuf', subname)
-call razero(lin%comsr%nrecvBuf, lin%comsr%recvBuf)
+!!allocate(lin%comsr%sendBuf(lin%comsr%nsendBuf), stat=istat)
+!!call memocc(istat, lin%comsr%sendBuf, 'lin%comsr%sendBuf', subname)
+!!call razero(lin%comsr%nSendBuf, lin%comsr%sendBuf)
+!!
+!!allocate(lin%comsr%recvBuf(lin%comsr%nrecvBuf), stat=istat)
+!!call memocc(istat, lin%comsr%recvBuf, 'lin%comsr%recvBuf', subname)
+!!call razero(lin%comsr%nrecvBuf, lin%comsr%recvBuf)
 
 end subroutine initializeCommsSumrho2
+
+
+
+subroutine allocateCommunicationbufferSumrho(comsr, subname)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(p2pCommsSumrho),intent(inout):: comsr
+character(len=*),intent(in):: subname
+
+! Local variables
+integer:: istat
+
+allocate(comsr%sendBuf(comsr%nsendBuf), stat=istat)
+call memocc(istat, comsr%sendBuf, 'comsr%sendBuf', subname)
+call razero(comsr%nSendBuf, comsr%sendBuf)
+
+allocate(comsr%recvBuf(comsr%nrecvBuf), stat=istat)
+call memocc(istat, comsr%recvBuf, 'comsr%recvBuf', subname)
+call razero(comsr%nrecvBuf, comsr%recvBuf)
+
+end subroutine allocateCommunicationbufferSumrho
+
+
+subroutine deallocateCommunicationbufferSumrho(comsr, subname)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+type(p2pCommsSumrho),intent(inout):: comsr
+character(len=*),intent(in):: subname
+
+! Local variables
+integer:: istat, iall
+
+iall=-product(shape(comsr%sendBuf))*kind(comsr%sendBuf)
+deallocate(comsr%sendBuf, stat=istat)
+call memocc(istat, iall, 'comsr%sendBuf', subname)
+
+iall=-product(shape(comsr%recvBuf))*kind(comsr%recvBuf)
+deallocate(comsr%recvBuf, stat=istat)
+call memocc(istat, iall, 'comsr%recvBuf', subname)
+
+
+end subroutine deallocateCommunicationbufferSumrho
+
+
 
 
 subroutine allocateLinArrays(lin)
@@ -1232,20 +1216,17 @@ integer:: istat
 character(len=*),parameter:: subname='allocateLinArrays'
 
 
-allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
-call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
+!allocate(lin%onWhichAtom(lin%orbs%norbp), stat=istat)
+!call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtom', subname)
 
-allocate(lin%onWhichAtomAll(lin%orbs%norb), stat=istat)
-call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtomAll', subname)
+!allocate(lin%onWhichAtomAll(lin%orbs%norb), stat=istat)
+!call memocc(istat, lin%onWhichAtom, 'lin%onWhichAtomAll', subname)
 
-allocate(lin%lb%onWhichAtom(lin%lb%orbs%norbp), stat=istat)
-call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtom', subname)
+!allocate(lin%lb%onWhichAtom(lin%lb%orbs%norbp), stat=istat)
+!call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtom', subname)
 
-allocate(lin%lb%onWhichAtomAll(lin%lb%orbs%norb), stat=istat)
-call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtomAll', subname)
-
-allocate(lin%phiRestart(lin%orbs%npsidim), stat=istat)
-call memocc(istat, lin%phiRestart, 'lin%phiRestart', subname)
+!allocate(lin%lb%onWhichAtomAll(lin%lb%orbs%norb), stat=istat)
+!call memocc(istat, lin%lb%onWhichAtom, 'lin%lb%onWhichAtomAll', subname)
 
 
 end subroutine allocateLinArrays
@@ -1282,6 +1263,7 @@ end subroutine allocateBasicArrays
 subroutine initLocregs(iproc, nproc, nat, rxyz, lin, input, Glr, phi, lphi)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => initLocregs2
 implicit none
 
 ! Calling arguments
@@ -1297,11 +1279,15 @@ integer:: istat, npsidim, npsidimr, iorb, ilr
 character(len=*),parameter:: subname='initLocregs'
 
 ! Allocate the array of localisation regions
-allocate(lin%Llr(lin%nlr),stat=istat)
+!allocate(lin%Llr(lin%nlr),stat=istat)
 allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
+do ilr=1,lin%lzd%nlr
+    call nullify_locreg_descriptors(lin%lzd%llr(ilr))
+end do
 allocate(lin%lb%lzd%Llr(lin%lzd%nlr),stat=istat)
-allocate(lin%outofzone(3,lin%nlr),stat=istat)
-call memocc(istat,lin%outofzone,'lin%outofzone',subname)
+do ilr=1,lin%lzd%nlr
+    call nullify_locreg_descriptors(lin%lb%lzd%llr(ilr))
+end do
 
 
 !! Write some physical information on the Glr
@@ -1317,9 +1303,9 @@ call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 !    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
 !end if
 
- call determine_locreg_periodic(iproc, nproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
- call determine_locreg_periodic(iproc, nproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
- call determine_locreg_periodic(iproc, nproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr)
+ !call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
+ call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
+ call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr)
 
 !!do ilr=1,lin%nlr
 !!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
@@ -1337,23 +1323,24 @@ call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 ! Calculate the dimension of the wave function for each process.
 npsidim=0
 do iorb=1,lin%orbs%norbp
-    ilr=lin%onWhichAtom(iorb)
-    npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
+    !ilr=lin%onWhichAtom(iorb)
+    ilr=lin%lzd%orbs%inWhichLocregp(iorb)
+    npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
 end do
-lin%Lorbs%npsidim=npsidim
+!lin%Lorbs%npsidim=npsidim
 lin%lzd%orbs%npsidim=npsidim
 
 if(.not. lin%useDerivativeBasisFunctions) then
-    lin%lb%Lorbs%npsidim=npsidim
+    !lin%lb%Lorbs%npsidim=npsidim
     lin%lb%lzd%orbs%npsidim=npsidim
 else
     npsidim=0
     do iorb=1,lin%lb%orbs%norbp
-        ilr=lin%lb%onWhichAtom(iorb)
-        npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
+        ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
+        npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
         !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
     end do
-    lin%lb%Lorbs%npsidim=npsidim
+    !lin%lb%Lorbs%npsidim=npsidim
     lin%lb%lzd%orbs%npsidim=npsidim
 end if
 
@@ -1362,13 +1349,13 @@ end if
 allocate(phi(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, phi, 'phi', subname)
 
-allocate(lphi(lin%lb%Lorbs%npsidim), stat=istat)
+allocate(lphi(lin%lb%lzd%orbs%npsidim), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
 
-allocate(lin%lphiold(lin%lb%Lorbs%npsidim), stat=istat)
+allocate(lin%lphiold(lin%lb%lzd%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
 
-allocate(lin%lhphiold(lin%lb%Lorbs%npsidim), stat=istat)
+allocate(lin%lhphiold(lin%lb%lzd%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lhphiold, 'lin%lhphiold', subname)
 
 end subroutine initLocregs
@@ -1381,6 +1368,7 @@ end subroutine initLocregs
 subroutine initLocregs2(iproc, nproc, nat, rxyz, lzd, input, Glr, locrad)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => initLocregs2
 implicit none
 
 ! Calling arguments
@@ -1398,9 +1386,10 @@ character(len=*),parameter:: subname='initLocregs'
 
 ! Allocate the array of localisation regions
 allocate(lzd%Llr(lzd%nlr),stat=istat)
+do ilr=1,lzd%nlr
+    call nullify_locreg_descriptors(lzd%llr(ilr))
+end do
 !! ATTENATION: WHAT ABAOUT OUTOFZONE??
-!allocate(lin%outofzone(3,lin%nlr),stat=istat)
-!call memocc(istat,lin%outofzone,'lin%outofzone',subname)
 
 
 !! Write some physical information on the Glr
@@ -1416,7 +1405,7 @@ allocate(lzd%Llr(lzd%nlr),stat=istat)
 !    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
 !end if
 
- call determine_locreg_periodic(iproc, nproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr)
+ call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr)
 
 !do ilr=1,lin%nlr
 !    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
@@ -1431,34 +1420,12 @@ allocate(lzd%Llr(lzd%nlr),stat=istat)
 ! ('npsidimr') case.
 npsidim=0
 do iorb=1,lzd%orbs%norbp
-    !ilr=lin%onWhichAtom(iorb)
-    ilr=lzd%orbs%inWhichLocreg(iorb)
+    ilr=lzd%orbs%inWhichLocregp(iorb)
     npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*lzd%orbs%nspinor
 end do
 !! WARNING: CHECHK THIS
-!lin%Lorbs%npsidim=npsidim
 lzd%orbs%npsidim=npsidim
 
-!! WARNING: CHECK THIS
-!if(.not. lin%useDerivativeBasisFunctions) then
-!    lin%lb%Lorbs%npsidim=npsidim
-!else
-!    npsidim=0
-!    do iorb=1,lin%lb%orbs%norbp
-!        ilr=lin%lb%onWhichAtom(iorb)
-!        npsidim = npsidim + (lin%Llr(ilr)%wfd%nvctr_c+7*lin%Llr(ilr)%wfd%nvctr_f)*lin%lb%orbs%nspinor
-!        npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
-!    end do
-!    lin%lb%Lorbs%npsidim=npsidim
-!end if
-
-
- !! WARNING: CHECKTHIS
-!allocate(phi(lin%lb%orbs%npsidim), stat=istat)
-!call memocc(istat, phi, 'phi', subname)
-!
-!allocate(lphi(lin%lb%Lorbs%npsidim), stat=istat)
-!call memocc(istat, lphi, 'lphi', subname)
 
 end subroutine initLocregs2
 
@@ -1558,4 +1525,209 @@ end subroutine initCoefficients
 !!
 !!
 !!end subroutine allocateAndCopyLocreg
+
+
+
+
+
+subroutine nullify_linear_zone_descriptors(lzd)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_linear_zone_descriptors
+  implicit none
+
+  ! Calling arguments
+  type(linear_zone_descriptors),intent(out):: lzd
+  
+  call nullify_orbitals_data(lzd%orbs)
+  nullify(lzd%lorbs)
+  call nullify_communications_arrays(lzd%comms)
+  call nullify_locreg_descriptors(lzd%glr)
+  call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
+  nullify(lzd%llr)
+  nullify(lzd%lnlpspd)
+  !call nullify_matrixMinimization(lzd%matmin)
+  
+end subroutine nullify_linear_zone_descriptors
+
+
+
+subroutine nullify_orbitals_data(orbs)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(orbitals_data),intent(out):: orbs
+  
+  nullify(orbs%norb_par)
+  nullify(orbs%iokpt)
+  nullify(orbs%ikptproc)
+  nullify(orbs%inwhichlocreg)
+  nullify(orbs%inWhichLocregP)
+  nullify(orbs%onWhichMPI)
+  nullify(orbs%isorb_par)
+  nullify(orbs%eval)
+  nullify(orbs%occup)
+  nullify(orbs%spinsgn)
+  nullify(orbs%kwgts)
+  nullify(orbs%kpts)
+
+end subroutine nullify_orbitals_data
+
+
+subroutine nullify_communications_arrays(comms)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(communications_arrays),intent(out):: comms
+
+  nullify(comms%ncntd)
+  nullify(comms%ncntt)
+  nullify(comms%ndspld)
+  nullify(comms%ndsplt)
+  nullify(comms%nvctr_par)
+  
+end subroutine nullify_communications_arrays
+
+
+subroutine nullify_locreg_descriptors(lr)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_locreg_descriptors
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(out):: lr
+
+
+  nullify(lr%projflg)
+  call nullify_wavefunctions_descriptors(lr%wfd)
+  call nullify_convolutions_bounds(lr%bounds)
+
+end subroutine nullify_locreg_descriptors
+
+
+subroutine nullify_wavefunctions_descriptors(wfd)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(wavefunctions_descriptors),intent(out):: wfd
+
+  nullify(wfd%keyg)
+  nullify(wfd%keyv)
+
+end subroutine nullify_wavefunctions_descriptors
+
+
+subroutine nullify_convolutions_bounds(bounds)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_convolutions_bounds
+  implicit none
+
+  ! Calling arguments
+  type(convolutions_bounds),intent(out):: bounds
+
+  call nullify_kinetic_bounds(bounds%kb)
+  call nullify_shrink_bounds(bounds%sb)
+  call nullify_grow_bounds(bounds%gb)
+  nullify(bounds%ibyyzz_r)
+
+end subroutine nullify_convolutions_bounds
+
+
+
+subroutine nullify_kinetic_bounds(kb)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(kinetic_bounds),intent(out):: kb
+
+  nullify(kb%ibyz_c)
+  nullify(kb%ibxz_c)
+  nullify(kb%ibxy_c)
+  nullify(kb%ibyz_f)
+  nullify(kb%ibxz_f)
+  nullify(kb%ibxy_f)
+
+end subroutine nullify_kinetic_bounds
+
+
+
+subroutine nullify_shrink_bounds(sb)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(shrink_bounds),intent(out):: sb
+
+  nullify(sb%ibzzx_c)
+  nullify(sb%ibyyzz_c)
+  nullify(sb%ibxy_ff)
+  nullify(sb%ibzzx_f)
+  nullify(sb%ibyyzz_f)
+
+end subroutine nullify_shrink_bounds
+
+
+
+subroutine nullify_grow_bounds(gb)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(grow_bounds),intent(out):: gb
+
+  nullify(gb%ibzxx_c)
+  nullify(gb%ibxxyy_c)
+  nullify(gb%ibyz_ff)
+  nullify(gb%ibzxx_f)
+  nullify(gb%ibxxyy_f)
+
+end subroutine nullify_grow_bounds
+
+
+
+subroutine nullify_nonlocal_psp_descriptors(nlpspd)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(nonlocal_psp_descriptors),intent(out):: nlpspd
+
+  nullify(nlpspd%nvctr_p)
+  nullify(nlpspd%nseg_p)
+  nullify(nlpspd%keyv_p)
+  nullify(nlpspd%keyg_p)
+  nullify(nlpspd%nboxp_c)
+  nullify(nlpspd%nboxp_f)
+
+end subroutine nullify_nonlocal_psp_descriptors
+
+
+
+subroutine nullify_matrixMinimization(matmin)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  type(matrixMinimization),intent(out):: matmin
+
+  nullify(matmin%mlr)
+  nullify(matmin%inWhichLocregExtracted)
+  nullify(matmin%inWhichLocregOnMPI)
+  nullify(matmin%indexInLocreg)
+
+end subroutine nullify_matrixMinimization
 

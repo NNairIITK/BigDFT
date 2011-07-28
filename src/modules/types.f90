@@ -275,8 +275,8 @@ module module_types
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
      integer, dimension(:,:), pointer :: nvctr_par
-  integer,dimension(:,:,:,:),pointer:: nvctr_parLIN
-  integer, dimension(:), pointer :: ncntdLIN,ncnttLIN,ndspldLIN,ndspltLIN
+  !integer,dimension(:,:,:,:),pointer:: nvctr_parLIN
+  !integer, dimension(:), pointer :: ncntdLIN,ncnttLIN,ndspldLIN,ndspltLIN
 
   end type communications_arrays
 
@@ -395,7 +395,7 @@ module module_types
 
 !> Contains the parameters neeed for the point to point communications
 !! for gathering the potential (for the application of the Hamiltonian)
-   type,public::p2pCommsGatherPot
+   type,public:: p2pCommsGatherPot
        integer,dimension(:),pointer:: noverlaps, overlaps
        integer,dimension(:,:),pointer:: ise3 ! starting / ending index of recvBuf in z dimension after communication (glocal coordinates)
        integer,dimension(:,:,:),pointer:: comarr
@@ -463,17 +463,16 @@ module module_types
 
 !!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: linear_zone_descriptors
+    logical :: linear                                           !> if true, use linear part of the code
     integer :: nlr                                              !> Number of localization regions 
     integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
-    type(orbitals_data) :: orbs                                !> Global orbitals descriptors
+    type(orbitals_data) :: orbs                                 !> Global orbitals descriptors
     type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
     type(communications_arrays) :: comms                        !> Global communication descriptors
-    type(communications_arrays) :: Lcomms                       !> Local communication arrays
     type(locreg_descriptors) :: Glr                             !> Global region descriptors
     type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
     type(nonlocal_psp_descriptors),dimension(:),pointer :: Lnlpspd      !> Nonlocal pseudopotential descriptors for locreg (dimension = nlr)
-    type(matrixMinimization):: matmin
   end type
 
 
@@ -484,17 +483,19 @@ module module_types
 !! from those in lin%orbs etc.
 type,public:: largeBasis
     type(communications_arrays):: comms
-    type(orbitals_data):: orbs, Lorbs
+    type(orbitals_data):: orbs
     type(linear_zone_descriptors):: lzd
-    integer,dimension(:),pointer:: onWhichAtom, onWhichAtomAll
     type(p2pCommsRepartition):: comrp
+    type(p2pCommsOrthonormality):: comon
+    type(overlapParameters):: op
+    type(p2pCommsGatherPot):: comgp
 end type largeBasis
 
   !> Contains the parameters for the parallel input guess for the O(N) version.
   type,public:: inguessParameters
     integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
     integer,dimension(:),pointer:: norb_par, onWhichMPI, isorb_par, nvctrp_nz, sendcounts, senddispls, recvcounts, recvdispls
-    type(matrixLocalizationRegion),dimension(:),pointer:: mlr
+    !!type(matrixLocalizationRegion),dimension(:),pointer:: mlr
   end type inguessParameters
 
   type,public:: localizedDIISParameters
@@ -505,33 +506,31 @@ end type largeBasis
     logical:: switchSD
   end type localizedDIISParameters
 
+  type,public:: mixrhopotDIISParameters
+    integer:: is, isx, mis
+    real(8),dimension(:),pointer:: rhopotHist, rhopotresHist
+    real(8),dimension(:,:),pointer:: mat
+  end type mixrhopotDIISParameters
+
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
-    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho
+    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, phiRestart, lphiRestart, lphiold, lhphiold
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lhphiold
     real(8),dimension(:,:),pointer:: hamold
-    type(orbitals_data):: orbs, Lorbs
-    type(communications_arrays):: comms, Lcomms
-    type(locreg_descriptors):: lr
-    type(locreg_descriptors),dimension(:),pointer:: Llr
-    type(wavefunctions_descriptors),dimension(:,:),pointer :: wfds
-    integer,dimension(:),pointer:: onWhichAtom, norbsPerType, onWhichAtomAll
-    integer,dimension(:),pointer:: MPIComms, norbPerComm
-    integer,dimension(:,:),pointer:: procsInComm, outofzone
-    integer,dimension(:,:,:),pointer:: receiveArr
-    integer:: ncomms
+    type(orbitals_data):: orbs
+    type(communications_arrays):: comms
+    integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
     character(len=4):: getCoeff, mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
-    type(p2pCommsGatherPot):: comgp_lb
     type(largeBasis):: lb
     type(linear_zone_descriptors):: lzd
-    type(p2pCommsOrthonormality):: comon, comon_lb
-    type(overlapParameters):: op, op_lb
+    type(p2pCommsOrthonormality):: comon
+    type(overlapParameters):: op
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure

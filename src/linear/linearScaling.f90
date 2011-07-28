@@ -115,7 +115,8 @@ real(8):: t1, t2, time
 
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
-integer:: iorb, istart, sizeLphir, sizePhibuffr
+integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot
+type(mixrhopotDIISParameters):: mixdiis
 
 
 
@@ -135,45 +136,33 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
        comms, Glr, input, lin, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-       phi, ehart, eexcu, vexcu)
-  !!do iall=1,size(phi)
-  !!    if(lin%locrad(1)==800.d0) then
-  !!        write(500+iproc,*) iall, phi(iall)
-  !!    else
-  !!        write(510+iproc,*) iall, phi(iall)
-  !!    end if
-  !!end do
-
-  ! Cut off outside localization region -- experimental
-  call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+       lphi, ehart, eexcu, vexcu)
+  !read(100+iproc,*) lphi
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-  !!do iall=1,ndimpot
-  !!    if(lin%locrad(1)==800.d0) then
-  !!        write(700+iproc,*) iall, rhopot(iall)
-  !!    else
-  !!        read(700+iproc,*) istat, rhopot(iall)
-  !!    end if
-  !!end do
+  call allocateCommunicationsBuffersPotential(lin%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-  if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
+  if(lin%useDerivativeBasisFunctions) then
+      call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+  end if
 
 
   updatePhi=.false.
-  call mpi_barrier(mpi_comm_world, ierr)
+  !do istat=1,size(lphi)
+  !do istat=1,size(lphi)
+  !    write(1000+iproc,*) lphi(istat)
+  !end do
+  !call mpi_barrier(mpi_comm_world, ierr)
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
-
-  !!call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
-  !!  .5d0*input%hy, .5d0*input%hz, 0)
-
-
   call cpu_time(t1)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
        rhopot, at, nscatterarr)
+  call deallocateCommunicationbufferSumrho(lin%comsr, subname)
   call cpu_time(t2)
   time=t2-t1
   call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
@@ -191,6 +180,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       coeff, ehart, eexcu, vexcu)
 
+
   ! Copy the current potential.
   if(trim(lin%mixingMethod)=='pot') then
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
@@ -198,8 +188,12 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+  call allocateCommunicationsBuffersPotential(lin%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-  if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
+  if(lin%useDerivativeBasisFunctions) then
+      call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+  end if
 
 
 
@@ -216,14 +210,19 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
   !allocate(rhopotOld(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), stat=istat)
   !call memocc(istat, rhopotOld, 'rhopotOld', subname)
   updatePhi=.true.
+
+  if(lin%mixHist>0) then
+      call initializeMixrhopotDIIS(lin%mixHist, ndimpot, mixdiis)
+  end if
+
   do itSCC=1,nitSCC
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
-      ! Cut off outside localization region -- experimental
-      call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
+      !!! Cut off outside localization region -- experimental
+      !!call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
 
       ! Copy the current potential
@@ -236,6 +235,7 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       !!call cpu_time(t1)
       call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
            rhopot, at, nscatterarr)
+      call deallocateCommunicationbufferSumrho(lin%comsr, subname)
       !!call cpu_time(t2)
       !!time=t2-t1
       !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
@@ -243,7 +243,15 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
 
       ! Mix the density.
       if(trim(lin%mixingMethod)=='dens') then
-          call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+          if(lin%mixHist==0) then
+              call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+          else 
+              ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+              ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+              mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+              mixdiis%is=mixdiis%is+1
+              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 1, pnrm)
+          end if
       end if
 
       ! Copy the current charge density.
@@ -258,10 +266,10 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
       ! Calculate the total energy.
       energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
-      ! Post communications for gathering the potential
-      !! IS THIS CORRECT HERE???
-      ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-      call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+      !!! Post communications for gathering the potential
+      !!!! IS THIS CORRECT HERE???
+      !!ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+      !!call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
       ! Post communications for gathering the potential
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -295,24 +303,50 @@ integer:: iorb, istart, sizeLphir, sizePhibuffr
 
       ! Mix the potential
       if(trim(lin%mixingMethod)=='pot') then
+          if(lin%mixHist==0) then
            call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+          else 
+              ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+              ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
+              mixdiis%mis=mod(mixdiis%is,mixdiis%isx)+1
+              mixdiis%is=mixdiis%is+1
+              call mixrhopotDIIS(iproc, nproc, ndimpot, rhopot, rhopotold, mixdiis, ndimtot, lin%alphaMix, 2, pnrm)
+          end if
       end if
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
+      call allocateCommunicationsBuffersPotential(lin%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
-      if(lin%useDerivativeBasisFunctions) call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp_lb)
+      if(lin%useDerivativeBasisFunctions) then
+          call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+          call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
+      end if
 
       ! Write some informations
       call printSummary(iproc, itSCC, infoBasisFunctions, infoCoeff, pnrm, energy, lin%mixingMethod)
       if(pnrm<lin%convCritMix) exit
   end do
+
+  call cancelCommunicationPotential(iproc, nproc, lin%comgp)
+  call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
+  if(lin%useDerivativeBasisFunctions) then
+      call cancelCommunicationPotential(iproc, nproc, lin%lb%comgp)
+      call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
+  end if
+
   iall=-product(shape(rhopotOld))*kind(rhopotOld)
   deallocate(rhopotOld, stat=istat)
   call memocc(istat, iall, 'rhopotOld', subname)
+
+  if(lin%mixHist>0) then
+      call deallocateMixrhopotDIIS(mixdiis)
+  end if
+
 
 
   ! Calculate the forces we get with psi.
   call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi, lphi, coeff)
@@ -411,3 +445,34 @@ character(len=4),intent(in):: mixingMethod
   end if
 
 end subroutine printSummary
+
+
+subroutine cancelCommunicationPotential(iproc, nproc, comgp)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(p2pCommsGatherPot),intent(inout):: comgp
+
+! Local variables
+integer:: jproc, kproc, ierr
+integer,dimension(mpi_status_size):: stat
+logical:: sendComplete, receiveComplete
+
+! Cancel all communications. 
+! It gives errors, therefore simply wait for the communications to complete.
+do jproc=0,nproc-1
+    do kproc=1,comgp%noverlaps(jproc)
+        !call mpi_test(comgp%comarr(7,kproc,jproc), sendComplete, stat, ierr)
+        !call mpi_test(comgp%comarr(8,kproc,jproc), receiveComplete, stat, ierr)
+        !if(sendComplete .and. receiveComplete) cycle
+        !call mpi_cancel(comgp%comarr(7,kproc,jproc), ierr)
+        !call mpi_cancel(comgp%comarr(8,kproc,jproc), ierr)
+        call mpi_wait(comgp%comarr(7,kproc,jproc), stat, ierr)
+        call mpi_wait(comgp%comarr(8,kproc,jproc), stat, ierr)
+    end do
+end do
+
+end subroutine cancelCommunicationPotential
