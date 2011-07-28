@@ -101,12 +101,12 @@ real(8):: fnoise
 integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot
 real(8),dimension(:),pointer:: phi, phid
 real(8),dimension(:,:),pointer:: coeff, coeffd
-real(8):: ebs, ebsMod, alpha, pnrm, tt, ehart, eexcu, vexcu
+real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu
 character(len=*),parameter:: subname='linearScaling'
 real(8),dimension(:),allocatable:: rhopotOld
 type(linearParameters):: lind
 logical:: updatePhi
-real(8),dimension(:),pointer:: lphi, lphid, lphir, lphird, phibuffr, phibuffrd
+real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(8),dimension(:),allocatable:: phiTemp
@@ -124,7 +124,6 @@ type(mixrhopotDIISParameters):: mixdiis
   if(iproc==0) then
       write(*,'(x,a)') repeat('*',84)
       write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'
-      write(*,'(x,a)') '********* Use the selfconsistent potential for the linear scaling version. *********'
   end if
 
   ! Initialize the parameters for the linear scaling version and allocate all arrays.
@@ -155,11 +154,6 @@ type(mixrhopotDIISParameters):: mixdiis
 
 
   updatePhi=.false.
-  !do istat=1,size(lphi)
-  !do istat=1,size(lphi)
-  !    write(1000+iproc,*) lphi(istat)
-  !end do
-  !call mpi_barrier(mpi_comm_world, ierr)
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
@@ -211,7 +205,6 @@ type(mixrhopotDIISParameters):: mixdiis
 
   if(nproc==1) allocate(psit(size(psi)))
   nitSCC=lin%nitSCC
-  alpha=.1d0
   !allocate(rhopotOld(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), stat=istat)
   !call memocc(istat, rhopotOld, 'rhopotOld', subname)
   updatePhi=.true.
@@ -226,8 +219,6 @@ type(mixrhopotDIISParameters):: mixdiis
           nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
           i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
-      !!! Cut off outside localization region -- experimental
-      !!call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
 
 
       ! Copy the current potential

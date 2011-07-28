@@ -1807,9 +1807,9 @@ contains
   !! scaling case.
   subroutine finalDeallocationForLinear()
 
-    if (in%idsx > 0) then
-       call deallocate_diis_objects(diis,subname)
-    end if
+    !if (in%idsx > 0) then
+    !   call deallocate_diis_objects(diis,subname)
+    !end if
 
     if (nproc > 1) then
        i_all=-product(shape(psit))*kind(psit)

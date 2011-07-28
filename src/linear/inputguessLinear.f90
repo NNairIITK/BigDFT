@@ -2328,8 +2328,6 @@ type(matrixMinimization):: matmin
       ! Allocate the local arrays.
       call allocateArrays()
 
-      write(*,*) 'iproc, orbsig%norb', iproc, orbsig%norb
-      write(*,'(a,4i9)') 'iproc, ip%norb, ip%norbtot, ip%norbtotPad', iproc, ip%norb, ip%norbtot, ip%norbtotPad
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, lin%locrad, rxyz, lin%lzd, matmin%mlr)
       call extractMatrix(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, at%nat, ham, matmin, hamextract)
       call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lin%orbs, orbsig, onWhichAtom, onWhichAtomPhi, comom)
@@ -2603,9 +2601,6 @@ type(matrixMinimization):: matmin
   call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
 
   if(iproc<ip%nproc) then
-      do ilr=1,lzdig%nlr
-          write(*,'(a,i4,l)') 'iproc, associated(matmin%mlr(ilr)%indexInGlobal)', iproc, associated(matmin%mlr(ilr)%indexInGlobal)
-      end do
       call deallocate_inguessParameters(ip, subname)
       call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
       call deallocate_matrixMinimization(matmin,subname)
@@ -2747,7 +2742,6 @@ do ilr=1,nlr
     call nullify_matrixLocalizationRegion(mlr(ilr))
 end do
 
-write(*,'(a,i5,5x,100i3)') 'in determineLocalizationRegions: norb, owAA', norb, onWhichAtomAll
 ! Count for each localization region the number of matrix elements within the cutoff.
 do ilr=1,nlr
     mlr(ilr)%norbinlr=0
@@ -3192,7 +3186,6 @@ comom%nrecvBuf=0
 do jproc=0,nproc-1
     jkorb=0
     jlrold=0
-    write(*,'(a,3i9)') 'iproc, jproc, norb_par(jproc)', iproc, jproc, norb_par(jproc)
     do jorb=1,norb_par(jproc)
         jjorb=isorb_par(jproc)+jorb
         jlr=onWhichAtomPhi(jjorb)
@@ -4326,7 +4319,6 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
   ! Post the messages for the communication of the potential.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-  write(*,'(a,2i12)') 'iproc, lin%lig%comgp%nrecvBuf', iproc, lin%lig%comgp%nrecvBuf
   call allocateCommunicationsBuffersPotential(lin%lig%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lig%comgp)
 
@@ -4370,11 +4362,6 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
       if(iproc==0) write(*,'(a)') 'done.'
   end do
-  !do iat=1,at%nat
-  !    do i_all=1,size(lchi)
-  !        write(230+iproc,*) iat, i_all, lhchi(i_all,iat)
-  !    end do
-  !end do
   call cpu_time(t2)
   time=t2-t1
   call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
@@ -4483,18 +4470,11 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   real(wp), dimension(:,:,:), pointer :: psigau
 !type(linear_zone_descriptors):: lzdig, lzdGauss
 !type(orbitals_data):: orbsig, orbsGauss
-type(p2pCommsGatherPot):: comgp
 integer:: istat, tag
-real(8),dimension(:),allocatable:: lchi, lchi2
-real(8),dimension(:,:),allocatable::  lhchi
-real(8),dimensioN(:,:,:),allocatable:: ham
 integer,dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp
 integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
-logical:: withConfinement, ovrlpx, ovrlpy, ovrlpz
-logical,dimension(:),allocatable:: doNotCalculate
 integer, dimension(lmax+1) :: nl
 real(gp), dimension(noccmax,lmax+1) :: occup
-real(8):: dnrm2, ddot, dasum, t1, t2, time
 integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr, norbtot
 integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
 
@@ -4576,14 +4556,12 @@ integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
   call nullify_locreg_descriptors(lin%lig%lzdGauss%Glr)
   call copy_locreg_descriptors(Glr, lin%lig%lzdGauss%Glr, subname)
 
-
-  locrad=20.d0
-  !call copy_orbitals_data(lzdGauss%orbs, orbsGauss, subname)
   call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdig, lin%lig%orbsig, input, Glr, lin%locrad)
+
+  ! Calculate the localization regions for the atomic orbitals, which have a different localization radius.
+  locrad=20.d0
   call nullify_orbitals_data(lin%lig%orbsGauss)
-  !call nullify_orbitals_data(lin%lig%lzdGauss%orbs)
   call copy_orbitals_data(lin%lig%orbsig, lin%lig%orbsGauss, subname)
-  !call copy_orbitals_data(lin%lig%orbsig, lin%lig%lzdGauss%orbs, subname)
   call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdGauss, lin%lig%orbsGauss, input, Glr, locrad)
 
   tag=20000
