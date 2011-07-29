@@ -591,34 +591,22 @@ type(atoms_data),intent(in):: at
 integer, dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 
 ! Local variables
-integer:: iorb, jorb, korb, istat, ind, ind1, ind2, indLarge, i1, i2, i3, ilr, jlr, i_f, iseg_f
-integer:: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, ldim, gdim, iall, istr, istri, istrj
-integer:: indi2, indi3, indj2, indj3, indl2, indl3, mpisource, mpidest, orbitalsource, tag, lrsource, iiorb, jjorb
-integer:: ist, klr, cnt, ierr, istrecv, ii, ilrprev, istSend, nSendRecv, nSendRecvCheck, requestStart, sizePhibuffr, kst
-integer:: jproc, jprocprev, mpidestprev, is, ie, ioverlap, orbitaldest, sizePhibuff, kproc, nreceives, istsource, istdest, ncount
-integer:: nsends, nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
-real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tr, partialCharge, tt0, tt1, tt2, tt3, factorTimesDensKern
-real(8),dimension(:),allocatable:: phir1, phir2, Lphi, Lphir1, lPhir2, rho2
+integer:: iorb, jorb, korb, istat, indLarge, i1, i2, i3, ilr, jlr
+integer:: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, indrj, ldim, iall, istr, istri, istrj
+integer:: indi2, indi3, indj2, indj3, indl2, indl3, mpisource, mpidest, iiorb, jjorb
+integer:: ierr, jproc, is, ie, nreceives
+integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
+real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern
 real(8),dimension(:,:),allocatable:: densKern
-real(8),dimension(:),pointer:: rhofull
-type(workarr_sumrho):: w
-character(len=*),parameter:: subname='sumrhoForLocalizedBasis'
-real(8),dimension(0:3):: scal
-integer,dimension(:),allocatable:: request, startInd, nSendRecvArr, requestCheck,fromWhichLocreg
-!integer,dimension(:,:,:),allocatable:: commsSumrho
-logical,dimension(:,:),allocatable:: communComplete, computComplete
+character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
 integer,dimension(mpi_status_size):: stat
-integer,dimension(mpi_status_size,2):: stats
-logical:: quit, sendComplete, receiveComplete
+logical:: sendComplete, receiveComplete
 
 
 if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
 
 lin%comsr%communComplete=.false.
 lin%comsr%computComplete=.false.
-
-
-
 
 
 ! Allocate the density kernel.
@@ -687,7 +675,6 @@ testLoop: do
 end do testLoop
 
 
-
 ! Wait for the communications that have not completed yet
 nslow=0
 do jproc=0,nproc-1
@@ -711,16 +698,13 @@ if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to 
 if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
-quit=.false.
 do iorb=1,lin%comsr%noverlaps(iproc)
     if(.not. lin%comsr%communComplete(iorb,iproc)) then
         write(*,'(a,i0,a,i0,a)') 'ERROR: communication of orbital ', iorb, ' to process ', iproc, ' failed!'
-        !quit=.true.
         stop
     end if
     if(.not. lin%comsr%computComplete(iorb,iproc)) then
         write(*,'(a,i0,a,i0,a)') 'ERROR: computation of orbital ', iorb, ' on process ', iproc, ' failed!'
-        !quit=.true.
         stop
     end if
 end do

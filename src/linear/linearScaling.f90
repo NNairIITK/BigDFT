@@ -183,7 +183,12 @@ type(mixrhopotDIISParameters):: mixdiis
   call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
       rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       coeff, ehart, eexcu, vexcu)
-
+  do iall=1,size(rhopot)
+      read(10000+iproc,*) rhopot(iall)
+  end do
+  !do iall=1,size(lphi)
+  !    read(11000+iproc,*) lphi(iall)
+  !end do
 
   ! If we mix the potential, copy the potential.
   if(trim(lin%mixingMethod)=='pot') then

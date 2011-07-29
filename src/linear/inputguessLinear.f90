@@ -1616,7 +1616,6 @@ type(matrixMinimization):: matmin
               fnrmArr(iorb)=ddot(matmin%mlr(ilr), lgrad(1,iorb), 1, lgrad(1,iorb), 1)
               if(it>1) fnrmOvrlpArr(iorb)=ddot(matmin%mlr(ilr), lgrad(1,iorb), 1, lgradold(1,iorb), 1)
           end do
-          call mpi_barrier(newComm, ierr)
           call dcopy(ip%norb_par(iproc)*matmin%norbmax, lgrad(1,1), 1, lgradold(1,1), 1)
     
           ! Keep the gradient for the next iteration.

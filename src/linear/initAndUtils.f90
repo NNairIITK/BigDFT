@@ -72,6 +72,9 @@ do iat=1,at%nat
     norbsPerAtom(iat)=lin%norbsPerType(ityp)
     norb=norb+norbsPerAtom(iat)
 end do
+!!! ATTENTION: DEBUG
+!norb=31
+!!!!!!!!!!!!!!!!!!!
 
 ! Distribute the basis functions among the processors.
 norbu=norb
