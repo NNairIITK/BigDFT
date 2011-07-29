@@ -577,7 +577,7 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
      !call memocc(i_stat,ads,'ads',subname)
 
      !ncplx and ngroup have to be added
-     call razero(nkptsp*(idsx+1)**2,diis%ads)
+     call to_zero(nkptsp*(idsx+1)**2,diis%ads(1,1,1))
   end if
 
 END SUBROUTINE diis_or_sd
@@ -761,6 +761,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
            end if
            if (info /= 0) then
               print*, 'diisstp: GESV',info
+              stop
            end if
 
         else

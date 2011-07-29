@@ -5,14 +5,17 @@ program test_xc
 
   implicit none
 
-  integer, parameter :: n_funcs = 53
+  integer, parameter :: n_funcs = 54
   integer, dimension(n_funcs), parameter :: funcs = (/ &
        & 1, -20, 2, -1009, 3, 4, -1002, 5, -1004, 6, -6006, &
        & 7, -1012, 8, -1, 9, -1003, -1005, -1007, -1008, -1010, &
        & -1011, -1013, -1014, &
        & 11, -101130, 12, -101, 13, -160012, 14, -102130, 15, -117130, &
        & 16, -161, 17, -162, 23, -118, 26, -163, 27, -164, &
-       & -102, -103, -104, -105, -106, -107, -108, -109, -110 /)
+       & -102, -103, -104, -105, -106, -107, -108, -109, -110, &
+       & -406 /)
+!!$  integer, parameter :: n_funcs = 1
+!!$  integer, dimension(n_funcs), parameter :: funcs = (/ -101130 /)
   integer :: ifunc, ixc_prev
   real(dp) :: exc(2), dt
 
@@ -71,11 +74,7 @@ contains
 
           call gauss(rho, n_rho, i, type)
           if (xc_isgga()) call gaussgr(rhogr, rho, n_rho)
-          if (.not. xc_isgga()) then
-             call xc_getvxc(n_rho, exc, i, rho(1,1), vxc(1,1))
-          else
-             call xc_getvxc(n_rho, exc, i, rho(1,1), vxc(1,1), rhogr, vxcgr)
-          end if
+          call xc_getvxc(n_rho, exc, i, rho(1,1), vxc(1,1), rhogr, vxcgr)
           excs(i) = sum(exc)
 
           call xc_end()

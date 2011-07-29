@@ -251,8 +251,8 @@ contains
     integer, intent(in) :: npts,nspden
     real(dp),intent(in)  :: rho(npts,nspden)
     real(dp),intent(out) :: vxc(npts,nspden), exc(npts)
-    real(dp),intent(in), optional :: grho2(npts,2*min(nspden,2)-1)
-    real(dp),intent(out), optional :: vxcgr(npts,3)
+    real(dp),intent(in) :: grho2(*)
+    real(dp),intent(out) :: vxcgr(*)
     real(dp),intent(out), optional :: dvxci(npts,nspden + 1)
 
     !Local variables-------------------------------
@@ -304,7 +304,7 @@ contains
        ! Inititalize all relevant arrays to zero
        vxc=real(0,dp)
        exc=real(0,dp)
-       if (present(vxcgr)) vxcgr=real(0,dp)
+       if (xc_isgga()) call to_zero(npts * 3, vxcgr(1))
        if (present(dvxci)) dvxci=real(0,dp)
 
        !Loop over points
@@ -323,20 +323,18 @@ contains
           end if
           if (xc_isgga()) then
              sigma=real(0,dp)
-             if (present(grho2)) then
-                if (nspden==1) then
-                   ! ABINIT passes |rho_up|^2 while Libxc needs |rho_tot|^2
-                   sigma(1, 1:nb) = real(4,dp) * grho2(ipts:ipte,1)
-                else
-                   ! ABINIT passes |rho_up|^2, |rho_dn|^2, and |rho_tot|^2
-                   ! while Libxc needs |rho_up|^2, rho_up.rho_dn, and |rho_dn|^2
-                   do i = 1, nb
-                      sigma(1, i) = grho2(ipts + i - 1,1)
-                      sigma(2, i) = (grho2(ipts + i - 1,3) - &
-                           & grho2(ipts + i - 1,1) - grho2(ipts + i - 1,2))/real(2,dp)
-                      sigma(3, i) = grho2(ipts + i - 1,2)
-                   end do
-                end if
+             if (nspden==1) then
+                ! ABINIT passes |rho_up|^2 while Libxc needs |rho_tot|^2
+                sigma(1, 1:nb) = real(4,dp) * grho2(ipts:ipte)
+             else
+                ! ABINIT passes |rho_up|^2, |rho_dn|^2, and |rho_tot|^2
+                ! while Libxc needs |rho_up|^2, rho_up.rho_dn, and |rho_dn|^2
+                do i = 1, nb
+                   sigma(1, i) = grho2(ipts + i - 1)
+                   sigma(2, i) = (grho2(ipts + i - 1 + 2 * npts) - &
+                        & grho2(ipts + i - 1) - grho2(ipts + i - 1 + npts))/real(2,dp)
+                   sigma(3, i) = grho2(ipts + i - 1 + npts)
+                end do
              end if
           end if
 
@@ -382,18 +380,20 @@ contains
                 vxc(ipts:ipte,j) = vxc(ipts:ipte,j) + vxctmp(j, 1:nb)
              end do
 
-             if (xc_isgga() .and. present(vxcgr)) then
+             if (xc_isgga()) then
                 !Convert the quantities returned by Libxc to the ones needed by ABINIT
                 if (nspden == 1) then
-                   vxcgr(ipts:ipte,3) = &
-                        & vxcgr(ipts:ipte,3) + vsigma(1, 1:nb)*real(2,dp)
+                      vxcgr(ipts + 2 * npts:ipte + 2 * npts) = &
+                           & vxcgr(ipts + 2 * npts:ipte + 2 * npts) + &
+                           & vsigma(1, 1:nb)*real(2,dp)
                 else
-                   vxcgr(ipts:ipte,1) = &
-                        & vxcgr(ipts:ipte,1) + real(2,dp)*vsigma(1, 1:nb) - vsigma(2, 1:nb)
-                   vxcgr(ipts:ipte,2) = &
-                        & vxcgr(ipts:ipte,2) + real(2,dp)*vsigma(3, 1:nb) - vsigma(2, 1:nb)
-                   vxcgr(ipts:ipte,3) = &
-                        & vxcgr(ipts:ipte,3) + vsigma(2, 1:nb)
+                   vxcgr(ipts:ipte) = &
+                        & vxcgr(ipts:ipte) + real(2,dp)*vsigma(1, 1:nb) - vsigma(2, 1:nb)
+                   vxcgr(ipts + npts:ipte + npts) = &
+                        & vxcgr(ipts + npts:ipte + npts) + &
+                        & real(2,dp)*vsigma(3, 1:nb) - vsigma(2, 1:nb)
+                   vxcgr(ipts + 2 * npts:ipte + 2 * npts) = &
+                        & vxcgr(ipts + 2 * npts:ipte + 2 * npts) + vsigma(2, 1:nb)
                 end if
              end if
 
