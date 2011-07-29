@@ -141,7 +141,6 @@ type(mixrhopotDIISParameters):: mixdiis
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        lphi, ehart, eexcu, vexcu)
-  !read(100+iproc,*) lphi
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -152,12 +151,17 @@ type(mixrhopotDIISParameters):: mixdiis
       call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
   end if
 
-
+  ! Calculate the Hamiltonian in the basis of the trace minimizing orbitals. Do not improve
+  ! the basis functions (therefore update is set to false).
+  ! This subroutine will also post the point to point messages needed for the calculation
+  ! of the charge density.
   updatePhi=.false.
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
-      nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
-      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-      i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
+      nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+      infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
+      i3s, i3xcsh, ebs, coeff, lphi, radii_cf)
+
+  ! Calculate the charge density.
   call cpu_time(t1)
   call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
        rhopot, at, nscatterarr)
@@ -216,9 +220,9 @@ type(mixrhopotDIISParameters):: mixdiis
   do itSCC=1,nitSCC
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
-          nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
-          infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-          i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
+          nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+          infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
+          i3s, i3xcsh, ebs, coeff, lphi, radii_cf)
 
 
       ! Copy the current potential

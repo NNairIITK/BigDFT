@@ -1182,8 +1182,8 @@ module module_interfaces
       real(wp), dimension(:), pointer :: pot
     END SUBROUTINE free_full_potential
 
-    subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-        proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
+    subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
+        nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
         itSCC, infoBasisFunctions, radii_cf, ovrlp)
       use module_base
       use module_types
@@ -1196,8 +1196,6 @@ module module_interfaces
       type(linearParameters):: lin
       real(8),dimension(3,at%nat):: rxyz
       integer:: nspin
-      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-      real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
       real(dp), dimension(*), intent(inout) :: rhopot
@@ -1424,9 +1422,9 @@ module module_interfaces
     end subroutine apply_potentialConfinement
 
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
-        nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
-        infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-        i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebsMod, coeff, lphi, radii_cf)
+        nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+        infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
+        i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf)
       use module_base
       use module_types
       implicit none
@@ -1437,31 +1435,20 @@ module module_interfaces
       type(atoms_data),intent(in):: at
       type(linearParameters),intent(inout):: lin
       type(input_variables),intent(in):: input
-      real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
+      real(8),dimension(3,at%nat),intent(in):: rxyz
       real(8),dimension(3,at%nat),intent(inout):: rxyzParab
       integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
-      type(nonlocal_psp_descriptors),intent(in):: nlpspd
-      real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
       real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
       type(GPU_pointers),intent(inout):: GPU
-      integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
-      real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
       real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
       logical,intent(in):: updatePhi
-      real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
-      !real(wp), dimension(lin%as%size_rhocore):: rhocore 
-      real(wp), dimension(:),pointer,intent(in):: rhocore
-      real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
       real(dp),dimension(:),pointer,intent(in):: pkernelseq
       real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: phi
       real(8),dimension(orbs%npsidim),intent(out):: psi, psit
       integer,intent(out):: infoBasisFunctions, infoCoeff
-      character(len=3),intent(in):: PSquiet
       real(8),intent(out):: ebsMod
       real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
-      real(8),dimension(3,at%nat),intent(out):: fxyz
-      real(8):: eion, edisp, fnoise
       real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: lphi
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
     end subroutine getLinearPsi

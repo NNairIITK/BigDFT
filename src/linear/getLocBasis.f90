@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
-    nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
-    infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
+    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+    infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
+    i3s, i3xcsh, ebs, coeff, lphi, radii_cf)
 !
 ! Purpose:
 ! ========
@@ -32,7 +32,6 @@ subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rx
 !     nscatterarr     ???
 !     ngatherarr      ???
 !     nlpsp           ???
-!     proj            ???
 !     rhopot          the charge density
 !     GPU             parameters for GPUs
 !     input           type containing some very general parameters
@@ -68,31 +67,20 @@ type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
-real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
+real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(3,at%nat),intent(inout):: rxyzParab
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
-type(nonlocal_psp_descriptors),intent(in):: nlpspd
-real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
 type(GPU_pointers),intent(inout):: GPU
-integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
-real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons 
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
 logical,intent(in):: updatePhi
-real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
-!real(wp), dimension(lin%as%size_rhocore):: rhocore 
-real(wp), dimension(:),pointer,intent(in):: rhocore                  
-real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
 real(8),dimension(lin%lb%gorbs%npsidim),intent(inout):: phi
 real(8),dimension(orbs%npsidim),intent(out):: psi, psit
 integer,intent(out):: infoBasisFunctions, infoCoeff
-character(len=3),intent(in):: PSquiet
 real(8),intent(out):: ebs
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
-real(8),dimension(3,at%nat),intent(out):: fxyz
-real(8):: eion, edisp, fnoise
 real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: lphi
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 
@@ -103,18 +91,10 @@ real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
 real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2
-real(wp),dimension(:),pointer:: potential 
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
-character(len=11):: procName, orbNumber, orbName
-character(len=30):: filename
-
-
 integer:: ist, ierr
-  !do istat=1,size(lphi)
-  !    write(1010+iproc,*) lphi(istat)
-  !end do
 
   ! Allocate the local arrays.  
   allocate(matrixElements(lin%lb%orbs%norb,lin%lb%orbs%norb,2), stat=istat)
@@ -128,34 +108,14 @@ integer:: ist, ierr
   allocate(ovrlp(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
-  !!! Transform phi to the lphi.
-  !!ind1=1
-  !!ind2=1
-  !!do iorb=1,lin%orbs%norbp
-  !!    ilr = lin%onWhichAtom(iorb)
-  !!    ldim=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%lzd%llr(ilr), Glr, phi(ind1), lphi(ind2))
-  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    ind2=ind2+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  !!end do
-  !do istat=1,size(lphi)
-  !    write(1500+iproc,*) lphi(istat)
-  !end do
 
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
       if(lin%useDerivativeBasisFunctions) then
           call dcopy(lin%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
       end if
-      !do istat=1,size(rhopot)
-      !    write(2500+iproc,*) rhopot(istat)
-      !end do
-      !do istat=1,size(lphi)
-      !    write(2600+iproc,*) lphi(istat)
-      !end do
 
-      call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
+      call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
           nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trace, rxyzParab, &
           itSCC, infoBasisFunctions, radii_cf, ovrlp)
   end if
@@ -359,8 +319,8 @@ end subroutine getLinearPsi
 
 
 
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
+    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
     itScc, infoBasisFunctions, radii_cf, ovrlp)
 !
 ! Purpose:
@@ -383,7 +343,6 @@ subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspi
 !     rxyz            the atomic positions
 !     nspin           npsin==1 -> closed shell; npsin==2 -> spin polarized
 !     nlpsp           ???
-!     proj            ???
 !     nscatterarr     ???
 !     ngatherarr      ???
 !     rhopot          the charge density
@@ -425,8 +384,6 @@ type(input_variables):: input
 type(linearParameters):: lin
 real(8),dimension(3,at%nat):: rxyz, rxyzParabola
 integer:: nspin
-type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
 integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
 real(dp), dimension(*), intent(inout) :: rhopot
