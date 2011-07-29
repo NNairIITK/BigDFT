@@ -78,8 +78,6 @@ norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
-!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
-!     input%nkpt, input%kpt, input%wkpt, lin%lzd%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 
@@ -97,7 +95,6 @@ else
     norbd=0
 end if
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%orbs)
-!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%lzd%orbs)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, lin%lb%gorbs)
 
 
@@ -109,8 +106,6 @@ call orbitals_communicators(iproc,nproc,Glr,lin%orbs,lin%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%orbs,lin%lb%comms)
 call orbitals_communicators(iproc,nproc,Glr,lin%gorbs,lin%gcomms)
 call orbitals_communicators(iproc,nproc,Glr,lin%lb%gorbs,lin%lb%gcomms)
-!call orbitals_communicators(iproc,nproc,Glr,lin%lzd%orbs,lin%lzd%comms)
-!call orbitals_communicators(iproc,nproc,Glr,lin%lb%lzd%orbs,lin%lb%lzd%comms)
 
 
 ! Write all parameters related to the linear scaling version to the screen.
@@ -127,12 +122,6 @@ call allocateLinArrays(lin)
 ! This is the same as above, but with orbs%inWhichLocreg instead of lin%onWhichAtom
 ! The array inWhichLocreg has already been allocated in orbitals_descriptors. Since it will again be allocated
 ! in assignToLocreg2, deallocate it first.
-!iall=-product(shape(lin%lzd%orbs%inWhichLocreg))*kind(lin%lzd%orbs%inWhichLocreg)
-!deallocate(lin%lzd%orbs%inWhichLocreg, stat=istat)
-!call memocc(istat, iall, 'lin%lzd%orbs%inWhichLocreg', subname)
-!iall=-product(shape(lin%lb%lzd%orbs%inWhichLocreg))*kind(lin%lb%lzd%orbs%inWhichLocreg)
-!deallocate(lin%lb%lzd%orbs%inWhichLocreg, stat=istat)
-!call memocc(istat, iall, 'lin%lb%lzd%orbs%inWhichLocreg', subname)
 iall=-product(shape(lin%orbs%inWhichLocreg))*kind(lin%orbs%inWhichLocreg)
 deallocate(lin%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%orbs%inWhichLocreg', subname)
@@ -154,9 +143,6 @@ call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
 call memocc(istat, lin%orbs%eval, 'lin%orbs%eval', subname)
 lin%orbs%eval=-.5d0
-!allocate(lin%lzd%orbs%eval(lin%lzd%orbs%norb), stat=istat)
-!call memocc(istat, lin%lzd%orbs%eval, 'lin%lzd%orbs%eval', subname)
-!lin%lzd%orbs%eval=-.5d0
 allocate(lin%lb%orbs%eval(lin%lb%orbs%norb), stat=istat)
 call memocc(istat, lin%lb%orbs%eval, 'lin%lb%orbs%eval', subname)
 lin%lb%orbs%eval=-.5d0
@@ -170,18 +156,14 @@ call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
 !call allocateCommunicationbufferSumrho(lin%comsr, subname)
 
 ! Copy Glr to lin%lzd
-!lin%lzd%Glr = Glr
 call nullify_locreg_descriptors(lin%lzd%Glr)
 call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
-!lin%lb%lzd%Glr = Glr
 call nullify_locreg_descriptors(lin%lb%lzd%Glr)
 call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
 
 ! Copy nlpspd to lin%lzd
-!lin%lzd%Gnlpspd = nlpspd
 call nullify_nonlocal_psp_descriptors(lin%lzd%Gnlpspd)
 call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
-!lin%lb%lzd%Gnlpspd = nlpspd
 call nullify_nonlocal_psp_descriptors(lin%lb%lzd%Gnlpspd)
 call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
 
@@ -189,7 +171,6 @@ call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
 do ilr=1,lin%lzd%nlr
     lin%lzd%Llr(ilr)%localnorb=0
     do iorb=1,lin%orbs%norbp
-        !if(lin%onWhichAtom(iorb)==ilr) then
         if(lin%orbs%inWhichLocregp(iorb)==ilr) then
             lin%lzd%Llr(ilr)%localnorb = lin%lzd%Llr(ilr)%localnorb+1
         end if
@@ -203,7 +184,6 @@ do ilr=1,lin%lzd%nlr
             lin%lb%lzd%Llr(ilr)%localnorb = lin%lb%lzd%Llr(ilr)%localnorb+1
         end if
     end do
-    !write(*,'(a,2i4,3x,i8)') 'iproc, ilr, lin%lb%lzd%Llr(ilr)%localnorb', iproc, ilr, lin%lb%lzd%Llr(ilr)%localnorb
 end do
 
 ! Initialize the parameters for the communication for the
@@ -400,7 +380,8 @@ if(iproc==0) write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)')
 if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------'
 if(iproc==0) write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals |'
 if(iproc==0) write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  |'
-if(iproc==0) write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a)')  '|', lin%useDerivativeBasisFunctions, '|', lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
+if(iproc==0) write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
+     lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
      lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|'
 if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'

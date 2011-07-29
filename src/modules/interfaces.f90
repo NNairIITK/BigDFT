@@ -1184,7 +1184,7 @@ module module_interfaces
 
     subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
         nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
-        itSCC, infoBasisFunctions, radii_cf, ovrlp)
+        itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj)
       use module_base
       use module_types
       implicit none
@@ -1206,6 +1206,8 @@ module module_interfaces
       real(8),dimension(3,at%nat):: rxyzParabola
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
       real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
+      type(nonlocal_psp_descriptors),intent(in):: nlpspd
+      real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
     end subroutine getLocalizedBasis
 
 
@@ -1424,7 +1426,7 @@ module module_interfaces
     subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
         nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
         infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
-        i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf)
+        i3s, i3xcsh, ebsMod, coeff, lphi, radii_cf, nlpspd, proj)
       use module_base
       use module_types
       implicit none
@@ -1451,6 +1453,8 @@ module module_interfaces
       real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
       real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: lphi
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+      type(nonlocal_psp_descriptors),intent(in):: nlpspd
+      real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
     end subroutine getLinearPsi
 
 

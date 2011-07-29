@@ -159,7 +159,7 @@ type(mixrhopotDIISParameters):: mixdiis
   call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
       nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
       infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-      i3s, i3xcsh, ebs, coeff, lphi, radii_cf)
+      i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
 
   ! Calculate the charge density.
   call cpu_time(t1)
@@ -172,27 +172,33 @@ type(mixrhopotDIISParameters):: mixdiis
   time=time/dble(nproc)
   if(iproc==0) write(*,'(x,a,es12.4)') 'time for sumrho:',time
 
-  ! Copy the current charge density.
+  ! If we mix the density, copy the current charge density.
   allocate(rhopotOld(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), stat=istat)
   call memocc(istat, rhopotOld, 'rhopotOld', subname)
   if(trim(lin%mixingMethod)=='dens') then
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
   end if
 
+  ! Calculate the potential we get with the current chareg density.
   call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
       rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       coeff, ehart, eexcu, vexcu)
 
 
-  ! Copy the current potential.
+  ! If we mix the potential, copy the potential.
   if(trim(lin%mixingMethod)=='pot') then
       call dcopy(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotOld(1), 1)
   end if
 
-  ! Post communications for gathering the potential
+  ! Allocate the communications buffers needed for the communications of teh potential and
+  ! post the messages. This will send to each process the part of the potential that this process
+  ! needs for the application of the Hamlitonian to all orbitals on that process.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call allocateCommunicationsBuffersPotential(lin%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
+
+  ! If we also use the derivative of the basis functions, also send the potential in this case. This is
+  ! needed since the orbitals may be partitioned in a different way when the derivatives are used.
   if(lin%useDerivativeBasisFunctions) then
       call allocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
       call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lb%comgp)
@@ -200,29 +206,21 @@ type(mixrhopotDIISParameters):: mixdiis
 
 
 
-  ! The next subroutine will create the variable wave function descriptors.
-  ! It is not used at the moment.
-  !!$if(iproc==0) write(*,'(x,a)') ' ~~~~~~~ Creating the variable wave function descriptors and testing them... ~~~~~~~'
-  !!$call initializeLocRegLIN(iproc, nproc, Glr, lin, at, input, rxyz, radii_cf)
-  !!$if(iproc==0) write(*,'(x,a)') '~~~~~~~~~~~~~~~~~~~~~~~ Descriptors created and test passed. ~~~~~~~~~~~~~~~~~~~~~~~'
-
-
-  if(nproc==1) allocate(psit(size(psi)))
-  nitSCC=lin%nitSCC
-  !allocate(rhopotOld(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin), stat=istat)
-  !call memocc(istat, rhopotOld, 'rhopotOld', subname)
-  updatePhi=.true.
-
+  ! Initialize the DIIS mixing of the potential if required.
   if(lin%mixHist>0) then
       call initializeMixrhopotDIIS(lin%mixHist, ndimpot, mixdiis)
   end if
 
+  if(nproc==1) allocate(psit(size(psi)))
+  nitSCC=lin%nitSCC
+  ! Flag that indicates that the basis functions shall be improved in the following.
+  updatePhi=.true.
   do itSCC=1,nitSCC
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
           infoBasisFunctions, infoCoeff, itScc, n3p, n3pi, n3d, pkernel, &
-          i3s, i3xcsh, ebs, coeff, lphi, radii_cf)
+          i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
 
 
       ! Copy the current potential
@@ -266,10 +264,6 @@ type(mixrhopotDIISParameters):: mixdiis
       ! Calculate the total energy.
       energy=ebs-ehart+eexcu-vexcu-eexctX+eion+edisp
 
-      !!! Post communications for gathering the potential
-      !!!! IS THIS CORRECT HERE???
-      !!ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-      !!call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
 
       ! Post communications for gathering the potential
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)

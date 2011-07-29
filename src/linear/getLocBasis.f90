@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
     nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
     infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
-    i3s, i3xcsh, ebs, coeff, lphi, radii_cf)
+    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
 !
 ! Purpose:
 ! ========
@@ -83,6 +83,8 @@ real(8),intent(out):: ebs
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
 real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: lphi
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+type(nonlocal_psp_descriptors),intent(in):: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables 
 integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount
@@ -111,23 +113,27 @@ integer:: ist, ierr
 
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
+      ! If we use the derivative basis functions, the trace minimizing orbitals of the last iteration are
+      ! stored in lin%lphiRestart.
       if(lin%useDerivativeBasisFunctions) then
           call dcopy(lin%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
       end if
 
+      ! Improve the trace minimizing orbitals.
       call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
           nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trace, rxyzParab, &
-          itSCC, infoBasisFunctions, radii_cf, ovrlp)
+          itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj)
   end if
 
+  ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   if(lin%useDerivativeBasisFunctions) then
       call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
       if(iproc==0) write(*,'(x,a)',advance='no') 'calculating derivative basis functions...'
       call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
       if(iproc==0) write(*,'(a)') 'done.'
 
-      ! Normalize the derivative basis functions.
-      ! Normalize all to keep it easy.
+      ! Normalize the derivative basis functions. Normalize all of them (i.e. also the trace minimizing
+      ! orbitals) to keep it easy.
       ! Do not orthogonalize them, since the 'normal' phis are not exactly orthogonal either.
       ist=1
       do iorb=1,lin%lb%orbs%norbp
@@ -145,14 +151,13 @@ integer:: ist, ierr
   if(.not.updatePhi .and. .not.lin%useDerivativeBasisFunctions) then
       call getOverlapMatrix(iproc, nproc, lin, input, lphi, ovrlp)
   end if
-
   if(lin%useDerivativeBasisFunctions) then
-      !call getOverlapMatrix2(iproc, nproc, lin, input, lphi, ovrlp)
       call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
   end if
 
+  ! Allocate the communication buffers for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(lin%comsr, subname)
-  ! Transform all orbitals to real space
+  ! Transform all orbitals to real space.
   ist=1
   istr=1
   do iorb=1,lin%lb%orbs%norbp
@@ -170,22 +175,24 @@ integer:: ist, ierr
   end if
   
   ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
-  ! to point communication, the program will continue immediately.
+  ! to point communication, the program will continue immediately. The messages will be gathered
+  ! in the subroutine sumrhoForLocalizedBasis2.
   call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
   
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
-
+  ! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
+  ! have not been updated (in that case it was gathered there).
   if(.not.updatePhi) then
-      ! Otherwise the potential is gathered in getLocalizedBasis.
       call gatherPotential(iproc, nproc, lin%comgp)
   end if
+  ! If we use the derivative basis functions the potential has to be gathered anyway.
   if(lin%useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lin%lb%comgp)
 
 
-  ! Transform the global phi to the local phi
-  ! This part will not be needed if we really have O(N)
+  ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
+  ! confining potential added to the Hamiltonian.
   allocate(lhphi(lin%lb%orbs%npsidim), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
@@ -203,14 +210,15 @@ integer:: ist, ierr
 
   if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
 
+  ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
   if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
-
 
   ! Calculate the matrix elements <phi|H|phi>.
   call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
 
 
+  ! Diagonalize the Hamiltonian, either iteratively or with lapack.
   if(trim(lin%getCoeff)=='min') then
       call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
   else
@@ -221,6 +229,9 @@ integer:: ist, ierr
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
   end if
+  do iorb=1,lin%lb%orbs%norb
+      write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
+  end do
 
   ! Calculate the band structure energy with matrixElements.
   ebs=0.d0
@@ -231,7 +242,7 @@ integer:: ist, ierr
           end do
       end do
   end do
-  ! If closed shell multiply by two
+  ! If closed shell multiply by two.
   if(input%nspin==1) ebs=2.d0*ebs
   
 
@@ -283,7 +294,7 @@ integer:: ist, ierr
   call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
 
 
-  
+  ! Deallocate all local arrays.
   iall=-product(shape(HamSmall))*kind(HamSmall)
   deallocate(HamSmall, stat=istat)
   call memocc(istat, iall, 'HamSmall', subname)
@@ -321,7 +332,7 @@ end subroutine getLinearPsi
 
 subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
     nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
-    itScc, infoBasisFunctions, radii_cf, ovrlp)
+    itScc, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj)
 !
 ! Purpose:
 ! ========
@@ -393,10 +404,12 @@ real(8),dimension(lin%orbs%npsidim):: lphi
 real(8):: trH
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
 real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
+type(nonlocal_psp_descriptors),intent(in):: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot, t2tot, timetot
-real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
+real(8):: tt, tt2, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
@@ -407,6 +420,8 @@ character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(localizedDIISParameters):: ldiis
 real(8),dimension(4):: time
+real(8),dimension(:),pointer:: potential
+real(8),dimension(:),pointer:: phiWork
 
 
 
@@ -470,19 +485,43 @@ real(8),dimension(4):: time
       if(iproc==0) then
           write(*,'(a)', advance='no') 'done. '
       end if
+
+
+      !!! OLD VERSION FOR DEBUG !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!call full_local_potential(iproc, nproc, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), Glr%d%n1i*Glr%d%n2i*Glr%d%n3i, input%nspin, &
+      !!     lin%orbs%norb, lin%orbs%norbp, ngatherarr, rhopot, potential)
+
+      !!call HamiltonianApplication(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz,&
+      !!     nlpspd, proj, Glr, ngatherarr, potential, lphi, lhphi, ekin_sum, epot_sum, eexctX, eproj_sum,&
+      !!     input%nspin, GPU, pkernel=pkernelseq)
+
+      !!!deallocate potential
+      !!call free_full_potential(nproc, potential, subname)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
           write(*,'(a)', advance='no') 'Orthoconstraint... '
       end if
       call cpu_time(t1)
-      !call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
+      !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, trH)
       call cpu_time(t2)
       time(3)=time(3)+t2-t1
       if(iproc==0) then
           write(*,'(a)', advance='no') 'done. '
       end if
+
+      !!! OLD VERSION FOR DEBUG !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!allocate(phiWork(size(lphi)))
+      !!call transpose_v(iproc, nproc, lin%orbs, glr%wfd, lin%comms, lphi, work=phiWork)
+      !!call transpose_v(iproc, nproc, lin%orbs, glr%wfd, lin%comms, lhphi, work=phiWork)
+      !!call orthoconstraint(iproc, nproc, lin%orbs, lin%comms, glr%wfd, lphi, lhphi, tt)
+      !!call untranspose_v(iproc, nproc, lin%orbs, glr%wfd, lin%comms, lphi, work=phiWork)
+      !!call untranspose_v(iproc, nproc, lin%orbs, glr%wfd, lin%comms, lhphi, work=phiWork)
+      !!deallocate(phiWork)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
       ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
       ! of the previous iteration (fnrmOvrlpArr).
@@ -550,6 +589,7 @@ real(8),dimension(4):: time
               lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, it, iorb, eval_zero)
           ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       end do
+      !call preconditionall(iproc, nproc, lin%orbs, lin%lzd%glr, input%hx, input%hy, input%hz, lin%nItPrecond, lhphi, tt, tt2)
       call cpu_time(t2)
       time(4)=time(4)+t2-t1
       if(iproc==0) then
@@ -1104,6 +1144,10 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
 
   ! Diagonalize the Hamiltonian
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
+  do iorb=1,orbs%norb
+      write(1000+iproc,'(a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
+      if(iproc==0) write(*,'(a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
+  end do
 
   ! Deallocate the work array.
   iall=-product(shape(work))*kind(work)
