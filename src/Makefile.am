@@ -102,7 +102,8 @@ EXTRA_DIST = \
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
-	@LIBETSFIO_INCLUDE@ @LIB_ARCHIVE_CFLAGS@
+	@LIBETSFIO_INCLUDE@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)

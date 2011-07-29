@@ -411,11 +411,28 @@ ac_use_archive="yes"
 AC_ARG_WITH([archives],
             AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
             [ac_use_archive=$withval], [ac_use_archive=yes])
+AC_ARG_WITH([archives-path],
+            AS_HELP_STRING([--with-archives-path], [give a path to find libarchive.]),
+            [ac_path_archive=$withval])
 if test x"$ac_use_archive" != x"no" ; then
-   PKG_CHECK_MODULES([LIB_ARCHIVE],
-                     [libarchive >= 2.4],
-                     [ac_use_archive=yes],
-                     [ac_use_archive=warn])
+   if test x"$ac_path_archive" == x"" ; then
+      PKG_CHECK_MODULES([LIB_ARCHIVE],
+                        [libarchive >= 2.4],
+                        [ac_use_archive=yes],
+                        [ac_use_archive=warn])
+   else
+      LDFLAGS_SVG="$LDFLAGS"
+      AC_LANG_PUSH(C)
+      LDFLAGS="-L$ac_path_archive/lib"
+      AC_CHECK_LIB([archive], [archive_read_data_block],
+                   [ac_use_archive=yes], [ac_use_archive=warn])
+      if test x"$ac_use_archive" = x"yes" ; then
+         LIB_ARCHIVE_CFLAGS="-I$ac_path_archive/include"
+         LIB_ARCHIVE_LIBS="-L$ac_path_archive/lib -larchive"
+      fi
+      AC_LANG_POP(C)
+      LDFLAGS="$LDFLAGS_SVG"
+   fi
    if test x"$ac_use_archive" = x"yes" ; then
       AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
    else
