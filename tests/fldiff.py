@@ -314,8 +314,6 @@ while not EOF:
                 else:
                     #Case of discrepancy on non significant values.
                     if tt > max_discrepancy:
-                        if context_lines is None:
-                            context_lines = "\n"
                         diff_discrepancy = True
                         ns_discrepancy = True
             if diff_discrepancy and new1 == new2:
@@ -341,7 +339,6 @@ while not EOF:
             for (one,two) in re_float.findall(left[i1]):
                 floats.append((float(one), n_digits(one)))
             if len(floats) > 0:
-                context_lines = "\n"
                 maximum = 99
     while i2 < n2-1:
         i2 += 1
@@ -354,11 +351,12 @@ while not EOF:
             for (one,two) in re_float.findall(right[i2]):
                 floats.append((float(one), n_digits(one)))
             if len(floats) > 0:
-                context_lines = "\n"
                 maximum = 99
 
 if context_lines is not None:
     print context_lines,
+else:
+    print
 
 if maximum > max_discrepancy:
     start = start_fail

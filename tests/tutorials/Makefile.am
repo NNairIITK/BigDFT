@@ -42,6 +42,7 @@ report:
           *) mode="";; \
         esac ; \
         case $* in \
+          CH3-.out*) prec="5.e-7" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

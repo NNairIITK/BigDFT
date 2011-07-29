@@ -39,6 +39,9 @@ module module_xc
 
   type(xc_info) :: xc
 
+  logical :: abinit_init = .false.
+  character(len=500) :: ABINIT_XC_NAMES(28)
+
   private
   public :: xc_init, &
        &    xc_dump, &
@@ -47,17 +50,17 @@ module module_xc
        &    xc_getvxc, &
        &    xc_isgga, &
        &    xc_exctXfac, &
-       &    xc_end
+       &    xc_end, &
+       &    xc_get_name
 
 contains
 
-  !>  Initialize the desired XC functional, from LibXC.
-  subroutine xc_init(ixc,kind,nspden)
-
+  subroutine obj_init_(xcObj, ixc, kind, nspden)
     implicit none
 
     !Arguments ------------------------------------
     !scalars
+    type(xc_info), intent(out) :: xcObj
     integer, intent(in) :: nspden
     integer, intent(in) :: kind
     integer, intent(in) :: ixc
@@ -68,102 +71,162 @@ contains
 
     ! *************************************************************************
 
-    xc%kind = kind
+    xcObj%kind = kind
     if (kind == XC_LIBXC .or. kind == XC_MIXED) then
-       xc%id(2) = abs(ixc) / 1000
-       xc%id(1) = abs(ixc) - xc%id(2) * 1000
+       xcObj%id(2) = abs(ixc) / 1000
+       xcObj%id(1) = abs(ixc) - xcObj%id(2) * 1000
     else if (kind == XC_ABINIT) then
        ! ABINIT functional.
-       xc%id(1) = abs(ixc)
-       xc%id(2) = 0
+       xcObj%id(1) = abs(ixc)
+       xcObj%id(2) = 0
     end if
 
-    xc%family = 0
-    if (xc%kind == XC_LIBXC .or. xc%kind == XC_MIXED) then
+    xcObj%family = 0
+    if (xcObj%kind == XC_LIBXC .or. xcObj%kind == XC_MIXED) then
        ! LibXC case.
 
        do i = 1, 2
-          if (xc%id(i) == 0) cycle
+          if (xcObj%id(i) == 0) cycle
           ! Get XC functional family
-          xc%family(i) = xc_f90_family_from_id(xc%id(i))
-          select case (xc%family(i))
+          xcObj%family(i) = xc_f90_family_from_id(xcObj%id(i))
+          select case (xcObj%family(i))
           case (XC_FAMILY_LDA, XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
-             call xc_f90_func_init(xc%funcs(i)%conf,xc%funcs(i)%info,xc%id(i),nspden)
+             call xc_f90_func_init(xcObj%funcs(i)%conf,xcObj%funcs(i)%info,xcObj%id(i),nspden)
           case default
              write(*,*) "Error: unsupported functional, change ixc."
              call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
           end select
        end do
 
-    else if (xc%kind == XC_ABINIT) then
+    else if (xcObj%kind == XC_ABINIT) then
        ! ABINIT case
 
        ! Get XC functional family
-       if ((xc%id(1) >= 1 .and. xc%id(1) < 11) .or. xc%id(1) == 24) then
-          xc%family(1) = XC_FAMILY_LDA
-       else if (xc%id(1) >= 11 .and. xc%id(1) < 18) then
-          xc%family(1) = XC_FAMILY_GGA
-       else if (xc%id(1) >= 23 .and. xc%id(1) < 28) then
-          xc%family(1) = XC_FAMILY_GGA
-       else if (xc%id(1) >= 31 .and. xc%id(1) < 35) then
-          xc%family(1) = XC_FAMILY_LDA
-       else if (xc%id(1) == 0) then
-          xc%family(1) = 0
+       if ((xcObj%id(1) >= 1 .and. xcObj%id(1) < 11) .or. xcObj%id(1) == 24) then
+          xcObj%family(1) = XC_FAMILY_LDA
+       else if (xcObj%id(1) >= 11 .and. xcObj%id(1) < 18) then
+          xcObj%family(1) = XC_FAMILY_GGA
+       else if (xcObj%id(1) >= 23 .and. xcObj%id(1) < 28) then
+          xcObj%family(1) = XC_FAMILY_GGA
+       else if (xcObj%id(1) >= 31 .and. xcObj%id(1) < 35) then
+          xcObj%family(1) = XC_FAMILY_LDA
+       else if (xcObj%id(1) == 0) then
+          xcObj%family(1) = 0
        else
           write(*,*) "Error: unsupported functional, change ixc."
           call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
        end if
     end if
+  end subroutine obj_init_
+
+  subroutine obj_free_(xcObj)
+    implicit none
+
+    type(xc_info), intent(inout) :: xcObj
+
+    if (xcObj%kind == XC_LIBXC .or. xcObj%kind == XC_MIXED) then
+       if (xcObj%id(1) > 0) call xc_f90_func_end(xcObj%funcs(1)%conf)
+       if (xcObj%id(2) > 0) call xc_f90_func_end(xcObj%funcs(2)%conf)
+    end if
+  end subroutine obj_free_
+
+  subroutine obj_get_name_(xcObj, name)
+    implicit none
+
+    character(len=500), intent(out) :: name
+    type(xc_info), intent(in) :: xcObj
+    
+    integer :: i
+    character(len = 500) :: messX, messC, messXC
+
+    if (xcObj%kind == XC_LIBXC .or. xcObj%kind == XC_MIXED) then
+       write(messX, "(A)") ""
+       write(messC, "(A)") ""
+       write(messXC, "(A)") ""
+       do i = 1, 2
+          if (xcObj%family(i) == 0) cycle
+          select case(xc_f90_info_kind(xcObj%funcs(i)%info))
+          case (XC_EXCHANGE)
+             call xc_f90_info_name(xcObj%funcs(i)%info, messX)
+          case (XC_CORRELATION)
+             call xc_f90_info_name(xcObj%funcs(i)%info, messC)
+          case (XC_EXCHANGE_CORRELATION)
+             call xc_f90_info_name(xcObj%funcs(i)%info, messXC)
+          end select
+       end do
+       if (len(trim(messXC)) > 0) then
+          write(name, "(2A)")    "XC: ", trim(messXC)
+       else
+          if (len(trim(messC)) == 0) then
+             write(name, "(2A)") "X-: ", trim(messX)
+          else if (len(trim(messX)) == 0) then
+             write(name, "(2A)") "-C: ", trim(messC)
+          else
+             if (trim(messX) == trim(messC)) then
+                write(name, "(2A)") "XC: ", trim(messX)
+             else
+                write(name, "(4A)") "XC: ", trim(messX), ", ", trim(messC)
+             end if
+          end if
+       end if
+    else if (xcObj%kind == XC_ABINIT) then
+       call obj_init_abinit_xc_names_()
+       write(name, "(A)") ABINIT_XC_NAMES(xcObj%id(1))
+    end if
+  end subroutine obj_get_name_
+
+  !>  Get a name, corresponding to the given XC id.
+  subroutine xc_get_name(name,ixc,kind)
+    implicit none
+
+    character(len=500), intent(out) :: name
+    integer, intent(in) :: kind
+    integer, intent(in) :: ixc
+
+    type(xc_info) :: xcObj
+
+    call obj_init_(xcObj, ixc, kind, 1)
+    call obj_get_name_(xcObj, name)
+    call obj_free_(xcObj)
+  end subroutine xc_get_name
+
+  !>  Initialize the desired XC functional, from LibXC.
+  subroutine xc_init(ixc,kind,nspden)
+    implicit none
+
+    !Arguments ------------------------------------
+    !scalars
+    integer, intent(in) :: nspden
+    integer, intent(in) :: kind
+    integer, intent(in) :: ixc
+
+    call obj_init_(xc, ixc, kind, nspden)
   end subroutine xc_init
 
   !>  Dump XC info on screen.
   subroutine xc_dump()
     implicit none
 
-    integer :: ii, jj
+    integer :: i, ii
     type(xc_f90_pointer_t) :: str
-    character(len=500) :: message, message2
+    character(len=500) :: message
 
     ! Dump functional information
+    call obj_get_name_(xc, message)
+    write(*,"(1x,a19,a65)") "Exchange-corr. ref.", "("//trim(message)//")"
     if (xc%kind == XC_ABINIT) then
-       write(*,"(1x,A41,1x,A1)") "XC functional provided by ABINIT.", "|"
+       write(*,"(1x,A84)") "XC functional provided by ABINIT."
     else
-       if (xc%id(1) > 0) then
-          call xc_f90_info_name(xc%funcs(1)%info,message)
-       else
-          write(message, "(A)") ""
-       end if
-       if (xc%id(2) > 0) then
-          call xc_f90_info_name(xc%funcs(2)%info,message2)
-       else
-          write(message2, "(A)") ""
-       end if
-       write(*,"(1x,a41,1x,A1,1x,A40)") trim(message), "|", trim(message2)
-       ii = 0
-       jj = 0
-       if (xc%id(1) > 0) then
-          call xc_f90_info_refs(xc%funcs(1)%info,ii,str,message)
-       else
-          ii = -1
-       end if
-       if (xc%id(2) > 0) then
-          call xc_f90_info_refs(xc%funcs(2)%info,jj,str,message2)
-       else
-          jj = -1
-       end if
-       do while (ii >= 0 .or. jj >= 0)
-          if (ii >= 0) then
-             write(*,"(1x,a41)", advance = "NO") trim(message)
-             call xc_f90_info_refs(xc%funcs(1)%info,ii,str,message)
-          else
-             write(*,"(1x,a41)", advance = "NO") " "
-          end if
-          write(*, "(1x,A1,1x)", advance = "NO") "|"
-          if (jj >= 0) then
-             write(*,"(a40)") trim(message2)
-             call xc_f90_info_refs(xc%funcs(2)%info,jj,str,message2)
-          else
-             write(*,"(a40)") " "
+       do i = 1, 2
+          if (xc%family(i) == 0) cycle
+          
+          ii = 0
+          if (xc%id(i) > 0) then
+             call xc_f90_info_refs(xc%funcs(i)%info,ii,str,message)
+             do while (ii >= 0)
+                write(*,"(1x,a1,1x,a82)") "|", trim(message)
+                call xc_f90_info_refs(xc%funcs(i)%info,ii,str,message)
+             end do
           end if
        end do
     end if
@@ -174,10 +237,7 @@ contains
   subroutine xc_end()
     implicit none
 
-    if (xc%kind == XC_LIBXC .or. xc%kind == XC_MIXED) then
-       if (xc%id(1) > 0) call xc_f90_func_end(xc%funcs(1)%conf)
-       if (xc%id(2) > 0) call xc_f90_func_end(xc%funcs(2)%conf)
-    end if
+    call obj_free_(xc)
   end subroutine xc_end
 
   !>  Test function to identify whether the presently used functional
@@ -460,5 +520,30 @@ contains
 
   end subroutine xc_getvxc
 
+  subroutine obj_init_abinit_xc_names_()
+    if (abinit_init) return
+
+    write(ABINIT_XC_NAMES( 1), "(A)") "XC: Teter 93"
+    write(ABINIT_XC_NAMES( 2), "(A)") "XC: Slater exchange, Perdew & Zunger"
+    write(ABINIT_XC_NAMES( 3), "(A)") "XC: Teter 91"
+    write(ABINIT_XC_NAMES( 4), "(A)") "XC: Slater exchange, Wigner"
+    write(ABINIT_XC_NAMES( 5), "(A)") "XC: Slater exchange, Hedin & Lundqvist"
+    write(ABINIT_XC_NAMES( 6), "(A)") "-C: Slater's Xalpha"
+    write(ABINIT_XC_NAMES( 7), "(A)") "XC: Slater exchange, Perdew & Wang"
+    write(ABINIT_XC_NAMES( 8), "(A)") "X-: Slater exchange"
+    write(ABINIT_XC_NAMES( 9), "(A)") "XC: Slater exchange, Random Phase Approximation (RPA)"
+    write(ABINIT_XC_NAMES(11), "(A)") "XC: Perdew, Burke & Ernzerhof"
+    write(ABINIT_XC_NAMES(12), "(A)") "X-: Perdew, Burke & Ernzerhof"
+    write(ABINIT_XC_NAMES(13), "(A)") "XC: van Leeuwen & Baerends"
+    write(ABINIT_XC_NAMES(14), "(A)") "XC: Revised PBE from Zhang & Yang, Perdew, Burke & Ernzerhof"
+    write(ABINIT_XC_NAMES(15), "(A)") "XC: Hammer, Hansen, and Nørskov, Perdew, Burke & Ernzerhof"
+    write(ABINIT_XC_NAMES(16), "(A)") "XC: HCTH/93"
+    write(ABINIT_XC_NAMES(17), "(A)") "XC: HCTH/120"
+    write(ABINIT_XC_NAMES(23), "(A)") "X-: Wu & Cohen"
+    write(ABINIT_XC_NAMES(26), "(A)") "XC: HCTH/147"
+    write(ABINIT_XC_NAMES(27), "(A)") "XC: HCTH/407"
+
+    abinit_init = .true.
+  end subroutine obj_init_abinit_xc_names_
 end module module_xc
 !!***
