@@ -46,6 +46,9 @@ EOF
   if AC_TRY_EVAL(ac_try); then
     ac_try=""
     ac_fcintegersize=`./intsizetest.x`;
+    if test -z "$ac_fcintegersize" ; then
+      ac_fcintegersize=4
+    fi
   else
     echo "configure: failed program was:" >&AC_FD_CC
     cat intsizetest.f90 >&AC_FD_CC

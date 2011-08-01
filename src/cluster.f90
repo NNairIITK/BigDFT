@@ -984,7 +984,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
            end if
            !flush all writings on standart output
-           call flush(6)
+           flush(6)
         end do wfn_loop
 
         if (iproc == 0) then 
