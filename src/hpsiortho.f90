@@ -765,7 +765,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
   ! Send all eigenvalues to all procs.
   call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
        & orbs%eval(1), orbs%ikptproc)
-
+  
   !print the found eigenvalues
   if (iproc == 0) then
      write(*,'(1x,a)')&
