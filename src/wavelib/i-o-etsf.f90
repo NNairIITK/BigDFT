@@ -230,29 +230,33 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   call memocc(i_stat,i_all,'nvctr_old',subname)
 
   ! We read the eigenvalues.
-  if (nspin == 1) then
-     call etsf_io_low_read_var(ncid, "eigenvalues", &
-          & orbs%eval, lstat, error_data = error)
-     if (.not. lstat) call etsf_error(error)
+  if (iproc == 0) then
+     if (nspin == 1) then
+        call etsf_io_low_read_var(ncid, "eigenvalues", &
+             & orbs%eval, lstat, error_data = error)
+        if (.not. lstat) call etsf_error(error)
+     else
+        allocate(eigen(max(orbs%norbu, orbs%norbd), &
+             & orbs%nkpts, nspin + ndebug),stat=i_stat)
+        call memocc(i_stat,eigen,'eigen',subname)
+        call etsf_io_low_read_var(ncid, "eigenvalues", &
+             & eigen, lstat, error_data = error)
+        if (.not. lstat) call etsf_error(error)
+        do i = 1, orbs%norb*orbs%nkpts, 1
+           ispin = 1
+           iorb = modulo(i - 1, orbs%norb) + 1
+           if (iorb > orbs%norbu) then
+              ispin = 2
+              iorb = iorb - orbs%norbu
+           end if
+           orbs%eval(i) = eigen(iorb, (i - 1) / orbs%norb + 1, ispin)
+        end do
+        i_all=-product(shape(eigen))*kind(eigen)
+        deallocate(eigen,stat=i_stat)
+        call memocc(i_stat,i_all,'eigen',subname)
+     end if
   else
-     allocate(eigen(max(orbs%norbu, orbs%norbd), &
-          & orbs%nkpts, nspin + ndebug),stat=i_stat)
-     call memocc(i_stat,eigen,'eigen',subname)
-     call etsf_io_low_read_var(ncid, "eigenvalues", &
-          & eigen, lstat, error_data = error)
-     if (.not. lstat) call etsf_error(error)
-     do i = 1, orbs%norb*orbs%nkpts, 1
-        ispin = 1
-        iorb = modulo(i - 1, orbs%norb) + 1
-        if (iorb > orbs%norbu) then
-           ispin = 2
-           iorb = iorb - orbs%norbu
-        end if
-        orbs%eval(i) = eigen(iorb, (i - 1) / orbs%norb + 1, ispin)
-     end do
-     i_all=-product(shape(eigen))*kind(eigen)
-     deallocate(eigen,stat=i_stat)
-     call memocc(i_stat,i_all,'eigen',subname)
+     orbs%eval = real(0, gp)
   end if
 
   ! We close the file.
