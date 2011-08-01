@@ -740,7 +740,6 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      deallocate(gradient,stat=i_stat)
      call memocc(i_stat,i_all,'gradient',subname)
   end if
-
   !     rewind(300)
   !     do ispden=1,nspden
   !        do i3=1,nxt

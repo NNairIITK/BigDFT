@@ -390,7 +390,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
                         !v, that is psivirt, is transposed on input and direct on output
   !local variables
-  character(len=*), parameter :: subname='davidson'
+  character(len=*), parameter :: subname='davidson',print_precise='1pe22.14',print_rough='1pe12.4 '
+  character(len=8) :: prteigu,prteigd !format for eigenvalues printing
   logical :: msg,exctX,occorbs !extended output
   integer :: occnorb, occnorbu, occnorbd
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor
@@ -678,7 +679,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            if (iorb <= nvirt) gnrm=gnrm+tt
         end do
         if (nspin == 2) then
-           do iorb=1,orbsv%norb
+           do iorb=1,orbsv%norbu
               tt=real(e(iorb+orbsv%norbu,ikpt,2)*orbsv%kwgts(ikpt),dp)
               if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb+orbsv%norbu,tt
               if (iorb <= nvirt) gnrm=gnrm+tt
@@ -973,7 +974,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            end if
 
 
-           if(msg .or. (iproc==0 .and. ikpt == 1))write(*,'(1x,a)',advance="no")&
+           if(msg .or. (iproc==0 .and. ikpt == 1) .and. ispin==1)write(*,'(1x,a)',advance="no")&
                 "done. Update v with eigenvectors..."
 
 !!$     !Update v, that is the wavefunction, using the eigenvectors stored in hamovr(:,:,1)
@@ -1013,12 +1014,28 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
               if (nspin ==1) then
                  write(*,'(1x,a)')'done. Eigenvalues, gnrm'
                  do iorb=1,orbsv%norb
-                    write(*,'(1x,i5,1pe22.14,1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
+                    !show the eigenvalue in full form only if it has reached convergence
+                    if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                       prteigu=print_precise
+                    else
+                       prteigu=print_rough
+                    end if
+                       write(*,'(1x,i5,'//prteigu//',1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
                  end do
               else if (ispin == 2) then
                  write(*,'(1x,a)')'done. Eigenvalues, gnrm'
                  do iorb=1,min(orbsv%norbu,orbsv%norbd) !they should be equal
-                    write(*,'(1x,i5,2(1pe22.14,1pe9.2,2x))')&
+                    if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                       prteigu=print_precise
+                    else
+                       prteigu=print_rough
+                    end if
+                    if (sqrt(e(iorb+orbsv%norbu,ikpt,2)) <= in%gnrm_cv) then
+                       prteigd=print_precise
+                    else
+                       prteigd=print_rough
+                    end if
+                    write(*,'(1x,i5,'//prteigu//',1pe9.2,t50,'//prteigd//',1pe9.2)')&
                          iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
                  end do
               end if

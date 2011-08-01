@@ -505,7 +505,6 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
         ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
      end do
 
-
   else
      ! update all wavefunctions with the preconditioned gradient
      if (diis%energy > diis%energy_old) then
@@ -577,7 +576,7 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
      !call memocc(i_stat,ads,'ads',subname)
 
      !ncplx and ngroup have to be added
-     call to_zero(nkptsp*(idsx+1)**2,diis%ads(1,1,1))
+     call to_zero(nkptsp*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
   end if
 
 END SUBROUTINE diis_or_sd
