@@ -364,7 +364,7 @@ contains
        ! Inititalize all relevant arrays to zero
        vxc=real(0,dp)
        exc=real(0,dp)
-       if (xc_isgga()) call razero(npts * 3, vxcgr)
+       if (xc_isgga()) call to_zero(npts * 3, vxcgr(1))
        if (present(dvxci)) dvxci=real(0,dp)
 
        !Loop over points

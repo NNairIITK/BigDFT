@@ -74,15 +74,13 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
      functional_ref=energy
   else if (iorb_ref == -1) then
      if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
-        functional_ref=rst%orbs%HLgap
+        functional_ref=rst%orbs%HLgap !here we should add the definition which brings to Fukui function
      else
         stop ' ERROR (FDforces): gap not defined' 
      end if
   else
      functional_ref=rst%orbs%eval(iorb_ref)
   end if
-
-
 
   if (order == -1) then
      n_order = 1

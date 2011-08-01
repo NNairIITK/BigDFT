@@ -390,6 +390,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   !call allocate_comms(nproc,orbse,commse,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbse,commse)  
 
+  !use the eval array of orbse structure to save the original values
+  allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbse%eval,'orbse%eval',subname)
+
   hxh=.5_gp*hx
   hyh=.5_gp*hy
   hzh=.5_gp*hz
@@ -708,10 +712,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   call memocc(i_stat,i_all,'passmat',subname)
 
   if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
-     !use the eval array of orbse structure to save the original values
-     allocate(orbse%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,orbse%eval,'orbse%eval',subname)
      
+     !clean the array of the IG eigenvalues
+     call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))
      call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
 
      !add a small displacement in the eigenvalues
@@ -726,9 +729,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      !restore the occupation numbers
      call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
 
-     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-     deallocate(orbse%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbse%eval',subname)
   end if
 
   call deallocate_comms(commse,subname)
@@ -756,5 +756,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   call memocc(i_stat,i_all,'psigau',subname)
 
   call deallocate_orbs(orbse,subname)
+  i_all=-product(shape(orbse%eval))*kind(orbse%eval)
+  deallocate(orbse%eval,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%eval',subname)
+
      
 END SUBROUTINE input_wf_diag
