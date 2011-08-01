@@ -246,6 +246,17 @@ integer:: ist, ierr, iiorb
       call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
+      if(iproc==0) then
+          do iorb=1,lin%orbs%norb
+              if(iorb==orbs%norb) then
+                  write(*,'(x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
+              else if(iorb==orbs%norb+1) then
+                  write(*,'(x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
+              else
+                  write(*,'(x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
+              end if
+          end do
+      end if
   end if
   !!do iorb=1,lin%lb%orbs%norb
   !!    write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
@@ -1184,10 +1195,6 @@ character(len=*),parameter:: subname='diagonalizeHamiltonian'
 
   ! Diagonalize the Hamiltonian
   call dsygv(1, 'v', 'l', orbs%norb, HamSmall(1,1), orbs%norb, ovrlp(1,1), orbs%norb, eval(1), work(1), lwork, info) 
-  do iorb=1,orbs%norb
-      write(1000+iproc,'(a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
-      if(iproc==0) write(*,'(a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
-  end do
 
   ! Deallocate the work array.
   iall=-product(shape(work))*kind(work)
