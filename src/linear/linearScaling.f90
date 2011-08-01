@@ -141,6 +141,12 @@ type(mixrhopotDIISParameters):: mixdiis
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        lphi, ehart, eexcu, vexcu)
+  !!do iall=1,size(rhopot)
+  !!    read(10000+iproc,*) rhopot(iall)
+  !!end do
+  !!do iall=1,size(lphi)
+  !!    read(11000+iproc,*) lphi(iall)
+  !!end do
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -183,12 +189,6 @@ type(mixrhopotDIISParameters):: mixdiis
   call updatePotential(iproc, nproc, n3d, n3p, Glr, orbs, at, input, lin, phi,  &
       rhopot, nscatterarr, pkernel, pot_ion, rhocore, potxc, PSquiet, &
       coeff, ehart, eexcu, vexcu)
-  do iall=1,size(rhopot)
-      read(10000+iproc,*) rhopot(iall)
-  end do
-  !do iall=1,size(lphi)
-  !    read(11000+iproc,*) lphi(iall)
-  !end do
 
   ! If we mix the potential, copy the potential.
   if(trim(lin%mixingMethod)=='pot') then
@@ -221,6 +221,9 @@ type(mixrhopotDIISParameters):: mixdiis
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
   do itSCC=1,nitSCC
+      !if(itSCC==10) updatePhi=.false.
+      if(itSCC>1 .and. pnrm<1.d-8) updatePhi=.false.
+      !!if(itSCC>1 .and. pnrm<7.3d-9) lin%nItBasis=1
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &

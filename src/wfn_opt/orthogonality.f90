@@ -272,6 +272,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
            if (nspinor == 4) occ=real(orbs%kwgts(ikpt),dp)
            if(nspinor == 1) then
               do iorb=1,norb
+                 write(*,'(a,2i5,2es14.7)') 'iproc, iorb, occ, lagMatVal', iproc, iorb, occ, real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
                  scprsum=scprsum+&
                       occ*real(alag(ndimovrlp(ispin,ikpt-1)+iorb+(iorb-1)*norbs),dp)
               enddo
@@ -420,6 +421,16 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   allocate(psiw(npsiw+ndebug),stat=i_stat)
   call memocc(i_stat,psiw,'psiw',subname)
 
+  if(iproc==0) then
+      ierr=0
+      do i_all=1,norb
+          do i_stat=1,norb
+              ierr=ierr+1
+              write(13000+iproc,*) i_all, i_stat, hamks(ierr,1)
+          end do
+      end do
+      write(13000+iproc,*) '=============================='
+  end if
 
   !for each k-point now reorthogonalise wavefunctions
   ispsi=1

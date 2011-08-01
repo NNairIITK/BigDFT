@@ -87,7 +87,7 @@ type(nonlocal_psp_descriptors),intent(in):: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables 
-integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount
+integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount, jlr
 real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps, temparr
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold
 real(8),dimension(:,:,:),allocatable:: matrixElements
@@ -96,7 +96,7 @@ real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
-integer:: ist, ierr
+integer:: ist, ierr, iiorb
 
   ! Allocate the local arrays.  
   allocate(matrixElements(lin%lb%orbs%norb,lin%lb%orbs%norb,2), stat=istat)
@@ -215,8 +215,26 @@ integer:: ist, ierr
   if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
 
   ! Calculate the matrix elements <phi|H|phi>.
+  !!do iall=1,size(lphi)
+  !!    write(24000+iproc,*) lphi(iall)
+  !!end do
+  !!do iall=1,size(lhphi)
+  !!    write(25000+iproc,*) lhphi(iall)
+  !!end do
   call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
 
+  !!if(iproc==0) then
+  !!    ierr=0
+  !!    do iall=1,lin%lb%orbs%norb
+  !!        do istat=1,lin%lb%orbs%norb
+  !!            ierr=ierr+1
+  !!            write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
+  !!        end do
+  !!    end do
+  !!    write(23000+iproc,*) '=============================='
+  !!end if
+
+  
 
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
   if(trim(lin%getCoeff)=='min') then
@@ -229,9 +247,9 @@ integer:: ist, ierr
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
   end if
-  do iorb=1,lin%lb%orbs%norb
-      write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
-  end do
+  !!do iorb=1,lin%lb%orbs%norb
+  !!    write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
+  !!end do
 
   ! Calculate the band structure energy with matrixElements.
   ebs=0.d0
@@ -268,6 +286,30 @@ integer:: ist, ierr
   ! this has to replaced, but at the moment it is still needed.
   call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
 
+  !!!! ATTENTION -- DEBUG
+  !!call dcopy(lin%orbs%npsidim, lphi(1), 1, phi(1), 1)
+  !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  !!nvctrp=sum(lin%comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+  !!!!call dgemm('n', 'n', nvctrp, lin%orbs%norb, lin%orbs%norb, 1.d0, phi(1), nvctrp, matrixElements(1,1,2), &
+  !!!!           lin%orbs%norb, 0.d0, phiWork(1), nvctrp)
+  !!phiWork=0.d0
+  !!ist=1
+  !!do iorb=1,lin%orbs%norb
+  !!    ilr=lin%orbs%inWhichLocreg(iorb)
+  !!    jst=1
+  !!    do jorb=1,lin%orbs%norb
+  !!        jlr=lin%orbs%inWhichLocreg(jorb)
+  !!        if(jlr==ilr) then
+  !!            call daxpy(nvctrp, matrixElements(jorb,iorb,2), phi(jst), 1, phiWork(ist), 1)
+  !!        end if
+  !!        jst=jst+nvctrp
+  !!    end do
+  !!    ist=ist+nvctrp
+  !!end do
+  !!call dcopy(lin%orbs%npsidim, phiWork(1), 1, phi(1), 1)
+  !!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  !!call dcopy(lin%orbs%npsidim, phi(1), 1, lphi(1), 1)
+
 
   call dcopy(orbs%npsidim, psi, 1, psit, 1)
   if(iproc==0) write(*,'(a)') 'done.'
@@ -281,6 +323,7 @@ integer:: ist, ierr
       call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
       call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
   end if
+
 
 
 
@@ -423,6 +466,13 @@ real(8),dimension(4):: time
 real(8),dimension(:),pointer:: potential
 real(8),dimension(:),pointer:: phiWork
 
+  !!do iall=1,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)
+  !!    write(20000+iproc,*) rhopot(iall)
+  !!end do
+  !!do iall=1,size(lphi)
+  !!    write(21000+iproc,*) lphi(iall)
+  !!end do
+
 
 
   ! Allocate all local arrays.
@@ -557,7 +607,8 @@ real(8),dimension(:),pointer:: phiWork
       end do
       call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
       call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
-      fnrm=sqrt(fnrm)
+      !fnrm=sqrt(fnrm)
+      fnrm=sqrt(fnrm/dble(lin%orbs%norb))
       fnrmMax=sqrt(fnrmMax)
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
       call dcopy(lin%orbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
@@ -591,6 +642,9 @@ real(8),dimension(:),pointer:: phiWork
           write(*,'(a)') 'done. '
       end if
 
+  !!do iall=1,size(lphi)
+  !!    write(22000+iproc,*) lphi(iall)
+  !!end do
 
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)

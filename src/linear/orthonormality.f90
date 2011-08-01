@@ -1432,7 +1432,19 @@ do iorb=1,orbs%norbp
 end do
 
 
+!!do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!        ierr=ierr+1
+!!        write(30000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+!!    end do
+!!end do
 call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+!!do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!        ierr=ierr+1
+!!        write(31000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
+!!    end do
+!!end do
 
 !!call dcopy(orbs%norb**2, ovrlp(1,1), 1, buffer(1), 1)
 !!call mpi_allreduce(buffer(1), ovrlp(1,1), orbs%norb**2, mpi_double_precision, &
@@ -2175,7 +2187,24 @@ character(len=*),parameter:: subname='getMatrixElements'
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lhphi, comon_lb)
   call calculateOverlapMatrix2(iproc, nproc, orbs, op_lb, comon_lb, orbs%inWhichLocreg, matrixElements)
+  !!if(iproc==0) then
+  !!    do iall=1,orbs%norb
+  !!        do istat=1,orbs%norb
+  !!            write(27000+iproc,*) iall, istat, matrixElements(istat,iall)
+  !!        end do
+  !!    end do
+  !!    write(27000+iproc,*) '=============================='
+  !!end if
   call deallocateCommuncationBuffersOrtho(comon_lb, subname)
+
+  !!if(iproc==0) then
+  !!    do iall=1,orbs%norb
+  !!        do istat=1,orbs%norb
+  !!            write(26000+iproc,*) iall, istat, matrixElements(istat,iall)
+  !!        end do
+  !!    end do
+  !!    write(26000+iproc,*) '=============================='
+  !!end if
 
 
 end subroutine getMatrixElements2

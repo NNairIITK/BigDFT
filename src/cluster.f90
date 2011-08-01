@@ -1147,6 +1147,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   do i_all=1,size(psi)
       write(11000+iproc,*) psi(i_all)
   end do
+  do i_all=1,size(psi)
+      write(12000+iproc,*) psi(i_all)
+  end do
 
   !deallocate psit and hpsi since it is not anymore done
   if (nproc > 1) then
