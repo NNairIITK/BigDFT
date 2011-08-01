@@ -288,23 +288,23 @@ contains
     allocate(orbsd%eval(dims%number_of_spins * dims%max_number_of_states * &
          & dims%number_of_kpoints),stat=i_stat)
     call memocc(i_stat,orbsd%eval,'orbsd%eval',subname)
-    allocate(orbsd%occup(dims%number_of_spins * dims%max_number_of_states * &
-         & dims%number_of_kpoints),stat=i_stat)
-    call memocc(i_stat,orbsd%occup,'orbsd%occup',subname)
+!!$    allocate(orbsd%occup(dims%number_of_spins * dims%max_number_of_states * &
+!!$         & dims%number_of_kpoints),stat=i_stat)
+!!$    call memocc(i_stat,orbsd%occup,'orbsd%occup',subname)
     call etsf_io_low_read_var(ncid, "eigenvalues", &
          & orbsd%eval, lstat, error_data = error)
     if (.not. lstat) call etsf_error(error)
-    call etsf_io_low_read_var(ncid, "occupations", &
-         & orbsd%occup, lstat, error_data = error)
-    if (.not. lstat) call etsf_error(error)
+!!$    call etsf_io_low_read_var(ncid, "occupations", &
+!!$         & orbsd%occup, lstat, error_data = error)
+!!$    if (.not. lstat) call etsf_error(error)
     ! The orbitals description as on disk.
     orbsd%nspin = dims%number_of_spins
     orbsd%norbu = 0
     orbsd%norbd = 0
     do i = 1, dims%max_number_of_states, 1
-       if (orbsd%occup(i) /= UNINITIALIZED(1.d0)) orbsd%norbu = orbsd%norbu + 1
+       if (orbsd%eval(i) /= UNINITIALIZED(1.d0)) orbsd%norbu = orbsd%norbu + 1
        if (dims%number_of_spins > 1) then
-          if (orbsd%occup(i + dims%max_number_of_states * dims%number_of_kpoints) /= &
+          if (orbsd%eval(i + dims%max_number_of_states * dims%number_of_kpoints) /= &
                & UNINITIALIZED(1.d0)) orbsd%norbd = orbsd%norbd + 1
        end if
     end do
@@ -318,29 +318,29 @@ contains
 
     integer :: i, ik, ikd, isd
 
-    ! We transfer the eigenvalues & occupations.
-    isd = max(orbsd%norbu, orbsd%norbd) * orbsd%nkpts
-    do i = 1, orbs%nkpts, 1
-       ik = (i - 1) * orbs%norb
-       ikd = (i - 1) * max(orbsd%norbu, orbsd%norbd)
-       orbs%eval(ik + 1:ik + orbs%norbu) = orbsd%eval(ikd + 1:ikd + orbs%norbu)
-       orbs%occup(ik + 1:ik + orbs%norbu) = orbsd%occup(ikd + 1:ikd + orbs%norbu)
-       if (orbs%nspin > 1) then
-          orbs%eval(ik + orbs%norbu + 1:ik + orbs%norb) = &
-               & orbsd%eval(isd + ikd + 1:isd + ikd + orbs%norbd)
-          orbs%occup(ik + orbs%norbu + 1:ik + orbs%norb) = &
-               & orbsd%occup(isd + ikd + 1:isd + ikd + orbs%norbd)
-       end if
-    end do
-    i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
-    deallocate(orbsd%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'orbsd%eval',subname)
-    i_all=-product(shape(orbsd%occup))*kind(orbsd%occup)
-    deallocate(orbsd%occup,stat=i_stat)
-    call memocc(i_stat,i_all,'orbsd%occup',subname)
-
     ! Eigenvalues are reduced later in cluster.
-    if (iproc /= 0) then
+    if (iproc == 0) then
+       ! We transfer the eigenvalues & occupations.
+       isd = max(orbsd%norbu, orbsd%norbd) * orbsd%nkpts
+       do i = 1, orbs%nkpts, 1
+          ik = (i - 1) * orbs%norb
+          ikd = (i - 1) * max(orbsd%norbu, orbsd%norbd)
+          orbs%eval(ik + 1:ik + orbs%norbu) = orbsd%eval(ikd + 1:ikd + orbs%norbu)
+!!$       orbs%occup(ik + 1:ik + orbs%norbu) = orbsd%occup(ikd + 1:ikd + orbs%norbu)
+          if (orbs%nspin > 1) then
+             orbs%eval(ik + orbs%norbu + 1:ik + orbs%norb) = &
+                  & orbsd%eval(isd + ikd + 1:isd + ikd + orbs%norbd)
+!!$          orbs%occup(ik + orbs%norbu + 1:ik + orbs%norb) = &
+!!$               & orbsd%occup(isd + ikd + 1:isd + ikd + orbs%norbd)
+          end if
+       end do
+       i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
+       deallocate(orbsd%eval,stat=i_stat)
+       call memocc(i_stat,i_all,'orbsd%eval',subname)
+!!$    i_all=-product(shape(orbsd%occup))*kind(orbsd%occup)
+!!$    deallocate(orbsd%occup,stat=i_stat)
+!!$    call memocc(i_stat,i_all,'orbsd%occup',subname)
+    else
        orbs%eval = real(0, gp)
     end if
   end subroutine transferEvalAndOccup
@@ -645,7 +645,7 @@ contains
          & flags = etsf_basisdata_coord_grid + etsf_basisdata_n_coeff_grid)
     if (.not. lstat) call etsf_error(error)
     call etsf_io_electrons_def(ncid, lstat, error, &
-         & flags = etsf_electrons_eigenvalues + etsf_electrons_occupations)
+         & flags = etsf_electrons_eigenvalues) ! + etsf_electrons_occupations)
     if (.not. lstat) call etsf_error(error)
     call etsf_io_main_def(ncid, lstat, error, flags = etsf_main_wfs_coeff)
     if (.not. lstat) call etsf_error(error)
@@ -687,16 +687,16 @@ contains
     ! The eigenvalues & occupation.
     if (dims%number_of_spins == 1) then
        elec%eigenvalues%data1D => orbs%eval
-       elec%occupations%data1D => orbs%occup
+!!$       elec%occupations%data1D => orbs%occup
     else
        allocate(elec%eigenvalues%data3D(dims%max_number_of_states, &
             & dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
        call memocc(i_stat,elec%eigenvalues%data3D,'elec%eigenvalues%data3D',subname)
        elec%eigenvalues%data3D = UNINITIALIZED(1.d0)
-       allocate(elec%occupations%data3D(dims%max_number_of_states, &
-            & dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
-       call memocc(i_stat,elec%occupations%data3D,'elec%occupations%data3D',subname)
-       elec%occupations%data3D = UNINITIALIZED(1.d0)
+!!$       allocate(elec%occupations%data3D(dims%max_number_of_states, &
+!!$            & dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
+!!$       call memocc(i_stat,elec%occupations%data3D,'elec%occupations%data3D',subname)
+!!$       elec%occupations%data3D = UNINITIALIZED(1.d0)
        do i = 1, orbs%norb*orbs%nkpts, 1
           ispin = 1
           iorb = modulo(i - 1, orbs%norb) + 1
@@ -705,7 +705,7 @@ contains
              iorb = iorb - orbs%norbu
           end if
           elec%eigenvalues%data3D(iorb, (i - 1) / orbs%norb + 1, ispin) = orbs%eval(i)
-          elec%occupations%data3D(iorb, (i - 1) / orbs%norb + 1, ispin) = orbs%occup(i)
+!!$          elec%occupations%data3D(iorb, (i - 1) / orbs%norb + 1, ispin) = orbs%occup(i)
        end do
     end if
     call etsf_io_electrons_put(ncid, elec, lstat, error)
@@ -714,9 +714,9 @@ contains
        i_all=-product(shape(elec%eigenvalues%data3D))*kind(elec%eigenvalues%data3D)
        deallocate(elec%eigenvalues%data3D)
        call memocc(i_stat,i_all,'elec%eigenvalues%data3D',subname)
-       i_all=-product(shape(elec%occupations%data3D))*kind(elec%occupations%data3D)
-       deallocate(elec%occupations%data3D)
-       call memocc(i_stat,i_all,'elec%occupations%data3D',subname)
+!!$       i_all=-product(shape(elec%occupations%data3D))*kind(elec%occupations%data3D)
+!!$       deallocate(elec%occupations%data3D)
+!!$       call memocc(i_stat,i_all,'elec%occupations%data3D',subname)
     end if
     ! Basis set
     basis%coordinates_of_basis_grid_points%data2D => gcoord
