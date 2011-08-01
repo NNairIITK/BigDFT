@@ -36,5 +36,5 @@ xc.out: test_xc
 check: xc.out xc.out.ref
 	@cut -b -70 xc.out > xc.tmp.out
 	@cut -b -70 $(srcdir)/xc.out.ref > xc.tmp.ref
-	python $(top_srcdir)/tests/fldiff.py xc.tmp.out xc.tmp.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=1.e-7 xc.tmp.out xc.tmp.ref | tee fldiff.report
 	@rm -f xc.tmp.*
