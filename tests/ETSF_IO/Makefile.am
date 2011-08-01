@@ -38,17 +38,16 @@ clean.in:
 write.out: $(top_builddir)/src/bigdft $(PPFILES) in 
 	@cp write.dft input.dft
 	$(run_parallel) $(top_builddir)/src/bigdft > $@
-	$(MAKE) clean.in
 
 read.out: $(top_builddir)/src/bigdft $(PPFILES) in
 	@cp read.dft input.dft
 	$(run_parallel) $(top_builddir)/src/bigdft > $@
-	$(MAKE) clean.in
 
 check : write.out read.out
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft write.out \
 		$(srcdir)/write.out.ref | tee fldiff.write.report
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft read.out \
 		$(srcdir)/read.out.ref | tee fldiff.read.report
+	$(MAKE) clean.in
 
-PHONY: in clean.in
+.PHONY: in clean.in

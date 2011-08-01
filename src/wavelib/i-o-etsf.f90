@@ -36,7 +36,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   character(len = *), parameter :: subname = "read_waves_etsf"
   integer, pointer :: nvctr_old(:)
   integer :: iCoeff, iFine, n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
-  integer :: i, iorb, ncid, iGrid, diGrid, nspin, ispin
+  integer :: i, iorb, ncid, iGrid, diGrid, nspin
   integer :: nb1, nb2, nb3, i_all, i_stat, ncount1,ncount_rate,ncount_max, ncount2
   integer :: start(6), count(6), coord(3)
   real :: tr0,tr1
@@ -45,9 +45,9 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   real(wp) :: fv(7)
   logical :: perx, pery, perz
   integer, dimension(:,:), allocatable :: gcoord
-  double precision, dimension(:,:,:), allocatable :: eigen
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
+  type(orbitals_data) :: orbsd
   type(etsf_io_low_error) :: error
   logical :: lstat
 
@@ -59,8 +59,9 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   if (.not. lstat) call etsf_error(error)
 
   ! We read the basis set description and the atomic definition.
-  call etsf_read_descr(ncid, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
+  call etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
        & rxyz_old, at%nat, nvctr_old, nvctr_c_old, nvctr_f_old)
+  orbsd%isorb = orbs%isorb
 
   !conditions for periodicity in the three directions
   call calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
@@ -76,22 +77,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
      if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
 
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
-        ! Read one spinor.
-        start(3) = modulo(iorb - 1, orbs%nspinor) + 1
-        count(3) = 1
-        ! Read one orbital.
-        start(4) = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
-        count(4) = 1
-        ! Read one kpoint.
-        start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
-        count(5) = 1
-        ! Write one spin.
-        start(6) = 1
-        if (start(4) > orbs%norbu) then
-           start(6) = 2
-           start(4) = start(4) - orbs%norbu
-        end if
-        count(6) = 1
+        call orbsToETSF(start, count, iorb, orbsd)
 
         iFine = wfd%nvctr_c + 1
         iCoeff = 1
@@ -163,22 +149,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
 
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
         ! We read the coefficients.
-        ! Read one spinor.
-        start(3) = modulo(iorb - 1, orbs%nspinor) + 1
-        count(3) = 1
-        ! Read one orbital.
-        start(4) = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
-        count(4) = 1
-        ! Read one kpoint.
-        start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
-        count(5) = 1
-        ! Write one spin.
-        start(6) = 1
-        if (start(4) > orbs%norbu) then
-           start(6) = 2
-           start(4) = start(4) - orbs%norbu
-        end if
-        count(6) = 1
+        call orbsToETSF(start, count, iorb, orbsd)
 
         ! We transfer the coefficients in psigold.
         iCoeff = 1
@@ -229,35 +200,8 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   deallocate(nvctr_old,stat=i_stat)
   call memocc(i_stat,i_all,'nvctr_old',subname)
 
-  ! We read the eigenvalues.
-  if (iproc == 0) then
-     if (nspin == 1) then
-        call etsf_io_low_read_var(ncid, "eigenvalues", &
-             & orbs%eval, lstat, error_data = error)
-        if (.not. lstat) call etsf_error(error)
-     else
-        allocate(eigen(max(orbs%norbu, orbs%norbd), &
-             & orbs%nkpts, nspin + ndebug),stat=i_stat)
-        call memocc(i_stat,eigen,'eigen',subname)
-        call etsf_io_low_read_var(ncid, "eigenvalues", &
-             & eigen, lstat, error_data = error)
-        if (.not. lstat) call etsf_error(error)
-        do i = 1, orbs%norb*orbs%nkpts, 1
-           ispin = 1
-           iorb = modulo(i - 1, orbs%norb) + 1
-           if (iorb > orbs%norbu) then
-              ispin = 2
-              iorb = iorb - orbs%norbu
-           end if
-           orbs%eval(i) = eigen(iorb, (i - 1) / orbs%norb + 1, ispin)
-        end do
-        i_all=-product(shape(eigen))*kind(eigen)
-        deallocate(eigen,stat=i_stat)
-        call memocc(i_stat,i_all,'eigen',subname)
-     end if
-  else
-     orbs%eval = real(0, gp)
-  end if
+  ! We transfer the eigenvalues & occupations.
+  call transferEvalAndOccup(orbs, orbsd)
 
   ! We close the file.
   call etsf_io_low_close(ncid, lstat, error)
@@ -290,9 +234,10 @@ contains
     call MPI_ABORT(MPI_COMM_WORLD, ierr)
   END SUBROUTINE general_error
 
-  subroutine etsf_read_descr(ncid, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
-       & rxyz_old, nat, nvctr_old, nvctr_c_old, nvctr_f_old)
+  subroutine etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, &
+       & hx_old, hy_old, hz_old, rxyz_old, nat, nvctr_old, nvctr_c_old, nvctr_f_old)
     integer, intent(in) :: nat, ncid
+    type(orbitals_data), intent(out) :: orbsd
     integer, intent(out) :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
     real(gp), intent(out) :: hx_old, hy_old, hz_old
     real(gp), dimension(3,nat), intent(out) :: rxyz_old
@@ -339,7 +284,66 @@ contains
     do i = 1, dims%max_number_of_basis_grid_points, 1
        if (nvctr_old(i) > 1) nvctr_f_old = nvctr_f_old + 1
     end do
+    ! We read the eigenvalues & occupations.
+    allocate(orbsd%eval(dims%number_of_spins * dims%max_number_of_states * &
+         & dims%number_of_kpoints),stat=i_stat)
+    call memocc(i_stat,orbsd%eval,'orbsd%eval',subname)
+    allocate(orbsd%occup(dims%number_of_spins * dims%max_number_of_states * &
+         & dims%number_of_kpoints),stat=i_stat)
+    call memocc(i_stat,orbsd%occup,'orbsd%occup',subname)
+    call etsf_io_low_read_var(ncid, "eigenvalues", &
+         & orbsd%eval, lstat, error_data = error)
+    if (.not. lstat) call etsf_error(error)
+    call etsf_io_low_read_var(ncid, "occupations", &
+         & orbsd%occup, lstat, error_data = error)
+    if (.not. lstat) call etsf_error(error)
+    ! The orbitals description as on disk.
+    orbsd%nspin = dims%number_of_spins
+    orbsd%norbu = 0
+    orbsd%norbd = 0
+    do i = 1, dims%max_number_of_states, 1
+       if (orbsd%occup(i) /= UNINITIALIZED(1.d0)) orbsd%norbu = orbsd%norbu + 1
+       if (dims%number_of_spins > 1) then
+          if (orbsd%occup(i + dims%max_number_of_states * dims%number_of_kpoints) /= &
+               & UNINITIALIZED(1.d0)) orbsd%norbd = orbsd%norbd + 1
+       end if
+    end do
+    orbsd%norb = orbsd%norbu + orbsd%norbd
+    orbsd%nspinor = dims%number_of_spinor_components
+    orbsd%nkpts = dims%number_of_kpoints
   END SUBROUTINE etsf_read_descr
+
+  subroutine transferEvalAndOccup(orbs, orbsd)
+    type(orbitals_data), intent(inout) :: orbs, orbsd
+
+    integer :: i, ik, ikd, isd
+
+    ! We transfer the eigenvalues & occupations.
+    isd = max(orbsd%norbu, orbsd%norbd) * orbsd%nkpts
+    do i = 1, orbs%nkpts, 1
+       ik = (i - 1) * orbs%norb
+       ikd = (i - 1) * max(orbsd%norbu, orbsd%norbd)
+       orbs%eval(ik + 1:ik + orbs%norbu) = orbsd%eval(ikd + 1:ikd + orbs%norbu)
+       orbs%occup(ik + 1:ik + orbs%norbu) = orbsd%occup(ikd + 1:ikd + orbs%norbu)
+       if (orbs%nspin > 1) then
+          orbs%eval(ik + orbs%norbu + 1:ik + orbs%norb) = &
+               & orbsd%eval(isd + ikd + 1:isd + ikd + orbs%norbd)
+          orbs%occup(ik + orbs%norbu + 1:ik + orbs%norb) = &
+               & orbsd%occup(isd + ikd + 1:isd + ikd + orbs%norbd)
+       end if
+    end do
+    i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
+    deallocate(orbsd%eval,stat=i_stat)
+    call memocc(i_stat,i_all,'orbsd%eval',subname)
+    i_all=-product(shape(orbsd%occup))*kind(orbsd%occup)
+    deallocate(orbsd%occup,stat=i_stat)
+    call memocc(i_stat,i_all,'orbsd%occup',subname)
+
+    ! Eigenvalues are reduced later in cluster.
+    if (iproc /= 0) then
+       orbs%eval = real(0, gp)
+    end if
+  end subroutine transferEvalAndOccup
 
   subroutine calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
     type(atoms_data), intent(in) :: at
@@ -364,6 +368,29 @@ contains
     enddo
     displ=sqrt(tx+ty+tz)
   END SUBROUTINE calc_displ
+
+  subroutine orbsToETSF(start, count, iorb, orbs)
+    integer, intent(inout) :: start(6), count(6)
+    integer, intent(in) :: iorb
+    type(orbitals_data), intent(in) :: orbs
+
+    ! Read one spinor.
+    start(3) = modulo(iorb - 1, orbs%nspinor) + 1
+    count(3) = 1
+    ! Read one orbital.
+    start(4) = modulo(orbs%isorb + (iorb - 1) / orbs%nspinor, orbs%norb) + 1
+    count(4) = 1
+    ! Read one kpoint.
+    start(5) = (orbs%isorb + (iorb - 1) / orbs%nspinor) / orbs%norb + 1
+    count(5) = 1
+    ! Write one spin.
+    start(6) = 1
+    if (start(4) > orbs%norbu) then
+       start(6) = 2
+       start(4) = start(4) - orbs%norbu
+    end if
+    count(6) = 1
+  end subroutine orbsToETSF
 END SUBROUTINE read_waves_etsf
 
 
@@ -617,7 +644,8 @@ contains
     call etsf_io_basisdata_def(ncid, lstat, error, &
          & flags = etsf_basisdata_coord_grid + etsf_basisdata_n_coeff_grid)
     if (.not. lstat) call etsf_error(error)
-    call etsf_io_electrons_def(ncid, lstat, error, flags = etsf_electrons_eigenvalues)
+    call etsf_io_electrons_def(ncid, lstat, error, &
+         & flags = etsf_electrons_eigenvalues + etsf_electrons_occupations)
     if (.not. lstat) call etsf_error(error)
     call etsf_io_main_def(ncid, lstat, error, flags = etsf_main_wfs_coeff)
     if (.not. lstat) call etsf_error(error)
@@ -656,14 +684,19 @@ contains
     i_all=-product(shape(spnames))*kind(spnames)
     deallocate(spnames)
     call memocc(i_stat,i_all,'spnames',subname)
-    ! The eigenvalues
+    ! The eigenvalues & occupation.
     if (dims%number_of_spins == 1) then
        elec%eigenvalues%data1D => orbs%eval
+       elec%occupations%data1D => orbs%occup
     else
        allocate(elec%eigenvalues%data3D(dims%max_number_of_states, &
             & dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
        call memocc(i_stat,elec%eigenvalues%data3D,'elec%eigenvalues%data3D',subname)
-       elec%eigenvalues%data3D = 999.
+       elec%eigenvalues%data3D = UNINITIALIZED(1.d0)
+       allocate(elec%occupations%data3D(dims%max_number_of_states, &
+            & dims%number_of_kpoints, dims%number_of_spins + ndebug),stat=i_stat)
+       call memocc(i_stat,elec%occupations%data3D,'elec%occupations%data3D',subname)
+       elec%occupations%data3D = UNINITIALIZED(1.d0)
        do i = 1, orbs%norb*orbs%nkpts, 1
           ispin = 1
           iorb = modulo(i - 1, orbs%norb) + 1
@@ -672,6 +705,7 @@ contains
              iorb = iorb - orbs%norbu
           end if
           elec%eigenvalues%data3D(iorb, (i - 1) / orbs%norb + 1, ispin) = orbs%eval(i)
+          elec%occupations%data3D(iorb, (i - 1) / orbs%norb + 1, ispin) = orbs%occup(i)
        end do
     end if
     call etsf_io_electrons_put(ncid, elec, lstat, error)
@@ -680,6 +714,9 @@ contains
        i_all=-product(shape(elec%eigenvalues%data3D))*kind(elec%eigenvalues%data3D)
        deallocate(elec%eigenvalues%data3D)
        call memocc(i_stat,i_all,'elec%eigenvalues%data3D',subname)
+       i_all=-product(shape(elec%occupations%data3D))*kind(elec%occupations%data3D)
+       deallocate(elec%occupations%data3D)
+       call memocc(i_stat,i_all,'elec%occupations%data3D',subname)
     end if
     ! Basis set
     basis%coordinates_of_basis_grid_points%data2D => gcoord
