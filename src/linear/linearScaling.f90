@@ -144,9 +144,10 @@ type(mixrhopotDIISParameters):: mixdiis
   !!do iall=1,size(rhopot)
   !!    read(10000+iproc,*) rhopot(iall)
   !!end do
-  !!do iall=1,size(lphi)
-  !!    read(11000+iproc,*) lphi(iall)
-  !!end do
+  do iall=1,size(lphi)
+      !read(11000+iproc,*) lphi(iall)
+      write(500+iproc,*) lphi(iall)
+  end do
 
   ! Post communications for gathering the potential
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)

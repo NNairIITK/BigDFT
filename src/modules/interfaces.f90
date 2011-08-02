@@ -3790,6 +3790,60 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(orbs%npsidim),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
+    subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbs, comms, at, Glr, input, norbsPerType, &
+      onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, ham3)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc, nlocregPerMPI
+      type(orbitals_data),intent(in):: orbsig, orbs
+      type(communications_arrays),intent(in):: comms
+      type(atoms_data),intent(in):: at
+      type(locreg_descriptors),intent(in):: Glr
+      type(input_variables),intent(in):: input
+      type(linearParameters),intent(in):: lin
+      type(linear_zone_descriptors),intent(inout):: lzdig
+      integer,dimension(at%ntypes):: norbsPerType
+      integer,dimension(orbsig%norb),intent(in):: onWhichAtom
+      real(8),dimension(lzdig%orbs%npsidim):: lchi
+      real(8),dimension(lin%orbs%npsidim):: lphi
+      real(8),dimension(3,at%nat):: rxyz
+      integer,dimension(orbs%norb):: onWhichAtomPhi
+      real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
+    end subroutine buildLinearCombinationsLocalized3
+
+    subroutine extractMatrix3(iproc, nproc, norb, norbp, orbstot, onWhichAtomPhi, onWhichMPI, nmat, ham, matmin, hamextract)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc, nmat, norb, norbp
+      type(orbitals_data),intent(in):: orbstot
+      integer,dimension(norb),intent(in):: onWhichAtomPhi, onWhichMPI
+      real(8),dimension(orbstot%norb,orbstot%norb,nmat),intent(in):: ham
+      type(matrixMinimization),intent(inout):: matmin
+      real(8),dimension(:,:,:),pointer,intent(out):: hamextract
+    end subroutine extractMatrix3
+
+    subroutine getHamiltonianMatrix3(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, norb_parTemp, onWhichMPITemp, &
+               Glr, input, onWhichAtom, onWhichAtomp, nat, nlocregPerMPI, lchi, lhchi, ham)
+      use module_base
+      use module_types
+      implicit none
+      integer,intent(in):: iproc, nproc, nprocTemp, nat, nlocregPerMPI
+      type(linear_zone_descriptors),intent(in):: lzdig
+      type(orbitals_data),intent(in):: orbsig, orbs
+      integer,dimension(0:nprocTemp),intent(in):: norb_parTemp
+      integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
+      type(locreg_descriptors),intent(in):: Glr
+      type(input_variables),intent(in):: input
+      integer,dimension(orbsig%norb),intent(in):: onWhichAtom
+      integer,dimension(orbsig%norbp),intent(in):: onWhichAtomp
+      real(8),dimension(orbsig%npsidim),intent(in):: lchi
+      real(8),dimension(orbsig%npsidim,nat),intent(in):: lhchi
+      real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
+      end subroutine getHamiltonianMatrix3
+
+
 
   end interface
 

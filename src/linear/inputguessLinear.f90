@@ -181,22 +181,24 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat, iall, iat, nspin_ig, iorb, nvirt, norbat
-  real(gp) :: hxh, hyh, hzh, eks, epot_sum, ekin_sum, eexctX, eproj_sum, t1, t2, time
+  real(gp) :: hxh, hyh, hzh, eks, epot_sum, ekin_sum, eexctX, eproj_sum, t1, t2, time, tt
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
   real(8),dimension(:),allocatable:: lchi, lchi2
   real(8),dimension(:,:),allocatable::  lhchi
-  real(8),dimensioN(:,:,:),allocatable:: ham, ham3
+  real(8),dimensioN(:,:,:),allocatable:: ham3
   integer,dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   logical:: withConfinement, ovrlpx, ovrlpy, ovrlpz
   logical,dimension(:),allocatable:: doNotCalculate
   integer, dimension(lmax+1) :: nl
   real(gp), dimension(noccmax,lmax+1) :: occup
-  integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr
-  integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, nlocregPerMPI, jproc, jlrold
+  integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr, kk, iiorb
+  integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, nlocregPerMPI, jproc, jlrold, norbTarget, norbpTemp, isorbTemp, nprocTemp
+  integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
+
 
 
   if (iproc == 0) then
@@ -481,12 +483,45 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   ! Deallocate the parameters needed for the communication of the potential.
   call deallocate_p2pCommsGatherPot(lin%lig%comgp, subname)
 
+
+  ! The input guess is possibly performed only with a subset of all processes.
+  if(lin%norbsPerProcIG>lin%orbs%norb) then
+      norbTarget=lin%orbs%norb
+  else
+     norbTarget=lin%norbsperProcIG
+  end if
+  nprocTemp=ceiling(dble(lin%orbs%norb)/dble(norbTarget))
+  nprocTemp=min(nprocTemp,nproc)
+  if(iproc==0) write(*,'(a,i0,a)') 'The minimization is performed using ', nprocTemp, ' processes.'
+
+  ! Create temporary norb_parTemp, onWhichMPITemp
+  allocate(norb_parTemp(0:nprocTemp-1), stat=istat)
+  call memocc(istat, norb_parTemp, 'norb_parTemp', subname)
+  norb_parTemp=0
+  tt=dble(lin%orbs%norb)/dble(nprocTemp)
+  ii=floor(tt)
+  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
+  norb_parTemp(0:nprocTemp-1)=ii
+  kk=lin%orbs%norb-nprocTemp*ii
+  norb_parTemp(0:kk-1)=ii+1
+
+  allocate(onWhichMPITemp(lin%orbs%norb), stat=istat)
+  call memocc(istat, onWhichMPITemp, 'onWhichMPITemp', subname)
+  iiorb=0
+  do jproc=0,nprocTemp-1
+      do iorb=1,norb_parTemp(jproc)
+          iiorb=iiorb+1
+          onWhichMPITemp(iiorb)=jproc
+      end do
+  end do
+
   ! Calculate the number of different matrices that have to be stored on a given MPI process.
   jlrold=0
   nlocregPerMPI=0
-  do jorb=1,lin%lig%orbsig%norb
-      jlr=lin%lig%orbsig%inWhichLocreg(jorb)
-      jproc=lin%lig%orbsig%onWhichMPI(jorb)
+  do jorb=1,lin%orbs%norb
+      jlr=lin%orbs%inWhichLocreg(jorb)
+      !jproc=lin%orbs%onWhichMPI(jorb)
+      jproc=onWhichMPITemp(jorb)
       if(iproc==jproc) then
           if(jlr>jlrold) then
               nlocregPerMPI=nlocregPerMPI+1
@@ -498,14 +533,14 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
 
   ! Calculate the Hamiltonian matrix.
   call cpu_time(t1)
-  allocate(ham(lin%lig%orbsig%norb,lin%lig%orbsig%norb,at%nat), stat=istat)
-  call memocc(istat,ham,'ham',subname)
+  !!allocate(ham(lin%lig%orbsig%norb,lin%lig%orbsig%norb,at%nat), stat=istat)
+  !!call memocc(istat,ham,'ham',subname)
   allocate(ham3(lin%lig%orbsig%norb,lin%lig%orbsig%norb,nlocregPerMPI), stat=istat)
   call memocc(istat,ham3,'ham3',subname)
-  call getHamiltonianMatrix2(iproc, nproc, lin%lig%lzdig, lin%lig%orbsig, Glr, input, &
-       lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, lchi, lhchi, ham)
-  !!call getHamiltonianMatrix3(iproc, nproc, lin%lig%lzdig, lin%lig%orbsig, Glr, input, &
-  !!     lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, nlocregPerMPI, lchi, lhchi, ham3)
+  !!call getHamiltonianMatrix2(iproc, nproc, lin%lig%lzdig, lin%lig%orbsig, Glr, input, &
+  !!     lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, lchi, lhchi, ham)
+  call getHamiltonianMatrix3(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, onWhichMPITemp, Glr, input, &
+       lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, nlocregPerMPI, lchi, lhchi, ham3)
   !!do iat=1,at%nat
   !!    do iorb=1,lin%lig%orbsig%norb
   !!        do jorb=1,lin%lig%orbsig%norb
@@ -522,10 +557,10 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   !!end do
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
-  call buildLinearCombinationsLocalized(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
-       lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, ham)
-  !call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
-  !     lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, ham, nlocregPerMPI, ham3)
+  !!call buildLinearCombinationsLocalized(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
+  !!     lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, ham)
+  call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
+       lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, nlocregPerMPI, ham3)
   call cpu_time(t2)
   time=t2-t1
   call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
@@ -576,13 +611,21 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   deallocate(doNotCalculate, stat=istat)
   call memocc(istat, iall, 'doNotCalculate',subname)
 
-  iall=-product(shape(ham))*kind(ham)
-  deallocate(ham, stat=istat)
-  call memocc(istat, iall, 'ham',subname)
+  !!iall=-product(shape(ham))*kind(ham)
+  !!deallocate(ham, stat=istat)
+  !!call memocc(istat, iall, 'ham',subname)
 
   iall=-product(shape(ham3))*kind(ham3)
   deallocate(ham3, stat=istat)
   call memocc(istat, iall, 'ham3',subname)
+
+  iall=-product(shape(norb_parTemp))*kind(norb_parTemp)
+  deallocate(norb_parTemp, stat=istat)
+  call memocc(istat, iall, 'norb_parTemp',subname)
+
+  iall=-product(shape(onWhichMPITemp))*kind(onWhichMPITemp)
+  deallocate(onWhichMPITemp, stat=istat)
+  call memocc(istat, iall, 'onWhichMPITemp',subname)
 
 END SUBROUTINE inputguessConfinement2
 
@@ -1446,16 +1489,19 @@ end subroutine getHamiltonianMatrix2
 
 
 
-subroutine getHamiltonianMatrix3(iproc, nproc, lzdig, orbsig, Glr, input, onWhichAtom, onWhichAtomp, nat, nlocregPerMPI, lchi, lhchi, ham)
+subroutine getHamiltonianMatrix3(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, norb_parTemp, onWhichMPITemp, &
+           Glr, input, onWhichAtom, onWhichAtomp, nat, nlocregPerMPI, lchi, lhchi, ham)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => getHamiltonianMatrix2
+use module_interfaces, exceptThisOne => getHamiltonianMatrix3
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nat, nlocregPerMPI
+integer,intent(in):: iproc, nproc, nprocTemp, nat, nlocregPerMPI
 type(linear_zone_descriptors),intent(in):: lzdig
-type(orbitals_data),intent(in):: orbsig
+type(orbitals_data),intent(in):: orbsig, orbs
+integer,dimension(0:nprocTemp),intent(in):: norb_parTemp
+integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
 type(locreg_descriptors),intent(in):: Glr
 type(input_variables),intent(in):: input
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
@@ -1502,20 +1548,24 @@ do iat=1,nat
     call calculateOverlapMatrix2(iproc, nproc, orbsig, op, comon, onWhichAtom, hamTemp(1,1))
     if(iproc==0) write(*,'(a)') 'done.'
     
-    ! Check whether this MPI needs this matrix.
-    copy=.false.
-    do iorb=1,orbsig%norbp
-        iiorb=orbsig%isorb+iorb
-        ilr=orbsig%inWhichLocreg(iiorb)
-        if(ilr==iat) then
-            copy=.true.
-            exit
+    ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
+    ! in calculating the input guess, this check has to be done only for those processes.
+    if(iproc<nprocTemp) then
+        copy=.false.
+        !do iorb=1,orbsig%norbp
+        do iorb=1,orbs%norb
+            !iiorb=orbs%isorb+iorb
+            ilr=orbs%inWhichLocreg(iorb)
+            jproc=onWhichMPITemp(iorb)
+            if(iproc==jproc .and. ilr==iat) then
+                copy=.true.
+                exit
+            end if
+        end do
+        if(copy) then
+            iilr=iilr+1
+            call dcopy(orbsig%norb**2, hamTemp(1,1), 1, ham(1,1,iilr), 1)
         end if
-    end do
-    if(copy .and. iat>iatold) then
-        iilr=iilr+1
-        call dcopy(orbsig%norb**2, hamTemp(1,1), 1, ham(1,1,iilr), 1)
-        iatold=iat
     end if
 end do
 call deallocateCommuncationBuffersOrtho(comon, subname)
@@ -1640,28 +1690,31 @@ type(matrixMinimization):: matmin
       allocate(lgradold(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
       call memocc(istat, lgradold, 'lgradold', subname)
     
-      ! Initialize the coefficient vectors. Put random number to palces where it is
+      ! Initialize the coefficient vectors. Put random number to places where it is
       ! reasonable (i.e. close to the atom where the basis function is centered).
-      call initRandomSeed(iproc, 1)
-      do ii=1,orbsig%isorb*ip%norbtotPad
-          call random_number(ttreal)
-      end do
+      ! Make sure that the random initialization is done in the same way independent
+      ! of the number of preocesses that are used.
+      call initRandomSeed(0, 1)
       coeffPad=0.d0
     
       ii=0
-      do iorb=1,ip%norb_par(iproc)
-          iiAt=onWhichAtomPhi(ip%isorb+iorb)
-          ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
-          cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
-          do jorb=1,ip%norbtot
-              jjAt=onWhichAtom(jorb)
-              tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
-              if(tt>cut) then
-                   coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
-              else
-                  call random_number(ttreal)
-                  coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
-              end if
+      do jproc=0,ip%nproc-1
+          do iorb=1,ip%norb_par(jproc)
+              iiAt=onWhichAtomPhi(ip%isorb_par(jproc)+iorb)
+              ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
+              cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
+              do jorb=1,ip%norbtot
+                  call random_number(ttreal) ! Always call random_number to make it independent of the number of processes.
+                  if(iproc==jproc) then
+                      jjAt=onWhichAtom(jorb)
+                      tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
+                      if(tt>cut) then
+                           coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
+                      else
+                          coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
+                      end if
+                  end if
+              end do
           end do
       end do
 
@@ -1896,6 +1949,11 @@ type(matrixMinimization):: matmin
   ! Now every process has all coefficients, so we can build the linear combinations.
   ! Do this in a localized way -- TEST
   !call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+  do iorb=1,orbs%norb
+      do jorb=1,orbsig%norb
+          write(600+iproc,*) iorb, jorb, coeff(jorb,iorb)
+      end do
+  end do
   call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
 
   if(iproc<ip%nproc) then
@@ -3390,11 +3448,11 @@ end subroutine buildLinearCombinationsVariable
 
 
 subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbs, comms, at, Glr, input, norbsPerType, &
-           onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, ham, nlocregPerMPI, ham3)
+           onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, ham3)
 !
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => buildLinearCombinationsLocalized
+use module_interfaces, exceptThisOne => buildLinearCombinationsLocalized3
 implicit none
 
 ! Calling arguments
@@ -3412,7 +3470,7 @@ real(8),dimension(lzdig%orbs%npsidim):: lchi
 real(8),dimension(lin%orbs%npsidim):: lphi
 real(8),dimension(3,at%nat):: rxyz
 integer,dimension(orbs%norb):: onWhichAtomPhi
-real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
+!!real(8),dimension(orbsig%norb,orbsig%norb,at%nat),intent(inout):: ham
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
 
 ! Local variables
@@ -3483,8 +3541,8 @@ type(matrixMinimization):: matmin
       call allocateArrays()
 
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, lin%locrad, rxyz, lin%lzd, matmin%mlr)
-      call extractMatrix(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, at%nat, ham, matmin, hamextract)
-      !call extractMatrix3(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
+      !call extractMatrix(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, at%nat, ham, matmin, hamextract)
+      call extractMatrix3(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
       call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lin%orbs, orbsig, onWhichAtom, onWhichAtomPhi, comom)
       tag=1
       call initCommsMatrixOrtho(iproc, ip%nproc, lin%orbs%norb, ip%norb_par, ip%isorb_par, onWhichAtomPhi, ip%onWhichMPI, tag, comom)
@@ -3495,28 +3553,31 @@ type(matrixMinimization):: matmin
       allocate(lgradold(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
       call memocc(istat, lgradold, 'lgradold', subname)
     
-      ! Initialize the coefficient vectors. Put random number to palces where it is
+      ! Initialize the coefficient vectors. Put random number to places where it is
       ! reasonable (i.e. close to the atom where the basis function is centered).
-      call initRandomSeed(iproc, 1)
-      do ii=1,orbsig%isorb*ip%norbtotPad
-          call random_number(ttreal)
-      end do
+      ! Make sure that the random initialization is done in the same way independent
+      ! of the number of preocesses that are used.
+      call initRandomSeed(0, 1)
       coeffPad=0.d0
     
       ii=0
-      do iorb=1,ip%norb_par(iproc)
-          iiAt=onWhichAtomPhi(ip%isorb+iorb)
-          ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
-          cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
-          do jorb=1,ip%norbtot
-              jjAt=onWhichAtom(jorb)
-              tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
-              if(tt>cut) then
-                   coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
-              else
-                  call random_number(ttreal)
-                  coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
-              end if
+      do jproc=0,ip%nproc-1
+          do iorb=1,ip%norb_par(jproc)
+              iiAt=onWhichAtomPhi(ip%isorb_par(jproc)+iorb)
+              ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
+              cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
+              do jorb=1,ip%norbtot
+                  call random_number(ttreal) ! Always call random_number to make it independent of the number of processes.
+                  if(iproc==jproc) then
+                      jjAt=onWhichAtom(jorb)
+                      tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
+                      if(tt>cut) then
+                           coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
+                      else
+                          coeffPad((iorb-1)*ip%norbtotPad+jorb)=dble(ttreal)
+                      end if
+                  end if
+              end do
           end do
       end do
 
