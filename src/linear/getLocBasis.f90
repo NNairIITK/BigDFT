@@ -196,6 +196,7 @@ integer:: ist, ierr, iiorb
   allocate(lhphi(lin%lb%orbs%npsidim), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
+  if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
   if(.not.lin%useDerivativeBasisFunctions) then
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
@@ -208,7 +209,7 @@ integer:: ist, ierr, iiorb
            pkernel=pkernelseq)
   end if
 
-  if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
+  if(iproc==0) write(*,'(x,a)') 'done.'
 
   ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
@@ -246,8 +247,10 @@ integer:: ist, ierr, iiorb
       call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
+
+      ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
       if(iproc==0) then
-          do iorb=1,lin%orbs%norb
+          do iorb=max(orbs%norb-8,1),min(orbs%norb+8,lin%orbs%norb)
               if(iorb==orbs%norb) then
                   write(*,'(x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
               else if(iorb==orbs%norb+1) then

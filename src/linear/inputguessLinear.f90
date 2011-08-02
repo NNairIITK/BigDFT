@@ -2278,7 +2278,6 @@ jjorb=0
 do jorb=1,norb
     jlr=onWhichAtomPhi(jorb)
     jproc=onWhichMPI(jorb)
-    write(*,'(a,4i8)') 'iproc, jlr, jlrold, jproc', iproc, jlr, jlrold, jproc
     if(iproc==jproc) then
         jjorb=jjorb+1
         if(jlr>jlrold) then
@@ -2292,7 +2291,6 @@ do jorb=1,norb
         jlrold=jlr
     end if
 end do
-write(*,'(a,3i5)') 'iproc, matmin%nlrp, nmat', iproc, matmin%nlrp, nmat
 
 allocate(matmin%indexInLocreg(matmin%nlrp), stat=istat)
 call memocc(istat, matmin%indexInLocreg, 'matmin%indexInLocreg', subname)
