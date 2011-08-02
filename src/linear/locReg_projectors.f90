@@ -1050,10 +1050,10 @@ subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
 !  First reshape the wavefunctions: psi_tmp(nels,norbs,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
 
-   allocate(psi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
-   call memocc(i_stat,psi_tmp,'psi_tmp',subname)
-   allocate(hpsi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
-   call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
+   !!allocate(psi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
+   !!call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+   !!allocate(hpsi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
+   !!call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
 
    allocate(Lproj(Lnlpspd%nprojel),stat=i_stat)
    call memocc(i_stat,Lproj,'Lproj',subname)
@@ -1068,6 +1068,11 @@ subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
          inthisLocreg(orbtot) = iorb
       end if
    end do
+
+   allocate(psi_tmp(nels,orbs%nspinor,orbtot),stat=i_stat)
+   call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+   allocate(hpsi_tmp(nels,orbs%nspinor,orbtot),stat=i_stat)
+   call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
 
    ! reshape the wavefunction
    ii=0
