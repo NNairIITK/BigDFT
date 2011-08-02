@@ -514,7 +514,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      if (iproc ==0) then !this case works only for the first k-point
         call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
      end if
-
 !!$  !not necessary anymore since psivirt is gaussian
      !allocate the pointer for virtual orbitals
      if(present(orbsv) .and. present(psivirt)) then

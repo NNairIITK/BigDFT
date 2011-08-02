@@ -283,6 +283,7 @@ subroutine dft_input_variables(iproc,filename,in)
   end if
   call check()
   if (in%output_wf_format /= WF_FORMAT_NONE) in%output_wf = .true.
+
   ! Validate inputPsiId value.
   if (.not. input_psi_validate(in%inputPsiId) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'

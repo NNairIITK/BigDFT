@@ -984,7 +984,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
            end if
            !flush all writings on standart output
-           flush(unit=6)
+           !flush(unit=6)
         end do wfn_loop
 
         if (iproc == 0) then 
@@ -1156,6 +1156,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!!
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
+        write(*,*)'Writing wavefunctions in wavefucntion.gau file'
         call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
 
         !build dual coefficients
@@ -1420,6 +1421,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         deallocate(orbsv%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
 
+        !if the local analysis has to be performed the deallocation should not be done
         i_all=-product(shape(psivirt))*kind(psivirt)
         deallocate(psivirt,stat=i_stat)
         call memocc(i_stat,i_all,'psivirt',subname)
