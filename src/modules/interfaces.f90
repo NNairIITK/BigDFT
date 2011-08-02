@@ -2066,7 +2066,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine initializeCommsSumrho2
 
 
-   subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,orbs)
+   subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)
       use module_base
       use module_types
       implicit none
@@ -2077,7 +2077,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(gp), dimension(nlr), intent(in) :: locrad
       real(gp), dimension(3,nlr), intent(in) :: cxyz
       type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
-      type(orbitals_data),intent(in),optional:: orbs
+      logical,dimension(nlr),intent(in):: calculateBounds
    end subroutine determine_locreg_periodic
 
     subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)

@@ -2233,7 +2233,7 @@ integer:: iorb, jorb, iiorb, jproc, ioverlaporb, ioverlapMPI, ilr, jlr
 integer:: ilrold, is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3
 integer::  je3, istat, i1, i2
 logical:: ovrlpx, ovrlpy, ovrlpz
-character(len=*),parameter:: subname='initCommsOrtho'
+character(len=*),parameter:: subname='initCommsOrthoVariable'
 
 allocate(comon%noverlaps(0:nproc-1), stat=istat)
 call memocc(istat, comon%noverlaps, 'comon%noverlaps',subname)

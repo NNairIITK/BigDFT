@@ -1319,8 +1319,9 @@ type(locreg_descriptors),intent(in):: Glr
 real(8),dimension(:),pointer:: phi, lphi
 
 ! Local variables
-integer:: istat, npsidim, npsidimr, iorb, ilr
+integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
 character(len=*),parameter:: subname='initLocregs'
+logical,dimension(:),allocatable:: calculateBounds
 
 ! Allocate the array of localisation regions
 !allocate(lin%Llr(lin%nlr),stat=istat)
@@ -1347,9 +1348,34 @@ end do
 !    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
 !end if
 
- !call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
- call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr, lin%orbs)
- call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, lin%lb%orbs)
+ allocate(calculateBounds(lin%lzd%nlr), stat=istat)
+ call memocc(istat, calculateBounds, 'calculateBounds', subname)
+ calculateBounds=.false.
+ do ilr=1,lin%lzd%nlr
+     do jorb=1,lin%orbs%norbp
+         jjorb=lin%orbs%isorb+jorb
+         jlr=lin%orbs%inWhichLocreg(jjorb)
+         if(jlr==ilr) then
+             calculateBounds(ilr)=.true.
+             exit
+         end if
+     end do
+     do jorb=1,lin%lb%orbs%norbp
+         jjorb=lin%lb%orbs%isorb+jorb
+         jlr=lin%lb%orbs%inWhichLocreg(jjorb)
+         if(jlr==ilr) then
+             calculateBounds(ilr)=.true.
+             exit
+         end if
+     end do
+ end do
+
+ call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr, calculateBounds)
+ call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, calculateBounds)
+
+ iall=-product(shape(calculateBounds))*kind(calculateBounds)
+ deallocate(calculateBounds, stat=istat)
+ call memocc(istat, iall, 'calculateBounds', subname)
 
 !!do ilr=1,lin%nlr
 !!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
@@ -1429,8 +1455,9 @@ real(8),dimension(lzd%nlr),intent(in):: locrad
 !real(8),dimension(:),pointer:: phi, lphi
 
 ! Local variables
-integer:: istat, npsidim, npsidimr, iorb, ilr
+integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
 character(len=*),parameter:: subname='initLocregs'
+logical,dimension(:),allocatable:: calculateBounds
 
 ! Allocate the array of localisation regions
 allocate(lzd%Llr(lzd%nlr),stat=istat)
@@ -1453,7 +1480,25 @@ end do
 !    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
 !end if
 
- call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr, orbs)
+ allocate(calculateBounds(lzd%nlr), stat=istat)
+ call memocc(istat, calculateBounds, 'calculateBounds', subname)
+ calculateBounds=.false.
+ do ilr=1,lzd%nlr
+     do jorb=1,orbs%norbp
+         jjorb=orbs%isorb+jorb
+         jlr=orbs%inWhichLocreg(jjorb)
+         if(jlr==ilr) then
+             calculateBounds(ilr)=.true.
+             exit
+         end if
+     end do
+ end do
+
+ call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr, calculateBounds)
+
+ iall=-product(shape(calculateBounds))*kind(calculateBounds)
+ deallocate(calculateBounds, stat=istat)
+ call memocc(istat, iall, 'calculateBounds', subname)
 
 !do ilr=1,lin%nlr
 !    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr

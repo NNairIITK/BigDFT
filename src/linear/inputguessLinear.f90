@@ -531,7 +531,6 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
           end if
       end if
   end do
-  write(*,'(a,2i5)') 'iproc, nlocregPerMPI', iproc, nlocregPerMPI
 
   ! Calculate the Hamiltonian matrix.
   call cpu_time(t1)
@@ -1630,11 +1629,12 @@ integer,dimension(:),allocatable:: newID
 ! new
 real(8),dimension(:),allocatable:: work, eval, evals
 real(8),dimension(:,:),allocatable:: tempMat
-integer:: lwork, ii, info, iiAtprev, i, jproc, norbTarget, sendcount, ilr, iilr, tag
+integer:: lwork, ii, info, iiAtprev, i, jproc, norbTarget, sendcount, ilr, iilr, tag, jlr
 type(inguessParameters):: ip
 real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pCommsOrthonormalityMatrix):: comom
 type(matrixMinimization):: matmin
+logical:: same
 
   if(iproc==0) write(*,'(x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
@@ -1948,14 +1948,27 @@ type(matrixMinimization):: matmin
 
 
   ! Now every process has all coefficients, so we can build the linear combinations.
-  ! Do this in a localized way -- TEST
-  !call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
-  do iorb=1,orbs%norb
-      do jorb=1,orbsig%norb
-          write(600+iproc,*) iorb, jorb, coeff(jorb,iorb)
+  ! If the number of atomic orbitals is the same as the number of trace minimizing orbitals, we can use the
+  ! first one (uses less memory for the overlap descriptors), otherwise the second one.
+  ! So first check which version we have to use.
+  same=.true.
+  if(orbsig%norb==lin%orbs%norb) then
+      do iorb=1,orbsig%norb
+          ilr=orbsig%inWhichLocreg(iorb)
+          jlr=lin%orbs%inWhichLocreg(iorb)
+          if(ilr/=jlr) then
+              same=.false.
+              exit
+          end if
       end do
-  end do
-  call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+  else
+      same=.false.
+  end if
+  if(same) then
+      call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+  else
+      call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+  end if
 
   if(iproc<ip%nproc) then
       call deallocate_inguessParameters(ip, subname)
@@ -3380,7 +3393,7 @@ integer:: tag, istat, iall, ist, jst, ilr, ilrold, iorb, iiorb, ncount, jorb, jj
 type(overlapParameters):: op
 type(p2pCommsOrthonormality):: comon
 real(8),dimension(:),allocatable:: lchiovrlp
-character(len=*),parameter:: subname='buildLinearCombinations'
+character(len=*),parameter:: subname='buildLinearCombinationsVariable'
 
 tag=10000
 call initCommsOrthoVariable(iproc, nproc, lzdig, orbs, orbsig, orbsig%inWhichLocreg, input, op, comon, tag)

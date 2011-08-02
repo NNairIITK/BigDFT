@@ -402,6 +402,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(wp), dimension(:), pointer :: psivirt           ! still for testing DiagHam
   type(linear_zone_descriptors) :: Lzd                 
   integer,dimension(:),allocatable :: norbsc
+  logical,dimension(:),allocatable:: calculateBounds
 
   Lzd%nlr = at%nat   !!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -497,7 +498,18 @@ subroutine input_wf_diag(iproc,nproc,at,&
 ! END DEBUG
 
    ! determine the localization regions
-     call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
+     ! calculateBounds indicate whether the arrays with the bounds (for convolutions...) shall also
+     ! be allocated and calculated. In principle this is only necessary if the current process has orbitals
+     ! in this localization region.
+     allocate(calculateBounds(lzd%nlr),stat=i_stat)
+     call memocc(i_stat,calculateBounds,'calculateBounds',subname)
+     calculateBounds=.true.
+
+     call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,calculateBounds)
+
+     i_all=-product(shape(calculateBounds))*kind(calculateBounds)
+     deallocate(calculateBounds,stat=i_stat)
+     call memocc(i_stat,i_all,'calculateBounds',subname)
 
    ! Assign orbitals to locreg
      call assignToLocreg(iproc,nproc,orbse%nspinor,nspin_ig,at,Lzd%orbs,Lzd,norbsc_arr,norbsc)

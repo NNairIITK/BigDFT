@@ -1,6 +1,6 @@
 !determine a set of localisation regions from the centers and the radii.
 !cut in cubes the global reference system
-subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,orbs)!,outofzone)
+subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)!,outofzone)
   use module_base
   use module_types
   implicit none
@@ -11,7 +11,7 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,orbs
   real(gp), dimension(nlr), intent(in) :: locrad
   real(gp), dimension(3,nlr), intent(in) :: cxyz
   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
-  type(orbitals_data),intent(in),optional:: orbs
+  logical,dimension(nlr),intent(in):: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
   character(len=*), parameter :: subname='determine_locreg'
@@ -233,21 +233,8 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,orbs
      !if the localisation region is isolated build also the bounds
      if (Llr(ilr)%geocode=='F') then
         ! Check whether the bounds shall be calculated. Do this only if the currect process handles
-        ! orbitals in the current localization region. Only check if the optional argument orbs is present
-        if(present(orbs)) then
-            calculate=.false.
-            do iorb=1,orbs%norb
-                jproc=orbs%onWhichMPI(iorb)
-                jlr=orbs%inWhichLocreg(iorb)
-                if(iproc==jproc .and. jlr==ilr) then
-                    calculate=.true.
-                    exit
-                end if
-            end do
-        else
-            calculate=.true.
-        end if
-        if(calculate) then
+        ! orbitals in the current localization region.
+        if(calculateBounds(ilr)) then
             call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
                  Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
                  Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
