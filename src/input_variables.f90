@@ -1756,7 +1756,7 @@ subroutine parse_extra_info(iat,extra,atoms)
   !Arguments
   integer, intent(in) :: iat
   character(len=50), intent(in) :: extra
-  type(atoms_data), intent(out) :: atoms
+  type(atoms_data), intent(inout) :: atoms
   !Local variables
   character(len=4) :: suffix
   logical :: go

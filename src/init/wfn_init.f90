@@ -2798,7 +2798,7 @@ end if semicoreIf
      call memocc(i_stat, i_all, 'evale', subname)
   end if
 
-  if(iproc==0) write(*,'(1xa)') 'Input guess successfully generated.'
+  if(iproc==0) write(*,'(1x,a)') 'Input guess successfully generated.'
 
   ! Stop the timing for the input guess.
   call timing(iproc, 'Input_comput', 'OF')
