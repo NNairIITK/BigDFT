@@ -351,6 +351,8 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
        at%symObj, irrzon, phnons)
   if(iproc==0) write(*,'(a)') 'done.'
 
+  ! Deallocate lin%lig%lzdGauss since it is not  needed anymore.
+  call deallocate_linear_zone_descriptors(lin%lig%lzdGauss, subname)
      
   !-- if spectra calculation uses a energy dependent potential
   !    input_wf_diag will write (to be used in abscalc)
@@ -574,7 +576,6 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
 
   ! Deallocate all types that are not needed any longer.
   call deallocate_linear_zone_descriptors(lin%lig%lzdig, subname)
-  call deallocate_linear_zone_descriptors(lin%lig%lzdGauss, subname)
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call deallocate_orbitals_data(lin%lig%orbsGauss, subname)
 

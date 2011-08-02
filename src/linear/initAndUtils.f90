@@ -1348,8 +1348,8 @@ end do
 !end if
 
  !call determine_locreg_periodic(iproc, lin%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%Llr)
- call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr)
- call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr)
+ call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr, lin%orbs)
+ call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, lin%lb%orbs)
 
 !!do ilr=1,lin%nlr
 !!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
@@ -1453,7 +1453,7 @@ end do
 !    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
 !end if
 
- call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr)
+ call determine_locreg_periodic(iproc, lzd%nlr, rxyz, locrad, input%hx, input%hy, input%hz, Glr, lzd%Llr, orbs)
 
 !do ilr=1,lin%nlr
 !    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
