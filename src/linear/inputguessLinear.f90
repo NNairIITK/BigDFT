@@ -192,7 +192,7 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   integer,dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   logical:: withConfinement, ovrlpx, ovrlpy, ovrlpz
-  logical,dimension(:),allocatable:: doNotCalculate
+  logical,dimension(:),allocatable:: doNotCalculate, skip
   integer, dimension(lmax+1) :: nl
   real(gp), dimension(noccmax,lmax+1) :: occup
   integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr, kk, iiorb
@@ -290,14 +290,8 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
 
   ! Allcoate the array holding the orbitals. lchi2 are the atomic orbitals with the larger cutoff, whereas
   ! lchi are the atomic orbitals with the smaller cutoff.
-  allocate(lchi(lin%lig%orbsig%npsidim+ndebug),stat=istat)
-  call memocc(istat,lchi,'lchi',subname)
-  allocate(lhchi(lin%lig%orbsig%npsidim,at%nat),stat=istat)
-  call memocc(istat,lhchi,'lhchi',subname)
   allocate(lchi2(lin%lig%orbsGauss%npsidim),stat=istat)
   call memocc(istat,lchi2,'lchi2',subname)
-  lchi=0.d0
-  lhchi=0.d0
   lchi2=0.d0
 
   ! Grid spacing on fine grid.
@@ -316,6 +310,13 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
 
   ! Orthonormalize the atomic orbitals.
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lchi2)
+
+  allocate(lchi(lin%lig%orbsig%npsidim+ndebug),stat=istat)
+  call memocc(istat,lchi,'lchi',subname)
+  allocate(lhchi(lin%lig%orbsig%npsidim,at%nat),stat=istat)
+  call memocc(istat,lhchi,'lhchi',subname)
+  lchi=0.d0
+  lhchi=0.d0
 
   ! Transform chi to the localization region. This requires that the localizatin region of lchi2 is larger than that
   ! of lchi.
@@ -444,34 +445,42 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   call memocc(istat,onWhichAtomTemp,'onWhichAtomTemp',subname)
   allocate(doNotCalculate(lin%lig%lzdig%nlr), stat=istat)
   call memocc(istat, doNotCalculate, 'doNotCalculate', subname)
+  allocate(skip(lin%lig%lzdig%nlr), stat=istat)
+  call memocc(istat, skip, 'skip', subname)
   if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
   lhchi=0.d0
   call cpu_time(t1)
   withConfinement=.true.
   do iat=1,at%nat
-      doNotCalculate=.false.
-      call mpi_barrier(mpi_comm_world, ierr)
+      doNotCalculate=.true.
+      !!call mpi_barrier(mpi_comm_world, ierr)
       call getIndices(lin%lig%lzdig%llr(iat), is1, ie1, is2, ie2, is3, ie3)
+      skip(iat)=.true.
       do jorb=1,lin%lig%orbsig%norbp
           onWhichAtomTemp(jorb)=iat
           !jlr=onWhichAtomp(jorb)
-          jlr=lin%lig%orbsig%inWhichLocreg(jorb)
+          jlr=lin%lig%orbsig%inWhichLocregp(jorb)
           call getIndices(lin%lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
           if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+              doNotCalculate(jlr)=.false.
+              skip(iat)=.false.
           else
-              !doNotCalculate(ilr)=.true.
               doNotCalculate(jlr)=.true.
           end if
       end do
       !write(*,'(a,2i4,4x,100l4)') 'iat, iproc, doNotCalculate', iat, iproc, doNotCalculate
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
+      !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
+      !!     ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,iat), &
+      !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
+      !!     withConfinement, pkernel=pkernelseq)
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,iat), &
            ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
-           withConfinement, pkernel=pkernelseq)
+           withConfinement, doNotCalculate=doNotCalculate, pkernel=pkernelseq)
 
       if(iproc==0) write(*,'(a)') 'done.'
   end do
@@ -540,8 +549,10 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   call memocc(istat,ham3,'ham3',subname)
   !!call getHamiltonianMatrix2(iproc, nproc, lin%lig%lzdig, lin%lig%orbsig, Glr, input, &
   !!     lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, lchi, lhchi, ham)
-  call getHamiltonianMatrix3(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, onWhichMPITemp, Glr, input, &
-       lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, nlocregPerMPI, lchi, lhchi, ham3)
+  !!call getHamiltonianMatrix3(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, onWhichMPITemp, Glr, input, &
+  !!     lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, nlocregPerMPI, lchi, lhchi, ham3)
+  call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, onWhichMPITemp, Glr, input, &
+       lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, nlocregPerMPI, lchi, lhchi, skip, ham3)
   !!do iat=1,at%nat
   !!    do iorb=1,lin%lig%orbsig%norb
   !!        do jorb=1,lin%lig%orbsig%norb
@@ -549,13 +560,13 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   !!        end do
   !!    end do
   !!end do
-  !!do iat=1,nlocregPerMPI
-  !!    do iorb=1,lin%lig%orbsig%norb
-  !!        do jorb=1,lin%lig%orbsig%norb
-  !!            write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
-  !!        end do
-  !!    end do
-  !!end do
+  do iat=1,nlocregPerMPI
+      do iorb=1,lin%lig%orbsig%norb
+          do jorb=1,lin%lig%orbsig%norb
+              write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
+          end do
+      end do
+  end do
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
   !!call buildLinearCombinationsLocalized(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
@@ -610,6 +621,10 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   iall=-product(shape(doNotCalculate))*kind(doNotCalculate)
   deallocate(doNotCalculate, stat=istat)
   call memocc(istat, iall, 'doNotCalculate',subname)
+
+  iall=-product(shape(skip))*kind(skip)
+  deallocate(skip, stat=istat)
+  call memocc(istat, iall, 'skip',subname)
 
   !!iall=-product(shape(ham))*kind(ham)
   !!deallocate(ham, stat=istat)
@@ -1581,6 +1596,120 @@ deallocate(hamTemp, stat=istat)
 call memocc(istat, iall, 'hamTemp', subname)
 
 end subroutine getHamiltonianMatrix3
+
+
+
+
+
+subroutine getHamiltonianMatrix4(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, norb_parTemp, onWhichMPITemp, &
+Glr, input, onWhichAtom, onWhichAtomp, nat, nlocregPerMPI, lchi, lhchi, skip, ham)
+use module_base
+use module_types
+use module_interfaces, exceptThisOne => getHamiltonianMatrix4
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, nprocTemp, nat, nlocregPerMPI
+type(linear_zone_descriptors),intent(in):: lzdig
+type(orbitals_data),intent(in):: orbsig, orbs
+integer,dimension(0:nprocTemp),intent(in):: norb_parTemp
+integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
+type(locreg_descriptors),intent(in):: Glr
+type(input_variables),intent(in):: input
+integer,dimension(orbsig%norb),intent(in):: onWhichAtom
+integer,dimension(orbsig%norbp),intent(in):: onWhichAtomp
+!real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi
+!real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: hchi
+real(8),dimension(orbsig%npsidim),intent(in):: lchi
+real(8),dimension(orbsig%npsidim,nat),intent(in):: lhchi
+logical,dimension(lzdig%nlr),intent(in):: skip
+real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
+
+! Local variables
+integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, tag, jproc, ilrold, iilr, iatold, iiorb, jlr
+logical:: copy
+type(overlapParameters):: op
+type(p2pCommsOrthonormality):: comon
+!real(8),dimension(:),allocatable:: lchi, lhchi, lphiovrlp
+real(8),dimension(:,:),allocatable:: hamTemp
+character(len=*),parameter:: subname='getHamiltonianMatrix'
+real(8),dimension(:),allocatable:: zeroArray
+
+
+allocate(hamTemp(orbsig%norb,orbsig%norb), stat=istat)
+call memocc(istat, hamTemp, 'hamTemp', subname)
+allocate(zeroArray(orbsig%npsidim), stat=istat)
+call memocc(istat, zeroArray, 'zeroArray', subname)
+zeroArray=0.d0
+
+!! CHANGE THIS LATER?
+tag=10000
+! Initialize the parameters for calculating the matrix.
+call initCommsOrtho(iproc, nproc, lzdig, orbsig, onWhichAtom, input, op, comon, tag)
+
+
+call allocateCommuncationBuffersOrtho(comon, subname)
+
+! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
+! Then post the messages and gather them.
+call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi(1), comon)
+call postCommsOverlap(iproc, nproc, comon)
+call gatherOrbitals2(iproc, nproc, comon)
+
+if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
+ilrold=0
+iilr=0
+iatold=0
+do iat=1,nat
+    if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Calculating matrix for atom ', iat, '... '
+
+    ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
+    if(.not.skip(iat)) then
+        call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,iat), comon)
+    else
+        !write(*,'(2(a,i0))') 'iproc ',iproc,' skips locreg ',iat
+        call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, zeroArray(1), comon)
+    end if
+    call calculateOverlapMatrix2(iproc, nproc, orbsig, op, comon, onWhichAtom, hamTemp(1,1))
+    if(iproc==0) write(*,'(a)') 'done.'
+    
+    ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
+    ! in calculating the input guess, this check has to be done only for those processes.
+    if(iproc<nprocTemp) then
+        copy=.false.
+        !do iorb=1,orbsig%norbp
+        do iorb=1,orbs%norb
+            !iiorb=orbs%isorb+iorb
+            ilr=orbs%inWhichLocreg(iorb)
+            jproc=onWhichMPITemp(iorb)
+            if(iproc==jproc .and. ilr==iat) then
+                copy=.true.
+                exit
+            end if
+        end do
+        if(copy) then
+            iilr=iilr+1
+            call dcopy(orbsig%norb**2, hamTemp(1,1), 1, ham(1,1,iilr), 1)
+        end if
+    end if
+end do
+call deallocateCommuncationBuffersOrtho(comon, subname)
+if(iilr/=nlocregPerMPI) then
+    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': iilr/=nlocregPerMPI',iilr,nlocregPerMPI
+    stop
+end if
+call deallocate_overlapParameters(op, subname)
+call deallocate_p2pCommsOrthonormality(comon, subname)
+
+iall=-product(shape(hamTemp))*kind(hamTemp)
+deallocate(hamTemp, stat=istat)
+call memocc(istat, iall, 'hamTemp', subname)
+
+iall=-product(shape(zeroArray))*kind(zeroArray)
+deallocate(zeroArray, stat=istat)
+call memocc(istat, iall, 'zeroArray', subname)
+
+end subroutine getHamiltonianMatrix4
 
 
 
@@ -3339,7 +3468,7 @@ do iorb=1,orbs%norbp
         ! Set back the index of lphiovrlp, since we again need the same orbitals.
         jst=jst-op%noverlaps(iiorb-1)*ncount
     end if
-    write(*,'(a,6i13)') 'iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst', iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst
+    !write(*,'(a,6i13)') 'iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst', iproc, iorb, iiorb, op%noverlaps(iiorb), ilr, jst
     ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
@@ -3965,3 +4094,198 @@ logical:: same
 
 
 end subroutine buildLinearCombinationsLocalized3
+
+
+
+!!
+!!subroutine initCommsHamiltonianMatrix
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!
+!!
+!!
+!!
+!!istarr=1
+!!tag=0
+!!comih%nsendBuf=0
+!!comih%nrecvBuf=0
+!!do jlr=1,lzd%nlr
+!!    call getIndices(lzd%llr(jlr), is1, ie1, is2, ie2, is3, ie3)
+!!    do jproc=0,nproc-1
+!!        jkorb=0
+!!        jjjorb=0
+!!        do jorb=1,orbs%norb_par(jproc)
+!!            jjorb=orbs%isorb_par(jproc)+jorb
+!!            jjlr=orbs%inWhichLocreg(jjorb)
+!!            if(jjlr==jlr) then
+!!                ! Orbital jorb on process jproc is in locreg jlr, i.e. process jproc
+!!                ! will need the Hamiltonian matrix with the confining potential centered 
+!!                ! in locreg jlr. Therefore determine all processes that need to send orbitals
+!!                ! to process jproc so that jproc can then calculate the Hamiltonian matrix.
+!!                jjjorb=jjjorb+1
+!!                ist=1
+!!                kkkorb=0
+!!                do kproc=0,nproc-1
+!!                    do korb=1,orbs%norb_par(kproc)
+!!                        kkorb=orbs%isorb_par(kproc)+korb
+!!                        kklr=orbs%inWhichLocreg(kkorb)
+!!                        call getIndices(lzd%llr(klr), is1, ie1, is2, ie2, is3, ie3)
+!!                        ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!!                        ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!!                        ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!!                        ncnt = lzd%llr(kklr)%wfd%nvctr_c + 7*lzd%llr(kklr)%wfd%nvctr_f
+!!                        if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!!                            ! There is an overlap between this orbital (korb on kproc) and the 
+!!                            ! other orbital (jorb on jproc), so set the communications infos.
+!!                            jkorb=jkorb+1
+!!                            kkkorb=kkkorb+1
+!!                            mpisource=kproc
+!!                            mpidest=jproc
+!!                            istsource=ist
+!!                            ncount=ncnt
+!!                            istdest=istarr(jproc)
+!!                            istarr(jproc)=istarr(jproc)+ncnt
+!!                            tag=tag+1
+!!                            call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comih%comarr(1,jkorb,jproc)
+!!                            if(iproc==mpisource) then
+!!                                comih%nsendBuf=comih%nsendBuf+ncount
+!!                            end if
+!!                            if(iproc==mpidest) then
+!!                                comih%nrecvBuf=comih%nrecvBuf+ncount
+!!                                comih%indexInRecvBuf(kkkorb,jjjorb,jlr)=ist
+!!                        end if
+!!                        ist = ist + ncnt
+!!                    end do
+!!                end do
+!!            end if
+!!        end do
+!!    end do
+!!end do
+!!
+!!
+!!
+!!end subroutine initCommsHamiltonianMatrix
+!!
+!!
+!!
+!!
+!!subroutine countOverlapsHamiltonianMatrix
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!
+!!allocate(comih%noverlaps(orbs%norb), stat=istat)
+!!comih%noverlaps(jjorb)=0
+!!
+!!do jproc=0,nproc-1
+!!    do jorb=1,orbs%norb_par(jproc)
+!!        jjorb=orbs%isorb_par(jproc)+jorb
+!!        jjlr=orbs%inWhichLocreg(jjorb)
+!!        call getIndices(lzd%llr(jjlr), is1, ie1, is2, ie2, is3, ie3)
+!!        ! Orbital jorb on process jproc is in locreg jjlr, i.e. process jproc
+!!        ! will need the Hamiltonian matrix with the confining potential centered 
+!!        ! in locreg jjlr. Therefore determine all processes that need to send orbitals
+!!        ! to process jproc so that jproc can then calculate the Hamiltonian matrix.
+!!        do kproc=0,nproc-1
+!!            do korb=1,orbs%norb_par(kproc)
+!!                kkorb=orbs%isorb_par(kproc)+korb
+!!                kklr=orbs%inWhichLocreg(kkorb)
+!!                call getIndices(lzd%llr(kklr), is1, ie1, is2, ie2, is3, ie3)
+!!                ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!!                ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!!                ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!!                ncnt = lzd%llr(kklr)%wfd%nvctr_c + 7*lzd%llr(kklr)%wfd%nvctr_f
+!!                if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!!                    ! There is an overlap between this orbital (korb on kproc) and the 
+!!                    ! other orbital (jorb on jproc).
+!!                    comih%noverlaps(jjorb)=comih%noverlaps(jjorb)+1
+!!                end if
+!!            end do
+!!        end do
+!!    end do
+!!end do
+!!
+!!subroutine countOverlapsHamiltonianMatrix
+!!
+!!
+!!subroutine determineOverlapsHamiltonianMatrix
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!
+!!allocate(comih%overlaps(maxval(comih%noverlaps(:)),orbs%norb), stat=istat)
+!!comih%overlaps=0
+!!
+!!do jproc=0,nproc-1
+!!    do jorb=1,orbs%norb_par(jproc)
+!!        jjorb=orbs%isorb_par(jproc)+jorb
+!!        jjlr=orbs%inWhichLocreg(jjorb)
+!!        call getIndices(lzd%llr(jjlr), is1, ie1, is2, ie2, is3, ie3)
+!!        ! Orbital jorb on process jproc is in locreg jjlr, i.e. process jproc
+!!        ! will need the Hamiltonian matrix with the confining potential centered 
+!!        ! in locreg jjlr. Therefore determine all processes that need to send orbitals
+!!        ! to process jproc so that jproc can then calculate the Hamiltonian matrix.
+!!        jkorb=0
+!!        do kproc=0,nproc-1
+!!            do korb=1,orbs%norb_par(kproc)
+!!                kkorb=orbs%isorb_par(kproc)+korb
+!!                kklr=orbs%inWhichLocreg(kkorb)
+!!                call getIndices(lzd%llr(kklr), is1, ie1, is2, ie2, is3, ie3)
+!!                ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!!                ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!!                ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!!                ncnt = lzd%llr(kklr)%wfd%nvctr_c + 7*lzd%llr(kklr)%wfd%nvctr_f
+!!                if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!!                    ! There is an overlap between this orbital (korb on kproc) and the 
+!!                    ! other orbital (jorb on jproc).
+!!                    jkorb=jkorb+1
+!!                    comih%noverlaps(jkorb,jjorb)=kkorb
+!!                end if
+!!            end do
+!!        end do
+!!    end do
+!!end do
+!!
+!!subroutine determineOverlapsHamiltonianMatrix
+!!
+!!
+!!subroutine setCommsverlapsHamiltonianMatrix
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!do jproc=0,nproc-1
+!!    jkorb=0
+!!    do jorb=1,orbs%norb_par(jproc)
+!!        jjorb=orbs%isorb_par(jproc)+jorb
+!!        jjlr=orbs%inWhichLocreg(jjorb)
+!!        do korb=1,comih%noverlaps(jjorb)
+!!            jkorb=jkorb+1
+!!            kkorb=comih%overlaps(korb,jjorb)
+!!            klr=orbs%inWhichLocreg(kkorb)
+!!            mpisource=kproc
+!!            mpidest=jproc
+!!            istsource=ist
+!!            ncount=ncnt
+!!            istdest=istarr(jproc)
+!!            istarr(jproc)=istarr(jproc)+ncnt
+!!            tag=tag+1
+!!            call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comih%comarr(1,jkorb,jproc)
+!!            if(iproc==mpisource) then
+!!                comih%nsendBuf=comih%nsendBuf+ncount
+!!            end if
+!!            if(iproc==mpidest) then
+!!               comih%nrecvBuf=comih%nrecvBuf+ncount
+!!               comih%indexInRecvBuf(korb,jorb)=ist
+!!            end if
+!!            ist = ist + ncnt
+!!        end do
+!!    end do
+!!end do
+!!
+!!
+!!end subroutine setCommsverlapsHamiltonianMatrix

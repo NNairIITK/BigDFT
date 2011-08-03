@@ -290,7 +290,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,
              dimwf=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*&
                    orbs%nspinor*nspin
              ind = ind + dimwf
-             write(*,'(a,i0,a,i0)') 'process ',iproc,' cycles for locreg ',ilr
+             !write(*,'(a,i0,a,i0)') 'process ',iproc,' cycles for locreg ',ilr
              cycle
          end if
      end if
