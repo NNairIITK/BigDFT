@@ -198,8 +198,15 @@ program memguess
      !call memocc(0,0,'count','start')
   end if
 
+  if (ixc < 0) then
+     call xc_init(ixc, XC_MIXED, nspin)
+  else
+     call xc_init(ixc, XC_ABINIT, nspin)
+  end if
+
   call print_general_parameters(in,atoms)
   call print_dft_parameters(in,atoms)
+  call xc_dump()
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
@@ -442,6 +449,7 @@ program memguess
 
   call deallocate_lr(Glr,subname)
 
+  call xc_end()
 
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
