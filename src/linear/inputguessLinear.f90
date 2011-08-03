@@ -587,34 +587,19 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
 
   ! Calculate the Hamiltonian matrix.
   call cpu_time(t1)
-  !!allocate(ham(lin%lig%orbsig%norb,lin%lig%orbsig%norb,at%nat), stat=istat)
-  !!call memocc(istat,ham,'ham',subname)
   allocate(ham3(lin%lig%orbsig%norb,lin%lig%orbsig%norb,nlocregPerMPI), stat=istat)
   call memocc(istat,ham3,'ham3',subname)
-  !!call getHamiltonianMatrix2(iproc, nproc, lin%lig%lzdig, lin%lig%orbsig, Glr, input, &
-  !!     lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, lchi, lhchi, ham)
-  !!call getHamiltonianMatrix3(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, onWhichMPITemp, Glr, input, &
-  !!     lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, nlocregPerMPI, lchi, lhchi, ham3)
   call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, onWhichMPITemp, Glr, input, &
        lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, ham3)
-  !!do iat=1,at%nat
+  !!do iat=1,nlocregPerMPI
   !!    do iorb=1,lin%lig%orbsig%norb
   !!        do jorb=1,lin%lig%orbsig%norb
-  !!            write(1000*(iproc+1)+iat,*) iorb, jorb, ham(jorb,iorb,iat)
+  !!            write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
   !!        end do
   !!    end do
   !!end do
-  do iat=1,nlocregPerMPI
-      do iorb=1,lin%lig%orbsig%norb
-          do jorb=1,lin%lig%orbsig%norb
-              write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
-          end do
-      end do
-  end do
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
-  !!call buildLinearCombinationsLocalized(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
-  !!     lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, ham)
   call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
        lin%lig%orbsig%inWhichLocreg, lchi, lphi, rxyz, lin%orbs%inWhichLocreg, lin, lin%lig%lzdig, nlocregPerMPI, ham3)
   call cpu_time(t2)
@@ -669,10 +654,6 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   iall=-product(shape(skip))*kind(skip)
   deallocate(skip, stat=istat)
   call memocc(istat, iall, 'skip',subname)
-
-  !!iall=-product(shape(ham))*kind(ham)
-  !!deallocate(ham, stat=istat)
-  !!call memocc(istat, iall, 'ham',subname)
 
   iall=-product(shape(ham3))*kind(ham3)
   deallocate(ham3, stat=istat)
