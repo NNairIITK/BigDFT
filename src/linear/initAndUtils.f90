@@ -270,7 +270,7 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%startWithSD, lin%startDIIS
   read(99,*) lin%nItPrecond
   read(99,*) lin%getCoeff
-  read(99,*) lin%nItOrtho, lin%convCritOrtho
+  read(99,*) lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
   read(99,*) lin%mixHist, lin%nItSCC, lin%alphaMix, lin%convCritMix
@@ -401,11 +401,11 @@ if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| '
 if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------'
 if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: |'
 if(iproc==0) write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit |'
-if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a,a,i0,7x,es7.1,2x,a)') '|', &
+if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a,a,i0,7x,es7.1,2x,a,i0)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
     lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |', &
-    repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, lin%convCritOrtho, '|'
+    repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, lin%convCritOrtho, '|', lin%methTransformOverlap
 if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the coefficients.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence |'

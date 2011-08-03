@@ -1,11 +1,11 @@
-subroutine orthonormalizeLocalized(iproc, nproc, nItOrtho, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
+subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => orthonormalizeLocalized
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nItOrtho
+integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho
 !type(linearParameters),intent(inout):: lin
 type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(inout):: op
@@ -68,7 +68,13 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
           exit
       end if
       call cpu_time(t3)
-      call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
+      if(methTransformOverlap==0) then
+          call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
+      else if(methTransformOverlap==1) then
+          call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
+      else
+          stop 'ERROR: methTransformOverlap is wrong'
+      end if
       call cpu_time(t4)
       timeTransform=timeTransform+t4-t3
       call cpu_time(t3)
@@ -1992,15 +1998,14 @@ end subroutine applyOrthoconstraintNonorthogonal2
 
 
 
-subroutine transformOverlapMatrix2(iproc, nproc, orbs, ovrlp)
+subroutine transformOverlapMatrixTaylor(iproc, nproc, norb, ovrlp)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
-type(orbitals_data),intent(in):: orbs
-real(8),dimension(orbs%norb,orbs%norb),intent(inout):: ovrlp
+integer,intent(in):: iproc, nproc, norb
+real(8),dimension(norb,norb),intent(inout):: ovrlp
 
 ! Local variables
 integer:: lwork, istat, iall, iorb, jorb, info
@@ -2009,13 +2014,13 @@ real(8),dimension(:,:,:),allocatable:: tempArr
 character(len=*),parameter:: subname='transformOverlapMatrix'
 
 
-allocate(eval(orbs%norb), stat=istat)
+allocate(eval(norb), stat=istat)
 call memocc(istat, eval, 'eval', subname)
-allocate(tempArr(orbs%norb,orbs%norb,2), stat=istat)
+allocate(tempArr(norb,norb,2), stat=istat)
 call memocc(istat, tempArr, 'tempArr', subname)
 
-do iorb=1,orbs%norb
-    do jorb=1,orbs%norb
+do iorb=1,norb
+    do jorb=1,norb
         if(iorb==jorb) then
             ovrlp(iorb,jorb)=1.5d0-.5d0*ovrlp(iorb,jorb)
         else
@@ -2032,7 +2037,7 @@ deallocate(tempArr, stat=istat)
 call memocc(istat, iall, 'tempArr', subname)
 
 
-endsubroutine transformOverlapMatrix2
+endsubroutine transformOverlapMatrixTaylor
 
 
 
