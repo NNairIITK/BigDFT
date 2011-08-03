@@ -2412,7 +2412,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
      subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,hx,hy,hz,rxyz,&
           ngatherarr,ndimpot,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, &
+          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf, comgp, onWhichAtomp, withConfinement, energyReductionFlag, &
           doNotCalculate, pkernel,orbsocc,psirocc)
        use module_base
        use module_types
@@ -2437,6 +2437,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(p2pCommsGatherPot), intent(in):: comgp
        integer,dimension(orbs%norbp),intent(in):: onWhichAtomp
        logical,intent(in):: withConfinement
+       logical,intent(in):: energyReductionFlag
        logical,dimension(lzd%nlr),intent(in),optional:: doNotCalculate
        real(dp), dimension(*), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
@@ -3845,11 +3846,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine getHamiltonianMatrix3
 
     subroutine getHamiltonianMatrix4(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, norb_parTemp, onWhichMPITemp, &
-    Glr, input, onWhichAtom, onWhichAtomp, nat, nlocregPerMPI, lchi, lhchi, skip, ham)
+    Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, ham)
       use module_base
       use module_types
       implicit none
-      integer,intent(in):: iproc, nproc, nprocTemp, nat, nlocregPerMPI
+      integer,intent(in):: iproc, nproc, nprocTemp, ndim_lhchi, nlocregPerMPI
       type(linear_zone_descriptors),intent(in):: lzdig
       type(orbitals_data),intent(in):: orbsig, orbs
       integer,dimension(0:nprocTemp),intent(in):: norb_parTemp
@@ -3859,7 +3860,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
       integer,dimension(orbsig%norbp),intent(in):: onWhichAtomp
       real(8),dimension(orbsig%npsidim),intent(in):: lchi
-      real(8),dimension(orbsig%npsidim,nat),intent(in):: lhchi
+      real(8),dimension(orbsig%npsidim,ndim_lhchi),intent(in):: lhchi
       logical,dimension(lzdig%nlr),intent(in):: skip
       real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
       end subroutine getHamiltonianMatrix4

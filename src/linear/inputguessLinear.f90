@@ -186,7 +186,7 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
   real(wp), dimension(:,:,:), pointer :: psigau
-  real(8),dimension(:),allocatable:: lchi, lchi2
+  real(8),dimension(:),allocatable:: lchi, lchi2, dummyArray
   real(8),dimension(:,:),allocatable::  lhchi
   real(8),dimensioN(:,:,:),allocatable:: ham3
   integer,dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp
@@ -195,7 +195,7 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   logical,dimension(:),allocatable:: doNotCalculate, skip
   integer, dimension(lmax+1) :: nl
   real(gp), dimension(noccmax,lmax+1) :: occup
-  integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr, kk, iiorb
+  integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr, kk, iiorb, ndim_lhchi
   integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, nlocregPerMPI, jproc, jlrold, norbTarget, norbpTemp, isorbTemp, nprocTemp
   integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
 
@@ -313,10 +313,7 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
 
   allocate(lchi(lin%lig%orbsig%npsidim+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
-  allocate(lhchi(lin%lig%orbsig%npsidim,at%nat),stat=istat)
-  call memocc(istat,lhchi,'lhchi',subname)
   lchi=0.d0
-  lhchi=0.d0
 
   ! Transform chi to the localization region. This requires that the localizatin region of lchi2 is larger than that
   ! of lchi.
@@ -447,10 +444,38 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   call memocc(istat, doNotCalculate, 'doNotCalculate', subname)
   allocate(skip(lin%lig%lzdig%nlr), stat=istat)
   call memocc(istat, skip, 'skip', subname)
-  if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
+
+
+  ! Determine for how many localization regions we need a Hamiltonian application.
+  ndim_lhchi=0
+  do iat=1,at%nat
+      call getIndices(lin%lig%lzdig%llr(iat), is1, ie1, is2, ie2, is3, ie3)
+      skip(iat)=.true.
+      do jorb=1,lin%lig%orbsig%norbp
+          onWhichAtomTemp(jorb)=iat
+          jlr=lin%lig%orbsig%inWhichLocregp(jorb)
+          call getIndices(lin%lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
+          ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+          ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+          ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+          if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+              skip(iat)=.false.
+          end if
+      end do
+      if(.not.skip(iat)) then
+          ndim_lhchi=ndim_lhchi+1
+      end if
+  end do
+  allocate(lhchi(lin%lig%orbsig%npsidim,ndim_lhchi),stat=istat)
+  call memocc(istat, lhchi, 'lhchi', subname)
   lhchi=0.d0
+
+
+
+  if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
   call cpu_time(t1)
   withConfinement=.true.
+  ii=0
   do iat=1,at%nat
       doNotCalculate=.true.
       !!call mpi_barrier(mpi_comm_world, ierr)
@@ -477,13 +502,32 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
       !!     ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,iat), &
       !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
       !!     withConfinement, pkernel=pkernelseq)
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
-           ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,iat), &
-           ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
-           withConfinement, doNotCalculate=doNotCalculate, pkernel=pkernelseq)
+      if(.not.skip(iat)) then
+          ii=ii+1
+          call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
+               ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,ii), &
+               ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
+               withConfinement, .false., doNotCalculate=doNotCalculate, pkernel=pkernelseq)
+      else
+          !!! Call with some dummy array instead of lhchi. No calculations will be done, since it will cycle for all
+          !!! localization regions du to doNotCalculate.
+          !!allocate(dummyArray(lin%lig%orbsig%npsidim), stat=istat)
+          !!call memocc(istat, dummyArray, 'dummyArray', subname)
+          !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
+          !!     ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, dummyArray(1), &
+          !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
+          !!     withConfinement, doNotCalculate=doNotCalculate, pkernel=pkernelseq, energyReductionFlag=.false.)
+          !!iall=-product(shape(dummyArray))*kind(dummyArray)
+          !!deallocate(dummyArray,stat=istat)
+          !!call memocc(istat,iall,'dummyArray',subname)
+      end if
 
       if(iproc==0) write(*,'(a)') 'done.'
   end do
+  if(ii/=ndim_lhchi) then
+      write(*,'(a,i0,a,2(a2,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
+      stop
+  end if
   call cpu_time(t2)
   time=t2-t1
   call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
@@ -552,7 +596,7 @@ subroutine inputguessConfinement2(iproc, nproc, at, &
   !!call getHamiltonianMatrix3(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, onWhichMPITemp, Glr, input, &
   !!     lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, nlocregPerMPI, lchi, lhchi, ham3)
   call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, onWhichMPITemp, Glr, input, &
-       lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, at%nat, nlocregPerMPI, lchi, lhchi, skip, ham3)
+       lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, ham3)
   !!do iat=1,at%nat
   !!    do iorb=1,lin%lig%orbsig%norb
   !!        do jorb=1,lin%lig%orbsig%norb
@@ -1602,14 +1646,14 @@ end subroutine getHamiltonianMatrix3
 
 
 subroutine getHamiltonianMatrix4(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, norb_parTemp, onWhichMPITemp, &
-Glr, input, onWhichAtom, onWhichAtomp, nat, nlocregPerMPI, lchi, lhchi, skip, ham)
+Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, ham)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => getHamiltonianMatrix4
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nprocTemp, nat, nlocregPerMPI
+integer,intent(in):: iproc, nproc, nprocTemp, ndim_lhchi, nlocregPerMPI
 type(linear_zone_descriptors),intent(in):: lzdig
 type(orbitals_data),intent(in):: orbsig, orbs
 integer,dimension(0:nprocTemp),intent(in):: norb_parTemp
@@ -1621,12 +1665,12 @@ integer,dimension(orbsig%norbp),intent(in):: onWhichAtomp
 !real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi
 !real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: hchi
 real(8),dimension(orbsig%npsidim),intent(in):: lchi
-real(8),dimension(orbsig%npsidim,nat),intent(in):: lhchi
+real(8),dimension(orbsig%npsidim,ndim_lhchi),intent(in):: lhchi
 logical,dimension(lzdig%nlr),intent(in):: skip
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables
-integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, tag, jproc, ilrold, iilr, iatold, iiorb, jlr
+integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, tag, jproc, ilrold, iilr, iatold, iiorb, jlr, ii
 logical:: copy
 type(overlapParameters):: op
 type(p2pCommsOrthonormality):: comon
@@ -1660,12 +1704,14 @@ if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. Thi
 ilrold=0
 iilr=0
 iatold=0
-do iat=1,nat
+ii=0
+do iat=1,lzdig%nlr
     if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Calculating matrix for atom ', iat, '... '
 
     ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
     if(.not.skip(iat)) then
-        call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,iat), comon)
+        ii=ii+1
+        call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,ii), comon)
     else
         !write(*,'(2(a,i0))') 'iproc ',iproc,' skips locreg ',iat
         call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, zeroArray(1), comon)
@@ -1693,6 +1739,12 @@ do iat=1,nat
         end if
     end if
 end do
+
+if(ii/=ndim_lhchi) then
+    write(*,'(a,i0,a,2(a2,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
+    stop
+end if
+
 call deallocateCommuncationBuffersOrtho(comon, subname)
 if(iilr/=nlocregPerMPI) then
     write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': iilr/=nlocregPerMPI',iilr,nlocregPerMPI
