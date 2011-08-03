@@ -3503,11 +3503,12 @@ integer,dimension(:),allocatable:: newID
 ! new
 real(8),dimension(:),allocatable:: work, eval, evals
 real(8),dimension(:,:),allocatable:: tempMat
-integer:: lwork, ii, info, iiAtprev, i, jproc, norbTarget, sendcount, ilr, iilr, tag, ilrold
+integer:: lwork, ii, info, iiAtprev, i, jproc, norbTarget, sendcount, ilr, iilr, tag, ilrold, jlr
 type(inguessParameters):: ip
 real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pCommsOrthonormalityMatrix):: comom
 type(matrixMinimization):: matmin
+logical:: same
 
   if(iproc==0) write(*,'(x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
@@ -3825,13 +3826,7 @@ type(matrixMinimization):: matmin
   call mpi_allgatherv(coeff2(1), sendcount, mpi_double_precision, coeff(1,1), recvcounts, &
        displs, mpi_double_precision, mpi_comm_world, ierr)
 
-
-
-  ! Now every process has all coefficients, so we can build the linear combinations.
-  ! Do this in a localized way -- TEST
-  !call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
-  call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
-
+  ! Deallocate stuff which is not needed any more.
   if(iproc<ip%nproc) then
       call deallocate_inguessParameters(ip, subname)
       call deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
@@ -3850,14 +3845,9 @@ type(matrixMinimization):: matmin
       call memocc(istat, iall, 'lgradold', subname)
   end if
 
-  ! Deallocate the local arrays.
   iall=-product(shape(newID))*kind(newID)
   deallocate(newID, stat=istat)
   call memocc(istat, iall, 'newID', subname)
-
-  iall=-product(shape(coeff))*kind(coeff)
-  deallocate(coeff, stat=istat)
-  call memocc(istat, iall, 'coeff', subname)
 
   iall=-product(shape(coeff2))*kind(coeff2)
   deallocate(coeff2, stat=istat)
@@ -3874,6 +3864,39 @@ type(matrixMinimization):: matmin
   iall=-product(shape(norb_par))*kind(norb_par)
   deallocate(norb_par, stat=istat)
   call memocc(istat, iall, 'norb_par', subname)
+
+  ! Now every process has all coefficients, so we can build the linear combinations.
+  ! Do this in a localized way -- TEST
+  !call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+  !call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+
+  ! Now every process has all coefficients, so we can build the linear combinations.
+  ! If the number of atomic orbitals is the same as the number of trace minimizing orbitals, we can use the
+  ! first one (uses less memory for the overlap descriptors), otherwise the second one.
+  ! So first check which version we have to use.
+  same=.true.
+  if(orbsig%norb==lin%orbs%norb) then
+      do iorb=1,orbsig%norb
+          ilr=orbsig%inWhichLocreg(iorb)
+          jlr=lin%orbs%inWhichLocreg(iorb)
+          if(ilr/=jlr) then
+              same=.false.
+              exit
+          end if
+      end do
+  else
+      same=.false.
+  end if
+  if(same) then
+      call buildLinearCombinations(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+  else
+      call buildLinearCombinationsVariable(iproc, nproc, lzdig, lin%lzd, orbsig, lin%orbs, input, coeff, lchi, lphi)
+  end if
+
+  ! Deallocate the remaining local array.
+  iall=-product(shape(coeff))*kind(coeff)
+  deallocate(coeff, stat=istat)
+  call memocc(istat, iall, 'coeff', subname)
   
   
   contains
