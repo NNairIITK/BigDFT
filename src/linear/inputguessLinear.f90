@@ -108,7 +108,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdig, lin%lig%orbsig, input, Glr, lin%locrad)
 
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
-  locrad=max(20.d0,maxval(lin%locrad(:)))
+  locrad=max(10.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(lin%lig%orbsGauss)
   call copy_orbitals_data(lin%lig%orbsig, lin%lig%orbsGauss, subname)
   call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdGauss, lin%lig%orbsGauss, input, Glr, locrad)

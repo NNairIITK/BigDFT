@@ -25,8 +25,6 @@ character(len=*),parameter:: subname='orthonormalize'
 logical:: converged
 real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeExpand, timeLoewdin, timeTransform, timeExtract
 
-  allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
-  call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
 
 
   timeComput=0.d0
@@ -37,10 +35,12 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
   timeTransform=0.d0
   timeExtract=0.d0
   converged=.false.
-  call allocateCommuncationBuffersOrtho(comon, subname)
+  !call allocateCommuncationBuffersOrtho(comon, subname)
   do it=1,nItOrtho
       !if(iproc==0) write(*,'(a,i0)') 'at it=',it
       call cpu_time(t1)
+      call allocateSendBufferOrtho(comon, subname)
+      call allocateRecvBufferOrtho(comon, subname)
       call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, onWhichAtomAll, lzd, op, lphi, comon)
       call cpu_time(t2)
       timeExtract=timeExtract+t2-t1
@@ -53,16 +53,19 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       timeCommun=timeCommun+t2-t1
       call cpu_time(t1)
       call calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtomAll, ovrlp)
+      call deallocateSendBufferOrtho(comon, subname)
       call cpu_time(t2)
       timeCalcOvrlp=timeCalcOvrlp+t2-t1
       call checkUnity(iproc, orbs%norb, ovrlp, maxError)
       if(iproc==0) write(*,'(3x,a,es12.4)') 'maximal deviation from unity:', maxError
       if(maxError<convCritOrtho) then
           converged=.true.
+          call deallocateRecvBufferOrtho(comon, subname)
           call cpu_time(t2)
           timeComput=timeComput+t2-t1
           exit
       else if(it==nItOrtho) then
+          call deallocateRecvBufferOrtho(comon, subname)
           call cpu_time(t2)
           timeComput=timeComput+t2-t1
           exit
@@ -78,17 +81,23 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       call cpu_time(t4)
       timeTransform=timeTransform+t4-t3
       call cpu_time(t3)
+      allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
+      call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
       call expandOrbital2(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon, lphiovrlp)
+      call deallocateRecvBufferOrtho(comon, subname)
       call cpu_time(t4)
       timeExpand=timeExpand+t4-t3
       call cpu_time(t3)
       call globalLoewdin(iproc, nproc, orbs, orbs, onWhichAtomAll, lzd, op, ovrlp, lphiovrlp, lphi)
+      iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
+      deallocate(lphiovrlp, stat=istat)
+      call memocc(istat, iall, 'lphiovrlp', subname)
       call cpu_time(t4)
       timeLoewdin=timeLoewdin+t4-t3
       call cpu_time(t2)
       timeComput=timeComput+t2-t1
   end do
-  call deallocateCommuncationBuffersOrtho(comon, subname)
+  !call deallocateCommuncationBuffersOrtho(comon, subname)
 
   if(converged) then
       if(iproc==0) write(*,'(3x,a,i0,a)') 'done in ', it, ' iterations.'
@@ -118,9 +127,6 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
   if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for transform:', timeTransform, '=', 100.d0*timeTransform/(timeComput+timeCommun), '%'
   if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=', 100.d0*timeExtract/(timeComput+timeCommun), '%'
 
-  iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
-  deallocate(lphiovrlp, stat=istat)
-  call memocc(istat, iall, 'lphiovrlp', subname)
 
 
 end subroutine orthonormalizeLocalized
@@ -621,6 +627,8 @@ end subroutine allocateCommuncationBuffersOrtho
 
 
 
+
+
 subroutine deallocateCommuncationBuffersOrtho(comon, subname)
 use module_base
 use module_types
@@ -642,6 +650,82 @@ call memocc(istat, iall, 'comon%sendBuf',subname)
 
 end subroutine deallocateCommuncationBuffersOrtho
 
+
+
+subroutine allocateSendBufferOrtho(comon, subname)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(p2pCommsOrthonormality),intent(inout):: comon
+  character(len=*),intent(in):: subname
+  
+  ! Local variables
+  integer:: istat
+  
+  allocate(comon%sendBuf(comon%nsendBuf), stat=istat)
+  call memocc(istat, comon%sendBuf, 'comon%sendBuf', subname)
+  
+end subroutine allocateSendBufferOrtho
+
+
+subroutine deallocateSendBufferOrtho(comon, subname)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(p2pCommsOrthonormality),intent(inout):: comon
+  character(len=*),intent(in):: subname
+  
+  ! Local variables
+  integer:: istat, iall
+  
+  iall = -product(shape(comon%sendBuf))*kind(comon%sendBuf)
+  deallocate(comon%sendBuf, stat=istat)
+  call memocc(istat, iall, 'comon%sendBuf',subname)
+  
+end subroutine deallocateSendBufferOrtho
+
+
+
+subroutine allocateRecvBufferOrtho(comon, subname)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(p2pCommsOrthonormality),intent(inout):: comon
+  character(len=*),intent(in):: subname
+  
+  ! Local variables
+  integer:: istat
+  
+  allocate(comon%recvBuf(comon%nrecvBuf), stat=istat)
+  call memocc(istat, comon%recvBuf, 'comon%recvBuf', subname)
+  
+end subroutine allocateRecvBufferOrtho
+
+
+
+subroutine deallocateRecvBufferOrtho(comon, subname)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  type(p2pCommsOrthonormality),intent(inout):: comon
+  character(len=*),intent(in):: subname
+  
+  ! Local variables
+  integer:: istat, iall
+  
+  iall = -product(shape(comon%recvBuf))*kind(comon%recvBuf)
+  deallocate(comon%recvBuf, stat=istat)
+  call memocc(istat, iall, 'comon%recvBuf',subname)
+  
+end subroutine deallocateRecvBufferOrtho
 
 
 
