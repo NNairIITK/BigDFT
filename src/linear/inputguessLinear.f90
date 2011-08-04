@@ -108,7 +108,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdig, lin%lig%orbsig, input, Glr, lin%locrad)
 
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
-  locrad=max(10.d0,maxval(lin%locrad(:)))
+  locrad=max(12.d0,maxval(lin%locrad(:)))
   call nullify_orbitals_data(lin%lig%orbsGauss)
   call copy_orbitals_data(lin%lig%orbsig, lin%lig%orbsGauss, subname)
   call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdGauss, lin%lig%orbsGauss, input, Glr, locrad)
@@ -2890,6 +2890,7 @@ type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
 
 ! Local variables
 integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall
+real(8):: tt, dnrm2
 real(8),dimension(:,:),allocatable:: vecOvrlp, ovrlp
 character(len=*),parameter:: subname='orthonormalizeVectors'
 
@@ -2923,6 +2924,14 @@ else if(methTransformOverlap==1) then
 else
     stop 'methTransformOverlap is wrong'
 end if
+
+! Normalize the vectors
+do iorb=1,norbp
+    tt=dnrm2(norbmax, vec(1,iorb), 1)
+    !write(*,*) 'iproc, iorb, tt',iproc, iorb, tt
+    call dscal(norbmax, 1/tt, vec(1,iorb), 1)
+end do
+
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
@@ -3779,7 +3788,7 @@ logical:: same
     
       
       ! Initial step size for the optimization
-      alpha=1.d-3
+      alpha=5.d-2
     
       ! Flag which checks convergence.
       converged=.false.

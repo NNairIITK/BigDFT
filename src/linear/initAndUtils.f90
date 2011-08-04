@@ -354,7 +354,8 @@ integer,dimension(at%ntypes),intent(in):: norbsPerType
 ! Local variables
 integer:: itype, jproc, len1, len2, space1, space2
 logical:: written
-character(len=8):: mixingMethod
+character(len=8):: message1
+character(len=14):: message2
 character(len=2):: hist
 
 
@@ -372,13 +373,13 @@ if(iproc==0) write(*,'(4x,a)') '------------------------------------------------
 if(iproc==0) write(*,'(4x,a)') '| mixing | mixing | iterations in | alpha mix | convergence crit. |'
 if(iproc==0) write(*,'(4x,a)') '| scheme | method |  in SC cycle  |           |    for mixing     |'
 if(lin%mixHist==0) then
-    mixingMethod=' linear '
+    message1=' linear '
 else
     write(hist,'(i2)') lin%mixHist
-    mixingMethod=' DIIS'//hist//' '
+    message1=' DIIS'//hist//' '
 end if
 if(iproc==0) write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)') '|', &
-     lin%mixingMethod, '|', mixingMethod, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
+     lin%mixingMethod, '|', message1, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
      lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|'
 if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------'
 if(iproc==0) write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals |'
@@ -399,14 +400,19 @@ if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| '
       lin%getCoeff, '    |  ', &
       lin%plotBasisFunctions, '   |'
 if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: |'
-if(iproc==0) write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit |'
-if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a,a,i0,7x,es7.1,2x,a,i0)') '|', &
+if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |'
+if(iproc==0) write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit | of overlap mat |'
+if(lin%methTransformOverlap==0) then
+    message2='    exact     '
+else if(lin%methTransformOverlap==1) then
+    message2='taylor approx.'
+end if
+if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a,a,i0,7x,es7.1,2x,a,x,a,x,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
     lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |', &
-    repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, lin%convCritOrtho, '|', lin%methTransformOverlap
-if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------------------------'
+    repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, lin%convCritOrtho, '|', message2, '|'
+if(iproc==0) write(*,'(4x,a)') '------------------------------------------------------------------------------------------------------'
 if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the coefficients.'
 if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence |'
 if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  |'
