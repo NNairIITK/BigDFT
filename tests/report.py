@@ -11,7 +11,7 @@ import re
 import sys
 
 #Regular expression
-re_discrepancy = re.compile("Max Discrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
+re_discrepancy = re.compile("Max [dD]iscrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
 
 def callback(pattern,dirname,names):
     "Return the files given by the pattern"
