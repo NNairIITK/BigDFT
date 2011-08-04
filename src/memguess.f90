@@ -15,6 +15,7 @@ program memguess
   use module_base
   use module_types
   use module_interfaces
+  use module_xc
   use ab6_symmetry
 
   implicit none
@@ -198,10 +199,10 @@ program memguess
      !call memocc(0,0,'count','start')
   end if
 
-  if (ixc < 0) then
-     call xc_init(ixc, XC_MIXED, nspin)
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, nspin)
   else
-     call xc_init(ixc, XC_ABINIT, nspin)
+     call xc_init(in%ixc, XC_ABINIT, nspin)
   end if
 
   call print_general_parameters(in,atoms)
