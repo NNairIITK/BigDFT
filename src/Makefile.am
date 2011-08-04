@@ -73,6 +73,11 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
+if HAVE_FC_FLUSH
+flush_files =
+else
+flush_files = modules/flush_fake.f90
+endif
 
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
