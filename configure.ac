@@ -15,7 +15,7 @@ dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
 dnl Use a config.h file to store macro definitions, required for CUDA.
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
@@ -49,6 +49,7 @@ AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
 AX_FC_FLUSH()
+AX_FC_DEFS()
 
 dnl Set if the module name are capitalized or not with the FC compiler.
 AC_MSG_CHECKING([for module extension for compiler '$fc_type'])

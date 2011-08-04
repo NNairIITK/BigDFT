@@ -22,6 +22,7 @@ program test_flush
 
 end program test_flush
 EOF
+  dnl Assume first that it should compile and run.
   ax_fc_flush="no"
   ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 1>&AC_FD_CC'
   if AC_TRY_EVAL(ac_try); then
@@ -31,6 +32,7 @@ EOF
       ax_fc_flush="no"
     fi
   fi
+  dnl Assume second that it should compile and run with Intel option.
   FCFLAGS_SVG="$FCFLAGS"
   if test x"$ax_fc_flush" == x"no" ; then
     FCFLAGS="$FCFLAGS -assume noold_unit_star"
@@ -43,12 +45,21 @@ EOF
       fi
     fi
   fi
-  rm -f flushtest*
-  if test x"$ax_fc_flush" != x"no" ; then
-    AC_DEFINE([HAVE_FC_FLUSH], [1], [Flush(6) can be used safely in fortran])
-  else
+  if test x"$ax_fc_flush" != x"yes" ; then
     FCFLAGS="$FCFLAGS_SVG"
   fi
+  dnl Assume third that it should compile to have it.
+  if test x"$ax_fc_flush" == x"no" ; then
+    ac_try='$FC $FCFLAGS $LDFLAGS -o flushtest.x flushtest.f90 1>&AC_FD_CC'
+    if AC_TRY_EVAL(ac_try); then
+      ax_fc_flush="yes"
+    fi
+  fi
+  rm -f flushtest*
+  if test x"$ax_fc_flush" == x"yes" ; then
+    AC_DEFINE([HAVE_FC_FLUSH], [1], [Flush(6) can be used safely in fortran])
+  fi
+  AM_CONDITIONAL([HAVE_FC_FLUSH], [test x"$ax_fc_flush" == x"yes"])
   AC_LANG_POP(Fortran)
 
   AC_MSG_RESULT([$ax_fc_flush])

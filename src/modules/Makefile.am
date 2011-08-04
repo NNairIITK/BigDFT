@@ -51,7 +51,11 @@ noinst_LIBRARIES = libmodules.a
 libmodules_a_SOURCES = $(modules_source)
 
 CLEANFILES = mpif.h $(mod_bigdft) \
-	MODULE_INPUT.@MODULE_EXT@ module_input.@MODULE_EXT@ 
+	MODULE_INPUT.@MODULE_EXT@ module_input.@MODULE_EXT@
+
+# Hack for XLF strange DEFS option.
+PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
 
 #Fake mpif.h for serial compilation
 mpif.h:

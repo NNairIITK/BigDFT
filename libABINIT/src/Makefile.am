@@ -34,6 +34,10 @@ DEFS = -DHAVE_MPI -DHAVE_MPI1 -DHAVE_LIBXC
 # Force HAVE_MPI and HAVE_MPI1.
 AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim
 
+# Hack for XLF strange DEFS option.
+PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
+
 libabinit_a_SOURCES = \
 	01_interfaces_ext/interfaces_linalg.F90 \
 	10_defs/defs_basis.F90 \
