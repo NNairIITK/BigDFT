@@ -2924,6 +2924,7 @@ else if(methTransformOverlap==1) then
 else
     stop 'methTransformOverlap is wrong'
 end if
+call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
 
 ! Normalize the vectors
 do iorb=1,norbp
