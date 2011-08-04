@@ -98,7 +98,7 @@ real(8):: fnoise
 
 
 ! Local variables
-integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot
+integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot, ist, istr, ilr
 real(8),dimension(:),pointer:: phi, phid
 real(8),dimension(:,:),pointer:: coeff, coeffd
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu
@@ -117,6 +117,7 @@ character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
 integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot
 type(mixrhopotDIISParameters):: mixdiis
+type(workarr_sumrho):: w
 
 
 
@@ -131,12 +132,7 @@ type(mixrhopotDIISParameters):: mixdiis
        input, rxyz, nscatterarr, coeff, lphi)
 
   potshortcut=0 ! What is this?
-  !call inputguessConfinement(iproc, nproc, at, &
-  !     comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
-  !     nlpspd, proj, pkernel, pkernelseq, &
-  !     nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-  !     lphi, ehart, eexcu, vexcu)
-  call inputguessConfinement2(iproc, nproc, at, &
+  call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
@@ -277,32 +273,32 @@ type(mixrhopotDIISParameters):: mixdiis
       ! Post communications for gathering the potential
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
 
-      !!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        ! Calculate the forces we get with psi.
-        allocate(nscatterarrTemp(0:nproc-1,4), stat=istat)
-        call memocc(istat, nscatterarrTemp, 'nscatterarrTemp', subname)
-        allocate(phiTemp(size(phi)), stat=istat)
-        call memocc(istat, phiTemp, 'phiTemp', subname)
-        allocate(projTemp(nlpspd%nprojel), stat=istat)
-        call memocc(istat, projTemp, 'projTemp', subname)
-        projTemp=proj
-        nscatterarrTemp=nscatterarr
-        phiTemp=phi
-        call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-            proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
-        proj=projTemp
-        nscatterarr=nscatterarrTemp
-        phi=phiTemp
-        iall=-product(shape(nscatterarrTemp))*kind(nscatterarrTemp)
-        deallocate(nscatterarrTemp, stat=istat)
-        call memocc(istat, iall, 'nscatterarrTemp', subname)
-        iall=-product(shape(phiTemp))*kind(phiTemp)
-        deallocate(phiTemp, stat=istat)
-        call memocc(istat, iall, 'phiTemp', subname)
-        iall=-product(shape(projTemp))*kind(projTemp)
-        deallocate(projTemp, stat=istat)
-        call memocc(istat, iall, 'projTemp', subname)
-      !!!  TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!  ! Calculate the forces we get with psi.
+      !!  allocate(nscatterarrTemp(0:nproc-1,4), stat=istat)
+      !!  call memocc(istat, nscatterarrTemp, 'nscatterarrTemp', subname)
+      !!  allocate(phiTemp(size(phi)), stat=istat)
+      !!  call memocc(istat, phiTemp, 'phiTemp', subname)
+      !!  allocate(projTemp(nlpspd%nprojel), stat=istat)
+      !!  call memocc(istat, projTemp, 'projTemp', subname)
+      !!  projTemp=proj
+      !!  nscatterarrTemp=nscatterarr
+      !!  phiTemp=phi
+      !!  call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
+      !!      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+      !!  proj=projTemp
+      !!  nscatterarr=nscatterarrTemp
+      !!  phi=phiTemp
+      !!  iall=-product(shape(nscatterarrTemp))*kind(nscatterarrTemp)
+      !!  deallocate(nscatterarrTemp, stat=istat)
+      !!  call memocc(istat, iall, 'nscatterarrTemp', subname)
+      !!  iall=-product(shape(phiTemp))*kind(phiTemp)
+      !!  deallocate(phiTemp, stat=istat)
+      !!  call memocc(istat, iall, 'phiTemp', subname)
+      !!  iall=-product(shape(projTemp))*kind(projTemp)
+      !!  deallocate(projTemp, stat=istat)
+      !!  call memocc(istat, iall, 'projTemp', subname)
+      !!!!!  TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! Mix the potential
       if(trim(lin%mixingMethod)=='pot') then
@@ -345,10 +341,37 @@ type(mixrhopotDIISParameters):: mixdiis
   end if
 
 
+  ! Allocate the communication buffers for the calculation of the charge density.
+  call allocateCommunicationbufferSumrho(lin%comsr, subname)
+  ! Transform all orbitals to real space.
+  ist=1
+  istr=1
+  do iorb=1,lin%lb%orbs%norbp
+      ilr=lin%lb%orbs%inWhichLocregp(iorb)
+      call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
+      !call daub_to_isf(lin%lzd%llr(ilr), w, lphi(ist), lphir(istr))
+      call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
+      call deallocate_work_arrays_sumrho(w)
+      ist = ist + lin%lzd%Llr(ilr)%wfd%nvctr_c + 7*lin%lzd%Llr(ilr)%wfd%nvctr_f
+      istr = istr + lin%lzd%Llr(ilr)%d%n1i*lin%lzd%Llr(ilr)%d%n2i*lin%lzd%Llr(ilr)%d%n3i
+  end do
+  if(istr/=lin%comsr%nsendBuf+1) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=lin%comsr%nsendBuf+1'
+      stop
+  end if
+
+  ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
+  ! to point communication, the program will continue immediately. The messages will be gathered
+  ! in the subroutine sumrhoForLocalizedBasis2.
+  call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
+  call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
+       rhopot, at, nscatterarr)
+  call deallocateCommunicationbufferSumrho(lin%comsr, subname)
+
 
   ! Calculate the forces we get with psi.
   call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, rhopot, fxyz, fnoise)
 
 
   ! Deallocate all arrays related to the linear scaling version.

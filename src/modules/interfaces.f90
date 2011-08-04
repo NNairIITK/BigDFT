@@ -1624,7 +1624,7 @@ module module_interfaces
     
 
     subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
-        ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+        ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, rhopot, fxyz, fnoise)
       use module_base
       use module_types
       implicit none
@@ -1648,6 +1648,7 @@ module module_interfaces
       real(8),intent(out):: fnoise
       real(8),dimension(orbs%npsidim),intent(inout):: psi
       real(8),dimension(lin%gorbs%npsidim),intent(inout):: phi
+      real(8),dimension(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)),intent(in):: rhopot
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
     end subroutine calculateForcesSub
 
@@ -1949,6 +1950,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
 
+
     subroutine inputguessConfinement(iproc, nproc, at, &
          comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
          nlpspd, proj, pkernel, pkernelseq, &
@@ -1982,41 +1984,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(lin%orbs%npsidim),intent(out):: lphi
       real(8),intent(out):: ehart, eexcu, vexcu
     end subroutine inputguessConfinement
-
-
-    subroutine inputguessConfinement2(iproc, nproc, at, &
-         comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
-         nlpspd, proj, pkernel, pkernelseq, &
-         nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-         lphi, ehart, eexcu, vexcu)
-      use module_base
-      use module_types
-      implicit none
-      integer, intent(in) :: iproc,nproc,n3p
-      type(atoms_data), intent(inout) :: at
-      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-      type(locreg_descriptors), intent(in) :: Glr
-      type(communications_arrays), intent(in) :: comms
-      type(GPU_pointers), intent(inout) :: GPU
-      type(input_variables):: input
-      type(linearParameters),intent(inout):: lin
-      type(orbitals_data),intent(in):: orbs
-      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-      real(gp), dimension(3,at%nat), intent(in) :: rxyz
-      real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-      real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
-      real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
-      real(wp), dimension(:), pointer :: rhocore
-      real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
-      real(dp), dimension(:), pointer :: pkernelseq
-      integer, intent(in) ::potshortcut
-      integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
-      real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
-      real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-      real(8),dimension(lin%orbs%npsidim),intent(out):: lphi
-      real(8),intent(out):: ehart, eexcu, vexcu
-    end subroutine inputguessConfinement2
 
     !subroutine sumrhoForLocalizedBasis(iproc, nproc, orbs, Glr, input, lin, coeff, phi, nrho, rho, &
     !           at, rxyz, nscatterarr, phibuff)

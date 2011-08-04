@@ -92,7 +92,7 @@ real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold,
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2
+real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
@@ -145,10 +145,9 @@ integer:: ist, ierr, iiorb
       end do
   end if
 
-  ! Get the overlap matrix. If we updated the derivative basis functions, the overlap matrix has been
-  ! calculated in that subroutine. If we use the derivative basis functions, we have to recalculate
-  ! it anyway.
-  if(.not.updatePhi .and. .not.lin%useDerivativeBasisFunctions) then
+  ! Get the overlap matrix.
+  !if(.not.updatePhi .and. .not.lin%useDerivativeBasisFunctions) then
+  if(.not.lin%useDerivativeBasisFunctions) then
       call getOverlapMatrix(iproc, nproc, lin, input, lphi, ovrlp)
   end if
   if(lin%useDerivativeBasisFunctions) then
@@ -238,6 +237,7 @@ integer:: ist, ierr, iiorb
   
 
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
+  call cpu_time(t1)
   if(trim(lin%getCoeff)=='min') then
       call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
   else
@@ -261,6 +261,9 @@ integer:: ist, ierr, iiorb
           end do
       end if
   end if
+  call cpu_time(t2)
+  time=t2-t1
+  if(iproc==0) write(*,'(x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
   !!do iorb=1,lin%lb%orbs%norb
   !!    write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
   !!end do
