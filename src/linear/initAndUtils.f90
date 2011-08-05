@@ -57,7 +57,7 @@ call memocc(istat, norbsPerAtom, 'norbsPerAtom', subname)
 ! Number of localization regions.
 lin%nlr=at%nat
 lin%lzd%nlr=at%nat
-lin%lb%lzd%nlr=at%nat
+!lin%lb%lzd%nlr=at%nat
 
 ! Allocate the basic arrays that are needed for reading the input parameters.
 call allocateBasicArrays(at, lin)
@@ -136,7 +136,7 @@ call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 !call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%lzd%orbs)
-call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%orbs)
+call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! Initialize the localization regions.
@@ -161,14 +161,14 @@ call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
 ! Copy Glr to lin%lzd
 call nullify_locreg_descriptors(lin%lzd%Glr)
 call copy_locreg_descriptors(Glr, lin%lzd%Glr, subname)
-call nullify_locreg_descriptors(lin%lb%lzd%Glr)
-call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
+!call nullify_locreg_descriptors(lin%lb%lzd%Glr)
+!call copy_locreg_descriptors(Glr, lin%lb%lzd%Glr, subname)
 
 ! Copy nlpspd to lin%lzd
 call nullify_nonlocal_psp_descriptors(lin%lzd%Gnlpspd)
 call copy_nonlocal_psp_descriptors(nlpspd, lin%lzd%Gnlpspd, subname)
-call nullify_nonlocal_psp_descriptors(lin%lb%lzd%Gnlpspd)
-call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
+!call nullify_nonlocal_psp_descriptors(lin%lb%lzd%Gnlpspd)
+!call copy_nonlocal_psp_descriptors(nlpspd, lin%lb%lzd%Gnlpspd, subname)
 
 ! Set localnorb
 do ilr=1,lin%lzd%nlr
@@ -179,24 +179,24 @@ do ilr=1,lin%lzd%nlr
         end if
     end do
 end do
-! The same for the derivatives
-do ilr=1,lin%lzd%nlr
-    lin%lb%lzd%Llr(ilr)%localnorb=0
-    do iorb=1,lin%lb%orbs%norbp
-        if(lin%lb%orbs%inWhichLocregp(iorb)==ilr) then
-            lin%lb%lzd%Llr(ilr)%localnorb = lin%lb%lzd%Llr(ilr)%localnorb+1
-        end if
-    end do
-end do
+!! The same for the derivatives
+!do ilr=1,lin%lzd%nlr
+!    lin%lb%lzd%Llr(ilr)%localnorb=0
+!    do iorb=1,lin%lb%orbs%norbp
+!        if(lin%lb%orbs%inWhichLocregp(iorb)==ilr) then
+!            lin%lb%lzd%Llr(ilr)%localnorb = lin%lb%lzd%Llr(ilr)%localnorb+1
+!        end if
+!    end do
+!end do
 
 ! Initialize the parameters for the communication for the
 ! potential.
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%orbs%inWhichLocreg, tag)
-call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, lin%lb%orbs%inWhichLocreg, tag)
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lzd, lin%lb%comgp, lin%lb%orbs%inWhichLocreg, tag)
 
 ! Initialize the parameters for the communication for the orthonormalization.
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
-call initCommsOrtho(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
+call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
@@ -1344,10 +1344,10 @@ allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
 do ilr=1,lin%lzd%nlr
     call nullify_locreg_descriptors(lin%lzd%llr(ilr))
 end do
-allocate(lin%lb%lzd%Llr(lin%lzd%nlr),stat=istat)
-do ilr=1,lin%lzd%nlr
-    call nullify_locreg_descriptors(lin%lb%lzd%llr(ilr))
-end do
+!allocate(lin%lb%lzd%Llr(lin%lzd%nlr),stat=istat)
+!do ilr=1,lin%lzd%nlr
+!    call nullify_locreg_descriptors(lin%lb%lzd%llr(ilr))
+!end do
 
 
 !! Write some physical information on the Glr
@@ -1386,7 +1386,7 @@ end do
  end do
 
  call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr, calculateBounds)
- call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, calculateBounds)
+ !call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, calculateBounds)
 
  iall=-product(shape(calculateBounds))*kind(calculateBounds)
  deallocate(calculateBounds, stat=istat)

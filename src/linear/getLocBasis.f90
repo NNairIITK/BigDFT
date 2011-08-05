@@ -151,7 +151,8 @@ integer:: ist, ierr, iiorb
       call getOverlapMatrix(iproc, nproc, lin, input, lphi, ovrlp)
   end if
   if(lin%useDerivativeBasisFunctions) then
-      call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
+      !call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
   end if
 
   ! Allocate the communication buffers for the calculation of the charge density.
@@ -202,7 +203,11 @@ integer:: ist, ierr, iiorb
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
            pkernel=pkernelseq)
   else
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+      !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+      !!     ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
+      !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
+      !!     pkernel=pkernelseq)
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
            pkernel=pkernelseq)
@@ -221,7 +226,8 @@ integer:: ist, ierr, iiorb
   !!do iall=1,size(lhphi)
   !!    write(25000+iproc,*) lhphi(iall)
   !!end do
-  call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
+  !call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
+  call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
 
   !!if(iproc==0) then
   !!    ierr=0

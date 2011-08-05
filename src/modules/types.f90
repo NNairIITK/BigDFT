@@ -483,7 +483,7 @@ module module_types
 type,public:: largeBasis
     type(communications_arrays):: comms, gcomms
     type(orbitals_data):: orbs, gorbs
-    type(linear_zone_descriptors):: lzd
+    !type(linear_zone_descriptors):: lzd
     type(p2pCommsRepartition):: comrp
     type(p2pCommsOrthonormality):: comon
     type(overlapParameters):: op
