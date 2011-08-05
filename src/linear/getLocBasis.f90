@@ -244,7 +244,8 @@ integer:: ist, ierr, iiorb
       ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
       ! are still needed later.
       call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
+      !call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
+      call diagonalizeHamiltonianParallel(iproc, nproc, lin%lb%orbs%norb, matrixElements(1,1,2), ovrlp, eval)
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
 
@@ -2230,7 +2231,243 @@ if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to 
 if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
-
-
-
 end subroutine gatherPotential
+
+
+
+
+subroutine diagonalizeHamiltonianParallel(iproc, nproc, norb, ham, ovrlp, eval)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, norb
+real(8),dimension(norb,norb),intent(inout):: ham, ovrlp
+real(8),dimension(norb),intent(out):: eval
+
+! Local variables
+integer:: ierr, mbrow, mbcol, i, j, istat, lwork, info, ii1, ii2, nproc_scalapack, iall
+integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, jproc, liwork, neval_found, neval_computed
+real(8):: tt1, tt2
+real(8),dimension(:,:),allocatable:: lmat, loverlap, levec
+real(8),dimension(:),allocatable:: work, gap
+integer,dimension(9):: desc_levec, desc_lmat, desc_loverlap
+integer,dimension(:),allocatable:: iwork, ifail, icluster
+character(len=*),parameter:: subname='diagonalizeHamiltonianParallel'
+
+
+
+
+! Block size for scalapack
+mbrow=8
+mbcol=8
+
+! Number of processes that will be involved in the calculation
+tt1=dble(norb)/dble(mbrow)
+tt2=dble(norb)/dble(mbcol)
+ii1=ceiling(tt1)
+ii2=ceiling(tt2)
+nproc_scalapack = min(ii1*ii2,nproc)
+!nproc_scalapack = nproc
+if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
+
+! process grid: number of processes per row and column
+tt1=sqrt(dble(nproc_scalapack))
+ii1=ceiling(tt1)
+do i=ii1,nproc_scalapack
+    if(mod(nproc_scalapack,i)==0) then
+        nprocrow=i
+        exit
+    end if
+end do
+nproccol=nproc_scalapack/nprocrow
+if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+
+
+! Initialize blacs context
+call blacs_get(-1, 0, context)
+call blacs_gridinit(context, 'r', nprocrow, nproccol )
+call blacs_gridinfo(context,nprocrow, nproccol, irow, icol)
+!write(*,*) 'iproc, irow, icol', iproc, irow, icol
+
+! Initialize the matrix mat to zero for processes that don't do the calculation.
+! For processes participating in the diagonalization, 
+! it will be partially (only at the position that process was working on) overwritten with the result. 
+! At the end we can the make an allreduce to get the correct result on all processes.
+if(irow==-1) ham=0.d0
+
+! Everything that follows is only done if the current process is part of the grid.
+processIf: if(irow/=-1) then
+    ! Determine the size of the matrix (lnrow x lncol):
+    lnrow = numroc(norb, mbrow, irow, 0, nprocrow)
+    lncol = numroc(norb, mbcol, icol, 0, nproccol)
+    write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
+
+    ! Initialize descriptor arrays.
+    call descinit(desc_lmat, norb, norb, mbrow, mbcol, 0, 0, context, lnrow, info)
+    call descinit(desc_loverlap, norb, norb, mbrow, mbcol, 0, 0, context, lnrow, info)
+    call descinit(desc_levec, norb, norb, mbrow, mbcol, 0, 0, context, lnrow, info)
+
+    ! Allocate the local array lmat
+    allocate(lmat(lnrow,lncol), stat=istat)
+    call memocc(istat, lmat, 'lmat', subname)
+    allocate(loverlap(lnrow,lncol), stat=istat)
+    call memocc(istat, loverlap, 'loverlap', subname)
+
+    ! Copy the global array mat to the local array lmat.
+    ! The same for loverlap and overlap, respectively.
+    !call dcopy(norb**2, ham(1,1), 1, mat(1,1), 1)
+    !call dcopy(norb**2, ovrlp(1,1), 1, overlap(1,1), 1)
+    do i=1,norb
+        do j=1,norb
+            call pdelset(lmat(1,1), j, i, desc_lmat, ham(j,i))
+            call pdelset(loverlap(1,1), j, i, desc_loverlap, ovrlp(j,i))
+        end do
+    end do
+
+
+    !!do jproc=0,nproc_scalapack-1
+    !!    if(iproc==jproc) then
+    !!        write(*,'(a,i0,a)') 'process ',iproc,':'
+    !!        do i=1,lnrow
+    !!            write (*,'(10f9.2)') (lmat(i,j), j=1,lnrow)
+    !!        end do
+    !!        write(*,*) '------------------------------------'
+    !!        do i=1,lnrow
+    !!            write (*,'(10f9.2)') (loverlap(i,j), j=1,lnrow)
+    !!        end do
+    !!        write(*,*) '====================================='
+    !!    end if
+    !!end do
+
+    ! Solve the generalized eigenvalue problem.
+    allocate(levec(lnrow,lncol), stat=istat)
+    call memocc(istat, levec, 'levec', subname)
+    allocate(ifail(norb), stat=istat)
+    call memocc(istat, ifail, 'ifail', subname)
+    allocate(icluster(2*nprocrow*nproccol), stat=istat)
+    call memocc(istat, icluster, 'icluster', subname)
+    allocate(gap(nprocrow*nproccol), stat=istat)
+    call memocc(istat, gap, 'gap', subname)
+
+    ! workspace query
+    lwork=-1
+    liwork=-1
+    allocate(work(1), stat=istat)
+    call memocc(istat, work, 'work', subname)
+    allocate(iwork(1), stat=istat) ; if(istat/=0) stop 'ERROR in allocating'
+    call memocc(istat, iwork, 'iwork', subname)
+    call pdsygvx(1, 'v', 'a', 'l', norb, lmat(1,1), 1, 1, desc_lmat, loverlap(1,1), 1, 1, &
+                 desc_loverlap, 0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, eval(1), &
+                 -1.d0, levec(1,1), 1, 1, desc_levec, work, lwork, iwork, liwork, &
+                 ifail, icluster, gap, info)
+    lwork=ceiling(work(1))
+    liwork=iwork(1)
+    write(*,*) 'iproc, lwork, liwork', iproc, lwork, liwork
+    iall=-product(shape(work))*kind(work)
+    deallocate(work, stat=istat)
+    call memocc(istat, iall, 'work', subname)
+    iall=-product(shape(iwork))*kind(iwork)
+    deallocate(iwork, stat=istat)
+    call memocc(istat, iall, 'iwork', subname)
+
+    allocate(work(lwork), stat=istat)
+    call memocc(istat, work, 'work', subname)
+    allocate(iwork(liwork), stat=istat)
+    call memocc(istat, iwork, 'iwork', subname)
+
+    call pdsygvx(1, 'v', 'a', 'l', norb, lmat(1,1), 1, 1, desc_lmat, loverlap(1,1), 1, 1, &
+                 desc_loverlap, 0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, eval(1), &
+                 -1.d0, levec(1,1), 1, 1, desc_levec, work, lwork, iwork, liwork, &
+                 ifail, icluster, gap, info)
+
+    !!do jproc=0,nproc_scalapack-1
+    !!    if(iproc==jproc) then
+    !!        write(*,'(a,i0,a)') 'process ',iproc,':'
+    !!        do i=1,lnrow
+    !!            write(*,'(8f9.3)') (levec(i,j), j=1,lncol)
+    !!        end do
+    !!        do i=1,n
+    !!            write(*,'(a,i0,a,es15.7)') 'eval(',i,')=',eval(i)
+    !!        end do
+    !!        write(*,*) '====================================='
+    !!    end if
+    !!end do
+
+    ! Gather together the eigenvectors from all processes and store them in mat.
+    do i=1,norb
+        do j=1,norb
+            call pdelset2(ham(j,i), levec(1,1), j, i, desc_lmat, 0.d0)
+        end do
+    end do
+
+    !!do jproc=0,nproc_scalapack-1
+    !!    if(iproc==jproc) then
+    !!        write(*,*) '>>> final output:'
+    !!        do i=1,n
+    !!            write(*,'(8f9.3)') (mat(i,j), j=1,n)
+    !!        end do
+    !!        do i=1,n
+    !!            write(*,'(a,i0,a,es15.7)') 'eval(',i,')=',eval(i)
+    !!        end do
+    !!    end if
+    !!end do
+
+
+
+    iall=-product(shape(lmat))*kind(lmat)
+    deallocate(lmat, stat=istat)
+    call memocc(istat, iall, 'lmat', subname)
+
+    iall=-product(shape(levec))*kind(levec)
+    deallocate(levec, stat=istat)
+    call memocc(istat, iall, 'levec', subname)
+
+    iall=-product(shape(loverlap))*kind(loverlap)
+    deallocate(loverlap, stat=istat)
+    call memocc(istat, iall, 'loverlap', subname)
+
+    iall=-product(shape(work))*kind(work)
+    deallocate(work, stat=istat)
+    call memocc(istat, iall, 'work', subname)
+
+    iall=-product(shape(iwork))*kind(iwork)
+    deallocate(iwork, stat=istat)
+    call memocc(istat, iall, 'iwork', subname)
+
+    iall=-product(shape(ifail))*kind(ifail)
+    deallocate(ifail, stat=istat)
+    call memocc(istat, iall, 'ifail', subname)
+
+    iall=-product(shape(icluster))*kind(icluster)
+    deallocate(icluster, stat=istat)
+    call memocc(istat, iall, 'icluster', subname)
+
+    iall=-product(shape(gap))*kind(gap)
+    deallocate(gap, stat=istat)
+    call memocc(istat, iall, 'gap', subname)
+
+end if processIF
+
+! Gather the eigenvectors on all processes.
+call mpiallred(ham(1,1), norb**2, mpi_sum, mpi_comm_world, ierr)
+!do jproc=0,nproc
+!    if(iproc==jproc) then
+!        write(*,*) '>>> final output:'
+!        do i=1,n
+!            write(*,'(8f9.3)') (mat(i,j), j=1,n)
+!        end do
+!    end if
+!end do
+
+! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
+! diagonalized the matrix and therefore have the eigenvalues.
+if(nproc_scalapack/=nproc) then
+    call mpi_bcast(eval(1), norb, mpi_double_precision, 0, mpi_comm_world, ierr)
+end if
+
+
+
+
+end subroutine diagonalizeHamiltonianParallel
