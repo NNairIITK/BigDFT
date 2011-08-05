@@ -533,6 +533,7 @@ end type largeBasis
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
     character(len=4):: getCoeff, mixingMethod
+    character(len=3):: diagMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
     type(largeBasis):: lb

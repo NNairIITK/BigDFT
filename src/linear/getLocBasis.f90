@@ -244,8 +244,14 @@ integer:: ist, ierr, iiorb
       ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
       ! are still needed later.
       call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      !call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
-      call diagonalizeHamiltonianParallel(iproc, nproc, lin%lb%orbs%norb, matrixElements(1,1,2), ovrlp, eval)
+      if(trim(lin%diagMethod)=='seq') then
+          if(iproc==0) write(*,'(x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
+          call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
+      else if(trim(lin%diagMethod)=='par') then
+          if(iproc==0) write(*,'(x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
+          call diagonalizeHamiltonianParallel(iproc, nproc, lin%lb%orbs%norb, matrixElements(1,1,2), ovrlp, eval)
+      end if
+      if(iproc==0) write(*,'(a)') 'done.'
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
 
@@ -2260,8 +2266,8 @@ character(len=*),parameter:: subname='diagonalizeHamiltonianParallel'
 
 
 ! Block size for scalapack
-mbrow=8
-mbcol=8
+mbrow=64
+mbcol=64
 
 ! Number of processes that will be involved in the calculation
 tt1=dble(norb)/dble(mbrow)

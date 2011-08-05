@@ -112,7 +112,7 @@ call orbitals_communicators(iproc,nproc,Glr,lin%lb%gorbs,lin%lb%gcomms)
 
 
 ! Write all parameters related to the linear scaling version to the screen.
-call writeLinearParameters(iproc, nproc, at, lin, atomNames, lin%norbsPerType)
+if(iproc==0) call writeLinearParameters(iproc, nproc, at, lin, atomNames, lin%norbsPerType)
 
 if(iproc==0) write(*,'(x,a)',advance='no') 'Doing many initializations...'
 
@@ -269,7 +269,7 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
   read(99,*) lin%startWithSD, lin%startDIIS
   read(99,*) lin%nItPrecond
-  read(99,*) lin%getCoeff
+  read(99,*) lin%getCoeff, lin%diagMethod
   read(99,*) lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
@@ -359,71 +359,80 @@ character(len=14):: message2
 character(len=2):: hist
 
 
-if(iproc==0) write(*,'(x,a)') '################################# Input parameters #################################'
-if(iproc==0) write(*,'(x,a)') '>>>> General parameters.'
-if(iproc==0) write(*,'(4x,a)') '|           |    number of    |     prefactor for     | localization |'
-if(iproc==0) write(*,'(4x,a)') '| atom type | basis functions | confinement potential |    radius    |'
+write(*,'(x,a)') '################################# Input parameters #################################'
+write(*,'(x,a)') '>>>> General parameters.'
+write(*,'(4x,a)') '|           |    number of    |     prefactor for     | localization |'
+write(*,'(4x,a)') '| atom type | basis functions | confinement potential |    radius    |'
 do itype=1,at%ntypes
-    if(iproc==0) write(*,'(4x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a,3x,f8.4,3x,a)') '| ', trim(atomNames(itype)), &
+    write(*,'(4x,a,4x,a,a,a,a,i0,7x,a,7x,es9.3,6x,a,3x,f8.4,3x,a)') '| ', trim(atomNames(itype)), &
         repeat(' ', 6-len_trim(atomNames(itype))), '|', repeat(' ', 10-ceiling(log10(dble(norbsPerType(itype)+1)+1.d-10))), &
          norbsPerType(itype), '|', lin%potentialPrefac(itype), ' |', lin%locrad(itype), '|'
 end do
 close(unit=99)
-if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| mixing | mixing | iterations in | alpha mix | convergence crit. |'
-if(iproc==0) write(*,'(4x,a)') '| scheme | method |  in SC cycle  |           |    for mixing     |'
+write(*,'(4x,a)') '----------------------------------------------------------------------'
+write(*,'(4x,a)') '| mixing | mixing | iterations in | alpha mix | convergence crit. |'
+write(*,'(4x,a)') '| scheme | method |  in SC cycle  |           |    for mixing     |'
 if(lin%mixHist==0) then
     message1=' linear '
 else
     write(hist,'(i2)') lin%mixHist
     message1=' DIIS'//hist//' '
 end if
-if(iproc==0) write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)') '|', &
+write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)') '|', &
      lin%mixingMethod, '|', message1, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
      lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|'
-if(iproc==0) write(*,'(4x,a)') '-------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals |'
-if(iproc==0) write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  |'
-if(iproc==0) write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
+write(*,'(4x,a)') '-------------------------------------------------------------------'
+write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals |'
+write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  |'
+write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
      lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
      lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|'
-if(iproc==0) write(*,'(4x,a)') '----------------------------------------------------------------------'
-if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
-if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
-if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
-if(iproc==0) write(*,'(4x,a)') '|  first   else  |             |                |           |       |'
-if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
+write(*,'(4x,a)') '----------------------------------------------------------------------'
+write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
+write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
+write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
+write(*,'(4x,a)') '|  first   else  |             |                |           |       |'
+if(trim(lin%getCoeff)=='diag') then
+    if(trim(lin%diagMethod)=='seq') then
+        message1='diag seq'
+    else if(trim(lin%diagMethod)=='par') then
+        message1='diag par'
+    end if
+else if(trim(lin%getCoeff)=='min') then
+    message1='   min  '
+end if
+write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
     repeat(' ', 5-ceiling(log10(dble(lin%nItBasisFirst+1)+1.d-10))), lin%nItBasisFirst, &
     repeat(' ', 5-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
       '| ', lin%convCrit, ' | ', &
-      repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       |   ', &
-      lin%getCoeff, '    |  ', &
+      repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       | ' , &
+      message1, '  |  ', &
       lin%plotBasisFunctions, '   |'
-if(iproc==0) write(*,'(4x,a)') '---------------------------------------------------------------------'
-if(iproc==0) write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |'
-if(iproc==0) write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit | of overlap mat |'
+write(*,'(4x,a)') '---------------------------------------------------------------------'
+write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |'
+write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit | of overlap mat |'
 if(lin%methTransformOverlap==0) then
     message2='    exact     '
 else if(lin%methTransformOverlap==1) then
     message2='taylor approx.'
 end if
-if(iproc==0) write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a,a,i0,7x,es7.1,2x,a,x,a,x,a)') '|', &
+write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a,a,i0,7x,es7.1,2x,a,x,a,x,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
     lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |', &
     repeat(' ', 5-ceiling(log10(dble(lin%nItOrtho+1)+1.d-10))), lin%nItOrtho, lin%convCritOrtho, '|', message2, '|'
-if(iproc==0) write(*,'(4x,a)') '------------------------------------------------------------------------------------------------------'
-if(iproc==0) write(*,'(x,a)') '>>>> Parameters for the optimization of the coefficients.'
-if(iproc==0) write(*,'(4x,a)') '| maximal number | convergence |'
-if(iproc==0) write(*,'(4x,a)') '|  of iterations |  criterion  |'
-if(iproc==0) write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a)') '| ', &
+write(*,'(4x,a)') '------------------------------------------------------------------------------------------------------'
+write(*,'(x,a)') '>>>> Parameters for the optimization of the coefficients.'
+write(*,'(4x,a)') '| maximal number | convergence |'
+write(*,'(4x,a)') '|  of iterations |  criterion  |'
+write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a)') '| ', &
     repeat(' ', 9-ceiling(log10(dble(lin%nItCoeff+1)+1.d-10))), lin%nItCoeff, ' | ', lin%convCritCoeff, ' | '
-if(iproc==0) write(*,'(4x,a)') '--------------------------------'
+write(*,'(4x,a)') '--------------------------------'
 
 
 
 written=.false.
-if(iproc==0) write(*,'(x,a)') '>>>> Partition of the basis functions among the processes.'
+write(*,'(x,a)') '>>>> Partition of the basis functions among the processes.'
 do jproc=1,nproc-1
     if(lin%orbs%norb_par(jproc)<lin%orbs%norb_par(jproc-1)) then
         len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%orbs%norb_par(jproc-1)+1.d-5)))
@@ -436,23 +445,23 @@ do jproc=1,nproc-1
             space1=1+len2-len1
             space2=1
         end if
-        if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
             lin%orbs%norb_par(jproc-1), ' orbitals,', repeat(' ', space1), '|'
-        if(iproc==0) write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
             lin%orbs%norb_par(jproc),' orbitals.', repeat(' ', space2), '|'
         written=.true.
         exit
     end if
 end do
 if(.not.written) then
-    if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
         ' treat ',lin%orbs%norbp,' orbitals. |'!, &
 end if
-if(iproc==0) write(*,'(x,a)') '-----------------------------------------------'
+write(*,'(x,a)') '-----------------------------------------------'
 
 
 written=.false.
-if(iproc==0) write(*,'(x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
+write(*,'(x,a)') '>>>> Partition of the basis functions including the derivatives among the processes.'
 do jproc=1,nproc-1
     if(lin%lb%orbs%norb_par(jproc)<lin%lb%orbs%norb_par(jproc-1)) then
         len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(lin%lb%orbs%norb_par(jproc-1)+1.d-5)))
@@ -465,19 +474,19 @@ do jproc=1,nproc-1
             space1=1+len2-len1
             space2=1
         end if
-        if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
+        write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',jproc-1,' treat ',&
             lin%lb%orbs%norb_par(jproc-1), ' orbitals,', repeat(' ', space1), '|'
-        if(iproc==0) write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
+        write(*,'(4x,a,3(i0,a),a,a)')  '| processes from ',jproc,' to ',nproc-1,' treat ', &
             lin%lb%orbs%norb_par(jproc),' orbitals.', repeat(' ', space2), '|'
         written=.true.
         exit
     end if
 end do
 if(.not.written) then
-    if(iproc==0) write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
+    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
         ' treat ',lin%lb%orbs%norbp,' orbitals. |'!, &
 end if
-if(iproc==0) write(*,'(x,a)') '####################################################################################'
+write(*,'(x,a)') '####################################################################################'
 
 
 end subroutine writeLinearParameters
