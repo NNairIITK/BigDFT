@@ -11,7 +11,7 @@ import re
 import sys
 
 #Regular expression
-re_discrepancy = re.compile("Max Discrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
+re_discrepancy = re.compile("Max [dD]iscrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
 
 def callback(pattern,dirname,names):
     "Return the files given by the pattern"
@@ -43,8 +43,11 @@ for file in files:
     dir = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
     #Max value
-    max_discrepancy = float(open(file).readline())
-    discrepancy = re_discrepancy.findall(open(file).read())
+    try:
+        max_discrepancy = float(open(file).readline())
+        discrepancy = re_discrepancy.findall(open(file).read())
+    except:
+        discrepancy = False
     if discrepancy:
         diff = float(discrepancy[0][0])
         if diff > max_discrepancy:
@@ -57,6 +60,10 @@ for file in files:
         else:
             start = start_success
             state = "%7.1e < (%7.1e) succeeded" % (diff,max_discrepancy)
+        print "%s%-23s %-28s %s%s" % (start,dir,fic,state,end)
+    else:
+        start = start_fail
+        state = "cannot parse file.     failed"
         print "%s%-23s %-28s %s%s" % (start,dir,fic,state,end)
 #Error code
 sys.exit(Exit)

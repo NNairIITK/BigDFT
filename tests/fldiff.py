@@ -369,6 +369,6 @@ else:
     start = start_success
     message = "succeeded < "
 
-print "%sMax Discrepancy %s: %s (%s%s)%s" % (start,context_discrepancy,maximum,message,max_discrepancy,end)
+print "%sMax discrepancy %s: %s (%s%s)%s" % (start,context_discrepancy,maximum,message,max_discrepancy,end)
 sys.exit(0)
 
