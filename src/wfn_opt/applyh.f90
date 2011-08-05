@@ -14,7 +14,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   use module_base
   use module_types
   use module_interfaces
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nspin
   real(gp), intent(in) :: hx,hy,hz
@@ -33,7 +33,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir
 
-  exctXcoeff=libxc_functionals_exctXfac()
+  exctXcoeff=xc_exctXfac()
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
@@ -65,7 +65,6 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
      !the psir wavefunction is given in the spinorial form
      call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
-
      !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
      !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
      !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
@@ -108,6 +107,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
 
   enddo
+
 
   !print *,'iproc,etest',etest
 

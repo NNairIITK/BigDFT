@@ -302,7 +302,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   use module_types
   use module_interfaces
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
   implicit none
@@ -335,6 +335,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
   type(gaussian_basis) :: Gvirt
+  type(rho_descriptors)  :: rhodsc
 
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:,:), allocatable :: radii_cf,fion
@@ -426,7 +427,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   hz=in%hz
 
   if (ixc < 0) then
-     call libxc_functionals_init(ixc, nspin)
+     call xc_init(ixc, XC_MIXED, nspin)
+  else
+     call xc_init(ixc, XC_ABINIT, nspin)
   end if
 
   !character string for quieting the Poisson solver
@@ -518,8 +521,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
   !create the descriptors for the density and the potential
   !these descriptors should take into account the localisation regions
-  call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',n1i,n2i,n3i,ixc,&
-       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
+       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',ixc,in%rho_commun,&
+       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
   !allocate ionic potential
   print *, " allocate ionic potential " 
@@ -661,7 +665,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      endif
 
 
-     call input_wf_diag(iproc,nproc,atoms_clone,&
+     call input_wf_diag(iproc,nproc,atoms_clone,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
@@ -725,7 +729,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call memocc(i_stat,phnons,'phnons',subname)
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(iproc,nproc,atoms,&
+     call input_wf_diag(iproc,nproc,atoms,rhodsc,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)
@@ -1346,17 +1350,8 @@ contains
     call deallocate_comms(comms,subname)
 
     call deallocate_orbs(orbs,subname)
+    call deallocate_atoms_scf(atoms,subname) 
 
-    !semicores useful only for the input guess
-    i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-    deallocate(atoms%iasctype,stat=i_stat)
-    call memocc(i_stat,i_all,'iasctype',subname)
-    i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
-    deallocate(atoms%aocc,stat=i_stat)
-    call memocc(i_stat,i_all,'aocc',subname)
-    i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-    deallocate(atoms%nzatom,stat=i_stat)
-    call memocc(i_stat,i_all,'nzatom',subname)
     i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
     deallocate(nlpspd%nboxp_c,stat=i_stat)
     call memocc(i_stat,i_all,'nboxp_c',subname)
@@ -1380,23 +1375,14 @@ contains
     deallocate(proj,stat=i_stat)
     call memocc(i_stat,i_all,'proj',subname)
 
-    i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-    deallocate(atoms%psppar,stat=i_stat)
-    call memocc(i_stat,i_all,'psppar',subname)
-    i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-    deallocate(atoms%nelpsp,stat=i_stat)
-    call memocc(i_stat,i_all,'nelpsp',subname)
     i_all=-product(shape(radii_cf))*kind(radii_cf)
     deallocate(radii_cf,stat=i_stat)
     call memocc(i_stat,i_all,'radii_cf',subname)
-    i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-    deallocate(atoms%npspcode,stat=i_stat)
-    call memocc(i_stat,i_all,'npspcode',subname)
+
+    call deallocate_rho_descriptors(rhodsc,subname)
 
     ! Free the libXC stuff if necessary.
-    if (ixc < 0) then
-       call libxc_functionals_end()
-    end if
+    call xc_end()
 
     !end of wavefunction minimisation
     call timing(iproc,'LAST','PR')

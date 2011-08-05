@@ -1,14 +1,13 @@
 !> @file
-!! Routines to do scalar products
+!!    Wrapper for simplifying the call
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
+!!    Copyright (C) 2010-2011 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
 
-
-!>    Wrapper for simplifying the call
+!> Wrapper
 subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
   use module_base
   implicit none
@@ -32,7 +31,7 @@ subroutine wnrm_wrap(ncplx,mvctr_c,mvctr_f,psi,scpr)
 END SUBROUTINE wnrm_wrap
 
 
-!> calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
+!> Calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
 subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   use module_base
   implicit none
@@ -96,7 +95,7 @@ enddo
 END SUBROUTINE wnrm
 
 
-!> wrapper for simplifying the call
+!> Wrapper for simplifying the call
 subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
   use module_base
   implicit none
@@ -113,7 +112,7 @@ subroutine wscal_wrap(mvctr_c,mvctr_f,scal,psi)
 END SUBROUTINE wscal_wrap
 
 
-!> multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
+!> Multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
 subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   use module_base
   implicit none
@@ -145,7 +144,7 @@ subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
 END SUBROUTINE wscal
 
 
-!> wrapper for simplifying the call
+!> Wrapper for simplifying the call
 subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
   use module_base
   implicit none
@@ -162,7 +161,7 @@ subroutine wscalv_wrap(mvctr_c,mvctr_f,scal,psi)
 END SUBROUTINE wscalv_wrap
 
 
-!> multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
+!> Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   use module_base
   implicit none
@@ -193,7 +192,7 @@ subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
 END SUBROUTINE wscalv
 
 
-!> initializes a wavefunction to zero
+!> Initializes a wavefunction to zero
 subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   use module_base
   implicit none
@@ -226,10 +225,9 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
 END SUBROUTINE wzero
 
 
-!> wrapper of wpdot to avoid boundary problems in absence of wavelets
+!> Wrapper of wpdot to avoid boundary problems in absence of wavelets
 !! and to perform scalar product for complex wavefunctions and projectors
-!! @warning
-!! is the wavefunctions are complex, so should be also the projectors
+!! NOTE: is the wavefunctions are complex, so should be also the projectors
 subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,scpr)
   use module_base
@@ -281,13 +279,11 @@ subroutine wpdot_wrap(ncplx,mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi, 
 END SUBROUTINE wpdot_wrap
 
 
-!> This function must be generalized for the linear scaling code
+!> This function must be generalized for the linear scaling code                
+!! @warning   
 !! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
-!! @warning
-!!  The subroutine assumes that bpsi has only one segment along each line,
-!!  whereas apsi can have several segments. This assumption is true if bpsi is a projector 
-!!  To be more precise, it is assumed that the segments of bpsi are always contained inside
-!!  the segments of apsi, no matter whether they are in the same line or not.
+!! Warning: It is assumed that the segments of bpsi are always contained inside
+!! the segments of apsi.
 subroutine wpdot(  &
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,scpr)
@@ -310,7 +306,7 @@ subroutine wpdot(  &
   !local variables
   integer :: ibseg,jaj,jb1,jb0,jbj,iaoff,length,i
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7,scpr0
-  integer :: iaseg0,iter
+  integer :: iaseg0
   integer, dimension(maseg_c) :: keyag_c_lin!linear version of second inidces of keyag_c
   integer, dimension(maseg_f) :: keyag_f_lin!linear version of second inidces of keyag_f
 !!!    integer :: ncount0,ncount2,ncount_rate,ncount_max
@@ -350,7 +346,7 @@ subroutine wpdot(  &
      jb0=keybg_c(1,ibseg)
      jb1=keybg_c(2,ibseg)
     
-     call hunt(keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
+     call hunt1(keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
      
      jaj=keyav_c(iaseg0)
      length = jb1-jb0
@@ -374,12 +370,11 @@ iaseg0=1
      jb1=keybg_f(2,ibseg)
 
 
-     call hunt(keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
+     call hunt1(keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
      
      jaj=keyav_f(iaseg0)
      length = jb1-jb0
      iaoff = jb0-keyag_f_lin(iaseg0)
-     !print *,ibseg,jb0,iaseg0,keyag_f_lin(iaseg0),maseg_f
      do i=0,length
         scpr1=scpr1+real(apsi_f(1,jaj+iaoff+i),dp)*real(bpsi_f(1,jbj+i),dp)
         scpr2=scpr2+real(apsi_f(2,jaj+iaoff+i),dp)*real(bpsi_f(2,jbj+i),dp)
@@ -409,10 +404,10 @@ iaseg0=1
 END SUBROUTINE wpdot
 
 
-!> wrapper of waxpy for complex Ax+y and for no fine grid cases
-!! @warning
-!!   in complex cases, it acts with y = Conj(A) *x +y, with the complex conjugate
-!!   if the a function is complex, so should be the b function
+!> Wrapper of waxpy for complex Ax+y and for no fine grid cases
+!! @warning 
+!!    in complex cases, it acts with y = Conj(A) *x +y, with the complex conjugate
+!!    if the a function is complex, so should be the b function
 subroutine waxpy_wrap(ncplx,scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,bpsi,&
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav,keyag,apsi)
   use module_base
@@ -493,7 +488,7 @@ subroutine waxpy_wrap(ncplx,scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv,keybg,b
 END SUBROUTINE waxpy_wrap
 
 
-!> rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
+!> Rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
 !! The update is only done in the localization region of apsi
 subroutine waxpy(  & 
      scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f, & 
@@ -515,7 +510,7 @@ subroutine waxpy(  &
   real(wp), dimension(mavctr_c), intent(inout) :: apsi_c
   real(wp), dimension(7,mavctr_f), intent(inout) :: apsi_f
   !local variables
-  integer :: ibseg,iaseg0,jaj,ja0,jb1,jb0,jbj,iaoff,length,i
+  integer :: ibseg,iaseg0,jaj,jb1,jb0,jbj,iaoff,length,i
   real(wp) :: scprwp
   integer, dimension(maseg_c) :: keyag_c_lin!linear version of second inidces of keyag_c
   integer, dimension(maseg_f) :: keyag_f_lin!linear version of second inidces of keyag_f
@@ -548,7 +543,7 @@ iaseg0=1
      jb0=keybg_c(1,ibseg)
      jb1=keybg_c(2,ibseg)
     
-     call hunt(keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
+     call hunt1(keyag_c_lin,maseg_c,keybg_c(1,ibseg),iaseg0)
 
      jaj=keyav_c(iaseg0)
      length = jb1-jb0
@@ -570,7 +565,7 @@ iaseg0=1
              jb0=keybg_f(1,ibseg)
              jb1=keybg_f(2,ibseg)
         
-             call hunt(keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
+             call hunt1(keyag_f_lin,maseg_f,keybg_f(1,ibseg),iaseg0)
              
              jaj=keyav_f(iaseg0)
              length = jb1-jb0
@@ -596,85 +591,52 @@ iaseg0=1
 END SUBROUTINE waxpy
 
 
-
-SUBROUTINE hunt(xx,n,x,jlo)
-  implicit none
-  integer jlo,n
-  integer x,xx(n)
-  integer inc,jhi,jm
-  logical ascnd
-  
-  ascnd=xx(n).ge.xx(1)
-  
-  if(jlo.le.0.or.jlo.gt.n)then
-
-      jlo=0
-      jhi=n+1
-  
-      call locate(xx,n,x,jlo)
-       
-  else
+SUBROUTINE hunt1(xx,n,x,jlo)
+      implicit none
+      integer :: jlo,n
+      integer :: x,xx(n)
+      integer :: inc,jhi,jm
+      logical :: ascnd
+      ascnd=xx(n).ge.xx(1)
+      if(jlo.le.0.or.jlo.gt.n)then
+        jlo=0
+        jhi=n+1
+        goto 3
+      endif
       inc=1
-     if(x.ge.xx(jlo).eqv.ascnd)then
+      if(x.ge.xx(jlo).eqv.ascnd)then
+1       continue
         jhi=jlo+inc
-        do while((x.ge.xx(min(jhi,n)).eqv.ascnd) .and. (jhi <= n))
-           !if(jhi.gt.n)then
-           !    jhi=n+1
-           !    exit
-           ! else
-           jlo=jhi
-           inc=inc+inc
-           jhi=jlo+inc
-           ! endif
-        end do
         if(jhi.gt.n)then
-           jhi=n+1
-        end if
-        !print *, 'here',jlo,jhi,x,xx(min(jhi,n)),ascnd
-     else
+          jhi=n+1
+        else if(x.ge.xx(jhi).eqv.ascnd)then
+          jlo=jhi
+          inc=inc+inc
+          goto 1
+        endif
+      else
         jhi=jlo
+2       continue
         jlo=jhi-inc
-        do while(x.lt.xx(max(jlo,1)).eqv.ascnd .and. jlo >= 1)
-           !if(jlo.lt.1)then
-           !    jlo=0
-           ! else
-           jhi=jlo
-           inc=inc+inc
-           jlo=jhi-inc
-           ! endif
-        enddo
         if(jlo.lt.1)then
-           jlo=0
-        end if
-     endif
-     call locate(xx,n,x,jlo)
-  endif    
-END SUBROUTINE hunt
-
-
-SUBROUTINE locate(xx,n,x,j)
-  implicit none
-  integer j,n
-  integer x,xx(n)
-  integer jl,jm,ju
-
-  jl=0
-  ju=n+1
-
-  do while(ju-jl > 1)
-    jm=(ju+jl)/2
-    if((xx(n).ge.xx(1)).eqv.(x.ge.xx(jm)))then
-      jl=jm
-    else
-      ju=jm
-    endif
-  end do
-  
-  if(x.eq.xx(1))then
-    j=1
-  else if(x.eq.xx(n))then
-    j=n!-1
-  else
-    j=jl
-  endif
-END SUBROUTINE locate
+          jlo=0
+        else if(x.lt.xx(jlo).eqv.ascnd)then
+          jhi=jlo
+          inc=inc+inc
+          goto 2
+        endif
+      endif
+3     continue
+      if(jhi-jlo.eq.1)then
+        if(x.eq.xx(n))jlo=n
+        if(x.eq.xx(1))jlo=1
+        return
+      endif
+      jm=(jhi+jlo)/2
+      if(x.ge.xx(jm).eqv.ascnd)then
+        jlo=jm
+      else
+        jhi=jm
+      endif
+      goto 3
+END SUBROUTINE hunt1

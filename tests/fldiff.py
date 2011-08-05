@@ -30,7 +30,7 @@ if  version < [2,3,0]:
 #Match the version number ex. 1.1.9
 re_version = re.compile("[(]ver[ ]+[0-9.\-a-z]+[)]",re.IGNORECASE)
 #Match a floating number
-re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
+re_float = re.compile("([- ]?[0-9]+[.][0-9]*([EDed][-+]?[0-9]+)?)")
 
 #Maximum discrepancy between float results (default)
 max_discrepancy = 1.1e-10
@@ -41,6 +41,16 @@ def usage():
     print "  --discrepancy=%7.1e Maximal discrepancy between results" % max_discrepancy
     print "  --help   display this message"
     sys.exit(1)
+
+def n_digits(figure):
+    """Return the number of decimals of the given figure."""
+    n = 0
+    for ch in figure:
+        if ch == "E":
+            return n
+        elif ch in "0123456789":
+            n += 1
+    return n
 
 #Check arguments
 try:
@@ -75,6 +85,7 @@ file2 = args[1]
 #Check if the output is a tty to print in colour
 start_fail = "\033[0;31m"
 start_success = "\033[0;32m"
+start_pass = "\033[0;33m"
 end = "\033[m"
 #if sys.stdout.isatty():
 #    start_fail = "\033[0;31m"
@@ -113,7 +124,8 @@ elif neb:
         return re_version.search(line) \
             or "datadir" in line \
             or "workdir" in line \
-            or "Reading atomic input" in line
+            or "Reading atomic input" in line \
+            or "Start job" in line
 elif psolver:
     #Remove some lines (PS_Check)
     def line_junk(line):
@@ -149,6 +161,8 @@ except IOError:
     sys.exit(1)
 
 maximum = 0.0
+min_digits = 5
+ns_discrepancy = False #Non significant discrepancy.
 context_discrepancy = ""
 context_lines = ""
 
@@ -230,6 +244,7 @@ except StopIteration:
     #Nothing to compare
     EOF = True
 
+context_lines = None
 while not EOF:
     #A new context is detected
     context = line
@@ -270,10 +285,10 @@ while not EOF:
             continue
         floats1 = list()
         for (one,two) in re_float.findall(line1):
-            floats1.append(float(one))
+            floats1.append((float(one), n_digits(one)))
         floats2 = list()
         for (one,two) in re_float.findall(line2):
-            floats2.append(float(one))
+            floats2.append((float(one), n_digits(one)))
         #Replace all floating point by XXX and ' ' characters
         new1 = re_float.sub('XXX',line1[2:]).replace(' ','')
         new2 = re_float.sub('XXX',line2[2:]).replace(' ','')
@@ -288,13 +303,20 @@ while not EOF:
         if n == len(floats2):
             diff_discrepancy = False
             for i in range(n):
-                tt = abs(floats1[i]-floats2[i])
-                if maximum < tt:
-                    context_discrepancy = " (line %s)" % context.split("c")[0].split(",")[0]
-                    context_lines = "\n"+context_discrepancy[1:]+"\n"+line1+line2
-                    maximum = max(maximum,tt)
-                if tt > max_discrepancy:
-                    diff_discrepancy = True
+                tt = abs(floats1[i][0]-floats2[i][0])
+                if min(floats1[i][1], floats2[i][1]) > min_digits:
+                    #Case of significant discrepancy.
+                    if maximum < tt:
+                        context_discrepancy = " (line %s)" % context.split("c")[0].split(",")[0]
+                        context_lines = "\n"+context_discrepancy[1:]+"\n"+line1+line2
+                        maximum = max(maximum,tt)
+                    if tt > max_discrepancy:
+                        diff_discrepancy = True
+                else:
+                    #Case of discrepancy on non significant values.
+                    if tt > max_discrepancy:
+                        diff_discrepancy = True
+                        ns_discrepancy = True
             if diff_discrepancy and new1 == new2:
                 if not print_context:
                     print context,
@@ -314,6 +336,11 @@ while not EOF:
                 print context,
             print_context = True
             print left[i1],
+            floats = list()
+            for (one,two) in re_float.findall(left[i1]):
+                floats.append((float(one), n_digits(one)))
+            if len(floats) > 0:
+                maximum = 99
     while i2 < n2-1:
         i2 += 1
         if n2 > 0 and not line_junk(right[i2]):
@@ -321,12 +348,23 @@ while not EOF:
                 print context,
             print_context = True
             print right[i2],
+            floats = list()
+            for (one,two) in re_float.findall(right[i2]):
+                floats.append((float(one), n_digits(one)))
+            if len(floats) > 0:
+                maximum = 99
 
-print context_lines,
+if context_lines is not None:
+    print context_lines,
+else:
+    print
 
 if maximum > max_discrepancy:
     start = start_fail
     message = "failed    < "
+elif ns_discrepancy:
+    start = start_pass
+    message = "passed    < "
 else:
     start = start_success
     message = "succeeded < "

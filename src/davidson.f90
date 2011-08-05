@@ -17,7 +17,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   use module_base
   use module_types
   use module_interfaces, except_this_one => direct_minimization
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i,nvirt,n3p
   type(input_variables), intent(in) :: in
@@ -37,11 +37,11 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   real(wp), dimension(:), pointer :: psi,psivirt
   !local variables
   character(len=*), parameter :: subname='direct_minimization'
-  logical :: msg,exctX,occorbs,endloop,lcs !extended output
+  logical :: msg,exctX,occorbs,endloop !extended output
   integer :: occnorb, occnorbu, occnorbd
   integer :: i_stat,i_all,iter,ikpt,idsx_actual_before,ndiis_sd_sw
-  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum
-  real(gp) :: energy,energy_old,energybs,evsum,scprsum
+  real(gp) :: gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum
+  real(gp) :: energy,energy_old,energybs,evsum
   type(diis_objects) :: diis
   real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
 
@@ -86,7 +86,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be performed
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
 
   if(iproc==0)write(*,'(1x,a)')"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
   if(iproc==0)write(*,'(1x,a)')&
@@ -317,6 +317,8 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call free_gpu_OCL(GPU,orbsv,in%nspin)
   end if
 
+  call calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
+
   !the plotting should be added here (perhaps build a common routine?)
   call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
   
@@ -368,7 +370,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   use module_base
   use module_types
   use module_interfaces, except_this_one => davidson
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i
   integer, intent(in) :: nvirt,n3p
@@ -388,7 +390,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
                         !v, that is psivirt, is transposed on input and direct on output
   !local variables
-  character(len=*), parameter :: subname='davidson'
+  character(len=*), parameter :: subname='davidson',print_precise='1pe22.14',print_rough='1pe12.4 '
+  character(len=8) :: prteigu,prteigd !format for eigenvalues printing
   logical :: msg,exctX,occorbs !extended output
   integer :: occnorb, occnorbu, occnorbd
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor
@@ -438,7 +441,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be preformed
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
 
   !last index of e and hamovr are for mpi_allreduce. 
   !e (eigenvalues) is also used as 2 work arrays
@@ -676,7 +679,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            if (iorb <= nvirt) gnrm=gnrm+tt
         end do
         if (nspin == 2) then
-           do iorb=1,orbsv%norb
+           do iorb=1,orbsv%norbu
               tt=real(e(iorb+orbsv%norbu,ikpt,2)*orbsv%kwgts(ikpt),dp)
               if(msg)write(*,'(1x,i3,1x,1pe21.14)')iorb+orbsv%norbu,tt
               if (iorb <= nvirt) gnrm=gnrm+tt
@@ -971,7 +974,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
            end if
 
 
-           if(msg .or. (iproc==0 .and. ikpt == 1))write(*,'(1x,a)',advance="no")&
+           if(msg .or. (iproc==0 .and. ikpt == 1) .and. ispin==1)write(*,'(1x,a)',advance="no")&
                 "done. Update v with eigenvectors..."
 
 !!$     !Update v, that is the wavefunction, using the eigenvectors stored in hamovr(:,:,1)
@@ -1011,12 +1014,28 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
               if (nspin ==1) then
                  write(*,'(1x,a)')'done. Eigenvalues, gnrm'
                  do iorb=1,orbsv%norb
-                    write(*,'(1x,i5,1pe22.14,1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
+                    !show the eigenvalue in full form only if it has reached convergence
+                    if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                       prteigu=print_precise
+                    else
+                       prteigu=print_rough
+                    end if
+                       write(*,'(1x,i5,'//prteigu//',1pe9.2)')iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2))
                  end do
               else if (ispin == 2) then
                  write(*,'(1x,a)')'done. Eigenvalues, gnrm'
                  do iorb=1,min(orbsv%norbu,orbsv%norbd) !they should be equal
-                    write(*,'(1x,i5,2(1pe22.14,1pe9.2,2x))')&
+                    if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                       prteigu=print_precise
+                    else
+                       prteigu=print_rough
+                    end if
+                    if (sqrt(e(iorb+orbsv%norbu,ikpt,2)) <= in%gnrm_cv) then
+                       prteigd=print_precise
+                    else
+                       prteigd=print_rough
+                    end if
+                    write(*,'(1x,i5,'//prteigu//',1pe9.2,t50,'//prteigd//',1pe9.2)')&
                          iorb,e(iorb,ikpt,1),sqrt(e(iorb,ikpt,2)),e(iorb+orbsv%norbu,ikpt,1),sqrt(e(iorb+orbsv%norbu,ikpt,2))
                  end do
               end if
@@ -1147,6 +1166,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   i_all=-product(shape(e))*kind(e)
   deallocate(e,stat=i_stat)
   call memocc(i_stat,i_all,'e',subname)
+
+  !calculate gap
+  call calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
 
   !write the results on the screen
   call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,v)
@@ -1821,6 +1843,44 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
 
 
 END SUBROUTINE write_eigen_objects
+
+!> calculate the gap and fill the value in the orbs structure
+subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  type(orbitals_data), intent(in) :: orbsv
+  type(orbitals_data), intent(inout) :: orbs
+  !local variables
+  integer :: ikpt
+  
+  if (orbs%nkpts /= orbsv%nkpts) then
+     stop 'HL gap with Band structure not implemented yet'
+  end if
+
+  !depending on nspin
+  orbs%HLgap=1.e100_gp
+  if (orbs%nspin==1) then
+     !the minimum wrt all the k-points
+     do ikpt=1,orbs%nkpts
+        orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)&
+             -orbs%eval(orbs%norb+(ikpt-1)*orbs%norb))
+     end do
+  else if (orbs%nspin==2) then
+     do ikpt=1,orbs%nkpts
+        orbs%HLgap=min(orbs%HLgap,orbsv%eval(1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbu+(ikpt-1)*orbs%norb),&
+             orbsv%eval(orbsv%norbu+1+(ikpt-1)*orbsv%norb)-orbs%eval(orbs%norbd+orbs%norbu+(ikpt-1)*orbs%norb))
+    end do
+  end if
+
+  !warning if gap is negative
+  if (orbs%HLgap < 0.0_gp) then
+     if (iproc==0) write(*,*)'WARNING!! HLgap is negative, convergence problem?' 
+  end if
+
+end subroutine calculate_HOMO_LUMO_gap
+  
 
 subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rxyz,pot)
   use module_base

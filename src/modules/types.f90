@@ -149,6 +149,11 @@ module module_types
      !!   BC (Blocking Collective)
      !!   OP2P (Overlap Point-to-Point)
      character(len=4) :: exctxpar
+
+     !> communication scheme for the density
+     !!  DBL traditional scheme with double precision
+     !!  MIX mixed single-double precision scheme (requires rho_descriptors)
+     character(len=3) :: rho_commun
   end type input_variables
 
   type, public :: energy_terms
@@ -197,6 +202,14 @@ module module_types
      integer, dimension(:), pointer :: keyv
   end type wavefunctions_descriptors
 
+!> Used to split between points to be treated in simple or in double precision
+  type, public :: rho_descriptors
+     character(len=1) :: geocode
+     integer :: icomm !< method for communicating the density
+     integer :: n_csegs,n_fsegs,dp_size,sp_size
+     integer, dimension(:,:), pointer :: spkey,dpkey
+     integer, dimension(:), pointer :: cseg_b,fseg_b
+  end type rho_descriptors
 
 !>  Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
@@ -224,8 +237,11 @@ module module_types
      integer, dimension(:), pointer :: ifrztyp     !< ifrztyp(nat) Frozen atoms
      real(gp), dimension(:), pointer :: amu        !< amu(ntypes)  Atomic Mass Unit for each type of atoms
      real(gp), dimension(:,:), pointer :: aocc
-     real(gp), dimension(:,:,:), pointer :: psppar
-     integer :: symObj                             !< The symmetry object from ABINIT
+     real(gp), dimension(:,:,:), pointer :: psppar !< pseudopotential parameters (HGH SR section)
+     logical :: donlcc                             !< activate non-linear core correction treatment
+     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !<number of valence and core gaussians describing NLCC 
+     real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
+     integer :: symObj                               !< The symmetry object from ABINIT
      integer :: iat_absorber 
   end type atoms_data
 
@@ -249,7 +265,7 @@ module module_types
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
-     real(gp) :: efermi
+     real(gp) :: efermi,HLgap
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
@@ -372,9 +388,9 @@ module module_types
      logical :: switchSD
      integer :: idiistol,mids,ids,idsx
      real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
-     real(wp), dimension(:), pointer :: psidst
+     real(tp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
-     real(wp), dimension(:,:,:,:,:,:), pointer :: ads
+     real(tp), dimension(:,:,:,:,:,:), pointer :: ads
   end type diis_objects
 
 
@@ -411,7 +427,7 @@ contains
     call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
     allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
     call memocc(i_stat,diis%ads,'ads',subname)
-    call razero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads)
+    call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
 
     !initialize scalar variables
     !diis initialisation variables
@@ -689,6 +705,37 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'wfd%keyv',subname)
     end if
   END SUBROUTINE deallocate_wfd
+
+  subroutine deallocate_rho_descriptors(rhodsc,subname)
+    use module_base
+    implicit none
+    type(rho_descriptors) :: rhodsc
+    character(len=*), intent(in) :: subname
+    !local variables
+    integer :: i_all,i_stat
+
+    if (associated(rhodsc%spkey))then
+       i_all=-product(shape(rhodsc%spkey))*kind(rhodsc%spkey)
+       deallocate(rhodsc%spkey,stat=i_stat)
+       call memocc(i_stat,i_all,'spkey',subname)
+    end if
+    if (associated(rhodsc%dpkey))then
+       i_all=-product(shape(rhodsc%dpkey))*kind(rhodsc%dpkey)
+       deallocate(rhodsc%dpkey,stat=i_stat)
+       call memocc(i_stat,i_all,'dpkey',subname)
+    end if
+    if (associated(rhodsc%cseg_b))then
+       i_all=-product(shape(rhodsc%cseg_b))*kind(rhodsc%cseg_b)
+       deallocate(rhodsc%cseg_b,stat=i_stat)
+       call memocc(i_stat,i_all,'csegb',subname)
+    end if
+    if (associated(rhodsc%fseg_b))then
+       i_all=-product(shape(rhodsc%fseg_b))*kind(rhodsc%fseg_b)
+       deallocate(rhodsc%fseg_b,stat=i_stat)
+       call memocc(i_stat,i_all,'fsegb',subname)
+    end if
+
+  end subroutine deallocate_rho_descriptors
 
 
 !> De-Allocate gaussian_basis type

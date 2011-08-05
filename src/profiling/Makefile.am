@@ -5,6 +5,6 @@ noinst_LIBRARIES = libprofiling.a
 libprofiling_a_SOURCES = time.f90 \
 	memoryestimator.f90
 
-CLEANFILES = 
+CLEANFILES = timedata.@MODULE_EXT@
 
 #dependencies

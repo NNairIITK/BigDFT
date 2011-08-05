@@ -316,7 +316,7 @@ END SUBROUTINE createProjectorsArrays
 
 
 !>   input guess wavefunction diagonalization
-subroutine input_wf_diag(iproc,nproc,at,&
+subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
      nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
      nscatterarr,ngatherarr,nspin,potshortcut,symObj,irrzon,phnons,GPU,input)
@@ -333,6 +333,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer, intent(inout) :: nspin,nvirt
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
+  type(rho_descriptors),intent(in) :: rhodsc
   type(orbitals_data), intent(inout) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: Glr
@@ -388,6 +389,10 @@ subroutine input_wf_diag(iproc,nproc,at,&
   !allocate communications arrays for inputguess orbitals
   !call allocate_comms(nproc,orbse,commse,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbse,commse)  
+
+  !use the eval array of orbse structure to save the original values
+  allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbse%eval,'orbse%eval',subname)
 
   hxh=.5_gp*hx
   hyh=.5_gp*hy
@@ -457,15 +462,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
 
-
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
 
   !application of the hamiltonian for gaussian based treatment
-  call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-       & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
-       & symObj, irrzon, phnons)
+  call sumrho(iproc,nproc,orbse,Glr,hxh,hyh,hzh,psi,rhopot,&
+       nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
      
   !-- if spectra calculation uses a energy dependent potential
   !    input_wf_diag will write (to be used in abscalc)
@@ -498,13 +501,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
           rhopot,eexcu,vexcu,nspin,rhocore,potxc)
 
-
      if( iand(potshortcut,4)==0) then
         call H_potential(at%geocode,'D',iproc,nproc,&
              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
      endif
-
 
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised
@@ -711,10 +712,9 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,i_all,'passmat',subname)
 
   if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
-     !use the eval array of orbse structure to save the original values
-     allocate(orbse%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,orbse%eval,'orbse%eval',subname)
      
+     !clean the array of the IG eigenvalues
+     call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))
      call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
 
      !add a small displacement in the eigenvalues
@@ -729,9 +729,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
      !restore the occupation numbers
      call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
 
-     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-     deallocate(orbse%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbse%eval',subname)
   end if
 
   call deallocate_comms(commse,subname)
@@ -759,5 +756,9 @@ subroutine input_wf_diag(iproc,nproc,at,&
   call memocc(i_stat,i_all,'psigau',subname)
 
   call deallocate_orbs(orbse,subname)
+  i_all=-product(shape(orbse%eval))*kind(orbse%eval)
+  deallocate(orbse%eval,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%eval',subname)
+
      
 END SUBROUTINE input_wf_diag
