@@ -168,7 +168,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
   call timing(iproc,'Un-TransSwitch','ON')
 
   !for linear scaling must project the wavefunctions to whole simulation box
-  if(Lzd%nlr > 1) then
+  if(Lzd%linear) then
      call razero(orbs%npsidim,work)
      if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
      psishift1 = 1

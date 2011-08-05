@@ -436,12 +436,10 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!experimental part for building the localisation regions
 ! ###################################################################
   linear  = .true.
-  Lzd%Glr = Glr
-  Lzd%Gnlpspd = nlpspd
 
   if (linear) then
      ! For now, set locrad by hand HERE
-     locrad = 10.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
+     locrad = 30.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
      call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear2)
      call timing(iproc,'check_IG      ','OF')
@@ -451,6 +449,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
   if (linear .and. (nspin < 4) ) then
 
+  Lzd%Glr = Glr
+  Lzd%Gnlpspd = nlpspd
      !allocate the array of localisation regions (memocc does not work)
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      allocate(norbsc(Lzd%nlr+ndebug),stat=i_stat)
@@ -695,40 +695,21 @@ subroutine input_wf_diag(iproc,nproc,at,&
     
     ! Don't need Lzd anymore (if only input guess)
 !    call deallocate_Lzd(Lzd,subname)
- 
-    ! Don't need Lhpsi anymore
-    nullify(Lhpsi)
 
+    !rename Lpsi and Lhpsi
+    psi => Lpsi
+    hpsi => Lhpsi
+
+    ! Don't need Lpsi, Lhpsi and locrad anymore
+    i_all = -product(shape(Lpsi))*kind(Lpsi)
+    nullify(Lpsi);i_stat=0
+    call memocc(i_stat,i_all,'Lpsi',subname)
+    i_all = -product(shape(Lhpsi))*kind(Lhpsi)
+    nullify(Lhpsi);i_stat=0
+    call memocc(i_stat,i_all,'Lhpsi',subname)
     i_all=-product(shape(locrad))*kind(locrad)
     deallocate(locrad,stat=i_stat)
     call memocc(i_stat,i_all,'locrad',subname)
-
-   ! BEGIN STOLEN FROM: DiagHam
-     !orthogonalise the orbitals in the case of semi-core atoms
-
-    if (sum(norbsc_arr(1:at%natsc,1)) > 0) then
-       call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psit,input)
-    end if
-
-    allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
-    call memocc(i_stat,hpsi,'hpsi',subname)
- 
-    if (nproc > 1) then
-       !allocate the direct wavefunction
-       allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
-       call memocc(i_stat,psi,'psi',subname)
-    else
-       psi => psit
-    end if
-
-     !this untranspose also the wavefunctions 
-    call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,&
-        psit,work=hpsi,outadd=psi(1))
-
-    if (nproc == 1) then
-      nullify(psit)
-    end if
-   ! END STOLEN FROM: DiagHam
      
 !####################################################################################################################################################
 ! END EXPERIMENTAL

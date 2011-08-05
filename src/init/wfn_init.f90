@@ -686,7 +686,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      nspinor=orbs%nspinor
   end if
 
-  if (nproc > 1 .or. Lzd%nlr > 1) then
+  if (nproc > 1 .or. Lzd%linear) then
      allocate(psiw(npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   else
@@ -942,6 +942,32 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
 !     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
      nullify(psi)
      psi => psit
+  end if
+
+  !orthogonalise the orbitals in the case of semi-core atoms
+  if (norbsc > 0) then
+     call orthogonalize(iproc,nproc,orbs,comms,Lzd%Glr%wfd,psit,input)
+  end if
+
+  if (minimal) then
+     allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsi,'hpsi',subname)
+!     hpsi=0.0d0
+     if (nproc > 1) then
+        !allocate the direct wavefunction
+        allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psi,'psi',subname)
+     else
+        psi => psit
+     end if
+  end if
+
+  !this untranspose also the wavefunctions 
+  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
+       psit,work=hpsi,outadd=psi(1))
+
+  if (nproc == 1) then
+     nullify(psit)
   end if
 
 END SUBROUTINE LDiagHam
