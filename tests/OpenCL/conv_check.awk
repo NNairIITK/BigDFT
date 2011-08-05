@@ -25,5 +25,5 @@ END {
             exit 1
             }
         start = "\033[0;32m"
-        printf("%sMax discrepancy :%7.1e < (%7.1e) succeeded%s\n",start,discrepancy,max_discrepancy,end)
+        printf("%sMax discrepancy : %7.1e < (%7.1e) succeeded%s\n",start,discrepancy,max_discrepancy,end)
 }
