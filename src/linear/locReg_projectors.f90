@@ -1005,7 +1005,6 @@ END SUBROUTINE local_projector
 !!
 subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
 
-
   use module_base
   use module_types
   !use module_interfaces, exceptThisOne => apply_local_projectors

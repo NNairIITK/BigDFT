@@ -556,7 +556,8 @@ contains
     type(diis_objects), intent(inout) :: diis
     !local variables
     integer :: i_stat
-    allocate(diis%psidst(npsidim*idsx+ndebug),stat=i_stat)
+    print *,'DIIS info : npsidim*idsx',npsidim*idsx
+    allocate(diis%psidst(npsidim*idsx+ndebug))!,stat=i_stat)
     call memocc(i_stat,diis%psidst,'psidst',subname)
     allocate(diis%hpsidst(npsidim*idsx+ndebug),stat=i_stat)
     call memocc(i_stat,diis%hpsidst,'hpsidst',subname)

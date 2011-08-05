@@ -436,23 +436,20 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!experimental part for building the localisation regions
 ! ###################################################################
   linear  = .true.
+  Lzd%Glr = Glr
+  Lzd%Gnlpspd = nlpspd
+
   if (linear) then
      ! For now, set locrad by hand HERE
-     locrad = 15.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
+     locrad = 10.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
      call timing(iproc,'check_IG      ','ON')
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear2)
      call timing(iproc,'check_IG      ','OF')
      linear = linear .and. linear2
-     Lzd%linear = linear 
   end if
+  Lzd%linear = linear 
 
   if (linear .and. (nspin < 4) ) then
-
-     ! Construct the Lzd
-     ! Begin to define the Linear_Zone_descriptors
-     ! This is a problem.. should copy the information instead
-     Lzd%Glr = Glr
-     Lzd%Gnlpspd = nlpspd
 
      !allocate the array of localisation regions (memocc does not work)
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
@@ -478,7 +475,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call assignToLocreg(iproc,nproc,orbse%nspinor,nspin_ig,at,orbse,Lzd,norbsc_arr,norbsc)
 
    ! determine the localization regions
-!     call determine_locreg_periodic(iproc,nproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
+!     call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
      call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,orbse)
 
    ! determine the wavefunction dimension
@@ -505,7 +502,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(Lpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
+     call memocc(i_stat,Lpsi,'Lpsi',subname)
      call razero(Lzd%Lpsidimtot,Lpsi)
 
     ! Construct wavefunction inside the locregs (the orbitals are ordered by locreg)
@@ -515,51 +512,52 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
 !#####################
 !DEBUG nonlocal_forces
-    print *,'Entering nonlocal forces'
-
-  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-    allocate(psi(orbse%npsidim+ndebug),stat=i_stat)
-    call memocc(i_stat,psi,'psi',subname)
-
-  !use only the part of the arrays for building the hamiltonian matrix
-    call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
-         psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
-
-    call timing(iproc,'ApplyProj     ','ON')    
-    projtmp = 0.0_wp
-    fsep = 0.0_wp
-    call nonlocal_forces(iproc,Glr,hx,hy,hz,at,rxyz,orbse,nlpspd,projtmp,Glr%wfd,psi,fsep,.false.)
-    call mpiallred(fsep(1,1),3*at%nat,MPI_SUM,MPI_COMM_WORLD,ierr) 
-    call timing(iproc,'ApplyProj     ','OF')
-
-    if(iproc==0) then
-    do iat=1,at%nat
-    open(44,file='Force_ref.dat',status='unknown')
-    print *,'(C)Forces on atom',iat,' :',iproc,fsep(:,iat)
-    write(44,*)'Forces on atom',iat,' :',iproc,fsep(:,iat)
-    end do
-    end if
-  
-
-    call timing(iproc,'create_nlpspd ','ON')
-    projtmp = 0.0_wp
-    fsep = 0.0_wp
-    call Linearnonlocal_forces2(iproc,Lzd,hx,hy,hz,at,rxyz,orbse,projtmp,Lpsi,fsep,.false.)
-    call mpiallred(fsep(1,1),3*at%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'create_nlpspd ','OF')
-
-    if(iproc==0) then
-    open(44,file='Force.dat',status='unknown')
-    do iat=1,at%nat
-    print *,'(L)Forces on atom',iat,' :',iproc,fsep(:,iat)
-    write(44,*)'Forces on atom',iat,' :',iproc,fsep(:,iat)
-    end do
-    end if
-
-    call timing(iproc,'            ','RE')
-    call mpi_finalize(ierr)
-    stop
-
+!!    if(iproc==0) then
+!!       print *,'Entering nonlocal forces'
+!!    end if
+!!  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+!!    allocate(psi(orbse%npsidim+ndebug),stat=i_stat)
+!!    call memocc(i_stat,psi,'psi',subname)
+!!
+!!  !use only the part of the arrays for building the hamiltonian matrix
+!!    call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
+!!         psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+!!
+!!    call timing(iproc,'ApplyProj     ','ON')    
+!!    projtmp = 0.0_wp
+!!    fsep = 0.0_wp
+!!    call nonlocal_forces(iproc,Glr,hx,hy,hz,at,rxyz,orbse,nlpspd,projtmp,Glr%wfd,psi,fsep,.false.)
+!!    call mpiallred(fsep(1,1),3*at%nat,MPI_SUM,MPI_COMM_WORLD,ierr) 
+!!    call timing(iproc,'ApplyProj     ','OF')
+!!
+!!    if(iproc==0) then
+!!    do iat=1,at%nat
+!!    open(44,file='Force_ref.dat',status='unknown')
+!!    print *,'(C)Forces on atom',iat,' :',iproc,fsep(:,iat)
+!!    write(44,*)'Forces on atom',iat,' :',iproc,fsep(:,iat)
+!!    end do
+!!    end if
+!!  
+!!
+!!    call timing(iproc,'create_nlpspd ','ON')
+!!    projtmp = 0.0_wp
+!!    fsep = 0.0_wp
+!!    call Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,orbse,projtmp,Lpsi,fsep,.false.,orbse)
+!!    call mpiallred(fsep(1,1),3*at%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!    call timing(iproc,'create_nlpspd ','OF')
+!!
+!!    if(iproc==0) then
+!!    open(44,file='Force.dat',status='unknown')
+!!    do iat=1,at%nat
+!!    print *,'(L)Forces on atom',iat,' :',iproc,fsep(:,iat)
+!!    write(44,*)'Forces on atom',iat,' :',iproc,fsep(:,iat)
+!!    end do
+!!    end if
+!!
+!!    call timing(iproc,'            ','RE')
+!!    call mpi_finalize(ierr)
+!!    stop
+!!
 !END DEBUG nonlocal_forces
 !#########################
 !DEBUG

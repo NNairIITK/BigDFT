@@ -751,37 +751,40 @@ subroutine deallocate_linear_zone_descriptors(lzd, subname)
   integer:: istat, iall, iis1, iie1, i1
   
   
-  call deallocate_orbitals_data(lzd%orbs, subname)
+!  call deallocate_orbitals_data(lzd%orbs, subname)
   
-  iis1=lbound(lzd%lorbs,1)
-  iie1=ubound(lzd%lorbs,1)
-  do i1=iis1,iie1
-      call deallocate_orbitals_data(lzd%lorbs(i1), subname)
-  end do
+!  iis1=lbound(lzd%lorbs,1)
+!  iie1=ubound(lzd%lorbs,1)
+!  do i1=iis1,iie1
+!      call deallocate_orbitals_data(lzd%lorbs(i1), subname)
+!  end do
   
   call deallocate_communications_arrays(lzd%comms, subname)
   
   call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
-  
+
   call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)
-  
-  iis1=lbound(lzd%llr,1)
-  iie1=ubound(lzd%llr,1)
-  do i1=iis1,iie1
-      !if(associated(lzd%llr(i1)%projflg)) then
-      !    nullify(lzd%llr(i1)%projflg)
-      !end if
-      call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
-      call deallocate_locreg_descriptors(lzd%llr(i1), subname)
-  end do
-  
-  iis1=lbound(lzd%lnlpspd,1)
-  iie1=ubound(lzd%lnlpspd,1)
-  do i1=iis1,iie1
-      call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-  end do
-  
+
+  if(associated(lzd%lnlpspd)) then  
+     iis1=lbound(lzd%llr,1)
+     iie1=ubound(lzd%llr,1)
+     do i1=iis1,iie1
+         !if(associated(lzd%llr(i1)%projflg)) then
+         !    nullify(lzd%llr(i1)%projflg)
+         !end if
+         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
+         call deallocate_locreg_descriptors(lzd%llr(i1), subname)
+     end do
+  end if
+
+  if(associated(lzd%lnlpspd)) then 
+     iis1=lbound(lzd%lnlpspd,1)
+     iie1=ubound(lzd%lnlpspd,1)
+     do i1=iis1,iie1
+         call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
+     end do
+  end if
 end subroutine deallocate_linear_zone_descriptors
 
 
@@ -849,6 +852,27 @@ subroutine deallocate_locreg_descriptors(lr, subname)
   
   
 end subroutine deallocate_locreg_descriptors
+
+subroutine deallocate_locreg_descriptors2(lr, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_locreg_descriptors
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(inout):: lr
+  character(len=*),intent(in):: subname
+
+  call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
+
+  call deallocate_wavefunctions_descriptors(lr%wfd, subname)
+!  call deallocate_convolutions_bounds(lr%bounds, subname)
+! Don't need to deallocate the bounds, since they are not associated for
+! overlap regions
+
+end subroutine deallocate_locreg_descriptors2
+
 
 
 subroutine deallocate_wavefunctions_descriptors(wfd, subname)
@@ -1135,13 +1159,14 @@ subroutine deallocate_overlapParameters(op, subname)
   call checkAndDeallocatePointer(op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
   call checkAndDeallocatePointer(op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
+
   iis1=lbound(op%olr,1)
   iie1=ubound(op%olr,1)
   iis2=lbound(op%olr,2)
   iie2=ubound(op%olr,2)
   do i2=iis2,iie2
       do i1=iis1,iie1
-          call deallocate_locreg_descriptors(op%olr(i1,i2), subname)
+          call deallocate_locreg_descriptors2(op%olr(i1,i2), subname)
       end do
   end do
 

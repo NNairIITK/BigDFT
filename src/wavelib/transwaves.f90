@@ -147,6 +147,85 @@ subroutine transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
 
 END SUBROUTINE transpose_v
 
+!> Transposition of the arrays, variable version (non homogeneous)
+subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
+     work,outadd) !optional
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(linear_zone_descriptors), intent(in) :: Lzd
+  type(communications_arrays), intent(in) :: comms
+  real(wp), dimension(:), pointer :: psi
+  real(wp), dimension(:), pointer, optional :: work
+  real(wp), dimension(*), intent(out), optional :: outadd
+  !local variables
+  character(len=*), parameter :: subname='transpose_v'
+  integer :: ierr,i_all,i_stat
+  integer :: psishift1,totshift,iorb,ilr,ldim
+
+  call timing(iproc,'Un-TransSwitch','ON')
+
+  !for linear scaling must project the wavefunctions to whole simulation box
+  if(Lzd%nlr > 1) then
+     call razero(orbs%npsidim,work)
+     if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
+     psishift1 = 1
+     totshift = 0
+     do iorb=1,orbs%norbp
+        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+        ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+        call Lpsi_to_global(Lzd%Glr,orbs%npsidim,Lzd%Llr(ilr),psi(psishift1),&
+             ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,work)
+        psishift1 = psishift1 + ldim
+        totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
+     end do
+     !reallocate psi to the global dimensions
+     i_all=-product(shape(psi))*kind(psi)
+     deallocate(psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi',subname)
+     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,psi,'psi',subname)
+     call dcopy(orbs%npsidim,work,1,psi,1) !psi=work
+  end if
+
+  if (nproc > 1) then
+     !control check
+     if (.not. present(work) .or. .not. associated(work)) then
+        if(iproc == 0) write(*,'(1x,a)')&
+             "ERROR: Unproper work array for transposing in parallel"
+        stop
+     end if
+
+
+     call switch_waves_v(nproc,orbs,&
+          Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par,psi,work)
+
+
+     call timing(iproc,'Un-TransSwitch','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     if (present(outadd)) then
+        call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+             outadd,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+     else
+        call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+             psi,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+     end if
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
+  else
+     if(orbs%nspinor /= 1) then
+        !for only one processor there is no need to transform this
+        call psitransspi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs,psi,.true.)
+     end if
+  end if
+
+  call timing(iproc,'Un-TransSwitch','OF')
+
+END SUBROUTINE transpose_v2
+
+
 
 subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
      work,outadd) !optional

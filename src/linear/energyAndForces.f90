@@ -2,7 +2,7 @@
 
 
 subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
-    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise,radii_cf)
 ! Purpose:
 ! ========
 !   Calculates the forces we get with psi. It is copied from cluster, with an additional
@@ -22,7 +22,7 @@ subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, or
 !     atoms       type containing the parameters for the atoms
 !     in          type  containing some very general parameters
 !     lin         type containing parameters for the linear version
-!     nlpspd      ??
+!     nlpspd      nonlocal peudopotential descriptors
 !     ngatherarr  ??
 !     GPU         parameters for GPUs?
 !     irrzon      ??
@@ -55,7 +55,7 @@ type(orbitals_data),intent(in):: orbs
 type(atoms_data),intent(in):: atoms
 type(input_variables),intent(in):: in
 type(communications_arrays),intent(in):: comms
-type(linearParameters),intent(in):: lin
+type(linearParameters),intent(inout):: lin
 type(nonlocal_psp_descriptors),intent(in) :: nlpspd
 real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
 integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr   !!! NOT NEEDED
@@ -67,10 +67,10 @@ real(dp),dimension(lin%as%size_pkernel),intent(in):: pkernel
 real(8),dimension(3,atoms%nat),intent(in):: rxyz, fion, fdisp
 real(8),dimension(3,atoms%nat),intent(out):: fxyz
 real(8),intent(out):: fnoise
-real(8),dimension(orbs%npsidim),intent(inout):: psi
-real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
+real(8),dimension((lin%Lzd%Glr%wfd%nvctr_c+7*lin%Lzd%Glr%wfd%nvctr_f)*orbs%norbp),intent(inout):: psi
+real(8),dimension(lin%lzd%Lpsidimtot),intent(inout):: phi
 real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
-
+real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
 ! Local variables
 integer:: jproc, i_stat, i_all, iat, ierr, j
 real(8):: hxh, hyh, hzh, ehart_fake
@@ -79,6 +79,8 @@ real(gp), dimension(:,:), allocatable :: gxyz, fxyzConf
 real(kind=8), dimension(:,:,:,:), allocatable :: pot
 character(len=*),parameter:: subname='calculateForcesSub'
 logical:: refill_proj
+integer :: iels, ilr, ii, iorb, jorb
+real(wp) :: sum_psi
 
   hxh=0.5d0*in%hx
   hyh=0.5d0*in%hy
@@ -150,15 +152,79 @@ logical:: refill_proj
   !refill projectors for tails, davidson
   !refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
   refill_proj=.false.  !! IS THIS CORRECT??
-
+  gxyz = 0.0_wp
+  fxyz = 0.0_wp
   call nonlocal_forces(iproc,Glr,in%hx,in%hy,in%hz,atoms,rxyz,&
        orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
+
+!#####################################################################
+!DEBUG
+     
+sum_psi = sum(psi)
+call mpiallred(sum_psi,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+if(iproc==0) print *,'sum(psi)',sum_psi
+
+     call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+!    call mpiallred(gxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+    if(iproc==0) then
+    do i_all=1,atoms%nat
+    open(44,file='Force_ref.dat',status='unknown')
+    print *,'(C)Forces on atom',i_all,' :',iproc,fxyz(:,i_all)
+    write(44,*)'Forces on atom',i_all,' :',iproc,fxyz(:,i_all)
+    end do
+    end if
+
+    allocate(lin%Lzd%Lnlpspd(lin%Lzd%nlr),stat=i_stat)
+    do i_all=1,lin%Lzd%nlr
+       ! allocate projflg
+       allocate(lin%Lzd%Llr(i_all)%projflg(atoms%nat),stat=i_stat)
+       call memocc(i_stat,lin%Lzd%Llr(i_all)%projflg,'Lzd%Llr(ilr)%projflg',subname)
+       call nlpspd_to_locreg(in,iproc,lin%Lzd%Glr,lin%Lzd%Llr(i_all),rxyz,atoms,orbs,&
+        &      radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,lin%Lzd%Gnlpspd,lin%Lzd%Lnlpspd(i_all),lin%Lzd%Llr(i_all)%projflg)
+    end do
+
+    sum_psi = 0.0 
+    do iorb = 1,orbs%norb
+       iels=1
+       do jorb=1,lin%orbs%norbp
+          ilr=lin%lzd%orbs%inwhichlocreg(jorb+lin%orbs%isorb)
+          do ii=1,lin%Lzd%LLr(ilr)%wfd%nvctr_c+7*lin%Lzd%LLr(ilr)%wfd%nvctr_f
+             sum_psi = sum_psi + coeff(jorb+lin%orbs%isorb,iorb)*phi(iels)
+             iels=iels+1
+          end do
+       end do
+       print *,'iproc,iorb,iels,size(phi)',iproc,iorb,iels-1,size(phi)
+    end do
+    print *,'orbs%npsidim,lin%orbs%npsidim',orbs%npsidim,lin%orbs%npsidim,lin%Lzd%Glr%wfd%nvctr_c+7*lin%Lzd%Glr%wfd%nvctr_f
+    call mpiallred(sum_psi,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+    if(iproc==0) print *,'linTMO:sum(psi)',sum_psi
+
+    proj = 0.0_wp
+    gxyz = 0.0_wp
+    fxyz = 0.0_wp
+    call Linearnonlocal_forces(iproc,lin%lzd,in%hx,in%hy,in%hz,atoms,rxyz,orbs,proj,psi,gxyz,.false.,lin%Lzd%orbs,coeff,phi)
+!    call mpiallred(gxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+    if(iproc==0) then
+    open(44,file='Force.dat',status='unknown')
+    do i_all=1,atoms%nat
+    print *,'(L)Forces on atom',i_all,' :',iproc,fxyz(:,i_all)
+    write(44,*)'Forces on atom',i_all,' :',iproc,fxyz(:,i_all)
+    end do
+    end if
+    call mpi_finalize(ierr)
+    stop
+
+!END DEBUG
+!#############################################################################
 
   if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
 
   ! Add up all the force contributions
   if (nproc > 1) then
-     call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+!     call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
   else
      do iat=1,atoms%nat
         fxyz(1,iat)=gxyz(1,iat)

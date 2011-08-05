@@ -26,13 +26,15 @@ glrout%outofzone(1) = glrin%outofzone(1)
 glrout%outofzone(2) = glrin%outofzone(2)
 glrout%outofzone(3) = glrin%outofzone(3)
 
-iis=lbound(glrin%projflg,1)
-iie=ubound(glrin%projflg,1)
-allocate(glrout%projflg(iis:iie), stat=istat)
-call memocc(istat, glrout%projflg, 'glrout%projflg', subname)
-do i=iis,iie
-    glrout%projflg(i) = glrin%projflg(i)
-end do
+if(associated(glrin%projflg))then
+   iis=lbound(glrin%projflg,1)
+   iie=ubound(glrin%projflg,1)
+   allocate(glrout%projflg(iis:iie), stat=istat)
+   call memocc(istat, glrout%projflg, 'glrout%projflg', subname)
+   do i=iis,iie
+       glrout%projflg(i) = glrin%projflg(i)
+   end do
+end if
 
 call copy_grid_dimensions(glrin%d, glrout%d)
 call copy_wavefunctions_descriptors(glrin%wfd, glrout%wfd, subname)
@@ -632,7 +634,6 @@ do i1=iis1,iie1
     orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
 end do
 
-
 iis1=lbound(orbsin%inwhichlocreg,1)
 iie1=ubound(orbsin%inwhichlocreg,1)
 allocate(orbsout%inwhichlocreg(iis1:iie1), stat=istat)
@@ -640,7 +641,6 @@ call memocc(istat, orbsout%inwhichlocreg, 'orbsout%inwhichlocreg', subname)
 do i1=iis1,iie1
     orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
 end do
-
 
 iis1=lbound(orbsin%inWhichLocregP,1)
 iie1=ubound(orbsin%inWhichLocregP,1)
@@ -650,7 +650,7 @@ do i1=iis1,iie1
     orbsout%inWhichLocregP(i1) = orbsin%inWhichLocregP(i1)
 end do
 
-
+if(associated(orbsin%onWhichMPI))then
 iis1=lbound(orbsin%onWhichMPI,1)
 iie1=ubound(orbsin%onWhichMPI,1)
 allocate(orbsout%onWhichMPI(iis1:iie1), stat=istat)
@@ -658,17 +658,19 @@ call memocc(istat, orbsout%onWhichMPI, 'orbsout%onWhichMPI', subname)
 do i1=iis1,iie1
     orbsout%onWhichMPI(i1) = orbsin%onWhichMPI(i1)
 end do
+end if
 
+if(associated(orbsin%isorb_par)) then
+   iis1=lbound(orbsin%isorb_par,1)
+   iie1=ubound(orbsin%isorb_par,1)
+   allocate(orbsout%isorb_par(iis1:iie1), stat=istat)
+   call memocc(istat, orbsout%isorb_par, 'orbsout%isorb_par', subname)
+   do i1=iis1,iie1
+       orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
+   end do
+end if
 
-iis1=lbound(orbsin%isorb_par,1)
-iie1=ubound(orbsin%isorb_par,1)
-allocate(orbsout%isorb_par(iis1:iie1), stat=istat)
-call memocc(istat, orbsout%isorb_par, 'orbsout%isorb_par', subname)
-do i1=iis1,iie1
-    orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
-end do
-
-
+if(associated(orbsin%eval))then
 iis1=lbound(orbsin%eval,1)
 iie1=ubound(orbsin%eval,1)
 allocate(orbsout%eval(iis1:iie1), stat=istat)
@@ -676,8 +678,10 @@ call memocc(istat, orbsout%eval, 'orbsout%eval', subname)
 do i1=iis1,iie1
     orbsout%eval(i1) = orbsin%eval(i1)
 end do
+end if
 
 
+if(associated(orbsin%occup))then
 iis1=lbound(orbsin%occup,1)
 iie1=ubound(orbsin%occup,1)
 allocate(orbsout%occup(iis1:iie1), stat=istat)
@@ -685,6 +689,7 @@ call memocc(istat, orbsout%occup, 'orbsout%occup', subname)
 do i1=iis1,iie1
     orbsout%occup(i1) = orbsin%occup(i1)
 end do
+end if
 
 
 iis1=lbound(orbsin%spinsgn,1)

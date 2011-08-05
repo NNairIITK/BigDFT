@@ -44,7 +44,7 @@ integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, tag
 integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
-
+integer :: npsidim
 
 tag=0
 
@@ -134,6 +134,14 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! Initialize the localization regions.
 call initLocregs(iproc, nproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
+
+! Initialize the total local wavefunction size
+npsidim = 0
+do iorb=1,lin%lzd%orbs%norbp
+ ilr=lin%lzd%orbs%inwhichlocreg(iorb+lin%lzd%orbs%isorb)
+ npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
+end do
+lin%lzd%Lpsidimtot = npsidim
 
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
@@ -1263,7 +1271,7 @@ end subroutine allocateBasicArrays
 subroutine initLocregs(iproc, nproc, nat, rxyz, lin, input, Glr, phi, lphi)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => initLocregs2
+use module_interfaces, exceptThisOne => initLocregs
 implicit none
 
 ! Calling arguments
@@ -1365,14 +1373,14 @@ end subroutine initLocregs
 !> Does the same as initLocregs, but has as argumenst lzd instead of lin, i.e. all quantities are
 !! are assigned to lzd%Llr etc. instead of lin%Llr. Can probably completely replace initLocregs.
 !subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad, phi, lphi)
-subroutine initLocregs2(iproc, nproc, nat, rxyz, lzd, input, Glr, locrad)
+subroutine initLocregs2(iproc, nat, rxyz, lzd, input, Glr, locrad)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initLocregs2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nat
+integer,intent(in):: iproc, nat
 real(8),dimension(3,nat),intent(in):: rxyz
 type(linear_zone_descriptors),intent(inout):: lzd
 type(input_variables),intent(in):: input
@@ -1384,12 +1392,14 @@ real(8),dimension(lzd%nlr),intent(in):: locrad
 integer:: istat, npsidim, npsidimr, iorb, ilr
 character(len=*),parameter:: subname='initLocregs'
 
+
 ! Allocate the array of localisation regions
 allocate(lzd%Llr(lzd%nlr),stat=istat)
+
 do ilr=1,lzd%nlr
-    call nullify_locreg_descriptors(lzd%llr(ilr))
+    call nullify_locreg_descriptors(lzd%Llr(ilr))
 end do
-!! ATTENATION: WHAT ABAOUT OUTOFZONE??
+!! ATTENTION: WHAT ABOUT OUTOFZONE??
 
 
 !! Write some physical information on the Glr
@@ -1603,7 +1613,10 @@ subroutine nullify_locreg_descriptors(lr)
   type(locreg_descriptors),intent(out):: lr
 
 
-  nullify(lr%projflg)
+  if(associated(lr%projflg)) then
+     nullify(lr%projflg)
+  end if
+
   call nullify_wavefunctions_descriptors(lr%wfd)
   call nullify_convolutions_bounds(lr%bounds)
 
@@ -1618,9 +1631,10 @@ subroutine nullify_wavefunctions_descriptors(wfd)
   ! Calling arguments
   type(wavefunctions_descriptors),intent(out):: wfd
 
-  nullify(wfd%keyg)
-  nullify(wfd%keyv)
-
+  if(associated(wfd%keyg)) then
+     nullify(wfd%keyg)
+     nullify(wfd%keyv)
+  end if
 end subroutine nullify_wavefunctions_descriptors
 
 
@@ -1636,8 +1650,9 @@ subroutine nullify_convolutions_bounds(bounds)
   call nullify_kinetic_bounds(bounds%kb)
   call nullify_shrink_bounds(bounds%sb)
   call nullify_grow_bounds(bounds%gb)
-  nullify(bounds%ibyyzz_r)
-
+  if(associated(bounds%ibyyzz_r)) then
+     nullify(bounds%ibyyzz_r)
+  end if
 end subroutine nullify_convolutions_bounds
 
 
@@ -1650,13 +1665,14 @@ subroutine nullify_kinetic_bounds(kb)
   ! Calling arguments
   type(kinetic_bounds),intent(out):: kb
 
-  nullify(kb%ibyz_c)
-  nullify(kb%ibxz_c)
-  nullify(kb%ibxy_c)
-  nullify(kb%ibyz_f)
-  nullify(kb%ibxz_f)
-  nullify(kb%ibxy_f)
-
+  if(associated(kb%ibyz_c))then
+     nullify(kb%ibyz_c)
+     nullify(kb%ibxz_c)
+     nullify(kb%ibxy_c)
+     nullify(kb%ibyz_f)
+     nullify(kb%ibxz_f)
+     nullify(kb%ibxy_f)
+  end if
 end subroutine nullify_kinetic_bounds
 
 
@@ -1669,11 +1685,13 @@ subroutine nullify_shrink_bounds(sb)
   ! Calling arguments
   type(shrink_bounds),intent(out):: sb
 
-  nullify(sb%ibzzx_c)
-  nullify(sb%ibyyzz_c)
-  nullify(sb%ibxy_ff)
-  nullify(sb%ibzzx_f)
-  nullify(sb%ibyyzz_f)
+  if(associated(sb%ibzzx_c)) then
+     nullify(sb%ibzzx_c)
+     nullify(sb%ibyyzz_c)
+     nullify(sb%ibxy_ff)
+     nullify(sb%ibzzx_f)
+     nullify(sb%ibyyzz_f)
+  end if
 
 end subroutine nullify_shrink_bounds
 
@@ -1687,12 +1705,13 @@ subroutine nullify_grow_bounds(gb)
   ! Calling arguments
   type(grow_bounds),intent(out):: gb
 
-  nullify(gb%ibzxx_c)
-  nullify(gb%ibxxyy_c)
-  nullify(gb%ibyz_ff)
-  nullify(gb%ibzxx_f)
-  nullify(gb%ibxxyy_f)
-
+  if(associated(gb%ibzxx_c)) then
+     nullify(gb%ibzxx_c)
+     nullify(gb%ibxxyy_c)
+     nullify(gb%ibyz_ff)
+     nullify(gb%ibzxx_f)
+     nullify(gb%ibxxyy_f)
+  end if
 end subroutine nullify_grow_bounds
 
 

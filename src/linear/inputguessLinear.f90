@@ -176,7 +176,7 @@ call memocc(i_stat,lchi2,'lchi2',subname)
 
   
   lchi2=0.d0
-  call gaussians_to_wavelets_new2(iproc, nproc, lzdGauss, input%hx, input%hy, input%hz, G, &
+  call gaussians_to_wavelets_new2(iproc, nproc, lzdGauss,lzdGauss%orbs, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(lzdGauss%orbs%isorb+1, lzdGauss%orbs%norb)), lchi2(1))
   call orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzdGauss, input, lchi2)
   ! Transform chi to the localization region - should be used if locrad for the input guess is larger than our localization radius.
@@ -200,14 +200,13 @@ call memocc(i_stat,lchi2,'lchi2',subname)
   end if
 
 
-i_all=-product(shape(locrad))*kind(locrad)
-deallocate(locrad,stat=i_stat)
-call memocc(i_stat,i_all,'locrad',subname)
+  i_all=-product(shape(locrad))*kind(locrad)
+  deallocate(locrad,stat=i_stat)
+  call memocc(i_stat,i_all,'locrad',subname)
 
-  
   !!! Create the potential.
   if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
-  call sumrhoLinear(iproc, nproc, lzdGauss, input%ixc, hxh, hyh, hzh, lchi2, rhopot,&
+  call sumrhoLinear(iproc, nproc, lzdGauss, lin%orbs,input%ixc, hxh, hyh, hzh, lchi2, rhopot,&
     & lzdGauss%Glr%d%n1i*lzdGauss%Glr%d%n2i*nscatterarr(iproc,1), nscatterarr, input%nspin, GPU, &
     & at%symObj, irrzon, phnons)
   if(iproc==0) write(*,'(a)') 'done.'
@@ -336,10 +335,10 @@ call memocc(i_stat,i_all,'locrad',subname)
 
   ! Apply the Hamiltonian for each atom.
   ! onWhichAtomTemp indicates indicating that all orbitals feel the potential from atom iat.
-allocate(onWhichAtomTemp(lzdig%orbs%norbp), stat=istat)
-call memocc(i_stat,onWhichAtomTemp,'onWhichAtomTemp',subname)
-allocate(doNotCalculate(lzdig%nlr), stat=istat)
-call memocc(i_stat, doNotCalculate, 'doNotCalculate', subname)
+  allocate(onWhichAtomTemp(lzdig%orbs%norbp), stat=istat)
+  call memocc(i_stat,onWhichAtomTemp,'onWhichAtomTemp',subname)
+  allocate(doNotCalculate(lzdig%nlr), stat=istat)
+  call memocc(i_stat, doNotCalculate, 'doNotCalculate', subname)
   if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
   lhchi=0.d0
   call cpu_time(t1)

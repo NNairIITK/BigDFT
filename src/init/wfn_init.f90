@@ -619,7 +619,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
   type(input_variables):: input
-  real(wp), dimension(:), pointer,intent(inout) :: psi,hpsi,psit
+  real(wp), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
   real(gp), optional, intent(in) :: etol
   type(orbitals_data), optional, intent(in) :: orbsv
@@ -628,7 +628,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(wp), dimension(:), pointer, optional :: psivirt
   !local variables
-  character(len=*), parameter :: subname='DiagHam'
+  character(len=*), parameter :: subname='LDiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal,linear_nosemicore
   integer :: ikptp,ikpt,nvctrp,ilr,psishift1,ldim,totshift,iorb
@@ -686,63 +686,15 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      nspinor=orbs%nspinor
   end if
 
-  allocate(psiw(npsidim+ndebug),stat=i_stat)
-  call memocc(i_stat,psiw,'psiw',subname)
+  if (nproc > 1 .or. Lzd%nlr > 1) then
+     allocate(psiw(npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,psiw,'psiw',subname)
+  else
+     psiw => null()
+  end if
 
-  call razero(npsidim,psiw)
-
-  call timing(iproc,'global_local  ','ON')
-  !sequential approach: copy all the wavefuntions in the global region
-  !fill psiw work array
-  psishift1 = 1
-  totshift = 0
-  do iorb=1,orbsu%norbp
-     ilr = orbsu%inwhichlocreg(iorb+orbsu%isorb)
-     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbsu%nspinor
-     call Lpsi_to_global(Lzd%Glr,npsidim,Lzd%Llr(ilr),psi(psishift1),&
-          ldim,orbsu%norbp,orbsu%nspinor,nspin,totshift,psiw)
-     psishift1 = psishift1 + ldim
-     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbsu%nspinor
-  end do
-
-  !reallocate psi
-  i_all=-product(shape(psi))*kind(psi)
-  deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi',subname)
-
-  allocate(psi(npsidim+ndebug),stat=i_stat)
-  call memocc(i_stat,psi,'psi',subname)
-  
-  call dcopy(npsidim,psiw,1,psi,1) !psi=psiw
-    
-  call razero(npsidim,psiw)
-
-  !fill psiw work array
-  psishift1 = 1
-  totshift = 0
-  do iorb=1,orbsu%norbp
-     ilr = orbsu%inwhichlocreg(iorb+orbsu%isorb)
-     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbsu%nspinor
-     call Lpsi_to_global(Lzd%Glr,npsidim,Lzd%Llr(ilr),hpsi(psishift1),&
-          ldim,orbsu%norbp,orbsu%nspinor,nspin,totshift,psiw)
-     psishift1 = psishift1 + ldim
-     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbsu%nspinor
-  end do
-
-  !reallocate hpsi
-  i_all=-product(shape(hpsi))*kind(hpsi)
-  deallocate(hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi',subname)
-
-  allocate(hpsi(npsidim+ndebug),stat=i_stat)
-  call memocc(i_stat,psi,'psi',subname)
-
-  call dcopy(npsidim,psiw,1,hpsi,1) !hpsi=psiw
-  call timing(iproc,'global_local  ','OF')
-  !transpose all the wavefunctions for having a piece of all the orbitals 
-  !for each processor
-  call transpose_v(iproc,nproc,orbsu,Lzd%Glr%wfd,commu,psi,work=psiw)
-  call transpose_v(iproc,nproc,orbsu,Lzd%Glr%wfd,commu,hpsi,work=psiw)
+  call transpose_v2(iproc,nproc,orbsu,Lzd,commu,psi,work=psiw)
+  call transpose_v2(iproc,nproc,orbsu,Lzd,commu,hpsi,work=psiw)
 
   i_all=-product(shape(psiw))*kind(psiw)
   deallocate(psiw,stat=i_stat)

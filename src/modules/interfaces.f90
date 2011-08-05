@@ -664,6 +664,20 @@ module module_interfaces
        real(wp), intent(out), optional :: outadd
      END SUBROUTINE transpose_v
 
+     subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
+          work,outadd) !optional
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc
+       type(orbitals_data), intent(in) :: orbs
+       type(linear_zone_descriptors), intent(in) :: Lzd
+       type(communications_arrays), intent(in) :: comms
+       real(wp), dimension(:), pointer :: psi
+       real(wp), dimension(:), pointer, optional :: work
+       real(wp), dimension(*), intent(out), optional :: outadd
+     end subroutine
+
      subroutine untranspose_v(iproc,nproc,orbs,wfd,comms,psi,&
           work,outadd) !optional
        use module_base
@@ -1633,7 +1647,7 @@ module module_interfaces
     
 
     subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
-        ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
+        ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise,radii_cf)
       use module_base
       use module_types
       implicit none
@@ -1658,6 +1672,7 @@ module module_interfaces
       real(8),dimension(orbs%npsidim),intent(inout):: psi
       real(8),dimension(lin%orbs%npsidim),intent(inout):: phi
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
+      real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
     end subroutine calculateForcesSub
 
 
@@ -3587,9 +3602,25 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(p2pCommsGatherPot),intent(inout):: comgp
     end subroutine cancelCommunicationPotential
 
-
-
-
+    subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
+      orbs,proj,psi,fsep,refill,linorbs,coeff,phi)
+      use module_base
+      use module_types
+      implicit none
+      type(atoms_data), intent(in) :: at
+      logical, intent(in) :: refill
+      integer, intent(in) :: iproc
+      real(gp), intent(in) :: hx,hy,hz
+      type(linear_zone_descriptors) :: Lzd
+      type(orbitals_data), intent(in) :: orbs
+      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      real(wp), dimension(Lzd%Lpsidimtot), intent(inout) :: psi
+      real(wp), dimension(Lzd%Gnlpspd%nprojel), intent(inout) :: proj
+      real(gp), dimension(3,at%nat), intent(inout) :: fsep
+      type(orbitals_data), intent(in) :: linorbs                         
+      real(8),dimension(linorbs%npsidim),intent(in),optional:: phi          
+      real(8),dimension(linorbs%norb,orbs%norb),intent(in),optional:: coeff  
+    end subroutine
 
   end interface
 

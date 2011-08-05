@@ -529,7 +529,7 @@ real(8),dimension(4):: time
           write(*,'(x,a)', advance='no') 'Hamiltonian application... '
       end if
       call cpu_time(t1)
-      withConfinement=.true.
+      withConfinement=.false.
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
            proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%lzd%orbs%inWhichLocregp, withConfinement, &
@@ -686,7 +686,7 @@ real(8),dimension(4):: time
 
 
      ! Flush the standard output
-      call flush(6) 
+     flush(unit=6) 
 
   end do iterLoop
 
