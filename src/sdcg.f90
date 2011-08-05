@@ -80,9 +80,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         tpos=rxyz+beta0*hh
 
         in%inputPsiId=1
-        in%output_grid=0
-        in%output_wf=.false.
-
         call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,fnoise,rst,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,gpf,sumx,sumy,sumz)
@@ -383,8 +380,6 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,&
         itot=itot+1
 
         in%inputPsiId=1
-        in%output_grid=0
-        in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,fnoise,rst,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,ff,sumx,sumy,sumz)
@@ -603,8 +598,6 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   beta=in%betax
   itsd=0
   in%inputPsiId=1
-  in%output_grid=0
-  in%output_wf=.false.
   call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,fnoise,rst,infocode)
   call fnrmandforcemax(ffold,fnrm,fmax,at%nat)   
   if (fmax < 3.d-1) call updatefluctsum(at%nat,fnoise,fluct)
@@ -648,8 +641,6 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   nitsd=1000
   loop_ntsd: do itsd=1,nitsd
      in%inputPsiId=1
-     in%output_grid=0
-     in%output_wf=.false.
      call call_bigdft(nproc,iproc,at,wpos,in,etot,ff,fnoise,rst,infocode)
 !!$     if (iproc == 0) then                                        
 !!$        call transforce(at,ff,sumx,sumy,sumz)                         

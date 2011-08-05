@@ -290,7 +290,8 @@ subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
   implicit none
-  character(len=11), intent(in) :: orbname,comment
+  character(len=10), intent(in) :: comment
+  character(len=11), intent(in) :: orbname
   integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i,nexpo
   real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(*), intent(in) :: pot

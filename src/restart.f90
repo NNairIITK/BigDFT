@@ -296,10 +296,13 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
 
-  inquire(file=trim(filename)//".etsf",exist=exists)
+  isuffix = index(filename, ".etsf", back = .true.)
+  exists=(isuffix > 0) !the file is written in binary format
+
+  !inquire(file=trim(filename)//".etsf",exist=exists)
   if (exists) then
      if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
-     call read_waves_etsf(iproc,filename//".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+     call read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
   else
      call cpu_time(tr0)

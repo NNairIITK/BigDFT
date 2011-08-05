@@ -88,7 +88,7 @@ module module_types
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix
      !miscellaneous variables
-     logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
+     logical :: calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
      integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
@@ -657,7 +657,9 @@ END SUBROUTINE deallocate_orbs
     if (associated(rst%gbd%rxyz)) then
        nullify(rst%gbd%rxyz)
        call deallocate_gwf(rst%gbd,subname)
+    end if
 
+    if (associated(rst%gaucoeffs)) then
        i_all=-product(shape(rst%gaucoeffs))*kind(rst%gaucoeffs)
        deallocate(rst%gaucoeffs,stat=i_stat)
        call memocc(i_stat,i_all,'gaucoeffs',subname)

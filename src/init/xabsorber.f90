@@ -498,9 +498,10 @@ END SUBROUTINE abs_generator_modified
 subroutine integrate(f,fint,x,Nx)
   use module_base, only: gp
   implicit none
+    integer, intent(in):: Nx
   real(gp), intent(in) :: f(0:Nx-1), x(0:Nx-1)
   real(gp), intent(out):: fint(0:Nx-1)
-  integer, intent(in):: Nx
+
   ! -------------------------
   real(gp) sfin, sgro
   integer i
