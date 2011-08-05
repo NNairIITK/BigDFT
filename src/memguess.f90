@@ -1197,4 +1197,4 @@ subroutine dft_input_creator(in)
   write(1,*) in%disableSym, trim(line)
    
   close(unit=1)
-END SUBROUTINE dft_input_converter
+END SUBROUTINE dft_input_creator
