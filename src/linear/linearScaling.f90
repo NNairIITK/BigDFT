@@ -111,7 +111,7 @@ real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(8),dimension(:),allocatable:: phiTemp
 real(wp),dimension(:),allocatable:: projTemp
-real(8):: t1, t2, time
+real(8):: t1, t2, time, t1tot, t2tot, timetot
 
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
@@ -126,6 +126,7 @@ type(workarr_sumrho):: w
       write(*,'(x,a)') repeat('*',84)
       write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'
   end if
+  call cpu_time(t1tot)
 
   ! Initialize the parameters for the linear scaling version and allocate all arrays.
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
@@ -378,6 +379,12 @@ type(workarr_sumrho):: w
   call deallocateLinear(iproc, lin, phi, lphi, coeff)
 
 
+  call mpi_barrier(mpi_comm_world, ierr)
+  call cpu_time(t2tot)
+  timetot=t2tot-t1tot
+  if(iproc==0) write(*,'(x,a)') '================================================'
+  if(iproc==0) write(*,'(x,a,es9.2,a)') 'total time for linear scaling version:',timetot,'s'
+  if(iproc==0) write(*,'(x,a)') '================================================'
 
 end subroutine linearScaling
 
