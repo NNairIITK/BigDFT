@@ -3867,6 +3867,22 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         character(len=*),intent(in):: subname
       end subroutine deallocateRecvBufferOrtho
 
+subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, orbs, lorbs, onWhichAtom, lzd, &
+           op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+  use module_base
+  use module_types
+  implicit none
+  integer,intent(in):: iproc, nproc, methTransformOverlap
+  type(orbitals_data),intent(in):: orbs, lorbs
+  integer,dimension(orbs%norb),intent(in):: onWhichAtom
+  type(linear_zone_descriptors),intent(in):: lzd
+  type(overlapParameters),intent(in):: op
+  real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagmat, ovrlp
+  real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp, lhphiovrlp
+  real(8),dimension(lorbs%npsidim),intent(out):: lhphi
+end subroutine applyOrthoconstraintNonorthogonal2
+
+
   end interface
 
 end module module_interfaces

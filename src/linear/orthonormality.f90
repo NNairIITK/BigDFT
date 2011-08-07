@@ -242,14 +242,15 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   ! Expand the receive buffer, i.e. lphi
   call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
 
-  ! Now we also have to send lhphi
-  !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
-  call postCommsOverlap(iproc, nproc, lin%comon)
-  call gatherOrbitals2(iproc, nproc, lin%comon)
-  ! Expand the receive buffer, i.e. lhphi
-  call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%orbs, lin%orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+  !! I think this is not needed??
+  !!!! Now we also have to send lhphi
+  !!!!call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
+  !!!call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
+  !!!call postCommsOverlap(iproc, nproc, lin%comon)
+  !!!call gatherOrbitals2(iproc, nproc, lin%comon)
+  !!!! Expand the receive buffer, i.e. lhphi
+  !!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%orbs, lin%orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
 
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
 
@@ -1984,13 +1985,14 @@ end subroutine applyOrthoconstraintNonorthogonal
 
 
 
-subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, orbs, lorbs, onWhichAtom, lzd, &
+           op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, methTransformOverlap
 type(orbitals_data),intent(in):: orbs, lorbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(linear_zone_descriptors),intent(in):: lzd
@@ -2014,16 +2016,33 @@ allocate(ovrlp2(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp2, 'ovrlp2', subname)
 
 call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
+
 ! Invert the overlap matrix
-call dpotrf('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
-if(info/=0) then
-    write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
-    stop
-end if
-call dpotri('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
-if(info/=0) then
-    write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
-    stop
+if(methTransformOverlap==0) then
+    ! exact inversion
+    call dpotrf('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
+    if(info/=0) then
+        write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+        stop
+    end if
+    call dpotri('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
+    if(info/=0) then
+        write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+        stop
+    end if
+else if(methTransformOverlap==1) then
+    ! approximation (taylor)
+    do iorb=1,orbs%norb
+        do jorb=1,orbs%norb
+            if(iorb==jorb) then
+                ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
+            else
+                ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
+            end if
+        end do
+    end do
+else
+    stop 'methTransformOverlap is wrong!'
 end if
 
 
