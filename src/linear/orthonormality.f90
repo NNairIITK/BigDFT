@@ -221,8 +221,8 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   call memocc(istat, lagmat, 'lagmat',subname)
   allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-  allocate(lhphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
-  call memocc(istat, lhphiovrlp, 'lhphiovrlp',subname)
+  !!allocate(lhphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
+  !!call memocc(istat, lhphiovrlp, 'lhphiovrlp',subname)
 
   call allocateCommuncationBuffersOrtho(lin%comon, subname)
 
@@ -250,7 +250,8 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   !!!call gatherOrbitals2(iproc, nproc, lin%comon)
   !!!! Expand the receive buffer, i.e. lhphi
   !!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%orbs, lin%orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%orbs, lin%orbs, &
+                                          lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphi)
 
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
 
@@ -260,9 +261,9 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
   deallocate(lphiovrlp, stat=istat)
   call memocc(istat, iall, 'lphiovrlp', subname)
-  iall=-product(shape(lhphiovrlp))*kind(lhphiovrlp)
-  deallocate(lhphiovrlp, stat=istat)
-  call memocc(istat, iall, 'lhphiovrlp', subname)
+  !!iall=-product(shape(lhphiovrlp))*kind(lhphiovrlp)
+  !!deallocate(lhphiovrlp, stat=istat)
+  !!call memocc(istat, iall, 'lhphiovrlp', subname)
 
 
 end subroutine orthoconstraintNonorthogonal
@@ -1986,7 +1987,7 @@ end subroutine applyOrthoconstraintNonorthogonal
 
 
 subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, orbs, lorbs, onWhichAtom, lzd, &
-           op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+           op, lagmat, ovrlp, lphiovrlp, lhphi)
 use module_base
 use module_types
 implicit none
@@ -1998,7 +1999,7 @@ integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(linear_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagmat, ovrlp
-real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp, lhphiovrlp
+real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
 real(8),dimension(lorbs%npsidim),intent(out):: lhphi
 
 ! Local variables
@@ -2073,7 +2074,6 @@ do iorb=1,orbs%norbp
     !call dscal(ncount, 1.5d0, lhphi(ist), 1)
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
-        !call daxpy(ncount, -.5d0*ovrlp(jjorb,iiorb), lhphiovrlp(jst), 1, lhphi(ist), 1)
         call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
         call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
         jst=jst+ncount
