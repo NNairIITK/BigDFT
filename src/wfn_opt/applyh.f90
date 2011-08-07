@@ -102,14 +102,11 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin)
-!     print *,iorb, ekin+epot, epot
+     !print *,iorb, ekin, epot,orbs%kwgts(orbs%iokpt(iorb))
      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
 
   enddo
-
-
-  !print *,'iproc,etest',etest
 
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)

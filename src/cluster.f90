@@ -209,7 +209,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=500) :: errmess
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
-  integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden
+  integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
   integer :: nelec,ndegree_ip,j,i,npoints
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
@@ -544,14 +544,25 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   if (in%inputPsiId ==2) then
      ! Test ETSF file.
      inquire(file="wavefunction.etsf",exist=onefile)
+     if (onefile) input_wf_format=3
      allfiles=.true.
      if (.not. onefile) then
-        call verify_file_presence(orbs,allfiles)
+        call verify_file_presence(orbs,input_wf_format)
      end if
      if (.not. allfiles) then
         if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
         inputpsi = 0
      end if
+ 
+     !assign the input_wf_format
+     write(wfformat, "(A)") ""
+     select case (input_wf_format)
+     case (WF_FORMAT_ETSF)
+        write(wfformat, "(A)") ".etsf"
+     case (WF_FORMAT_BINARY)
+        write(wfformat, "(A)") ".bin"
+     end select
+
   end if
 
   !all the input formats need to allocate psi except the LCAO input_guess
@@ -1156,7 +1167,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!!
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
-        write(*,*)'Writing wavefunctions in wavefucntion.gau file'
+        if (iproc ==0) write(*,*)'Writing wavefunctions in wavefunction.gau file'
         call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
 
         !build dual coefficients
