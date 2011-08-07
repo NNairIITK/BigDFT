@@ -112,7 +112,7 @@ report:
           SiBulk.out*) prec="2.e-7" ;; \
           GEOPT-BFGS.out*) prec="4.e-9" ;; \
           GEOPT-LBFGS.out*) prec="4.e-9" ;; \
-          SiH4.out*) prec="2.e-9" ;; \
+          SiH4.out*) prec="2.3e-9" ;; \
           *) prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
