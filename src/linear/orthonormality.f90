@@ -221,8 +221,8 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   call memocc(istat, lagmat, 'lagmat',subname)
   allocate(lphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
   call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-  allocate(lhphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
-  call memocc(istat, lhphiovrlp, 'lhphiovrlp',subname)
+  !!allocate(lhphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
+  !!call memocc(istat, lhphiovrlp, 'lhphiovrlp',subname)
 
   call allocateCommuncationBuffersOrtho(lin%comon, subname)
 
@@ -242,14 +242,16 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   ! Expand the receive buffer, i.e. lphi
   call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
 
-  ! Now we also have to send lhphi
-  !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
-  call postCommsOverlap(iproc, nproc, lin%comon)
-  call gatherOrbitals2(iproc, nproc, lin%comon)
-  ! Expand the receive buffer, i.e. lhphi
-  call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%orbs, lin%orbs, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+  !! I think this is not needed??
+  !!!! Now we also have to send lhphi
+  !!!!call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
+  !!!call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
+  !!!call postCommsOverlap(iproc, nproc, lin%comon)
+  !!!call gatherOrbitals2(iproc, nproc, lin%comon)
+  !!!! Expand the receive buffer, i.e. lhphi
+  !!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%orbs, lin%orbs, &
+                                          lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphi)
 
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
 
@@ -259,9 +261,9 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
   deallocate(lphiovrlp, stat=istat)
   call memocc(istat, iall, 'lphiovrlp', subname)
-  iall=-product(shape(lhphiovrlp))*kind(lhphiovrlp)
-  deallocate(lhphiovrlp, stat=istat)
-  call memocc(istat, iall, 'lhphiovrlp', subname)
+  !!iall=-product(shape(lhphiovrlp))*kind(lhphiovrlp)
+  !!deallocate(lhphiovrlp, stat=istat)
+  !!call memocc(istat, iall, 'lhphiovrlp', subname)
 
 
 end subroutine orthoconstraintNonorthogonal
@@ -1984,19 +1986,20 @@ end subroutine applyOrthoconstraintNonorthogonal
 
 
 
-subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, orbs, lorbs, onWhichAtom, lzd, op, lagmat, ovrlp, lphiovrlp, lhphiovrlp, lhphi)
+subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, orbs, lorbs, onWhichAtom, lzd, &
+           op, lagmat, ovrlp, lphiovrlp, lhphi)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, methTransformOverlap
 type(orbitals_data),intent(in):: orbs, lorbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(linear_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagmat, ovrlp
-real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp, lhphiovrlp
+real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
 real(8),dimension(lorbs%npsidim),intent(out):: lhphi
 
 ! Local variables
@@ -2014,16 +2017,33 @@ allocate(ovrlp2(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp2, 'ovrlp2', subname)
 
 call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
+
 ! Invert the overlap matrix
-call dpotrf('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
-if(info/=0) then
-    write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
-    stop
-end if
-call dpotri('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
-if(info/=0) then
-    write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
-    stop
+if(methTransformOverlap==0) then
+    ! exact inversion
+    call dpotrf('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
+    if(info/=0) then
+        write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+        stop
+    end if
+    call dpotri('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
+    if(info/=0) then
+        write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+        stop
+    end if
+else if(methTransformOverlap==1) then
+    ! approximation (taylor)
+    do iorb=1,orbs%norb
+        do jorb=1,orbs%norb
+            if(iorb==jorb) then
+                ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
+            else
+                ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
+            end if
+        end do
+    end do
+else
+    stop 'methTransformOverlap is wrong!'
 end if
 
 
@@ -2054,7 +2074,6 @@ do iorb=1,orbs%norbp
     !call dscal(ncount, 1.5d0, lhphi(ist), 1)
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
-        !call daxpy(ncount, -.5d0*ovrlp(jjorb,iiorb), lhphiovrlp(jst), 1, lhphi(ist), 1)
         call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
         call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
         jst=jst+ncount
