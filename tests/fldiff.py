@@ -215,7 +215,9 @@ if bigdft:
     if not end_right:
         print "WARNING: The file '%s' is not properly finished!" % file2
     if not (end_left and end_right): 
-        print "Max Discrepancy: NaN"
+        start = start_fail
+        message = "failed    < "
+        print "%sMax discrepancy : %s (%s%s)%s" % (start,"Nan",message,max_discrepancy,end)
         sys.exit(1)
 
 #Remove line_junk before comparing (the line number is wrong)
