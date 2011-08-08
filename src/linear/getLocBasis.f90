@@ -1286,8 +1286,6 @@ integer:: nvctrp
   nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
   call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, HamSmall(1,1), &
              orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
-  !call dgemm_parallel(iproc, nproc, 'n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, HamSmall(1,1), &
-  !           orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
   
 
 end subroutine buildWavefunction
@@ -1341,8 +1339,6 @@ integer:: nvctrp
   nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
   call dgemm('n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, coeff(1,1), &
              orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
-  !call dgemm_parallel(iproc, nproc, 'n', 'n', nvctrp, orbs%norb, orbsLIN%norb, 1.d0, phi(1,1), nvctrp, coeff(1,1), &
-  !           orbsLIN%norb, 0.d0, psi(1,1), nvctrp)
   
 
 end subroutine buildWavefunctionModified

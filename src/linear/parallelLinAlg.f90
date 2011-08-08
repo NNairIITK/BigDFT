@@ -1,3 +1,4 @@
+!! ATTENTION: This works only if the matrices have the same sizes for all processes!!
 subroutine dgemm_parallel(iproc, nproc, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
 use module_base
 implicit none

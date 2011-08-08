@@ -2472,11 +2472,11 @@ do iorb=1,orbs%norb
         ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
     end do
 end do
-do iorb=1,orbs%norb
-    do jorb=1,orbs%norb
-        write(5000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp2(jorb,iorb), lagmat(jorb,iorb)
-    end do
-end do
+!!do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!        write(5000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp2(jorb,iorb), lagmat(jorb,iorb)
+!!    end do
+!!end do
 !call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
 !     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
 !call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
@@ -2485,11 +2485,11 @@ call dgemm_parallel(iproc, nproc, 'n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d
      0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
 call dgemm_parallel(iproc, nproc, 'n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
      0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
-do iorb=1,orbs%norb
-    do jorb=1,orbs%norb
-        write(4000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp_minus_one_lagmat(jorb,iorb), ovrlp_minus_one_lagmat_trans(jorb,iorb)
-    end do
-end do
+!!do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!        write(4000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp_minus_one_lagmat(jorb,iorb), ovrlp_minus_one_lagmat_trans(jorb,iorb)
+!!    end do
+!!end do
 
 
 ist=1
