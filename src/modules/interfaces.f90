@@ -3882,6 +3882,78 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(lorbs%npsidim),intent(out):: lhphi
       end subroutine applyOrthoconstraintNonorthogonal2
 
+      subroutine gatherOrbitalsOverlapWithComput(iproc, nproc, orbs, input, lzd, op, comon, lphiovrlp, expanded)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc
+        type(orbitals_data),intent(in):: orbs
+        type(input_variables),intent(in):: input
+        type(linear_zone_descriptors),intent(in):: lzd
+        type(overlapParameters),intent(in):: op
+        type(p2pCommsOrthonormality),intent(inout):: comon
+        real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+        logical,dimension(orbs%norb,orbs%norbp),intent(out):: expanded
+      end subroutine gatherOrbitalsOverlapWithComput
+
+
+      subroutine expandOneOrbital(iproc, nproc, orbsource, orbdest, orbs, input, onWhichAtom, lzd, op, comon, lphiovrlp)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, orbsource, orbdest
+        type(orbitals_data),intent(in):: orbs
+        type(input_variables),intent(in):: input
+        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+        type(linear_zone_descriptors),intent(in):: lzd
+        type(overlapParameters),intent(in):: op
+        type(p2pCommsOrthonormality),intent(in):: comon
+        real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+      end subroutine expandOneOrbital
+
+      subroutine expandRemainingOrbitals(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon, expanded, lphiovrlp)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc
+        type(orbitals_data),intent(in):: orbs
+        type(input_variables),intent(in):: input
+        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+        type(linear_zone_descriptors),intent(in):: lzd
+        type(overlapParameters),intent(in):: op
+        type(p2pCommsOrthonormality),intent(in):: comon
+        logical,dimension(orbs%norb,orbs%norbp),intent(in):: expanded
+        real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+      end subroutine expandRemainingOrbitals
+
+      subroutine extractOrbital3(iproc, nproc, orbs, sizePhi, onWhichAtom, lzd, op, phi, nsendBuf, sendBuf)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, sizePhi
+        type(orbitals_data),intent(in):: orbs
+        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+        type(linear_zone_descriptors),intent(in):: lzd
+        type(overlapParameters),intent(inout):: op
+        real(8),dimension(sizePhi),intent(in):: phi
+        integer,intent(in):: nsendBuf
+        real(8),dimension(nsendBuf),intent(out):: sendBuf
+      end subroutine extractOrbital3
+
+      subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf, sendBuf, nrecvBuf, recvBuf, ovrlp)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
+        type(orbitals_data),intent(in):: orbs
+        type(overlapParameters),intent(in):: op
+        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+        real(8),dimension(nsendBuf),intent(in):: sendBuf
+        real(8),dimension(nrecvBuf),intent(in):: recvBuf
+        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+      end subroutine calculateOverlapMatrix3
+
+
 
   end interface
 

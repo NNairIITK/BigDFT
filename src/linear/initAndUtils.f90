@@ -676,6 +676,15 @@ integer:: ierr
       stop
   end if
 
+  if(trim(lin%getCoeff)=='diag') then
+      if(trim(lin%diagMethod)/='seq' .and. trim(lin%diagMethod)/='par') then
+          if(iproc==0) write(*,'(x,a,a,a)') "ERROR: lin%diagMethod can have the values 'seq' or 'par', &
+              & but we found '", trim(lin%diagMethod), "'!"
+          call mpi_barrier(mpi_comm_world, ierr)
+          stop
+      end if
+  end if
+
   if(lin%confPotOrder/=4 .and. lin%confPotOrder/=6) then
       if(iproc==0) write(*,'(x,a,i0,a)') 'ERROR: lin%confPotOrder can have the values 4 or 6, &
           & but we found ', lin%confPotOrder, '!'
