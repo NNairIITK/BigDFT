@@ -484,7 +484,7 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot, t2tot, timetot
 real(8):: tt, tt2, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
-integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2
+integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
 real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
@@ -545,6 +545,11 @@ real(8),dimension(:),pointer:: phiWork
       end if
       call cpu_time(t1)
       call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, input, lphi, ovrlp)
+      !!do iorb=1,lin%orbs%norb
+      !!    do jorb=1,lin%orbs%norb
+      !!        if(iproc==0) write(5000,*) iorb, jorb, ovrlp(jorb,iorb)
+      !!    end do
+      !!end do
       call cpu_time(t2)
       time(1)=time(1)+t2-t1
   
