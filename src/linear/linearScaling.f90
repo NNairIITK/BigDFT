@@ -220,7 +220,7 @@ type(workarr_sumrho):: w
   updatePhi=.true.
   do itSCC=1,nitSCC
       !if(itSCC==10) updatePhi=.false.
-      if(itSCC>1 .and. pnrm<1.d-8) updatePhi=.false.
+      if(itSCC>1 .and. pnrm<2.d-8) updatePhi=.false.
       !!if(itSCC>1 .and. pnrm<7.3d-9) lin%nItBasis=1
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &

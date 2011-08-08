@@ -247,6 +247,7 @@ low_level = init/projectors.f90  \
         linear/copyTypes.f90 \
         linear/cleanup.f90 \
 		linear/derivativeBasis.f90 \
+		linear/parallelLinAlg.f90 \
 	$(DGEMMSY_INTERFACE)  
 
 libbigdft_a_SOURCES = \

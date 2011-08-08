@@ -3953,6 +3953,17 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
       end subroutine calculateOverlapMatrix3
 
+      subroutine dgemm_parallel(iproc, nproc, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
+        use module_base
+        implicit none
+        integer,intent(in):: iproc, nproc, m, n, k, lda, ldb, ldc
+        character(len=1),intent(in):: transa, transb
+        real(8),intent(in):: alpha, beta
+        real(8),dimension(lda,k),intent(in):: a
+        real(8),dimension(ldb,n),intent(in):: b
+        real(8),dimension(ldc,n),intent(out):: c
+      end subroutine dgemm_parallel
+
 
 
   end interface
