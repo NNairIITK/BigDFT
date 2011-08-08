@@ -210,10 +210,11 @@ real(8),dimension(lin%orbs%npsidim),intent(inout):: lhphi
 real(8),intent(out):: trH
 
 ! Local variables
-integer:: it, istat, iall, iorb
+integer:: it, istat, iall, iorb, ierr
 real(8),dimension(:),allocatable:: lphiovrlp, lhphiovrlp
 real(8),dimension(:,:),allocatable:: lagmat
 character(len=*),parameter:: subname='orthoconstraintLocalized'
+real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput
 
 
 
@@ -228,19 +229,34 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+  call cpu_time(t1)
   call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
+  call cpu_time(t2)
+  timeExtract=t2-t1
+  call cpu_time(t1)
   call postCommsOverlap(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon)
+  call cpu_time(t2)
+  timeCommun=t2-t1
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
+  call cpu_time(t1)
   call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
+  call cpu_time(t2)
+  timeExtract=t2-t1
+  call cpu_time(t1)
   call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, lagmat)
+  call cpu_time(t2)
+  timeCalcMatrix=t2-t1
   trH=0.d0
   do iorb=1,lin%orbs%norb
       trH=trH+lagmat(iorb,iorb)
   end do
   ! Expand the receive buffer, i.e. lphi
+  call cpu_time(t1)
   call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
+  call cpu_time(t2)
+  timeExpand=t2-t1
 
   !! I think this is not needed??
   !!!! Now we also have to send lhphi
@@ -250,8 +266,11 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   !!!call gatherOrbitals2(iproc, nproc, lin%comon)
   !!!! Expand the receive buffer, i.e. lhphi
   !!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
+  call cpu_time(t1)
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%orbs, lin%orbs, &
                                           lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphi)
+  call cpu_time(t2)
+  timeApply=t2-t1
 
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
 
@@ -264,6 +283,27 @@ character(len=*),parameter:: subname='orthoconstraintLocalized'
   !!iall=-product(shape(lhphiovrlp))*kind(lhphiovrlp)
   !!deallocate(lhphiovrlp, stat=istat)
   !!call memocc(istat, iall, 'lhphiovrlp', subname)
+
+
+  timeComput=timeExtract+timeExpand+timeApply
+  call mpiallred(timeComput, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeCommun, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeCalcMatrix, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeExpand, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeApply, 1, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(timeExtract, 1, mpi_sum, mpi_comm_world, ierr)
+  timeComput=timeComput/dble(nproc)
+  timeCommun=timeCommun/dble(nproc)
+  timeCalcMatrix=timeCalcMatrix/dble(nproc)
+  timeExpand=timeExpand/dble(nproc)
+  timeApply=timeApply/dble(nproc)
+  timeExtract=timeExtract/dble(nproc)
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for computation:', timeComput, '=', 100.d0*timeComput/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for communication:', timeCommun, '=', 100.d0*timeCommun/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for calculating overlap:', timeCalcMatrix, '=', 100.d0*timeCalcMatrix/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expansion:', timeExpand, '=', 100.d0*timeExpand/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for applying orthoconstraint:', timeApply, '=', 100.d0*timeApply/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=', 100.d0*timeExtract/(timeComput+timeCommun), '%'
 
 
 end subroutine orthoconstraintNonorthogonal
