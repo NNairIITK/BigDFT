@@ -1939,7 +1939,10 @@ end do
 
 ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
 ! This will give S^{-1/2}.
-call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
+!call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
+!     norb, tempArr(1,1,1), norb, 0.d0, &
+!     tempArr(1,1,2), norb)
+call dgemm_parallel(iproc, nproc, 'n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
      norb, tempArr(1,1,1), norb, 0.d0, &
      tempArr(1,1,2), norb)
 call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)

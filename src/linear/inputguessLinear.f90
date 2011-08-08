@@ -1656,14 +1656,14 @@ end subroutine orthonormalizeVectors
 
 
 
-subroutine orthoconstraintVectors(iproc, nproc, orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, grad, comom, trace)
+subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, grad, comom, trace)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => orthoconstraintVectors
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, norbmax, norbp, isorb, nlr, newComm
+integer,intent(in):: iproc, nproc, methTransformOverlap, norbmax, norbp, isorb, nlr, newComm
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
 integer,dimension(0:nproc-1),intent(in):: isorb_par
@@ -1723,7 +1723,7 @@ call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, como
 call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec, vecOvrlp, newComm, ovrlp)
 
 ! Now apply the orthoconstraint.
-call applyOrthoconstraintVectors(iproc, nproc, orbs%norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, grad)
+call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, orbs%norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, grad)
 
 !call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
 !call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
@@ -2088,13 +2088,13 @@ end subroutine orthonormalLinearCombinations
 
 
 
-subroutine applyOrthoconstraintVectors(iproc, nproc, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, grad)
+subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, grad)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, norb, norbmax, norbp, isorb, nlr, noverlaps
+integer,intent(in):: iproc, nproc, methTransformOverlap, norb, norbmax, norbp, isorb, nlr, noverlaps
 integer,dimension(norb),intent(in):: onWhichAtom
 real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
 real(8),dimension(norb,norb),intent(in):: ovrlp, lagmat
@@ -2105,7 +2105,7 @@ real(8),dimension(norbmax,norbp),intent(inout):: grad
 ! Local variables
 integer:: info, iorb, ilrold, iiorb, jjorb, ilr, ncount, jorb, ijorb, istat, iall
 real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
-character(len=*),parameter:: subname='applyOrthoconstarintVectors'
+character(len=*),parameter:: subname='applyOrthoconstraintVectors'
 
 
 allocate(ovrlp_minus_one_lagmat(norb,norb), stat=istat)
@@ -2116,17 +2116,46 @@ allocate(ovrlp2(norb,norb), stat=istat)
 call memocc(istat, ovrlp2, 'ovrlp2', subname)
 
 call dcopy(norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
+!!! Invert the overlap matrix
+!!call dpotrf('l', norb, ovrlp2(1,1), norb, info)
+!!if(info/=0) then
+!!    write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+!!    stop
+!!end if
+!!call dpotri('l', norb, ovrlp2(1,1), norb, info)
+!!if(info/=0) then
+!!    write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+!!    stop
+!!end if
+
 ! Invert the overlap matrix
-call dpotrf('l', norb, ovrlp2(1,1), norb, info)
-if(info/=0) then
-    write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
-    stop
+if(methTransformOverlap==0) then
+    ! exact inversion
+    call dpotrf('l', norb, ovrlp2(1,1), norb, info)
+    if(info/=0) then
+        write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+        stop
+    end if
+    call dpotri('l', norb, ovrlp2(1,1), norb, info)
+    if(info/=0) then
+        write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+        stop
+    end if
+else if(methTransformOverlap==1) then
+    ! approximation (taylor)
+    do iorb=1,norb
+        do jorb=1,norb
+            if(iorb==jorb) then
+                ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
+            else
+                ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
+            end if
+        end do
+    end do
+else
+    stop 'methTransformOverlap is wrong!'
 end if
-call dpotri('l', norb, ovrlp2(1,1), norb, info)
-if(info/=0) then
-    write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
-    stop
-end if
+
 
 
 ! Multiply the Lagrange multiplier matrix with S^-1/2.
@@ -2136,9 +2165,13 @@ do iorb=1,norb
         ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
     end do
 end do
-call dgemm('n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+!call dgemm('n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
+!call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
+call dgemm_parallel(iproc, nproc, 'n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
      0.d0, ovrlp_minus_one_lagmat(1,1), norb)
-call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+call dgemm_parallel(iproc, nproc, 'n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
      0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
 
 
@@ -2553,7 +2586,7 @@ logical:: same
           end if
           ! Apply the orthoconstraint to the gradient. To do so first calculate the Lagrange
           ! multiplier matrix.
-          call orthoconstraintVectors(iproc, ip%nproc, lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
+          call orthoconstraintVectors(iproc, ip%nproc, lin%methTransformOverlap, lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
                matmin%mlr, lcoeff, lgrad, comom, trace)
     
