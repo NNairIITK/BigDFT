@@ -120,6 +120,7 @@ module module_types
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
      real(gp) :: projrad   !<coarse radius of the projectors in units of the maxrad
+     character(len=3) :: linear
 
      !> directDiag decides which input guess is chosen:
      !!   if .true. -> as usual direct diagonalization of the Hamiltonian with dsyev (suitable for small systems)
@@ -219,7 +220,7 @@ module module_types
      integer, dimension(:), pointer :: iasctype,natpol,nelpsp,npspcode,nzatom
      integer, dimension(:), pointer :: ifrztyp     !< ifrztyp(nat) Frozen atoms
      real(gp), dimension(:), pointer :: amu        !< amu(ntypes)  Atomic Mass Unit for each type of atoms
-     real(gp), dimension(:,:), pointer :: aocc
+     real(gp), dimension(:,:), pointer :: aocc,rloc
      real(gp), dimension(:,:,:), pointer :: psppar
      integer :: symObj                             !< The symmetry object from ABINIT
      integer :: iat_absorber 

@@ -969,6 +969,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%methOrtho=0
   !Tolerance criterion for input guess
   inputs%iguessTol=1.d-4
+  !Use Linear sclaing methods
+  inputs%linear='OFF'
 
   !initialization of the character string for printing
   string = "NO"
@@ -1033,6 +1035,10 @@ subroutine perf_input_variables(iproc,filename,inputs)
         else if (index(line,"ig_blocks") /= 0 .or. index(line,"IG_BLOCKS") /= 0) then
            ii = index(line,"ig_blocks")  + index(line,"IG_BLOCKS") + 8
            read(line(ii:),fmt=*,iostat=ierror) inputs%bsLow,inputs%bsUp
+
+        else if (index(line,"linear") /=0 .or. index(line,"LINEAR") /=0) then
+           ii = index(line,"linear") + index(line,"LINEAR") + 6
+           read(line(ii:),fmt=*,iostat=ierror) inputs%linear           
         end if
 
         !Check iostat error

@@ -211,6 +211,11 @@ allocate(orbsPerAt(atoms%ntypes), stat=istat)
   allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 
+  if(in%linear /= 'OFF') then
+       allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
+       call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
+  end if
+
   if (iproc == 0) then
      write(*,'(1x,a)')&
           ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
@@ -282,6 +287,7 @@ allocate(orbsPerAt(atoms%ntypes), stat=istat)
         !end if
         stop
      end if
+
      !see whether the atom is semicore or not
      !and consider the ground state electronic configuration
      call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
@@ -320,16 +326,26 @@ allocate(orbsPerAt(atoms%ntypes), stat=istat)
      end do
 
      !old way of calculating the radii, requires modification of the PSP files
+     !RECYCLED: now is used to set the localisation
      read(11,'(a100)',iostat=ierror)line
-     if (ierror /=0) then
+     if (ierror /=0 .and. in%linear=='OFF') then
         !if (iproc ==0) write(*,*)&
         !     ' WARNING: last line of pseudopotential missing, put an empty line'
         line=''
+     else if(ierror /=0 .and. in%linear /='OFF') then
+        write(*,'(a)')'Linear scaling requires that localization radius be specified'
+        write(*,'(a)')'by hand on the last line of the PSP files.'
+        stop
      end if
-     read(line,*,iostat=ierror1) radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3)
-     if (ierror1 /= 0 ) then
-        read(line,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
-        radii_cf(ityp,3)=radii_cf(ityp,2)
+     if(in%linear=='OFF') then
+        read(line,*,iostat=ierror1) radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3)
+        if (ierror1 /= 0 ) then
+           read(line,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
+           radii_cf(ityp,3)=radii_cf(ityp,2)
+        end if
+     else
+        read(line,*,iostat=ierror1) atoms%rloc(ityp,1),atoms%rloc(ityp,2),atoms%rloc(ityp,3)
+        ierror = 4   !just to force the correct calculation of the radii_cf
      end if
      message='                   X ' 
 

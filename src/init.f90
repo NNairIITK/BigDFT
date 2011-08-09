@@ -375,7 +375,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(wp), dimension(:), pointer :: pot
   real(wp), dimension(:,:,:), pointer :: psigau
 ! #### Linear Scaling Variables
-  integer :: ilr
+  integer :: ilr,ityp
   logical :: calc                           
   real(dp),dimension(:),pointer:: Lpsi,Lhpsi
   logical :: linear,linear2
@@ -435,22 +435,26 @@ subroutine input_wf_diag(iproc,nproc,at,&
 ! ###################################################################
 !!experimental part for building the localisation regions
 ! ###################################################################
-  linear  = .true.
-
-  if (linear) then
-     ! For now, set locrad by hand HERE
-     locrad = 30.0d+0                    !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<LOCRAD
+  
+  if (input%linear == 'LIG' .or. input%linear == 'FUL') then
      call timing(iproc,'check_IG      ','ON')
-     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear2)
+     linear  = .true.
+     ! locrad read from last line of  psppar
+     do iat=1,at%nat
+        ityp = at%iatype(iat)
+        locrad(iat) = at%rloc(ityp,1)
+     end do  
+     call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear)
      call timing(iproc,'check_IG      ','OF')
-     linear = linear .and. linear2
   end if
   Lzd%linear = linear 
 
   if (linear .and. (nspin < 4) ) then
 
-  Lzd%Glr = Glr
-  Lzd%Gnlpspd = nlpspd
+     if(iproc==0) write(*,'(A)') 'Entering the Linear IG'
+     Lzd%Glr = Glr
+     Lzd%Gnlpspd = nlpspd
+
      !allocate the array of localisation regions (memocc does not work)
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
      allocate(norbsc(Lzd%nlr+ndebug),stat=i_stat)
