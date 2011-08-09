@@ -2553,7 +2553,7 @@ logical:: same
     
       
       ! Initial step size for the optimization
-      alpha=5.d-2
+      alpha=1.d-2
     
       ! Flag which checks convergence.
       converged=.false.
