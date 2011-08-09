@@ -250,10 +250,12 @@ integer:: ist, ierr, iiorb
       ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
       ! are still needed later.
       call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      if(trim(lin%diagMethod)=='seq') then
+      !if(trim(lin%diagMethod)=='seq') then
+      if(lin%blocksize_pdsyev<0) then
           if(iproc==0) write(*,'(x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
           call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
-      else if(trim(lin%diagMethod)=='par') then
+      !else if(trim(lin%diagMethod)=='par') then
+      else
           if(iproc==0) write(*,'(x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
           call diagonalizeHamiltonianParallel(iproc, nproc, lin%lb%orbs%norb, matrixElements(1,1,2), ovrlp, eval)
       end if

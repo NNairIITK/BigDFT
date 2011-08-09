@@ -269,8 +269,8 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
   read(99,*) lin%startWithSD, lin%startDIIS
   read(99,*) lin%nItPrecond
-  read(99,*) lin%getCoeff, lin%diagMethod
-  read(99,*) lin%blocksize_pdgemm
+  read(99,*) lin%getCoeff
+  read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
   read(99,*) lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
@@ -394,11 +394,12 @@ write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- |
 write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
 write(*,'(4x,a)') '|  first   else  |             |                |           |       |'
 if(trim(lin%getCoeff)=='diag') then
-    if(trim(lin%diagMethod)=='seq') then
-        message1='diag seq'
-    else if(trim(lin%diagMethod)=='par') then
-        message1='diag par'
-    end if
+    !if(trim(lin%diagMethod)=='seq') then
+    !    message1='diag seq'
+    !else if(trim(lin%diagMethod)=='par') then
+    !    message1='diag par'
+    !end if
+    message1='  diag  '
 else if(trim(lin%getCoeff)=='min') then
     message1='   min  '
 end if
@@ -430,9 +431,10 @@ write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a)') '| ', &
     repeat(' ', 9-ceiling(log10(dble(lin%nItCoeff+1)+1.d-10))), lin%nItCoeff, ' | ', lin%convCritCoeff, ' | '
 write(*,'(4x,a)') '--------------------------------'
 write(*,'(x,a)') '>>>> Performance options'
-write(*,'(4x,a)') '| blocksize |'
-write(*,'(4x,a)') '|  pdgemm   |'
-write(*,'(4x,a,a,i0,4x,a)') '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),lin%blocksize_pdgemm,'|'
+write(*,'(4x,a)') '| blocksize | blocksize |'
+write(*,'(4x,a)') '|  pdsyev   |  pdgemm   |'
+write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a)') '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),&
+    lin%blocksize_pdsyev,'|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),lin%blocksize_pdgemm,'|'
 
 
 
@@ -681,14 +683,14 @@ integer:: ierr
       stop
   end if
 
-  if(trim(lin%getCoeff)=='diag') then
-      if(trim(lin%diagMethod)/='seq' .and. trim(lin%diagMethod)/='par') then
-          if(iproc==0) write(*,'(x,a,a,a)') "ERROR: lin%diagMethod can have the values 'seq' or 'par', &
-              & but we found '", trim(lin%diagMethod), "'!"
-          call mpi_barrier(mpi_comm_world, ierr)
-          stop
-      end if
-  end if
+  !!if(trim(lin%getCoeff)=='diag') then
+  !!    if(trim(lin%diagMethod)/='seq' .and. trim(lin%diagMethod)/='par') then
+  !!        if(iproc==0) write(*,'(x,a,a,a)') "ERROR: lin%diagMethod can have the values 'seq' or 'par', &
+  !!            & but we found '", trim(lin%diagMethod), "'!"
+  !!        call mpi_barrier(mpi_comm_world, ierr)
+  !!        stop
+  !!    end if
+  !!end if
 
   if(lin%confPotOrder/=4 .and. lin%confPotOrder/=6) then
       if(iproc==0) write(*,'(x,a,i0,a)') 'ERROR: lin%confPotOrder can have the values 4 or 6, &
