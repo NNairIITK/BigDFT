@@ -2189,10 +2189,22 @@ if(blocksize_pdgemm<0) then
          0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
 
 else
-    call dgemm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+    call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
          0.d0, ovrlp_minus_one_lagmat(1,1), norb)
-    call dgemm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+    ! Transpose lagmat
+    do iorb=1,norb
+        do jorb=iorb+1,norb
+            tt=lagmat(jorb,iorb)
+            lagmat(jorb,iorb)=lagmat(iorb,jorb)
+            lagmat(iorb,jorb)=tt
+        end do
+    end do
+    call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
          0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
+    !!call dgemm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+    !!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
+    !!call dgemm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+    !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
 end if
 
 
@@ -2553,7 +2565,7 @@ logical:: same
     
       
       ! Initial step size for the optimization
-      alpha=1.d-2
+      alpha=5.d-3
     
       ! Flag which checks convergence.
       converged=.false.

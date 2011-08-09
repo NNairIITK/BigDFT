@@ -3965,6 +3965,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(ldc,n),intent(out):: c
       end subroutine dgemm_parallel
 
+      subroutine dsymm_parallel(iproc, nproc, blocksize, comm, side, uplo, m, n, alpha, a, lda, b, ldb, beta, c, ldc)
+        use module_base
+        implicit none
+        integer,intent(in):: iproc, nproc, blocksize, comm, m, n, lda, ldb, ldc
+        character(len=1),intent(in):: side, uplo
+        real(8),intent(in):: alpha, beta
+        real(8),dimension(lda,m),intent(in):: a
+        real(8),dimension(ldb,n),intent(in):: b
+        real(8),dimension(ldc,n),intent(out):: c
+      end subroutine dsymm_parallel
+
+
 
       subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, blocksize_pdgemm, comm, norb, &
                                              norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, &

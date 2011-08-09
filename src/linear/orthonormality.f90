@@ -2409,6 +2409,7 @@ subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap
            op, lagmat, ovrlp, lphiovrlp, lhphi)
 use module_base
 use module_types
+use module_interfaces
 implicit none
 
 ! Calling arguments
@@ -2523,10 +2524,22 @@ if(blocksize_pdgemm<0) then
     !!    end do
     !!end do
 else
-    call dgemm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+    call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
          0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
-    call dgemm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+    ! Transpose lagmat
+    do iorb=1,orbs%norb
+        do jorb=iorb+1,orbs%norb
+            tt=lagmat(jorb,iorb)
+            lagmat(jorb,iorb)=lagmat(iorb,jorb)
+            lagmat(iorb,jorb)=tt
+        end do
+    end do
+    call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
          0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+    !!call dgemm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+    !!     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+    !!call dgemm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+    !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
 end if
 !!do iorb=1,orbs%norb
 !!    do jorb=1,orbs%norb
