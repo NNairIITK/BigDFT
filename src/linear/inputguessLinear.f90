@@ -2100,7 +2100,8 @@ implicit none
 integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm, comm, norb, norbmax, norbp, isorb, nlr, noverlaps
 integer,dimension(norb),intent(in):: onWhichAtom
 real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
-real(8),dimension(norb,norb),intent(in):: ovrlp, lagmat
+real(8),dimension(norb,norb),intent(in):: ovrlp
+real(8),dimension(norb,norb),intent(inout):: lagmat
 type(p2pCommsOrthonormalityMatrix),intent(in):: comom
 type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
 real(8),dimension(norbmax,norbp),intent(inout):: grad
@@ -2108,6 +2109,7 @@ real(8),dimension(norbmax,norbp),intent(inout):: grad
 ! Local variables
 integer:: info, iorb, ilrold, iiorb, jjorb, ilr, ncount, jorb, ijorb, istat, iall
 real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
+real(8):: tt
 character(len=*),parameter:: subname='applyOrthoconstraintVectors'
 
 
@@ -2169,10 +2171,23 @@ do iorb=1,norb
     end do
 end do
 if(blocksize_pdgemm<0) then
-    call dgemm('n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+    !!call dgemm('n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+    !!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
+    !!call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+    !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
+    call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
          0.d0, ovrlp_minus_one_lagmat(1,1), norb)
-    call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+    ! Transpose lagmat
+    do iorb=1,norb
+        do jorb=iorb+1,norb
+            tt=lagmat(jorb,iorb)
+            lagmat(jorb,iorb)=lagmat(iorb,jorb)
+            lagmat(iorb,jorb)=tt
+        end do
+    end do
+    call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
          0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
+
 else
     call dgemm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'n', 'n', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
          0.d0, ovrlp_minus_one_lagmat(1,1), norb)

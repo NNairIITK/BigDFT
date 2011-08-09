@@ -3877,7 +3877,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
         type(linear_zone_descriptors),intent(in):: lzd
         type(overlapParameters),intent(in):: op
-        real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagmat, ovrlp
+        real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
+        real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
         real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
         real(8),dimension(lorbs%npsidim),intent(out):: lhphi
       end subroutine applyOrthoconstraintNonorthogonal2
@@ -3974,7 +3975,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm, comm, norb, norbmax, norbp, isorb, nlr, noverlaps
         integer,dimension(norb),intent(in):: onWhichAtom
         real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
-        real(8),dimension(norb,norb),intent(in):: ovrlp, lagmat
+        real(8),dimension(norb,norb),intent(in):: ovrlp
+        real(8),dimension(norb,norb),intent(inout):: lagmat
         type(p2pCommsOrthonormalityMatrix),intent(in):: comom
         type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
         real(8),dimension(norbmax,norbp),intent(inout):: grad
