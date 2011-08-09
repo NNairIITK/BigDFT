@@ -3745,12 +3745,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine orthonormalizeAtomicOrbitalsLocalized
 
 
-    subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lzd, orbs, comon, op, input, lchi)
+    subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, convCritOrtho, lzd, orbs, comon, op, input, lchi)
       use module_base
       use module_types
       implicit none
       ! Calling arguments
-      integer,intent(in):: iproc, nproc
+      integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho
+      real(8),intent(in):: convCritOrtho
       type(linear_zone_descriptors),intent(in):: lzd
       type(orbitals_data),intent(in):: orbs
       type(input_variables),intent(in):: input

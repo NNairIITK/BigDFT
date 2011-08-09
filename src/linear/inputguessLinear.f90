@@ -309,7 +309,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2(1))
 
   ! Orthonormalize the atomic orbitals.
-  call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lchi2)
+  call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho, &
+       lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lchi2)
 
   allocate(lchi(lin%lig%orbsig%npsidim+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
@@ -673,7 +674,7 @@ END SUBROUTINE inputguessConfinement
 
 
 
-subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lzd, orbs, comon, op, input, lchi)
+subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, convCritOrtho, lzd, orbs, comon, op, input, lchi)
 
 !
 ! Purpose:
@@ -689,7 +690,8 @@ use module_interfaces, exceptThisOne => orthonormalizeAtomicOrbitalsLocalized2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc
+integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho
+real(8),intent(in):: convCritOrtho
 type(linear_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
@@ -709,7 +711,7 @@ character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized'
 allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
-call orthonormalizeLocalized(iproc, nproc, 0, 2, orbs, op, comon, lzd, orbs%inWhichLocreg, 1.d-6, input, lchi, ovrlp)
+call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, orbs, op, comon, lzd, orbs%inWhichLocreg, convCritOrtho, input, lchi, ovrlp)
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
@@ -2565,7 +2567,7 @@ logical:: same
     
       
       ! Initial step size for the optimization
-      alpha=5.d-3
+      alpha=1.d-2
     
       ! Flag which checks convergence.
       converged=.false.
