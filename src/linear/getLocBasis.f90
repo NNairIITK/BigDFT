@@ -546,7 +546,8 @@ real(8),dimension(:),pointer:: phiWork
           write(*,'(x,a)') 'Orthonormalization... '
       end if
       call cpu_time(t1)
-      call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, input, lphi, ovrlp)
+      call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, lin%orbs, &
+           lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, input, lphi, ovrlp)
       !!do iorb=1,lin%orbs%norb
       !!    do jorb=1,lin%orbs%norb
       !!        if(iproc==0) write(5000,*) iorb, jorb, ovrlp(jorb,iorb)

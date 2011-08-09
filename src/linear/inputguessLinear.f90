@@ -309,8 +309,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
        psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2(1))
 
   ! Orthonormalize the atomic orbitals.
-  call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho, &
-       lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lchi2)
+  call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
+       lin%convCritOrtho, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lchi2)
 
   allocate(lchi(lin%lig%orbsig%npsidim+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
@@ -674,7 +674,7 @@ END SUBROUTINE inputguessConfinement
 
 
 
-subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, convCritOrtho, lzd, orbs, comon, op, input, lchi)
+subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, convCritOrtho, lzd, orbs, comon, op, input, lchi)
 
 !
 ! Purpose:
@@ -690,7 +690,7 @@ use module_interfaces, exceptThisOne => orthonormalizeAtomicOrbitalsLocalized2
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho
+integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev
 real(8),intent(in):: convCritOrtho
 type(linear_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
@@ -711,7 +711,7 @@ character(len=*),parameter:: subname='orthonormalizeAtomicOrbitalsLocalized'
 allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
-call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, orbs, op, comon, lzd, orbs%inWhichLocreg, convCritOrtho, input, lchi, ovrlp)
+call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, orbs, op, comon, lzd, orbs%inWhichLocreg, convCritOrtho, input, lchi, ovrlp)
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
@@ -1585,14 +1585,14 @@ end subroutine initCommsMatrixOrtho
 
 
 
-subroutine orthonormalizeVectors(iproc, nproc, methTransformOverlap, orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
+subroutine orthonormalizeVectors(iproc, nproc, methTransformOverlap, blocksize_dsyev, orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => orthonormalizeVectors
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, methTransformOverlap, norbmax, norbp, isorb, nlr, newComm
+integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_dsyev, norbmax, norbp, isorb, nlr, newComm
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
 integer,dimension(0:nproc-1),intent(in):: isorb_par
@@ -1630,7 +1630,7 @@ call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, como
 ! Calculate the overlap matrix.
 call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec, vecOvrlp, newComm, ovrlp)
 if(methTransformOverlap==0) then
-    call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
+    call transformOverlapMatrix(iproc, nproc, blocksize_dsyev, orbs%norb, ovrlp)
 else if(methTransformOverlap==1) then
     call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
 else
@@ -2590,7 +2590,7 @@ logical:: same
     
     
           ! Othonormalize the coefficients.
-          call orthonormalizeVectors(iproc, ip%nproc, lin%methTransformOverlap, lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
+          call orthonormalizeVectors(iproc, ip%nproc, lin%methTransformOverlap, lin%blocksize_pdsyev, lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
                matmin%mlr, lcoeff, comom)
           !call orthonormalizeVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &

@@ -1,11 +1,11 @@
-subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
+subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => orthonormalizeLocalized
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho
+integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev
 !type(linearParameters),intent(inout):: lin
 type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(inout):: op
@@ -72,7 +72,7 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       end if
       call cpu_time(t3)
       if(methTransformOverlap==0) then
-          call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
+          call transformOverlapMatrix(iproc, nproc, blocksize_dsyev, orbs%norb, ovrlp)
       else if(methTransformOverlap==1) then
           call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
       else
@@ -1865,14 +1865,14 @@ end subroutine calculateOverlapMatrix3
 
 
 
-subroutine transformOverlapMatrix(iproc, nproc, norb, ovrlp)
+subroutine transformOverlapMatrix(iproc, nproc, blocksize_dsyev, norb, ovrlp)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => transformOverlapMatrix
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, norb
+integer,intent(in):: iproc, nproc, blocksize_dsyev, norb
 real(8),dimension(norb,norb),intent(inout):: ovrlp
 
 ! Local variables
@@ -1905,23 +1905,25 @@ call memocc(istat, tempArr, 'tempArr', subname)
 !!    end do
 !!end do
 
-call dsyev_parallel(iproc, nproc, 64, mpi_comm_world, 'v', 'l', norb, ovrlp(1,1), norb, eval(1), info)
-if(info/=0) then
-    write(*,'(a,i0)') 'ERROR in dsyev_parallel, info=', info
-    stop
+if(blocksize_dsyev>0) then
+    call dsyev_parallel(iproc, nproc, min(blocksize_dsyev,norb), mpi_comm_world, 'v', 'l', norb, ovrlp(1,1), norb, eval(1), info)
+    if(info/=0) then
+        write(*,'(a,i0)') 'ERROR in dsyev_parallel, info=', info
+        stop
+    end if
+else
+    lwork=1000*norb
+    allocate(work(lwork), stat=istat)
+    call memocc(istat, work, 'work', subname)
+    call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
+    if(info/=0) then
+        write(*,'(a,i0)') 'ERROR in dsyev, info=', info
+        stop
+    end if
+    iall=-product(shape(work))*kind(work)
+    deallocate(work, stat=istat)
+    call memocc(istat, iall, 'work', subname)
 end if
-
-!!lwork=1000*norb
-!!allocate(work(lwork), stat=istat)
-!!call memocc(istat, work, 'work', subname)
-!!call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
-!!if(info/=0) then
-!!    write(*,'(a,i0)') 'ERROR in dsyev, info=', info
-!!    stop
-!!end if
-!!iall=-product(shape(work))*kind(work)
-!!deallocate(work, stat=istat)
-!!call memocc(istat, iall, 'work', subname)
 !!do iorb=1,norb
 !!    do jorb=1,norb
 !!        if(iproc==0) write(1402,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
@@ -2632,6 +2634,7 @@ do iorb=1,orbs%norbp
     !call dscal(ncount, 1.5d0, lhphi(ist), 1)
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
+        if(ovrlp_minus_one_lagmat(jjorb,iiorb)==0.d0 .and. iproc==0) write(*,*) 'exactly zero'
         call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
         call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
         jst=jst+ncount

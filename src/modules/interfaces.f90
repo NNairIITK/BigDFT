@@ -2630,11 +2630,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
      end subroutine calculateOverlapMatrix2
      
-     subroutine transformOverlapMatrix(iproc, nproc, norb, ovrlp)
+     subroutine transformOverlapMatrix(iproc, nproc, blocksize_dsyev, norb, ovrlp)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, norb
+       integer,intent(in):: iproc, nproc, blocksize_dsyev, norb
        real(8),dimension(norb,norb),intent(inout):: ovrlp
      end subroutine transformOverlapMatrix
      
@@ -2683,11 +2683,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine globalLoewdin
 
 
-     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
+     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho
+       integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev
        type(orbitals_data),intent(in):: orbs
        type(overlapParameters),intent(inout):: op
        type(p2pCommsOrthonormality),intent(inout):: comon
@@ -2819,12 +2819,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine extractMatrix
 
 
-     subroutine orthonormalizeVectors(iproc, nproc, methTransformOverlap, orbs, onWhichAtom, onWhichMPI, isorb_par, &
+     subroutine orthonormalizeVectors(iproc, nproc, methTransformOverlap, blocksize_dsyev, orbs, onWhichAtom, onWhichMPI, isorb_par, &
                 norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, methTransformOverlap, norbmax, norbp, isorb, nlr, newComm
+       integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_dsyev, norbmax, norbp, isorb, nlr, newComm
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
        integer,dimension(0:nproc-1),intent(in):: isorb_par
@@ -3745,12 +3745,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine orthonormalizeAtomicOrbitalsLocalized
 
 
-    subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, convCritOrtho, lzd, orbs, comon, op, input, lchi)
+    subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, convCritOrtho, lzd, orbs, comon, op, input, lchi)
       use module_base
       use module_types
       implicit none
       ! Calling arguments
-      integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho
+      integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev
       real(8),intent(in):: convCritOrtho
       type(linear_zone_descriptors),intent(in):: lzd
       type(orbitals_data),intent(in):: orbs

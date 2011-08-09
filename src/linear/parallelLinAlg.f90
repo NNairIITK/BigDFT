@@ -405,6 +405,11 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
                    0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
                    -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
                    ifail, icluster, gap, info)
+      if(info/=0) then
+          write(*,'(a,i0)') 'ERROR in pdsyevx, info=', info
+          stop
+      end if
+
   
       ! Gather together the eigenvectors from all processes and store them in mat.
       do i=1,n
@@ -451,6 +456,7 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   ! diagonalized the matrix and therefore have the eigenvalues.
   if(nproc_scalapack/=nproc) then
       call mpi_bcast(w(1), n, mpi_double_precision, 0, comm, ierr)
+      call mpi_bcast(info, 1, mpi_integer, 0, comm, ierr)
   end if
 
 
@@ -641,6 +647,7 @@ subroutine diagonalizeHamiltonianParallel(iproc, nproc, norb, ham, ovrlp, eval)
   ! diagonalized the matrix and therefore have the eigenvalues.
   if(nproc_scalapack/=nproc) then
       call mpi_bcast(eval(1), norb, mpi_double_precision, 0, mpi_comm_world, ierr)
+      call mpi_bcast(info, 1, mpi_integer, 0, mpi_comm_world, ierr)
   end if
 
 
