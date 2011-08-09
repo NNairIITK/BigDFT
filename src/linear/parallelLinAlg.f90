@@ -13,7 +13,7 @@ real(8),dimension(ldc,n),intent(out):: c
 
 ! Local variables
 integer:: ierr, i, j, istat, iall, ii, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
-integer:: context, irow, icol, numroc, lnrow, lncol, jproc, info
+integer:: context, irow, icol, numroc, lnrow, lncol, info
 integer:: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
 real(8):: tt1, tt2
 real(8),dimension(:,:),allocatable:: la, lb, lc
@@ -153,7 +153,7 @@ real(8),dimension(ldc,n),intent(out):: c
 
 ! Local variables
 integer:: ierr, i, j, istat, iall, ii, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
-integer:: context, irow, icol, numroc, lnrow, lncol, jproc, info
+integer:: context, irow, icol, numroc, lnrow, lncol, info
 integer:: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
 real(8):: tt1, tt2
 real(8),dimension(:,:),allocatable:: la, lb, lc
@@ -290,13 +290,13 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   
   ! Local variables
   integer:: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
-  integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, jproc, liwork, neval_found, neval_computed
+  integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed
   real(8):: tt1, tt2
   real(8),dimension(:,:),allocatable:: la, lz
   real(8),dimension(:),allocatable:: work, gap
   integer,dimension(9):: desc_lz, desc_la
   integer,dimension(:),allocatable:: iwork, ifail, icluster
-  character(len=*),parameter:: subname='diagonalizeHamiltonianParallel'
+  character(len=*),parameter:: subname='dsyev_parallel'
   
   
   
@@ -472,7 +472,7 @@ subroutine diagonalizeHamiltonianParallel(iproc, nproc, norb, ham, ovrlp, eval)
   
   ! Local variables
   integer:: ierr, mbrow, mbcol, i, j, istat, lwork, info, ii1, ii2, nproc_scalapack, iall
-  integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, jproc, liwork, neval_found, neval_computed
+  integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed
   real(8):: tt1, tt2
   real(8),dimension(:,:),allocatable:: lmat, loverlap, levec
   real(8),dimension(:),allocatable:: work, gap

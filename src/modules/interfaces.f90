@@ -3996,6 +3996,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine applyOrthoconstraintVectors
 
 
+      subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info)
+        use module_base
+        use module_types
+        implicit none
+      
+        ! Calling arguments
+        integer,intent(in):: iproc, nproc, blocksize, comm, n, lda, info
+        character(len=1),intent(in):: jobz, uplo
+        real(8),dimension(lda,n),intent(inout):: a
+        real(8),dimension(n),intent(out):: w
+      end subroutine dsyev_parallel
+
+
 
   end interface
 

@@ -1905,18 +1905,23 @@ call memocc(istat, tempArr, 'tempArr', subname)
 !!    end do
 !!end do
 
-
-lwork=1000*norb
-allocate(work(lwork), stat=istat)
-call memocc(istat, work, 'work', subname)
-call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
+call dsyev_parallel(iproc, nproc, 64, mpi_comm_world, 'v', 'l', norb, ovrlp(1,1), norb, eval(1), info)
 if(info/=0) then
-    write(*,'(a,i0)') 'ERROR in dsyev, info=', info
+    write(*,'(a,i0)') 'ERROR in dsyev_parallel, info=', info
     stop
 end if
-iall=-product(shape(work))*kind(work)
-deallocate(work, stat=istat)
-call memocc(istat, iall, 'work', subname)
+
+!!lwork=1000*norb
+!!allocate(work(lwork), stat=istat)
+!!call memocc(istat, work, 'work', subname)
+!!call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
+!!if(info/=0) then
+!!    write(*,'(a,i0)') 'ERROR in dsyev, info=', info
+!!    stop
+!!end if
+!!iall=-product(shape(work))*kind(work)
+!!deallocate(work, stat=istat)
+!!call memocc(istat, iall, 'work', subname)
 !!do iorb=1,norb
 !!    do jorb=1,norb
 !!        if(iproc==0) write(1402,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
