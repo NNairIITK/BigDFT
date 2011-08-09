@@ -2956,12 +2956,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine buildLinearCombinationsLocalized
 
 
-     subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, &
+     subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, &
                 norbp, isorb, nlr, newComm, mlr, vec, grad, comom, trace)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, methTransformOverlap, norbmax, norbp, isorb, nlr, newComm
+       integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm, norbmax, norbp, isorb, nlr, newComm
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
        integer,dimension(0:nproc-1),intent(in):: isorb_par
@@ -3867,12 +3867,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         character(len=*),intent(in):: subname
       end subroutine deallocateRecvBufferOrtho
 
-      subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, orbs, lorbs, onWhichAtom, lzd, &
+      subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, lorbs, onWhichAtom, lzd, &
                  op, lagmat, ovrlp, lphiovrlp, lhphi)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc, methTransformOverlap
+        integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
         type(orbitals_data),intent(in):: orbs, lorbs
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
         type(linear_zone_descriptors),intent(in):: lzd
@@ -3953,16 +3953,32 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
       end subroutine calculateOverlapMatrix3
 
-      subroutine dgemm_parallel(iproc, nproc, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
+      subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
         use module_base
         implicit none
-        integer,intent(in):: iproc, nproc, m, n, k, lda, ldb, ldc
+        integer,intent(in):: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
         character(len=1),intent(in):: transa, transb
         real(8),intent(in):: alpha, beta
         real(8),dimension(lda,k),intent(in):: a
         real(8),dimension(ldb,n),intent(in):: b
         real(8),dimension(ldc,n),intent(out):: c
       end subroutine dgemm_parallel
+
+
+      subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, blocksize_pdgemm, comm, norb, &
+                                             norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, &
+                                             lagmat, comom, mlr, grad)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm, comm, norb, norbmax, norbp, isorb, nlr, noverlaps
+        integer,dimension(norb),intent(in):: onWhichAtom
+        real(8),dimension(norbmax,noverlaps),intent(in):: vecOvrlp
+        real(8),dimension(norb,norb),intent(in):: ovrlp, lagmat
+        type(p2pCommsOrthonormalityMatrix),intent(in):: comom
+        type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+        real(8),dimension(norbmax,norbp),intent(inout):: grad
+      end subroutine applyOrthoconstraintVectors
 
 
 

@@ -1,10 +1,10 @@
 !! ATTENTION: This works only if the matrices have the same sizes for all processes!!
-subroutine dgemm_parallel(iproc, nproc, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
+subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
 use module_base
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, m, n, k, lda, ldb, ldc
+integer,intent(in):: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
 character(len=1),intent(in):: transa, transb
 real(8),intent(in):: alpha, beta
 real(8),dimension(lda,k),intent(in):: a
@@ -21,8 +21,8 @@ integer,dimension(9):: desc_lc, desc_la, desc_lb
 character(len=*),parameter:: subname='dgemm_parallel'
 
   ! Block size for scalapack
-  mbrow=4
-  mbcol=4
+  mbrow=blocksize
+  mbcol=blocksize
   
   ! Number of processes that will be involved in the calculation
   tt1=dble(m)/dble(mbrow)
@@ -129,7 +129,7 @@ character(len=*),parameter:: subname='dgemm_parallel'
   
   
   ! Gather the result on all processes.
-  call mpiallred(c(1,1), m*n, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
 
 
 end subroutine dgemm_parallel

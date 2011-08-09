@@ -270,6 +270,7 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%startWithSD, lin%startDIIS
   read(99,*) lin%nItPrecond
   read(99,*) lin%getCoeff, lin%diagMethod
+  read(99,*) lin%blocksize_pdgemm
   read(99,*) lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
@@ -428,6 +429,10 @@ write(*,'(4x,a)') '|  of iterations |  criterion  |'
 write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a)') '| ', &
     repeat(' ', 9-ceiling(log10(dble(lin%nItCoeff+1)+1.d-10))), lin%nItCoeff, ' | ', lin%convCritCoeff, ' | '
 write(*,'(4x,a)') '--------------------------------'
+write(*,'(x,a)') '>>>> Performance options'
+write(*,'(4x,a)') '| blocksize |'
+write(*,'(4x,a)') '|  pdgemm   |'
+write(*,'(4x,a,a,i0,4x,a)') '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),lin%blocksize_pdgemm,'|'
 
 
 

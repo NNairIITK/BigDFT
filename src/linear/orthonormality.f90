@@ -291,7 +291,7 @@ logical,dimension(:,:),allocatable:: expanded
   !!!! Expand the receive buffer, i.e. lhphi
   !!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
   call cpu_time(t1)
-  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%orbs, lin%orbs, &
+  call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
                                           lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphi)
   call cpu_time(t2)
   timeApply=t2-t1
@@ -1868,6 +1868,7 @@ end subroutine calculateOverlapMatrix3
 subroutine transformOverlapMatrix(iproc, nproc, norb, ovrlp)
 use module_base
 use module_types
+use module_interfaces, exceptThisOne => transformOverlapMatrix
 implicit none
 
 ! Calling arguments
@@ -1939,12 +1940,12 @@ end do
 
 ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
 ! This will give S^{-1/2}.
-!call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
-!     norb, tempArr(1,1,1), norb, 0.d0, &
-!     tempArr(1,1,2), norb)
-call dgemm_parallel(iproc, nproc, 'n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
+call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
      norb, tempArr(1,1,1), norb, 0.d0, &
      tempArr(1,1,2), norb)
+!!call dgemm_parallel(iproc, nproc, 'n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
+!!     norb, tempArr(1,1,1), norb, 0.d0, &
+!!     tempArr(1,1,2), norb)
 call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
 !!do iorb=1,norb
 !!    do jorb=1,norb
@@ -2404,19 +2405,20 @@ end subroutine applyOrthoconstraintNonorthogonal
 
 
 
-subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, orbs, lorbs, onWhichAtom, lzd, &
+subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, lorbs, onWhichAtom, lzd, &
            op, lagmat, ovrlp, lphiovrlp, lhphi)
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, methTransformOverlap
+integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
 type(orbitals_data),intent(in):: orbs, lorbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(linear_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
-real(8),dimension(orbs%norb,orbs%norb),intent(in):: lagmat, ovrlp
+real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
+real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
 real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
 real(8),dimension(lorbs%npsidim),intent(out):: lhphi
 
@@ -2477,14 +2479,55 @@ end do
 !!        write(5000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp2(jorb,iorb), lagmat(jorb,iorb)
 !!    end do
 !!end do
-!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-!     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
-!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
-call dgemm_parallel(iproc, nproc, 'n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
-call dgemm_parallel(iproc, nproc, 'n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+!!!!!! DEBUG #############################################
+!!!do iorb=1,orbs%norb
+!!!    do jorb=1,orbs%norb
+!!!        if(iorb==jorb) then
+!!!            ovrlp2(jorb,iorb)=1.d0
+!!!        else
+!!!            ovrlp2(jorb,iorb)=0.d0
+!!!        end if
+!!!    end do
+!!!end do
+!!!!! ######################################################
+if(blocksize_pdgemm<0) then
+    !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+    !!     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+    !!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+    !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+    call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+         0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+    !!do iorb=1,orbs%norb
+    !!    do jorb=1,orbs%norb
+    !!        write(4100+iproc,'(2i7,es25.17)') iorb,jorb,lagmat(jorb,iorb)
+    !!    end do
+    !!end do
+    ! Transpose lagmat
+    do iorb=1,orbs%norb
+        do jorb=iorb+1,orbs%norb
+            tt=lagmat(jorb,iorb)
+            lagmat(jorb,iorb)=lagmat(iorb,jorb)
+            lagmat(iorb,jorb)=tt
+        end do
+    end do
+    !!do iorb=1,orbs%norb
+    !!    do jorb=1,orbs%norb
+    !!        write(4200+iproc,'(2i7,es25.17)') iorb,jorb,lagmat(jorb,iorb)
+    !!    end do
+    !!end do
+    call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+         0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+    !!do iorb=1,orbs%norb
+    !!    do jorb=1,orbs%norb
+    !!        write(5000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp_minus_one_lagmat(jorb,iorb), ovrlp_minus_one_lagmat_trans(jorb,iorb)
+    !!    end do
+    !!end do
+else
+    call dgemm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+         0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+    call dgemm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+         0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+end if
 !!do iorb=1,orbs%norb
 !!    do jorb=1,orbs%norb
 !!        write(4000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp_minus_one_lagmat(jorb,iorb), ovrlp_minus_one_lagmat_trans(jorb,iorb)
