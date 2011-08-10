@@ -325,11 +325,11 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   end do
   nproccol=nproc_scalapack/nprocrow
   if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
-  
+
   
   ! Initialize blacs context
   call blacs_get(-1, 0, context)
-  call blacs_gridinit(context, 'r', nprocrow, nproccol )
+  call blacs_gridinit(context, 'r', nprocrow, nproccol)
   call blacs_gridinfo(context,nprocrow, nproccol, irow, icol)
   !write(*,*) 'iproc, irow, icol', iproc, irow, icol
   

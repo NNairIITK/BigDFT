@@ -1,11 +1,12 @@
-subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
+subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
+           blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => orthonormalizeLocalized
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev
+integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm
 !type(linearParameters),intent(inout):: lin
 type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(inout):: op
@@ -72,7 +73,7 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       end if
       call cpu_time(t3)
       if(methTransformOverlap==0) then
-          call transformOverlapMatrix(iproc, nproc, blocksize_dsyev, orbs%norb, ovrlp)
+          call transformOverlapMatrix(iproc, nproc, mpi_comm_world, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
       else if(methTransformOverlap==1) then
           call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
       else
@@ -1865,14 +1866,14 @@ end subroutine calculateOverlapMatrix3
 
 
 
-subroutine transformOverlapMatrix(iproc, nproc, blocksize_dsyev, norb, ovrlp)
+subroutine transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, norb, ovrlp)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => transformOverlapMatrix
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, blocksize_dsyev, norb
+integer,intent(in):: iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, norb
 real(8),dimension(norb,norb),intent(inout):: ovrlp
 
 ! Local variables
@@ -1906,7 +1907,9 @@ call memocc(istat, tempArr, 'tempArr', subname)
 !!end do
 
 if(blocksize_dsyev>0) then
-    call dsyev_parallel(iproc, nproc, min(blocksize_dsyev,norb), mpi_comm_world, 'v', 'l', norb, ovrlp(1,1), norb, eval(1), info)
+    write(*,'(a,i0)') 'calling dsyev_parallel in transformOverlapMatrix, iproc=',iproc
+    call dsyev_parallel(iproc, nproc, min(blocksize_dsyev,norb), comm, 'v', 'l', norb, ovrlp(1,1), norb, eval(1), info)
+    write(*,'(a,i0)') 'after dsyev_parallel in transformOverlapMatrix, iproc=',iproc
     if(info/=0) then
         write(*,'(a,i0)') 'ERROR in dsyev_parallel, info=', info
         stop
@@ -1947,12 +1950,13 @@ end do
 
 ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
 ! This will give S^{-1/2}.
-call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
-     norb, tempArr(1,1,1), norb, 0.d0, &
-     tempArr(1,1,2), norb)
-!!call dgemm_parallel(iproc, nproc, 'n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
-!!     norb, tempArr(1,1,1), norb, 0.d0, &
-!!     tempArr(1,1,2), norb)
+if(blocksize_pdgemm<0) then
+    call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
+         norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
+else
+    call dgemm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
+         norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
+end if
 call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
 !!do iorb=1,norb
 !!    do jorb=1,norb
@@ -1978,7 +1982,7 @@ end subroutine transformOverlapMatrix
 subroutine transformOverlapMatrixParallel(iproc, nproc, norb, ovrlp)
 use module_base
 use module_types
-use module_interfaces, exceptThisOne => transformOverlapMatrix
+use module_interfaces, exceptThisOne => transformOverlapMatrixParallel
 implicit none
 
 ! Calling arguments
@@ -1989,7 +1993,7 @@ real(8),dimension(norb,norb),intent(inout):: ovrlp
 integer:: lwork, istat, iall, iorb, jorb, info
 real(8),dimension(:),allocatable:: work, eval
 real(8),dimension(:,:,:),allocatable:: tempArr
-character(len=*),parameter:: subname='transformOverlapMatrix'
+character(len=*),parameter:: subname='transformOverlapMatrixParallel'
 
 
 allocate(eval(norb), stat=istat)
@@ -2634,7 +2638,6 @@ do iorb=1,orbs%norbp
     !call dscal(ncount, 1.5d0, lhphi(ist), 1)
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
-        if(ovrlp_minus_one_lagmat(jjorb,iiorb)==0.d0 .and. iproc==0) write(*,*) 'exactly zero'
         call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
         call daxpy(ncount, -.5d0*ovrlp_minus_one_lagmat_trans(jjorb,iiorb), lphiovrlp(jst), 1, lhphi(ist), 1)
         jst=jst+ncount
@@ -2675,7 +2678,7 @@ real(8),dimension(norb,norb),intent(inout):: ovrlp
 integer:: lwork, istat, iall, iorb, jorb, info
 real(8),dimension(:),allocatable:: eval
 real(8),dimension(:,:,:),allocatable:: tempArr
-character(len=*),parameter:: subname='transformOverlapMatrix'
+character(len=*),parameter:: subname='transformOverlapMatrixTaylor'
 
 
 allocate(eval(norb), stat=istat)

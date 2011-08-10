@@ -2630,11 +2630,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
      end subroutine calculateOverlapMatrix2
      
-     subroutine transformOverlapMatrix(iproc, nproc, blocksize_dsyev, norb, ovrlp)
+     subroutine transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, norb, ovrlp)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, blocksize_dsyev, norb
+       integer,intent(in):: iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, norb
        real(8),dimension(norb,norb),intent(inout):: ovrlp
      end subroutine transformOverlapMatrix
      
@@ -2683,11 +2683,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine globalLoewdin
 
 
-     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
+     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
+                blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev
+       integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm
        type(orbitals_data),intent(in):: orbs
        type(overlapParameters),intent(inout):: op
        type(p2pCommsOrthonormality),intent(inout):: comon
@@ -2819,12 +2820,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine extractMatrix
 
 
-     subroutine orthonormalizeVectors(iproc, nproc, methTransformOverlap, blocksize_dsyev, orbs, onWhichAtom, onWhichMPI, isorb_par, &
-                norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
+     subroutine orthonormalizeVectors(iproc, nproc, comm, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, &
+                orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_dsyev, norbmax, norbp, isorb, nlr, newComm
+       integer,intent(in):: iproc, nproc, comm, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm
+       integer,intent(in):: norbmax, norbp, isorb, nlr, newComm
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
        integer,dimension(0:nproc-1),intent(in):: isorb_par
@@ -3745,12 +3747,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine orthonormalizeAtomicOrbitalsLocalized
 
 
-    subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, convCritOrtho, lzd, orbs, comon, op, input, lchi)
+    subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
+               blocksize_pdgemm, convCritOrtho, lzd, orbs, comon, op, input, lchi)
       use module_base
       use module_types
       implicit none
       ! Calling arguments
-      integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev
+      integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm
       real(8),intent(in):: convCritOrtho
       type(linear_zone_descriptors),intent(in):: lzd
       type(orbitals_data),intent(in):: orbs
@@ -4007,6 +4010,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(lda,n),intent(inout):: a
         real(8),dimension(n),intent(out):: w
       end subroutine dsyev_parallel
+
+
+      subroutine transformOverlapMatrixParallel(iproc, nproc, norb, ovrlp)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, norb
+        real(8),dimension(norb,norb),intent(inout):: ovrlp
+      end subroutine transformOverlapMatrixParallel
 
 
 

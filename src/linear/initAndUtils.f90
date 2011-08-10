@@ -63,7 +63,7 @@ lin%lzd%nlr=at%nat
 call allocateBasicArrays(at, lin)
 
 ! Read in all parameters related to the linear scaling version.
-call readLinearParameters(iproc, lin, at, atomNames)
+call readLinearParameters(iproc, nproc, lin, at, atomNames)
 
 ! Count the number of basis functions.
 norb=0
@@ -113,6 +113,9 @@ call orbitals_communicators(iproc,nproc,Glr,lin%lb%gorbs,lin%lb%gcomms)
 
 ! Write all parameters related to the linear scaling version to the screen.
 if(iproc==0) call writeLinearParameters(iproc, nproc, at, lin, atomNames, lin%norbsPerType)
+
+! Do some checks on the input parameters.
+call checkLinearParameters(iproc, nproc, lin)
 
 if(iproc==0) write(*,'(x,a)',advance='no') 'Doing many initializations...'
 
@@ -232,12 +235,12 @@ end subroutine allocateAndInitializeLinear
 
 
 
-subroutine readLinearParameters(iproc, lin, at, atomNames)
+subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   use module_base
   use module_types
   implicit none
   
-  integer,intent(in):: iproc
+  integer,intent(in):: iproc, nproc
   type(linearParameters):: lin
   type(atoms_data),intent(in):: at
   character(len=20),dimension(at%ntypes):: atomNames
@@ -279,7 +282,6 @@ subroutine readLinearParameters(iproc, lin, at, atomNames)
   read(99,*) lin%nItInguess
   read(99,*) lin%plotBasisFunctions
   read(99,*) lin%norbsPerProcIG
-  call checkLinearParameters(iproc, lin)
 
   ! Now read in the parameters specific for each atom type.
   parametersSpecified=.false.
@@ -651,7 +653,7 @@ end subroutine assignOrbitalsToAtoms
 
 
 
-subroutine checkLinearParameters(iproc, lin)
+subroutine checkLinearParameters(iproc, nproc, lin)
 !
 ! Purpose:
 ! ========
@@ -662,11 +664,11 @@ use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc
+integer,intent(in):: iproc, nproc
 type(linearParameters),intent(in):: lin
 
 ! Local variables
-integer:: ierr
+integer:: norbTarget, nprocIG, ierr
 
 
   if(lin%DIISHistMin>lin%DIISHistMax) then
@@ -698,6 +700,34 @@ integer:: ierr
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
+
+
+  ! Determine the number of processes we need for the minimization of the trace in the input guess.
+  if(lin%norbsPerProcIG>lin%orbs%norb) then
+      norbTarget=lin%orbs%norb
+  else
+      norbTarget=lin%norbsperProcIG
+  end if
+  nprocIG=ceiling(dble(lin%orbs%norb)/dble(norbTarget))
+  nprocIG=min(nprocIG,nproc)
+
+  if( nprocIG/=nproc .and. ((lin%methTransformOverlap==0 .and. (lin%blocksize_pdsyev>0 .or. lin%blocksize_pdgemm>0)) .or. &
+      (lin%methTransformOverlap==1 .and. lin%blocksize_pdgemm>0)) ) then
+      if(iproc==0) then
+          write(*,'(x,a)') 'ERROR: You want to use some routines from scalapack. This is only possible if all processes are &
+                     &involved in these calls, which is not the case here.'
+          write(*,'(x,a)') 'To avoid this problem you have several possibilities:'
+          write(*,'(3x,a,i0,a)') "-set 'lin%norbsperProcIG' to a value not greater than ",floor(dble(lin%orbs%norb)/dble(nproc)), &
+              ' (recommended; probably only little influence on performance)'
+          write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==1': set 'lin%blocksize_pdgemm' to a negative value &
+              &(may heavily affect performance)"
+          write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==0': set 'lin%blocksize_pdsyev' and 'lin%blocksize_pdsyev' &
+              &to negative values (may very heavily affect performance)"
+      end if
+      call mpi_barrier(mpi_comm_world, ierr)
+      stop
+  end if
+
 
 end subroutine checkLinearParameters
 
