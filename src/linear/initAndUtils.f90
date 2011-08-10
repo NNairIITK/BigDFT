@@ -230,6 +230,8 @@ if(iproc==0) write(*,'(a)') 'done.'
 call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 
 
+call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
+
 end subroutine allocateAndInitializeLinear
 
 
@@ -2086,3 +2088,172 @@ function megabytes(bytes)
   
 end function megabytes
 
+
+
+
+subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(orbitals_data),intent(in):: orbs
+  type(overlapParameters),intent(in):: op
+  type(matrixDescriptors),intent(out):: mad
+  
+  ! Local variables
+  integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii
+  character(len=*),parameter:: subname='initMatrixCompression'
+  
+  
+  mad%nseg=0
+  mad%nvctr=0
+  jjorbold=-1
+  do jproc=0,nproc-1
+      do iorb=1,orbs%norb_par(jproc)
+          iiorb=orbs%isorb_par(jproc)+iorb
+          ijorb=(iiorb-1)*orbs%norb
+          do jorb=1,op%noverlaps(iiorb)
+              jjorb=op%overlaps(jorb,iiorb)+ijorb
+              ! Entry (iiorb,jjorb) is not zero.
+              !if(iproc==0) write(300,*) iiorb,jjorb
+              if(jjorb==jjorbold+1) then
+                  ! There was no zero element in between, i.e. we are in the same segment.
+                  jjorbold=jjorb
+                  mad%nvctr=mad%nvctr+1
+              else
+                  ! There was a zero segment in between, i.e. we are in a new segment
+                  mad%nseg=mad%nseg+1
+                  mad%nvctr=mad%nvctr+1
+                  jjorbold=jjorb
+              end if
+          end do
+      end do
+  end do
+
+  !!if(iproc==0) write(*,*) 'mad%nseg, mad%nvctr',mad%nseg, mad%nvctr
+
+  allocate(mad%keyv(mad%nseg), stat=istat)
+  call memocc(istat, mad%keyv, 'mad%keyv', subname)
+  allocate(mad%keyg(2,mad%nseg), stat=istat)
+  call memocc(istat, mad%keyg, 'mad%keyg', subname)
+
+
+  nseg=0
+  mad%keyv=0
+  jjorbold=-1
+  do jproc=0,nproc-1
+      do iorb=1,orbs%norb_par(jproc)
+          iiorb=orbs%isorb_par(jproc)+iorb
+          ijorb=(iiorb-1)*orbs%norb
+          do jorb=1,op%noverlaps(iiorb)
+              jjorb=op%overlaps(jorb,iiorb)+ijorb
+              ! Entry (iiorb,jjorb) is not zero.
+              !if(iproc==0) write(300,*) iiorb,jjorb
+              if(jjorb==jjorbold+1) then
+                  ! There was no zero element in between, i.e. we are in the same segment.
+                  jjorbold=jjorb
+                  mad%keyv(nseg)=mad%keyv(nseg)+1
+              else
+                  ! There was a zero segment in between, i.e. we are in a new segment.
+                  ! First determine the end of the previous segment.
+                  if(jjorbold>0) then
+                      mad%keyg(2,nseg)=jjorbold
+                  end if
+                  ! Now add the new segment.
+                  nseg=nseg+1
+                  mad%keyg(1,nseg)=jjorb
+                  jjorbold=jjorb
+                  mad%keyv(nseg)=mad%keyv(nseg)+1
+              end if
+          end do
+          ! Close the segment of the current line.
+          mad%keyg(2,nseg)=jjorb
+      end do
+  end do
+
+  !!if(iproc==0) then
+  !!    do iseg=1,mad%nseg
+  !!        write(*,'(a,4i8)') 'iseg, mad%keyv(iseg), mad%keyg(1,iseg), mad%keyg(2,iseg)', iseg, mad%keyv(iseg), mad%keyg(1,iseg), mad%keyg(2,iseg)
+  !!    end do
+  !!end if
+
+  ! Somce checks
+  ii=0
+  do iseg=1,mad%nseg
+      ii=ii+mad%keyv(iseg)
+  end do
+  if(ii/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR: ii/=mad%nvctr',ii,mad%nvctr
+      stop
+  end if
+
+
+
+end subroutine initMatrixCompression
+
+
+
+
+
+subroutine compressMatrix(norb, mad, mat, lmat)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: norb
+  type(matrixDescriptors),intent(in):: mad
+  real(8),dimension(norb**2),intent(in):: mat
+  real(8),dimension(mad%nvctr),intent(out):: lmat
+  
+  ! Local variables
+  integer:: iseg, jj, jorb, iiorb, jjorb
+  
+  
+  jj=0
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          jj=jj+1
+          lmat(jj)=mat(jorb)
+      end do
+  end do
+  if(jj/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
+      stop
+  end if
+  
+end subroutine compressMatrix
+
+
+
+subroutine uncompressMatrix(norb, mad, lmat, mat)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: norb
+  type(matrixDescriptors),intent(in):: mad
+  real(8),dimension(mad%nvctr),intent(in):: lmat
+  real(8),dimension(norb**2),intent(out):: mat
+  
+  ! Local variables
+  integer:: iseg, jj, jorb, iiorb, jjorb
+  
+  mat=0.d0
+  
+  jj=0
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          jj=jj+1
+          mat(jorb)=lmat(jj)
+      end do
+  end do
+  if(jj/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in uncompressMatrix: jj/=mad%nvctr',jj,mad%nvctr
+      stop
+  end if
+  
+end subroutine uncompressMatrix

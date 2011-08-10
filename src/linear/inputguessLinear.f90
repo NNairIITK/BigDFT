@@ -122,6 +122,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   call copy_locreg_descriptors(Glr, lin%lig%lzdig%Glr, subname)
   call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lig%orbsig, lin%lig%lzdig, lin%lig%comgp, lin%lig%orbsig%inWhichLocreg, tag)
 
+  call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
+
   ! Deallocate the local arrays.
   iall=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=istat)
@@ -310,7 +312,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Orthonormalize the atomic orbitals.
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
-       lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lchi2)
+       lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lin%lig%mad, lchi2)
 
   allocate(lchi(lin%lig%orbsig%npsidim+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
@@ -591,7 +593,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   allocate(ham3(lin%lig%orbsig%norb,lin%lig%orbsig%norb,nlocregPerMPI), stat=istat)
   call memocc(istat,ham3,'ham3',subname)
   call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, onWhichMPITemp, Glr, input, &
-       lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, ham3)
+       lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, lin%mad, ham3)
   !!do iat=1,nlocregPerMPI
   !!    do iorb=1,lin%lig%orbsig%norb
   !!        do jorb=1,lin%lig%orbsig%norb
@@ -618,6 +620,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call deallocate_linear_zone_descriptors(lin%lig%lzdig, subname)
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call deallocate_orbitals_data(lin%lig%orbsGauss, subname)
+  call deallocate_matrixDescriptors(lin%lig%mad, subname)
 
   ! Deallocate all remaining local arrays.
   iall=-product(shape(psigau))*kind(psigau)
@@ -675,7 +678,7 @@ END SUBROUTINE inputguessConfinement
 
 
 subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-           blocksize_pdgemm, convCritOrtho, lzd, orbs, comon, op, input, lchi)
+           blocksize_pdgemm, convCritOrtho, lzd, orbs, comon, op, input, mad, lchi)
 
 !
 ! Purpose:
@@ -698,6 +701,7 @@ type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
 type(p2pCommsOrthonormality),intent(inout):: comon
 type(overlapParameters),intent(inout):: op
+type(matrixDescriptors),intent(in):: mad
 real(8),dimension(orbs%npsidim),intent(inout):: lchi
 
 ! Local variables
@@ -713,7 +717,7 @@ allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
 call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm, &
-     orbs, op, comon, lzd, orbs%inWhichLocreg, convCritOrtho, input, lchi, ovrlp)
+     orbs, op, comon, lzd, orbs%inWhichLocreg, convCritOrtho, input, mad, lchi,  ovrlp)
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
@@ -959,7 +963,7 @@ end subroutine initializeInguessParameters
 
 
 subroutine getHamiltonianMatrix4(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, norb_parTemp, onWhichMPITemp, &
-Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, ham)
+Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, ham)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => getHamiltonianMatrix4
@@ -980,6 +984,7 @@ integer,dimension(orbsig%norbp),intent(in):: onWhichAtomp
 real(8),dimension(orbsig%npsidim),intent(in):: lchi
 real(8),dimension(orbsig%npsidim,ndim_lhchi),intent(in):: lhchi
 logical,dimension(lzdig%nlr),intent(in):: skip
+type(matrixDescriptors),intent(in):: mad
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables
@@ -1029,7 +1034,7 @@ do iat=1,lzdig%nlr
         !write(*,'(2(a,i0))') 'iproc ',iproc,' skips locreg ',iat
         call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, zeroArray(1), comon)
     end if
-    call calculateOverlapMatrix2(iproc, nproc, orbsig, op, comon, onWhichAtom, hamTemp(1,1))
+    call calculateOverlapMatrix2(iproc, nproc, orbsig, op, comon, onWhichAtom, mad, hamTemp(1,1))
     if(iproc==0) write(*,'(a)') 'done.'
     
     ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
@@ -1634,7 +1639,7 @@ call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, como
 ! Calculate the overlap matrix.
 call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec, vecOvrlp, newComm, ovrlp)
 if(methTransformOverlap==0) then
-    write(*,'(a,i0)') 'call transformOverlapMatrix in orthonormalizeVectors, iproc=',iproc
+    !write(*,'(a,i0)') 'call transformOverlapMatrix in orthonormalizeVectors, iproc=',iproc
     call transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
 else if(methTransformOverlap==1) then
     call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)

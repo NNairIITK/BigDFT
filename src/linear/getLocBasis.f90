@@ -148,12 +148,24 @@ integer:: ist, ierr, iiorb
   ! Get the overlap matrix.
   !if(.not.updatePhi .and. .not.lin%useDerivativeBasisFunctions) then
   if(.not.lin%useDerivativeBasisFunctions) then
-      call getOverlapMatrix(iproc, nproc, lin, input, lphi, ovrlp)
+      call getOverlapMatrix(iproc, nproc, lin, input, lphi, lin%mad, ovrlp)
   end if
   if(lin%useDerivativeBasisFunctions) then
       !call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
-      call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, lin%mad, ovrlp)
   end if
+
+  ierr=0
+  do iorb=1,lin%orbs%norb
+      do jorb=1,lin%orbs%norb
+          if(ovrlp(jorb,iorb)==0.d0) then
+              ierr=ierr+1
+          else
+              if(iproc==0) write(350,*) iorb,jorb
+          end if
+      end do
+  end do
+  if(iproc==0) write(*,*) 'zero comp, total', ierr, lin%orbs%norb**2
 
   ! Allocate the communication buffers for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(lin%comsr, subname)
@@ -227,7 +239,7 @@ integer:: ist, ierr, iiorb
   !!    write(25000+iproc,*) lhphi(iall)
   !!end do
   !call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
-  call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
+  call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%mad, matrixElements)
 
   !!if(iproc==0) then
   !!    ierr=0
@@ -548,7 +560,7 @@ real(8),dimension(:),pointer:: phiWork
       call cpu_time(t1)
       call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
            lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
-           input, lphi, ovrlp)
+           input, lin%mad, lphi, ovrlp)
       !!do iorb=1,lin%orbs%norb
       !!    do jorb=1,lin%orbs%norb
       !!        if(iproc==0) write(5000,*) iorb, jorb, ovrlp(jorb,iorb)
@@ -593,7 +605,7 @@ real(8),dimension(:),pointer:: phiWork
       end if
       call cpu_time(t1)
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
-      call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, trH)
+      call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH)
       call cpu_time(t2)
       time(3)=time(3)+t2-t1
       if(iproc==0) then

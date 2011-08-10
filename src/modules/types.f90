@@ -490,6 +490,13 @@ type,public:: largeBasis
     type(p2pCommsGatherPot):: comgp
 end type largeBasis
 
+  type,public:: matrixDescriptors
+      integer:: nvctr, nseg
+      integer,dimension(:),pointer:: keyv
+      integer,dimension(:,:),pointer:: keyg
+  end type matrixDescriptors
+
+
   !> Contains the parameters for the parallel input guess for the O(N) version.
   type,public:: inguessParameters
     integer:: nproc, norb, norbtot, norbtotPad, sizeWork, nvctrp, isorb
@@ -517,7 +524,9 @@ end type largeBasis
       type(p2pCommsOrthonormality):: comon
       type(overlapParameters):: op
       type(p2pCommsGatherPot):: comgp
+      type(matrixDescriptors):: mad
   end type linearInputGuess
+
 
 
 !> Contains all parameters related to the linear scaling version.
@@ -540,6 +549,7 @@ end type largeBasis
     type(p2pCommsOrthonormality):: comon
     type(overlapParameters):: op
     type(linearInputGuess):: lig
+    type(matrixDescriptors):: mad
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure

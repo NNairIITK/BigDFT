@@ -59,18 +59,18 @@ character(len=*),parameter:: subname='dgemm_parallel'
   processIf: if(irow/=-1) then
 
       ! Determine the size of the local matrix la (lnrow_a x lncol_a):
-      lnrow_a = numroc(m, mbrow, irow, 0, nprocrow)
-      lncol_a = numroc(k, mbcol, icol, 0, nproccol)
+      lnrow_a = max(numroc(m, mbrow, irow, 0, nprocrow),1)
+      lncol_a = max(numroc(k, mbcol, icol, 0, nproccol),1)
       !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local a of size ',lnrow_a,' x ',lncol_a
 
       ! Determine the size of the local matrix lb (lnrow_b x lncol_b):
-      lnrow_b = numroc(k, mbrow, irow, 0, nprocrow)
-      lncol_b = numroc(n, mbcol, icol, 0, nproccol)
+      lnrow_b = max(numroc(k, mbrow, irow, 0, nprocrow),1)
+      lncol_b = max(numroc(n, mbcol, icol, 0, nproccol),1)
       !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local b of size ',lnrow_b,' x ',lncol_b
 
       ! Determine the size of the local matrix lc (lnrow_c x lncol_c):
-      lnrow_c = numroc(m, mbrow, irow, 0, nprocrow)
-      lncol_c = numroc(n, mbcol, icol, 0, nproccol)
+      lnrow_c = max(numroc(m, mbrow, irow, 0, nprocrow),1)
+      lncol_c = max(numroc(n, mbcol, icol, 0, nproccol),1)
       !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local c of size ',lnrow_c,' x ',lncol_c
   
       ! Initialize descriptor arrays.
@@ -199,18 +199,18 @@ character(len=*),parameter:: subname='dgemm_parallel'
   processIf: if(irow/=-1) then
 
       ! Determine the size of the local matrix la (lnrow_a x lncol_a):
-      lnrow_a = numroc(m, mbrow, irow, 0, nprocrow)
-      lncol_a = numroc(m, mbcol, icol, 0, nproccol)
+      lnrow_a = max(numroc(m, mbrow, irow, 0, nprocrow),1)
+      lncol_a = max(numroc(m, mbcol, icol, 0, nproccol),1)
       !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local a of size ',lnrow_a,' x ',lncol_a
 
       ! Determine the size of the local matrix lb (lnrow_b x lncol_b):
-      lnrow_b = numroc(m, mbrow, irow, 0, nprocrow)
-      lncol_b = numroc(n, mbcol, icol, 0, nproccol)
+      lnrow_b = max(numroc(m, mbrow, irow, 0, nprocrow),1)
+      lncol_b = max(numroc(n, mbcol, icol, 0, nproccol),1)
       !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local b of size ',lnrow_b,' x ',lncol_b
 
       ! Determine the size of the local matrix lc (lnrow_c x lncol_c):
-      lnrow_c = numroc(m, mbrow, irow, 0, nprocrow)
-      lncol_c = numroc(n, mbcol, icol, 0, nproccol)
+      lnrow_c = max(numroc(m, mbrow, irow, 0, nprocrow),1)
+      lncol_c = max(numroc(n, mbcol, icol, 0, nproccol),1)
       !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local c of size ',lnrow_c,' x ',lncol_c
   
       ! Initialize descriptor arrays.
@@ -342,8 +342,8 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
       ! Determine the size of the matrix (lnrow x lncol):
-      lnrow = numroc(n, mbrow, irow, 0, nprocrow)
-      lncol = numroc(n, mbcol, icol, 0, nproccol)
+      lnrow = max(numroc(n, mbrow, irow, 0, nprocrow),1)
+      lncol = max(numroc(n, mbcol, icol, 0, nproccol),1)
       write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
   
       ! Initialize descriptor arrays.
@@ -530,8 +530,8 @@ subroutine diagonalizeHamiltonianParallel(iproc, nproc, norb, ham, ovrlp, eval)
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
       ! Determine the size of the matrix (lnrow x lncol):
-      lnrow = numroc(norb, mbrow, irow, 0, nprocrow)
-      lncol = numroc(norb, mbcol, icol, 0, nproccol)
+      lnrow = max(numroc(norb, mbrow, irow, 0, nprocrow),1)
+      lncol = max(numroc(norb, mbcol, icol, 0, nproccol),1)
       write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
   
       ! Initialize descriptor arrays.

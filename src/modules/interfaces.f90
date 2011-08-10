@@ -2618,7 +2618,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine calculateOverlapMatrix
      
      
-     subroutine calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtom, ovrlp)
+     subroutine calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtom, mad, ovrlp)
        use module_base
        use module_types
        implicit none
@@ -2627,6 +2627,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(in):: op
        type(p2pCommsOrthonormality),intent(inout):: comon
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+       type(matrixDescriptors),intent(in):: mad
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
      end subroutine calculateOverlapMatrix2
      
@@ -2684,7 +2685,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-                blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, lphi, ovrlp)
+                blocksize_pdgemm, orbs, op, comon, lzd, onWhichAtomAll, convCritOrtho, input, mad, lphi, ovrlp)
        use module_base
        use module_types
        implicit none
@@ -2696,6 +2697,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
        real(8),intent(in):: convCritOrtho
        type(input_variables),intent(in):: input
+       type(matrixDescriptors),intent(in):: mad
        real(8),dimension(orbs%npsidim),intent(inout):: lphi
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
      end subroutine orthonormalizeLocalized
@@ -2778,7 +2780,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine gatherDerivativeOrbitals
 
 
-     subroutine getMatrixElements2(iproc, nproc, lzd, orbs, op_lb, comon_lb, lphi, lhphi, matrixElements)
+     subroutine getMatrixElements2(iproc, nproc, lzd, orbs, op_lb, comon_lb, lphi, lhphi, mad, matrixElements)
        use module_base
        use module_types
        implicit none
@@ -2788,6 +2790,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(overlapParameters),intent(inout):: op_lb
        type(p2pCommsOrthonormality),intent(inout):: comon_lb
        real(8),dimension(orbs%npsidim),intent(in):: lphi, lhphi
+       type(matrixDescriptors),intent(in):: mad
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: matrixElements
      end subroutine getMatrixElements2
 
@@ -3096,8 +3099,20 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
      end subroutine expandOrbital2
 
+     subroutine getOverlapMatrix(iproc, nproc, lin, input, lphi, mad, ovrlp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(linearParameters),intent(inout):: lin
+       type(input_variables),intent(in):: input
+       real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
+       type(matrixDescriptors),intent(in):: mad
+       real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
+     end subroutine getOverlapMatrix
 
-     subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, ovrlp)
+
+     subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad, ovrlp)
        use module_base
        use module_types
        implicit none
@@ -3107,6 +3122,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(p2pCommsOrthonormality),intent(inout):: comon_lb
        type(overlapParameters),intent(inout):: op_lb
        real(8),dimension(orbs%npsidim),intent(inout):: lphi
+       type(matrixDescriptors),intent(in):: mad
        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
      end subroutine getOverlapMatrix2
 
@@ -3574,6 +3590,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       character(len=*),intent(in):: subname
     end subroutine deallocate_p2pCommsOrthonormalityMatrix
 
+    subroutine deallocate_matrixDescriptors(mad, subname)
+      use module_base
+      use module_types
+      implicit none
+      type(matrixDescriptors),intent(inout):: mad
+      character(len=*),intent(in):: subname
+    end subroutine deallocate_matrixDescriptors
+
+
     subroutine cancelCommunicationPotential(iproc, nproc, comgp)
       use module_base
       use module_types
@@ -3748,7 +3773,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
     subroutine orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
-               blocksize_pdgemm, convCritOrtho, lzd, orbs, comon, op, input, lchi)
+               blocksize_pdgemm, convCritOrtho, lzd, orbs, comon, op, input, mad, lchi)
       use module_base
       use module_types
       implicit none
@@ -3760,6 +3785,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(input_variables),intent(in):: input
       type(p2pCommsOrthonormality),intent(inout):: comon
       type(overlapParameters),intent(inout):: op
+      type(matrixDescriptors),intent(in):: mad
       real(8),dimension(orbs%npsidim),intent(inout):: lchi
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
@@ -3817,7 +3843,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine getHamiltonianMatrix3
 
       subroutine getHamiltonianMatrix4(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, norb_parTemp, onWhichMPITemp, &
-                 Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, ham)
+                 Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, ham)
         use module_base
         use module_types
         implicit none
@@ -3833,6 +3859,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(orbsig%npsidim),intent(in):: lchi
         real(8),dimension(orbsig%npsidim,ndim_lhchi),intent(in):: lhchi
         logical,dimension(lzdig%nlr),intent(in):: skip
+        type(matrixDescriptors),intent(in):: mad
         real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
       end subroutine getHamiltonianMatrix4
 
@@ -4020,6 +4047,30 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine transformOverlapMatrixParallel
 
+
+      subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc
+        type(orbitals_data),intent(in):: orbs
+        type(overlapParameters),intent(in):: op
+        type(matrixDescriptors),intent(out):: mad
+      end subroutine initMatrixCompression
+
+      subroutine orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, mad, trH)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc
+        type(linearParameters),intent(inout):: lin
+        type(input_variables),intent(in):: input
+        real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(in):: ovrlp
+        real(8),dimension(lin%orbs%npsidim),intent(in):: lphi
+        real(8),dimension(lin%orbs%npsidim),intent(inout):: lhphi
+        type(matrixDescriptors),intent(in):: mad
+        real(8),intent(out):: trH
+      end subroutine orthoconstraintNonorthogonal
 
 
   end interface

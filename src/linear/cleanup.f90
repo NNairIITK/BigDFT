@@ -726,6 +726,7 @@ subroutine deallocate_linearParameters(lin, subname)
   call deallocate_linear_zone_descriptors(lin%lzd, subname)
   call deallocate_p2pCommsOrthonormality(lin%comon, subname)
   call deallocate_overlapParameters(lin%op, subname)
+  call deallocate_matrixDescriptors(lin%mad, subname)
 
 end subroutine deallocate_linearParameters
 
@@ -1208,3 +1209,23 @@ subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
   end do
 
 end subroutine deallocate_p2pCommsOrthonormalityMatrix
+
+
+subroutine deallocate_matrixDescriptors(mad, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_matrixDescriptors
+  implicit none
+  
+  ! Calling arguments
+  type(matrixDescriptors),intent(inout):: mad
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer:: iis1, iis2, iie1, iie2, i1, i2
+
+  call checkAndDeallocatePointer(mad%keyg, 'mad%keyg', subname)
+  call checkAndDeallocatePointer(mad%keyv, 'mad%keyv', subname)
+
+end subroutine deallocate_matrixDescriptors
