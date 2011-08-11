@@ -221,7 +221,7 @@ integer:: ist, ierr, iiorb, info
       !!     pkernel=pkernelseq)
       call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
            ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%lb%orbs%inWhichLocregp, withConfinement, .true., &
            pkernel=pkernelseq)
   end if
 
@@ -232,25 +232,25 @@ integer:: ist, ierr, iiorb, info
   if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
 
   ! Calculate the matrix elements <phi|H|phi>.
-  !!do iall=1,size(lphi)
-  !!    write(24000+iproc,*) lphi(iall)
-  !!end do
-  !!do iall=1,size(lhphi)
-  !!    write(25000+iproc,*) lhphi(iall)
-  !!end do
+  do iall=1,size(lphi)
+      write(24000+iproc,*) iall, lphi(iall)
+  end do
+  do iall=1,size(lhphi)
+      write(25000+iproc,*) iall, lhphi(iall)
+  end do
   !call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
   call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%mad, matrixElements)
 
-  !!if(iproc==0) then
-  !!    ierr=0
-  !!    do iall=1,lin%lb%orbs%norb
-  !!        do istat=1,lin%lb%orbs%norb
-  !!            ierr=ierr+1
-  !!            write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
-  !!        end do
-  !!    end do
-  !!    write(23000+iproc,*) '=============================='
-  !!end if
+  !if(iproc==0) then
+      ierr=0
+      do iall=1,lin%lb%orbs%norb
+          do istat=1,lin%lb%orbs%norb
+              ierr=ierr+1
+              write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
+          end do
+      end do
+      write(23000+iproc,*) '=============================='
+  !end if
 
   
 
@@ -1830,6 +1830,7 @@ integer:: ist, istr, ilr
 if(iproc==0) write(*,'(x,a)', advance='no') 'Posting sends / receives for the calculation of the charge density... '
 nreceives=0
 nsends=0
+lin%comsr%communComplete=.false.
 procLoop1: do jproc=0,nproc-1
     orbsLoop1: do iorb=1,lin%comsr%noverlaps(jproc)
         mpisource=lin%comsr%comarr(1,iorb,jproc)
@@ -1867,10 +1868,11 @@ procLoop1: do jproc=0,nproc-1
                 lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
                 nsends=nsends+1
                 nreceives=nreceives+1
-                lin%comsr%communComplete(iorb,iproc)=.true.
+                lin%comsr%communComplete(iorb,mpisource)=.true.
             else
                 lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
                 lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+                lin%comsr%communComplete(iorb,mpisource)=.true.
             end if
         end if
     end do orbsLoop1
@@ -2144,6 +2146,7 @@ integer:: jproc, kproc, nsends, nreceives, istat, mpisource, istsource, ncount, 
 if(iproc==0) write(*,'(x,a)', advance='no') 'Posting sends / receives for communicating the potential... '
 nreceives=0
 nsends=0
+comgp%communComplete=.false.
 destLoop: do jproc=0,nproc-1
     sourceLoop: do kproc=1,comgp%noverlaps(jproc)
         mpisource=comgp%comarr(1,kproc,jproc)
@@ -2182,6 +2185,7 @@ destLoop: do jproc=0,nproc-1
             else
                 comgp%comarr(7,kproc,jproc)=mpi_request_null
                 comgp%comarr(8,kproc,jproc)=mpi_request_null
+                comgp%communComplete(kproc,iproc)=.true.
             end if
         end if
     end do sourceLoop
@@ -2217,7 +2221,6 @@ logical:: sendComplete, receiveComplete
 
 
 ! Check whether the communications have completed.
-comgp%communComplete=.false.
 nfast=0
 nsameproc=0
 testLoop: do 
@@ -2226,17 +2229,18 @@ testLoop: do
            if(comgp%communComplete(kproc,jproc)) cycle
             call mpi_test(comgp%comarr(7,kproc,jproc), sendComplete, stat, ierr)      
             call mpi_test(comgp%comarr(8,kproc,jproc), receiveComplete, stat, ierr)   
+            ! Attention: mpi_test is a local function.
             if(sendComplete .and. receiveComplete) comgp%communComplete(kproc,jproc)=.true.
-            if(comgp%communComplete(kproc,jproc)) then
-                !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
-                mpisource=comgp%comarr(1,kproc,jproc)
-                mpidest=comgp%comarr(4,kproc,jproc)
-                if(mpisource/=mpidest) then
-                    nfast=nfast+1
-                else
-                    nsameproc=nsameproc+1
-                end if
-            end if
+            !!if(comgp%communComplete(kproc,jproc)) then
+            !!    !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
+            !!    mpisource=comgp%comarr(1,kproc,jproc)
+            !!    mpidest=comgp%comarr(4,kproc,jproc)
+            !!    if(mpisource/=mpidest) then
+            !!        nfast=nfast+1
+            !!    else
+            !!        nsameproc=nsameproc+1
+            !!    end if
+            !!end if
         end do
     end do
     ! If we made it until here, either all all the communication is
@@ -2244,12 +2248,23 @@ testLoop: do
     exit testLoop
 end do testLoop
 
+! Since mpi_test is a local function, check whether the communication has completed on all processes.
+call mpiallred(comgp%communComplete(1,0), nproc*maxval(comgp%noverlaps), mpi_land, mpi_comm_world, ierr)
 
 ! Wait for the communications that have not completed yet
 nslow=0
 do jproc=0,nproc-1
     do kproc=1,comgp%noverlaps(jproc)
-        if(comgp%communComplete(kproc,jproc)) cycle
+        if(comgp%communComplete(kproc,jproc)) then
+            mpisource=comgp%comarr(1,kproc,jproc)
+            mpidest=comgp%comarr(4,kproc,jproc)
+            if(mpisource==mpidest) then
+                nsameproc=nsameproc+1
+            else
+                nfast=nfast+1
+            end if
+            cycle
+        end if
         !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
         nslow=nslow+1
         call mpi_wait(comgp%comarr(7,kproc,jproc), stat, ierr)   !COMMENTED BY PB

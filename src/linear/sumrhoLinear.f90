@@ -605,8 +605,8 @@ logical:: sendComplete, receiveComplete
 
 if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
 
-lin%comsr%communComplete=.false.
-lin%comsr%computComplete=.false.
+!lin%comsr%communComplete=.false.
+!lin%comsr%computComplete=.false.
 
 
 ! Allocate the density kernel.
@@ -655,18 +655,19 @@ testLoop: do
             if(lin%comsr%communComplete(korb,jproc)) cycle
             call mpi_test(lin%comsr%comarr(8,korb,jproc), sendComplete, stat, ierr)
             call mpi_test(lin%comsr%comarr(9,korb,jproc), receiveComplete, stat, ierr)
+            ! Attention: mpi_test is a local function.
             if(sendComplete .and. receiveComplete) lin%comsr%communComplete(korb,jproc)=.true.
-            if(lin%comsr%communComplete(korb,jproc)) then
-                !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
-                mpisource=lin%comsr%comarr(1,korb,jproc)
-                mpidest=lin%comsr%comarr(5,korb,jproc)
-                if(mpisource/=mpidest) then
-                    nfast=nfast+1
-                else
-                    nsameproc=nsameproc+1
-                end if
-                lin%comsr%computComplete(korb,jproc)=.true.
-            end if
+            !!if(lin%comsr%communComplete(korb,jproc)) then
+            !!    !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
+            !!    mpisource=lin%comsr%comarr(1,korb,jproc)
+            !!    mpidest=lin%comsr%comarr(5,korb,jproc)
+            !!    if(mpisource/=mpidest) then
+            !!        nfast=nfast+1
+            !!    else
+            !!        nsameproc=nsameproc+1
+            !!    end if
+            !!    lin%comsr%computComplete(korb,jproc)=.true.
+            !!end if
         end do
     end do
     ! If we made it until here, either all all the communication is
@@ -674,12 +675,25 @@ testLoop: do
     exit testLoop
 end do testLoop
 
+! Since mpi_test is a local function, check whether the communication has completed on all processes.
+call mpiallred(lin%comsr%communComplete(1,0), nproc*maxval(lin%comsr%noverlaps), mpi_land, mpi_comm_world, ierr)
+
+
 
 ! Wait for the communications that have not completed yet
 nslow=0
 do jproc=0,nproc-1
     do korb=1,lin%comsr%noverlaps(jproc)
-        if(lin%comsr%communComplete(korb,jproc)) cycle
+        if(lin%comsr%communComplete(korb,jproc)) then
+            mpisource=lin%comsr%comarr(1,korb,jproc)
+            mpidest=lin%comsr%comarr(5,korb,jproc)
+            if(mpisource==mpidest) then
+                nsameproc=nsameproc+1
+            else
+                nfast=nfast+1
+            end if
+            cycle
+        end if
         !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
         nslow=nslow+1
         call mpi_wait(lin%comsr%comarr(8,korb,jproc), stat, ierr)
@@ -689,10 +703,10 @@ do jproc=0,nproc-1
     end do
 end do
 
-call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
+!call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
+!call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
+!call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
+!call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
 if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
                        nfast, ' could be overlapped with computation.'
 if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
@@ -703,10 +717,10 @@ do iorb=1,lin%comsr%noverlaps(iproc)
         write(*,'(a,i0,a,i0,a)') 'ERROR: communication of orbital ', iorb, ' to process ', iproc, ' failed!'
         stop
     end if
-    if(.not. lin%comsr%computComplete(iorb,iproc)) then
-        write(*,'(a,i0,a,i0,a)') 'ERROR: computation of orbital ', iorb, ' on process ', iproc, ' failed!'
-        stop
-    end if
+    !!if(.not. lin%comsr%computComplete(iorb,iproc)) then
+    !!    write(*,'(a,i0,a,i0,a)') 'ERROR: computation of orbital ', iorb, ' on process ', iproc, ' failed!'
+    !!    stop
+    !!end if
 end do
 
 

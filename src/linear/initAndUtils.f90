@@ -288,6 +288,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   read(99,*) lin%getCoeff
   read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
   read(99,*) lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho
+  read(99,*) lin%correctionOrthoconstraint
   read(99,*) lin%nItCoeff, lin%convCritCoeff
   read(99,*) lin%mixingMethod
   read(99,*) lin%mixHist, lin%nItSCC, lin%alphaMix, lin%convCritMix
@@ -398,11 +399,17 @@ write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)') '|', &
      lin%mixingMethod, '|', message1, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
      lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|'
 write(*,'(4x,a)') '-------------------------------------------------------------------'
-write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals |'
-write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  |'
-write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
+write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  |'
+write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  | orthoconstraint |'
+if(lin%correctionOrthoconstraint==0) then
+    message1='  yes   '
+else if(lin%correctionOrthoconstraint==1) then
+    message1='  no    '
+end if
+write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
      lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
-     lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|'
+     lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|', &
+     message1, '|'
 write(*,'(4x,a)') '----------------------------------------------------------------------'
 write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
 write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'

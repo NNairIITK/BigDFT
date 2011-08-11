@@ -241,7 +241,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,
   character(len=*), parameter :: subname='LinearHamiltonianApplicationConfinement2'
   logical :: exctX,op2p
   integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat, i3s, i3e, ind1, ind2, ldim, gdim, jlr
-  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
+  integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi, localnorb
   integer :: ilr,dimwf,ind,size_Lpot,size_pot
   integer :: tmp_norbp, istorb
   real(dp),dimension(:),pointer:: Lpot
@@ -276,11 +276,25 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,
   eproj_sum= 0.0_gp
   ind = 1
   istorb=1
+  !write(*,'(a,i6,4x,100i4)') 'iproc, orbs%inWhichLocregp', iproc, orbs%inWhichLocregp
   do ilr= 1, Lzd%nlr
+     if(lin%useDerivativeBasisFunctions) then
+         ! Set localnorb if we use the derivative basis functions.
+         localnorb=0
+         do iorb=1,orbs%norbp
+             if(orbs%inWhichLocregp(iorb)==ilr) then
+                 localnorb = localnorb+1
+             end if
+         end do
+     else
+         localnorb=lzd%Llr(ilr)%localnorb
+     end if
+     !write(*,'(a,3i7)') 'iproc, ilr, localnorb', iproc, ilr, localnorb
      ! Cycle if the process does not have any orbitals belonging
      ! to this localization region.
      !write(*,'(a,3i8)') 'iproc, ilr, Lzd%Llr(ilr)%Localnorb', iproc, ilr, Lzd%Llr(ilr)%Localnorb
-     if(Lzd%Llr(ilr)%Localnorb == 0) then
+     !if(Lzd%Llr(ilr)%Localnorb == 0) then
+     if(localnorb == 0) then
          !write(*,'(a,i0,a,i0)') 'process ',iproc,' cycles for ilr=',ilr
          cycle
      end if
@@ -288,8 +302,8 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,
      ! If no calculation for this localization region is required, only increase the index
      if(present(doNotCalculate)) then
          if(doNotCalculate(ilr)) then
-             dimwf=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*&
-                   orbs%nspinor*nspin
+             !dimwf=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*orbs%nspinor*nspin
+             dimwf=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*localnorb*orbs%nspinor*nspin
              ind = ind + dimwf
              !write(*,'(a,i0,a,i0)') 'process ',iproc,' cycles for locreg ',ilr
              cycle
@@ -327,8 +341,8 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,
 
      ! Set some quantities: ispot=shift for potential, dimwf=dimension of wavefunction
      ispot=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin+1
-     dimwf=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*&
-           orbs%nspinor*nspin
+     !dimwf=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%Llr(ilr)%Localnorb*orbs%nspinor*nspin
+     dimwf=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*localnorb*orbs%nspinor*nspin
 
      ! EXACT EXCHANGE NOT TESTED: SHOULD CHECK IF EVERYTHING IF FINE
      !fill the rest of the potential with the exact-exchange terms
@@ -376,8 +390,10 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,
 !     end do
 
      if(OCLconv .and. ASYNCconv) then
+       !allocate(hpsi2((Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor*&
+       !         Lzd%Llr(ilr)%Localnorb*nspin),stat=i_stat)
        allocate(hpsi2((Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor*&
-                Lzd%Llr(ilr)%Localnorb*nspin),stat=i_stat)
+                localnorb*nspin),stat=i_stat)
        call memocc(i_stat,hpsi2,'hpsi2',subname)
        hpsi(:)=0.0
      else
@@ -390,7 +406,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,
         call local_hamiltonian_OCL(iproc,orbs,Lzd%Llr(ilr),hx,hy,hz,nspin,Lpot,psi(ind:ind+dimwf-1),&
              hpsi2,tmp_ekin_sum,tmp_epot_sum,GPU,ekin,epot,ilr)
      else
-        call local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lzd%Llr(ilr), lzd%Llr(ilr)%localnorb, hx, hy, hz, &
+        call local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lzd%Llr(ilr), localnorb, hx, hy, hz, &
               nspin, size_Lpot, Lpot, psi(ind), hpsi(ind), tmp_ekin_sum, tmp_epot_sum, lin, at, rxyz, onWhichAtomp, withConfinement)
         !!do i_stat=ind,ind+dimwf-1
         !!    !write(7300+iproc,*) hpsi(i_stat)
@@ -496,7 +512,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,
         !call apply_local_projectors(ilr,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),projCopy,orbs,&
         !         Lzd%Llr(ilr)%projflg,psi(ind:ind+dimwf-1),rxyz,hpsi(ind:ind+dimwf-1),eproj_sum)
                                                                     
-        call apply_local_projectors2(ilr,iproc,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),orbs,&
+        call apply_local_projectors2(ilr,iproc,localnorb,nspin,at,hx,hy,hz,Lzd%Llr(ilr),Lzd%Lnlpspd(ilr),orbs,&
                  Lzd%Llr(ilr)%projflg,psi(ind),rxyz,hpsi(ind),eproj_sum)
         !!do i_stat=ind,ind+dimwf-1
         !!    !write(7200+iproc,*) psi(i_stat)
@@ -618,7 +634,8 @@ subroutine local_hamiltonian_LinearConfinement(iproc, nproc, ilr, orbs, lr, norb
   character(len=*), parameter :: subname='local_hamiltonian_Linear'
   integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
   integer :: ii,orbtot
-  integer,dimension(lr%localnorb*nspin) :: inthisLocreg
+  !integer,dimension(lr%localnorb*nspin) :: inthisLocreg
+  integer,dimension(norb*nspin) :: inthisLocreg
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,etest, hxh, hyh, hzh
   type(workarr_locham) :: wrk_lh
@@ -658,7 +675,8 @@ integer:: i, j, jj
      end if
   end do 
   
-  if (orbtot .ne. lr%localnorb*nspin) then
+  !if (orbtot .ne. lr%localnorb*nspin) then
+  if (orbtot .ne. norb*nspin) then
      write(*,'(3(a,i0))') 'process ',iproc, ': Problem in local_hamiltonian_Linear, orbtot=',orbtot,&
      ' is not equal to localnorb=',lr%localnorb*nspin
      stop
