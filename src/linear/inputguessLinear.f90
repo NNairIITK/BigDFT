@@ -1034,7 +1034,8 @@ do iat=1,lzdig%nlr
         !write(*,'(2(a,i0))') 'iproc ',iproc,' skips locreg ',iat
         call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, zeroArray(1), comon)
     end if
-    call calculateOverlapMatrix2(iproc, nproc, orbsig, op, comon, onWhichAtom, mad, hamTemp(1,1))
+    !!call calculateOverlapMatrix2(iproc, nproc, orbsig, op, comon, onWhichAtom, mad, hamTemp(1,1))
+    call calculateOverlapMatrix3(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
     if(iproc==0) write(*,'(a)') 'done.'
     
     ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved

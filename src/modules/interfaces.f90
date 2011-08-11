@@ -2618,18 +2618,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine calculateOverlapMatrix
      
      
-     subroutine calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtom, mad, ovrlp)
-       use module_base
-       use module_types
-       implicit none
-       integer,intent(in):: iproc, nproc
-       type(orbitals_data),intent(in):: orbs
-       type(overlapParameters),intent(in):: op
-       type(p2pCommsOrthonormality),intent(inout):: comon
-       integer,dimension(orbs%norb),intent(in):: onWhichAtom
-       type(matrixDescriptors),intent(in):: mad
-       real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
-     end subroutine calculateOverlapMatrix2
+     !!subroutine calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtom, mad, ovrlp)
+     !!  use module_base
+     !!  use module_types
+     !!  implicit none
+     !!  integer,intent(in):: iproc, nproc
+     !!  type(orbitals_data),intent(in):: orbs
+     !!  type(overlapParameters),intent(in):: op
+     !!  type(p2pCommsOrthonormality),intent(inout):: comon
+     !!  integer,dimension(orbs%norb),intent(in):: onWhichAtom
+     !!  type(matrixDescriptors),intent(in):: mad
+     !!  real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+     !!end subroutine calculateOverlapMatrix2
      
      subroutine transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, norb, ovrlp)
        use module_base
@@ -3972,7 +3972,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(nsendBuf),intent(out):: sendBuf
       end subroutine extractOrbital3
 
-      subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf, sendBuf, nrecvBuf, recvBuf, ovrlp)
+      subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf, sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
         use module_base
         use module_types
         implicit none
@@ -3982,6 +3982,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
         real(8),dimension(nsendBuf),intent(in):: sendBuf
         real(8),dimension(nrecvBuf),intent(in):: recvBuf
+        type(matrixDescriptors),intent(in):: mad
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
       end subroutine calculateOverlapMatrix3
 

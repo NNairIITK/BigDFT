@@ -54,7 +54,11 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       call cpu_time(t2)
       timeCommun=timeCommun+t2-t1
       call cpu_time(t1)
-      call calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtomAll, mad, ovrlp)
+      !call calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtomAll, mad, ovrlp)
+      call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
+                                   comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
+      !call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
+      !                             sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, lagmat)
       call deallocateSendBufferOrtho(comon, subname)
       call cpu_time(t2)
       timeCalcOvrlp=timeCalcOvrlp+t2-t1
@@ -270,7 +274,7 @@ logical,dimension(:,:),allocatable:: expanded
   !!end do
   !call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, lagmat)
   call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
-                               sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, lagmat)
+                               sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, lagmat)
   call cpu_time(t2)
   timeCalcMatrix=t2-t1
   trH=0.d0
@@ -560,7 +564,9 @@ logical:: converged
   call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
   call postCommsOverlap(iproc, nproc, lin%comon)
   call gatherOrbitals2(iproc, nproc, lin%comon)
-  call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, mad, ovrlp)
+  !!call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, mad, ovrlp)
+  call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
+                               lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, ovrlp)
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
 
   iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
@@ -600,7 +606,9 @@ logical:: converged
   call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lphi, comon_lb)
   call postCommsOverlap(iproc, nproc, comon_lb)
   call gatherOrbitals2(iproc, nproc, comon_lb)
-  call calculateOverlapMatrix2(iproc, nproc, orbs, op_lb, comon_lb, orbs%inWhichLocreg, mad, ovrlp)
+  !!call calculateOverlapMatrix2(iproc, nproc, orbs, op_lb, comon_lb, orbs%inWhichLocreg, mad, ovrlp)
+  call calculateOverlapMatrix3(iproc, nproc, orbs, op_lb, orbs%inWhichLocreg, comon_lb%nsendBuf, &
+                               comon_lb%sendBuf, comon_lb%nrecvBuf, comon_lb%recvBuf, mad, ovrlp)
   call deallocateCommuncationBuffersOrtho(comon_lb, subname)
 
 end subroutine getOverlapMatrix2
@@ -1833,7 +1841,7 @@ end subroutine calculateOverlapMatrix2
 
 
 
-subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf, sendBuf, nrecvBuf, recvBuf, ovrlp)
+subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, onWhichAtom, nsendBuf, sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
 use module_base
 use module_types
 implicit none
@@ -1845,11 +1853,15 @@ type(overlapParameters),intent(in):: op
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 real(8),dimension(nsendBuf),intent(in):: sendBuf
 real(8),dimension(nrecvBuf),intent(in):: recvBuf
+type(matrixDescriptors),intent(in):: mad
 real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 
 ! Local variables
-integer:: iorb, jorb, iiorb, jjorb, jjproc, ii, ist, jst, jjlr, istat, ncount, ierr, jj, korb, kkorb, iilr, iiproc
+integer:: iorb, jorb, iiorb, jjorb, jjproc, ii, ist, jst, jjlr, ncount, ierr, jj, korb, kkorb, iilr, iiproc, istat, iall
 real(8):: ddot
+real(8),dimension(:),allocatable:: ovrlpCompressed
+character(len=*),parameter:: subname='calculateOverlapMatrix3'
+
 
 ovrlp=0.d0
 
@@ -1889,7 +1901,18 @@ do iorb=1,orbs%norbp
 end do
 
 
-call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+allocate(ovrlpCompressed(mad%nvctr), stat=istat)
+call memocc(istat, ovrlpCompressed, 'ovrlpCompressed', subname)
+
+call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
+call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
+call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
+
+iall=-product(shape(ovrlpCompressed))*kind(ovrlpCompressed)
+deallocate(ovrlpCompressed, stat=istat)
+call memocc(istat, iall, 'ovrlpCompressed', subname)
+
+!!call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
 end subroutine calculateOverlapMatrix3
 
@@ -2605,11 +2628,6 @@ if(blocksize_pdgemm<0) then
     !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
     call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
          0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
-    !!do iorb=1,orbs%norb
-    !!    do jorb=1,orbs%norb
-    !!        write(4100+iproc,'(2i7,es25.17)') iorb,jorb,lagmat(jorb,iorb)
-    !!    end do
-    !!end do
     ! Transpose lagmat
     do iorb=1,orbs%norb
         do jorb=iorb+1,orbs%norb
@@ -2618,18 +2636,8 @@ if(blocksize_pdgemm<0) then
             lagmat(iorb,jorb)=tt
         end do
     end do
-    !!do iorb=1,orbs%norb
-    !!    do jorb=1,orbs%norb
-    !!        write(4200+iproc,'(2i7,es25.17)') iorb,jorb,lagmat(jorb,iorb)
-    !!    end do
-    !!end do
     call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
          0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
-    !!do iorb=1,orbs%norb
-    !!    do jorb=1,orbs%norb
-    !!        write(5000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp_minus_one_lagmat(jorb,iorb), ovrlp_minus_one_lagmat_trans(jorb,iorb)
-    !!    end do
-    !!end do
 else
     call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
          0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
@@ -2643,16 +2651,7 @@ else
     end do
     call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
          0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
-    !!call dgemm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-    !!     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
-    !!call dgemm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-    !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
 end if
-!!do iorb=1,orbs%norb
-!!    do jorb=1,orbs%norb
-!!        write(4000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp_minus_one_lagmat(jorb,iorb), ovrlp_minus_one_lagmat_trans(jorb,iorb)
-!!    end do
-!!end do
 call cpu_time(t2)
 time_dsymm=t2-t1
 
@@ -2900,7 +2899,9 @@ character(len=*),parameter:: subname='getMatrixElements'
   call gatherOrbitals2(iproc, nproc, comon_lb)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, orbs%inWhichLocreg, lzd, op_lb, lhphi, comon_lb)
-  call calculateOverlapMatrix2(iproc, nproc, orbs, op_lb, comon_lb, orbs%inWhichLocreg, mad, matrixElements)
+  !!call calculateOverlapMatrix2(iproc, nproc, orbs, op_lb, comon_lb, orbs%inWhichLocreg, mad, matrixElements)
+  call calculateOverlapMatrix3(iproc, nproc, orbs, op_lb, orbs%inWhichLocreg, comon_lb%nsendBuf, &
+                               comon_lb%sendBuf, comon_lb%nrecvBuf, comon_lb%recvBuf, mad, matrixElements)
   !!if(iproc==0) then
   !!    do iall=1,orbs%norb
   !!        do istat=1,orbs%norb

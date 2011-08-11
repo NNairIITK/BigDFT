@@ -117,7 +117,6 @@ if(iproc==0) call writeLinearParameters(iproc, nproc, at, lin, atomNames, lin%no
 ! Do some checks on the input parameters.
 call checkLinearParameters(iproc, nproc, lin)
 
-if(iproc==0) write(*,'(x,a)',advance='no') 'Doing many initializations...'
 
 ! Allocate (almost) all remaining arrays.
 call allocateLinArrays(lin)
@@ -143,7 +142,9 @@ call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! Initialize the localization regions.
+if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing localization regions... '
 call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
+if(iproc==0) write(*,'(a)') 'done.'
 
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
@@ -158,7 +159,9 @@ call initCoefficients(iproc, orbs, lin, coeff)
 
 ! Initialize the parameters for the point to point communication for the
 ! calculation of the charge density.
+if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications sumrho... '
 call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
+if(iproc==0) write(*,'(a)') 'done.'
 !call allocateCommunicationbufferSumrho(lin%comsr, subname)
 
 ! Copy Glr to lin%lzd
@@ -194,12 +197,16 @@ end do
 
 ! Initialize the parameters for the communication for the
 ! potential.
+if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications potential... '
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%orbs%inWhichLocreg, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lzd, lin%lb%comgp, lin%lb%orbs%inWhichLocreg, tag)
+if(iproc==0) write(*,'(a)') 'done.'
 
 ! Initialize the parameters for the communication for the orthonormalization.
+if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications orthonormalization... '
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
+if(iproc==0) write(*,'(a)') 'done.'
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
@@ -221,7 +228,9 @@ iall=-product(shape(norbsPerAtom))*kind(norbsPerAtom)
 deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
+if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing input guess... '
 call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr)
+if(iproc==0) write(*,'(a)') 'done.'
 
 ! The initializations are done.
 if(iproc==0) write(*,'(a)') 'done.'
@@ -230,7 +239,9 @@ if(iproc==0) write(*,'(a)') 'done.'
 call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 
 
+if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing matrix compression... '
 call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
+if(iproc==0) write(*,'(a)') 'done.'
 
 end subroutine allocateAndInitializeLinear
 
