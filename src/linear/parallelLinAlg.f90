@@ -466,36 +466,38 @@ end subroutine dsyev_parallel
 
 
 
-subroutine diagonalizeHamiltonianParallel(iproc, nproc, norb, ham, ovrlp, eval)
+subroutine dsygv_parallel(iproc, nproc, blocksize, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, norb
-  real(8),dimension(norb,norb),intent(inout):: ham, ovrlp
-  real(8),dimension(norb),intent(out):: eval
+  integer,intent(in):: iproc, nproc, blocksize, comm, itype, n, lda, ldb, info
+  character(len=1),intent(in):: jobz, uplo
+  real(8),dimension(lda,n),intent(inout):: a
+  real(8),dimension(ldb,n),intent(inout):: b
+  real(8),dimension(n),intent(out):: w
   
   ! Local variables
-  integer:: ierr, mbrow, mbcol, i, j, istat, lwork, info, ii1, ii2, nproc_scalapack, iall
-  integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed
+  integer:: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
+  integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, nw_found, nw_computed
   real(8):: tt1, tt2
-  real(8),dimension(:,:),allocatable:: lmat, loverlap, levec
+  real(8),dimension(:,:),allocatable:: la, lb, lz
   real(8),dimension(:),allocatable:: work, gap
-  integer,dimension(9):: desc_levec, desc_lmat, desc_loverlap
+  integer,dimension(9):: desc_lz, desc_la, desc_lb
   integer,dimension(:),allocatable:: iwork, ifail, icluster
-  character(len=*),parameter:: subname='diagonalizeHamiltonianParallel'
+  character(len=*),parameter:: subname='dsygv_parallel'
   
   
   
   
   ! Block size for scalapack
-  mbrow=64
-  mbcol=64
+  mbrow=blocksize
+  mbcol=blocksize
   
   ! Number of processes that will be involved in the calculation
-  tt1=dble(norb)/dble(mbrow)
-  tt2=dble(norb)/dble(mbcol)
+  tt1=dble(n)/dble(mbrow)
+  tt2=dble(n)/dble(mbcol)
   ii1=ceiling(tt1)
   ii2=ceiling(tt2)
   nproc_scalapack = min(ii1*ii2,nproc)
@@ -525,42 +527,42 @@ subroutine diagonalizeHamiltonianParallel(iproc, nproc, norb, ham, ovrlp, eval)
   ! For processes participating in the diagonalization, 
   ! it will be partially (only at the position that process was working on) overwritten with the result. 
   ! At the end we can the make an allreduce to get the correct result on all processes.
-  if(irow==-1) ham=0.d0
+  if(irow==-1) a=0.d0
   
   ! Everything that follows is only done if the current process is part of the grid.
   processIf: if(irow/=-1) then
       ! Determine the size of the matrix (lnrow x lncol):
-      lnrow = max(numroc(norb, mbrow, irow, 0, nprocrow),1)
-      lncol = max(numroc(norb, mbcol, icol, 0, nproccol),1)
+      lnrow = max(numroc(n, mbrow, irow, 0, nprocrow),1)
+      lncol = max(numroc(n, mbcol, icol, 0, nproccol),1)
       write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
   
       ! Initialize descriptor arrays.
-      call descinit(desc_lmat, norb, norb, mbrow, mbcol, 0, 0, context, lnrow, info)
-      call descinit(desc_loverlap, norb, norb, mbrow, mbcol, 0, 0, context, lnrow, info)
-      call descinit(desc_levec, norb, norb, mbrow, mbcol, 0, 0, context, lnrow, info)
+      call descinit(desc_la, n, n, mbrow, mbcol, 0, 0, context, lnrow, info)
+      call descinit(desc_lb, n, n, mbrow, mbcol, 0, 0, context, lnrow, info)
+      call descinit(desc_lz, n, n, mbrow, mbcol, 0, 0, context, lnrow, info)
   
-      ! Allocate the local array lmat
-      allocate(lmat(lnrow,lncol), stat=istat)
-      call memocc(istat, lmat, 'lmat', subname)
-      allocate(loverlap(lnrow,lncol), stat=istat)
-      call memocc(istat, loverlap, 'loverlap', subname)
+      ! Allocate the local array la
+      allocate(la(lnrow,lncol), stat=istat)
+      call memocc(istat, la, 'la', subname)
+      allocate(lb(lnrow,lncol), stat=istat)
+      call memocc(istat, lb, 'lb', subname)
   
-      ! Copy the global array mat to the local array lmat.
-      ! The same for loverlap and overlap, respectively.
-      !call dcopy(norb**2, ham(1,1), 1, mat(1,1), 1)
-      !call dcopy(norb**2, ovrlp(1,1), 1, overlap(1,1), 1)
-      do i=1,norb
-          do j=1,norb
-              call pdelset(lmat(1,1), j, i, desc_lmat, ham(j,i))
-              call pdelset(loverlap(1,1), j, i, desc_loverlap, ovrlp(j,i))
+      ! Copy the global array mat to the local array la.
+      ! The same for lb and b, respectively.
+      !call dcopy(n**2, a(1,1), 1, mat(1,1), 1)
+      !call dcopy(n**2, b(1,1), 1, b(1,1), 1)
+      do i=1,n
+          do j=1,n
+              call pdelset(la(1,1), j, i, desc_la, a(j,i))
+              call pdelset(lb(1,1), j, i, desc_lb, b(j,i))
           end do
       end do
   
   
       ! Solve the generalized eigenvalue problem.
-      allocate(levec(lnrow,lncol), stat=istat)
-      call memocc(istat, levec, 'levec', subname)
-      allocate(ifail(norb), stat=istat)
+      allocate(lz(lnrow,lncol), stat=istat)
+      call memocc(istat, lz, 'lz', subname)
+      allocate(ifail(n), stat=istat)
       call memocc(istat, ifail, 'ifail', subname)
       allocate(icluster(2*nprocrow*nproccol), stat=istat)
       call memocc(istat, icluster, 'icluster', subname)
@@ -574,9 +576,9 @@ subroutine diagonalizeHamiltonianParallel(iproc, nproc, norb, ham, ovrlp, eval)
       call memocc(istat, work, 'work', subname)
       allocate(iwork(1), stat=istat) ; if(istat/=0) stop 'ERROR in allocating'
       call memocc(istat, iwork, 'iwork', subname)
-      call pdsygvx(1, 'v', 'a', 'l', norb, lmat(1,1), 1, 1, desc_lmat, loverlap(1,1), 1, 1, &
-                   desc_loverlap, 0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, eval(1), &
-                   -1.d0, levec(1,1), 1, 1, desc_levec, work, lwork, iwork, liwork, &
+      call pdsygvx(itype, jobz, 'a', uplo, n, la(1,1), 1, 1, desc_la, lb(1,1), 1, 1, &
+                   desc_lb, 0.d0, 1.d0, 0, 1, -1.d0, nw_found, nw_computed, w(1), &
+                   -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
                    ifail, icluster, gap, info)
       lwork=ceiling(work(1))
       liwork=iwork(1)
@@ -593,30 +595,30 @@ subroutine diagonalizeHamiltonianParallel(iproc, nproc, norb, ham, ovrlp, eval)
       allocate(iwork(liwork), stat=istat)
       call memocc(istat, iwork, 'iwork', subname)
   
-      call pdsygvx(1, 'v', 'a', 'l', norb, lmat(1,1), 1, 1, desc_lmat, loverlap(1,1), 1, 1, &
-                   desc_loverlap, 0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, eval(1), &
-                   -1.d0, levec(1,1), 1, 1, desc_levec, work, lwork, iwork, liwork, &
+      call pdsygvx(1, 'v', 'a', 'l', n, la(1,1), 1, 1, desc_la, lb(1,1), 1, 1, &
+                   desc_lb, 0.d0, 1.d0, 0, 1, -1.d0, nw_found, nw_computed, w(1), &
+                   -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
                    ifail, icluster, gap, info)
   
       ! Gather together the eigenvectors from all processes and store them in mat.
-      do i=1,norb
-          do j=1,norb
-              call pdelset2(ham(j,i), levec(1,1), j, i, desc_lmat, 0.d0)
+      do i=1,n
+          do j=1,n
+              call pdelset2(a(j,i), lz(1,1), j, i, desc_la, 0.d0)
           end do
       end do
   
   
-      iall=-product(shape(lmat))*kind(lmat)
-      deallocate(lmat, stat=istat)
-      call memocc(istat, iall, 'lmat', subname)
+      iall=-product(shape(la))*kind(la)
+      deallocate(la, stat=istat)
+      call memocc(istat, iall, 'la', subname)
   
-      iall=-product(shape(levec))*kind(levec)
-      deallocate(levec, stat=istat)
-      call memocc(istat, iall, 'levec', subname)
+      iall=-product(shape(lz))*kind(lz)
+      deallocate(lz, stat=istat)
+      call memocc(istat, iall, 'lz', subname)
   
-      iall=-product(shape(loverlap))*kind(loverlap)
-      deallocate(loverlap, stat=istat)
-      call memocc(istat, iall, 'loverlap', subname)
+      iall=-product(shape(lb))*kind(lb)
+      deallocate(lb, stat=istat)
+      call memocc(istat, iall, 'lb', subname)
   
       iall=-product(shape(work))*kind(work)
       deallocate(work, stat=istat)
@@ -641,14 +643,14 @@ subroutine diagonalizeHamiltonianParallel(iproc, nproc, norb, ham, ovrlp, eval)
   end if processIF
   
   ! Gather the eigenvectors on all processes.
-  call mpiallred(ham(1,1), norb**2, mpi_sum, mpi_comm_world, ierr)
+  call mpiallred(a(1,1), n**2, mpi_sum, mpi_comm_world, ierr)
   
   ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
   ! diagonalized the matrix and therefore have the eigenvalues.
   if(nproc_scalapack/=nproc) then
-      call mpi_bcast(eval(1), norb, mpi_double_precision, 0, mpi_comm_world, ierr)
+      call mpi_bcast(w(1), n, mpi_double_precision, 0, mpi_comm_world, ierr)
       call mpi_bcast(info, 1, mpi_integer, 0, mpi_comm_world, ierr)
   end if
 
 
-end subroutine diagonalizeHamiltonianParallel
+end subroutine dsygv_parallel

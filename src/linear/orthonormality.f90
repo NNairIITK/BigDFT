@@ -2530,8 +2530,8 @@ real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
 real(8),dimension(lorbs%npsidim),intent(out):: lhphi
 
 ! Local variables
-integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, info, i, istat, iall
-real(8):: tt
+integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, info, i, istat, iall, ierr
+real(8):: tt, t1, t2, time_dsymm, time_daxpy
 real(8),dimension(:,:),allocatable:: ovrlp2
 real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
 character(len=*),parameter:: subname='applyOrthoconstraintNonorthogonal2'
@@ -2597,6 +2597,7 @@ end do
 !!!    end do
 !!!end do
 !!!!! ######################################################
+call cpu_time(t1)
 if(blocksize_pdgemm<0) then
     !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !!     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
@@ -2652,8 +2653,11 @@ end if
 !!        write(4000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp_minus_one_lagmat(jorb,iorb), ovrlp_minus_one_lagmat_trans(jorb,iorb)
 !!    end do
 !!end do
+call cpu_time(t2)
+time_dsymm=t2-t1
 
 
+call cpu_time(t1)
 ist=1
 jst=1
 ilrold=-1
@@ -2675,6 +2679,13 @@ do iorb=1,orbs%norbp
     ist=ist+ncount
     ilrold=ilr
 end do
+call cpu_time(t2)
+time_daxpy=t2-t1
+
+call mpiallred(time_dsymm, 1, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(time_daxpy, 1, mpi_sum, mpi_comm_world, ierr)
+if(iproc==0) write(*,'(a,es15.6)') 'time for dsymm',time_dsymm/dble(nproc)
+if(iproc==0) write(*,'(a,es15.6)') 'time for daxpy',time_daxpy/dble(nproc)
 
 
 iall=-product(shape(ovrlp_minus_one_lagmat))*kind(ovrlp_minus_one_lagmat)
