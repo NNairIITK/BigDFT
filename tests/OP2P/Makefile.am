@@ -21,7 +21,7 @@ CLEANFILES = op2p_check.out \
 
 AM_FCFLAGS = -I../../src/modules -I../../src/ @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 
 
-op2p_check_SOURCES = op2p_module.f90 mpi_layer.f90 example.f90 
+op2p_check_SOURCES = mpi_layer.f90 example.f90 
 op2p_check_LDADD =  $(top_builddir)/src/libbigdft.a \
 	$(top_builddir)/src/PSolver/libpoissonsolver.a \
 	$(libs_dgemmsy)

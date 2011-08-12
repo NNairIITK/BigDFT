@@ -3,12 +3,12 @@ module mpi_layer
   implicit none
   private
 
-  public :: send_mpi,receive_mpi,wait_mpi_profile
+  public :: send_mpi_profile,receive_mpi_profile,wait_mpi_profile
 
 contains
 
   !> fake receiving of the arrays
-  subroutine receive_mpi(istep,isendproc,irecvproc,ncount,itag,irequest,recvbuf)
+  subroutine receive_mpi_profile(istep,isendproc,irecvproc,ncount,itag,irequest,recvbuf)
     implicit none
     integer, intent(in) :: istep,isendproc,irecvproc,ncount,itag,irequest
     real(kind=8), intent(in) :: recvbuf
@@ -26,10 +26,10 @@ contains
        write(*,*)'ERROR in IRECV, iproc, istep',irecvproc,istep
     end if
 
-  end subroutine receive_mpi
+  end subroutine receive_mpi_profile
 
   !> fake sending of the arrays
-  subroutine send_mpi(istep,isendproc,irecvproc,ncount,itag,irequest,sendbuf)
+  subroutine send_mpi_profile(istep,isendproc,irecvproc,ncount,itag,irequest,sendbuf)
     implicit none
     integer, intent(in) :: istep,isendproc,irecvproc,ncount,itag,irequest
     real(kind=8), intent(in) :: sendbuf
@@ -46,7 +46,7 @@ contains
     if (ierr /=0) then
        write(*,*)'ERROR in ISEND, iproc, istep',irecvproc,istep
     end if
-  end subroutine send_mpi
+  end subroutine send_mpi_profile
 
   subroutine wait_mpi_profile(iproc,istep,nreq,requests)
     implicit none

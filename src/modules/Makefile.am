@@ -23,13 +23,17 @@ mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_DEFS.@MODULE_EXT@ \
 	MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@ \
-	MODULE_XC.@MODULE_EXT@
+	MODULE_XC.@MODULE_EXT@ \
+	OP2P_MODULE.@MODULE_EXT@ \
+	MODULE_INPUT.@MODULE_EXT@
 else
 mod_bigdft = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ \
-	module_xc.@MODULE_EXT@
+	module_xc.@MODULE_EXT@ \
+	op2p_module.@MODULE_EXT@ \
+	module_input.@MODULE_EXT@
 endif
 module_DATA = $(mod_bigdft)
 
@@ -41,6 +45,7 @@ modules_source = base.f90 \
 	input.f90 \
 	interfaces.f90 \
 	xc.f90 \
+	op2p_module.f90 \
 	$(LIBXC_MODULE) \
 	$(GPUBLAS_INTERFACE)
 
@@ -50,8 +55,7 @@ noinst_LIBRARIES = libmodules.a
 
 libmodules_a_SOURCES = $(modules_source)
 
-CLEANFILES = mpif.h $(mod_bigdft) \
-	MODULE_INPUT.@MODULE_EXT@ module_input.@MODULE_EXT@
+CLEANFILES = mpif.h $(mod_bigdft)
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -73,5 +77,6 @@ base.o: defs.o
 types.o: base.o
 input.o: base.o
 interfaces.o: base.o types.o
+op2p_module.o : base.o
 
 $(mod_bigdft) : base.o types.o interfaces.o

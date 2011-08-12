@@ -148,21 +148,19 @@ program example_op2p
   !print *,'a',norb_par,orbs_attributes
 
   !here any processor will initialise the global communications arrays needed for executing the op2p
-  call initialize_OP2P_descriptors(.true.,iproc,nproc,norb,orbs_attributes,norb_par,OP2P)
+  call initialize_OP2P_descriptors(.false.,iproc,nproc,norb,orbs_attributes,norb_par,OP2P)
 
   !this simulates the concurrent call of the op2p routine by all the processors
   !print *,'starting',iproc
   !adjust isorb followng the maximum
   if (norb_par(iproc)==0) isorb=norb-1
-  call OP2P_communication(iproc,nproc,OP2P,psi(isorb+1),results(isorb+1),fake_operation,send_mpi,receive_mpi,&
-       wait_mpi_profile)
-
+  call OP2P_communication(iproc,nproc,OP2P,psi(isorb+1),results(isorb+1),fake_operation)!,send_mpi_profile,receive_mpi_profile,&
+  !wait_mpi_profile)
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   !print *,'iproc,icount2',iproc,icount
-
   call free_OP2P_descriptors(OP2P,subname)
   !print *,'barrier',ierr
-  call flush(6)
+  if (iproc==0) flush(unit=6)
   maxerr=0.0d0
 
   do iorb=1,norb_par(iproc)
