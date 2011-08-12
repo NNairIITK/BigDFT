@@ -984,7 +984,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
            end if
            !flush all writings on standart output
-           flush(unit=6)
+           if (iproc == 0) flush(unit=6)
         end do wfn_loop
 
         if (iproc == 0) then 
@@ -1148,7 +1148,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end if
 
   !  write all the wavefunctions into files
-  if (in%output_wf .and. DoLastRunThings) then
+  if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
      !add flag for writing waves in the gaussian basis form
      if (in%gaussian_help) then
 

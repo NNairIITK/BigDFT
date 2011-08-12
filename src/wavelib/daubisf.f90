@@ -459,7 +459,6 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   hgridh(2)=hy*.5_gp
   hgridh(3)=hz*.5_gp
 
-
   do i=0,3
      scal(i)=1.0_wp
   enddo
@@ -649,7 +648,6 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
               call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
                    hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
               ekin=ekin+ekino
-
               call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
                    lr%wfd%nseg_c,lr%wfd%nvctr_c,&
                    lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 

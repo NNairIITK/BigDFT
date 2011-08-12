@@ -30,7 +30,7 @@ if  version < [2,3,0]:
 #Match the version number ex. 1.1.9
 re_version = re.compile("[(]ver[ ]+[0-9.\-a-z]+[)]",re.IGNORECASE)
 #Match a floating number
-re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
+re_float = re.compile("([- ]?[0-9]+[.][0-9]*([EDed][-+]?[0-9]+)?)")
 
 #Maximum discrepancy between float results (default)
 max_discrepancy = 1.1e-10
@@ -124,7 +124,8 @@ elif neb:
         return re_version.search(line) \
             or "datadir" in line \
             or "workdir" in line \
-            or "Reading atomic input" in line
+            or "Reading atomic input" in line \
+            or "Start job" in line
 elif psolver:
     #Remove some lines (PS_Check)
     def line_junk(line):
@@ -368,6 +369,6 @@ else:
     start = start_success
     message = "succeeded < "
 
-print "%sMax Discrepancy %s: %s (%s%s)%s" % (start,context_discrepancy,maximum,message,max_discrepancy,end)
+print "%sMax discrepancy %s: %s (%s%s)%s" % (start,context_discrepancy,maximum,message,max_discrepancy,end)
 sys.exit(0)
 

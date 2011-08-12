@@ -17,7 +17,7 @@ else
 libs_cuda=
 endif
 if USE_OCL
-libs_ocl=OpenCL/libOCL.a -lstdc++
+libs_ocl=$(top_builddir)/src/OpenCL/libOCL.a -lstdc++
 else
 libs_ocl=
 endif
@@ -36,5 +36,5 @@ xc.out: test_xc
 check: xc.out xc.out.ref
 	@cut -b -70 xc.out > xc.tmp.out
 	@cut -b -70 $(srcdir)/xc.out.ref > xc.tmp.ref
-	python $(top_srcdir)/tests/fldiff.py xc.tmp.out xc.tmp.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=9e-6 xc.tmp.out xc.tmp.ref | tee fldiff.report
 	@rm -f xc.tmp.*

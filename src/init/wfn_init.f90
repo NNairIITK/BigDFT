@@ -514,7 +514,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      if (iproc ==0) then !this case works only for the first k-point
         call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
      end if
-
 !!$  !not necessary anymore since psivirt is gaussian
      !allocate the pointer for virtual orbitals
      if(present(orbsv) .and. present(psivirt)) then
@@ -2798,7 +2797,7 @@ end if semicoreIf
      call memocc(i_stat, i_all, 'evale', subname)
   end if
 
-  if(iproc==0) write(*,'(1xa)') 'Input guess successfully generated.'
+  if(iproc==0) write(*,'(1x,a)') 'Input guess successfully generated.'
 
   ! Stop the timing for the input guess.
   call timing(iproc, 'Input_comput', 'OF')

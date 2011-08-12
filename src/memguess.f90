@@ -15,6 +15,7 @@ program memguess
   use module_base
   use module_types
   use module_interfaces
+  use module_xc
   use ab6_symmetry
 
   implicit none
@@ -22,7 +23,7 @@ program memguess
   character(len=20) :: tatonam
   character(len=40) :: comment
   character(len=128) :: fileFrom, fileTo
-  logical :: optimise,GPUtest,atwf,convert=.false.,upgrade=.false.
+  logical :: optimise,GPUtest,atwf,convert=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
@@ -108,10 +109,6 @@ program memguess
            call getarg(4,tatonam)
            read(tatonam,*,iostat=ierror)norbgpu
         end if
-     else if (trim(tatonam)=='ugrade') then
-        upgrade=.true.
-        write(*,'(1x,a)')&
-             'ugrades the input.dat file in "input_convert.dft" (current version format)'
      else if (trim(tatonam)=='convert') then
         convert=.true.
         call getarg(3,fileFrom)
@@ -132,7 +129,7 @@ program memguess
         write(*,'(1x,a)')&
              'Indicate the number of processes after the executable'
         write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o", "upgrade", "convert", "GPUtest" or "atwf" ' 
+             'ERROR: The only second argument which is accepted are "y", "o","convert", "GPUtest" or "atwf" ' 
         write(*,'(1x,a)')&
              '       (type "memguess" without arguments to have an help)'
         stop
@@ -179,27 +176,21 @@ program memguess
      stop
   end if
 
-  if (upgrade) then
-     !initialize memory counting
-     !call memocc(0,0,'count','start')
+  !standard names
+  call standard_inputfile_names(in)
+  call read_input_variables(0, "posinp", in, atoms, rxyz)
+  !initialize memory counting
+  !call memocc(0,0,'count','start')
 
-     !read number of atoms
-     call read_atomic_file('posinp',0,atoms,rxyz)
-
-     call read_input_variables_old(0,'input.dat',in)
-     write(*,'(a)',advance='NO')' Conversion of the input file...'
-     call dft_input_converter(in)
-     write(*,*)' ...done'
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, nspin)
   else
-     !standard names
-     call standard_inputfile_names(in)
-     call read_input_variables(0, "posinp", in, atoms, rxyz)
-     !initialize memory counting
-     !call memocc(0,0,'count','start')
+     call xc_init(in%ixc, XC_ABINIT, nspin)
   end if
 
   call print_general_parameters(in,atoms)
   call print_dft_parameters(in,atoms)
+  call xc_dump()
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
@@ -442,6 +433,7 @@ program memguess
 
   call deallocate_lr(Glr,subname)
 
+  call xc_end()
 
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
@@ -1112,198 +1104,8 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 END SUBROUTINE compare_data_and_gflops
 
 
-!>    Read the input variables in the file 'input.dat', old format.
-subroutine read_input_variables_old(iproc,filename,in)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: in
-  !local variables
-  character(len=7) :: cudagpu
-  character(len=100) :: line
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
-
-  ! Read the input variables.
-  open(unit=1,file=filename,status='old')
-
-  iline=0
-  !read the line for force the CUDA GPU calculation for all processors
-  read(1,'(a100)')line
-  read(line,*,iostat=ierrfrc) cudagpu
-  if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-!     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-!     call sg_init(GPUshare,iconv,iproc,initerror)
-iconv = 1
-iblas = 1
-     if (initerror == 1) then
-
-        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
-        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
-
-
-
-     
-     end if
-    ! GPUshare=.true.
-     if (iconv == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUconv=.true.
-     end if
-     if (iblas == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUblas=.true.
-     end if
-     read(1,*,iostat=ierror) in%ncount_cluster_x
-     call check()
-  else
-     read(line,*,iostat=ierror) in%ncount_cluster_x
-     call check()
-  end if
-
-  read(1,'(a100)')line
-  read(line,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
-  if (ierrfrc /= 0) then
-     read(line,*,iostat=ierror) in%frac_fluct
-     in%forcemax=0.0_gp
-  end if
-  call check()
-  read(1,*,iostat=ierror) in%randdis
-  call check()
-  read(1,*,iostat=ierror) in%betax
-  call check()
-  read(1,*,iostat=ierror) in%hx,in%hy,in%hz
-  call check()
-  read(1,*,iostat=ierror) in%crmult
-  call check()
-  read(1,*,iostat=ierror) in%frmult
-  call check()
-
-  read(1,*,iostat=ierror) in%ixc
-  call check()
-  read(1,*,iostat=ierror) in%elecfield
-  call check()
-  read(1,*,iostat=ierror) in%gnrm_cv
-  call check()
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%itermax,in%nrepmax
-  if (ierror == 0) then
-     !read(line,*,iostat=ierror) in%ncharge,in%elecfield
-  else
-     read(line,*,iostat=ierror)in%itermax
-     in%nrepmax=10
-  end if
-  call check()
-  read(1,*,iostat=ierror) in%ncong
-  call check()
-  read(1,*,iostat=ierror) in%idsx
-  call check()
-  read(1,*,iostat=ierror) in%calc_tail
-  call check()
-  read(1,*,iostat=ierror) in%rbuf
-  call check()
-  read(1,*,iostat=ierror) in%ncongt
-  call check()
-  read(1,*,iostat=ierror) in%nspin,in%mpol
-  call check()
-  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
-  call check()
-
-  !project however the wavefunction on gaussians if asking to write them on disk
-  in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
-  !switch on the gaussian auxiliary treatment 
-  !and the zero of the forces
-  if (in%inputPsiId == 10) then
-     in%inputPsiId=0
-  end if
-
-  ! qoh: Try to read dispersion input variable
-  read(1,'(a100)',iostat=ierror)line
-  if (ierror == 0) then
-     if (index(line,"dispersion") /= 0) then 
-        read(line,*,iostat=ierror) in%dispersion
-        !add reading lines for Davidson treatment 
-        !(optional for backward compatibility)
-        read(1,*,iostat=ierror) in%nvirt, in%nplot
-     else 
-        in%dispersion = 0
-        read(line,*,iostat=ierror) in%nvirt, in%nplot
-     endif   
-     ! add reading for absorbing atom. iat_absorber=0 ( default ) means no absorption calculation
-     if(ierror==0) then
-        read(1,*,iostat=ierror)  in%iat_absorber
-        if(ierror/=0) then
-           in%iat_absorber=0
-        endif
-     else
-        in%iat_absorber=0
-     endif
-
-  ! AMmodif end
-
-  else
-     in%dispersion = 0
-     in%nvirt=0
-     in%nplot=0
-     in%iat_absorber=0
- end if
-
-  !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
-  !systems
-  if (in%nspin/=1 .and. in%nvirt/=0) then
-     !if (iproc==0) then
-        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     !end if
-     stop
-  end if
- 
-  close(unit=1,iostat=ierror)
-
-  if (iproc == 0) then
-     write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
-     write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
-          in%frac_fluct
-     write(*,'(1x,a,1pe10.2)') '                                : maximal component ',&
-          in%forcemax
-     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
-     write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
-     if (in%nvirt > 0) then
-        !read virtual orbital and plotting request
-        write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
-        write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',abs(in%nplot),' orbitals'
-     end if
-  end if
-
-     if (in%nspin==4) then
-        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Non-collinear)'
-     else if (in%nspin==2) then
-        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Collinear)'
-     else if (in%nspin==1) then
-        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
-     else
-        !if (iproc == 0) 
-        write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
-        stop
-     end if
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE read_input_variables_old
-
-
-!>  Convert the format of input variables
-subroutine dft_input_converter(in)
+!>  Convert the input variables into a input.dft file
+subroutine dft_input_creator(in)
   use module_base
   use module_types
   implicit none
@@ -1313,7 +1115,7 @@ subroutine dft_input_converter(in)
   integer :: iline
 
   ! Read the input variables.
-  open(unit=1,file='input_convert.dft',status='new')
+  open(unit=1,file='input_created.dft',status='new')
 
   !line number, to control the input values
   iline=0
@@ -1361,7 +1163,7 @@ subroutine dft_input_converter(in)
   !now the varaibles which are to be used only for the last run
   line=''
   line=' InputPsiId, output_wf, output_grid'
-  write(1,*) in%inputPsiId,in%output_wf,in%output_grid,trim(line)
+  write(1,*) in%inputPsiId,in%output_wf_format,in%output_grid,trim(line)
   
 
   line=''
@@ -1395,4 +1197,4 @@ subroutine dft_input_converter(in)
   write(1,*) in%disableSym, trim(line)
    
   close(unit=1)
-END SUBROUTINE dft_input_converter
+END SUBROUTINE dft_input_creator

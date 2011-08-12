@@ -271,18 +271,23 @@ subroutine dft_input_variables(iproc,filename,in)
   call check()
 
   ! Now the variables which are to be used only for the last run
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
-  if (ierror /= 0) then
-     ! Old format
-     in%output_wf = .false.
-     read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
-     if (in%output_wf) in%output_wf_format = WF_FORMAT_PLAIN
-  else
-     in%output_wf = (in%output_wf_format /= WF_FORMAT_NONE)
-  end if
+  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
   call check()
-  if (in%output_wf_format /= WF_FORMAT_NONE) in%output_wf = .true.
+
+  ! commented out, only integer variables admitted
+!!$  read(1,'(a100)')line
+!!$  read(line,*,iostat=ierror) in%inputPsiId,in%output_wf_format,in%output_grid
+!!$  if (ierror /= 0) then
+!!$     ! Old format
+!!$     in%output_wf = .false.
+!!$     read(line,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+!!$     if (in%output_wf) in%output_wf_format = WF_FORMAT_PLAIN
+!!$  else
+!!$     in%output_wf = (in%output_wf_format /= WF_FORMAT_NONE)
+!!$  end if
+!!$  call check()
+!!$  if (in%output_wf_format /= WF_FORMAT_NONE) in%output_wf = .true.
+
   ! Validate inputPsiId value.
   if (.not. input_psi_validate(in%inputPsiId) .and. iproc == 0) then
      write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
@@ -372,7 +377,7 @@ subroutine dft_input_variables(iproc,filename,in)
 
   !define whether there should be a last_run after geometry optimization
   !also the mulliken charge population should be inserted
-  if (in%calc_tail .or. in%output_wf .or. in%output_grid /= 0 .or. in%norbv /= 0) then
+  if (in%calc_tail .or. in%output_wf_format /= WF_FORMAT_NONE .or. in%output_grid /= 0 .or. in%norbv /= 0) then
      in%last_run=-1 !last run to be done depending of the external conditions
   else
      in%last_run=0
@@ -1756,7 +1761,7 @@ subroutine parse_extra_info(iat,extra,atoms)
   !Arguments
   integer, intent(in) :: iat
   character(len=50), intent(in) :: extra
-  type(atoms_data), intent(out) :: atoms
+  type(atoms_data), intent(inout) :: atoms
   !Local variables
   character(len=4) :: suffix
   logical :: go

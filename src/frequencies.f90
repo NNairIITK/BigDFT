@@ -574,8 +574,6 @@ contains
     !Argument
     type(input_variables), intent(inout) :: inputs
     inputs%inputPsiId=1
-    inputs%output_grid=0
-    inputs%output_wf=.false.
   END SUBROUTINE restart_inputs
 
 
