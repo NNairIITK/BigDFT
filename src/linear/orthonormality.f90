@@ -302,7 +302,7 @@ logical,dimension(:,:),allocatable:: expanded
   !!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
   call cpu_time(t1)
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
-                                          lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, lhphi)
+                                          lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
   call cpu_time(t2)
   timeApply=t2-t1
 
@@ -2544,7 +2544,7 @@ end subroutine applyOrthoconstraintNonorthogonal
 
 
 subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, lorbs, onWhichAtom, lzd, &
-           op, lagmat, ovrlp, lphiovrlp, lhphi)
+           op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => applyOrthoconstraintNonorthogonal2
@@ -2559,14 +2559,16 @@ type(overlapParameters),intent(in):: op
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
 real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
 real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
+type(matrixDescriptors),intent(in):: mad
 real(8),dimension(lorbs%npsidim),intent(out):: lhphi
 
 ! Local variables
-integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, info, i, istat, iall, ierr
+integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, info, i, istat, iall, ierr, iseg
 real(8):: tt, t1, t2, time_dsymm, time_daxpy
 real(8),dimension(:,:),allocatable:: ovrlp2
 real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
 character(len=*),parameter:: subname='applyOrthoconstraintNonorthogonal2'
+logical:: val, segment
 
 allocate(ovrlp_minus_one_lagmat(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp_minus_one_lagmat, 'ovrlp_minus_one_lagmat', subname)
@@ -2635,8 +2637,11 @@ if(blocksize_pdgemm<0) then
     !!     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
     !!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
-    call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-         0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+    !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+    !     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+    ovrlp_minus_one_lagmat=0.d0
+    !call dgemm_compressed(orbs%norb, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+    call dgemm_compressed2(orbs%norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
     ! Transpose lagmat
     do iorb=1,orbs%norb
         do jorb=iorb+1,orbs%norb
@@ -2645,8 +2650,11 @@ if(blocksize_pdgemm<0) then
             lagmat(iorb,jorb)=tt
         end do
     end do
-    call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-         0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+    !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+    !     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+    ovrlp_minus_one_lagmat_trans=0.d0
+    !call dgemm_compressed(orbs%norb, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+    call dgemm_compressed2(orbs%norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
 else
     call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
          0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
@@ -2663,6 +2671,32 @@ else
 end if
 call cpu_time(t2)
 time_dsymm=t2-t1
+
+
+!!iseg=0
+!!segment=.false.
+!!do iorb=1,orbs%norb
+!!    do jorb=1,orbs%norb
+!!        iall=(iorb-1)*orbs%norb+jorb
+!!        if(.not.segment) then
+!!            if(iall==mad%keygmatmul(1,iseg+1)) then
+!!                iseg=iseg+1
+!!            end if
+!!        end if
+!!        if(iall>=mad%keygmatmul(1,iseg) .and. iall<=mad%keygmatmul(2,iseg)) then
+!!            val=.true.
+!!            segment=.true.
+!!        else
+!!            val=.false.
+!!            segment=.false.
+!!        end if
+!!        if((ovrlp_minus_one_lagmat(jorb,iorb)==0.d0 .and. val) .or. (ovrlp_minus_one_lagmat(jorb,iorb)/=0.d0 .and. .not.val)) then
+!!            if(iproc==0) write(*,'(a,2i6,2es15.6,l)') 'PROBLEM:', iorb, jorb, ovrlp_minus_one_lagmat(jorb,iorb), ovrlp_minus_one_lagmat(jorb,iorb), val
+!!            !stop
+!!        end if
+!!        write(6000+iproc,'(2i7,3es25.17,l)') iorb,jorb,ovrlp2(jorb,iorb),lagmat(jorb,iorb),ovrlp_minus_one_lagmat(jorb,iorb), val
+!!    end do
+!!end do
 
 
 call cpu_time(t1)
@@ -3592,3 +3626,35 @@ end subroutine expandOrbital2Variable
 !!
 !!
 !!end subroutine getOrbitals
+
+
+
+
+subroutine dgemm_compressed(norb, nseg, keyg, a, b, c)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: norb, nseg
+integer,dimension(2,nseg),intent(in):: keyg
+real(8),dimension(norb,norb),intent(in):: a, b
+real(8),dimension(norb,norb),intent(out):: c
+
+! Local variables
+integer:: iseg, i, irow, icolumn, k
+
+do iseg=1,nseg
+    do i=keyg(1,iseg),keyg(2,iseg)
+        ! Get the row and column index
+        irow=(i-1)/norb+1
+        icolumn=i-(irow-1)*norb
+        c(irow,icolumn)=0.d0
+        do k=1,norb
+            c(irow,icolumn)=c(irow,icolumn)+a(irow,k)*b(k,icolumn)
+        end do
+    end do
+end do
+
+
+end subroutine dgemm_compressed

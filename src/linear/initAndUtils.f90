@@ -241,7 +241,15 @@ call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing matrix compression... '
 call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
+!call initCompressedMatmul(iproc, nproc, lin%lb%orbs%norb, lin%mad)
+call initCompressedMatmul2(norb, lin%mad%nseg, lin%mad%keyg, lin%mad%nsegmatmul, lin%mad%keygmatmul, lin%mad%keyvmatmul)
 if(iproc==0) write(*,'(a)') 'done.'
+!!if(iproc==0) then
+!!    do iall=1,lin%mad%nsegmatmul
+!!        write(*,'(a,4i8)') 'iall, lin%mad%keyvmatmul(iall), lin%mad%keygmatmul(1,iall), lin%mad%keygmatmul(2,iall)', iall, lin%mad%keyvmatmul(iall), lin%mad%keygmatmul(1,iall), lin%mad%keygmatmul(2,iall)
+!!    end do
+!!end if
+
 
 end subroutine allocateAndInitializeLinear
 
@@ -2121,13 +2129,17 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
   type(matrixDescriptors),intent(out):: mad
   
   ! Local variables
-  integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii
+  integer:: jproc, iorb, jorb, iiorb, jjorb, ijorb, jjorbold, istat, iseg, nseg, ii, irow, irowold, isegline
   character(len=*),parameter:: subname='initMatrixCompression'
   
   
   mad%nseg=0
   mad%nvctr=0
   jjorbold=-1
+  irowold=0
+  allocate(mad%nsegline(orbs%norb), stat=istat)
+  call memocc(istat, mad%nsegline, 'mad%nsegline', subname)
+  mad%nsegline=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc)
           iiorb=orbs%isorb_par(jproc)+iorb
@@ -2140,27 +2152,46 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
                   ! There was no zero element in between, i.e. we are in the same segment.
                   jjorbold=jjorb
                   mad%nvctr=mad%nvctr+1
+
+                  ! Segments for each row
+                  irow=(jjorb-1)/orbs%norb+1
+                  if(irow/=irowold) then
+                      ! We are in a new line
+                      mad%nsegline(irow)=mad%nsegline(irow)+1
+                      irowold=irow
+                  end if
+
               else
                   ! There was a zero segment in between, i.e. we are in a new segment
                   mad%nseg=mad%nseg+1
                   mad%nvctr=mad%nvctr+1
                   jjorbold=jjorb
+                  
+                  ! Segments for each row
+                  irow=(jjorb-1)/orbs%norb+1
+                  mad%nsegline(irow)=mad%nsegline(irow)+1
+                  irowold=irow
               end if
           end do
       end do
   end do
 
-  !!if(iproc==0) write(*,*) 'mad%nseg, mad%nvctr',mad%nseg, mad%nvctr
+  !if(iproc==0) write(*,*) 'mad%nseg, mad%nvctr',mad%nseg, mad%nvctr
 
   allocate(mad%keyv(mad%nseg), stat=istat)
   call memocc(istat, mad%keyv, 'mad%keyv', subname)
   allocate(mad%keyg(2,mad%nseg), stat=istat)
   call memocc(istat, mad%keyg, 'mad%keyg', subname)
+  allocate(mad%keygline(2,maxval(mad%nsegline),orbs%norb), stat=istat)
+  call memocc(istat, mad%keygline, 'mad%keygline', subname)
 
 
   nseg=0
   mad%keyv=0
   jjorbold=-1
+  irow=0
+  isegline=0
+  irowold=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc)
           iiorb=orbs%isorb_par(jproc)+iorb
@@ -2171,25 +2202,58 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
               !if(iproc==0) write(300,*) iiorb,jjorb
               if(jjorb==jjorbold+1) then
                   ! There was no zero element in between, i.e. we are in the same segment.
-                  jjorbold=jjorb
                   mad%keyv(nseg)=mad%keyv(nseg)+1
+
+                  ! Segments for each row
+                  irow=(jjorb-1)/orbs%norb+1
+                  if(irow/=irowold) then
+                      ! We are in a new line, so close the last segment and start the new one
+                      mad%keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
+                      isegline=1
+                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
+                      irowold=irow
+                  end if
+                  jjorbold=jjorb
               else
                   ! There was a zero segment in between, i.e. we are in a new segment.
                   ! First determine the end of the previous segment.
                   if(jjorbold>0) then
                       mad%keyg(2,nseg)=jjorbold
+                      mad%keygline(2,isegline,irowold)=mod(jjorbold-1,orbs%norb)+1
                   end if
                   ! Now add the new segment.
                   nseg=nseg+1
                   mad%keyg(1,nseg)=jjorb
                   jjorbold=jjorb
                   mad%keyv(nseg)=mad%keyv(nseg)+1
+
+                  ! Segments for each row
+                  irow=(jjorb-1)/orbs%norb+1
+                  if(irow/=irowold) then
+                      ! We are in a new line
+                      isegline=1
+                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
+                      irowold=irow
+                  else
+                      ! We are in the same line
+                      isegline=isegline+1
+                      mad%keygline(1,isegline,irow)=mod(jjorb-1,orbs%norb)+1
+                      irowold=irow
+                  end if
               end if
           end do
-          ! Close the segment of the current line.
-          mad%keyg(2,nseg)=jjorb
       end do
   end do
+  ! Close the last segment
+  mad%keyg(2,nseg)=jjorb
+  mad%keygline(2,isegline,orbs%norb)=mod(jjorb-1,orbs%norb)+1
+
+  if(iproc==0) then
+      do iorb=1,orbs%norb
+          write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)
+          write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)
+      end do
+  end if
 
   !!if(iproc==0) then
   !!    do iseg=1,mad%nseg
@@ -2275,3 +2339,321 @@ subroutine uncompressMatrix(norb, mad, lmat, mat)
   end if
   
 end subroutine uncompressMatrix
+
+
+
+
+subroutine initCompressedMatmul(iproc, nproc, norb, mad)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, norb
+  type(matrixDescriptors),intent(inout):: mad
+  
+  ! Local variables
+  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg
+  logical:: segment
+  integer,dimension(:),allocatable:: row, column
+  character(len=*),parameter:: subname='initCompressedMatmul'
+  
+  
+  allocate(row(norb), stat=istat)
+  call memocc(istat, row, 'row', subname)
+  allocate(column(norb), stat=istat)
+  call memocc(istat, column, 'column', subname)
+  
+  
+  segment=.false.
+  mad%nsegmatmul=0
+  mad%nvctrmatmul=0
+  do iorb=1,norb
+      do jorb=1,norb
+          ! Get an array of this line and column indicating whether
+          ! there are nonzero numbers at these positions. Since the localization
+          ! within the matrix is symmetric, we can use both time the same subroutine.
+          call getRow(norb, mad, iorb, row) 
+          call getRow(norb, mad, jorb, column) 
+          !!if(iproc==0) write(*,'(a,i4,4x,100i4)') 'iorb, row', iorb, row
+          !!if(iproc==0) write(*,'(a,i4,4x,100i4)') 'jorb, row', jorb, column
+          ii=0
+          do j=1,norb
+              ii=ii+row(j)*column(j)
+          end do
+          if(ii>0) then
+              ! This entry of the matrix will be different from zero.
+              mad%nvctrmatmul=mad%nvctrmatmul+1
+              if(.not. segment) then
+                  ! This is the start of a new segment
+                  segment=.true.
+                  mad%nsegmatmul=mad%nsegmatmul+1
+              end if
+          else
+              if(segment) then
+                  ! We reached the end of a segment
+                  segment=.false.
+              end if
+          end if
+      end do
+  end do
+  
+  allocate(mad%keygmatmul(2,mad%nsegmatmul), stat=istat)
+  allocate(mad%keyvmatmul(mad%nsegmatmul), stat=istat)
+  
+  ! Now fill the descriptors.
+  segment=.false.
+  ij=0
+  iseg=0
+  do iorb=1,norb
+      do jorb=1,norb
+          ij=ij+1
+          ! Get an array of this line and column indicating whether
+          ! there are nonzero numbers at these positions. Since the localization
+          ! within the matrix is symmetric, we can use both time the same subroutine.
+          call getRow(norb, mad, iorb, row) 
+          call getRow(norb, mad, jorb, column) 
+          ii=0
+          do j=1,norb
+              ii=ii+row(j)*column(j)
+          end do
+          if(ii>0) then
+              ! This entry of the matrix will be different from zero.
+              if(.not. segment) then
+                  ! This is the start of a new segment
+                  segment=.true.
+                  iseg=iseg+1
+                  mad%keygmatmul(1,iseg)=ij
+              end if
+              mad%keyvmatmul(iseg)=mad%keyvmatmul(iseg)+1
+          else
+              if(segment) then
+                  ! We reached the end of a segment
+                  segment=.false.
+                  mad%keygmatmul(2,iseg)=ij-1
+              end if
+          end if
+      end do
+  end do
+
+  ! Close the last segment if required.
+  if(segment) then
+      mad%keygmatmul(2,iseg)=ij
+  end if
+  
+  
+  iall=-product(shape(row))*kind(row)
+  deallocate(row, stat=istat)
+  call memocc(istat, iall, 'row', subname)
+  iall=-product(shape(column))*kind(column)
+  deallocate(column, stat=istat)
+  call memocc(istat, iall, 'column', subname)
+
+end subroutine initCompressedMatmul
+
+
+
+subroutine getRow(norb, mad, rowX, row)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: norb, rowX
+  type(matrixDescriptors),intent(in):: mad
+  integer,dimension(norb),intent(out):: row
+  
+  ! Local variables
+  integer:: iseg, i, irow, icolumn
+  
+  row=0
+  
+  do iseg=1,mad%nseg
+      do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
+      ! Get the row index of this element. Since the localization is symmetric, we can
+      ! assume row or column ordering with respect to the segments.
+          irow=(i-1)/norb+1
+          if(irow==rowX) then
+              ! Get the column index of this element.
+              icolumn=i-(irow-1)*norb
+              row(icolumn)=1
+          end if
+      end do
+  end do
+
+end subroutine getRow
+
+
+
+
+
+
+subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvmatmul)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: norb, nseg
+  integer,dimension(2,nseg),intent(in):: keyg
+  integer,intent(out):: nsegmatmul
+  integer,dimension(:,:),pointer,intent(out):: keygmatmul
+  integer,dimension(:),pointer,intent(out):: keyvmatmul
+
+  ! Local variables
+  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
+  logical:: segment
+  character(len=*),parameter:: subname='initCompressedMatmul2'
+  real(4),dimension(:),allocatable:: mat1, mat2, mat3
+
+
+
+  allocate(mat1(norb**2), stat=istat)
+  call memocc(istat, mat1, 'mat1', subname)
+  allocate(mat2(norb**2), stat=istat)
+  call memocc(istat, mat2, 'mat2', subname)
+  allocate(mat3(norb**2), stat=istat)
+  call memocc(istat, mat2, 'mat2', subname)
+
+  mat1=0.e0
+  mat2=0.e0
+  do iseg=1,nseg
+      do i=keyg(1,iseg),keyg(2,iseg)
+          ! the localization region is "symmetric"
+          mat1(i)=1.e0
+          mat2(i)=1.e0
+      end do
+  end do
+
+  call sgemm('n', 'n', norb, norb, norb, 1.e0, mat1, norb, mat2, norb, 0.e0, mat3, norb)
+
+  segment=.false.
+  nsegmatmul=0
+  do iorb=1,norb**2
+      !write(30,'(i6,3es16.7)') iorb, mat1(iorb), mat2(iorb), mat3(iorb)
+      if(mat3(iorb)>0.e0) then
+          ! This entry of the matrix will be different from zero.
+          if(.not. segment) then
+              ! This is the start of a new segment
+              segment=.true.
+              nsegmatmul=nsegmatmul+1
+          end if
+      else
+          if(segment) then
+              ! We reached the end of a segment
+              segment=.false.
+          end if
+      end if
+  end do
+
+
+  allocate(keygmatmul(2,nsegmatmul), stat=istat)
+  call memocc(istat, keygmatmul, 'keygmatmul', subname)
+  allocate(keyvmatmul(nsegmatmul), stat=istat)
+  call memocc(istat, keyvmatmul, 'keyvmatmul', subname)
+  keyvmatmul=0
+  ! Now fill the descriptors.
+  segment=.false.
+  ij=0
+  iseg=0
+  do iorb=1,norb**2
+      ij=iorb
+      if(mat3(iorb)>0.e0) then
+          ! This entry of the matrix will be different from zero.
+          if(.not. segment) then
+              ! This is the start of a new segment
+              segment=.true.
+              iseg=iseg+1
+              keygmatmul(1,iseg)=ij
+          end if
+          keyvmatmul(iseg)=keyvmatmul(iseg)+1
+      else
+          if(segment) then
+              ! We reached the end of a segment
+              segment=.false.
+              keygmatmul(2,iseg)=ij-1
+          end if
+      end if
+  end do
+  ! Close the last segment if required.
+  if(segment) then
+      keygmatmul(2,iseg)=ij
+  end if
+
+  !!do iseg=1,nsegmatmul
+  !!    write(*,'(a,3i8)') 'iseg, keygmatmul(1,iseg), keygmatmul(2,iseg)', iseg, keygmatmul(1,iseg), keygmatmul(2,iseg)
+  !!end do
+  !!do iorb=1,norb**2
+  !!    write(2000,*) iorb, mat3(iorb)
+  !!end do
+
+iall=-product(shape(mat1))*kind(mat1)
+deallocate(mat1, stat=istat)
+call memocc(istat, iall, 'mat1', subname)
+iall=-product(shape(mat2))*kind(mat2)
+deallocate(mat2, stat=istat)
+call memocc(istat, iall, 'mat2', subname)
+iall=-product(shape(mat3))*kind(mat3)
+deallocate(mat3, stat=istat)
+call memocc(istat, iall, 'mat3', subname)
+
+
+end subroutine initCompressedMatmul2
+
+
+
+
+
+subroutine dgemm_compressed2(norb, nsegline, keygline, nsegmatmul, keygmatmul, a, b, c)
+!! ATTENTION: A MUST BE SYMMETRIC
+implicit none
+
+! Calling arguments
+integer,intent(in):: norb, nsegmatmul
+integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
+integer,dimension(norb):: nsegline
+integer,dimension(2,maxval(nsegline),norb):: keygline
+real(8),dimension(norb,norb),intent(in):: a, b
+real(8),dimension(norb,norb),intent(out):: c
+
+! Local variables
+integer:: iseg, i, irow, icolumn, k, iorb, jorb, korb, jseg, j, jrow, jcolumn, ii, istart, iend, iiseg, jjseg
+real(8):: tt, ddot
+real(8),dimension(norb):: ttarr
+logical:: iistop, jjstop
+
+
+c=0.d0
+ii=0
+do iseg=1,nsegmatmul
+    do i=keygmatmul(1,iseg),keygmatmul(2,iseg)
+        ii=ii+1
+        ! Get the row and column index
+        irow=(i-1)/norb+1
+        icolumn=i-(irow-1)*norb
+        c(irow,icolumn)=ddot(norb, a(1,irow), 1, b(1,icolumn), 1)
+        iiseg=1
+        jjseg=1
+        iistop=.false.
+        jjstop=.false.
+        do
+            istart=max(keygline(1,iiseg,irow),keygline(1,jjseg,icolumn))
+            iend=min(keygline(2,iiseg,irow),keygline(2,jjseg,icolumn))
+            tt=ddot(iend-istart+1, a(istart,irow), 1, b(istart,icolumn), 1)
+            if(iiseg==nsegline(irow)) iistop=.true.
+            if(jjseg==nsegline(icolumn)) jjstop=.true.
+            if(iistop .and. jjstop) exit
+            if((keygline(1,iiseg,irow)<=keygline(1,jjseg,icolumn) .or. jjstop)) then
+                iiseg=iiseg+1
+            else
+                jjseg=jjseg+1
+            end if
+        end do
+    end do
+end do
+write(*,*) 'ii, norb**2', ii, norb**2
+
+
+
+end subroutine dgemm_compressed2
+

@@ -491,9 +491,10 @@ type,public:: largeBasis
 end type largeBasis
 
   type,public:: matrixDescriptors
-      integer:: nvctr, nseg
-      integer,dimension(:),pointer:: keyv
-      integer,dimension(:,:),pointer:: keyg
+      integer:: nvctr, nseg, nvctrmatmul, nsegmatmul
+      integer,dimension(:),pointer:: keyv, keyvmatmul, nsegline
+      integer,dimension(:,:),pointer:: keyg, keygmatmul
+      integer,dimension(:,:,:),pointer:: keygline
   end type matrixDescriptors
 
 

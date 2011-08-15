@@ -155,17 +155,17 @@ integer:: ist, ierr, iiorb, info
       call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, lin%mad, ovrlp)
   end if
 
-  ierr=0
-  do iorb=1,lin%orbs%norb
-      do jorb=1,lin%orbs%norb
-          if(ovrlp(jorb,iorb)==0.d0) then
-              ierr=ierr+1
-          else
-              if(iproc==0) write(350,*) iorb,jorb
-          end if
-      end do
-  end do
-  if(iproc==0) write(*,*) 'zero comp, total', ierr, lin%orbs%norb**2
+  !ierr=0
+  !do iorb=1,lin%orbs%norb
+  !    do jorb=1,lin%orbs%norb
+  !        if(ovrlp(jorb,iorb)==0.d0) then
+  !            ierr=ierr+1
+  !        else
+  !            if(iproc==0) write(350,*) iorb,jorb
+  !        end if
+  !    end do
+  !end do
+  !if(iproc==0) write(*,*) 'zero comp, total', ierr, lin%orbs%norb**2
 
   ! Allocate the communication buffers for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(lin%comsr, subname)
@@ -232,29 +232,30 @@ integer:: ist, ierr, iiorb, info
   if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
 
   ! Calculate the matrix elements <phi|H|phi>.
-  do iall=1,size(lphi)
-      write(24000+iproc,*) iall, lphi(iall)
-  end do
-  do iall=1,size(lhphi)
-      write(25000+iproc,*) iall, lhphi(iall)
-  end do
+  !!do iall=1,size(lphi)
+  !!    write(24000+iproc,*) iall, lphi(iall)
+  !!end do
+  !!do iall=1,size(lhphi)
+  !!    write(25000+iproc,*) iall, lhphi(iall)
+  !!end do
   !call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
   call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%mad, matrixElements)
 
-  !if(iproc==0) then
-      ierr=0
-      do iall=1,lin%lb%orbs%norb
-          do istat=1,lin%lb%orbs%norb
-              ierr=ierr+1
-              write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
-          end do
-      end do
-      write(23000+iproc,*) '=============================='
-  !end if
+  !!!if(iproc==0) then
+  !!    ierr=0
+  !!    do iall=1,lin%lb%orbs%norb
+  !!        do istat=1,lin%lb%orbs%norb
+  !!            ierr=ierr+1
+  !!            write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
+  !!        end do
+  !!    end do
+  !!    write(23000+iproc,*) '=============================='
+  !!!end if
 
   
 
   ! Diagonalize the Hamiltonian, either iteratively or with lapack.
+  call mpi_barrier(mpi_comm_world, ierr) !To measure the time correctly.
   call cpu_time(t1)
   if(trim(lin%getCoeff)=='min') then
       call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
@@ -891,7 +892,7 @@ contains
                      ilr=lin%orbs%inWhichLocregp(iorb)
                      ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
                      istsource=offset+ii*ncount+1
-                     write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
+                     !write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
                      call dcopy(ncount, ldiis%phiHist(istsource), 1, lphi(istdest), 1)
                      offset=offset+ldiis%isx*ncount
                      istdest=istdest+ncount

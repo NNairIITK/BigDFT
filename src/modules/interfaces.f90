@@ -3900,7 +3900,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine deallocateRecvBufferOrtho
 
       subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, lorbs, onWhichAtom, lzd, &
-                 op, lagmat, ovrlp, lphiovrlp, lhphi)
+                 op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
         use module_base
         use module_types
         implicit none
@@ -3912,6 +3912,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
         real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
         real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
+        type(matrixDescriptors),intent(in):: mad
         real(8),dimension(lorbs%npsidim),intent(out):: lhphi
       end subroutine applyOrthoconstraintNonorthogonal2
 
@@ -4093,6 +4094,36 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,intent(in):: iproc, nproc
         type(p2pCommsOrthonormality),intent(inout):: comon
       end subroutine getOrbitals
+
+      subroutine initCompressedMatmul(iproc, nproc, norb, mad)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, norb
+        type(matrixDescriptors),intent(inout):: mad
+      end subroutine initCompressedMatmul
+
+      subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvmatmul)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: norb, nseg
+        integer,dimension(2,nseg),intent(in):: keyg
+        integer,intent(out):: nsegmatmul
+        integer,dimension(:,:),pointer,intent(out):: keygmatmul
+        integer,dimension(:),pointer,intent(out):: keyvmatmul
+      end subroutine initCompressedMatmul2
+
+
+      subroutine dgemm_compressed2(norb, nsegline, keygline, nsegmatmul, keygmatmul, a, b, c)
+        implicit none
+        integer,intent(in):: norb, nsegmatmul
+        integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
+        integer,dimension(norb):: nsegline
+        integer,dimension(2,maxval(nsegline),norb):: keygline
+        real(8),dimension(norb,norb),intent(in):: a, b
+        real(8),dimension(norb,norb),intent(out):: c
+      end subroutine dgemm_compressed2
 
 
 
