@@ -2759,15 +2759,8 @@ real(8),dimension(norb,norb),intent(inout):: ovrlp
 
 ! Local variables
 integer:: lwork, istat, iall, iorb, jorb, info
-real(8),dimension(:),allocatable:: eval
-real(8),dimension(:,:,:),allocatable:: tempArr
 character(len=*),parameter:: subname='transformOverlapMatrixTaylor'
 
-
-allocate(eval(norb), stat=istat)
-call memocc(istat, eval, 'eval', subname)
-allocate(tempArr(norb,norb,2), stat=istat)
-call memocc(istat, tempArr, 'tempArr', subname)
 
 do iorb=1,norb
     do jorb=1,norb
@@ -2778,13 +2771,6 @@ do iorb=1,norb
         end if
     end do
 end do
-
-iall=-product(shape(eval))*kind(eval)
-deallocate(eval, stat=istat)
-call memocc(istat, iall, 'eval', subname)
-iall=-product(shape(tempArr))*kind(tempArr)
-deallocate(tempArr, stat=istat)
-call memocc(istat, iall, 'tempArr', subname)
 
 
 endsubroutine transformOverlapMatrixTaylor

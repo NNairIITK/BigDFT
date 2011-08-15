@@ -503,7 +503,7 @@ real(8):: tt, tt2, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1,
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
-real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
+real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 logical:: quiet, allowDIIS, startWithSD, withConfinement
 character(len=*),parameter:: subname='getLocalizedBasis'
@@ -952,12 +952,6 @@ contains
     ! ========
     !   This subroutine allocates all local arrays.
     !
-      allocate(hphi(lin%gorbs%npsidim), stat=istat)
-      call memocc(istat, hphi, 'hphi', subname)
-
-      allocate(hphiold(lin%gorbs%npsidim), stat=istat)
-      call memocc(istat, hphiold, 'hphiold', subname)
-
       allocate(alpha(lin%orbs%norb), stat=istat)
       call memocc(istat, alpha, 'alpha', subname)
 
@@ -990,15 +984,6 @@ contains
     ! ========
     !   This subroutine deallocates all local arrays.
     !
-
-      iall=-product(shape(hphiold))*kind(hphiold)
-      deallocate(hphiold, stat=istat)
-      call memocc(istat, iall, 'hphiold', subname)
-
-      iall=-product(shape(hphi))*kind(hphi)
-      deallocate(hphi, stat=istat)
-      call memocc(istat, iall, 'hphi', subname)
-      
       iall=-product(shape(alpha))*kind(alpha)
       deallocate(alpha, stat=istat)
       call memocc(istat, iall, 'alpha', subname)
