@@ -4076,11 +4076,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),intent(out):: trH
       end subroutine orthoconstraintNonorthogonal
 
-      subroutine dsygv_parallel(iproc, nproc, blocksize, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
+      subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
         use module_base
         use module_types
         implicit none
-        integer,intent(in):: iproc, nproc, blocksize, comm, itype, n, lda, ldb, info
+        integer,intent(in):: iproc, nproc, blocksize, nprocMax, comm, itype, n, lda, ldb, info
         character(len=1),intent(in):: jobz, uplo
         real(8),dimension(lda,n),intent(inout):: a
         real(8),dimension(ldb,n),intent(inout):: b

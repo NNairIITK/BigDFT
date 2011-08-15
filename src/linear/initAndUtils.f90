@@ -295,6 +295,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   read(99,*) lin%nItPrecond
   read(99,*) lin%getCoeff
   read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
+  read(99,*) lin%nproc_pdsyev, lin%nproc_pdgemm
   read(99,*) lin%methTransformOverlap, lin%nItOrtho, lin%convCritOrtho
   read(99,*) lin%correctionOrthoconstraint
   read(99,*) lin%nItCoeff, lin%convCritCoeff
@@ -461,10 +462,12 @@ write(*,'(4x,a,a,i0,5x,a,x,es9.3,x,a)') '| ', &
     repeat(' ', 9-ceiling(log10(dble(lin%nItCoeff+1)+1.d-10))), lin%nItCoeff, ' | ', lin%convCritCoeff, ' | '
 write(*,'(4x,a)') '--------------------------------'
 write(*,'(x,a)') '>>>> Performance options'
-write(*,'(4x,a)') '| blocksize | blocksize |'
-write(*,'(4x,a)') '|  pdsyev   |  pdgemm   |'
-write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a)') '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),&
-    lin%blocksize_pdsyev,'|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),lin%blocksize_pdgemm,'|'
+write(*,'(4x,a)') '| blocksize | blocksize | max proc | max proc |'
+write(*,'(4x,a)') '|  pdsyev   |  pdgemm   |  pdsyev  |  pdgemm  |'
+write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a)') '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),&
+    lin%blocksize_pdsyev,'|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),lin%blocksize_pdgemm,&
+    '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm,'|',&
+    repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm
 
 
 
@@ -752,6 +755,18 @@ integer:: norbTarget, nprocIG, ierr
           write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==0': set 'lin%blocksize_pdsyev' and 'lin%blocksize_pdsyev' &
               &to negative values (may very heavily affect performance)"
       end if
+      call mpi_barrier(mpi_comm_world, ierr)
+      stop
+  end if
+
+  if(lin%nproc_pdsyev>nproc) then
+      if(iproc==0) write(*,'(x,a)') 'ERROR: lin%nproc_pdsyev can not be larger than nproc'
+      call mpi_barrier(mpi_comm_world, ierr)
+      stop
+  end if
+
+  if(lin%nproc_pdgemm>nproc) then
+      if(iproc==0) write(*,'(x,a)') 'ERROR: lin%nproc_pdgemm can not be larger than nproc'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if

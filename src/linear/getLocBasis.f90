@@ -271,7 +271,7 @@ integer:: ist, ierr, iiorb, info
       else
           if(iproc==0) write(*,'(x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
           !call diagonalizeHamiltonianParallel(iproc, nproc, lin%lb%orbs%norb, matrixElements(1,1,2), ovrlp, eval)
-          call dsygv_parallel(iproc, nproc, lin%blocksize_pdsyev, mpi_comm_world, 1, 'v', 'l', lin%lb%orbs%norb, &
+          call dsygv_parallel(iproc, nproc, lin%blocksize_pdsyev, lin%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', lin%lb%orbs%norb, &
                matrixElements(1,1,2), lin%lb%orbs%norb, ovrlp, lin%lb%orbs%norb, eval, info)
       end if
       if(iproc==0) write(*,'(a)') 'done.'
