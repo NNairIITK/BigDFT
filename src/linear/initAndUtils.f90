@@ -2646,7 +2646,7 @@ do iseg=1,nsegmatmul
         ! Get the row and column index
         irow=(i-1)/norb+1
         icolumn=i-(irow-1)*norb
-        c(irow,icolumn)=ddot(norb, a(1,irow), 1, b(1,icolumn), 1)
+        !c(irow,icolumn)=ddot(norb, a(1,irow), 1, b(1,icolumn), 1)
         iiseg=1
         jjseg=1
         iistop=.false.
@@ -2655,6 +2655,7 @@ do iseg=1,nsegmatmul
             istart=max(keygline(1,iiseg,irow),keygline(1,jjseg,icolumn))
             iend=min(keygline(2,iiseg,irow),keygline(2,jjseg,icolumn))
             tt=ddot(iend-istart+1, a(istart,irow), 1, b(istart,icolumn), 1)
+            c(irow,icolumn) = c(irow,icolumn) + tt
             if(iiseg==nsegline(irow)) iistop=.true.
             if(jjseg==nsegline(icolumn)) jjstop=.true.
             if(iistop .and. jjstop) exit
@@ -2666,7 +2667,7 @@ do iseg=1,nsegmatmul
         end do
     end do
 end do
-write(*,*) 'ii, norb**2', ii, norb**2
+!write(*,*) 'ii, norb**2', ii, norb**2
 
 
 
