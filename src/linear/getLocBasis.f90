@@ -375,10 +375,10 @@ integer:: ist, ierr, iiorb, info
 
 
   ! Copy phi.
-  call dcopy(lin%lb%orbs%npsidim, lphi(1), 1, lin%lphiold(1), 1)
+  call dcopy(lin%lb%orbs%npsidim, lphi, 1, lin%lphiold, 1)
 
   ! Copy lhphi.
-  call dcopy(lin%lb%orbs%npsidim, lhphi(1), 1, lin%lhphiold(1), 1)
+  call dcopy(lin%lb%orbs%npsidim, lhphi, 1, lin%lhphiold, 1)
 
   ! Copy the Hamiltonian
   call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
@@ -665,7 +665,7 @@ real(8),dimension(:),pointer:: phiWork
       fnrm=sqrt(fnrm/dble(lin%orbs%norb))
       fnrmMax=sqrt(fnrmMax)
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
-      call dcopy(lin%orbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
+      call dcopy(lin%orbs%npsidim, lhphi, 1, lhphiold, 1)
   
 
       ! Precondition the gradient.
@@ -675,12 +675,12 @@ real(8),dimension(:),pointer:: phiWork
       gnrm=1.d3 ; gnrm_zero=1.d3
       call cpu_time(t1)
 
-      evalmax=lin%orbs%eval(lin%orbs%isorb+1)
-      do iorb=1,lin%orbs%norbp
-        evalmax=max(lin%orbs%eval(lin%orbs%isorb+iorb),evalmax)
-      enddo
-      call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-           MPI_MAX,MPI_COMM_WORLD,ierr)
+      !!evalmax=lin%orbs%eval(lin%orbs%isorb+1)
+      !!do iorb=1,lin%orbs%norbp
+      !!  evalmax=max(lin%orbs%eval(lin%orbs%isorb+iorb),evalmax)
+      !!enddo
+      !!call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
+      !!     MPI_MAX,MPI_COMM_WORLD,ierr)
 
       ind2=1
       do iorb=1,lin%orbs%norbp
@@ -937,8 +937,8 @@ contains
     else
         ! DIIS
         if(lin%alphaDIIS/=0.d0) then
-            !call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi(1), 1)
-            call dscal(lin%orbs%npsidim, lin%alphaDIIS, lphi(1), 1)
+            !call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi, 1)
+            call dscal(lin%orbs%npsidim, lin%alphaDIIS, lhphi, 1)
         end if
         call optimizeDIIS(iproc, nproc, lin%orbs, lin%orbs, lin%lzd, lin%orbs%inWhichLocregp, lhphi, lphi, ldiis, it)
     end if
@@ -1826,39 +1826,51 @@ procLoop1: do jproc=0,nproc-1
         mpidest=lin%comsr%comarr(5,iorb,jproc)
         istdest=lin%comsr%comarr(6,iorb,jproc)
         tag=lin%comsr%comarr(7,iorb,jproc)
-        if(mpisource/=mpidest) then
-            ! The orbitals are on different processes, so we need a point to point communication.
-            if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'sumrho: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
-                !call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
-                call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
-                     lin%comsr%comarr(8,iorb,jproc), ierr)
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
-                nsends=nsends+1
-            else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                     lin%comsr%comarr(9,iorb,jproc), ierr)
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
+        if(ncount==0) then
+            ! No communication is needed. This should be improved in the initialization, i.e. this communication
+            ! with 0 elements should be removed from comgp%noverlaps etc.
+            lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+            lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+            lin%comsr%communComplete(iorb,jproc)=.true.
+            if(iproc==mpidest) then
+                ! This is just to make the check at the end happy.
                 nreceives=nreceives+1
-            else
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
             end if
         else
-            ! The orbitals are on the same process, so simply copy them.
-            if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'sumrho: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
-                call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
-                nsends=nsends+1
-                nreceives=nreceives+1
-                lin%comsr%communComplete(iorb,mpisource)=.true.
+            if(mpisource/=mpidest) then
+                ! The orbitals are on different processes, so we need a point to point communication.
+                if(iproc==mpisource) then
+                    !write(*,'(6(a,i0))') 'sumrho: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                    !call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
+                    call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                         lin%comsr%comarr(8,iorb,jproc), ierr)
+                    lin%comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
+                    nsends=nsends+1
+                else if(iproc==mpidest) then
+                    !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                    call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                         lin%comsr%comarr(9,iorb,jproc), ierr)
+                    lin%comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
+                    nreceives=nreceives+1
+                else
+                    lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+                    lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+                end if
             else
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
-                lin%comsr%communComplete(iorb,mpisource)=.true.
+                ! The orbitals are on the same process, so simply copy them.
+                if(iproc==mpisource) then
+                    !write(*,'(6(a,i0))') 'sumrho: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                    call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
+                    lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+                    lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+                    nsends=nsends+1
+                    nreceives=nreceives+1
+                    lin%comsr%communComplete(iorb,mpisource)=.true.
+                else
+                    lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+                    lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+                    lin%comsr%communComplete(iorb,mpisource)=.true.
+                end if
             end if
         end if
     end do orbsLoop1
@@ -1994,11 +2006,11 @@ do jproc=0,nproc-1
         is3k=nscatterarr(kproc,3)+1
         ie3k=is3k+nscatterarr(kproc,2)-1
         if(is3j<=ie3k .and. ie3j>=is3k) then
-            ioverlap=ioverlap+1
-            tag=tag+1
             is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
             ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
             ioffset=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+            ioverlap=ioverlap+1
+            tag=tag+1
             if(is3<is3min .or. ioverlap==1) then
                 is3min=is3
             end if
@@ -2141,37 +2153,49 @@ destLoop: do jproc=0,nproc-1
         mpidest=comgp%comarr(4,kproc,jproc)
         istdest=comgp%comarr(5,kproc,jproc)
         tag=comgp%comarr(6,kproc,jproc)
-        if(mpisource/=mpidest) then
-            if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
-                call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
-                     comgp%comarr(7,kproc,jproc), ierr)
-                comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
-                nsends=nsends+1
-            else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                    comgp%comarr(8,kproc,jproc), ierr)
-                comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
+        if(ncount==0) then
+            ! No communication is needed. This should be improved in the initialization, i.e. this communication
+            ! with 0 elements should be removed from comgp%noverlaps etc.
+            comgp%comarr(7,kproc,jproc)=mpi_request_null
+            comgp%comarr(8,kproc,jproc)=mpi_request_null
+            comgp%communComplete(kproc,jproc)=.true.
+            if(iproc==mpidest) then
+                ! This is just to make the check at the end happy.
                 nreceives=nreceives+1
-            else
-                comgp%comarr(7,kproc,jproc)=mpi_request_null
-                comgp%comarr(8,kproc,jproc)=mpi_request_null
             end if
         else
-            ! The orbitals are on the same process, so simply copy them.
-            if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
-                call dcopy(ncount, pot(istsource), 1, comgp%recvBuf(istdest), 1)
-                comgp%comarr(7,kproc,jproc)=mpi_request_null
-                comgp%comarr(8,kproc,jproc)=mpi_request_null
-                nsends=nsends+1
-                nreceives=nreceives+1
-                comgp%communComplete(kproc,iproc)=.true.
+            if(mpisource/=mpidest) then
+                if(iproc==mpisource) then
+                    !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                    call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                         comgp%comarr(7,kproc,jproc), ierr)
+                    comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
+                    nsends=nsends+1
+                else if(iproc==mpidest) then
+                    !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                    call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                        comgp%comarr(8,kproc,jproc), ierr)
+                    comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
+                    nreceives=nreceives+1
+                else
+                    comgp%comarr(7,kproc,jproc)=mpi_request_null
+                    comgp%comarr(8,kproc,jproc)=mpi_request_null
+                end if
             else
-                comgp%comarr(7,kproc,jproc)=mpi_request_null
-                comgp%comarr(8,kproc,jproc)=mpi_request_null
-                comgp%communComplete(kproc,iproc)=.true.
+                ! The orbitals are on the same process, so simply copy them.
+                if(iproc==mpisource) then
+                    !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                    call dcopy(ncount, pot(istsource), 1, comgp%recvBuf(istdest), 1)
+                    comgp%comarr(7,kproc,jproc)=mpi_request_null
+                    comgp%comarr(8,kproc,jproc)=mpi_request_null
+                    nsends=nsends+1
+                    nreceives=nreceives+1
+                    comgp%communComplete(kproc,iproc)=.true.
+                else
+                    comgp%comarr(7,kproc,jproc)=mpi_request_null
+                    comgp%comarr(8,kproc,jproc)=mpi_request_null
+                    comgp%communComplete(kproc,jproc)=.true.
+                end if
             end if
         end if
     end do sourceLoop

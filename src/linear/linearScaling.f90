@@ -248,7 +248,7 @@ type(workarr_sumrho):: w
       ! Mix the density.
       if(trim(lin%mixingMethod)=='dens') then
           if(lin%mixHist==0) then
-              call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+              if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
           else 
               ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
               ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
@@ -304,7 +304,7 @@ type(workarr_sumrho):: w
       ! Mix the potential
       if(trim(lin%mixingMethod)=='pot') then
           if(lin%mixHist==0) then
-           call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+              call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
           else 
               ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
               ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i

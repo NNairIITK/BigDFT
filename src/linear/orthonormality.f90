@@ -1910,18 +1910,18 @@ do iorb=1,orbs%norbp
 end do
 
 
-allocate(ovrlpCompressed(mad%nvctr), stat=istat)
-call memocc(istat, ovrlpCompressed, 'ovrlpCompressed', subname)
+!!allocate(ovrlpCompressed(mad%nvctr), stat=istat)
+!!call memocc(istat, ovrlpCompressed, 'ovrlpCompressed', subname)
+!!
+!!call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
+!!call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
+!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
+!!
+!!iall=-product(shape(ovrlpCompressed))*kind(ovrlpCompressed)
+!!deallocate(ovrlpCompressed, stat=istat)
+!!call memocc(istat, iall, 'ovrlpCompressed', subname)
 
-call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
-call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
-call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
-
-iall=-product(shape(ovrlpCompressed))*kind(ovrlpCompressed)
-deallocate(ovrlpCompressed, stat=istat)
-call memocc(istat, iall, 'ovrlpCompressed', subname)
-
-!!call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
 end subroutine calculateOverlapMatrix3
 
@@ -2765,9 +2765,9 @@ character(len=*),parameter:: subname='transformOverlapMatrixTaylor'
 do iorb=1,norb
     do jorb=1,norb
         if(iorb==jorb) then
-            ovrlp(iorb,jorb)=1.5d0-.5d0*ovrlp(iorb,jorb)
+            ovrlp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
         else
-            ovrlp(iorb,jorb)=-.5d0*ovrlp(iorb,jorb)
+            ovrlp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
         end if
     end do
 end do
