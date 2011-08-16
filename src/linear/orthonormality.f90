@@ -1976,7 +1976,7 @@ if(blocksize_dsyev>0) then
     write(*,'(a,i0)') 'after dsyev_parallel in transformOverlapMatrix, iproc=',iproc
     if(info/=0) then
         write(*,'(a,i0)') 'ERROR in dsyev_parallel, info=', info
-        stop
+        !stop
     end if
 else
     lwork=1000*norb
