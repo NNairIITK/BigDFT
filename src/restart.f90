@@ -366,15 +366,15 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   end if
 END SUBROUTINE readmywaves
 
-subroutine verify_file_presence(orbs,allfiles)
+subroutine verify_file_presence(orbs,iformat)
   use module_base
   use module_types
   implicit none
   type(orbitals_data), intent(in) :: orbs
-  logical, intent(out) :: allfiles
+  integer, intent(out) :: iformat
   !local variables
   character(len=50) :: filename
-  logical :: onefile
+  logical :: onefile,allfiles
   integer :: iorb,ispinor,iorb_out,ierr
   
   allfiles=.true.
@@ -393,6 +393,8 @@ subroutine verify_file_presence(orbs,allfiles)
   !reduce the result among the other processors
   call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
  
+  if (allfiles) iformat=1
+
   !Otherwise  test binary files.
   if (.not. allfiles) then           
      allfiles = .true.
@@ -411,6 +413,8 @@ subroutine verify_file_presence(orbs,allfiles)
      !reduce the result among the other processors
      call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
   end if
+
+  if (allfiles) iformat=2
 
 end subroutine verify_file_presence
 
