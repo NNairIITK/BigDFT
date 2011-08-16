@@ -387,7 +387,9 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
                    -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
                    ifail, icluster, gap, info)
       lwork=ceiling(work(1))
+      lwork=5*lwork !to be sure to have enough workspace, to be optimized later.
       liwork=iwork(1)
+      liwork=5*liwork !to be sure to have enough workspace, to be optimized later.
       !write(*,*) 'iproc, lwork, liwork', iproc, lwork, liwork
       iall=-product(shape(work))*kind(work)
       deallocate(work, stat=istat)
@@ -407,7 +409,7 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
                    ifail, icluster, gap, info)
       if(info/=0) then
           write(*,'(a,i0)') 'ERROR in pdsyevx, info=', info
-          stop
+          !stop
       end if
 
   
@@ -582,7 +584,9 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
                    -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
                    ifail, icluster, gap, info)
       lwork=ceiling(work(1))
+      lwork=5*lwork !to be sure to have enough workspace, to be optimized later.
       liwork=iwork(1)
+      liwork=5*liwork !to be sure to have enough workspace, to be optimized later.
       !write(*,*) 'iproc, lwork, liwork', iproc, lwork, liwork
       iall=-product(shape(work))*kind(work)
       deallocate(work, stat=istat)
