@@ -4135,6 +4135,17 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine transformOverlapMatrixTaylorOrder2
 
+      subroutine transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOrder, norb, mad, ovrlp)
+        use module_base
+        use module_types
+        implicit none
+      
+        ! Calling arguments
+        integer,intent(in):: iproc, nproc, methTransformOrder, norb
+        type(matrixDescriptors),intent(in):: mad
+        real(8),dimension(norb,norb),intent(inout):: ovrlp
+      end subroutine transformOverlapMatrixTaylorVariable
+
 
 
 
