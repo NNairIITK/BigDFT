@@ -1620,6 +1620,7 @@ testLoop: do
                 end if
             end if
             if(comon%communComplete(jorb,jproc)) cycle
+            ! Attention: mpi_test is a local function.
             call mpi_test(comon%comarr(7,jorb,jproc), sendComplete, stat, ierr)
             call mpi_test(comon%comarr(8,jorb,jproc), receiveComplete, stat, ierr)
             if(sendComplete .and. receiveComplete) comon%communComplete(jorb,jproc)=.true.
@@ -1646,6 +1647,8 @@ testLoop: do
     exit testLoop
 end do testLoop
 
+! Since mpi_test is a local function, check whether the communication has completed on all processes.
+call mpiallred(comon%communComplete(1,0), nproc*maxval(comon%noverlaps), mpi_land, mpi_comm_world, ierr)
 
 ! Wait for the communications that have not completed yet
 nslow=0
