@@ -447,7 +447,9 @@ write(*,'(4x,a)') '|  min   max   |            |          | with SD |           
 if(lin%methTransformOverlap==0) then
     message2='    exact     '
 else if(lin%methTransformOverlap==1) then
-    message2='taylor approx.'
+    message2='taylor appr. 1'
+else if(lin%methTransformOverlap==2) then
+    message2='taylor appr. 2'
 end if
 write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a,a,i0,7x,es7.1,2x,a,x,a,x,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &

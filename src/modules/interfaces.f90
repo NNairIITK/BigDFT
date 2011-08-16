@@ -2824,7 +2824,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine orthonormalizeVectors(iproc, nproc, comm, nItOrtho, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, &
-                orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, comom)
+                orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mad, mlr, vec, comom)
        use module_base
        use module_types
        implicit none
@@ -2833,6 +2833,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
        integer,dimension(0:nproc-1),intent(in):: isorb_par
+       type(matrixDescriptors),intent(in):: mad
        type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
        real(8),dimension(norbmax,norbp),intent(inout):: vec
        type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
@@ -4124,6 +4125,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(norb,norb),intent(in):: a, b
         real(8),dimension(norb,norb),intent(out):: c
       end subroutine dgemm_compressed2
+
+      subroutine transformOverlapMatrixTaylorOrder2(iproc, nproc, norb, mad, ovrlp)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, norb
+        type(matrixDescriptors),intent(in):: mad
+        real(8),dimension(norb,norb),intent(inout):: ovrlp
+      end subroutine transformOverlapMatrixTaylorOrder2
 
 
 

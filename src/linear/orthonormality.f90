@@ -82,6 +82,8 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
           call transformOverlapMatrix(iproc, nproc, mpi_comm_world, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
       else if(methTransformOverlap==1) then
           call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
+      else if(methTransformOverlap==2) then
+          call transformOverlapMatrixTaylorOrder2(iproc, nproc, orbs%norb, mad, ovrlp)
       else
           stop 'ERROR: methTransformOverlap is wrong'
       end if
@@ -2603,6 +2605,18 @@ else if(methTransformOverlap==1) then
             end if
         end do
     end do
+else if(methTransformOverlap==2) then
+    if(iproc==0) write(*,*) 'use methTransformOverlap==1 at the moment...'
+    ! approximation (taylor)
+    do iorb=1,orbs%norb
+        do jorb=1,orbs%norb
+            if(iorb==jorb) then
+                ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
+            else
+                ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
+            end if
+        end do
+    end do
 else
     stop 'methTransformOverlap is wrong!'
 end if
@@ -2774,6 +2788,49 @@ end do
 
 
 endsubroutine transformOverlapMatrixTaylor
+
+
+
+
+
+
+subroutine transformOverlapMatrixTaylorOrder2(iproc, nproc, norb, mad, ovrlp)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => transformOverlapMatrixTaylorOrder2
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, norb
+  type(matrixDescriptors),intent(in):: mad
+  real(8),dimension(norb,norb),intent(inout):: ovrlp
+  
+  ! Local variables
+  integer:: lwork, istat, iall, iorb, jorb, info
+  character(len=*),parameter:: subname='transformOverlapMatrixTaylorOrder2'
+  real(8),dimension(:,:),allocatable:: ovrlp2
+  
+  ! Calculate ovrlp**2
+  allocate(ovrlp2(norb,norb), stat=istat)
+  call memocc(istat, ovrlp2, 'ovrlp2', subname)
+  call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+  
+  ! Build ovrlp**(-1/2) with a Taylor expansion up to second order.  
+  do iorb=1,norb
+      do jorb=1,norb
+          if(iorb==jorb) then
+              ovrlp(jorb,iorb) = 1.125d0 + .25d0*ovrlp(jorb,iorb) - .375d0*ovrlp2(jorb,iorb)
+          else
+              ovrlp(jorb,iorb) = .25d0*ovrlp(jorb,iorb) - .375d0*ovrlp2(jorb,iorb)
+          end if
+      end do
+  end do
+  
+  iall=-product(shape(ovrlp2))*kind(ovrlp2)
+  deallocate(ovrlp2, stat=istat)
+  call memocc(istat, iall, 'ovrlp2', subname)
+
+endsubroutine transformOverlapMatrixTaylorOrder2
 
 
 
