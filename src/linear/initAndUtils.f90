@@ -2669,6 +2669,12 @@ do iseg=1,nsegmatmul
             if(istart+ncount-1>norb) then
                 write(*,'(a,3i9)') 'ERROR: istart+ncount-1>norb: istart, ncount,norb', istart, ncount,norb
             end if
+            if(iiseg>maxval(nsegline)) then
+                write(*,'(a,2i9)') 'ERROR: iiseg>maxval(nsegline): iiseg, maxval(nsegline)',iiseg,maxval(nsegline)
+            end if
+            if(jjseg>maxval(nsegline)) then
+                write(*,'(a,2i9)') 'ERROR: jjseg>maxval(nsegline): jjseg, maxval(nsegline)',jjseg,maxval(nsegline)
+            end if
             tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
             c(irow,icolumn) = c(irow,icolumn) + tt
             if(iiseg==nsegline(irow)) iistop=.true.

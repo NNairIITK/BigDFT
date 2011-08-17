@@ -327,40 +327,40 @@ end subroutine orthoconstraintNonorthogonal
 
 
 
-subroutine getOverlapMatrix(iproc, nproc, lin, input, lphi, mad, ovrlp)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => getOverlapMatrix
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(linearParameters),intent(inout):: lin
-type(input_variables),intent(in):: input
-!real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
-real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
-type(matrixDescriptors),intent(in):: mad
-real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
-
-! Local variables
-integer:: it, istat, iall, iorb, jorb, ierr
-real(8),dimension(:),allocatable:: lphiovrlp
-character(len=*),parameter:: subname='orthonormalize'
-logical:: converged
-
-  call allocateCommuncationBuffersOrtho(lin%comon, subname)
-
-  !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-  call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
-  call postCommsOverlap(iproc, nproc, lin%comon)
-  call gatherOrbitals2(iproc, nproc, lin%comon)
-  !!call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, mad, ovrlp)
-  call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
-                               lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, ovrlp)
-  call deallocateCommuncationBuffersOrtho(lin%comon, subname)
-
-
-end subroutine getOverlapMatrix
+!!subroutine getOverlapMatrix(iproc, nproc, lin, input, lphi, mad, ovrlp)
+!!use module_base
+!!use module_types
+!!use module_interfaces, exceptThisOne => getOverlapMatrix
+!!implicit none
+!!
+!!! Calling arguments
+!!integer,intent(in):: iproc, nproc
+!!type(linearParameters),intent(inout):: lin
+!!type(input_variables),intent(in):: input
+!!!real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
+!!real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
+!!type(matrixDescriptors),intent(in):: mad
+!!real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
+!!
+!!! Local variables
+!!integer:: it, istat, iall, iorb, jorb, ierr
+!!real(8),dimension(:),allocatable:: lphiovrlp
+!!character(len=*),parameter:: subname='orthonormalize'
+!!logical:: converged
+!!
+!!  call allocateCommuncationBuffersOrtho(lin%comon, subname)
+!!
+!!  !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
+!!  call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
+!!  call postCommsOverlap(iproc, nproc, lin%comon)
+!!  call gatherOrbitals2(iproc, nproc, lin%comon)
+!!  !!call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, mad, ovrlp)
+!!  call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
+!!                               lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, ovrlp)
+!!  call deallocateCommuncationBuffersOrtho(lin%comon, subname)
+!!
+!!
+!!end subroutine getOverlapMatrix
 
 
 subroutine getOverlapMatrix2(iproc, nproc, lzd, orbs, comon_lb, op_lb, lphi, mad, ovrlp)
@@ -1871,8 +1871,12 @@ if(blocksize_pdgemm<0) then
     !     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
     ovrlp_minus_one_lagmat=0.d0
     !call dgemm_compressed(orbs%norb, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+    call mpi_barrier(mpi_comm_world, ierr)
+    if(iproc==0) write(*,*) 'calling dgemm_compressed2 first time'
     call dgemm_compressed2(orbs%norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
     ! Transpose lagmat
+    call mpi_barrier(mpi_comm_world, ierr)
+    if(iproc==0) write(*,*) 'transposing'.
     do iorb=1,orbs%norb
         do jorb=iorb+1,orbs%norb
             tt=lagmat(jorb,iorb)
@@ -1884,6 +1888,8 @@ if(blocksize_pdgemm<0) then
     !     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
     ovrlp_minus_one_lagmat_trans=0.d0
     !call dgemm_compressed(orbs%norb, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+    call mpi_barrier(mpi_comm_world, ierr)
+    if(iproc==0) write(*,*) 'calling dgemm_compressed2 second time'
     call dgemm_compressed2(orbs%norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
 else
     call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &

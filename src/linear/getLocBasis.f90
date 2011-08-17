@@ -148,7 +148,8 @@ integer:: ist, ierr, iiorb, info
   ! Get the overlap matrix.
   !if(.not.updatePhi .and. .not.lin%useDerivativeBasisFunctions) then
   if(.not.lin%useDerivativeBasisFunctions) then
-      call getOverlapMatrix(iproc, nproc, lin, input, lphi, lin%mad, ovrlp)
+      !call getOverlapMatrix(iproc, nproc, lin, input, lphi, lin%mad, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%orbs, lin%comon, lin%op, lphi, lin%mad, ovrlp)
   end if
   if(lin%useDerivativeBasisFunctions) then
       !call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
