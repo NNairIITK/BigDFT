@@ -2963,7 +2963,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
      subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, &
-                orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, grad, comom, trace)
+                orbs, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, mad, vec, grad, comom, trace)
        use module_base
        use module_types
        implicit none
@@ -2973,6 +2973,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
        integer,dimension(0:nproc-1),intent(in):: isorb_par
        type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+       type(matrixDescriptors),intent(in):: mad
        real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
        type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
        real(8),intent(out):: trace
@@ -4015,7 +4016,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
       subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOverlap, blocksize_pdgemm, &
                  comm, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, &
-                 lagmat, comom, mlr, grad)
+                 lagmat, comom, mlr, mad, grad)
         use module_base
         use module_types
         implicit none
@@ -4027,6 +4028,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(norb,norb),intent(inout):: lagmat
         type(p2pCommsOrthonormalityMatrix),intent(in):: comom
         type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+        type(matrixDescriptors),intent(in):: mad
         real(8),dimension(norbmax,norbp),intent(inout):: grad
       end subroutine applyOrthoconstraintVectors
 
@@ -4135,7 +4137,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine transformOverlapMatrixTaylorOrder2
 
-      subroutine transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOrder, norb, mad, ovrlp)
+      subroutine overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOrder, norb, mad, ovrlp)
         use module_base
         use module_types
         implicit none
@@ -4144,7 +4146,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,intent(in):: iproc, nproc, methTransformOrder, norb
         type(matrixDescriptors),intent(in):: mad
         real(8),dimension(norb,norb),intent(inout):: ovrlp
-      end subroutine transformOverlapMatrixTaylorVariable
+      end subroutine overlapPowerMinusOneHalfTaylor
 
 
 

@@ -450,6 +450,8 @@ else if(lin%methTransformOverlap==1) then
     message2='taylor appr. 1'
 else if(lin%methTransformOverlap==2) then
     message2='taylor appr. 2'
+else if(lin%methTransformOverlap==3) then
+    message2='taylor appr. 3'
 end if
 write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a,a,i0,7x,es7.1,2x,a,x,a,x,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
@@ -714,6 +716,13 @@ integer:: norbTarget, nprocIG, ierr
   if(trim(lin%getCoeff)/='min' .and. trim(lin%getCoeff)/='diag') then
       if(iproc==0) write(*,'(x,a,a,a)') "ERROR: lin%getCoeff can have the values 'diag' or 'min', &
           & but we found '", trim(lin%getCoeff), "'!"
+      call mpi_barrier(mpi_comm_world, ierr)
+      stop
+  end if
+
+  if(lin%methTransformOverlap<0 .or. lin%methTransformOverlap>3) then
+      if(iproc==0) write(*,'(x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1,2 or 3, but you specified ', &
+                               lin%methTransformOverlap,'.'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if

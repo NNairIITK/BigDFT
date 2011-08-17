@@ -1668,14 +1668,17 @@ do it=1,nItOrtho
       !write(*,'(a,i0)') 'call transformOverlapMatrix in orthonormalizeVectors, iproc=',iproc
       call transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
       if(iproc==0) write(*,*) 'method 0'
-  else if(methTransformOverlap==1) then
-      call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
-      if(iproc==0) write(*,*) 'method 1'
-  else if(methTransformOverlap==2) then
-      call transformOverlapMatrixTaylorOrder2(iproc, nproc, orbs%norb, mad, ovrlp)
   else
-      stop 'methTransformOverlap is wrong'
+      call overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
   end if
+  !!else if(methTransformOverlap==1) then
+  !!    call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
+  !!    if(iproc==0) write(*,*) 'method 1'
+  !!else if(methTransformOverlap==2) then
+  !!    call transformOverlapMatrixTaylorOrder2(iproc, nproc, orbs%norb, mad, ovrlp)
+  !!else
+  !!    stop 'methTransformOverlap is wrong'
+  !!end if
   call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
   
   ! Normalize the vectors
@@ -1701,7 +1704,7 @@ end subroutine orthonormalizeVectors
 
 
 subroutine orthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, orbs, &
-           onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, vec, grad, comom, trace)
+           onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, isorb, nlr, newComm, mlr, mad, vec, grad, comom, trace)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => orthoconstraintVectors
@@ -1714,6 +1717,7 @@ type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom, onWhichMPI
 integer,dimension(0:nproc-1),intent(in):: isorb_par
 type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+type(matrixDescriptors),intent(in):: mad
 real(8),dimension(norbmax,norbp),intent(inout):: vec, grad
 type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
 real(8),intent(out):: trace
@@ -1770,7 +1774,7 @@ call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%
 
 ! Now apply the orthoconstraint.
 call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, newComm, orbs%norb, &
-     norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, grad)
+     norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, mad, grad)
 
 !call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
 !call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
@@ -2137,7 +2141,7 @@ end subroutine orthonormalLinearCombinations
 
 subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, &
            comm, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, &
-           lagmat, comom, mlr, grad)
+           lagmat, comom, mlr, mad, grad)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => applyOrthoconstraintVectors
@@ -2152,6 +2156,7 @@ real(8),dimension(norb,norb),intent(in):: ovrlp
 real(8),dimension(norb,norb),intent(inout):: lagmat
 type(p2pCommsOrthonormalityMatrix),intent(in):: comom
 type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
+type(matrixDescriptors),intent(in):: mad
 real(8),dimension(norbmax,norbp),intent(inout):: grad
 
 ! Local variables
@@ -2195,20 +2200,23 @@ correctionIf: if(correctionOrthoconstraint==0) then
             write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
             stop
         end if
-    else if(methTransformOverlap==1) then
-        ! approximation (taylor)
-        do iorb=1,norb
-            do jorb=1,norb
-                if(iorb==jorb) then
-                    ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
-                else
-                    ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
-                end if
-            end do
-        end do
     else
-        stop 'methTransformOverlap is wrong!'
+        call overlapPowerMinusOneTaylor(iproc, nproc, methTransformOverlap, norb, mad, ovrlp2)
     end if
+    !!else if(methTransformOverlap==1) then
+    !!    ! approximation (taylor)
+    !!    do iorb=1,norb
+    !!        do jorb=1,norb
+    !!            if(iorb==jorb) then
+    !!                ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
+    !!            else
+    !!                ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
+    !!            end if
+    !!        end do
+    !!    end do
+    !!else
+    !!    stop 'methTransformOverlap is wrong!'
+    !!end if
     
     
     
@@ -2650,11 +2658,12 @@ logical:: same
               write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
           endif
 
-          if(it<=5) then
+          if(it<=1) then
               methTransformOverlap=0
           else
               methTransformOverlap=lin%methTransformOverlap
           end if
+          !methTransformOverlap=lin%methTransformOverlap
     
     
           ! Orthonormalize the coefficients.
@@ -2692,7 +2701,7 @@ logical:: same
           call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, lin%correctionOrthoconstraint, lin%blocksize_pdgemm, &
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
-               matmin%mlr, lcoeff, lgrad, comom, trace)
+               matmin%mlr, lin%mad, lcoeff, lgrad, comom, trace)
           !!do jorb=1,matmin%norbmax
           !!    write(660+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
           !!end do

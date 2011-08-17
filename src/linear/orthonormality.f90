@@ -87,7 +87,8 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
           call transformOverlapMatrix(iproc, nproc, mpi_comm_world, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
       else
           !call transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
-          call transformOverlapMatrixTaylorVariable(iproc, nproc, 3, orbs%norb, mad, ovrlp)
+          !call transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
+          call overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
       end if
       !!else if(methTransformOverlap==1) then
       !!    call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
@@ -2616,32 +2617,35 @@ if(methTransformOverlap==0) then
         write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
         stop
     end if
-else if(methTransformOverlap==1) then
-    ! approximation (taylor)
-    do iorb=1,orbs%norb
-        do jorb=1,orbs%norb
-            if(iorb==jorb) then
-                ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
-            else
-                ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
-            end if
-        end do
-    end do
-else if(methTransformOverlap==2) then
-    if(iproc==0) write(*,*) 'use methTransformOverlap==1 at the moment...'
-    ! approximation (taylor)
-    do iorb=1,orbs%norb
-        do jorb=1,orbs%norb
-            if(iorb==jorb) then
-                ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
-            else
-                ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
-            end if
-        end do
-    end do
 else
-    stop 'methTransformOverlap is wrong!'
+    call overlapPowerMinusOneTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp2)
 end if
+!!else if(methTransformOverlap==1) then
+!!    ! approximation (taylor)
+!!    do iorb=1,orbs%norb
+!!        do jorb=1,orbs%norb
+!!            if(iorb==jorb) then
+!!                ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
+!!            else
+!!                ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
+!!            end if
+!!        end do
+!!    end do
+!!else if(methTransformOverlap==2) then
+!!    if(iproc==0) write(*,*) 'use methTransformOverlap==1 at the moment...'
+!!    ! approximation (taylor)
+!!    do iorb=1,orbs%norb
+!!        do jorb=1,orbs%norb
+!!            if(iorb==jorb) then
+!!                ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
+!!            else
+!!                ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
+!!            end if
+!!        end do
+!!    end do
+!!else
+!!    stop 'methTransformOverlap is wrong!'
+!!end if
 
 
 ! Multiply the Lagrange multiplier matrix with S^-1/2.
@@ -2941,7 +2945,7 @@ endsubroutine transformOverlapMatrixTaylorOrder2
 
 
 
-subroutine transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOrder, norb, mad, ovrlp)
+subroutine overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOrder, norb, mad, ovrlp)
   use module_base
   use module_types
   implicit none
@@ -2953,7 +2957,7 @@ subroutine transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOrder
   
   ! Local variables
   integer:: lwork, istat, iall, iorb, jorb, info
-  character(len=*),parameter:: subname='transformOverlapMatrixTaylorVariable'
+  character(len=*),parameter:: subname='overlapPowerMinusOneHalfTaylor'
   real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp3
   
   if(methTransformOrder==1) then
@@ -3023,7 +3027,7 @@ subroutine transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOrder
 end if
 
 
-endsubroutine transformOverlapMatrixTaylorVariable
+endsubroutine overlapPowerMinusOneHalfTaylor
 
 
 
