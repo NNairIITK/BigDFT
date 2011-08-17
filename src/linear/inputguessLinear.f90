@@ -2190,37 +2190,6 @@ call dcopy(norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 correctionIf: if(correctionOrthoconstraint==0) then
     ! Invert the overlap matrix
     call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, norb, mad, ovrlp2)
-    !!if(methTransformOverlap==0) then
-    !!    ! exact inversion
-    !!    call dpotrf('l', norb, ovrlp2(1,1), norb, info)
-    !!    if(info/=0) then
-    !!        write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
-    !!        stop
-    !!    end if
-    !!    call dpotri('l', norb, ovrlp2(1,1), norb, info)
-    !!    if(info/=0) then
-    !!        write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
-    !!        stop
-    !!    end if
-    !!else
-    !!    call overlapPowerMinusOneTaylor(iproc, nproc, methTransformOverlap, norb, mad, ovrlp2)
-    !!end if
-    !!else if(methTransformOverlap==1) then
-    !!    ! approximation (taylor)
-    !!    do iorb=1,norb
-    !!        do jorb=1,norb
-    !!            if(iorb==jorb) then
-    !!                ovrlp2(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
-    !!            else
-    !!                ovrlp2(jorb,iorb) = -ovrlp(jorb,iorb)
-    !!            end if
-    !!        end do
-    !!    end do
-    !!else
-    !!    stop 'methTransformOverlap is wrong!'
-    !!end if
-    
-    
     
     ! Multiply the Lagrange multiplier matrix with S^-1/2.
     ! First fill the upper triangle.
@@ -2234,8 +2203,11 @@ correctionIf: if(correctionOrthoconstraint==0) then
         !!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
         !!call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
         !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
-        call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
-             0.d0, ovrlp_minus_one_lagmat(1,1), norb)
+        !!call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+        !!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
+        ovrlp_minus_one_lagmat=0.d0
+        call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+             ovrlp2, lagmat, ovrlp_minus_one_lagmat)
         !ovrlp_minus_one_lagmat=lagmat
         ! Transpose lagmat
         do iorb=1,norb
@@ -2245,9 +2217,12 @@ correctionIf: if(correctionOrthoconstraint==0) then
                 lagmat(iorb,jorb)=tt
             end do
         end do
-        call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
-             0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
+        !!call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+        !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
         !ovrlp_minus_one_lagmat_trans=lagmat
+        ovrlp_minus_one_lagmat_trans=0.d0
+        call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+             ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
     
     else
         call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &

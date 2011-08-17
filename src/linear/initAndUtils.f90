@@ -2643,7 +2643,7 @@ real(8),dimension(norb,norb),intent(in):: a, b
 real(8),dimension(norb,norb),intent(out):: c
 
 ! Local variables
-integer:: iseg, i, irow, icolumn, k, iorb, jorb, korb, jseg, j, jrow, jcolumn, ii, istart, iend, iiseg, jjseg
+integer:: iseg, i, irow, icolumn, k, iorb, jorb, korb, jseg, j, jrow, jcolumn, ii, istart, iend, iiseg, jjseg, ncount
 real(8):: tt, ddot
 real(8),dimension(norb):: ttarr
 logical:: iistop, jjstop
@@ -2665,7 +2665,11 @@ do iseg=1,nsegmatmul
         do
             istart=max(keygline(1,iiseg,irow),keygline(1,jjseg,icolumn))
             iend=min(keygline(2,iiseg,irow),keygline(2,jjseg,icolumn))
-            tt=ddot(iend-istart+1, a(istart,irow), 1, b(istart,icolumn), 1)
+            ncount=iend-istart+1
+            if(istart+ncount-1>norb) then
+                write(*,'(a,3i9)') 'ERROR: istart+ncount-1>norb: istart, ncount,norb', istart, ncount,norb
+            end if
+            tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
             c(irow,icolumn) = c(irow,icolumn) + tt
             if(iiseg==nsegline(irow)) iistop=.true.
             if(jjseg==nsegline(icolumn)) jjstop=.true.
