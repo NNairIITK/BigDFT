@@ -78,6 +78,11 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
           exit
       end if
       call cpu_time(t3)
+      do iorb=1,orbs%norb
+          do jorb=1,orbs%norb
+              write(10000+iproc,'(2i8,es20.8)') iorb, jorb, ovrlp(jorb,iorb)
+          end do
+      end do
       if(methTransformOverlap==0) then
           call transformOverlapMatrix(iproc, nproc, mpi_comm_world, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
       else
@@ -258,13 +263,19 @@ logical,dimension(:,:),allocatable:: expanded
   call cpu_time(t2)
   timeExtract=t2-t1
   call cpu_time(t1)
+  call mpi_barrier(mpi_comm_world, ierr)
+  if(iproc==0) write(*,*) 'before postCommsOverlap'
   call postCommsOverlap(iproc, nproc, lin%comon)
   call cpu_time(t1)
+  call mpi_barrier(mpi_comm_world, ierr)
+  if(iproc==0) write(*,*) 'before extractOrbital3'
   call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
                        lhphi, lin%comon%nsendBuf, sendBuf)
   call cpu_time(t2)
   timeExtract=t2-t1
   !call gatherOrbitals2(iproc, nproc, lin%comon)
+  call mpi_barrier(mpi_comm_world, ierr)
+  if(iproc==0) write(*,*) 'before gatherOrbitalsOverlapWithComput'
   call gatherOrbitalsOverlapWithComput(iproc, nproc, lin%orbs, input, lin%lzd, lin%op, lin%comon, lphiovrlp, expanded)
   call cpu_time(t2)
   timeCommun=t2-t1
@@ -280,6 +291,8 @@ logical,dimension(:,:),allocatable:: expanded
   !!    write(3000+iproc,*) iall, sendBuf(iall)
   !!end do
   !call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, lagmat)
+  call mpi_barrier(mpi_comm_world, ierr)
+  if(iproc==0) write(*,*) 'before calculateOverlapMatrix3'
   call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
                                sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, lagmat)
   call cpu_time(t2)
@@ -306,6 +319,8 @@ logical,dimension(:,:),allocatable:: expanded
   !!!call gatherOrbitals2(iproc, nproc, lin%comon)
   !!!! Expand the receive buffer, i.e. lhphi
   !!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
+  call mpi_barrier(mpi_comm_world, ierr)
+  if(iproc==0) write(*,*) 'before applyOrthoconstraintNonorthogonal2'
   call cpu_time(t1)
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
                                           lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
@@ -1919,18 +1934,18 @@ do iorb=1,orbs%norbp
 end do
 
 
-!!allocate(ovrlpCompressed(mad%nvctr), stat=istat)
-!!call memocc(istat, ovrlpCompressed, 'ovrlpCompressed', subname)
-!!
-!!call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
-!!call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
-!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
-!!
-!!iall=-product(shape(ovrlpCompressed))*kind(ovrlpCompressed)
-!!deallocate(ovrlpCompressed, stat=istat)
-!!call memocc(istat, iall, 'ovrlpCompressed', subname)
+allocate(ovrlpCompressed(mad%nvctr), stat=istat)
+call memocc(istat, ovrlpCompressed, 'ovrlpCompressed', subname)
 
-call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
+call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
+call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
+
+iall=-product(shape(ovrlpCompressed))*kind(ovrlpCompressed)
+deallocate(ovrlpCompressed, stat=istat)
+call memocc(istat, iall, 'ovrlpCompressed', subname)
+
+!!call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
 end subroutine calculateOverlapMatrix3
 
@@ -1978,9 +1993,9 @@ call memocc(istat, tempArr, 'tempArr', subname)
 !!end do
 
 if(blocksize_dsyev>0) then
-    write(*,'(a,i0)') 'calling dsyev_parallel in transformOverlapMatrix, iproc=',iproc
+    !write(*,'(a,i0)') 'calling dsyev_parallel in transformOverlapMatrix, iproc=',iproc
     call dsyev_parallel(iproc, nproc, min(blocksize_dsyev,norb), comm, 'v', 'l', norb, ovrlp(1,1), norb, eval(1), info)
-    write(*,'(a,i0)') 'after dsyev_parallel in transformOverlapMatrix, iproc=',iproc
+    !write(*,'(a,i0)') 'after dsyev_parallel in transformOverlapMatrix, iproc=',iproc
     if(info/=0) then
         write(*,'(a,i0)') 'ERROR in dsyev_parallel, info=', info
         !stop
@@ -2765,6 +2780,89 @@ call memocc(istat, iall, 'ovrlp2', subname)
 end subroutine applyOrthoconstraintNonorthogonal2
 
 
+subroutine overlapPowerMinusOneTaylor(iproc, nproc, iorder, norb, mad, ovrlp)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, iorder, norb
+  type(matrixDescriptors),intent(in):: mad
+  real(8),dimension(norb,norb),intent(inout):: ovrlp
+  
+  ! Local variables
+  integer:: lwork, istat, iall, iorb, jorb, info
+  character(len=*),parameter:: subname='overlapPowerMinusOneTaylor'
+  real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp3
+  
+  if(iorder==1) then
+      ! Taylor expansion up to first order.
+      do iorb=1,norb
+          do jorb=1,norb
+              if(iorb==jorb) then
+                  ovrlp(jorb,iorb) = 2.d0 - ovrlp(jorb,iorb)
+              else
+                  ovrlp(jorb,iorb) = -ovrlp(jorb,iorb)
+              end if
+          end do
+      end do
+  else if(iorder==2) then
+      ! Taylor expansion up to second order.
+  
+      ! Calculate ovrlp**2
+      allocate(ovrlp2(norb,norb), stat=istat)
+      call memocc(istat, ovrlp2, 'ovrlp2', subname)
+      call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      
+      ! Build ovrlp**(-1) with a Taylor expansion up to second order.  
+      do iorb=1,norb
+          do jorb=1,norb
+              if(iorb==jorb) then
+                  ovrlp(jorb,iorb) = 3.d0 - 3.d0*ovrlp(jorb,iorb) + ovrlp2(jorb,iorb)
+              else
+                  ovrlp(jorb,iorb) = - 3.d0*ovrlp(jorb,iorb) + ovrlp2(jorb,iorb)
+              end if
+          end do
+      end do
+      
+      iall=-product(shape(ovrlp2))*kind(ovrlp2)
+      deallocate(ovrlp2, stat=istat)
+      call memocc(istat, iall, 'ovrlp2', subname)
+  else if(iorder==3) then
+      ! Taylor expansion up to third iorder.
+  
+      ! Calculate ovrlp**2
+      allocate(ovrlp2(norb,norb), stat=istat)
+      call memocc(istat, ovrlp2, 'ovrlp2', subname)
+      allocate(ovrlp3(norb,norb), stat=istat)
+      call memocc(istat, ovrlp3, 'ovrlp3', subname)
+      call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
+      
+      ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
+      do iorb=1,norb
+          do jorb=1,norb
+              if(iorb==jorb) then
+                  ovrlp(jorb,iorb) = 4.d0 - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
+              else
+                  ovrlp(jorb,iorb) = - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
+              end if
+          end do
+      end do
+      
+      iall=-product(shape(ovrlp2))*kind(ovrlp2)
+      deallocate(ovrlp2, stat=istat)
+      call memocc(istat, iall, 'ovrlp2', subname)
+      iall=-product(shape(ovrlp3))*kind(ovrlp3)
+      deallocate(ovrlp3, stat=istat)
+      call memocc(istat, iall, 'ovrlp3', subname)
+  else
+      write(*,'(x,a)') 'ERROR: iorder must be 0,1,2,3!'
+      stop
+end if
+
+
+end subroutine overlapPowerMinusOneTaylor
 
 
 

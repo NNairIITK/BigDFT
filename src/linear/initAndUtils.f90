@@ -2265,12 +2265,12 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
   mad%keyg(2,nseg)=jjorb
   mad%keygline(2,isegline,orbs%norb)=mod(jjorb-1,orbs%norb)+1
 
-  if(iproc==0) then
-      do iorb=1,orbs%norb
-          write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)
-          write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)
-      end do
-  end if
+  !!if(iproc==0) then
+  !!    do iorb=1,orbs%norb
+  !!        write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(1,:,iorb)
+  !!        write(*,'(a,2x,i0,2x,i0,3x,100i4)') 'iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)', iorb, mad%nsegline(iorb), mad%keygline(2,:,iorb)
+  !!    end do
+  !!end if
 
   !!if(iproc==0) then
   !!    do iseg=1,mad%nseg

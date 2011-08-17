@@ -608,6 +608,8 @@ real(8),dimension(:),pointer:: phiWork
       end if
       call cpu_time(t1)
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
+      call mpi_barrier(mpi_comm_world, ierr)
+      if(iproc==0) write(*,*) 'before orthoconstraintNonorthogonal'
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH)
       call cpu_time(t2)
       time(3)=time(3)+t2-t1

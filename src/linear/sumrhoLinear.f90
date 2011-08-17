@@ -576,6 +576,7 @@ subroutine sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, 
 use module_base
 use module_types
 use libxc_functionals
+use module_interfaces, exceptThisOne => sumrhoForLocalizedBasis2
 implicit none
 
 ! Calling arguments
