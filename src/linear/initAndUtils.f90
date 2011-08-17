@@ -2632,6 +2632,8 @@ end subroutine initCompressedMatmul2
 
 subroutine dgemm_compressed2(iproc, nproc, norb, nsegline, keygline, nsegmatmul, keygmatmul, a, b, c)
 !! ATTENTION: A MUST BE SYMMETRIC
+use module_base
+use module_types
 implicit none
 
 ! Calling arguments
@@ -2643,7 +2645,8 @@ real(8),dimension(norb,norb),intent(in):: a, b
 real(8),dimension(norb,norb),intent(out):: c
 
 ! Local variables
-integer:: iseg, i, irow, icolumn, k, iorb, jorb, korb, jseg, j, jrow, jcolumn, ii, istart, iend, iiseg, jjseg, ncount
+integer:: iseg, i, irow, icolumn, k, iorb, jorb, korb, jseg, j, jrow, jcolumn, ii
+integer:: ierr, istart, iend, iiseg, jjseg, ncount
 real(8):: tt, ddot
 logical:: iistop, jjstop
 
@@ -2652,7 +2655,9 @@ c=0.d0
 ii=0
 do iseg=1,nsegmatmul
     do i=keygmatmul(1,iseg),keygmatmul(2,iseg)
-        if(iproc==0) write(*,'(a,2i8)') 'iseg, i', iseg, i
+        call mpi_barrier(mpi_comm_world, ierr)
+        if(iproc==0) write(*,'(a,4i10)') 'iseg, keygmatmul(1,iseg), keygmatmul(2,iseg), i', &
+                     iseg, keygmatmul(1,iseg), keygmatmul(2,iseg), i
         ii=ii+1
         ! Get the row and column index
         irow=(i-1)/norb+1
@@ -2676,6 +2681,8 @@ do iseg=1,nsegmatmul
                 write(*,'(a,2i9)') 'ERROR: jjseg>maxval(nsegline): jjseg, maxval(nsegline)',jjseg,maxval(nsegline)
             end if
             tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
+            if(iproc==0) write(*,'(a,6i10,es15.6)') 'ncount, istart, iiseg, jjseg, irow, icolumn, tt', &
+                         ncount, istart, iiseg, jjseg, irow, icolumn, tt
             c(irow,icolumn) = c(irow,icolumn) + tt
             if(iiseg==nsegline(irow)) iistop=.true.
             if(jjseg==nsegline(icolumn)) jjstop=.true.
