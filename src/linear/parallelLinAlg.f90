@@ -380,16 +380,16 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
       liwork=-1
       allocate(work(1), stat=istat)
       call memocc(istat, work, 'work', subname)
-      allocate(iwork(1), stat=istat) ; if(istat/=0) stop 'ERROR in allocating'
+      allocate(iwork(1), stat=istat)
       call memocc(istat, iwork, 'iwork', subname)
       call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
                     0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
                    -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
                    ifail, icluster, gap, info)
       lwork=ceiling(work(1))
-      lwork=10*lwork !to be sure to have enough workspace, to be optimized later.
+      lwork=lwork+n**2 !to be sure to have enough workspace, to be optimized later.
       liwork=iwork(1)
-      liwork=10*liwork !to be sure to have enough workspace, to be optimized later.
+      liwork=liwork+n**2 !to be sure to have enough workspace, to be optimized later.
       !write(*,*) 'iproc, lwork, liwork', iproc, lwork, liwork
       iall=-product(shape(work))*kind(work)
       deallocate(work, stat=istat)
@@ -408,7 +408,7 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
                    -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
                    ifail, icluster, gap, info)
       if(info/=0) then
-          write(*,'(a,i0)') 'ERROR in pdsyevx, info=', info
+          write(*,'(2(a,i0))') 'ERROR in pdsyevx on process ',iproc,', info=', info
           !stop
       end if
 
@@ -577,16 +577,16 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
       liwork=-1
       allocate(work(1), stat=istat)
       call memocc(istat, work, 'work', subname)
-      allocate(iwork(1), stat=istat) ; if(istat/=0) stop 'ERROR in allocating'
+      allocate(iwork(1), stat=istat)
       call memocc(istat, iwork, 'iwork', subname)
       call pdsygvx(itype, jobz, 'a', uplo, n, la(1,1), 1, 1, desc_la, lb(1,1), 1, 1, &
                    desc_lb, 0.d0, 1.d0, 0, 1, -1.d0, nw_found, nw_computed, w(1), &
                    -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
                    ifail, icluster, gap, info)
       lwork=ceiling(work(1))
-      lwork=10*lwork !to be sure to have enough workspace, to be optimized later.
+      lwork=lwork+n**2 !to be sure to have enough workspace, to be optimized later.
       liwork=iwork(1)
-      liwork=10*liwork !to be sure to have enough workspace, to be optimized later.
+      liwork=liwork+n**2 !to be sure to have enough workspace, to be optimized later.
       !write(*,*) 'iproc, lwork, liwork', iproc, lwork, liwork
       iall=-product(shape(work))*kind(work)
       deallocate(work, stat=istat)
@@ -604,6 +604,9 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
                    desc_lb, 0.d0, 1.d0, 0, 1, -1.d0, nw_found, nw_computed, w(1), &
                    -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
                    ifail, icluster, gap, info)
+      if(info/=0) then
+          write(*,'(2(a,i0))') 'ERROR in pdsygvx on process ',iproc,', info=',info
+      end if
   
       ! Gather together the eigenvectors from all processes and store them in mat.
       do i=1,n

@@ -43,19 +43,27 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       call cpu_time(t1)
       call allocateSendBufferOrtho(comon, subname)
       call allocateRecvBufferOrtho(comon, subname)
+      call mpi_barrier(mpi_comm_world, ierr)
+      if(iproc==0) write(*,*) 'before extractOrbital2'
       call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, onWhichAtomAll, lzd, op, lphi, comon)
       call cpu_time(t2)
       timeExtract=timeExtract+t2-t1
       timeComput=timeComput+t2-t1
       call cpu_time(t1)
+      call mpi_barrier(mpi_comm_world, ierr)
+      if(iproc==0) write(*,*) 'before postCommsOverlap'
         call postCommsOverlap(iproc, nproc, comon)
         !call gatherOrbitals(iproc, nproc, lin%comon)
+      call mpi_barrier(mpi_comm_world, ierr)
+      if(iproc==0) write(*,*) 'before gatherOrbitals2'
         call gatherOrbitals2(iproc, nproc, comon)
       !call getOrbitals(iproc, nproc, comon)
       call cpu_time(t2)
       timeCommun=timeCommun+t2-t1
       call cpu_time(t1)
       !call calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtomAll, mad, ovrlp)
+      call mpi_barrier(mpi_comm_world, ierr)
+      if(iproc==0) write(*,*) 'before calculateOverlapMatrix3'
       call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
                                    comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
       !call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
@@ -83,13 +91,16 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
               write(10000+iproc,'(2i8,es20.8)') iorb, jorb, ovrlp(jorb,iorb)
           end do
       end do
-      if(methTransformOverlap==0) then
-          call transformOverlapMatrix(iproc, nproc, mpi_comm_world, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
-      else
-          !call transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
-          !call transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
-          call overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
-      end if
+      call mpi_barrier(mpi_comm_world, ierr)
+      if(iproc==0) write(*,*) 'before overlapPowerMinusOneHalf'
+      call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, orbs%norb, mad, ovrlp)
+      !!if(methTransformOverlap==0) then
+      !!    call transformOverlapMatrix(iproc, nproc, mpi_comm_world, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
+      !!else
+      !!    !call transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
+      !!    !call transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
+      !!    call overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
+      !!end if
       !!else if(methTransformOverlap==1) then
       !!    call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
       !!else if(methTransformOverlap==2) then
@@ -102,11 +113,15 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       call cpu_time(t3)
       allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
       call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+      call mpi_barrier(mpi_comm_world, ierr)
+      if(iproc==0) write(*,*) 'before expandOrbital2'
       call expandOrbital2(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon, lphiovrlp)
       call deallocateRecvBufferOrtho(comon, subname)
       call cpu_time(t4)
       timeExpand=timeExpand+t4-t3
       call cpu_time(t3)
+      call mpi_barrier(mpi_comm_world, ierr)
+      if(iproc==0) write(*,*) 'before globalLoewdin'
       call globalLoewdin(iproc, nproc, orbs, orbs, onWhichAtomAll, lzd, op, ovrlp, lphiovrlp, lphi)
       iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
       deallocate(lphiovrlp, stat=istat)
@@ -1975,23 +1990,6 @@ call memocc(istat, eval, 'eval', subname)
 allocate(tempArr(norb,norb,2), stat=istat)
 call memocc(istat, tempArr, 'tempArr', subname)
 
-!!write(450+iproc,*) '---------------------------------------'
-!!do iorb=1,norb
-!!  do jorb=1,norb
-!!      write(450+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-!!      if(abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))>1.d-10 ) then
-!!          if(iproc==0) write(*,'(a,3i7,3es20.12)') 'ERROR: not symmetric, iproc, iorb, jorb, ovrlp(iorb,jorb), &
-!!               &ovrlp(jorb,iorb), abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))', iproc, iorb, jorb, ovrlp(iorb,jorb), &
-!!               ovrlp(jorb,iorb), abs(ovrlp(iorb,jorb)-ovrlp(jorb,iorb))
-!!          !stop
-!!      end if
-!!  end do
-!!end do
-!!do iorb=1,norb
-!!    do jorb=1,norb
-!!        if(iproc==0) write(1401,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
-!!    end do
-!!end do
 
 if(blocksize_dsyev>0) then
     !write(*,'(a,i0)') 'calling dsyev_parallel in transformOverlapMatrix, iproc=',iproc
@@ -2945,22 +2943,100 @@ endsubroutine transformOverlapMatrixTaylorOrder2
 
 
 
-subroutine overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOrder, norb, mad, ovrlp)
+subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, mad, ovrlp)
   use module_base
   use module_types
+  use module_interfaces, exceptThisOne => overlapPowerMinusOneHalf
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc, methTransformOrder, norb
+  integer,intent(in):: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
   type(matrixDescriptors),intent(in):: mad
   real(8),dimension(norb,norb),intent(inout):: ovrlp
   
   ! Local variables
   integer:: lwork, istat, iall, iorb, jorb, info
-  character(len=*),parameter:: subname='overlapPowerMinusOneHalfTaylor'
+  character(len=*),parameter:: subname='overlapPowerMinusOneHalf'
+  real(8),dimension(:),allocatable:: eval, work
   real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp3
+  real(8),dimension(:,:,:),allocatable:: tempArr
   
-  if(methTransformOrder==1) then
+  if(methTransformOrder==0) then
+
+      ! Exact calculation of ovrlp**(-1/2)
+
+      allocate(eval(norb), stat=istat)
+      call memocc(istat, eval, 'eval', subname)
+      allocate(tempArr(norb,norb,2), stat=istat)
+      call memocc(istat, tempArr, 'tempArr', subname)
+      
+      
+      if(blocksize_dsyev>0) then
+          call dsyev_parallel(iproc, nproc, min(blocksize_dsyev,norb), comm, 'v', 'l', norb, ovrlp(1,1), norb, eval(1), info)
+          if(info/=0) then
+              write(*,'(a,i0)') 'ERROR in dsyev_parallel, info=', info
+              !stop
+          end if
+      else
+          lwork=1000*norb
+          allocate(work(lwork), stat=istat)
+          call memocc(istat, work, 'work', subname)
+          call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
+          if(info/=0) then
+              write(*,'(a,i0)') 'ERROR in dsyev, info=', info
+              stop
+          end if
+          iall=-product(shape(work))*kind(work)
+          deallocate(work, stat=istat)
+          call memocc(istat, iall, 'work', subname)
+      end if
+      !!do iorb=1,norb
+      !!    do jorb=1,norb
+      !!        if(iproc==0) write(1402,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
+      !!    end do
+      !!    if(iproc==0) write(1450,*) iorb, eval(iorb)
+      !!end do
+      
+      ! Calculate S^{-1/2}. 
+      ! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
+      ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
+      do iorb=1,norb
+          do jorb=1,norb
+              tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
+          end do
+      end do
+      !!do iorb=1,norb
+      !!    do jorb=1,norb
+      !!        if(iproc==0) write(1403,'(2i6,es26.17)') iorb, jorb, temparr(iorb,jorb,1)
+      !!    end do
+      !!end do
+      
+      ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
+      ! This will give S^{-1/2}.
+      if(blocksize_pdgemm<0) then
+          call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
+               norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
+      else
+          call dgemm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
+               norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
+      end if
+      call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
+      !!do iorb=1,norb
+      !!    do jorb=1,norb
+      !!        if(iproc==0) write(1405,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
+      !!    end do
+      !!end do
+      
+      
+      iall=-product(shape(eval))*kind(eval)
+      deallocate(eval, stat=istat)
+      call memocc(istat, iall, 'eval', subname)
+      iall=-product(shape(tempArr))*kind(tempArr)
+      deallocate(tempArr, stat=istat)
+      call memocc(istat, iall, 'tempArr', subname)
+
+  else if(methTransformOrder==1) then
+
       ! Taylor expansion up to first order.
       do iorb=1,norb
           do jorb=1,norb
@@ -2971,7 +3047,9 @@ subroutine overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOrder, norb
               end if
           end do
       end do
+
   else if(methTransformOrder==2) then
+
       ! Taylor expansion up to second order.
   
       ! Calculate ovrlp**2
@@ -2993,7 +3071,9 @@ subroutine overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOrder, norb
       iall=-product(shape(ovrlp2))*kind(ovrlp2)
       deallocate(ovrlp2, stat=istat)
       call memocc(istat, iall, 'ovrlp2', subname)
+
   else if(methTransformOrder==3) then
+
       ! Taylor expansion up to third order.
   
       ! Calculate ovrlp**2
@@ -3021,13 +3101,16 @@ subroutine overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOrder, norb
       iall=-product(shape(ovrlp3))*kind(ovrlp3)
       deallocate(ovrlp3, stat=istat)
       call memocc(istat, iall, 'ovrlp3', subname)
+
   else
+
       write(*,'(x,a)') 'ERROR: methTransformOrder must be 0,1,2,3!'
       stop
+
 end if
 
 
-endsubroutine overlapPowerMinusOneHalfTaylor
+endsubroutine overlapPowerMinusOneHalf
 
 
 

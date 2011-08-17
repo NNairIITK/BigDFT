@@ -1664,13 +1664,14 @@ do it=1,nItOrtho
   if(iproc==0) then
       write(*,'(a,es14.6)') 'max deviation from unity:',dev
   end if
-  if(methTransformOverlap==0) then
-      !write(*,'(a,i0)') 'call transformOverlapMatrix in orthonormalizeVectors, iproc=',iproc
-      call transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
-      if(iproc==0) write(*,*) 'method 0'
-  else
-      call overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
-  end if
+  call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, orbs%norb, mad, ovrlp)
+  !!if(methTransformOverlap==0) then
+  !!    !write(*,'(a,i0)') 'call transformOverlapMatrix in orthonormalizeVectors, iproc=',iproc
+  !!    call transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
+  !!    if(iproc==0) write(*,*) 'method 0'
+  !!else
+  !!    call overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
+  !!end if
   !!else if(methTransformOverlap==1) then
   !!    call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
   !!    if(iproc==0) write(*,*) 'method 1'
