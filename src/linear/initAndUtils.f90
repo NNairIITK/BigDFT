@@ -2686,7 +2686,11 @@ do iseg=1,nsegmatmul
             & keygline(1,iiseg,irow), keygline(1,jjseg,icolumn), keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)
 
             if(ncount>0) then
-                tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
+                !tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
+                tt=0.d0
+                do j=istart,istart+ncount-1
+                    tt = tt + a(j,irow)*b(j,icolumn)
+                end do
             else
                 tt=0.d0
             end if
