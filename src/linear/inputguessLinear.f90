@@ -2189,21 +2189,22 @@ call dcopy(norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 
 correctionIf: if(correctionOrthoconstraint==0) then
     ! Invert the overlap matrix
-    if(methTransformOverlap==0) then
-        ! exact inversion
-        call dpotrf('l', norb, ovrlp2(1,1), norb, info)
-        if(info/=0) then
-            write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
-            stop
-        end if
-        call dpotri('l', norb, ovrlp2(1,1), norb, info)
-        if(info/=0) then
-            write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
-            stop
-        end if
-    else
-        call overlapPowerMinusOneTaylor(iproc, nproc, methTransformOverlap, norb, mad, ovrlp2)
-    end if
+    call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, norb, mad, ovrlp2)
+    !!if(methTransformOverlap==0) then
+    !!    ! exact inversion
+    !!    call dpotrf('l', norb, ovrlp2(1,1), norb, info)
+    !!    if(info/=0) then
+    !!        write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+    !!        stop
+    !!    end if
+    !!    call dpotri('l', norb, ovrlp2(1,1), norb, info)
+    !!    if(info/=0) then
+    !!        write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+    !!        stop
+    !!    end if
+    !!else
+    !!    call overlapPowerMinusOneTaylor(iproc, nproc, methTransformOverlap, norb, mad, ovrlp2)
+    !!end if
     !!else if(methTransformOverlap==1) then
     !!    ! approximation (taylor)
     !!    do iorb=1,norb

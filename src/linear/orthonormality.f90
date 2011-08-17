@@ -2603,21 +2603,22 @@ call memocc(istat, ovrlp2, 'ovrlp2', subname)
 call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 
 ! Invert the overlap matrix
-if(methTransformOverlap==0) then
-    ! exact inversion
-    call dpotrf('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
-    if(info/=0) then
-        write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
-        stop
-    end if
-    call dpotri('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
-    if(info/=0) then
-        write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
-        stop
-    end if
-else
-    call overlapPowerMinusOneTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp2)
-end if
+call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp2)
+!!if(methTransformOverlap==0) then
+!!    ! exact inversion
+!!    call dpotrf('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
+!!    if(info/=0) then
+!!        write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+!!        stop
+!!    end if
+!!    call dpotri('l', orbs%norb, ovrlp2(1,1), orbs%norb, info)
+!!    if(info/=0) then
+!!        write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+!!        stop
+!!    end if
+!!else
+!!    call overlapPowerMinusOneTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp2)
+!!end if
 !!else if(methTransformOverlap==1) then
 !!    ! approximation (taylor)
 !!    do iorb=1,orbs%norb
@@ -2782,9 +2783,10 @@ call memocc(istat, iall, 'ovrlp2', subname)
 end subroutine applyOrthoconstraintNonorthogonal2
 
 
-subroutine overlapPowerMinusOneTaylor(iproc, nproc, iorder, norb, mad, ovrlp)
+subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
   use module_base
   use module_types
+  use module_interfaces, exceptThisOne => overlapPowerMinusOne
   implicit none
   
   ! Calling arguments
@@ -2794,10 +2796,25 @@ subroutine overlapPowerMinusOneTaylor(iproc, nproc, iorder, norb, mad, ovrlp)
   
   ! Local variables
   integer:: lwork, istat, iall, iorb, jorb, info
-  character(len=*),parameter:: subname='overlapPowerMinusOneTaylor'
+  character(len=*),parameter:: subname='overlapPowerMinusOne'
   real(8),dimension(:,:),allocatable:: ovrlp2, ovrlp3
+
+
+  if(iorder==0) then
+
+      ! Exact inversion
+      call dpotrf('l', norb, ovrlp(1,1), norb, info)
+      if(info/=0) then
+          write(*,'(x,a,i0)') 'ERROR in dpotrf, info=',info
+          stop
+      end if
+      call dpotri('l', norb, ovrlp(1,1), norb, info)
+      if(info/=0) then
+          write(*,'(x,a,i0)') 'ERROR in dpotri, info=',info
+          stop
+      end if
   
-  if(iorder==1) then
+  else if(iorder==1) then
       ! Taylor expansion up to first order.
       do iorb=1,norb
           do jorb=1,norb
@@ -2864,7 +2881,7 @@ subroutine overlapPowerMinusOneTaylor(iproc, nproc, iorder, norb, mad, ovrlp)
 end if
 
 
-end subroutine overlapPowerMinusOneTaylor
+end subroutine overlapPowerMinusOne
 
 
 
