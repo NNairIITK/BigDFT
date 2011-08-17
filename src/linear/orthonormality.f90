@@ -2337,6 +2337,8 @@ call memocc(istat, ovrlp2, 'ovrlp2', subname)
 call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 
 ! Invert the overlap matrix
+call mpi_barrier(mpi_comm_world, ierr)
+if(iproc==0) write(*,*) 'before calling applyOrthoconstraintNonorthogonal2'
 call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp2)
 !!if(methTransformOverlap==0) then
 !!    ! exact inversion
@@ -2405,6 +2407,8 @@ end do
 !!!end do
 !!!!! ######################################################
 call cpu_time(t1)
+call mpi_barrier(mpi_comm_world, ierr)
+if(iproc==0) write(*,*) 'before calling dgemm_compressed2 / dsymm_parallel'
 if(blocksize_pdgemm<0) then
     !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !!     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
