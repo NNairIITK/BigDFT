@@ -86,11 +86,11 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
           exit
       end if
       call cpu_time(t3)
-      do iorb=1,orbs%norb
-          do jorb=1,orbs%norb
-              write(10000+iproc,'(2i8,es20.8)') iorb, jorb, ovrlp(jorb,iorb)
-          end do
-      end do
+      !do iorb=1,orbs%norb
+      !    do jorb=1,orbs%norb
+      !        write(10000+iproc,'(2i8,es20.8)') iorb, jorb, ovrlp(jorb,iorb)
+      !    end do
+      !end do
       call mpi_barrier(mpi_comm_world, ierr)
       if(iproc==0) write(*,*) 'before overlapPowerMinusOneHalf'
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, orbs%norb, mad, ovrlp)

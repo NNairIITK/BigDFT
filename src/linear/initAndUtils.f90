@@ -2680,7 +2680,11 @@ do iseg=1,nsegmatmul
             if(jjseg>maxval(nsegline)) then
                 write(*,'(a,2i9)') 'ERROR: jjseg>maxval(nsegline): jjseg, maxval(nsegline)',jjseg,maxval(nsegline)
             end if
-            tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
+            if(ncount>0) then
+                tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
+            else
+                tt=0.d0
+            end if
             if(iproc==0) write(*,'(a,6i10,es15.6)') 'ncount, istart, iiseg, jjseg, irow, icolumn, tt', &
                          ncount, istart, iiseg, jjseg, irow, icolumn, tt
             c(irow,icolumn) = c(irow,icolumn) + tt
