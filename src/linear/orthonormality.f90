@@ -1876,7 +1876,7 @@ if(blocksize_pdgemm<0) then
     call dgemm_compressed2(orbs%norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
     ! Transpose lagmat
     call mpi_barrier(mpi_comm_world, ierr)
-    if(iproc==0) write(*,*) 'transposing'.
+    if(iproc==0) write(*,*) 'transposing'
     do iorb=1,orbs%norb
         do jorb=iorb+1,orbs%norb
             tt=lagmat(jorb,iorb)
@@ -2290,7 +2290,8 @@ do iorb=1,orbs%norbp
         ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), comon%recvBuf(jst), lphiovrlp(ind))
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), comon%recvBuf(jst), lphiovrlp(ind))
-        call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), op%indexExpand(jst))
+        call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, &
+             lzd%llr(ilr), op%olr(jorb,iorb), op%indexExpand(jst))
         ind=ind+gdim
     end do
     ilrold=ilr
