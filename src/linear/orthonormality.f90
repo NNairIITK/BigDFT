@@ -1781,112 +1781,6 @@ end subroutine calculateOverlapMatrix
 
 
 
-!!!subroutine calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtom, mad, ovrlp)
-!!!use module_base
-!!!use module_types
-!!!implicit none
-!!!
-!!!! Calling arguments
-!!!integer,intent(in):: iproc, nproc
-!!!type(orbitals_data),intent(in):: orbs
-!!!type(overlapParameters),intent(in):: op
-!!!type(p2pCommsOrthonormality),intent(inout):: comon
-!!!integer,dimension(orbs%norb),intent(in):: onWhichAtom
-!!!type(matrixDescriptors),intent(in):: mad
-!!!real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
-!!!
-!!!! Local variables
-!!!integer:: iorb, jorb, iiorb, jjorb, jjproc, ii, ist, jst, jjlr, ncount, ierr, jj, korb, kkorb, iilr, iiproc
-!!!integer:: istat, iall
-!!!real(8):: ddot
-!!!real(8),dimension(:),allocatable:: ovrlpCompressed
-!!!character(len=*),parameter:: subname='calculateOverlapMatrix2'
-!!!
-!!!
-!!!ovrlp=0.d0
-!!!
-!!!do iorb=1,orbs%norbp
-!!!    iiorb=orbs%isorb+iorb
-!!!    do jorb=1,op%noverlaps(iiorb)
-!!!        jjorb=op%overlaps(jorb,iiorb)
-!!!        ! Starting index of orbital iorb, already transformed to overlap region with jjorb.
-!!!        ! We have to find the first orbital on the same MPI and in the same locreg as jjorb.
-!!!        jjlr=onWhichAtom(jjorb)
-!!!        jjproc=orbs%onWhichMPI(jjorb)
-!!!        jj=orbs%isorb_par(jjproc)+1
-!!!        do
-!!!            if(onWhichAtom(jj)==jjlr) exit
-!!!            jj=jj+1
-!!!        end do
-!!!        ist=op%indexInSendBuf(iorb,jj)
-!!!        ! Starting index of orbital jjorb.
-!!!        ! We have to find the first orbital on the same MPI and in the same locreg as iiorb.
-!!!        iilr=onWhichAtom(iiorb)
-!!!        iiproc=orbs%onWhichMPI(iiorb)
-!!!        do korb=1,orbs%norbp
-!!!            kkorb=orbs%isorb_par(iiproc)+korb
-!!!            if(onWhichAtom(kkorb)==iilr) then
-!!!                ii=korb
-!!!                exit
-!!!            end if
-!!!        end do
-!!!        jst=op%indexInRecvBuf(ii,jjorb)
-!!!        !write(*,'(5(a,i0))') 'process ',iproc,' calculates overlap of ',iiorb,' and ',jjorb,'. ist=',ist,' jst=',jst 
-!!!        !ncount=op%olr(jorb,iiorb)%wfd%nvctr_c+7*op%olr(jorb,iiorb)%wfd%nvctr_f
-!!!        ncount=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
-!!!        !write(*,'(a,4i8)') 'iproc, iiorb, jjorb, ncount', iproc, iiorb, jjorb, ncount
-!!!        !ovrlp(iiorb,jjorb)=ddot(ncount, comon%sendBuf(ist), 1, comon%recvBuf(jst), 1)
-!!!        ovrlp(iiorb,jjorb)=ddot(ncount, comon%sendBuf(ist), 1, comon%recvBuf(jst), 1)
-!!!        !! ATTENTION
-!!!        !ovrlp(jjorb,iiorb)=ddot(ncount, comon%sendBuf(ist), 1, comon%recvBuf(jst), 1)
-!!!    end do
-!!!end do
-!!!
-!!!
-!!!allocate(ovrlpCompressed(mad%nvctr), stat=istat)
-!!!call memocc(istat, ovrlpCompressed, 'ovrlpCompressed', subname)
-!!!!!do iorb=1,orbs%norb
-!!!!!    do jorb=1,orbs%norb
-!!!!!        ierr=ierr+1
-!!!!!        write(30000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-!!!!!    end do
-!!!!!end do
-!!!call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
-!!!!!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
-!!!!!do iorb=1,orbs%norb
-!!!!!    do jorb=1,orbs%norb
-!!!!!        ierr=ierr+1
-!!!!!        write(31000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-!!!!!    end do
-!!!!!end do
-!!!call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
-!!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
-!!!iall=-product(shape(ovrlpCompressed))*kind(ovrlpCompressed)
-!!!deallocate(ovrlpCompressed, stat=istat)
-!!!call memocc(istat, iall, 'ovrlpCompressed', subname)
-!!!
-!!!
-!!!!!do iorb=1,orbs%norb
-!!!!!    do jorb=1,orbs%norb
-!!!!!        ierr=ierr+1
-!!!!!        write(30000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-!!!!!    end do
-!!!!!end do
-!!!!!call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-!!!!!do iorb=1,orbs%norb
-!!!!!    do jorb=1,orbs%norb
-!!!!!        ierr=ierr+1
-!!!!!        write(31000+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-!!!!!    end do
-!!!!!end do
-!!!
-!!!
-!!!
-!!!
-!!!end subroutine calculateOverlapMatrix2
-
-
-
 
 
 
@@ -1965,166 +1859,6 @@ call memocc(istat, iall, 'ovrlpCompressed', subname)
 
 end subroutine calculateOverlapMatrix3
 
-
-
-
-!!!subroutine transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, norb, ovrlp)
-!!!use module_base
-!!!use module_types
-!!!use module_interfaces, exceptThisOne => transformOverlapMatrix
-!!!implicit none
-!!!
-!!!! Calling arguments
-!!!integer,intent(in):: iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, norb
-!!!real(8),dimension(norb,norb),intent(inout):: ovrlp
-!!!
-!!!! Local variables
-!!!integer:: lwork, istat, iall, iorb, jorb, info
-!!!real(8),dimension(:),allocatable:: work, eval
-!!!real(8),dimension(:,:,:),allocatable:: tempArr
-!!!character(len=*),parameter:: subname='transformOverlapMatrix'
-!!!
-!!!
-!!!allocate(eval(norb), stat=istat)
-!!!call memocc(istat, eval, 'eval', subname)
-!!!allocate(tempArr(norb,norb,2), stat=istat)
-!!!call memocc(istat, tempArr, 'tempArr', subname)
-!!!
-!!!
-!!!if(blocksize_dsyev>0) then
-!!!    !write(*,'(a,i0)') 'calling dsyev_parallel in transformOverlapMatrix, iproc=',iproc
-!!!    call dsyev_parallel(iproc, nproc, min(blocksize_dsyev,norb), comm, 'v', 'l', norb, ovrlp(1,1), norb, eval(1), info)
-!!!    !write(*,'(a,i0)') 'after dsyev_parallel in transformOverlapMatrix, iproc=',iproc
-!!!    if(info/=0) then
-!!!        write(*,'(a,i0)') 'ERROR in dsyev_parallel, info=', info
-!!!        !stop
-!!!    end if
-!!!else
-!!!    lwork=1000*norb
-!!!    allocate(work(lwork), stat=istat)
-!!!    call memocc(istat, work, 'work', subname)
-!!!    call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
-!!!    if(info/=0) then
-!!!        write(*,'(a,i0)') 'ERROR in dsyev, info=', info
-!!!        stop
-!!!    end if
-!!!    iall=-product(shape(work))*kind(work)
-!!!    deallocate(work, stat=istat)
-!!!    call memocc(istat, iall, 'work', subname)
-!!!end if
-!!!!!do iorb=1,norb
-!!!!!    do jorb=1,norb
-!!!!!        if(iproc==0) write(1402,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
-!!!!!    end do
-!!!!!    if(iproc==0) write(1450,*) iorb, eval(iorb)
-!!!!!end do
-!!!
-!!!! Calculate S^{-1/2}. 
-!!!! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
-!!!! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
-!!!do iorb=1,norb
-!!!    do jorb=1,norb
-!!!        tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
-!!!    end do
-!!!end do
-!!!!!do iorb=1,norb
-!!!!!    do jorb=1,norb
-!!!!!        if(iproc==0) write(1403,'(2i6,es26.17)') iorb, jorb, temparr(iorb,jorb,1)
-!!!!!    end do
-!!!!!end do
-!!!
-!!!! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
-!!!! This will give S^{-1/2}.
-!!!if(blocksize_pdgemm<0) then
-!!!    call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
-!!!         norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
-!!!else
-!!!    call dgemm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
-!!!         norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
-!!!end if
-!!!call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
-!!!!!do iorb=1,norb
-!!!!!    do jorb=1,norb
-!!!!!        if(iproc==0) write(1405,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
-!!!!!    end do
-!!!!!end do
-!!!
-!!!
-!!!iall=-product(shape(eval))*kind(eval)
-!!!deallocate(eval, stat=istat)
-!!!call memocc(istat, iall, 'eval', subname)
-!!!iall=-product(shape(tempArr))*kind(tempArr)
-!!!deallocate(tempArr, stat=istat)
-!!!call memocc(istat, iall, 'tempArr', subname)
-!!!
-!!!
-!!!end subroutine transformOverlapMatrix
-
-
-
-
-
-!!!subroutine transformOverlapMatrixParallel(iproc, nproc, norb, ovrlp)
-!!!use module_base
-!!!use module_types
-!!!use module_interfaces, exceptThisOne => transformOverlapMatrixParallel
-!!!implicit none
-!!!
-!!!! Calling arguments
-!!!integer,intent(in):: iproc, nproc, norb
-!!!real(8),dimension(norb,norb),intent(inout):: ovrlp
-!!!
-!!!! Local variables
-!!!integer:: lwork, istat, iall, iorb, jorb, info
-!!!real(8),dimension(:),allocatable:: work, eval
-!!!real(8),dimension(:,:,:),allocatable:: tempArr
-!!!character(len=*),parameter:: subname='transformOverlapMatrixParallel'
-!!!
-!!!
-!!!allocate(eval(norb), stat=istat)
-!!!call memocc(istat, eval, 'eval', subname)
-!!!allocate(tempArr(norb,norb,2), stat=istat)
-!!!call memocc(istat, tempArr, 'tempArr', subname)
-!!!
-!!!
-!!!lwork=1000*norb
-!!!allocate(work(lwork), stat=istat)
-!!!call memocc(istat, work, 'work', subname)
-!!!call dsyev('v', 'l', norb, ovrlp(1,1), norb, eval, work, lwork, info)
-!!!if(info/=0) then
-!!!    write(*,'(a,i0)') 'ERROR in dsyev, info=', info
-!!!    stop
-!!!end if
-!!!iall=-product(shape(work))*kind(work)
-!!!deallocate(work, stat=istat)
-!!!call memocc(istat, iall, 'work', subname)
-!!!
-!!!! Calculate S^{-1/2}. 
-!!!! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
-!!!! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
-!!!do iorb=1,norb
-!!!    do jorb=1,norb
-!!!        tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
-!!!    end do
-!!!end do
-!!!
-!!!! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
-!!!! This will give S^{-1/2}.
-!!!call dgemm('n', 't', norb, norb, norb, 1.d0, ovrlp(1,1), &
-!!!     norb, tempArr(1,1,1), norb, 0.d0, &
-!!!     tempArr(1,1,2), norb)
-!!!call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
-!!!
-!!!
-!!!iall=-product(shape(eval))*kind(eval)
-!!!deallocate(eval, stat=istat)
-!!!call memocc(istat, iall, 'eval', subname)
-!!!iall=-product(shape(tempArr))*kind(tempArr)
-!!!deallocate(tempArr, stat=istat)
-!!!call memocc(istat, iall, 'tempArr', subname)
-!!!
-!!!
-!!!end subroutine transformOverlapMatrixParallel
 
 
 subroutine expandOrbital(iproc, nproc, orbs, input, onWhichAtom, lzd, op, comon, lphiovrlp)
@@ -2882,80 +2616,6 @@ end if
 
 
 end subroutine overlapPowerMinusOne
-
-
-
-
-!!subroutine transformOverlapMatrixTaylor(iproc, nproc, norb, ovrlp)
-!!use module_base
-!!use module_types
-!!implicit none
-!!
-!!! Calling arguments
-!!integer,intent(in):: iproc, nproc, norb
-!!real(8),dimension(norb,norb),intent(inout):: ovrlp
-!!
-!!! Local variables
-!!integer:: lwork, istat, iall, iorb, jorb, info
-!!character(len=*),parameter:: subname='transformOverlapMatrixTaylor'
-!!
-!!
-!!do iorb=1,norb
-!!    do jorb=1,norb
-!!        if(iorb==jorb) then
-!!            ovrlp(jorb,iorb)=1.5d0-.5d0*ovrlp(jorb,iorb)
-!!        else
-!!            ovrlp(jorb,iorb)=-.5d0*ovrlp(jorb,iorb)
-!!        end if
-!!    end do
-!!end do
-!!
-!!
-!!end subroutine transformOverlapMatrixTaylor
-
-
-
-
-
-
-!!subroutine transformOverlapMatrixTaylorOrder2(iproc, nproc, norb, mad, ovrlp)
-!!  use module_base
-!!  use module_types
-!!  use module_interfaces, exceptThisOne => transformOverlapMatrixTaylorOrder2
-!!  implicit none
-!!  
-!!  ! Calling arguments
-!!  integer,intent(in):: iproc, nproc, norb
-!!  type(matrixDescriptors),intent(in):: mad
-!!  real(8),dimension(norb,norb),intent(inout):: ovrlp
-!!  
-!!  ! Local variables
-!!  integer:: lwork, istat, iall, iorb, jorb, info
-!!  character(len=*),parameter:: subname='transformOverlapMatrixTaylorOrder2'
-!!  real(8),dimension(:,:),allocatable:: ovrlp2
-!!  
-!!  ! Calculate ovrlp**2
-!!  allocate(ovrlp2(norb,norb), stat=istat)
-!!  call memocc(istat, ovrlp2, 'ovrlp2', subname)
-!!  call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-!!  
-!!  ! Build ovrlp**(-1/2) with a Taylor expansion up to second order.  
-!!  do iorb=1,norb
-!!      do jorb=1,norb
-!!          if(iorb==jorb) then
-!!              ovrlp(jorb,iorb) = 1.125d0 + .25d0*ovrlp(jorb,iorb) - .375d0*ovrlp2(jorb,iorb)
-!!          else
-!!              ovrlp(jorb,iorb) = .25d0*ovrlp(jorb,iorb) - .375d0*ovrlp2(jorb,iorb)
-!!          end if
-!!      end do
-!!  end do
-!!  
-!!  iall=-product(shape(ovrlp2))*kind(ovrlp2)
-!!  deallocate(ovrlp2, stat=istat)
-!!  call memocc(istat, iall, 'ovrlp2', subname)
-!!
-!!endsubroutine transformOverlapMatrixTaylorOrder2
-
 
 
 
@@ -3970,31 +3630,31 @@ end subroutine expandOrbital2Variable
 
 
 
-subroutine dgemm_compressed(norb, nseg, keyg, a, b, c)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: norb, nseg
-integer,dimension(2,nseg),intent(in):: keyg
-real(8),dimension(norb,norb),intent(in):: a, b
-real(8),dimension(norb,norb),intent(out):: c
-
-! Local variables
-integer:: iseg, i, irow, icolumn, k
-
-do iseg=1,nseg
-    do i=keyg(1,iseg),keyg(2,iseg)
-        ! Get the row and column index
-        irow=(i-1)/norb+1
-        icolumn=i-(irow-1)*norb
-        c(irow,icolumn)=0.d0
-        do k=1,norb
-            c(irow,icolumn)=c(irow,icolumn)+a(irow,k)*b(k,icolumn)
-        end do
-    end do
-end do
-
-
-end subroutine dgemm_compressed
+!!subroutine dgemm_compressed(norb, nseg, keyg, a, b, c)
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!! Calling arguments
+!!integer,intent(in):: norb, nseg
+!!integer,dimension(2,nseg),intent(in):: keyg
+!!real(8),dimension(norb,norb),intent(in):: a, b
+!!real(8),dimension(norb,norb),intent(out):: c
+!!
+!!! Local variables
+!!integer:: iseg, i, irow, icolumn, k
+!!
+!!do iseg=1,nseg
+!!    do i=keyg(1,iseg),keyg(2,iseg)
+!!        ! Get the row and column index
+!!        irow=(i-1)/norb+1
+!!        icolumn=i-(irow-1)*norb
+!!        c(irow,icolumn)=0.d0
+!!        do k=1,norb
+!!            c(irow,icolumn)=c(irow,icolumn)+a(irow,k)*b(k,icolumn)
+!!        end do
+!!    end do
+!!end do
+!!
+!!
+!!end subroutine dgemm_compressed
