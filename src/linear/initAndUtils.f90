@@ -2680,13 +2680,16 @@ do iseg=1,nsegmatmul
             if(jjseg>maxval(nsegline)) then
                 write(*,'(a,2i9)') 'ERROR: jjseg>maxval(nsegline): jjseg, maxval(nsegline)',jjseg,maxval(nsegline)
             end if
+            if(iproc==0) write(*,'(a,10i10)') 'ncount, istart, iiseg, jjseg, irow, icolumn, &
+            & keygline(1,iiseg,irow), keygline(1,jjseg,icolumn), keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)', &
+            & ncount, istart, iiseg, jjseg, irow, icolumn, &
+            & keygline(1,iiseg,irow), keygline(1,jjseg,icolumn), keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)
+
             if(ncount>0) then
                 tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
             else
                 tt=0.d0
             end if
-            if(iproc==0) write(*,'(a,6i10,es15.6)') 'ncount, istart, iiseg, jjseg, irow, icolumn, tt', &
-                         ncount, istart, iiseg, jjseg, irow, icolumn, tt
             c(irow,icolumn) = c(irow,icolumn) + tt
             if(iiseg==nsegline(irow)) iistop=.true.
             if(jjseg==nsegline(icolumn)) jjstop=.true.
