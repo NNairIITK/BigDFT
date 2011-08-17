@@ -1873,7 +1873,7 @@ if(blocksize_pdgemm<0) then
     !call dgemm_compressed(orbs%norb, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
     call mpi_barrier(mpi_comm_world, ierr)
     if(iproc==0) write(*,*) 'calling dgemm_compressed2 first time'
-    call dgemm_compressed2(orbs%norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+    call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
     ! Transpose lagmat
     call mpi_barrier(mpi_comm_world, ierr)
     if(iproc==0) write(*,*) 'transposing'
@@ -1890,7 +1890,7 @@ if(blocksize_pdgemm<0) then
     !call dgemm_compressed(orbs%norb, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
     call mpi_barrier(mpi_comm_world, ierr)
     if(iproc==0) write(*,*) 'calling dgemm_compressed2 second time'
-    call dgemm_compressed2(orbs%norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+    call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
 else
     call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
          0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
@@ -2028,7 +2028,7 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
       ! Calculate ovrlp**2
       allocate(ovrlp2(norb,norb), stat=istat)
       call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
       
       ! Build ovrlp**(-1) with a Taylor expansion up to second order.  
       do iorb=1,norb
@@ -2052,8 +2052,8 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
       call memocc(istat, ovrlp2, 'ovrlp2', subname)
       allocate(ovrlp3(norb,norb), stat=istat)
       call memocc(istat, ovrlp3, 'ovrlp3', subname)
-      call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
       
       ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
       do iorb=1,norb
@@ -2195,7 +2195,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       ! Calculate ovrlp**2
       allocate(ovrlp2(norb,norb), stat=istat)
       call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
       
       ! Build ovrlp**(-1/2) with a Taylor expansion up to second order.  
       do iorb=1,norb
@@ -2221,8 +2221,8 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       call memocc(istat, ovrlp2, 'ovrlp2', subname)
       allocate(ovrlp3(norb,norb), stat=istat)
       call memocc(istat, ovrlp3, 'ovrlp3', subname)
-      call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      call dgemm_compressed2(norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
       
       ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
       do iorb=1,norb

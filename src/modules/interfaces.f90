@@ -4118,9 +4118,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine initCompressedMatmul2
 
 
-      subroutine dgemm_compressed2(norb, nsegline, keygline, nsegmatmul, keygmatmul, a, b, c)
+      subroutine dgemm_compressed2(iproc, nproc, norb, nsegline, keygline, nsegmatmul, keygmatmul, a, b, c)
         implicit none
-        integer,intent(in):: norb, nsegmatmul
+        integer,intent(in):: iproc, nproc, norb, nsegmatmul
         integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
         integer,dimension(norb):: nsegline
         integer,dimension(2,maxval(nsegline),norb):: keygline

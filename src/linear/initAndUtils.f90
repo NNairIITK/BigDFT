@@ -2630,12 +2630,12 @@ end subroutine initCompressedMatmul2
 
 
 
-subroutine dgemm_compressed2(norb, nsegline, keygline, nsegmatmul, keygmatmul, a, b, c)
+subroutine dgemm_compressed2(iproc, nproc, norb, nsegline, keygline, nsegmatmul, keygmatmul, a, b, c)
 !! ATTENTION: A MUST BE SYMMETRIC
 implicit none
 
 ! Calling arguments
-integer,intent(in):: norb, nsegmatmul
+integer,intent(in):: iproc, nproc, norb, nsegmatmul
 integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
 integer,dimension(norb):: nsegline
 integer,dimension(2,maxval(nsegline),norb):: keygline
@@ -2645,7 +2645,6 @@ real(8),dimension(norb,norb),intent(out):: c
 ! Local variables
 integer:: iseg, i, irow, icolumn, k, iorb, jorb, korb, jseg, j, jrow, jcolumn, ii, istart, iend, iiseg, jjseg, ncount
 real(8):: tt, ddot
-real(8),dimension(norb):: ttarr
 logical:: iistop, jjstop
 
 
@@ -2653,6 +2652,7 @@ c=0.d0
 ii=0
 do iseg=1,nsegmatmul
     do i=keygmatmul(1,iseg),keygmatmul(2,iseg)
+        if(iproc==0) write(*,'(a,2i8)') 'iseg, i', iseg, i
         ii=ii+1
         ! Get the row and column index
         irow=(i-1)/norb+1
