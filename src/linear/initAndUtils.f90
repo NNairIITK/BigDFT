@@ -2651,8 +2651,8 @@ real(8):: tt, ddot
 logical:: iistop, jjstop
 
 write(*,'(a,2i9)') 'iproc, size(keygline,1)', iproc, size(keygline,1)
-write(*,'(a,2i9)') 'iproc, size(keygline,1)', iproc, size(keygline,2)
-write(*,'(a,2i9)') 'iproc, size(keygline,1)', iproc, size(keygline,3)
+write(*,'(a,2i9)') 'iproc, size(keygline,2)', iproc, size(keygline,2)
+write(*,'(a,2i9)') 'iproc, size(keygline,3)', iproc, size(keygline,3)
 
 
 c=0.d0
