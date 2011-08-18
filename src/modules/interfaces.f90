@@ -1249,7 +1249,7 @@ module module_interfaces
       integer,intent(in):: iproc, nproc
       type(locreg_descriptors),intent(in):: Glr
       type(orbitals_data),intent(in):: orbs
-      type(atoms_data),intent(in):: at
+      type(atoms_data),intent(inout):: at
       type(nonlocal_psp_descriptors),intent(in):: nlpspd
       type(linearParameters),intent(inout):: lin
       type(input_variables),intent(in):: input
@@ -4118,12 +4118,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine initCompressedMatmul2
 
 
-      subroutine dgemm_compressed2(iproc, nproc, norb, nsegline, keygline, nsegmatmul, keygmatmul, a, b, c)
+      subroutine dgemm_compressed2(iproc, nproc, norb, nsegline, nseglinemax, keygline, nsegmatmul, keygmatmul, a, b, c)
         implicit none
-        integer,intent(in):: iproc, nproc, norb, nsegmatmul
+        integer,intent(in):: iproc, nproc, norb, nseglinemax, nsegmatmul
         integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
         integer,dimension(norb):: nsegline
-        integer,dimension(2,maxval(nsegline),norb):: keygline
+        !integer,dimension(2,maxval(nsegline),norb):: keygline
+        integer,dimension(2,nseglinemax,norb):: keygline
         real(8),dimension(norb,norb),intent(in):: a, b
         real(8),dimension(norb,norb),intent(out):: c
       end subroutine dgemm_compressed2

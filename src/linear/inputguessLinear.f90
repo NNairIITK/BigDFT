@@ -2206,7 +2206,7 @@ correctionIf: if(correctionOrthoconstraint==0) then
         !!call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
         !!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
         ovrlp_minus_one_lagmat=0.d0
-        call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+        call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
              ovrlp2, lagmat, ovrlp_minus_one_lagmat)
         !ovrlp_minus_one_lagmat=lagmat
         ! Transpose lagmat
@@ -2221,7 +2221,7 @@ correctionIf: if(correctionOrthoconstraint==0) then
         !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
         !ovrlp_minus_one_lagmat_trans=lagmat
         ovrlp_minus_one_lagmat_trans=0.d0
-        call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+        call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
              ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
     
     else

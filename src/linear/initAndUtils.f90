@@ -2203,12 +2203,18 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
   end do
 
   !if(iproc==0) write(*,*) 'mad%nseg, mad%nvctr',mad%nseg, mad%nvctr
+  mad%nseglinemax=0
+  do iorb=1,orbs%norb
+      if(mad%nsegline(iorb)>mad%nseglinemax) then
+          mad%nseglinemax=mad%nsegline(iorb)
+      end if
+  end do
 
   allocate(mad%keyv(mad%nseg), stat=istat)
   call memocc(istat, mad%keyv, 'mad%keyv', subname)
   allocate(mad%keyg(2,mad%nseg), stat=istat)
   call memocc(istat, mad%keyg, 'mad%keyg', subname)
-  allocate(mad%keygline(2,maxval(mad%nsegline),orbs%norb), stat=istat)
+  allocate(mad%keygline(2,mad%nseglinemax,orbs%norb), stat=istat)
   call memocc(istat, mad%keygline, 'mad%keygline', subname)
 do i=1,orbs%norb
     write(15000+iproc,*) i, mad%nsegline(i)
@@ -2637,17 +2643,18 @@ end subroutine initCompressedMatmul2
 
 
 
-subroutine dgemm_compressed2(iproc, nproc, norb, nsegline, keygline, nsegmatmul, keygmatmul, a, b, c)
+subroutine dgemm_compressed2(iproc, nproc, norb, nsegline, nseglinemax, keygline, nsegmatmul, keygmatmul, a, b, c)
 !! ATTENTION: A MUST BE SYMMETRIC
 use module_base
 use module_types
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, norb, nsegmatmul
+integer,intent(in):: iproc, nproc, norb, nseglinemax, nsegmatmul
 integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
 integer,dimension(norb):: nsegline
-integer,dimension(2,maxval(nsegline),norb):: keygline
+!integer,dimension(2,maxval(nsegline),norb):: keygline
+integer,dimension(2,nseglinemax,norb):: keygline
 real(8),dimension(norb,norb),intent(in):: a, b
 real(8),dimension(norb,norb),intent(out):: c
 
