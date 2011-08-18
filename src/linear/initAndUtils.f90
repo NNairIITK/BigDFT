@@ -2231,6 +2231,7 @@ write(*,'(a,2i9)') 'when allocating: iproc, size(mad%keygline,3)', iproc, size(m
   irow=0
   isegline=0
   irowold=0
+  mad%keygline=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc)
           iiorb=orbs%isorb_par(jproc)+iorb
