@@ -2213,6 +2213,7 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
 do i=1,orbs%norb
     write(15000+iproc,*) i, mad%nsegline(i)
 end do
+flush(15000+iproc)
 write(*,'(a,2i9)') 'when allocating: iproc, size(mad%keygline,1)', iproc, size(mad%keygline,1)
 write(*,'(a,2i9)') 'when allocating: iproc, size(mad%keygline,2)', iproc, size(mad%keygline,2)
 write(*,'(a,2i9)') 'when allocating: iproc, size(mad%keygline,3)', iproc, size(mad%keygline,3)
@@ -2659,6 +2660,7 @@ logical:: iistop, jjstop
 do i=1,norb
     write(20000+iproc,*) i, nsegline(i)
 end do
+flush(20000+iproc)
 write(*,'(a,2i9)') 'iproc, size(keygline,1)', iproc, size(keygline,1)
 write(*,'(a,2i9)') 'iproc, size(keygline,2)', iproc, size(keygline,2)
 write(*,'(a,2i9)') 'iproc, size(keygline,3)', iproc, size(keygline,3)

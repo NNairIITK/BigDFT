@@ -1882,6 +1882,7 @@ if(blocksize_pdgemm<0) then
     do i=1,orbs%norb
         write(25000+iproc,*) i, mad%nsegline(i)
     end do
+    flush(25000+iproc)
     write(*,'(a,2i9)') 'when calling dgemm_compressed2: iproc, size(mad%keygline,1)', iproc, size(mad%keygline,1)
     write(*,'(a,2i9)') 'when calling dgemm_compressed2: iproc, size(mad%keygline,2)', iproc, size(mad%keygline,2)
     write(*,'(a,2i9)') 'when calling dgemm_compressed2: iproc, size(mad%keygline,3)', iproc, size(mad%keygline,3)
