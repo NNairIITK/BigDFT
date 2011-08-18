@@ -502,7 +502,7 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot, t2tot, timetot
 real(8):: tt, tt2, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
-integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb
+integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
 real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
@@ -611,6 +611,13 @@ real(8),dimension(:),pointer:: phiWork
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
       call mpi_barrier(mpi_comm_world, ierr)
       if(iproc==0) write(*,*) 'before orthoconstraintNonorthogonal'
+    do i=1,lin%orbs%norb
+        write(30000+iproc,*) i, lin%mad%nsegline(i)
+    end do
+    write(*,'(a,2i9)') 'when calling orthoconstraintNonorthogonal: iproc, size(lin%mad%keygline,1)', iproc, size(lin%mad%keygline,1)
+    write(*,'(a,2i9)') 'when calling orthoconstraintNonorthogonal: iproc, size(lin%mad%keygline,2)', iproc, size(lin%mad%keygline,2)
+    write(*,'(a,2i9)') 'when calling orthoconstraintNonorthogonal: iproc, size(lin%mad%keygline,3)', iproc, size(lin%mad%keygline,3)
+
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH)
       call cpu_time(t2)
       time(3)=time(3)+t2-t1

@@ -187,7 +187,7 @@ type(matrixDescriptors),intent(in):: mad
 real(8),intent(out):: trH
 
 ! Local variables
-integer:: it, istat, iall, iorb, ierr
+integer:: it, istat, iall, iorb, ierr, i
 real(8),dimension(:),allocatable:: lphiovrlp, sendBuf
 real(8),dimension(:,:),allocatable:: lagmat
 character(len=*),parameter:: subname='orthoconstraintLocalized'
@@ -276,6 +276,12 @@ logical,dimension(:,:),allocatable:: expanded
   call mpi_barrier(mpi_comm_world, ierr)
   if(iproc==0) write(*,*) 'before applyOrthoconstraintNonorthogonal2'
   call cpu_time(t1)
+  do i=1,lin%orbs%norb
+      write(35000+iproc,*) i, mad%nsegline(i)
+  end do
+  write(*,'(a,2i9)') 'when calling applyOrthoconstraintNonorthogonal2: iproc, size(mad%keygline,1)', iproc, size(mad%keygline,1)
+  write(*,'(a,2i9)') 'when calling applyOrthoconstraintNonorthogonal2: iproc, size(mad%keygline,2)', iproc, size(mad%keygline,2)
+  write(*,'(a,2i9)') 'when calling applyOrthoconstraintNonorthogonal2: iproc, size(mad%keygline,3)', iproc, size(mad%keygline,3)
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
                                           lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
   call cpu_time(t2)
@@ -1873,6 +1879,12 @@ if(blocksize_pdgemm<0) then
     !call dgemm_compressed(orbs%norb, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
     call mpi_barrier(mpi_comm_world, ierr)
     if(iproc==0) write(*,*) 'calling dgemm_compressed2 first time'
+    do i=1,orbs%norb
+        write(25000+iproc,*) i, mad%nsegline(i)
+    end do
+    write(*,'(a,2i9)') 'when calling dgemm_compressed2: iproc, size(mad%keygline,1)', iproc, size(mad%keygline,1)
+    write(*,'(a,2i9)') 'when calling dgemm_compressed2: iproc, size(mad%keygline,2)', iproc, size(mad%keygline,2)
+    write(*,'(a,2i9)') 'when calling dgemm_compressed2: iproc, size(mad%keygline,3)', iproc, size(mad%keygline,3)
     call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
     ! Transpose lagmat
     call mpi_barrier(mpi_comm_world, ierr)
