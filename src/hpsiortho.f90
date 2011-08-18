@@ -188,6 +188,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
   
   else if(orbs%norbp > 0 .and. present(Lzd)) then
+      stop 'the calling sequence of apply_local_projectors is wrong!'
      call apply_local_projectors(at,hx,hy,hz,lr,nlpspd,proj,orbs,lr%projflg,psi,rxyz,hpsi,eproj_sum)
   end if
 

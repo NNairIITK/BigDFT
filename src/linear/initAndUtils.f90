@@ -2685,6 +2685,14 @@ do iseg=1,nsegmatmul
         if(iproc==0) write(*,'(a,2i8)') 'irow, icolumn', irow, icolumn
         do
             call mpi_barrier(mpi_comm_world, ierr)
+            if(iproc==0) write(*,'(a,i9)') 'iiseg', iiseg
+            call mpi_barrier(mpi_comm_world, ierr)
+            if(iproc==0) write(*,'(a,i9)') 'jjseg', jjseg
+            call mpi_barrier(mpi_comm_world, ierr)
+            if(iproc==0) write(*,'(a,i9)') 'keygline(1,iiseg,irow)', keygline(1,iiseg,irow)
+            call mpi_barrier(mpi_comm_world, ierr)
+            if(iproc==0) write(*,'(a,i9)') 'keygline(1,jjseg,icolumn)', keygline(1,jjseg,icolumn)
+            call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,4i9)') 'iiseg, jjseg, keygline(1,iiseg,irow), keygline(1,jjseg,icolumn)', iiseg, jjseg, keygline(1,iiseg,irow), keygline(1,jjseg,icolumn)
             call mpi_barrier(mpi_comm_world, ierr)
             istart=max(keygline(1,iiseg,irow),keygline(1,jjseg,icolumn))
