@@ -2650,6 +2650,10 @@ integer:: ierr, istart, iend, iiseg, jjseg, ncount
 real(8):: tt, ddot
 logical:: iistop, jjstop
 
+write(*,'(a,2i9)') 'iproc, size(keygline,1)', iproc, size(keygline,1)
+write(*,'(a,2i9)') 'iproc, size(keygline,1)', iproc, size(keygline,2)
+write(*,'(a,2i9)') 'iproc, size(keygline,1)', iproc, size(keygline,3)
+
 
 c=0.d0
 ii=0
@@ -2670,11 +2674,23 @@ do iseg=1,nsegmatmul
         call mpi_barrier(mpi_comm_world, ierr)
         if(iproc==0) write(*,'(a,2i8)') 'irow, icolumn', irow, icolumn
         do
+            call mpi_barrier(mpi_comm_world, ierr)
+            if(iproc==0) write(*,'(a,4i9)') 'iiseg, jjseg, keygline(1,iiseg,irow), keygline(1,jjseg,icolumn)', iiseg, jjseg, keygline(1,iiseg,irow), keygline(1,jjseg,icolumn)
+            call mpi_barrier(mpi_comm_world, ierr)
             istart=max(keygline(1,iiseg,irow),keygline(1,jjseg,icolumn))
+            call mpi_barrier(mpi_comm_world, ierr)
+            if(iproc==0) write(*,'(a,i9)') 'istart', istart
+            call mpi_barrier(mpi_comm_world, ierr)
+            if(iproc==0) write(*,'(a,4i9)') 'iiseg, jjseg, keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)', iiseg, jjseg, keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)
+            call mpi_barrier(mpi_comm_world, ierr)
             iend=min(keygline(2,iiseg,irow),keygline(2,jjseg,icolumn))
+            call mpi_barrier(mpi_comm_world, ierr)
+            if(iproc==0) write(*,'(a,i9)') 'iend', iend
+            call mpi_barrier(mpi_comm_world, ierr)
             ncount=iend-istart+1
             call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,3i9)') 'istart, iend, ncount', istart, iend, ncount
+            call mpi_barrier(mpi_comm_world, ierr)
             if(istart+ncount-1>norb) then
                 write(*,'(a,3i9)') 'ERROR: istart+ncount-1>norb: istart, ncount,norb', istart, ncount,norb
             end if
