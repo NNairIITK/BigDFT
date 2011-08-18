@@ -407,7 +407,7 @@ module module_types
 !> Contains the parameter needed for the point to point communication for
 !! the orthonormlization.
    type,public:: p2pCommsOrthonormality
-       integer:: nsendBuf, nrecvBuf
+       integer:: nsendBuf, nrecvBuf, noverlapsmax
        integer,dimension(:),pointer:: noverlaps
        integer,dimension(:,:),pointer:: overlaps
        integer,dimension(:,:,:),pointer:: comarr
@@ -425,7 +425,7 @@ module module_types
 
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
-      integer:: ndim_lphiovrlp
+      integer:: ndim_lphiovrlp, noverlapsmax, noverlapsmaxp
       integer,dimension(:),pointer:: noverlaps, indexExpand, indexExtract
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:,:),pointer:: indexInRecvBuf

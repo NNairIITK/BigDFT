@@ -1019,7 +1019,8 @@ call allocateCommuncationBuffersOrtho(comon, subname)
 
 ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
 ! Then post the messages and gather them.
-call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon)
+!call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon)
+call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon%nsendBuf, comon%sendBuf)
 call postCommsOverlap(iproc, nproc, comon)
 call gatherOrbitals2(iproc, nproc, comon)
 
@@ -1034,10 +1035,12 @@ do iat=1,lzdig%nlr
     ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
     if(.not.skip(iat)) then
         ii=ii+1
-        call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,ii), comon)
+        !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,ii), comon)
+        call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
     else
         !write(*,'(2(a,i0))') 'iproc ',iproc,' skips locreg ',iat
-        call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, zeroArray, comon)
+        !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, zeroArray, comon)
+        call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, zeroArray, comon%nsendBuf, comon%sendBuf)
     end if
     !!call calculateOverlapMatrix2(iproc, nproc, orbsig, op, comon, onWhichAtom, mad, hamTemp(1,1))
     call calculateOverlapMatrix3(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
@@ -2312,7 +2315,8 @@ allocate(lchiovrlp(op%ndim_lphiovrlp), stat=istat)
 call memocc(istat, lchiovrlp, 'lchiovrlp',subname)
 
 call allocateCommuncationBuffersOrtho(comon, subname)
-call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, orbsig%inWhichLocreg, lzdig, op, lchi, comon)
+!call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, orbsig%inWhichLocreg, lzdig, op, lchi, comon)
+call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, orbsig%inWhichLocreg, lzdig, op, lchi, comon%nsendBuf, comon%sendBuf)
 call postCommsOverlap(iproc, nproc, comon)
 call gatherOrbitals2(iproc, nproc, comon)
 call expandOrbital2(iproc, nproc, orbsig, input, orbsig%inWhichLocreg, lzdig, op, comon, lchiovrlp)
