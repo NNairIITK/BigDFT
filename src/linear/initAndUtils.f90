@@ -2232,6 +2232,7 @@ write(*,'(a,2i9)') 'when allocating: iproc, size(mad%keygline,3)', iproc, size(m
   isegline=0
   irowold=0
   mad%keygline=0
+  mad%keyg=0
   do jproc=0,nproc-1
       do iorb=1,orbs%norb_par(jproc)
           iiorb=orbs%isorb_par(jproc)+iorb
@@ -2754,7 +2755,7 @@ do iseg=1,nsegmatmul
             if(iiseg==nsegline(irow)) iistop=.true.
             if(jjseg==nsegline(icolumn)) jjstop=.true.
             if(iistop .and. jjstop) exit
-            if((keygline(1,iiseg,irow)<=keygline(1,jjseg,icolumn) .or. jjstop)) then
+            if((keygline(1,iiseg,irow)<=keygline(1,jjseg,icolumn) .or. jjstop) .and. .not.iistop) then
                 iiseg=iiseg+1
             else
                 jjseg=jjseg+1
