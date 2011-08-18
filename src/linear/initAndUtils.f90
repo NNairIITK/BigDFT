@@ -2667,10 +2667,14 @@ do iseg=1,nsegmatmul
         jjseg=1
         iistop=.false.
         jjstop=.false.
+        call mpi_barrier(mpi_comm_world, ierr)
+        if(iproc==0) write(*,'(a,2i8)') 'irow, icolumn', irow, icolumn
         do
             istart=max(keygline(1,iiseg,irow),keygline(1,jjseg,icolumn))
             iend=min(keygline(2,iiseg,irow),keygline(2,jjseg,icolumn))
             ncount=iend-istart+1
+            call mpi_barrier(mpi_comm_world, ierr)
+            if(iproc==0) write(*,'(a,3i9)') 'istart, iend, ncount', istart, iend, ncount
             if(istart+ncount-1>norb) then
                 write(*,'(a,3i9)') 'ERROR: istart+ncount-1>norb: istart, ncount,norb', istart, ncount,norb
             end if
