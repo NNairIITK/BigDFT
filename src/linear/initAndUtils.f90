@@ -2545,7 +2545,7 @@ subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvm
   integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
   logical:: segment
   character(len=*),parameter:: subname='initCompressedMatmul2'
-  real(4),dimension(:),allocatable:: mat1, mat2, mat3
+  real(8),dimension(:),allocatable:: mat1, mat2, mat3
 
 
 
@@ -2556,23 +2556,23 @@ subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvm
   allocate(mat3(norb**2), stat=istat)
   call memocc(istat, mat2, 'mat2', subname)
 
-  mat1=0.e0
-  mat2=0.e0
+  mat1=0.d0
+  mat2=0.d0
   do iseg=1,nseg
       do i=keyg(1,iseg),keyg(2,iseg)
           ! the localization region is "symmetric"
-          mat1(i)=1.e0
-          mat2(i)=1.e0
+          mat1(i)=1.d0
+          mat2(i)=1.d0
       end do
   end do
 
-  call sgemm('n', 'n', norb, norb, norb, 1.e0, mat1, norb, mat2, norb, 0.e0, mat3, norb)
+  call dgemm('n', 'n', norb, norb, norb, 1.d0, mat1, norb, mat2, norb, 0.d0, mat3, norb)
 
   segment=.false.
   nsegmatmul=0
   do iorb=1,norb**2
       !write(30,'(i6,3es16.7)') iorb, mat1(iorb), mat2(iorb), mat3(iorb)
-      if(mat3(iorb)>0.e0) then
+      if(mat3(iorb)>0.d0) then
           ! This entry of the matrix will be different from zero.
           if(.not. segment) then
               ! This is the start of a new segment
@@ -2599,7 +2599,7 @@ subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvm
   iseg=0
   do iorb=1,norb**2
       ij=iorb
-      if(mat3(iorb)>0.e0) then
+      if(mat3(iorb)>0.d0) then
           ! This entry of the matrix will be different from zero.
           if(.not. segment) then
               ! This is the start of a new segment
