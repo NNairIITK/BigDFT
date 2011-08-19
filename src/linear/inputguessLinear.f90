@@ -734,105 +734,105 @@ call deallocate_p2pCommsOrthonormality(comon, subname)
 end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
 
-subroutine orthonormalizeCoefficients(orbs, orbsig, coeff)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-type(orbitals_data),intent(in):: orbs, orbsig
-real(8),dimension(orbsig%norb,orbs%norb),intent(inout):: coeff
-
-! Local variables
-integer:: iorb, jorb, istat, iall, lwork, info
-real(8),dimension(:),allocatable:: work, eval
-real(8),dimension(:,:),allocatable:: ovrlp, coeffTemp
-real(8),dimension(:,:,:),allocatable:: tempArr
-character(len=*),parameter:: subname='orthonormalizeCoefficients'
-real(8):: ddot
-
-        allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
-        call memocc(istat, ovrlp, 'ovrlp', subname)
-        allocate(eval(orbs%norb), stat=istat)
-        call memocc(istat, eval, 'eval', subname)
-        allocate(tempArr(orbs%norb,orbs%norb,2), stat=istat)
-        call memocc(istat, tempArr, 'tempArr', subname)
-        allocate(coeffTemp(orbsig%norb,orbs%norb), stat=istat)
-        call memocc(istat, coeffTemp, 'coeffTemp', subname)
-
-
-        !!! Orthonormalize the coefficient vectors (Gram-Schmidt).
-        !!do iorb=1,orbs%norb
-        !!    do jorb=1,iorb-1
-        !!        tt=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-        !!        call daxpy(orbsig%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
-        !!    end do
-        !!    tt=dnrm2(orbsig%norb, coeff(1,iorb), 1)
-        !!    call dscal(orbsig%norb, 1/tt, coeff(1,iorb), 1)
-        !!end do
-
-        !!! Orthonormalize the coefficient vectors (Loewdin).
-        !!do iorb=1,orbs%norb
-        !!    do jorb=1,orbs%norb
-        !!        ovrlp(iorb,jorb)=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
-        !!    end do
-        !!end do
-
-        allocate(work(1), stat=istat)
-        call memocc(istat, work, 'work', subname)
-        call dsyev('v', 'l', orbs%norb, ovrlp(1,1), orbs%norb, eval, work, -1, info)
-        lwork=work(1)
-        iall=-product(shape(work))*kind(work)
-        deallocate(work, stat=istat)
-        call memocc(istat, iall, 'work', subname)
-        allocate(work(lwork), stat=istat)
-        call memocc(istat, work, 'work', subname)
-        call dsyev('v', 'l', orbs%norb, ovrlp(1,1), orbs%norb, eval, work, lwork, info)
-        iall=-product(shape(work))*kind(work)
-        deallocate(work, stat=istat)
-        call memocc(istat, iall, 'work', subname)
-
-        ! Calculate S^{-1/2}. 
-        ! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
-        ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
-        do iorb=1,orbs%norb
-            do jorb=1,orbs%norb
-                tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
-            end do
-        end do
-
-        ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
-        ! This will give S^{-1/2}.
-        call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), &
-        orbs%norb, tempArr(1,1,1), orbs%norb, 0.d0, &
-        tempArr(1,1,2), orbs%norb)
-
-        ! Now calculate the orthonormal orbitals by applying S^{-1/2} to the orbitals.
-        ! This requires the use of a temporary variable phidTemp.
-        call dgemm('n', 'n', orbsig%norb, orbs%norb, orbs%norb, 1.d0, coeff(1,1), &
-             orbsig%norb, tempArr(1,1,2), orbs%norb, 0.d0, &
-             coeffTemp(1,1), orbsig%norb)
-        
-        ! Now copy the orbitals from the temporary variable to phid.
-        call dcopy(orbs%norb*orbsig%norb, coeffTemp(1,1), 1, coeff(1,1), 1)
-
-        iall=-product(shape(ovrlp))*kind(ovrlp)
-        deallocate(ovrlp, stat=istat)
-        call memocc(istat, iall, 'ovrlp', subname)
-
-        iall=-product(shape(eval))*kind(eval)
-        deallocate(eval, stat=istat)
-        call memocc(istat, iall, 'eval', subname)
-
-        iall=-product(shape(tempArr))*kind(tempArr)
-        deallocate(tempArr, stat=istat)
-        call memocc(istat, iall, 'tempArr', subname)
-
-        iall=-product(shape(coeffTemp))*kind(coeffTemp)
-        deallocate(coeffTemp, stat=istat)
-        call memocc(istat, iall, 'coeffTemp', subname)
-
-end subroutine orthonormalizeCoefficients
+!!subroutine orthonormalizeCoefficients(orbs, orbsig, coeff)
+!!use module_base
+!!use module_types
+!!implicit none
+!!
+!!! Calling arguments
+!!type(orbitals_data),intent(in):: orbs, orbsig
+!!real(8),dimension(orbsig%norb,orbs%norb),intent(inout):: coeff
+!!
+!!! Local variables
+!!integer:: iorb, jorb, istat, iall, lwork, info
+!!real(8),dimension(:),allocatable:: work, eval
+!!real(8),dimension(:,:),allocatable:: ovrlp, coeffTemp
+!!real(8),dimension(:,:,:),allocatable:: tempArr
+!!character(len=*),parameter:: subname='orthonormalizeCoefficients'
+!!real(8):: ddot
+!!
+!!        allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
+!!        call memocc(istat, ovrlp, 'ovrlp', subname)
+!!        allocate(eval(orbs%norb), stat=istat)
+!!        call memocc(istat, eval, 'eval', subname)
+!!        allocate(tempArr(orbs%norb,orbs%norb,2), stat=istat)
+!!        call memocc(istat, tempArr, 'tempArr', subname)
+!!        allocate(coeffTemp(orbsig%norb,orbs%norb), stat=istat)
+!!        call memocc(istat, coeffTemp, 'coeffTemp', subname)
+!!
+!!
+!!        !!! Orthonormalize the coefficient vectors (Gram-Schmidt).
+!!        !!do iorb=1,orbs%norb
+!!        !!    do jorb=1,iorb-1
+!!        !!        tt=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+!!        !!        call daxpy(orbsig%norb, -tt, coeff(1,jorb), 1, coeff(1,iorb), 1)
+!!        !!    end do
+!!        !!    tt=dnrm2(orbsig%norb, coeff(1,iorb), 1)
+!!        !!    call dscal(orbsig%norb, 1/tt, coeff(1,iorb), 1)
+!!        !!end do
+!!
+!!        !!! Orthonormalize the coefficient vectors (Loewdin).
+!!        !!do iorb=1,orbs%norb
+!!        !!    do jorb=1,orbs%norb
+!!        !!        ovrlp(iorb,jorb)=ddot(orbsig%norb, coeff(1,iorb), 1, coeff(1,jorb), 1)
+!!        !!    end do
+!!        !!end do
+!!
+!!        allocate(work(1), stat=istat)
+!!        call memocc(istat, work, 'work', subname)
+!!        call dsyev('v', 'l', orbs%norb, ovrlp(1,1), orbs%norb, eval, work, -1, info)
+!!        lwork=work(1)
+!!        iall=-product(shape(work))*kind(work)
+!!        deallocate(work, stat=istat)
+!!        call memocc(istat, iall, 'work', subname)
+!!        allocate(work(lwork), stat=istat)
+!!        call memocc(istat, work, 'work', subname)
+!!        call dsyev('v', 'l', orbs%norb, ovrlp(1,1), orbs%norb, eval, work, lwork, info)
+!!        iall=-product(shape(work))*kind(work)
+!!        deallocate(work, stat=istat)
+!!        call memocc(istat, iall, 'work', subname)
+!!
+!!        ! Calculate S^{-1/2}. 
+!!        ! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
+!!        ! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
+!!        do iorb=1,orbs%norb
+!!            do jorb=1,orbs%norb
+!!                tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
+!!            end do
+!!        end do
+!!
+!!        ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
+!!        ! This will give S^{-1/2}.
+!!        call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp(1,1), &
+!!        orbs%norb, tempArr(1,1,1), orbs%norb, 0.d0, &
+!!        tempArr(1,1,2), orbs%norb)
+!!
+!!        ! Now calculate the orthonormal orbitals by applying S^{-1/2} to the orbitals.
+!!        ! This requires the use of a temporary variable phidTemp.
+!!        call dgemm('n', 'n', orbsig%norb, orbs%norb, orbs%norb, 1.d0, coeff(1,1), &
+!!             orbsig%norb, tempArr(1,1,2), orbs%norb, 0.d0, &
+!!             coeffTemp(1,1), orbsig%norb)
+!!        
+!!        ! Now copy the orbitals from the temporary variable to phid.
+!!        call dcopy(orbs%norb*orbsig%norb, coeffTemp(1,1), 1, coeff(1,1), 1)
+!!
+!!        iall=-product(shape(ovrlp))*kind(ovrlp)
+!!        deallocate(ovrlp, stat=istat)
+!!        call memocc(istat, iall, 'ovrlp', subname)
+!!
+!!        iall=-product(shape(eval))*kind(eval)
+!!        deallocate(eval, stat=istat)
+!!        call memocc(istat, iall, 'eval', subname)
+!!
+!!        iall=-product(shape(tempArr))*kind(tempArr)
+!!        deallocate(tempArr, stat=istat)
+!!        call memocc(istat, iall, 'tempArr', subname)
+!!
+!!        iall=-product(shape(coeffTemp))*kind(coeffTemp)
+!!        deallocate(coeffTemp, stat=istat)
+!!        call memocc(istat, iall, 'coeffTemp', subname)
+!!
+!!end subroutine orthonormalizeCoefficients
 
 
 

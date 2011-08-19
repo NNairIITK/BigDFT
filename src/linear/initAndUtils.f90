@@ -2676,7 +2676,7 @@ write(*,'(a,2i9)') 'iproc, size(keygline,3)', iproc, size(keygline,3)
 
 do iorb=1,norb
     do iseg=1,nsegline(iorb)
-        if(iproc==0) write(*,'(a,3i9)') 'iorb, iseg, keygline(1,iseg,iorb), keygline(1,iseg,iorb)', iorb, iseg, keygline(1,iseg,iorb), keygline(1,iseg,iorb)
+        if(iproc==0) write(*,'(a,4i9)') 'iorb, iseg, keygline(1,iseg,iorb), keygline(1,iseg,iorb)', iorb, iseg, keygline(1,iseg,iorb), keygline(1,iseg,iorb)
         flush(6)
         call mpi_barrier(mpi_comm_world, ierr)
     end do
@@ -2705,42 +2705,55 @@ do iseg=1,nsegmatmul
         do
             call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,i9)') 'iiseg', iiseg
+            flush(6)
             call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,i9)') 'jjseg', jjseg
+            flush(6)
             call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,i9)') 'keygline(1,iiseg,irow)', keygline(1,iiseg,irow)
+            flush(6)
             call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,i9)') 'keygline(1,jjseg,icolumn)', keygline(1,jjseg,icolumn)
+            flush(6)
             call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,4i9)') 'iiseg, jjseg, keygline(1,iiseg,irow), keygline(1,jjseg,icolumn)', iiseg, jjseg, keygline(1,iiseg,irow), keygline(1,jjseg,icolumn)
+            flush(6)
             call mpi_barrier(mpi_comm_world, ierr)
             istart=max(keygline(1,iiseg,irow),keygline(1,jjseg,icolumn))
             call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,i9)') 'istart', istart
+            flush(6)
             call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,4i9)') 'iiseg, jjseg, keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)', iiseg, jjseg, keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)
+            flush(6)
             call mpi_barrier(mpi_comm_world, ierr)
             iend=min(keygline(2,iiseg,irow),keygline(2,jjseg,icolumn))
             call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,i9)') 'iend', iend
+            flush(6)
             call mpi_barrier(mpi_comm_world, ierr)
             ncount=iend-istart+1
             call mpi_barrier(mpi_comm_world, ierr)
             if(iproc==0) write(*,'(a,3i9)') 'istart, iend, ncount', istart, iend, ncount
+            flush(6)
             call mpi_barrier(mpi_comm_world, ierr)
             if(istart+ncount-1>norb) then
                 write(*,'(a,3i9)') 'ERROR: istart+ncount-1>norb: istart, ncount,norb', istart, ncount,norb
+                flush(6)
             end if
             if(iiseg>maxval(nsegline)) then
                 write(*,'(a,2i9)') 'ERROR: iiseg>maxval(nsegline): iiseg, maxval(nsegline)',iiseg,maxval(nsegline)
+                flush(6)
             end if
             if(jjseg>maxval(nsegline)) then
                 write(*,'(a,2i9)') 'ERROR: jjseg>maxval(nsegline): jjseg, maxval(nsegline)',jjseg,maxval(nsegline)
+                flush(6)
             end if
             if(iproc==0) write(*,'(a,10i10)') 'ncount, istart, iiseg, jjseg, irow, icolumn, &
-            & keygline(1,iiseg,irow), keygline(1,jjseg,icolumn), keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)', &
-            & ncount, istart, iiseg, jjseg, irow, icolumn, &
-            & keygline(1,iiseg,irow), keygline(1,jjseg,icolumn), keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)
+                & keygline(1,iiseg,irow), keygline(1,jjseg,icolumn), keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)', &
+                & ncount, istart, iiseg, jjseg, irow, icolumn, &
+                & keygline(1,iiseg,irow), keygline(1,jjseg,icolumn), keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)
+                flush(6)
 
             if(ncount>0) then
                 !tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
