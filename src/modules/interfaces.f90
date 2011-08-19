@@ -4167,6 +4167,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine overlapPowerMinusOne
 
+      subroutine initCompressedMatmul3(norb, mad)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: norb
+        type(matrixDescriptors),intent(inout):: mad
+      end subroutine initCompressedMatmul3
+
 
 
   end interface

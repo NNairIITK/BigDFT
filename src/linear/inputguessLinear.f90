@@ -123,7 +123,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lig%orbsig, lin%lig%lzdig, lin%lig%comgp, lin%lig%orbsig%inWhichLocreg, tag)
 
   call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
-  call initCompressedMatmul2(lin%lig%orbsig%norb, lin%lig%mad%nseg, lin%lig%mad%keyg, lin%lig%mad%nsegmatmul, lin%lig%mad%keygmatmul, lin%lig%mad%keyvmatmul)
+  !call initCompressedMatmul2(lin%lig%orbsig%norb, lin%lig%mad%nseg, lin%lig%mad%keyg, lin%lig%mad%nsegmatmul, lin%lig%mad%keygmatmul, lin%lig%mad%keyvmatmul)
+  call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
 
   ! Deallocate the local arrays.
   iall=-product(shape(locrad))*kind(locrad)

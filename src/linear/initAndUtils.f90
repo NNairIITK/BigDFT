@@ -242,7 +242,8 @@ call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing matrix compression... '
 call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
 !call initCompressedMatmul(iproc, nproc, lin%lb%orbs%norb, lin%mad)
-call initCompressedMatmul2(norb, lin%mad%nseg, lin%mad%keyg, lin%mad%nsegmatmul, lin%mad%keygmatmul, lin%mad%keyvmatmul)
+!call initCompressedMatmul2(norb, lin%mad%nseg, lin%mad%keyg, lin%mad%nsegmatmul, lin%mad%keygmatmul, lin%mad%keyvmatmul)
+call initCompressedMatmul3(norb, lin%mad)
 if(iproc==0) write(*,'(a)') 'done.'
 !!if(iproc==0) then
 !!    do iall=1,lin%mad%nsegmatmul
@@ -2640,6 +2641,118 @@ call memocc(istat, iall, 'mat3', subname)
 
 
 end subroutine initCompressedMatmul2
+
+
+
+
+subroutine initCompressedMatmul3(norb, mad)
+  use module_base
+  use module_types
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: norb
+  type(matrixDescriptors),intent(inout):: mad
+
+  ! Local variables
+  integer:: iorb, jorb, ii, j, istat, iall, ij, iseg, i
+  logical:: segment
+  character(len=*),parameter:: subname='initCompressedMatmul3'
+  real(8),dimension(:),allocatable:: mat1, mat2, mat3
+
+
+
+  allocate(mat1(norb**2), stat=istat)
+  call memocc(istat, mat1, 'mat1', subname)
+  allocate(mat2(norb**2), stat=istat)
+  call memocc(istat, mat2, 'mat2', subname)
+  allocate(mat3(norb**2), stat=istat)
+  call memocc(istat, mat2, 'mat2', subname)
+
+  mat1=0.d0
+  mat2=0.d0
+  do iseg=1,mad%nseg
+      do i=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          ! the localization region is "symmetric"
+          mat1(i)=1.d0
+          mat2(i)=1.d0
+      end do
+  end do
+
+  call dgemm('n', 'n', norb, norb, norb, 1.d0, mat1, norb, mat2, norb, 0.d0, mat3, norb)
+
+  segment=.false.
+  mad%nsegmatmul=0
+  do iorb=1,norb**2
+      !write(30,'(i6,3es16.7)') iorb, mat1(iorb), mat2(iorb), mat3(iorb)
+      if(mat3(iorb)>0.d0) then
+          ! This entry of the matrix will be different from zero.
+          if(.not. segment) then
+              ! This is the start of a new segment
+              segment=.true.
+              mad%nsegmatmul=mad%nsegmatmul+1
+          end if
+      else
+          if(segment) then
+              ! We reached the end of a segment
+              segment=.false.
+          end if
+      end if
+  end do
+
+
+  allocate(mad%keygmatmul(2,mad%nsegmatmul), stat=istat)
+  call memocc(istat, mad%keygmatmul, 'mad%keygmatmul', subname)
+  allocate(mad%keyvmatmul(mad%nsegmatmul), stat=istat)
+  call memocc(istat, mad%keyvmatmul, 'mad%keyvmatmul', subname)
+  mad%keyvmatmul=0
+  ! Now fill the descriptors.
+  segment=.false.
+  ij=0
+  iseg=0
+  do iorb=1,norb**2
+      ij=iorb
+      if(mat3(iorb)>0.d0) then
+          ! This entry of the matrix will be different from zero.
+          if(.not. segment) then
+              ! This is the start of a new segment
+              segment=.true.
+              iseg=iseg+1
+              mad%keygmatmul(1,iseg)=ij
+          end if
+          mad%keyvmatmul(iseg)=mad%keyvmatmul(iseg)+1
+      else
+          if(segment) then
+              ! We reached the end of a segment
+              segment=.false.
+              mad%keygmatmul(2,iseg)=ij-1
+          end if
+      end if
+  end do
+  ! Close the last segment if required.
+  if(segment) then
+      mad%keygmatmul(2,iseg)=ij
+  end if
+
+  !!do iseg=1,mad%mad%nsegmatmul
+  !!    write(*,'(a,3i8)') 'iseg, mad%mad%keygmatmul(1,iseg), mad%mad%keygmatmul(2,iseg)', iseg, mad%mad%keygmatmul(1,iseg), mad%mad%keygmatmul(2,iseg)
+  !!end do
+  !!do iorb=1,norb**2
+  !!    write(2000,*) iorb, mat3(iorb)
+  !!end do
+
+iall=-product(shape(mat1))*kind(mat1)
+deallocate(mat1, stat=istat)
+call memocc(istat, iall, 'mat1', subname)
+iall=-product(shape(mat2))*kind(mat2)
+deallocate(mat2, stat=istat)
+call memocc(istat, iall, 'mat2', subname)
+iall=-product(shape(mat3))*kind(mat3)
+deallocate(mat3, stat=istat)
+call memocc(istat, iall, 'mat3', subname)
+
+
+end subroutine initCompressedMatmul3
 
 
 
