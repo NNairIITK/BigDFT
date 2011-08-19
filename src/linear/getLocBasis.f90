@@ -609,15 +609,6 @@ real(8),dimension(:),pointer:: phiWork
       end if
       call cpu_time(t1)
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
-      call mpi_barrier(mpi_comm_world, ierr)
-      if(iproc==0) write(*,*) 'before orthoconstraintNonorthogonal'
-    do i=1,lin%orbs%norb
-        write(30000+iproc,*) i, lin%mad%nsegline(i)
-    end do
-    flush(30000+iproc)
-    write(*,'(a,2i9)') 'when calling orthoconstraintNonorthogonal: iproc, size(lin%mad%keygline,1)', iproc, size(lin%mad%keygline,1)
-    write(*,'(a,2i9)') 'when calling orthoconstraintNonorthogonal: iproc, size(lin%mad%keygline,2)', iproc, size(lin%mad%keygline,2)
-    write(*,'(a,2i9)') 'when calling orthoconstraintNonorthogonal: iproc, size(lin%mad%keygline,3)', iproc, size(lin%mad%keygline,3)
 
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH)
       call cpu_time(t2)

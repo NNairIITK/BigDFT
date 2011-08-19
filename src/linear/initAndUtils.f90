@@ -2217,13 +2217,6 @@ subroutine initMatrixCompression(iproc, nproc, orbs, op, mad)
   call memocc(istat, mad%keyg, 'mad%keyg', subname)
   allocate(mad%keygline(2,mad%nseglinemax,orbs%norb), stat=istat)
   call memocc(istat, mad%keygline, 'mad%keygline', subname)
-do i=1,orbs%norb
-    write(15000+iproc,*) i, mad%nsegline(i)
-end do
-flush(15000+iproc)
-write(*,'(a,2i9)') 'when allocating: iproc, size(mad%keygline,1)', iproc, size(mad%keygline,1)
-write(*,'(a,2i9)') 'when allocating: iproc, size(mad%keygline,2)', iproc, size(mad%keygline,2)
-write(*,'(a,2i9)') 'when allocating: iproc, size(mad%keygline,3)', iproc, size(mad%keygline,3)
 
 
   nseg=0
@@ -2572,7 +2565,6 @@ subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvm
   segment=.false.
   nsegmatmul=0
   do iorb=1,norb**2
-      !write(30,'(i6,3es16.7)') iorb, mat1(iorb), mat2(iorb), mat3(iorb)
       if(mat3(iorb)>0.d0) then
           ! This entry of the matrix will be different from zero.
           if(.not. segment) then
@@ -2622,12 +2614,6 @@ subroutine initCompressedMatmul2(norb, nseg, keyg, nsegmatmul, keygmatmul, keyvm
       keygmatmul(2,iseg)=ij
   end if
 
-  !!do iseg=1,nsegmatmul
-  !!    write(*,'(a,3i8)') 'iseg, keygmatmul(1,iseg), keygmatmul(2,iseg)', iseg, keygmatmul(1,iseg), keygmatmul(2,iseg)
-  !!end do
-  !!do iorb=1,norb**2
-  !!    write(2000,*) iorb, mat3(iorb)
-  !!end do
 
 iall=-product(shape(mat1))*kind(mat1)
 deallocate(mat1, stat=istat)
@@ -2684,7 +2670,6 @@ subroutine initCompressedMatmul3(norb, mad)
   segment=.false.
   mad%nsegmatmul=0
   do iorb=1,norb**2
-      !write(30,'(i6,3es16.7)') iorb, mat1(iorb), mat2(iorb), mat3(iorb)
       if(mat3(iorb)>0.d0) then
           ! This entry of the matrix will be different from zero.
           if(.not. segment) then
@@ -2734,12 +2719,6 @@ subroutine initCompressedMatmul3(norb, mad)
       mad%keygmatmul(2,iseg)=ij
   end if
 
-  !!do iseg=1,mad%mad%nsegmatmul
-  !!    write(*,'(a,3i8)') 'iseg, mad%mad%keygmatmul(1,iseg), mad%mad%keygmatmul(2,iseg)', iseg, mad%mad%keygmatmul(1,iseg), mad%mad%keygmatmul(2,iseg)
-  !!end do
-  !!do iorb=1,norb**2
-  !!    write(2000,*) iorb, mat3(iorb)
-  !!end do
 
 iall=-product(shape(mat1))*kind(mat1)
 deallocate(mat1, stat=istat)
@@ -2779,21 +2758,6 @@ integer:: ierr, istart, iend, iiseg, jjseg, ncount
 real(8):: tt, ddot
 logical:: iistop, jjstop
 
-do i=1,norb
-    write(20000+iproc,*) i, nsegline(i)
-end do
-flush(20000+iproc)
-write(*,'(a,2i9)') 'iproc, size(keygline,1)', iproc, size(keygline,1)
-write(*,'(a,2i9)') 'iproc, size(keygline,2)', iproc, size(keygline,2)
-write(*,'(a,2i9)') 'iproc, size(keygline,3)', iproc, size(keygline,3)
-
-do iorb=1,norb
-    do iseg=1,nsegline(iorb)
-        if(iproc==0) write(*,'(a,4i9)') 'iorb, iseg, keygline(1,iseg,iorb), keygline(2,iseg,iorb)', iorb, iseg, keygline(1,iseg,iorb), keygline(2,iseg,iorb)
-        flush(6)
-        call mpi_barrier(mpi_comm_world, ierr)
-    end do
-end do
 
 
 
@@ -2801,9 +2765,6 @@ c=0.d0
 ii=0
 do iseg=1,nsegmatmul
     do i=keygmatmul(1,iseg),keygmatmul(2,iseg)
-        call mpi_barrier(mpi_comm_world, ierr)
-        if(iproc==0) write(*,'(a,4i10)') 'iseg, keygmatmul(1,iseg), keygmatmul(2,iseg), i', &
-                     iseg, keygmatmul(1,iseg), keygmatmul(2,iseg), i
         ii=ii+1
         ! Get the row and column index
         irow=(i-1)/norb+1
@@ -2813,67 +2774,13 @@ do iseg=1,nsegmatmul
         jjseg=1
         iistop=.false.
         jjstop=.false.
-        call mpi_barrier(mpi_comm_world, ierr)
-        if(iproc==0) write(*,'(a,2i8)') 'irow, icolumn', irow, icolumn
         do
-            call mpi_barrier(mpi_comm_world, ierr)
-            if(iproc==0) write(*,'(a,i9)') 'iiseg', iiseg
-            flush(6)
-            call mpi_barrier(mpi_comm_world, ierr)
-            if(iproc==0) write(*,'(a,i9)') 'jjseg', jjseg
-            flush(6)
-            call mpi_barrier(mpi_comm_world, ierr)
-            if(iproc==0) write(*,'(a,i9)') 'keygline(1,iiseg,irow)', keygline(1,iiseg,irow)
-            flush(6)
-            call mpi_barrier(mpi_comm_world, ierr)
-            if(iproc==0) write(*,'(a,i9)') 'keygline(1,jjseg,icolumn)', keygline(1,jjseg,icolumn)
-            flush(6)
-            call mpi_barrier(mpi_comm_world, ierr)
-            if(iproc==0) write(*,'(a,4i9)') 'iiseg, jjseg, keygline(1,iiseg,irow), keygline(1,jjseg,icolumn)', iiseg, jjseg, keygline(1,iiseg,irow), keygline(1,jjseg,icolumn)
-            flush(6)
-            call mpi_barrier(mpi_comm_world, ierr)
             istart=max(keygline(1,iiseg,irow),keygline(1,jjseg,icolumn))
-            call mpi_barrier(mpi_comm_world, ierr)
-            if(iproc==0) write(*,'(a,i9)') 'istart', istart
-            flush(6)
-            call mpi_barrier(mpi_comm_world, ierr)
-            if(iproc==0) write(*,'(a,4i9)') 'iiseg, jjseg, keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)', iiseg, jjseg, keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)
-            flush(6)
-            call mpi_barrier(mpi_comm_world, ierr)
             iend=min(keygline(2,iiseg,irow),keygline(2,jjseg,icolumn))
-            call mpi_barrier(mpi_comm_world, ierr)
-            if(iproc==0) write(*,'(a,i9)') 'iend', iend
-            flush(6)
-            call mpi_barrier(mpi_comm_world, ierr)
             ncount=iend-istart+1
-            call mpi_barrier(mpi_comm_world, ierr)
-            if(iproc==0) write(*,'(a,3i9)') 'istart, iend, ncount', istart, iend, ncount
-            flush(6)
-            call mpi_barrier(mpi_comm_world, ierr)
-            if(istart+ncount-1>norb) then
-                write(*,'(a,3i9)') 'ERROR: istart+ncount-1>norb: istart, ncount,norb', istart, ncount,norb
-                flush(6)
-            end if
-            if(iiseg>maxval(nsegline)) then
-                write(*,'(a,2i9)') 'ERROR: iiseg>maxval(nsegline): iiseg, maxval(nsegline)',iiseg,maxval(nsegline)
-                flush(6)
-            end if
-            if(jjseg>maxval(nsegline)) then
-                write(*,'(a,2i9)') 'ERROR: jjseg>maxval(nsegline): jjseg, maxval(nsegline)',jjseg,maxval(nsegline)
-                flush(6)
-            end if
-            if(iproc==0) write(*,'(a,10i10)') 'ncount, istart, iiseg, jjseg, irow, icolumn, &
-                & keygline(1,iiseg,irow), keygline(1,jjseg,icolumn), keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)', &
-                & ncount, istart, iiseg, jjseg, irow, icolumn, &
-                & keygline(1,iiseg,irow), keygline(1,jjseg,icolumn), keygline(2,iiseg,irow), keygline(2,jjseg,icolumn)
-                flush(6)
 
             if(ncount>0) then
-                !tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
-                tt=0.d0
-                do j=istart,istart+ncount-1
-                    tt = tt + a(j,irow)*b(j,icolumn)
-                end do
+                tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
             else
                 tt=0.d0
             end if

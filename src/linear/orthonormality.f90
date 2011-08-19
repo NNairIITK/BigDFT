@@ -43,28 +43,20 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       call cpu_time(t1)
       call allocateSendBufferOrtho(comon, subname)
       call allocateRecvBufferOrtho(comon, subname)
-      call mpi_barrier(mpi_comm_world, ierr)
-      if(iproc==0) write(*,*) 'before extractOrbital2'
       !call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, onWhichAtomAll, lzd, op, lphi, comon)
       call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, onWhichAtomAll, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
       call cpu_time(t2)
       timeExtract=timeExtract+t2-t1
       timeComput=timeComput+t2-t1
       call cpu_time(t1)
-      call mpi_barrier(mpi_comm_world, ierr)
-      if(iproc==0) write(*,*) 'before postCommsOverlap'
         call postCommsOverlap(iproc, nproc, comon)
         !call gatherOrbitals(iproc, nproc, lin%comon)
-      call mpi_barrier(mpi_comm_world, ierr)
-      if(iproc==0) write(*,*) 'before gatherOrbitals2'
         call gatherOrbitals2(iproc, nproc, comon)
       !call getOrbitals(iproc, nproc, comon)
       call cpu_time(t2)
       timeCommun=timeCommun+t2-t1
       call cpu_time(t1)
       !call calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtomAll, mad, ovrlp)
-      call mpi_barrier(mpi_comm_world, ierr)
-      if(iproc==0) write(*,*) 'before calculateOverlapMatrix3'
       call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
                                    comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
       !call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
@@ -92,8 +84,6 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       !        write(10000+iproc,'(2i8,es20.8)') iorb, jorb, ovrlp(jorb,iorb)
       !    end do
       !end do
-      call mpi_barrier(mpi_comm_world, ierr)
-      if(iproc==0) write(*,*) 'before overlapPowerMinusOneHalf'
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, orbs%norb, mad, ovrlp)
       !!if(methTransformOverlap==0) then
       !!    call transformOverlapMatrix(iproc, nproc, mpi_comm_world, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
@@ -114,15 +104,11 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       call cpu_time(t3)
       allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
       call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-      call mpi_barrier(mpi_comm_world, ierr)
-      if(iproc==0) write(*,*) 'before expandOrbital2'
       call expandOrbital2(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon, lphiovrlp)
       call deallocateRecvBufferOrtho(comon, subname)
       call cpu_time(t4)
       timeExpand=timeExpand+t4-t3
       call cpu_time(t3)
-      call mpi_barrier(mpi_comm_world, ierr)
-      if(iproc==0) write(*,*) 'before globalLoewdin'
       call globalLoewdin(iproc, nproc, orbs, orbs, onWhichAtomAll, lzd, op, ovrlp, lphiovrlp, lphi)
       iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
       deallocate(lphiovrlp, stat=istat)
@@ -219,19 +205,13 @@ logical,dimension(:,:),allocatable:: expanded
   call cpu_time(t2)
   timeExtract=t2-t1
   call cpu_time(t1)
-  call mpi_barrier(mpi_comm_world, ierr)
-  if(iproc==0) write(*,*) 'before postCommsOverlap'
   call postCommsOverlap(iproc, nproc, lin%comon)
   call cpu_time(t1)
-  call mpi_barrier(mpi_comm_world, ierr)
-  if(iproc==0) write(*,*) 'before extractOrbital3'
   call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
                        lhphi, lin%comon%nsendBuf, sendBuf)
   call cpu_time(t2)
   timeExtract=t2-t1
   !call gatherOrbitals2(iproc, nproc, lin%comon)
-  call mpi_barrier(mpi_comm_world, ierr)
-  if(iproc==0) write(*,*) 'before gatherOrbitalsOverlapWithComput'
   call gatherOrbitalsOverlapWithComput(iproc, nproc, lin%orbs, input, lin%lzd, lin%op, lin%comon, lphiovrlp, expanded)
   call cpu_time(t2)
   timeCommun=t2-t1
@@ -248,7 +228,6 @@ logical,dimension(:,:),allocatable:: expanded
   !!end do
   !call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, lagmat)
   call mpi_barrier(mpi_comm_world, ierr)
-  if(iproc==0) write(*,*) 'before calculateOverlapMatrix3'
   call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
                                sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, lagmat)
   call cpu_time(t2)
@@ -276,14 +255,7 @@ logical,dimension(:,:),allocatable:: expanded
   !!!! Expand the receive buffer, i.e. lhphi
   !!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
   call mpi_barrier(mpi_comm_world, ierr)
-  if(iproc==0) write(*,*) 'before applyOrthoconstraintNonorthogonal2'
   call cpu_time(t1)
-  do i=1,lin%orbs%norb
-      write(35000+iproc,*) i, mad%nsegline(i)
-  end do
-  write(*,'(a,2i9)') 'when calling applyOrthoconstraintNonorthogonal2: iproc, size(mad%keygline,1)', iproc, size(mad%keygline,1)
-  write(*,'(a,2i9)') 'when calling applyOrthoconstraintNonorthogonal2: iproc, size(mad%keygline,2)', iproc, size(mad%keygline,2)
-  write(*,'(a,2i9)') 'when calling applyOrthoconstraintNonorthogonal2: iproc, size(mad%keygline,3)', iproc, size(mad%keygline,3)
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
                                           lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
   call cpu_time(t2)
@@ -1842,7 +1814,6 @@ call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 
 ! Invert the overlap matrix
 call mpi_barrier(mpi_comm_world, ierr)
-if(iproc==0) write(*,*) 'before calling applyOrthoconstraintNonorthogonal2'
 call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp2)
 
 
@@ -1853,47 +1824,13 @@ do iorb=1,orbs%norb
         ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
     end do
 end do
-!!do iorb=1,orbs%norb
-!!    do jorb=1,orbs%norb
-!!        write(5000+iproc,'(2i7,2es25.17)') iorb,jorb,ovrlp2(jorb,iorb), lagmat(jorb,iorb)
-!!    end do
-!!end do
-!!!!!! DEBUG #############################################
-!!!do iorb=1,orbs%norb
-!!!    do jorb=1,orbs%norb
-!!!        if(iorb==jorb) then
-!!!            ovrlp2(jorb,iorb)=1.d0
-!!!        else
-!!!            ovrlp2(jorb,iorb)=0.d0
-!!!        end if
-!!!    end do
-!!!end do
-!!!!! ######################################################
 call cpu_time(t1)
-call mpi_barrier(mpi_comm_world, ierr)
-if(iproc==0) write(*,*) 'before calling dgemm_compressed2 / dsymm_parallel'
 if(blocksize_pdgemm<0) then
-    !!call dgemm('n', 'n', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-    !!     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
-    !!call dgemm('n', 't', orbs%norb, orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-    !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
     !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
     ovrlp_minus_one_lagmat=0.d0
-    !call dgemm_compressed(orbs%norb, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
-    call mpi_barrier(mpi_comm_world, ierr)
-    if(iproc==0) write(*,*) 'calling dgemm_compressed2 first time'
-    do i=1,orbs%norb
-        write(25000+iproc,*) i, mad%nsegline(i)
-    end do
-    flush(25000+iproc)
-    write(*,'(a,2i9)') 'when calling dgemm_compressed2: iproc, size(mad%keygline,1)', iproc, size(mad%keygline,1)
-    write(*,'(a,2i9)') 'when calling dgemm_compressed2: iproc, size(mad%keygline,2)', iproc, size(mad%keygline,2)
-    write(*,'(a,2i9)') 'when calling dgemm_compressed2: iproc, size(mad%keygline,3)', iproc, size(mad%keygline,3)
     call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
     ! Transpose lagmat
-    call mpi_barrier(mpi_comm_world, ierr)
-    if(iproc==0) write(*,*) 'transposing'
     do iorb=1,orbs%norb
         do jorb=iorb+1,orbs%norb
             tt=lagmat(jorb,iorb)
@@ -1904,9 +1841,6 @@ if(blocksize_pdgemm<0) then
     !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
     ovrlp_minus_one_lagmat_trans=0.d0
-    !call dgemm_compressed(orbs%norb, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
-    call mpi_barrier(mpi_comm_world, ierr)
-    if(iproc==0) write(*,*) 'calling dgemm_compressed2 second time'
     call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
 else
     call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
@@ -1926,30 +1860,6 @@ call cpu_time(t2)
 time_dsymm=t2-t1
 
 
-!!iseg=0
-!!segment=.false.
-!!do iorb=1,orbs%norb
-!!    do jorb=1,orbs%norb
-!!        iall=(iorb-1)*orbs%norb+jorb
-!!        if(.not.segment) then
-!!            if(iall==mad%keygmatmul(1,iseg+1)) then
-!!                iseg=iseg+1
-!!            end if
-!!        end if
-!!        if(iall>=mad%keygmatmul(1,iseg) .and. iall<=mad%keygmatmul(2,iseg)) then
-!!            val=.true.
-!!            segment=.true.
-!!        else
-!!            val=.false.
-!!            segment=.false.
-!!        end if
-!!        if((ovrlp_minus_one_lagmat(jorb,iorb)==0.d0 .and. val) .or. (ovrlp_minus_one_lagmat(jorb,iorb)/=0.d0 .and. .not.val)) then
-!!            if(iproc==0) write(*,'(a,2i6,2es15.6,l)') 'PROBLEM:', iorb, jorb, ovrlp_minus_one_lagmat(jorb,iorb), ovrlp_minus_one_lagmat(jorb,iorb), val
-!!            !stop
-!!        end if
-!!        write(6000+iproc,'(2i7,3es25.17,l)') iorb,jorb,ovrlp2(jorb,iorb),lagmat(jorb,iorb),ovrlp_minus_one_lagmat(jorb,iorb), val
-!!    end do
-!!end do
 
 
 call cpu_time(t1)

@@ -437,7 +437,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Post the messages for the communication of the potential.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-  write(*,'(a,2i9)') 'iproc, ndimpot', iproc, ndimpot
   call allocateCommunicationsBuffersPotential(lin%lig%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%lig%comgp)
 
