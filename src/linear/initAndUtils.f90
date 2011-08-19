@@ -2676,7 +2676,7 @@ write(*,'(a,2i9)') 'iproc, size(keygline,3)', iproc, size(keygline,3)
 
 do iorb=1,norb
     do iseg=1,nsegline(iorb)
-        if(iproc==0) write(*,'(a,4i9)') 'iorb, iseg, keygline(1,iseg,iorb), keygline(1,iseg,iorb)', iorb, iseg, keygline(1,iseg,iorb), keygline(1,iseg,iorb)
+        if(iproc==0) write(*,'(a,4i9)') 'iorb, iseg, keygline(1,iseg,iorb), keygline(2,iseg,iorb)', iorb, iseg, keygline(1,iseg,iorb), keygline(2,iseg,iorb)
         flush(6)
         call mpi_barrier(mpi_comm_world, ierr)
     end do
