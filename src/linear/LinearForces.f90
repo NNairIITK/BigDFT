@@ -147,7 +147,7 @@ subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
   !local variables--------------
   character(len=*), parameter :: subname='Linearnonlocal_forces'
   integer :: istart_c,iproj,iat,ityp,i,j,l,m
-  integer :: mbseg_c,mbseg_f,jseg_c
+  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,jorbd
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,ispinor
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
@@ -162,6 +162,12 @@ subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
 
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
+
+  !always put complex scalprod
+  !also nspinor for the moment is the biggest as possible
+  allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)   
+  call memocc(i_stat,scalprod,'scalprod',subname)
+  call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
 
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
@@ -195,7 +201,7 @@ subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
      end do
   end do
 
-  if(present(coeff) .and. present(phi)) then
+  if(Lzd%linear .and. present(coeff) .and. present(phi)) then
      useTMO = .true.
      norb = linorbs%norbp
   else
@@ -205,37 +211,34 @@ subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
 
 
   !find the different llr present on this process
-  allocate(ilrtable(norb),stat=i_stat)
-  call memocc(i_stat,ilrtable,'ilrtable',subname)
-  ilrtable = 0
-  ii=0
-  do iorb=1,norb
-     newvalue=.true.
-     if(.not. useTMO) ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-     if(useTMO) ilr = linorbs%inwhichlocreg(iorb+linorbs%isorb)
-     loop_iorb2: do iorb2=1,norb
-        if(ilrtable(iorb2) == ilr) then
-           newvalue=.false.
-           exit loop_iorb2
+  if(Lzd%linear) then
+     allocate(ilrtable(norb),stat=i_stat)
+     call memocc(i_stat,ilrtable,'ilrtable',subname)
+     ilrtable = 0
+     ii=0
+     do iorb=1,norb
+        newvalue=.true.
+        if(.not. useTMO) ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+        if(useTMO) ilr = linorbs%inwhichlocreg(iorb+linorbs%isorb)
+        loop_iorb2: do iorb2=1,norb
+           if(ilrtable(iorb2) == ilr) then
+              newvalue=.false.
+              exit loop_iorb2
+           end if
+        end do loop_iorb2
+        if (newvalue) then
+          ii = ii + 1
+          ilrtable(ii)=ilr
         end if
-     end do loop_iorb2
-     if (newvalue) then
-       ii = ii + 1
-       ilrtable(ii)=ilr
-     end if
-  end do 
-  nilr = ii
+     end do 
+     nilr = ii
+  end if
 
 !##############################################################################################
 ! Scalar Product of projectors and wavefunctions: Linear scaling with Trace Minimizing Orbitals
 !##############################################################################################
 
   if (useTMO) then
-     !always put complex scalprod
-     !also nspinor for the moment is the biggest as possible
-     allocate(scalprod(2,0:3,7,3,4,at%nat,linorbs%norbp*orbs%nspinor+ndebug),stat=i_stat)   !Keep nspinor??
-     call memocc(i_stat,scalprod,'scalprod',subname)
-     call razero(2*4*7*3*4*at%nat*linorbs%norbp*orbs%nspinor,scalprod)
 
      !starting k-point
      ikpt=orbs%iokpt(1)
@@ -334,26 +337,23 @@ subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
 !        ispsi_k=ispsi
 !     end do loop_kptTMO
 
+!DEBUG
 sum_scalprod = sum(scalprod)
 call mpiallred(sum_scalprod,1,MPI_SUM,MPI_COMM_WORLD,i_all)
 if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
+!END DEBUG
 
 !##########################################################################################
 ! Standard OnTheFLY calculation, including Linear Scaling without Trace Minimizing Orbitals
 !#########################################################################################
   else if (DistProjApply) then
-     !always put complex scalprod
-     !also nspinor for the moment is the biggest as possible
-     allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)   !Keep nspinor??
-     call memocc(i_stat,scalprod,'scalprod',subname)
-     call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
 
      !apply the projectors on the fly for each k-point of the processor
      !starting k-point
      ikpt=orbs%iokpt(1)
      ispsi_k=1
      orbtot=0
-     loop_kptD: do
+     loop_LkptD: do
 
         call orbs_in_kpt(ikpt,orbs,isorb,ieorb,orbs%nspinor)
 
@@ -436,27 +436,94 @@ if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
               end do
            end do
         end do
+        if (ieorb == orbs%norbp) exit loop_LkptD
+        ikpt=ikpt+1
+        ispsi_k=ispsi
+     end do loop_LkptD
+
+!############################################################################################################################################
+! Cubic On The Fly Calculation
+!############################################################################################################################################
+  else if (DistProjApply) then
+     !apply the projectors on the fly for each k-point of the processor
+     !starting k-point
+     ikpt=orbs%iokpt(1)
+     ispsi_k=1
+     jorb=0
+     loop_kptD: do
+
+        call orbs_in_kpt(ikpt,orbs,isorb,ieorb,orbs%nspinor)
+
+        call ncplx_kpt(ikpt,orbs,ncplx)
+
+        nwarnings=0 !not used, simply initialised 
+        iproj=0 !should be equal to four times nproj at the end
+        jorbd=jorb
+        do iat=1,at%nat
+
+           mbseg_c=Lzd%Gnlpspd%nseg_p(2*iat-1)-Lzd%Gnlpspd%nseg_p(2*iat-2)
+           mbseg_f=Lzd%Gnlpspd%nseg_p(2*iat  )-Lzd%Gnlpspd%nseg_p(2*iat-1)
+           jseg_c=Lzd%Gnlpspd%nseg_p(2*iat-2)+1
+           jseg_f=Lzd%Gnlpspd%nseg_p(2*iat-1)+1
+           mbvctr_c=Lzd%Gnlpspd%nvctr_p(2*iat-1)-Lzd%Gnlpspd%nvctr_p(2*iat-2)
+           mbvctr_f=Lzd%Gnlpspd%nvctr_p(2*iat  )-Lzd%Gnlpspd%nvctr_p(2*iat-1)
+           ityp=at%iatype(iat)
+
+           do idir=0,3
+              !calculate projectors
+              istart_c=1
+              call atom_projector(ikpt,iat,idir,istart_c,iproj,&
+                   Lzd%Glr,hx,hy,hz,rxyz,at,orbs,Lzd%Gnlpspd,proj,nwarnings)
+!              print *,'iat,ilr,idir,sum(proj)',iat,ilr,idir,sum(proj)
+
+              !calculate the contribution for each orbital
+              !here the nspinor contribution should be adjusted
+              ! loop over all my orbitals
+              ispsi=ispsi_k
+              jorb=jorbd
+              do iorb=isorb,ieorb
+                 do ispinor=1,orbs%nspinor,ncplx
+                    jorb=jorb+1
+                    istart_c=1
+                    do l=1,4
+                       do i=1,3
+                          if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                             do m=1,2*l-1
+                                call wpdot_wrap(ncplx,&
+                                     Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
+                                     Lzd%Glr%wfd%keyv,Lzd%Glr%wfd%keyg,psi(ispsi),&
+                                     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                                     Lzd%Gnlpspd%keyv_p(jseg_c),Lzd%Gnlpspd%keyg_p(1,jseg_c),&
+                                     proj(istart_c),&
+                                     scalprod(1,idir,m,i,l,iat,jorb))
+                                istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                             end do
+                          end if
+                       end do
+                    end do
+                    ispsi=ispsi+(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*ncplx
+                 end do
+              end do
+              if (istart_c-1  > Lzd%Gnlpspd%nprojel) stop '2:applyprojectors'
+           end do
+
+        end do
+
         if (ieorb == orbs%norbp) exit loop_kptD
         ikpt=ikpt+1
         ispsi_k=ispsi
      end do loop_kptD
 
 !#############################################################################################################################################
-! Standard Not on the Fly calculation : NOT ADAPTED FOR LINEAR YET (PERTINENT??) !!
+! Cubic Not On The Fly calculation : NOT ADAPTED FOR LINEAR YET (PERTINENT??) !!
 !#############################################################################################################################################
   else
-     
-     !always put complex scalprod
-     !also nspinor for the moment is the biggest as possible
-     allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)   !Keep nspinor??
-     call memocc(i_stat,scalprod,'scalprod',subname)
-     call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
- 
+
      !calculate all the scalar products for each direction and each orbitals
      do idir=0,3
 
         if (idir /= 0) then !for the first run the projectors are already allocated
-           call Linearfill_projectors(iproc,Lzd%Llr(ilr),hx,hy,hz,at,orbs,rxyz,Lzd%Lnlpspd(ilr),proj,idir)
+           call fill_projectors(iproc,Lzd%Glr,hx,hy,hz,at,orbs,rxyz,Lzd%Gnlpspd,proj,idir)
         end if
         !apply the projectors  k-point of the processor
         !starting k-point
@@ -478,10 +545,12 @@ if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
                  iproj=0
                  istart_c=istart_ck
                  do iat=1,at%nat
-                    mbseg_c=Lzd%Lnlpspd(ilr)%nseg_p(2*iatom-1)
-                    mbseg_f=Lzd%Lnlpspd(ilr)%nseg_p(2*iatom  )
-                    mbvctr_c=Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom-1)
-                    mbvctr_f=Lzd%Lnlpspd(ilr)%nvctr_p(2*iatom  )
+                    mbseg_c=Lzd%Gnlpspd%nseg_p(2*iat-1)-Lzd%Gnlpspd%nseg_p(2*iat-2)
+                    mbseg_f=Lzd%Gnlpspd%nseg_p(2*iat  )-Lzd%Gnlpspd%nseg_p(2*iat-1)
+                    jseg_c=Lzd%Gnlpspd%nseg_p(2*iat-2)+1
+                    jseg_f=Lzd%Gnlpspd%nseg_p(2*iat-1)+1
+                    mbvctr_c=Lzd%Gnlpspd%nvctr_p(2*iat-1)-Lzd%Gnlpspd%nvctr_p(2*iat-2)
+                    mbvctr_f=Lzd%Gnlpspd%nvctr_p(2*iat  )-Lzd%Gnlpspd%nvctr_p(2*iat-1)
                     ityp=at%iatype(iat)
                     do l=1,4
                        do i=1,3
@@ -489,11 +558,11 @@ if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
                              do m=1,2*l-1
                                 iproj=iproj+1
                                 call wpdot_wrap(ncplx,&
-                                     Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nvctr_f,&
-                                     Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nseg_f,&
-                                     Lzd%Llr(ilr)%wfd%keyv,Lzd%Llr(ilr)%wfd%keyg,psi(ispsi),  &
+                                     Lzd%Glr%wfd%nvctr_c,Lzd%Glr%wfd%nvctr_f,&
+                                     Lzd%Glr%wfd%nseg_c,Lzd%Glr%wfd%nseg_f,&
+                                     Lzd%Glr%wfd%keyv,Lzd%Glr%wfd%keyg,psi(ispsi),  &
                                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                     Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&
+                                     Lzd%Gnlpspd%keyv_p(jseg_c),Lzd%Gnlpspd%keyg_p(1,jseg_c),&
                                      proj(istart_c),scalprod(1,idir,m,i,l,iat,jorb))
                                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                              end do

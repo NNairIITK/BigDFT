@@ -467,6 +467,7 @@ module module_types
     logical :: linear                                           !> if true, use linear part of the code
     integer :: nlr                                              !> Number of localization regions 
     integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
+    integer :: Lnprojel                                         !> Total number of projector elements
     type(orbitals_data) :: orbs                                 !> Global orbitals descriptors
     type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
     type(communications_arrays) :: comms                        !> Global communication descriptors

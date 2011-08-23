@@ -696,9 +696,13 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   call transpose_v2(iproc,nproc,orbsu,Lzd,commu,psi,work=psiw)
   call transpose_v2(iproc,nproc,orbsu,Lzd,commu,hpsi,work=psiw)
 
-  i_all=-product(shape(psiw))*kind(psiw)
-  deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw',subname)
+  if(nproc > 1 .or. Lzd%linear) then
+     i_all=-product(shape(psiw))*kind(psiw)
+     deallocate(psiw,stat=i_stat)
+     call memocc(i_stat,i_all,'psiw',subname)
+  else
+     nullify(psiw)
+  end if
 
   !define the grouping of the orbitals: for the semicore case, follow the semicore atoms,
   !otherwise use the number of orbitals, separated in the spin-polarised case

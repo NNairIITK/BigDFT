@@ -388,12 +388,9 @@ subroutine input_wf_diag(iproc,nproc,at,&
   real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
   integer :: ierr                                       !for debugging
 
-
-  Lzd%nlr = at%nat   !!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-  allocate(locrad(Lzd%nlr+ndebug),stat=i_stat)
+  allocate(locrad(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,locrad,'locrad',subname)
 
   if (iproc == 0) then
@@ -435,8 +432,9 @@ subroutine input_wf_diag(iproc,nproc,at,&
 ! ###################################################################
 !!experimental part for building the localisation regions
 ! ###################################################################
-  
+
   if (input%linear == 'LIG' .or. input%linear == 'FUL') then
+     Lzd%nlr=at%nat
      call timing(iproc,'check_IG      ','ON')
      linear  = .true.
      ! locrad read from last line of  psppar
@@ -446,10 +444,19 @@ subroutine input_wf_diag(iproc,nproc,at,&
      end do  
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear)
      call timing(iproc,'check_IG      ','OF')
+  else
+     linear = .false.
+     Lzd%nlr = 1
+     allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
+     Lzd%Llr(1) = Glr
+     Lzd%Glr = Glr
+     Lzd%Gnlpspd = nlpspd
+     Lzd%Lpsidimtot=orbse%npsidim
+     Lzd%Lnprojel = nlpspd%nprojel
   end if
   Lzd%linear = linear 
 
-  if (linear .and. (nspin < 4) ) then
+  if (Lzd%linear .and. (nspin < 4) ) then
 
      if(iproc==0) write(*,'(A)') 'Entering the Linear IG'
      Lzd%Glr = Glr
@@ -475,7 +482,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
      call timing(iproc,'constrc_locreg','ON')
 
-   ! Assign orbitals to locreg
+   ! Assign orbitals to locreg (done because each orbitals corresponds to an atomic function)
      call assignToLocreg(iproc,nproc,orbse%nspinor,nspin_ig,at,orbse,Lzd,norbsc_arr,norbsc)
 
    ! determine the localization regions
@@ -588,13 +595,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
        & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)    
 
- !    open(44,file='Lrhopot',status='unknown')
- !    do ilr = 1,max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),1)*nspin
- !    write(44,*)rhopot(ilr)
- !    end do
- !    close(44)
-     
-
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
         call PSolverNC(at%geocode,'D',iproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
@@ -652,17 +652,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
     call memocc(i_stat,Lhpsi,'Lhpsi',subname)
 
     ! the loop on locreg is inside LinearHamiltonianApplication
-    call LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,orbse,hx,hy,hz,rxyz,&
-     proj,ngatherarr,pot,Lpsi,Lhpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel=pkernelseq)
+!    call LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,orbse,hx,hy,hz,rxyz,&
+!     proj,ngatherarr,pot,Lpsi,Lhpsi,&
+!     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel=pkernelseq)
 
-
-!     print *,'iproc,sum(Lhpsi)',iproc,sum(Lhpsi)
-!     open(44,file='Lhpsi',status='unknown')
-!     do ilr = 1,size(Lhpsi)
-!     write(44,*)Lhpsi(ilr)
-!     end do
-!     close(44)
+    call  HamiltonianApplication2(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+          proj,Lzd,ngatherarr,pot,Lpsi,Lhpsi,&
+          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
 
 
     accurex=abs(eks-ekin_sum)
@@ -748,23 +744,20 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
           psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
     call timing(iproc,'wavefunction  ','OF')
-!DEBUG
-!     print *,'iproc,sum(psi)',iproc,sum(psi)
-!     open(44,file='psi',status='unknown')
-!     do ilr = 1,size(psi)
-!     write(44,*)psi(ilr)
-!     end do
-!     close(44)
-!END DEBUG
  
      i_all=-product(shape(locrad))*kind(locrad)
      deallocate(locrad,stat=i_stat)
      call memocc(i_stat,i_all,'locrad',subname)
    
      !application of the hamiltonian for gaussian based treatment
-     call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-          & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
-          & symObj, irrzon, phnons)
+!     call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+!          & Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
+!          & symObj, irrzon, phnons)
+
+     ! test merging of the cubic and linear code
+     call sumrhoLinear(iproc,nproc,Lzd,orbse,ixc,hxh,hyh,hzh,psi,rhopot,&
+       & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
+       & symObj, irrzon, phnons)
 
      !-- if spectra calculation uses a energy dependent potential
      !    input_wf_diag will write (to be used in abscalc)
@@ -928,9 +921,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,nspin,&
           orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
    
-     call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-          nlpspd,proj,Glr,ngatherarr,pot,&
-          psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+!     call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+!          nlpspd,proj,Glr,ngatherarr,pot,&
+!          psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+
+     call  HamiltonianApplication2(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+           proj,Lzd,ngatherarr,pot,psi,hpsi,&
+           ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
  
      !deallocate potential
      call free_full_potential(nproc,pot,subname)
@@ -988,7 +985,11 @@ subroutine input_wf_diag(iproc,nproc,at,&
    !!$  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
    !!$       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
  
-     call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
+!     call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
+!          psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
+
+     !test merging of Linear and cubic
+     call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,comms,&
           psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
   end if  !if on linear         <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

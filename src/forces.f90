@@ -301,28 +301,6 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
         ispsi_k=ispsi
      end do loop_kptD
 
-    if(iproc==0) then
-    open(44,file='scalprod_ref',status='unknown')
-    do ilr = 1,size(scalprod,1)
-    do idir=0,3
-    do m=1,size(scalprod,3)
-    do i=1,3
-    do l=1,4
-    do iat=1,at%nat
-    do jorb=1,orbs%norbp
-!       write(44,*)ilr,idir,m,i,l,iat,jorb,scalprod(ilr,idir,m,i,l,iat,jorb)
-      write(44,*)scalprod(ilr,idir,m,i,l,iat,jorb)
-    end do
-    end do
-    end do
-    end do
-    end do
-    end do
-    end do
-    close(44)
-    end if
-
-
   else
      !calculate all the scalar products for each direction and each orbitals
      do idir=0,3

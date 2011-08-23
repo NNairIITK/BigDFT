@@ -976,7 +976,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%efermi = UNINITIALISED
 
   ! allocate inwhichlocreg
-  allocate(orbs%inwhichlocreg(orbs%norb),stat=i_stat)
+
+  allocate(orbs%inwhichlocreg(orbs%norb*orbs%nkpts),stat=i_stat)
   call memocc(i_stat,orbs%inwhichlocreg,'orbs%inwhichlocreg',subname)
   ! default for inwhichlocreg
   orbs%inwhichlocreg = 1

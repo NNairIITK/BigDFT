@@ -3622,6 +3622,51 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(linorbs%norb,orbs%norb),intent(in),optional:: coeff  
     end subroutine
 
+    subroutine HamiltonianApplication2(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
+      proj,Lzd,ngatherarr,pot,psi,hpsi,&
+      ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
+      use module_base
+      use module_types
+      use libxc_functionals
+      implicit none
+      integer, intent(in) :: iproc,nproc,nspin
+      real(gp), intent(in) :: hx,hy,hz
+      type(atoms_data), intent(in) :: at
+      type(orbitals_data), intent(in) :: orbs
+      type(linear_zone_descriptors),intent(in) :: Lzd
+      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+      real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      real(wp), dimension(Lzd%Lnprojel), intent(in) :: proj
+      real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
+      real(wp), dimension(:), pointer :: pot
+      real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
+      real(wp), target, dimension(Lzd%Lpsidimtot), intent(out) :: hpsi
+      type(GPU_pointers), intent(inout) :: GPU
+      real(dp), dimension(*), optional :: pkernel
+      type(orbitals_data), intent(in), optional :: orbsocc
+      real(wp), dimension(:), pointer, optional :: psirocc
+     end subroutine
+
+     subroutine local_hamiltonian2(iproc,exctX,orbs,Lzd,hx,hy,hz,&
+      nspin,pot,size_potxc,potxc,psi,hpsi,ekin_sum,epot_sum)
+       use module_base
+       use module_types
+       use libxc_functionals
+       implicit none
+       integer, intent(in) :: iproc,nspin
+       integer,intent(in) :: size_potxc
+       real(gp), intent(in) :: hx,hy,hz
+       logical, intent(in) :: exctX
+       type(orbitals_data), intent(in) :: orbs
+       type(linear_zone_descriptors), intent(in) :: Lzd
+       real(wp), dimension(Lzd%Lpsidimtot,orbs%nspinor*orbs%norbp), intent(in) :: psi
+       real(wp), dimension(size_potxc),intent(in) :: potxc
+       real(wp), dimension(*) :: pot
+       !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
+       real(gp), intent(out) :: ekin_sum,epot_sum
+       real(wp), dimension(Lzd%Lpsidimtot,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+     end subroutine
+
   end interface
 
 end module module_interfaces

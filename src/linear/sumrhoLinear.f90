@@ -97,25 +97,29 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
   !switch between GPU/CPU treatment of the density
   if (GPUconv) then
-     stop 'local_partial_density_GPU not implemented!'
+     if(Lzd%linear) stop 'local_partial_density_GPU not implemented with Linear scaling!'
      call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else if (OCLconv) then
-     stop 'local_partial_density_OCL not implemented'
+     if(Lzd%linear) stop 'local_partial_density_OCL not implemented with Linear scaling!'
      call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
+  else if(Lzd%linear) then
+     call local_partial_densityLinear(iproc,nproc,ixc,Lzd,orbs,rsflag,nscatterarr,nrhotot,&
+          Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,rho_p,hxh,hyh,hzh,nspin,psi)
   else
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
      !otherwise use libXC routine
-     !if (libxc_functionals_isgga()) then
-     !   call razero(Glr%d%n1i*Glr%d%n2i*nrhotot*nspinn,rho_p)
-     !else
-     !   call tenminustwenty(Glr%d%n1i*Glr%d%n2i*nrhotot*nspinn,rho_p,nproc)
-     !end if
+     if (libxc_functionals_isgga()) then
+        call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot*nspinn,rho_p)
+     else
+        call tenminustwenty(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot*nspinn,rho_p,nproc)
+     end if
 
      !for each of the orbitals treated by the processor build the partial densities
      !call system_clock(ncount2,ncount_rate,ncount_max)
-     call local_partial_densityLinear(iproc,nproc,ixc,Lzd,orbs,rsflag,nscatterarr,nrhotot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,&
-          rho_p,hxh,hyh,hzh,nspin,psi)
+     call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+          nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
      !call system_clock(ncount3,ncount_rate,ncount_max)
+
   end if
 
 !!$  if (OCLconv) then

@@ -691,9 +691,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in,radii_cf)
 
-!!     call timing(iproc,'            ','RE')
-!!     call mpi_finalize(ierr)
-!!     stop
+     call timing(iproc,'            ','RE')
+     call mpi_finalize(ierr)
+     stop
      if (nvirt > norbv) then
         nvirt = norbv
      end if
