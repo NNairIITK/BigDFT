@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 08/04/2011
+# Date: 23/08/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -90,10 +90,12 @@ end = "\033[m"
 #if sys.stdout.isatty():
 #    start_fail = "\033[0;31m"
 #    start_success = "\033[0;32m"
+#    start_pass = "\033[0;33m"
 #    end = "\033[m"
 #else:
 #    start_fail = ""
 #    start_success = ""
+#    start_pass = ""
 #    end = ""
 
 #Define a junk line
@@ -161,6 +163,7 @@ except IOError:
     sys.exit(1)
 
 maximum = 0.0
+#Use for non-significant discrepancy (float <= min_digits digits)
 min_digits = 5
 ns_discrepancy = False #Non significant discrepancy.
 context_discrepancy = ""
