@@ -91,12 +91,15 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
 
         call deallocate_wfd(rst%Glr%wfd,subname)
      end if
-
+     !experimental, finite difference method for calculating forces on particular quantities
+     inquire(file='input.finite_difference_forces',exist=exists)
+     if (exists) then
+        in%last_run=1 !do the last_run things nonetheless
+        in%inputPsiId=0 !the first run always restart from IG
+     end if
      call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,fnoise,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
           rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
-     !experimental, finite difference method for calculating forces on particular quantities
-     inquire(file='input.finite_difference_forces',exist=exists)
      if (exists) then
         call forces_via_finite_differences(iproc,nproc,atoms,in,energy,fxyz,fnoise,rst,infocode)
      end if
@@ -934,7 +937,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            end if
            
            !temporary, to be corrected with comms structure
-           if (in%exctxpar == 'OP2P') eexctX = -99.0_gp
+           if (in%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
 
            !allocate the potential in the full box
            call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&

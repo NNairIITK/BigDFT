@@ -34,6 +34,18 @@ subroutine razero_simple(n,x)
   end do
 END SUBROUTINE razero_simple
 
+!>   Set to zero an array x(n)
+subroutine razero_integer(n,x)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n
+  integer, dimension(n), intent(out) :: x
+  !Local variables
+  integer :: i
+  do i=1,n
+     x(i)=0
+  end do
+END SUBROUTINE razero_integer
 
 !>   Set to zero an array x(n): omp version of razero
 subroutine omp_razero(n,x)

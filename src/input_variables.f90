@@ -170,7 +170,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   end if
 
   ! Stop code for unproper input variables combination.
-  if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym) then
+  if (inputs%ncount_cluster_x > 0 .and. .not. inputs%disableSym .and. atoms%geocode == 'S') then
      if (iproc==0) then
          write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'   
          write(*,'(1x,a)')  'Forces are not implemented with symmetry support, disable symmetry please (T)'

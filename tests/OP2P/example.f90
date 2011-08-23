@@ -39,7 +39,7 @@ program example_op2p
 
   !decide the number of groups to run with (maximum 10 groups)
   call random_integer(10,ngroups)
-  ngroups=2 !for the moment only one group
+  !ngroups=1 !for the moment only one group
   !decide the total number of elements for each group (maximum 1000 elements)       
   call random_integer(1000,norb)
   !the number of orbitals should be bigger than the number of groups
@@ -145,6 +145,10 @@ program example_op2p
   !last process
   norb_par(nproc-1)=norb_res
 
+!!$norb_par(0)=102
+!!$if (iproc==0) isorb=0
+!!$if(iproc ==1) isorb=102
+!!$norb_par(1)=98
   !print *,'a',norb_par,orbs_attributes
 
   !here any processor will initialise the global communications arrays needed for executing the op2p
