@@ -107,13 +107,13 @@ report:
           *) mode="";; \
         esac ; \
         case $* in \
-          Ca2.out*) prec="4.e-10" ;; \
-          NaCl.out*) prec="2.e-8" ;; \
-          SiBulk.out*) prec="2.e-7" ;; \
-          GEOPT-BFGS.out*) prec="4.e-9" ;; \
+          Ca2.out*)         prec="4.e-10" ;; \
+          GEOPT-BFGS.out*)  prec="4.e-9" ;; \
           GEOPT-LBFGS.out*) prec="4.e-9" ;; \
-          SiH4.out*) prec="2.3e-9" ;; \
-          *) prec="1.1e-10" ;; \
+          NaCl.out*)        prec="4.e-9" ;; \
+          SiBulk.out*)      prec="2.e-7" ;; \
+          SiH4.out*)        prec="2.3e-9" ;; \
+          *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
