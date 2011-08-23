@@ -60,10 +60,10 @@ for file in files:
         else:
             start = start_success
             state = "%7.1e < (%7.1e) succeeded" % (diff,max_discrepancy)
-        print "%s%-23s %-28s %s%s" % (start,dir,fic,state,end)
+        print "%s%-24s %-28s %s%s" % (start,dir,fic,state,end)
     else:
         start = start_fail
         state = "cannot parse file.     failed"
-        print "%s%-23s %-28s %s%s" % (start,dir,fic,state,end)
+        print "%s%-24s %-28s %s%s" % (start,dir,fic,state,end)
 #Error code
 sys.exit(Exit)
