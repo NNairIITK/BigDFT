@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 28/03/2011
+# Date: 23/08/2011
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -38,7 +38,7 @@ else:
     end = ""
 
 Exit = 0
-print "Final report:"
+print "Final report (passed means all significant floats are correct):"
 for file in files:
     dir = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
