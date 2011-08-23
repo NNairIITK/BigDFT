@@ -155,7 +155,7 @@ program oneatom
 !!$  psi=1.d0
 
 
-  call plot_wf_oneatom('iter0',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
+  call plot_wf_oneatom('iter0',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'          ')
 
 
   !othogonalise them
@@ -233,7 +233,7 @@ program oneatom
      call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%nspin,in%orthpar)
 
      write(itername,'(i4.4)')iter
-     call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
+     call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'           ')
 
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&

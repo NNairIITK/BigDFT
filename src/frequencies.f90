@@ -128,7 +128,7 @@ program frequencies
 
 ! Initialize the Hessian
   hessian = 0.d0
-! Initialize freq_step (step to move atomes)
+! Initialize freq_step (step to move atoms)
   freq_step(1) = inputs%freq_alpha*inputs%hx
   freq_step(2) = inputs%freq_alpha*inputs%hy
   freq_step(3) = inputs%freq_alpha*inputs%hz
@@ -236,11 +236,11 @@ program frequencies
               !Force is -dE/dR
               if (order == -1) then
                  dd = - (fxyz(jj) - fpos(jj,1))/freq_step(i)
-              else if (order == -1) then
+              else if (order == 1) then
                  dd = - (fpos(jj,1) - fxyz(jj))/freq_step(i)
               else if (order == 2) then
                  dd = - (fpos(jj,2) - fpos(jj,1))/(2.d0*freq_step(i))
-              else if (order == 4) then
+              else if (order == 3) then
                  dd = - (fpos(jj,4) + fpos(jj,3) - fpos(jj,2) - fpos(jj,1))/(6.d0*freq_step(i))
               else
                  stop "BUG: frequencies this order is not defined"
@@ -574,8 +574,6 @@ contains
     !Argument
     type(input_variables), intent(inout) :: inputs
     inputs%inputPsiId=1
-    inputs%output_grid=0
-    inputs%output_wf=.false.
   END SUBROUTINE restart_inputs
 
 

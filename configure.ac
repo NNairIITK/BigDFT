@@ -9,13 +9,13 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.2],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.6-dev.5],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
 dnl Use a config.h file to store macro definitions, required for CUDA.
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
@@ -48,6 +48,8 @@ AC_LANG(Fortran)
 AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
+AX_FC_FLUSH()
+AX_FC_DEFS()
 
 dnl Set if the module name are capitalized or not with the FC compiler.
 AC_MSG_CHECKING([for module extension for compiler '$fc_type'])
@@ -190,7 +192,7 @@ ac_with_memory_limit="no"
 AC_MSG_CHECKING([for memory limit in GB])
 AC_ARG_WITH(memory-limit, AS_HELP_STRING([--with-memory-limit], [Memory limit value in GB. It stops EVERYTHING if some process passes such limit (disabled by default).]),
               ac_with_memory_limit=$withval, ac_with_memory_limit="no")
-if test "${ac_with_memory_limit//\.*/}" -ge "0" 2> /dev/null ; then
+if test "${ac_with_memory_limit/.*/}" -ge "0" 2> /dev/null ; then
   MEMORY_LIMIT=$ac_with_memory_limit
 else
   ac_with_memory_limit="undefined"
@@ -411,11 +413,28 @@ ac_use_archive="yes"
 AC_ARG_WITH([archives],
             AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
             [ac_use_archive=$withval], [ac_use_archive=yes])
+AC_ARG_WITH([archives-path],
+            AS_HELP_STRING([--with-archives-path], [give a path to find libarchive.]),
+            [ac_path_archive=$withval])
 if test x"$ac_use_archive" != x"no" ; then
-   PKG_CHECK_MODULES([LIB_ARCHIVE],
-                     [libarchive >= 2.4],
-                     [ac_use_archive=yes],
-                     [ac_use_archive=warn])
+   if test x"$ac_path_archive" == x"" ; then
+      PKG_CHECK_MODULES([LIB_ARCHIVE],
+                        [libarchive >= 2.4],
+                        [ac_use_archive=yes],
+                        [ac_use_archive=warn])
+   else
+      LDFLAGS_SVG="$LDFLAGS"
+      AC_LANG_PUSH(C)
+      LDFLAGS="-L$ac_path_archive/lib"
+      AC_CHECK_LIB([archive], [archive_read_data_block],
+                   [ac_use_archive=yes], [ac_use_archive=warn])
+      if test x"$ac_use_archive" = x"yes" ; then
+         LIB_ARCHIVE_CFLAGS="-I$ac_path_archive/include"
+         LIB_ARCHIVE_LIBS="-L$ac_path_archive/lib -larchive"
+      fi
+      AC_LANG_POP(C)
+      LDFLAGS="$LDFLAGS_SVG"
+   fi
    if test x"$ac_use_archive" = x"yes" ; then
       AC_DEFINE([HAVE_LIB_ARCHIVE], [1], [libarchive is linkable.])
    else
@@ -718,6 +737,7 @@ tests/NEB/NEB_include.sh
 tests/XabsCheb/Makefile
 tests/SPLSAD/Makefile
 tests/TDDFT/Makefile
+tests/OP2P/Makefile
 tests/DFT/Makefile
 tests/OpenCL/Makefile
 tests/CUDA/Makefile

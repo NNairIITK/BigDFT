@@ -35,8 +35,6 @@ subroutine bfgsdriver(nproc,iproc,rxyz,fxyz,epot,at,rst,in,ncount_bigdft)
     !character(len=*), parameter :: subname='bfgs'
 
     in%inputPsiId=1
-    in%output_grid=0
-    in%output_wf=.false.
     icheck=0
     !if(iproc==0) write(*,*) 'EPOT=',epot
     !return
@@ -661,8 +659,6 @@ subroutine lbfgsdriver(nproc,iproc,rxyz,fxyz,etot,at,rst,in,ncount_bigdft,fail)
 !      alpha=0._gp
 !      call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
       in%inputPsiId=1
-      in%output_grid=0
-      in%output_wf=.false.
 !      if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
       if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,fnoise,rst,infocode)
       if(ICALL.ne.0) ncount_bigdft=ncount_bigdft+1

@@ -291,15 +291,18 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
   logical :: perx,pery,perz,exists
-  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor
+  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3,iorb_out,ispinor,isuffix
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
 
-  inquire(file=trim(filename)//".etsf",exist=exists)
+  isuffix = index(filename, ".etsf", back = .true.)
+  exists=(isuffix > 0) !the file is written in binary format
+
+  !inquire(file=trim(filename)//".etsf",exist=exists)
   if (exists) then
      if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
-     call read_waves_etsf(iproc,filename//".etsf",orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
+     call read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
   else
      call cpu_time(tr0)
@@ -319,7 +322,9 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
      allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
      call memocc(i_stat,psifscf,'psifscf',subname)
 
-     inquire(file=trim(filename)//".bin.0001",exist=exists)
+     !inquire(file=trim(filename)//".bin.0001",exist=exists) !old approach
+     isuffix = index(filename, ".bin", back = .true.)
+     exists=(isuffix > 0) !the file is written in binary format
      if (exists) then
         if (iproc ==0) write(*,*) "Reading wavefunctions in BigDFT binary file format."
      else
@@ -361,15 +366,15 @@ subroutine readmywaves(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  
   end if
 END SUBROUTINE readmywaves
 
-subroutine verify_file_presence(orbs,allfiles)
+subroutine verify_file_presence(orbs,iformat)
   use module_base
   use module_types
   implicit none
   type(orbitals_data), intent(in) :: orbs
-  logical, intent(out) :: allfiles
+  integer, intent(out) :: iformat
   !local variables
   character(len=50) :: filename
-  logical :: onefile
+  logical :: onefile,allfiles
   integer :: iorb,ispinor,iorb_out,ierr
   
   allfiles=.true.
@@ -388,6 +393,8 @@ subroutine verify_file_presence(orbs,allfiles)
   !reduce the result among the other processors
   call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
  
+  if (allfiles) iformat=1
+
   !Otherwise  test binary files.
   if (.not. allfiles) then           
      allfiles = .true.
@@ -406,6 +413,8 @@ subroutine verify_file_presence(orbs,allfiles)
      !reduce the result among the other processors
      call mpiallred(allfiles,1,MPI_LAND,MPI_COMM_WORLD,ierr)
   end if
+
+  if (allfiles) iformat=2
 
 end subroutine verify_file_presence
 

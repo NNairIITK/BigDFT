@@ -39,20 +39,9 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 !!$  call memocc(i_stat,rhovc,'rhovc',subname)
 
   !find the correct position of the nlcc parameters
-  ilcc=0
-  do jtyp=1,ityp-1
-     ngv=atoms%nlcc_ngv(jtyp)
-     if (ngv /= UNINITIALIZED(ngv)) ilcc=ilcc+(ngv*(ngv+1)/2)
-     ngc=atoms%nlcc_ngc(jtyp)
-     if (ngc /= UNINITIALIZED(ngc)) ilcc=ilcc+(ngc*(ngc+1))/2
-  end do
-  islcc=ilcc
+  call nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
 
-  ngv=atoms%nlcc_ngv(ityp)
-  if (ngv==UNINITIALIZED(1)) ngv=0
-  ngc=atoms%nlcc_ngc(ityp)
-  if (ngc==UNINITIALIZED(1)) ngc=0
-
+  ilcc=islcc
   chv=0.0_gp
   do ig=1,(ngv*(ngv+1))/2
      ilcc=ilcc+1
@@ -686,6 +675,11 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
      allocate(dvxcdgr(m1,m3,nwb,3+ndebug),stat=i_stat)
      call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
+  else
+     allocate(gradient(1,1,1,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,gradient,'gradient',subname)
+     allocate(dvxcdgr(1,1,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
   end if
 
   !Allocations
@@ -746,7 +740,6 @@ subroutine xc_energy_new(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      deallocate(gradient,stat=i_stat)
      call memocc(i_stat,i_all,'gradient',subname)
   end if
-
   !     rewind(300)
   !     do ispden=1,nspden
   !        do i3=1,nxt

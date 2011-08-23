@@ -155,6 +155,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,norbuempty,norbdempty,iunit)
   use module_base
   use module_types
+  use module_xc
   use ab6_symmetry
   implicit none
   character (len=*), intent(in) :: fileocc
@@ -180,7 +181,9 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   !integer, dimension(nmax,0:lmax-1) :: neleconf
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
   integer, dimension(lmax) :: nl
+  real(gp), dimension(0:4) :: fake_nlcc
   real(gp), dimension(noccmax,lmax) :: occup
+  character(len=500) :: name_xc1, name_xc2
 
 
   !allocate atoms data variables
@@ -204,8 +207,6 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   call memocc(i_stat,atoms%nlcc_ngv,'atoms%nlcc_ngv',subname)
   allocate(atoms%nlcc_ngc(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
-  allocate(atoms%ig_nlccpar(0:4,atoms%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%ig_nlccpar,'atoms%ig_nlccpar',subname)
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -239,7 +240,17 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      read(11,*) atoms%nzatom(ityp),atoms%nelpsp(ityp)
      read(11,*) atoms%npspcode(ityp),ixcpsp
      !control if the PSP is calculated with the same XC value
-     if (ixcpsp /= in%ixc .and. iproc==0) then
+     if (ixcpsp < 0) then
+        call xc_get_name(name_xc1, ixcpsp, XC_MIXED)
+     else
+        call xc_get_name(name_xc1, ixcpsp, XC_ABINIT)
+     end if
+     if (in%ixc < 0) then
+        call xc_get_name(name_xc2, in%ixc, XC_MIXED)
+     else
+        call xc_get_name(name_xc2, in%ixc, XC_ABINIT)
+     end if
+     if (trim(name_xc1) /= trim(name_xc2) .and. iproc==0) then
         write(*,'(1x,a)')&
              'WARNING: The pseudopotential file "'//trim(filename)//'"'
         write(*,'(1x,a,i0,a,i0)')&
@@ -371,9 +382,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         end if
         nlcc_dim=nlcc_dim+(ngv*(ngv+1)/2)
         do ig=1,(ngv*(ngv+1))/2
-           do j=0,4
-              read(79,*) !jump the suitable lines (the file is organised with one element per line)
-           end do
+           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
         end do
         read(79,*)ngc
         if (ngc==0) then
@@ -382,34 +391,21 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
            atoms%nlcc_ngc(ityp)=ngc
         end if
         nlcc_dim=nlcc_dim+(ngc*(ngc+1))/2
-!!$        !better to read values in a fake array
-!!$        do ig=1,(ngc*(ngc+1))/2
-!!$           do j=0,4
-!!$              read(79,*) !jump the suitable lines (the file is organised with one element per line)
-!!$           end do
-!!$        end do
-        do j=0,4
-           atoms%ig_nlccpar(j,ityp)=UNINITIALIZED(1.0_gp)
+        !better to read values in a fake array
+        do ig=1,(ngc*(ngc+1))/2
+           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
         end do
-
-!!$        read(79,*)
-!!$        read(79,*)
-!!$        read(79,*,iostat=i_stat)rcore2,gcore !SONO ARRIVATO QUI DEVO AGGIUNGERE LA LETTURA CON ISTAT
-!!$
         !no need to go further for the moment
         close(unit=79)
      else
         atoms%nlcc_ngv(ityp)=UNINITIALIZED(1)
         atoms%nlcc_ngc(ityp)=UNINITIALIZED(1)
-        do j=0,4
-           atoms%ig_nlccpar(j,ityp)=UNINITIALIZED(1.0_gp)
-        end do
      end if
   enddo
 
   !process the nlcc parameters if present 
   !(allocation is performed also with zero size)
-  allocate(atoms%nlccpar(0:4,nlcc_dim+ndebug),stat=i_stat)
+  allocate(atoms%nlccpar(0:4,max(nlcc_dim,1)+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlccpar,'atoms%nlccpar',subname)
   !start again the file inspection to fill nlcc parameters
   if (atoms%donlcc) then
@@ -728,6 +724,31 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
 
 END SUBROUTINE read_system_variables
 
+!>find the correct position of the nlcc parameters
+subroutine nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ityp
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(out) :: ngv,ngc,islcc
+  !local variables
+  integer :: ilcc,jtyp
+
+  ilcc=0
+  do jtyp=1,ityp-1
+     ngv=atoms%nlcc_ngv(jtyp)
+     if (ngv /= UNINITIALIZED(ngv)) ilcc=ilcc+(ngv*(ngv+1)/2)
+     ngc=atoms%nlcc_ngc(jtyp)
+     if (ngc /= UNINITIALIZED(ngc)) ilcc=ilcc+(ngc*(ngc+1))/2
+  end do
+  islcc=ilcc
+
+  ngv=atoms%nlcc_ngv(ityp)
+  if (ngv==UNINITIALIZED(1)) ngv=0
+  ngc=atoms%nlcc_ngc(ityp)
+  if (ngc==UNINITIALIZED(1)) ngc=0
+END SUBROUTINE nlcc_start_position
 
 !>   Fix all the atomic occupation numbers of the atoms which has the same type
 !!   look also at the input polarisation and spin
@@ -1014,6 +1035,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
   !put a default value for the fermi energy
   orbs%efermi = UNINITIALIZED(orbs%efermi)
+  !and also for the gap
+  orbs%HLgap = UNINITIALIZED(orbs%HLgap)
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)

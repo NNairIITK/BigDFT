@@ -919,7 +919,7 @@ module module_interfaces
        character(len=2), intent(out) :: symbol
        real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
        integer, parameter :: nmax=6,lmax=3
-       integer, intent(out) :: neleconf(nmax,0:lmax)
+       real(kind=8), intent(out) :: neleconf(nmax,0:lmax)
        integer, intent(out) :: nsccode,mxpl,mxchg
      END SUBROUTINE eleconf
 

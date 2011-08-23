@@ -54,7 +54,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   end if
 
   if (iproc == 0) then
-     write(*,'(1x,a,1pe12.5)')'Mean L2 norm of gaussian-wavelet difference:',&
+     write(*,'(1x,a,1pe12.4)')'Mean L2 norm of gaussian-wavelet difference:',&
           sqrt(maxdiff/real(orbs%norb,wp))
   end if
   i_all=-product(shape(workpsi))*kind(workpsi)

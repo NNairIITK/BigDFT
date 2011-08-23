@@ -65,7 +65,6 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
      !the psir wavefunction is given in the spinorial form
      call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
-
      !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
      !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
      !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
@@ -103,13 +102,11 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin)
-!     print *,iorb, ekin+epot, epot
+     !print *,iorb, ekin, epot,orbs%kwgts(orbs%iokpt(iorb))
      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
 
   enddo
-
-  !print *,'iproc,etest',etest
 
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)

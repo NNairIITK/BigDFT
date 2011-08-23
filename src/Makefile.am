@@ -73,6 +73,11 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
+if HAVE_FC_FLUSH
+flush_files =
+else
+flush_files = modules/flush_fake.f90
+endif
 
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
@@ -100,9 +105,10 @@ EXTRA_DIST = \
 	wavelib/sym_16.inc \
 	NEB_driver.sh 
 
-AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
+AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
-	@LIBETSFIO_INCLUDE@ @LIB_ARCHIVE_CFLAGS@
+	@LIBETSFIO_INCLUDE@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -165,6 +171,7 @@ modules_source = modules/base.f90 \
 	modules/interfaces.f90 \
 	modules/input.f90 \
 	modules/xc.f90 \
+	modules/op2p_module.f90 \
 	$(GPU_BLAS)
 
 modules_objects = $(modules_source:.f90=.o)

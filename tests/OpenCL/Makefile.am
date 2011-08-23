@@ -17,6 +17,11 @@ libs_dgemmsy = $(top_builddir)/src/dgemmsy/libdgemmsy.a
 else
 libs_dgemmsy =
 endif
+if USE_CUDA_GPU
+libs_cuda=$(top_builddir)/src/CUDA/libGPU.a
+else
+libs_cuda=
+endif
 
 
 CLEANFILES = fort.1 conv_check.out OpenCL.report
@@ -29,7 +34,7 @@ conv_check_SOURCES = $(top_srcdir)/src/OpenCL/conv_check.f90
 conv_check_LDADD =  $(top_builddir)/src/libbigdft.a \
 	$(top_builddir)/src/PSolver/libpoissonsolver.a \
 	$(top_builddir)/src/OpenCL/libbasec.a \
-	$(top_builddir)/src/OpenCL/libbasef.a $(libs_dgemmsy)
+	$(top_builddir)/src/OpenCL/libbasef.a $(libs_dgemmsy) $(libs_cuda)
 conv_check_LDFLAGS = -lrt -lstdc++
 
 

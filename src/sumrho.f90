@@ -240,8 +240,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
      enddo
      tmred(nspin+1,itmred)=tmred(nspin+1,itmred)+tmred(ispin,itmred)
   end do
-
-  if (nproc > 1) then
+ if (nproc > 1) then
      i_all=-product(shape(rho_p))*kind(rho_p)
      deallocate(rho_p,stat=i_stat)
      call memocc(i_stat,i_all,'rho_p',subname)
@@ -258,6 +257,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
 
      !charge=tt
   endif
+
 
   !write the results
   if (iproc == 0 .and. verbose >= 1) then
@@ -281,6 +281,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   deallocate(tmred,stat=i_stat)
   call memocc(i_stat,i_all,'tmred',subname)
   call timing(iproc,'Rho_comput    ','OF')
+
 
 END SUBROUTINE sumrho
 
@@ -1054,7 +1055,7 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
   !$omp parallel default(none)&
   !$omp private(iat,irho,i1cmin,i1cmax,i2cmin,i2cmax,i3cmin)&
   !$omp private(i3cmax,i1fmin,i1fmax,i2fmin,i2fmax,i3fmin)&
-  !$omp private(i3fmax,imin,imax,dsq,dsq_cr,dsq_fr,i1,i2,i3)&
+  !$omp private(i3fmax,dsq,dsq_cr,dsq_fr,i1,i2,i3)&
   !$omp shared(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh)&
   !$omp shared(spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,reg)
   !$omp do schedule(static,1)

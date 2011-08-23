@@ -343,7 +343,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(in) :: psi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(out) :: psir
   !local variables
-  integer :: idx,i,i_f,iseg_f
+  integer :: idx,i,i_f,iseg_f,iproc,ierr
   real(wp), dimension(0:3) :: scal
 
   do i=0,3
@@ -355,10 +355,10 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   iseg_f=min(1,lr%wfd%nseg_f)
 
   !call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
-
+  !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   select case(lr%geocode)
   case('F')
-     
+     !call timing(iproc,'CrtDescriptors','ON') !temporary
      do idx=1,nspinor  
         call uncompress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  & 
@@ -369,14 +369,15 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
              scal,psi(1,idx),psi(lr%wfd%nvctr_c+i_f,idx),  &
              w%x_c(1,idx),w%x_f(1,idx),&
              w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
-
+        !call timing(iproc,'CrtDescriptors','OF') !temporary
+        !call timing(iproc,'CrtLocPot     ','ON') !temporary
         call comb_grow_all(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
              w%w1,w%w2,w%x_c(1,idx),w%x_f(1,idx), & 
              psir(1,idx),lr%bounds%kb%ibyz_c,lr%bounds%gb%ibzxx_c,&
              lr%bounds%gb%ibxxyy_c,lr%bounds%gb%ibyz_ff,&
              lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f)
-
+        !call timing(iproc,'CrtLocPot     ','OF') !temporary
      end do
      
   case('S')
@@ -445,7 +446,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(out) :: hpsi
   !local variables
   logical :: usekpts
-  integer :: idx,i,i_f,iseg_f
+  integer :: idx,i,i_f,iseg_f,iproc,ierr
   real(gp) :: ekino
   real(wp), dimension(0:3) :: scal
   real(gp), dimension(3) :: hgridh
@@ -458,7 +459,6 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   hgridh(2)=hy*.5_gp
   hgridh(3)=hz*.5_gp
 
-
   do i=0,3
      scal(i)=1.0_wp
   enddo
@@ -467,7 +467,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   i_f=min(1,lr%wfd%nvctr_f)
   iseg_f=min(1,lr%wfd%nseg_f)
 
-
+  !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   ekin=0.0_gp
 
   select case(lr%geocode)
@@ -478,13 +478,16 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
      if (usekpts) stop 'K points not allowed for Free BC locham'
 
      do idx=1,nspinor
+        !call timing(iproc,'CrtProjectors ','ON') !temporary
         call comb_shrink(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
              w%w1,w%w2,psir(1,idx),&
              lr%bounds%kb%ibxy_c,lr%bounds%sb%ibzzx_c,lr%bounds%sb%ibyyzz_c,&
              lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
              w%y_c(1,idx),w%y_f(1,idx))
+        !call timing(iproc,'CrtProjectors ','OF') !temporary
 
+        !call timing(iproc,'Forces        ','ON') !temporary
         call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
              hx,&        !here the grid spacings are supposed to be equal
@@ -494,7 +497,8 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
              w%y_c(1,idx),w%y_f(1,idx),ekino, &
              w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
         ekin=ekin+ekino
-
+        !call timing(iproc,'Forces        ','OF') !temporary
+        !call timing(iproc,'Tail          ','ON') !temporary
         call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
              lr%wfd%nseg_c,lr%wfd%nvctr_c,&
@@ -502,6 +506,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
              lr%wfd%nseg_f,lr%wfd%nvctr_f,&
              lr%wfd%keyg(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
              scal,w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx))
+        !call timing(iproc,'Tail          ','OF') !temporary
      end do
 
   case('S')
@@ -643,7 +648,6 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
               call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
                    hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
               ekin=ekin+ekino
-
               call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
                    lr%wfd%nseg_c,lr%wfd%nvctr_c,&
                    lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 

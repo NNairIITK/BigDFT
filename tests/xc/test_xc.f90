@@ -11,8 +11,11 @@ program test_xc
        & 7, -1012, 8, -1, 9, -1003, -1005, -1007, -1008, -1010, &
        & -1011, -1013, -1014, &
        & 11, -101130, 12, -101, 13, -160012, 14, -102130, 15, -117130, &
-       & 16, -161, 17, -162, 23, -118, 24, 26, -163, 27, -164, &
-       & -102, -103, -104, -105, -106, -107, -108, -109, -110 /)
+       & 16, -161, 17, -162, 23, -118, 26, -163, 27, -164, &
+       & -102, -103, -104, -105, -106, -107, -108, -109, -110, &
+       & -406 /)
+!!$  integer, parameter :: n_funcs = 1
+!!$  integer, dimension(n_funcs), parameter :: funcs = (/ -101130 /)
   integer :: ifunc, ixc_prev
   real(dp) :: exc(2), dt
 
@@ -24,12 +27,12 @@ program test_xc
      write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F7.5,1x,A)") &
           & "ixc = ", funcs(ifunc), "nosp = ", exc(1), "|", "scol = ", &
           & exc(2), "time = ", dt, "s"
-     if (funcs(ifunc) < 0) then
-        call test(funcs(ifunc), exc, dt, option = XC_LIBXC)
-        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F7.5,1x,A)") &
-             & "ixc = ", funcs(ifunc), "nosp = ", exc(1), "|", "scol = ", &
-             & exc(2), "time = ", dt, "s"
-     end if
+!!$     if (funcs(ifunc) < 0) then
+!!$        call test(funcs(ifunc), exc, dt, option = XC_LIBXC)
+!!$        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F7.5,1x,A)") &
+!!$             & "ixc = ", funcs(ifunc), "nosp = ", exc(1), "|", "scol = ", &
+!!$             & exc(2), "time = ", dt, "s"
+!!$     end if
      ixc_prev = funcs(ifunc)
   end do
   write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
@@ -47,7 +50,7 @@ contains
     integer, intent(in), optional :: option
 
     integer :: i, n, type
-    integer, parameter :: n_rho = 100000, n_runs = 20
+    integer, parameter :: n_rho = 100000, n_runs = 2
     real(dp), dimension(n_rho, 2) :: rho, vxc
     real(dp), dimension(n_rho, 3) :: rhogr, vxcgr
     real(dp), dimension(n_rho) :: exc
@@ -71,11 +74,7 @@ contains
 
           call gauss(rho, n_rho, i, type)
           if (xc_isgga()) call gaussgr(rhogr, rho, n_rho)
-          if (.not. xc_isgga()) then
-             call xc_getvxc(n_rho, exc, i, rho(1,1), vxc(1,1))
-          else
-             call xc_getvxc(n_rho, exc, i, rho(1,1), vxc(1,1), rhogr, vxcgr)
-          end if
+          call xc_getvxc(n_rho, exc, i, rho(1,1), vxc(1,1), rhogr, vxcgr)
           excs(i) = sum(exc)
 
           call xc_end()

@@ -26,6 +26,9 @@ case $3 in
      /*) workdir=$3 ;;
      *) workdir=$PWD/$3 ;;
 esac
+if [ ! -d $workdir ] ; then
+  mkdir -p $wordir
+fi
 n_nodes=$((`wc -l $restart_file | cut -d' ' -f1` / $n_images - 2))
 case $4 in
      /*) first_config=$4 ;;
@@ -123,7 +126,7 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 	    rm -f START
 
 	    # Start it
-	    run_job $job_name $count
+	    run_job $job_name $datadir $count
 	fi
 
 	cd ${neb_dir[$count]}

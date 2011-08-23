@@ -407,9 +407,9 @@ contains
 
    real(gp) function esatto_CalcolaRiflettivita( ngrid_A ,rgrid, dumgrid1, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
         Rmts,    Rinf ,nsteps_coarse ,nsteps_fine, Energia )
-     real(gp), target :: rgrid(1:ngrid_A), dumgrid1(1:ngrid_A)
      real(gp) rpot_a, spot_a, hpot_a,Rmts , Rinf, Energia
      integer nls_a, lpot_a, nsteps_coarse, nsteps_fine, ngrid_A
+     real(gp), target :: rgrid(1:ngrid_A), dumgrid1(1:ngrid_A)
      real(gp), pointer ::  y_r(:), d_r(:)
 
      integer iCs, iFs,i

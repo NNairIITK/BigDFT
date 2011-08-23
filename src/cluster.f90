@@ -24,6 +24,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
+  logical :: exists
   integer :: i_stat,i_all,ierr,inputPsiId_orig,iat
 
   !temporary interface
@@ -94,6 +95,11 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
      call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,fnoise,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
           rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+     !experimental, finite difference method for calculating forces on particular quantities
+     inquire(file='input.finite_difference_forces',exist=exists)
+     if (exists) then
+        call forces_via_finite_differences(iproc,nproc,atoms,in,energy,fxyz,fnoise,rst,infocode)
+     end if
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then
@@ -203,7 +209,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=500) :: errmess
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
-  integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden
+  integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
   integer :: nelec,ndegree_ip,j,i,npoints
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
@@ -394,8 +400,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
-  call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-       atoms,rxyz,radii_cf,crmult,frmult,Glr)
+  call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,crmult,frmult,Glr)
   call timing(iproc,'CrtDescriptors','OF')
 
   !allocate communications arrays (allocate it before Projectors because of the definition
@@ -539,14 +544,25 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   if (in%inputPsiId ==2) then
      ! Test ETSF file.
      inquire(file="wavefunction.etsf",exist=onefile)
+     if (onefile) input_wf_format=3
      allfiles=.true.
      if (.not. onefile) then
-        call verify_file_presence(orbs,allfiles)
+        call verify_file_presence(orbs,input_wf_format)
      end if
      if (.not. allfiles) then
         if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
         inputpsi = 0
      end if
+ 
+     !assign the input_wf_format
+     write(wfformat, "(A)") ""
+     select case (input_wf_format)
+     case (WF_FORMAT_ETSF)
+        write(wfformat, "(A)") ".etsf"
+     case (WF_FORMAT_BINARY)
+        write(wfformat, "(A)") ".bin"
+     end select
+
   end if
 
   !all the input formats need to allocate psi except the LCAO input_guess
@@ -696,8 +712,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,"wavefunction", &
+     !since each processor read only few eigenvalues, initialise them to zero for all
+     call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+
+     call readmywaves(iproc,"wavefunction" // trim(wfformat), &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
+
+     !reduce the value for all the eigenvectors
+     call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      if (in%itrpmax /= 1) then
         !recalculate orbitals occupation numbers
@@ -822,6 +844,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   endlooprp=.false.
 
   !if we are in the last_run case, validate the last_run only for the last cycle
+  !nrepmax=0 is needed for the Band Structure calculations
   DoLastRunThings=(in%last_run == 1 .and. in%nrepmax == 0) !do the last_run things regardless of infocode
 
   infocode=0
@@ -934,7 +957,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            endif
 
            !evaluate the functional of the wavefucntions and put it into the diis structure
-           !the energy values is printed out here
+           !the energy values is printed out in this routine
            call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,hx,hy,hz,in%ncong,in%iscf,&
                 ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,eexctX,eion,edisp,&
                 psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
@@ -972,7 +995,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
            end if
            !flush all writings on standart output
-           call flush(6)
+           if (iproc==0) flush(unit=6)
         end do wfn_loop
 
         if (iproc == 0) then 
@@ -1136,7 +1159,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   end if
 
   !  write all the wavefunctions into files
-  if (in%output_wf .and. DoLastRunThings) then
+  if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
      !add flag for writing waves in the gaussian basis form
      if (in%gaussian_help) then
 
@@ -1144,6 +1167,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!!
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
+        if (iproc ==0) write(*,*)'Writing wavefunctions in wavefunction.gau file'
         call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
 
         !build dual coefficients
@@ -1408,6 +1432,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         deallocate(orbsv%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
 
+        !if the local analysis has to be performed the deallocation should not be done
         i_all=-product(shape(psivirt))*kind(psivirt)
         deallocate(psivirt,stat=i_stat)
         call memocc(i_stat,i_all,'psivirt',subname)
