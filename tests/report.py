@@ -38,7 +38,7 @@ else:
     end = ""
 
 Exit = 0
-print "Final report (passed means all significant floats are correct):"
+print "Final report ('passed' means all significant floats are correct):"
 for file in files:
     dir = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
