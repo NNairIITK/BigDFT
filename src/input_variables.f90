@@ -2361,16 +2361,6 @@ subroutine print_general_parameters(nproc,input,atoms)
   integer :: nthreads
 !$ integer :: omp_get_num_threads()
 
-  ! Numbers of MPI processes and OpenMP threads
-  write(*,'(1x,a,1x,i0)') 'Number of MPI processes:',nproc
-  nthreads = 0
-!$  nthreads=omp_get_num_threads()
-  if (nthreads == 0) then
-      write(*,'(1x,a)') 'MPI process does not use OpenMP'
-  else
-      write(*,'(1x,a,1x,i0)') 'Number of OpenMP threads per MPI process:',nthreads
-  end if
-
   ! Output for atoms and k-points
   write(*,'(1x,a,a,a)') '--- (file: posinp.', &
        & atoms%format, ') --------------------------------------- Input atomic system'
@@ -2548,6 +2538,19 @@ subroutine print_general_parameters(nproc,input,atoms)
         write(*,*) "TODO: pretty printing!", input%bmass, input%vmass
      end if
   end if
+
+  write(*,*)
+  ! Numbers of MPI processes and OpenMP threads
+  write(*,'(1x,a,1x,i0)') 'Number of MPI processes:',nproc
+  nthreads = 0
+!$  nthreads=omp_get_num_threads()
+  if (nthreads == 0) then
+      write(*,'(1x,a)') 'MPI process does not use OpenMP'
+  else
+      write(*,'(1x,a,1x,i0)') 'Number of OpenMP threads per MPI process:',nthreads
+  end if
+  write(*,*)
+
 END SUBROUTINE print_general_parameters
 
 
@@ -2811,6 +2814,9 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
      end if
+     if (iproc == 0) then
+        write(*,'(1x,a)') 'CUDA support activated'
+     end if
   else if (iacceleration == 2) then
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
@@ -2820,7 +2826,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
         call init_acceleration_OCL(GPU)
         if (iproc == 0) then
-           write(*,*)' OpenCL convolutions activated'
+           write(*,'(1x,a)')'OpenCL support activated'
         end if
         OCLconv=.true.
      end if
