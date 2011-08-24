@@ -2541,13 +2541,13 @@ subroutine print_general_parameters(nproc,input,atoms)
 
   write(*,*)
   ! Numbers of MPI processes and OpenMP threads
-  write(*,'(1x,a,1x,i0)') 'Number of MPI processes:',nproc
+  write(*,'(1x,a,1x,i0)') 'Number of MPI processes',nproc
   nthreads = 0
 !$  nthreads=omp_get_max_threads()
   if (nthreads == 0) then
       write(*,'(1x,a)') 'MPI process does not use OpenMP'
   else
-      write(*,'(1x,a,1x,i0)') 'Number of maximal OpenMP threads per MPI process:',nthreads
+      write(*,'(1x,a,1x,i0)') 'Number of maximal OpenMP threads per MPI process',nthreads
   end if
 
 END SUBROUTINE print_general_parameters
