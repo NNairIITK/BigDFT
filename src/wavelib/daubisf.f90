@@ -7,6 +7,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
+!> Initialize work arrays for local hamiltonian
 subroutine initialize_work_arrays_locham(lr,nspinor,w)
   use module_base
   use module_types
@@ -327,12 +329,10 @@ subroutine deallocate_work_arrays_locham(lr,w)
 END SUBROUTINE deallocate_work_arrays_locham
 
 
-
-!>   Transforms a wavefunction written in Daubechies basis into a 
-!!   real space wavefunction in interpolating scaling functions on a finer grid
-!!   does the job for all supported BC. Saves the results on the work arrays
-!!   which are reused in the isf_to_daub_kinetic routine
-!!
+!>  Transforms a wavefunction written in Daubechies basis into a 
+!!  real space wavefunction in interpolating scaling functions on a finer grid
+!!  does the job for all supported BC. Saves the results on the work arrays
+!!  which are reused in the isf_to_daub_kinetic routine
 subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   use module_base
   use module_types
@@ -343,7 +343,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(in) :: psi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(out) :: psir
   !local variables
-  integer :: idx,i,i_f,iseg_f,iproc,ierr
+  integer :: idx,i,i_f,iseg_f
   real(wp), dimension(0:3) :: scal
 
   do i=0,3
@@ -444,9 +444,9 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
   real(gp), intent(out) :: ekin
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(out) :: hpsi
-  !local variables
+  !Local variables
   logical :: usekpts
-  integer :: idx,i,i_f,iseg_f,iproc,ierr
+  integer :: idx,i,i_f,iseg_f
   real(gp) :: ekino
   real(wp), dimension(0:3) :: scal
   real(gp), dimension(3) :: hgridh
