@@ -2359,7 +2359,7 @@ subroutine print_general_parameters(nproc,input,atoms)
   character(len = 11) :: potden
   character(len = 12) :: dos
   integer :: nthreads
-!$ integer :: omp_get_num_threads()
+!$ integer :: omp_get_num_threads
 
   ! Output for atoms and k-points
   write(*,'(1x,a,a,a)') '--- (file: posinp.', &
