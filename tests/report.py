@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 23/08/2011
+# Date: 24/08/2011
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -37,7 +37,9 @@ else:
     start_pass = ""
     end = ""
 
+#Error code
 Exit = 0
+
 print "Final report ('passed' means all significant floats are correct):"
 for file in files:
     dir = os.path.normpath(os.path.dirname(file))
@@ -50,7 +52,7 @@ for file in files:
         discrepancy = False
     if discrepancy:
         diff = float(discrepancy[0][0])
-        if diff > max_discrepancy:
+        if discrepancy[0][0] == "nan" or diff > max_discrepancy:
             start = start_fail
             state = "%7.1e > (%7.1e)    failed" % (diff,max_discrepancy)
             Exit = 1
@@ -65,5 +67,6 @@ for file in files:
         start = start_fail
         state = "cannot parse file.     failed"
         print "%s%-24s %-28s %s%s" % (start,dir,fic,state,end)
+
 #Error code
 sys.exit(Exit)
