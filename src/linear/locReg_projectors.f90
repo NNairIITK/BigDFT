@@ -1003,7 +1003,7 @@ END SUBROUTINE local_projector
 !!         
 !! SOURCE:
 !!
-subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
+subroutine apply_local_projectors2(ilr,iproc,localnorb,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,orbs,projflg,psi,rxyz,hpsi,eproj)
 
   use module_base
   use module_types
@@ -1014,7 +1014,7 @@ subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
   !#######################################
   ! Subroutine Scalar Arguments
   !#######################################
-  integer, intent(in) :: ilr,nspin,iproc
+  integer, intent(in) :: ilr,nspin,iproc,localnorb
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data),intent(in) :: atoms
   type(locreg_descriptors),intent(in) :: Llr
@@ -1025,8 +1025,10 @@ subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
   ! Subroutine Array Arguments
   !#######################################
   integer,dimension(atoms%nat),intent(in) :: projflg
-  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(in) :: psi  !local wavefunction
-  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(inout):: hpsi ! local |p><p|Psi>
+  !real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(in) :: psi  !local wavefunction
+  !real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*LLr%localnorb*nspin),intent(inout):: hpsi ! local |p><p|Psi>
+  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*localnorb*nspin),intent(in) :: psi  !local wavefunction
+  real(wp),dimension((Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f)*orbs%nspinor*localnorb*nspin),intent(inout):: hpsi ! local |p><p|Psi>
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !#######################################
   ! Local Variables 
@@ -1035,7 +1037,8 @@ subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
   integer :: isorb,ieorb,nspinor,iorb,istart_o,ispinor
   integer :: nels,ipsi,ii,iatom,iel
   integer :: jj,orbtot,ispin,ind,i_stat,i_all
-  integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
+  !integer,dimension(Llr%localnorb*nspin) :: inthisLocreg
+  integer,dimension(localnorb*nspin) :: inthisLocreg
   !integer,dimension(:),allocatable :: inthisLocreg
   real(gp) :: kx,ky,kz,eproj_spinor
   real(wp),allocatable,dimension(:,:,:) :: psi_tmp
@@ -1046,10 +1049,10 @@ subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
 !  First reshape the wavefunctions: psi_tmp(nels,norbs,nspinor)
    nels = Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
 
-   allocate(psi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
-   call memocc(i_stat,psi_tmp,'psi_tmp',subname)
-   allocate(hpsi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
-   call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
+   !!allocate(psi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
+   !!call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+   !!allocate(hpsi_tmp(nels,orbs%nspinor,orbs%norb),stat=i_stat)
+   !!call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
 
    allocate(Lproj(Lnlpspd%nprojel),stat=i_stat)
    call memocc(i_stat,Lproj,'Lproj',subname)
@@ -1065,9 +1068,15 @@ subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
       end if
    end do
 
+   allocate(psi_tmp(nels,orbs%nspinor,orbtot),stat=i_stat)
+   call memocc(i_stat,psi_tmp,'psi_tmp',subname)
+   allocate(hpsi_tmp(nels,orbs%nspinor,orbtot),stat=i_stat)
+   call memocc(i_stat,hpsi_tmp,'hpsi_tmp',subname)
+
    ! reshape the wavefunction
    ii=0
-   do iorb=1,Llr%Localnorb*nspin
+   !do iorb=1,Llr%Localnorb*nspin
+   do iorb=1,localnorb*nspin
        do ispinor=1,orbs%nspinor
            do iel=1,nels
                ii=ii+1
@@ -1169,9 +1178,11 @@ subroutine apply_local_projectors2(ilr,iproc,nspin,atoms,hx,hy,hz,Llr,Lnlpspd,or
       hpsi = 0.0_wp
       do ispin = 1,nspin                 !is the order correct for spin and spinor?
          do ispinor=1,orbs%nspinor
-            do ii=1,Llr%localnorb
+            !do ii=1,Llr%localnorb
+            do ii=1,localnorb
                do jj=1,Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
-                  hpsi(ind+jj) = hpsi_tmp(jj,ispinor,ii+(ispin-1)*Llr%localnorb)
+                  !hpsi(ind+jj) = hpsi_tmp(jj,ispinor,ii+(ispin-1)*Llr%localnorb)
+                  hpsi(ind+jj) = hpsi_tmp(jj,ispinor,ii+(ispin-1)*localnorb)
                end do
                ind = ind + Llr%wfd%nvctr_c+7*Llr%wfd%nvctr_f
             end do

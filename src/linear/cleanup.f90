@@ -723,7 +723,9 @@ subroutine deallocate_linearParameters(lin, subname)
   call checkAndDeallocatePointer(lin%lhphiold, 'lhphiold', subname)
   call checkAndDeallocatePointer(lin%hamold, 'lin%hamold', subname)
   call deallocate_orbitals_data(lin%orbs, subname)
+  call deallocate_orbitals_data(lin%gorbs, subname)
   call deallocate_communications_arrays(lin%comms, subname)
+  call deallocate_communications_arrays(lin%gcomms, subname)
   call checkAndDeallocatePointer(lin%norbsPerType, 'lin%norbsPerType', subname)
   call deallocate_p2pCommsSumrho(lin%comsr, subname)
   call deallocate_p2pCommsGatherPot(lin%comgp, subname)
@@ -731,6 +733,7 @@ subroutine deallocate_linearParameters(lin, subname)
   call deallocate_linear_zone_descriptors(lin%lzd, subname)
   call deallocate_p2pCommsOrthonormality(lin%comon, subname)
   call deallocate_overlapParameters(lin%op, subname)
+  call deallocate_matrixDescriptors(lin%mad, subname)
 
 end subroutine deallocate_linearParameters
 
@@ -1090,8 +1093,10 @@ subroutine deallocate_largeBasis(lb, subname)
   character(len=*),intent(in):: subname
 
   call deallocate_communications_arrays(lb%comms, subname)
+  call deallocate_communications_arrays(lb%gcomms, subname)
   call deallocate_orbitals_data(lb%orbs, subname)
-  call deallocate_linear_zone_descriptors(lb%lzd, subname)
+  call deallocate_orbitals_data(lb%gorbs, subname)
+  !call deallocate_linear_zone_descriptors(lb%lzd, subname)
   call dealloctae_p2pCommsRepartition(lb%comrp, subname)
   call deallocate_p2pCommsOrthonormality(lb%comon, subname)
   call deallocate_overlapParameters(lb%op, subname)
@@ -1236,3 +1241,27 @@ subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
   end do
 
 end subroutine deallocate_p2pCommsOrthonormalityMatrix
+
+
+subroutine deallocate_matrixDescriptors(mad, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_matrixDescriptors
+  implicit none
+  
+  ! Calling arguments
+  type(matrixDescriptors),intent(inout):: mad
+  character(len=*),intent(in):: subname
+
+  ! Local variables
+  integer:: iis1, iis2, iie1, iie2, i1, i2
+
+  call checkAndDeallocatePointer(mad%keyg, 'mad%keyg', subname)
+  call checkAndDeallocatePointer(mad%keyv, 'mad%keyv', subname)
+  call checkAndDeallocatePointer(mad%keygmatmul, 'mad%keygmatmul', subname)
+  call checkAndDeallocatePointer(mad%keyvmatmul, 'mad%keyvmatmul', subname)
+  call checkAndDeallocatePointer(mad%nsegline, 'mad%nsegline', subname)
+  call checkAndDeallocatePointer(mad%keygline, 'mad%keygline', subname)
+
+end subroutine deallocate_matrixDescriptors

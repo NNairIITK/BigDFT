@@ -2,7 +2,7 @@
 
 
 subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
-    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise,radii_cf)
+    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, rhopot, fxyz, fnoise, radii_cf)
 ! Purpose:
 ! ========
 !   Calculates the forces we get with psi. It is copied from cluster, with an additional
@@ -65,10 +65,12 @@ integer,dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon
 real(dp),dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
 real(dp),dimension(lin%as%size_pkernel),intent(in):: pkernel
 real(8),dimension(3,atoms%nat),intent(in):: rxyz, fion, fdisp
+real(8),dimension(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)),intent(in):: rhopot
 real(8),dimension(3,atoms%nat),intent(out):: fxyz
 real(8),intent(out):: fnoise
 real(8),dimension((lin%Lzd%Glr%wfd%nvctr_c+7*lin%Lzd%Glr%wfd%nvctr_f)*orbs%norbp),intent(inout):: psi
 real(8),dimension(lin%lzd%Lpsidimtot),intent(inout):: phi
+!real(8),dimension(lin%gorbs%npsidim),intent(inout):: phi
 real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
 real(gp), dimension(atoms%ntypes,3+ndebug), intent(in) :: radii_cf
 ! Local variables
@@ -104,15 +106,17 @@ real(wp) :: sum_psi
      nscatterarr(jproc,4)=0
   end do
 
-  if (n3p>0) then
-     allocate(rho(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,rho,'rho',subname)
-  else
-     allocate(rho(1+ndebug),stat=i_stat)
-     call memocc(i_stat,rho,'rho',subname)
-  end if
-  call sumrho(iproc,nproc,orbs,Glr,0,hxh,hyh,hzh,psi,rho,Glr%d%n1i*Glr%d%n2i*n3p,&
-          nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
+
+  ! The potential has already been calculated and is in rhopot.
+  !!!if (n3p>0) then
+  !!   allocate(rho(Glr%d%n1i*Glr%d%n2i*n3p*in%nspin+ndebug),stat=i_stat)
+  !!   call memocc(i_stat,rho,'rho',subname)
+  !!else
+  !!   allocate(rho(1+ndebug),stat=i_stat)
+  !!   call memocc(i_stat,rho,'rho',subname)
+  !!end if
+  !!call sumrho(iproc,nproc,orbs,Glr,0,hxh,hyh,hzh,psi,rho,Glr%d%n1i*Glr%d%n2i*n3p,&
+  !!        nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons)
 
   !calculate the total density in the case of nspin==2
   if (in%nspin==2) then
@@ -127,7 +131,8 @@ real(wp) :: sum_psi
   end if
 
   !calculate electrostatic potential
-  call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rho,1,pot,1)
+  !call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rho,1,pot,1)
+  call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot,1,pot,1)
   call H_potential(atoms%geocode,'D',iproc,nproc,&
        Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,pot,pkernel,pot,ehart_fake,0.0_dp,.false.)
 
@@ -138,11 +143,11 @@ real(wp) :: sum_psi
   call timing(iproc,'Forces        ','ON')
   ! calculate local part of the forces gxyz
   call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
-       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,rho,pot,gxyz)
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,rhopot,pot,gxyz)
 
-  i_all=-product(shape(rho))*kind(rho)
-  deallocate(rho,stat=i_stat)
-  call memocc(i_stat,i_all,'rho',subname)
+  !!i_all=-product(shape(rho))*kind(rho)
+  !!deallocate(rho,stat=i_stat)
+  !!call memocc(i_stat,i_all,'rho',subname)
   i_all=-product(shape(pot))*kind(pot)
   deallocate(pot,stat=i_stat)
   call memocc(i_stat,i_all,'pot',subname)

@@ -1605,7 +1605,6 @@ subroutine index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nsp
   call memocc(i_stat,keymask,'keymask',subname)
 
   call shift_locreg_indexes(Glr,Llr,keymask,nseg)
-
 !####################################################
 ! Do coarse region
 !####################################################
@@ -1832,8 +1831,8 @@ subroutine index_of_psi_to_locreg2(iproc, nproc, ldim, gdim, Llr, Glr, indexLpsi
 
 ! Check if the number of elements in loc_psi is valid
   if(icheck .ne. Llr%wfd%nvctr_c) then
-    write(*,*)'There is an error in psi_to_locreg: number of coarse points used',icheck
-    write(*,*)'is not equal to the number of coarse points in the region',Llr%wfd%nvctr_c
+    write(*,'(2(a,i0))')'There is an error in psi_to_locreg: number of coarse points used, ',icheck, &
+              ', is not equal to the number of coarse points in the region, ',Llr%wfd%nvctr_c
   end if
 
 !##############################################################

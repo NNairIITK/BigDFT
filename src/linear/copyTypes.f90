@@ -10,7 +10,7 @@ type(locreg_descriptors),intent(out):: glrout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis, iie, istat, i
+integer:: iis, iie, istat, i, iall
   
 glrout%geocode = glrin%geocode
 glrout%hybrid_on = glrin%hybrid_on
@@ -26,7 +26,11 @@ glrout%outofzone(1) = glrin%outofzone(1)
 glrout%outofzone(2) = glrin%outofzone(2)
 glrout%outofzone(3) = glrin%outofzone(3)
 
-if(associated(glrin%projflg))then
+if(associated(glrout%projflg)) then
+    iall=-product(shape(glrout%projflg))*kind(glrout%projflg)
+    deallocate(glrout%projflg, stat=istat)
+    call memocc(istat, iall, 'glrout%projflg', subname)
+end if
    iis=lbound(glrin%projflg,1)
    iie=ubound(glrin%projflg,1)
    allocate(glrout%projflg(iis:iie), stat=istat)
@@ -83,7 +87,7 @@ type(wavefunctions_descriptors),intent(out):: wfdout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: i1, i2, iis1, iie1, iis2, iie2, istat
+integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
 
 
 wfdout%nvctr_c = wfdin%nvctr_c
@@ -91,6 +95,11 @@ wfdout%nvctr_f = wfdin%nvctr_f
 wfdout%nseg_c = wfdin%nseg_c
 wfdout%nseg_f = wfdin%nseg_f
 
+if(associated(wfdout%keyg)) then
+    iall=-product(shape(wfdout%keyg))*kind(wfdout%keyg)
+    deallocate(wfdout%keyg, stat=istat)
+    call memocc(istat, iall, 'wfdout%keyg', subname)
+end if
 iis1=lbound(wfdin%keyg,1)
 iie1=ubound(wfdin%keyg,1)
 iis2=lbound(wfdin%keyg,2)
@@ -103,6 +112,11 @@ do i2=iis2,iie2
     end do
 end do
     
+if(associated(wfdout%keyv)) then
+    iall=-product(shape(wfdout%keyv))*kind(wfdout%keyv)
+    deallocate(wfdout%keyv, stat=istat)
+    call memocc(istat, iall, 'wfdout%keyv', subname)
+end if
 iis1=lbound(wfdin%keyv,1)
 iie1=ubound(wfdin%keyv,1)
 allocate(wfdout%keyv(iis1:iie1), stat=istat)
@@ -130,7 +144,7 @@ type(convolutions_bounds),intent(out):: boundsout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
 call copy_kinetic_bounds(boundsin%kb, boundsout%kb, subname)
 call copy_shrink_bounds(boundsin%sb, boundsout%sb, subname)
@@ -143,6 +157,11 @@ iie2=ubound(boundsin%ibyyzz_r,2)
 iis3=lbound(boundsin%ibyyzz_r,3)
 iie3=ubound(boundsin%ibyyzz_r,3)
 
+if(associated(boundsout%ibyyzz_r)) then
+    iall=-product(shape(boundsout%ibyyzz_r))*kind(boundsout%ibyyzz_r)
+    deallocate(boundsout%ibyyzz_r, stat=istat)
+    call memocc(istat, iall, 'boundsout%ibyyzz_r', subname)
+end if
 allocate(boundsout%ibyyzz_r(iis1:iie1,iis2:iie2,iis3:iie3), stat=istat)
 call memocc(istat, boundsout%ibyyzz_r, 'boundsout%ibyyzz_r', subname)
 do i3=iis3,iie3
@@ -168,8 +187,13 @@ type(kinetic_bounds),intent(out):: kbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
+if(associated(kbout%ibyz_c)) then
+    iall=-product(shape(kbout%ibyz_c))*kind(kbout%ibyz_c)
+    deallocate(kbout%ibyz_c, stat=istat)
+    call memocc(istat, iall, 'kbout%ibyz_c', subname)
+end if
 iis1=lbound(kbin%ibyz_c,1)
 iie1=ubound(kbin%ibyz_c,1)
 iis2=lbound(kbin%ibyz_c,2)
@@ -187,6 +211,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(kbout%ibxz_c)) then
+    iall=-product(shape(kbout%ibxz_c))*kind(kbout%ibxz_c)
+    deallocate(kbout%ibxz_c, stat=istat)
+    call memocc(istat, iall, 'kbout%ibxz_c', subname)
+end if
 iis1=lbound(kbin%ibxz_c,1)
 iie1=ubound(kbin%ibxz_c,1)
 iis2=lbound(kbin%ibxz_c,2)
@@ -204,6 +233,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(kbout%ibxy_c)) then
+    iall=-product(shape(kbout%ibxy_c))*kind(kbout%ibxy_c)
+    deallocate(kbout%ibxy_c, stat=istat)
+    call memocc(istat, iall, 'kbout%ibxy_c', subname)
+end if
 iis1=lbound(kbin%ibxy_c,1)
 iie1=ubound(kbin%ibxy_c,1)
 iis2=lbound(kbin%ibxy_c,2)
@@ -221,6 +255,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(kbout%ibyz_f)) then
+    iall=-product(shape(kbout%ibyz_f))*kind(kbout%ibyz_f)
+    deallocate(kbout%ibyz_f, stat=istat)
+    call memocc(istat, iall, 'kbout%ibyz_f', subname)
+end if
 iis1=lbound(kbin%ibyz_f,1)
 iie1=ubound(kbin%ibyz_f,1)
 iis2=lbound(kbin%ibyz_f,2)
@@ -238,6 +277,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(kbout%ibxz_f)) then
+    iall=-product(shape(kbout%ibxz_f))*kind(kbout%ibxz_f)
+    deallocate(kbout%ibxz_f, stat=istat)
+    call memocc(istat, iall, 'kbout%ibxz_f', subname)
+end if
 iis1=lbound(kbin%ibxz_f,1)
 iie1=ubound(kbin%ibxz_f,1)
 iis2=lbound(kbin%ibxz_f,2)
@@ -255,6 +299,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(kbout%ibxy_f)) then
+    iall=-product(shape(kbout%ibxy_f))*kind(kbout%ibxy_f)
+    deallocate(kbout%ibxy_f, stat=istat)
+    call memocc(istat, iall, 'kbout%ibxy_f', subname)
+end if
 iis1=lbound(kbin%ibxy_f,1)
 iie1=ubound(kbin%ibxy_f,1)
 iis2=lbound(kbin%ibxy_f,2)
@@ -288,9 +337,14 @@ type(shrink_bounds),intent(out):: sbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
 
+if(associated(sbout%ibzzx_c)) then
+    iall=-product(shape(sbout%ibzzx_c))*kind(sbout%ibzzx_c)
+    deallocate(sbout%ibzzx_c, stat=istat)
+    call memocc(istat, iall, 'sbout%ibzzx_c', subname)
+end if
 iis1=lbound(sbin%ibzzx_c,1)
 iie1=ubound(sbin%ibzzx_c,1)
 iis2=lbound(sbin%ibzzx_c,2)
@@ -308,6 +362,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(sbout%ibyyzz_c)) then
+    iall=-product(shape(sbout%ibyyzz_c))*kind(sbout%ibyyzz_c)
+    deallocate(sbout%ibyyzz_c, stat=istat)
+    call memocc(istat, iall, 'sbout%ibyyzz_c', subname)
+end if
 iis1=lbound(sbin%ibyyzz_c,1)
 iie1=ubound(sbin%ibyyzz_c,1)
 iis2=lbound(sbin%ibyyzz_c,2)
@@ -325,6 +384,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(sbout%ibxy_ff)) then
+    iall=-product(shape(sbout%ibxy_ff))*kind(sbout%ibxy_ff)
+    deallocate(sbout%ibxy_ff, stat=istat)
+    call memocc(istat, iall, 'sbout%ibxy_ff', subname)
+end if
 iis1=lbound(sbin%ibxy_ff,1)
 iie1=ubound(sbin%ibxy_ff,1)
 iis2=lbound(sbin%ibxy_ff,2)
@@ -342,6 +406,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(sbout%ibzzx_f)) then
+    iall=-product(shape(sbout%ibzzx_f))*kind(sbout%ibzzx_f)
+    deallocate(sbout%ibzzx_f, stat=istat)
+    call memocc(istat, iall, 'sbout%ibzzx_f', subname)
+end if
 iis1=lbound(sbin%ibzzx_f,1)
 iie1=ubound(sbin%ibzzx_f,1)
 iis2=lbound(sbin%ibzzx_f,2)
@@ -359,6 +428,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(sbout%ibyyzz_f)) then
+    iall=-product(shape(sbout%ibyyzz_f))*kind(sbout%ibyyzz_f)
+    deallocate(sbout%ibyyzz_f, stat=istat)
+    call memocc(istat, iall, 'sbout%ibyyzz_f', subname)
+end if
 iis1=lbound(sbin%ibyyzz_f,1)
 iie1=ubound(sbin%ibyyzz_f,1)
 iis2=lbound(sbin%ibyyzz_f,2)
@@ -393,9 +467,14 @@ type(grow_bounds),intent(out):: gbout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
 
+if(associated(gbout%ibzxx_c)) then
+    iall=-product(shape(gbout%ibzxx_c))*kind(gbout%ibzxx_c)
+    deallocate(gbout%ibzxx_c, stat=istat)
+    call memocc(istat, iall, 'gbout%ibzxx_c', subname)
+end if
 iis1=lbound(gbin%ibzxx_c,1)
 iie1=ubound(gbin%ibzxx_c,1)
 iis2=lbound(gbin%ibzxx_c,2)
@@ -413,6 +492,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(gbout%ibxxyy_c)) then
+    iall=-product(shape(gbout%ibxxyy_c))*kind(gbout%ibxxyy_c)
+    deallocate(gbout%ibxxyy_c, stat=istat)
+    call memocc(istat, iall, 'gbout%ibxxyy_c', subname)
+end if
 iis1=lbound(gbin%ibxxyy_c,1)
 iie1=ubound(gbin%ibxxyy_c,1)
 iis2=lbound(gbin%ibxxyy_c,2)
@@ -430,6 +514,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(gbout%ibyz_ff)) then
+    iall=-product(shape(gbout%ibyz_ff))*kind(gbout%ibyz_ff)
+    deallocate(gbout%ibyz_ff, stat=istat)
+    call memocc(istat, iall, 'gbout%ibyz_ff', subname)
+end if
 iis1=lbound(gbin%ibyz_ff,1)
 iie1=ubound(gbin%ibyz_ff,1)
 iis2=lbound(gbin%ibyz_ff,2)
@@ -448,6 +537,11 @@ end do
 
 
 
+if(associated(gbout%ibzxx_f)) then
+    iall=-product(shape(gbout%ibzxx_f))*kind(gbout%ibzxx_f)
+    deallocate(gbout%ibzxx_f, stat=istat)
+    call memocc(istat, iall, 'gbout%ibzxx_f', subname)
+end if
 iis1=lbound(gbin%ibzxx_f,1)
 iie1=ubound(gbin%ibzxx_f,1)
 iis2=lbound(gbin%ibzxx_f,2)
@@ -465,6 +559,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(gbout%ibxxyy_f)) then
+    iall=-product(shape(gbout%ibxxyy_f))*kind(gbout%ibxxyy_f)
+    deallocate(gbout%ibxxyy_f, stat=istat)
+    call memocc(istat, iall, 'gbout%ibxxyy_f', subname)
+end if
 iis1=lbound(gbin%ibxxyy_f,1)
 iie1=ubound(gbin%ibxxyy_f,1)
 iis2=lbound(gbin%ibxxyy_f,2)
@@ -497,13 +596,18 @@ type(nonlocal_psp_descriptors),intent(out):: nlpspout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat
+integer:: iis1, iie1, iis2, iie2, iis3, iie3, i1, i2, i3, istat, iall
 
 
 nlpspout%nproj = nlpspin%nproj
 nlpspout%nprojel = nlpspin%nprojel
 
 
+if(associated(nlpspout%nvctr_p)) then
+    iall=-product(shape(nlpspout%nvctr_p))*kind(nlpspout%nvctr_p)
+    deallocate(nlpspout%nvctr_p, stat=istat)
+    call memocc(istat, iall, 'nlpspout%nvctr_p', subname)
+end if
 iis1=lbound(nlpspin%nvctr_p,1)
 iie1=ubound(nlpspin%nvctr_p,1)
 allocate(nlpspout%nvctr_p(iis1:iie1), stat=istat)
@@ -513,6 +617,11 @@ do i1=iis1,iie1
 end do
 
 
+if(associated(nlpspout%nseg_p)) then
+    iall=-product(shape(nlpspout%nseg_p))*kind(nlpspout%nseg_p)
+    deallocate(nlpspout%nseg_p, stat=istat)
+    call memocc(istat, iall, 'nlpspout%nseg_p', subname)
+end if
 iis1=lbound(nlpspin%nseg_p,1)
 iie1=ubound(nlpspin%nseg_p,1)
 allocate(nlpspout%nseg_p(iis1:iie1), stat=istat)
@@ -522,6 +631,11 @@ do i1=iis1,iie1
 end do
 
 
+if(associated(nlpspout%keyv_p)) then
+    iall=-product(shape(nlpspout%keyv_p))*kind(nlpspout%keyv_p)
+    deallocate(nlpspout%keyv_p, stat=istat)
+    call memocc(istat, iall, 'nlpspout%keyv_p', subname)
+end if
 iis1=lbound(nlpspin%keyv_p,1)
 iie1=ubound(nlpspin%keyv_p,1)
 allocate(nlpspout%keyv_p(iis1:iie1), stat=istat)
@@ -531,6 +645,11 @@ do i1=iis1,iie1
 end do
 
 
+if(associated(nlpspout%keyg_p)) then
+    iall=-product(shape(nlpspout%keyg_p))*kind(nlpspout%keyg_p)
+    deallocate(nlpspout%keyg_p, stat=istat)
+    call memocc(istat, iall, 'nlpspout%keyg_p', subname)
+end if
 iis1=lbound(nlpspin%keyg_p,1)
 iie1=ubound(nlpspin%keyg_p,1)
 iis2=lbound(nlpspin%keyg_p,2)
@@ -544,6 +663,11 @@ do i2=iis2,iie2
 end do
 
 
+if(associated(nlpspout%nboxp_c)) then
+    iall=-product(shape(nlpspout%nboxp_c))*kind(nlpspout%nboxp_c)
+    deallocate(nlpspout%nboxp_c, stat=istat)
+    call memocc(istat, iall, 'nlpspout%nboxp_c', subname)
+end if
 iis1=lbound(nlpspin%nboxp_c,1)
 iie1=ubound(nlpspin%nboxp_c,1)
 iis2=lbound(nlpspin%nboxp_c,2)
@@ -561,6 +685,11 @@ do i3=iis3,iie3
 end do
 
 
+if(associated(nlpspout%nboxp_f)) then
+    iall=-product(shape(nlpspout%nboxp_f))*kind(nlpspout%nboxp_f)
+    deallocate(nlpspout%nboxp_f, stat=istat)
+    call memocc(istat, iall, 'nlpspout%nboxp_f', subname)
+end if
 iis1=lbound(nlpspin%nboxp_f,1)
 iie1=ubound(nlpspin%nboxp_f,1)
 iis2=lbound(nlpspin%nboxp_f,2)
@@ -593,7 +722,7 @@ type(orbitals_data),intent(out):: orbsout
 character(len=*),intent(in):: subname
 
 ! Local variables
-integer:: iis1, iie1, iis2, iie2, i1, i2, istat
+integer:: iis1, iie1, iis2, iie2, i1, i2, istat, iall
 
 orbsout%norb = orbsin%norb
 orbsout%norbp = orbsin%norbp
@@ -608,6 +737,11 @@ orbsout%nkptsp = orbsin%nkptsp
 orbsout%iskpts = orbsin%iskpts
 orbsout%efermi = orbsin%efermi
 
+if(associated(orbsout%norb_par)) then
+    iall=-product(shape(orbsout%norb_par))*kind(orbsout%norb_par)
+    deallocate(orbsout%norb_par, stat=istat)
+    call memocc(istat, iall, 'orbsout%norb_par', subname)
+end if
 iis1=lbound(orbsin%norb_par,1)
 iie1=ubound(orbsin%norb_par,1)
 allocate(orbsout%norb_par(iis1:iie1), stat=istat)
@@ -617,6 +751,11 @@ do i1=iis1,iie1
 end do
 
 
+if(associated(orbsout%iokpt)) then
+    iall=-product(shape(orbsout%iokpt))*kind(orbsout%iokpt)
+    deallocate(orbsout%iokpt, stat=istat)
+    call memocc(istat, iall, 'orbsout%iokpt', subname)
+end if
 iis1=lbound(orbsin%iokpt,1)
 iie1=ubound(orbsin%iokpt,1)
 allocate(orbsout%iokpt(iis1:iie1), stat=istat)
@@ -626,6 +765,11 @@ do i1=iis1,iie1
 end do
 
 
+if(associated(orbsout%ikptproc)) then
+    iall=-product(shape(orbsout%ikptproc))*kind(orbsout%ikptproc)
+    deallocate(orbsout%ikptproc, stat=istat)
+    call memocc(istat, iall, 'orbsout%ikptproc', subname)
+end if
 iis1=lbound(orbsin%ikptproc,1)
 iie1=ubound(orbsin%ikptproc,1)
 allocate(orbsout%ikptproc(iis1:iie1), stat=istat)
@@ -634,6 +778,11 @@ do i1=iis1,iie1
     orbsout%ikptproc(i1) = orbsin%ikptproc(i1)
 end do
 
+if(associated(orbsout%inwhichlocreg)) then
+    iall=-product(shape(orbsout%inwhichlocreg))*kind(orbsout%inwhichlocreg)
+    deallocate(orbsout%inwhichlocreg, stat=istat)
+    call memocc(istat, iall, 'orbsout%inwhichlocreg', subname)
+end if
 iis1=lbound(orbsin%inwhichlocreg,1)
 iie1=ubound(orbsin%inwhichlocreg,1)
 allocate(orbsout%inwhichlocreg(iis1:iie1), stat=istat)
@@ -642,6 +791,11 @@ do i1=iis1,iie1
     orbsout%inwhichlocreg(i1) = orbsin%inwhichlocreg(i1)
 end do
 
+if(associated(orbsout%inWhichLocregP)) then
+    iall=-product(shape(orbsout%inWhichLocregP))*kind(orbsout%inWhichLocregP)
+    deallocate(orbsout%inWhichLocregP, stat=istat)
+    call memocc(istat, iall, 'orbsout%inWhichLocregP', subname)
+end if
 iis1=lbound(orbsin%inWhichLocregP,1)
 iie1=ubound(orbsin%inWhichLocregP,1)
 allocate(orbsout%inWhichLocregP(iis1:iie1), stat=istat)
@@ -651,6 +805,11 @@ do i1=iis1,iie1
 end do
 
 if(associated(orbsin%onWhichMPI))then
+if(associated(orbsout%onWhichMPI)) then
+    iall=-product(shape(orbsout%onWhichMPI))*kind(orbsout%onWhichMPI)
+    deallocate(orbsout%onWhichMPI, stat=istat)
+    call memocc(istat, iall, 'orbsout%onWhichMPI', subname)
+end if
 iis1=lbound(orbsin%onWhichMPI,1)
 iie1=ubound(orbsin%onWhichMPI,1)
 allocate(orbsout%onWhichMPI(iis1:iie1), stat=istat)
@@ -658,9 +817,13 @@ call memocc(istat, orbsout%onWhichMPI, 'orbsout%onWhichMPI', subname)
 do i1=iis1,iie1
     orbsout%onWhichMPI(i1) = orbsin%onWhichMPI(i1)
 end do
-end if
 
-if(associated(orbsin%isorb_par)) then
+
+if(associated(orbsout%isorb_par)) then
+    iall=-product(shape(orbsout%isorb_par))*kind(orbsout%isorb_par)
+    deallocate(orbsout%isorb_par, stat=istat)
+    call memocc(istat, iall, 'orbsout%isorb_par', subname)
+end if
    iis1=lbound(orbsin%isorb_par,1)
    iie1=ubound(orbsin%isorb_par,1)
    allocate(orbsout%isorb_par(iis1:iie1), stat=istat)
@@ -668,9 +831,13 @@ if(associated(orbsin%isorb_par)) then
    do i1=iis1,iie1
        orbsout%isorb_par(i1) = orbsin%isorb_par(i1)
    end do
-end if
 
-if(associated(orbsin%eval))then
+
+if(associated(orbsout%eval)) then
+    iall=-product(shape(orbsout%eval))*kind(orbsout%eval)
+    deallocate(orbsout%eval, stat=istat)
+    call memocc(istat, iall, 'orbsout%eval', subname)
+end if
 iis1=lbound(orbsin%eval,1)
 iie1=ubound(orbsin%eval,1)
 allocate(orbsout%eval(iis1:iie1), stat=istat)
@@ -681,7 +848,11 @@ end do
 end if
 
 
-if(associated(orbsin%occup))then
+if(associated(orbsout%occup)) then
+    iall=-product(shape(orbsout%occup))*kind(orbsout%occup)
+    deallocate(orbsout%occup, stat=istat)
+    call memocc(istat, iall, 'orbsout%occup', subname)
+end if
 iis1=lbound(orbsin%occup,1)
 iie1=ubound(orbsin%occup,1)
 allocate(orbsout%occup(iis1:iie1), stat=istat)
@@ -692,6 +863,11 @@ end do
 end if
 
 
+if(associated(orbsout%spinsgn)) then
+    iall=-product(shape(orbsout%spinsgn))*kind(orbsout%spinsgn)
+    deallocate(orbsout%spinsgn, stat=istat)
+    call memocc(istat, iall, 'orbsout%spinsgn', subname)
+end if
 iis1=lbound(orbsin%spinsgn,1)
 iie1=ubound(orbsin%spinsgn,1)
 allocate(orbsout%spinsgn(iis1:iie1), stat=istat)
@@ -701,6 +877,11 @@ do i1=iis1,iie1
 end do
 
 
+if(associated(orbsout%kwgts)) then
+    iall=-product(shape(orbsout%kwgts))*kind(orbsout%kwgts)
+    deallocate(orbsout%kwgts, stat=istat)
+    call memocc(istat, iall, 'orbsout%kwgts', subname)
+end if
 iis1=lbound(orbsin%kwgts,1)
 iie1=ubound(orbsin%kwgts,1)
 allocate(orbsout%kwgts(iis1:iie1), stat=istat)
@@ -710,6 +891,11 @@ do i1=iis1,iie1
 end do
 
 
+if(associated(orbsout%kpts)) then
+    iall=-product(shape(orbsout%kpts))*kind(orbsout%kpts)
+    deallocate(orbsout%kpts, stat=istat)
+    call memocc(istat, iall, 'orbsout%kpts', subname)
+end if
 iis1=lbound(orbsin%kpts,1)
 iie1=ubound(orbsin%kpts,1)
 iis2=lbound(orbsin%kpts,2)

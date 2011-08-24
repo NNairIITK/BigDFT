@@ -1,7 +1,7 @@
 subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rxyzParab, &
-    nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
-    infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    i3s, i3xcsh, fion, fdisp, fxyz, eion, edisp, fnoise, ebs, coeff, lphi, radii_cf)
+    nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
+    infoBasisFunctions, infoCoeff, itSCC, n3p, n3pi, n3d, pkernel, &
+    i3s, i3xcsh, ebs, coeff, lphi, radii_cf, nlpspd, proj)
 !
 ! Purpose:
 ! ========
@@ -32,7 +32,6 @@ subroutine getLinearPsi(iproc, nproc, nspin, Glr, orbs, comms, at, lin, rxyz, rx
 !     nscatterarr     ???
 !     ngatherarr      ???
 !     nlpsp           ???
-!     proj            ???
 !     rhopot          the charge density
 !     GPU             parameters for GPUs
 !     input           type containing some very general parameters
@@ -68,54 +67,36 @@ type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(in):: at
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
-real(8),dimension(3,at%nat),intent(in):: rxyz, fion, fdisp
+real(8),dimension(3,at%nat),intent(in):: rxyz
 real(8),dimension(3,at%nat),intent(inout):: rxyzParab
 integer,dimension(0:nproc-1,4),intent(inout):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer,dimension(0:nproc-1,2),intent(inout):: ngatherarr
-type(nonlocal_psp_descriptors),intent(in):: nlpspd
-real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 real(dp),dimension(max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin),intent(inout) :: rhopot
 type(GPU_pointers),intent(inout):: GPU
-integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon 
-real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons 
 real(dp), dimension(lin%as%size_pkernel),intent(in):: pkernel
 logical,intent(in):: updatePhi
-real(wp), dimension(lin%as%size_pot_ion),intent(inout):: pot_ion
-!real(wp), dimension(lin%as%size_rhocore):: rhocore 
-real(wp), dimension(:),pointer,intent(in):: rhocore                  
-real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(3),lin%as%size_potxc(4)),intent(inout):: potxc
 real(dp),dimension(:),pointer,intent(in):: pkernelseq
-real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: phi
+real(8),dimension(lin%lb%gorbs%npsidim),intent(inout):: phi
 real(8),dimension(orbs%npsidim),intent(out):: psi, psit
 integer,intent(out):: infoBasisFunctions, infoCoeff
-character(len=3),intent(in):: PSquiet
 real(8),intent(out):: ebs
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in out):: coeff
-real(8),dimension(3,at%nat),intent(out):: fxyz
-real(8):: eion, edisp, fnoise
-real(8),dimension(lin%lb%lzd%orbs%npsidim),intent(inout):: lphi
+real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: lphi
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+type(nonlocal_psp_descriptors),intent(in):: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables 
-integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount
+integer:: istat, iall, ind1, ind2, ldim, gdim, ilr, istr, nphibuff, iorb, jorb, istart, korb, jst, nvctrp, ncount, jlr
 real(8),dimension(:),allocatable:: hphi, eval, lhphi, lphiold, phiold, lhphiold, hphiold, eps, temparr
 real(8),dimension(:,:),allocatable:: HamSmall, ovrlp, ovrlpold, hamold
 real(8),dimension(:,:,:),allocatable:: matrixElements
 real(8),dimension(:),pointer:: phiWork
-real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2
-real(wp),dimension(:),pointer:: potential 
+real(8):: epot_sum, ekin_sum, eexctX, eproj_sum, trace, tt, ddot, tt2, dnrm2, t1, t2, time
 character(len=*),parameter:: subname='getLinearPsi' 
 logical:: withConfinement
 type(workarr_sumrho):: w
-character(len=11):: procName, orbNumber, orbName
-character(len=30):: filename
-
-
-integer:: ist, ierr
-  !do istat=1,size(lphi)
-  !    write(1010+iproc,*) lphi(istat)
-  !end do
-!write(*,'(a,3i14)') 'iproc, lin%lb%Lorbs%npsidim, lin%lb%lzd%orbs%npsidim', iproc, lin%lb%Lorbs%npsidim, lin%lb%lzd%orbs%npsidim
+integer:: ist, ierr, iiorb, info
 
   ! Allocate the local arrays.  
   allocate(matrixElements(lin%lb%orbs%norb,lin%lb%orbs%norb,2), stat=istat)
@@ -129,50 +110,34 @@ integer:: ist, ierr
   allocate(ovrlp(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
   call memocc(istat, ovrlp, 'ovrlp', subname)
 
-  !!! Transform phi to the lphi.
-  !!ind1=1
-  !!ind2=1
-  !!do iorb=1,lin%orbs%norbp
-  !!    ilr = lin%onWhichAtom(iorb)
-  !!    ldim=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%lzd%llr(ilr), Glr, phi(ind1), lphi(ind2))
-  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    ind2=ind2+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  !!end do
-  !do istat=1,size(lphi)
-  !    write(1500+iproc,*) lphi(istat)
-  !end do
 
   ! This is a flag whether the basis functions shall be updated.
   if(updatePhi) then
+      ! If we use the derivative basis functions, the trace minimizing orbitals of the last iteration are
+      ! stored in lin%lphiRestart.
       if(lin%useDerivativeBasisFunctions) then
-          call dcopy(lin%lzd%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
+          call dcopy(lin%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
       end if
-      !do istat=1,size(rhopot)
-      !    write(2500+iproc,*) rhopot(istat)
-      !end do
-      !do istat=1,size(lphi)
-      !    write(2600+iproc,*) lphi(istat)
-      !end do
 
-      call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, proj, &
+      ! Improve the trace minimizing orbitals.
+      call getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
           nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trace, rxyzParab, &
-          itSCC, infoBasisFunctions, radii_cf, ovrlp)
+          itSCC, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj)
   end if
 
+  ! Calculate the derivative basis functions. Copy the trace minimizing orbitals to lin%lphiRestart.
   if(lin%useDerivativeBasisFunctions) then
-      call dcopy(lin%lzd%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
+      call dcopy(lin%orbs%npsidim, lphi(1), 1, lin%lphiRestart(1), 1)
       if(iproc==0) write(*,'(x,a)',advance='no') 'calculating derivative basis functions...'
-      call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%lzd%orbs%npsidim, lin%lphiRestart, lphi)
+      call getDerivativeBasisFunctions2(iproc, nproc, input%hx, Glr, lin, lin%orbs%npsidim, lin%lphiRestart, lphi)
       if(iproc==0) write(*,'(a)') 'done.'
 
-      ! Normalize the derivative basis functions.
-      ! Normalize all to keep it easy.
+      ! Normalize the derivative basis functions. Normalize all of them (i.e. also the trace minimizing
+      ! orbitals) to keep it easy.
       ! Do not orthogonalize them, since the 'normal' phis are not exactly orthogonal either.
       ist=1
-      do iorb=1,lin%lb%lzd%orbs%norbp
-          ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
+      do iorb=1,lin%lb%orbs%norbp
+          ilr=lin%lb%orbs%inWhichLocregp(iorb)
           ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
           tt=dnrm2(ncount, lphi(ist), 1)
           call dscal(ncount, 1/tt, lphi(ist), 1)
@@ -180,24 +145,36 @@ integer:: ist, ierr
       end do
   end if
 
-  ! Get the overlap matrix. If we updated the derivative basis functions, the overlap matrix has been
-  ! calculated in that subroutine. If we use the derivative basis functions, we have to recalculate
-  ! it anyway.
-  if(.not.updatePhi .and. .not.lin%useDerivativeBasisFunctions) then
-      call getOverlapMatrix(iproc, nproc, lin, input, lphi, ovrlp)
+  ! Get the overlap matrix.
+  !if(.not.updatePhi .and. .not.lin%useDerivativeBasisFunctions) then
+  if(.not.lin%useDerivativeBasisFunctions) then
+      !call getOverlapMatrix(iproc, nproc, lin, input, lphi, lin%mad, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%orbs, lin%comon, lin%op, lphi, lin%mad, ovrlp)
   end if
-
   if(lin%useDerivativeBasisFunctions) then
-      !call getOverlapMatrix2(iproc, nproc, lin, input, lphi, ovrlp)
-      call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
+      !call getOverlapMatrix2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, ovrlp)
+      call getOverlapMatrix2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%comon, lin%lb%op, lphi, lin%mad, ovrlp)
   end if
 
+  !ierr=0
+  !do iorb=1,lin%orbs%norb
+  !    do jorb=1,lin%orbs%norb
+  !        if(ovrlp(jorb,iorb)==0.d0) then
+  !            ierr=ierr+1
+  !        else
+  !            if(iproc==0) write(350,*) iorb,jorb
+  !        end if
+  !    end do
+  !end do
+  !if(iproc==0) write(*,*) 'zero comp, total', ierr, lin%orbs%norb**2
+
+  ! Allocate the communication buffers for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(lin%comsr, subname)
-  ! Transform all orbitals to real space
+  ! Transform all orbitals to real space.
   ist=1
   istr=1
   do iorb=1,lin%lb%orbs%norbp
-      ilr=lin%lb%lzd%orbs%inWhichLocregp(iorb)
+      ilr=lin%lb%orbs%inWhichLocregp(iorb)
       call initialize_work_arrays_sumrho(lin%lzd%Llr(ilr), w)
       !call daub_to_isf(lin%lzd%llr(ilr), w, lphi(ist), lphir(istr))
       call daub_to_isf(lin%lzd%Llr(ilr), w, lphi(ist), lin%comsr%sendBuf(istr))
@@ -211,58 +188,116 @@ integer:: ist, ierr
   end if
   
   ! Post the MPI messages for the communication of sumrho. Since we use non blocking point
-  ! to point communication, the program will continue immediately.
+  ! to point communication, the program will continue immediately. The messages will be gathered
+  ! in the subroutine sumrhoForLocalizedBasis2.
   call postCommunicationSumrho2(iproc, nproc, lin, lin%comsr%sendBuf, lin%comsr%recvBuf)
   
 
   if(iproc==0) write(*,'(x,a)') '----------------------------------- Determination of the orbitals in this new basis.'
 
-
+  ! Gather the potential (it has been posted in the subroutine linearScaling) if the basis functions
+  ! have not been updated (in that case it was gathered there).
   if(.not.updatePhi) then
-      ! Otherwise the potential is gathered in getLocalizedBasis.
       call gatherPotential(iproc, nproc, lin%comgp)
   end if
+  ! If we use the derivative basis functions the potential has to be gathered anyway.
   if(lin%useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lin%lb%comgp)
 
 
-  ! Transform the global phi to the local phi
-  ! This part will not be needed if we really have O(N)
-  allocate(lhphi(lin%lb%lzd%orbs%npsidim), stat=istat)
+  ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
+  ! confining potential added to the Hamiltonian.
+  allocate(lhphi(lin%lb%orbs%npsidim), stat=istat)
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
+  if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
   if(.not.lin%useDerivativeBasisFunctions) then
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
-           proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%lzd%orbs%inWhichLocregp, withConfinement, &
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+           ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
            pkernel=pkernelseq)
   else
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
-           proj, ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,lin%lb%comgp,lin%lzd%orbs%inWhichLocregp,withConfinement,&
+      !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+      !!     ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
+      !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
+      !!     pkernel=pkernelseq)
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+           ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%lb%orbs%inWhichLocregp, withConfinement, .true., &
            pkernel=pkernelseq)
   end if
 
-  if(iproc==0) write(*,'(x,a)', advance='no') 'done.'
+  if(iproc==0) write(*,'(x,a)') 'done.'
 
+  ! Deallocate the buffers needed for the communication of the potential.
   call deallocateCommunicationsBuffersPotential(lin%comgp, subname)
   if(lin%useDerivativeBasisFunctions) call deallocateCommunicationsBuffersPotential(lin%lb%comgp, subname)
 
-
   ! Calculate the matrix elements <phi|H|phi>.
-  !!call getMatrixElements2(iproc, nproc, lin, lphi, lhphi, matrixElements)
-  call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
+  !!do iall=1,size(lphi)
+  !!    write(24000+iproc,*) iall, lphi(iall)
+  !!end do
+  !!do iall=1,size(lhphi)
+  !!    write(25000+iproc,*) iall, lhphi(iall)
+  !!end do
+  !call getMatrixElements2(iproc, nproc, lin%lb%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, matrixElements)
+  call getMatrixElements2(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%op, lin%lb%comon, lphi, lhphi, lin%mad, matrixElements)
 
+  !!!if(iproc==0) then
+  !!    ierr=0
+  !!    do iall=1,lin%lb%orbs%norb
+  !!        do istat=1,lin%lb%orbs%norb
+  !!            ierr=ierr+1
+  !!            write(23000+iproc,*) iall, istat, matrixElements(istat,iall,1)
+  !!        end do
+  !!    end do
+  !!    write(23000+iproc,*) '=============================='
+  !!!end if
 
+  
+
+  ! Diagonalize the Hamiltonian, either iteratively or with lapack.
+  call mpi_barrier(mpi_comm_world, ierr) !To measure the time correctly.
+  call cpu_time(t1)
   if(trim(lin%getCoeff)=='min') then
       call optimizeCoefficients(iproc, orbs, lin, nspin, matrixElements, coeff, infoCoeff)
   else
       ! Make a copy of the matrix elements since dsyev overwrites the matrix and the matrix elements
       ! are still needed later.
       call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, matrixElements(1,1,2), 1)
-      call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
+      !if(trim(lin%diagMethod)=='seq') then
+      if(lin%blocksize_pdsyev<0) then
+          if(iproc==0) write(*,'(x,a)',advance='no') 'Diagonalizing the Hamiltonian, sequential version... '
+          call diagonalizeHamiltonian2(iproc, nproc, lin%lb%orbs, matrixElements(1,1,2), ovrlp, eval)
+      !else if(trim(lin%diagMethod)=='par') then
+      else
+          if(iproc==0) write(*,'(x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
+          !call diagonalizeHamiltonianParallel(iproc, nproc, lin%lb%orbs%norb, matrixElements(1,1,2), ovrlp, eval)
+          call dsygv_parallel(iproc, nproc, lin%blocksize_pdsyev, lin%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', lin%lb%orbs%norb, &
+               matrixElements(1,1,2), lin%lb%orbs%norb, ovrlp, lin%lb%orbs%norb, eval, info)
+      end if
+      if(iproc==0) write(*,'(a)') 'done.'
       call dcopy(lin%lb%orbs%norb*orbs%norb, matrixElements(1,1,2), 1, coeff(1,1), 1)
       infoCoeff=0
+
+      ! Write some eigenvalues. Don't write all, but only a few around the last occupied orbital.
+      if(iproc==0) then
+          do iorb=max(orbs%norb-8,1),min(orbs%norb+8,lin%orbs%norb)
+              if(iorb==orbs%norb) then
+                  write(*,'(x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- last occupied orbital'
+              else if(iorb==orbs%norb+1) then
+                  write(*,'(x,a,i0,a,es12.5,a)') 'eval(',iorb,')=',eval(iorb),'  <-- first virtual orbital'
+              else
+                  write(*,'(x,a,i0,a,es12.5)') 'eval(',iorb,')=',eval(iorb)
+              end if
+          end do
+      end if
   end if
+  call cpu_time(t2)
+  time=t2-t1
+  if(iproc==0) write(*,'(x,a,es10.3)') 'time for diagonalizing the Hamiltonian:',time
+  !!do iorb=1,lin%lb%orbs%norb
+  !!    write(2000+iproc,'(100es9.2)') (coeff(iorb,jorb), jorb=1,orbs%norb)
+  !!end do
 
   ! Calculate the band structure energy with matrixElements.
   ebs=0.d0
@@ -273,7 +308,7 @@ integer:: ist, ierr
           end do
       end do
   end do
-  ! If closed shell multiply by two
+  ! If closed shell multiply by two.
   if(input%nspin==1) ebs=2.d0*ebs
   
 
@@ -281,7 +316,7 @@ integer:: ist, ierr
   ind2=1
   phi=0.d0
   do iorb=1,lin%lb%orbs%norbp
-      ilr = lin%lb%lzd%orbs%inWhichLocregp(iorb)
+      ilr = lin%lb%orbs%inWhichLocregp(iorb)
       ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr,&
@@ -300,6 +335,30 @@ integer:: ist, ierr
   ! this has to replaced, but at the moment it is still needed.
   call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
 
+  !!!! ATTENTION -- DEBUG
+  !!call dcopy(lin%orbs%npsidim, lphi(1), 1, phi(1), 1)
+  !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  !!nvctrp=sum(lin%comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+  !!!!call dgemm('n', 'n', nvctrp, lin%orbs%norb, lin%orbs%norb, 1.d0, phi(1), nvctrp, matrixElements(1,1,2), &
+  !!!!           lin%orbs%norb, 0.d0, phiWork(1), nvctrp)
+  !!phiWork=0.d0
+  !!ist=1
+  !!do iorb=1,lin%orbs%norb
+  !!    ilr=lin%orbs%inWhichLocreg(iorb)
+  !!    jst=1
+  !!    do jorb=1,lin%orbs%norb
+  !!        jlr=lin%orbs%inWhichLocreg(jorb)
+  !!        if(jlr==ilr) then
+  !!            call daxpy(nvctrp, matrixElements(jorb,iorb,2), phi(jst), 1, phiWork(ist), 1)
+  !!        end if
+  !!        jst=jst+nvctrp
+  !!    end do
+  !!    ist=ist+nvctrp
+  !!end do
+  !!call dcopy(lin%orbs%npsidim, phiWork(1), 1, phi(1), 1)
+  !!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
+  !!call dcopy(lin%orbs%npsidim, phi(1), 1, lphi(1), 1)
+
 
   call dcopy(orbs%npsidim, psi, 1, psit, 1)
   if(iproc==0) write(*,'(a)') 'done.'
@@ -316,17 +375,18 @@ integer:: ist, ierr
 
 
 
+
   ! Copy phi.
-  call dcopy(lin%lb%lzd%orbs%npsidim, lphi(1), 1, lin%lphiold(1), 1)
+  call dcopy(lin%lb%orbs%npsidim, lphi, 1, lin%lphiold, 1)
 
   ! Copy lhphi.
-  call dcopy(lin%lb%lzd%orbs%npsidim, lhphi(1), 1, lin%lhphiold(1), 1)
+  call dcopy(lin%lb%orbs%npsidim, lhphi, 1, lin%lhphiold, 1)
 
   ! Copy the Hamiltonian
   call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
 
 
-  
+  ! Deallocate all local arrays.
   iall=-product(shape(HamSmall))*kind(HamSmall)
   deallocate(HamSmall, stat=istat)
   call memocc(istat, iall, 'HamSmall', subname)
@@ -362,9 +422,9 @@ end subroutine getLinearPsi
 
 
 
-subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, nlpspd, &
-    proj, nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
-    itScc, infoBasisFunctions, radii_cf, ovrlp)
+subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspin, &
+    nscatterarr, ngatherarr, rhopot, GPU, pkernelseq, lphi, trH, rxyzParabola, &
+    itScc, infoBasisFunctions, radii_cf, ovrlp, nlpspd, proj)
 !
 ! Purpose:
 ! ========
@@ -386,7 +446,6 @@ subroutine getLocalizedBasis(iproc, nproc, at, orbs, Glr, input, lin, rxyz, nspi
 !     rxyz            the atomic positions
 !     nspin           npsin==1 -> closed shell; npsin==2 -> spin polarized
 !     nlpsp           ???
-!     proj            ???
 !     nscatterarr     ???
 !     ngatherarr      ???
 !     rhopot          the charge density
@@ -428,79 +487,64 @@ type(input_variables):: input
 type(linearParameters):: lin
 real(8),dimension(3,at%nat):: rxyz, rxyzParabola
 integer:: nspin
-type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
 integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
 real(dp), dimension(*), intent(inout) :: rhopot
 type(GPU_pointers), intent(inout) :: GPU
 real(dp), dimension(:), pointer :: pkernelseq
-real(8),dimension(lin%lzd%orbs%npsidim):: lphi
+real(8),dimension(lin%orbs%npsidim):: lphi
 real(8):: trH
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-real(8),dimension(lin%lzd%orbs%norb,lin%lzd%orbs%norb),intent(out):: ovrlp
+real(8),dimension(lin%orbs%norb,lin%orbs%norb),intent(out):: ovrlp
+type(nonlocal_psp_descriptors),intent(in):: nlpspd
+real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot, t2tot, timetot
-real(8):: tt, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
+real(8):: tt, tt2, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
-integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2
+integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
-real(8),dimension(:),allocatable:: hphi, hphiold, alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
+real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
 logical:: quiet, allowDIIS, startWithSD, withConfinement
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(localizedDIISParameters):: ldiis
 real(8),dimension(4):: time
+real(8),dimension(:),pointer:: potential
+real(8),dimension(:),pointer:: phiWork
+
+  !!do iall=1,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)
+  !!    write(20000+iproc,*) rhopot(iall)
+  !!end do
+  !!do iall=1,size(lphi)
+  !!    write(21000+iproc,*) lphi(iall)
+  !!end do
 
 
 
-  ! Allocate all local arrays
+  ! Allocate all local arrays.
   call allocateLocalArrays()
   
   
   if(iproc==0) write(*,'(x,a)') '======================== Creation of the basis functions... ========================'
 
-
-  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%lzd%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, lin%alphaDIIS, &
+  ! Initialize the arrays and variable needed for DIIS.
+  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, lin%alphaDIIS, &
        lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, icountDIISFailureCons, allowDIIS, &
        startWithSD, ldiis, alpha, alphaDIIS)
 
-  !!! Cut off outside localization region -- experimental
-  !!call cutoffOutsideLocreg(iproc, nproc, Glr, at, input, lin, rxyz, phi)
-
-
+  ! Set the maximal number of iterations.
   if(itSCC==1) then
       nit=lin%nItBasisFirst
   else
       nit=lin%nItBasis
   end if
 
-  ! Gather the potential
+  ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
+  ! The messages for this point to point communication have been posted in the subroutine linearScaling.
   call gatherPotential(iproc, nproc, lin%comgp)
-  !!do iall=1,lin%comgp%nrecvBuf
-  !!    write(700+iproc,*) iall, lin%comgp%recvBuf(iall)
-  !!end do
-  !!do iall=1,lin%lzd%orbs%npsidim
-  !!    write(750+iproc,*) iall, lphi(iall)
-  !!end do
-
-
-  !!! THIS IS NEW
-  !!! Transform the global phi to the local phi
-  !!! This part will not be needed if we really have O(N)
-  !!ind1=1
-  !!ind2=1
-  !!do iorb=1,lin%orbs%norbp
-  !!    ilr = lin%onWhichAtom(iorb)
-  !!    ldim=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    !write(*,'(a,3i8)') 'iproc, iorb, ldim', iproc, iorb, ldim
-  !!    call psi_to_locreg2(iproc, nproc, ldim, gdim, lin%lzd%llr(ilr), Glr, phi(ind1), lphi(ind2))
-  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-  !!    ind2=ind2+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-  !!end do
 
   time=0.d0
   call cpu_time(t1tot)
@@ -513,51 +557,82 @@ real(8),dimension(4):: time
       endif
 
   
-      ! Orthonormalize the orbitals.
+      ! Orthonormalize the orbitals. If the localization regions are smaller that the global box (which
+      ! will be the usual case), the orthogonalization can not be done exactly, but only approximately.
       if(iproc==0) then
           write(*,'(x,a)') 'Orthonormalization... '
       end if
       call cpu_time(t1)
-      !call orthonormalizeLocalized(iproc, nproc, lin, input, lphi, ovrlp)
-      call orthonormalizeLocalized(iproc, nproc, lin%nItOrtho, lin%orbs, lin%op, lin%comon, lin%lzd, lin%lzd%orbs%inWhichLocreg,&
-           lin%convCritOrtho, input, lphi, ovrlp)
+      call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
+           lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
+           input, lin%mad, lphi, ovrlp)
+      !!do iorb=1,lin%orbs%norb
+      !!    do jorb=1,lin%orbs%norb
+      !!        if(iproc==0) write(5000,*) iorb, jorb, ovrlp(jorb,iorb)
+      !!    end do
+      !!end do
       call cpu_time(t2)
       time(1)=time(1)+t2-t1
   
-      ! Calculate the unconstrained gradient.
+      ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if(iproc==0) then
           write(*,'(x,a)', advance='no') 'Hamiltonian application... '
       end if
       call cpu_time(t1)
       withConfinement=.false.
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin, input%hx, input%hy, input%hz, rxyz,&
-           proj, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%lzd%orbs%inWhichLocregp, withConfinement, &
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
+           ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
            pkernel=pkernelseq)
       call cpu_time(t2)
       time(2)=time(2)+t2-t1
       if(iproc==0) then
           write(*,'(a)', advance='no') 'done. '
       end if
+
+
+      !!! OLD VERSION FOR DEBUG !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!call full_local_potential(iproc, nproc, Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2), Glr%d%n1i*Glr%d%n2i*Glr%d%n3i, input%nspin, &
+      !!     lin%orbs%norb, lin%orbs%norbp, ngatherarr, rhopot, potential)
+
+      !!call HamiltonianApplication(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz,&
+      !!     nlpspd, proj, Glr, ngatherarr, potential, lphi, lhphi, ekin_sum, epot_sum, eexctX, eproj_sum,&
+      !!     input%nspin, GPU, pkernel=pkernelseq)
+
+      !!!deallocate potential
+      !!call free_full_potential(nproc, potential, subname)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   
       ! Apply the orthoconstraint to the gradient. This subroutine also calculates the trace trH.
       if(iproc==0) then
           write(*,'(a)', advance='no') 'Orthoconstraint... '
       end if
       call cpu_time(t1)
-      !call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
-      call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, trH)
+      !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
+
+      call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH)
       call cpu_time(t2)
       time(3)=time(3)+t2-t1
       if(iproc==0) then
           write(*,'(a)', advance='no') 'done. '
       end if
+
+      !!! OLD VERSION FOR DEBUG !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!allocate(phiWork(size(lphi)))
+      !!call transpose_v(iproc, nproc, lin%orbs, glr%wfd, lin%comms, lphi, work=phiWork)
+      !!call transpose_v(iproc, nproc, lin%orbs, glr%wfd, lin%comms, lhphi, work=phiWork)
+      !!call orthoconstraint(iproc, nproc, lin%orbs, lin%comms, glr%wfd, lphi, lhphi, tt)
+      !!call untranspose_v(iproc, nproc, lin%orbs, glr%wfd, lin%comms, lphi, work=phiWork)
+      !!call untranspose_v(iproc, nproc, lin%orbs, glr%wfd, lin%comms, lhphi, work=phiWork)
+      !!deallocate(phiWork)
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
       ! Calculate the norm of the gradient (fnrmArr) and determine the angle between the current gradient and that
       ! of the previous iteration (fnrmOvrlpArr).
       istart=1
       do iorb=1,lin%orbs%norbp
-          ilr=lin%lzd%orbs%inWhichLocregp(iorb)
+          ilr=lin%orbs%inWhichLocregp(iorb)
           ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
           if(it>1) fnrmOvrlpArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphiold(istart), 1)
           fnrmArr(iorb,1)=ddot(ncount, lhphi(istart), 1, lhphi(istart), 1)
@@ -573,7 +648,6 @@ real(8),dimension(4):: time
       ! step size for the steepest descent minimization (depending on the angle 
       ! between the current gradient and the one from the previous iteration).
       ! This is of course only necessary if we are using steepest descent and not DIIS.
-      !do iorb=1,lin%orbs%norb
       do iorb=1,lin%orbs%norbp
           fnrm=fnrm+fnrmArr(iorb,1)
           if(fnrmArr(iorb,1)>fnrmMax) fnrmMax=fnrmArr(iorb,1)
@@ -590,41 +664,44 @@ real(8),dimension(4):: time
       end do
       call mpiallred(fnrm, 1, mpi_sum, mpi_comm_world, ierr)
       call mpiallred(fnrmMax, 1, mpi_max, mpi_comm_world, ierr)
-      fnrm=sqrt(fnrm)
+      !fnrm=sqrt(fnrm)
+      fnrm=sqrt(fnrm/dble(lin%orbs%norb))
       fnrmMax=sqrt(fnrmMax)
       ! Copy the gradient (will be used in the next iteration to adapt the step size).
-      !call dcopy(lin%lorbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
-      call dcopy(lin%lzd%orbs%npsidim, lhphi(1), 1, lhphiold(1), 1)
-  
+      call dcopy(lin%orbs%npsidim, lhphi, 1, lhphiold, 1)
   
 
-      ! Precondition the gradient
+      ! Precondition the gradient.
       if(iproc==0) then
           write(*,'(a)', advance='no') 'Preconditioning... '
       end if
       gnrm=1.d3 ; gnrm_zero=1.d3
       call cpu_time(t1)
 
-      evalmax=lin%orbs%eval(lin%orbs%isorb+1)
-      do iorb=1,lin%orbs%norbp
-        evalmax=max(lin%orbs%eval(lin%orbs%isorb+iorb),evalmax)
-      enddo
-      call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
-           MPI_MAX,MPI_COMM_WORLD,ierr)
+      !!evalmax=lin%orbs%eval(lin%orbs%isorb+1)
+      !!do iorb=1,lin%orbs%norbp
+      !!  evalmax=max(lin%orbs%eval(lin%orbs%isorb+iorb),evalmax)
+      !!enddo
+      !!call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
+      !!     MPI_MAX,MPI_COMM_WORLD,ierr)
 
       ind2=1
       do iorb=1,lin%orbs%norbp
-          ilr = lin%lzd%orbs%inWhichLocregp(iorb)
+          ilr = lin%orbs%inWhichLocregp(iorb)
           call choosePreconditioner2(iproc, nproc, lin%orbs, lin, lin%lzd%Llr(ilr), input%hx, input%hy, input%hz, &
               lin%nItPrecond, lhphi(ind2), at%nat, rxyz, at, it, iorb, eval_zero)
           ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       end do
+      !call preconditionall(iproc, nproc, lin%orbs, lin%lzd%glr, input%hx, input%hy, input%hz, lin%nItPrecond, lhphi, tt, tt2)
       call cpu_time(t2)
       time(4)=time(4)+t2-t1
       if(iproc==0) then
           write(*,'(a)') 'done. '
       end if
 
+  !!do iall=1,size(lphi)
+  !!    write(22000+iproc,*) lphi(iall)
+  !!end do
 
       ! Determine the mean step size for steepest descent iterations.
       tt=sum(alpha)
@@ -646,17 +723,6 @@ real(8),dimension(4):: time
               infoBasisFunctions=it
           end if
           if(iproc==0) write(*,'(x,a)') '============================= Basis functions created. ============================='
-          !!ind1=1
-          !!ind2=1
-          !!phi=0.d0
-          !!do iorb=1,lin%orbs%norbp
-          !!    ilr = lin%onWhichAtom(iorb)
-          !!    ldim=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-          !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%orbs%norb, lin%orbs%nspinor, input%nspin, Glr, lin%lzd%llr(ilr), lphi(ind2), phi(ind1))
-          !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-          !!    ind2=ind2+lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-          !!end do
           !!if(lin%plotBasisFunctions) then
           !!    call plotOrbitals(iproc, lin%orbs, Glr, phi, at%nat, rxyz, lin%onWhichAtom, .5d0*input%hx, &
           !!        .5d0*input%hy, .5d0*input%hz, 1)
@@ -665,6 +731,7 @@ real(8),dimension(4):: time
       end if
   
   
+      ! Determine whether tha basis functions shall be further optimized using DIIS or steepest descent.
       call DIISorSD()
       if(iproc==0) then
           if(ldiis%isx>0) then
@@ -682,6 +749,7 @@ real(8),dimension(4):: time
       end if
 
 
+      ! Improve the orbitals, depending on the choice made above.
       call improveOrbitals()
 
 
@@ -693,7 +761,7 @@ real(8),dimension(4):: time
   call cpu_time(t2tot)
   timetot=t2tot-t1tot
 
-  ! Sum up the timings
+  ! Sum up the timings.
   call mpiallred(time(1), 4, mpi_sum, mpi_comm_world, ierr)
   call mpiallred(timetot, 1, mpi_sum, mpi_comm_world, ierr)
   time=time/dble(nproc)
@@ -790,7 +858,7 @@ contains
               idsx=max(lin%DIISHistMin,lin%DIISHistMax-icountSwitch)
               if(idsx>0) then
                   if(iproc==0) write(*,'(x,a,i0)') 'switch to DIIS with new history length ', idsx
-                  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%lzd%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, &
+                  call initializeDIIS(lin%DIISHistMax, lin%lzd, lin%orbs, lin%orbs%inWhichLocregp, lin%startWithSD, lin%alphaSD, &
                        lin%alphaDIIS, lin%orbs%norb, icountSDSatur, icountSwitch, icountDIISFailureTot, &
                        icountDIISFailureCons, allowDIIS, startWithSD, ldiis, alpha, alphaDIIS)
                   icountDIISFailureTot=0
@@ -823,11 +891,11 @@ contains
                  ii=modulo(ldiis%mis-(it-itBest),ldiis%mis)
                  offset=0
                  istdest=1
-                 do iorb=1,lin%lzd%orbs%norbp
-                     ilr=lin%lzd%orbs%inWhichLocregp(iorb)
+                 do iorb=1,lin%orbs%norbp
+                     ilr=lin%orbs%inWhichLocregp(iorb)
                      ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
                      istsource=offset+ii*ncount+1
-                     write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
+                     !write(*,'(a,4i9)') 'iproc, ncount, istsource, istdest', iproc, ncount, istsource, istdest
                      call dcopy(ncount, ldiis%phiHist(istsource), 1, lphi(istdest), 1)
                      offset=offset+ldiis%isx*ncount
                      istdest=istdest+ncount
@@ -864,7 +932,7 @@ contains
     if(ldiis%isx==0) then
         istart=1
         do iorb=1,lin%orbs%norbp
-            ilr=lin%lzd%orbs%inWhichLocregp(iorb)
+            ilr=lin%orbs%inWhichLocregp(iorb)
             ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
             call daxpy(ncount, -alpha(iorb), lhphi(istart), 1, lphi(istart), 1)
             istart=istart+ncount
@@ -872,11 +940,10 @@ contains
     else
         ! DIIS
         if(lin%alphaDIIS/=0.d0) then
-            !call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi(1), 1)
-            call dscal(lin%lzd%orbs%npsidim, lin%alphaDIIS, lphi(1), 1)
+            !call dscal(lin%lorbs%npsidim, lin%alphaDIIS, lphi, 1)
+            call dscal(lin%orbs%npsidim, lin%alphaDIIS, lhphi, 1)
         end if
-        !call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lorbs, lin%lzd, lin%onWhichAtom, lhphi, lphi, ldiis, it)
-        call optimizeDIIS(iproc, nproc, lin%lzd%orbs, lin%lzd%orbs, lin%lzd, lin%lzd%orbs%inWhichLocregp, lhphi, lphi, ldiis, it)
+        call optimizeDIIS(iproc, nproc, lin%orbs, lin%orbs, lin%lzd, lin%orbs%inWhichLocregp, lhphi, lphi, ldiis, it)
     end if
     end subroutine improveOrbitals
 
@@ -888,12 +955,6 @@ contains
     ! ========
     !   This subroutine allocates all local arrays.
     !
-      allocate(hphi(lin%orbs%npsidim), stat=istat)
-      call memocc(istat, hphi, 'hphi', subname)
-
-      allocate(hphiold(lin%orbs%npsidim), stat=istat)
-      call memocc(istat, hphiold, 'hphiold', subname)
-
       allocate(alpha(lin%orbs%norb), stat=istat)
       call memocc(istat, alpha, 'alpha', subname)
 
@@ -910,11 +971,11 @@ contains
       call memocc(istat, fnrmOvrlpArr, 'fnrmOvrlpArr', subname)
 
       !allocate(lhphi(lin%Lorbs%npsidim), stat=istat)
-      allocate(lhphi(lin%lzd%orbs%npsidim), stat=istat)
+      allocate(lhphi(lin%orbs%npsidim), stat=istat)
       call memocc(istat, lhphi, 'lhphi', subname)
     
       !allocate(lhphiold(lin%Lorbs%npsidim), stat=istat)
-      allocate(lhphiold(lin%lzd%orbs%npsidim), stat=istat)
+      allocate(lhphiold(lin%orbs%npsidim), stat=istat)
       call memocc(istat, lhphiold, 'lhphiold', subname)
 
     end subroutine allocateLocalArrays
@@ -926,15 +987,6 @@ contains
     ! ========
     !   This subroutine deallocates all local arrays.
     !
-
-      iall=-product(shape(hphiold))*kind(hphiold)
-      deallocate(hphiold, stat=istat)
-      call memocc(istat, iall, 'hphiold', subname)
-
-      iall=-product(shape(hphi))*kind(hphi)
-      deallocate(hphi, stat=istat)
-      call memocc(istat, iall, 'hphi', subname)
-      
       iall=-product(shape(alpha))*kind(alpha)
       deallocate(alpha, stat=istat)
       call memocc(istat, iall, 'alpha', subname)
@@ -1743,447 +1795,6 @@ end subroutine optimizeCoefficients
 
 
 
-
-subroutine getDerivativeBasisFunctions(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => getDerivativeBasisFunctions
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, nphi
-real(8),intent(in):: hgrid
-type(locreg_descriptors),intent(in):: Glr
-type(linearParameters),intent(in):: lin
-real(8),dimension(nphi),intent(in):: phi
-real(8),dimension(lin%lb%orbs%npsidim),intent(out):: phid
-
-! Local variables
-integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc, ierr
-integer:: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f, istLoc, istRoot
-real(8),dimension(0:3),parameter:: scal=1.d0
-real(8),dimension(:),allocatable:: w_f1, w_f2, w_f3, phiLoc, phiRoot
-real(8),dimension(:,:,:),allocatable:: w_c, phix_c, phiy_c, phiz_c
-real(8),dimension(:,:,:,:),allocatable:: w_f, phix_f, phiy_f, phiz_f
-character(len=*),parameter:: subname='getDerivativeBasisFunctions'
-integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
-
-
-
-  ! THIS IS COPIED FROM allocate_work_arrays. Works only for free boundary.
-  nf=(Glr%d%nfu1-Glr%d%nfl1+1)*(Glr%d%nfu2-Glr%d%nfl2+1)*(Glr%d%nfu3-Glr%d%nfl3+1)
-  ! Allocate work arrays
-  allocate(w_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3+ndebug), stat=istat)
-  call memocc(istat, w_c, 'w_c', subname)
-  allocate(w_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3+ndebug), stat=istat)
-  call memocc(istat, w_f, 'w_f', subname)
-
-  allocate(w_f1(nf+ndebug), stat=istat)
-  call memocc(istat, w_f1, 'w_f1', subname)
-  allocate(w_f2(nf+ndebug), stat=istat)
-  call memocc(istat, w_f2, 'w_f2', subname)
-  allocate(w_f3(nf+ndebug), stat=istat)
-  call memocc(istat, w_f3, 'w_f3', subname)
-
-
-  allocate(phix_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
-  call memocc(istat, phix_f, 'phix_f', subname)
-  allocate(phix_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
-  call memocc(istat, phix_c, 'phix_c', subname)
-  allocate(phiy_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
-  call memocc(istat, phiy_f, 'phiy_f', subname)
-  allocate(phiy_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
-  call memocc(istat, phiy_c, 'phiy_c', subname)
-  allocate(phiz_f(7,Glr%d%nfl1:Glr%d%nfu1,Glr%d%nfl2:Glr%d%nfu2,Glr%d%nfl3:Glr%d%nfu3), stat=istat)
-  call memocc(istat, phiz_f, 'phiz_f', subname)
-  allocate(phiz_c(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), stat=istat)
-  call memocc(istat, phiz_c, 'phiz_c', subname)
-
-  allocate(phiLoc(4*lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)), stat=istat)
-  call memocc(istat, phiLoc, 'phiLoc', subname)
- 
-  ! Initialize to zero
-  w_c=0.d0
-  w_f=0.d0
-  w_f1=0.d0
-  w_f2=0.d0
-  w_f3=0.d0
-  phix_c=0.d0
-  phix_f=0.d0
-  phiy_c=0.d0
-  phiy_f=0.d0
-  phiz_c=0.d0
-  phiz_f=0.d0
-
-
-
-!write(*,'(a,i12,i5,i12)') 'Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, lind%orbs%norbp, lind%orbs%npsidim', Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, lind%orbs%norbp, lind%orbs%npsidim
-!write(*,*) 'size(phid)', size(phid)
-
-  ist1_c=1
-  ist1_f=1+Glr%wfd%nvctr_c
-  ist2_c=1
-  ist2_f=1+Glr%wfd%nvctr_c
-
-  ! These are the starting indices in phiLoc:
-  ! ist0: start index of the orginal phi
-  ist0_c=1
-  ist0_f=ist0_c+Glr%wfd%nvctr_c
-  ! istx: start index of the derivative with respect to x
-  istx_c=1+lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  istx_f=istx_c+Glr%wfd%nvctr_c
-  ! isty: start index of the derivative with respect to y
-  isty_c=1+lin%orbs%norbp*2*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  isty_f=isty_c+Glr%wfd%nvctr_c
-  ! istz: start index of the derivative with respect to z
-  istz_c=1+lin%orbs%norbp*3*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  istz_f=istz_c+Glr%wfd%nvctr_c
-  do iorb=1,lin%orbs%norbp
-      ! Uncompress the wavefunction.
-      call uncompress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, & 
-           Glr%d%nfl2, Glr%d%nfu2, Glr%d%nfl3, Glr%d%nfu3,  &
-           Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv,  &
-           Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
-           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
-           scal, phi(ist1_c), phi(ist1_f), w_c, w_f, w_f1, w_f2, w_f3)
-
-      call createDerivativeBasis(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
-           Glr%d%nfl1, Glr%d%nfu1, Glr%d%nfl2, Glr%d%nfu2, Glr%d%nfl3, Glr%d%nfu3,  &
-           hgrid, Glr%bounds%kb%ibyz_c, Glr%bounds%kb%ibxz_c, Glr%bounds%kb%ibxy_c, &
-           Glr%bounds%kb%ibyz_f, Glr%bounds%kb%ibxz_f, Glr%bounds%kb%ibxy_f, &
-           w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
-
-      ! Copy phi to phiLoc
-      call dcopy(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
-      ist0_c = ist0_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-      ist0_f = ist0_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-
-      ! Compress the x wavefunction.
-      call compress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, &
-           Glr%d%nfl2, Glr%d%nfu2, Glr%d%nfl3, Glr%d%nfu3, &
-           Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv, &
-           Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
-           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
-           scal, phix_c, phix_f, phiLoc(istx_c), phiLoc(istx_f))
-      istx_c = istx_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-      istx_f = istx_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-
-      ! Compress the y wavefunction.
-      call compress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, &
-           Glr%d%nfl2, Glr%d%nfu2, Glr%d%nfl3, Glr%d%nfu3, &
-           Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv, &
-           Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
-           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
-           scal, phiy_c, phiy_f, phiLoc(isty_c), phiLoc(isty_f))
-      isty_c = isty_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-      isty_f = isty_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-
-      ! Compress the z wavefunction.
-      call compress_forstandard(Glr%d%n1, Glr%d%n2, Glr%d%n3, Glr%d%nfl1, Glr%d%nfu1, &
-           Glr%d%nfl2, Glr%d%nfu2, Glr%d%nfl3, Glr%d%nfu3, &
-           Glr%wfd%nseg_c, Glr%wfd%nvctr_c, Glr%wfd%keyg, Glr%wfd%keyv, &
-           Glr%wfd%nseg_f, Glr%wfd%nvctr_f, Glr%wfd%keyg(1,Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)), &
-           Glr%wfd%keyv(Glr%wfd%nseg_c+min(1,Glr%wfd%nseg_f)),  &
-           scal, phiz_c, phiz_f, phiLoc(istz_c), phiLoc(istz_f))
-      istz_c = istz_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-      istz_f = istz_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-
-      ist1_c = ist1_c + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-      ist1_f = ist1_f + Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-
-  end do
-
-  ! Now copy phiLoc to phid. This requires some communication, since the partition of phiLoc
-  ! is not identical to the partition of phid.
-  ! Collect on root and then redistribute.
-  ! THIS MUST BE IMPROVED.
-  allocate(recvcounts(0:nproc-1), stat=istat)
-  call memocc(istat, recvcounts, 'recvcounts', subname)
-  allocate(sendcounts(0:nproc-1), stat=istat)
-  call memocc(istat, sendcounts, 'sendcounts', subname)
-  allocate(displs(0:nproc-1), stat=istat)
-  call memocc(istat, displs, 'displs', subname)
-  !if(iproc==0) then
-      allocate(phiRoot(lin%lb%orbs%norb*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)), stat=istat)
-      call memocc(istat, phiRoot, 'phiRoot', subname)
-  !end if
-
-  ! Gather the original phi
-  istLoc=1
-  istRoot=1
-  displs(0)=1
-  do jproc=0,nproc-1
-      if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
-      recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-      !if(iproc==0) write(*,'(a,i4,2i6)') '0: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  end do
-  call mpi_gatherv(phiLoc(istLoc), lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, &
-       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
-
-  ! Gather the derivatives with respect to x
-  istLoc=lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
-  istRoot=lin%orbs%norb*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
-  displs(0)=1
-  do jproc=0,nproc-1
-      if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
-      recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-      !if(iproc==0) write(*,'(a,i4,2i6)') 'x: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  end do
-  call mpi_gatherv(phiLoc(istLoc), lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, &
-       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
-
-  ! Gather the derivatives with respect to y
-  istLoc=2*lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
-  istRoot=2*lin%orbs%norb*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
-  displs(0)=1
-  do jproc=0,nproc-1
-      if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
-      recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-      !if(iproc==0) write(*,'(a,i4,2i6)') 'y: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  end do
-  call mpi_gatherv(phiLoc(istLoc), lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, &
-       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
-
-  ! Gather the derivatives with respect to z
-  istLoc=3*lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
-  istRoot=3*lin%orbs%norb*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)+1
-  displs(0)=1
-  do jproc=0,nproc-1
-      if(jproc>0) displs(jproc)=displs(jproc-1)+recvcounts(jproc-1)
-      recvcounts(jproc)=lin%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-      !if(iproc==0) write(*,'(a,i4,2i6)') 'z: jproc, recvcounts(jproc)/size, displs(jproc)/size', jproc, recvcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  end do
-  call mpi_gatherv(phiLoc(istLoc), lin%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, &
-       phiRoot(istRoot), recvcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
-
-
-  displs(0)=1
-  do jproc=0,nproc-1
-      if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
-      sendcounts(jproc)=lin%lb%orbs%norb_par(jproc)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-       !if(iproc==0) write(*,'(a,i4,2i6)') 'jproc, sendcounts(jproc)/size, displs(jproc)/size', jproc, sendcounts(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), displs(jproc)/(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)
-  end do
-  call mpi_scatterv(phiRoot(1), sendcounts, displs, mpi_double_precision, phid(1), &
-       lin%lb%orbs%norbp*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f), mpi_double_precision, 0, mpi_comm_world, ierr)
-
-  ! Deallocate all local arrays
-  iall=-product(shape(w_c))*kind(w_c)
-  deallocate(w_c, stat=istat)
-  call memocc(istat, iall, 'w_c', subname)
-
-  iall=-product(shape(w_f))*kind(w_f)
-  deallocate(w_f, stat=istat)
-  call memocc(istat, iall, 'w_f', subname)
-
-  iall=-product(shape(w_f1))*kind(w_f1)
-  deallocate(w_f1, stat=istat)
-  call memocc(istat, iall, 'w_f1', subname)
-
-  iall=-product(shape(w_f2))*kind(w_f2)
-  deallocate(w_f2, stat=istat)
-  call memocc(istat, iall, 'w_f2', subname)
-
-  iall=-product(shape(w_f3))*kind(w_f3)
-  deallocate(w_f3, stat=istat)
-  call memocc(istat, iall, 'w_f3', subname)
-
-  iall=-product(shape(phix_f))*kind(phix_f)
-  deallocate(phix_f, stat=istat)
-  call memocc(istat, iall, 'phix_f', subname)
-
-  iall=-product(shape(phix_c))*kind(phix_c)
-  deallocate(phix_c, stat=istat)
-  call memocc(istat, iall, 'phix_c', subname)
-
-  iall=-product(shape(phiy_f))*kind(phiy_f)
-  deallocate(phiy_f, stat=istat)
-  call memocc(istat, iall, 'phiy_f', subname)
-
-  iall=-product(shape(phiy_c))*kind(phiy_c)
-  deallocate(phiy_c, stat=istat)
-  call memocc(istat, iall, 'phiy_c', subname)
-
-  iall=-product(shape(phiz_f))*kind(phiz_f)
-  deallocate(phiz_f, stat=istat)
-  call memocc(istat, iall, 'phiz_f', subname)
-
-  iall=-product(shape(phiz_c))*kind(phiz_c)
-  deallocate(phiz_c, stat=istat)
-  call memocc(istat, iall, 'phiz_c', subname)
-
-  iall=-product(shape(phiLoc))*kind(phiLoc)
-  deallocate(phiLoc, stat=istat)
-  call memocc(istat, iall, 'phiLoc', subname)
-
-  iall=-product(shape(phiRoot))*kind(phiRoot)
-  deallocate(phiRoot, stat=istat)
-  call memocc(istat, iall, 'phiRoot', subname)
-
-  iall=-product(shape(recvcounts))*kind(recvcounts)
-  deallocate(recvcounts, stat=istat)
-  call memocc(istat, iall, 'recvcounts', subname)
-
-  iall=-product(shape(sendcounts))*kind(sendcounts)
-  deallocate(sendcounts, stat=istat)
-  call memocc(istat, iall, 'sendcounts', subname)
-
-  iall=-product(shape(displs))*kind(displs)
-  deallocate(displs, stat=istat)
-  call memocc(istat, iall, 'displs', subname)
-
-
-end subroutine getDerivativeBasisFunctions
-
-
-
-
-
-subroutine orthonormalizeOnlyDerivatives(iproc, nproc, lin, phid)
-!
-! Purpose:
-! ========
-!   Firts orthogonalizes the derivative basis functions to the original basis functions
-!   using Gram Schmidt. Then orthonormalizes the derivative basis functions with Loewdin.
-!
-use module_base
-use module_defs
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(linearParameters),intent(in):: lin
-real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: phid
-
-! Local varibles
-integer:: iorb, jorb, ist, jst, nvctrp, ierr, istat, iall, lwork, info
-
-real(8):: tt, ddot, dnrm2
-real(8),dimension(:),allocatable:: work, eval
-real(8),dimension(:,:),allocatable:: ovrlp, A, phidTemp
-real(8),dimension(:,:,:),allocatable:: tempArr
-character(len=*),parameter:: subname='orthonormalizeOnlyDerivatives'
-
-
-allocate(ovrlp(lin%orbs%norb+1:4*lin%orbs%norb,1:lin%orbs%norb), stat=istat)
-call memocc(istat, ovrlp, 'ovrlp', subname)
-
-! Orthogonalize the derivative basis functions to the original ones.
-nvctrp=lin%lb%comms%nvctr_par(iproc,1) ! 1 for k-point
-
-allocate(A(nvctrp,lin%orbs%norb+1:4*lin%orbs%norb), stat=istat)
-call memocc(istat, A, 'A', subname)
-
-
-! Overlap matrix
-call dgemm('t', 'n', 3*lin%orbs%norb, lin%orbs%norb, nvctrp, 1.d0, phid(lin%orbs%norb*nvctrp+1), &
-     nvctrp, phid(1), nvctrp, 0.d0, ovrlp(lin%orbs%norb+1,1), 3*lin%orbs%norb) 
-
-! MPI
-call mpiallred(ovrlp(lin%orbs%norb+1,1), 3*lin%orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-
-! The components to be projected out
-call dgemm('n', 't', nvctrp, 3*lin%orbs%norb, lin%orbs%norb, 1.d0, phid(1), &
-     nvctrp, ovrlp(lin%orbs%norb+1,1), 3*lin%orbs%norb, 0.d0, A(1,lin%orbs%norb+1), nvctrp)
-
-! Project out
-call daxpy(3*lin%orbs%norb*nvctrp, -1.d0, A(1,lin%orbs%norb+1), 1, phid(lin%orbs%norb*nvctrp+1), 1)
-
-
-
-iall=-product(shape(ovrlp))*kind(ovrlp)
-deallocate(ovrlp, stat=istat)
-call memocc(istat, iall, 'ovrlp', subname)
-
-allocate(ovrlp(lin%orbs%norb+1:4*lin%orbs%norb,lin%orbs%norb+1:4*lin%orbs%norb), stat=istat)
-call memocc(istat, ovrlp, 'ovrlp', subname)
-
-! Calculate the overlap matrix
-call dsyrk('l', 't', 3*lin%orbs%norb, nvctrp, 1.d0, phid(lin%orbs%norb*nvctrp+1), nvctrp, &
-     0.d0, ovrlp(lin%orbs%norb+1,lin%orbs%norb+1), 3*lin%orbs%norb)
-! MPI
-call mpiallred(ovrlp(lin%orbs%norb+1,lin%orbs%norb+1), 9*lin%orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-
-
-allocate(eval(lin%orbs%norb+1:4*lin%orbs%norb), stat=istat)
-call memocc(istat, eval, 'eval', subname)
-
-! Diagonalize overlap matrix.
-allocate(work(1), stat=istat)
-call memocc(istat, work, 'work', subname)
-call dsyev('v', 'l', 3*lin%orbs%norb, ovrlp(lin%orbs%norb+1,lin%orbs%norb+1), 3*lin%orbs%norb, eval, &
-     work, -1, info)
-lwork=work(1)
-iall=-product(shape(work))*kind(work)
-deallocate(work, stat=istat)
-call memocc(istat, iall, 'work', subname)
-allocate(work(lwork), stat=istat)
-call memocc(istat, work, 'work', subname)
-call dsyev('v', 'l', 3*lin%orbs%norb, ovrlp(lin%orbs%norb+1,lin%orbs%norb+1), 3*lin%orbs%norb, eval, &
-     work, lwork, info)
-
-! Calculate S^{-1/2}. 
-! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
-! matrix and diag(1/sqrt(evall)) the diagonal matrix consisting of the inverse square roots of the eigenvalues...
-allocate(tempArr(lin%orbs%norb+1:4*lin%orbs%norb,lin%orbs%norb+1:4*lin%orbs%norb,2), stat=istat)
-call memocc(istat, tempArr, 'tempArr', subname)
-do iorb=lin%orbs%norb+1,4*lin%orbs%norb
-    do jorb=lin%orbs%norb+1,4*lin%orbs%norb
-        tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
-    end do
-end do
-
-! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
-! This will give S^{-1/2}.
-call dgemm('n', 't', 3*lin%orbs%norb, 3*lin%orbs%norb, 3*lin%orbs%norb, 1.d0, ovrlp(lin%orbs%norb+1,lin%orbs%norb+1), &
-     3*lin%orbs%norb, tempArr(lin%orbs%norb+1,lin%orbs%norb+1,1), 3*lin%orbs%norb, 0.d0, &
-     tempArr(lin%orbs%norb+1,lin%orbs%norb+1,2), 3*lin%orbs%norb)
-
-! Now calculate the orthonormal orbitals by applying S^{-1/2} to the orbitals.
-! This requires the use of a temporary variable phidTemp.
-allocate(phidTemp(nvctrp,lin%orbs%norb+1:4*lin%orbs%norb), stat=istat)
-call memocc(istat, phidTemp, 'phidTemp', subname)
-call dgemm('n', 'n', nvctrp, 3*lin%orbs%norb, 3*lin%orbs%norb, 1.d0, phid(lin%orbs%norb*nvctrp+1), &
-     nvctrp, tempArr(lin%orbs%norb+1,lin%orbs%norb+1,2),  3*lin%orbs%norb, 0.d0, &
-     phidTemp(1,lin%orbs%norb+1), nvctrp)
-
-! Now copy the orbitals from the temporary variable to phid.
-call dcopy(3*lin%orbs%norb*nvctrp, phidTemp(1,lin%orbs%norb+1), 1, phid(lin%orbs%norb*nvctrp+1), 1)
-
-iall=-product(shape(A))*kind(A)
-deallocate(A, stat=istat)
-call memocc(istat, iall, 'A', subname)
-
-iall=-product(shape(ovrlp))*kind(ovrlp)
-deallocate(ovrlp, stat=istat)
-call memocc(istat, iall, 'ovrlp', subname)
-
-iall=-product(shape(work))*kind(work)
-deallocate(work, stat=istat)
-call memocc(istat, iall, 'work', subname)
-
-iall=-product(shape(eval))*kind(eval)
-deallocate(eval, stat=istat)
-call memocc(istat, iall, 'eval', subname)
-
-iall=-product(shape(phidTemp))*kind(phidTemp)
-deallocate(phidTemp, stat=istat)
-call memocc(istat, iall, 'phidTemp', subname)
-
-iall=-product(shape(tempArr))*kind(tempArr)
-deallocate(tempArr, stat=istat)
-call memocc(istat, iall, 'tempArr', subname)
-
-
-end subroutine orthonormalizeOnlyDerivatives
-
-
-
-
-
-
-
-
 subroutine postCommunicationSumrho2(iproc, nproc, lin, sendBuf, recvBuf)
 use module_base
 use module_types
@@ -2208,6 +1819,7 @@ integer:: ist, istr, ilr
 if(iproc==0) write(*,'(x,a)', advance='no') 'Posting sends / receives for the calculation of the charge density... '
 nreceives=0
 nsends=0
+lin%comsr%communComplete=.false.
 procLoop1: do jproc=0,nproc-1
     orbsLoop1: do iorb=1,lin%comsr%noverlaps(jproc)
         mpisource=lin%comsr%comarr(1,iorb,jproc)
@@ -2217,38 +1829,51 @@ procLoop1: do jproc=0,nproc-1
         mpidest=lin%comsr%comarr(5,iorb,jproc)
         istdest=lin%comsr%comarr(6,iorb,jproc)
         tag=lin%comsr%comarr(7,iorb,jproc)
-        if(mpisource/=mpidest) then
-            ! The orbitals are on different processes, so we need a point to point communication.
-            if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'sumrho: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
-                !call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
-                call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
-                     lin%comsr%comarr(8,iorb,jproc), ierr)
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
-                nsends=nsends+1
-            else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                     lin%comsr%comarr(9,iorb,jproc), ierr)
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
+        if(ncount==0) then
+            ! No communication is needed. This should be improved in the initialization, i.e. this communication
+            ! with 0 elements should be removed from comgp%noverlaps etc.
+            lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+            lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+            lin%comsr%communComplete(iorb,jproc)=.true.
+            if(iproc==mpidest) then
+                ! This is just to make the check at the end happy.
                 nreceives=nreceives+1
-            else
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
             end if
         else
-            ! The orbitals are on the same process, so simply copy them.
-            if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'sumrho: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
-                call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
-                nsends=nsends+1
-                nreceives=nreceives+1
-                lin%comsr%communComplete(iorb,iproc)=.true.
+            if(mpisource/=mpidest) then
+                ! The orbitals are on different processes, so we need a point to point communication.
+                if(iproc==mpisource) then
+                    !write(*,'(6(a,i0))') 'sumrho: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                    !call mpi_isend(lphi(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
+                    call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                         lin%comsr%comarr(8,iorb,jproc), ierr)
+                    lin%comsr%comarr(9,iorb,jproc)=mpi_request_null !is this correct?
+                    nsends=nsends+1
+                else if(iproc==mpidest) then
+                    !write(*,'(6(a,i0))') 'sumrho: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                    call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                         lin%comsr%comarr(9,iorb,jproc), ierr)
+                    lin%comsr%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
+                    nreceives=nreceives+1
+                else
+                    lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+                    lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+                end if
             else
-                lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
-                lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+                ! The orbitals are on the same process, so simply copy them.
+                if(iproc==mpisource) then
+                    !write(*,'(6(a,i0))') 'sumrho: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                    call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
+                    lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+                    lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+                    nsends=nsends+1
+                    nreceives=nreceives+1
+                    lin%comsr%communComplete(iorb,mpisource)=.true.
+                else
+                    lin%comsr%comarr(8,iorb,jproc)=mpi_request_null
+                    lin%comsr%comarr(9,iorb,jproc)=mpi_request_null
+                    lin%comsr%communComplete(iorb,mpisource)=.true.
+                end if
             end if
         end if
     end do orbsLoop1
@@ -2303,7 +1928,7 @@ is3=0
 ie3=0
 iiorb=0
 do jproc=0,nproc-1
-    do iorb=1,lzd%orbs%norb_par(jproc)
+    do iorb=1,orbs%norb_par(jproc)
         
         iiorb=iiorb+1 
         ilr=onWhichAtomAll(iiorb)
@@ -2384,11 +2009,11 @@ do jproc=0,nproc-1
         is3k=nscatterarr(kproc,3)+1
         ie3k=is3k+nscatterarr(kproc,2)-1
         if(is3j<=ie3k .and. ie3j>=is3k) then
-            ioverlap=ioverlap+1
-            tag=tag+1
             is3=max(is3j,is3k) ! starting index in z dimension for data to be sent
             ie3=min(ie3j,ie3k) ! ending index in z dimension for data to be sent
             ioffset=is3-is3k ! starting index (in z direction) of data to be sent (actually it is the index -1)
+            ioverlap=ioverlap+1
+            tag=tag+1
             if(is3<is3min .or. ioverlap==1) then
                 is3min=is3
             end if
@@ -2522,6 +2147,7 @@ integer:: jproc, kproc, nsends, nreceives, istat, mpisource, istsource, ncount, 
 if(iproc==0) write(*,'(x,a)', advance='no') 'Posting sends / receives for communicating the potential... '
 nreceives=0
 nsends=0
+comgp%communComplete=.false.
 destLoop: do jproc=0,nproc-1
     sourceLoop: do kproc=1,comgp%noverlaps(jproc)
         mpisource=comgp%comarr(1,kproc,jproc)
@@ -2530,36 +2156,49 @@ destLoop: do jproc=0,nproc-1
         mpidest=comgp%comarr(4,kproc,jproc)
         istdest=comgp%comarr(5,kproc,jproc)
         tag=comgp%comarr(6,kproc,jproc)
-        if(mpisource/=mpidest) then
-            if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
-                call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
-                     comgp%comarr(7,kproc,jproc), ierr)
-                comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
-                nsends=nsends+1
-            else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
-                    comgp%comarr(8,kproc,jproc), ierr)
-                comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
+        if(ncount==0) then
+            ! No communication is needed. This should be improved in the initialization, i.e. this communication
+            ! with 0 elements should be removed from comgp%noverlaps etc.
+            comgp%comarr(7,kproc,jproc)=mpi_request_null
+            comgp%comarr(8,kproc,jproc)=mpi_request_null
+            comgp%communComplete(kproc,jproc)=.true.
+            if(iproc==mpidest) then
+                ! This is just to make the check at the end happy.
                 nreceives=nreceives+1
-            else
-                comgp%comarr(7,kproc,jproc)=mpi_request_null
-                comgp%comarr(8,kproc,jproc)=mpi_request_null
             end if
         else
-            ! The orbitals are on the same process, so simply copy them.
-            if(iproc==mpisource) then
-                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
-                call dcopy(ncount, pot(istsource), 1, comgp%recvBuf(istdest), 1)
-                comgp%comarr(7,kproc,jproc)=mpi_request_null
-                comgp%comarr(8,kproc,jproc)=mpi_request_null
-                nsends=nsends+1
-                nreceives=nreceives+1
-                comgp%communComplete(kproc,iproc)=.true.
+            if(mpisource/=mpidest) then
+                if(iproc==mpisource) then
+                    !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+                    call mpi_isend(pot(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+                         comgp%comarr(7,kproc,jproc), ierr)
+                    comgp%comarr(8,kproc,jproc)=mpi_request_null !is this correct?
+                    nsends=nsends+1
+                else if(iproc==mpidest) then
+                    !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                    call mpi_irecv(comgp%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
+                        comgp%comarr(8,kproc,jproc), ierr)
+                    comgp%comarr(7,kproc,jproc)=mpi_request_null !is this correct?
+                    nreceives=nreceives+1
+                else
+                    comgp%comarr(7,kproc,jproc)=mpi_request_null
+                    comgp%comarr(8,kproc,jproc)=mpi_request_null
+                end if
             else
-                comgp%comarr(7,kproc,jproc)=mpi_request_null
-                comgp%comarr(8,kproc,jproc)=mpi_request_null
+                ! The orbitals are on the same process, so simply copy them.
+                if(iproc==mpisource) then
+                    !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+                    call dcopy(ncount, pot(istsource), 1, comgp%recvBuf(istdest), 1)
+                    comgp%comarr(7,kproc,jproc)=mpi_request_null
+                    comgp%comarr(8,kproc,jproc)=mpi_request_null
+                    nsends=nsends+1
+                    nreceives=nreceives+1
+                    comgp%communComplete(kproc,iproc)=.true.
+                else
+                    comgp%comarr(7,kproc,jproc)=mpi_request_null
+                    comgp%comarr(8,kproc,jproc)=mpi_request_null
+                    comgp%communComplete(kproc,jproc)=.true.
+                end if
             end if
         end if
     end do sourceLoop
@@ -2595,7 +2234,6 @@ logical:: sendComplete, receiveComplete
 
 
 ! Check whether the communications have completed.
-comgp%communComplete=.false.
 nfast=0
 nsameproc=0
 testLoop: do 
@@ -2604,17 +2242,18 @@ testLoop: do
            if(comgp%communComplete(kproc,jproc)) cycle
             call mpi_test(comgp%comarr(7,kproc,jproc), sendComplete, stat, ierr)      
             call mpi_test(comgp%comarr(8,kproc,jproc), receiveComplete, stat, ierr)   
+            ! Attention: mpi_test is a local function.
             if(sendComplete .and. receiveComplete) comgp%communComplete(kproc,jproc)=.true.
-            if(comgp%communComplete(kproc,jproc)) then
-                !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
-                mpisource=comgp%comarr(1,kproc,jproc)
-                mpidest=comgp%comarr(4,kproc,jproc)
-                if(mpisource/=mpidest) then
-                    nfast=nfast+1
-                else
-                    nsameproc=nsameproc+1
-                end if
-            end if
+            !!if(comgp%communComplete(kproc,jproc)) then
+            !!    !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
+            !!    mpisource=comgp%comarr(1,kproc,jproc)
+            !!    mpidest=comgp%comarr(4,kproc,jproc)
+            !!    if(mpisource/=mpidest) then
+            !!        nfast=nfast+1
+            !!    else
+            !!        nsameproc=nsameproc+1
+            !!    end if
+            !!end if
         end do
     end do
     ! If we made it until here, either all all the communication is
@@ -2622,12 +2261,23 @@ testLoop: do
     exit testLoop
 end do testLoop
 
+! Since mpi_test is a local function, check whether the communication has completed on all processes.
+call mpiallred(comgp%communComplete(1,0), nproc*maxval(comgp%noverlaps), mpi_land, mpi_comm_world, ierr)
 
 ! Wait for the communications that have not completed yet
 nslow=0
 do jproc=0,nproc-1
     do kproc=1,comgp%noverlaps(jproc)
-        if(comgp%communComplete(kproc,jproc)) cycle
+        if(comgp%communComplete(kproc,jproc)) then
+            mpisource=comgp%comarr(1,kproc,jproc)
+            mpidest=comgp%comarr(4,kproc,jproc)
+            if(mpisource==mpidest) then
+                nsameproc=nsameproc+1
+            else
+                nfast=nfast+1
+            end if
+            cycle
+        end if
         !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
         nslow=nslow+1
         call mpi_wait(comgp%comarr(7,kproc,jproc), stat, ierr)   !COMMENTED BY PB
@@ -2644,530 +2294,197 @@ if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to 
 if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
 
 
-
-
-
 end subroutine gatherPotential
 
 
 
 
-
-
-
-subroutine getDerivativeBasisFunctions2(iproc, nproc, hgrid, Glr, lin, nphi, phi, phid)
-use module_base
-use module_types
-use module_interfaces, exceptThisOne => getDerivativeBasisFunctions2
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, nphi
-real(8),intent(in):: hgrid
-type(locreg_descriptors),intent(in):: Glr
-type(linearParameters),intent(inout):: lin
-real(8),dimension(nphi),intent(in):: phi
-real(8),dimension(lin%lb%lzd%orbs%npsidim),target,intent(out):: phid
-
-! Local variables
-integer:: ist1_c, ist1_f, ist2_c, ist2_f, nf, istat, iall, iorb, jproc, ierr
-integer:: ist0_c, istx_c, isty_c, istz_c, ist0_f, istx_f, isty_f, istz_f, istLoc, istRoot
-integer:: jjorb, jlr, jj, offset, ilr, jorb
-real(8),dimension(0:3),parameter:: scal=1.d0
-real(8),dimension(:),allocatable:: w_f1, w_f2, w_f3
-real(8),dimension(:),pointer:: phiLoc
-real(8),dimension(:,:,:),allocatable:: w_c, phix_c, phiy_c, phiz_c
-real(8),dimension(:,:,:,:),allocatable:: w_f, phix_f, phiy_f, phiz_f
-character(len=*),parameter:: subname='getDerivativeBasisFunctions'
-integer,dimension(:),allocatable:: recvcounts, sendcounts, displs
-logical:: repartition
-
-integer:: i1, i2, i3
-logical,dimension(:,:,:),allocatable:: logrid_c, logrid_f
-
-  !!do jj=1,nphi
-  !!    write(700+iproc,*) jj, phi(jj)
-  !!end do
-
-  ! Determine whether the orbitals must be redistributed after the calculation of the derivatives.
-  ! If each orbital has the same number of orbitals, this is never required.
-  repartition=.false.
-  do jproc=1,nproc-1
-     if(lin%lzd%orbs%norb_par(jproc)/=lin%lzd%orbs%norb_par(jproc-1)) then 
-         repartition=.true.
-         exit
-     end if
-  end do
-
-
-  if(repartition) then
-      allocate(phiLoc(4*lin%lzd%orbs%npsidim), stat=istat)
-      call memocc(istat, phiLoc, 'phiLoc', subname)
-  else
-      phiLoc => phid
-  end if
- 
-
-  ist1_c=1
-  ist2_c=1
-  ist0_c=1
-  ! Dimension of the first orbital on each process
-  ilr=lin%lzd%orbs%inWhichLocregp(1)
-  offset=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-
-  istx_c=offset+1
-  isty_c=2*offset+1
-  istz_c=3*offset+1
-
-  do iorb=1,lin%orbs%norbp
-
-      ilr=lin%lzd%orbs%inWhichLocregp(iorb)
-      call allocateWorkarrays()
-
-      ist1_f=ist1_c+lin%lzd%llr(ilr)%wfd%nvctr_c
-      ist2_f=ist2_c+lin%lzd%llr(ilr)%wfd%nvctr_c
-      ! ist0: start index of the orginal phi
-      ist0_f=ist0_c+lin%lzd%llr(ilr)%wfd%nvctr_c
-      ! istx: start index of the derivative with respect to x
-      istx_f=istx_c+lin%lzd%llr(ilr)%wfd%nvctr_c
-      ! isty: start index of the derivative with respect to y
-      isty_f=isty_c+lin%lzd%llr(ilr)%wfd%nvctr_c
-      ! istz: start index of the derivative with respect to z
-      istz_f=istz_c+lin%lzd%llr(ilr)%wfd%nvctr_c
-
-      ! Uncompress the wavefunction.
-      call uncompress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, lin%lzd%llr(ilr)%d%nfl1,&
-           lin%lzd%llr(ilr)%d%nfu1, lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3,&
-           lin%lzd%llr(ilr)%d%nfu3, lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keyg,&
-           lin%lzd%llr(ilr)%wfd%keyv,  lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f,&
-           lin%lzd%llr(ilr)%wfd%keyg(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
-           lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
-           scal, phi(ist1_c), phi(ist1_f), w_c, w_f, w_f1, w_f2, w_f3)
-
-
-      call createDerivativeBasis(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, &
-           lin%lzd%llr(ilr)%d%nfl1, lin%lzd%llr(ilr)%d%nfu1, lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2,&
-           lin%lzd%llr(ilr)%d%nfl3, lin%lzd%llr(ilr)%d%nfu3,  &
-           hgrid, lin%lzd%llr(ilr)%bounds%kb%ibyz_c, lin%lzd%llr(ilr)%bounds%kb%ibxz_c, lin%lzd%llr(ilr)%bounds%kb%ibxy_c, &
-           lin%lzd%llr(ilr)%bounds%kb%ibyz_f, lin%lzd%llr(ilr)%bounds%kb%ibxz_f, lin%lzd%llr(ilr)%bounds%kb%ibxy_f, &
-           w_c, w_f, w_f1, w_f2, w_f3, phix_c, phix_f, phiy_c, phiy_f, phiz_c, phiz_f)
-
-      ! Copy phi to phiLoc
-      call dcopy(lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f, phi(ist1_c), 1, phiLoc(ist0_c), 1)
-      ist0_c = ist0_c + 4*(lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f)
-      ist1_c = ist1_c + lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f
-
-      ! Compress the x wavefunction.
-      call compress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, lin%lzd%llr(ilr)%d%nfl1,&
-           lin%lzd%llr(ilr)%d%nfu1, lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3,&
-           lin%lzd%llr(ilr)%d%nfu3, lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keyg,&
-           lin%lzd%llr(ilr)%wfd%keyv, lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f,&
-           lin%lzd%llr(ilr)%wfd%keyg(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
-           lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
-           scal, phix_c, phix_f, phiLoc(istx_c), phiLoc(istx_f))
-      if(iorb<lin%orbs%norbp) then
-          jlr=lin%lzd%orbs%inWhichLocregp(iorb+1)
-          istx_c = istx_c + 3*(lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f) + lin%lzd%llr(jlr)%wfd%nvctr_c +&
-                   7*lin%lzd%llr(jlr)%wfd%nvctr_f
-      end if
-
-      ! Compress the y wavefunction.
-      call compress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, lin%lzd%llr(ilr)%d%nfl1,&
-           lin%lzd%llr(ilr)%d%nfu1, lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3, &
-           lin%lzd%llr(ilr)%d%nfu3, lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keyg,&
-           lin%lzd%llr(ilr)%wfd%keyv, lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f,&
-           lin%lzd%llr(ilr)%wfd%keyg(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
-           lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
-           scal, phiy_c, phiy_f, phiLoc(isty_c), phiLoc(isty_f))
-      if(iorb<lin%orbs%norbp) then
-          jlr=lin%lzd%orbs%inWhichLocregp(iorb+1)
-          isty_c = isty_c + 2*(lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f) + 2*(lin%lzd%llr(jlr)%wfd%nvctr_c +&
-                   7*lin%lzd%llr(jlr)%wfd%nvctr_f)
-      end if
-
-      ! Compress the z wavefunction.
-      call compress_forstandard(lin%lzd%llr(ilr)%d%n1, lin%lzd%llr(ilr)%d%n2, lin%lzd%llr(ilr)%d%n3, lin%lzd%llr(ilr)%d%nfl1,&
-           lin%lzd%llr(ilr)%d%nfu1, lin%lzd%llr(ilr)%d%nfl2, lin%lzd%llr(ilr)%d%nfu2, lin%lzd%llr(ilr)%d%nfl3,&
-           lin%lzd%llr(ilr)%d%nfu3, lin%lzd%llr(ilr)%wfd%nseg_c, lin%lzd%llr(ilr)%wfd%nvctr_c, lin%lzd%llr(ilr)%wfd%keyg,&
-           lin%lzd%llr(ilr)%wfd%keyv, lin%lzd%llr(ilr)%wfd%nseg_f, lin%lzd%llr(ilr)%wfd%nvctr_f,&
-           lin%lzd%llr(ilr)%wfd%keyg(1,lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)), &
-           lin%lzd%llr(ilr)%wfd%keyv(lin%lzd%llr(ilr)%wfd%nseg_c+min(1,lin%lzd%llr(ilr)%wfd%nseg_f)),  &
-           scal, phiz_c, phiz_f, phiLoc(istz_c), phiLoc(istz_f))
-      if(iorb<lin%orbs%norbp) then
-          jlr=lin%lzd%orbs%inWhichLocregp(iorb+1)
-          istz_c = istz_c + lin%lzd%llr(ilr)%wfd%nvctr_c + 7*lin%lzd%llr(ilr)%wfd%nvctr_f + 3*(lin%lzd%llr(jlr)%wfd%nvctr_c +&
-                   7*lin%lzd%llr(jlr)%wfd%nvctr_f)
-      end if
-
-      call deallocateWorkarrays()
-
-  end do
-
-
-  if(repartition) then
-      ! Communicate the orbitals to meet the partition.
-      call postCommsRepartition(iproc, nproc, lin%lzd%orbs, lin%lb%comrp, size(phiLoc), phiLoc, size(phid), phid)
-      call gatherDerivativeOrbitals(iproc, nproc, lin%lzd%orbs, lin%lb%comrp)
-
-      iall=-product(shape(phiLoc))*kind(phiLoc)
-      deallocate(phiLoc, stat=istat)
-      call memocc(istat, iall, 'phiLoc', subname)
-  end if
-  
-
-
-contains
-
-  subroutine allocateWorkarrays()
-  
-    ! THIS IS COPIED FROM allocate_work_arrays. Works only for free boundary.
-    nf=(lin%lzd%llr(ilr)%d%nfu1-lin%lzd%llr(ilr)%d%nfl1+1)*(lin%lzd%llr(ilr)%d%nfu2-lin%lzd%llr(ilr)%d%nfl2+1)* &
-       (lin%lzd%llr(ilr)%d%nfu3-lin%lzd%llr(ilr)%d%nfl3+1)
-
-    ! Allocate work arrays
-    allocate(w_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3+ndebug), stat=istat)
-    call memocc(istat, w_c, 'w_c', subname)
-    w_c=0.d0
-
-    allocate(w_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
-                 lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3+ndebug), stat=istat)
-    call memocc(istat, w_f, 'w_f', subname)
-    w_f=0.d0
-  
-    allocate(w_f1(nf+ndebug), stat=istat)
-    call memocc(istat, w_f1, 'w_f1', subname)
-    w_f1=0.d0
-    
-    allocate(w_f2(nf+ndebug), stat=istat)
-    call memocc(istat, w_f2, 'w_f2', subname)
-    w_f2=0.d0
-
-    allocate(w_f3(nf+ndebug), stat=istat)
-    call memocc(istat, w_f3, 'w_f3', subname)
-    w_f3=0.d0
-  
-  
-    allocate(phix_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
-                    lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
-    call memocc(istat, phix_f, 'phix_f', subname)
-    phix_f=0.d0
-
-    allocate(phix_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
-    call memocc(istat, phix_c, 'phix_c', subname)
-    phix_c=0.d0
-
-    allocate(phiy_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
-                    lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
-    call memocc(istat, phiy_f, 'phiy_f', subname)
-    phiy_f=0.d0
-
-    allocate(phiy_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
-    call memocc(istat, phiy_c, 'phiy_c', subname)
-    phiy_c=0.d0
-
-    allocate(phiz_f(7,lin%lzd%llr(ilr)%d%nfl1:lin%lzd%llr(ilr)%d%nfu1,lin%lzd%llr(ilr)%d%nfl2:lin%lzd%llr(ilr)%d%nfu2, &
-                    lin%lzd%llr(ilr)%d%nfl3:lin%lzd%llr(ilr)%d%nfu3), stat=istat)
-    call memocc(istat, phiz_f, 'phiz_f', subname)
-    phiz_f=0.d0
-
-    allocate(phiz_c(0:lin%lzd%llr(ilr)%d%n1,0:lin%lzd%llr(ilr)%d%n2,0:lin%lzd%llr(ilr)%d%n3), stat=istat)
-    call memocc(istat, phiz_c, 'phiz_c', subname)
-    phiz_c=0.d0
-  
-  end subroutine allocateWorkarrays
-
-
-  subroutine deallocateWorkarrays
-
-    iall=-product(shape(w_c))*kind(w_c)
-    deallocate(w_c, stat=istat)
-    call memocc(istat, iall, 'w_c', subname)
-
-    iall=-product(shape(w_f))*kind(w_f)
-    deallocate(w_f, stat=istat)
-    call memocc(istat, iall, 'w_f', subname)
-
-    iall=-product(shape(w_f1))*kind(w_f1)
-    deallocate(w_f1, stat=istat)
-    call memocc(istat, iall, 'w_f1', subname)
-
-    iall=-product(shape(w_f2))*kind(w_f2)
-    deallocate(w_f2, stat=istat)
-    call memocc(istat, iall, 'w_f2', subname)
-
-    iall=-product(shape(w_f3))*kind(w_f3)
-    deallocate(w_f3, stat=istat)
-    call memocc(istat, iall, 'w_f3', subname)
-
-    iall=-product(shape(phix_f))*kind(phix_f)
-    deallocate(phix_f, stat=istat)
-    call memocc(istat, iall, 'phix_f', subname)
-
-    iall=-product(shape(phix_c))*kind(phix_c)
-    deallocate(phix_c, stat=istat)
-    call memocc(istat, iall, 'phix_c', subname)
-
-    iall=-product(shape(phiy_f))*kind(phiy_f)
-    deallocate(phiy_f, stat=istat)
-    call memocc(istat, iall, 'phiy_f', subname)
-
-    iall=-product(shape(phiy_c))*kind(phiy_c)
-    deallocate(phiy_c, stat=istat)
-    call memocc(istat, iall, 'phiy_c', subname)
-
-    iall=-product(shape(phiz_f))*kind(phiz_f)
-    deallocate(phiz_f, stat=istat)
-    call memocc(istat, iall, 'phiz_f', subname)
-
-    iall=-product(shape(phiz_c))*kind(phiz_c)
-    deallocate(phiz_c, stat=istat)
-    call memocc(istat, iall, 'phiz_c', subname)
-
-  end subroutine deallocateWorkarrays
-
-end subroutine getDerivativeBasisFunctions2
-
-
-
-
-
-
-subroutine initializeRepartitionOrbitals(iproc, nproc, tag, lin)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-integer,intent(inout):: tag
-type(linearParameters),intent(inout):: lin
-
-! Local variables
-integer:: jproc, jorb, kproc, korb, istat, mpidest, mpisource, istdest, istsource, ncount, jlr, klr, norbdest, jjorb, iall
-integer,dimension(:,:,:),allocatable:: move
-character(len=*),parameter:: subname='initializeRepartitionOrbitals'
-
-
-! To which position has the orbital to be moved:
-!  - move(1,i,j)=k -> orbital i on process j has to be sent to process k
-!  - move(2,i,j)=l -> orbital i on process j has to be sent to position l (orbital number l)
-
-allocate(move(2,4*maxval(lin%lzd%orbs%norb_par),0:nproc-1), stat=istat)
-call memocc(istat, move, 'move', subname)
-
-kproc=0
-korb=0
-do jproc=0,nproc-1
-    do jorb=1,4*lin%lzd%orbs%norb_par(jproc)
-        korb=korb+1
-        if(korb>lin%lb%lzd%orbs%norb_par(kproc)) then
-            kproc=kproc+1
-            korb=1
-        end if
-        move(1,jorb,jproc)=kproc
-        move(2,jorb,jproc)=korb
-    end do
-end do
-
-
-allocate(lin%lb%comrp%communComplete(4*maxval(lin%lzd%orbs%norb_par),0:nproc-1), stat=istat)
-call memocc(istat, lin%lb%comrp%communComplete, 'lin%lb%comrp%communComplete', subname)
-
-!!if(iproc==0) then
-!!    do jproc=0,nproc-1
-!!        do jorb=1,4*lin%lzd%orbs%norb_par(jproc)
-!!            write(*,*) 'jproc, jorb, mpi, orb', jproc, jorb, move(1,jorb,jproc), move(2,jorb,jproc)
-!!        end do
-!!    end do
-!!end if
-
-
-
-allocate(lin%lb%comrp%comarr(8,4*maxval(lin%lzd%orbs%norb_par),0:nproc-1), stat=istat)
-call memocc(istat, lin%lb%comrp%comarr, 'lin%lb%comrp%comarr', subname)
-
-! Determine the indices of starting and receive buffer.
-do jproc=0,nproc-1
-    istsource=1
-    do jorb=1,4*lin%lzd%orbs%norb_par(jproc)
-        jjorb=ceiling(dble(jorb)/4.d0)
-        !jlr=lin%onWhichAtomAll(jjorb+lin%lzd%orbs%isorb_par(jproc))
-        jlr=lin%lzd%orbs%inWhichLocreg(jjorb+lin%lzd%orbs%isorb_par(jproc))
-        mpisource=jproc
-        ncount=lin%lzd%llr(jlr)%wfd%nvctr_c+7*lin%lzd%llr(jlr)%wfd%nvctr_f
-        mpidest=move(1,jorb,jproc)
-        norbdest=move(2,jorb,jproc)
-        istdest=1
-        do korb=1,norbdest-1
-            klr=lin%lb%lzd%orbs%inWhichLocreg(korb+lin%lb%lzd%orbs%isorb_par(mpidest))
-            istdest=istdest+lin%lzd%llr(klr)%wfd%nvctr_c+7*lin%lzd%llr(klr)%wfd%nvctr_f
-        end do
-        tag=tag+1
-        !write(*,'(10(a,i0))') 'init on iproc=',iproc,': process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,'; tag=',tag,', jlr=',jlr,', jjorb=',jjorb,', offset=',lin%lzd%orbs%isorb_par(jproc)
-        call setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, lin%lb%comrp%comarr(1,jorb,jproc))
-        istsource=istsource+ncount
-    end do
-end do
-
-iall=-product(shape(move))*kind(move)
-deallocate(move, stat=istat)
-call memocc(istat, iall, 'move', subname)
-
-
-end subroutine initializeRepartitionOrbitals
-
-
-
-
-subroutine postCommsRepartition(iproc, nproc, orbs, comrp, nsendBuf, sendBuf, nrecvBuf, recvBuf)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
-type(orbitals_data),intent(in):: orbs
-type(p2pCommsRepartition),intent(inout):: comrp
-real(8),dimension(nsendBuf),intent(in):: sendBuf
-real(8),dimension(nrecvBuf),intent(out):: recvBuf
-
-! Local variables
-integer:: nsends, nreceives, jproc, jorb, mpisource, mpidest, istsource, istdest, ncount, tag, ierr
-
-
-
-nsends=0
-nreceives=0
-comrp%communComplete=.false.
-do jproc=0,nproc-1
-    do jorb=1,4*orbs%norb_par(jproc)
-        mpisource=comrp%comarr(1,jorb,jproc)
-        istsource=comrp%comarr(2,jorb,jproc)
-        ncount=comrp%comarr(3,jorb,jproc)
-        mpidest=comrp%comarr(4,jorb,jproc)
-        istdest=comrp%comarr(5,jorb,jproc)
-        tag=comrp%comarr(6,jorb,jproc)
-        !write(*,'(10(a,i0))') 'post on iproc=',iproc,': process ',mpisource,' sends ',ncount,' elements from position ',istsource,' to position ',istdest,' on process ',mpidest,'; tag=',tag,'  jproc=',jproc,' jorb=',jorb,' ncnt=',comrp%comarr(3,jorb,jproc)
-        if(mpisource/=mpidest) then
-            ! The orbitals are on different processes, so we need a point to point communication.
-            if(iproc==mpisource) then
-                !write(*,'(9(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag,'  jproc=',jproc,' jorb=',jorb,' ncnt=',comrp%comarr(3,jorb,jproc)
-                call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world,&
+!!!subroutine diagonalizeHamiltonianParallel(iproc, nproc, norb, ham, ovrlp, eval)
+!!!use module_base
+!!!use module_types
+!!!implicit none
+!!!
+!!!! Calling arguments
+!!!integer,intent(in):: iproc, nproc, norb
+!!!real(8),dimension(norb,norb),intent(inout):: ham, ovrlp
+!!!real(8),dimension(norb),intent(out):: eval
+!!!
+!!!! Local variables
+!!!integer:: ierr, mbrow, mbcol, i, j, istat, lwork, info, ii1, ii2, nproc_scalapack, iall
+!!!integer:: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, jproc, liwork, neval_found, neval_computed
+!!!real(8):: tt1, tt2
+!!!real(8),dimension(:,:),allocatable:: lmat, loverlap, levec
+!!!real(8),dimension(:),allocatable:: work, gap
+!!!integer,dimension(9):: desc_levec, desc_lmat, desc_loverlap
+!!!integer,dimension(:),allocatable:: iwork, ifail, icluster
+!!!character(len=*),parameter:: subname='diagonalizeHamiltonianParallel'
+!!!
+!!!
+!!!
+!!!
+!!!! Block size for scalapack
+!!!mbrow=64
+!!!mbcol=64
+!!!
+!!!! Number of processes that will be involved in the calculation
+!!!tt1=dble(norb)/dble(mbrow)
+!!!tt2=dble(norb)/dble(mbcol)
+!!!ii1=ceiling(tt1)
+!!!ii2=ceiling(tt2)
+!!!nproc_scalapack = min(ii1*ii2,nproc)
+!!!!nproc_scalapack = nproc
+!!!if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
+!!!
+!!!! process grid: number of processes per row and column
+!!!tt1=sqrt(dble(nproc_scalapack))
+!!!ii1=ceiling(tt1)
+!!!do i=ii1,nproc_scalapack
+!!!    if(mod(nproc_scalapack,i)==0) then
+!!!        nprocrow=i
+!!!        exit
+!!!    end if
+!!!end do
+!!!nproccol=nproc_scalapack/nprocrow
+!!!if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+!!!
+!!!
+!!!! Initialize blacs context
+!!!call blacs_get(-1, 0, context)
+!!!call blacs_gridinit(context, 'r', nprocrow, nproccol )
+!!!call blacs_gridinfo(context,nprocrow, nproccol, irow, icol)
+!!!!write(*,*) 'iproc, irow, icol', iproc, irow, icol
+!!!
+!!!! Initialize the matrix mat to zero for processes that don't do the calculation.
+!!!! For processes participating in the diagonalization, 
+!!!! it will be partially (only at the position that process was working on) overwritten with the result. 
+!!!! At the end we can the make an allreduce to get the correct result on all processes.
+!!!if(irow==-1) ham=0.d0
+!!!
+!!!! Everything that follows is only done if the current process is part of the grid.
+!!!processIf: if(irow/=-1) then
+!!!    ! Determine the size of the matrix (lnrow x lncol):
+!!!    lnrow = numroc(norb, mbrow, irow, 0, nprocrow)
+!!!    lncol = numroc(norb, mbcol, icol, 0, nproccol)
+!!!    write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local matrix of size ',lnrow,' x ',lncol
+!!!
+!!!    ! Initialize descriptor arrays.
+!!!    call descinit(desc_lmat, norb, norb, mbrow, mbcol, 0, 0, context, lnrow, info)
+!!!    call descinit(desc_loverlap, norb, norb, mbrow, mbcol, 0, 0, context, lnrow, info)
+!!!    call descinit(desc_levec, norb, norb, mbrow, mbcol, 0, 0, context, lnrow, info)
+!!!
+!!!    ! Allocate the local array lmat
+!!!    allocate(lmat(lnrow,lncol), stat=istat)
+!!!    call memocc(istat, lmat, 'lmat', subname)
+!!!    allocate(loverlap(lnrow,lncol), stat=istat)
+!!!    call memocc(istat, loverlap, 'loverlap', subname)
+!!!
+!!!    ! Copy the global array mat to the local array lmat.
+!!!    ! The same for loverlap and overlap, respectively.
+!!!    !call dcopy(norb**2, ham(1,1), 1, mat(1,1), 1)
+!!!    !call dcopy(norb**2, ovrlp(1,1), 1, overlap(1,1), 1)
+!!!    do i=1,norb
+!!!        do j=1,norb
+!!!            call pdelset(lmat(1,1), j, i, desc_lmat, ham(j,i))
+!!!            call pdelset(loverlap(1,1), j, i, desc_loverlap, ovrlp(j,i))
+!!!        end do
+!!!    end do
+!!!
+!!!
+!!!    ! Solve the generalized eigenvalue problem.
+!!!    allocate(levec(lnrow,lncol), stat=istat)
+!!!    call memocc(istat, levec, 'levec', subname)
+!!!    allocate(ifail(norb), stat=istat)
+!!!    call memocc(istat, ifail, 'ifail', subname)
+!!!    allocate(icluster(2*nprocrow*nproccol), stat=istat)
+!!!    call memocc(istat, icluster, 'icluster', subname)
+!!!    allocate(gap(nprocrow*nproccol), stat=istat)
+!!!    call memocc(istat, gap, 'gap', subname)
+!!!
+!!!    ! workspace query
+!!!    lwork=-1
+!!!    liwork=-1
+!!!    allocate(work(1), stat=istat)
+!!!    call memocc(istat, work, 'work', subname)
+!!!    allocate(iwork(1), stat=istat) ; if(istat/=0) stop 'ERROR in allocating'
+!!!    call memocc(istat, iwork, 'iwork', subname)
+!!!    call pdsygvx(1, 'v', 'a', 'l', norb, lmat(1,1), 1, 1, desc_lmat, loverlap(1,1), 1, 1, &
+!!!                 desc_loverlap, 0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, eval(1), &
+!!!                 -1.d0, levec(1,1), 1, 1, desc_levec, work, lwork, iwork, liwork, &
+!!!                 ifail, icluster, gap, info)
+!!!    lwork=ceiling(work(1))
+!!!    liwork=iwork(1)
+!!!    !write(*,*) 'iproc, lwork, liwork', iproc, lwork, liwork
+!!!    iall=-product(shape(work))*kind(work)
+!!!    deallocate(work, stat=istat)
+!!!    call memocc(istat, iall, 'work', subname)
+!!!    iall=-product(shape(iwork))*kind(iwork)
+!!!    deallocate(iwork, stat=istat)
+!!!    call memocc(istat, iall, 'iwork', subname)
+!!!
+!!!    allocate(work(lwork), stat=istat)
+!!!    call memocc(istat, work, 'work', subname)
+!!!    allocate(iwork(liwork), stat=istat)
+!!!    call memocc(istat, iwork, 'iwork', subname)
+!!!
+!!!    call pdsygvx(1, 'v', 'a', 'l', norb, lmat(1,1), 1, 1, desc_lmat, loverlap(1,1), 1, 1, &
+!!!                 desc_loverlap, 0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, eval(1), &
+!!!                 -1.d0, levec(1,1), 1, 1, desc_levec, work, lwork, iwork, liwork, &
+!!!                 ifail, icluster, gap, info)
+!!!
+!!!    ! Gather together the eigenvectors from all processes and store them in mat.
+!!!    do i=1,norb
+!!!        do j=1,norb
+!!!            call pdelset2(ham(j,i), levec(1,1), j, i, desc_lmat, 0.d0)
+!!!        end do
+!!!    end do
+!!!
+!!!
+!!!    iall=-product(shape(lmat))*kind(lmat)
+!!!    deallocate(lmat, stat=istat)
+!!!    call memocc(istat, iall, 'lmat', subname)
+!!!
+!!!    iall=-product(shape(levec))*kind(levec)
+!!!    deallocate(levec, stat=istat)
+!!!    call memocc(istat, iall, 'levec', subname)
+!!!
+!!!    iall=-product(shape(loverlap))*kind(loverlap)
+!!!    deallocate(loverlap, stat=istat)
+!!!    call memocc(istat, iall, 'loverlap', subname)
+!!!
+!!!    iall=-product(shape(work))*kind(work)
+!!!    deallocate(work, stat=istat)
+!!!    call memocc(istat, iall, 'work', subname)
+!!!
+!!!    iall=-product(shape(iwork))*kind(iwork)
+!!!    deallocate(iwork, stat=istat)
+!!!    call memocc(istat, iall, 'iwork', subname)
+!!!
+!!!    iall=-product(shape(ifail))*kind(ifail)
+!!!    deallocate(ifail, stat=istat)
+!!!    call memocc(istat, iall, 'ifail', subname)
+!!!
+!!!    iall=-product(shape(icluster))*kind(icluster)
+!!!    deallocate(icluster, stat=istat)
+!!!    call memocc(istat, iall, 'icluster', subname)
+!!!
+!!!    iall=-product(shape(gap))*kind(gap)
+!!!    deallocate(gap, stat=istat)
+!!!    call memocc(istat, iall, 'gap', subname)
+!!!
+!!!end if processIF
+!!!
+!!!! Gather the eigenvectors on all processes.
+!!!call mpiallred(ham(1,1), norb**2, mpi_sum, mpi_comm_world, ierr)
+!!!
+!!!! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
+!!!! diagonalized the matrix and therefore have the eigenvalues.
+!!!if(nproc_scalapack/=nproc) then
+!!!    call mpi_bcast(eval(1), norb, mpi_double_precision, 0, mpi_comm_world, ierr)
+!!!end if
+!!!
+!!!
+!!!
+!!!
+!!!end subroutine diagonalizeHamiltonianParallel
                      comrp%comarr(7,jorb,jproc), ierr)
-                !!do ierr=istsource,istsource+ncount-1
-                !!    write(tag,*) ierr, sendBuf(ierr)
-                !!end do
-                !call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
-                comrp%comarr(8,jorb,jproc)=mpi_request_null !is this correct?
-                nsends=nsends+1
-            else if(iproc==mpidest) then
-                !write(*,'(9(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag,'  jproc=',jproc,' jorb=',jorb,' ncnt=',comrp%comarr(3,jorb,jproc)
-                call mpi_irecv(recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, mpi_comm_world,&
                      comrp%comarr(8,jorb,jproc), ierr)
-                comrp%comarr(7,jorb,jproc)=mpi_request_null !is this correct?
-                nreceives=nreceives+1
-            else
-                comrp%comarr(7,jorb,jproc)=mpi_request_null
-                comrp%comarr(8,jorb,jproc)=mpi_request_null
-            end if
-        else
-            ! The orbitals are on the same process, so simply copy them.
-            if(iproc==mpisource) then
-                call dcopy(ncount, sendBuf(istsource), 1, recvBuf(istdest), 1)
-                !!do ierr=istsource,istsource+ncount-1
-                !!    write(tag,*) ierr, sendBuf(ierr)
-                !!end do
-                !write(*,'(6(a,i0))') 'process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
-                comrp%comarr(7,jorb,jproc)=mpi_request_null
-                comrp%comarr(8,jorb,jproc)=mpi_request_null
-                nsends=nsends+1
-                nreceives=nreceives+1
-                comrp%communComplete(jorb,iproc)=.true.
-            else
-                comrp%comarr(7,jorb,jproc)=mpi_request_null
-                comrp%comarr(8,jorb,jproc)=mpi_request_null
-            end if
-
-        end if
-    end do
-end do
-
-
-end subroutine postCommsRepartition
-
-
-
-
-subroutine gatherDerivativeOrbitals(iproc, nproc, orbs, comrp)
-use module_base
-use module_types
-implicit none
-
-! Calling arguments
-integer,intent(in):: iproc, nproc
-type(orbitals_data),intent(in):: orbs
-type(p2pCommsRepartition),intent(inout):: comrp
-
-! Local variables
-integer:: jorb, mpisource, mpidest, nfast, nslow, nsameproc, ierr, jproc
-integer,dimension(mpi_status_size):: stat
-logical:: sendComplete, receiveComplete
-
-
-! Check whether the communications have completed.
-nfast=0
-nsameproc=0
-testLoop: do
-    do jproc=0,nproc-1
-        do jorb=1,4*orbs%norb_par(jproc)
-            if(comrp%communComplete(jorb,jproc)) cycle
-            call mpi_test(comrp%comarr(7,jorb,jproc), sendComplete, stat, ierr)
-            call mpi_test(comrp%comarr(8,jorb,jproc), receiveComplete, stat, ierr)
-            if(sendComplete .and. receiveComplete) comrp%communComplete(jorb,jproc)=.true.
-            if(comrp%communComplete(jorb,jproc)) then
-                !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', jorb
-                mpisource=comrp%comarr(1,jorb,jproc)
-                mpidest=comrp%comarr(4,jorb,jproc)
-                if(mpisource/=mpidest) then
-                    nfast=nfast+1
-                else
-                    nsameproc=nsameproc+1
-                end if
-            end if
-        end do
-    end do
-    ! If we made it until here, either all all the communication is
-    ! complete or we better wait for each single orbital.
-    exit testLoop
-end do testLoop
-
-
-! Wait for the communications that have not completed yet
-nslow=0
-do jproc=0,nproc-1
-    do jorb=1,4*orbs%norb_par(jproc)
-        if(comrp%communComplete(jorb,jproc)) cycle
-        !write(*,'(2(a,i0))') 'process ', iproc, ' is waiting for orbital ', korb
-        nslow=nslow+1
-        call mpi_wait(comrp%comarr(7,jorb,jproc), stat, ierr)   !COMMENTED BY PB
-        call mpi_wait(comrp%comarr(8,jorb,jproc), stat, ierr)   !COMMENTED BY PB
-        comrp%communComplete(jorb,jproc)=.true.
-    end do
-end do
-
-!call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
-!if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
-!                       nfast, ' could be overlapped with computation.'
-!if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
-
-
-
-
-
-end subroutine gatherDerivativeOrbitals
-
-
-

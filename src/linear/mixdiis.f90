@@ -54,8 +54,8 @@ rhs=0.d0
 
 ! Copy rhopot and rhopotres to the DIIS history.
 jst=(mixdiis%mis-1)*ndimpot+1
-call dcopy(ndimpot, rhopotold(1), 1, mixdiis%rhopotHist(jst), 1)
-call dcopy(ndimpot, rhopotres(1), 1, mixdiis%rhopotresHist(jst), 1)
+call dcopy(ndimpot, rhopotold, 1, mixdiis%rhopotHist, 1)
+call dcopy(ndimpot, rhopotres, 1, mixdiis%rhopotresHist, 1)
 
 ! Shift the DIIS matrix left up if we reached the maximal history length.
 if(mixdiis%is>mixdiis%isx) then
@@ -74,7 +74,11 @@ i=max(1,mixdiis%is-mixdiis%isx+1)
 do j=i,mixdiis%is
    mi=mod(j-1,mixdiis%isx)+1
    ist=(mi-1)*ndimpot+1
-   mixdiis%mat(j-i+1,min(mixdiis%isx,mixdiis%is))=ddot(ndimpot, rhopotres(1), 1, mixdiis%rhopotresHist(ist), 1)
+   if(ndimpot>0) then
+       mixdiis%mat(j-i+1,min(mixdiis%isx,mixdiis%is))=ddot(ndimpot, rhopotres(1), 1, mixdiis%rhopotresHist(ist), 1)
+   else
+       mixdiis%mat(j-i+1,min(mixdiis%isx,mixdiis%is))=0.d0
+   end if
 end do
 
 ! Sum up over all processes.

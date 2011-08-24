@@ -1,6 +1,6 @@
 !determine a set of localisation regions from the centers and the radii.
 !cut in cubes the global reference system
-subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,outofzone)
+subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)!,outofzone)
   use module_base
   use module_types
   implicit none
@@ -11,15 +11,16 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
   real(gp), dimension(nlr), intent(in) :: locrad
   real(gp), dimension(3,nlr), intent(in) :: cxyz
   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
+  logical,dimension(nlr),intent(in):: calculateBounds
 !  integer, dimension(3,nlr),intent(out) :: outofzone
   !local variables
   character(len=*), parameter :: subname='determine_locreg'
-  logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz
+  logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz, calculate
   logical :: warningx,warningy,warningz
   integer :: Gnbl1,Gnbl2,Gnbl3,Gnbr1,Gnbr2,Gnbr3
   integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
   integer :: ilr,isx,isy,isz,iex,iey,iez
-  integer :: ln1,ln2,ln3
+  integer :: ln1,ln2,ln3, iorb, jproc, jlr
   integer :: ierr 
   integer,dimension(3) :: outofzone
   real(gp) :: rx,ry,rz,cutoff  
@@ -231,9 +232,13 @@ subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)!,ou
      ! Sould check if nfu works properly... also relative to locreg!!
      !if the localisation region is isolated build also the bounds
      if (Llr(ilr)%geocode=='F') then
-        call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
-             Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
-             Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+        ! Check whether the bounds shall be calculated. Do this only if the currect process handles
+        ! orbitals in the current localization region.
+        if(calculateBounds(ilr)) then
+            call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
+                 Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
+                 Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+        end if
      end if
   end do !on ilr
 

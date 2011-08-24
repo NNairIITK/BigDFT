@@ -384,6 +384,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !  integer,dimension(at%nat) :: projflg    !debug nonlocal_forces
   type(linear_zone_descriptors) :: Lzd                 
   integer,dimension(:),allocatable :: norbsc
+  logical,dimension(:),allocatable:: calculateBounds
 !  real(gp), dimension(3,at%nat) :: fsep                 !debug for debug nonlocal_forces
 !  real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
 !  integer :: ierr                                       !for debugging
@@ -486,12 +487,17 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call assignToLocreg(iproc,nproc,orbse%nspinor,nspin_ig,at,orbse,Lzd,norbsc_arr,norbsc)
 
    ! determine the localization regions
-!     call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr)
-     call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,orbse)
+     ! calculateBounds indicate whether the arrays with the bounds (for convolutions...) shall also
+     ! be allocated and calculated. In principle this is only necessary if the current process has orbitals
+     ! in this localization region.
+     allocate(calculateBounds(lzd%nlr),stat=i_stat)
+     call memocc(i_stat,calculateBounds,'calculateBounds',subname)
+     calculateBounds=.true.
 
-   ! determine the wavefunction dimension
-     call wavefunction_dimension(Lzd,orbse)
-
+     call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,calculateBounds)
+     !call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,orbse)
+     deallocate(calculateBounds,stat=i_stat)
+     call memocc(i_stat,i_all,'calculateBounds',subname)
      call timing(iproc,'constrc_locreg','OF')
 
    !determine the Lnlpspd

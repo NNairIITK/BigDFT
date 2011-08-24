@@ -241,13 +241,15 @@ low_level = init/projectors.f90  \
         linear/convolutions.f90 \
         linear/initAndUtils.f90 \
         linear/sumrhoLinear.f90 \
-	linear/inputguessLinear.f90 \
+	    linear/inputguessLinear.f90 \
         linear/psitolocReg.f90 \
         linear/orthonormality.f90 \
         linear/orbitalOptimization.f90 \
         linear/mixdiis.f90 \
         linear/copyTypes.f90 \
         linear/cleanup.f90 \
+		linear/derivativeBasis.f90 \
+		linear/parallelLinAlg.f90 \
 	$(DGEMMSY_INTERFACE)  
 
 libbigdft_a_SOURCES = \

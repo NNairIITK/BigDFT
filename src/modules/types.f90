@@ -408,7 +408,7 @@ module module_types
 !> Contains the parameter needed for the point to point communication for
 !! the orthonormlization.
    type,public:: p2pCommsOrthonormality
-       integer:: nsendBuf, nrecvBuf
+       integer:: nsendBuf, nrecvBuf, noverlapsmax
        integer,dimension(:),pointer:: noverlaps
        integer,dimension(:,:),pointer:: overlaps
        integer,dimension(:,:,:),pointer:: comarr
@@ -426,7 +426,7 @@ module module_types
 
 !! Contains the parameters for calculating the overlap matrix for the orthonormalization etc...
   type,public:: overlapParameters
-      integer:: ndim_lphiovrlp
+      integer:: ndim_lphiovrlp, noverlapsmax, noverlapsmaxp
       integer,dimension(:),pointer:: noverlaps, indexExpand, indexExtract
       integer,dimension(:,:),pointer:: overlaps
       integer,dimension(:,:),pointer:: indexInRecvBuf
@@ -484,14 +484,22 @@ module module_types
 !! orbitals. In case we don't use the derivatives, these parameters are identical
 !! from those in lin%orbs etc.
 type,public:: largeBasis
-    type(communications_arrays):: comms
-    type(orbitals_data):: orbs
-    type(linear_zone_descriptors):: lzd
+    type(communications_arrays):: comms, gcomms
+    type(orbitals_data):: orbs, gorbs
+    !type(linear_zone_descriptors):: lzd
     type(p2pCommsRepartition):: comrp
     type(p2pCommsOrthonormality):: comon
     type(overlapParameters):: op
     type(p2pCommsGatherPot):: comgp
 end type largeBasis
+
+  type,public:: matrixDescriptors
+      integer:: nvctr, nseg, nvctrmatmul, nsegmatmul, nseglinemax
+      integer,dimension(:),pointer:: keyv, keyvmatmul, nsegline
+      integer,dimension(:,:),pointer:: keyg, keygmatmul
+      integer,dimension(:,:,:),pointer:: keygline
+  end type matrixDescriptors
+
 
   !> Contains the parameters for the parallel input guess for the O(N) version.
   type,public:: inguessParameters
@@ -514,15 +522,27 @@ end type largeBasis
     real(8),dimension(:,:),pointer:: mat
   end type mixrhopotDIISParameters
 
+  type,public:: linearInputGuess
+      type(linear_zone_descriptors):: lzdig, lzdGauss
+      type(orbitals_data):: orbsig, orbsGauss
+      type(p2pCommsOrthonormality):: comon
+      type(overlapParameters):: op
+      type(p2pCommsGatherPot):: comgp
+      type(matrixDescriptors):: mad
+  end type linearInputGuess
+
+
+
 !> Contains all parameters related to the linear scaling version.
   type,public:: linearParameters
     integer:: DIISHistMin, DIISHistMax, nItBasisFirst, nItBasis, nItPrecond, nItCoeff, nItSCC, confPotOrder, norbsPerProcIG
-    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist
+    integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
+    integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho
     real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lhphiold
     real(8),dimension(:,:),pointer:: hamold
-    type(orbitals_data):: orbs
-    type(communications_arrays):: comms
+    type(orbitals_data):: orbs, gorbs
+    type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
     logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
@@ -533,6 +553,8 @@ end type largeBasis
     type(linear_zone_descriptors):: lzd
     type(p2pCommsOrthonormality):: comon
     type(overlapParameters):: op
+    type(linearInputGuess):: lig
+    type(matrixDescriptors):: mad
   end type linearParameters
 
 !> Contains the arguments needed for the diis procedure
