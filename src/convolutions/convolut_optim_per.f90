@@ -981,7 +981,6 @@ subroutine conv_kin_x(x,y,n1,n2,n3,ekin,fil,mod_arr1)
    !$omp end do
 END SUBROUTINE conv_kin_x
 
-
 subroutine conv_kin_y(x,y,n1,n2,n3,ekin,fil,mod_arr2)
   use module_base
   implicit none

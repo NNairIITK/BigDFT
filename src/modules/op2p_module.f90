@@ -19,7 +19,7 @@ module overlap_point_to_point
   
   type OP2P_descriptors
      logical :: forsymop !< descriptor for symmetric operation
-     integer :: ngroup,nsteps_max,ngroupp_max,ncomponents_max,ncomponents_results_max
+     integer :: ngroup,nsteps_max,ngroupp_max,ncomponents_max,ncomponents_results_max,iprocref
      integer, dimension(:), pointer :: ngroupp         !<= number of groups which belongs to each processor
      integer, dimension(:), pointer :: nprocgr         !<= number of processors which belongs to each group
      integer, dimension(:,:), pointer :: igrpr         !<= groups which are associated to each processor
@@ -155,6 +155,7 @@ contains
     OP2P%ngroupp_max=0
     OP2P%ncomponents_max=0
     OP2P%ncomponents_results_max=0
+    OP2P%iprocref=0 !processor which has the maximum number of groups
     do jproc=0,nproc-1
        OP2P%ngroupp(jproc)=0
        do igroup=1,OP2P%ngroup
@@ -164,6 +165,7 @@ contains
              OP2P%ngroupp(jproc)=OP2P%ngroupp(jproc)+1
           end if
        end do
+       if (OP2P%ngroupp_max < OP2P%ngroupp(jproc)) OP2P%iprocref=jproc
        OP2P%ngroupp_max=max(OP2P%ngroupp_max,OP2P%ngroupp(jproc))
     end do
 
