@@ -68,9 +68,9 @@ subroutine standard_inputfile_names(inputs)
 end subroutine standard_inputfile_names
 
 
-!>    Do all initialisation for all different files of BigDFT. 
-!!    Set default values if not any.
-!!    Initialize memocc
+!> Do all initialisation for all different files of BigDFT. 
+!! Set default values if not any.
+!! Initialize memocc
 !! @todo
 !!   Should be better for debug purpose to read input.perf before
 subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
@@ -95,9 +95,9 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 END SUBROUTINE read_input_variables
 
 
-!>    Do initialisation for all different calculation parameters of BigDFT. 
-!!    Set default values if not any. Atomic informations are updated  by
-!!    symmetries if necessary and by geometry input parameters.
+!> Do initialisation for all different calculation parameters of BigDFT. 
+!! Set default values if not any. Atomic informations are updated  by
+!! symmetries if necessary and by geometry input parameters.
 subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   use module_base
   use module_types
@@ -186,7 +186,7 @@ END SUBROUTINE read_input_parameters
 
 
 
-!>    Set default values.
+!> Set default values.
 subroutine default_input_variables(inputs)
   use module_base
   use module_types
@@ -215,12 +215,12 @@ subroutine default_input_variables(inputs)
 END SUBROUTINE default_input_variables
 
 
-!>    Read the input variables needed for the DFT calculation
-!!    The variables are divided in two groups:
-!!    "cruising" variables -- general DFT run
-!!    "brakeing" variables -- for the last run, once relaxation is achieved
-!!                            of for a single-point calculation
-!!    Every argument should be considered as mandatory
+!> Read the input variables needed for the DFT calculation
+!! The variables are divided in two groups:
+!! "cruising" variables -- general DFT run
+!! "brakeing" variables -- for the last run, once relaxation is achieved
+!!                         of for a single-point calculation
+!! Every argument should be considered as mandatory
 subroutine dft_input_variables(iproc,filename,in)
   use module_base
   use module_types
@@ -399,7 +399,7 @@ contains
 END SUBROUTINE dft_input_variables
 
 
-!>    Assign default values for GEOPT variables
+!> Assign default values for GEOPT variables
 subroutine geopt_input_variables_default(in)
   use module_base
   use module_types
@@ -420,7 +420,7 @@ subroutine geopt_input_variables_default(in)
 
 END SUBROUTINE geopt_input_variables_default
 
-!>    Assign default values for mixing variables
+!> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
   use module_types
@@ -440,7 +440,7 @@ subroutine mix_input_variables_default(in)
 END SUBROUTINE mix_input_variables_default
 
 
-!>    Read the input variables needed for the geometry optimisation
+!> Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
 subroutine mix_input_variables(filename,in)
   use module_base
@@ -494,7 +494,7 @@ contains
 END SUBROUTINE mix_input_variables
 
 
-!>    Read the input variables needed for the geometry optimisation
+!> Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
 subroutine geopt_input_variables(filename,in)
   use module_base
@@ -662,7 +662,7 @@ END SUBROUTINE tddft_input_variables
 
 
 
-!>    Calculate symmetries and update
+!> Calculate symmetries and update
 subroutine update_symmetries(in, atoms, rxyz)
   use module_base
   use module_types
@@ -739,7 +739,7 @@ subroutine update_symmetries(in, atoms, rxyz)
 END SUBROUTINE update_symmetries
 
 
-!>    Read the input variables needed for the k points generation
+!> Read the input variables needed for the k points generation
 subroutine kpt_input_variables(iproc,filename,in,atoms)
   use module_base
   use module_types
@@ -933,7 +933,7 @@ contains
 END SUBROUTINE kpt_input_variables
 
 
-!>    Read the input variables which can be used for performances
+!> Read the input variables which can be used for performances
 subroutine perf_input_variables(iproc,filename,inputs)
   use module_base
   use module_types
@@ -949,7 +949,6 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
   call input_set_file(iproc, filename, exists)
 
-        
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
@@ -1047,7 +1046,6 @@ subroutine free_input_variables(in)
      call memocc(i_stat,i_all,'in%nkptsv_group',subname)
   end if
 
-
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
 !!$     deallocate(in%Gabs_coeffs,stat=i_stat)
@@ -1056,7 +1054,7 @@ subroutine free_input_variables(in)
 END SUBROUTINE free_input_variables
 
 
-!>    Assign default values for ABSCALC variables
+!> Assign default values for ABSCALC variables
 subroutine abscalc_input_variables_default(in)
   use module_base
   use module_types
@@ -1070,7 +1068,7 @@ subroutine abscalc_input_variables_default(in)
 END SUBROUTINE abscalc_input_variables_default
 
 
-!>    Read the input variables needed for the ABSCALC
+!> Read the input variables needed for the ABSCALC
 !!    Every argument should be considered as mandatory
 subroutine abscalc_input_variables(iproc,filename,in)
   use module_base
@@ -1148,7 +1146,7 @@ contains
 END SUBROUTINE abscalc_input_variables
 
 
-!>    Assign default values for frequencies variables
+!> Assign default values for frequencies variables
 !!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
 !!    freq_order; order of the finite difference (2 or 3 i.e. 2 or 4 points)
 !!    freq_method: 1 - systematic moves of atoms over each direction
@@ -1165,7 +1163,7 @@ subroutine frequencies_input_variables_default(inputs)
 END SUBROUTINE frequencies_input_variables_default
 
 
-!>    Read the input variables needed for the frequencies calculation.
+!> Read the input variables needed for the frequencies calculation.
 !!    Every argument should be considered as mandatory.
 subroutine frequencies_input_variables(iproc,filename,in)
   use module_base
@@ -1260,7 +1258,7 @@ contains
   end subroutine archiveGetLine
 end module position_files
 
-!>    Read atomic file
+!> Read atomic file
 subroutine read_atomic_file(file,iproc,atoms,rxyz)
   use module_base
   use module_types
@@ -1377,7 +1375,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
 END SUBROUTINE read_atomic_file
 
 
-!>    Deallocate the structure atoms_data.
+!> Deallocate the structure atoms_data.
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
@@ -1410,7 +1408,7 @@ subroutine deallocate_atoms(atoms,subname)
 END SUBROUTINE deallocate_atoms
 
 
-!>    Deallocate the structure atoms_data after scf loop.
+!> Deallocate the structure atoms_data after scf loop.
 subroutine deallocate_atoms_scf(atoms,subname) 
   use module_base
   use module_types
@@ -1451,7 +1449,7 @@ subroutine deallocate_atoms_scf(atoms,subname)
 END SUBROUTINE deallocate_atoms_scf
 
 
-!>    Read atomic positions
+!> Read atomic positions
 subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
   use module_base
   use module_types
@@ -1667,7 +1665,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
 END SUBROUTINE read_xyz_positions
 
 
-!>    Check the position of atoms
+!> Check the position of atoms
 subroutine check_atoms_positions(iproc,atoms,rxyz)
   use module_base
   use module_types
@@ -1721,7 +1719,7 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
 END SUBROUTINE check_atoms_positions
 
 
-!>    Find extra information
+!> Find extra information
 subroutine find_extra_info(line,extra)
   implicit none
   character(len=150), intent(in) :: line
@@ -1754,7 +1752,7 @@ subroutine find_extra_info(line,extra)
 END SUBROUTINE find_extra_info
 
 
-!>    Parse extra information
+!> Parse extra information
 subroutine parse_extra_info(iat,extra,atoms)
   use module_types
   implicit none
@@ -2057,7 +2055,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
 END SUBROUTINE read_ascii_positions
 
 
-!>   Calculate the charge and the spin polarisation to be placed on a given atom
+!>Calculate the charge and the spin polarisation to be placed on a given atom
 !!   RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
 subroutine charge_and_spol(natpol,nchrg,nspol)
   implicit none
@@ -2078,7 +2076,7 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
 END SUBROUTINE charge_and_spol
 
 
-!>    Write an atomic file
+!> Write an atomic file
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -2109,7 +2107,7 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
 END SUBROUTINE write_atomic_file
 
 
-!>   Write xyz atomic file.
+!>Write xyz atomic file.
 subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -2175,7 +2173,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
 END SUBROUTINE wtxyz
 
 
-!>   Write ascii file (atomic position). 
+!>Write ascii file (atomic position). 
 subroutine wtascii(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -2238,7 +2236,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
 END SUBROUTINE wtascii
 
 
-!>   Write the extra info necessary for the output file
+!>Write the extra info necessary for the output file
 subroutine write_extra_info(extra,natpol,ifrztyp)
   use module_base
   implicit none 
@@ -2314,7 +2312,7 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
 END SUBROUTINE frozen_ftoi
 
 
-!>   Calculate the coefficient for moving atoms following the ifrztyp
+!>Calculate the coefficient for moving atoms following the ifrztyp
 subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
   use module_base
   implicit none
@@ -2333,7 +2331,7 @@ subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
 END SUBROUTINE frozen_alpha
 
 
-!>    Print all general parameters
+!> Print all general parameters
 subroutine print_general_parameters(in,atoms)
   use module_base
   use module_types
@@ -2535,7 +2533,7 @@ subroutine print_general_parameters(in,atoms)
 END SUBROUTINE print_general_parameters
 
 
-!>    Print all dft input parameters
+!> Print all dft input parameters
 subroutine print_dft_parameters(in,atoms)
   use module_types
   implicit none
@@ -2576,7 +2574,7 @@ subroutine print_dft_parameters(in,atoms)
 END SUBROUTINE print_dft_parameters
 
 
-!>   Routine for moving atomic positions, takes into account the 
+!>Routine for moving atomic positions, takes into account the 
 !!   frozen atoms and the size of the cell
 !!   synopsis: rxyz=txyz+alpha*sxyz
 !!   all the shift are inserted into the box if there are periodic directions
@@ -2617,7 +2615,7 @@ subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
 END SUBROUTINE atomic_axpy
 
 
-!>   Routine for moving atomic positions, takes into account the 
+!>Routine for moving atomic positions, takes into account the 
 !!   frozen atoms and the size of the cell
 !!   synopsis: fxyz=txyz+alpha*sxyz
 !!   update the forces taking into account the frozen atoms
@@ -2648,7 +2646,7 @@ subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
 END SUBROUTINE atomic_axpy_forces
 
 
-!>   Calculate the scalar product between atomic positions by considering
+!>Calculate the scalar product between atomic positions by considering
 !!   only non-blocked atoms
 subroutine atomic_dot(atoms,x,y,scpr)
   use module_base
@@ -2677,7 +2675,7 @@ subroutine atomic_dot(atoms,x,y,scpr)
 END SUBROUTINE atomic_dot
 
 
-!>   z=alpha*A*x + beta* y
+!>z=alpha*A*x + beta* y
 subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
   use module_base
   use module_types
@@ -2722,7 +2720,7 @@ function move_this_coordinate(ifrztyp,ixyz)
 END FUNCTION move_this_coordinate
 
 
-!>   rxyz=txyz+alpha*sxyz
+!> rxyz=txyz+alpha*sxyz
 subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   use module_base
   use module_types
