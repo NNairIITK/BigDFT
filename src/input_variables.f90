@@ -2815,7 +2815,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         GPUblas=.true.
      end if
      if (iproc == 0) then
-        write(*,'(1x,a)') 'CUDA support activated'
+        write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
      end if
   else if (iacceleration == 2) then
      ! OpenCL convolutions are activated
@@ -2826,9 +2826,13 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
         call init_acceleration_OCL(GPU)
         if (iproc == 0) then
-           write(*,'(1x,a)')'OpenCL support activated'
+           write(*,'(1x,a)') 'OpenCL support activated (iproc=0)'
         end if
         OCLconv=.true.
+     end if
+  else
+     if (iproc == 0) then
+        write(*,'(1x,a)') 'No material acceleration (iproc=0)'
      end if
   end if
 
