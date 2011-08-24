@@ -378,15 +378,15 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer :: ilr,ityp
   logical :: calc                           
   real(dp),dimension(:),pointer:: Lpsi,Lhpsi
-  logical :: linear,linear2
+  logical :: linear
 !  integer :: dim1,dim2                    !debug plotting local wavefunctions
 !  real(dp) :: factor                      !debug plotting local wavefunctions
-  integer,dimension(at%nat) :: projflg    !debug nonlocal_forces
+!  integer,dimension(at%nat) :: projflg    !debug nonlocal_forces
   type(linear_zone_descriptors) :: Lzd                 
   integer,dimension(:),allocatable :: norbsc
-  real(gp), dimension(3,at%nat) :: fsep                 !debug for debug nonlocal_forces
-  real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
-  integer :: ierr                                       !for debugging
+!  real(gp), dimension(3,at%nat) :: fsep                 !debug for debug nonlocal_forces
+!  real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
+!  integer :: ierr                                       !for debugging
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
