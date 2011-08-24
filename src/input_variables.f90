@@ -2549,7 +2549,6 @@ subroutine print_general_parameters(nproc,input,atoms)
   else
       write(*,'(1x,a,1x,i0)') 'Number of maximal OpenMP threads per MPI process:',nthreads
   end if
-  write(*,*)
 
 END SUBROUTINE print_general_parameters
 
@@ -2835,6 +2834,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         write(*,'(1x,a)') 'No material acceleration (iproc=0)'
      end if
   end if
+  write(*,*)
 
 END SUBROUTINE init_material_acceleration
 
