@@ -2366,11 +2366,10 @@ subroutine print_general_parameters(nproc,input,atoms)
   nthreads = 0
 !$  nthreads=omp_get_num_threads()
   if (nthreads == 0) then
-      write(*,'(1x,a)') 'Not compiled with OpenMP'
+      write(*,'(1x,a)') 'MPI process does not use OpenMP'
   else
       write(*,'(1x,a,1x,i0)') 'Number of OpenMP threads per MPI process:',nthreads
   end if
-  write(*,*)
 
   ! Output for atoms and k-points
   write(*,'(1x,a,a,a)') '--- (file: posinp.', &
