@@ -9,6 +9,13 @@ my_tests =
 
 EXTRA_PROGRAMS = op2p_check
 
+if USE_CUDA_GPU
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas $(top_builddir)/src/CUDA/libGPU.a 
+else
+libs_cuda=
+endif
+
+
 if USE_DGEMMSY
 libs_dgemmsy = $(top_builddir)/src/dgemmsy/libdgemmsy.a
 else
@@ -21,10 +28,10 @@ CLEANFILES = op2p_check.out \
 
 AM_FCFLAGS = -I../../src/modules -I../../src/ @MPI_INCLUDE@ -I. -I$(srcdir) @LIBABINIT_INCLUDE@ 
 
-op2p_check_SOURCES = op2p_module.f90 mpi_layer.f90 example.f90 
+op2p_check_SOURCES = mpi_layer.f90 example.f90 
 op2p_check_LDADD =  $(top_builddir)/src/libbigdft.a \
 	$(top_builddir)/src/PSolver/libpoissonsolver.a \
-	$(libs_dgemmsy)
+	$(libs_dgemmsy) $(libs_cuda)
 
 op2p_check.out: op2p_check
 	$(run_parallel)	./op2p_check > $@

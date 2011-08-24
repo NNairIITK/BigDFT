@@ -370,6 +370,9 @@ contains
     integer, dimension(:,:), allocatable :: mpireq
     real(kind=8), dimension(:,:,:), allocatable :: sendreceive_buffer,restemp_buffer
 
+    !quick return if the number of groups is zero here
+    if (OP2P%ngroupp(iproc) == 0) return
+
     !allocate the array of sendreceive buffers
     allocate(sendreceive_buffer(OP2P%ncomponents_max,2,OP2P%ngroupp(iproc)+ndebug),stat=i_stat)
     call memocc(i_stat,sendreceive_buffer,'sendreceive_buffer',subname)
@@ -380,7 +383,6 @@ contains
     !end if
     allocate(mpireq(2*OP2P%ngroupp_max,2+ndebug),stat=i_stat)
     call memocc(i_stat,mpireq,'mpireq',subname)
-    
     !ncalls=0
     !real communication
     isnow=1
@@ -395,24 +397,47 @@ contains
           if (OP2P%communication_schedule(1,istep,igroup,iproc) /= UNINITIALIZED(1)) then
              ncommsstep=ncommsstep+1 !just check the receives
              jproc_to_send=OP2P%iprocpm1(1,1,igroup,iproc)
+             if (OP2P%ngroupp(jproc_to_send) == 0 ) then
+                print *,'ERROR,iproc',iproc
+                stop
+             end if
              nelems_to_send=OP2P%nvctr_par(OP2P%communication_schedule(1,istep,igroup,iproc),OP2P%igrpr(igroup,iproc),1) !objects
              iaddress_local=OP2P%ioffp_group(3,iproc,OP2P%igrpr(igroup,iproc))
              if (istep == 0) then
-                call send_op(istep,iproc,jproc_to_send,nelems_to_send,&
-                     iproc+2*nproc*istep,mpireq(ncommsstep,1),objects_data(iaddress_local))
+                if (present(send_op)) then
+                   call send_op(istep,iproc,jproc_to_send,nelems_to_send,&
+                        iproc+2*nproc*istep,mpireq(ncommsstep,1),objects_data(iaddress_local))
+                else
+                   call send_mpi(istep,iproc,jproc_to_send,nelems_to_send,&
+                        iproc+2*nproc*istep,mpireq(ncommsstep,1),objects_data(iaddress_local))
+                end if
              else
                 !multiply by two the sending objects for the accumulation array
-                call send_op(istep,iproc,jproc_to_send,nelems_to_send,&
-                     iproc+2*nproc*istep,mpireq(ncommsstep,1),sendreceive_buffer(1,isnow,igroup))
+                if (present(send_op)) then
+                   call send_op(istep,iproc,jproc_to_send,nelems_to_send,&
+                        iproc+2*nproc*istep,mpireq(ncommsstep,1),sendreceive_buffer(1,isnow,igroup))
+                else
+                   call send_mpi(istep,iproc,jproc_to_send,nelems_to_send,&
+                        iproc+2*nproc*istep,mpireq(ncommsstep,1),sendreceive_buffer(1,isnow,igroup))
+                end if
              end if
           end if
           if (OP2P%communication_schedule(2,istep,igroup,iproc) /= UNINITIALIZED(1)) then
              ncommsstep=ncommsstep+1
              jproc_to_recv=OP2P%iprocpm1(2,1,igroup,iproc)
+             if (OP2P%ngroupp(jproc_to_recv) == 0 ) then
+                print *,'ERROR(recv),iproc',iproc
+                stop
+             end if
              nelems_to_recv=OP2P%nvctr_par(OP2P%communication_schedule(2,istep,igroup,iproc),OP2P%igrpr(igroup,iproc),1) !objects
              iaddress_local=OP2P%ioffp_group(3,iproc,OP2P%igrpr(igroup,iproc))
-             call receive_op(istep,jproc_to_recv,iproc,nelems_to_recv,&
-                  jproc_to_recv+2*nproc*istep,mpireq(ncommsstep,1),sendreceive_buffer(1,irnow,igroup))
+             if (present(receive_op)) then
+                call receive_op(istep,jproc_to_recv,iproc,nelems_to_recv,&
+                     jproc_to_recv+2*nproc*istep,mpireq(ncommsstep,1),sendreceive_buffer(1,irnow,igroup))
+             else
+                call receive_mpi(istep,jproc_to_recv,iproc,nelems_to_recv,&
+                     jproc_to_recv+2*nproc*istep,mpireq(ncommsstep,1),sendreceive_buffer(1,irnow,igroup))
+             end if
           end if
        end do
        !print *,'starting',iproc,istep,ncommsstep,nsteps_max
@@ -481,7 +506,11 @@ contains
 
        !check the sending of the results array (this operation can also be performed at the end of the cycle
        if (ncommsstep_results > 0) then
-          call wait_op(iproc,istep,ncommsstep_results,mpireq(1,2))
+          if (present(wait_op)) then
+             call wait_op(iproc,istep,ncommsstep_results,mpireq(1,2))
+          else
+             call wait_mpi(iproc,istep,ncommsstep_results,mpireq(1,2))
+          end if
           !copy the results which have been received (the messages sending are after)
           !to be modified via the creation of an array which follows psi
           do igroup=1,OP2P%ngroupp(iproc)
@@ -489,6 +518,7 @@ contains
              istart_results=OP2P%ioffp_group(5,iproc,OP2P%igrpr(igroup,iproc))
              if (OP2P%communication_schedule(4,istep-1,igroup,iproc) /= UNINITIALIZED(1)) then
                 !reduce temporary result
+                !this routine has to be defined outside from the module
                 call daxpy(OP2P%nvctr_par(iproc,OP2P%igrpr(igroup,iproc),2),1.0d0,restemp_buffer(1,irnow_results,igroup),1,&
                      results_data(istart_results),1)
                 !print *,'iproc,reduce',iproc,istep,results_data(istart_results),restemp_buffer(1,irnow_results,igroup)
@@ -509,23 +539,32 @@ contains
              call dcopy(nelems_to_send,restemp_buffer(1,3,igroup),1,&
                   restemp_buffer(1,isnow_results,igroup),1) !is this copy unavoidable? unfortunately yes...
 
-             call send_op(istep,iproc,jproc_to_send,nelems_to_send,&
-                  iproc+nproc+2*nproc*istep,mpireq(ncommsstep_results,2),restemp_buffer(1,isnow_results,igroup))
+             if (present(send_op)) then
+                call send_op(istep,iproc,jproc_to_send,nelems_to_send,&
+                     iproc+nproc+2*nproc*istep,mpireq(ncommsstep_results,2),restemp_buffer(1,isnow_results,igroup))
+             else
+                call send_mpi(istep,iproc,jproc_to_send,nelems_to_send,&
+                     iproc+nproc+2*nproc*istep,mpireq(ncommsstep_results,2),restemp_buffer(1,isnow_results,igroup))
+             end if
           end if
           if (OP2P%communication_schedule(4,istep,igroup,iproc) /= UNINITIALIZED(1)) then
              ncommsstep_results=ncommsstep_results+1
              jproc_to_recv=OP2P%communication_schedule(4,istep,igroup,iproc)
              nelems_to_recv=OP2P%nvctr_par(iproc,OP2P%igrpr(igroup,iproc),2) !results
-
-              call receive_op(istep,jproc_to_recv,iproc,nelems_to_recv,&
-                   jproc_to_recv+nproc+2*nproc*istep,mpireq(ncommsstep_results,2),&
-                   restemp_buffer(1,irnow_results,igroup))
+             if (present(receive_op)) then
+                call receive_op(istep,jproc_to_recv,iproc,nelems_to_recv,&
+                     jproc_to_recv+nproc+2*nproc*istep,mpireq(ncommsstep_results,2),&
+                     restemp_buffer(1,irnow_results,igroup))
+             else
+                call receive_mpi(istep,jproc_to_recv,iproc,nelems_to_recv,&
+                     jproc_to_recv+nproc+2*nproc*istep,mpireq(ncommsstep_results,2),&
+                     restemp_buffer(1,irnow_results,igroup))
+             end if
            end if
         end do
         if (istep>1) isnow_results=3-isnow_results
 
        if (ncommsstep /=0) then
-          !SONO ARRIVATO QUI DEVO TESTARE SE LE ROUTINE POSSONO ESSERE OPZIONALI
           if (present(wait_op)) then
              call wait_op(iproc,istep,ncommsstep,mpireq(1,1))
           else
@@ -534,6 +573,7 @@ contains
        end if
        isnow=3-isnow
        ncommsstep=0
+       !print *,'iproc,istep',iproc,istep
     end do
 
     i_all=-product(shape(sendreceive_buffer))*kind(sendreceive_buffer)
@@ -557,6 +597,8 @@ contains
     type(OP2P_descriptors), intent(inout) :: OP2P
     !local variables
     integer :: i_all,i_stat
+    !debugbprint *,'ecco5'
+
     i_all=-product(shape(OP2P%ngroupp))*kind(OP2P%ngroupp)
     deallocate(OP2P%ngroupp,stat=i_stat)
     call memocc(i_stat,i_all,'ngroupp',subname)
@@ -599,5 +641,45 @@ contains
     end if
   end subroutine wait_mpi
 
+  !> fake receiving of the arrays
+  subroutine receive_mpi(istep,isendproc,irecvproc,ncount,itag,irequest,recvbuf)
+    implicit none
+    integer, intent(in) :: istep,isendproc,irecvproc,ncount,itag,irequest
+    real(kind=8), intent(in) :: recvbuf
+    !local variables
+    integer :: ierr
+
+    !here we can add something to trap the IRECV call
+    !print '(3(a,i4),i4)','NON_BLOCKING RECV, from',isendproc,' to',irecvproc,', step, elems:',istep,ncount
+
+    call MPI_IRECV(recvbuf,ncount,MPI_DOUBLE_PRECISION,isendproc,&
+         itag,MPI_COMM_WORLD,irequest,ierr)
+
+    !output error signal
+    if (ierr /=0) then
+       write(*,*)'ERROR in IRECV, iproc, istep',irecvproc,istep
+    end if
+
+  end subroutine receive_mpi
+
+  !> fake sending of the arrays
+  subroutine send_mpi(istep,isendproc,irecvproc,ncount,itag,irequest,sendbuf)
+    implicit none
+    integer, intent(in) :: istep,isendproc,irecvproc,ncount,itag,irequest
+    real(kind=8), intent(in) :: sendbuf
+    !local variables
+    integer :: ierr
+
+    !here we can add something to trap the ISEND call
+    !print '(3(a,i4),i4)','NON_BLOCKING SEND, from',isendproc,' to',irecvproc,', step, elems:',istep,ncount
+
+    call MPI_ISEND(sendbuf,ncount,MPI_DOUBLE_PRECISION,irecvproc,&
+         itag,MPI_COMM_WORLD,irequest,ierr)
+
+    !output error signal
+    if (ierr /=0) then
+       write(*,*)'ERROR in ISEND, iproc, istep',irecvproc,istep
+    end if
+  end subroutine send_mpi
 
 end module overlap_point_to_point
