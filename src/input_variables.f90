@@ -53,6 +53,9 @@ subroutine print_logo()
   write(*,'(1x,a)')&
        '                                  The Journal of Chemical Physics 129, 014109 (2008)'
 END SUBROUTINE print_logo
+
+
+!> Define the name of the input files
 subroutine standard_inputfile_names(inputs)
   use module_types
   implicit none
@@ -65,7 +68,7 @@ subroutine standard_inputfile_names(inputs)
   inputs%file_tddft='input.tddft'
   inputs%file_mix='input.mix'
   
-end subroutine standard_inputfile_names
+END SUBROUTINE standard_inputfile_names
 
 
 !> Do all initialisation for all different files of BigDFT. 
@@ -419,6 +422,7 @@ subroutine geopt_input_variables_default(in)
   nullify(in%qmass)
 
 END SUBROUTINE geopt_input_variables_default
+
 
 !> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
@@ -1243,7 +1247,7 @@ contains
     eof = .false.
     read(ifile,'(a150)', iostat = i_stat) line
     if (i_stat /= 0) eof = .true.
-  end subroutine directGetLine
+  END SUBROUTINE directGetLine
 
   subroutine archiveGetLine(line, ifile, eof)
     integer, intent(in) :: ifile
@@ -1255,7 +1259,7 @@ contains
     eof = .false.
     call extractNextLine(line, i_stat)
     if (i_stat /= 0) eof = .true.
-  end subroutine archiveGetLine
+  END SUBROUTINE archiveGetLine
 end module position_files
 
 !> Read atomic file
@@ -1462,7 +1466,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
        integer, intent(in) :: ifile
        character(len=150), intent(out) :: line
        logical, intent(out) :: eof
-     end subroutine getline
+     END SUBROUTINE getline
   end interface
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
@@ -1849,7 +1853,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
        integer, intent(in) :: ifile
        character(len=150), intent(out) :: line
        logical, intent(out) :: eof
-     end subroutine getline
+     END SUBROUTINE getline
   end interface
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
@@ -2332,13 +2336,15 @@ END SUBROUTINE frozen_alpha
 
 
 !> Print all general parameters
-subroutine print_general_parameters(in,atoms)
+subroutine print_general_parameters(nproc,input,atoms)
   use module_base
   use module_types
   use defs_basis
   use ab6_symmetry
   implicit none
-  type(input_variables), intent(in) :: in
+  !Arguments
+  integer, intent(in) :: nproc
+  type(input_variables), intent(in) :: input
   type(atoms_data), intent(in) :: atoms
 
   integer :: nSym, ierr, ityp, iat, i, lg
@@ -2352,6 +2358,19 @@ subroutine print_general_parameters(in,atoms)
   character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
   character(len = 11) :: potden
   character(len = 12) :: dos
+  integer :: nthreads
+!$ integer :: omp_get_num_threads()
+
+  ! Numbers of MPI processes and OpenMP threads
+  write(*,'(1x,a,1x,i0)') 'Number of MPI processes:',nproc
+  nthreads = 0
+!$  nthreads=omp_get_num_threads()
+  if (nthreads == 0) then
+      write(*,'(1x,a)') 'Not compiled with OpenMP'
+  else
+      write(*,'(1x,a,1x,i0)') 'Number of OpenMP threads per MPI process:',nthreads
+  end if
+  write(*,*)
 
   ! Output for atoms and k-points
   write(*,'(1x,a,a,a)') '--- (file: posinp.', &
@@ -2403,14 +2422,14 @@ subroutine print_general_parameters(in,atoms)
   if (i > maxLen) write(fixed(maxLen), '(a)') " (...)"
 
   ! The additional data column
-  if (atoms%geocode /= 'F' .and. .not. in%disableSym) then
+  if (atoms%geocode /= 'F' .and. .not. input%disableSym) then
      call ab6_symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
      call ab6_symmetry_get_group(atoms%symObj, spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
      if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
      write(add(1), '(a,i0)')       "N. sym.   = ", nSym
      write(add(2), '(a,a,a)')      "Sp. group = ", trim(spaceGroup)
-  else if (atoms%geocode /= 'F' .and. in%disableSym) then
+  else if (atoms%geocode /= 'F' .and. input%disableSym) then
      write(add(1), '(a)')          "N. sym.   = disabled"
      write(add(2), '(a)')          "Sp. group = disabled"
   else
@@ -2418,19 +2437,19 @@ subroutine print_general_parameters(in,atoms)
      write(add(2), '(a)')          "Sp. group = free BC"
   end if
   i = 3
-  if (in%nvirt > 0) then
-     write(add(i), '(a,i5,a)')     "Virt. orb.= ", in%nvirt, " orb."
-     write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(in%nplot), " orb."
+  if (input%nvirt > 0) then
+     write(add(i), '(a,i5,a)')     "Virt. orb.= ", input%nvirt, " orb."
+     write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(input%nplot), " orb."
   else
      write(add(i), '(a)')          "Virt. orb.= none"
      write(add(i + 1), '(a)')      "Plot dens.= none"
   end if
   i = i + 2
-  if (in%nspin==4) then
+  if (input%nspin==4) then
      write(add(i),'(a)')           "Spin pol. = non-coll."
-  else if (in%nspin==2) then
+  else if (input%nspin==2) then
      write(add(i),'(a)')           "Spin pol. = collinear"
-  else if (in%nspin==1) then
+  else if (input%nspin==1) then
      write(add(i),'(a)')           "Spin pol. = no"
   end if
 
@@ -2443,29 +2462,29 @@ subroutine print_general_parameters(in,atoms)
 
   if (atoms%geocode /= 'F') then
      write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
-     if (in%disableSym .and. in%nkpt > 1) then
+     if (input%disableSym .and. input%nkpt > 1) then
         write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
      end if
      write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
-     do i = 1, in%nkpt, 1
+     do i = 1, input%nkpt, 1
         write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
-             & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-             & in%wkpt(i), i, in%kpt(:, i)
+             & input%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+             & input%wkpt(i), i, input%kpt(:, i)
      end do
-     if (in%nkptv > 0) then
+     if (input%nkptv > 0) then
         write(*, "(1x,a)")    " K points for band structure calculation"
         write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
-        do i = 1, in%nkptv, 1
+        do i = 1, input%nkptv, 1
            write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
-                & in%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-                & 1.0d0 / real(size(in%kptv, 2), gp), i, in%kptv(:, i)
+                & input%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+                & 1.0d0 / real(size(input%kptv, 2), gp), i, input%kptv(:, i)
         end do
      end if
   end if
 
   ! Printing for mixing parameters.
-  if (in%itrpmax>1) then
-     if (in%iscf < 10) then
+  if (input%itrpmax>1) then
+     if (input%iscf < 10) then
         write(potden, "(A)") "potential"
      else
         write(potden, "(A)") "density"
@@ -2473,61 +2492,61 @@ subroutine print_general_parameters(in,atoms)
      write(*,'(1x,a)') '--- (file: input.mix) ------------------------------------------------------- Mixing'
      write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
           & "     Target=", potden,        "|", &
-          & " Add. bands=", in%norbsempty, "|", &
-          & "    Coeff.=", in%alphamix
+          & " Add. bands=", input%norbsempty, "|", &
+          & "    Coeff.=", input%alphamix
      write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
-          & "     Scheme=", modulo(in%iscf, 10), "|", &
-          & "Elec. temp.=", in%tel,              "|", &
-          & "      DIIS=", in%alphadiis
+          & "     Scheme=", modulo(input%iscf, 10), "|", &
+          & "Elec. temp.=", input%tel,              "|", &
+          & "      DIIS=", input%alphadiis
      write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
-          & "  Max iter.=", in%itrpmax,    "|", &
+          & "  Max iter.=", input%itrpmax,    "|", &
           & "Occ. scheme=", smearing_names(occopt), "|"
-     if (in%verbosity > 2) then
+     if (input%verbosity > 2) then
         write(dos, "(A)") "dos.gnuplot"
      else
         write(dos, "(A)") "no verb. < 3"
      end if
      write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
-          & "   Rp norm.=", in%rpnrm_cv,    "|", " output DOS=", dos, "|"
+          & "   Rp norm.=", input%rpnrm_cv,    "|", " output DOS=", dos, "|"
   end if
 
-  if (in%ncount_cluster_x > 0) then
+  if (input%ncount_cluster_x > 0) then
      write(*,'(1x,a)') '--- (file: input.geopt) ------------------------------------- Geopt Input Parameters'
      write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
 
      write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &
-          & "      Max. steps=", in%ncount_cluster_x, "|", &
-          & "Fluct. in forces=", in%frac_fluct,       "|", &
-          & "          ionmov=", in%ionmov
+          & "      Max. steps=", input%ncount_cluster_x, "|", &
+          & "Fluct. in forces=", input%frac_fluct,       "|", &
+          & "          ionmov=", input%ionmov
      write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
-          & "       algorithm=", in%geopt_approach, "|", &
-          & "  Max. in forces=", in%forcemax,       "|", &
-          & "           dtion=", in%dtion
-     if (trim(in%geopt_approach) /= "DIIS") then
+          & "       algorithm=", input%geopt_approach, "|", &
+          & "  Max. in forces=", input%forcemax,       "|", &
+          & "           dtion=", input%dtion
+     if (trim(input%geopt_approach) /= "DIIS") then
         write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,1x,a)", advance="no") &
-             & "random at.displ.=", in%randdis, "|", &
-             & "  steep. descent=", in%betax,   "|"
+             & "random at.displ.=", input%randdis, "|", &
+             & "  steep. descent=", input%betax,   "|"
      else
         write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,2x,a,1I2,1x,a)", advance="no") &
-             & "random at.displ.=", in%randdis,           "|", &
-             & "step=", in%betax, "history=", in%history, "|"
+             & "random at.displ.=", input%randdis,           "|", &
+             & "step=", input%betax, "history=", input%history, "|"
      end if
-     if (in%ionmov > 7) then
+     if (input%ionmov > 7) then
         write(*, "(1x,a,1f5.0,1x,a,1f5.0)") &
-             & "start T=", in%mditemp, "stop T=", in%mdftemp
+             & "start T=", input%mditemp, "stop T=", input%mdftemp
      else
         write(*,*)
      end if
      
-     if (in%ionmov == 8) then
-        write(*,'(1x,a,f15.5)') "TODO: pretty printing!", in%noseinert
-     else if (in%ionmov == 9) then
-        write(*,*) "TODO: pretty printing!", in%friction
-        write(*,*) "TODO: pretty printing!", in%mdwall
-     else if (in%ionmov == 13) then
-        write(*,*) "TODO: pretty printing!", in%nnos
-        write(*,*) "TODO: pretty printing!", in%qmass
-        write(*,*) "TODO: pretty printing!", in%bmass, in%vmass
+     if (input%ionmov == 8) then
+        write(*,'(1x,a,f15.5)') "TODO: pretty printing!", input%noseinert
+     else if (input%ionmov == 9) then
+        write(*,*) "TODO: pretty printing!", input%friction
+        write(*,*) "TODO: pretty printing!", input%mdwall
+     else if (input%ionmov == 13) then
+        write(*,*) "TODO: pretty printing!", input%nnos
+        write(*,*) "TODO: pretty printing!", input%qmass
+        write(*,*) "TODO: pretty printing!", input%bmass, input%vmass
      end if
   end if
 END SUBROUTINE print_general_parameters
