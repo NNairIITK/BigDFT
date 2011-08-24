@@ -229,7 +229,7 @@ subroutine dft_input_variables(iproc,filename,in)
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
   !local variables
-  character(len=100) :: line
+  !character(len=100) :: line
   logical :: exists
   integer :: ierror,iline,ivrbproj
 
