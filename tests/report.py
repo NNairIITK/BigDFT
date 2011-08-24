@@ -51,17 +51,21 @@ for file in files:
     except:
         discrepancy = False
     if discrepancy:
+        #If nan gives nan (not a number and all comparisons are false)
         diff = float(discrepancy[0][0])
-        if discrepancy[0][0] == "nan" or diff > max_discrepancy:
+        if diff <= max_discrepancy:
+            #Two cases: passed (significant numbers (more than 5 digits) are < max_discrepancy
+            if discrepancy[0][1] == "passed":
+                start = start_pass
+                state = "%7.1e < (%7.1e)    passed" % (diff,max_discrepancy)
+            else:
+                #All numbers even with only 5 digits or less
+                start = start_success
+                state = "%7.1e < (%7.1e) succeeded" % (diff,max_discrepancy)
+        else:
             start = start_fail
             state = "%7.1e > (%7.1e)    failed" % (diff,max_discrepancy)
             Exit = 1
-        elif discrepancy[0][1] == "passed":
-            start = start_pass
-            state = "%7.1e < (%7.1e)    passed" % (diff,max_discrepancy)
-        else:
-            start = start_success
-            state = "%7.1e < (%7.1e) succeeded" % (diff,max_discrepancy)
         print "%s%-24s %-28s %s%s" % (start,dir,fic,state,end)
     else:
         start = start_fail
