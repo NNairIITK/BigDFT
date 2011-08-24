@@ -1572,7 +1572,7 @@ real(8),dimension(lzd%nlr),intent(in):: locrad
 
 ! Local variables
 integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
-character(len=*),parameter:: subname='initLocregs'
+character(len=*),parameter:: subname='initLocregs2'
 logical,dimension(:),allocatable:: calculateBounds
 
 ! Allocate the array of localisation regions
