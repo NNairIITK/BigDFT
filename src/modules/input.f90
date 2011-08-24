@@ -1,14 +1,3 @@
-!> @file
-!!  Define the input variables
-!! @author
-!!    Copyright (C) 2010-2011 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-
-
-!> Module which contains the input variables
 module module_input
 
   use module_base
@@ -20,7 +9,6 @@ module module_input
   character(len = 100) :: input_file
   character(len = 100), allocatable :: input_lines(:)
 
-  !> Generic routine to read input variables
   interface input_var
      module procedure var_character, var_logical, var_integer, &
           & var_integer_array, var_double, var_keyword, var_ids
@@ -72,11 +60,9 @@ contains
     end if
   END SUBROUTINE input_set_file
 
-
   subroutine input_free()
     if (allocated(input_lines)) deallocate(input_lines)
   END SUBROUTINE input_free
-
 
   subroutine find(name, iline, ii)
     character(len = *), intent(in) :: name
@@ -104,7 +90,6 @@ contains
     iline = 0
   END SUBROUTINE find
 
-
   subroutine var_character(name, default, description, var)
     character(len = *), intent(in) :: name
     character(len = *), intent(in) :: default
@@ -123,9 +108,8 @@ contains
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
     end if
-    if (output) write(*,"(3x,a,1x,a,t30,2a)") name, var, '!', description
+    if (output) write(*,"(1x,a,3x,a,1x,a,t30,2a)") "|", name, var, '!', description
   END SUBROUTINE var_character
-
 
   subroutine var_logical(name, default, description, var)
     character(len = *), intent(in) :: name
@@ -143,9 +127,8 @@ contains
           var = .true.
        end if
     end if
-    if (output) write(*,"(3x,a,1x,l1,t30,2a)") name, var, '!', description
+    if (output) write(*,"(1x,a,3x,a,1x,l1,t30,2a)") "|", name, var, '!', description
   END SUBROUTINE var_logical
-
 
   subroutine var_integer(name, default, description, var)
     character(len = *), intent(in) :: name
@@ -165,9 +148,8 @@ contains
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
     end if
-    if (output) write(*,"(3x,a,1x,I0,t30,2a)") name, var, '!', description
+    if (output) write(*,"(1x,a,3x,a,1x,I0,t30,2a)") "|", name, var, '!', description
   END SUBROUTINE var_integer
-
 
   subroutine var_integer_array(name, default, description, var)
     character(len = *), intent(in) :: name
@@ -188,14 +170,13 @@ contains
        end if
     end if
     if (output) then
-       write(*,"(3x,a,1x)", advance = "NO") name
+       write(*,"(1x,a,3x,a,1x)", advance = "NO") "|", name
        do i = 1, size(var), 1
           write(*,"(1x,I0)", advance = "NO") var(i)
        end do
        write(*,"(t7,2a)") '!', description
     end if
   END SUBROUTINE var_integer_array
-
 
   subroutine var_double(name, default, description, var)
     character(len = *), intent(in) :: name
@@ -215,9 +196,8 @@ contains
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
     end if
-    if (output) write(*,"(3x,a,1x,es9.2,t30,2a)") name, var, '!', description
+    if (output) write(*,"(1x,a,3x,a,1x,es9.2,t30,2a)") "|", name, var, '!', description
   END SUBROUTINE var_double
-
 
   subroutine var_keyword(name, length, default, list, description, var)
     character(len = *), intent(in) :: name
@@ -256,7 +236,8 @@ contains
        var = j - 1
     end if
     if (output) then
-       write(*,"(3x,a,1x,a,t30,3a)", advance = "NO") name, list(var + 1), '!', description, " ("
+       write(*,"(1x,a,3x,a,1x,a,t30,3a)", advance = "NO") &
+            & "|", name, list(var + 1), '!', description, " ("
        write(*,"(A)", advance = "NO") trim(list(1))
        do i = 2, size(list), 1
           write(*,"(2A)", advance = "NO") ", ", trim(list(i))
@@ -264,7 +245,6 @@ contains
        write(*,"(A)") ")"
     end if
   END SUBROUTINE var_keyword
-
 
   subroutine var_ids(name, default, list, description, var)
     character(len = *), intent(in) :: name
@@ -293,7 +273,7 @@ contains
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
     end if
-    if (output) write(*,"(3x,a,1x,I0,t30,2a)") name, var, '!', description
+    if (output) write(*,"(1x,a,3x,a,1x,I0,t30,2a)") "|", name, var, '!', description
   END SUBROUTINE var_ids
 
 end module module_input
