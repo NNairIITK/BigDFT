@@ -2359,7 +2359,7 @@ subroutine print_general_parameters(nproc,input,atoms)
   character(len = 11) :: potden
   character(len = 12) :: dos
   integer :: nthreads
-!$ integer :: omp_get_num_threads
+!$ integer :: omp_get_max_threads
 
   ! Output for atoms and k-points
   write(*,'(1x,a,a,a)') '--- (file: posinp.', &
@@ -2543,11 +2543,11 @@ subroutine print_general_parameters(nproc,input,atoms)
   ! Numbers of MPI processes and OpenMP threads
   write(*,'(1x,a,1x,i0)') 'Number of MPI processes:',nproc
   nthreads = 0
-!$  nthreads=omp_get_num_threads()
+!$  nthreads=omp_get_max_threads()
   if (nthreads == 0) then
       write(*,'(1x,a)') 'MPI process does not use OpenMP'
   else
-      write(*,'(1x,a,1x,i0)') 'Number of OpenMP threads per MPI process:',nthreads
+      write(*,'(1x,a,1x,i0)') 'Number of maximal OpenMP threads per MPI process:',nthreads
   end if
   write(*,*)
 
