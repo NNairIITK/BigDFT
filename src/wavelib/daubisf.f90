@@ -861,6 +861,8 @@ subroutine daub_to_isf(lr,w,psi,psir)
 
   select case(lr%geocode)
   case('F')
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir(1))
+
      call uncompress_forstandard_short(lr%d%n1,lr%d%n2,lr%d%n3,&
           lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
           lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 

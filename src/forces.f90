@@ -84,7 +84,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
      if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
         !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
         !definition which brings to Chemical Potential
-        functional_ref=abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap) 
+        functional_ref=-abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap) 
      else
         stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated' 
      end if
@@ -180,7 +180,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
               functional(km)=rst%orbs%HLgap
            else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
               !definition which brings Chemical potential
-              functional(km)=abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap)
+              functional(km)=-abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap)
            else
               functional(km)=rst%orbs%eval(iorb_ref)
            end if

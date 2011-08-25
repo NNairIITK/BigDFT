@@ -289,32 +289,6 @@ program memguess
        atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
 
-  !verify the communication repartition
-  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,norb_par,'norb_par',subname)
-  allocate(nvctr_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,nvctr_par,'nvctr_par',subname)
-
-  call kpts_to_procs_via_obj(nproc,orbs%nkpts,orbs%norb,norb_par)
-  call kpts_to_procs_via_obj(nproc,orbs%nkpts,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,nvctr_par)
-  info=-1
-  call check_kpt_distributions(nproc,orbs%nkpts,orbs%norb,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,nvctr_par,info,lubo,lubc)
-  if (info/=0) then !redo the distribution based on the orbitals scheme
-     info=-1
-     call components_kpt_distribution(nproc,orbs%nkpts,orbs%norb,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,norb_par,nvctr_par)
-     call check_kpt_distributions(nproc,orbs%nkpts,orbs%norb,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,nvctr_par,info,lubo,lubc)
-  end if
-
-
-  i_all=-product(shape(nvctr_par))*kind(nvctr_par)
-  deallocate(nvctr_par,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_par',subname)
-  i_all=-product(shape(norb_par))*kind(norb_par)
-  deallocate(norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'norb_par',subname)
-
-
-
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
      stop
