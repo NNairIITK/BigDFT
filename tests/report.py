@@ -71,10 +71,10 @@ for file in files:
         #test if time is present
         time = re_time.findall(line)
         if time:
-            time = "%ss" % time[0]
+            time = "%7ss" % time[0]
         else:
             time = ""
-        print "%s%-24s %-28s %s %s%s" % (start,dir,fic,state,time,end)
+        print "%s%-24s %-28s %s%s%s" % (start,dir,fic,state,time,end)
     else:
         start = start_fail
         state = "cannot parse file.     failed"
