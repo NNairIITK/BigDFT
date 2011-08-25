@@ -468,8 +468,8 @@ module module_types
     integer :: nlr                                              !> Number of localization regions 
     integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
     integer :: Lnprojel                                         !> Total number of projector elements
-    type(orbitals_data) :: orbs                                 !> Global orbitals descriptors
-    type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
+    !type(orbitals_data) :: orbs                                 !> Global orbitals descriptors
+    !type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
     type(communications_arrays) :: comms                        !> Global communication descriptors
     type(locreg_descriptors) :: Glr                             !> Global region descriptors
     type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors

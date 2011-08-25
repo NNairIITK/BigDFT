@@ -115,15 +115,18 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
   tag=20000
-  call initCommsOrtho(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%orbsGauss%inWhichLocreg, input, lin%lig%op, lin%lig%comon, tag)
+  call initCommsOrtho(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%orbsGauss%inWhichLocreg, &
+       input, lin%lig%op, lin%lig%comon, tag)
 
   ! Initialize the parameters needed for communicationg the potential.
   tag=40000
   call copy_locreg_descriptors(Glr, lin%lig%lzdig%Glr, subname)
-  call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lig%orbsig, lin%lig%lzdig, lin%lig%comgp, lin%lig%orbsig%inWhichLocreg, tag)
+  call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lig%orbsig, lin%lig%lzdig, lin%lig%comgp, &
+       lin%lig%orbsig%inWhichLocreg, tag)
 
   call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
-  !call initCompressedMatmul2(lin%lig%orbsig%norb, lin%lig%mad%nseg, lin%lig%mad%keyg, lin%lig%mad%nsegmatmul, lin%lig%mad%keygmatmul, lin%lig%mad%keyvmatmul)
+  !call initCompressedMatmul2(lin%lig%orbsig%norb, lin%lig%mad%nseg, lin%lig%mad%keyg, lin%lig%mad%nsegmatmul, &
+  !      lin%lig%mad%keygmatmul, lin%lig%mad%keyvmatmul)
   call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
 
   ! Deallocate the local arrays.
@@ -200,7 +203,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer, dimension(lmax+1) :: nl
   real(gp), dimension(noccmax,lmax+1) :: occup
   integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr, kk, iiorb, ndim_lhchi
-  integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, nlocregPerMPI, jproc, jlrold, norbTarget, norbpTemp, isorbTemp, nprocTemp
+  integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, nlocregPerMPI, jproc, jlrold
+  integer:: norbTarget, norbpTemp, isorbTemp, nprocTemp
   integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
 
 
@@ -286,11 +290,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call deallocate_orbitals_data(lin%lig%orbsGauss, subname)
   ii=lin%lig%orbsGauss%npsidim
   call nullify_orbitals_data(lin%lig%orbsGauss)
-  call nullify_orbitals_data(lin%lig%lzdGauss%orbs)
+  !call nullify_orbitals_data(lin%lig%lzdGauss%orbs)
   call copy_orbitals_data(lin%lig%orbsig, lin%lig%orbsGauss, subname)
-  call copy_orbitals_data(lin%lig%orbsig, lin%lig%lzdGauss%orbs, subname)
+  !call copy_orbitals_data(lin%lig%orbsig, lin%lig%lzdGauss%orbs, subname)
   lin%lig%orbsGauss%npsidim=ii
-  lin%lig%lzdGauss%orbs%npsidim=ii
+  !lin%lig%lzdGauss%orbs%npsidim=ii
 
   ! Allcoate the array holding the orbitals. lchi2 are the atomic orbitals with the larger cutoff, whereas
   ! lchi are the atomic orbitals with the smaller cutoff.
@@ -309,7 +313,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Transform the atomic orbitals to the wavelet basis.
   lchi2=0.d0
-  call gaussians_to_wavelets_new2(iproc, nproc, lin%lig%lzdGauss, input%hx, input%hy, input%hz, G, &
+  call gaussians_to_wavelets_new2(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2)
 
   ! Orthonormalize the atomic orbitals.
@@ -317,7 +321,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !     lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lin%lig%mad, lchi2)
   ! Always use the exact Loewdin method.
   call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, lin%nItOrtho, lin%blocksize_pdsyev, &
-       lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lin%lig%mad, lchi2)
+       lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, &
+       lin%lig%op, input, lin%lig%mad, lchi2)
 
   allocate(lchi(lin%lig%orbsig%npsidim+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
@@ -345,9 +350,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   end if
 
   ! Deallocate locrad, which is not used any longer.
-  i_all=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad,stat=i_stat)
-  call memocc(i_stat,i_all,'locrad',subname)
+  iall=-product(shape(locrad))*kind(locrad)
+  deallocate(locrad,stat=istat)
+  call memocc(istat,iall,'locrad',subname)
 
   ! Create the potential. First calculate the charge density.
   if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
@@ -511,7 +516,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       !!     withConfinement, pkernel=pkernelseq)
       if(.not.skip(iat)) then
           ii=ii+1
-          call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, input%hx, input%hy, input%hz, rxyz,&
+          call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, &
+               input%hx, input%hy, input%hz, rxyz,&
                ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,ii), &
                ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
                withConfinement, .false., doNotCalculate=doNotCalculate, pkernel=pkernelseq)
@@ -597,8 +603,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call cpu_time(t1)
   allocate(ham3(lin%lig%orbsig%norb,lin%lig%orbsig%norb,nlocregPerMPI), stat=istat)
   call memocc(istat,ham3,'ham3',subname)
-  call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, onWhichMPITemp, Glr, input, &
-       lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, lin%mad, ham3)
+  call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, &
+       onWhichMPITemp, Glr, input, lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, &
+       nlocregPerMPI, lchi, lhchi, skip, lin%mad, ham3)
   !!do iat=1,nlocregPerMPI
   !!    do iorb=1,lin%lig%orbsig%norb
   !!        do jorb=1,lin%lig%orbsig%norb
@@ -1036,15 +1043,18 @@ do iat=1,lzdig%nlr
     if(.not.skip(iat)) then
         ii=ii+1
         !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,ii), comon)
-        call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
+        call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, &
+             lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
 
     else
         !write(*,'(2(a,i0))') 'iproc ',iproc,' skips locreg ',iat
         !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, zeroArray, comon)
-        call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, zeroArray, comon%nsendBuf, comon%sendBuf)
+        call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, &
+             op, zeroArray, comon%nsendBuf, comon%sendBuf)
     end if
     !!call calculateOverlapMatrix2(iproc, nproc, orbsig, op, comon, onWhichAtom, mad, hamTemp(1,1))
-    call calculateOverlapMatrix3(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
+    call calculateOverlapMatrix3(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, &
+         comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
     if(iproc==0) write(*,'(a)') 'done.'
     
     ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
@@ -1782,7 +1792,8 @@ call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%
      vecOvrlp, newComm, ovrlp)
 
 ! Now apply the orthoconstraint.
-call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, newComm, orbs%norb, &
+call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
+     blocksize_pdgemm, newComm, orbs%norb, &
      norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, mad, grad)
 
 !call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
@@ -2237,7 +2248,8 @@ correctionIf: if(correctionOrthoconstraint==0) then
              ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
     
     else
-        call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
+        call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), &
+             norb, lagmat(1,1), norb, &
              0.d0, ovrlp_minus_one_lagmat(1,1), norb)
         ! Transpose lagmat
         do iorb=1,norb
@@ -2247,8 +2259,8 @@ correctionIf: if(correctionOrthoconstraint==0) then
                 lagmat(iorb,jorb)=tt
             end do
         end do
-        call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
-             0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
+        call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, &
+            lagmat(1,1), norb, 0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
     end if
 else if(correctionOrthoconstraint==1) then correctionIf
     do iorb=1,norb
@@ -2484,7 +2496,7 @@ type(linearParameters),intent(in):: lin
 type(linear_zone_descriptors),intent(inout):: lzdig
 integer,dimension(at%ntypes):: norbsPerType
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-real(8),dimension(lzdig%orbs%npsidim):: lchi
+real(8),dimension(orbsig%npsidim):: lchi
 real(8),dimension(lin%orbs%npsidim):: lphi
 real(8),dimension(3,at%nat):: rxyz
 integer,dimension(orbs%norb):: onWhichAtomPhi
@@ -2560,12 +2572,16 @@ logical:: same
       ! Allocate the local arrays.
       call allocateArrays()
 
-      call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, lin%locrad, rxyz, lin%lzd, matmin%mlr)
+      call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
+           lin%locrad, rxyz, lin%lzd, matmin%mlr)
       !call extractMatrix(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, at%nat, ham, matmin, hamextract)
-      call extractMatrix3(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
-      call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lin%orbs, orbsig, onWhichAtom, onWhichAtomPhi, comom)
+      call extractMatrix3(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
+           ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
+      call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lin%orbs, orbsig, &
+           onWhichAtom, onWhichAtomPhi, comom)
       tag=1
-      call initCommsMatrixOrtho(iproc, ip%nproc, lin%orbs%norb, ip%norb_par, ip%isorb_par, onWhichAtomPhi, ip%onWhichMPI, tag, comom)
+      call initCommsMatrixOrtho(iproc, ip%nproc, lin%orbs%norb, ip%norb_par, ip%isorb_par, &
+           onWhichAtomPhi, ip%onWhichMPI, tag, comom)
       allocate(lcoeff(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
       call memocc(istat, lcoeff, 'lcoeff', subname)
       allocate(lgrad(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
@@ -2657,7 +2673,8 @@ logical:: same
     
     
           ! Orthonormalize the coefficients.
-          call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
+          call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
+               lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
                lin%lzd%nlr, newComm, lin%mad, matmin%mlr, lcoeff, comom)
           !call orthonormalizeVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &

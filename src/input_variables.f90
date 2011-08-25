@@ -1074,7 +1074,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
           "|","fftcache",inputs%ncache_fft,  '!Cache size for the FFT'
      write(*,"(1x,a,3x,a,1x,a,t30,a)") &
           "|","accel",string,                '!Acceleration (NO, CUDAGPU, OCLGPU)'
-     write(*,"(1x,a,3x,a,1x,l,t30,a)") &             
+     write(*,"(1x,a,3x,a,1x,l3,t30,a)") &             
           "|","blas",GPUblas,                '!CUBLAS acceleration'
      write(*,"(1x,a,3x,a,1x,f6.2,t30,a)") &          
           "|","projrad",inputs%projrad,      '!Radius of the projector as a function of the maxrad'
@@ -1083,10 +1083,10 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
      !Input guess performance variables
      if(inputs%directDiag) then                   
-        write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
+        write(*,'(1x,a,3x,a,1x,l3,t30,a)') &          
           "|","ig_diag",inputs%directDiag,   '!Input guess: Direct diagonalization of Hamiltonian'
      else if(.not.inputs%directDiag) then         
-        write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
+        write(*,'(1x,a,3x,a,1x,l3,t30,a)') &          
           "|","ig_diag",inputs%directDiag,   '!Input guess: Iterative diagonalization of Hamiltonian'
         write(*,'(1x,a,3x,a,1x,i0,t30,a)') &
           "|","ig_norbp",inputs%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'

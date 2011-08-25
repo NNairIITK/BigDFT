@@ -84,7 +84,8 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
       !        write(10000+iproc,'(2i8,es20.8)') iorb, jorb, ovrlp(jorb,iorb)
       !    end do
       !end do
-      call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, orbs%norb, mad, ovrlp)
+      call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, &
+            blocksize_pdgemm, orbs%norb, mad, ovrlp)
       !!if(methTransformOverlap==0) then
       !!    call transformOverlapMatrix(iproc, nproc, mpi_comm_world, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
       !!else
@@ -208,7 +209,8 @@ logical,dimension(:,:),allocatable:: expanded
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
   call cpu_time(t1)
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
-  call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+  call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
+       lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
   call cpu_time(t2)
   timeExtract=t2-t1
   call cpu_time(t1)
@@ -246,7 +248,8 @@ logical,dimension(:,:),allocatable:: expanded
   ! Expand the receive buffer, i.e. lphi
   call cpu_time(t1)
   !call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
-  call expandRemainingOrbitals(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, expanded, lphiovrlp)
+  call expandRemainingOrbitals(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
+       lin%comon, expanded, lphiovrlp)
   call cpu_time(t2)
   timeExpand=t2-t1
   !!do iall=1,lin%op%ndim_lphiovrlp
@@ -300,12 +303,18 @@ logical,dimension(:,:),allocatable:: expanded
   timeExpand=timeExpand/dble(nproc)
   timeApply=timeApply/dble(nproc)
   timeExtract=timeExtract/dble(nproc)
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for computation:', timeComput, '=', 100.d0*timeComput/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for communication:', timeCommun, '=', 100.d0*timeCommun/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for calculating overlap:', timeCalcMatrix, '=', 100.d0*timeCalcMatrix/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expansion:', timeExpand, '=', 100.d0*timeExpand/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for applying orthoconstraint:', timeApply, '=', 100.d0*timeApply/(timeComput+timeCommun), '%'
-  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=', 100.d0*timeExtract/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for computation:', timeComput, '=', &
+       100.d0*timeComput/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for communication:', timeCommun, '=', &
+       100.d0*timeCommun/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for calculating overlap:', timeCalcMatrix, &
+       '=', 100.d0*timeCalcMatrix/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for expansion:', timeExpand, '=', &
+        100.d0*timeExpand/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for applying orthoconstraint:', timeApply, &
+        '=', 100.d0*timeApply/(timeComput+timeCommun), '%'
+  if(iproc==0) write(*,'(3x,a,es9.3,a,f4.1,a)') 'time for extract:', timeExtract, '=', &
+         100.d0*timeExtract/(timeComput+timeCommun), '%'
 
 
 end subroutine orthoconstraintNonorthogonal
@@ -1387,7 +1396,8 @@ testLoop: do
             orbdest=comon%comarr(10,jorb,jproc)
             if(mpisource==mpidest) then
                 if(iproc==mpidest) then
-                    call expandOneOrbital(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
+                    call expandOneOrbital(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, &
+                         orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
                     expanded(orbsource,orbdest-orbs%isorb)=.true.
                 end if
             end if
@@ -1403,7 +1413,8 @@ testLoop: do
                 orbsource=comon%comarr(9,jorb,jproc)
                 orbdest=comon%comarr(10,jorb,jproc)
                 if(iproc==mpidest) then
-                    call expandOneOrbital(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
+                    call expandOneOrbital(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, &
+                         orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
                     expanded(orbsource,orbdest-orbs%isorb)=.true.
                 end if
                 if(mpisource/=mpidest) then
@@ -1836,7 +1847,8 @@ if(blocksize_pdgemm<0) then
     !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
     ovrlp_minus_one_lagmat=0.d0
-    call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+    call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
+         mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
     ! Transpose lagmat
     do iorb=1,orbs%norb
         do jorb=iorb+1,orbs%norb
@@ -1848,10 +1860,11 @@ if(blocksize_pdgemm<0) then
     !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
     ovrlp_minus_one_lagmat_trans=0.d0
-    call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+    call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
+         mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
 else
-    call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
-         0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+    call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, &
+         ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, 0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
     ! Transpose lagmat
     do iorb=1,orbs%norb
         do jorb=iorb+1,orbs%norb
@@ -1860,7 +1873,8 @@ else
             lagmat(iorb,jorb)=tt
         end do
     end do
-    call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
+    call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), &
+         orbs%norb, lagmat(1,1), orbs%norb, &
          0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
 end if
 call cpu_time(t2)
@@ -1962,7 +1976,8 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
       ! Calculate ovrlp**2
       allocate(ovrlp2(norb,norb), stat=istat)
       call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
       
       ! Build ovrlp**(-1) with a Taylor expansion up to second order.  
       do iorb=1,norb
@@ -1986,8 +2001,10 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
       call memocc(istat, ovrlp2, 'ovrlp2', subname)
       allocate(ovrlp3(norb,norb), stat=istat)
       call memocc(istat, ovrlp3, 'ovrlp3', subname)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
       
       ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
       do iorb=1,norb
@@ -2129,7 +2146,8 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       ! Calculate ovrlp**2
       allocate(ovrlp2(norb,norb), stat=istat)
       call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
       
       ! Build ovrlp**(-1/2) with a Taylor expansion up to second order.  
       do iorb=1,norb
@@ -2155,8 +2173,10 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       call memocc(istat, ovrlp2, 'ovrlp2', subname)
       allocate(ovrlp3(norb,norb), stat=istat)
       call memocc(istat, ovrlp3, 'ovrlp3', subname)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
       
       ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
       do iorb=1,norb
@@ -2727,7 +2747,8 @@ do iorb=1,orbs%norbp
         ! Starting index of orbital jjorb
         jst=op%indexInRecvBuf(iorb,jjorb)
         ldim=op%olr(jorb,iiorb)%wfd%nvctr_c+7*op%olr(jorb,iiorb)%wfd%nvctr_f
-        call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), op%indexExpand(jst:jst+ldim-1))
+        call index_of_Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
+             input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), op%indexExpand(jst:jst+ldim-1))
         ind=ind+gdim
     end do
     ilrold=ilr

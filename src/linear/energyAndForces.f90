@@ -164,64 +164,64 @@ real(wp) :: sum_psi
 
 !#####################################################################
 !DEBUG
-     
-sum_psi = sum(psi)
-call mpiallred(sum_psi,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-if(iproc==0) print *,'sum(psi)',sum_psi
-
-     call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
-!    call mpiallred(gxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
-
-    if(iproc==0) then
-    do i_all=1,atoms%nat
-    open(44,file='Force_ref.dat',status='unknown')
-    print *,'(C)Forces on atom',i_all,' :',iproc,fxyz(:,i_all)
-    write(44,*)'Forces on atom',i_all,' :',iproc,fxyz(:,i_all)
-    end do
-    end if
-
-    allocate(lin%Lzd%Lnlpspd(lin%Lzd%nlr),stat=i_stat)
-    do i_all=1,lin%Lzd%nlr
-       ! allocate projflg
-       allocate(lin%Lzd%Llr(i_all)%projflg(atoms%nat),stat=i_stat)
-       call memocc(i_stat,lin%Lzd%Llr(i_all)%projflg,'Lzd%Llr(ilr)%projflg',subname)
-       call nlpspd_to_locreg(in,iproc,lin%Lzd%Glr,lin%Lzd%Llr(i_all),rxyz,atoms,orbs,&
-        &      radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,lin%Lzd%Gnlpspd,lin%Lzd%Lnlpspd(i_all),lin%Lzd%Llr(i_all)%projflg)
-    end do
-
-    sum_psi = 0.0 
-    do iorb = 1,orbs%norb
-       iels=1
-       do jorb=1,lin%orbs%norbp
-          ilr=lin%lzd%orbs%inwhichlocreg(jorb+lin%orbs%isorb)
-          do ii=1,lin%Lzd%LLr(ilr)%wfd%nvctr_c+7*lin%Lzd%LLr(ilr)%wfd%nvctr_f
-             sum_psi = sum_psi + coeff(jorb+lin%orbs%isorb,iorb)*phi(iels)
-             iels=iels+1
-          end do
-       end do
-       print *,'iproc,iorb,iels,size(phi)',iproc,iorb,iels-1,size(phi)
-    end do
-    print *,'orbs%npsidim,lin%orbs%npsidim',orbs%npsidim,lin%orbs%npsidim,lin%Lzd%Glr%wfd%nvctr_c+7*lin%Lzd%Glr%wfd%nvctr_f
-    call mpiallred(sum_psi,1,MPI_SUM,MPI_COMM_WORLD,ierr)
-    if(iproc==0) print *,'linTMO:sum(psi)',sum_psi
-
-    proj = 0.0_wp
-    gxyz = 0.0_wp
-    fxyz = 0.0_wp
-    call Linearnonlocal_forces(iproc,lin%lzd,in%hx,in%hy,in%hz,atoms,rxyz,orbs,proj,psi,gxyz,.false.,lin%Lzd%orbs,coeff,phi)
-!    call mpiallred(gxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
-    call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
-
-    if(iproc==0) then
-    open(44,file='Force.dat',status='unknown')
-    do i_all=1,atoms%nat
-    print *,'(L)Forces on atom',i_all,' :',iproc,fxyz(:,i_all)
-    write(44,*)'Forces on atom',i_all,' :',iproc,fxyz(:,i_all)
-    end do
-    end if
-    call mpi_finalize(ierr)
-    stop
-
+!!     
+!!sum_psi = sum(psi)
+!!call mpiallred(sum_psi,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!if(iproc==0) print *,'sum(psi)',sum_psi
+!!
+!!     call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!    call mpiallred(gxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!
+!!    if(iproc==0) then
+!!    do i_all=1,atoms%nat
+!!    open(44,file='Force_ref.dat',status='unknown')
+!!    write(*,'(a,i0,a,i0,2x,3(3x,es15.6))') '(C)Forces on atom ',i_all,' :',iproc,fxyz(:,i_all)
+!!    write(44,*)'Forces on atom',i_all,' :',iproc,fxyz(:,i_all)
+!!    end do
+!!    end if
+!!
+!!    allocate(lin%Lzd%Lnlpspd(lin%Lzd%nlr),stat=i_stat)
+!!    do i_all=1,lin%Lzd%nlr
+!!       ! allocate projflg
+!!       allocate(lin%Lzd%Llr(i_all)%projflg(atoms%nat),stat=i_stat)
+!!       call memocc(i_stat,lin%Lzd%Llr(i_all)%projflg,'Lzd%Llr(ilr)%projflg',subname)
+!!       call nlpspd_to_locreg(in,iproc,lin%Lzd%Glr,lin%Lzd%Llr(i_all),rxyz,atoms,orbs,&
+!!        &      radii_cf,in%frmult,in%frmult,in%hx,in%hy,in%hz,lin%Lzd%Gnlpspd,lin%Lzd%Lnlpspd(i_all),lin%Lzd%Llr(i_all)%projflg)
+!!    end do
+!!
+!!!    sum_psi = 0.0 
+!!!    do iorb = 1,orbs%norb
+!!!       iels=1
+!!!       do jorb=1,lin%orbs%norbp
+!!!          ilr=lin%orbs%inwhichlocreg(jorb+lin%orbs%isorb)
+!!!          do ii=1,lin%Lzd%LLr(ilr)%wfd%nvctr_c+7*lin%Lzd%LLr(ilr)%wfd%nvctr_f
+!!!             sum_psi = sum_psi + coeff(jorb+lin%orbs%isorb,iorb)*phi(iels)
+!!!             iels=iels+1
+!!!          end do
+!!!       end do
+!!       !print *,'iproc,iorb,iels,size(phi)',iproc,iorb,iels-1,size(phi)
+!!!    end do
+!!    !print *,'orbs%npsidim,lin%orbs%npsidim',orbs%npsidim,lin%orbs%npsidim,lin%Lzd%Glr%wfd%nvctr_c+7*lin%Lzd%Glr%wfd%nvctr_f
+!!!    call mpiallred(sum_psi,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!!    if(iproc==0) print *,'linTMO:sum(psi)',sum_psi
+!!
+!!    proj = 0.0_wp
+!!    gxyz = 0.0_wp
+!!    fxyz = 0.0_wp
+!!    call Linearnonlocal_forces(iproc,nproc,lin%lzd,in%hx,in%hy,in%hz,atoms,rxyz,orbs,proj,psi,gxyz,.false.,lin%orbs,coeff,phi)
+!!!    call mpiallred(gxyz(1,1),3*atoms%nat,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!    call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!
+!!    if(iproc==0) then
+!!    open(44,file='Force.dat',status='unknown')
+!!    do i_all=1,atoms%nat
+!!    write(*,'(a,i0,a,i0,2x,3(3x,es15.6))') '(L)Forces on atom ',i_all,' :',iproc,fxyz(:,i_all)
+!!    write(44,*)'Forces on atom',i_all,' :',iproc,fxyz(:,i_all)
+!!    end do
+!!    end if
+!!    call mpi_finalize(ierr)
+!!    stop
+!!
 !END DEBUG
 !#############################################################################
 

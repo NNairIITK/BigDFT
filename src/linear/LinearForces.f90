@@ -125,7 +125,7 @@ END SUBROUTINE Linearatom_projector
 !>  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !!  belonging to iproc and adds them to the force array
 !!  recalculate the projectors at the end if refill flag is .true.
-subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
+subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      orbs,proj,psi,fsep,refill,linorbs,coeff,phi)
   use module_base
   use module_types
@@ -133,7 +133,7 @@ subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
   !Arguments-------------
   type(atoms_data), intent(in) :: at
   logical, intent(in) :: refill
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc, nproc
   real(gp), intent(in) :: hx,hy,hz
   type(linear_zone_descriptors) :: Lzd
   type(orbitals_data), intent(in) :: orbs
@@ -146,28 +146,23 @@ subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
   real(8),dimension(linorbs%norb,orbs%norb),intent(in),optional:: coeff       !optional for Trace Minimizing orbitals
   !local variables--------------
   character(len=*), parameter :: subname='Linearnonlocal_forces'
-  integer :: istart_c,iproj,iat,ityp,i,j,l,m
+  integer :: istart_c,iproj,iat,ityp,i,j,l,m,jproc, ierr
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,jorbd
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,ispinor
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb,fxyz_tmorb
-  real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod,scalprod2
+  real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod, scalprodGlobal
   integer :: ilr,iatom,ii,iiat,iilr,iorb2,nilr,iiorb,ilr2,kptshft,orbtot
   integer :: norb,itmorb,itmorb2,jorb2
   real(gp) :: spi2,sp1,sum_scalprod
-  integer,dimension(:),allocatable :: ilrtable
+  integer,dimension(:),allocatable :: ilrtable, sendcounts, displs
   logical :: calcproj,newvalue,useTMO
 
   !quick return if no orbitals on this processor
-  if (orbs%norbp == 0) return
+  if (orbs%norbp == 0 .and. .not.present(phi)) return
 
-  !always put complex scalprod
-  !also nspinor for the moment is the biggest as possible
-  allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)   
-  call memocc(i_stat,scalprod,'scalprod',subname)
-  call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
 
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
@@ -234,6 +229,18 @@ subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
      nilr = ii
   end if
 
+  !always put complex scalprod
+  !also nspinor for the moment is the biggest as possible
+  if(useTMO) then
+     allocate(scalprod(2,0:3,7,3,4,at%nat,max(linorbs%norbp,1)*linorbs%nspinor+ndebug),stat=i_stat)   
+     call memocc(i_stat,scalprod,'scalprod',subname)
+     call razero(2*4*7*3*4*at%nat*max(linorbs%norbp,1)*linorbs%nspinor,scalprod)
+  else
+     allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)   
+     call memocc(i_stat,scalprod,'scalprod',subname)
+     call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
+  end if
+
 !##############################################################################################
 ! Scalar Product of projectors and wavefunctions: Linear scaling with Trace Minimizing Orbitals
 !##############################################################################################
@@ -241,7 +248,7 @@ subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
   if (useTMO) then
 
      !starting k-point
-     ikpt=orbs%iokpt(1)
+     ikpt=1!orbs%iokpt(1)
      ispsi_k=1
      orbtot=0
 !DEACTIVATED K-points
@@ -337,10 +344,39 @@ subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
 !        ispsi_k=ispsi
 !     end do loop_kptTMO
 
+
+! Communicate scalprod
+allocate(scalprodGlobal(2,0:3,7,3,4,at%nat,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
+call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
+allocate(sendcounts(0:nproc-1), stat=i_stat)
+call memocc(i_stat,sendcounts,'sendcounts',subname)
+allocate(displs(0:nproc-1), stat=i_stat)
+call memocc(i_stat,displs,'displs',subname)
+
+displs(0)=0
+do jproc=0,nproc-1
+    sendcounts(jproc)=2*4*7*3*4*at%nat*linorbs%norb_par(jproc)*linorbs%nspinor
+    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+end do
+call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
+     scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
+
+i_all = -product(shape(sendcounts))*kind(sendcounts)
+deallocate(sendcounts,stat=i_stat)
+call memocc(i_stat,i_all,'sendcounts',subname)
+i_all = -product(shape(displs))*kind(displs)
+deallocate(displs,stat=i_stat)
+call memocc(i_stat,i_all,'displs',subname)
+i_all = -product(shape(scalprod))*kind(scalprod)
+deallocate(scalprod,stat=i_stat)
+call memocc(i_stat,i_all,'scalprod',subname)
+
+
+
 !DEBUG
-sum_scalprod = sum(scalprod)
-call mpiallred(sum_scalprod,1,MPI_SUM,MPI_COMM_WORLD,i_all)
-if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
+!sum_scalprod = sum(scalprod)
+!call mpiallred(sum_scalprod,1,MPI_SUM,MPI_COMM_WORLD,i_all)
+!if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
 !END DEBUG
 
 !##########################################################################################
@@ -608,7 +644,7 @@ if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
      
      !apply the projectors  k-point of the processor
      !starting k-point
-     ikpt=orbs%iokpt(1)
+     ikpt=1!orbs%iokpt(1)
      orbtot = 0
 !     loop_kptF: do                          !DISABLED KPOINTS
 !
@@ -618,11 +654,11 @@ if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
 
         kptshft = orbtot
         ! loop over all my orbitals for calculating forces
-        do iorb=1,orbs%norb
+        do iorb=1,orbs%norbp
            call razero(3*at%nat,fxyz_orb)
-           do itmorb = 1, linorbs%norbp
+           do itmorb = 1, linorbs%norb
               jorb = itmorb + kptshft
-              do itmorb2=1,linorbs%norbp
+              do itmorb2=1,linorbs%norb
                  jorb2=itmorb2 + kptshft
                  call razero(3*at%nat,fxyz_tmorb)
                  do ispinor=1,orbs%nspinor,ncplx
@@ -634,13 +670,13 @@ if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
                                 do m=1,2*l-1
                                    do icplx=1,ncplx
                                       ! scalar product with the derivatives in all the directions
-                                      sp0=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                      sp1=real(scalprod(icplx,0,m,i,l,iat,jorb2),gp)
+                                      sp0=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
+                                      !sp1=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb2),gp)
                                       do idir=1,3
-                                         spi=real(scalprod(icplx,idir,m,i,l,iat,jorb2),gp)
-                                         spi2=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                         spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb2),gp)
+                                       !  spi2=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
                                          fxyz_tmorb(idir,iat)=fxyz_tmorb(idir,iat)+&
-                                              at%psppar(l,i,ityp)*(sp0*spi+sp1*spi2)
+                                              at%psppar(l,i,ityp)*(sp0*spi)!+sp1*spi2)
                                       end do
                                    end do
                                 end do
@@ -664,11 +700,11 @@ if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
                                          !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
                                          !(the two factor is below)
                                          do icplx=1,ncplx
-                                            sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                            sp0j=real(scalprod(icplx,0,m,j,l,iat,jorb2),gp)
+                                            sp0i=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
+                                            sp0j=real(scalprodGlobal(icplx,0,m,j,l,iat,jorb2),gp)
                                             do idir=1,3
-                                               spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                               spj=real(scalprod(icplx,idir,m,j,l,iat,jorb2),gp)
+                                               spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
+                                               spj=real(scalprodGlobal(icplx,idir,m,j,l,iat,jorb2),gp)
                                                fxyz_tmorb(idir,iat)=fxyz_tmorb(idir,iat)+&
                                                     hij*(sp0j*spi+spj*sp0i)
                                             end do
@@ -685,8 +721,8 @@ if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
                  ! coeff is REAL (only finite systems???)
                  do idir=1,3
                     do iat=1,at%nat
-                       fxyz_orb(idir,iat) = fxyz_orb(idir,iat) + coeff(jorb+linorbs%isorb,iorb)*coeff(jorb2+linorbs%isorb,iorb)&
-                                            *fxyz_tmorb(idir,iat)
+                       fxyz_orb(idir,iat) = fxyz_orb(idir,iat) + coeff(jorb,iorb+orbs%isorb)*coeff(jorb2,iorb+orbs%isorb)&
+                            *fxyz_tmorb(idir,iat)
                     end do
                  end do
                  jorb2 = jorb2+1 
@@ -697,7 +733,7 @@ if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
 
            !orbital-dependent factor for the forces
 !           orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb)*2.0_gp
-            orbfac=orbs%occup(iorb)*2.0_gp
+            orbfac=orbs%occup(iorb+orbs%isorb)*2.0_gp
            do iat=1,at%nat
               fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
               fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
@@ -808,9 +844,15 @@ if(iproc==0) print *,'sum(scalprod)',sum(scalprod)
   deallocate(fxyz_orb,stat=i_stat)
   call memocc(i_stat,i_all,'fxyz_orb',subname)
 
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod',subname)
+  if(.not.useTMO) then
+      i_all=-product(shape(scalprod))*kind(scalprod)
+      deallocate(scalprod,stat=i_stat)
+      call memocc(i_stat,i_all,'scalprod',subname)
+  else
+      i_all=-product(shape(scalprodGlobal))*kind(scalprodGlobal)
+      deallocate(scalprodGlobal,stat=i_stat)
+      call memocc(i_stat,i_all,'scalprodGlobal',subname)
+  end if
 
 END SUBROUTINE Linearnonlocal_forces
 

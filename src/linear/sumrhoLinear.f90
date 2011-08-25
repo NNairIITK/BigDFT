@@ -46,6 +46,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
   !call system_clock(ncount0,ncount_rate,ncount_max)
 
+
   call timing(iproc,'Rho_comput    ','ON')
 
   if (iproc==0 .and. verbose >= 1) then

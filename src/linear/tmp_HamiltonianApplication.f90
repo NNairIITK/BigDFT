@@ -77,7 +77,7 @@ subroutine HamiltonianApplication2(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   size_potxc = 0
   if (exctX) then
-     size_potxc = max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norb,ngatherarr(0,1)*orbs%norb),1)
+     size_potxc = max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,ngatherarr(0,1)*orbs%norb),1)
      allocate(potxc(size_potxc+ndebug),stat=i_stat)
      call memocc(i_stat,potxc,'potxc',subname)
      if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
@@ -90,6 +90,9 @@ subroutine HamiltonianApplication2(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
          call cubic_exact_exchange(iproc,nproc,nspin,Lzd%Lpsidimtot,size_potxc,hx,hy,hz,Lzd%Glr,orbs,&
              ngatherarr,psi,potxc,eexctX)
      end if
+  else
+     allocate(potxc(1+ndebug),stat=i_stat)
+     call memocc(i_stat,potxc,'potxc',subname)
   end if
 
 !################################################################################################
@@ -275,11 +278,13 @@ subroutine local_hamiltonian2(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   if(exctX .and. size_potxc > 0 .and. .not. Lzd%linear) then
      ispot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin+1
      ! fill in the exact-exchange part
-     do iels = 1, size_potxc
-        pot(ispot+iels-1) = potxc(iels)
-     end do
+     call dcopy(size_potxc,potxc(1),1,pot(ispot),1)
+     !do iels = 1, size_potxc
+     !   if(iproc==0) write(*,'(a,3i9)') 'size(pot), ispot+iels-1, iels', &
+     !       Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin + size_potxc, ispot+iels-1, iels
+     !   pot(ispot+iels-1) = potxc(iels)
+     !end do
   end if
-
   oidx = 0
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)

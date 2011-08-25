@@ -38,7 +38,6 @@ end if
    do i=iis,iie
        glrout%projflg(i) = glrin%projflg(i)
    end do
-end if
 
 call copy_grid_dimensions(glrin%d, glrout%d)
 call copy_wavefunctions_descriptors(glrin%wfd, glrout%wfd, subname)
@@ -804,7 +803,6 @@ do i1=iis1,iie1
     orbsout%inWhichLocregP(i1) = orbsin%inWhichLocregP(i1)
 end do
 
-if(associated(orbsin%onWhichMPI))then
 if(associated(orbsout%onWhichMPI)) then
     iall=-product(shape(orbsout%onWhichMPI))*kind(orbsout%onWhichMPI)
     deallocate(orbsout%onWhichMPI, stat=istat)
@@ -845,7 +843,6 @@ call memocc(istat, orbsout%eval, 'orbsout%eval', subname)
 do i1=iis1,iie1
     orbsout%eval(i1) = orbsin%eval(i1)
 end do
-end if
 
 
 if(associated(orbsout%occup)) then
@@ -860,7 +857,6 @@ call memocc(istat, orbsout%occup, 'orbsout%occup', subname)
 do i1=iis1,iie1
     orbsout%occup(i1) = orbsin%occup(i1)
 end do
-end if
 
 
 if(associated(orbsout%spinsgn)) then

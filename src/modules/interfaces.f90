@@ -2368,11 +2368,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine allocateLinArrays
 
 
-     subroutine initLocregs(iproc, nproc, nat, rxyz, lin, input, Glr, phi, lphi)
+     subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
        use module_base
        use module_types
        implicit none
-       integer,intent(in):: iproc, nproc, nat
+       integer,intent(in):: iproc, nat
        real(8),dimension(3,nat),intent(in):: rxyz
        type(linearParameters),intent(inout):: lin
        type(input_variables),intent(in):: input
@@ -2741,14 +2741,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(linear_zone_descriptors),intent(in):: lzdig
        type(locreg_descriptors),intent(in):: Glr
        type(input_variables),intent(in):: input
-       integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom
-       integer,dimension(lzdig%orbs%norbp),intent(in):: onWhichAtomp
        type(orbitals_data),intent(in):: orbsig
-       !real(8),dimension(lzdig%orbs%npsidim),intent(in):: chi
-       !real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: hchi
+       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
+       integer,dimension(orbsig%norbp),intent(in):: onWhichAtomp
+       !real(8),dimension(orbsig%npsidim),intent(in):: chi
+       !real(8),dimension(orbsig%npsidim,nat),intent(in):: hchi
        real(8),dimension(orbsig%npsidim),intent(in):: chi
        real(8),dimension(orbsig%npsidim,nat),intent(in):: hchi
-       real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb,nat),intent(out):: ham
+       real(8),dimension(orbsig%norb,orbsig%norb,nat),intent(out):: ham
      end subroutine getHamiltonianMatrix
 
 
@@ -2972,7 +2972,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(linear_zone_descriptors),intent(inout):: lzdig
        integer,dimension(at%ntypes):: norbsPerType
        integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-       real(8),dimension(lzdig%orbs%npsidim):: lchi
+       real(8),dimension(orbsig%npsidim):: lchi
        real(8),dimension(lin%orbs%npsidim):: lphi
        real(8),dimension(3,at%nat):: rxyz
        integer,dimension(orbs%norb):: onWhichAtomPhi
@@ -3027,11 +3027,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data),intent(in):: orbsig
        type(locreg_descriptors),intent(in):: Glr
        type(input_variables),intent(in):: input
-       integer,dimension(lzdig%orbs%norb),intent(in):: onWhichAtom
-       integer,dimension(lzdig%orbs%norbp),intent(in):: onWhichAtomp
-       real(8),dimension(lzdig%orbs%npsidim),intent(in):: lchi
-       real(8),dimension(lzdig%orbs%npsidim,nat),intent(in):: lhchi
-       real(8),dimension(lzdig%orbs%norb,lzdig%orbs%norb,nat),intent(out):: ham
+       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
+       integer,dimension(orbsig%norbp),intent(in):: onWhichAtomp
+       real(8),dimension(orbsig%npsidim),intent(in):: lchi
+       real(8),dimension(orbsig%npsidim,nat),intent(in):: lhchi
+       real(8),dimension(orbsig%norb,orbsig%norb,nat),intent(out):: ham
      end subroutine getHamiltonianMatrix2
 
 
@@ -3825,7 +3825,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(linear_zone_descriptors),intent(inout):: lzdig
       integer,dimension(at%ntypes):: norbsPerType
       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-      real(8),dimension(lzdig%orbs%npsidim):: lchi
+      real(8),dimension(orbsig%npsidim):: lchi
       real(8),dimension(lin%orbs%npsidim):: lphi
       real(8),dimension(3,at%nat):: rxyz
       integer,dimension(orbs%norb):: onWhichAtomPhi
@@ -3919,8 +3919,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         character(len=*),intent(in):: subname
       end subroutine deallocateRecvBufferOrtho
 
-      subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, lorbs, onWhichAtom, lzd, &
-                 op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
+      subroutine applyOrthoconstraintNonorthogonal2(iproc, nproc, methTransformOverlap, blocksize_pdgemm, &
+                 orbs, lorbs, onWhichAtom, lzd, op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
         use module_base
         use module_types
         implicit none
@@ -4167,7 +4167,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine overlapPowerMinusOneHalfTaylor
 
-      subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb, mad, ovrlp)
+      subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, blocksize_dsyev, &
+                 blocksize_pdgemm, norb, mad, ovrlp)
         use module_base
         use module_types
         implicit none
@@ -4193,14 +4194,14 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(matrixDescriptors),intent(inout):: mad
       end subroutine initCompressedMatmul3
 
-    subroutine Linearnonlocal_forces(iproc,Lzd,hx,hy,hz,at,rxyz,&
+    subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
       orbs,proj,psi,fsep,refill,linorbs,coeff,phi)
       use module_base
       use module_types
       implicit none
       type(atoms_data), intent(in) :: at
       logical, intent(in) :: refill
-      integer, intent(in) :: iproc
+      integer, intent(in) :: iproc, nproc
       real(gp), intent(in) :: hx,hy,hz
       type(linear_zone_descriptors) :: Lzd
       type(orbitals_data), intent(in) :: orbs
@@ -4211,7 +4212,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(orbitals_data), intent(in) :: linorbs                         
       real(8),dimension(linorbs%npsidim),intent(in),optional:: phi          
       real(8),dimension(linorbs%norb,orbs%norb),intent(in),optional:: coeff  
-    end subroutine
+    end subroutine Linearnonlocal_forces
 
     subroutine HamiltonianApplication2(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
       proj,Lzd,ngatherarr,pot,psi,hpsi,&
@@ -4260,5 +4261,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
   end interface
 
-end module module_interfaces
 
+
+end module module_interfaces

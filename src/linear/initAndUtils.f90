@@ -135,7 +135,7 @@ iall=-product(shape(lin%lb%orbs%inWhichLocreg))*kind(lin%lb%orbs%inWhichLocreg)
 deallocate(lin%lb%orbs%inWhichLocreg, stat=istat)
 call memocc(istat, iall, 'lin%lb%orbs%inWhichLocreg', subname)
 
-!call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%lzd%orbs)
+!call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%orbs)
 call assignToLocreg2(iproc, at%nat, lin%lzd%nlr, input%nspin, norbsPerAtom, lin%orbs)
 if(lin%useDerivativeBasisFunctions) norbsPerAtom=4*norbsPerAtom
 !call assignToLocreg2(iproc, at%nat, lin%lb%lzd%nlr, input%nspin, norbsPerAtom, lin%lb%lzd%orbs)
@@ -147,8 +147,8 @@ if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing localization regions...
 call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
 if(iproc==0) write(*,'(a)') 'done.'
 npsidim = 0
-do iorb=1,lin%lzd%orbs%norbp
- ilr=lin%lzd%orbs%inwhichlocreg(iorb+lin%lzd%orbs%isorb)
+do iorb=1,lin%orbs%norbp
+ ilr=lin%orbs%inwhichlocreg(iorb+lin%orbs%isorb)
  npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
 end do
 lin%lzd%Lpsidimtot = npsidim
@@ -192,6 +192,7 @@ do ilr=1,lin%lzd%nlr
         end if
     end do
 end do
+
 !! The same for the derivatives
 !do ilr=1,lin%lzd%nlr
 !    lin%lb%lzd%Llr(ilr)%localnorb=0
@@ -206,8 +207,10 @@ end do
 ! potential.
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications potential... '
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%orbs%inWhichLocreg, tag)
-call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp,&
-     lin%lb%lzd%orbs%inWhichLocreg, tag)
+!call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, &
+!     lin%lb%lzd%orbs%inWhichLocreg, tag)
+call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lzd, lin%lb%comgp, &
+     lin%orbs%inWhichLocreg, tag)
 if(iproc==0) write(*,'(a)') 'done.'
 
 ! Initialize the parameters for the communication for the orthonormalization.
@@ -424,7 +427,7 @@ if(lin%correctionOrthoconstraint==0) then
 else if(lin%correctionOrthoconstraint==1) then
     message1='  no    '
 end if
-write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
+write(*,'(4x,a,8x,l3,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
      lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
      lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|', &
      message1, '|'
@@ -443,7 +446,7 @@ if(trim(lin%getCoeff)=='diag') then
 else if(trim(lin%getCoeff)=='min') then
     message1='   min  '
 end if
-write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a)') '| ', &
+write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l3,a)') '| ', &
     repeat(' ', 5-ceiling(log10(dble(lin%nItBasisFirst+1)+1.d-10))), lin%nItBasisFirst, &
     repeat(' ', 5-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
       '| ', lin%convCrit, ' | ', &
@@ -462,7 +465,7 @@ else if(lin%methTransformOverlap==2) then
 else if(lin%methTransformOverlap==3) then
     message2='taylor appr. 3'
 end if
-write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l,a,x,es10.3,a,a,i0,7x,es7.1,2x,a,x,a,x,a)') '|', &
+write(*,'(4x,a,a,i0,3x,a,i0,3x,a,2x,es8.2,2x,a,x,es8.2,x,a,l3,a,x,es10.3,a,a,i0,7x,es7.1,2x,a,x,a,x,a)') '|', &
     repeat(' ', 4-ceiling(log10(dble(lin%DIISHistMin+1)+1.d-10))), lin%DIISHistMin, &
     repeat(' ', 3-ceiling(log10(dble(lin%DIISHistMax+1)+1.d-10))), lin%DIISHistMax, ' |', &
     lin%alphaDIIS, '|', lin%alphaSD, '|   ', lin%startWithSD, '    |', lin%startDIIS, ' |', &
@@ -477,7 +480,8 @@ write(*,'(4x,a)') '--------------------------------'
 write(*,'(x,a)') '>>>> Performance options'
 write(*,'(4x,a)') '| blocksize | blocksize | max proc | max proc |'
 write(*,'(4x,a)') '|  pdsyev   |  pdgemm   |  pdsyev  |  pdgemm  |'
-write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a)') '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),&
+write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a)') '|',repeat(' ', &
+    6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),&
     lin%blocksize_pdsyev,'|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),lin%blocksize_pdgemm,&
     '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm,'|',&
     repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm
@@ -1281,7 +1285,8 @@ do jproc=0,nproc-1
             n3ovrlp=min(ie,i3e)-max(is,i3s)+1  !extent of overlapping zone in z direction
             is3ovrlp=is3ovrlp-2*lin%lzd%Llr(ilr)%ns3+15
             !call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin, lin%comsr%comarr(1,ioverlap,jproc))
-            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), tag, lin%nlr, lin%lzd%Llr, &
+            call setCommunicationInformation2(jproc, iorb, is3ovrlp, n3ovrlp, lin%comsr%istrarr(jproc), &
+                 tag, lin%nlr, lin%lzd%Llr,&
                  lin%lb%orbs%inWhichLocreg, lin%lb%orbs, lin%comsr%comarr(1,ioverlap,jproc))
             if(iproc==jproc) then
                 !lin%comsr%sizePhibuffr = lin%comsr%sizePhibuffr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*n3ovrlp
@@ -1428,14 +1433,14 @@ end subroutine allocateBasicArrays
 
 
 
-subroutine initLocregs(iproc, nproc, nat, rxyz, lin, input, Glr, phi, lphi)
+subroutine initLocregs(iproc, nat, rxyz, lin, input, Glr, phi, lphi)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => initLocregs
 implicit none
 
 ! Calling arguments
-integer,intent(in):: iproc, nproc, nat
+integer,intent(in):: iproc, nat
 real(8),dimension(3,nat),intent(in):: rxyz
 type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
@@ -1494,7 +1499,8 @@ end do
      end do
  end do
 
- call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lzd%Llr, calculateBounds)
+ call determine_locreg_periodic(iproc, lin%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, &
+      Glr, lin%lzd%Llr, calculateBounds)
  !call determine_locreg_periodic(iproc, lin%lb%lzd%nlr, rxyz, lin%locrad, input%hx, input%hy, input%hz, Glr, lin%lb%lzd%Llr, calculateBounds)
 
  iall=-product(shape(calculateBounds))*kind(calculateBounds)
@@ -1541,6 +1547,8 @@ else
     lin%lb%orbs%npsidim=npsidim
 end if
 
+
+lin%lzd%linear=.true.
 
 
 allocate(phi(lin%lb%gorbs%npsidim), stat=istat)
@@ -1632,6 +1640,9 @@ end do
 !    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
 !    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
 !end do
+
+
+lzd%linear=.true.
 
 ! Calculate the dimension of the wave function for each process.
 ! Do it for both the compressed ('npsidim') and for the uncompressed real space
@@ -1757,8 +1768,8 @@ subroutine nullify_linear_zone_descriptors(lzd)
   ! Calling arguments
   type(linear_zone_descriptors),intent(out):: lzd
   
-  call nullify_orbitals_data(lzd%orbs)
-  nullify(lzd%lorbs)
+  !call nullify_orbitals_data(lzd%orbs)
+  !nullify(lzd%lorbs)
   call nullify_communications_arrays(lzd%comms)
   call nullify_locreg_descriptors(lzd%glr)
   call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
@@ -2112,7 +2123,8 @@ if(iproc==0) then
     loc(3,11)=.false.
     loc(4,11)=.false.
     loc(5,11)=.true.
-    write(*,'(3x,a,i0,a)') 'input guess, communication buffers and auxilliary arrays for orthonormalization : ',megabytes(mem(11)),'MB'
+    write(*,'(3x,a,i0,a)') 'input guess, communication buffers and auxilliary arrays for orthonormalization : ', &
+         megabytes(mem(11)),'MB'
 
     ! Input guess: Buffers for the communicatin the potential
     mem(12)=8*lin%lig%comgp%nrecvBuf
