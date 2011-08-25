@@ -225,7 +225,7 @@ if bigdft:
 
 #Remove line_junk before comparing (the line number is wrong)
 if bigdft:
-    time = "unknown"
+    time = None
 #Open 2 temporary files
 t1 = tempfile.NamedTemporaryFile()
 for line in original1:
@@ -381,7 +381,7 @@ else:
     start = start_success
     message = "succeeded < "
 
-if bigdft :
+if bigdft and time:
     print "%sMax discrepancy %s: %s (%s%s) -- time %s%s " % \
         (start,context_discrepancy,maximum,message,max_discrepancy,time,end)
 else:
