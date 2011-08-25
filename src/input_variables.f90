@@ -2834,7 +2834,7 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         write(*,'(1x,a)') 'No material acceleration (iproc=0)'
      end if
   end if
-  write(*,*)
+  if (iproc == 0) write(*,*)
 
 END SUBROUTINE init_material_acceleration
 
