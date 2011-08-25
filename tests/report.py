@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 24/08/2011
+# Date: 25/08/2011
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -10,8 +10,9 @@ import os
 import re
 import sys
 
-#Regular expression
+#Regular expressions
 re_discrepancy = re.compile("Max [dD]iscrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
+re_time = re.compile("-- time ([0-9.]+)")
 
 def callback(pattern,dirname,names):
     "Return the files given by the pattern"
@@ -47,7 +48,8 @@ for file in files:
     #Max value
     try:
         max_discrepancy = float(open(file).readline())
-        discrepancy = re_discrepancy.findall(open(file).read())
+        line = open(file).read()
+        discrepancy = re_discrepancy.findall(line)
     except:
         discrepancy = False
     if discrepancy:
@@ -66,7 +68,13 @@ for file in files:
             start = start_fail
             state = "%7.1e > (%7.1e)    failed" % (diff,max_discrepancy)
             Exit = 1
-        print "%s%-24s %-28s %s%s" % (start,dir,fic,state,end)
+        #test if time is present
+        time = re_time.findall(line)
+        if time:
+            time = "%ss" % time[0]
+        else:
+            time = ""
+        print "%s%-24s %-28s %s %s%s" % (start,dir,fic,state,time,end)
     else:
         start = start_fail
         state = "cannot parse file.     failed"
