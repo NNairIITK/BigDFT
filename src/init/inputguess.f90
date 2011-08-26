@@ -353,7 +353,6 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
   real(kind=8), dimension(nmax,lmax+1) :: neleconf
   integer, dimension(lmax+1) :: nl
   real(gp), dimension(noccmax,lmax+1) :: occup
-  integer:: iorb
 
   ! number of orbitals, total and semicore
   norbe=0
@@ -363,7 +362,7 @@ subroutine readAtomicOrbitals(at,norbe,norbsc,nspin,nspinor,scorb,norbsc_arr,loc
   do iat=1,at%nat
      ity=at%iatype(iat)
      call count_atomic_shells(lmax+1,noccmax,nelecmax,nspin,nspinor,at%aocc(1,iat),occup,nl)
-!write(*,'(a,i4,2x,10i4)') 'iat, nl', iat, nl
+
      norbat=(nl(1)+3*nl(2)+5*nl(3)+7*nl(4))
 
      norbe=norbe+norbat

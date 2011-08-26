@@ -619,7 +619,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
   type(input_variables):: input
-  real(wp), dimension(:), pointer,intent(inout) :: psi,hpsi,psit
+  real(wp), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
   real(gp), optional, intent(in) :: etol
   type(orbitals_data), optional, intent(in) :: orbsv
@@ -628,7 +628,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(wp), dimension(:), pointer, optional :: psivirt
   !local variables
-  character(len=*), parameter :: subname='DiagHam'
+  character(len=*), parameter :: subname='LDiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal,linear_nosemicore
   integer :: ikptp,ikpt,nvctrp,ilr,psishift1,ldim,totshift,iorb
@@ -686,66 +686,23 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      nspinor=orbs%nspinor
   end if
 
-  allocate(psiw(npsidim+ndebug),stat=i_stat)
-  call memocc(i_stat,psiw,'psiw',subname)
+  if (nproc > 1 .or. Lzd%linear) then
+     allocate(psiw(npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,psiw,'psiw',subname)
+  else
+     psiw => null()
+  end if
 
-  call razero(npsidim,psiw)
+  call transpose_v2(iproc,nproc,orbsu,Lzd,commu,psi,work=psiw)
+  call transpose_v2(iproc,nproc,orbsu,Lzd,commu,hpsi,work=psiw)
 
-  !sequential approach: copy all the wavefuntions in the global region
-  !fill psiw work array
-  psishift1 = 1
-  totshift = 0
-  do iorb=1,Lzd%orbs%norbp
-     ilr = Lzd%orbs%inwhichlocreg(iorb+Lzd%orbs%isorb)
-     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%orbs%nspinor
-     call Lpsi_to_global(Lzd%Glr,npsidim,Lzd%Llr(ilr),psi(psishift1),&
-          ldim,Lzd%orbs%norbp,Lzd%orbs%nspinor,nspin,totshift,psiw)
-     psishift1 = psishift1 + ldim
-     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*Lzd%orbs%nspinor
-  end do
-
-  !reallocate psi
-  i_all=-product(shape(psi))*kind(psi)
-  deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi',subname)
-
-  allocate(psi(npsidim+ndebug),stat=i_stat)
-  call memocc(i_stat,psi,'psi',subname)
-  
-  call dcopy(npsidim,psiw,1,psi,1) !psi=psiw
-    
-  call razero(npsidim,psiw)
-
-  !fill psiw work array
-  psishift1 = 1
-  totshift = 0
-  do iorb=1,Lzd%orbs%norbp
-     ilr = Lzd%orbs%inwhichlocreg(iorb+Lzd%orbs%isorb)
-     ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*Lzd%orbs%nspinor
-     call Lpsi_to_global(Lzd%Glr,npsidim,Lzd%Llr(ilr),hpsi(psishift1),&
-          ldim,Lzd%orbs%norbp,Lzd%orbs%nspinor,nspin,totshift,psiw)
-     psishift1 = psishift1 + ldim
-     totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*Lzd%orbs%nspinor
-  end do
-
-  !reallocate hpsi
-  i_all=-product(shape(hpsi))*kind(hpsi)
-  deallocate(hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi',subname)
-
-  allocate(hpsi(npsidim+ndebug),stat=i_stat)
-  call memocc(i_stat,psi,'psi',subname)
-
-  call dcopy(npsidim,psiw,1,hpsi,1) !hpsi=psiw
-
-  !transpose all the wavefunctions for having a piece of all the orbitals 
-  !for each processor
-  call transpose_v(iproc,nproc,orbsu,Lzd%Glr%wfd,commu,psi,work=psiw)
-  call transpose_v(iproc,nproc,orbsu,Lzd%Glr%wfd,commu,hpsi,work=psiw)
-
-  i_all=-product(shape(psiw))*kind(psiw)
-  deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw',subname)
+  if(nproc > 1 .or. Lzd%linear) then
+     i_all=-product(shape(psiw))*kind(psiw)
+     deallocate(psiw,stat=i_stat)
+     call memocc(i_stat,i_all,'psiw',subname)
+  else
+     nullify(psiw)
+  end if
 
   !define the grouping of the orbitals: for the semicore case, follow the semicore atoms,
   !otherwise use the number of orbitals, separated in the spin-polarised case
@@ -989,6 +946,32 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
 !     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
      nullify(psi)
      psi => psit
+  end if
+
+  !orthogonalise the orbitals in the case of semi-core atoms
+  if (norbsc > 0) then
+     call orthogonalize(iproc,nproc,orbs,comms,Lzd%Glr%wfd,psit,input)
+  end if
+
+  if (minimal) then
+     allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsi,'hpsi',subname)
+!     hpsi=0.0d0
+     if (nproc > 1) then
+        !allocate the direct wavefunction
+        allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psi,'psi',subname)
+     else
+        psi => psit
+     end if
+  end if
+
+  !this untranspose also the wavefunctions 
+  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
+       psit,work=hpsi,outadd=psi(1))
+
+  if (nproc == 1) then
+     nullify(psit)
   end if
 
 END SUBROUTINE LDiagHam

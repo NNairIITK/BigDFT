@@ -273,7 +273,6 @@ type(workarr_sumrho):: w
 
       ! Post communications for gathering the potential
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-
       !!!!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!  ! Calculate the forces we get with psi.
       !!  allocate(nscatterarrTemp(0:nproc-1,4), stat=istat)
@@ -372,7 +371,8 @@ type(workarr_sumrho):: w
 
   ! Calculate the forces we get with psi.
   call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, rhopot, fxyz, fnoise)
+      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, lphi, coeff, rhopot, &
+      fxyz, fnoise,radii_cf)
 
 
   ! Deallocate all arrays related to the linear scaling version.

@@ -211,18 +211,18 @@ integer:: ist, ierr, iiorb, info
   withConfinement=.false.
   if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
   if(.not.lin%useDerivativeBasisFunctions) then
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
-           ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
+           input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, ekin_sum, epot_sum, eexctX, &
+           eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
            pkernel=pkernelseq)
   else
       !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
       !!     ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
       !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
       !!     pkernel=pkernelseq)
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
-           ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%lb%orbs%inWhichLocregp, withConfinement, .true., &
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lb%orbs, lin, input%hx, input%hy, &
+           input%hz, rxyz, ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, ekin_sum, epot_sum, eexctX, &
+           eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%lb%orbs%inWhichLocregp, withConfinement, .true., &
            pkernel=pkernelseq)
   end if
 
@@ -272,7 +272,7 @@ integer:: ist, ierr, iiorb, info
       else
           if(iproc==0) write(*,'(x,a)',advance='no') 'Diagonalizing the Hamiltonian, parallel version... '
           !call diagonalizeHamiltonianParallel(iproc, nproc, lin%lb%orbs%norb, matrixElements(1,1,2), ovrlp, eval)
-          call dsygv_parallel(iproc, nproc, lin%blocksize_pdsyev, lin%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', lin%lb%orbs%norb, &
+          call dsygv_parallel(iproc, nproc, lin%blocksize_pdsyev, lin%nproc_pdsyev, mpi_comm_world, 1, 'v', 'l', lin%lb%orbs%norb,&
                matrixElements(1,1,2), lin%lb%orbs%norb, ovrlp, lin%lb%orbs%norb, eval, info)
       end if
       if(iproc==0) write(*,'(a)') 'done.'
@@ -319,7 +319,8 @@ integer:: ist, ierr, iiorb, info
       ilr = lin%lb%orbs%inWhichLocregp(iorb)
       ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr, lin%lzd%Llr(ilr), lphi(ind2), phi(ind1))
+      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr,&
+           lin%lzd%Llr(ilr), lphi(ind2), phi(ind1))
       ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
       ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
   end do
@@ -578,11 +579,11 @@ real(8),dimension(:),pointer:: phiWork
           write(*,'(x,a)', advance='no') 'Hamiltonian application... '
       end if
       call cpu_time(t1)
-      withConfinement=.true.
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
-           ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
-           pkernel=pkernelseq)
+      withConfinement=.false.
+      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
+           input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, &
+           withConfinement, .true., pkernel=pkernelseq)
       call cpu_time(t2)
       time(2)=time(2)+t2-t1
       if(iproc==0) then
@@ -753,7 +754,7 @@ real(8),dimension(:),pointer:: phiWork
 
 
      ! Flush the standard output
-      call flush(6) 
+     !flush(unit=6) 
 
   end do iterLoop
 

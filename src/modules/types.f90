@@ -120,6 +120,7 @@ module module_types
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
      real(gp) :: projrad   !<coarse radius of the projectors in units of the maxrad
+     character(len=3) :: linear
 
      !> directDiag decides which input guess is chosen:
      !!   if .true. -> as usual direct diagonalization of the Hamiltonian with dsyev (suitable for small systems)
@@ -219,7 +220,7 @@ module module_types
      integer, dimension(:), pointer :: iasctype,natpol,nelpsp,npspcode,nzatom
      integer, dimension(:), pointer :: ifrztyp     !< ifrztyp(nat) Frozen atoms
      real(gp), dimension(:), pointer :: amu        !< amu(ntypes)  Atomic Mass Unit for each type of atoms
-     real(gp), dimension(:,:), pointer :: aocc
+     real(gp), dimension(:,:), pointer :: aocc,rloc
      real(gp), dimension(:,:,:), pointer :: psppar
      integer :: symObj                             !< The symmetry object from ABINIT
      integer :: iat_absorber 
@@ -247,7 +248,7 @@ module module_types
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,inwhichlocreg, inWhichLocregP !,ikptsp
-     integer,dimension(:),pointer:: onWhichMPI, isorb_par
+     integer,dimension(:),pointer:: onWhichMPI, isorb_par, ispot
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -463,11 +464,15 @@ module module_types
 
 !!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type,public:: linear_zone_descriptors
+    logical :: linear                                           !> if true, use linear part of the code
     integer :: nlr                                              !> Number of localization regions 
     integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
-    type(orbitals_data) :: orbs                                !> Global orbitals descriptors
-    type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
-    type(communications_arrays) :: comms                        !> Global communication descriptors
+    integer:: ndimpotisf                                         !> total dimension of potential in isf (including exctX)
+    integer :: Lnprojel                                         !> Total number of projector elements
+    !type(orbitals_data) :: orbs                                 !> Global orbitals descriptors
+    !type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
+    logical,dimension(:),pointer:: doHamAppl                     !> if entry i is true, apply the Hamiltonian to orbitals in locreg i
+    !type(communications_arrays) :: comms                        !> Global communication descriptors
     type(locreg_descriptors) :: Glr                             !> Global region descriptors
     type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
@@ -986,10 +991,6 @@ END SUBROUTINE deallocate_orbs
     type(linear_zone_descriptors) :: Lzd
     integer :: i_all,i_stat,ilr
 
-!    call deallocate_comms(Lzd%comms,subname)
-
-!    call deallocate_lr(Lzd%Glr,subname)
-
 !   nullify the bounds of Glr
     if ((Lzd%Glr%geocode == 'P' .and. Lzd%Glr%hybrid_on) .or. Lzd%Glr%geocode == 'F') then
        nullify(Lzd%Glr%bounds%kb%ibyz_f)
@@ -1017,6 +1018,14 @@ END SUBROUTINE deallocate_orbs
 ! nullify the wfd of Glr
    nullify(Lzd%Glr%wfd%keyg)
    nullify(Lzd%Glr%wfd%keyv)
+
+! nullify the Gnlpspd
+   nullify(Lzd%Gnlpspd%nvctr_p)
+   nullify(Lzd%Gnlpspd%nseg_p)
+   nullify(Lzd%Gnlpspd%keyv_p)
+   nullify(Lzd%Gnlpspd%keyg_p)
+   nullify(Lzd%Gnlpspd%nboxp_c)
+   nullify(Lzd%Gnlpspd%nboxp_f)
  
 !Now destroy the Llr
     do ilr = 1, Lzd%nlr 

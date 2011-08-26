@@ -88,7 +88,8 @@ do iorb=1,orbs%norbp
        mi=mod(j-1,ldiis%isx)+1
        ist2=jst+(mi-1)*ncount
        if(ist2>size(ldiis%hphiHist)) then
-           write(*,'(a,7i8)') 'ERROR ist2: iproc, iorb, ldiis%is, mi, ncount, ist2, size(ldiis%hphiHist)', iproc, iorb, ldiis%is, mi, ncount, ist2, size(ldiis%hphiHist)
+           write(*,'(a,7i8)') 'ERROR ist2: iproc, iorb, ldiis%is, mi, ncount, ist2, size(ldiis%hphiHist)', iproc, iorb, ldiis%is,&
+                               mi, ncount, ist2, size(ldiis%hphiHist)
        end if
        ldiis%mat(j-i+1,min(ldiis%isx,ldiis%is),iorb)=ddot(ncount, hphi(ist1), 1, ldiis%hphiHist(ist2), 1)
        ist2=ist2+ncount

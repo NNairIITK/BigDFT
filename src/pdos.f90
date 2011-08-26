@@ -469,9 +469,9 @@ subroutine global_analysis(iproc,nproc,orbs,wf)
      write(DOS, "(A)") "df(eb,E) = 1 / (2 + exp((eb-E)/w) + exp((E-eb)/w)) / w"
   end if
   write(DOS, "(A)")
-  write(DOS, "(A)") "U(E) = \"
+  write(DOS, "(A)") "U(E) = " // char(92)
   do ikpt = 1, orbs%nkpts
-     write(DOS, "(A,F12.8,A)") "  ", orbs%kwgts(ikpt), " * (\"
+     write(DOS, "(A,F12.8,A)") "  ", orbs%kwgts(ikpt), " * (" // char(92)
      index = 1
      do iorb = 0, (orbs%norbu - 1) / 6
         write(DOS, "(A)", advance = "NO") "   "
@@ -484,19 +484,19 @@ subroutine global_analysis(iproc,nproc,orbs,wf)
            if (index > orbs%norbu) exit
            write(DOS, "(A)", advance = "NO") " + "
         end do
-        write(DOS, "(A)") "\"
+        write(DOS, "(A)") char(92)
      end do
      if (ikpt < orbs%nkpts) then
-        write(DOS, "(A)") "  ) + \"
+        write(DOS, "(A)") "  ) + " // char(92)
      else
         write(DOS, "(A)") "  )"
      end if
   end do
   if (orbs%norbd > 0) then
      write(DOS, "(A)")
-     write(DOS, "(A)") "D(E) = \"
+     write(DOS, "(A)") "D(E) = " // char(92)
      do ikpt = 1, orbs%nkpts
-        write(DOS, "(A,F12.8,A)") "  ", orbs%kwgts(ikpt), " * (\"
+        write(DOS, "(A,F12.8,A)") "  ", orbs%kwgts(ikpt), " * (" // char(92)
         index = orbs%norbu + 1
         do iorb = 0, (orbs%norbd - 1) / 6
            write(DOS, "(A)", advance = "NO") "   "
@@ -509,10 +509,10 @@ subroutine global_analysis(iproc,nproc,orbs,wf)
               if (index > orbs%norb) exit
               write(DOS, "(A)", advance = "NO") " + "
            end do
-           write(DOS, "(A)") "\"
+           write(DOS, "(A)") char(92)
         end do
         if (ikpt < orbs%nkpts) then
-           write(DOS, "(A)") "  ) + \"
+           write(DOS, "(A)") "  ) + " // char(92)
         else
            write(DOS, "(A)") "  )"
         end if
@@ -525,7 +525,7 @@ subroutine global_analysis(iproc,nproc,orbs,wf)
   write(DOS, "(A,F12.6,A,F12.6,A)") "set arrow from ", orbs%efermi , &
        & ",graph 0.05 to ", orbs%efermi , ",graph 0.95 nohead lt 0"
   write(DOS, "(A,F12.8,A,F12.8,A)")  "plot [", minE-0.1*(maxE-minE) , &
-       & ":", maxE+0.1*(maxE-minE) , "] \"
+       & ":", maxE+0.1*(maxE-minE) , "] " // char(92)
   if (orbs%norbd > 0) then
      write(DOS, "(A)")  '  U(x) t "Spin up", -D(x) t "Spin down"'
   else
