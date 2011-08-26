@@ -280,7 +280,7 @@ subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
                  ! indSmall is the index in the local localization region
                  indSmall=indSmall+1
                  if (i3 > 0 .and. i2 > 0 .and. i1 > 0 .and.&                                        !This initializes the buffers of locreg to zeros if outside the simulation box.
-                     i3 < Glr%d%n3i+1 .and. i2 < Glr%d%n2i+1 .and. i1 < Glr%d%n1i+1) then           !Should use periodic image instead... MUST FIX THIS.
+                     i3 <= Glr%d%n3i+1 .and. i2 <= Glr%d%n2i+1 .and. i1 <= Glr%d%n1i+1) then           !Should use periodic image instead... MUST FIX THIS.
                     ! indLarge is the index in the global localization region. 
                     indLarge=(i3-1)*Glr%d%n2i*Glr%d%n1i + (i2-1)*Glr%d%n1i + i1
                     Lrho(indSmall)=rho(indLarge+indSpin)

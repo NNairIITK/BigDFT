@@ -1801,6 +1801,7 @@ subroutine nullify_orbitals_data(orbs)
   nullify(orbs%spinsgn)
   nullify(orbs%kwgts)
   nullify(orbs%kpts)
+  nullify(orbs%ispot)
 
 end subroutine nullify_orbitals_data
 
