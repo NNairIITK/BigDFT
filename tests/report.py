@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 25/08/2011
+# Date: 26/08/2011
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -71,7 +71,7 @@ for file in files:
         #test if time is present
         time = re_time.findall(line)
         if time:
-            time = "%7ss" % time[0]
+            time = "%8ss" % time[0]
         else:
             time = ""
         print "%s%-24s %-28s %s%s%s" % (start,dir,fic,state,time,end)
