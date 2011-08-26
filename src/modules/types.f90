@@ -248,7 +248,7 @@ module module_types
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,inwhichlocreg, inWhichLocregP !,ikptsp
-     integer,dimension(:),pointer:: onWhichMPI, isorb_par
+     integer,dimension(:),pointer:: onWhichMPI, isorb_par, ispot
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -467,10 +467,12 @@ module module_types
     logical :: linear                                           !> if true, use linear part of the code
     integer :: nlr                                              !> Number of localization regions 
     integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
+    integer:: ndimpotisf                                         !> total dimension of potential in isf (including exctX)
     integer :: Lnprojel                                         !> Total number of projector elements
     !type(orbitals_data) :: orbs                                 !> Global orbitals descriptors
     !type(orbitals_data),dimension(:),pointer:: Lorbs            !> Orbitals descriptors for each locreg
-    type(communications_arrays) :: comms                        !> Global communication descriptors
+    logical,dimension(:),pointer:: doHamAppl                     !> if entry i is true, apply the Hamiltonian to orbitals in locreg i
+    !type(communications_arrays) :: comms                        !> Global communication descriptors
     type(locreg_descriptors) :: Glr                             !> Global region descriptors
     type(nonlocal_psp_descriptors) :: Gnlpspd                   !> Global nonlocal pseudopotential descriptors
     type(locreg_descriptors),dimension(:),pointer :: Llr                !> Local region descriptors (dimension = nlr)
