@@ -69,6 +69,8 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
      !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
 
+     !this could be a point in which to branch with the SIC scheme.
+
      !apply the potential to the psir wavefunction and calculate potential energy
      select case(lr%geocode)
      case('F')

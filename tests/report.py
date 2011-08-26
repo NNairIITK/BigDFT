@@ -41,6 +41,9 @@ else:
 #Error code
 Exit = 0
 
+#Total time for the tests
+totime=0
+
 print "Final report ('passed' means all significant floats are correct):"
 for file in files:
     dir = os.path.normpath(os.path.dirname(file))
@@ -56,8 +59,14 @@ for file in files:
         #If nan gives nan (not a number and all comparisons are false)
         diff = float(discrepancy[0][0])
         if diff <= max_discrepancy:
-            #Two cases: passed (significant numbers (more than 5 digits) are < max_discrepancy
-            if discrepancy[0][1] == "passed":
+            #Three cases: 
+            if discrepancy[0][1] == "failed-memory":
+                #The test is OK but the memory remaining is not 0
+                start = start_fail
+                state = "remaining memory != 0B failed"
+                Exit = 1
+            elif discrepancy[0][1] == "passed":
+                #passed: significant numbers (more than 5 digits) are < max_discrepancy
                 start = start_pass
                 state = "%7.1e < (%7.1e)    passed" % (diff,max_discrepancy)
             else:
@@ -68,17 +77,23 @@ for file in files:
             start = start_fail
             state = "%7.1e > (%7.1e)    failed" % (diff,max_discrepancy)
             Exit = 1
-        #test if time is present
+        #Test if time is present
         time = re_time.findall(line)
         if time:
+            totime += float(time[0])
             time = "%8ss" % time[0]
         else:
             time = ""
         print "%s%-24s %-28s %s%s%s" % (start,dir,fic,state,time,end)
     else:
         start = start_fail
-        state = "cannot parse file.     failed"
+        state = "can not parse file.    failed"
         print "%s%-24s %-28s %s%s" % (start,dir,fic,state,end)
-
+#Hours, minutes and seconds
+totimeh=int(totime/3600)
+totimem=int(totime-totimeh*3600)/60
+totimes=totime-totimem*60-totimeh*3600
+print 92*"-"
+print 50*" "+"Time Needed for timed tests: %sh %sm %ss%s" % (totimeh,totimem,totimes,end)
 #Error code
 sys.exit(Exit)

@@ -224,14 +224,14 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
   real(wp), dimension(:), pointer :: pot
   !local variables
   character(len=*), parameter :: subname='full_local_potential'
-  logical :: exctX
+  logical :: odp !orbital dependent potential
   integer :: npot,ispot,ispotential,ispin,ierr,i_stat
 
   call timing(iproc,'Rho_commun    ','ON')
   
-  exctX = xc_exctXfac() /= 0.0_gp
+  odp = xc_exctXfac() /= 0.0_gp
   !determine the dimension of the potential array
-  if (exctX) then
+  if (odp) then
      npot=ndimgrid*nspin+&
           max(max(ndimgrid*norbp,ngatherarr(0,1)*norb),1) !part which refers to exact exchange
   else
@@ -254,7 +254,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
         ispotential=ispotential+max(1,ndimpot)
      end do
   else
-     if (exctX) then
+     if (odp) then
         allocate(pot(npot+ndebug),stat=i_stat)
         call memocc(i_stat,pot,'pot',subname)
         call dcopy(ndimgrid*nspin,potential,1,pot,1)
@@ -277,11 +277,11 @@ subroutine free_full_potential(nproc,pot,subname)
   integer, intent(in) :: nproc
   real(wp), dimension(:), pointer :: pot
   !local variables
-  logical :: exctX
+  logical :: odp
   integer :: i_all,i_stat
 
-  exctX = xc_exctXfac() /= 0.0_gp
-  if (nproc > 1 .or. exctX) then
+  odp = xc_exctXfac() /= 0.0_gp
+  if (nproc > 1 .or. odp) then
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
      call memocc(i_stat,i_all,'pot',subname)

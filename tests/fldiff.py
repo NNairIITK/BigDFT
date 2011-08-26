@@ -225,8 +225,8 @@ if bigdft:
 
 #Remove line_junk before comparing (the line number is wrong)
 if bigdft:
-    time = None
-    memory = None
+    time = 0
+    memory = 0
 #Open 2 temporary files
 t1 = tempfile.NamedTemporaryFile()
 for line in original1:
@@ -237,15 +237,10 @@ for line in original1:
         if bigdft:
             #Keep sum of elapsed time
             if "CPU time/ELAPSED time" in line:
-                if time:
-                    time += float(line.split()[-2])
-                else:
-                    time = float(line.split()[-2])
+                time += float(line.split()[-2])
             #Test if memory remaining is 0
             if "remaining memory" in line:
                 memory = int(line.split()[-1])
-                if memory == 0:
-                    memory = None
 t1.flush()
 t2 = tempfile.NamedTemporaryFile()
 for line in original2:
@@ -385,7 +380,7 @@ else:
 if maximum > max_discrepancy or memory:
     start = start_fail
     if memory:
-        message = "failed -- memory remaining (%sB) --" % memory
+        message = "failed-memory remaining-(%sB) " % memory
     else:
         message = "failed    < "
 elif ns_discrepancy:
