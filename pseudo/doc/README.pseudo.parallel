@@ -11,23 +11,31 @@ pseudo.2.5 uses the transformation of the Gaussian KS orbitals into a cartesian 
 wavelets (and the resulting deviation in the kinetic energy) as a measure for the softness of the
 atomic pseudofunction to generate 'softer' pseudo potentials. This wavelet transformation is done
 for several values of hgrid - the grid spacing of the wavelet basis - and the deviations in Ekin are
-added according to a power law. Lines two and three of the file input.dat define how this is to be
-done. 
+added according to a power law. In order to request the calculation of these deviations, some 
+keywords must be present in the file input.dat to specify related parameters - setting a nonzero
+weight for these terms in the file weights.par is not sufficient. 
 
- 4    0.35  0.5 14    number, range and weighting of the hgrid samples
- 0.0  3.0   3.0       random offset, coarse and fine radii for the grid
-
-Above example requests four sample values for hgrid in the range from 0.3 to 0.5. The number 14
-determines the power law for adding up the contributions resulting from different hgrid samples. 
-In this case, the penalty term for each hgrid is weighted by (0.3/hgrid)**14.
-The coarse and fine radii define the computational volumes with wavelets and scaling functions on
-the cartesian grid points respectively. A typical choice is three to five times the atomic charge
-integration radius rcov. Finer values for hgrid and larger radii lead to higher computational times.
-Be sure to choose the radii large enough that the resulting plot from the file dEkin.orb.dat is
-suitably converged. To small radii lead to large errors especially for fine hgrid, which may be
+  Keyword     default value       description
+  
+  -nh         0                   The number of sample values for the grid spacing. 
+  -hmin       0.3                 The finest grid spacing to be used for the hgrid samples
+  -hmax       0.5                 The coarsest grid spacing
+  -crmult     8.0                 Length scale for grid points that hold scaling functions
+  -frmult     8.0                 and for grid points that hold scaling functions and wavelets
+  -nhpow      14                  The power law for adding up deviations per sample - optional
+  -offset     0.0                 Offset btw origin and grid - optional
+ 
+While most of these may work fine with the default values, -nh 0 obviously turns off the treatment
+of the wavelet part. The default for -nhpow simply means that contributions from different grid
+spacings are weighted by a factor that is one for the finest grid, and scales with the 14th power
+of the nr of grid points per dimension - an empirical choice that seems to work fine for fitting.
+crmult and frmult define the coarse and fine radii for the computational volumes around the origin,
+with only scaling functions, or wavelets and scaling functions on the cartesian grid points,
+respectively.  A typical choice is three to ten times the atomic charge integration radius rcov.
+Finer values for hgrid and larger radii lead to higher computational times.
+It is important to choose the radii large enough that the resulting plot from the file dEkin.orb.dat
+is suitably converged. To small radii lead to large errors especially for fine grids, which may be
 identified by bumps and wiggles in said plot. Below is an example of dEkin.orb.dat.
-
-
 
 # hgrid            dE_kin(gauss-wvlt) weighted by hgrid orbital  1        orbital  2        
   0.3500000000E+00  0.2522785193E-05  0.2118849652E-05  0.7295995581E-06  0.2414980251E-05
@@ -36,6 +44,9 @@ identified by bumps and wiggles in said plot. Below is an example of dEkin.orb.d
   0.5000000000E+00  0.8250287634E-04  0.4699606742E-06  0.2756106726E-04  0.7776318008E-04
  
 
+
+determines the power law for adding up the contributions resulting from different hgrid samples. 
+In this case, the penalty term for each hgrid is weighted by (0.3/hgrid)**14.
 
 ______________________________________
 

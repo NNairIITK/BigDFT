@@ -591,12 +591,12 @@ contains
      use module_base
      implicit none
    ! Arguments
-     integer,intent(in) :: n1,n2,n3,nd1,nd2,nd3
-     integer,intent(in) :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
-     real(gp),intent(in) :: kern_k1(n1)
-     real(gp),intent(in) :: kern_k2(n2)
-     real(gp),intent(in) :: kern_k3(n3)
-     real*8,intent(in)::ene, gamma
+     integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
+     integer, intent(in) :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
+     real(gp), intent(in) :: kern_k1(n1)
+     real(gp), intent(in) :: kern_k2(n2)
+     real(gp), intent(in) :: kern_k3(n3)
+     real(kind=8), intent(in):: ene, gamma
 
      real(wp),intent(inout) :: x(n1,n2,n3)! input/output
    !Local variables

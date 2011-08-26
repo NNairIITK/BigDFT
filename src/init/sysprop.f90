@@ -904,7 +904,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
   logical, dimension(:), allocatable :: GPU_for_orbs
-  integer, dimension(:), allocatable :: mykpts
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
@@ -1254,7 +1253,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
   integer, dimension(0:nproc-1,nkpts), intent(out) :: nobj_par
   !local varaibles
   logical :: intrep
-  integer :: jproc,ikpt,iobj,nobjp_max_kpt,nprocs_with_floor,jobj,nobjp,nprocs_with_ceiling
+  integer :: jproc,ikpt,iobj,nobjp_max_kpt,nprocs_with_floor,jobj,nobjp
   integer :: jkpt,nproc_per_kpt,nproc_left,kproc,nkpt_per_proc,nkpts_left
   real(gp) :: robjp,rounding_ratio
 
@@ -1371,7 +1370,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
         nobj_par(nproc-1,ikpt)=nobj_par(nproc-1,ikpt)+1
      end do
   end if
-end subroutine kpts_to_procs_via_obj
+END SUBROUTINE kpts_to_procs_via_obj
 
 subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
   use module_base
@@ -1451,8 +1450,10 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
      end do fill_array
   end do
 
-end subroutine components_kpt_distribution
+END SUBROUTINE components_kpt_distribution
 
+
+!> Check the distribution of k points over the processors
 subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,info,lub_orbs,lub_comps)
   use module_base
   implicit none
@@ -1463,8 +1464,8 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   integer, intent(out) :: lub_orbs,lub_comps
   !local variables
   character(len=*), parameter :: subname='check_kpt_distributions'
-  logical :: yesorb,yescomp,notcompatible
-  integer :: ikpt,jorb,jproc,ierr,norbs,ncomps,i_all,i_stat,kproc,ieproc,isproc
+  logical :: notcompatible
+  integer :: ikpt,jproc,norbs,ncomps,i_all,i_stat,kproc,ieproc,isproc
   integer, dimension(:,:), allocatable :: load_unbalancing
   !before printing the distribution schemes, check that the two distributions contain
   !the same k-points
@@ -1544,7 +1545,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   call memocc(i_stat,i_all,'load_unbalancing',subname)
 
 
-end subroutine check_kpt_distributions
+END SUBROUTINE check_kpt_distributions
 
 !>routine which associates to any of the processor a given number of objects
 !! depending of the number of processors and k-points

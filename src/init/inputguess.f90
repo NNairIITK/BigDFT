@@ -904,7 +904,7 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
   integer, parameter :: n_int=100
   real(gp), parameter :: fact=4.0_gp
   character(len=2) :: symbol
-  integer :: lpx,nsccode,mxpl,mxchg,ilcc
+  integer :: lpx,nsccode,mxpl,mxchg
   integer :: l,i,j,iocc,i_all,i_stat
   real(gp) :: alpz,alpl,amu,rprb,rij,a,a0,a0in,tt,ehomo,rcov
   !integer, dimension(6,4) :: neleconf
@@ -1090,16 +1090,21 @@ subroutine iguess_generator(izatom,ielpsp,zion,psppar,npspcode,ngv,ngc,nlccpar,n
 
 END SUBROUTINE iguess_generator
 
+
 !>  Calculates the solution of the radial Schroedinger equation for a given
 !!  pseudoptential.
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg)
   use module_base, only: gp
-  implicit real(gp) (a-h,o-z)
-  logical :: noproj
+  !implicit real(gp) (a-h,o-z)
+  implicit none
   integer, parameter :: n_int=100
-  dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
+  !Arguments
+  integer, intent(in) :: lmax,lpx,noccmax,ngv,ngc,nintp,ng
+  real(gp), intent(in) :: rcov,rprb,zion,alpz,alpl
+  real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
+  real(gp) :: psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
        gpot(4),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
        pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
@@ -1108,8 +1113,17 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
-  real(gp), dimension(0:4,max((ngv*(ngv+1)/2)+(ngc*(ngc+1)/2),1)), intent(in) :: nlccpar
-  if (nintp.ne.n_int) stop 'n_int/=nintp'
+  !Local variables
+  logical :: noproj
+  integer :: i,l,k,j,it,iocc,ilcc,ig,lcx,info
+  real(gp) :: sxp,rmix,rk,r,ttt,gml,gml1,gml2,gml3,tt,texp,sd,terf,evsum,evsumold
+  real(gp) :: emuxc,dr,d,fact,const
+  !Functions
+  real(gp) :: ddot,gamma_restricted,spherical_gaussian_value
+
+  if (nintp.ne.n_int) then
+     stop 'n_int/=nintp'
+  end if
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l

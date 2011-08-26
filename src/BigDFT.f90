@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!>  Main program to calculate electronic structures
+!> Main program to calculate electronic structures
 program BigDFT
 
   use module_base
@@ -78,7 +78,7 @@ program BigDFT
      call standard_inputfile_names(inputs)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
      if (iproc == 0) then
-        call print_general_parameters(inputs,atoms)
+        call print_general_parameters(nproc,inputs,atoms)
      end if
 
      !initialize memory counting

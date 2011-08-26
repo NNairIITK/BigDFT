@@ -6,6 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Routine to plot wavefunctions (old version)
 subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -1274,6 +1277,7 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
 END SUBROUTINE plot_wf
 
 
+!> Read density or potential in cube format
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz, iatypes, znucl)
   use module_base

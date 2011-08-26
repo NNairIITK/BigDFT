@@ -58,11 +58,11 @@ contains
                '--- (file: input.perf -- not present) -------------------------- Performance Options'
        end if
     end if
-  end subroutine input_set_file
+  END SUBROUTINE input_set_file
 
   subroutine input_free()
     if (allocated(input_lines)) deallocate(input_lines)
-  end subroutine input_free
+  END SUBROUTINE input_free
 
   subroutine find(name, iline, ii)
     character(len = *), intent(in) :: name
@@ -88,7 +88,7 @@ contains
        end do
     end if
     iline = 0
-  end subroutine find
+  END SUBROUTINE find
 
   subroutine var_character(name, default, description, var)
     character(len = *), intent(in) :: name
@@ -109,7 +109,7 @@ contains
        end if
     end if
     if (output) write(*,"(1x,a,3x,a,1x,a,t30,2a)") "|", name, var, '!', description
-  end subroutine var_character
+  END SUBROUTINE var_character
 
   subroutine var_logical(name, default, description, var)
     character(len = *), intent(in) :: name
@@ -128,7 +128,7 @@ contains
        end if
     end if
     if (output) write(*,"(1x,a,3x,a,1x,l1,t30,2a)") "|", name, var, '!', description
-  end subroutine var_logical
+  END SUBROUTINE var_logical
 
   subroutine var_integer(name, default, description, var)
     character(len = *), intent(in) :: name
@@ -149,7 +149,7 @@ contains
        end if
     end if
     if (output) write(*,"(1x,a,3x,a,1x,I0,t30,2a)") "|", name, var, '!', description
-  end subroutine var_integer
+  END SUBROUTINE var_integer
 
   subroutine var_integer_array(name, default, description, var)
     character(len = *), intent(in) :: name
@@ -176,7 +176,7 @@ contains
        end do
        write(*,"(t7,2a)") '!', description
     end if
-  end subroutine var_integer_array
+  END SUBROUTINE var_integer_array
 
   subroutine var_double(name, default, description, var)
     character(len = *), intent(in) :: name
@@ -197,7 +197,7 @@ contains
        end if
     end if
     if (output) write(*,"(1x,a,3x,a,1x,es9.2,t30,2a)") "|", name, var, '!', description
-  end subroutine var_double
+  END SUBROUTINE var_double
 
   subroutine var_keyword(name, length, default, list, description, var)
     character(len = *), intent(in) :: name
@@ -244,7 +244,7 @@ contains
        end do
        write(*,"(A)") ")"
     end if
-  end subroutine var_keyword
+  END SUBROUTINE var_keyword
 
   subroutine var_ids(name, default, list, description, var)
     character(len = *), intent(in) :: name
@@ -274,6 +274,6 @@ contains
        end if
     end if
     if (output) write(*,"(1x,a,3x,a,1x,I0,t30,2a)") "|", name, var, '!', description
-  end subroutine var_ids
+  END SUBROUTINE var_ids
 
 end module module_input

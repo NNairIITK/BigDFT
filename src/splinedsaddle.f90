@@ -85,7 +85,7 @@ program splined_saddle
      !-----------------------------------------------------------
      !-----------------------------------------------------------
      if (iproc == 0) then
-        call print_general_parameters(inputs,atoms)
+        call print_general_parameters(nproc,inputs,atoms)
      end if
 
      !initialize memory counting

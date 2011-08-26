@@ -346,8 +346,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   real(kind=8), dimension(:,:,:,:), allocatable, target :: rhopot
   real(kind=8), dimension(:,:,:,:), pointer ::  rhopottmp, rhopotExtra, rhoXanes, rhotarget
-  integer b2Bcounter, b2BN
-  character(len=100) filename
+  integer :: b2Bcounter, b2BN
+  character(len=100) :: filename
   real(kind=8), dimension(:), pointer :: pkernel
 
   !wavefunction gradients, hamiltonian on vavefunction
@@ -374,12 +374,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   real(gp), dimension(:,:), pointer :: rxyz_b2B
   integer, dimension(:), pointer :: iatype_b2B, znucl_b2B
   real(gp) :: shift_b2B(3)
-  integer itype, nd
-  integer n1i_bB,n2i_bB,n3i_bB
+  integer :: itype, nd
+  integer :: n1i_bB,n2i_bB,n3i_bB
+  real(gp), dimension(:), pointer :: pot1_bB
   real(gp), dimension(:,:), pointer :: pot_bB
-  real(gp) alat1_bB, alat2_bB, alat3_bB
+  real(gp) :: alat1_bB, alat2_bB, alat3_bB
   real(gp), dimension(:), pointer ::  intfunc_x, intfunc_y
-  real(gp) factx, facty, factz
+  real(gp) :: factx, facty, factz
   integer :: idelta
   integer :: ix_bB, iy_bB, iz_bB
   integer :: maxX_B, maxY_B, maxZ_B
@@ -388,12 +389,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer :: nrange
   real(gp), pointer :: auxint(:)
 
-  logical exists 
-  integer nat_b2B
-  integer Nreplicas, ireplica, replicaoffset
-  real(gp) dumvect3D(3)
-  real(gp) shiftdiff
-  real(gp) potmodified_maxr, potmodified_shift
+  logical :: exists 
+  integer :: nat_b2B
+  integer :: Nreplicas, ireplica, replicaoffset
+  real(gp) :: dumvect3D(3)
+  real(gp) :: shiftdiff
+  real(gp) :: potmodified_maxr, potmodified_shift
 
 
   type(atoms_data) :: atoms_clone
@@ -832,17 +833,19 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
         else
 
+        !Pb of initialization (TD 24/8/2011)
+
            if(b2BN>1) then
               if(iproc==0) write(*,*)  " b2B must be read only from *.cube when potential is energy dependent  " 
               if(nproc>1) call MPI_Finalize(ierr)
               stop '   b2B must be read only from *.cube when potential is energy dependent         '
            endif
+
            print  *, " reading atomic positions from file ","b2B_xanes.xyz"
            call read_atomic_file("b2B_xanes.xyz",iproc, atoms_b2B, rxyz_b2B )
            print *, "OK ", shape( rxyz_b2B )
 
            nat_b2B= (   Ubound(rxyz_b2B,2)  - Lbound(rxyz_b2B,2)  +  1 ) - ndebug
-
 
            if( (atoms%nat/nat_b2B)*nat_b2B /= atoms%nat ) then
               if(iproc==0) write(*,*)  "   b2B_xanes.xyz  is not compatible with actual positions" 
@@ -851,7 +854,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            end if
            
            print  *, " reading potential from file ","b2B_xanes.pot"
-           !call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
+           call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot1_bB, alat1_bB, alat2_bB, alat3_bB)
            print  *, " reading OK "
            
            
@@ -865,6 +868,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               hz_old = 2*alat3_bB / (n3i_bB-2)
            endif
 
+           i_all=-product(shape(pot1_bB))*kind(pot1_bB)
+           deallocate(pot1_bB,stat=i_stat)
+           call memocc(i_stat,i_all,'pot1_bB',subname)
+
            call deallocate_atoms(atoms_b2B,subname) 
 
         endif
@@ -873,10 +880,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         allocate(rhopottmp( max(n1i_bB,n1i),max(n2i_bB,n2i),max(n3i_bB,n3d),in%nspin+ndebug),stat=i_stat)
         call memocc(i_stat,rhopottmp,'rhopottmp',subname)
 
-
         rhotarget=0.0_gp
-
-
 
         itype=16
         nd=2**20

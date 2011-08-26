@@ -2939,7 +2939,7 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   integer, intent(out) :: n1i,n2i,n3i
   real(gp) alat1, alat2, alat3, dum, dum1
   ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
-  real(gp), pointer :: rho(:)
+  real(gp), dimension(:), pointer :: rho
   !local variables
   integer :: nl1,nl2,nl3,i_stat,i1,i2,i3,ind
   real(gp) :: value

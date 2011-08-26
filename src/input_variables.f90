@@ -53,6 +53,9 @@ subroutine print_logo()
   write(*,'(1x,a)')&
        '                                  The Journal of Chemical Physics 129, 014109 (2008)'
 END SUBROUTINE print_logo
+
+
+!> Define the name of the input files
 subroutine standard_inputfile_names(inputs)
   use module_types
   implicit none
@@ -65,12 +68,12 @@ subroutine standard_inputfile_names(inputs)
   inputs%file_tddft='input.tddft'
   inputs%file_mix='input.mix'
   
-end subroutine standard_inputfile_names
+END SUBROUTINE standard_inputfile_names
 
 
-!>    Do all initialisation for all different files of BigDFT. 
-!!    Set default values if not any.
-!!    Initialize memocc
+!> Do all initialisation for all different files of BigDFT. 
+!! Set default values if not any.
+!! Initialize memocc
 !! @todo
 !!   Should be better for debug purpose to read input.perf before
 subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
@@ -95,9 +98,9 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 END SUBROUTINE read_input_variables
 
 
-!>    Do initialisation for all different calculation parameters of BigDFT. 
-!!    Set default values if not any. Atomic informations are updated  by
-!!    symmetries if necessary and by geometry input parameters.
+!> Do initialisation for all different calculation parameters of BigDFT. 
+!! Set default values if not any. Atomic informations are updated  by
+!! symmetries if necessary and by geometry input parameters.
 subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   use module_base
   use module_types
@@ -186,7 +189,7 @@ END SUBROUTINE read_input_parameters
 
 
 
-!>    Set default values.
+!> Set default values.
 subroutine default_input_variables(inputs)
   use module_base
   use module_types
@@ -215,12 +218,12 @@ subroutine default_input_variables(inputs)
 END SUBROUTINE default_input_variables
 
 
-!>    Read the input variables needed for the DFT calculation
-!!    The variables are divided in two groups:
-!!    "cruising" variables -- general DFT run
-!!    "brakeing" variables -- for the last run, once relaxation is achieved
-!!                            of for a single-point calculation
-!!    Every argument should be considered as mandatory
+!> Read the input variables needed for the DFT calculation
+!! The variables are divided in two groups:
+!! "cruising" variables -- general DFT run
+!! "brakeing" variables -- for the last run, once relaxation is achieved
+!!                         of for a single-point calculation
+!! Every argument should be considered as mandatory
 subroutine dft_input_variables(iproc,filename,in)
   use module_base
   use module_types
@@ -229,7 +232,7 @@ subroutine dft_input_variables(iproc,filename,in)
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
   !local variables
-  character(len=100) :: line
+  !character(len=100) :: line
   logical :: exists
   integer :: ierror,iline,ivrbproj
 
@@ -399,7 +402,7 @@ contains
 END SUBROUTINE dft_input_variables
 
 
-!>    Assign default values for GEOPT variables
+!> Assign default values for GEOPT variables
 subroutine geopt_input_variables_default(in)
   use module_base
   use module_types
@@ -420,7 +423,8 @@ subroutine geopt_input_variables_default(in)
 
 END SUBROUTINE geopt_input_variables_default
 
-!>    Assign default values for mixing variables
+
+!> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
   use module_types
@@ -440,7 +444,7 @@ subroutine mix_input_variables_default(in)
 END SUBROUTINE mix_input_variables_default
 
 
-!>    Read the input variables needed for the geometry optimisation
+!> Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
 subroutine mix_input_variables(filename,in)
   use module_base
@@ -494,7 +498,7 @@ contains
 END SUBROUTINE mix_input_variables
 
 
-!>    Read the input variables needed for the geometry optimisation
+!> Read the input variables needed for the geometry optimisation
 !!    Every argument should be considered as mandatory
 subroutine geopt_input_variables(filename,in)
   use module_base
@@ -662,7 +666,7 @@ END SUBROUTINE tddft_input_variables
 
 
 
-!>    Calculate symmetries and update
+!> Calculate symmetries and update
 subroutine update_symmetries(in, atoms, rxyz)
   use module_base
   use module_types
@@ -739,7 +743,7 @@ subroutine update_symmetries(in, atoms, rxyz)
 END SUBROUTINE update_symmetries
 
 
-!>    Read the input variables needed for the k points generation
+!> Read the input variables needed for the k points generation
 subroutine kpt_input_variables(iproc,filename,in,atoms)
   use module_base
   use module_types
@@ -933,7 +937,7 @@ contains
 END SUBROUTINE kpt_input_variables
 
 
-!>    Read the input variables which can be used for performances
+!> Read the input variables which can be used for performances
 subroutine perf_input_variables(iproc,filename,inputs)
   use module_base
   use module_types
@@ -949,7 +953,6 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
   call input_set_file(iproc, filename, exists)
 
-        
 
   call input_var("debug", .false., "Debug option", inputs%debug)
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
@@ -1047,7 +1050,6 @@ subroutine free_input_variables(in)
      call memocc(i_stat,i_all,'in%nkptsv_group',subname)
   end if
 
-
 !!$  if (associated(in%Gabs_coeffs) ) then
 !!$     i_all=-product(shape(in%Gabs_coeffs))*kind(in%Gabs_coeffs)
 !!$     deallocate(in%Gabs_coeffs,stat=i_stat)
@@ -1056,7 +1058,7 @@ subroutine free_input_variables(in)
 END SUBROUTINE free_input_variables
 
 
-!>    Assign default values for ABSCALC variables
+!> Assign default values for ABSCALC variables
 subroutine abscalc_input_variables_default(in)
   use module_base
   use module_types
@@ -1070,7 +1072,7 @@ subroutine abscalc_input_variables_default(in)
 END SUBROUTINE abscalc_input_variables_default
 
 
-!>    Read the input variables needed for the ABSCALC
+!> Read the input variables needed for the ABSCALC
 !!    Every argument should be considered as mandatory
 subroutine abscalc_input_variables(iproc,filename,in)
   use module_base
@@ -1148,7 +1150,7 @@ contains
 END SUBROUTINE abscalc_input_variables
 
 
-!>    Assign default values for frequencies variables
+!> Assign default values for frequencies variables
 !!    freq_alpha: frequencies step for finite difference = alpha*hx, alpha*hy, alpha*hz
 !!    freq_order; order of the finite difference (2 or 3 i.e. 2 or 4 points)
 !!    freq_method: 1 - systematic moves of atoms over each direction
@@ -1165,7 +1167,7 @@ subroutine frequencies_input_variables_default(inputs)
 END SUBROUTINE frequencies_input_variables_default
 
 
-!>    Read the input variables needed for the frequencies calculation.
+!> Read the input variables needed for the frequencies calculation.
 !!    Every argument should be considered as mandatory.
 subroutine frequencies_input_variables(iproc,filename,in)
   use module_base
@@ -1245,7 +1247,7 @@ contains
     eof = .false.
     read(ifile,'(a150)', iostat = i_stat) line
     if (i_stat /= 0) eof = .true.
-  end subroutine directGetLine
+  END SUBROUTINE directGetLine
 
   subroutine archiveGetLine(line, ifile, eof)
     integer, intent(in) :: ifile
@@ -1257,10 +1259,10 @@ contains
     eof = .false.
     call extractNextLine(line, i_stat)
     if (i_stat /= 0) eof = .true.
-  end subroutine archiveGetLine
+  END SUBROUTINE archiveGetLine
 end module position_files
 
-!>    Read atomic file
+!> Read atomic file
 subroutine read_atomic_file(file,iproc,atoms,rxyz)
   use module_base
   use module_types
@@ -1377,7 +1379,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
 END SUBROUTINE read_atomic_file
 
 
-!>    Deallocate the structure atoms_data.
+!> Deallocate the structure atoms_data.
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
@@ -1410,7 +1412,7 @@ subroutine deallocate_atoms(atoms,subname)
 END SUBROUTINE deallocate_atoms
 
 
-!>    Deallocate the structure atoms_data after scf loop.
+!> Deallocate the structure atoms_data after scf loop.
 subroutine deallocate_atoms_scf(atoms,subname) 
   use module_base
   use module_types
@@ -1451,7 +1453,7 @@ subroutine deallocate_atoms_scf(atoms,subname)
 END SUBROUTINE deallocate_atoms_scf
 
 
-!>    Read atomic positions
+!> Read atomic positions
 subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
   use module_base
   use module_types
@@ -1464,7 +1466,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
        integer, intent(in) :: ifile
        character(len=150), intent(out) :: line
        logical, intent(out) :: eof
-     end subroutine getline
+     END SUBROUTINE getline
   end interface
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
@@ -1667,7 +1669,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
 END SUBROUTINE read_xyz_positions
 
 
-!>    Check the position of atoms
+!> Check the position of atoms
 subroutine check_atoms_positions(iproc,atoms,rxyz)
   use module_base
   use module_types
@@ -1721,7 +1723,7 @@ subroutine check_atoms_positions(iproc,atoms,rxyz)
 END SUBROUTINE check_atoms_positions
 
 
-!>    Find extra information
+!> Find extra information
 subroutine find_extra_info(line,extra)
   implicit none
   character(len=150), intent(in) :: line
@@ -1754,7 +1756,7 @@ subroutine find_extra_info(line,extra)
 END SUBROUTINE find_extra_info
 
 
-!>    Parse extra information
+!> Parse extra information
 subroutine parse_extra_info(iat,extra,atoms)
   use module_types
   implicit none
@@ -1851,7 +1853,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
        integer, intent(in) :: ifile
        character(len=150), intent(out) :: line
        logical, intent(out) :: eof
-     end subroutine getline
+     END SUBROUTINE getline
   end interface
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
@@ -2057,7 +2059,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
 END SUBROUTINE read_ascii_positions
 
 
-!>   Calculate the charge and the spin polarisation to be placed on a given atom
+!>Calculate the charge and the spin polarisation to be placed on a given atom
 !!   RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
 subroutine charge_and_spol(natpol,nchrg,nspol)
   implicit none
@@ -2078,7 +2080,7 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
 END SUBROUTINE charge_and_spol
 
 
-!>    Write an atomic file
+!> Write an atomic file
 subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -2109,7 +2111,7 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
 END SUBROUTINE write_atomic_file
 
 
-!>   Write xyz atomic file.
+!>Write xyz atomic file.
 subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -2175,7 +2177,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
 END SUBROUTINE wtxyz
 
 
-!>   Write ascii file (atomic position). 
+!>Write ascii file (atomic position). 
 subroutine wtascii(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -2238,7 +2240,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
 END SUBROUTINE wtascii
 
 
-!>   Write the extra info necessary for the output file
+!>Write the extra info necessary for the output file
 subroutine write_extra_info(extra,natpol,ifrztyp)
   use module_base
   implicit none 
@@ -2314,7 +2316,7 @@ subroutine frozen_ftoi(frzchain,ifrztyp)
 END SUBROUTINE frozen_ftoi
 
 
-!>   Calculate the coefficient for moving atoms following the ifrztyp
+!>Calculate the coefficient for moving atoms following the ifrztyp
 subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
   use module_base
   implicit none
@@ -2333,14 +2335,16 @@ subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
 END SUBROUTINE frozen_alpha
 
 
-!>    Print all general parameters
-subroutine print_general_parameters(in,atoms)
+!> Print all general parameters
+subroutine print_general_parameters(nproc,input,atoms)
   use module_base
   use module_types
   use defs_basis
   use ab6_symmetry
   implicit none
-  type(input_variables), intent(in) :: in
+  !Arguments
+  integer, intent(in) :: nproc
+  type(input_variables), intent(in) :: input
   type(atoms_data), intent(in) :: atoms
 
   integer :: nSym, ierr, ityp, iat, i, lg
@@ -2354,6 +2358,8 @@ subroutine print_general_parameters(in,atoms)
   character(len = width) :: at(maxLen), fixed(maxLen), add(maxLen)
   character(len = 11) :: potden
   character(len = 12) :: dos
+  integer :: nthreads
+!$ integer :: omp_get_max_threads
 
   ! Output for atoms and k-points
   write(*,'(1x,a,a,a)') '--- (file: posinp.', &
@@ -2405,14 +2411,14 @@ subroutine print_general_parameters(in,atoms)
   if (i > maxLen) write(fixed(maxLen), '(a)') " (...)"
 
   ! The additional data column
-  if (atoms%geocode /= 'F' .and. .not. in%disableSym) then
+  if (atoms%geocode /= 'F' .and. .not. input%disableSym) then
      call ab6_symmetry_get_matrices(atoms%symObj, nSym, sym, transNon, symAfm, ierr)
      call ab6_symmetry_get_group(atoms%symObj, spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
      if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
      write(add(1), '(a,i0)')       "N. sym.   = ", nSym
      write(add(2), '(a,a,a)')      "Sp. group = ", trim(spaceGroup)
-  else if (atoms%geocode /= 'F' .and. in%disableSym) then
+  else if (atoms%geocode /= 'F' .and. input%disableSym) then
      write(add(1), '(a)')          "N. sym.   = disabled"
      write(add(2), '(a)')          "Sp. group = disabled"
   else
@@ -2420,19 +2426,19 @@ subroutine print_general_parameters(in,atoms)
      write(add(2), '(a)')          "Sp. group = free BC"
   end if
   i = 3
-  if (in%nvirt > 0) then
-     write(add(i), '(a,i5,a)')     "Virt. orb.= ", in%nvirt, " orb."
-     write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(in%nplot), " orb."
+  if (input%nvirt > 0) then
+     write(add(i), '(a,i5,a)')     "Virt. orb.= ", input%nvirt, " orb."
+     write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(input%nplot), " orb."
   else
      write(add(i), '(a)')          "Virt. orb.= none"
      write(add(i + 1), '(a)')      "Plot dens.= none"
   end if
   i = i + 2
-  if (in%nspin==4) then
+  if (input%nspin==4) then
      write(add(i),'(a)')           "Spin pol. = non-coll."
-  else if (in%nspin==2) then
+  else if (input%nspin==2) then
      write(add(i),'(a)')           "Spin pol. = collinear"
-  else if (in%nspin==1) then
+  else if (input%nspin==1) then
      write(add(i),'(a)')           "Spin pol. = no"
   end if
 
@@ -2445,29 +2451,29 @@ subroutine print_general_parameters(in,atoms)
 
   if (atoms%geocode /= 'F') then
      write(*,'(1x,a)') '--- (file: input.kpt) ----------------------------------------------------- k-points'
-     if (in%disableSym .and. in%nkpt > 1) then
+     if (input%disableSym .and. input%nkpt > 1) then
         write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
      end if
      write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
-     do i = 1, in%nkpt, 1
+     do i = 1, input%nkpt, 1
         write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
-             & in%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-             & in%wkpt(i), i, in%kpt(:, i)
+             & input%kpt(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+             & input%wkpt(i), i, input%kpt(:, i)
      end do
-     if (in%nkptv > 0) then
+     if (input%nkptv > 0) then
         write(*, "(1x,a)")    " K points for band structure calculation"
         write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
-        do i = 1, in%nkptv, 1
+        do i = 1, input%nkptv, 1
            write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
-                & in%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
-                & 1.0d0 / real(size(in%kptv, 2), gp), i, in%kptv(:, i)
+                & input%kptv(:, i) * (/ atoms%alat1, atoms%alat2, atoms%alat3 /) / two_pi, &
+                & 1.0d0 / real(size(input%kptv, 2), gp), i, input%kptv(:, i)
         end do
      end if
   end if
 
   ! Printing for mixing parameters.
-  if (in%itrpmax>1) then
-     if (in%iscf < 10) then
+  if (input%itrpmax>1) then
+     if (input%iscf < 10) then
         write(potden, "(A)") "potential"
      else
         write(potden, "(A)") "density"
@@ -2475,67 +2481,79 @@ subroutine print_general_parameters(in,atoms)
      write(*,'(1x,a)') '--- (file: input.mix) ------------------------------------------------------- Mixing'
      write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
           & "     Target=", potden,        "|", &
-          & " Add. bands=", in%norbsempty, "|", &
-          & "    Coeff.=", in%alphamix
+          & " Add. bands=", input%norbsempty, "|", &
+          & "    Coeff.=", input%alphamix
      write(*,"(1x,A12,I12,1x,A1,1x,A12,1pe12.2,1x,A1,1x,A11,0pe10.2)") &
-          & "     Scheme=", modulo(in%iscf, 10), "|", &
-          & "Elec. temp.=", in%tel,              "|", &
-          & "      DIIS=", in%alphadiis
+          & "     Scheme=", modulo(input%iscf, 10), "|", &
+          & "Elec. temp.=", input%tel,              "|", &
+          & "      DIIS=", input%alphadiis
      write(*,"(1x,A12,I12,1x,A1,1x,A12,A12,1x,A1)") &
-          & "  Max iter.=", in%itrpmax,    "|", &
+          & "  Max iter.=", input%itrpmax,    "|", &
           & "Occ. scheme=", smearing_names(occopt), "|"
-     if (in%verbosity > 2) then
+     if (input%verbosity > 2) then
         write(dos, "(A)") "dos.gnuplot"
      else
         write(dos, "(A)") "no verb. < 3"
      end if
      write(*,"(1x,A12,1pe12.2,1x,A1,1x,2A12,1x,A1)") &
-          & "   Rp norm.=", in%rpnrm_cv,    "|", " output DOS=", dos, "|"
+          & "   Rp norm.=", input%rpnrm_cv,    "|", " output DOS=", dos, "|"
   end if
 
-  if (in%ncount_cluster_x > 0) then
+  if (input%ncount_cluster_x > 0) then
      write(*,'(1x,a)') '--- (file: input.geopt) ------------------------------------- Geopt Input Parameters'
      write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
 
      write(*, "(1x,a,i7,1x,a,1x,a,1pe7.1,1x,a,1x,a,i7)") &
-          & "      Max. steps=", in%ncount_cluster_x, "|", &
-          & "Fluct. in forces=", in%frac_fluct,       "|", &
-          & "          ionmov=", in%ionmov
+          & "      Max. steps=", input%ncount_cluster_x, "|", &
+          & "Fluct. in forces=", input%frac_fluct,       "|", &
+          & "          ionmov=", input%ionmov
      write(*, "(1x,a,a7,1x,a,1x,a,1pe7.1,1x,a,1x,a,0pf7.0)") &
-          & "       algorithm=", in%geopt_approach, "|", &
-          & "  Max. in forces=", in%forcemax,       "|", &
-          & "           dtion=", in%dtion
-     if (trim(in%geopt_approach) /= "DIIS") then
+          & "       algorithm=", input%geopt_approach, "|", &
+          & "  Max. in forces=", input%forcemax,       "|", &
+          & "           dtion=", input%dtion
+     if (trim(input%geopt_approach) /= "DIIS") then
         write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,1x,a)", advance="no") &
-             & "random at.displ.=", in%randdis, "|", &
-             & "  steep. descent=", in%betax,   "|"
+             & "random at.displ.=", input%randdis, "|", &
+             & "  steep. descent=", input%betax,   "|"
      else
         write(*, "(1x,a,1pe7.1,1x,a,1x,a,1pe7.1,2x,a,1I2,1x,a)", advance="no") &
-             & "random at.displ.=", in%randdis,           "|", &
-             & "step=", in%betax, "history=", in%history, "|"
+             & "random at.displ.=", input%randdis,           "|", &
+             & "step=", input%betax, "history=", input%history, "|"
      end if
-     if (in%ionmov > 7) then
+     if (input%ionmov > 7) then
         write(*, "(1x,a,1f5.0,1x,a,1f5.0)") &
-             & "start T=", in%mditemp, "stop T=", in%mdftemp
+             & "start T=", input%mditemp, "stop T=", input%mdftemp
      else
         write(*,*)
      end if
      
-     if (in%ionmov == 8) then
-        write(*,'(1x,a,f15.5)') "TODO: pretty printing!", in%noseinert
-     else if (in%ionmov == 9) then
-        write(*,*) "TODO: pretty printing!", in%friction
-        write(*,*) "TODO: pretty printing!", in%mdwall
-     else if (in%ionmov == 13) then
-        write(*,*) "TODO: pretty printing!", in%nnos
-        write(*,*) "TODO: pretty printing!", in%qmass
-        write(*,*) "TODO: pretty printing!", in%bmass, in%vmass
+     if (input%ionmov == 8) then
+        write(*,'(1x,a,f15.5)') "TODO: pretty printing!", input%noseinert
+     else if (input%ionmov == 9) then
+        write(*,*) "TODO: pretty printing!", input%friction
+        write(*,*) "TODO: pretty printing!", input%mdwall
+     else if (input%ionmov == 13) then
+        write(*,*) "TODO: pretty printing!", input%nnos
+        write(*,*) "TODO: pretty printing!", input%qmass
+        write(*,*) "TODO: pretty printing!", input%bmass, input%vmass
      end if
   end if
+
+  write(*,*)
+  ! Numbers of MPI processes and OpenMP threads
+  write(*,'(1x,a,1x,i0)') 'Number of MPI processes',nproc
+  nthreads = 0
+!$  nthreads=omp_get_max_threads()
+  if (nthreads == 0) then
+      write(*,'(1x,a)') 'MPI process does not use OpenMP'
+  else
+      write(*,'(1x,a,1x,i0)') 'Number of maximal OpenMP threads per MPI process',nthreads
+  end if
+
 END SUBROUTINE print_general_parameters
 
 
-!>    Print all dft input parameters
+!> Print all dft input parameters
 subroutine print_dft_parameters(in,atoms)
   use module_types
   implicit none
@@ -2576,7 +2594,7 @@ subroutine print_dft_parameters(in,atoms)
 END SUBROUTINE print_dft_parameters
 
 
-!>   Routine for moving atomic positions, takes into account the 
+!>Routine for moving atomic positions, takes into account the 
 !!   frozen atoms and the size of the cell
 !!   synopsis: rxyz=txyz+alpha*sxyz
 !!   all the shift are inserted into the box if there are periodic directions
@@ -2617,7 +2635,7 @@ subroutine atomic_axpy(atoms,txyz,alpha,sxyz,rxyz)
 END SUBROUTINE atomic_axpy
 
 
-!>   Routine for moving atomic positions, takes into account the 
+!>Routine for moving atomic positions, takes into account the 
 !!   frozen atoms and the size of the cell
 !!   synopsis: fxyz=txyz+alpha*sxyz
 !!   update the forces taking into account the frozen atoms
@@ -2648,7 +2666,7 @@ subroutine atomic_axpy_forces(atoms,txyz,alpha,sxyz,fxyz)
 END SUBROUTINE atomic_axpy_forces
 
 
-!>   Calculate the scalar product between atomic positions by considering
+!>Calculate the scalar product between atomic positions by considering
 !!   only non-blocked atoms
 subroutine atomic_dot(atoms,x,y,scpr)
   use module_base
@@ -2677,7 +2695,7 @@ subroutine atomic_dot(atoms,x,y,scpr)
 END SUBROUTINE atomic_dot
 
 
-!>   z=alpha*A*x + beta* y
+!>z=alpha*A*x + beta* y
 subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
   use module_base
   use module_types
@@ -2722,7 +2740,7 @@ function move_this_coordinate(ifrztyp,ixyz)
 END FUNCTION move_this_coordinate
 
 
-!>   rxyz=txyz+alpha*sxyz
+!> rxyz=txyz+alpha*sxyz
 subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   use module_base
   use module_types
@@ -2795,6 +2813,9 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
      end if
+     if (iproc == 0) then
+        write(*,'(1x,a)') 'CUDA support activated (iproc=0)'
+     end if
   else if (iacceleration == 2) then
      ! OpenCL convolutions are activated
      ! use CUBLAS for the linear algebra for the moment
@@ -2804,11 +2825,16 @@ subroutine init_material_acceleration(iproc,iacceleration,GPU)
         call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
         call init_acceleration_OCL(GPU)
         if (iproc == 0) then
-           write(*,*)' OpenCL convolutions activated'
+           write(*,'(1x,a)') 'OpenCL support activated (iproc=0)'
         end if
         OCLconv=.true.
      end if
+  else
+     if (iproc == 0) then
+        write(*,'(1x,a)') 'No material acceleration (iproc=0)'
+     end if
   end if
+  if (iproc == 0) write(*,*)
 
 END SUBROUTINE init_material_acceleration
 

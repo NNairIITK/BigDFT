@@ -568,7 +568,7 @@ end interface
 interface
  double precision function dcabs1(z)
  implicit none
- double complex :: z
+ complex(kind=8) :: z
 end function dcabs1
 end interface
 
@@ -877,7 +877,7 @@ interface
  implicit none
  integer :: incx
  integer :: n
- double complex :: zx(*)
+ complex(kind=8) :: zx(*)
 end function dzasum
 end interface
 
@@ -886,7 +886,7 @@ interface
  implicit none
  integer :: INCX
  integer :: N
- complex*16 :: X( * )
+ complex(kind=8) :: X( * )
 end function DZNRM2
 end interface
 
@@ -922,7 +922,7 @@ interface
  implicit none
  integer :: incx
  integer :: n
- double complex :: zx(*)
+ complex(kind=8) :: zx(*)
 end function izamax
 end interface
 
@@ -1428,13 +1428,13 @@ interface
 end interface
 
 interface
- double complex function zdotu(n,zx,incx,zy,incy)
+ complex(kind=8) function zdotu(n,zx,incx,zy,incy)
  implicit none
  integer :: incx
  integer :: incy
  integer :: n
- double complex :: zx(*)
- double complex :: zy(*)
+ complex(kind=8) :: zx(*)
+ complex(kind=8) :: zy(*)
 end function zdotu
 end interface
 
@@ -1446,8 +1446,8 @@ interface
   integer :: N
   double precision :: C
   double precision :: S
-  complex*16 :: CX( * )
-  complex*16 :: CY( * )
+  complex(kind=8) :: CX( * )
+  complex(kind=8) :: CY( * )
  end subroutine ZDROT
 end interface
 
@@ -1462,12 +1462,12 @@ interface
   integer :: LDA
   integer :: M
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: BETA
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: BETA
   character*1 :: TRANS
-  complex*16 :: X( * )
-  complex*16 :: Y( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: Y( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGBMV
 end interface
 
@@ -1479,10 +1479,10 @@ interface
   integer :: LDA
   integer :: M
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: X( * )
-  complex*16 :: Y( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: Y( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGERU
 end interface
 
@@ -1495,12 +1495,12 @@ interface
   integer :: K
   integer :: LDA
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: BETA
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: BETA
   character*1 :: UPLO
-  complex*16 :: X( * )
-  complex*16 :: Y( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: Y( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZHBMV
 end interface
 
@@ -1512,12 +1512,12 @@ interface
   integer :: INCY
   integer :: LDA
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: BETA
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: BETA
   character*1 :: UPLO
-  complex*16 :: X( * )
-  complex*16 :: Y( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: Y( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZHEMV
 end interface
 
@@ -1528,11 +1528,11 @@ interface
   integer :: INCY
   integer :: LDA
   integer :: N
-  complex*16 :: ALPHA
+  complex(kind=8) :: ALPHA
   character*1 :: UPLO
-  complex*16 :: X( * )
-  complex*16 :: Y( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: Y( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZHER2
 end interface
 
@@ -1545,13 +1545,13 @@ interface
   integer :: LDB
   integer :: LDC
   integer :: N
-  complex*16 :: ALPHA
+  complex(kind=8) :: ALPHA
   double precision :: BETA
   character :: TRANS
   character :: UPLO
-  complex*16 :: A( LDA, * )
-  complex*16 :: B( LDB, * )
-  complex*16 :: C( LDC, * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: B( LDB, * )
+  complex(kind=8) :: C( LDC, * )
  end subroutine ZHER2K
 end interface
 
@@ -1561,12 +1561,12 @@ interface
   integer :: INCX
   integer :: INCY
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: BETA
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: BETA
   character*1 :: UPLO
-  complex*16 :: AP( * )
-  complex*16 :: X( * )
-  complex*16 :: Y( * )
+  complex(kind=8) :: AP( * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: Y( * )
  end subroutine ZHPMV
 end interface
 
@@ -1577,8 +1577,8 @@ interface
   integer :: N
   double precision :: ALPHA
   character*1 :: UPLO
-  complex*16 :: AP( * )
-  complex*16 :: X( * )
+  complex(kind=8) :: AP( * )
+  complex(kind=8) :: X( * )
  end subroutine ZHPR
 end interface
 
@@ -1588,11 +1588,11 @@ interface
   integer :: INCX
   integer :: INCY
   integer :: N
-  complex*16 :: ALPHA
+  complex(kind=8) :: ALPHA
   character*1 :: UPLO
-  complex*16 :: AP( * )
-  complex*16 :: X( * )
-  complex*16 :: Y( * )
+  complex(kind=8) :: AP( * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: Y( * )
  end subroutine ZHPR2
 end interface
 
@@ -1600,9 +1600,9 @@ interface
  subroutine zrotg(ca,cb,c,s)
   implicit none
   double precision :: c
-  double complex :: ca
-  double complex :: cb
-  double complex :: s
+  complex(kind=8) :: ca
+  complex(kind=8) :: cb
+  complex(kind=8) :: s
  end subroutine zrotg
 end interface
 
@@ -1612,8 +1612,8 @@ interface
   integer :: incx
   integer :: incy
   integer :: n
-  double complex :: zx(*)
-  double complex :: zy(*)
+  complex(kind=8) :: zx(*)
+  complex(kind=8) :: zy(*)
  end subroutine zswap
 end interface
 
@@ -1626,13 +1626,13 @@ interface
   integer :: LDC
   integer :: M
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: BETA
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: BETA
   character*1 :: SIDE
   character*1 :: UPLO
-  complex*16 :: A( LDA, * )
-  complex*16 :: B( LDB, * )
-  complex*16 :: C( LDC, * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: B( LDB, * )
+  complex(kind=8) :: C( LDC, * )
  end subroutine ZSYMM
 end interface
 
@@ -1645,13 +1645,13 @@ interface
   integer :: LDB
   integer :: LDC
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: BETA
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: BETA
   character*1 :: TRANS
   character*1 :: UPLO
-  complex*16 :: A( LDA, * )
-  complex*16 :: B( LDB, * )
-  complex*16 :: C( LDC, * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: B( LDB, * )
+  complex(kind=8) :: C( LDC, * )
  end subroutine ZSYR2K
 end interface
 
@@ -1663,12 +1663,12 @@ interface
   integer :: LDA
   integer :: LDC
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: BETA
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: BETA
   character*1 :: TRANS
   character*1 :: UPLO
-  complex*16 :: A( LDA, * )
-  complex*16 :: C( LDC, * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: C( LDC, * )
  end subroutine ZSYRK
 end interface
 
@@ -1682,8 +1682,8 @@ interface
   character*1 :: DIAG
   character*1 :: TRANS
   character*1 :: UPLO
-  complex*16 :: X( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZTBMV
 end interface
 
@@ -1697,8 +1697,8 @@ interface
   character*1 :: DIAG
   character*1 :: TRANS
   character*1 :: UPLO
-  complex*16 :: X( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZTBSV
 end interface
 
@@ -1710,8 +1710,8 @@ interface
   character*1 :: DIAG
   character*1 :: TRANS
   character*1 :: UPLO
-  complex*16 :: AP( * )
-  complex*16 :: X( * )
+  complex(kind=8) :: AP( * )
+  complex(kind=8) :: X( * )
  end subroutine ZTPMV
 end interface
 
@@ -1723,8 +1723,8 @@ interface
   character*1 :: DIAG
   character*1 :: TRANS
   character*1 :: UPLO
-  complex*16 :: AP( * )
-  complex*16 :: X( * )
+  complex(kind=8) :: AP( * )
+  complex(kind=8) :: X( * )
  end subroutine ZTPSV
 end interface
 
@@ -1736,13 +1736,13 @@ interface
   integer :: LDB
   integer :: M
   integer :: N
-  complex*16 :: ALPHA
+  complex(kind=8) :: ALPHA
   character*1 :: DIAG
   character*1 :: SIDE
   character*1 :: TRANSA
   character*1 :: UPLO
-  complex*16 :: A( LDA, * )
-  complex*16 :: B( LDB, * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: B( LDB, * )
  end subroutine ZTRMM
 end interface
 
@@ -1755,8 +1755,8 @@ interface
   character*1 :: DIAG
   character*1 :: TRANS
   character*1 :: UPLO
-  complex*16 :: X( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZTRMV
 end interface
 
@@ -1769,8 +1769,8 @@ interface
   character*1 :: DIAG
   character*1 :: TRANS
   character*1 :: UPLO
-  complex*16 :: X( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZTRSV
 end interface
 
@@ -2781,7 +2781,7 @@ interface
  implicit none
  integer :: INCX
  integer :: N
- complex*16 :: CX( * )
+ complex(kind=8) :: CX( * )
 end function DZSUM1
 end interface
 
@@ -2790,7 +2790,7 @@ interface
  implicit none
  integer :: INCX
  integer :: N
- complex*16 :: CX( * )
+ complex(kind=8) :: CX( * )
 end function IZMAX1
 end interface
 
@@ -2820,9 +2820,9 @@ interface
   double precision :: D( * )
   double precision :: E( * )
   double precision :: RWORK( * )
-  complex*16 :: C( LDC, * )
-  complex*16 :: U( LDU, * )
-  complex*16 :: VT( LDVT, * )
+  complex(kind=8) :: C( LDC, * )
+  complex(kind=8) :: U( LDU, * )
+  complex(kind=8) :: VT( LDVT, * )
  end subroutine ZBDSQR
 end interface
 
@@ -2839,7 +2839,7 @@ interface
   character :: JOB
   character :: SIDE
   double precision :: SCALE( * )
-  complex*16 :: V( LDV, * )
+  complex(kind=8) :: V( LDV, * )
  end subroutine ZGEBAK
 end interface
 
@@ -2853,7 +2853,7 @@ interface
   integer :: N
   character :: JOB
   double precision :: SCALE( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGEBAL
 end interface
 
@@ -2866,10 +2866,10 @@ interface
   integer :: N
   double precision :: D( * )
   double precision :: E( * )
-  complex*16 :: TAUP( * )
-  complex*16 :: TAUQ( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: TAUP( * )
+  complex(kind=8) :: TAUQ( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGEBD2
 end interface
 
@@ -2884,10 +2884,10 @@ interface
   integer :: N
   double precision :: D( * )
   double precision :: E( * )
-  complex*16 :: TAUP( * )
-  complex*16 :: TAUQ( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: TAUP( * )
+  complex(kind=8) :: TAUQ( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGEBRD
 end interface
 
@@ -2906,10 +2906,10 @@ interface
   character :: SORT
   logical :: BWORK( * )
   double precision :: RWORK( * )
-  complex*16 :: W( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
-  complex*16 :: VS( LDVS, * )
+  complex(kind=8) :: W( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: VS( LDVS, * )
  end subroutine ZGEES
 end interface
 
@@ -2926,11 +2926,11 @@ interface
   character :: JOBVL
   character :: JOBVR
   double precision :: RWORK( * )
-  complex*16 :: W( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
-  complex*16 :: VL( LDVL, * )
-  complex*16 :: VR( LDVR, * )
+  complex(kind=8) :: W( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: VL( LDVL, * )
+  complex(kind=8) :: VR( LDVR, * )
  end subroutine ZGEEV
 end interface
 
@@ -2942,9 +2942,9 @@ interface
   integer :: INFO
   integer :: LDA
   integer :: N
-  complex*16 :: TAU( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGEHD2
 end interface
 
@@ -2957,9 +2957,9 @@ interface
   integer :: LDA
   integer :: LWORK
   integer :: N
-  complex*16 :: TAU( * )
-  complex*16 :: A( LDA, * )
-  complex*16 :: WORK( LWORK )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: WORK( LWORK )
  end subroutine ZGEHRD
 end interface
 
@@ -2970,9 +2970,9 @@ interface
   integer :: LDA
   integer :: M
   integer :: N
-  complex*16 :: TAU( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGELQ2
 end interface
 
@@ -2984,9 +2984,9 @@ interface
   integer :: LWORK
   integer :: M
   integer :: N
-  complex*16 :: TAU( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGELQF
 end interface
 
@@ -2997,9 +2997,9 @@ interface
   integer :: LDA
   integer :: M
   integer :: N
-  complex*16 :: TAU( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGEQR2
 end interface
 
@@ -3011,9 +3011,9 @@ interface
   integer :: LWORK
   integer :: M
   integer :: N
-  complex*16 :: TAU( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGEQRF
 end interface
 
@@ -3032,10 +3032,10 @@ interface
   character :: JOBVT
   double precision :: RWORK( * )
   double precision :: S( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
-  complex*16 :: U( LDU, * )
-  complex*16 :: VT( LDVT, * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: U( LDU, * )
+  complex(kind=8) :: VT( LDVT, * )
  end subroutine ZGESVD
 end interface
 
@@ -3047,7 +3047,7 @@ interface
   integer :: M
   integer :: N
   integer :: IPIV( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGETF2
 end interface
 
@@ -3059,8 +3059,8 @@ interface
   integer :: LWORK
   integer :: N
   integer :: IPIV( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZGETRI
 end interface
 
@@ -3074,8 +3074,8 @@ interface
   integer :: NRHS
   character :: TRANS
   integer :: IPIV( * )
-  complex*16 :: A( LDA, * )
-  complex*16 :: B( LDB, * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: B( LDB, * )
  end subroutine ZGETRS
 end interface
 
@@ -3088,8 +3088,8 @@ interface
   integer :: LDB
   integer :: N
   character :: UPLO
-  complex*16 :: A( LDA, * )
-  complex*16 :: B( LDB, * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: B( LDB, * )
  end subroutine ZHEGS2
 end interface
 
@@ -3102,8 +3102,8 @@ interface
   character :: UPLO
   double precision :: D( * )
   double precision :: E( * )
-  complex*16 :: TAU( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZHETD2
 end interface
 
@@ -3117,9 +3117,9 @@ interface
   character :: UPLO
   double precision :: D( * )
   double precision :: E( * )
-  complex*16 :: TAU( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZHETRD
 end interface
 
@@ -3130,8 +3130,8 @@ interface
   integer :: ITYPE
   integer :: N
   character :: UPLO
-  complex*16 :: AP( * )
-  complex*16 :: BP( * )
+  complex(kind=8) :: AP( * )
+  complex(kind=8) :: BP( * )
  end subroutine ZHPGST
 end interface
 
@@ -3141,10 +3141,10 @@ interface
   integer :: INFO
   integer :: N
   character :: UPLO
-  complex*16 :: AP( * )
+  complex(kind=8) :: AP( * )
   double precision :: D( * )
   double precision :: E( * )
-  complex*16 :: TAU( * )
+  complex(kind=8) :: TAU( * )
  end subroutine ZHPTRD
 end interface
 
@@ -3161,10 +3161,10 @@ interface
   integer :: N
   character :: COMPZ
   character :: JOB
-  complex*16 :: W( * )
-  complex*16 :: WORK( * )
-  complex*16 :: H( LDH, * )
-  complex*16 :: Z( LDZ, * )
+  complex(kind=8) :: W( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: H( LDH, * )
+  complex(kind=8) :: Z( LDZ, * )
  end subroutine ZHSEQR
 end interface
 
@@ -3180,11 +3180,11 @@ interface
   integer :: NB
   double precision :: D( * )
   double precision :: E( * )
-  complex*16 :: TAUP( * )
-  complex*16 :: TAUQ( * )
-  complex*16 :: A( LDA, * )
-  complex*16 :: X( LDX, * )
-  complex*16 :: Y( LDY, * )
+  complex(kind=8) :: TAUP( * )
+  complex(kind=8) :: TAUQ( * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: X( LDX, * )
+  complex(kind=8) :: Y( LDY, * )
  end subroutine ZLABRD
 end interface
 
@@ -3193,7 +3193,7 @@ interface
   implicit none
   integer :: INCX
   integer :: N
-  complex*16 :: X( * )
+  complex(kind=8) :: X( * )
  end subroutine ZLACGV
 end interface
 
@@ -3203,8 +3203,8 @@ interface
   integer :: KASE
   integer :: N
   double precision :: EST
-  complex*16 :: V( N )
-  complex*16 :: X( N )
+  complex(kind=8) :: V( N )
+  complex(kind=8) :: X( N )
  end subroutine ZLACON
 end interface
 
@@ -3216,16 +3216,16 @@ interface
   integer :: M
   integer :: N
   character :: UPLO
-  complex*16 :: A( LDA, * )
-  complex*16 :: B( LDB, * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: B( LDB, * )
  end subroutine ZLACPY
 end interface
 
 interface
- DOUBLE COMPLEX   FUNCTION ZLADIV( X, Y )
+ complex(kind=8)   FUNCTION ZLADIV( X, Y )
  implicit none
- complex*16 :: X
- complex*16 :: Y
+ complex(kind=8) :: X
+ complex(kind=8) :: Y
 end function ZLADIV
 end interface
 
@@ -3243,9 +3243,9 @@ interface
   integer :: N
   logical :: WANTT
   logical :: WANTZ
-  complex*16 :: W( * )
-  complex*16 :: H( LDH, * )
-  complex*16 :: Z( LDZ, * )
+  complex(kind=8) :: W( * )
+  complex(kind=8) :: H( LDH, * )
+  complex(kind=8) :: Z( LDZ, * )
  end subroutine ZLAHQR
 end interface
 
@@ -3258,10 +3258,10 @@ interface
   integer :: LDY
   integer :: N
   integer :: NB
-  complex*16 :: A( LDA, * )
-  complex*16 :: T( LDT, NB )
-  complex*16 :: TAU( NB )
-  complex*16 :: Y( LDY, NB )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: T( LDT, NB )
+  complex(kind=8) :: TAU( NB )
+  complex(kind=8) :: Y( LDY, NB )
  end subroutine ZLAHRD
 end interface
 
@@ -3274,10 +3274,10 @@ interface
   integer :: LDY
   integer :: N
   integer :: NB
-  complex*16 :: A( LDA, * )
-  complex*16 :: T( LDT, NB )
-  complex*16 :: TAU( NB )
-  complex*16 :: Y( LDY, NB )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: T( LDT, NB )
+  complex(kind=8) :: TAU( NB )
+  complex(kind=8) :: Y( LDY, NB )
  end subroutine ZLAHR2
 end interface
 
@@ -3289,7 +3289,7 @@ interface
  integer :: N
  character :: NORM
  double precision :: WORK( * )
- complex*16 :: A( LDA, * )
+ complex(kind=8) :: A( LDA, * )
 end function ZLANGE
 end interface
 
@@ -3301,7 +3301,7 @@ interface
  character :: NORM
  character :: UPLO
  double precision :: WORK( * )
- complex*16 :: A( LDA, * )
+ complex(kind=8) :: A( LDA, * )
 end function ZLANHE
 end interface
 
@@ -3311,7 +3311,7 @@ interface
  integer :: N
  character :: NORM
  character :: UPLO
- complex*16 :: AP( * )
+ complex(kind=8) :: AP( * )
  double precision :: WORK( * )
 end function ZLANHP
 end interface
@@ -3323,7 +3323,7 @@ interface
  integer :: N
  character :: NORM
  double precision :: WORK( * )
- complex*16 :: A( LDA, * )
+ complex(kind=8) :: A( LDA, * )
 end function ZLANHS
 end interface
 
@@ -3342,10 +3342,10 @@ interface
   integer :: N
   logical :: WANTT
   logical :: WANTZ
-  complex*16 :: W( * )
-  complex*16 :: WORK( * )
-  complex*16 :: H( LDH, * )
-  complex*16 :: Z( LDZ, * )
+  complex(kind=8) :: W( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: H( LDH, * )
+  complex(kind=8) :: Z( LDZ, * )
  end subroutine ZLAQR0
 end interface
 
@@ -3354,10 +3354,10 @@ interface
   implicit none
   integer :: LDH
   integer :: N
-  complex*16 :: S1
-  complex*16 :: S2
-  complex*16 :: V( * )
-  complex*16 :: H( LDH, * )
+  complex(kind=8) :: S1
+  complex(kind=8) :: S2
+  complex(kind=8) :: V( * )
+  complex(kind=8) :: H( LDH, * )
  end subroutine ZLAQR1
 end interface
 
@@ -3384,13 +3384,13 @@ interface
   integer :: NW
   logical :: WANTT
   logical :: WANTZ
-  complex*16 :: SH( * )
-  complex*16 :: WORK( * )
-  complex*16 :: H( LDH, * )
-  complex*16 :: T( LDT, * )
-  complex*16 :: V( LDV, * )
-  complex*16 :: WV( LDWV, * )
-  complex*16 :: Z( LDZ, * )
+  complex(kind=8) :: SH( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: H( LDH, * )
+  complex(kind=8) :: T( LDT, * )
+  complex(kind=8) :: V( LDV, * )
+  complex(kind=8) :: WV( LDWV, * )
+  complex(kind=8) :: Z( LDZ, * )
  end subroutine ZLAQR2
 end interface
 
@@ -3417,13 +3417,13 @@ interface
   integer :: NW
   logical :: WANTT
   logical :: WANTZ
-  complex*16 :: SH( * )
-  complex*16 :: WORK( * )
-  complex*16 :: H( LDH, * )
-  complex*16 :: T( LDT, * )
-  complex*16 :: V( LDV, * )
-  complex*16 :: WV( LDWV, * )
-  complex*16 :: Z( LDZ, * )
+  complex(kind=8) :: SH( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: H( LDH, * )
+  complex(kind=8) :: T( LDT, * )
+  complex(kind=8) :: V( LDV, * )
+  complex(kind=8) :: WV( LDWV, * )
+  complex(kind=8) :: Z( LDZ, * )
  end subroutine ZLAQR3
 end interface
 
@@ -3442,10 +3442,10 @@ interface
   integer :: N
   logical :: WANTT
   logical :: WANTZ
-  complex*16 :: W( * )
-  complex*16 :: WORK( * )
-  complex*16 :: H( LDH, * )
-  complex*16 :: Z( LDZ, * )
+  complex(kind=8) :: W( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: H( LDH, * )
+  complex(kind=8) :: Z( LDZ, * )
  end subroutine ZLAQR4
 end interface
 
@@ -3471,13 +3471,13 @@ interface
   integer :: NV
   logical :: WANTT
   logical :: WANTZ
-  complex*16 :: S( * )
-  complex*16 :: H( LDH, * )
-  complex*16 :: U( LDU, * )
-  complex*16 :: V( LDV, * )
-  complex*16 :: WH( LDWH, * )
-  complex*16 :: WV( LDWV, * )
-  complex*16 :: Z( LDZ, * )
+  complex(kind=8) :: S( * )
+  complex(kind=8) :: H( LDH, * )
+  complex(kind=8) :: U( LDU, * )
+  complex(kind=8) :: V( LDV, * )
+  complex(kind=8) :: WH( LDWH, * )
+  complex(kind=8) :: WV( LDWV, * )
+  complex(kind=8) :: Z( LDZ, * )
  end subroutine ZLAQR5
 end interface
 
@@ -3489,10 +3489,10 @@ interface
   integer :: M
   integer :: N
   character :: SIDE
-  complex*16 :: TAU
-  complex*16 :: V( * )
-  complex*16 :: WORK( * )
-  complex*16 :: C( LDC, * )
+  complex(kind=8) :: TAU
+  complex(kind=8) :: V( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: C( LDC, * )
  end subroutine ZLARF
 end interface
 
@@ -3511,10 +3511,10 @@ interface
   character :: SIDE
   character :: STOREV
   character :: TRANS
-  complex*16 :: C( LDC, * )
-  complex*16 :: T( LDT, * )
-  complex*16 :: V( LDV, * )
-  complex*16 :: WORK( LDWORK, * )
+  complex(kind=8) :: C( LDC, * )
+  complex(kind=8) :: T( LDT, * )
+  complex(kind=8) :: V( LDV, * )
+  complex(kind=8) :: WORK( LDWORK, * )
  end subroutine ZLARFB
 end interface
 
@@ -3523,9 +3523,9 @@ interface
   implicit none
   integer :: INCX
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: TAU
-  complex*16 :: X( * )
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: TAU
+  complex(kind=8) :: X( * )
  end subroutine ZLARFG
 end interface
 
@@ -3538,9 +3538,9 @@ interface
   integer :: N
   character :: DIRECT
   character :: STOREV
-  complex*16 :: TAU( * )
-  complex*16 :: T( LDT, * )
-  complex*16 :: V( LDV, * )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: T( LDT, * )
+  complex(kind=8) :: V( LDV, * )
  end subroutine ZLARFT
 end interface
 
@@ -3551,10 +3551,10 @@ interface
   integer :: M
   integer :: N
   character :: SIDE
-  complex*16 :: TAU
-  complex*16 :: V( * )
-  complex*16 :: WORK( * )
-  complex*16 :: C( LDC, * )
+  complex(kind=8) :: TAU
+  complex(kind=8) :: V( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: C( LDC, * )
  end subroutine ZLARFX
 end interface
 
@@ -3562,10 +3562,10 @@ interface
  SUBROUTINE ZLARTG( F, G, CS, SN, R )
   implicit none
   double precision :: CS
-  complex*16 :: F
-  complex*16 :: G
-  complex*16 :: R
-  complex*16 :: SN
+  complex(kind=8) :: F
+  complex(kind=8) :: G
+  complex(kind=8) :: R
+  complex(kind=8) :: SN
  end subroutine ZLARTG
 end interface
 
@@ -3581,7 +3581,7 @@ interface
   double precision :: CFROM
   double precision :: CTO
   character :: TYPE
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZLASCL
 end interface
 
@@ -3591,10 +3591,10 @@ interface
   integer :: LDA
   integer :: M
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: BETA
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: BETA
   character :: UPLO
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZLASET
 end interface
 
@@ -3609,7 +3609,7 @@ interface
   character :: SIDE
   double precision :: C( * )
   double precision :: S( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZLASR
 end interface
 
@@ -3620,7 +3620,7 @@ interface
   integer :: N
   double precision :: SCALE
   double precision :: SUMSQ
-  complex*16 :: X( * )
+  complex(kind=8) :: X( * )
  end subroutine ZLASSQ
 end interface
 
@@ -3633,7 +3633,7 @@ interface
   integer :: LDA
   integer :: N
   integer :: IPIV( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZLASWP
 end interface
 
@@ -3646,9 +3646,9 @@ interface
   integer :: NB
   character :: UPLO
   double precision :: E( * )
-  complex*16 :: TAU( * )
-  complex*16 :: A( LDA, * )
-  complex*16 :: W( LDW, * )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: W( LDW, * )
  end subroutine ZLATRD
 end interface
 
@@ -3665,8 +3665,8 @@ interface
   character :: TRANS
   character :: UPLO
   double precision :: CNORM( * )
-  complex*16 :: X( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: X( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZLATRS
 end interface
 
@@ -3676,9 +3676,9 @@ interface
   integer :: LDA
   integer :: M
   integer :: N
-  complex*16 :: ALPHA
-  complex*16 :: BETA
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: ALPHA
+  complex(kind=8) :: BETA
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZLAZRO
 end interface
 
@@ -3689,7 +3689,7 @@ interface
   integer :: LDA
   integer :: N
   character :: UPLO
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZPOTF2
 end interface
 
@@ -3699,7 +3699,7 @@ interface
   integer :: INFO
   integer :: N
   character :: UPLO
-  complex*16 :: AP( * )
+  complex(kind=8) :: AP( * )
  end subroutine ZPPTRF
 end interface
 
@@ -3710,9 +3710,9 @@ interface
   integer :: INCY
   integer :: N
   double precision :: C
-  complex*16 :: S
-  complex*16 :: CX( * )
-  complex*16 :: CY( * )
+  complex(kind=8) :: S
+  complex(kind=8) :: CX( * )
+  complex(kind=8) :: CY( * )
  end subroutine ZROT
 end interface
 
@@ -3731,10 +3731,10 @@ interface
   character :: SIDE
   double precision :: RWORK( * )
   logical :: SELECT( * )
-  complex*16 :: WORK( * )
-  complex*16 :: T( LDT, * )
-  complex*16 :: VL( LDVL, * )
-  complex*16 :: VR( LDVR, * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: T( LDT, * )
+  complex(kind=8) :: VL( LDVL, * )
+  complex(kind=8) :: VR( LDVR, * )
  end subroutine ZTREVC
 end interface
 
@@ -3748,8 +3748,8 @@ interface
   integer :: LDT
   integer :: N
   character :: COMPQ
-  complex*16 :: Q( LDQ, * )
-  complex*16 :: T( LDT, * )
+  complex(kind=8) :: Q( LDQ, * )
+  complex(kind=8) :: T( LDT, * )
  end subroutine ZTREXC
 end interface
 
@@ -3768,10 +3768,10 @@ interface
   double precision :: S
   double precision :: SEP
   logical :: SELECT( * )
-  complex*16 :: W( * )
-  complex*16 :: WORK( * )
-  complex*16 :: Q( LDQ, * )
-  complex*16 :: T( LDT, * )
+  complex(kind=8) :: W( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: Q( LDQ, * )
+  complex(kind=8) :: T( LDT, * )
  end subroutine ZTRSEN
 end interface
 
@@ -3789,9 +3789,9 @@ interface
   double precision :: SCALE
   character :: TRANA
   character :: TRANB
-  complex*16 :: A( LDA, * )
-  complex*16 :: B( LDB, * )
-  complex*16 :: C( LDC, * )
+  complex(kind=8) :: A( LDA, * )
+  complex(kind=8) :: B( LDB, * )
+  complex(kind=8) :: C( LDC, * )
  end subroutine ZTRSYL
 end interface
 
@@ -3803,7 +3803,7 @@ interface
   integer :: N
   character :: DIAG
   character :: UPLO
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZTRTI2
 end interface
 
@@ -3815,7 +3815,7 @@ interface
   integer :: N
   character :: DIAG
   character :: UPLO
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZTRTRI
 end interface
 
@@ -3828,9 +3828,9 @@ interface
   integer :: LWORK
   integer :: M
   integer :: N
-  complex*16 :: TAU( * )
-  complex*16 :: WORK( * )
-  complex*16 :: A( LDA, * )
+  complex(kind=8) :: TAU( * )
+  complex(kind=8) :: WORK( * )
+  complex(kind=8) :: A( LDA, * )
  end subroutine ZUNGQR
 end interface
 
