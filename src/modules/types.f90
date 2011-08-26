@@ -227,21 +227,25 @@ module module_types
      character(len=1) :: geocode
      character(len=5) :: format
      character(len=20) :: units
-     integer :: nat                                !< nat          Number of atoms
-     integer :: ntypes                             !< ntypes       Number of type of atoms
+     integer :: nat                                        !< nat            Number of atoms
+     integer :: ntypes                                     !< ntypes         Number of type of atoms
      integer :: natsc
-     character(len=20), dimension(:), pointer :: atomnames
-     real(gp) :: alat1,alat2,alat3
-     integer, dimension(:), pointer :: iatype      !< iatype(nat)  Type of the atoms
-     integer, dimension(:), pointer :: iasctype,natpol,nelpsp,npspcode,nzatom
-     integer, dimension(:), pointer :: ifrztyp     !< ifrztyp(nat) Frozen atoms
-     real(gp), dimension(:), pointer :: amu        !< amu(ntypes)  Atomic Mass Unit for each type of atoms
+     character(len=20), dimension(:), pointer :: atomnames !< atomnames(ntypes) Name of type of atoms
+     real(gp) :: alat1,alat2,alat3                         !< dimension of the periodic supercell
+     integer, dimension(:), pointer :: iatype              !< iatype(nat)    Type of the atoms
+     integer, dimension(:), pointer :: iasctype
+     integer, dimension(:), pointer :: natpol
+     integer, dimension(:), pointer :: nelpsp
+     integer, dimension(:), pointer :: npspcode
+     integer, dimension(:), pointer :: nzatom
+     integer, dimension(:), pointer :: ifrztyp             !< ifrztyp(nat) Frozen atoms
+     real(gp), dimension(:), pointer :: amu                !< amu(ntypes)  Atomic Mass Unit for each type of atoms
      real(gp), dimension(:,:), pointer :: aocc
-     real(gp), dimension(:,:,:), pointer :: psppar !< pseudopotential parameters (HGH SR section)
-     logical :: donlcc                             !< activate non-linear core correction treatment
-     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !<number of valence and core gaussians describing NLCC 
-     real(gp), dimension(:,:), pointer :: nlccpar    !< parameters for the non-linear core correction, if present
-     integer :: symObj                               !< The symmetry object from ABINIT
+     real(gp), dimension(:,:,:), pointer :: psppar         !< pseudopotential parameters (HGH SR section)
+     logical :: donlcc                                     !< activate non-linear core correction treatment
+     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
+     real(gp), dimension(:,:), pointer :: nlccpar          !< parameters for the non-linear core correction, if present
+     integer :: symObj                                     !< The symmetry object from ABINIT
      integer :: iat_absorber 
   end type atoms_data
 

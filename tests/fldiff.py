@@ -224,9 +224,9 @@ if bigdft:
         sys.exit(1)
 
 #Remove line_junk before comparing (the line number is wrong)
+memory = 0
 if bigdft:
     time = 0
-    memory = 0
 #Open 2 temporary files
 t1 = tempfile.NamedTemporaryFile()
 for line in original1:

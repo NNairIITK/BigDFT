@@ -12,7 +12,7 @@ import sys
 
 #Regular expressions
 re_discrepancy = re.compile("Max [dD]iscrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
-re_time = re.compile("-- time ([0-9.]+)")
+re_time = re.compile("-- time[ ]+([0-9.]+)")
 
 def callback(pattern,dirname,names):
     "Return the files given by the pattern"
@@ -89,11 +89,14 @@ for file in files:
         start = start_fail
         state = "can not parse file.    failed"
         print "%s%-24s %-28s %s%s" % (start,dir,fic,state,end)
+
 #Hours, minutes and seconds
-totimeh=int(totime/3600)
-totimem=int(totime-totimeh*3600)/60
-totimes=totime-totimem*60-totimeh*3600
+totimeh = int(totime/3600)
+totimem = int(totime-totimeh*3600)/60
+totimes = totime-totimem*60-totimeh*3600
+p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
 print 92*"-"
-print 50*" "+"Time Needed for timed tests: %sh %sm %ss%s" % (totimeh,totimem,totimes,end)
+print 50*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
+
 #Error code
 sys.exit(Exit)

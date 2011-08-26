@@ -356,7 +356,6 @@ subroutine dft_input_variables(iproc,filename,in)
   else
      in%verbosity=ivrbproj
   end if
-  call memocc_set_verbosity(in%verbosity)
 !!  !temporary correction
 !!  DistProjApply=.false.
 
@@ -983,10 +982,17 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%orthpar%bsLow = blocks(1)
   inputs%orthpar%bsUp  = blocks(2)
   
-  ! Set performance variables
+  ! Set debug for memory occupation (memocc routine from ABINIT)
   call memocc_set_debug(inputs%debug)
+  if (inputs%debug) then
+     !We create the file malloc.prc
+     call memocc_set_verbosity(10)
+  else
+     call memocc_set_verbosity(0)
+  end if
+
+  !Set cache size for fft
   call set_cache_size(inputs%ncache_fft)
-  
 
   !Check after collecting all values
   if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
@@ -1413,6 +1419,7 @@ END SUBROUTINE deallocate_atoms
 
 
 !> Deallocate the structure atoms_data after scf loop.
+!! atoms%amu and all keys in dellocate_atoms are not de-allocated.
 subroutine deallocate_atoms_scf(atoms,subname) 
   use module_base
   use module_types
