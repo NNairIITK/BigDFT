@@ -762,7 +762,7 @@ subroutine deallocate_linear_zone_descriptors(lzd, subname)
 !      call deallocate_orbitals_data(lzd%lorbs(i1), subname)
 !  end do
   
-  call deallocate_communications_arrays(lzd%comms, subname)
+  !call deallocate_communications_arrays(lzd%comms, subname)
   
   call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)

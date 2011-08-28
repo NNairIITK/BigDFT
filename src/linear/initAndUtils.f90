@@ -48,6 +48,10 @@ integer :: npsidim
 
 tag=0
 
+
+! Nullify all pointers
+call nullify_linear_zone_descriptors(lin%lzd)
+
 ! Allocate all local arrays.
 allocate(atomNames(at%ntypes), stat=istat)
 call memocc(istat, atomNames, 'atomNames', subname)
@@ -1756,7 +1760,139 @@ end subroutine initCoefficients
 !!end subroutine allocateAndCopyLocreg
 
 
+subroutine nullify_linearParameters(lin)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_linearParameters
+  implicit none
 
+  ! Calling arguments
+  type(linearParameters),intent(out):: lin
+
+  nullify(lin%potentialPrefac)
+  nullify(lin%locrad)
+  nullify(lin%lphiRestart)
+  nullify(lin%lphiold)
+  nullify(lin%lhphiold)
+  nullify(lin%hamold)
+  call nullify_orbitals_data(lin%orbs)
+  call nullify_orbitals_data(lin%gorbs)
+  call nullify_communications_arrays(lin%comms)
+  call nullify_communications_arrays(lin%gcomms)
+  nullify(lin%norbsPerType)
+  call nullify_p2pCommsSumrho(lin%comsr)
+  call nullify_p2pCommsGatherPot(lin%comgp)
+  call nullify_largeBasis(lin%lb)
+  call nullify_linear_zone_descriptors(lin%lzd)
+  call nullify_p2pCommsOrthonormality(lin%comon)
+  call nullify_overlapParameters(lin%op)
+  call nullify_linearInputGuess(lin%lig)
+  !call nullify_matrixDescriptors(lin%mad)
+
+end subroutine nullify_linearParameters
+
+
+subroutine nullify_p2pCommsSumrho(comsr)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_p2pCommsSumrho
+  implicit none
+
+  ! Calling argument
+  type(p2pCommsSumrho),intent(out):: comsr
+
+  nullify(comsr%noverlaps)
+  nullify(comsr%overlaps)
+  nullify(comsr%istarr)
+  nullify(comsr%istrarr)
+  nullify(comsr%sendBuf)
+  nullify(comsr%recvBuf)
+  nullify(comsr%comarr)
+  nullify(comsr%communComplete)
+  nullify(comsr%computComplete)
+end subroutine nullify_p2pCommsSumrho
+
+
+subroutine nullify_p2pCommsGatherPot(comgp)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_p2pCommsGatherPot
+  implicit none
+
+  ! Calling argument
+  type(p2pCommsGatherPot),intent(out):: comgp
+
+  nullify(comgp%noverlaps)
+  nullify(comgp%overlaps)
+  nullify(comgp%ise3)
+  nullify(comgp%comarr)
+  nullify(comgp%recvBuf)
+  nullify(comgp%communComplete)
+
+end subroutine nullify_p2pCommsGatherPot
+
+
+subroutine nullify_largeBasis(lb)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_largeBasis
+  implicit none
+
+  ! Calling argument
+  type(largeBasis),intent(out):: lb
+  call nullify_p2pCommsGatherPot(lb%comgp)
+  call nullify_communications_arrays(lb%comms)
+  call nullify_communications_arrays(lb%gcomms)
+  call nullify_orbitals_data(lb%orbs)
+  call nullify_orbitals_data(lb%gorbs)
+  call nullify_p2pCommsRepartition(lb%comrp)
+  call nullify_p2pCommsOrthonormality(lb%comon)
+  call nullify_overlapParameters(lb%op)
+  call nullify_p2pCommsGatherPot(lb%comgp)
+
+end subroutine nullify_largeBasis
+
+
+subroutine nullify_p2pCommsOrthonormality(comon)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_p2pCommsOrthonormality
+  implicit none
+
+  ! Calling argument
+  type(p2pCommsOrthonormality),intent(out):: comon
+
+  nullify(comon%noverlaps)
+  nullify(comon%overlaps)
+  nullify(comon%comarr)
+  nullify(comon%sendBuf)
+  nullify(comon%recvBuf)
+  nullify(comon%communComplete)
+
+end subroutine nullify_p2pCommsOrthonormality
+
+
+subroutine nullify_overlapParameters(op)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_overlapParameters
+  implicit none
+
+  ! Calling argument
+  type(overlapParameters),intent(out):: op
+
+  nullify(op%noverlaps)
+  nullify(op%indexExpand)
+  nullify(op%indexExtract)
+  nullify(op%overlaps)
+  nullify(op%indexInRecvBuf)
+  nullify(op%indexInSendBuf)
+  nullify(op%olr)
+
+end subroutine nullify_overlapParameters
+
+
+  call nullify_linearInputGuess(lin%lig)
 
 
 subroutine nullify_linear_zone_descriptors(lzd)
@@ -1770,11 +1906,12 @@ subroutine nullify_linear_zone_descriptors(lzd)
   
   !call nullify_orbitals_data(lzd%orbs)
   !nullify(lzd%lorbs)
-  call nullify_communications_arrays(lzd%comms)
+  !call nullify_communications_arrays(lzd%comms)
   call nullify_locreg_descriptors(lzd%glr)
   call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
   nullify(lzd%llr)
   nullify(lzd%lnlpspd)
+  nullify(lzd%doHamAppl)
   !call nullify_matrixMinimization(lzd%matmin)
   
 end subroutine nullify_linear_zone_descriptors
