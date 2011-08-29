@@ -232,6 +232,8 @@ low_level = init/projectors.f90  \
         linear/psitolocReg.f90 \
         linear/locReg_orbitals.f90 \
         linear/locReg_projectors.f90 \
+        linear/LinearForces.f90 \
+        linear/tmp_HamiltonianApplication.f90 \
         linear/transposition.f90 \
         linear/linearDiagHam.f90 \
         linear/linearScaling.f90 \

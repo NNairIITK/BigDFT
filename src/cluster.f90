@@ -690,6 +690,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           orbs,norbv,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernelseq,ixc,psi,hpsi,psit,Gvirt,&
           nscatterarr,ngatherarr,nspin,0,atoms%symObj,irrzon,phnons,GPU,in,radii_cf)
+
+!     call timing(iproc,'            ','RE')
+!     call mpi_finalize(ierr)
+!     stop
      if (nvirt > norbv) then
         nvirt = norbv
      end if
@@ -1053,7 +1057,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               end if
            end if
            !flush all writings on standart output
-           call flush(6)
+           !if(iproc==0) flush(unit=6)
         end do wfn_loop
 
 

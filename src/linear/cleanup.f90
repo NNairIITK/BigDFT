@@ -1,13 +1,20 @@
 module deallocatePointers
 
   interface checkAndDeallocatePointer
-     module procedure checkAndDeallocatePointer_int_1, checkAndDeallocatePointer_sgl_1, checkAndDeallocatePointer_dbl_1, checkAndDeallocatePointer_log_1
-     module procedure checkAndDeallocatePointer_int_2, checkAndDeallocatePointer_sgl_2, checkAndDeallocatePointer_dbl_2, checkAndDeallocatePointer_log_2
-     module procedure checkAndDeallocatePointer_int_3, checkAndDeallocatePointer_sgl_3, checkAndDeallocatePointer_dbl_3, checkAndDeallocatePointer_log_3
-     module procedure checkAndDeallocatePointer_int_4, checkAndDeallocatePointer_sgl_4, checkAndDeallocatePointer_dbl_4, checkAndDeallocatePointer_log_4
-     module procedure checkAndDeallocatePointer_int_5, checkAndDeallocatePointer_sgl_5, checkAndDeallocatePointer_dbl_5, checkAndDeallocatePointer_log_5
-     module procedure checkAndDeallocatePointer_int_6, checkAndDeallocatePointer_sgl_6, checkAndDeallocatePointer_dbl_6, checkAndDeallocatePointer_log_6
-     module procedure checkAndDeallocatePointer_int_7, checkAndDeallocatePointer_sgl_7, checkAndDeallocatePointer_dbl_7, checkAndDeallocatePointer_log_7
+     module procedure checkAndDeallocatePointer_int_1, checkAndDeallocatePointer_sgl_1, checkAndDeallocatePointer_dbl_1,&
+                      checkAndDeallocatePointer_log_1
+     module procedure checkAndDeallocatePointer_int_2, checkAndDeallocatePointer_sgl_2, checkAndDeallocatePointer_dbl_2,&
+                      checkAndDeallocatePointer_log_2
+     module procedure checkAndDeallocatePointer_int_3, checkAndDeallocatePointer_sgl_3, checkAndDeallocatePointer_dbl_3,&
+                      checkAndDeallocatePointer_log_3
+     module procedure checkAndDeallocatePointer_int_4, checkAndDeallocatePointer_sgl_4, checkAndDeallocatePointer_dbl_4,&
+                      checkAndDeallocatePointer_log_4
+     module procedure checkAndDeallocatePointer_int_5, checkAndDeallocatePointer_sgl_5, checkAndDeallocatePointer_dbl_5,&
+                      checkAndDeallocatePointer_log_5
+     module procedure checkAndDeallocatePointer_int_6, checkAndDeallocatePointer_sgl_6, checkAndDeallocatePointer_dbl_6,&
+                      checkAndDeallocatePointer_log_6
+     module procedure checkAndDeallocatePointer_int_7, checkAndDeallocatePointer_sgl_7, checkAndDeallocatePointer_dbl_7,&
+                      checkAndDeallocatePointer_log_7
   end interface
 
   contains
@@ -25,9 +32,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatepointer_int_1
@@ -45,9 +56,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_sgl_1
@@ -65,9 +80,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_dbl_1
@@ -85,9 +104,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_log_1
@@ -105,9 +128,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatepointer_int_2
@@ -125,9 +152,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_sgl_2
@@ -145,9 +176,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_dbl_2
@@ -165,9 +200,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_log_2
@@ -185,9 +224,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatepointer_int_3
@@ -205,9 +248,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_sgl_3
@@ -225,9 +272,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_dbl_3
@@ -245,9 +296,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_log_3
@@ -265,9 +320,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatepointer_int_4
@@ -285,9 +344,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_sgl_4
@@ -305,9 +368,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_dbl_4
@@ -325,9 +392,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_log_4
@@ -346,9 +417,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatepointer_int_5
@@ -366,9 +441,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_sgl_5
@@ -386,9 +465,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_dbl_5
@@ -406,9 +489,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_log_5
@@ -426,9 +513,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatepointer_int_6
@@ -446,9 +537,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_sgl_6
@@ -466,9 +561,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_dbl_6
@@ -486,9 +585,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_log_6
@@ -506,9 +609,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatepointer_int_7
@@ -526,9 +633,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_sgl_7
@@ -546,9 +657,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_dbl_7
@@ -566,9 +681,13 @@ module deallocatePointers
       integer:: istat, iall
 
       if(associated(array)) then
-          iall=-product(shape(array))*kind(array)
-          deallocate(array, stat=istat)
-          call memocc(istat, iall, arrayname, subname)
+          if(size(array)>0) then
+              iall=-product(shape(array))*kind(array)
+              deallocate(array, stat=istat)
+              call memocc(istat, iall, arrayname, subname)
+          else
+              nullify(array)
+          end if
       end if
 
     end subroutine checkAndDeallocatePointer_log_7
@@ -709,6 +828,8 @@ subroutine deallocate_linearParameters(lin, subname)
   type(linearParameters),intent(inout):: lin
   character(len=*),intent(in):: subname
 
+  integer:: ierr
+
   call checkAndDeallocatePointer(lin%potentialPrefac, 'lin%potentialPrefac', subname)
   call checkAndDeallocatePointer(lin%locrad, 'lin%locrad', subname)
   call checkAndDeallocatePointer(lin%lphiRestart, 'lphi%Restart', subname)
@@ -747,37 +868,42 @@ subroutine deallocate_linear_zone_descriptors(lzd, subname)
   integer:: istat, iall, iis1, iie1, i1
   
   
-  call deallocate_orbitals_data(lzd%orbs, subname)
+!  call deallocate_orbitals_data(lzd%orbs, subname)
   
-  iis1=lbound(lzd%lorbs,1)
-  iie1=ubound(lzd%lorbs,1)
-  do i1=iis1,iie1
-      call deallocate_orbitals_data(lzd%lorbs(i1), subname)
-  end do
+!  iis1=lbound(lzd%lorbs,1)
+!  iie1=ubound(lzd%lorbs,1)
+!  do i1=iis1,iie1
+!      call deallocate_orbitals_data(lzd%lorbs(i1), subname)
+!  end do
   
-  call deallocate_communications_arrays(lzd%comms, subname)
+  !call deallocate_communications_arrays(lzd%comms, subname)
   
   call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
-  
+
   call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)
-  
-  iis1=lbound(lzd%llr,1)
-  iie1=ubound(lzd%llr,1)
-  do i1=iis1,iie1
-      !if(associated(lzd%llr(i1)%projflg)) then
-      !    nullify(lzd%llr(i1)%projflg)
-      !end if
-      call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
-      call deallocate_locreg_descriptors(lzd%llr(i1), subname)
-  end do
-  
-  iis1=lbound(lzd%lnlpspd,1)
-  iie1=ubound(lzd%lnlpspd,1)
-  do i1=iis1,iie1
-      call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
-  end do
-  
+
+  if(associated(lzd%llr)) then  
+     iis1=lbound(lzd%llr,1)
+     iie1=ubound(lzd%llr,1)
+     !write(*,*) 'iis1,iie1',iis1,iie1
+     do i1=iis1,iie1
+         !if(associated(lzd%llr(i1)%projflg)) then
+         !    nullify(lzd%llr(i1)%projflg)
+         !end if
+         call checkAndDeallocatePointer(lzd%llr(i1)%projflg, 'lzd%llr(i1)%projflg', subname)
+         !write(*,*) 'i1',i1
+         call deallocate_locreg_descriptors(lzd%llr(i1), subname)
+     end do
+  end if
+
+  if(associated(lzd%lnlpspd)) then 
+     iis1=lbound(lzd%lnlpspd,1)
+     iie1=ubound(lzd%lnlpspd,1)
+     do i1=iis1,iie1
+         call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
+     end do
+  end if
 end subroutine deallocate_linear_zone_descriptors
 
 
@@ -846,6 +972,27 @@ subroutine deallocate_locreg_descriptors(lr, subname)
   
 end subroutine deallocate_locreg_descriptors
 
+subroutine deallocate_locreg_descriptors2(lr, subname)
+  use module_base
+  use module_types
+  use deallocatePointers
+  use module_interfaces, exceptThisOne => deallocate_locreg_descriptors
+  implicit none
+
+  ! Calling arguments
+  type(locreg_descriptors),intent(inout):: lr
+  character(len=*),intent(in):: subname
+
+  call checkAndDeallocatePointer(lr%projflg, 'lr%projflg', subname)
+
+  call deallocate_wavefunctions_descriptors(lr%wfd, subname)
+!  call deallocate_convolutions_bounds(lr%bounds, subname)
+! Don't need to deallocate the bounds, since they are not associated for
+! overlap regions
+
+end subroutine deallocate_locreg_descriptors2
+
+
 
 subroutine deallocate_wavefunctions_descriptors(wfd, subname)
   use module_base
@@ -895,7 +1042,23 @@ subroutine deallocate_kinetic_bounds(kb, subname)
 
   call checkAndDeallocatePointer(kb%ibyz_c, 'kb%ibyz_c', subname)
   call checkAndDeallocatePointer(kb%ibxz_c, 'kb%ibxz_c', subname)
+  !!write(*,*) 'check, size',associated(kb%ibxz_c), size(kb%ibxz_c)
+  !!if(associated(kb%ibxz_c)) then
+  !!  deallocate(kb%ibxz_c)
+  !!  !nullify(kb%ibxz_c)
+  !!end if
   call checkAndDeallocatePointer(kb%ibxy_c, 'kb%ibxy_c', subname)
+  !if(associated(kb%ibxy_c)) then
+  !    if(size(kb%ibxy_c)>0) then
+  !        deallocate(kb%ibxy_c)
+  !    else
+  !        nullify(kb%ibxy_c)
+  !    end if
+  !end if
+  !write(*,*) 'check', associated(kb%ibyz_f)
+  !if(associated(kb%ibyz_f)) then
+  !    write(*,*) 'size',size(kb%ibyz_f)
+  !end if
   call checkAndDeallocatePointer(kb%ibyz_f, 'kb%ibyz_f', subname)
   call checkAndDeallocatePointer(kb%ibxz_f, 'kb%ibxz_f', subname)
   call checkAndDeallocatePointer(kb%ibxy_f, 'kb%ibxy_f', subname)
@@ -1133,13 +1296,14 @@ subroutine deallocate_overlapParameters(op, subname)
   call checkAndDeallocatePointer(op%indexInRecvBuf, 'op%indexInRecvBuf', subname)
   call checkAndDeallocatePointer(op%indexInSendBuf, 'op%indexInSendBuf', subname)
 
+
   iis1=lbound(op%olr,1)
   iie1=ubound(op%olr,1)
   iis2=lbound(op%olr,2)
   iie2=ubound(op%olr,2)
   do i2=iis2,iie2
       do i1=iis1,iie1
-          call deallocate_locreg_descriptors(op%olr(i1,i2), subname)
+          call deallocate_locreg_descriptors2(op%olr(i1,i2), subname)
       end do
   end do
 
