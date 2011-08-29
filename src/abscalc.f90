@@ -280,13 +280,7 @@ END SUBROUTINE call_abscalc
 
 
 !>   Absorption (XANES) calculation
-!!   @param inputPsiId = 
-!!          - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
-!!          - 1 : read waves from argument psi, using n1, n2, n3, hgrid
-!!                as definition of the previous system.
-!!          - 2 : read waves from disk
-!!                does an electronic structure calculation. Output is the total energy and the forces 
-!!   @param psi, keyg, keyv and eval should be freed after use outside of the routine.
+!!   @param psi should be freed after use outside of the routine.
 !!   @param infocode -> encloses some information about the status of the run
 !!          - 0 run succesfully succeded
 !!          - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
