@@ -383,7 +383,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      nspin_ig=nspin
   end if
 
-  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
        orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
 
   !allocate communications arrays for inputguess orbitals

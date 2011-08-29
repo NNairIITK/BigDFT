@@ -8,8 +8,8 @@
 !!   For the list of contributors, see ~/AUTHORS 
 
 
-!>  Test the input files and estimates the memory occupation versus the number
-!!  of processors
+!> Test the input files and estimates the memory occupation versus the number
+!! of processors
 program memguess
 
   use module_base
@@ -26,7 +26,7 @@ program memguess
   logical :: optimise,GPUtest,atwf,convert=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: norbgpu,nspin_ig,ng,info,lubo,lubc
+  integer :: norbgpu,nspin_ig,ng
   real(gp) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
@@ -37,7 +37,7 @@ program memguess
   type(gaussian_basis) :: G !basis for davidson IG
   real(gp), dimension(3) :: shift
   logical, dimension(:,:,:), allocatable :: logrid
-  integer, dimension(:,:), allocatable :: norbsc_arr,norb_par,nvctr_par
+  integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
   real(wp), dimension(:), allocatable :: rhoexpo
   real(wp), dimension(:,:), pointer :: rhocoeff

@@ -140,7 +140,7 @@ program frequencies
   !Message
   if (iproc == 0) then
      write(*,'(1x,a,i0,a,i0,a)') '=F=> There are ', imoves, ' moves already calculated over ', &
-                                 n_order*3*atoms%nat,' frequencies.'
+          n_order*3*atoms%nat,' frequencies.'
      write(*,*)
   end if
 
@@ -151,7 +151,7 @@ program frequencies
   else
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
      call frequencies_write_restart(iproc,0,0,0,rxyz,etot,fxyz,&
-                                    n_order=n_order,freq_step=freq_step,amu=atoms%amu)
+          n_order=n_order,freq_step=freq_step,amu=atoms%amu)
      moves(:,0) = .true.
      call restart_inputs(inputs)
   end if
