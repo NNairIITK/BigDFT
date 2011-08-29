@@ -463,7 +463,7 @@ module module_types
 
 
 !!!> Contains all the descriptors necessary for splitting the calculation in different locregs 
-  type,public:: linear_zone_descriptors
+  type,public:: local_zone_descriptors
     logical :: linear                                           !> if true, use linear part of the code
     integer :: nlr                                              !> Number of localization regions 
     integer :: Lpsidimtot                                       !> Total dimension of the wavefunctions in the locregs
@@ -488,7 +488,7 @@ module module_types
 type,public:: largeBasis
     type(communications_arrays):: comms, gcomms
     type(orbitals_data):: orbs, gorbs
-    !type(linear_zone_descriptors):: lzd
+    !type(local_zone_descriptors):: lzd
     type(p2pCommsRepartition):: comrp
     type(p2pCommsOrthonormality):: comon
     type(overlapParameters):: op
@@ -525,7 +525,7 @@ end type largeBasis
   end type mixrhopotDIISParameters
 
   type,public:: linearInputGuess
-      type(linear_zone_descriptors):: lzdig, lzdGauss
+      type(local_zone_descriptors):: lzdig, lzdGauss
       type(orbitals_data):: orbsig, orbsGauss
       type(p2pCommsOrthonormality):: comon
       type(overlapParameters):: op
@@ -552,7 +552,7 @@ end type largeBasis
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
     type(largeBasis):: lb
-    type(linear_zone_descriptors):: lzd
+    type(local_zone_descriptors):: lzd
     type(p2pCommsOrthonormality):: comon
     type(overlapParameters):: op
     type(linearInputGuess):: lig
@@ -988,7 +988,7 @@ END SUBROUTINE deallocate_orbs
   subroutine deallocate_Lzd(Lzd,subname)
     use module_base
     character(len=*), intent(in) :: subname
-    type(linear_zone_descriptors) :: Lzd
+    type(local_zone_descriptors) :: Lzd
     integer :: i_all,i_stat,ilr
 
 !   nullify the bounds of Glr

@@ -155,7 +155,7 @@ subroutine transpose_v2(iproc,nproc,orbs,Lzd,comms,psi,&
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
-  type(linear_zone_descriptors), intent(in) :: Lzd
+  type(local_zone_descriptors), intent(in) :: Lzd
   type(communications_arrays), intent(in) :: comms
   real(wp), dimension(:), pointer :: psi
   real(wp), dimension(:), pointer, optional :: work

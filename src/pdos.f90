@@ -54,7 +54,7 @@ subroutine local_analysis(iproc,nproc,hx,hy,hz,in,at,rxyz,shift,lr,orbs,orbsv,ps
   call memocc(i_stat,radii_cf_fake,'radii_cf_fake',subname)
 
 
-  !call read_system_variables('input.occup',iproc,inc,atc,radii_cf_fake,nelec,&
+  !call read_system_variables('input.occup',iproc,nproc,inc,atc,radii_cf_fake,nelec,&
   !     norb,norbu,norbd,iunit)
 
   !shift the positions with the same value of the original positions

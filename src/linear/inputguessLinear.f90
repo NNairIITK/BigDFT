@@ -27,8 +27,8 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
 
 
   ! Nullify the linear zone descriptors.
-  call nullify_linear_zone_descriptors(lin%lig%lzdig)
-  call nullify_linear_zone_descriptors(lin%lig%lzdGauss)
+  call nullify_local_zone_descriptors(lin%lig%lzdig)
+  call nullify_local_zone_descriptors(lin%lig%lzdGauss)
 
   ! Allocate some arrays we need for the input guess.
   allocate(locrad(at%nat+ndebug),stat=istat)
@@ -362,7 +362,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   if(iproc==0) write(*,'(a)') 'done.'
 
   ! Deallocate lin%lig%lzdGauss since it is not  needed anymore.
-  call deallocate_linear_zone_descriptors(lin%lig%lzdGauss, subname)
+  call deallocate_local_zone_descriptors(lin%lig%lzdGauss, subname)
      
   !-- if spectra calculation uses a energy dependent potential
   !    input_wf_diag will write (to be used in abscalc)
@@ -629,7 +629,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call deallocate_gwf(G,subname)
 
   ! Deallocate all types that are not needed any longer.
-  call deallocate_linear_zone_descriptors(lin%lig%lzdig, subname)
+  call deallocate_local_zone_descriptors(lin%lig%lzdig, subname)
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call deallocate_orbitals_data(lin%lig%orbsGauss, subname)
   call deallocate_matrixDescriptors(lin%lig%mad, subname)
@@ -708,7 +708,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm
 real(8),intent(in):: convCritOrtho
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
 type(p2pCommsOrthonormality),intent(inout):: comon
@@ -983,7 +983,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc, nprocTemp, ndim_lhchi, nlocregPerMPI
-type(linear_zone_descriptors),intent(in):: lzdig
+type(local_zone_descriptors),intent(in):: lzdig
 type(orbitals_data),intent(in):: orbsig, orbs
 integer,dimension(0:nprocTemp),intent(in):: norb_parTemp
 integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
@@ -1117,7 +1117,7 @@ type(atoms_data),intent(in):: at
 integer,dimension(norb),intent(in):: onWhichAtomAll
 real(8),dimension(at%nat),intent(in):: locrad
 real(8),dimension(3,at%nat),intent(in):: rxyz
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
 
 ! Local variables
@@ -1333,7 +1333,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs, orbstot
 integer,dimension(orbstot%norb),intent(in):: onWhichAtom
 integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi
@@ -2316,7 +2316,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linear_zone_descriptors),intent(in):: lzdig, lzd
+type(local_zone_descriptors),intent(in):: lzdig, lzd
 type(orbitals_data),intent(in):: orbsig, orbs
 type(input_variables),intent(in):: input
 real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
@@ -2399,7 +2399,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linear_zone_descriptors),intent(in):: lzdig, lzd
+type(local_zone_descriptors),intent(in):: lzdig, lzd
 type(orbitals_data),intent(in):: orbsig, orbs
 type(input_variables),intent(in):: input
 real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
@@ -2493,7 +2493,7 @@ type(atoms_data),intent(in):: at
 type(locreg_descriptors),intent(in):: Glr
 type(input_variables),intent(in):: input
 type(linearParameters),intent(in):: lin
-type(linear_zone_descriptors),intent(inout):: lzdig
+type(local_zone_descriptors),intent(inout):: lzdig
 integer,dimension(at%ntypes):: norbsPerType
 integer,dimension(orbsig%norb),intent(in):: onWhichAtom
 real(8),dimension(orbsig%npsidim):: lchi

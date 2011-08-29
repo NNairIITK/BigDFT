@@ -211,7 +211,7 @@ subroutine HamiltonianApplicationConfinement2(input,iproc,nproc,at,Lzd,orbs,lin,
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(input_variables), intent(in) :: input
-  type(linear_zone_descriptors),intent(inout) :: Lzd
+  type(local_zone_descriptors),intent(inout) :: Lzd
   type(orbitals_data),intent(in):: orbs
   type(linearParameters),intent(in):: lin
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
@@ -794,7 +794,7 @@ subroutine LinearHamiltonianApplication(input,iproc,nproc,at,Lzd,orbs,hx,hy,hz,r
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(input_variables), intent(in) :: input
-  type(linear_zone_descriptors),intent(inout) :: Lzd
+  type(local_zone_descriptors),intent(inout) :: Lzd
   type(orbitals_data),intent(in) :: orbs
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz

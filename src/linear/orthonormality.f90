@@ -11,7 +11,7 @@ integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsy
 type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 real(8),intent(in):: convCritOrtho
 type(input_variables),intent(in):: input
@@ -367,7 +367,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(p2pCommsOrthonormality),intent(inout):: comon_lb
 type(overlapParameters),intent(inout):: op_lb
@@ -406,7 +406,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 type(input_variables),intent(in):: input
@@ -633,7 +633,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(overlapParameters),intent(out):: op
 type(p2pCommsOrthonormality),intent(out):: comon
@@ -691,7 +691,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(overlapParameters),intent(out):: op
 type(p2pCommsOrthonormality),intent(out):: comon
@@ -752,7 +752,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(locreg_descriptors),intent(in):: Glr
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(overlapParameters),intent(inout):: op
@@ -790,7 +790,7 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(out):: comon
 integer,intent(inout):: tag
@@ -1003,7 +1003,7 @@ implicit none
 integer,intent(in):: iproc, nproc, sizePhi
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 real(8),dimension(sizePhi),intent(in):: phi
 type(p2pCommsOrthonormality),intent(out):: comon
@@ -1074,7 +1074,7 @@ end subroutine extractOrbital
 !!integer,intent(in):: iproc, nproc, sizePhi
 !!type(orbitals_data),intent(in):: orbs
 !!integer,dimension(orbs%norb),intent(in):: onWhichAtom
-!!type(linear_zone_descriptors),intent(in):: lzd
+!!type(local_zone_descriptors),intent(in):: lzd
 !!type(overlapParameters),intent(inout):: op
 !!real(8),dimension(sizePhi),intent(in):: phi
 !!type(p2pCommsOrthonormality),intent(out):: comon
@@ -1149,7 +1149,7 @@ implicit none
 integer,intent(in):: iproc, nproc, sizePhi
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 real(8),dimension(sizePhi),intent(in):: phi
 integer,intent(in):: nsendBuf
@@ -1372,7 +1372,7 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
 type(p2pCommsOrthonormality),intent(inout):: comon
 real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
@@ -1565,7 +1565,7 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
 type(p2pCommsOrthonormality),intent(in):: comon
 real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
@@ -1614,7 +1614,7 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
 type(p2pCommsOrthonormality),intent(in):: comon
 logical,dimension(orbs%norb,orbs%norbp),intent(in):: expanded
@@ -1666,7 +1666,7 @@ integer,intent(in):: iproc, nproc, orbsource, orbdest
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
 type(p2pCommsOrthonormality),intent(in):: comon
 real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
@@ -1749,7 +1749,7 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs, lorbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
 real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
@@ -1805,7 +1805,7 @@ implicit none
 integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
 type(orbitals_data),intent(in):: orbs, lorbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
 real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
 real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
@@ -2220,7 +2220,7 @@ integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
 type(p2pCommsOrthonormality),intent(in):: comon
 
@@ -2266,7 +2266,7 @@ implicit none
 integer,intent(in):: iproc, nproc, sizePhi
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(out):: comon
 
@@ -2338,7 +2338,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 type(overlapParameters),intent(inout):: op_lb
 type(p2pCommsOrthonormality),intent(inout):: comon_lb
@@ -2398,7 +2398,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: iproc, nproc
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs, orbsig
 integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 type(input_variables),intent(in):: input
@@ -2480,7 +2480,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs, orbsig
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(out):: op
 type(p2pCommsOrthonormality),intent(out):: comon
 
@@ -2535,7 +2535,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs, orbsig
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(out):: op
 type(p2pCommsOrthonormality),intent(out):: comon
 
@@ -2595,7 +2595,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs, orbsig
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(locreg_descriptors),intent(in):: Glr
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 type(overlapParameters),intent(inout):: op
@@ -2624,7 +2624,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs, orbsig
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(out):: comon
 integer,intent(inout):: tag
@@ -2726,7 +2726,7 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(in):: comon
 
@@ -2770,7 +2770,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, sizePhi
 type(orbitals_data),intent(in):: orbs, orbsig
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 type(p2pCommsOrthonormality),intent(out):: comon
 
@@ -2847,7 +2847,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, sizePhi
 type(orbitals_data),intent(in):: orbs, orbsig
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(inout):: op
 real(8),dimension(sizePhi),intent(in):: phi
 type(p2pCommsOrthonormality),intent(out):: comon
@@ -2926,7 +2926,7 @@ implicit none
 integer,intent(in):: iproc, nproc
 type(orbitals_data),intent(in):: orbs
 type(input_variables),intent(in):: input
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(overlapParameters),intent(in):: op
 type(p2pCommsOrthonormality),intent(in):: comon
 real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp

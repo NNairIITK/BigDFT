@@ -1904,7 +1904,7 @@ integer,intent(in):: iproc, nproc
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 !type(linearParameters),intent(inout):: lin
 type(orbitals_data),intent(in):: orbs
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(p2pCommsGatherPot),intent(out):: comgp
 integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 integer,intent(inout):: tag

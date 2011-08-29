@@ -21,7 +21,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   !Arguments
   integer, intent(in) :: iproc,nproc,nrho,nspin,ixc,symObj
   real(gp), intent(in) :: hxh,hyh,hzh
-  type(linear_zone_descriptors), intent(in) :: Lzd
+  type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data),intent(in) :: orbs
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
@@ -292,7 +292,7 @@ subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,orbs,rsflag,nscattera
   integer, intent(in) :: nspin
   real(dp),dimension(max(nrho,1),nspin),intent(out):: rho
   real(gp), intent(in) :: hxh,hyh,hzh
-  type(linear_zone_descriptors), intent(in) :: Lzd
+  type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data),intent(in) :: orbs
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi

@@ -9,7 +9,7 @@
 !!!  integer, intent(in) :: iproc,nproc
 !!!  integer, intent(in) :: nspin
 !!!  type(atoms_data), intent(in) :: at
-!!!  type(linear_zone_descriptors), intent(inout) :: Lzd
+!!!  type(local_zone_descriptors), intent(inout) :: Lzd
 !!!  integer, dimension(at%natsc+1,nspin), intent(in) :: norbsc_arr
 !!!  ! local variables
 !!!  integer :: ilr
@@ -152,7 +152,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
   integer,intent(in):: iproc,nproc,nspin,nspinor
   type(atoms_data),intent(in) :: atoms 
   type(orbitals_data),intent(inout):: orbs
-  type(linear_zone_descriptors) :: Lzd
+  type(local_zone_descriptors) :: Lzd
   integer, dimension(atoms%natsc+1,nspin), intent(in) :: norbsc_arr           !> number of semicore orbitals for the semicore atoms 
   integer,dimension(Lzd%nlr),intent(out) :: norbsc
   ! Local variables
@@ -230,7 +230,7 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd,norbsc_arr,no
 !!  dimtot = 0
 !!  if(orbs%norbp > 0) then
 !!     do iorb = 1,orbs%norbp
-!!        ilr = orbs%inwhichlocregP(iorb)
+!!        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
 !!        npsidim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
 !!        dimtot = dimtot + npsidim
 !!     end do
@@ -248,7 +248,7 @@ end subroutine assignToLocreg
 subroutine wavefunction_dimension(Lzd,orbs)
   use module_types
   implicit none
-  type(linear_zone_descriptors),intent(inout) :: Lzd
+  type(local_zone_descriptors),intent(inout) :: Lzd
   type(orbitals_data),intent(in) :: orbs
   !local variables
   integer :: dimtot,iorb,ilr,npsidim
@@ -256,7 +256,7 @@ subroutine wavefunction_dimension(Lzd,orbs)
   dimtot = 0
   if(orbs%norbp > 0) then
      do iorb = 1,orbs%norbp
-        ilr = orbs%inwhichlocregP(iorb)
+        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
         npsidim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
         dimtot = dimtot + npsidim
      end do

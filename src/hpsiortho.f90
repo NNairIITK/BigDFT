@@ -33,7 +33,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(dp), dimension(*), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
-  type(linear_zone_descriptors),optional :: Lzd
+  type(local_zone_descriptors),optional :: Lzd
   !local variables
   real(gp), dimension(2,orbs%norbp) :: ekin
   real(gp), dimension(2,orbs%norbp) :: epot

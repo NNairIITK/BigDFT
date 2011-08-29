@@ -21,7 +21,7 @@ subroutine HamiltonianApplication2(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  type(linear_zone_descriptors),intent(in) :: Lzd
+  type(local_zone_descriptors),intent(in) :: Lzd
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(Lzd%Lnprojel), intent(in) :: proj
@@ -236,7 +236,7 @@ END SUBROUTINE HamiltonianApplication2
 !!  real(gp), intent(in) :: hx,hy,hz
 !!  type(atoms_data), intent(in) :: at
 !!  type(orbitals_data), intent(in) :: orbs
-!!  type(linear_zone_descriptors),intent(in) :: Lzd
+!!  type(local_zone_descriptors),intent(in) :: Lzd
 !!  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
 !!  real(gp), dimension(3,at%nat), intent(in) :: rxyz
 !!  real(wp), dimension(Lzd%Lnprojel), intent(in) :: proj
@@ -469,7 +469,7 @@ subroutine local_hamiltonian2(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   real(gp), intent(in) :: hx,hy,hz
   logical, intent(in) :: exctX
   type(orbitals_data), intent(in) :: orbs
-  type(linear_zone_descriptors), intent(in) :: Lzd
+  type(local_zone_descriptors), intent(in) :: Lzd
   real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
   real(wp), dimension(size_potxc),intent(in) :: potxc
   real(wp), dimension(*),target :: pot
@@ -641,7 +641,7 @@ END SUBROUTINE local_hamiltonian2
 !!  real(gp), intent(in) :: hx,hy,hz
 !!  logical, intent(in) :: exctX
 !!  type(orbitals_data), intent(in) :: orbs
-!!  type(linear_zone_descriptors), intent(in) :: Lzd
+!!  type(local_zone_descriptors), intent(in) :: Lzd
 !!  real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
 !!  real(wp), dimension(lzd%ndimpotisf),target :: Lpot
 !!  !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
@@ -766,7 +766,7 @@ END SUBROUTINE local_hamiltonian2
 !!  implicit none
 !!  integer, intent(in) :: iproc,nproc,ndimpot,ndimgrid, flag
 !!  type(orbitals_data),intent(in):: orbs
-!!  type(linear_zone_descriptors) :: Lzd
+!!  type(local_zone_descriptors) :: Lzd
 !!  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
 !!  real(wp), dimension(max(ndimpot,1)*orbs%nspin), intent(in), target :: potential
 !!  real(wp), dimension(:), pointer, intent(out) :: Lpot

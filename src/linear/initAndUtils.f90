@@ -344,6 +344,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
               lin%norbsPerType(jtype)=npt
               lin%potentialPrefac(jtype)=pp
               locradType(jtype)=lt
+              at%rloc(jtype,:)=locradType(jtype)
           end if
       end do
       if(.not.found) then
@@ -1428,7 +1429,7 @@ subroutine allocateBasicArrays(at, lin)
 
   allocate(lin%locrad(lin%nlr),stat=istat)
   call memocc(istat,lin%locrad,'lin%locrad',subname)
-  
+
 end subroutine allocateBasicArrays
 
 
@@ -1579,7 +1580,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nat
 real(8),dimension(3,nat),intent(in):: rxyz
-type(linear_zone_descriptors),intent(inout):: lzd
+type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(inout):: orbs
 type(input_variables),intent(in):: input
 type(locreg_descriptors),intent(in):: Glr
@@ -1759,14 +1760,14 @@ end subroutine initCoefficients
 
 
 
-subroutine nullify_linear_zone_descriptors(lzd)
+subroutine nullify_local_zone_descriptors(lzd)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => nullify_linear_zone_descriptors
+  use module_interfaces, exceptThisOne => nullify_local_zone_descriptors
   implicit none
 
   ! Calling arguments
-  type(linear_zone_descriptors),intent(out):: lzd
+  type(local_zone_descriptors),intent(out):: lzd
   
   !call nullify_orbitals_data(lzd%orbs)
   !nullify(lzd%lorbs)
@@ -1777,7 +1778,7 @@ subroutine nullify_linear_zone_descriptors(lzd)
   nullify(lzd%lnlpspd)
   !call nullify_matrixMinimization(lzd%matmin)
   
-end subroutine nullify_linear_zone_descriptors
+end subroutine nullify_local_zone_descriptors
 
 
 

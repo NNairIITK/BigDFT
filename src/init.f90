@@ -382,7 +382,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !  integer :: dim1,dim2                    !debug plotting local wavefunctions
 !  real(dp) :: factor                      !debug plotting local wavefunctions
 !  integer,dimension(at%nat) :: projflg    !debug nonlocal_forces
-  type(linear_zone_descriptors) :: Lzd                 
+  type(local_zone_descriptors) :: Lzd                 
   integer,dimension(:),allocatable :: norbsc
   logical,dimension(:),allocatable:: calculateBounds
 !  real(gp), dimension(3,at%nat) :: fsep                 !debug for debug nonlocal_forces
@@ -459,7 +459,14 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
   if (Lzd%linear .and. (nspin < 4) ) then
 
-     if(iproc==0) write(*,'(A)') 'Entering the Linear IG'
+     if(iproc==0) then
+        write(*,'(1x,A)') 'Entering the Linear IG'
+        write(*,'(1x,A)') 'The localization radii are set to 10 times the covalent radii'
+        do iat=1,at%ntypes
+           write(*,'(1x,A,1x,A,A,1x,1pe9.3,1x,A)') 'For atom',trim(at%atomnames(iat)),' :', at%rloc(iat,1),'Bohrs'
+        end do
+     end if
+        
      Lzd%Glr = Glr
      Lzd%Gnlpspd = nlpspd
 
@@ -495,9 +502,13 @@ subroutine input_wf_diag(iproc,nproc,at,&
      calculateBounds=.true.
 
      call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,calculateBounds)
-     !call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,orbse)
+!     call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,orbse)
      deallocate(calculateBounds,stat=i_stat)
      call memocc(i_stat,i_all,'calculateBounds',subname)
+
+   ! determine the wavefunction dimension
+     call wavefunction_dimension(Lzd,orbse)
+
      call timing(iproc,'constrc_locreg','OF')
 
    !determine the Lnlpspd
@@ -707,12 +718,12 @@ subroutine input_wf_diag(iproc,nproc,at,&
     hpsi => Lhpsi
 
     ! Don't need Lpsi, Lhpsi and locrad anymore
-    i_all = -product(shape(Lpsi))*kind(Lpsi)
-    nullify(Lpsi);i_stat=0
-    call memocc(i_stat,i_all,'Lpsi',subname)
-    i_all = -product(shape(Lhpsi))*kind(Lhpsi)
+    !i_all = -product(shape(Lpsi))*kind(Lpsi)
+    nullify(Lpsi) ;i_stat=0
+    !call memocc(i_stat,i_all,'Lpsi',subname)
+    !i_all = -product(shape(Lhpsi))*kind(Lhpsi)
     nullify(Lhpsi);i_stat=0
-    call memocc(i_stat,i_all,'Lhpsi',subname)
+    !call memocc(i_stat,i_all,'Lhpsi',subname)
     i_all=-product(shape(locrad))*kind(locrad)
     deallocate(locrad,stat=i_stat)
     call memocc(i_stat,i_all,'locrad',subname)

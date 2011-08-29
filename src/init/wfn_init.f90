@@ -615,7 +615,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   use module_interfaces, except_this_one => LDiagHam
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin
-  type(linear_zone_descriptors) :: Lzd                                  !> Information about the locregs
+  type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
   type(input_variables):: input

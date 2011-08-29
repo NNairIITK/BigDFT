@@ -1222,7 +1222,7 @@ subroutine ApplyProjectorsLinear(iproc,hx,hy,hz,atoms,Lzd,orbs,rxyz,psi,hpsi,epr
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data),intent(in) :: atoms
-  type(linear_zone_descriptors),intent(in) :: Lzd
+  type(local_zone_descriptors),intent(in) :: Lzd
   type(orbitals_data),intent(in) :: orbs
   real(gp), intent(inout) :: eproj
   !#######################################
