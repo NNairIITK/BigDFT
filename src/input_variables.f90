@@ -124,6 +124,10 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   call perf_input_variables(iproc,trim(inputs%file_perf),inputs)
   ! Read dft input variables
   call dft_input_variables(iproc,trim(inputs%file_dft),inputs)
+  
+  !call check
+  call dft_input_variables_new(iproc,'toto',inputs)
+
   ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
@@ -134,7 +138,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   call geopt_input_variables(trim(inputs%file_geopt),inputs)
   ! Read tddft variables
   call tddft_input_variables(trim(inputs%file_tddft),inputs)
-  ! Read tddft variables
+  ! Read sic variables
   call sic_input_variables(trim(inputs%file_sic),inputs)
 
 
@@ -407,6 +411,61 @@ contains
 
 END SUBROUTINE dft_input_variables
 
+
+subroutine dft_input_variables_new(iproc,filename,in)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+  !local variables
+  logical :: exists
+  real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
+  real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,20.0_gp/)
+
+  !dft parameters, needed for the SCF part
+  call input_set_file(iproc,trim(filename),exists,'DFT Calculation Parameters')  
+  !call the variable, its default value, the line ends if there is a comment
+
+  !grid spacings
+  call input_var(in%hx,'0.45',ranges=hgrid_rng)
+  call input_var(in%hy,'0.45',ranges=hgrid_rng)
+  call input_var(in%hz,'0.45',ranges=hgrid_rng,comment='hx,hy,hz: grid spacing in the three directions')
+
+  !coarse and fine radii around atoms
+  call input_var(in%crmult,'5.0',ranges=xrmult_rng)
+  call input_var(in%frmult,'8.0',ranges=xrmult_rng,&
+       comment='crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom')
+
+  !XC functional (ABINIT XC codes)
+  !call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
+
+  !charge and electric field
+  !call input_var(in%ncharge,'0',ranges=(/-10,10/))
+  call input_var(in%elecfield,'0.',comment='ncharge: charge of the system, Electric field')
+
+  !spin and polarization
+  !call input_var(in%nspin,'1',exclusive=(/1,2,4/))
+  !call input_var(in%mpol,'0',comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
+
+  !XC functional (ABINIT XC codes)
+  call input_var(in%gnrm_cv,'1.e-4',ranges=(/1.e-20_gp,1.0_gp/),&
+       comment='gnrm_cv: convergence criterion gradient')
+
+  !test here for the moment
+!!$  read(1,*,iostat=ierror) in%itermax,in%nrepmax
+!!$  call check()
+!!$  read(1,*,iostat=ierror) in%ncong,in%idsx
+!!$  call check()
+!!$  in%idsx = min(in%idsx, in%itermax)
+!!$  read(1,*,iostat=ierror) in%dispersion
+!!$  call check()
+
+  call input_free()
+  
+end subroutine dft_input_variables_new
 
 !> Assign default values for GEOPT variables
 subroutine geopt_input_variables_default(in)
@@ -1013,7 +1072,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   logical :: exists
   integer :: iline,ierror,ierr,blocks(2)
 
-  call input_set_file(iproc, filename, exists)
+  call input_set_file(iproc, filename, exists,'Performance Options')
 
 
   call input_var("debug", .false., "Debug option", inputs%debug)
