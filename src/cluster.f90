@@ -393,13 +393,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
        quiet=PSquiet)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
-  if (xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .and. nproc > 1) then
+  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%alphaSIC /= 0.0_gp).and. nproc > 1) then
      call createKernel(0,1,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
           pkernelseq,quiet='YES')
-  else
+  else 
      pkernelseq => pkernel
   end if
-
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
@@ -945,7 +944,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
                 nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
-                in%nspin,GPU,pkernel=pkernelseq)
+                ixc,in%alphaSIC,GPU,pkernel=pkernelseq)
 
            !deallocate potential
            call free_full_potential(nproc,potential,subname)

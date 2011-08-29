@@ -67,6 +67,7 @@ subroutine standard_inputfile_names(inputs)
   inputs%file_perf='input.perf'
   inputs%file_tddft='input.tddft'
   inputs%file_mix='input.mix'
+  inputs%file_sic='input.sic'
   
 END SUBROUTINE standard_inputfile_names
 
@@ -133,6 +134,9 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   call geopt_input_variables(trim(inputs%file_geopt),inputs)
   ! Read tddft variables
   call tddft_input_variables(trim(inputs%file_tddft),inputs)
+  ! Read tddft variables
+  call sic_input_variables(trim(inputs%file_sic),inputs)
+
 
   ! Shake atoms if required.
   if (inputs%randdis > 0.d0) then
@@ -214,6 +218,8 @@ subroutine default_input_variables(inputs)
   call mix_input_variables_default(inputs) 
   ! Default values for tddft
   call tddft_input_variables_default(inputs)
+  !Default for Self-Interaction Correction variables
+  call sic_input_variables_default(inputs)
 
 END SUBROUTINE default_input_variables
 
@@ -602,6 +608,62 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE geopt_input_variables
+
+!> Assign default values for TDDFT variables
+subroutine sic_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  in%SIC_approach='NONE'
+  in%alphaSIC=0.0_gp
+
+END SUBROUTINE sic_input_variables_default
+
+subroutine sic_input_variables(filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='sic_input_variables'
+  integer :: iline, ierror
+
+  inquire(file=trim(filename),exist=exists)
+
+  if (.not. exists) then
+     return
+  end if
+
+ ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+  read(1,*,iostat=ierror) in%SIC_approach
+  call check()
+  read(1,*,iostat=ierror) in%alphaSIC
+  call check()
+  
+  close(unit=1,iostat=ierror)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE sic_input_variables
+
 
 
 !> Assign default values for TDDFT variables

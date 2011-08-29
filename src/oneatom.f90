@@ -204,7 +204,7 @@ program oneatom
      endloop=endloop .or. ndiis_sd_sw > 2
 
      call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          nlpspd,proj,Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
+          nlpspd,proj,Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,0,0.0_gp,GPU)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
