@@ -1770,7 +1770,7 @@ subroutine nullify_linear_zone_descriptors(lzd)
   
   !call nullify_orbitals_data(lzd%orbs)
   !nullify(lzd%lorbs)
-  call nullify_communications_arrays(lzd%comms)
+  !call nullify_communications_arrays(lzd%comms)
   call nullify_locreg_descriptors(lzd%glr)
   call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
   nullify(lzd%llr)
@@ -1801,6 +1801,7 @@ subroutine nullify_orbitals_data(orbs)
   nullify(orbs%spinsgn)
   nullify(orbs%kwgts)
   nullify(orbs%kpts)
+  nullify(orbs%ispot)
 
 end subroutine nullify_orbitals_data
 

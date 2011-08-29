@@ -306,8 +306,8 @@ END SUBROUTINE free_full_potential
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
 !! and calculate the corresponding gradient.
 !! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
-!! depending of the functional we want to calculate. The gradient wrt the wavefucntion
-!! Is the put in hpsi accordingly to the functional
+!! depending of the functional we want to calculate. The gradient wrt the wavefunction
+!! is put in hpsi accordingly to the functional
 subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
      ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
   use module_base
@@ -334,7 +334,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   !this is the Kohn-Sham energy
   energyKS=energybs-ehart+exc-evxc-eexctX+eion+edisp
 
-  !calculate orbital poloarisation directions
+  !calculate orbital polarisation directions
   if(orbs%nspinor==4) then
      allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
      call memocc(i_stat,mom_vec,'mom_vec',subname)
