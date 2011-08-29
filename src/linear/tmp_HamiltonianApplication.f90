@@ -797,6 +797,15 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,orbs,lzd,ngatherar
   !determine the dimension of the potential array
 
 
+  if(associated(orbs%ispot)) then
+     i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
+     deallocate(orbs%ispot,stat=i_stat)
+     call memocc(i_stat,i_all,'orbs%ispot',subname)
+  end if
+  allocate(orbs%ispot(orbs%norbp),stat=i_stat)
+  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
+
+
   !if(Lzd%linear) then
       allocate(ilrtable(orbs%norbp,2),stat=i_stat)
       call memocc(i_stat,ilrtable,'ilrtable',subname)
@@ -847,13 +856,6 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,orbs,lzd,ngatherar
      lzd%ndimpotisf = lzd%ndimpotisf + max(max(ndimgrid*orbs%norbp,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
   end if
 
-  if(associated(orbs%ispot)) then
-     i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
-     deallocate(orbs%ispot,stat=i_stat)
-     call memocc(i_stat,i_all,'orbs%ispot',subname)
-  end if
-  allocate(orbs%ispot(orbs%norbp),stat=i_stat)
-  call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
 
 
 
@@ -861,7 +863,8 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,orbs,lzd,ngatherar
   !in the linear scaling case this should be done for a given localisation
   !region
   !this routine should then be modified or integrated in HamiltonianApplication
-  if (.not.flag<=2) then
+  !if (.not.flag<=2) then
+  if (flag<2) then
       if (exctX) then
          npot=ndimgrid*orbs%nspin+max(max(ndimgrid*orbs%norbp,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
       else
@@ -895,7 +898,8 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,orbs,lzd,ngatherar
 
   ! Cut potential
   istl=1
-  if(flag<=2) then
+  !if(flag<=2) then
+  if(flag<2) then
       allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
       call memocc(i_stat,Lpot,'Lpot',subname)
       if(lzd%nlr>1) then
@@ -903,7 +907,8 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,orbs,lzd,ngatherar
              ilr = ilrtable(iorb,1)
              
              ! Cut the potential into locreg pieces
-             if(ilrtable(ilr,2)==1) then
+             !if(ilrtable(ilr,2)==1) then
+             if(ilrtable(iorb,2)==1) then
                  istg=1
              else
                  istg=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i+1
@@ -913,6 +918,8 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,orbs,lzd,ngatherar
          end do
      end if
   else
+     allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
+     call memocc(i_stat,Lpot,'Lpot',subname)
      ist=1
      do iorb=1,nilr
          ilr = ilrtable(iorb,1)
@@ -944,6 +951,23 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,orbs,lzd,ngatherar
       deallocate(ilrtable,stat=i_stat)
       call memocc(i_stat,i_all,'ilrtable',subname)
   !end if
+
+  ! Deallocate pot.
+  if (flag<2) then
+      if (nproc > 1) then
+         i_all=-product(shape(pot))*kind(pot)
+         deallocate(pot,stat=i_stat)
+         call memocc(i_stat,i_all,'pot',subname)
+      else
+         if (exctX) then
+            i_all=-product(shape(pot))*kind(pot)
+            deallocate(pot,stat=i_stat)
+            call memocc(i_stat,i_all,'pot',subname)
+         else
+            nullify(pot)
+         end if
+      end if
+  end if
 
 
   call timing(iproc,'Rho_commun    ','OF')

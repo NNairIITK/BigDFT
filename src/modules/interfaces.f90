@@ -4348,6 +4348,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine local_hamiltonian3
 
 
+
      subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           proj,Lzd,ngatherarr,Lpot,psi,hpsi,&
           ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,withConfinement,energyReductionFlag,pkernel,orbsocc,psirocc,lin)
@@ -4378,7 +4379,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
 
-
      subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
        use module_base
        use module_types
@@ -4392,6 +4392,30 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(wp), dimension(:), pointer, intent(out) :: Lpot
        type(p2pCommsGatherPot),intent(inout), optional:: comgp
      end subroutine full_local_potential2
+
+
+     subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc
+       type(atoms_data),intent(in):: at
+       type(input_variables),intent(in):: input
+       type(orbitals_data),intent(in):: orbs
+       real(8),dimension(3,at%nat),intent(in):: rxyz
+       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+       type(linear_zone_descriptors),intent(inout):: lzd
+     end subroutine prepare_lnlpspd
+
+
+     subroutine free_lnlpspd(orbs, lzd)
+       use module_base
+       use module_types
+       implicit none
+       type(orbitals_data),intent(in):: orbs
+       type(linear_zone_descriptors),intent(inout):: lzd
+     end subroutine free_lnlpspd
+
 
 
 

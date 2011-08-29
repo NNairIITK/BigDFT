@@ -929,6 +929,7 @@ subroutine deallocate_orbitals_data(orbs, subname)
   call checkAndDeallocatePointer(orbs%spinsgn, 'orbs%spinsgn', subname)
   call checkAndDeallocatePointer(orbs%kwgts, 'orbs%kwgts', subname)
   call checkAndDeallocatePointer(orbs%kpts, 'orbs%kpts', subname)
+  call checkAndDeallocatePointer(orbs%ispot, 'orbs%ispot', subname)
   
 end subroutine deallocate_orbitals_data
 

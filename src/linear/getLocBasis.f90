@@ -507,13 +507,14 @@ integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
 real(8),dimension(:),allocatable:: alpha, fnrmOldArr, alphaDIIS, lhphi, lhphiold
 real(8),dimension(:,:),allocatable:: HamSmall, fnrmArr, fnrmOvrlpArr
-logical:: quiet, allowDIIS, startWithSD, withConfinement
+logical:: quiet, allowDIIS, startWithSD, withConfinement, calc
 character(len=*),parameter:: subname='getLocalizedBasis'
 character(len=1):: message
 type(localizedDIISParameters):: ldiis
 real(8),dimension(4):: time
 real(8),dimension(:),pointer:: potential
 real(8),dimension(:),pointer:: phiWork
+real(8),dimension(:),pointer:: lpot
 
   !!do iall=1,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)
   !!    write(20000+iproc,*) rhopot(iall)
@@ -545,6 +546,14 @@ real(8),dimension(:),pointer:: phiWork
   ! Gather the potential that each process needs for the Hamiltonian application for all its orbitals.
   ! The messages for this point to point communication have been posted in the subroutine linearScaling.
   call gatherPotential(iproc, nproc, lin%comgp)
+
+  ! Build the required potential
+  call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
+       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, lin%orbs,lin%lzd, &
+       ngatherarr, rhopot, lpot, 2, lin%comgp)
+  ! Prepare PSP
+  call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
+  !call full_local_potential2(iproc, nproc, ndimpot, ndimgrid,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
 
   time=0.d0
   call cpu_time(t1tot)
@@ -580,11 +589,57 @@ real(8),dimension(:),pointer:: phiWork
       end if
       call cpu_time(t1)
       withConfinement=.false.
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
-           input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, &
-           withConfinement, .true., pkernel=pkernelseq)
+      !call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
+      !     input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+      !     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, &
+      !     withConfinement, .true., pkernel=pkernelseq)
+      ! New version ###############
+      allocate(lin%lzd%doHamAppl(lin%orbs%norb), stat=istat)
+      call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
+
+      lin%lzd%doHamAppl=.true.
+      !!allocate(lin%lzd%lnlpspd(lin%lzd%nlr), stat=istat)
+      !!do ilr=1,lin%lzd%nlr
+      !!   calc=.false.
+      !!   do iorb=1,lin%orbs%norbp
+      !!      if(ilr == lin%orbs%inwhichLocreg(iorb+lin%orbs%isorb)) calc=.true.
+      !!   end do
+      !!   if (.not. calc) cycle         !calculate only for the locreg on this processor, without repeating for same locreg
+      !!   ! allocate projflg
+      !!   allocate(lin%lzd%llr(ilr)%projflg(at%nat), stat=istat)
+      !!   call memocc(istat, lin%lzd%Llr(ilr)%projflg, 'lin%lzd%llr(ilr)%projflg', subname)
+      !!   call nlpspd_to_locreg(input, iproc, lin%lzd%Glr, lin%lzd%Llr(ilr), rxyz, at, lin%orbs, &
+      !!        radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, lin%lzd%Gnlpspd, &
+      !!        lin%lzd%lnlpspd(ilr), lin%lzd%llr(ilr)%projflg)
+      !!end do
+
+      call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
+           proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq, lin=lin)
+
+      !!do ilr=1,lin%lzd%nlr
+      !!   calc=.false.
+      !!   do iorb=1,lin%orbs%norbp
+      !!      if(ilr == lin%orbs%inwhichLocreg(iorb+lin%orbs%isorb)) calc=.true.
+      !!   end do
+      !!   if (.not. calc) cycle         !calculate only for the locreg on this processor, without repeating for same locreg
+      !!   ! allocate projflg
+      !!   iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
+      !!   deallocate(lin%lzd%llr(ilr)%projflg, stat=istat)
+      !!   call memocc(istat, iall, 'lin%lzd%llr(ilr)%projflg', subname)
+      !!   call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr), subname)
+      !!end do
+
+      iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
+      deallocate(lin%lzd%doHamAppl, stat=istat)
+      call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
+
+
       call cpu_time(t2)
+
+      !! NEW VESRION
+      !call full_local_potential2(iproc, nproc, ndimpot, ndimgrid,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
+
       time(2)=time(2)+t2-t1
       if(iproc==0) then
           write(*,'(a)', advance='no') 'done. '
@@ -757,6 +812,14 @@ real(8),dimension(:),pointer:: phiWork
      !flush(unit=6) 
 
   end do iterLoop
+
+  ! Deallocate potential
+  iall=-product(shape(lpot))*kind(lpot)
+  deallocate(lpot, stat=istat)
+  call memocc(istat, iall, 'lpot', subname)
+
+  ! Deallocate PSP stuff
+  call free_lnlpspd(lin%orbs, lin%lzd)
 
   call cpu_time(t2tot)
   timetot=t2tot-t1tot
@@ -2486,3 +2549,85 @@ end subroutine gatherPotential
 !!!
 !!!
 !!!end subroutine diagonalizeHamiltonianParallel
+
+
+
+
+
+subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => prepare_lnlpspd
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc
+  type(atoms_data),intent(in):: at
+  type(input_variables),intent(in):: input
+  type(orbitals_data),intent(in):: orbs
+  real(8),dimension(3,at%nat),intent(in):: rxyz
+  real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+  type(linear_zone_descriptors),intent(inout):: lzd
+  
+  ! Local variables
+  integer:: ilr, istat, iorb
+  logical:: calc
+  character(len=*),parameter:: subname='prepare_lnlpspd'
+
+
+  allocate(lzd%lnlpspd(lzd%nlr), stat=istat)
+
+  do ilr=1,lzd%nlr
+
+      calc=.false.
+      do iorb=1,orbs%norbp
+          if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.
+      end do
+      if (.not. calc) cycle !calculate only for the locreg on this processor, without repeating for same locreg.
+      ! allocate projflg
+      allocate(lzd%llr(ilr)%projflg(at%nat), stat=istat)
+      call memocc(istat, lzd%Llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
+
+      call nlpspd_to_locreg(input, iproc, lzd%Glr, lzd%Llr(ilr), rxyz, at, orbs, &
+           radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, lzd%Gnlpspd, &
+           lzd%lnlpspd(ilr), lzd%llr(ilr)%projflg)
+
+  end do
+
+end subroutine prepare_lnlpspd
+
+
+
+
+subroutine free_lnlpspd(orbs, lzd)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => free_lnlpspd
+  implicit none
+  
+  ! Calling arguments
+  type(orbitals_data),intent(in):: orbs
+  type(linear_zone_descriptors),intent(inout):: lzd
+
+  ! Local variables
+  integer:: ilr, iorb, istat, iall
+  logical:: go
+  character(len=*),parameter:: subname='free_lnlpspd'
+
+      do ilr=1,lzd%nlr
+
+         go=.false.
+         do iorb=1,orbs%norbp
+            if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) go=.true.
+         end do
+         if (.not. go) cycle !deallocate only for the locreg on this processor, without repeating for same locreg.
+
+         ! Deallocate projflg.
+         iall=-product(shape(lzd%llr(ilr)%projflg))*kind(lzd%llr(ilr)%projflg)
+         deallocate(lzd%llr(ilr)%projflg, stat=istat)
+         call memocc(istat, iall, 'lzd%llr(ilr)%projflg', subname)
+
+         call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(ilr), subname)
+      end do
+
+end subroutine free_lnlpspd
