@@ -4327,7 +4327,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
           nspin,pot,size_potxc,potxc,psi,hpsi,ekin_sum,epot_sum)
        use module_base
        use module_types
-       use module_interfaces, except_this_one => local_hamiltonian2
        use libxc_functionals
        implicit none
        integer, intent(in) :: iproc,nspin
