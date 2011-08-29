@@ -197,6 +197,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(8),dimension(:,:),allocatable::  lhchi
   real(8),dimensioN(:,:,:),allocatable:: ham3
   integer,dimension(:),allocatable:: norbsPerAt, onWhichAtomTemp
+  real(8),dimension(:),pointer:: lpot
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   logical:: withConfinement, ovrlpx, ovrlpy, ovrlpz
   logical,dimension(:),allocatable:: doNotCalculate, skip
@@ -486,10 +487,18 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
   call cpu_time(t1)
+  call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%lig%lzdig)
+  call full_local_potential2(iproc, nproc, lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
+       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*lin%lig%lzdig%glr%d%n3i, lin%lig%orbsig,lin%lig%lzdig, &
+       ngatherarr, rhopot, lpot, 2, lin%lig%comgp)
+
+  allocate(lin%lig%lzdig%doHamAppl(lin%lig%lzdig%nlr), stat=istat)
+  call memocc(istat, lin%lig%lzdig%doHamAppl, 'lin%lig%lzdig%doHamAppl', subname)
   withConfinement=.true.
   ii=0
   do iat=1,at%nat
       doNotCalculate=.true.
+      lin%lig%lzdig%doHamAppl=.false.
       !!call mpi_barrier(mpi_comm_world, ierr)
       call getIndices(lin%lig%lzdig%llr(iat), is1, ie1, is2, ie2, is3, ie3)
       skip(iat)=.true.
@@ -503,9 +512,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
           if(ovrlpx .and. ovrlpy .and. ovrlpz) then
               doNotCalculate(jlr)=.false.
+              lin%lig%lzdig%doHamAppl(jlr)=.true.
               skip(iat)=.false.
           else
               doNotCalculate(jlr)=.true.
+              lin%lig%lzdig%doHamAppl(jlr)=.false.
           end if
       end do
       !write(*,'(a,2i4,4x,100l4)') 'iat, iproc, doNotCalculate', iat, iproc, doNotCalculate
@@ -516,11 +527,16 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       !!     withConfinement, pkernel=pkernelseq)
       if(.not.skip(iat)) then
           ii=ii+1
-          call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, &
-               input%hx, input%hy, input%hz, rxyz,&
-               ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,ii), &
-               ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
-               withConfinement, .false., doNotCalculate=doNotCalculate, pkernel=pkernelseq)
+          !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lig%lzdig, lin%lig%orbsig, lin, &
+          !!     input%hx, input%hy, input%hz, rxyz,&
+          !!     ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,ii), &
+          !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
+          !!     withConfinement, .false., doNotCalculate=doNotCalculate, pkernel=pkernelseq)
+          call HamiltonianApplication3(iproc, nproc, at, lin%lig%orbsig, input%hx, input%hy, input%hz, rxyz, &
+               proj, lin%lig%lzdig, ngatherarr, lpot, lchi, lhchi(1,ii), &
+               ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, withConfinement, .false., &
+               pkernel=pkernelseq, lin=lin, confinementCenter=onWhichAtomTemp)
+
       else
           !!! Call with some dummy array instead of lhchi. No calculations will be done, since it will cycle for all
           !!! localization regions du to doNotCalculate.
@@ -537,7 +553,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
       if(iproc==0) write(*,'(a)') 'done.'
   end do
-  if(ii/=ndim_lhchi) then
+
+
+  iall=-product(shape(lpot))*kind(lpot)
+  deallocate(lpot, stat=istat)
+  call memocc(istat, iall, 'lpot', subname)
+   if(ii/=ndim_lhchi) then
       write(*,'(a,i0,a,2(a2,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
       stop
   end if

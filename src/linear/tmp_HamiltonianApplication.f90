@@ -230,7 +230,8 @@ END SUBROUTINE HamiltonianApplication2
 
 subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      proj,Lzd,ngatherarr,Lpot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,withConfinement,energyReductionFlag,pkernel,orbsocc,psirocc,lin)
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,withConfinement,energyReductionFlag, &
+     pkernel,orbsocc,psirocc,lin, confinementCenter)
   use module_base
   use module_types
   use module_interfaces, except_this_one => HamiltonianApplication3
@@ -255,6 +256,7 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   type(linearParameters),intent(in),optional:: lin
+  integer,dimension(orbs%norbp),intent(in),optional:: confinementCenter
   !local variables
   real(gp), dimension(2,orbs%norbp) :: ekin
   real(gp), dimension(2,orbs%norbp) :: epot
@@ -344,9 +346,13 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   else
      !call local_hamiltonian2(iproc,exctX,orbs,Lzd,hx,hy,hz,nspin,pot,size_potxc,potxc,psi,hpsi,ekin_sum,epot_sum)
      if(present(lin)) then
+         if(.not.present(confinementCenter)) then
+             write(*,'(a,i0,a)') "ERROR on processes ",iproc,": 'confinementCenter' must be present when passing 'lin'!"
+             stop
+         end if
          call local_hamiltonian3(iproc,exctx,orbs,lzd,hx,hy,hz,&
               nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
-              withconfinement, at, rxyz, ist, lin)
+              withconfinement, at, rxyz, ist, lin, confinementCenter)
      else
          call local_hamiltonian3(iproc,exctx,orbs,lzd,hx,hy,hz,&
               nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
@@ -640,7 +646,7 @@ END SUBROUTINE local_hamiltonian2
 
 subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
      nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
-     withConfinement, at, rxyz, istexct, lin)
+     withConfinement, at, rxyz, istexct, lin, confinementCenter)
   use module_base
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian3
@@ -660,9 +666,10 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   type(linearParameters),intent(in),optional:: lin
+  integer,dimension(orbs%norbp),intent(in),optional:: confinementCenter
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian3'
-  integer :: i_all,i_stat,iorb,npot,oidx
+  integer :: i_all,i_stat,iorb,npot,oidx, icenter
   integer :: ilr,size_pot,size_Lpot,ispot, ilrold, nsoffset
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,etest, hxh, hyh, hzh
@@ -713,9 +720,15 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
             hxh=.5d0*hx
             hyh=.5d0*hy
             hzh=.5d0*hz
+            icenter=confinementCenter(iorb)
+            !!call apply_potentialConfinement2(lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+            !!     Lpot(orbs%ispot(iorb)),epot, rxyz(1,ilr), hxh, hyh, hzh,&
+            !!     lin%potentialprefac(at%iatype(ilr)),lin%confpotorder, &
+            !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &
+            !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
             call apply_potentialConfinement2(lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-                 Lpot(orbs%ispot(iorb)),epot, rxyz(1,ilr), hxh, hyh, hzh,&
-                 lin%potentialprefac(at%iatype(ilr)),lin%confpotorder, &
+                 Lpot(orbs%ispot(iorb)),epot, rxyz(1,icenter), hxh, hyh, hzh,&
+                 lin%potentialprefac(at%iatype(icenter)),lin%confpotorder, &
                  lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &
                  lzd%llr(ilr)%bounds%ibyyzz_r) !optional
 

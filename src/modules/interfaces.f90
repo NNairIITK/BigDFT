@@ -4348,7 +4348,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
      subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
           nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
-          withConfinement, at, rxyz, istexct, lin)
+          withConfinement, at, rxyz, istexct, lin, confinementCenter)
        use module_base
        use module_types
        use libxc_functionals
@@ -4367,13 +4367,15 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(atoms_data), intent(in) :: at
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        type(linearParameters),intent(in),optional:: lin
+       integer,dimension(orbs%norbp),intent(in),optional:: confinementCenter
      end subroutine local_hamiltonian3
 
 
 
      subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           proj,Lzd,ngatherarr,Lpot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,withConfinement,energyReductionFlag,pkernel,orbsocc,psirocc,lin)
+          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,withConfinement,energyReductionFlag,&
+          pkernel,orbsocc,psirocc,lin,confinementCenter)
        use module_base
        use module_types
        use libxc_functionals
@@ -4397,6 +4399,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
        type(linearParameters),intent(in),optional:: lin
+       integer,dimension(orbs%norbp),intent(in),optional:: confinementCenter
      end subroutine HamiltonianApplication3
 
 

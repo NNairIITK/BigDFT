@@ -220,7 +220,7 @@ real(8),dimension(:),pointer:: lpot
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
   if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
-  allocate(lin%lzd%doHamAppl(lin%orbs%norb), stat=istat)
+  allocate(lin%lzd%doHamAppl(lin%lzd%nlr), stat=istat)
   call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
   lin%lzd%doHamAppl=.true.
   if(.not.lin%useDerivativeBasisFunctions) then
@@ -230,7 +230,7 @@ real(8),dimension(:),pointer:: lpot
       !     pkernel=pkernelseq)
       call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
            proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq, lin=lin)
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq)
   else
       !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
       !!     ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
@@ -628,7 +628,8 @@ real(8),dimension(:),pointer:: lpot
 
       call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
            proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
-           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq, lin=lin)
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
+           pkernel=pkernelseq, lin=lin, confinementCenter=lin%orbs%inWhichLocreg)
 
       iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
       deallocate(lin%lzd%doHamAppl, stat=istat)
@@ -2575,6 +2576,9 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
 
 
   allocate(lzd%lnlpspd(lzd%nlr), stat=istat)
+  do ilr=1,lzd%nlr
+      call nullify_nonlocal_psp_descriptors(lzd%lnlpspd(ilr))
+  end do
 
   do ilr=1,lzd%nlr
 
