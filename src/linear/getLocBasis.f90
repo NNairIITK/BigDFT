@@ -97,6 +97,7 @@ character(len=*),parameter:: subname='getLinearPsi'
 logical:: withConfinement
 type(workarr_sumrho):: w
 integer:: ist, ierr, iiorb, info
+real(8),dimension(:),pointer:: lpot
 
   ! Allocate the local arrays.  
   allocate(matrixElements(lin%lb%orbs%norb,lin%lb%orbs%norb,2), stat=istat)
@@ -203,6 +204,15 @@ integer:: ist, ierr, iiorb, info
   ! If we use the derivative basis functions the potential has to be gathered anyway.
   if(lin%useDerivativeBasisFunctions) call gatherPotential(iproc, nproc, lin%lb%comgp)
 
+  if(.not.lin%useDerivativeBasisFunctions) then
+      call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, lin%orbs,lin%lzd, &
+           ngatherarr, rhopot, lpot, 2, lin%comgp)
+  else
+      call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, lin%lb%orbs,lin%lzd, &
+           ngatherarr, rhopot, lpot, 2, lin%lb%comgp)
+  end if
 
   ! Apply the Hamitonian to the orbitals. The flag withConfinement=.false. indicates that there is no
   ! confining potential added to the Hamiltonian.
@@ -210,21 +220,37 @@ integer:: ist, ierr, iiorb, info
   call memocc(istat, lhphi, 'lhphi', subname)
   withConfinement=.false.
   if(iproc==0) write(*,'(x,a)',advance='no') 'Hamiltonian application...'
+  allocate(lin%lzd%doHamAppl(lin%orbs%norb), stat=istat)
+  call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
+  lin%lzd%doHamAppl=.true.
   if(.not.lin%useDerivativeBasisFunctions) then
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
-           input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, ekin_sum, epot_sum, eexctX, &
-           eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
-           pkernel=pkernelseq)
+      !call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
+      !     input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, ekin_sum, epot_sum, eexctX, &
+      !     eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
+      !     pkernel=pkernelseq)
+      call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
+           proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq, lin=lin)
   else
       !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lb%lzd, lin%lb%orbs, lin, input%hx, input%hy, input%hz, rxyz,&
       !!     ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, &
       !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%orbs%inWhichLocregp, withConfinement, .true., &
       !!     pkernel=pkernelseq)
-      call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lb%orbs, lin, input%hx, input%hy, &
-           input%hz, rxyz, ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, ekin_sum, epot_sum, eexctX, &
-           eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%lb%orbs%inWhichLocregp, withConfinement, .true., &
-           pkernel=pkernelseq)
+      !call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%lb%orbs, lin, input%hx, input%hy, &
+      !     input%hz, rxyz, ngatherarr, lin%lb%comgp%nrecvBuf, lin%lb%comgp%recvBuf, lphi, lhphi, ekin_sum, epot_sum, eexctX, &
+      !     eproj_sum, nspin, GPU, radii_cf, lin%lb%comgp, lin%lb%orbs%inWhichLocregp, withConfinement, .true., &
+      !     pkernel=pkernelseq)
+      call HamiltonianApplication3(iproc, nproc, at, lin%lb%orbs, input%hx, input%hy, input%hz, rxyz, &
+           proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
+           ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq, lin=lin)
   end if
+  iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
+  deallocate(lin%lzd%doHamAppl, stat=istat)
+  call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
+
+  iall=-product(shape(lpot))*kind(lpot)
+  deallocate(lpot, stat=istat)
+  call memocc(istat, iall, 'lpot', subname)
 
   if(iproc==0) write(*,'(x,a)') 'done.'
 
@@ -552,7 +578,7 @@ real(8),dimension(:),pointer:: lpot
        lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, lin%orbs,lin%lzd, &
        ngatherarr, rhopot, lpot, 2, lin%comgp)
   ! Prepare PSP
-  call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
+  !call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
   !call full_local_potential2(iproc, nproc, ndimpot, ndimgrid,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
 
   time=0.d0
@@ -589,15 +615,16 @@ real(8),dimension(:),pointer:: lpot
       end if
       call cpu_time(t1)
       withConfinement=.false.
-      !call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
-      !     input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
-      !     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, &
-      !     withConfinement, .true., pkernel=pkernelseq)
+      !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
+      !!     input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
+      !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, &
+      !!     withConfinement, .true., pkernel=pkernelseq)
       ! New version ###############
 
       allocate(lin%lzd%doHamAppl(lin%orbs%norb), stat=istat)
       call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
       lin%lzd%doHamAppl=.true.
+
 
       call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
            proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
@@ -791,7 +818,7 @@ real(8),dimension(:),pointer:: lpot
   call memocc(istat, iall, 'lpot', subname)
 
   ! Deallocate PSP stuff
-  call free_lnlpspd(lin%orbs, lin%lzd)
+  !call free_lnlpspd(lin%orbs, lin%lzd)
 
   call cpu_time(t2tot)
   timetot=t2tot-t1tot
@@ -2551,6 +2578,7 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
 
   do ilr=1,lzd%nlr
 
+      nullify(lzd%llr(ilr)%projflg) !to avoid problems when deallocating
       calc=.false.
       do iorb=1,orbs%norbp
           if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) calc=.true.
@@ -2574,6 +2602,7 @@ end subroutine prepare_lnlpspd
 subroutine free_lnlpspd(orbs, lzd)
   use module_base
   use module_types
+  use deallocatePointers
   use module_interfaces, exceptThisOne => free_lnlpspd
   implicit none
   
@@ -2586,20 +2615,21 @@ subroutine free_lnlpspd(orbs, lzd)
   logical:: go
   character(len=*),parameter:: subname='free_lnlpspd'
 
-      do ilr=1,lzd%nlr
+  do ilr=1,lzd%nlr
 
-         go=.false.
-         do iorb=1,orbs%norbp
-            if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) go=.true.
-         end do
-         if (.not. go) cycle !deallocate only for the locreg on this processor, without repeating for same locreg.
-
-         ! Deallocate projflg.
-         iall=-product(shape(lzd%llr(ilr)%projflg))*kind(lzd%llr(ilr)%projflg)
-         deallocate(lzd%llr(ilr)%projflg, stat=istat)
-         call memocc(istat, iall, 'lzd%llr(ilr)%projflg', subname)
-
-         call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(ilr), subname)
+      go=.false.
+      do iorb=1,orbs%norbp
+         if(ilr == orbs%inwhichLocreg(iorb+orbs%isorb)) go=.true.
       end do
+      if (.not. go) cycle !deallocate only for the locreg on this processor, without repeating for same locreg.
+
+      ! Deallocate projflg.
+      call checkAndDeallocatePointer(lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
+      !iall=-product(shape(lzd%llr(ilr)%projflg))*kind(lzd%llr(ilr)%projflg)
+      !deallocate(lzd%llr(ilr)%projflg, stat=istat)
+      !call memocc(istat, iall, 'lzd%llr(ilr)%projflg', subname)
+
+      call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(ilr), subname)
+  end do
 
 end subroutine free_lnlpspd
