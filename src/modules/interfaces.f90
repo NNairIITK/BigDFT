@@ -2199,7 +2199,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine partial_density_linear
 
 
-    subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,rsflag,nscatterarr,&
+    subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,orbs,rsflag,nscatterarr,&
          nrhotot,nrho,rho,hxh,hyh,hzh,nspin,psi)
       use module_base
       use module_types
@@ -2212,6 +2212,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(dp),dimension(max(nrho,1),nspin),intent(out):: rho
       real(gp), intent(in) :: hxh,hyh,hzh
       type(linear_zone_descriptors), intent(in) :: Lzd
+      type(orbitals_data),intent(in):: orbs
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
     end subroutine local_partial_densityLinear

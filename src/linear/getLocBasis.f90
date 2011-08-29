@@ -594,46 +594,18 @@ real(8),dimension(:),pointer:: lpot
       !     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, &
       !     withConfinement, .true., pkernel=pkernelseq)
       ! New version ###############
+
       allocate(lin%lzd%doHamAppl(lin%orbs%norb), stat=istat)
       call memocc(istat, lin%lzd%doHamAppl, 'lin%lzd%doHamAppl', subname)
-
       lin%lzd%doHamAppl=.true.
-      !!allocate(lin%lzd%lnlpspd(lin%lzd%nlr), stat=istat)
-      !!do ilr=1,lin%lzd%nlr
-      !!   calc=.false.
-      !!   do iorb=1,lin%orbs%norbp
-      !!      if(ilr == lin%orbs%inwhichLocreg(iorb+lin%orbs%isorb)) calc=.true.
-      !!   end do
-      !!   if (.not. calc) cycle         !calculate only for the locreg on this processor, without repeating for same locreg
-      !!   ! allocate projflg
-      !!   allocate(lin%lzd%llr(ilr)%projflg(at%nat), stat=istat)
-      !!   call memocc(istat, lin%lzd%Llr(ilr)%projflg, 'lin%lzd%llr(ilr)%projflg', subname)
-      !!   call nlpspd_to_locreg(input, iproc, lin%lzd%Glr, lin%lzd%Llr(ilr), rxyz, at, lin%orbs, &
-      !!        radii_cf, input%frmult, input%frmult, input%hx, input%hy, input%hz, lin%lzd%Gnlpspd, &
-      !!        lin%lzd%lnlpspd(ilr), lin%lzd%llr(ilr)%projflg)
-      !!end do
 
       call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
            proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., pkernel=pkernelseq, lin=lin)
 
-      !!do ilr=1,lin%lzd%nlr
-      !!   calc=.false.
-      !!   do iorb=1,lin%orbs%norbp
-      !!      if(ilr == lin%orbs%inwhichLocreg(iorb+lin%orbs%isorb)) calc=.true.
-      !!   end do
-      !!   if (.not. calc) cycle         !calculate only for the locreg on this processor, without repeating for same locreg
-      !!   ! allocate projflg
-      !!   iall=-product(shape(lin%lzd%llr(ilr)%projflg))*kind(lin%lzd%llr(ilr)%projflg)
-      !!   deallocate(lin%lzd%llr(ilr)%projflg, stat=istat)
-      !!   call memocc(istat, iall, 'lin%lzd%llr(ilr)%projflg', subname)
-      !!   call deallocate_nonlocal_psp_descriptors(lin%lzd%lnlpspd(ilr), subname)
-      !!end do
-
       iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
       deallocate(lin%lzd%doHamAppl, stat=istat)
       call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
-
 
       call cpu_time(t2)
 
