@@ -86,7 +86,7 @@ module module_types
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
-     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix
+     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix,file_sic
      !miscellaneous variables
      logical :: calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
@@ -128,8 +128,11 @@ module module_types
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
      real(gp) :: dtinit,dtmax !for FIRE
-     ! tddft vaiables from *.tddft
+     ! tddft variables from *.tddft
      character(len=10) :: tddft_approach
+     !variables for SIC
+     character(len=4) :: sic_approach
+     real(gp) :: alphaSIC
 
      !> variable for material acceleration
      !! values 0: traditional CPU calculation

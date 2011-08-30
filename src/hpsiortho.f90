@@ -11,13 +11,14 @@
 !> Application of the Hamiltonian
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
+     ekin_sum,epot_sum,eexctX,eproj_sum,ixcSIC,alphaSIC,GPU,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use module_xc
+  use module_interfaces, except_this_one => HamiltonianApplication
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin
-  real(gp), intent(in) :: hx,hy,hz
+  integer, intent(in) :: iproc,nproc,ixcSIC
+  real(gp), intent(in) :: hx,hy,hz,alphaSIC
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -30,7 +31,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
   real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
-  real(dp), dimension(*), optional :: pkernel
+  real(dp), dimension(:), pointer, optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   !local variables
@@ -39,8 +40,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(:), pointer :: hpsi2
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX,op2p
-  integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat
+  integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat,ipotmethod
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
+  real(dp), dimension(:), pointer :: pkernelSIC
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
@@ -56,9 +58,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   if (.not. associated(pot)) then
      if (iproc ==0) then
         write(*,*)' ERROR, HamiltonianApplication, potential not associated!'
-        stop
      end if
-  end if
+     stop
+  end if   
 
   !initialise exact exchange energy 
   op2p=(eexctX == UNINITIALIZED(1.0_gp))
@@ -66,7 +68,30 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   exctX = xc_exctXfac() /= 0.0_gp
 
-  ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
+  ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1
+
+  !potential method
+  !traditional case
+  ipotmethod=0
+  if (exctX) ipotmethod=1
+
+  if (alphaSIC /= 0.0) ipotmethod=2
+
+
+  !the poisson kernel should be present and associated in the case of SIC
+  if (ipotmethod == 2 .and. .not. associated(pkernel)) then
+     if (iproc ==0) write(*,*)&
+          'ERROR(HamiltonianApplication): Poisson Kernel must be associated in SIC case'
+     stop
+  end if
+
+
+  !associate the poisson kernel pointer in case of SIC
+  if (ipotmethod == 2) then
+     pkernelSIC => pkernel
+  else
+     nullify(pkernelSIC)
+  end if
 
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
@@ -75,22 +100,19 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
      !here we have to add the round part
      if (present(psirocc) .and. present(orbsocc)) then
-        call exact_exchange_potential_virt(iproc,nproc,at%geocode,nspin,&
+        call exact_exchange_potential_virt(iproc,nproc,at%geocode,orbs%nspin,&
              lr,orbsocc,orbs,ngatherarr(0,1),n3p,&
              0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,pot(ispot))
         eexctX = 0._gp
      else
-!!$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
-!!$             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
-
         !here the condition for the scheme should be chosen
         if (.not. op2p) then
-           call exact_exchange_potential(iproc,nproc,at%geocode,nspin,&
+           call exact_exchange_potential(iproc,nproc,at%geocode,orbs%nspin,&
                 lr,orbs,ngatherarr(0,1),n3p,&
                 0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
         else
            !the psi should be transformed in real space
-           call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
+           call exact_exchange_potential_round(iproc,nproc,at%geocode,orbs%nspin,lr,orbs,&
                 0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
 
         end if
@@ -98,6 +120,13 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   else
      eexctX = 0._gp
      !print *,'iproc,eexctX',iproc,eexctX
+  end if
+
+  !GPU are supported only for ipotmethod=0
+  if ((GPUconv .or. OCLconv) .and. ipotmethod /=0) then
+      if (iproc ==0) write(*,*)&
+        'ERROR(HamiltonianApplication): Accelerated hamiltonian are possible only with ipotmethod==0)'
+      stop
   end if
 
   call timing(iproc,'ApplyLocPotKin','ON') 
@@ -118,11 +147,13 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
     hpsi2 => hpsi
   end if
   if (GPUconv) then
-     call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
+     call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   else if (OCLconv) then
-     call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi2,ekin_sum,epot_sum,GPU,ekin,epot)
+     call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,hpsi2,ekin_sum,epot_sum,GPU,ekin,epot)
   else
-     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
+     !local hamiltonian application for different methods
+     !print *,'ecco',ipotmethod,associated(pkernelSIC),ixcSIC
+     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,ipotmethod,pot,psi,hpsi,pkernelSIC,ixcSIC,alphaSIC,ekin_sum,epot_sum)
   end if
   !test part to check the results wrt OCL convolutions
 !!$  if (OCLconv) then
@@ -209,6 +240,10 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !whereas it should consider also the value coming from the 
   !exact exchange operator (twice the exact exchange energy)
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
+
+  if (ipotmethod == 2) then
+     nullify(pkernelSIC)
+  end if
 
 END SUBROUTINE HamiltonianApplication
 

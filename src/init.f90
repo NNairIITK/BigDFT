@@ -634,7 +634,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,pot,&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,ixc,input%alphaSIC,GPU,pkernel=pkernelseq)
 
   !deallocate potential
   call free_full_potential(nproc,pot,subname)

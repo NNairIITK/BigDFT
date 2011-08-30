@@ -441,12 +441,12 @@ module module_interfaces
 
      subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
+          ekin_sum,epot_sum,eexctX,eproj_sum,ixcSIC,alphaSIC,GPU,pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,nspin
-       real(gp), intent(in) :: hx,hy,hz
+       integer, intent(in) :: iproc,nproc,ixcSIC
+       real(gp), intent(in) :: hx,hy,hz,alphaSIC
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -459,7 +459,7 @@ module module_interfaces
        real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
        real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
-       real(dp), dimension(*), optional :: pkernel
+       real(dp), dimension(:), pointer, optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
      END SUBROUTINE HamiltonianApplication
@@ -635,7 +635,8 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-       real(dp), dimension(*), intent(in) :: pkernel,rhopot
+       real(dp), dimension(:), pointer :: pkernel
+       real(dp), dimension(*), intent(in) :: rhopot
        type(orbitals_data), intent(inout) :: orbsv
        type(GPU_pointers), intent(inout) :: GPU
        real(wp), dimension(:), pointer :: psi,v
@@ -1106,7 +1107,7 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-       real(dp), dimension(*), intent(in) :: pkernel
+       real(dp), dimension(:), pointer :: pkernel
        real(dp), dimension(*), intent(in), target :: rhopot
        type(orbitals_data), intent(inout) :: orbsv
        type(GPU_pointers), intent(inout) :: GPU
@@ -1245,11 +1246,28 @@ module module_interfaces
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-      real(dp), dimension(*), intent(in) :: pkernel,rhopot
+      real(dp), dimension(:), pointer :: pkernel
+      real(dp), dimension(*), intent(in) :: rhopot
       type(orbitals_data), intent(inout) :: orbsv
       type(GPU_pointers), intent(inout) :: GPU
       real(wp), dimension(:), pointer :: psi,v
     end subroutine constrained_davidson
+
+    subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
+         ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: iproc,ipotmethod,ixc
+      real(gp), intent(in) :: hx,hy,hz,alphaSIC
+      type(orbitals_data), intent(in) :: orbs
+      type(locreg_descriptors), intent(in) :: lr
+      real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
+      real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
+      real(gp), intent(out) :: ekin_sum,epot_sum
+      real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+      real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+    end subroutine local_hamiltonian
     
   end interface
 

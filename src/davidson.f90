@@ -30,7 +30,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(dp), dimension(*), intent(in) :: pkernel
+  real(dp), dimension(:), pointer :: pkernel
   real(dp), dimension(*), intent(in), target :: rhopot
   type(orbitals_data), intent(inout) :: orbsv
   type(GPU_pointers), intent(inout) :: GPU
@@ -223,7 +223,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      !endloop=endloop .or. ndiis_sd_sw > 2
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
           pkernel,orbs,psirocc) ! optional arguments
 
      energybs=ekin_sum+epot_sum+eproj_sum
@@ -384,7 +384,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(dp), dimension(*), intent(in) :: pkernel,rhopot
+  real(dp), dimension(:), pointer :: pkernel
+  real(dp), dimension(*), intent(in) :: rhopot
   type(orbitals_data), intent(inout) :: orbsv
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
@@ -533,7 +534,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !call add_parabolic_potential(at%geocode,at%nat,lr%d%n1i,lr%d%n2i,lr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
 
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
        pkernel,orbs,psirocc) ! optional arguments
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -808,7 +809,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call memocc(i_stat,hg,'hg',subname)
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
           pkernel,orbs,psirocc) ! optional argument
 
      !transpose  g and hg
@@ -1072,7 +1073,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
           pkernel,orbs,psirocc) !optional arguments
 
      !transpose  v and hv
