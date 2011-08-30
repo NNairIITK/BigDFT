@@ -88,13 +88,13 @@ module module_types
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix,file_sic
      !miscellaneous variables
-     logical :: calc_tail,gaussian_help,read_ref_den,correct_offset
+     logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
      integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
-     integer :: nvacancy,verbosity
+     integer :: verbosity
      real(gp) :: elecfield
      logical :: disableSym
 

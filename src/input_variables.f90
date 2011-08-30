@@ -118,15 +118,14 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   real(gp) :: tt
   integer :: iat,ierr
 
-  ! Default for inputs
+  ! Default for inputs (should not be necessary if all the variables comes from the parsing)
   call default_input_variables(inputs)
   ! Read performance input variables (if given)
   call perf_input_variables(iproc,trim(inputs%file_perf),inputs)
   ! Read dft input variables
-  call dft_input_variables(iproc,trim(inputs%file_dft),inputs)
+  call dft_input_variables_new(iproc,trim(inputs%file_dft),inputs)
+  !call dft_input_variables(iproc,trim(inputs%file_dft),inputs)
   
-  !call check
-  call dft_input_variables_new(iproc,'toto',inputs)
 
   ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
@@ -338,7 +337,7 @@ subroutine dft_input_variables(iproc,filename,in)
   ! Tail treatment.
   read(1,*,iostat=ierror) in%rbuf,in%ncongt
   call check()
-  in%calc_tail=(in%rbuf > 0.0_gp)
+  !in%calc_tail=(in%rbuf > 0.0_gp)
 
   !davidson treatment
   read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
@@ -349,10 +348,10 @@ subroutine dft_input_variables(iproc,filename,in)
   !electrostatic treatment of the vacancy (deprecated, to be removed)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
   !call check()
-  in%nvacancy=0
-  in%read_ref_den=.false.
-  in%correct_offset=.false.
-  in%gnrm_sw=0.0_gp
+!!$  in%nvacancy=0
+!!$  in%read_ref_den=.false.
+!!$  in%correct_offset=.false.
+!!$  in%gnrm_sw=0.0_gp
 
   !verbosity of the output
   read(1,*,iostat=ierror) ivrbproj
@@ -390,7 +389,7 @@ subroutine dft_input_variables(iproc,filename,in)
 
   !define whether there should be a last_run after geometry optimization
   !also the mulliken charge population should be inserted
-  if (in%calc_tail .or. in%output_wf_format /= WF_FORMAT_NONE .or. in%output_grid /= 0 .or. in%norbv /= 0) then
+  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. in%output_grid /= 0 .or. in%norbv /= 0) then
      in%last_run=-1 !last run to be done depending of the external conditions
   else
      in%last_run=0
@@ -422,6 +421,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   type(input_variables), intent(out) :: in
   !local variables
   logical :: exists
+  integer :: ivrbproj,ierror
   real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
   real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,20.0_gp/)
 
@@ -437,34 +437,131 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !coarse and fine radii around atoms
   call input_var(in%crmult,'5.0',ranges=xrmult_rng)
   call input_var(in%frmult,'8.0',ranges=xrmult_rng,&
-       comment='crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom')
+       comment='crmult, frmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-centered radius')
 
   !XC functional (ABINIT XC codes)
-  !call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
+  call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
 
   !charge and electric field
-  !call input_var(in%ncharge,'0',ranges=(/-10,10/))
+  call input_var(in%ncharge,'0',ranges=(/-10,10/))
   call input_var(in%elecfield,'0.',comment='ncharge: charge of the system, Electric field')
 
   !spin and polarization
-  !call input_var(in%nspin,'1',exclusive=(/1,2,4/))
-  !call input_var(in%mpol,'0',comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
+  call input_var(in%nspin,'1',exclusive=(/1,2,4/))
+  call input_var(in%mpol,'0',comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
 
   !XC functional (ABINIT XC codes)
   call input_var(in%gnrm_cv,'1.e-4',ranges=(/1.e-20_gp,1.0_gp/),&
        comment='gnrm_cv: convergence criterion gradient')
 
-  !test here for the moment
-!!$  read(1,*,iostat=ierror) in%itermax,in%nrepmax
-!!$  call check()
-!!$  read(1,*,iostat=ierror) in%ncong,in%idsx
-!!$  call check()
-!!$  in%idsx = min(in%idsx, in%itermax)
-!!$  read(1,*,iostat=ierror) in%dispersion
-!!$  call check()
+  !convergence parameters
+  call input_var(in%itermax,'50',ranges=(/0,10000/))
+  call input_var(in%nrepmax,'1',ranges=(/0,1000/),&
+       comment='itermax,nrepmax: max. # of wavefunction optimizations and of re-diagonalised runs')
 
-  call input_free()
-  
+  !convergence parameters
+  call input_var(in%ncong,'6',ranges=(/0,20/))
+  call input_var(in%idsx,'6',ranges=(/0,15/),&
+       comment='ncong, idsx: # of CG iterations for preconditioning equation, length of the diis history')
+  !does not maxes sense a DIIS history longer than the number of iterations
+  in%idsx = min(in%idsx, in%itermax)
+
+  call input_var(in%dispersion,'0',comment='dispersion correction functional (values 1,2,3), 0=no correction')
+    
+  ! Now the variables which are to be used only for the last run
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12/),input_iostat=ierror)
+  ! Validate inputPsiId value (Can be added via error handling exception)
+  if (ierror /=0 .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
+     call input_psi_help()
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
+  end if
+
+  call input_var(in%output_wf_format,'0',exclusive=(/0,1,2,3/),input_iostat=ierror)
+  ! Validate output_wf value.
+  if (ierror /=0 .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
+     call output_wf_format_help()
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
+  end if
+
+  call input_var(in%output_grid,'0',exclusive=(/0,1,2/),&
+       comment='InputPsiId, output_wf, output_grid')
+
+  !project however the wavefunction on gaussians if asking to write them on disk
+  in%gaussian_help=(in%inputPsiId >= 10)
+
+  !switch on the gaussian auxiliary treatment 
+  !and the zero of the forces
+  if (in%inputPsiId == 10) then
+     in%inputPsiId=0
+  end if
+  ! Setup out grid parameters.
+  if (in%output_grid >= 0) then
+     in%output_grid_format = in%output_grid / 10
+  else
+     in%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
+     in%output_grid = abs(in%output_grid)
+  end if
+  in%output_grid = modulo(in%output_grid, 10)
+  ! Validate output_wf value.
+  if (.not. output_grid_validate(in%output_grid, in%output_grid_format) .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_grid (', in%output_grid, ').'
+     call output_grid_help()
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
+  end if
+
+  ! Tail treatment.
+  call input_var(in%rbuf,'0.0',ranges=(/0.0_gp,10.0_gp/))
+  call input_var(in%ncongt,'30',ranges=(/1,50/),&
+       comment='rbuf, ncongt: length of the tail (AU),# tail CG iterations')
+
+  !in%calc_tail=(in%rbuf > 0.0_gp)
+
+  !davidson treatment
+  ! Now the variables which are to be used only for the last run
+  call input_var(in%norbv,'0',ranges=(/0,1000/))
+  call input_var(in%nvirt,'0',ranges=(/0,in%norbv/))
+  call input_var(in%nplot,'0',ranges=(/0,in%norbv/),&
+       comment='Dimension of davidson treatment subspace, # of interesting orbitals, # of plotted orbitals')
+
+  !in%nvirt = min(in%nvirt, in%norbv) commented out
+
+  !electrostatic treatment of the vacancy (deprecated, to be removed)
+  !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
+  !call check()
+!!$  in%nvacancy=0
+!!$  in%read_ref_den=.false.
+!!$  in%correct_offset=.false.
+!!$  in%gnrm_sw=0.0_gp
+
+  !verbosity of the output
+  call input_var(ivrbproj,'2',exclusive=(/0,1,2,3,10,11,12,13/),&
+       comment='verbosity of the output 0=low, 2=high')
+
+  !if the verbosity is bigger than 10 apply the projectors
+  !in the once-and-for-all scheme, otherwise use the default
+  if (ivrbproj > 10) then
+     DistProjApply=.false.
+     in%verbosity=ivrbproj-10
+  else
+     in%verbosity=ivrbproj
+  end if
+  call memocc_set_verbosity(in%verbosity)
+
+  ! Line to disable automatic behaviours (currently only symmetries).
+  call input_var(in%disableSym,'F',comment='disable the symmetry detection')
+
+  !define whether there should be a last_run after geometry optimization
+  !also the mulliken charge population should be inserted
+  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. in%output_grid /= 0 .or. in%norbv /= 0) then
+     in%last_run=-1 !last run to be done depending of the external conditions
+  else
+     in%last_run=0
+  end if
+
+  call input_free(iproc)
+
 end subroutine dft_input_variables_new
 
 !> Assign default values for GEOPT variables
@@ -2687,7 +2784,7 @@ subroutine print_dft_parameters(in,atoms)
        '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
   write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
        '  Max. hgrid=',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
-       '| Calculate=',in%calc_tail
+       '| Calculate=',(in%rbuf > 0.0_gp)
   write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
        '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
        'x',in%nrepmax,'| Extension=',in%rbuf

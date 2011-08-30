@@ -15,7 +15,7 @@ module module_input
   interface input_var
      module procedure var_character, var_logical, var_integer, &
           & var_integer_array, var_double, var_keyword, var_ids,&
-          & var_double_compulsory
+          & var_double_compulsory,var_real_compulsory,var_int_compulsory,var_logical_compulsory
   end interface
 
   public :: input_set_file
@@ -37,12 +37,17 @@ contains
     !no line has been written in the output
     iline_written=0
     !no argument has been read yet
-    iargument=0
+    iargument=1
     !the present line is empty
     line_being_processed=repeat(' ',max_length)
+    !the starting position for the lines is zero
+    ipos=0
+
+    write(input_file, "(A)") trim(filename)
+           
 
     !check if the file is present
-    inquire(file=trim(filename),exist=exists)
+    inquire(file=trim(input_file),exist=exists)
     if (exists) then
        !only the root processor parse the file
        if (iproc==0) then
@@ -67,7 +72,6 @@ contains
        if (ierr /=0) stop 'input_file BCAST (2) '
 
 !!$    write(0,*) "Setup input file '", trim(filename), "' with ", i - 1, "lines."
-       write(input_file, "(A)") trim(filename)
 
        allocate(inout_lines(0:nlines)) !the 0-th line is for the description of the file
        do i=1,nlines
@@ -95,6 +99,11 @@ contains
     end if
     iline_written=iline_written+1
 
+    output = (iproc == 0)
+    !dump the 0-th line on the screen
+    if (iproc == 0) then
+       write(*,'(1x,a)')inout_lines(0)
+    end if
 !!$    output = (iproc == 0)
 !!$    ! Output
 !!$    if (iproc == 0) then
@@ -111,19 +120,102 @@ contains
 !!$    end if
   END SUBROUTINE input_set_file
 
-  subroutine input_free()
+  subroutine input_free(iproc)
     implicit none
+    integer, intent(in), optional :: iproc
     !local variables
     integer :: iline
-    
-    !add the writing of the file in the given unit
-    do iline=0,iline_written
-       print *,inout_lines(iline)
-    end do
+
+    if (present(iproc)) then !case for compulsory variables
+       if (iproc ==0) then
+          if (iline_parsed==0) then !the file does not exist
+             !add the writing of the file in the given unit
+             open(unit=1,file=trim(input_file)//'_default', status ='unknown')
+             do iline=1,iline_written-1
+                write(1,*)inout_lines(iline)
+             end do
+             close(unit=1)
+          end if
+       end if
+       !dump the file on the screen
+       do iline=1,iline_written-1
+          write(*,*)'|',inout_lines(iline)
+       end do
+    end if
 
     if (allocated(inout_lines)) deallocate(inout_lines)
     
   END SUBROUTINE input_free
+
+  subroutine check(ierror)
+    implicit none
+    integer, intent(in) :: ierror
+    !local variables
+    integer :: ierr
+
+    if (ierror/=0) then
+       write(*,'(1x,a,a,2(a,i3))')'Error while reading the file "', &
+            & trim(input_file), '", line=', iline_written,' argument=', iargument
+       write(*,*)inout_lines(iline_written),line_being_processed
+       call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+       stop
+    end if
+    !increment the argument at each passed check
+    iargument=iargument+1
+
+  END SUBROUTINE check
+
+  !> Process the line needed with the default value in mind
+  subroutine process_line(default,line_comment)
+    implicit none
+    character(len=*), intent(in), optional :: default,line_comment
+    !local variables
+    integer :: ierror,i,iblank
+
+    if (iargument==1) then
+       ipos=0
+       line_being_processed=repeat(' ',max_length)
+    end if
+
+    if (present(default) .and. iline_parsed==0) then
+       !case without file, write default and continue the line
+       do i=1,len_trim(default)
+          inout_lines(iline_written)(i+ipos:i+ipos)=default(i:i)
+       end do
+       ipos=ipos+len_trim(default)+1
+       inout_lines(iline_written)(ipos:ipos)=' '
+    end if
+    if (present(line_comment) .and. iline_parsed==0) then
+       !case without file, close the line 
+       inout_lines(iline_written)(ipos+1:max_length)=line_comment(1:min(len(line_comment),max_length-ipos))
+       iline_written=iline_written+1
+       iargument=0
+    else if (.not. present(default) .and. .not. present(line_comment).and. iline_parsed/=0) then
+       !traditional case, the argument should be parsed one after another
+       !start with the entire line
+       if (iargument==1) then 
+          !print *,'prsed',iline_parsed,inout_lines(iline_parsed)
+          line_being_processed=inout_lines(iline_parsed)
+       else
+          !search in the line the first blank
+          iblank=scan(line_being_processed,' ')
+          do i=1,max_length-iblank
+             line_being_processed(i:i)=line_being_processed(i+iblank:i+iblank)
+          end do
+          do i=max_length-iblank+1,max_length
+             line_being_processed(i:i)=' '
+          end do
+       end if
+       !adjust the line to eliminate further blanks
+       line_being_processed=adjustl(line_being_processed)
+    else if (.not. present(default) .and. present(line_comment) .and. iline_parsed/=0) then
+       !traditional case, close the line and skip to the next one
+       iargument=1
+       iline_parsed=iline_parsed+1
+       iline_written=iline_written+1
+    end if
+       
+  end subroutine process_line
 
   subroutine find(name, iline, ii)
     character(len = *), intent(in) :: name
@@ -152,90 +244,180 @@ contains
     iline = 0
   END SUBROUTINE find
 
-  subroutine check(ierror)
-    implicit none
-    integer, intent(in) :: ierror
-    !local variables
-    integer :: ierr
 
-    !increment the argument at each check
-    iargument=iargument+1
-    if (ierror/=0) then
-       write(*,'(1x,a,a,2(a,i3))')'Error while reading the file "', &
-            & trim(input_file), '", line=', iline_written,' argument=', iargument
-       write(*,*)inout_lines(iline_written)
-       call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-       stop
-    end if
+!--routines for compulsory file
 
-  END SUBROUTINE check
-
-  !> Process the line needed with the default value in mind
-  subroutine process_line(default,line_comment)
-    implicit none
-    character(len=*), intent(in), optional :: default,line_comment
-    !local variables
-    integer :: ierror,i,iblank
-
-    if (present(default) .and. .not. present(line_comment)) then
-       if (iargument==0) ipos=0
-       !case without file, write default and continue the line
-       do i=1,len_trim(default)
-          inout_lines(iline_written)(i+ipos:i+ipos)=default(i:i)
-       end do
-       ipos=len_trim(default)+1
-       inout_lines(iline_written)(ipos:ipos)=' '
-    else if (present(default) .and. present(line_comment)) then
-       !case without file, close the line 
-       write(inout_lines(iline_written)(ipos:),'(a)')line_comment
-       iline_written=iline_written+1
-       iargument=0
-    else if (.not. present(default) .and. .not. present(line_comment)) then
-       !traditional case, the argument should be parsed one after another
-       !start with the entire line
-       if (iargument==0) then 
-          line_being_processed=inout_lines(iline_parsed)
-       else
-          !search in the line the first blank
-          iblank=scan(line_being_processed,' ')
-          do i=1,max_length-iblank
-             line_being_processed(i:i)=line_being_processed(i+iblank:i+iblank)
-          end do
-          do i=max_length-iblank+1,max_length
-             line_being_processed(i:i)=' '
-          end do
-       end if
-       !adjust the line to eliminate further blanks
-       line_being_processed=adjustl(line_being_processed)
-    else if (.not. present(default) .and. present(line_comment)) then
-       !traditional case, close the line and skip to the next one
-       iargument=0
-       iline_parsed=iline_parsed+1
-       iline_written=iline_written+1
-    end if
-       
-  end subroutine process_line
-
-  subroutine var_double_compulsory(var,default,ranges,exclusive,comment)
+  subroutine var_double_compulsory(var,default,ranges,exclusive,comment,input_iostat)
     implicit none
     character(len=*), intent(in) :: default
     real(kind=8), intent(out) :: var
     character(len=*), intent(in), optional :: comment
+    integer, intent(out), optional :: input_iostat
     real(kind=8), dimension(2), intent(in), optional :: ranges
     real(kind=8), dimension(:), intent(in), optional :: exclusive
     !local variables
     logical :: found
     integer :: ierror,ilist,ierr
+
+    if (present(input_iostat)) input_iostat=0 !no error for the moment
+
     !if the file has not been opened, use the default variable 
     !then write in the output lines the default
     if (iline_parsed==0) then
-       read(default,*,iostat=ierror)var
-       call check(ierror)
-       call process_line(default=default)
        !finalize the line if the comment is present
        if (present(comment)) then
           call process_line(default=default,line_comment=comment)
+       else
+          call process_line(default=default)
        end if
+       read(default,*,iostat=ierror)var
+       call check(ierror)
+    !otherwise read the corresponding argument and check its validity
+    else
+       !read the argument
+       call process_line()
+       read(line_being_processed,fmt=*,iostat=ierror) var
+       call check(ierror)
+
+       !check the validity of the variable
+       if (present(ranges)) then
+          if (var < ranges(1) .or. var > ranges(2)) then
+             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             if (present(input_iostat)) then
+                input_iostat=1
+                return
+             else
+                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                stop
+             end if
+          end if
+       else if (present(exclusive)) then
+          found=.false.
+          found_loop: do ilist=1,size(exclusive)
+             if (var == exclusive(ilist)) then
+                found=.true.
+                exit found_loop
+             end if
+          end do found_loop
+          if (.not. found) then
+             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,*)'      values should be in list: ',exclusive(:)
+             if (present(input_iostat)) then
+                input_iostat=1
+                return
+             else
+                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                stop
+             end if
+          end if
+       end if 
+      
+       !increment the line if comment is present, do not touch the input file
+       if (present(comment)) then
+          call process_line(line_comment=comment)
+       end if
+    end if   
+  END SUBROUTINE var_double_compulsory
+
+  subroutine var_real_compulsory(var,default,ranges,exclusive,comment,input_iostat)
+    implicit none
+    character(len=*), intent(in) :: default
+    real(kind=4), intent(out) :: var
+    character(len=*), intent(in), optional :: comment
+    integer, intent(out), optional :: input_iostat
+    real(kind=4), dimension(2), intent(in), optional :: ranges
+    real(kind=4), dimension(:), intent(in), optional :: exclusive
+    !local variables
+    logical :: found
+    integer :: ierror,ilist,ierr
+
+    if (present(input_iostat)) input_iostat=0 !no error for the moment
+
+    !if the file has not been opened, use the default variable 
+    !then write in the output lines the default
+    if (iline_parsed==0) then
+       !finalize the line if the comment is present
+       if (present(comment)) then
+          call process_line(default=default,line_comment=comment)
+       else
+          call process_line(default=default)
+       end if
+       read(default,*,iostat=ierror)var
+       call check(ierror)
+    !otherwise read the corresponding argument and check its validity
+    else
+       !read the argument
+       call process_line()
+       read(line_being_processed,fmt=*,iostat=ierror) var
+       call check(ierror)
+
+       !check the validity of the variable
+       if (present(ranges)) then
+          if (var < ranges(1) .or. var > ranges(2)) then
+             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             if (present(input_iostat)) then
+                input_iostat=1
+                return
+             else
+                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                stop
+             end if
+          end if
+       else if (present(exclusive)) then
+          found=.false.
+          found_loop: do ilist=1,size(exclusive)
+             if (var == exclusive(ilist)) then
+                found=.true.
+                exit found_loop
+             end if
+          end do found_loop
+          if (.not. found) then
+             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,*)'      values should be in list: ',exclusive(:)
+             if (present(input_iostat)) then
+                input_iostat=1
+                return
+             else
+                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                stop
+             end if
+          end if
+       end if 
+      
+       !increment the line if comment is present, do not touch the input file
+       if (present(comment)) then
+          call process_line(line_comment=comment)
+       end if
+    end if   
+  END SUBROUTINE var_real_compulsory
+
+  subroutine var_int_compulsory(var,default,ranges,exclusive,comment,input_iostat)
+    implicit none
+    character(len=*), intent(in) :: default
+    integer, intent(out) :: var
+    character(len=*), intent(in), optional :: comment
+    integer, intent(out), optional :: input_iostat
+    integer, dimension(2), intent(in), optional :: ranges
+    integer, dimension(:), intent(in), optional :: exclusive
+    !local variables
+    logical :: found
+    integer :: ierror,ilist,ierr
+
+    if (present(input_iostat)) input_iostat=0 !no error for the moment
+
+    !if the file has not been opened, use the default variable 
+    !then write in the output lines the default
+    if (iline_parsed==0) then
+       !finalize the line if the comment is present
+       if (present(comment)) then
+          call process_line(default=default,line_comment=comment)
+       else
+          call process_line(default=default)
+       end if
+       read(default,*,iostat=ierror)var
+       call check(ierror)
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
@@ -247,10 +429,15 @@ contains
        !check the validity of the variable
        if (present(ranges)) then
           if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,*)' ERROR in parsing file'//input_file//'line=', iline_written,' argument=', iargument
-             write(*,*)'      values should be from',ranges(1),' to ',ranges(2)
-             call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-             stop
+             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             if (present(input_iostat)) then
+                input_iostat=1
+                return
+             else
+                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                stop
+             end if
           end if
        else if (present(exclusive)) then
           found=.false.
@@ -261,10 +448,15 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file'//input_file//'line=', iline_written,' argument=', iargument
+             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
              write(*,*)'      values should be in list: ',exclusive(:)
-             call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-             stop
+             if (present(input_iostat)) then
+                input_iostat=1
+                return
+             else
+                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                stop
+             end if
           end if
        end if 
       
@@ -273,8 +465,122 @@ contains
           call process_line(line_comment=comment)
        end if
     end if   
-  END SUBROUTINE var_double_compulsory
+  END SUBROUTINE var_int_compulsory
 
+  subroutine var_char_compulsory(ilength,var,default,ranges,exclusive,comment,input_iostat)
+    implicit none
+    character(len=*), intent(in) :: default
+    integer, intent(in) :: ilength
+    character(len=ilength), intent(out) :: var
+    character(len=*), intent(in), optional :: comment
+    integer, intent(out), optional :: input_iostat
+    character(len=ilength), dimension(2), intent(in), optional :: ranges
+    character(len=ilength), dimension(:), intent(in), optional :: exclusive
+    !local variables
+    logical :: found
+    integer :: ierror,ilist,ierr
+
+    if (present(input_iostat)) input_iostat=0 !no error for the moment
+
+    !if the file has not been opened, use the default variable 
+    !then write in the output lines the default
+    if (iline_parsed==0) then
+       !finalize the line if the comment is present
+       if (present(comment)) then
+          call process_line(default=default,line_comment=comment)
+       else
+          call process_line(default=default)
+       end if
+       read(default,*,iostat=ierror)var
+       call check(ierror)
+    !otherwise read the corresponding argument and check its validity
+    else
+       !read the argument
+       call process_line()
+
+       read(line_being_processed,fmt=*,iostat=ierror) var
+       call check(ierror)
+
+       !check the validity of the variable
+       if (present(ranges)) then
+          if (var < ranges(1) .or. var > ranges(2)) then
+             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             if (present(input_iostat)) then
+                input_iostat=1
+                return
+             else
+                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                stop
+             end if
+          end if
+       else if (present(exclusive)) then
+          found=.false.
+          found_loop: do ilist=1,size(exclusive)
+             if (var == exclusive(ilist)) then
+                found=.true.
+                exit found_loop
+             end if
+          end do found_loop
+          if (.not. found) then
+             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,*)'      values should be in list: ',exclusive(:)
+             if (present(input_iostat)) then
+                input_iostat=1
+                return
+             else
+                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+                stop
+             end if
+          end if
+       end if 
+      
+       !increment the line if comment is present, do not touch the input file
+       if (present(comment)) then
+          call process_line(line_comment=comment)
+       end if
+    end if   
+  END SUBROUTINE var_char_compulsory
+
+  subroutine var_logical_compulsory(var,default,comment)
+    implicit none
+    character(len=*), intent(in) :: default
+    logical, intent(out) :: var
+    character(len=*), intent(in), optional :: comment
+    !local variables
+    logical :: found
+    integer :: ierror,ilist,ierr
+
+    !if the file has not been opened, use the default variable 
+    !then write in the output lines the default
+    if (iline_parsed==0) then
+       !finalize the line if the comment is present
+       if (present(comment)) then
+          call process_line(default=default,line_comment=comment)
+       else
+          call process_line(default=default)
+       end if
+       read(default,*,iostat=ierror)var
+       call check(ierror)
+    !otherwise read the corresponding argument and check its validity
+    else
+       !read the argument
+       call process_line()
+
+       read(line_being_processed,fmt=*,iostat=ierror) var
+       call check(ierror)
+      
+       !increment the line if comment is present, do not touch the input file
+       if (present(comment)) then
+          call process_line(line_comment=comment)
+       end if
+    end if   
+  END SUBROUTINE var_logical_compulsory
+
+
+
+
+!-routines for non-compulsory file (input.perf)
   subroutine var_character(name, default, description, var)
     character(len = *), intent(in) :: name
     character(len = *), intent(in) :: default

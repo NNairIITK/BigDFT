@@ -365,7 +365,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
-
   call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   ! Determine size alat of overall simulation cell and shift atom positions
@@ -473,11 +472,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   call memocc(i_stat,fion,'fion',subname)
 
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
-       psoffset,in%nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
+       psoffset,0,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
        in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,&
-       in%nvacancy,in%correct_offset)
+       0,.false.)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
@@ -1245,7 +1244,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
 
      !plot the density on the density.pot file
-     if ((in%output_grid >= OUTPUT_GRID_DENSITY .or. in%nvacancy /=0) .and. DoLastRunThings) then
+     if ((in%output_grid >= OUTPUT_GRID_DENSITY) .and. DoLastRunThings) then
         if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
 
         call plot_density('electronic_density' // gridformat,&
@@ -1285,7 +1284,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
      call timing(iproc,'Forces        ','ON')
      !refill projectors for tails, davidson
-     refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
+     refill_proj=((in%rbuf > 0.0_gp) .or. DoDavidson) .and. DoLastRunThings
 
      call calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj,i3s+i3xcsh,n3p,in%nspin,refill_proj,&
           rho,pot,potxc,psi,fion,fdisp,fxyz,fnoise)
@@ -1487,7 +1486,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
 
   !------------------------------------------------------------------------
-  if (in%calc_tail .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
+  if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
