@@ -67,6 +67,7 @@ subroutine standard_inputfile_names(inputs)
   inputs%file_perf='input.perf'
   inputs%file_tddft='input.tddft'
   inputs%file_mix='input.mix'
+  inputs%file_sic='input.sic'
   
 END SUBROUTINE standard_inputfile_names
 
@@ -117,22 +118,28 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   real(gp) :: tt
   integer :: iat,ierr
 
-  ! Default for inputs
+  ! Default for inputs (should not be necessary if all the variables comes from the parsing)
   call default_input_variables(inputs)
   ! Read performance input variables (if given)
   call perf_input_variables(iproc,trim(inputs%file_perf),inputs)
   ! Read dft input variables
-  call dft_input_variables(iproc,trim(inputs%file_dft),inputs)
+  call dft_input_variables_new(iproc,trim(inputs%file_dft),inputs)
+  !call dft_input_variables(iproc,trim(inputs%file_dft),inputs)
+  
+
   ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
   call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
   ! Mixing input variables (if given)
-  call mix_input_variables(trim(inputs%file_mix),inputs)
+  call mix_input_variables_new(iproc,trim(inputs%file_mix),inputs)
   ! Read geometry optimisation option
   call geopt_input_variables(trim(inputs%file_geopt),inputs)
   ! Read tddft variables
   call tddft_input_variables(trim(inputs%file_tddft),inputs)
+  ! Read sic variables
+  call sic_input_variables(trim(inputs%file_sic),inputs)
+
 
   ! Shake atoms if required.
   if (inputs%randdis > 0.d0) then
@@ -214,6 +221,8 @@ subroutine default_input_variables(inputs)
   call mix_input_variables_default(inputs) 
   ! Default values for tddft
   call tddft_input_variables_default(inputs)
+  !Default for Self-Interaction Correction variables
+  call sic_input_variables_default(inputs)
 
 END SUBROUTINE default_input_variables
 
@@ -328,7 +337,7 @@ subroutine dft_input_variables(iproc,filename,in)
   ! Tail treatment.
   read(1,*,iostat=ierror) in%rbuf,in%ncongt
   call check()
-  in%calc_tail=(in%rbuf > 0.0_gp)
+  !in%calc_tail=(in%rbuf > 0.0_gp)
 
   !davidson treatment
   read(1,*,iostat=ierror) in%norbv,in%nvirt,in%nplot
@@ -339,10 +348,10 @@ subroutine dft_input_variables(iproc,filename,in)
   !electrostatic treatment of the vacancy (deprecated, to be removed)
   !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
   !call check()
-  in%nvacancy=0
-  in%read_ref_den=.false.
-  in%correct_offset=.false.
-  in%gnrm_sw=0.0_gp
+!!$  in%nvacancy=0
+!!$  in%read_ref_den=.false.
+!!$  in%correct_offset=.false.
+!!$  in%gnrm_sw=0.0_gp
 
   !verbosity of the output
   read(1,*,iostat=ierror) ivrbproj
@@ -356,6 +365,7 @@ subroutine dft_input_variables(iproc,filename,in)
   else
      in%verbosity=ivrbproj
   end if
+  call memocc_set_verbosity(in%verbosity)
 !!  !temporary correction
 !!  DistProjApply=.false.
 
@@ -379,7 +389,7 @@ subroutine dft_input_variables(iproc,filename,in)
 
   !define whether there should be a last_run after geometry optimization
   !also the mulliken charge population should be inserted
-  if (in%calc_tail .or. in%output_wf_format /= WF_FORMAT_NONE .or. in%output_grid /= 0 .or. in%norbv /= 0) then
+  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. in%output_grid /= 0 .or. in%norbv /= 0) then
      in%last_run=-1 !last run to be done depending of the external conditions
   else
      in%last_run=0
@@ -399,6 +409,152 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE dft_input_variables
+
+
+subroutine dft_input_variables_new(iproc,filename,in)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+  !local variables
+  logical :: exists
+  integer :: ivrbproj,ierror
+  real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
+  real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,20.0_gp/)
+
+  !dft parameters, needed for the SCF part
+  call input_set_file(iproc,trim(filename),exists,'DFT Calculation Parameters')  
+  !call the variable, its default value, the line ends if there is a comment
+
+  !grid spacings
+  call input_var(in%hx,'0.45',ranges=hgrid_rng)
+  call input_var(in%hy,'0.45',ranges=hgrid_rng)
+  call input_var(in%hz,'0.45',ranges=hgrid_rng,comment='hx,hy,hz: grid spacing in the three directions')
+
+  !coarse and fine radii around atoms
+  call input_var(in%crmult,'5.0',ranges=xrmult_rng)
+  call input_var(in%frmult,'8.0',ranges=xrmult_rng,&
+       comment='crmult, frmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-centered radius')
+
+  !XC functional (ABINIT XC codes)
+  call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
+
+  !charge and electric field
+  call input_var(in%ncharge,'0',ranges=(/-10,10/))
+  call input_var(in%elecfield,'0.',comment='ncharge: charge of the system, Electric field')
+
+  !spin and polarization
+  call input_var(in%nspin,'1',exclusive=(/1,2,4/))
+  call input_var(in%mpol,'0',comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
+
+  !XC functional (ABINIT XC codes)
+  call input_var(in%gnrm_cv,'1.e-4',ranges=(/1.e-20_gp,1.0_gp/),&
+       comment='gnrm_cv: convergence criterion gradient')
+
+  !convergence parameters
+  call input_var(in%itermax,'50',ranges=(/0,10000/))
+  call input_var(in%nrepmax,'1',ranges=(/0,1000/),&
+       comment='itermax,nrepmax: max. # of wavefunction optimizations and of re-diagonalised runs')
+
+  !convergence parameters
+  call input_var(in%ncong,'6',ranges=(/0,20/))
+  call input_var(in%idsx,'6',ranges=(/0,15/),&
+       comment='ncong, idsx: # of CG iterations for preconditioning equation, length of the diis history')
+  !does not maxes sense a DIIS history longer than the number of iterations
+  in%idsx = min(in%idsx, in%itermax)
+
+  call input_var(in%dispersion,'0',comment='dispersion correction functional (values 1,2,3), 0=no correction')
+    
+  ! Now the variables which are to be used only for the last run
+  call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12/),input_iostat=ierror)
+  ! Validate inputPsiId value (Can be added via error handling exception)
+  if (ierror /=0 .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', in%inputPsiId, ').'
+     call input_psi_help()
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
+  end if
+
+  call input_var(in%output_wf_format,'0',exclusive=(/0,1,2,3/),input_iostat=ierror)
+  ! Validate output_wf value.
+  if (ierror /=0 .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', in%output_wf_format, ').'
+     call output_wf_format_help()
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
+  end if
+
+  call input_var(in%output_grid,'0',exclusive=(/0,1,2/),&
+       comment='InputPsiId, output_wf, output_grid')
+
+  !project however the wavefunction on gaussians if asking to write them on disk
+  in%gaussian_help=(in%inputPsiId >= 10)
+
+  !switch on the gaussian auxiliary treatment 
+  !and the zero of the forces
+  if (in%inputPsiId == 10) then
+     in%inputPsiId=0
+  end if
+  ! Setup out grid parameters.
+  if (in%output_grid >= 0) then
+     in%output_grid_format = in%output_grid / 10
+  else
+     in%output_grid_format = OUTPUT_GRID_FORMAT_CUBE
+     in%output_grid = abs(in%output_grid)
+  end if
+  in%output_grid = modulo(in%output_grid, 10)
+  ! Validate output_wf value.
+  if (.not. output_grid_validate(in%output_grid, in%output_grid_format) .and. iproc == 0) then
+     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_grid (', in%output_grid, ').'
+     call output_grid_help()
+     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
+  end if
+
+  ! Tail treatment.
+  call input_var(in%rbuf,'0.0',ranges=(/0.0_gp,10.0_gp/))
+  call input_var(in%ncongt,'30',ranges=(/1,50/),&
+       comment='rbuf, ncongt: length of the tail (AU),# tail CG iterations')
+
+  !in%calc_tail=(in%rbuf > 0.0_gp)
+
+  !davidson treatment
+  ! Now the variables which are to be used only for the last run
+  call input_var(in%norbv,'0',ranges=(/0,1000/))
+  call input_var(in%nvirt,'0',ranges=(/0,in%norbv/))
+  call input_var(in%nplot,'0',ranges=(/0,in%norbv/),&
+       comment='Dimension of davidson treatment subspace, # of interesting orbitals, # of plotted orbitals')
+
+  !in%nvirt = min(in%nvirt, in%norbv) commented out
+
+  !verbosity of the output
+  call input_var(ivrbproj,'2',exclusive=(/0,1,2,3,10,11,12,13/),&
+       comment='verbosity of the output 0=low, 2=high')
+
+  !if the verbosity is bigger than 10 apply the projectors
+  !in the once-and-for-all scheme, otherwise use the default
+  if (ivrbproj > 10) then
+     DistProjApply=.false.
+     in%verbosity=ivrbproj-10
+  else
+     in%verbosity=ivrbproj
+  end if
+  call memocc_set_verbosity(in%verbosity)
+
+  ! Line to disable automatic behaviours (currently only symmetries).
+  call input_var(in%disableSym,'F',comment='disable the symmetry detection')
+
+  !define whether there should be a last_run after geometry optimization
+  !also the mulliken charge population should be inserted
+  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. in%output_grid /= 0 .or. in%norbv /= 0) then
+     in%last_run=-1 !last run to be done depending of the external conditions
+  else
+     in%last_run=0
+  end if
+
+  call input_free(iproc)
+
+end subroutine dft_input_variables_new
 
 
 !> Assign default values for GEOPT variables
@@ -431,16 +587,56 @@ subroutine mix_input_variables_default(in)
   type(input_variables), intent(inout) :: in
 
   !mixing treatement (hard-coded values)
+  in%iscf=0
   in%itrpmax=1
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%iscf=0
   in%Tel=0.0_gp
   in%norbsempty=0
   in%alphadiis=2.d0
 
 END SUBROUTINE mix_input_variables_default
+
+
+!> Read the input variables needed for the geometry optimisation
+!!    Every argument should be considered as mandatory
+subroutine mix_input_variables_new(iproc,filename,in)
+  use module_base
+  use module_types
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  character(len=*), parameter :: subname='mix_input_variables'
+  logical :: exists
+
+  !Mix parameters, needed for the SCF poart with Davidson
+  call input_set_file(iproc,trim(filename),exists,'Mixing Parameters')  
+  !call the variable, its default value, the line ends if there is a comment
+
+  !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
+  call input_var(in%iscf,'0',exclusive=(/0,1,2,3,4,5,7,12,13,14,15,17/),&
+       comment="Mixing parameters")
+  call input_var(in%itrpmax,'1',ranges=(/0,10000/),&
+       comment="Maximum number of diagonalisation iterations")
+  call input_var(in%rpnrm_cv,'1.e-4',ranges=(/1.e-10_gp,10.0_gp/),
+       comment="Stop criterion on the residue of potential or density")
+  call input_var(in%norbsempty,'0',ranges=(/0,10000/))
+  call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/),&
+       comment="Number of additional bands aand the electronic temperature")
+  call input_var(in%alphamix,'0.0',ranges=(/0.0,1.0/))
+  call input_var(in%alphadiis,'2.0',ranges=(0.0_gp,10.0_gp/),&
+       comment="Multiplying factiors for the mixing and the elctronic DIIS")
+
+  call input_free(iproc)
+
+  !put the startmix if the mixing has to be done
+  if (in%itrpmax >1) in%gnrm_startmix=1.e300_gp
+
+END SUBROUTINE mix_input_variables_new
 
 
 !> Read the input variables needed for the geometry optimisation
@@ -601,6 +797,62 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE geopt_input_variables
+
+!> Assign default values for TDDFT variables
+subroutine sic_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  in%SIC_approach='NONE'
+  in%alphaSIC=0.0_gp
+
+END SUBROUTINE sic_input_variables_default
+
+subroutine sic_input_variables(filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='sic_input_variables'
+  integer :: iline, ierror
+
+  inquire(file=trim(filename),exist=exists)
+
+  if (.not. exists) then
+     return
+  end if
+
+ ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+  read(1,*,iostat=ierror) in%SIC_approach
+  call check()
+  read(1,*,iostat=ierror) in%alphaSIC
+  call check()
+  
+  close(unit=1,iostat=ierror)
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       !if (iproc == 0) 
+            write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE sic_input_variables
+
 
 
 !> Assign default values for TDDFT variables
@@ -950,7 +1202,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
   logical :: exists
   integer :: iline,ierror,ierr,blocks(2)
 
-  call input_set_file(iproc, filename, exists)
+  call input_set_file(iproc, filename, exists,'Performance Options')
 
 
   call input_var("debug", .false., "Debug option", inputs%debug)
@@ -982,17 +1234,10 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%orthpar%bsLow = blocks(1)
   inputs%orthpar%bsUp  = blocks(2)
   
-  ! Set debug for memory occupation (memocc routine from ABINIT)
+  ! Set performance variables
   call memocc_set_debug(inputs%debug)
-  if (inputs%debug) then
-     !We create the file malloc.prc
-     call memocc_set_verbosity(10)
-  else
-     call memocc_set_verbosity(0)
-  end if
-
-  !Set cache size for fft
   call set_cache_size(inputs%ncache_fft)
+  
 
   !Check after collecting all values
   if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
@@ -1174,7 +1419,75 @@ END SUBROUTINE frequencies_input_variables_default
 
 
 !> Read the input variables needed for the frequencies calculation.
-!!    Every argument should be considered as mandatory.
+!! Every argument should be considered as mandatory.
+subroutine frequencies_input_variables_new(iproc,filename,in)
+  use module_base
+  use module_types
+  implicit none
+  !Arguments
+  type(input_variables), intent(inout) :: in
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  !Local variables
+  integer, parameter :: iunit=111
+  character(len=100) :: line,string
+  integer :: ierror,iline
+
+  !Frequencies parameters
+  call input_set_file(iproc,trim(filename),exists,'Frequencies Parameters')  
+  !call the variable, its default value, the line ends if there is a comment
+
+  !Read in%freq_alpha (possible 1/64)
+  read(unit=iunit,fmt="(a)",iostat=ierror) line
+  !Transform the line in case there are slashes (to ease the parsing)
+  call read_fraction_string(line,in%freq_alpha,ierror)
+  if (ierror /= 0) then
+     print *,'wrong format of the string: '//string
+     ierror=1
+  end if
+  call check()
+  !Read the order of finite difference scheme
+  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_order
+  if (in%freq_order /= -1 .and. in%freq_order /= 1 &
+     & .and. in%freq_order /= 2 .and. in%freq_order /= 3 ) then
+     if (iproc==0) write (*,'(1x,a)') 'Only -1, 1, 2 or 3 are possible for the order scheme'
+     stop
+  end if
+  !Read the index of the method
+  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_method
+  if (in%freq_method /= 1) then
+     if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
+     stop
+  end if
+  call check()
+
+  close(unit=iunit)
+
+  !Message
+  if (iproc == 0) then
+     write(*,*)
+     write(*,'(1x,a,1pg14.6)') '=F= Step size factor',in%freq_alpha
+     write(*,'(1x,a,i10)')     '=F= Order scheme    ',in%freq_order
+     write(*,'(1x,a,i10)')     '=F= Used method     ',in%freq_method
+  end if
+
+contains
+
+  subroutine check()
+    implicit none
+    iline=iline+1
+    if (ierror/=0) then
+       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE frequencies_input_variables_new
+
+
+!> Read the input variables needed for the frequencies calculation.
+!! Every argument should be considered as mandatory.
 subroutine frequencies_input_variables(iproc,filename,in)
   use module_base
   use module_types
@@ -1419,7 +1732,6 @@ END SUBROUTINE deallocate_atoms
 
 
 !> Deallocate the structure atoms_data after scf loop.
-!! atoms%amu and all keys in dellocate_atoms are not de-allocated.
 subroutine deallocate_atoms_scf(atoms,subname) 
   use module_base
   use module_types
@@ -2573,7 +2885,7 @@ subroutine print_dft_parameters(in,atoms)
        '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
   write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
        '  Max. hgrid=',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
-       '| Calculate=',in%calc_tail
+       '| Calculate=',(in%rbuf > 0.0_gp)
   write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
        '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
        'x',in%nrepmax,'| Extension=',in%rbuf
