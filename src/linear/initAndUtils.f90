@@ -230,9 +230,9 @@ if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, np
 allocate(lin%lphiRestart(lin%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lphiRestart, 'lin%lphiRestart', subname)
 
-! Stores the Hamiltonian in the basis of the localized orbitals
-allocate(lin%hamold(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
-call memocc(istat, lin%hamold, 'lin%hamold', subname)
+!! Stores the Hamiltonian in the basis of the localized orbitals
+!allocate(lin%hamold(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
+!call memocc(istat, lin%hamold, 'lin%hamold', subname)
 
 ! Deallocate all local arrays.
 iall=-product(shape(atomNames))*kind(atomNames)
@@ -1561,11 +1561,11 @@ call memocc(istat, phi, 'phi', subname)
 allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
 
-allocate(lin%lphiold(lin%lb%orbs%npsidim), stat=istat)
-call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
+!allocate(lin%lphiold(lin%lb%orbs%npsidim), stat=istat)
+!call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
 
-allocate(lin%lhphiold(lin%lb%orbs%npsidim), stat=istat)
-call memocc(istat, lin%lhphiold, 'lin%lhphiold', subname)
+!allocate(lin%lhphiold(lin%lb%orbs%npsidim), stat=istat)
+!call memocc(istat, lin%lhphiold, 'lin%lhphiold', subname)
 
 end subroutine initLocregs
 
@@ -1772,9 +1772,9 @@ subroutine nullify_linearParameters(lin)
   nullify(lin%potentialPrefac)
   nullify(lin%locrad)
   nullify(lin%lphiRestart)
-  nullify(lin%lphiold)
-  nullify(lin%lhphiold)
-  nullify(lin%hamold)
+  !nullify(lin%lphiold)
+  !nullify(lin%lhphiold)
+  !nullify(lin%hamold)
   call nullify_orbitals_data(lin%orbs)
   call nullify_orbitals_data(lin%gorbs)
   call nullify_communications_arrays(lin%comms)

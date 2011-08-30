@@ -1638,7 +1638,7 @@ module module_interfaces
     
 
     subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
-        ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, rhopot, fxyz, fnoise, radii_cf)
+        ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, phi, coeff, rhopot, fxyz, fnoise, radii_cf)
       use module_base
       use module_types
       implicit none
@@ -1660,7 +1660,6 @@ module module_interfaces
       real(8),dimension(3,atoms%nat),intent(in):: rxyz, fion, fdisp
       real(8),dimension(3,atoms%nat),intent(out):: fxyz
       real(8),intent(out):: fnoise
-      real(8),dimension(orbs%npsidim),intent(inout):: psi
       real(8),dimension(lin%gorbs%npsidim),intent(inout):: phi
       real(8),dimension(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)),intent(in):: rhopot
       real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff

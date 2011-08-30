@@ -338,78 +338,53 @@ real(8),dimension(:),pointer:: lpot
   if(input%nspin==1) ebs=2.d0*ebs
   
 
-  ind1=1
-  ind2=1
-  phi=0.d0
-  do iorb=1,lin%lb%orbs%norbp
-      ilr = lin%lb%orbs%inWhichLocregp(iorb)
-      ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
-      gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr,&
-           lin%lzd%Llr(ilr), lphi(ind2), phi(ind1))
-      ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
-  end do
-  call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-
-  
-  if(iproc==0) then
-      write(*,'(x,a)', advance='no') '------------------------------------- Building linear combinations... '
-      
-  end if
-  ! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
-  ! this has to replaced, but at the moment it is still needed.
-  call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
-
-  !!!! ATTENTION -- DEBUG
-  !!call dcopy(lin%orbs%npsidim, lphi(1), 1, phi(1), 1)
-  !!call transpose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-  !!nvctrp=sum(lin%comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
-  !!!!call dgemm('n', 'n', nvctrp, lin%orbs%norb, lin%orbs%norb, 1.d0, phi(1), nvctrp, matrixElements(1,1,2), &
-  !!!!           lin%orbs%norb, 0.d0, phiWork(1), nvctrp)
-  !!phiWork=0.d0
-  !!ist=1
-  !!do iorb=1,lin%orbs%norb
-  !!    ilr=lin%orbs%inWhichLocreg(iorb)
-  !!    jst=1
-  !!    do jorb=1,lin%orbs%norb
-  !!        jlr=lin%orbs%inWhichLocreg(jorb)
-  !!        if(jlr==ilr) then
-  !!            call daxpy(nvctrp, matrixElements(jorb,iorb,2), phi(jst), 1, phiWork(ist), 1)
-  !!        end if
-  !!        jst=jst+nvctrp
-  !!    end do
-  !!    ist=ist+nvctrp
+  !!ind1=1
+  !!ind2=1
+  !!phi=0.d0
+  !!do iorb=1,lin%lb%orbs%norbp
+  !!    ilr = lin%lb%orbs%inWhichLocregp(iorb)
+  !!    ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
+  !!    gdim=Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, Glr,&
+  !!         lin%lzd%Llr(ilr), lphi(ind2), phi(ind1))
+  !!    ind1=ind1+Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+  !!    ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
   !!end do
-  !!call dcopy(lin%orbs%npsidim, phiWork(1), 1, phi(1), 1)
-  !!call untranspose_v(iproc, nproc, lin%orbs, Glr%wfd, lin%comms, phi, work=phiWork)
-  !!call dcopy(lin%orbs%npsidim, phi(1), 1, lphi(1), 1)
+  !!call transpose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
+
+  
+  !!if(iproc==0) then
+  !!    write(*,'(x,a)', advance='no') '------------------------------------- Building linear combinations... '
+  !!end if
+  !!! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
+  !!! this has to replaced, but at the moment it is still needed.
+  !!call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
 
 
-  call dcopy(orbs%npsidim, psi, 1, psit, 1)
-  if(iproc==0) write(*,'(a)') 'done.'
+  !!call dcopy(orbs%npsidim, psi, 1, psit, 1)
+  !!if(iproc==0) write(*,'(a)') 'done.'
   
   
-  if(.not.lin%useDerivativeBasisFunctions) then
-      call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-      call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-  else
-      ! The first one was commented..?
-      call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
-      call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
-  end if
+  !!if(.not.lin%useDerivativeBasisFunctions) then
+  !!    call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
+  !!    call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
+  !!else
+  !!    ! The first one was commented..?
+  !!    call untranspose_v(iproc, nproc, lin%lb%orbs, Glr%wfd, lin%lb%comms, phi, work=phiWork)
+  !!    call untranspose_v(iproc, nproc, orbs, Glr%wfd, comms, psi, work=phiWork)
+  !!end if
 
 
 
 
-  ! Copy phi.
-  call dcopy(lin%lb%orbs%npsidim, lphi, 1, lin%lphiold, 1)
+  !! Copy phi.
+  !call dcopy(lin%lb%orbs%npsidim, lphi, 1, lin%lphiold, 1)
 
-  ! Copy lhphi.
-  call dcopy(lin%lb%orbs%npsidim, lhphi, 1, lin%lhphiold, 1)
+  !! Copy lhphi.
+  !call dcopy(lin%lb%orbs%npsidim, lhphi, 1, lin%lhphiold, 1)
 
-  ! Copy the Hamiltonian
-  call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
+  !! Copy the Hamiltonian
+  !call dcopy(lin%lb%orbs%norb**2, matrixElements(1,1,1), 1, lin%hamold(1,1), 1)
 
 
   ! Deallocate all local arrays.
