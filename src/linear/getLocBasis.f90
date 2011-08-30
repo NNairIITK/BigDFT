@@ -2581,8 +2581,8 @@ end subroutine prepare_lnlpspd
 subroutine free_lnlpspd(orbs, lzd)
   use module_base
   use module_types
-  use deallocatePointers
-  !use module_interfaces, exceptThisOne => free_lnlpspd
+  !use deallocatePointers
+  use module_interfaces, exceptThisOne => free_lnlpspd
   implicit none
   
   ! Calling arguments
