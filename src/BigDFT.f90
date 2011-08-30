@@ -53,7 +53,7 @@ program BigDFT
          allocate(arr_posinp(1:nconfig))
 
          do iconfig=1,nconfig
-         read(54,*) arr_posinp(iconfig)
+            read(54,*) arr_posinp(iconfig)
          enddo
       else
          nconfig=1
@@ -70,83 +70,83 @@ program BigDFT
    open(unit=16,file='geopt.mon',status='unknown',position='append')
    if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
    do iconfig=1,nconfig
-   !welcome screen
-   if (iproc==0) call print_logo()
+      !welcome screen
+      if (iproc==0) call print_logo()
 
-   ! Read all input files.
-   !standard names
-   call standard_inputfile_names(inputs)
-   call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
-   if (iproc == 0) then
-      call print_general_parameters(nproc,inputs,atoms)
-   end if
+      ! Read all input files.
+      !standard names
+      call standard_inputfile_names(inputs)
+      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
+      if (iproc == 0) then
+         call print_general_parameters(nproc,inputs,atoms)
+      end if
 
-   !initialize memory counting
-   !call memocc(0,iproc,'count','start')
+      !initialize memory counting
+      !call memocc(0,iproc,'count','start')
 
-   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
-   call memocc(i_stat,fxyz,'fxyz',subname)
+      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+      call memocc(i_stat,fxyz,'fxyz',subname)
 
-   call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
+      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
 
-   !if other steps are supposed to be done leave the last_run to minus one
-   !otherwise put it to one
-   if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1 .or. inputs%ncount_cluster_x <= 1) then
-      inputs%last_run = 1
-   end if
+      !if other steps are supposed to be done leave the last_run to minus one
+      !otherwise put it to one
+      if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1 .or. inputs%ncount_cluster_x <= 1) then
+         inputs%last_run = 1
+      end if
 
-   call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
-
-   if (inputs%ncount_cluster_x > 1) then
-      if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
-      ! geometry optimization
-      call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
-      close(16)
-      filename=trim('final_'//trim(arr_posinp(iconfig)))
-      if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION')
-   end if
-
-   !if there is a last run to be performed do it now before stopping
-   if (inputs%last_run == -1) then
-      inputs%last_run = 1
       call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
-   end if
 
-   if (iproc == 0) then
-      sumx=0.d0
-      sumy=0.d0
-      sumz=0.d0
-      write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-      do iat=1,atoms%nat
-      write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-      iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
-      sumx=sumx+fxyz(1,iat)
-      sumy=sumy+fxyz(2,iat)
-      sumz=sumz+fxyz(3,iat)
-      enddo
-      !$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
-      !$$           write(*,'(1x,a)')'the sum of the forces is'
-      !$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
-      !$$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
-      !$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
-      !$$        end if
-   endif
+      if (inputs%ncount_cluster_x > 1) then
+         if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+         ! geometry optimization
+         call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
+         close(16)
+         filename=trim('final_'//trim(arr_posinp(iconfig)))
+         if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,'FINAL CONFIGURATION')
+      end if
 
-   call deallocate_atoms(atoms,subname) 
+      !if there is a last run to be performed do it now before stopping
+      if (inputs%last_run == -1) then
+         inputs%last_run = 1
+         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
+      end if
 
-   call free_restart_objects(rst,subname)
+      if (iproc == 0) then
+         sumx=0.d0
+         sumy=0.d0
+         sumz=0.d0
+         write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
+         do iat=1,atoms%nat
+            write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
+            iat,trim(atoms%atomnames(atoms%iatype(iat))),(fxyz(j,iat),j=1,3)
+            sumx=sumx+fxyz(1,iat)
+            sumy=sumy+fxyz(2,iat)
+            sumz=sumz+fxyz(3,iat)
+         enddo
+         !$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
+         !$$           write(*,'(1x,a)')'the sum of the forces is'
+         !$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+         !$$           write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+         !$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
+         !$$        end if
+      endif
 
-   i_all=-product(shape(rxyz))*kind(rxyz)
-   deallocate(rxyz,stat=i_stat)
-   call memocc(i_stat,i_all,'rxyz',subname)
-   i_all=-product(shape(fxyz))*kind(fxyz)
-   deallocate(fxyz,stat=i_stat)
-   call memocc(i_stat,i_all,'fxyz',subname)
+      call deallocate_atoms(atoms,subname) 
 
-   call free_input_variables(inputs)
+      call free_restart_objects(rst,subname)
 
-   !finalize memory counting
-   call memocc(0,0,'count','stop')
+      i_all=-product(shape(rxyz))*kind(rxyz)
+      deallocate(rxyz,stat=i_stat)
+      call memocc(i_stat,i_all,'rxyz',subname)
+      i_all=-product(shape(fxyz))*kind(fxyz)
+      deallocate(fxyz,stat=i_stat)
+      call memocc(i_stat,i_all,'fxyz',subname)
+
+      call free_input_variables(inputs)
+
+      !finalize memory counting
+      call memocc(0,0,'count','stop')
 
    enddo !loop over iconfig
 
