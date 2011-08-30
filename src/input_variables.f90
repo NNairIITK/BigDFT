@@ -975,7 +975,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   type(atoms_data), intent(in) :: atoms
   !local variables
   logical :: exists
-  character(len=*), parameter :: subname='kpt_input_variables'
+  character(len=*), parameter :: subname='kpt_input_variables_new'
   character(len = 6) :: type
   character(len=100) :: line
   integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount
@@ -986,8 +986,33 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   call input_set_file(iproc,trim(filename),exists,'Brilloiun Zone Sampling Parameters')  
   !call the variable, its default value, the line ends if there is a comment
 
+  !if the file does not exists, put the default values
+  if (.not. exists) then
+     ! Set default values.
+     in%nkpt=1
+     in%nkptv=0
+     in%ngroups_kptv=1
+     
+     ! Set only the gamma point.
+     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,in%kpt,'in%kpt',subname)
+     in%kpt(:, 1) = (/ 0., 0., 0. /)
+     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
+     in%wkpt(1) = 1.0_gp
+     return
+  !and control whether we are giving k-points to Free BC
+  else if (atoms%geocode == 'F') then
+     if (iproc==0) write(*,*)&
+          ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
+     stop
+  end if
+
   call input_var(type,'manual',6,exclusive=(/'auto  ','bands ','mpgrid','manual'/),&
        comment='K-point sampling method')
+
+  if (case_insensitive_equiv(type,'auto')) then
+  end if
 
   call input_free(iproc)
 
