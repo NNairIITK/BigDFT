@@ -546,7 +546,7 @@ end type largeBasis
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType
     type(arraySizes):: as
-    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions
+    logical:: plotBasisFunctions, startWithSD, useDerivativeBasisFunctions, transformToGlobal
     character(len=4):: getCoeff, mixingMethod
     type(p2pCommsSumrho):: comsr
     type(p2pCommsGatherPot):: comgp
