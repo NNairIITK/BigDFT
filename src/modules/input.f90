@@ -1,3 +1,13 @@
+!> @file
+!!  Module to handle input variables
+!! @author
+!!    Copyright (C) 2010-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 module module_input
 
   use module_base
@@ -15,9 +25,11 @@ module module_input
   interface input_var
      module procedure var_character, var_logical, var_integer, &
           & var_integer_array, var_double, var_keyword, var_ids,&
-          & var_double_compulsory,var_real_compulsory,var_int_compulsory,var_logical_compulsory
+          & var_double_compulsory,var_real_compulsory,var_int_compulsory,var_logical_compulsory,&
+          & var_char_compulsory
   end interface
 
+  public :: case_insensitive_equiv
   public :: input_set_file
   public :: input_free
   public :: input_var
@@ -244,6 +256,29 @@ contains
     iline = 0
   END SUBROUTINE find
 
+  !> Compare two strings (case-insensitive). Blanks are relevant!
+  function case_insensitive_equiv(stra,strb)
+    implicit none
+    character(len=*), intent(in) :: stra,strb
+    logical :: case_insensitive_equiv
+    !local variables
+    integer :: i,ica,icb,ila,ilb,ilength
+    ila=len(stra)
+    ilb=len(strb)
+    ilength=min(ila,ilb)
+    ica=ichar(stra(1:1))
+    icb=ichar(strb(1:1))
+    case_insensitive_equiv=(modulo(ica-icb,32) == 0) .and. (ila==ilb)
+    do i=2,ilength
+       ica=ichar(stra(i:i))
+       icb=ichar(strb(i:i))
+       case_insensitive_equiv=case_insensitive_equiv .and. &
+            (modulo(ica-icb,32) == 0)
+       if (.not. case_insensitive_equiv) exit
+    end do
+
+  end function case_insensitive_equiv
+
 
 !--routines for compulsory file
 
@@ -270,13 +305,13 @@ contains
        else
           call process_line(default=default)
        end if
-       read(default,*,iostat=ierror)var
+       call read_fraction_string(default,var,ierror)
        call check(ierror)
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
-       read(line_being_processed,fmt=*,iostat=ierror) var
+       call read_fraction_string(line_being_processed,var,ierror)
        call check(ierror)
 
        !check the validity of the variable
@@ -343,13 +378,13 @@ contains
        else
           call process_line(default=default)
        end if
-       read(default,*,iostat=ierror)var
+       call read_fraction_string(default,var,ierror)
        call check(ierror)
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
-       read(line_being_processed,fmt=*,iostat=ierror) var
+       call read_fraction_string(line_being_processed,var,ierror)
        call check(ierror)
 
        !check the validity of the variable
@@ -467,14 +502,12 @@ contains
     end if   
   END SUBROUTINE var_int_compulsory
 
-  subroutine var_char_compulsory(ilength,var,default,ranges,exclusive,comment,input_iostat)
+  subroutine var_char_compulsory(var,default,exclusive,comment,input_iostat)
     implicit none
     character(len=*), intent(in) :: default
-    integer, intent(in) :: ilength
-    character(len=ilength), intent(out) :: var
+    character(len=*), intent(out) :: var
     character(len=*), intent(in), optional :: comment
     integer, intent(out), optional :: input_iostat
-    character(len=ilength), dimension(2), intent(in), optional :: ranges
     character(len=ilength), dimension(:), intent(in), optional :: exclusive
     !local variables
     logical :: found
@@ -501,29 +534,16 @@ contains
        read(line_being_processed,fmt=*,iostat=ierror) var
        call check(ierror)
 
-       !check the validity of the variable
-       if (present(ranges)) then
-          if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
-             if (present(input_iostat)) then
-                input_iostat=1
-                return
-             else
-                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                stop
-             end if
-          end if
-       else if (present(exclusive)) then
+       if (present(exclusive)) then
           found=.false.
           found_loop: do ilist=1,size(exclusive)
-             if (var == exclusive(ilist)) then
+             if (case_insensitive_equiv(trim(var),trim(exclusive(ilist)))) then
                 found=.true.
                 exit found_loop
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,*)' ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
              write(*,*)'      values should be in list: ',exclusive(:)
              if (present(input_iostat)) then
                 input_iostat=1

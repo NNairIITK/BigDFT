@@ -2074,14 +2074,15 @@ subroutine read_fraction_string(string,occ,ierror)
   real(gp), intent(out) :: occ
   integer, intent(out) :: ierror
   !Local variables
-  integer :: num,den,pfr
+  integer :: num,den,pfr,psp
 
   !see whether there is a fraction in the string
-  pfr = index(string,':')
-  if (pfr == 0) pfr = index(string,'/')
+  pfr = scan(string,':')
+  psp = scan(string,' ')
+  if (pfr == 0) pfr = scan(string,'/')
   if (pfr == 0) then
      read(string,*,iostat=ierror) occ
-  else
+  else if(pfr < psp) then
      read(string(1:pfr-1),*,iostat=ierror) num
      read(string(pfr+1:),*,iostat=ierror) den
      if (ierror == 0) occ=real(num,gp)/real(den,gp)
