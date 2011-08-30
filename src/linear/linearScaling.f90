@@ -370,8 +370,24 @@ type(workarr_sumrho):: w
        rhopot, at, nscatterarr)
   call deallocateCommunicationbufferSumrho(lin%comsr, subname)
 
+  ! Build global orbitals psi (the physical ones).
+  !call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
+  !ist=1
+  !do iorb=1,orbs%norb
+  !    gdim=lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f
+  !    tt1=0.d0
+  !    do i=ist,ist+gdim-1
+  !        tt1=tt1+psi(i)
+  !    end do
+  !    do iorb=1,lin%orbs%norb
+  !    end do
+  !    ist=ist+gdim
+  !end do
 
   ! Calculate the forces we get with psi.
+  !!psi=0.d0
+  !!phi=0.d0
+  !!coeff=0.d0
   call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, lphi, coeff, rhopot, &
       fxyz, fnoise,radii_cf)
@@ -513,3 +529,73 @@ do jproc=0,nproc-1
 end do
 
 end subroutine cancelCommunicationPotential
+
+
+
+
+subroutine transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
+use module_base
+use module_types
+use module_interfaces
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(in):: lin
+type(orbitals_data),intent(in):: orbs
+type(communications_arrays):: comms
+type(input_variables),intent(in):: input
+real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
+real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
+real(8),dimension(orbs%npsidim),intent(out):: psi, psit
+
+! Local variables
+integer:: ind1, ind2, istat, iall, iorb, ilr, ldim, gdim
+real(8),dimension(:),pointer:: phiWork
+real(8),dimension(:),allocatable:: phi
+character(len=*),parameter:: subname='transformToGlobal'
+
+  allocate(phi(lin%gorbs%npsidim), stat=istat)
+  call memocc(istat, phi, 'phi', subname)
+  allocate(phiWork(max(size(phi),size(psi))), stat=istat)
+  call memocc(istat, phiWork, 'phiWork', subname)
+
+  ind1=1
+  ind2=1
+  phi=0.d0
+  do iorb=1,lin%lb%orbs%norbp
+      ilr = lin%lb%orbs%inWhichLocregp(iorb)
+      ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
+      gdim=lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
+      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, lin%lzd%Glr,&
+           lin%lzd%Llr(ilr), lphi(ind2), phi(ind1))
+      ind1=ind1+lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
+      ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
+  end do
+  call transpose_v(iproc, nproc, lin%lb%orbs, lin%lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
+
+
+  if(iproc==0) then
+      write(*,'(x,a)', advance='no') '------------------------------------- Building linear combinations... '
+  end if
+  ! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
+  ! this has to replaced, but at the moment it is still needed.
+  call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
+
+
+  call dcopy(orbs%npsidim, psi, 1, psit, 1)
+
+  call untranspose_v(iproc, nproc, lin%lb%orbs, lin%lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
+  call untranspose_v(iproc, nproc, orbs, lin%lzd%Glr%wfd, comms, psi, work=phiWork)
+
+  if(iproc==0) write(*,'(a)') 'done.'
+
+
+  iall=-product(shape(phi))*kind(phi)
+  deallocate(phi, stat=istat)
+  call memocc(istat, iall, 'phi', subname)
+  iall=-product(shape(phiWork))*kind(phiWork)
+  deallocate(phiWork, stat=istat)
+  call memocc(istat, iall, 'phiWork', subname)
+
+end subroutine transformToGlobal
