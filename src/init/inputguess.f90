@@ -2065,62 +2065,10 @@ subroutine write_fraction_string(l,occ,string,nstring)
 END SUBROUTINE write_fraction_string
 
 
-!>  Here the fraction is indicated by the ':' or '/'
-subroutine read_fraction_string(string,occ,ierror)
-  use module_base
-  implicit none
-  !Arguments
-  character(len=*), intent(in) :: string
-  real(gp), intent(out) :: occ
-  integer, intent(out) :: ierror
-  !Local variables
-  integer :: num,den,pfr,psp
-
-  !see whether there is a fraction in the string
-  pfr = scan(string,':')
-  psp = scan(string,' ')
-  if (pfr == 0) pfr = scan(string,'/')
-  if (pfr == 0) then
-     read(string,*,iostat=ierror) occ
-  else if(pfr < psp) then
-     read(string(1:pfr-1),*,iostat=ierror) num
-     read(string(pfr+1:),*,iostat=ierror) den
-     if (ierror == 0) occ=real(num,gp)/real(den,gp)
-  end if
-  !Value by defaut
-  if (ierror /= 0) occ = huge(1_gp)
-END SUBROUTINE read_fraction_string
-
-
-!>  Here the fraction is indicated by the :
-subroutine read_fraction_string_old(l,string,occ)
-  use module_base
-  implicit none
-  integer, intent(in) :: l
-  character(len=*), intent(in) :: string
-  real(gp), intent(out) :: occ
-  !local variables
-  integer :: num,den,pfr
-
-  !see whether there is a fraction in the string
-  if (l>3) then
-     pfr=3
-  else
-     pfr=2
-  end if
-  if (string(pfr:pfr) == ':') then
-     read(string(1:pfr-1),*)num
-     read(string(pfr+1:2*pfr-1),*)den
-     occ=real(num,gp)/real(den,gp)
-  else
-     read(string,*)occ
-  end if
-END SUBROUTINE read_fraction_string_old
-
-
 !>   Read the electronic configuration, with the semicore orbitals
 subroutine read_eleconf(string,nspin,nspinor,noccmax,nelecmax,lmax,aocc,nsccode)
   use module_base
+  use module_input
   implicit none
   character(len=100), intent(inout) :: string
   integer, intent(in) :: nelecmax,noccmax,lmax,nspinor,nspin
