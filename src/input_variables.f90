@@ -130,6 +130,8 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
+  call kpt_input_variables_new(iproc,'toto',inputs,atoms)
+  stop
   call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
   ! Mixing input variables (if given)
   call mix_input_variables(trim(inputs%file_mix),inputs)
@@ -959,6 +961,37 @@ subroutine update_symmetries(in, atoms, rxyz)
      atoms%symObj = -1
   end if
 END SUBROUTINE update_symmetries
+
+subroutine kpt_input_variables_new(iproc,filename,in,atoms)
+  use module_base
+  use module_types
+  use defs_basis
+  use ab6_symmetry
+  use module_input
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+  type(atoms_data), intent(in) :: atoms
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='kpt_input_variables'
+  character(len = 6) :: type
+  character(len=100) :: line
+  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount
+  real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
+  integer, allocatable :: iseg(:)
+  
+  !dft parameters, needed for the SCF part
+  call input_set_file(iproc,trim(filename),exists,'Brilloiun Zone Sampling Parameters')  
+  !call the variable, its default value, the line ends if there is a comment
+
+  call input_var(type,'manual',6,exclusive=(/'auto  ','bands ','mpgrid','manual'/),&
+       comment='K-point sampling method')
+
+  call input_free(iproc)
+
+end subroutine kpt_input_variables_new
 
 
 !> Read the input variables needed for the k points generation

@@ -15,7 +15,8 @@ module module_input
   interface input_var
      module procedure var_character, var_logical, var_integer, &
           & var_integer_array, var_double, var_keyword, var_ids,&
-          & var_double_compulsory,var_real_compulsory,var_int_compulsory,var_logical_compulsory
+          & var_double_compulsory,var_real_compulsory,var_int_compulsory,var_logical_compulsory,&
+          & var_char_compulsory
   end interface
 
   public :: input_set_file
@@ -244,6 +245,27 @@ contains
     iline = 0
   END SUBROUTINE find
 
+  function case_insensitive_equiv(ilength,stra,strb)
+    implicit none
+    integer, intent(in) :: ilength
+    character(len=ilength), intent(in) :: stra,strb
+    logical case_insensitive_equiv
+    !local varaibles
+    integer :: i,ica,icb
+
+    ica=ichar(stra(1:1))
+    icb=ichar(strb(1:1))
+    case_insensitive_equiv=(modulo(ica-icb,32) == 0)
+    do i=2,ilength
+       ica=ichar(stra(i:i))
+       icb=ichar(strb(i:i))
+       case_insensitive_equiv=case_insensitive_equiv .and. &
+            (modulo(ica-icb,32) == 0)
+       if (.not. case_insensitive_equiv) exit
+    end do
+
+  end function case_insensitive_equiv
+
 
 !--routines for compulsory file
 
@@ -467,14 +489,13 @@ contains
     end if   
   END SUBROUTINE var_int_compulsory
 
-  subroutine var_char_compulsory(ilength,var,default,ranges,exclusive,comment,input_iostat)
+  subroutine var_char_compulsory(var,default,ilength,exclusive,comment,input_iostat)
     implicit none
     character(len=*), intent(in) :: default
     integer, intent(in) :: ilength
     character(len=ilength), intent(out) :: var
     character(len=*), intent(in), optional :: comment
     integer, intent(out), optional :: input_iostat
-    character(len=ilength), dimension(2), intent(in), optional :: ranges
     character(len=ilength), dimension(:), intent(in), optional :: exclusive
     !local variables
     logical :: found
@@ -501,29 +522,16 @@ contains
        read(line_being_processed,fmt=*,iostat=ierror) var
        call check(ierror)
 
-       !check the validity of the variable
-       if (present(ranges)) then
-          if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
-             if (present(input_iostat)) then
-                input_iostat=1
-                return
-             else
-                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                stop
-             end if
-          end if
-       else if (present(exclusive)) then
+       if (present(exclusive)) then
           found=.false.
           found_loop: do ilist=1,size(exclusive)
-             if (var == exclusive(ilist)) then
+             if (case_insensitive_equiv(ilength,var,exclusive(ilist))) then
                 found=.true.
                 exit found_loop
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,*)' ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
              write(*,*)'      values should be in list: ',exclusive(:)
              if (present(input_iostat)) then
                 input_iostat=1
