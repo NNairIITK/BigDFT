@@ -2582,7 +2582,7 @@ subroutine free_lnlpspd(orbs, lzd)
   use module_base
   use module_types
   use deallocatePointers
-  use module_interfaces, exceptThisOne => free_lnlpspd
+  !use module_interfaces, exceptThisOne => free_lnlpspd
   implicit none
   
   ! Calling arguments
@@ -2603,10 +2603,10 @@ subroutine free_lnlpspd(orbs, lzd)
       if (.not. go) cycle !deallocate only for the locreg on this processor, without repeating for same locreg.
 
       ! Deallocate projflg.
-      call checkAndDeallocatePointer(lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
-      !iall=-product(shape(lzd%llr(ilr)%projflg))*kind(lzd%llr(ilr)%projflg)
-      !deallocate(lzd%llr(ilr)%projflg, stat=istat)
-      !call memocc(istat, iall, 'lzd%llr(ilr)%projflg', subname)
+      !call checkAndDeallocatePointer(lzd%llr(ilr)%projflg, 'lzd%llr(ilr)%projflg', subname)
+      iall=-product(shape(lzd%llr(ilr)%projflg))*kind(lzd%llr(ilr)%projflg)
+      deallocate(lzd%llr(ilr)%projflg, stat=istat)
+      call memocc(istat, iall, 'lzd%llr(ilr)%projflg', subname)
 
       call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(ilr), subname)
   end do
