@@ -484,8 +484,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   lhchi=0.d0
 
 
-
   if(iproc==0) write(*,'(x,a)') 'Hamiltonian application for all atoms. This may take some time.'
+  call mpi_barrier(mpi_comm_world, ierr)
   call cpu_time(t1)
   call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%lig%lzdig)
   call full_local_potential2(iproc, nproc, lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
@@ -562,10 +562,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       write(*,'(a,i0,a,2(a2,i0))') 'ERROR on process ',iproc,': ii/=ndim_lhchi',ii,ndim_lhchi
       stop
   end if
+  call mpi_barrier(mpi_comm_world, ierr)
   call cpu_time(t2)
   time=t2-t1
-  call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-  if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time/dble(nproc)
+  if(iproc==0) write(*,'(x,a,es10.3)') 'time for applying potential:', time
 
   ! Deallocate the buffers needed for communication the potential.
   call deallocateCommunicationsBuffersPotential(lin%lig%comgp, subname)
