@@ -434,10 +434,10 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !!experimental part for building the localisation regions
 ! ###################################################################
 
+  linear  = .true.
   if (input%linear == 'LIG' .or. input%linear == 'FUL') then
      Lzd%nlr=at%nat
      call timing(iproc,'check_IG      ','ON')
-     linear  = .true.
      ! locrad read from last line of  psppar
      do iat=1,at%nat
         ityp = at%iatype(iat)
@@ -445,7 +445,9 @@ subroutine input_wf_diag(iproc,nproc,at,&
      end do  
      call check_linear_inputguess(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Glr,linear)
      call timing(iproc,'check_IG      ','OF')
-  else
+     if(nspin >= 4) linear = .false. 
+  end if
+  if (input%linear =='OFF' .or. .not. linear) then
      linear = .false.
      Lzd%nlr = 1
      allocate(Lzd%Llr(Lzd%nlr+ndebug),stat=i_stat)
@@ -457,14 +459,14 @@ subroutine input_wf_diag(iproc,nproc,at,&
   end if
   Lzd%linear = linear 
 
-  if (Lzd%linear .and. (nspin < 4) ) then
+  if (Lzd%linear) then
 
      if(iproc==0) then
         write(*,'(1x,A)') 'Entering the Linear IG'
-        write(*,'(1x,A)') 'The localization radii are set to 10 times the covalent radii'
-        do iat=1,at%ntypes
-           write(*,'(1x,A,1x,A,A,1x,1pe9.3,1x,A)') 'For atom',trim(at%atomnames(iat)),' :', at%rloc(iat,1),'Bohrs'
-        end do
+!        write(*,'(1x,A)') 'The localization radii are set to 10 times the covalent radii'
+!        do iat=1,at%ntypes
+!           write(*,'(1x,A,1x,A,A,1x,1pe9.3,1x,A)') 'For atom',trim(at%atomnames(iat)),' :', at%rloc(iat,1),'Bohrs'
+!        end do
      end if
         
      Lzd%Glr = Glr
@@ -736,7 +738,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(psi(orbse%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
-   
+
      !allocate arrays for the GPU if a card is present
      switchGPUconv=.false.
      switchOCLconv=.false.

@@ -346,10 +346,10 @@ allocate(orbsPerAt(atoms%ntypes), stat=istat)
         !if (iproc ==0) write(*,*)&
         !     ' WARNING: last line of pseudopotential missing, put an empty line'
         line=''
-     else if(ierror /=0 .and. in%linear /='OFF') then
-        write(*,'(a)')'Linear scaling requires that localization radius be specified'
-        write(*,'(a)')'by hand on the last line of the PSP files.'
-        stop
+!     else if(ierror /=0 .and. in%linear /='OFF') then
+!        write(*,'(a)')'Linear scaling requires that localization radius be specified'
+!        write(*,'(a)')'by hand on the last line of the PSP files.'
+!        stop
      end if
      read(line,*,iostat=ierror1) radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3)
      if (ierror1 /= 0 ) then
