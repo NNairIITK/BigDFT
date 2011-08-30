@@ -378,7 +378,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer :: ilr,ityp
   logical :: calc                           
   real(dp),dimension(:),pointer:: Lpsi,Lhpsi
-  logical :: linear
+  logical :: linear, withConfinement
 !  integer :: dim1,dim2                    !debug plotting local wavefunctions
 !  real(dp) :: factor                      !debug plotting local wavefunctions
 !  integer,dimension(at%nat) :: projflg    !debug nonlocal_forces
@@ -388,6 +388,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !  real(gp), dimension(3,at%nat) :: fsep                 !debug for debug nonlocal_forces
 !  real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
 !  integer :: ierr                                       !for debugging
+  real(8),dimension(:),pointer:: lpot
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -501,21 +502,22 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call timing(iproc,'constrc_locreg','OF')
 
    !determine the Lnlpspd
-     call timing(iproc,'create_nlpspd ','ON')
-     allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
-     do ilr=1,Lzd%nlr
-        calc=.false.
-        do iorb=1,orbse%norbp
-           if(ilr == orbse%inwhichLocreg(iorb+orbse%isorb)) calc=.true.
-        end do
-        if (.not. calc) cycle         !calculate only for the locreg on this processor, without repeating for same locreg
-        ! allocate projflg
-        allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=i_stat)
-        call memocc(i_stat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
-        call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,orbse,&
-         &      radii_cf,input%frmult,input%frmult,hx,hy,hz,Lzd%Gnlpspd,Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
-     end do
-     call timing(iproc,'create_nlpspd ','OF')
+   call prepare_lnlpspd(iproc, at, input, orbse, rxyz, radii_cf, lzd)
+     !!call timing(iproc,'create_nlpspd ','ON')
+     !!allocate(Lzd%Lnlpspd(Lzd%nlr),stat=i_stat)
+     !!do ilr=1,Lzd%nlr
+     !!   calc=.false.
+     !!   do iorb=1,orbse%norbp
+     !!      if(ilr == orbse%inwhichLocreg(iorb+orbse%isorb)) calc=.true.
+     !!   end do
+     !!   if (.not. calc) cycle         !calculate only for the locreg on this processor, without repeating for same locreg
+     !!   ! allocate projflg
+     !!   allocate(Lzd%Llr(ilr)%projflg(at%nat),stat=i_stat)
+     !!   call memocc(i_stat,Lzd%Llr(ilr)%projflg,'Lzd%Llr(ilr)%projflg',subname)
+     !!   call nlpspd_to_locreg(input,iproc,Lzd%Glr,Lzd%Llr(ilr),rxyz,at,orbse,&
+     !!    &      radii_cf,input%frmult,input%frmult,hx,hy,hz,Lzd%Gnlpspd,Lzd%Lnlpspd(ilr),Lzd%Llr(ilr)%projflg)
+     !!end do
+     !!call timing(iproc,'create_nlpspd ','OF')
 
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(Lpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
@@ -649,9 +651,15 @@ subroutine input_wf_diag(iproc,nproc,at,&
   
     if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
    
-    call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,&
-         orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)    
+    !!call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
+    !!     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,&
+    !!     orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)    
+
+    ! Create local potential
+    call full_local_potential2(iproc, nproc, lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
+         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, orbse, lzd, &
+         ngatherarr, rhopot, lpot, 0)
+
  
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
     allocate(Lhpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
@@ -662,9 +670,24 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !     proj,ngatherarr,pot,Lpsi,Lhpsi,&
 !     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,radii_cf,pkernel=pkernelseq)
 
-    call  HamiltonianApplication2(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
-          proj,Lzd,ngatherarr,pot,Lpsi,Lhpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+
+    withConfinement=.false.
+    call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
+         proj, lzd, ngatherarr, lpot, lpsi, lhpsi, &
+         ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
+         pkernel=pkernelseq)
+
+    ! Deallocate local potential
+    i_all=-product(shape(lpot))*kind(lpot)
+    deallocate(lpot,stat=i_stat)
+    call memocc(i_stat,i_all,'lpot',subname)
+
+    ! Deallocate PSP stuff
+    call free_lnlpspd(orbse, lzd)
+
+    !!call HamiltonianApplication2(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
+    !!     proj,Lzd,ngatherarr,pot,Lpsi,Lhpsi,&
+    !!     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
 
 
     accurex=abs(eks-ekin_sum)

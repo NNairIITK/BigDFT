@@ -2023,9 +2023,9 @@ subroutine nullify_locreg_descriptors(lr)
   type(locreg_descriptors),intent(out):: lr
 
 
-  if(associated(lr%projflg)) then
+  !if(associated(lr%projflg)) then
      nullify(lr%projflg)
-  end if
+  !end if
 
   call nullify_wavefunctions_descriptors(lr%wfd)
   call nullify_convolutions_bounds(lr%bounds)
@@ -2041,10 +2041,10 @@ subroutine nullify_wavefunctions_descriptors(wfd)
   ! Calling arguments
   type(wavefunctions_descriptors),intent(out):: wfd
 
-  if(associated(wfd%keyg)) then
+  !if(associated(wfd%keyg)) then
      nullify(wfd%keyg)
      nullify(wfd%keyv)
-  end if
+  !end if
 end subroutine nullify_wavefunctions_descriptors
 
 
@@ -2060,9 +2060,9 @@ subroutine nullify_convolutions_bounds(bounds)
   call nullify_kinetic_bounds(bounds%kb)
   call nullify_shrink_bounds(bounds%sb)
   call nullify_grow_bounds(bounds%gb)
-  if(associated(bounds%ibyyzz_r)) then
+  !if(associated(bounds%ibyyzz_r)) then
      nullify(bounds%ibyyzz_r)
-  end if
+  !end if
 end subroutine nullify_convolutions_bounds
 
 
@@ -2075,14 +2075,14 @@ subroutine nullify_kinetic_bounds(kb)
   ! Calling arguments
   type(kinetic_bounds),intent(out):: kb
 
-  if(associated(kb%ibyz_c))then
+  !if(associated(kb%ibyz_c))then
      nullify(kb%ibyz_c)
      nullify(kb%ibxz_c)
      nullify(kb%ibxy_c)
      nullify(kb%ibyz_f)
      nullify(kb%ibxz_f)
      nullify(kb%ibxy_f)
-  end if
+  !end if
 end subroutine nullify_kinetic_bounds
 
 
@@ -2095,13 +2095,13 @@ subroutine nullify_shrink_bounds(sb)
   ! Calling arguments
   type(shrink_bounds),intent(out):: sb
 
-  if(associated(sb%ibzzx_c)) then
+  !if(associated(sb%ibzzx_c)) then
      nullify(sb%ibzzx_c)
      nullify(sb%ibyyzz_c)
      nullify(sb%ibxy_ff)
      nullify(sb%ibzzx_f)
      nullify(sb%ibyyzz_f)
-  end if
+  !end if
 
 end subroutine nullify_shrink_bounds
 
@@ -2115,13 +2115,13 @@ subroutine nullify_grow_bounds(gb)
   ! Calling arguments
   type(grow_bounds),intent(out):: gb
 
-  if(associated(gb%ibzxx_c)) then
+  !if(associated(gb%ibzxx_c)) then
      nullify(gb%ibzxx_c)
      nullify(gb%ibxxyy_c)
      nullify(gb%ibyz_ff)
      nullify(gb%ibzxx_f)
      nullify(gb%ibxxyy_f)
-  end if
+  !end if
 end subroutine nullify_grow_bounds
 
 
