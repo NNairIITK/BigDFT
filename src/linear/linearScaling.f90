@@ -371,18 +371,9 @@ type(workarr_sumrho):: w
   call deallocateCommunicationbufferSumrho(lin%comsr, subname)
 
   ! Build global orbitals psi (the physical ones).
-  !call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
-  !ist=1
-  !do iorb=1,orbs%norb
-  !    gdim=lin%lzd%glr%wfd%nvctr_c+7*lin%lzd%glr%wfd%nvctr_f
-  !    tt1=0.d0
-  !    do i=ist,ist+gdim-1
-  !        tt1=tt1+psi(i)
-  !    end do
-  !    do iorb=1,lin%orbs%norb
-  !    end do
-  !    ist=ist+gdim
-  !end do
+  if(lin%transformToGlobal) then
+      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
+  end if
 
   ! Calculate the forces we get with psi.
   !!psi=0.d0

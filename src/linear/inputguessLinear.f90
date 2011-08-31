@@ -624,9 +624,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call cpu_time(t1)
   allocate(ham3(lin%lig%orbsig%norb,lin%lig%orbsig%norb,nlocregPerMPI), stat=istat)
   call memocc(istat,ham3,'ham3',subname)
+  !call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, &
+  !     onWhichMPITemp, Glr, input, lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, &
+  !     nlocregPerMPI, lchi, lhchi, skip, lin%mad, ham3)
   call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, &
        onWhichMPITemp, Glr, input, lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, &
-       nlocregPerMPI, lchi, lhchi, skip, lin%mad, ham3)
+       nlocregPerMPI, lchi, lhchi, skip, lin%lig%mad, ham3)
   !!do iat=1,nlocregPerMPI
   !!    do iorb=1,lin%lig%orbsig%norb
   !!        do jorb=1,lin%lig%orbsig%norb
