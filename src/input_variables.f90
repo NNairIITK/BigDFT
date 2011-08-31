@@ -519,8 +519,8 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !davidson treatment
   ! Now the variables which are to be used only for the last run
   call input_var(in%norbv,'0',ranges=(/-1000,1000/))
-  call input_var(in%nvirt,'0',ranges=(/0,in%norbv/))
-  call input_var(in%nplot,'0',ranges=(/0,in%norbv/),&
+  call input_var(in%nvirt,'0',ranges=(/0,abs(in%norbv)/))
+  call input_var(in%nplot,'0',ranges=(/0,abs(in%norbv)/),&
        comment='Dimension of davidson treatment subspace, # of interesting orbitals, # of plotted orbitals')
 
   !in%nvirt = min(in%nvirt, in%norbv) commented out
@@ -725,13 +725,12 @@ subroutine geopt_input_variables_new(iproc,filename,in)
   call input_var(in%randdis,'0.0',ranges=(/0.0_gp,10.0_gp/),&
        comment="random displacement amplitude")
 
-  if (case_insensitive_equiv(in%geopt_approach,"AB6MD")) then
+  if (case_insensitive_equiv(trim(in%geopt_approach),"AB6MD")) then
      in%nnos=0
      call input_var(in%ionmov,'6',exclusive=(/6,7,8,9,12,13/),&
           comment="AB6MD: movement ion method")
      call input_var(in%dtion,'20.670689',ranges=(/0.0_gp,1.e3_gp/),&
           comment="Time step for molecular dynamics - Atomic Units (20.670689 AU=0.5 fs)")
-
      if (in%ionmov == 6) then
         call input_var(in%mditemp,'300',ranges=(/0.0_gp,1.0e9_gp/),&
              comment="Temperature of molecular dynamics")

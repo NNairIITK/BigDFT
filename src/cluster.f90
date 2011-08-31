@@ -1388,11 +1388,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         !start the Casida's treatment 
         if (in%tddft_approach=='TDA') then
 
+           !does it makes sense to use GPU only for a one-shot sumrho?
+           if (OCLconv) then
+              call allocate_data_OCL(Glr%d%n1,Glr%d%n2,Glr%d%n3,atoms%geocode,&
+                   in%nspin,hx,hy,hz,Glr%wfd,orbs,GPU)
+           end if
+
            !this could have been calculated before
            ! Potential from electronic charge density
            !WARNING: this is good just because the TDDFT is done with LDA
            call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rhopot,&
                 nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
+           
+           if (OCLconv) then
+              call free_gpu_OCL(GPU,orbs,in%nspin)
+           end if
 
            !Allocate second Exc derivative
            if (n3p >0) then
