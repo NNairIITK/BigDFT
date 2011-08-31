@@ -372,7 +372,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
-  real(wp), dimension(:), pointer :: pot
+  real(wp), dimension(:), pointer :: pot,pot1
   real(wp), dimension(:,:,:), pointer :: psigau
 ! #### Linear Scaling Variables
   integer :: ilr,ityp
@@ -964,7 +964,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
      if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
 
 !     call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-!          Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
+!          Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,orbse%norb,orbse%norbp,ngatherarr,rhopot,pot1)
 !
 !     call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
 !          nlpspd,proj,Glr,ngatherarr,pot,&
@@ -978,7 +978,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
     call full_local_potential2(iproc, nproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2), &
          Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin, orbse, Lzd, &
          ngatherarr, rhopot, pot, 0)
-
 
     withConfinement=.false.
     call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
