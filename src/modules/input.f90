@@ -124,7 +124,7 @@ contains
     output = (iproc == 0)
     !dump the 0-th line on the screen
     if (iproc == 0) then
-       write(*,'(1x,a)')inout_lines(0)
+       write(*,'(1x,a)') inout_lines(0)
     end if
 !!$    output = (iproc == 0)
 !!$    ! Output
@@ -147,6 +147,7 @@ contains
     implicit none
     integer, intent(in), optional :: iproc
     !Local variables
+    integer, parameter :: iunit=11
     integer :: iline
 
     if (present(iproc)) then !case for compulsory variables
@@ -154,16 +155,16 @@ contains
        if (iproc ==0) then
           if (iline_parsed==0) then !the file does not exist
              !add the writing of the file in the given unit
-             open(unit=1,file=trim(input_file)//'_default', status ='unknown')
+             open(unit=iunit,file=trim(input_file)//'_default', status ='unknown')
              do iline=1,iline_written-1
-                write(1,*)inout_lines(iline)
+                write(iunit,*) inout_lines(iline)
              end do
-             close(unit=1)
+             close(unit=iunit)
           end if
        end if
        !dump the file on the screen
        do iline=1,iline_written-1
-          write(*,*)'|',inout_lines(iline)
+          write(*,fmt='(1x,a,a)') '|',inout_lines(iline)
        end do
     end if
 
