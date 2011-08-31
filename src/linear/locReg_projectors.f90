@@ -1245,7 +1245,7 @@ subroutine ApplyProjectorsLinear(iproc,hx,hy,hz,atoms,Lzd,orbs,rxyz,psi,hpsi,epr
   real(wp),allocatable,dimension(:,:,:) :: psi_tmp
   real(wp),allocatable,dimension(:,:,:) :: hpsi_tmp
   real(wp),allocatable,dimension(:):: Lproj  !local projectors
-  character(len=*), parameter :: subname='apply_local_projectors'
+  character(len=*), parameter :: subname='ApplyProjectorsLinear'
 
   ! Create table of the different localization regions
   allocate(ilrtable(orbs%norbp),stat=i_stat)
@@ -1384,6 +1384,11 @@ subroutine ApplyProjectorsLinear(iproc,hx,hy,hz,atoms,Lzd,orbs,rxyz,psi,hpsi,epr
      deallocate(Lproj,stat=i_stat)
      call memocc(i_stat,i_all,'Lproj',subname)
   end do
+
+  i_all = -product(shape(ilrtable))*kind(ilrtable)
+  deallocate(ilrtable,stat=i_stat)
+  call memocc(i_stat,i_all,'ilrtable',subname)
+
 
   !reshape hpsi
   kk=0

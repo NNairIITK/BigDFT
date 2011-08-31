@@ -132,6 +132,8 @@ type(workarr_sumrho):: w
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
        input, rxyz, nscatterarr, coeff, lphi)
 
+  call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
+
   potshortcut=0 ! What is this?
   call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
@@ -371,9 +373,11 @@ type(workarr_sumrho):: w
 
   ! Calculate the forces we get with psi.
   call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, lphi, coeff, rhopot, &
+      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, lphi, coeff, rhopot, &
       fxyz, fnoise,radii_cf)
 
+
+  call free_lnlpspd(lin%orbs, lin%lzd)
 
   ! Deallocate all arrays related to the linear scaling version.
   call deallocateLinear(iproc, lin, phi, lphi, coeff)

@@ -1,8 +1,5 @@
-
-
-
 subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
-    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, rhopot, fxyz, fnoise, radii_cf)
+    ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, phi, coeff, rhopot, fxyz, fnoise, radii_cf)
 ! Purpose:
 ! ========
 !   Calculates the forces we get with psi. It is copied from cluster, with an additional
@@ -31,7 +28,6 @@ subroutine calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, or
 !     rxyz        atomic positions
 !     fion        ionic forces
 !     fdisp       dispersion forces
-!     psi         the physical orbitals
 !   Input / Output arguments
 !   ------------------------
 !     proj        ??
@@ -68,7 +64,6 @@ real(8),dimension(3,atoms%nat),intent(in):: rxyz, fion, fdisp
 real(8),dimension(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)),intent(in):: rhopot
 real(8),dimension(3,atoms%nat),intent(out):: fxyz
 real(8),intent(out):: fnoise
-real(8),dimension((lin%Lzd%Glr%wfd%nvctr_c+7*lin%Lzd%Glr%wfd%nvctr_f)*orbs%norbp),intent(inout):: psi
 real(8),dimension(lin%lzd%Lpsidimtot),intent(inout):: phi
 !real(8),dimension(lin%gorbs%npsidim),intent(inout):: phi
 real(8),dimension(lin%orbs%norb,orbs%norb),intent(in):: coeff
@@ -159,8 +154,12 @@ real(wp) :: sum_psi
   refill_proj=.false.  !! IS THIS CORRECT??
   gxyz = 0.0_wp
   fxyz = 0.0_wp
-  call nonlocal_forces(iproc,Glr,in%hx,in%hy,in%hz,atoms,rxyz,&
-       orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
+  !call nonlocal_forces(iproc,Glr,in%hx,in%hy,in%hz,atoms,rxyz,&
+  !     orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
+
+  !! ATTENTION: passing phi (after proj, before gxyz) is just to pass something of the right size
+  call Linearnonlocal_forces(iproc, nproc, lin%lzd, in%hx, in%hy, in%hz, atoms, rxyz, orbs, &
+       proj, phi, gxyz, .false., lin%orbs, coeff, phi)
 
 !#####################################################################
 !DEBUG

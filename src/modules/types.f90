@@ -541,8 +541,7 @@ end type largeBasis
     integer:: nItInguess, nlr, nLocregOverlap, nItOrtho, mixHist, methTransformOverlap, blocksize_pdgemm, blocksize_pdsyev
     integer:: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     real(8):: convCrit, alphaSD, alphaDIIS, startDIIS, convCritCoeff, alphaMix, convCritMix, convCritOrtho
-    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart, lphiold, lhphiold
-    real(8),dimension(:,:),pointer:: hamold
+    real(8),dimension(:),pointer:: potentialPrefac, locrad, lphiRestart
     type(orbitals_data):: orbs, gorbs
     type(communications_arrays):: comms, gcomms
     integer,dimension(:),pointer:: norbsPerType

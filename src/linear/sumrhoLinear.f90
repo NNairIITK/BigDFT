@@ -30,7 +30,7 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   integer, dimension(*), intent(in) :: irrzon
   real(dp), dimension(*), intent(in) :: phnons
   !Local variables
-  character(len=*), parameter :: subname='sumrho'
+  character(len=*), parameter :: subname='sumrhoLinear'
   logical :: rsflag
   integer :: nrhotot,n3d,itmred
   integer :: nspinn

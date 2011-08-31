@@ -48,6 +48,10 @@ integer :: npsidim
 
 tag=0
 
+
+! Nullify all pointers
+call nullify_linearParameters(lin)
+
 ! Allocate all local arrays.
 allocate(atomNames(at%ntypes), stat=istat)
 call memocc(istat, atomNames, 'atomNames', subname)
@@ -226,9 +230,9 @@ if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, np
 allocate(lin%lphiRestart(lin%orbs%npsidim), stat=istat)
 call memocc(istat, lin%lphiRestart, 'lin%lphiRestart', subname)
 
-! Stores the Hamiltonian in the basis of the localized orbitals
-allocate(lin%hamold(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
-call memocc(istat, lin%hamold, 'lin%hamold', subname)
+!! Stores the Hamiltonian in the basis of the localized orbitals
+!allocate(lin%hamold(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
+!call memocc(istat, lin%hamold, 'lin%hamold', subname)
 
 ! Deallocate all local arrays.
 iall=-product(shape(atomNames))*kind(atomNames)
@@ -1558,11 +1562,11 @@ call memocc(istat, phi, 'phi', subname)
 allocate(lphi(lin%lb%orbs%npsidim), stat=istat)
 call memocc(istat, lphi, 'lphi', subname)
 
-allocate(lin%lphiold(lin%lb%orbs%npsidim), stat=istat)
-call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
+!allocate(lin%lphiold(lin%lb%orbs%npsidim), stat=istat)
+!call memocc(istat, lin%lphiold, 'lin%lphiold', subname)
 
-allocate(lin%lhphiold(lin%lb%orbs%npsidim), stat=istat)
-call memocc(istat, lin%lhphiold, 'lin%lhphiold', subname)
+!allocate(lin%lhphiold(lin%lb%orbs%npsidim), stat=istat)
+!call memocc(istat, lin%lhphiold, 'lin%lhphiold', subname)
 
 end subroutine initLocregs
 
@@ -1589,7 +1593,7 @@ real(8),dimension(lzd%nlr),intent(in):: locrad
 
 ! Local variables
 integer:: istat, npsidim, npsidimr, iorb, ilr, jorb, jjorb, jlr, iall
-character(len=*),parameter:: subname='initLocregs'
+character(len=*),parameter:: subname='initLocregs2'
 logical,dimension(:),allocatable:: calculateBounds
 
 ! Allocate the array of localisation regions
@@ -1757,6 +1761,191 @@ end subroutine initCoefficients
 !!end subroutine allocateAndCopyLocreg
 
 
+subroutine nullify_linearParameters(lin)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_linearParameters
+  implicit none
+
+  ! Calling arguments
+  type(linearParameters),intent(out):: lin
+
+  nullify(lin%potentialPrefac)
+  nullify(lin%locrad)
+  nullify(lin%lphiRestart)
+  !nullify(lin%lphiold)
+  !nullify(lin%lhphiold)
+  !nullify(lin%hamold)
+  call nullify_orbitals_data(lin%orbs)
+  call nullify_orbitals_data(lin%gorbs)
+  call nullify_communications_arrays(lin%comms)
+  call nullify_communications_arrays(lin%gcomms)
+  nullify(lin%norbsPerType)
+  call nullify_p2pCommsSumrho(lin%comsr)
+  call nullify_p2pCommsGatherPot(lin%comgp)
+  call nullify_largeBasis(lin%lb)
+  call nullify_local_zone_descriptors(lin%lzd)
+  call nullify_p2pCommsOrthonormality(lin%comon)
+  call nullify_overlapParameters(lin%op)
+  call nullify_linearInputGuess(lin%lig)
+  call nullify_matrixDescriptors(lin%mad)
+
+end subroutine nullify_linearParameters
+
+
+subroutine nullify_p2pCommsSumrho(comsr)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_p2pCommsSumrho
+  implicit none
+
+  ! Calling argument
+  type(p2pCommsSumrho),intent(out):: comsr
+
+  nullify(comsr%noverlaps)
+  nullify(comsr%overlaps)
+  nullify(comsr%istarr)
+  nullify(comsr%istrarr)
+  nullify(comsr%sendBuf)
+  nullify(comsr%recvBuf)
+  nullify(comsr%comarr)
+  nullify(comsr%communComplete)
+  nullify(comsr%computComplete)
+end subroutine nullify_p2pCommsSumrho
+
+
+subroutine nullify_p2pCommsGatherPot(comgp)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_p2pCommsGatherPot
+  implicit none
+
+  ! Calling argument
+  type(p2pCommsGatherPot),intent(out):: comgp
+
+  nullify(comgp%noverlaps)
+  nullify(comgp%overlaps)
+  nullify(comgp%ise3)
+  nullify(comgp%comarr)
+  nullify(comgp%recvBuf)
+  nullify(comgp%communComplete)
+
+end subroutine nullify_p2pCommsGatherPot
+
+
+subroutine nullify_largeBasis(lb)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_largeBasis
+  implicit none
+
+  ! Calling argument
+  type(largeBasis),intent(out):: lb
+  call nullify_p2pCommsGatherPot(lb%comgp)
+  call nullify_communications_arrays(lb%comms)
+  call nullify_communications_arrays(lb%gcomms)
+  call nullify_orbitals_data(lb%orbs)
+  call nullify_orbitals_data(lb%gorbs)
+  call nullify_p2pCommsRepartition(lb%comrp)
+  call nullify_p2pCommsOrthonormality(lb%comon)
+  call nullify_overlapParameters(lb%op)
+  call nullify_p2pCommsGatherPot(lb%comgp)
+
+end subroutine nullify_largeBasis
+
+
+subroutine nullify_p2pCommsRepartition(comrp)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_p2pCommsRepartition
+  implicit none
+
+  ! Calling arguments
+  type(p2pCommsRepartition),intent(out):: comrp
+
+  nullify(comrp%comarr)
+  nullify(comrp%communComplete)
+
+end subroutine nullify_p2pCommsRepartition
+
+
+subroutine nullify_p2pCommsOrthonormality(comon)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_p2pCommsOrthonormality
+  implicit none
+
+  ! Calling argument
+  type(p2pCommsOrthonormality),intent(out):: comon
+
+  nullify(comon%noverlaps)
+  nullify(comon%overlaps)
+  nullify(comon%comarr)
+  nullify(comon%sendBuf)
+  nullify(comon%recvBuf)
+  nullify(comon%communComplete)
+
+end subroutine nullify_p2pCommsOrthonormality
+
+
+subroutine nullify_overlapParameters(op)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_overlapParameters
+  implicit none
+
+  ! Calling argument
+  type(overlapParameters),intent(out):: op
+
+  nullify(op%noverlaps)
+  nullify(op%indexExpand)
+  nullify(op%indexExtract)
+  nullify(op%overlaps)
+  nullify(op%indexInRecvBuf)
+  nullify(op%indexInSendBuf)
+  nullify(op%olr)
+
+end subroutine nullify_overlapParameters
+
+
+subroutine nullify_linearInputGuess(lig)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_linearInputGuess
+  implicit none
+
+  ! Calling argument
+  type(linearInputGuess),intent(out):: lig
+
+  call nullify_local_zone_descriptors(lig%lzdig)
+  call nullify_local_zone_descriptors(lig%lzdGauss)
+  call nullify_orbitals_data(lig%orbsig)
+  call nullify_orbitals_data(lig%orbsGauss)
+  call nullify_p2pCommsOrthonormality(lig%comon)
+  call nullify_overlapParameters(lig%op)
+  call nullify_p2pCommsGatherPot(lig%comgp)
+  call nullify_matrixDescriptors(lig%mad)
+
+end subroutine nullify_linearInputGuess
+
+
+subroutine nullify_matrixDescriptors(mad)
+  use module_base
+  use module_types
+  use module_interfaces, exceptThisOne => nullify_matrixDescriptors
+  implicit none
+
+  ! Calling argument
+  type(matrixDescriptors),intent(out):: mad
+
+  nullify(mad%keyv)
+  nullify(mad%keyvmatmul)
+  nullify(mad%nsegline)
+  nullify(mad%keyg)
+  nullify(mad%keygmatmul)
+  nullify(mad%keygline)
+
+end subroutine nullify_matrixDescriptors
 
 
 
@@ -1776,6 +1965,7 @@ subroutine nullify_local_zone_descriptors(lzd)
   call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
   nullify(lzd%llr)
   nullify(lzd%lnlpspd)
+  nullify(lzd%doHamAppl)
   !call nullify_matrixMinimization(lzd%matmin)
   
 end subroutine nullify_local_zone_descriptors
@@ -1834,9 +2024,9 @@ subroutine nullify_locreg_descriptors(lr)
   type(locreg_descriptors),intent(out):: lr
 
 
-  if(associated(lr%projflg)) then
+  !if(associated(lr%projflg)) then
      nullify(lr%projflg)
-  end if
+  !end if
 
   call nullify_wavefunctions_descriptors(lr%wfd)
   call nullify_convolutions_bounds(lr%bounds)
@@ -1852,10 +2042,10 @@ subroutine nullify_wavefunctions_descriptors(wfd)
   ! Calling arguments
   type(wavefunctions_descriptors),intent(out):: wfd
 
-  if(associated(wfd%keyg)) then
+  !if(associated(wfd%keyg)) then
      nullify(wfd%keyg)
      nullify(wfd%keyv)
-  end if
+  !end if
 end subroutine nullify_wavefunctions_descriptors
 
 
@@ -1871,9 +2061,9 @@ subroutine nullify_convolutions_bounds(bounds)
   call nullify_kinetic_bounds(bounds%kb)
   call nullify_shrink_bounds(bounds%sb)
   call nullify_grow_bounds(bounds%gb)
-  if(associated(bounds%ibyyzz_r)) then
+  !if(associated(bounds%ibyyzz_r)) then
      nullify(bounds%ibyyzz_r)
-  end if
+  !end if
 end subroutine nullify_convolutions_bounds
 
 
@@ -1886,14 +2076,14 @@ subroutine nullify_kinetic_bounds(kb)
   ! Calling arguments
   type(kinetic_bounds),intent(out):: kb
 
-  if(associated(kb%ibyz_c))then
+  !if(associated(kb%ibyz_c))then
      nullify(kb%ibyz_c)
      nullify(kb%ibxz_c)
      nullify(kb%ibxy_c)
      nullify(kb%ibyz_f)
      nullify(kb%ibxz_f)
      nullify(kb%ibxy_f)
-  end if
+  !end if
 end subroutine nullify_kinetic_bounds
 
 
@@ -1906,13 +2096,13 @@ subroutine nullify_shrink_bounds(sb)
   ! Calling arguments
   type(shrink_bounds),intent(out):: sb
 
-  if(associated(sb%ibzzx_c)) then
+  !if(associated(sb%ibzzx_c)) then
      nullify(sb%ibzzx_c)
      nullify(sb%ibyyzz_c)
      nullify(sb%ibxy_ff)
      nullify(sb%ibzzx_f)
      nullify(sb%ibyyzz_f)
-  end if
+  !end if
 
 end subroutine nullify_shrink_bounds
 
@@ -1926,13 +2116,13 @@ subroutine nullify_grow_bounds(gb)
   ! Calling arguments
   type(grow_bounds),intent(out):: gb
 
-  if(associated(gb%ibzxx_c)) then
+  !if(associated(gb%ibzxx_c)) then
      nullify(gb%ibzxx_c)
      nullify(gb%ibxxyy_c)
      nullify(gb%ibyz_ff)
      nullify(gb%ibzxx_f)
      nullify(gb%ibxxyy_f)
-  end if
+  !end if
 end subroutine nullify_grow_bounds
 
 

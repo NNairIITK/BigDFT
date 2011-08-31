@@ -224,9 +224,14 @@ subroutine HamiltonianApplication2(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
 END SUBROUTINE HamiltonianApplication2
 
+
+
+
+
 subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     proj,Lzd,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,withConfinement,energyReductionFlag,pkernel,orbsocc,psirocc,lin)
+     proj,Lzd,ngatherarr,Lpot,psi,hpsi,&
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,withConfinement,energyReductionFlag, &
+     pkernel,orbsocc,psirocc,lin, confinementCenter)
   use module_base
   use module_types
   use module_interfaces, except_this_one => HamiltonianApplication3
@@ -251,13 +256,14 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   type(linearParameters),intent(in),optional:: lin
+  integer,dimension(orbs%norbp),intent(in),optional:: confinementCenter
   !local variables
   real(gp), dimension(2,orbs%norbp) :: ekin
   real(gp), dimension(2,orbs%norbp) :: epot
   real(wp), dimension(:), pointer :: hpsi2
   character(len=*), parameter :: subname='HamiltonianApplication3'
   logical :: exctX,op2p
-  integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat
+  integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat, ist
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
@@ -272,13 +278,13 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           'Hamiltonian application...'
   end if
 
-  !check if the potential has been associated
-  if (.not. associated(pot)) then
-     if (iproc ==0) then
-        write(*,*)' ERROR, HamiltonianApplication2, potential not associated!'
-        stop
-     end if
-  end if
+  !!!check if the potential has been associated
+  !!if (.not. associated(Lpot)) then
+  !!   if (iproc ==0) then
+  !!      write(*,*)' ERROR, HamiltonianApplication2, potential not associated!'
+  !!      stop
+  !!   end if
+  !!end if
 
 
 !##################################################################################################
@@ -298,16 +304,15 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      ist=lzd%ndimpotisf-size_potxc+1
      if (present(pkernel) .and. present(orbsocc) .and. present(psirocc)) then
         call cubic_exact_exchange(iproc,nproc,nspin,Lzd%Lpsidimtot,size_potxc,hx,hy,hz,Lzd%Glr,orbs,&
-             ngatherarr,psi,pot(ist),eexctX,pkernel,orbsocc,psirocc)
+             ngatherarr,psi,Lpot(ist),eexctX,pkernel,orbsocc,psirocc)
      else if(present(pkernel)) then
          call cubic_exact_exchange(iproc,nproc,nspin,Lzd%Lpsidimtot,size_potxc,hx,hy,hz,Lzd%Glr,orbs,&
-             ngatherarr,psi,pot(ist),eexctX,pkernel=pkernel)
+             ngatherarr,psi,Lpot(ist),eexctX,pkernel=pkernel)
      else
          call cubic_exact_exchange(iproc,nproc,nspin,Lzd%Lpsidimtot,size_potxc,hx,hy,hz,Lzd%Glr,orbs,&
-             ngatherarr,psi,pot(ist),eexctX)
+             ngatherarr,psi,Lpot(ist),eexctX)
      end if
   end if
-
 !################################################################################################
 ! Application of the local potential
 !###############################################################################################
@@ -333,22 +338,27 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   if (GPUconv) then
      if(Lzd%linear) stop 'HamiltonianApplication: Linear scaling not implemented with GPU convolutions yet'
-     call local_hamiltonian_GPU(iproc,orbs,Lzd%Glr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
+     call local_hamiltonian_GPU(iproc,orbs,Lzd%Glr,hx,hy,hz,nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,GPU)
   else if (OCLconv) then
      if(Lzd%linear) stop 'HamiltonianApplication: Linear scaling not implemented with OCL yet'
-     call local_hamiltonian_OCL(iproc,orbs,Lzd%Glr,hx,hy,hz,nspin,pot,psi,hpsi2,ekin_sum,epot_sum,GPU,ekin,epot)
+     call local_hamiltonian_OCL(iproc,orbs,Lzd%Glr,hx,hy,hz,nspin,Lpot,psi,hpsi2,ekin_sum,epot_sum,GPU,ekin,epot)
   else
      !call local_hamiltonian2(iproc,exctX,orbs,Lzd,hx,hy,hz,nspin,pot,size_potxc,potxc,psi,hpsi,ekin_sum,epot_sum)
      if(present(lin)) then
+         if(.not.present(confinementCenter)) then
+             write(*,'(a,i0,a)') "ERROR on processes ",iproc,": 'confinementCenter' must be present when passing 'lin'!"
+             stop
+         end if
          call local_hamiltonian3(iproc,exctx,orbs,lzd,hx,hy,hz,&
-              nspin,pot,psi,hpsi,ekin_sum,epot_sum,&
-              withconfinement, at, rxyz, ist, lin)
+              nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
+              withconfinement, at, rxyz, ist, lin, confinementCenter)
      else
          call local_hamiltonian3(iproc,exctx,orbs,lzd,hx,hy,hz,&
-              nspin,pot,psi,hpsi,ekin_sum,epot_sum,&
+              nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
               withconfinement, at, rxyz, ist)
      end if
   end if
+
   !test part to check the results wrt OCL convolutions
 !!$  if (OCLconv) then
 !!$     allocate(hpsi_OCL((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
@@ -445,6 +455,8 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
 END SUBROUTINE HamiltonianApplication3
+
+
 
 
 !!  Routine to calculate the action of the hamiltonian
@@ -629,9 +641,12 @@ subroutine local_hamiltonian2(iproc,exctX,orbs,Lzd,hx,hy,hz,&
 
 END SUBROUTINE local_hamiltonian2
 
+
+
+
 subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
      nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
-     withConfinement, at, rxyz, istexct, lin)
+     withConfinement, at, rxyz, istexct, lin, confinementCenter)
   use module_base
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian3
@@ -651,16 +666,17 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   type(linearParameters),intent(in),optional:: lin
+  integer,dimension(orbs%norbp),intent(in),optional:: confinementCenter
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian3'
-  integer :: i_all,i_stat,iorb,npot,oidx
-  integer :: ilr,size_pot,size_Lpot,ispot
+  integer :: i_all,i_stat,iorb,npot,oidx, icenter
+  integer :: ilr,size_pot,size_Lpot,ispot, ilrold, nsoffset
   real(wp) :: exctXcoeff
   real(gp) :: ekin,epot,kx,ky,kz,etest, hxh, hyh, hzh
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable,target :: psir
 
-  if(withConfinment .and. .not.present(lin)) then
+  if(withConfinement .and. .not.present(lin)) then
       stop "'lin' must be present when 'withConfinement' is true!"
   end if
 
@@ -674,14 +690,13 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   epot_sum=0.0_gp
   etest=0.0_gp
 
-
   oidx = 0
   ilrold=-1
   nsoffset=1
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-     if(lzd%doNotCalculate(ilr)) cycle
-     
+     if(.not.lzd%doHamAppl(ilr)) cycle
+    
 
      !initialise the work arrays
      call initialize_work_arrays_locham(Lzd%Llr(ilr),orbs%nspinor,wrk_lh)
@@ -704,9 +719,15 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
             hxh=.5d0*hx
             hyh=.5d0*hy
             hzh=.5d0*hz
+            icenter=confinementCenter(iorb)
+            !!call apply_potentialConfinement2(lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+            !!     Lpot(orbs%ispot(iorb)),epot, rxyz(1,ilr), hxh, hyh, hzh,&
+            !!     lin%potentialprefac(at%iatype(ilr)),lin%confpotorder, &
+            !!     lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &
+            !!     lzd%llr(ilr)%bounds%ibyyzz_r) !optional
             call apply_potentialConfinement2(lzd%llr(ilr)%d%n1,lzd%llr(ilr)%d%n2,lzd%llr(ilr)%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-                 Lpot(orbs%ispot(iorb)),epot, rxyz(1,ilr), hxh, hyh, hzh,&
-                 lin%potentialprefac(at%iatype(ilr)),lin%confpotorder, &
+                 Lpot(orbs%ispot(iorb)),epot, rxyz(1,icenter), hxh, hyh, hzh,&
+                 lin%potentialprefac(at%iatype(icenter)),lin%confpotorder, &
                  lzd%llr(ilr)%nsi1, lzd%llr(ilr)%nsi2, lzd%llr(ilr)%nsi3, &
                  lzd%llr(ilr)%bounds%ibyyzz_r) !optional
 
@@ -723,7 +744,6 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
         if(withConfinement) stop 'withConfinement and surface not possible at the same time!'
         call apply_potential(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
              Lpot(orbs%ispot(iorb)),epot)
-        end if
      end select
 
      !k-point values, if present
@@ -759,23 +779,29 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
 
 END SUBROUTINE local_hamiltonian3
 
-subroutine full_local_potential2(iproc,nproc,Lzd,ndimpot,ndimgrid,orbs,ngatherarr,potential,Lpot,flag,comgp)
+
+
+
+
+subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,nspin,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
   use module_base
   use module_types
   use libxc_functionals
   implicit none
-  integer, intent(in) :: iproc,nproc,ndimpot,ndimgrid, flag
-  type(orbitals_data),intent(in):: orbs
-  type(local_zone_descriptors) :: Lzd
+  integer, intent(in) :: iproc,nproc,ndimpot,ndimgrid, flag,nspin
+  type(orbitals_data),intent(inout):: orbs
+  type(local_zone_descriptors),intent(inout):: lzd
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(wp), dimension(max(ndimpot,1)*orbs%nspin), intent(in), target :: potential
   real(wp), dimension(:), pointer, intent(out) :: Lpot
   type(p2pCommsGatherPot),intent(inout), optional:: comgp
   !local variables
   character(len=*), parameter :: subname='full_local_potential'
-  logical :: exctX
-  integer :: npot,ispot,ispotential,ispin,ierr,i_stat, iilr, ilr
-  integer,dimension(:),allocatable:: ilrtable
+  logical :: exctX, newvalue
+  integer :: npot,ispot,ispotential,ispin,ierr,i_stat, iilr, ilr, ii, iorb, iorb2, nilr, i_all
+  integer:: istg, istl, ist, size_Lpot, i3s, i3e
+  integer,dimension(:,:),allocatable:: ilrtable
+  real(8),dimension(:),pointer:: pot
 
   call timing(iproc,'Rho_commun    ','ON')
 
@@ -783,79 +809,91 @@ subroutine full_local_potential2(iproc,nproc,Lzd,ndimpot,ndimgrid,orbs,ngatherar
   !determine the dimension of the potential array
 
 
-  if(Lzd%linear) then
-      allocate(ilrtable(orbs%norbp,2),stat=i_stat)
-      call memocc(i_stat,ilrtable,'ilrtable',subname)
-      call to_zero(orbs%norbp*2,ilrtable(1,1))
-      ii=0
-      do iorb=1,orbs%norbp
-         newvalue=.true.
-         !localization region to which the orbital belongs
-         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-         !spin state of the orbital
-         if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then
-            ispin = 1       
-         else
-            ispin=2
-         end if
-         !check if the orbitals already visited have the same conditions
-         loop_iorb2: do iorb2=1,orbs%norbp
-            if(ilrtable(iorb2,1) == ilr .and. ilrtable(iorb2,2)==ispin) then
-               newvalue=.false.
-               exit loop_iorb2
-            end if
-         end do loop_iorb2
-         if (newvalue) then
-           ii = ii + 1
-           ilrtable(ii,1)=ilr
-           ilrtable(ii,2)=ispin
-         end if
-      end do
-      !number of inequivalent potential regions
-      nilr = ii
-  end if
-
-  lzd%ndimpotisf=0
-  do iilr=1,nilr
-  ilr=ilrtable(iilr,1)
-     do iorb=1,orbs%norbp
-       !put the starting point
-       if (orbs%inWhichLocreg(iorb+orbs%isorb) == ilr) then
-          !assignment of ispot array to the value of the starting address of inequivalent
-           orbs%ispot(iorb)=lzd%ndimpotisf +1
-       end if
-     end do
-       lzd%ndimpotisf = lzd%ndimpotisf + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-  end do 
-
-  if (exctX) then
-     lzd%ndimpotisf = lzd%ndimpotisf + max(max(ndimgrid*orbs%norbp,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
-  end if
-
   if(associated(orbs%ispot)) then
-     i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
-     deallocate(orbs%ispot,stat=i_stat)
-     call memocc(i_stat,i_all,'orbs%ispot',subname)
+     nullify(orbs%ispot)
+!     i_all=-product(shape(orbs%ispot))*kind(orbs%ispot)
+!     deallocate(orbs%ispot,stat=i_stat)
+!     call memocc(i_stat,i_all,'orbs%ispot',subname)
   end if
   allocate(orbs%ispot(orbs%norbp),stat=i_stat)
   call memocc(i_stat,orbs%ispot,'orbs%ispot',subname)
 
 
 
+  if(Lzd%nlr > 1) then
+     allocate(ilrtable(orbs%norbp,2),stat=i_stat)
+     call memocc(i_stat,ilrtable,'ilrtable',subname)
+     !call to_zero(orbs%norbp*2,ilrtable(1,1))
+     ilrtable=0
+     ii=0
+     do iorb=1,orbs%norbp
+        newvalue=.true.
+        !localization region to which the orbital belongs
+        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+        !spin state of the orbital
+        if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then
+           ispin = 1       
+        else
+           ispin=2
+        end if
+        !check if the orbitals already visited have the same conditions
+        loop_iorb2: do iorb2=1,orbs%norbp
+           if(ilrtable(iorb2,1) == ilr .and. ilrtable(iorb2,2)==ispin) then
+              newvalue=.false.
+              exit loop_iorb2
+           end if
+        end do loop_iorb2
+        if (newvalue) then
+          ii = ii + 1
+          ilrtable(ii,1)=ilr
+          ilrtable(ii,2)=ispin    !SOMETHING IS NOT WORKING IN THE CONCEPT HERE... ispin is not a property of the locregs, but of the orbitals
+        end if
+     end do
+     !number of inequivalent potential regions
+     nilr = ii
+  else 
+     allocate(ilrtable(1,2),stat=i_stat)
+     call memocc(i_stat,ilrtable,'ilrtable',subname)
+     nilr = 1
+     ilrtable=1
+  end if 
+
+
+  lzd%ndimpotisf=0
+  do iilr=1,nilr
+     ilr=ilrtable(iilr,1)
+     do iorb=1,orbs%norbp
+       !put the starting point
+       if (orbs%inWhichLocreg(iorb+orbs%isorb) == ilr) then
+            !assignment of ispot array to the value of the starting address of inequivalent
+            orbs%ispot(iorb)=lzd%ndimpotisf +1
+            if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
+               orbs%ispot(iorb)=lzd%ndimpotisf +1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+            end if
+       end if
+     end do
+       lzd%ndimpotisf = lzd%ndimpotisf + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*nspin
+  end do 
+
+  if (exctX) then
+     lzd%ndimpotisf = lzd%ndimpotisf + max(max(ndimgrid*orbs%norbp,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
+  end if
+
   !build the potential on the whole simulation box
   !in the linear scaling case this should be done for a given localisation
   !region
   !this routine should then be modified or integrated in HamiltonianApplication
-  if (.not.flag<=2) then
+  !if (.not.flag<=2) then
+  if (flag<2) then
       if (exctX) then
-         npot=ndimgrid*nspin+&
-              max(max(ndimgrid*norbp,ngatherarr(0,1)*norb),1) !part which refers to exact exchange
+         npot=ndimgrid*nspin+max(max(ndimgrid*orbs%norbp,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
       else
          npot=ndimgrid*nspin
       end if
       if (nproc > 1) then
          allocate(pot(npot+ndebug),stat=i_stat)
          call memocc(i_stat,pot,'pot',subname)
+         call razero(npot,pot)
          ispot=1
          ispotential=1
          do ispin=1,orbs%nspin
@@ -881,27 +919,30 @@ subroutine full_local_potential2(iproc,nproc,Lzd,ndimpot,ndimgrid,orbs,ngatherar
 
   ! Cut potential
   istl=1
-  if(flag<=2) then
-      allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
-      call memocc(i_stat,Lpot,'Lpot',subname)
-      if(lzd%nlr>1) then
-          do iorb=1,nilr
-             ilr = ilrtable(iorb,1)
-             
-             ! Cut the potential into locreg pieces
-             if(ilrtable(ilr,2)==1) then
-                 istg=1
-             else
-                 istg=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i+1
-             end if
-             call global_to_local(Lzd%Glr,Lzd%Llr(ilr),nspin,npot,lzd%ndimpotisf,pot(istg),Lpot(istl))
-             istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
-         end do
-     end if
+  allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
+  call memocc(i_stat,Lpot,'Lpot',subname)
+
+  !if(flag<=2) then
+  if(flag==0) then
+       call dcopy(lzd%ndimpotisf,pot,1,Lpot,1) 
+  else if(flag<2) then
+       do iorb=1,nilr
+          ilr = ilrtable(iorb,1)
+          
+          ! Cut the potential into locreg pieces
+          !if(ilrtable(ilr,2)==1) then
+          if(ilrtable(iorb,2)==1) then
+              istg=1
+          else
+              istg=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i+1
+          end if
+          call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot(istg),Lpot(istl))
+          istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+      end do
   else
      ist=1
-     do iorb=1,orbs%norbp
-         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+     do iorb=1,nilr
+         ilr = ilrtable(iorb,1)
          !determine the dimension of the potential array (copied from full_local_potential)
          if (exctX) then
             stop 'exctX not yet implemented!'
@@ -917,20 +958,35 @@ subroutine full_local_potential2(iproc,nproc,Lzd,ndimpot,ndimgrid,orbs,ngatherar
              stop
          end if
 
-         call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), nspin, comgp%nrecvBuf, size_Lpot, comgp%recvBuf, Lpot(ist), i3s, i3e)
+         call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
+              comgp%recvBuf, Lpot(ist), i3s, i3e)
 
          ist = ist + size_lpot
      end do
-
   end if
 
-
-  if(lzd%linear) then
+  !if(lzd%linear) then
       i_all=-product(shape(ilrtable))*kind(ilrtable)
       deallocate(ilrtable,stat=i_stat)
       call memocc(i_stat,i_all,'ilrtable',subname)
-  end if
+  !end if
 
+  ! Deallocate pot.
+  if (flag<2) then
+      if (nproc > 1) then
+         i_all=-product(shape(pot))*kind(pot)
+         deallocate(pot,stat=i_stat)
+         call memocc(i_stat,i_all,'pot',subname)
+      else
+         if (exctX) then
+            i_all=-product(shape(pot))*kind(pot)
+            deallocate(pot,stat=i_stat)
+            call memocc(i_stat,i_all,'pot',subname)
+         else
+            nullify(pot)
+         end if
+      end if
+  end if
 
   call timing(iproc,'Rho_commun    ','OF')
 
