@@ -8,6 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
+!> Define all basic operations to handle input variables
 module module_input
 
   use module_base
@@ -15,7 +16,10 @@ module module_input
   implicit none
   private
 
-  integer, parameter :: nmax_lines=500,max_length=100
+  !> Max line of a file
+  integer, parameter :: nmax_lines=500
+  !> Max length of a line
+  integer, parameter :: max_length=85
   character(len=max_length) :: input_file,line_being_processed
   logical :: output,lmpinit
   integer :: iline_parsed,iline_written,iargument,ipos,nlines_total
@@ -112,13 +116,13 @@ contains
     !write the first line in the output
     if (exists) then
        write(inout_lines(iline_written),'(1x,5a)')&
-       &    '|--- (file:', trim(filename),')',&
-       &    repeat('-',83-(len(trim(filename)//trim(comment_file_usage))+11)),&
+       &    '|... (file:', trim(filename),')',&
+       &    repeat('.',max_length-2-(len(trim(filename)//trim(comment_file_usage))+11)),&
        &    trim(comment_file_usage)
     else
        write(inout_lines(iline_written),'(1x,5a)')&
-       &     '|--- (file:',trim(filename),'-- not present)',&
-       &     repeat('-',83-(len(trim(filename)//trim(comment_file_usage))+26)),&
+       &     '|... (file:',trim(filename),'.. not present)',&
+       &     repeat('.',max_length-2-(len(trim(filename)//trim(comment_file_usage))+26)),&
        &     trim(comment_file_usage)
     end if
     iline_written=iline_written+1
@@ -126,7 +130,7 @@ contains
     output = (iproc == 0)
     !dump the 0-th line on the screen
     if (iproc == 0) then
-       write(*,'(1x,a)') inout_lines(0)
+       write(*,'(a)') inout_lines(0)
     end if
 !!$    output = (iproc == 0)
 !!$    ! Output
@@ -165,7 +169,7 @@ contains
           end if
           !dump the file on the screen
           do iline=1,iline_written-1
-          write(*,fmt='(1x,a,a)') '|',inout_lines(iline)
+          write(*,fmt='(1x,a,a)') '|',inout_lines(iline)(1:max_length-2)
           end do
        end if
     end if
