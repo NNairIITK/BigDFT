@@ -136,7 +136,7 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Read tddft variables
   call tddft_input_variables_new(iproc,trim(inputs%file_tddft),inputs)
   ! Read sic variables
-  call sic_input_variables(trim(inputs%file_sic),inputs)
+  call sic_input_variables_new(iproc,trim(inputs%file_sic),inputs)
 
 
   ! Shake atoms if required.
@@ -518,7 +518,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
 
   !davidson treatment
   ! Now the variables which are to be used only for the last run
-  call input_var(in%norbv,'0',ranges=(/0,1000/))
+  call input_var(in%norbv,'0',ranges=(/-1000,1000/))
   call input_var(in%nvirt,'0',ranges=(/0,in%norbv/))
   call input_var(in%nplot,'0',ranges=(/0,in%norbv/),&
        comment='Dimension of davidson treatment subspace, # of interesting orbitals, # of plotted orbitals')
@@ -606,7 +606,7 @@ subroutine mix_input_variables_new(iproc,filename,in)
        comment="Number of additional bands aand the electronic temperature")
   call input_var(in%alphamix,'0.0',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%alphadiis,'2.0',ranges=(/0.0_gp,10.0_gp/),&
-       comment="Multiplying factiors for the mixing and the elctronic DIIS")
+       comment="Multiplying factors for the mixing and the elctronic DIIS")
 
   call input_free(iproc)
 
@@ -704,17 +704,16 @@ subroutine geopt_input_variables_new(iproc,filename,in)
   type(input_variables), intent(inout) :: in
   !local variables
   character(len=*), parameter :: subname='geopt_input_variables'
-  character(len = 128) :: line
-  integer :: i_stat,ierror,iline,i
+  integer :: i_stat,i
   logical :: exists
 
   !geometry input parameters
   call input_set_file(iproc,trim(filename),exists,'Geometry Parameters')  
   !call the variable, its default value, the line ends if there is a comment
-!!$  if (.not. exists) then
-!!$     in%ncount_cluster_x=0
-!!$     return
-!!$  end if
+!  if (.not. exists) then
+!     in%ncount_cluster_x=0
+!     return
+!  end if
 
   call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD','DIIS '/),&
        comment="Geometry optimisation method")
@@ -896,7 +895,7 @@ contains
 END SUBROUTINE geopt_input_variables
 
 
-!> Assign default values for TDDFT variables
+!> Assign default values for self-interaction correction variables
 subroutine sic_input_variables_default(in)
   use module_base
   use module_types
@@ -907,6 +906,31 @@ subroutine sic_input_variables_default(in)
   in%alphaSIC=0.0_gp
 
 END SUBROUTINE sic_input_variables_default
+
+
+!> Read Self-Interaction Correction (SIC) input parameters
+subroutine sic_input_variables_new(iproc,filename,in)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='sic_input_variables'
+
+  !Self-Interaction Correction input parameters
+  call input_set_file(iproc,trim(filename),exists,'SIC Parameters')  
+
+  call input_var(in%SIC_approach,'NONE',exclusive=(/'NONE','PZ  '/),comment='SIC method: NONE')
+  call input_var(in%alphaSIC,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='SIC parameter')
+
+  call input_free(iproc)
+
+END SUBROUTINE sic_input_variables_new
+
 
 subroutine sic_input_variables(filename,in)
   use module_base
@@ -976,19 +1000,13 @@ subroutine tddft_input_variables_new(iproc,filename,in)
   !local variables
   logical :: exists
   character(len=*), parameter :: subname='tddft_input_variables'
-  integer :: iline, ierror
 
   !TD-DFT parameters
   call input_set_file(iproc,trim(filename),exists,'TD-DFT Parameters')  
   !call the variable, its default value, the line ends if there is a comment
 
-  if (.not. exists) then
-     !write(*,*) "The file 'input.tddft' does not exists!"
-     !      stop
-     return
-  end if
-
-  call input_var(in%tddft_approach,"TDA",comment="Tamm-Dancoff approximation")
+  call input_var(in%tddft_approach,"NONE",exclusive=(/'NONE','TDA '/),&
+       comment="Tamm-Dancoff approximation")
   call input_free(iproc)
 
 END SUBROUTINE tddft_input_variables_new
@@ -1134,8 +1152,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   logical :: exists
   character(len=*), parameter :: subname='kpt_input_variables_new'
   character(len = 6) :: type
-  character(len=100) :: line
-  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1
+  integer :: i_stat,ierror,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1
   real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
   integer, allocatable :: iseg(:)
 
@@ -1757,8 +1774,6 @@ subroutine frequencies_input_variables_new(iproc,filename,in)
   !Local variables
   logical :: exists
   integer, parameter :: iunit=111
-  character(len=100) :: line,string
-  integer :: ierror,iline
 
   !Frequencies parameters
   call input_set_file(iproc,trim(filename),exists,'Frequencies Parameters')  
@@ -2025,102 +2040,105 @@ subroutine occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,no
      stop
   end if
 
-
 END SUBROUTINE occupation_input_variables
 
 
 module position_files
-contains
-  subroutine directGetLine(line, ifile, eof)
-    integer, intent(in) :: ifile
-    character(len=150), intent(out) :: line
-    logical, intent(out) :: eof
+   implicit none
+   contains
+   subroutine directGetLine(line, ifile, eof)
+      !Arguments
+      integer, intent(in) :: ifile
+      character(len=150), intent(out) :: line
+      logical, intent(out) :: eof
+      !Local variables
+      integer :: i_stat
 
-    integer :: i_stat
+      eof = .false.
+      read(ifile,'(a150)', iostat = i_stat) line
+      if (i_stat /= 0) eof = .true.
+   END SUBROUTINE directGetLine
 
-    eof = .false.
-    read(ifile,'(a150)', iostat = i_stat) line
-    if (i_stat /= 0) eof = .true.
-  END SUBROUTINE directGetLine
-
-  subroutine archiveGetLine(line, ifile, eof)
-    integer, intent(in) :: ifile
-    character(len=150), intent(out) :: line
-    logical, intent(out) :: eof
-
-    integer :: i_stat
-
-    eof = .false.
-    call extractNextLine(line, i_stat)
-    if (i_stat /= 0) eof = .true.
-  END SUBROUTINE archiveGetLine
+   subroutine archiveGetLine(line, ifile, eof)
+      !Arguments
+      integer, intent(in) :: ifile
+      character(len=150), intent(out) :: line
+      logical, intent(out) :: eof
+      !Local variables
+      integer :: i_stat
+      !The argument ifile is not used but it is used as argument routine
+      !eof = .false.
+      eof = (ifile /= ifile)
+      call extractNextLine(line, i_stat)
+      if (i_stat /= 0) eof = .true.
+   END SUBROUTINE archiveGetLine
 end module position_files
 
 !> Read atomic file
 subroutine read_atomic_file(file,iproc,atoms,rxyz)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => read_atomic_file
-  use ab6_symmetry
-  use position_files
-  implicit none
-  character(len=*), intent(in) :: file
-  integer, intent(in) :: iproc
-  type(atoms_data), intent(inout) :: atoms
-  real(gp), dimension(:,:), pointer :: rxyz
-  !local variables
-  character(len=*), parameter :: subname='read_atomic_file'
-  integer :: l, extract
-  logical :: file_exists, archive
-  character(len = 128) :: filename
-  character(len = 15) :: arFile
-  character(len = 6) :: ext
+   use module_base
+   use module_types
+   use module_interfaces, except_this_one => read_atomic_file
+   use ab6_symmetry
+   use position_files
+   implicit none
+   character(len=*), intent(in) :: file
+   integer, intent(in) :: iproc
+   type(atoms_data), intent(inout) :: atoms
+   real(gp), dimension(:,:), pointer :: rxyz
+   !Local variables
+   character(len=*), parameter :: subname='read_atomic_file'
+   integer :: l, extract
+   logical :: file_exists, archive
+   character(len = 128) :: filename
+   character(len = 15) :: arFile
+   character(len = 6) :: ext
 
-  file_exists = .false.
-  archive = .false.
+   file_exists = .false.
+   archive = .false.
 
-  ! Extract from archive
-  if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
-     write(arFile, "(A)") "posout.tar.bz2"
-     if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
-     inquire(FILE = trim(arFile), EXIST = file_exists)
-     if (file_exists) then
-!!$     call extractNextCompress(trim(arFile), len(trim(arFile)), &
-!!$          & trim(file), len(trim(file)), extract, ext)
-        call openNextCompress(trim(arFile), len(trim(arFile)), &
-             & trim(file), len(trim(file)), extract, ext)
-        if (extract == 0) then
-           write(*,*) "Can't find '", file, "' in archive."
-           stop
-        end if
-        archive = .true.
-        write(filename, "(A)") file//'.'//trim(ext)
-        write(atoms%format, "(A)") trim(ext)
-     end if
-  end if
+   ! Extract from archive
+   if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
+      write(arFile, "(A)") "posout.tar.bz2"
+      if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
+      inquire(FILE = trim(arFile), EXIST = file_exists)
+      if (file_exists) then
+         !!$     call extractNextCompress(trim(arFile), len(trim(arFile)), &
+         !!$          & trim(file), len(trim(file)), extract, ext)
+         call openNextCompress(trim(arFile), len(trim(arFile)), &
+         & trim(file), len(trim(file)), extract, ext)
+         if (extract == 0) then
+            write(*,*) "Can't find '", file, "' in archive."
+            stop
+         end if
+         archive = .true.
+         write(filename, "(A)") file//'.'//trim(ext)
+         write(atoms%format, "(A)") trim(ext)
+      end if
+   end if
 
-  ! Test posinp.xyz
-  if (.not. file_exists) then
-     inquire(FILE = file//'.xyz', EXIST = file_exists)
-     if (file_exists) then
-        write(filename, "(A)") file//'.xyz'!"posinp.xyz"
-        write(atoms%format, "(A)") "xyz"
-        open(unit=99,file=trim(filename),status='old')
-     end if
-  end if
-  ! Test posinp.ascii
-  if (.not. file_exists) then
-     inquire(FILE = file//'.ascii', EXIST = file_exists)
-     if (file_exists) then
-        write(filename, "(A)") file//'.ascii'!"posinp.ascii"
-        write(atoms%format, "(A)") "ascii"
-        open(unit=99,file=trim(filename),status='old')
-     end if
-  end if
-  ! Test the name directly
-  if (.not. file_exists) then
-     inquire(FILE = file, EXIST = file_exists)
-     if (file_exists) then
+   ! Test posinp.xyz
+   if (.not. file_exists) then
+      inquire(FILE = file//'.xyz', EXIST = file_exists)
+      if (file_exists) then
+         write(filename, "(A)") file//'.xyz'!"posinp.xyz"
+         write(atoms%format, "(A)") "xyz"
+         open(unit=99,file=trim(filename),status='old')
+      end if
+   end if
+   ! Test posinp.ascii
+   if (.not. file_exists) then
+      inquire(FILE = file//'.ascii', EXIST = file_exists)
+      if (file_exists) then
+         write(filename, "(A)") file//'.ascii'!"posinp.ascii"
+         write(atoms%format, "(A)") "ascii"
+         open(unit=99,file=trim(filename),status='old')
+      end if
+   end if
+   ! Test the name directly
+   if (.not. file_exists) then
+      inquire(FILE = file, EXIST = file_exists)
+      if (file_exists) then
          write(filename, "(A)") file
          l = len(file)
          if (file(l-3:l) == ".xyz") then
@@ -2133,43 +2151,43 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
             stop
          end if
          open(unit=99,file=trim(filename),status='old')
-     end if
-  end if
+      end if
+   end if
 
-  if (.not. file_exists) then
-     write(*,*) "Atomic input file not found."
-     write(*,*) " Files looked for were '"//file//"'.ascii, '"//file//".xyz' and '"//file//"'."
-     stop 
-  end if
+   if (.not. file_exists) then
+      write(*,*) "Atomic input file not found."
+      write(*,*) " Files looked for were '"//file//"'.ascii, '"//file//".xyz' and '"//file//"'."
+      stop 
+   end if
 
-  if (atoms%format == "xyz") then
-     !read atomic positions
-     if (.not.archive) then
-        call read_xyz_positions(iproc,99,atoms,rxyz,directGetLine)
-     else
-        call read_xyz_positions(iproc,99,atoms,rxyz,archiveGetLine)
-     end if
-  else if (atoms%format == "ascii") then
-     !read atomic positions
-     if (.not.archive) then
-        call read_ascii_positions(iproc,99,atoms,rxyz,directGetLine)
-     else
-        call read_ascii_positions(iproc,99,atoms,rxyz,archiveGetLine)
-     end if
-  end if
+   if (atoms%format == "xyz") then
+      !read atomic positions
+      if (.not.archive) then
+         call read_xyz_positions(iproc,99,atoms,rxyz,directGetLine)
+      else
+         call read_xyz_positions(iproc,99,atoms,rxyz,archiveGetLine)
+      end if
+   else if (atoms%format == "ascii") then
+      !read atomic positions
+      if (.not.archive) then
+         call read_ascii_positions(iproc,99,atoms,rxyz,directGetLine)
+      else
+         call read_ascii_positions(iproc,99,atoms,rxyz,archiveGetLine)
+      end if
+   end if
 
-  !control atom positions
-  call check_atoms_positions(iproc,atoms,rxyz)
+   !control atom positions
+   call check_atoms_positions(iproc,atoms,rxyz)
 
-  ! We delay the calculation of the symmetries.
-  atoms%symObj = -1
+   ! We delay the calculation of the symmetries.
+   atoms%symObj = -1
 
-  ! rm temporary file.
-  if (.not.archive) then
-     close(99)
-!!$  else
-!!$     call unlinkExtract(trim(filename), len(trim(filename)))
-  end if
+   ! rm temporary file.
+   if (.not.archive) then
+      close(99)
+      !!$  else
+      !!$     call unlinkExtract(trim(filename), len(trim(filename)))
+   end if
 END SUBROUTINE read_atomic_file
 
 
@@ -2255,6 +2273,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
+  !Routine as argument
   interface
      subroutine getline(line,ifile,eof)
        integer, intent(in) :: ifile

@@ -1403,7 +1403,7 @@ contains
     allocate(rxyz(3,nat+ndebug),stat=i_stat)
     call memocc(i_stat,rxyz,'rxyz',subname)
     allocate(iatypes(nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rxyz,'rxyz',subname)
+    call memocc(i_stat,iatypes,'iatypes',subname)
     allocate(znucl_(nat+ndebug),stat=i_stat)
     call memocc(i_stat,znucl_,'znucl_',subname)
     znucl_(:) = -1

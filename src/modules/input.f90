@@ -111,12 +111,14 @@ contains
 
     !write the first line in the output
     if (exists) then
-       write(inout_lines(iline_written),'(1x,3a)') '--- (file: ', trim(filename), &
-            & ') -----------------------------------------'//&
+       write(inout_lines(iline_written),'(1x,5a)')&
+            '|--- (file:', trim(filename),')',&
+            repeat('-',83-(len(trim(filename)//trim(comment_file_usage))+11)),&
             trim(comment_file_usage)
     else
-       write(inout_lines(iline_written),'(1x,a)')&
-            '--- (file:'//trim(filename)//'-- not present) --------------------------'//&
+       write(inout_lines(iline_written),'(1x,5a)')&
+            '|--- (file:',trim(filename),'-- not present)',&
+            repeat('-',83-(len(trim(filename)//trim(comment_file_usage))+26)),&
             trim(comment_file_usage)
     end if
     iline_written=iline_written+1
@@ -124,7 +126,7 @@ contains
     output = (iproc == 0)
     !dump the 0-th line on the screen
     if (iproc == 0) then
-       write(*,'(1x,a)')inout_lines(0)
+       write(*,'(1x,a)') inout_lines(0)
     end if
 !!$    output = (iproc == 0)
 !!$    ! Output
@@ -147,22 +149,23 @@ contains
     implicit none
     integer, intent(in), optional :: iproc
     !Local variables
-    integer :: iline,ierr
+    integer, parameter :: iunit=11
+    integer :: ierr,iline
 
     if (present(iproc)) then !case for compulsory variables
        !if (iline_written==1) iline_written=2
        if (iproc ==0) then
           if (iline_parsed==0) then !the file does not exist
              !add the writing of the file in the given unit
-             open(unit=1,file=trim(input_file)//'_default', status ='unknown')
+             open(unit=iunit,file=trim(input_file)//'_default', status ='unknown')
              do iline=1,iline_written-1
-                write(1,*)inout_lines(iline)
+                write(iunit,*) inout_lines(iline)
              end do
-             close(unit=1)
+             close(unit=iunit)
           end if
           !dump the file on the screen
           do iline=1,iline_written-1
-             write(*,*)'|',inout_lines(iline)
+          write(*,fmt='(1x,a,a)') '|',inout_lines(iline)
           end do
        end if
     end if
@@ -173,21 +176,22 @@ contains
 
   subroutine leave()
     implicit none
-    !local varaibles
+    !local variables
     integer :: ierr
-    write(*,'(1x,a,a,2(a,i3))')'Error while reading the file "', &
-         & trim(input_file), '", line=', iline_written,' argument=', iargument
-    if (iline_written <= nlines_total) write(*,*)inout_lines(iline_written),line_being_processed
-    !to be called only if mpi is initialized
+    if (output) then
+       write(*,'(1x,a,a,2(a,i3))')'Error while reading the file "', &
+            & trim(input_file), '", line=', iline_written,' argument=', iargument
+       if (iline_written <= nlines_total) write(*,*)inout_lines(iline_written),line_being_processed
+       !to be called only if mpi is initialized
+    end if
     if (lmpinit) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
     stop
   end subroutine leave
 
   subroutine check(ierror)
     implicit none
+    !Arguments
     integer, intent(in) :: ierror
-    !Local variables
-    integer :: ierr
 
     if (ierror/=0) then
        call leave()
@@ -376,7 +380,7 @@ contains
     real(kind=8), dimension(:), intent(in), optional :: exclusive
     !Local variables
     logical :: found
-    integer :: ierror,ilist,ierr
+    integer :: ierror,ilist
 
     if (present(input_iostat)) then
        !first, check if the line is correct
@@ -414,8 +418,11 @@ contains
        !check the validity of the variable
        if (present(ranges)) then
           if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             if (output) then
+                write(*,'(1x,a,i0,a,i0)') &
+                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -432,8 +439,11 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in list: ',exclusive(:)
+             if (output) then
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in list: ',exclusive(:)
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -459,9 +469,9 @@ contains
     real(kind=4), dimension(2), intent(in), optional :: ranges
     real(kind=4), dimension(:), intent(in), optional :: exclusive
     !Local variables
-    logical :: found
-    integer :: ierror,ilist,ierr
     real(gp) :: double_var
+    logical :: found
+    integer :: ierror,ilist
 
     if (present(input_iostat)) then
        !first, check if the line is correct
@@ -500,8 +510,11 @@ contains
        !check the validity of the variable
        if (present(ranges)) then
           if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             if (output) then
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -518,8 +531,11 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in list: ',exclusive(:)
+             if (output) then 
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in list: ',exclusive(:)
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -546,7 +562,7 @@ contains
     integer, dimension(:), intent(in), optional :: exclusive
     !Local variables
     logical :: found
-    integer :: ierror,ilist,ierr
+    integer :: ierror,ilist
 
     if (present(input_iostat)) then
        !first, check if the line is correct
@@ -584,8 +600,11 @@ contains
        !check the validity of the variable
        if (present(ranges)) then
           if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             if (output) then
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -602,8 +621,11 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in list: ',exclusive(:)
+             if (output) then
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in list: ',exclusive(:)
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -629,7 +651,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: exclusive
     !Local variables
     logical :: found
-    integer :: ierror,ilist,ierr
+    integer :: ierror,ilist
 
     if (present(input_iostat)) then
        !first, check if the line is correct (or if it is an optional line)
@@ -672,8 +694,12 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in list: ',exclusive(:)
+             if (output) then 
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,'(6x,a,30(1x,a))')&
+                     'values should be in list: ',exclusive(:)
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
