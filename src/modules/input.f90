@@ -413,7 +413,8 @@ contains
        !check the validity of the variable
        if (present(ranges)) then
           if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,'(1x,a,i0,a,i0)') &
+                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
              write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
              if (present(input_iostat)) then
                 input_iostat=1
@@ -431,7 +432,8 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,'(1x,a,i0,a,i0)') &
+                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
              write(*,*)'      values should be in list: ',exclusive(:)
              if (present(input_iostat)) then
                 input_iostat=1
@@ -499,7 +501,8 @@ contains
        !check the validity of the variable
        if (present(ranges)) then
           if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,'(1x,a,i0,a,i0)') &
+                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
              write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
              if (present(input_iostat)) then
                 input_iostat=1
@@ -517,7 +520,8 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,'(1x,a,i0,a,i0)') &
+                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
              write(*,*)'      values should be in list: ',exclusive(:)
              if (present(input_iostat)) then
                 input_iostat=1
@@ -583,7 +587,8 @@ contains
        !check the validity of the variable
        if (present(ranges)) then
           if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,'(1x,a,i0,a,i0)') &
+                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
              write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
              if (present(input_iostat)) then
                 input_iostat=1
@@ -601,7 +606,8 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file'//trim(input_file)//'line=', iline_written,' argument=', iargument-1
+             write(*,'(1x,a,i0,a,i0)') &
+                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
              write(*,*)'      values should be in list: ',exclusive(:)
              if (present(input_iostat)) then
                 input_iostat=1
@@ -671,8 +677,10 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,*)' ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in list: ',exclusive(:)
+             write(*,'(1x,a,i0,a,i0)') &
+                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+             write(*,'(6x,a,30(1x,a))')&
+                'values should be in list: ',exclusive(:)
              if (present(input_iostat)) then
                 input_iostat=1
                 return
