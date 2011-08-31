@@ -738,8 +738,8 @@ integer:: norbTarget, nprocIG, ierr
       stop
   end if
 
-  if(lin%methTransformOverlap<0 .or. lin%methTransformOverlap>3) then
-      if(iproc==0) write(*,'(x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1,2 or 3, but you specified ', &
+  if(lin%methTransformOverlap<0 .or. lin%methTransformOverlap>2) then
+      if(iproc==0) write(*,'(x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1 or 2, but you specified ', &
                                lin%methTransformOverlap,'.'
       call mpi_barrier(mpi_comm_world, ierr)
       stop

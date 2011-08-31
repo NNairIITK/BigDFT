@@ -2024,38 +2024,38 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
       iall=-product(shape(ovrlp2))*kind(ovrlp2)
       deallocate(ovrlp2, stat=istat)
       call memocc(istat, iall, 'ovrlp2', subname)
-  else if(iorder==3) then
-      ! Taylor expansion up to third iorder.
-  
-      ! Calculate ovrlp**2
-      allocate(ovrlp2(norb,norb), stat=istat)
-      call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      allocate(ovrlp3(norb,norb), stat=istat)
-      call memocc(istat, ovrlp3, 'ovrlp3', subname)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
-      
-      ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
-      do iorb=1,norb
-          do jorb=1,norb
-              if(iorb==jorb) then
-                  ovrlp(jorb,iorb) = 4.d0 - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
-              else
-                  ovrlp(jorb,iorb) = - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
-              end if
-          end do
-      end do
-      
-      iall=-product(shape(ovrlp2))*kind(ovrlp2)
-      deallocate(ovrlp2, stat=istat)
-      call memocc(istat, iall, 'ovrlp2', subname)
-      iall=-product(shape(ovrlp3))*kind(ovrlp3)
-      deallocate(ovrlp3, stat=istat)
-      call memocc(istat, iall, 'ovrlp3', subname)
+  !!else if(iorder==3) then
+  !!    ! Taylor expansion up to third iorder.
+  !!
+  !!    ! Calculate ovrlp**2
+  !!    allocate(ovrlp2(norb,norb), stat=istat)
+  !!    call memocc(istat, ovrlp2, 'ovrlp2', subname)
+  !!    allocate(ovrlp3(norb,norb), stat=istat)
+  !!    call memocc(istat, ovrlp3, 'ovrlp3', subname)
+  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
+  !!    
+  !!    ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
+  !!    do iorb=1,norb
+  !!        do jorb=1,norb
+  !!            if(iorb==jorb) then
+  !!                ovrlp(jorb,iorb) = 4.d0 - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
+  !!            else
+  !!                ovrlp(jorb,iorb) = - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
+  !!            end if
+  !!        end do
+  !!    end do
+  !!    
+  !!    iall=-product(shape(ovrlp2))*kind(ovrlp2)
+  !!    deallocate(ovrlp2, stat=istat)
+  !!    call memocc(istat, iall, 'ovrlp2', subname)
+  !!    iall=-product(shape(ovrlp3))*kind(ovrlp3)
+  !!    deallocate(ovrlp3, stat=istat)
+  !!    call memocc(istat, iall, 'ovrlp3', subname)
   else
-      write(*,'(x,a)') 'ERROR: iorder must be 0,1,2,3!'
+      write(*,'(x,a)') 'ERROR: iorder must be 0,1 or 2!'
       stop
 end if
 
@@ -2195,41 +2195,41 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       deallocate(ovrlp2, stat=istat)
       call memocc(istat, iall, 'ovrlp2', subname)
 
-  else if(methTransformOrder==3) then
+  !!else if(methTransformOrder==3) then
 
-      ! Taylor expansion up to third order.
-  
-      ! Calculate ovrlp**2
-      allocate(ovrlp2(norb,norb), stat=istat)
-      call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      allocate(ovrlp3(norb,norb), stat=istat)
-      call memocc(istat, ovrlp3, 'ovrlp3', subname)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
-      
-      ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
-      do iorb=1,norb
-          do jorb=1,norb
-              if(iorb==jorb) then
-                  ovrlp(jorb,iorb) = 1.4375d0 - 0.6875d0*ovrlp(jorb,iorb) + 0.5625d0*ovrlp2(jorb,iorb) - 0.3125d0*ovrlp3(jorb,iorb)
-              else
-                  ovrlp(jorb,iorb) = - 0.6875d0*ovrlp(jorb,iorb) + 0.5625d0*ovrlp2(jorb,iorb) - 0.3125d0*ovrlp3(jorb,iorb)
-              end if
-          end do
-      end do
-      
-      iall=-product(shape(ovrlp2))*kind(ovrlp2)
-      deallocate(ovrlp2, stat=istat)
-      call memocc(istat, iall, 'ovrlp2', subname)
-      iall=-product(shape(ovrlp3))*kind(ovrlp3)
-      deallocate(ovrlp3, stat=istat)
-      call memocc(istat, iall, 'ovrlp3', subname)
+  !!    ! Taylor expansion up to third order.
+  !!
+  !!    ! Calculate ovrlp**2
+  !!    allocate(ovrlp2(norb,norb), stat=istat)
+  !!    call memocc(istat, ovrlp2, 'ovrlp2', subname)
+  !!    allocate(ovrlp3(norb,norb), stat=istat)
+  !!    call memocc(istat, ovrlp3, 'ovrlp3', subname)
+  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
+  !!    
+  !!    ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
+  !!    do iorb=1,norb
+  !!        do jorb=1,norb
+  !!            if(iorb==jorb) then
+  !!                ovrlp(jorb,iorb) = 1.4375d0 - 0.6875d0*ovrlp(jorb,iorb) + 0.5625d0*ovrlp2(jorb,iorb) - 0.3125d0*ovrlp3(jorb,iorb)
+  !!            else
+  !!                ovrlp(jorb,iorb) = - 0.6875d0*ovrlp(jorb,iorb) + 0.5625d0*ovrlp2(jorb,iorb) - 0.3125d0*ovrlp3(jorb,iorb)
+  !!            end if
+  !!        end do
+  !!    end do
+  !!    
+  !!    iall=-product(shape(ovrlp2))*kind(ovrlp2)
+  !!    deallocate(ovrlp2, stat=istat)
+  !!    call memocc(istat, iall, 'ovrlp2', subname)
+  !!    iall=-product(shape(ovrlp3))*kind(ovrlp3)
+  !!    deallocate(ovrlp3, stat=istat)
+  !!    call memocc(istat, iall, 'ovrlp3', subname)
 
   else
 
-      write(*,'(x,a)') 'ERROR: methTransformOrder must be 0,1,2,3!'
+      write(*,'(x,a)') 'ERROR: methTransformOrder must be 0,1 or 2!'
       stop
 
 end if
