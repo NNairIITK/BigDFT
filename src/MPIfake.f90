@@ -59,7 +59,7 @@ subroutine  MPI_GROUP_INCL(GROUP,N,NRANKS,NEWGROUP,ierr)
   integer, intent(in) :: GROUP,N
   integer, intent(in) :: NRANKS(N)
   integer, intent(out) :: NEWGROUP,ierr
-  NEWGROUP=1
+  NEWGROUP=size(NRANKS)
   ierr=GROUP*0
 END SUBROUTINE MPI_GROUP_INCL
 

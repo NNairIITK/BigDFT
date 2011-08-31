@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 25/08/2011
+# Date: 26/08/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -224,6 +224,7 @@ if bigdft:
         sys.exit(1)
 
 #Remove line_junk before comparing (the line number is wrong)
+memory = 0
 if bigdft:
     time = 0
 #Open 2 temporary files
@@ -232,10 +233,14 @@ for line in original1:
     if not line_junk(line):
         t1.write(line)
     else:
-        #Keep CPU/elapsed time
-        if bigdft and "CPU time/ELAPSED time" in line:
-            lline = line.split()
-            time += float(lline[-2])
+        #Only for BigDFT
+        if bigdft:
+            #Keep sum of elapsed time
+            if "CPU time/ELAPSED time" in line:
+                time += float(line.split()[-2])
+            #Test if memory remaining is 0
+            if "remaining memory" in line:
+                memory = int(line.split()[-1])
 t1.flush()
 t2 = tempfile.NamedTemporaryFile()
 for line in original2:
@@ -371,9 +376,13 @@ if context_lines is not None:
 else:
     print
 
-if maximum > max_discrepancy:
+#Check if the test is OK.
+if maximum > max_discrepancy or memory:
     start = start_fail
-    message = "failed    < "
+    if memory:
+        message = "failed-memory remaining-(%sB) " % memory
+    else:
+        message = "failed    < "
 elif ns_discrepancy:
     start = start_pass
     message = "passed    < "
@@ -382,7 +391,7 @@ else:
     message = "succeeded < "
 
 if bigdft and time:
-    print "%sMax discrepancy %s: %s (%s%s) -- time %s%s " % \
+    print "%sMax discrepancy %s: %s (%s%s) -- time %7.2f%s " % \
         (start,context_discrepancy,maximum,message,max_discrepancy,time,end)
 else:
     print "%sMax discrepancy %s: %s (%s%s)%s" % \

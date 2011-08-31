@@ -1,33 +1,42 @@
-!>     This file contains the LBFGS algorithm and supporting routines
-!> Define the type parameterminimization
+!> @file
+!>   This file contains the LBFGS algorithm and supporting routines
+!! @author
+!!  Copyright (C) 2010-2011 BigDFT group 
+!!  This file is distributed under the terms of the
+!!  GNU General Public License, see ~/COPYING file
+!!  or http://www.gnu.org/copyleft/gpl.txt .
+!!  For the list of contributors, see ~/AUTHORS
+
+
+!> Module which define the type parameterminimization
 module minpar
-  implicit none
+   implicit none
 
-  type parameterminimization
-     !>general parameters for all methods
-     character (len=10) :: approach
-     integer :: iter
-     integer :: iflag
-     integer :: history
-     logical::converged
-     !>parameters for print information
-     integer :: verbosity
-     integer :: MSAVE
-     integer :: MP
-     integer :: LP
-     integer :: MAXFEV
-     integer :: FINSTEP
-     double precision :: ALPHA 
-     double precision :: GTOL
-     double precision :: XTOL
-     double precision :: FTOL
-     double precision :: STPMIN
-     double precision :: STPMAX
-     logical :: DIAGCO
-     logical :: IWRITE
-  end type parameterminimization
+   type parameterminimization
+      !> general parameters for all methods
+      character (len=10) :: approach
+      integer :: iter
+      integer :: iflag
+      integer :: history
+      logical ::converged
+      !>parameters for print information
+      integer :: verbosity
+      integer :: MSAVE
+      integer :: MP
+      integer :: LP
+      integer :: MAXFEV
+      integer :: FINSTEP
+      double precision :: ALPHA 
+      double precision :: GTOL
+      double precision :: XTOL
+      double precision :: FTOL
+      double precision :: STPMIN
+      double precision :: STPMAX
+      logical :: DIAGCO
+      logical :: IWRITE
+   end type parameterminimization
 
-  type(parameterminimization) :: parmin
+   type(parameterminimization) :: parmin
 
 end module minpar
 

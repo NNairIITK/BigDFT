@@ -130,11 +130,10 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
-  call kpt_input_variables_new(iproc,'toto',inputs,atoms)
-  stop
-  call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
+  call kpt_input_variables_new(iproc,trim(inputs%file_kpt),inputs,atoms)
+  !call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
   ! Mixing input variables (if given)
-  call mix_input_variables(trim(inputs%file_mix),inputs)
+  call mix_input_variables_new(iproc,trim(inputs%file_mix),inputs)
   ! Read geometry optimisation option
   call geopt_input_variables(trim(inputs%file_geopt),inputs)
   ! Read tddft variables
@@ -529,14 +528,6 @@ subroutine dft_input_variables_new(iproc,filename,in)
 
   !in%nvirt = min(in%nvirt, in%norbv) commented out
 
-  !electrostatic treatment of the vacancy (deprecated, to be removed)
-  !read(1,*,iostat=ierror) in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
-  !call check()
-!!$  in%nvacancy=0
-!!$  in%read_ref_den=.false.
-!!$  in%correct_offset=.false.
-!!$  in%gnrm_sw=0.0_gp
-
   !verbosity of the output
   call input_var(ivrbproj,'2',exclusive=(/0,1,2,3,10,11,12,13/),&
        comment='verbosity of the output 0=low, 2=high')
@@ -565,6 +556,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   call input_free(iproc)
 
 end subroutine dft_input_variables_new
+
 
 !> Assign default values for GEOPT variables
 subroutine geopt_input_variables_default(in)
@@ -596,16 +588,57 @@ subroutine mix_input_variables_default(in)
   type(input_variables), intent(inout) :: in
 
   !mixing treatement (hard-coded values)
+  in%iscf=0
   in%itrpmax=1
   in%alphamix=0.0_gp
   in%rpnrm_cv=1.e-4_gp
   in%gnrm_startmix=0.0_gp
-  in%iscf=0
   in%Tel=0.0_gp
   in%norbsempty=0
   in%alphadiis=2.d0
 
 END SUBROUTINE mix_input_variables_default
+
+
+!> Read the input variables needed for the geometry optimisation
+!!    Every argument should be considered as mandatory
+subroutine mix_input_variables_new(iproc,filename,in)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  !Arguments
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  character(len=*), parameter :: subname='mix_input_variables'
+  logical :: exists
+
+  !Mix parameters, needed for the SCF poart with Davidson
+  call input_set_file(iproc,trim(filename),exists,'Mixing Parameters')  
+  !call the variable, its default value, the line ends if there is a comment
+
+  !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
+  call input_var(in%iscf,'0',exclusive=(/0,1,2,3,4,5,7,12,13,14,15,17/),&
+       comment="Mixing parameters")
+  call input_var(in%itrpmax,'1',ranges=(/0,10000/),&
+       comment="Maximum number of diagonalisation iterations")
+  call input_var(in%rpnrm_cv,'1.e-4',ranges=(/1.e-10_gp,10.0_gp/),&
+       comment="Stop criterion on the residue of potential or density")
+  call input_var(in%norbsempty,'0',ranges=(/0,10000/))
+  call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/),&
+       comment="Number of additional bands aand the electronic temperature")
+  call input_var(in%alphamix,'0.0',ranges=(/0.0_gp,1.0_gp/))
+  call input_var(in%alphadiis,'2.0',ranges=(/0.0_gp,10.0_gp/),&
+       comment="Multiplying factiors for the mixing and the elctronic DIIS")
+
+  call input_free(iproc)
+
+  !put the startmix if the mixing has to be done
+  if (in%itrpmax >1) in%gnrm_startmix=1.e300_gp
+
+END SUBROUTINE mix_input_variables_new
 
 
 !> Read the input variables needed for the geometry optimisation
@@ -978,44 +1011,187 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   character(len=*), parameter :: subname='kpt_input_variables_new'
   character(len = 6) :: type
   character(len=100) :: line
-  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount
+  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1
   real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
   integer, allocatable :: iseg(:)
-  
+
+  ! Set default values.
+  in%nkpt=1
+  in%nkptv=0
+  in%ngroups_kptv=1
+
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,trim(filename),exists,'Brilloiun Zone Sampling Parameters')  
   !call the variable, its default value, the line ends if there is a comment
 
   !if the file does not exists, put the default values
   if (.not. exists) then
-     ! Set default values.
-     in%nkpt=1
-     in%nkptv=0
-     in%ngroups_kptv=1
      
-     ! Set only the gamma point.
+!!$     ! Set only the gamma point.
+!!$     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,in%kpt,'in%kpt',subname)
+!!$     in%kpt(:, 1) = (/ 0., 0., 0. /)
+!!$     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
+!!$     in%wkpt(1) = 1.0_gp
+     !return
+  end if
+
+  call input_var(type,'manual',exclusive=(/'auto  ','mpgrid','manual'/),&
+       comment='K-point sampling method')
+
+  if (case_insensitive_equiv(trim(type),'auto')) then
+     call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
+          comment='Equivalent length of K-space resolution (Bohr)')
+     call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+          & kptrlen, ierror)
+     if (ierror /= AB6_NO_ERROR) then
+        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
+        stop
+     end if
+     !assumes that the allocation went through
+     call memocc(0,in%kpt,'in%kpt',subname)
+     call memocc(0,in%wkpt,'in%wkpt',subname)
+  else if (case_insensitive_equiv(trim(type),'mpgrid')) then
+     !take the points of Monckorst-pack grid
+     call input_var(ngkpt(1),'1')
+     call input_var(ngkpt(2),'1')
+     call input_var(ngkpt(3),'1',comment='No. of Monkhorst-Pack grid points')
+     !shift
+     call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
+     !read the shifts
+     call to_zero(3*8,shiftk(1,1))
+     do i=1,nshiftk
+        call input_var(shiftk(1,i),'0.')
+        call input_var(shiftk(2,i),'0.')
+        call input_var(shiftk(3,i),'0.',comment=' ')
+     end do
+     call ab6_symmetry_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+          & ngkpt, nshiftk, shiftk, ierror)
+     if (ierror /= AB6_NO_ERROR) then
+        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
+        stop
+     end if
+     !assumes that the allocation went through
+     call memocc(0,in%kpt,'in%kpt',subname)
+     call memocc(0,in%wkpt,'in%wkpt',subname)
+  else if (case_insensitive_equiv(trim(type),'manual')) then
+     call input_var(in%nkpt,'1',ranges=(/1,10000/),&
+          comment='Number of K-points')
      allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%kpt,'in%kpt',subname)
-     in%kpt(:, 1) = (/ 0., 0., 0. /)
      allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
      call memocc(i_stat,in%wkpt,'in%wkpt',subname)
-     in%wkpt(1) = 1.0_gp
-     return
-  !and control whether we are giving k-points to Free BC
-  else if (atoms%geocode == 'F') then
+     norm=0.0_gp
+     do i=1,in%nkpt
+        call input_var( in%kpt(1,i),'0.')
+        call input_var( in%kpt(2,i),'0.')
+        call input_var( in%kpt(3,i),'0.')
+        call input_var( in%wkpt(i),'1.',comment=' ')
+        norm=norm+in%wkpt(i)
+     end do
+     ! We normalise the weights.
+     in%wkpt(:)=in%wkpt/norm
+  end if
+  ! Now read the band structure definition.
+  call input_var(type,'bands',exclusive=(/'bands'/),&
+       comment='For doing band structure calculation',&
+       input_iostat=ierror)
+  if (ierror==0) then
+     call input_var(nseg,'1',ranges=(/1,1000/),&
+          comment='# of segments of the BZ path')
+     allocate(iseg(nseg+ndebug),stat=i_stat)
+     call memocc(i_stat,iseg,'iseg',subname)
+     !number of points for each segment, parallel granularity
+     do i=1,nseg
+        call input_var(iseg(i),'1',ranges=(/1,1000/))
+     end do
+     call input_var(ngranularity,'1',ranges=(/1,1000/),&
+          comment='points for each segment, # of points done for each group')
+     !calculate the number of groups of for the band structure
+     in%nkptv=1
+     do i=1,nseg
+        in%nkptv=in%nkptv+iseg(i)
+     end do
+     in%ngroups_kptv=&
+          ceiling(real(in%nkptv,gp)/real(ngranularity,gp))
+
+     allocate(in%nkptsv_group(in%ngroups_kptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%nkptsv_group,'in%nkptsv_group',subname)
+
+     ncount=0
+     do i=1,in%ngroups_kptv-1
+        !if ngranularity is bigger than nkptv  then ngroups is one
+        in%nkptsv_group(i)=ngranularity 
+        ncount=ncount+ngranularity
+     end do
+     !put the rest in the last group
+     in%nkptsv_group(in%ngroups_kptv)=in%nkptv-ncount
+
+     allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%kptv,'in%kptv',subname)
+
+     ikpt=1
+     call input_var(in%kptv(1,ikpt),'0.')
+     call input_var(in%kptv(2,ikpt),'0.')
+     call input_var(in%kptv(3,ikpt),'0.',comment=' ')
+     do i=1,nseg
+        ikpt=ikpt+iseg(i)
+        call input_var(in%kptv(1,ikpt),'0.5')
+        call input_var(in%kptv(2,ikpt),'0.5')
+        call input_var(in%kptv(3,ikpt),'0.5.',comment=' ')
+        !interpolate the values
+        do j=ikpt-iseg(i)+1,ikpt-1
+           in%kptv(:,j)=in%kptv(:,ikpt-iseg(i)) + &
+                (in%kptv(:,ikpt)-in%kptv(:,ikpt-iseg(i))) * &
+                real(j-ikpt+iseg(i),gp)/real(iseg(i), gp)
+        end do
+     end do
+     i_all=-product(shape(iseg))*kind(iseg)
+     deallocate(iseg,stat=i_stat)
+     call memocc(i_stat,i_all,'iseg',subname)
+     
+     !read an optional line to see if there is a file associated
+      call input_var(in%band_structure_filename,' ',&
+           comment=' ',input_iostat=ierror1)
+      if (ierror1 /=0) then
+         in%band_structure_filename=''
+      else
+         !since a file for the local potential is already given, do not perform ground state calculation
+         if (iproc==0) then
+            write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
+                 ', do not optimise GS wavefunctions'
+         end if
+         in%nrepmax=0
+         in%itermax=0
+         in%itrpmax=0
+         in%inputPsiId=-1000 !allocate empty wavefunctions
+         in%output_grid=0
+      end if
+  end if
+  call input_free(iproc)
+  !control whether we are giving k-points to Free BC
+  if (atoms%geocode == 'F' .and. exists) then
      if (iproc==0) write(*,*)&
           ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
      stop
   end if
 
-  call input_var(type,'manual',6,exclusive=(/'auto  ','bands ','mpgrid','manual'/),&
-       comment='K-point sampling method')
-
-  if (case_insensitive_equiv(type,'auto')) then
+  ! Convert reduced coordinates into BZ coordinates.
+  alat = (/ atoms%alat1, atoms%alat2, atoms%alat3 /)
+  if (atoms%geocode /= 'P') alat(2) = 1.0_gp
+  if (atoms%geocode == 'F') then
+     alat(1)=1.0_gp
+     alat(3)=1.0_gp
   end if
+  do i = 1, in%nkpt, 1
+     in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
+  end do
+  do i = 1, in%nkptv, 1
+     in%kptv(:, i) = in%kptv(:, i) / alat * two_pi
+  end do
 
-  call input_free(iproc)
-
+ 
 end subroutine kpt_input_variables_new
 
 
@@ -1231,6 +1407,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
 
   call input_var("debug", .false., "Debug option", inputs%debug)
+  print *,'ciao'
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
   call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU " /), &
        & "Acceleration", inputs%iacceleration)
@@ -1444,7 +1621,77 @@ END SUBROUTINE frequencies_input_variables_default
 
 
 !> Read the input variables needed for the frequencies calculation.
-!!    Every argument should be considered as mandatory.
+!! Every argument should be considered as mandatory.
+subroutine frequencies_input_variables_new(iproc,filename,in)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  !Arguments
+  type(input_variables), intent(inout) :: in
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  !Local variables
+  logical :: exists
+  integer, parameter :: iunit=111
+  character(len=100) :: line,string
+  integer :: ierror,iline
+
+  !Frequencies parameters
+  call input_set_file(iproc,trim(filename),exists,'Frequencies Parameters')  
+  !call the variable, its default value, the line ends if there is a comment
+
+  !Read in%freq_alpha (possible 1/64)
+  read(unit=iunit,fmt="(a)",iostat=ierror) line
+  !Transform the line in case there are slashes (to ease the parsing)
+  call read_fraction_string(line,in%freq_alpha,ierror)
+  if (ierror /= 0) then
+     print *,'wrong format of the string: '//string
+     ierror=1
+  end if
+  call check()
+  !Read the order of finite difference scheme
+  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_order
+  if (in%freq_order /= -1 .and. in%freq_order /= 1 &
+     & .and. in%freq_order /= 2 .and. in%freq_order /= 3 ) then
+     if (iproc==0) write (*,'(1x,a)') 'Only -1, 1, 2 or 3 are possible for the order scheme'
+     stop
+  end if
+  !Read the index of the method
+  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_method
+  if (in%freq_method /= 1) then
+     if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
+     stop
+  end if
+  call check()
+
+  close(unit=iunit)
+
+  !Message
+  if (iproc == 0) then
+     write(*,*)
+     write(*,'(1x,a,1pg14.6)') '=F= Step size factor',in%freq_alpha
+     write(*,'(1x,a,i10)')     '=F= Order scheme    ',in%freq_order
+     write(*,'(1x,a,i10)')     '=F= Used method     ',in%freq_method
+  end if
+
+contains
+
+  subroutine check()
+    implicit none
+    iline=iline+1
+    if (ierror/=0) then
+       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  END SUBROUTINE check
+
+END SUBROUTINE frequencies_input_variables_new
+
+
+!> Read the input variables needed for the frequencies calculation.
+!! Every argument should be considered as mandatory.
 subroutine frequencies_input_variables(iproc,filename,in)
   use module_base
   use module_types

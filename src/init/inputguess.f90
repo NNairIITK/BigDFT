@@ -9,7 +9,7 @@
 
 
 !>   Generate the input guess via the inguess_generator
-subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
+subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
      orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
   use module_base
   use module_types
@@ -19,7 +19,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
   integer, intent(inout) :: nvirt
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: Glr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), intent(out) :: eks
   integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
@@ -2075,14 +2074,15 @@ subroutine read_fraction_string(string,occ,ierror)
   real(gp), intent(out) :: occ
   integer, intent(out) :: ierror
   !Local variables
-  integer :: num,den,pfr
+  integer :: num,den,pfr,psp
 
   !see whether there is a fraction in the string
-  pfr = index(string,':')
-  if (pfr == 0) pfr = index(string,'/')
-  if (pfr == 0) then
+  pfr = scan(string,':')
+  psp = scan(string,' ')
+  if (pfr == 0) pfr = scan(string,'/')
+    if (pfr == 0 .or. pfr>psp) then
      read(string,*,iostat=ierror) occ
-  else
+  else if(pfr < psp .or. psp==0) then
      read(string(1:pfr-1),*,iostat=ierror) num
      read(string(pfr+1:),*,iostat=ierror) den
      if (ierror == 0) occ=real(num,gp)/real(den,gp)

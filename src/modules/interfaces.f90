@@ -763,7 +763,7 @@ module module_interfaces
        real(wp), dimension(:,:), pointer :: coeffs
      END SUBROUTINE restart_from_gaussians
 
-     subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
+     subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
           orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
        use module_base
        use module_types
@@ -772,7 +772,6 @@ module module_interfaces
        integer, intent(inout) :: nvirt
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
-       type(locreg_descriptors), intent(in) :: Glr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(gp), intent(out) :: eks
        integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr

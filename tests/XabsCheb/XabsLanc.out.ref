@@ -121,24 +121,18 @@
  Calculation of charge density... done. Total electronic charge=      15.999983273238
  PSolver, periodic BC, dimensions:   108  108  108   proc    1 ... done.
   going to calculate spectra 
-  IN ROUTINE  chebychev  
+  IN ROUTINE LANCZOS 
  Wavefunctions memory occupation for root processor (Bytes): 1285528
  reading  precalculated  projection on pseudofunctions
 for 1s of atom number      1 ( atomname = Fe         )
 After application of a 2*L-pole  with L=      1
  from file       gproje_Fe_1s_1
- OK 
- OK 1
- OK 2
-  for atoms           26
- OK 4
- OK 45
   sono in EP_allocate_for_eigenprob 
-  sono in EP_allocate_for_eigenprob EP_dim , nsteps       160691           3
+  sono in EP_allocate_for_eigenprob EP_dim , nsteps       160691          20
   esco 
- OK 5
  Writing wavefunctions in wavelet form ........................................ done.
  Deviation from normalization of the imported orbitals    0.00E+00
+ AFTER EP_normalizza(0) 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
@@ -155,26 +149,38 @@ After application of a 2*L-pole  with L=      1
  Hamiltonian application...  done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
+  starting GramSchmidt           15
+ GramSchmidt done 
+ Hamiltonian application...  done 
+  starting GramSchmidt           16
+ GramSchmidt done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
  Hamiltonian application...  done 
-                                                                  writing spectra to cheb_spectra_39
-  done 
  Hamiltonian application...  done 
- coefficients from Chebychev 
-   40 1.6785726182760868E+02 5.8035787346174140E-03
- ... 
- 2.8032097969300090E-05
--6.9868633070607712E-05
- 8.9925560086541413E-05
--8.2631370238954406E-05
- 6.1734834451806619E-05
--5.7743630815242347E-05
- 1.0173233606944766E-04
--1.8840548308720804E-04
- 2.5808015931672599E-04
--2.4686515922306960E-04
- CPU time/ELAPSED time for root process     0        17.35        17.34
+  alpha and beta from lanczos 
+   20 1.7562530507505285E-03
+ 4.6367176497138374E+01 4.6854586541482398E+01
+ 1.1070200087401460E+02 6.6843275871318838E+01
+ 1.4012733872842358E+02 7.7668910309474768E+01
+ 1.5515439706357935E+02 8.1978527003579345E+01
+ 1.6202146082219318E+02 8.3225919541583806E+01
+ 1.6347576981223000E+02 8.3689229430737058E+01
+ 1.6520956102294730E+02 8.3714612022203511E+01
+ 1.6458234736421838E+02 8.2928345714907948E+01
+ 1.6249982934072210E+02 8.1634089675380352E+01
+ 1.5995985716171904E+02 8.0587272898734909E+01
+ 1.6189714557890517E+02 8.2699908753817553E+01
+ 1.6476485774114951E+02 8.3304154426189982E+01
+ 1.6625821420349348E+02 8.2753375490318675E+01
+ 1.6363483954859944E+02 8.2795831040870809E+01
+ 1.6191549704645192E+02 8.1202038340193951E+01
+ 1.6186495853321208E+02 7.9126926656163761E+01
+ 1.6111621324290192E+02 8.0369732062818258E+01
+ 1.5225934446109170E+02 7.8766290640403568E+01
+ 1.5689912593806878E+02 7.4476439338186950E+01
+ 1.4926424466875716E+02 7.4740068926014459E+01
+ CPU time/ELAPSED time for root process     0        17.82        17.82
  Final values of the Forces for each atom
      1     Fe  0.00000E+00  0.00000E+00  0.00000E+00
  the sum of the forces is
@@ -182,6 +188,6 @@ After application of a 2*L-pole  with L=      1
       y direction     0.00000000E+00
       z direction     0.00000000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1509 allocations and 1509 deallocations, remaining memory(B): 0
+ 1553 allocations and 1553 deallocations, remaining memory(B): 0
  memory occupation peak: 84 MB
  for the array  wz in the routine gaussians_to_wavelets_orb

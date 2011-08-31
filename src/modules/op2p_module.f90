@@ -1,5 +1,5 @@
 !> @file
-!!  File to define information used for the overlap point to point between wavfunctions
+!!  File to define information used for the overlap point to point between wavefunctions
 !! @author
 !!    Copyright (C) 2011-2011 BigDFT group
 !!    This file is distributed under the terms of the
