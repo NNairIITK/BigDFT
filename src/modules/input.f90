@@ -24,9 +24,9 @@ module module_input
 
   interface input_var
      module procedure var_character, var_logical, var_integer, &
-          & var_integer_array, var_double, var_keyword, var_ids,&
-          & var_double_compulsory,var_real_compulsory,var_int_compulsory,var_logical_compulsory,&
-          & var_char_compulsory
+     & var_integer_array, var_double, var_keyword, var_ids,&
+     & var_double_compulsory,var_real_compulsory,var_int_compulsory,var_logical_compulsory,&
+     & var_char_compulsory
   end interface
 
   public :: input_set_file
@@ -112,14 +112,14 @@ contains
     !write the first line in the output
     if (exists) then
        write(inout_lines(iline_written),'(1x,5a)')&
-            '|--- (file:', trim(filename),')',&
-            repeat('-',83-(len(trim(filename)//trim(comment_file_usage))+11)),&
-            trim(comment_file_usage)
+       &    '|--- (file:', trim(filename),')',&
+       &    repeat('-',83-(len(trim(filename)//trim(comment_file_usage))+11)),&
+       &    trim(comment_file_usage)
     else
        write(inout_lines(iline_written),'(1x,5a)')&
-            '|--- (file:',trim(filename),'-- not present)',&
-            repeat('-',83-(len(trim(filename)//trim(comment_file_usage))+26)),&
-            trim(comment_file_usage)
+       &     '|--- (file:',trim(filename),'-- not present)',&
+       &     repeat('-',83-(len(trim(filename)//trim(comment_file_usage))+26)),&
+       &     trim(comment_file_usage)
     end if
     iline_written=iline_written+1
 
