@@ -85,11 +85,11 @@ contains
           nlines=i-1
        end if
        !broadcast the number of lines
-       call MPI_BCAST(nlines,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+       if (lmpinit) call MPI_BCAST(nlines,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (1) '
        nlines_total=nlines
        !broadcast all the lines
-       call MPI_BCAST(lines,nmax_lines*nlines,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
+       if (lmpinit) call MPI_BCAST(lines,nmax_lines*nlines,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (2) '
 
 !!$    write(0,*) "Setup input file '", trim(filename), "' with ", i - 1, "lines."
@@ -111,12 +111,14 @@ contains
 
     !write the first line in the output
     if (exists) then
-       write(inout_lines(iline_written),'(1x,3a)') '--- (file: ', trim(filename), &
-            & ') -----------------------------------------'//&
+       write(inout_lines(iline_written),'(1x,5a)')&
+            '|--- (file:', trim(filename),')',&
+            repeat('-',83-(len(trim(filename)//trim(comment_file_usage))+11)),&
             trim(comment_file_usage)
     else
-       write(inout_lines(iline_written),'(1x,a)')&
-            '--- (file:'//trim(filename)//'-- not present) --------------------------'//&
+       write(inout_lines(iline_written),'(1x,5a)')&
+            '|--- (file:',trim(filename),'-- not present)',&
+            repeat('-',83-(len(trim(filename)//trim(comment_file_usage))+26)),&
             trim(comment_file_usage)
     end if
     iline_written=iline_written+1
@@ -148,7 +150,7 @@ contains
     integer, intent(in), optional :: iproc
     !Local variables
     integer, parameter :: iunit=11
-    integer :: iline
+    integer :: ierr,iline
 
     if (present(iproc)) then !case for compulsory variables
        !if (iline_written==1) iline_written=2
@@ -161,25 +163,27 @@ contains
              end do
              close(unit=iunit)
           end if
-       end if
-       !dump the file on the screen
-       do iline=1,iline_written-1
+          !dump the file on the screen
+          do iline=1,iline_written-1
           write(*,fmt='(1x,a,a)') '|',inout_lines(iline)
-       end do
+          end do
+       end if
     end if
 
     if (allocated(inout_lines)) deallocate(inout_lines)
-    
+    if (lmpinit) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   END SUBROUTINE input_free
 
   subroutine leave()
     implicit none
-    !local varaibles
+    !local variables
     integer :: ierr
-    write(*,'(1x,a,a,2(a,i3))')'Error while reading the file "', &
-         & trim(input_file), '", line=', iline_written,' argument=', iargument
-    if (iline_written <= nlines_total) write(*,*)inout_lines(iline_written),line_being_processed
-    !to be called only if mpi is initialized
+    if (output) then
+       write(*,'(1x,a,a,2(a,i3))')'Error while reading the file "', &
+            & trim(input_file), '", line=', iline_written,' argument=', iargument
+       if (iline_written <= nlines_total) write(*,*)inout_lines(iline_written),line_being_processed
+       !to be called only if mpi is initialized
+    end if
     if (lmpinit) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
     stop
   end subroutine leave
@@ -202,7 +206,7 @@ contains
     implicit none
     character(len=*), intent(in), optional :: default,line_comment
     !Local variables
-    integer :: i,iblank
+    integer :: i,iblank,istart,nchars
 
     if (iargument==1) then
        ipos=0
@@ -218,8 +222,10 @@ contains
        inout_lines(iline_written)(ipos:ipos)=' '
     end if
     if (present(line_comment) .and. iline_parsed==0) then
-       !case without file, close the line 
-       inout_lines(iline_written)(ipos+1:max_length)=line_comment(1:min(len(line_comment),max_length-ipos))
+       !case without file, close the line. Start the comment at column 16 if possible
+       istart=max(ipos+1,16)
+       nchars=min(len(line_comment),max_length-istart)
+       inout_lines(iline_written)(istart:istart+nchars)=line_comment(1:nchars)
        iline_written=iline_written+1
        iargument=0
     else if (.not. present(default) .and. .not. present(line_comment).and. iline_parsed/=0) then
@@ -257,8 +263,7 @@ contains
     !change the allocate condition, since input lines is always used now
     !if (allocated(inout_lines)) then
     if (iline_parsed /= 0) then
-       !print *,'test'
-       do iline = 1, size(inout_lines), 1
+       do iline = 1, size(inout_lines)-1 !there is also the zero now
           k = 1
           do ii = 1, len(inout_lines(iline)), 1
              if (ichar(inout_lines(iline)(ii:ii)) == ichar(name(k:k)) .or. &
@@ -413,9 +418,11 @@ contains
        !check the validity of the variable
        if (present(ranges)) then
           if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,'(1x,a,i0,a,i0)') &
+             if (output) then
+                write(*,'(1x,a,i0,a,i0)') &
                 'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+                write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -432,9 +439,11 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,'(1x,a,i0,a,i0)') &
-                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in list: ',exclusive(:)
+             if (output) then
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in list: ',exclusive(:)
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -501,9 +510,11 @@ contains
        !check the validity of the variable
        if (present(ranges)) then
           if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,'(1x,a,i0,a,i0)') &
-                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             if (output) then
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -520,9 +531,11 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,'(1x,a,i0,a,i0)') &
-                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in list: ',exclusive(:)
+             if (output) then 
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in list: ',exclusive(:)
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -587,9 +600,11 @@ contains
        !check the validity of the variable
        if (present(ranges)) then
           if (var < ranges(1) .or. var > ranges(2)) then
-             write(*,'(1x,a,i0,a,i0)') &
-                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             if (output) then
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -606,9 +621,11 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,'(1x,a,i0,a,i0)') &
-                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
-             write(*,*)'      values should be in list: ',exclusive(:)
+             if (output) then
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,*)'      values should be in list: ',exclusive(:)
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return
@@ -677,10 +694,12 @@ contains
              end if
           end do found_loop
           if (.not. found) then
-             write(*,'(1x,a,i0,a,i0)') &
-                'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
-             write(*,'(6x,a,30(1x,a))')&
-                'values should be in list: ',exclusive(:)
+             if (output) then 
+                write(*,'(1x,a,i0,a,i0)') &
+                     'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+                write(*,'(6x,a,30(1x,a))')&
+                     'values should be in list: ',exclusive(:)
+             end if
              if (present(input_iostat)) then
                 input_iostat=1
                 return

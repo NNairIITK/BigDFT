@@ -687,7 +687,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         
         i_all=-product(shape(pot_bB))*kind(pot_bB)
         deallocate(pot_bB,stat=i_stat)
-        call memocc(i_stat,i_all,'rho',subname)
+        call memocc(i_stat,i_all,'pot_bB',subname)
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'rxyz',subname)
@@ -710,10 +710,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
      deallocate(atoms_clone%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
+     nullify(atoms_clone%aocc)
      i_all=-product(shape(atoms_clone%iasctype))*kind(atoms_clone%iasctype)
      deallocate(atoms_clone%iasctype,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
-
+     nullify(atoms_clone%iasctype)
   endif
 
 
@@ -817,7 +818,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            endif
 
            inquire(file=trim(trim(filename)//'.cube'),exist=exists)
-           print *, "controllo ",  trim(filename)//'.cube', exists
+           print *, "check ",  trim(filename)//'.cube', exists
            if(exists) then
 
               call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, &
@@ -874,6 +875,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               i_all=-product(shape(pot1_bB))*kind(pot1_bB)
               deallocate(pot1_bB,stat=i_stat)
               call memocc(i_stat,i_all,'pot1_bB',subname)
+
+              !call deallocate_atoms_scf(atoms_b2B,subname) 
+
               call deallocate_atoms(atoms_b2B,subname) 
 
            endif
@@ -943,7 +947,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
               i_all=-product(shape(pot_bB))*kind(pot_bB)
               deallocate(pot_bB,stat=i_stat)
-              call memocc(i_stat,i_all,'rho',subname)
+              call memocc(i_stat,i_all,'pot_bB',subname)
 
 
 
@@ -1047,10 +1051,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
            deallocate(rxyz_b2B,stat=i_stat)
            call memocc(i_stat,i_all,'rxyz',subname)
-           i_all=-product(shape(iatype_b2B))*kind(rxyz_b2B)
+           i_all=-product(shape(iatype_b2B))*kind(iatype_b2B)
            deallocate(iatype_b2B,stat=i_stat)
            call memocc(i_stat,i_all,'iatype',subname)
-           i_all=-product(shape(znucl_b2B))*kind(rxyz_b2B)
+           i_all=-product(shape(znucl_b2B))*kind(znucl_b2B)
            deallocate(znucl_b2B,stat=i_stat)
            call memocc(i_stat,i_all,'znucl',subname)
            i_all=-product(shape(rhopottmp))*kind(rhopottmp)

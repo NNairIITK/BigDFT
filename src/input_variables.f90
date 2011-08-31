@@ -518,7 +518,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
 
   !davidson treatment
   ! Now the variables which are to be used only for the last run
-  call input_var(in%norbv,'0',ranges=(/0,1000/))
+  call input_var(in%norbv,'0',ranges=(/-1000,1000/))
   call input_var(in%nvirt,'0',ranges=(/0,in%norbv/))
   call input_var(in%nplot,'0',ranges=(/0,in%norbv/),&
        comment='Dimension of davidson treatment subspace, # of interesting orbitals, # of plotted orbitals')
@@ -684,7 +684,7 @@ subroutine geopt_input_variables_default(in)
   in%forcemax=0.0_gp
   in%randdis=0.0_gp
   in%betax=2.0_gp
-  in%history = 0
+  in%history = 1
   in%ionmov = -1
   in%dtion = 0.0_gp
   nullify(in%qmass)
@@ -770,7 +770,7 @@ subroutine geopt_input_variables_new(iproc,filename,in)
         call memocc(i_stat,in%qmass,'in%qmass',subname)
      end if
 
-  else if (case_insensitive_equiv(in%geopt_approach,"DIIS")) then
+  else if (case_insensitive_equiv(trim(in%geopt_approach),"DIIS")) then
      call input_var(in%betax,'2.0',ranges=(/0.0_gp,100.0_gp/))
      call input_var(in%history,'4',ranges=(/0,1000/),&
           comment="Stepsize and history for DIIS method")
@@ -778,7 +778,7 @@ subroutine geopt_input_variables_new(iproc,filename,in)
      call input_var(in%betax,'4.0',ranges=(/0.0_gp,100.0_gp/),&
           comment="Stepsize for the geometry optimisation")
   end if
-  if (case_insensitive_equiv(in%geopt_approach,"FIRE")) then
+  if (case_insensitive_equiv(trim(in%geopt_approach),"FIRE")) then
         call input_var(in%dtinit,'0.75',ranges=(/0.0_gp,1.e4_gp/))
         call input_var(in%dtmax, '1.5',ranges=(/in%dtinit,1.e4_gp/),&
              comment="initial and maximal time step for the FIRE method")
@@ -1005,7 +1005,8 @@ subroutine tddft_input_variables_new(iproc,filename,in)
   call input_set_file(iproc,trim(filename),exists,'TD-DFT Parameters')  
   !call the variable, its default value, the line ends if there is a comment
 
-  call input_var(in%tddft_approach,"TDA",comment="Tamm-Dancoff approximation")
+  call input_var(in%tddft_approach,"NONE",exclusive=(/'NONE','TDA '/),&
+       comment="Tamm-Dancoff approximation")
   call input_free(iproc)
 
 END SUBROUTINE tddft_input_variables_new

@@ -329,7 +329,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
       i_all=-product(shape(dum_coeffs))*kind(dum_coeffs)
       deallocate(dum_coeffs,stat=i_stat)
-      call memocc(i_stat,i_all,'coeffs',subname)
+      call memocc(i_stat,i_all,'dum_coeffs',subname)
 
       Gabs_coeffs(:)=in%Gabs_coeffs(:)
    else
