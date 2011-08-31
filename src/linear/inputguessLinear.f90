@@ -1070,7 +1070,7 @@ do iat=1,lzdig%nlr
         ii=ii+1
         !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,ii), comon)
         call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, &
-             lchi, comon%nsendBuf, comon%sendBuf)
+             lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
 
     else
         !write(*,'(2(a,i0))') 'iproc ',iproc,' skips locreg ',iat
