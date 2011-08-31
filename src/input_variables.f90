@@ -684,7 +684,7 @@ subroutine geopt_input_variables_default(in)
   in%forcemax=0.0_gp
   in%randdis=0.0_gp
   in%betax=2.0_gp
-  in%history = 0
+  in%history = 1
   in%ionmov = -1
   in%dtion = 0.0_gp
   nullify(in%qmass)
@@ -711,12 +711,12 @@ subroutine geopt_input_variables_new(iproc,filename,in)
   !geometry input parameters
   call input_set_file(iproc,trim(filename),exists,'Geometry Parameters')  
   !call the variable, its default value, the line ends if there is a comment
-  if (.not. exists) then
-     in%ncount_cluster_x=0
-     return
-  end if
+!!$  if (.not. exists) then
+!!$     in%ncount_cluster_x=0
+!!$     return
+!!$  end if
 
-  call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD'/),&
+  call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD','DIIS '/),&
        comment="Geometry optimisation method")
   call input_var(in%ncount_cluster_x,'1',ranges=(/0,2000/),&
        comment="Maximum number of force evaluations")
@@ -771,7 +771,7 @@ subroutine geopt_input_variables_new(iproc,filename,in)
         call memocc(i_stat,in%qmass,'in%qmass',subname)
      end if
 
-  else if (case_insensitive_equiv(in%geopt_approach,"DIIS")) then
+  else if (case_insensitive_equiv(trim(in%geopt_approach),"DIIS")) then
      call input_var(in%betax,'2.0',ranges=(/0.0_gp,100.0_gp/))
      call input_var(in%history,'4',ranges=(/0,1000/),&
           comment="Stepsize and history for DIIS method")
@@ -779,11 +779,13 @@ subroutine geopt_input_variables_new(iproc,filename,in)
      call input_var(in%betax,'4.0',ranges=(/0.0_gp,100.0_gp/),&
           comment="Stepsize for the geometry optimisation")
   end if
-  if (case_insensitive_equiv(in%geopt_approach,"FIRE")) then
+  if (case_insensitive_equiv(trim(in%geopt_approach),"FIRE")) then
         call input_var(in%dtinit,'0.75',ranges=(/0.0_gp,1.e4_gp/))
         call input_var(in%dtmax, '1.5',ranges=(/in%dtinit,1.e4_gp/),&
              comment="initial and maximal time step for the FIRE method")
   endif
+
+  call input_free(iproc)
 
 END SUBROUTINE geopt_input_variables_new
 
@@ -1529,7 +1531,6 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
 
   call input_var("debug", .false., "Debug option", inputs%debug)
-  print *,'ciao'
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
   call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU " /), &
        & "Acceleration", inputs%iacceleration)

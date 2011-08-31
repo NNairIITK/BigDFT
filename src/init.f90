@@ -608,6 +608,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      end if
 
      call deallocate_orbs(orbse,subname)
+     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
+     deallocate(orbse%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'orbse%eval',subname)
+
      
      !deallocate the gaussian basis descriptors
      call deallocate_gwf(G,subname)
@@ -619,8 +623,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
      deallocate(norbsc_arr,stat=i_stat)
      call memocc(i_stat,i_all,'norbsc_arr',subname)
+ 
     return 
-  end if
+ end if
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)

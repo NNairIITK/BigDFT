@@ -85,11 +85,11 @@ contains
           nlines=i-1
        end if
        !broadcast the number of lines
-       call MPI_BCAST(nlines,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+       if (lmpinit) call MPI_BCAST(nlines,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (1) '
        nlines_total=nlines
        !broadcast all the lines
-       call MPI_BCAST(lines,nmax_lines*nlines,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
+       if (lmpinit) call MPI_BCAST(lines,nmax_lines*nlines,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (2) '
 
 !!$    write(0,*) "Setup input file '", trim(filename), "' with ", i - 1, "lines."
@@ -147,7 +147,7 @@ contains
     implicit none
     integer, intent(in), optional :: iproc
     !Local variables
-    integer :: iline
+    integer :: iline,ierr
 
     if (present(iproc)) then !case for compulsory variables
        !if (iline_written==1) iline_written=2
@@ -160,15 +160,15 @@ contains
              end do
              close(unit=1)
           end if
+          !dump the file on the screen
+          do iline=1,iline_written-1
+             write(*,*)'|',inout_lines(iline)
+          end do
        end if
-       !dump the file on the screen
-       do iline=1,iline_written-1
-          write(*,*)'|',inout_lines(iline)
-       end do
     end if
 
     if (allocated(inout_lines)) deallocate(inout_lines)
-    
+    if (lmpinit) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   END SUBROUTINE input_free
 
   subroutine leave()
@@ -202,7 +202,7 @@ contains
     implicit none
     character(len=*), intent(in), optional :: default,line_comment
     !Local variables
-    integer :: i,iblank
+    integer :: i,iblank,istart,nchars
 
     if (iargument==1) then
        ipos=0
@@ -218,8 +218,10 @@ contains
        inout_lines(iline_written)(ipos:ipos)=' '
     end if
     if (present(line_comment) .and. iline_parsed==0) then
-       !case without file, close the line 
-       inout_lines(iline_written)(ipos+1:max_length)=line_comment(1:min(len(line_comment),max_length-ipos))
+       !case without file, close the line. Start the comment at column 16 if possible
+       istart=max(ipos+1,16)
+       nchars=min(len(line_comment),max_length-istart)
+       inout_lines(iline_written)(istart:istart+nchars)=line_comment(1:nchars)
        iline_written=iline_written+1
        iargument=0
     else if (.not. present(default) .and. .not. present(line_comment).and. iline_parsed/=0) then
@@ -257,8 +259,7 @@ contains
     !change the allocate condition, since input lines is always used now
     !if (allocated(inout_lines)) then
     if (iline_parsed /= 0) then
-       print *,'test'
-       do iline = 1, size(inout_lines), 1
+       do iline = 1, size(inout_lines)-1 !there is also the zero now
           k = 1
           do ii = 1, len(inout_lines(iline)), 1
              if (ichar(inout_lines(iline)(ii:ii)) == ichar(name(k:k)) .or. &
@@ -406,7 +407,7 @@ contains
     else
        !read the argument
        call process_line()
-       print *,line_being_processed
+       !print *,line_being_processed
        call read_fraction_string(line_being_processed,var,ierror)
        call check(ierror)
 
