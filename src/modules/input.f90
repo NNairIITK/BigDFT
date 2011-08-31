@@ -67,7 +67,7 @@ contains
     lmpinit=.false.
     call MPI_INITIALIZED(lmpinit,ierr)
 
-    write(input_file, "(A)") trim(filename)
+    write(input_file, "(a)") trim(filename)
            
 
     !check if the file is present
@@ -163,7 +163,7 @@ contains
              !add the writing of the file in the given unit
              open(unit=iunit,file=trim(input_file)//'_default', status ='unknown')
              do iline=1,iline_written-1
-                write(iunit,*) inout_lines(iline)
+                write(iunit,'(a)') inout_lines(iline)
              end do
              close(unit=iunit)
           end if
@@ -388,7 +388,7 @@ contains
 
     if (present(input_iostat)) then
        !first, check if the line is correct
-       if (iline_written>nlines_total .or. iline_parsed==0) then
+       if (iline_written>nlines_total ) then
           input_iostat=-1
           return
        else
@@ -479,7 +479,7 @@ contains
 
     if (present(input_iostat)) then
        !first, check if the line is correct
-       if (iline_written>nlines_total .or. iline_parsed==0) then
+       if (iline_written>nlines_total ) then
           input_iostat=-1
           return
        else
@@ -570,7 +570,7 @@ contains
 
     if (present(input_iostat)) then
        !first, check if the line is correct
-       if (iline_written>nlines_total .or. iline_parsed==0) then
+       if (iline_written>nlines_total) then
           input_iostat=-1
           return
        else
@@ -659,7 +659,7 @@ contains
 
     if (present(input_iostat)) then
        !first, check if the line is correct (or if it is an optional line)
-       if (iline_written>nlines_total .or. iline_parsed==0) then
+       if (iline_written>nlines_total) then
           input_iostat=-1
           return
        else
