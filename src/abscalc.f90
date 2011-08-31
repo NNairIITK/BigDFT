@@ -357,7 +357,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   ! Arrays for the symmetrisation, not used here...
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
-  
+  character(len=5) :: gridformat
   !for xabsorber
   integer :: lpot_a, ix, iy, iz , ixnl, iynl, iznl
   real(gp) :: rpot_a,spot_a,hpot_a,espo,harmo,r,rx,ry,rz,minr  
@@ -420,6 +420,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   hx=in%hx
   hy=in%hy
   hz=in%hz
+
+  write(gridformat, "(A)") ""
+  select case (in%output_grid_format)
+     case (OUTPUT_GRID_FORMAT_ETSF)
+        write(gridformat, "(A)") ".etsf"
+     case (OUTPUT_GRID_FORMAT_CUBE)
+        write(gridformat, "(A)") ".bin"
+  end select
 
   if (ixc < 0) then
      call xc_init(ixc, XC_MIXED, nspin)
@@ -768,10 +776,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
      if (in%output_grid == OUTPUT_GRID_DENSPOT) then
         if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
-          if (iproc == 0) write(*,*) 'writing local_potential.pot'
-           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
-                n1,n2,n3,n1i,n2i,n3i,n3p,&
-                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
+          if (iproc == 0) write(*,*) 'writing local_potential'
+          call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
+               n1,n2,n3,n1i,n2i,n3i,n3p,&
+               in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
+!!$
+!!$           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
+!!$                n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!$                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
         else
            call plot_density_cube_old(atoms%geocode,'local_potentialb2B',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&

@@ -128,12 +128,13 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
   call kpt_input_variables_new(iproc,trim(inputs%file_kpt),inputs,atoms)
+  !call kpt_input_variables(iproc,trim(inputs%file_kpt),inputs,atoms)
   ! Mixing input variables (if given)
   call mix_input_variables_new(iproc,trim(inputs%file_mix),inputs)
   ! Read geometry optimisation option
-  call geopt_input_variables_new(trim(inputs%file_geopt),inputs)
+  call geopt_input_variables_new(iproc,trim(inputs%file_geopt),inputs)
   ! Read tddft variables
-  call tddft_input_variables_new(trim(inputs%file_tddft),inputs)
+  call tddft_input_variables_new(iproc,trim(inputs%file_tddft),inputs)
   ! Read sic variables
   call sic_input_variables(trim(inputs%file_sic),inputs)
 
@@ -693,17 +694,18 @@ END SUBROUTINE geopt_input_variables_default
 
 !> Read the input variables needed for the geometry optimisation
 !! Every argument should be considered as mandatory
-subroutine geopt_input_variables_new(filename,in)
+subroutine geopt_input_variables_new(iproc,filename,in)
   use module_base
   use module_types
   use module_input
   implicit none
+  integer, intent(in) :: iproc
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   !local variables
   character(len=*), parameter :: subname='geopt_input_variables'
   character(len = 128) :: line
-  integer :: i_stat,ierror,iline
+  integer :: i_stat,ierror,iline,i
   logical :: exists
 
   !geometry input parameters
@@ -714,22 +716,22 @@ subroutine geopt_input_variables_new(filename,in)
      return
   end if
 
-  call input_var(in%geopt_approach,"SDCG",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD'/),&
+  call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD'/),&
        comment="Geometry optimisation method")
-  call input_var(in%ncount_cluster_x,'0',&
+  call input_var(in%ncount_cluster_x,'1',ranges=(/0,2000/),&
        comment="Maximum number of force evaluations")
-  call input_var(in%frac_fluct,'1.0',ranges=(/0.0_gp,1.e4_gp/))
+  call input_var(in%frac_fluct,'1.0',ranges=(/0.0_gp,10.0_gp/))
   call input_var(in%forcemax,'0.0',ranges=(/0.0_gp,10.0_gp/),&
        comment="fract_fluct,forcemax")
-  call input_var(in%randdis,'0.0',ranges=(/0.0_gp,10.0_gp),&
+  call input_var(in%randdis,'0.0',ranges=(/0.0_gp,10.0_gp/),&
        comment="random displacement amplitude")
 
-  if (trim(in%geopt_approach) == "AB6MD") then
+  if (case_insensitive_equiv(in%geopt_approach,"AB6MD")) then
      in%nnos=0
      call input_var(in%ionmov,'6',exclusive=(/6,7,8,9,12,13/),&
           comment="AB6MD: movement ion method")
-     call input_var(in%dtion,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
-          comment="Time step for molecular dynamics")
+     call input_var(in%dtion,'20.670689',ranges=(/0.0_gp,1.e3_gp/),&
+          comment="Time step for molecular dynamics - Atomic Units (20.670689 AU=0.5 fs)")
 
      if (in%ionmov == 6) then
         call input_var(in%mditemp,'300',ranges=(/0.0_gp,1.0e9_gp/),&
@@ -741,24 +743,24 @@ subroutine geopt_input_variables_new(filename,in)
      end if
 
      if (in%ionmov == 8) then
-        call input_var(in%noseinert,'1.0',ranges=(/0.0_gp,1.0e9/),&
+        call input_var(in%noseinert,'1.e5',ranges=(/0.0_gp,1.0e9_gp/),&
              comment="Thermostat inertia coefficient for Nose_Hoover dynamics")
      else if (in%ionmov == 9) then
-        call input_var(in%friction,'1.0',&
+        call input_var(in%friction,'1.e-3',&
              comment="Friction coefficient for Langevin dynamics")
-        call input_var(in%mdwall,'1.0',ranges=(/0.0_gp,1.e4_gp/)&
+        call input_var(in%mdwall,'1.e4',ranges=(/0.0_gp,1.e5_gp/),&
              comment="Distance in bohr where atoms can bounce for Langevin dynamics")
      else if (in%ionmov == 13) then
-        call input_var(in%nnos,'0',ranges=(/0,100/)&
+        call input_var(in%nnos,'0',ranges=(/0,100/),&
              comment="Number of Thermostat (isothermal/isenthalpic ensemble)")
         allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
         call memocc(i_stat,in%qmass,'in%qmass',subname)
         do i=1,in%nnos-1
            call input_var(in%qmass(i),'0.0',ranges=(/0.0_gp,1.e9_gp/))
         end do
-        if (in%nnos > 0) call input_var(in%qmass(i),'0.0',ranges=(/0.0_gp,1.e9_gp/),&
+        if (in%nnos > 0) call input_var(in%qmass(in%nnos),'0.0',ranges=(/0.0_gp,1.e9_gp/),&
            comment="Mass of each thermostat (isothermal/isenthalpic ensemble)")
-        call input_var(in%bmass,'1.0',ranges=(/0.0_gp,1.0e9_gp/))
+        call input_var(in%bmass,'10',ranges=(/0.0_gp,1.0e9_gp/))
         call input_var(in%vmass,'1.0',ranges=(/0.0_gp,1.0e9_gp/),&
              comment="Barostat masses (isothermal/isenthalpic ensemble)")
      end if
@@ -769,17 +771,17 @@ subroutine geopt_input_variables_new(filename,in)
         call memocc(i_stat,in%qmass,'in%qmass',subname)
      end if
 
-  else if (trim(in%geopt_approach) == "DIIS") then
-     call input_var(in%betax,'2.0',ranges=(/0.0_gp,10.0_gp/))
-     call input_var(in%history,'0',ranges=(/0,1000/),&
+  else if (case_insensitive_equiv(in%geopt_approach,"DIIS")) then
+     call input_var(in%betax,'2.0',ranges=(/0.0_gp,100.0_gp/))
+     call input_var(in%history,'4',ranges=(/0,1000/),&
           comment="Stepsize and history for DIIS method")
   else
-     call input_var(in%betax,'2.0',ranges=(/0.0_gp,10.0_gp/),&
+     call input_var(in%betax,'4.0',ranges=(/0.0_gp,100.0_gp/),&
           comment="Stepsize for the geometry optimisation")
   end if
-  if (trim(in%geopt_approach) == "FIRE") then
-        call input_var(in%dtinit,'1.0',ranges=(/0.0_gp,1.e9_gp/))
-        call input_var(in%dtmax, '1.0',ranges=(/in%dtinit,1.e9_gp/)&
+  if (case_insensitive_equiv(in%geopt_approach,"FIRE")) then
+        call input_var(in%dtinit,'0.75',ranges=(/0.0_gp,1.e4_gp/))
+        call input_var(in%dtmax, '1.5',ranges=(/in%dtinit,1.e4_gp/),&
              comment="initial and maximal time step for the FIRE method")
   endif
 
@@ -961,11 +963,12 @@ subroutine tddft_input_variables_default(in)
 END SUBROUTINE tddft_input_variables_default
 
 
-subroutine tddft_input_variables_new(filename,in)
+subroutine tddft_input_variables_new(iproc,filename,in)
   use module_base
   use module_types
-  use mdoule_input
+  use module_input
   implicit none
+  integer, intent(in) :: iproc
   character(len=*), intent(in) :: filename
   type(input_variables), intent(inout) :: in
   !local variables
@@ -1127,22 +1130,190 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   type(atoms_data), intent(in) :: atoms
   !local variables
   logical :: exists
-  character(len=*), parameter :: subname='kpt_input_variables'
+  character(len=*), parameter :: subname='kpt_input_variables_new'
   character(len = 6) :: type
   character(len=100) :: line
-  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount
+  integer :: i_stat,ierror,iline,i,nshiftk, ngkpt(3), nseg, ikpt, j, i_all,ngranularity,ncount,ierror1
   real(gp) :: kptrlen, shiftk(3,8), norm, alat(3)
   integer, allocatable :: iseg(:)
-  
+
+  ! Set default values.
+  in%nkpt=1
+  in%nkptv=0
+  in%ngroups_kptv=1
+
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
   !call the variable, its default value, the line ends if there is a comment
 
-  call input_var(type,'manual',exclusive=(/'auto  ','bands ','mpgrid','manual'/),&
+  !if the file does not exists, put the default values
+  if (.not. exists) then
+     
+!!$     ! Set only the gamma point.
+!!$     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,in%kpt,'in%kpt',subname)
+!!$     in%kpt(:, 1) = (/ 0., 0., 0. /)
+!!$     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
+!!$     in%wkpt(1) = 1.0_gp
+     !return
+  end if
+
+  call input_var(type,'manual',exclusive=(/'auto  ','mpgrid','manual'/),&
        comment='K-point sampling method')
 
-  call input_free(iproc)
+  if (case_insensitive_equiv(trim(type),'auto')) then
+     call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
+          comment='Equivalent length of K-space resolution (Bohr)')
+     call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+          & kptrlen, ierror)
+     if (ierror /= AB6_NO_ERROR) then
+        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
+        stop
+     end if
+     !assumes that the allocation went through
+     call memocc(0,in%kpt,'in%kpt',subname)
+     call memocc(0,in%wkpt,'in%wkpt',subname)
+  else if (case_insensitive_equiv(trim(type),'mpgrid')) then
+     !take the points of Monckorst-pack grid
+     call input_var(ngkpt(1),'1')
+     call input_var(ngkpt(2),'1')
+     call input_var(ngkpt(3),'1',comment='No. of Monkhorst-Pack grid points')
+     !shift
+     call input_var(nshiftk,'1',ranges=(/1,8/),comment='No. of different shifts')
+     !read the shifts
+     call to_zero(3*8,shiftk(1,1))
+     do i=1,nshiftk
+        call input_var(shiftk(1,i),'0.')
+        call input_var(shiftk(2,i),'0.')
+        call input_var(shiftk(3,i),'0.',comment=' ')
+     end do
+     call ab6_symmetry_get_mp_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
+          & ngkpt, nshiftk, shiftk, ierror)
+     if (ierror /= AB6_NO_ERROR) then
+        if (iproc==0) write(*,*) " ERROR in symmetry library. Error code is ", ierror
+        stop
+     end if
+     !assumes that the allocation went through
+     call memocc(0,in%kpt,'in%kpt',subname)
+     call memocc(0,in%wkpt,'in%wkpt',subname)
+  else if (case_insensitive_equiv(trim(type),'manual')) then
+     call input_var(in%nkpt,'1',ranges=(/1,10000/),&
+          comment='Number of K-points')
+     allocate(in%kpt(3, in%nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,in%kpt,'in%kpt',subname)
+     allocate(in%wkpt(in%nkpt+ndebug),stat=i_stat)
+     call memocc(i_stat,in%wkpt,'in%wkpt',subname)
+     norm=0.0_gp
+     do i=1,in%nkpt
+        call input_var( in%kpt(1,i),'0.')
+        call input_var( in%kpt(2,i),'0.')
+        call input_var( in%kpt(3,i),'0.')
+        call input_var( in%wkpt(i),'1.',comment=' ')
+        norm=norm+in%wkpt(i)
+     end do
+     ! We normalise the weights.
+     in%wkpt(:)=in%wkpt/norm
+  end if
+  ! Now read the band structure definition.
+  call input_var(type,'bands',exclusive=(/'bands'/),&
+       comment='For doing band structure calculation',&
+       input_iostat=ierror)
+  if (ierror==0) then
+     call input_var(nseg,'1',ranges=(/1,1000/),&
+          comment='# of segments of the BZ path')
+     allocate(iseg(nseg+ndebug),stat=i_stat)
+     call memocc(i_stat,iseg,'iseg',subname)
+     !number of points for each segment, parallel granularity
+     do i=1,nseg
+        call input_var(iseg(i),'1',ranges=(/1,1000/))
+     end do
+     call input_var(ngranularity,'1',ranges=(/1,1000/),&
+          comment='points for each segment, # of points done for each group')
+     !calculate the number of groups of for the band structure
+     in%nkptv=1
+     do i=1,nseg
+        in%nkptv=in%nkptv+iseg(i)
+     end do
+     in%ngroups_kptv=&
+          ceiling(real(in%nkptv,gp)/real(ngranularity,gp))
 
+     allocate(in%nkptsv_group(in%ngroups_kptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%nkptsv_group,'in%nkptsv_group',subname)
+
+     ncount=0
+     do i=1,in%ngroups_kptv-1
+        !if ngranularity is bigger than nkptv  then ngroups is one
+        in%nkptsv_group(i)=ngranularity 
+        ncount=ncount+ngranularity
+     end do
+     !put the rest in the last group
+     in%nkptsv_group(in%ngroups_kptv)=in%nkptv-ncount
+
+     allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
+     call memocc(i_stat,in%kptv,'in%kptv',subname)
+
+     ikpt=1
+     call input_var(in%kptv(1,ikpt),'0.')
+     call input_var(in%kptv(2,ikpt),'0.')
+     call input_var(in%kptv(3,ikpt),'0.',comment=' ')
+     do i=1,nseg
+        ikpt=ikpt+iseg(i)
+        call input_var(in%kptv(1,ikpt),'0.5')
+        call input_var(in%kptv(2,ikpt),'0.5')
+        call input_var(in%kptv(3,ikpt),'0.5.',comment=' ')
+        !interpolate the values
+        do j=ikpt-iseg(i)+1,ikpt-1
+           in%kptv(:,j)=in%kptv(:,ikpt-iseg(i)) + &
+                (in%kptv(:,ikpt)-in%kptv(:,ikpt-iseg(i))) * &
+                real(j-ikpt+iseg(i),gp)/real(iseg(i), gp)
+        end do
+     end do
+     i_all=-product(shape(iseg))*kind(iseg)
+     deallocate(iseg,stat=i_stat)
+     call memocc(i_stat,i_all,'iseg',subname)
+     
+     !read an optional line to see if there is a file associated
+      call input_var(in%band_structure_filename,' ',&
+           comment=' ',input_iostat=ierror1)
+      if (ierror1 /=0) then
+         in%band_structure_filename=''
+      else
+         !since a file for the local potential is already given, do not perform ground state calculation
+         if (iproc==0) then
+            write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
+                 ', do not optimise GS wavefunctions'
+         end if
+         in%nrepmax=0
+         in%itermax=0
+         in%itrpmax=0
+         in%inputPsiId=-1000 !allocate empty wavefunctions
+         in%output_grid=0
+      end if
+  end if
+  call input_free(iproc)
+  !control whether we are giving k-points to Free BC
+  if (atoms%geocode == 'F' .and. exists) then
+     if (iproc==0) write(*,*)&
+          ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
+     stop
+  end if
+
+  ! Convert reduced coordinates into BZ coordinates.
+  alat = (/ atoms%alat1, atoms%alat2, atoms%alat3 /)
+  if (atoms%geocode /= 'P') alat(2) = 1.0_gp
+  if (atoms%geocode == 'F') then
+     alat(1)=1.0_gp
+     alat(3)=1.0_gp
+  end if
+  do i = 1, in%nkpt, 1
+     in%kpt(:, i) = in%kpt(:, i) / alat * two_pi
+  end do
+  do i = 1, in%nkptv, 1
+     in%kptv(:, i) = in%kptv(:, i) / alat * two_pi
+  end do
+
+ 
 end subroutine kpt_input_variables_new
 
 
@@ -1358,6 +1529,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
 
   call input_var("debug", .false., "Debug option", inputs%debug)
+  print *,'ciao'
   call input_var("fftcache", 8*1024, "Cache size for the FFT", inputs%ncache_fft)
   call input_var("accel", 7, "NO     ", (/ "NO     ", "CUDAGPU", "OCLGPU " /), &
        & "Acceleration", inputs%iacceleration)
@@ -1582,10 +1754,10 @@ subroutine frequencies_input_variables_new(iproc,filename,in)
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   !Local variables
+  logical :: exists
   integer, parameter :: iunit=111
   character(len=100) :: line,string
   integer :: ierror,iline
-  logical :: exists
 
   !Frequencies parameters
   call input_set_file(iproc,trim(filename),exists,'Frequencies Parameters')  

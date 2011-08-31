@@ -17,8 +17,8 @@ module module_input
 
   integer, parameter :: nmax_lines=500,max_length=100
   character(len=max_length) :: input_file,line_being_processed
-  logical :: output
-  integer :: iline_parsed,iline_written,iargument,ipos
+  logical :: output,lmpinit
+  integer :: iline_parsed,iline_written,iargument,ipos,nlines_total
   character(len=max_length), dimension(:), allocatable :: inout_lines
 
 
@@ -56,6 +56,12 @@ contains
     line_being_processed=repeat(' ',max_length)
     !the starting position for the lines is zero
     ipos=0
+    !there are no lines for the moment
+    nlines_total=0
+
+    !verify whether MPI has been initialized
+    lmpinit=.false.
+    call MPI_INITIALIZED(lmpinit,ierr)
 
     write(input_file, "(A)") trim(filename)
            
@@ -81,6 +87,7 @@ contains
        !broadcast the number of lines
        call MPI_BCAST(nlines,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (1) '
+       nlines_total=nlines
        !broadcast all the lines
        call MPI_BCAST(lines,nmax_lines*nlines,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
        if (ierr /=0) stop 'input_file BCAST (2) '
@@ -99,6 +106,7 @@ contains
        do i=1,nmax_lines
           inout_lines(i)=repeat(' ',max_length) !initialize lines
        end do
+       nlines_total=nmax_lines
     end if
 
     !write the first line in the output
@@ -142,6 +150,7 @@ contains
     integer :: iline
 
     if (present(iproc)) then !case for compulsory variables
+       !if (iline_written==1) iline_written=2
        if (iproc ==0) then
           if (iline_parsed==0) then !the file does not exist
              !add the writing of the file in the given unit
@@ -162,6 +171,18 @@ contains
     
   END SUBROUTINE input_free
 
+  subroutine leave()
+    implicit none
+    !local varaibles
+    integer :: ierr
+    write(*,'(1x,a,a,2(a,i3))')'Error while reading the file "', &
+         & trim(input_file), '", line=', iline_written,' argument=', iargument
+    if (iline_written <= nlines_total) write(*,*)inout_lines(iline_written),line_being_processed
+    !to be called only if mpi is initialized
+    if (lmpinit) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+    stop
+  end subroutine leave
+
   subroutine check(ierror)
     implicit none
     integer, intent(in) :: ierror
@@ -169,11 +190,7 @@ contains
     integer :: ierr
 
     if (ierror/=0) then
-       write(*,'(1x,a,a,2(a,i3))')'Error while reading the file "', &
-            & trim(input_file), '", line=', iline_written,' argument=', iargument
-       write(*,*)inout_lines(iline_written),line_being_processed
-       call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-       stop
+       call leave()
     end if
     !increment the argument at each passed check
     iargument=iargument+1
@@ -240,6 +257,7 @@ contains
     !change the allocate condition, since input lines is always used now
     !if (allocated(inout_lines)) then
     if (iline_parsed /= 0) then
+       print *,'test'
        do iline = 1, size(inout_lines), 1
           k = 1
           do ii = 1, len(inout_lines(iline)), 1
@@ -359,7 +377,19 @@ contains
     logical :: found
     integer :: ierror,ilist,ierr
 
-    if (present(input_iostat)) input_iostat=0 !no error for the moment
+    if (present(input_iostat)) then
+       !first, check if the line is correct
+       if (iline_written>nlines_total .or. iline_parsed==0) then
+          input_iostat=-1
+          return
+       else
+          input_iostat=0 !no error for the moment
+       end if
+    else
+       if (iline_written>nlines_total) then
+          call leave()
+       end if
+    end if
 
     !if the file has not been opened, use the default variable 
     !then write in the output lines the default
@@ -389,8 +419,7 @@ contains
                 input_iostat=1
                 return
              else
-                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                stop
+                call leave()
              end if
           end if
        else if (present(exclusive)) then
@@ -408,8 +437,7 @@ contains
                 input_iostat=1
                 return
              else
-                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                stop
+                call leave()
              end if
           end if
        end if 
@@ -434,7 +462,19 @@ contains
     integer :: ierror,ilist,ierr
     real(gp) :: double_var
 
-    if (present(input_iostat)) input_iostat=0 !no error for the moment
+    if (present(input_iostat)) then
+       !first, check if the line is correct
+       if (iline_written>nlines_total .or. iline_parsed==0) then
+          input_iostat=-1
+          return
+       else
+          input_iostat=0 !no error for the moment
+       end if
+    else
+       if (iline_written>nlines_total) then
+          call leave()
+       end if
+    end if
 
     !if the file has not been opened, use the default variable 
     !then write in the output lines the default
@@ -465,8 +505,7 @@ contains
                 input_iostat=1
                 return
              else
-                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                stop
+                call leave()
              end if
           end if
        else if (present(exclusive)) then
@@ -484,8 +523,7 @@ contains
                 input_iostat=1
                 return
              else
-                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                stop
+                call leave()
              end if
           end if
        end if 
@@ -509,7 +547,19 @@ contains
     logical :: found
     integer :: ierror,ilist,ierr
 
-    if (present(input_iostat)) input_iostat=0 !no error for the moment
+    if (present(input_iostat)) then
+       !first, check if the line is correct
+       if (iline_written>nlines_total .or. iline_parsed==0) then
+          input_iostat=-1
+          return
+       else
+          input_iostat=0 !no error for the moment
+       end if
+    else
+       if (iline_written>nlines_total) then
+          call leave()
+       end if
+    end if
 
     !if the file has not been opened, use the default variable 
     !then write in the output lines the default
@@ -539,8 +589,7 @@ contains
                 input_iostat=1
                 return
              else
-                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                stop
+                call leave()
              end if
           end if
        else if (present(exclusive)) then
@@ -558,8 +607,7 @@ contains
                 input_iostat=1
                 return
              else
-                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                stop
+                call leave()
              end if
           end if
        end if 
@@ -582,7 +630,19 @@ contains
     logical :: found
     integer :: ierror,ilist,ierr
 
-    if (present(input_iostat)) input_iostat=0 !no error for the moment
+    if (present(input_iostat)) then
+       !first, check if the line is correct (or if it is an optional line)
+       if (iline_written>nlines_total .or. iline_parsed==0) then
+          input_iostat=-1
+          return
+       else
+          input_iostat=0 !no error for the moment
+       end if
+    else
+       if (iline_written>nlines_total) then
+          call leave()
+       end if
+    end if
 
     !if the file has not been opened, use the default variable 
     !then write in the output lines the default
@@ -599,7 +659,6 @@ contains
     else
        !read the argument
        call process_line()
-
        read(line_being_processed,fmt=*,iostat=ierror) var
        call check(ierror)
 
@@ -618,8 +677,7 @@ contains
                 input_iostat=1
                 return
              else
-                call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-                stop
+                call leave()
              end if
           end if
        end if 
@@ -664,9 +722,6 @@ contains
        end if
     end if   
   END SUBROUTINE var_logical_compulsory
-
-
-
 
 !-routines for non-compulsory file (input.perf)
   subroutine var_character(name, default, description, var)
