@@ -1025,6 +1025,7 @@ real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables
 integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, tag, jproc, ilrold, iilr, iatold, iiorb, jlr, ii
+integer:: jorb
 logical:: copy
 type(overlapParameters):: op
 type(p2pCommsOrthonormality):: comon
@@ -1032,6 +1033,7 @@ type(p2pCommsOrthonormality):: comon
 real(8),dimension(:,:),allocatable:: hamTemp
 character(len=*),parameter:: subname='getHamiltonianMatrix'
 real(8),dimension(:),allocatable:: zeroArray
+real(8):: tt, ttmax
 
 
 allocate(hamTemp(orbsig%norb,orbsig%norb), stat=istat)
@@ -1068,7 +1070,7 @@ do iat=1,lzdig%nlr
         ii=ii+1
         !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,ii), comon)
         call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, &
-             lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
+             lchi, comon%nsendBuf, comon%sendBuf)
 
     else
         !write(*,'(2(a,i0))') 'iproc ',iproc,' skips locreg ',iat
@@ -1080,6 +1082,14 @@ do iat=1,lzdig%nlr
     call calculateOverlapMatrix3(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, &
          comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
     if(iproc==0) write(*,'(a)') 'done.'
+    !ttmax=0.d0
+    !do iorb=1,orbs%norb
+    !    do jorb=iorb,orbs%norb
+    !        tt=abs(hamTemp(jorb,iorb)-hamTemp(iorb,jorb))
+    !        if(tt>ttmax) ttmax=tt
+    !    end do
+    !end do
+    !if(iproc==0) write(*,*) 'max dev from symmetry: ',ttmax
     
     ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
     ! in calculating the input guess, this check has to be done only for those processes.

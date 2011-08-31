@@ -624,15 +624,8 @@ call memocc(istat, densKern, 'densKern', subname)
 call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t1)
 ! Calculate the density kernel.
-do iorb=1,lin%lb%orbs%norb
-    do jorb=1,lin%lb%orbs%norb
-        tt=0.d0
-        do korb=1,orbs%norb
-            tt = tt + coeff(iorb,korb)*coeff(jorb,korb)
-        end do
-        densKern(iorb,jorb)=tt
-    end do
-end do
+call dgemm('n', 't', lin%lb%orbs%norb, lin%lb%orbs%norb, orbs%norb, 1.d0, coeff(1,1), lin%lb%orbs%norb, &
+     coeff(1,1), lin%lb%orbs%norb, 0.d0, densKern(1,1), lin%lb%orbs%norb)
 call mpi_barrier(mpi_comm_world, ierr)
 call cpu_time(t2)
 time=t2-t1
