@@ -502,12 +502,6 @@ subroutine dft_input_variables_new(iproc,filename,in)
      in%output_grid = abs(in%output_grid)
   end if
   in%output_grid = modulo(in%output_grid, 10)
-  ! Validate output_wf value.
-  if (.not. output_grid_validate(in%output_grid, in%output_grid_format) .and. iproc == 0) then
-     write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_grid (', in%output_grid, ').'
-     call output_grid_help()
-     call MPI_ABORT(MPI_COMM_WORLD,0,ierror)
-  end if
 
   ! Tail treatment.
   call input_var(in%rbuf,'0.0',ranges=(/0.0_gp,10.0_gp/))
@@ -1233,82 +1227,86 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
      ! We normalise the weights.
      in%wkpt(:)=in%wkpt/norm
   end if
-  ! Now read the band structure definition.
-  call input_var(type,'bands',exclusive=(/'bands'/),&
-       comment='For doing band structure calculation',&
-       input_iostat=ierror)
-  if (ierror==0) then
-     call input_var(nseg,'1',ranges=(/1,1000/),&
-          comment='# of segments of the BZ path')
-     allocate(iseg(nseg+ndebug),stat=i_stat)
-     call memocc(i_stat,iseg,'iseg',subname)
-     !number of points for each segment, parallel granularity
-     do i=1,nseg
-        call input_var(iseg(i),'1',ranges=(/1,1000/))
-     end do
-     call input_var(ngranularity,'1',ranges=(/1,1000/),&
-          comment='points for each segment, # of points done for each group')
-     !calculate the number of groups of for the band structure
-     in%nkptv=1
-     do i=1,nseg
-        in%nkptv=in%nkptv+iseg(i)
-     end do
-     in%ngroups_kptv=&
-          ceiling(real(in%nkptv,gp)/real(ngranularity,gp))
 
-     allocate(in%nkptsv_group(in%ngroups_kptv+ndebug),stat=i_stat)
-     call memocc(i_stat,in%nkptsv_group,'in%nkptsv_group',subname)
-
-     ncount=0
-     do i=1,in%ngroups_kptv-1
-        !if ngranularity is bigger than nkptv  then ngroups is one
-        in%nkptsv_group(i)=ngranularity 
-        ncount=ncount+ngranularity
-     end do
-     !put the rest in the last group
-     in%nkptsv_group(in%ngroups_kptv)=in%nkptv-ncount
-
-     allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
-     call memocc(i_stat,in%kptv,'in%kptv',subname)
-
-     ikpt=1
-     call input_var(in%kptv(1,ikpt),'0.')
-     call input_var(in%kptv(2,ikpt),'0.')
-     call input_var(in%kptv(3,ikpt),'0.',comment=' ')
-     do i=1,nseg
-        ikpt=ikpt+iseg(i)
-        call input_var(in%kptv(1,ikpt),'0.5')
-        call input_var(in%kptv(2,ikpt),'0.5')
-        call input_var(in%kptv(3,ikpt),'0.5.',comment=' ')
-        !interpolate the values
-        do j=ikpt-iseg(i)+1,ikpt-1
-           in%kptv(:,j)=in%kptv(:,ikpt-iseg(i)) + &
-                (in%kptv(:,ikpt)-in%kptv(:,ikpt-iseg(i))) * &
-                real(j-ikpt+iseg(i),gp)/real(iseg(i), gp)
+  ! Now read the band structure definition. do it only if the file exists
+  if (exists) then
+     call input_var(type,'bands',exclusive=(/'bands'/),&
+          comment='For doing band structure calculation',&
+          input_iostat=ierror)
+     if (ierror==0) then
+        call input_var(nseg,'1',ranges=(/1,1000/),&
+             comment='# of segments of the BZ path')
+        allocate(iseg(nseg+ndebug),stat=i_stat)
+        call memocc(i_stat,iseg,'iseg',subname)
+        !number of points for each segment, parallel granularity
+        do i=1,nseg
+           call input_var(iseg(i),'1',ranges=(/1,1000/))
         end do
-     end do
-     i_all=-product(shape(iseg))*kind(iseg)
-     deallocate(iseg,stat=i_stat)
-     call memocc(i_stat,i_all,'iseg',subname)
-     
-     !read an optional line to see if there is a file associated
-      call input_var(in%band_structure_filename,' ',&
-           comment=' ',input_iostat=ierror1)
-      if (ierror1 /=0) then
-         in%band_structure_filename=''
-      else
-         !since a file for the local potential is already given, do not perform ground state calculation
-         if (iproc==0) then
-            write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
-                 ', do not optimise GS wavefunctions'
-         end if
-         in%nrepmax=0
-         in%itermax=0
-         in%itrpmax=0
-         in%inputPsiId=-1000 !allocate empty wavefunctions
-         in%output_grid=0
-      end if
+        call input_var(ngranularity,'1',ranges=(/1,1000/),&
+             comment='points for each segment, # of points done for each group')
+        !calculate the number of groups of for the band structure
+        in%nkptv=1
+        do i=1,nseg
+           in%nkptv=in%nkptv+iseg(i)
+        end do
+        in%ngroups_kptv=&
+             ceiling(real(in%nkptv,gp)/real(ngranularity,gp))
+        
+        allocate(in%nkptsv_group(in%ngroups_kptv+ndebug),stat=i_stat)
+        call memocc(i_stat,in%nkptsv_group,'in%nkptsv_group',subname)
+        
+        ncount=0
+        do i=1,in%ngroups_kptv-1
+           !if ngranularity is bigger than nkptv  then ngroups is one
+           in%nkptsv_group(i)=ngranularity 
+           ncount=ncount+ngranularity
+        end do
+        !put the rest in the last group
+        in%nkptsv_group(in%ngroups_kptv)=in%nkptv-ncount
+        
+        allocate(in%kptv(3,in%nkptv+ndebug),stat=i_stat)
+        call memocc(i_stat,in%kptv,'in%kptv',subname)
+        
+        ikpt=1
+        call input_var(in%kptv(1,ikpt),'0.')
+        call input_var(in%kptv(2,ikpt),'0.')
+        call input_var(in%kptv(3,ikpt),'0.',comment=' ')
+        do i=1,nseg
+           ikpt=ikpt+iseg(i)
+           call input_var(in%kptv(1,ikpt),'0.5')
+           call input_var(in%kptv(2,ikpt),'0.5')
+           call input_var(in%kptv(3,ikpt),'0.5.',comment=' ')
+           !interpolate the values
+           do j=ikpt-iseg(i)+1,ikpt-1
+              in%kptv(:,j)=in%kptv(:,ikpt-iseg(i)) + &
+                   (in%kptv(:,ikpt)-in%kptv(:,ikpt-iseg(i))) * &
+                   real(j-ikpt+iseg(i),gp)/real(iseg(i), gp)
+           end do
+        end do
+        i_all=-product(shape(iseg))*kind(iseg)
+        deallocate(iseg,stat=i_stat)
+        call memocc(i_stat,i_all,'iseg',subname)
+        
+        !read an optional line to see if there is a file associated
+        call input_var(in%band_structure_filename,' ',&
+             comment=' ',input_iostat=ierror1)
+        if (ierror1 /=0) then
+           in%band_structure_filename=''
+        else
+           !since a file for the local potential is already given, do not perform ground state calculation
+           if (iproc==0) then
+              write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
+                   ', do not optimise GS wavefunctions'
+           end if
+           in%nrepmax=0
+           in%itermax=0
+           in%itrpmax=0
+           in%inputPsiId=-1000 !allocate empty wavefunctions
+           in%output_grid=0
+        end if
+     end if
   end if
+  
   call input_free(iproc)
   !control whether we are giving k-points to Free BC
   if (atoms%geocode == 'F' .and. exists) then

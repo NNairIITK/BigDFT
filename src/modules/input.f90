@@ -384,7 +384,7 @@ contains
 
     if (present(input_iostat)) then
        !first, check if the line is correct
-       if (iline_written>nlines_total .or. iline_parsed==0) then
+       if (iline_written>nlines_total ) then
           input_iostat=-1
           return
        else
@@ -475,7 +475,7 @@ contains
 
     if (present(input_iostat)) then
        !first, check if the line is correct
-       if (iline_written>nlines_total .or. iline_parsed==0) then
+       if (iline_written>nlines_total ) then
           input_iostat=-1
           return
        else
@@ -566,7 +566,7 @@ contains
 
     if (present(input_iostat)) then
        !first, check if the line is correct
-       if (iline_written>nlines_total .or. iline_parsed==0) then
+       if (iline_written>nlines_total) then
           input_iostat=-1
           return
        else
@@ -655,7 +655,7 @@ contains
 
     if (present(input_iostat)) then
        !first, check if the line is correct (or if it is an optional line)
-       if (iline_written>nlines_total .or. iline_parsed==0) then
+       if (iline_written>nlines_total) then
           input_iostat=-1
           return
        else
