@@ -185,9 +185,8 @@ contains
 
   subroutine check(ierror)
     implicit none
+    !Arguments
     integer, intent(in) :: ierror
-    !Local variables
-    integer :: ierr
 
     if (ierror/=0) then
        call leave()
@@ -257,7 +256,7 @@ contains
     !change the allocate condition, since input lines is always used now
     !if (allocated(inout_lines)) then
     if (iline_parsed /= 0) then
-       print *,'test'
+       !print *,'test'
        do iline = 1, size(inout_lines), 1
           k = 1
           do ii = 1, len(inout_lines(iline)), 1
@@ -375,7 +374,7 @@ contains
     real(kind=8), dimension(:), intent(in), optional :: exclusive
     !Local variables
     logical :: found
-    integer :: ierror,ilist,ierr
+    integer :: ierror,ilist
 
     if (present(input_iostat)) then
        !first, check if the line is correct
@@ -406,7 +405,7 @@ contains
     else
        !read the argument
        call process_line()
-       print *,line_being_processed
+       !print *,line_being_processed
        call read_fraction_string(line_being_processed,var,ierror)
        call check(ierror)
 
@@ -458,9 +457,9 @@ contains
     real(kind=4), dimension(2), intent(in), optional :: ranges
     real(kind=4), dimension(:), intent(in), optional :: exclusive
     !Local variables
-    logical :: found
-    integer :: ierror,ilist,ierr
     real(gp) :: double_var
+    logical :: found
+    integer :: ierror,ilist
 
     if (present(input_iostat)) then
        !first, check if the line is correct
@@ -545,7 +544,7 @@ contains
     integer, dimension(:), intent(in), optional :: exclusive
     !Local variables
     logical :: found
-    integer :: ierror,ilist,ierr
+    integer :: ierror,ilist
 
     if (present(input_iostat)) then
        !first, check if the line is correct
@@ -628,7 +627,7 @@ contains
     character(len=*), dimension(:), intent(in), optional :: exclusive
     !Local variables
     logical :: found
-    integer :: ierror,ilist,ierr
+    integer :: ierror,ilist
 
     if (present(input_iostat)) then
        !first, check if the line is correct (or if it is an optional line)
