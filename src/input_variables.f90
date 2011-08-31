@@ -124,9 +124,6 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   call perf_input_variables(iproc,trim(inputs%file_perf),inputs)
   ! Read dft input variables
   call dft_input_variables_new(iproc,trim(inputs%file_dft),inputs)
-  !call dft_input_variables(iproc,trim(inputs%file_dft),inputs)
-  
-
   ! Update atoms with symmetry information
   call update_symmetries(inputs, atoms, rxyz)
   ! Read k-points input variables (if given)
@@ -135,9 +132,9 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
   ! Mixing input variables (if given)
   call mix_input_variables_new(iproc,trim(inputs%file_mix),inputs)
   ! Read geometry optimisation option
-  call geopt_input_variables(trim(inputs%file_geopt),inputs)
+  call geopt_input_variables_new(iproc,trim(inputs%file_geopt),inputs)
   ! Read tddft variables
-  call tddft_input_variables(trim(inputs%file_tddft),inputs)
+  call tddft_input_variables_new(iproc,trim(inputs%file_tddft),inputs)
   ! Read sic variables
   call sic_input_variables(trim(inputs%file_sic),inputs)
 
@@ -558,28 +555,6 @@ subroutine dft_input_variables_new(iproc,filename,in)
 end subroutine dft_input_variables_new
 
 
-!> Assign default values for GEOPT variables
-subroutine geopt_input_variables_default(in)
-  use module_base
-  use module_types
-  implicit none
-  type(input_variables), intent(inout) :: in
-
-  !put some fake values for the geometry optimsation case
-  in%geopt_approach='SDCG'
-  in%ncount_cluster_x=0
-  in%frac_fluct=1.0_gp
-  in%forcemax=0.0_gp
-  in%randdis=0.0_gp
-  in%betax=2.0_gp
-  in%history = 0
-  in%ionmov = -1
-  in%dtion = 0.0_gp
-  nullify(in%qmass)
-
-END SUBROUTINE geopt_input_variables_default
-
-
 !> Assign default values for mixing variables
 subroutine mix_input_variables_default(in)
   use module_base
@@ -695,8 +670,126 @@ contains
 END SUBROUTINE mix_input_variables
 
 
+!> Assign default values for GEOPT variables
+subroutine geopt_input_variables_default(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(inout) :: in
+
+  !put some fake values for the geometry optimsation case
+  in%geopt_approach='SDCG'
+  in%ncount_cluster_x=0
+  in%frac_fluct=1.0_gp
+  in%forcemax=0.0_gp
+  in%randdis=0.0_gp
+  in%betax=2.0_gp
+  in%history = 0
+  in%ionmov = -1
+  in%dtion = 0.0_gp
+  nullify(in%qmass)
+
+END SUBROUTINE geopt_input_variables_default
+
+
 !> Read the input variables needed for the geometry optimisation
-!!    Every argument should be considered as mandatory
+!! Every argument should be considered as mandatory
+subroutine geopt_input_variables_new(iproc,filename,in)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  character(len=*), parameter :: subname='geopt_input_variables'
+  character(len = 128) :: line
+  integer :: i_stat,ierror,iline,i
+  logical :: exists
+
+  !geometry input parameters
+  call input_set_file(iproc,trim(filename),exists,'Geometry Parameters')  
+  !call the variable, its default value, the line ends if there is a comment
+  if (.not. exists) then
+     in%ncount_cluster_x=0
+     return
+  end if
+
+  call input_var(in%geopt_approach,"BFGS",exclusive=(/'SDCG ','VSSD ','LBFGS','BFGS ','PBFGS','AB6MD'/),&
+       comment="Geometry optimisation method")
+  call input_var(in%ncount_cluster_x,'1',ranges=(/0,2000/),&
+       comment="Maximum number of force evaluations")
+  call input_var(in%frac_fluct,'1.0',ranges=(/0.0_gp,10.0_gp/))
+  call input_var(in%forcemax,'0.0',ranges=(/0.0_gp,10.0_gp/),&
+       comment="fract_fluct,forcemax")
+  call input_var(in%randdis,'0.0',ranges=(/0.0_gp,10.0_gp/),&
+       comment="random displacement amplitude")
+
+  if (case_insensitive_equiv(in%geopt_approach,"AB6MD")) then
+     in%nnos=0
+     call input_var(in%ionmov,'6',exclusive=(/6,7,8,9,12,13/),&
+          comment="AB6MD: movement ion method")
+     call input_var(in%dtion,'20.670689',ranges=(/0.0_gp,1.e3_gp/),&
+          comment="Time step for molecular dynamics - Atomic Units (20.670689 AU=0.5 fs)")
+
+     if (in%ionmov == 6) then
+        call input_var(in%mditemp,'300',ranges=(/0.0_gp,1.0e9_gp/),&
+             comment="Temperature of molecular dynamics")
+     elseif (in%ionmov > 7) then
+        call input_var(in%mditemp,'300',ranges=(/0.0_gp,1.0e9_gp/))
+        call input_var(in%mdftemp,'300',ranges=(/0.0_gp,1.0e9_gp/),&
+             comment="Initial and Final Temperatures of molecular dynamics")
+     end if
+
+     if (in%ionmov == 8) then
+        call input_var(in%noseinert,'1.e5',ranges=(/0.0_gp,1.0e9_gp/),&
+             comment="Thermostat inertia coefficient for Nose_Hoover dynamics")
+     else if (in%ionmov == 9) then
+        call input_var(in%friction,'1.e-3',&
+             comment="Friction coefficient for Langevin dynamics")
+        call input_var(in%mdwall,'1.e4',ranges=(/0.0_gp,1.e5_gp/),&
+             comment="Distance in bohr where atoms can bounce for Langevin dynamics")
+     else if (in%ionmov == 13) then
+        call input_var(in%nnos,'0',ranges=(/0,100/),&
+             comment="Number of Thermostat (isothermal/isenthalpic ensemble)")
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
+        do i=1,in%nnos-1
+           call input_var(in%qmass(i),'0.0',ranges=(/0.0_gp,1.e9_gp/))
+        end do
+        if (in%nnos > 0) call input_var(in%qmass(in%nnos),'0.0',ranges=(/0.0_gp,1.e9_gp/),&
+           comment="Mass of each thermostat (isothermal/isenthalpic ensemble)")
+        call input_var(in%bmass,'10',ranges=(/0.0_gp,1.0e9_gp/))
+        call input_var(in%vmass,'1.0',ranges=(/0.0_gp,1.0e9_gp/),&
+             comment="Barostat masses (isothermal/isenthalpic ensemble)")
+     end if
+
+     if (in%ionmov /= 13) then
+        !the allocation of this pointer should be done in any case
+        allocate(in%qmass(in%nnos+ndebug),stat=i_stat)
+        call memocc(i_stat,in%qmass,'in%qmass',subname)
+     end if
+
+  else if (case_insensitive_equiv(in%geopt_approach,"DIIS")) then
+     call input_var(in%betax,'2.0',ranges=(/0.0_gp,100.0_gp/))
+     call input_var(in%history,'4',ranges=(/0,1000/),&
+          comment="Stepsize and history for DIIS method")
+  else
+     call input_var(in%betax,'4.0',ranges=(/0.0_gp,100.0_gp/),&
+          comment="Stepsize for the geometry optimisation")
+  end if
+  if (case_insensitive_equiv(in%geopt_approach,"FIRE")) then
+        call input_var(in%dtinit,'0.75',ranges=(/0.0_gp,1.e4_gp/))
+        call input_var(in%dtmax, '1.5',ranges=(/in%dtinit,1.e4_gp/),&
+             comment="initial and maximal time step for the FIRE method")
+  endif
+
+END SUBROUTINE geopt_input_variables_new
+
+
+!> Read the input variables needed for the geometry optimisation
+!! Every argument should be considered as mandatory
 subroutine geopt_input_variables(filename,in)
   use module_base
   use module_types
@@ -800,6 +893,7 @@ contains
 
 END SUBROUTINE geopt_input_variables
 
+
 !> Assign default values for TDDFT variables
 subroutine sic_input_variables_default(in)
   use module_base
@@ -869,6 +963,35 @@ subroutine tddft_input_variables_default(in)
 END SUBROUTINE tddft_input_variables_default
 
 
+subroutine tddft_input_variables_new(iproc,filename,in)
+  use module_base
+  use module_types
+  use module_input
+  implicit none
+  integer, intent(in) :: iproc
+  character(len=*), intent(in) :: filename
+  type(input_variables), intent(inout) :: in
+  !local variables
+  logical :: exists
+  character(len=*), parameter :: subname='tddft_input_variables'
+  integer :: iline, ierror
+
+  !TD-DFT parameters
+  call input_set_file(iproc,trim(filename),exists,'TD-DFT Parameters')  
+  !call the variable, its default value, the line ends if there is a comment
+
+  if (.not. exists) then
+     !write(*,*) "The file 'input.tddft' does not exists!"
+     !      stop
+     return
+  end if
+
+  call input_var(in%tddft_approach,"TDA",comment="Tamm-Dancoff approximation")
+  call input_free(iproc)
+
+END SUBROUTINE tddft_input_variables_new
+
+
 subroutine tddft_input_variables(filename,in)
   use module_base
   use module_types
@@ -916,7 +1039,6 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE tddft_input_variables
-
 
 
 !> Calculate symmetries and update
@@ -1021,7 +1143,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   in%ngroups_kptv=1
 
   !dft parameters, needed for the SCF part
-  call input_set_file(iproc,trim(filename),exists,'Brilloiun Zone Sampling Parameters')  
+  call input_set_file(iproc,trim(filename),exists,'Brillouin Zone Sampling Parameters')  
   !call the variable, its default value, the line ends if there is a comment
 
   !if the file does not exists, put the default values
@@ -1642,50 +1764,15 @@ subroutine frequencies_input_variables_new(iproc,filename,in)
   !call the variable, its default value, the line ends if there is a comment
 
   !Read in%freq_alpha (possible 1/64)
-  read(unit=iunit,fmt="(a)",iostat=ierror) line
-  !Transform the line in case there are slashes (to ease the parsing)
-  call read_fraction_string(line,in%freq_alpha,ierror)
-  if (ierror /= 0) then
-     print *,'wrong format of the string: '//string
-     ierror=1
-  end if
-  call check()
+  call input_var(in%freq_alpha,'1/64',ranges=(/0.0_gp,1.0_gp/),&
+       comment="Step size factor (alpha*hgrid)")
   !Read the order of finite difference scheme
-  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_order
-  if (in%freq_order /= -1 .and. in%freq_order /= 1 &
-     & .and. in%freq_order /= 2 .and. in%freq_order /= 3 ) then
-     if (iproc==0) write (*,'(1x,a)') 'Only -1, 1, 2 or 3 are possible for the order scheme'
-     stop
-  end if
+  call input_var(in%freq_order,'2',exclusive=(/-1,1,2,3/),&
+       comment="Order of the difference scheme")
   !Read the index of the method
-  read(unit=iunit,fmt=*,iostat=ierror)  in%freq_method
-  if (in%freq_method /= 1) then
-     if (iproc==0) write (*,'(1x,a)') '1 for the method to calculate frequencies.'
-     stop
-  end if
-  call check()
-
-  close(unit=iunit)
-
-  !Message
-  if (iproc == 0) then
-     write(*,*)
-     write(*,'(1x,a,1pg14.6)') '=F= Step size factor',in%freq_alpha
-     write(*,'(1x,a,i10)')     '=F= Order scheme    ',in%freq_order
-     write(*,'(1x,a,i10)')     '=F= Used method     ',in%freq_method
-  end if
-
-contains
-
-  subroutine check()
-    implicit none
-    iline=iline+1
-    if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  END SUBROUTINE check
+  call input_var(in%freq_method,'1',exclusive=(/1/),&
+       comment="Method used (only possible value=1)")
+  call input_free(iproc)
 
 END SUBROUTINE frequencies_input_variables_new
 
@@ -1695,6 +1782,7 @@ END SUBROUTINE frequencies_input_variables_new
 subroutine frequencies_input_variables(iproc,filename,in)
   use module_base
   use module_types
+  use module_input
   implicit none
   !Arguments
   type(input_variables), intent(inout) :: in
@@ -1756,6 +1844,188 @@ contains
   END SUBROUTINE check
 
 END SUBROUTINE frequencies_input_variables
+
+
+!> Fill the arrays occup and spinsgn
+!! if iunit /=0 this means that the file 'input.occ' does exist and it opens
+subroutine occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
+  use module_base
+  use module_input
+  implicit none
+  ! Arguments
+  integer, intent(in) :: nelec,nspin,iproc,norb,norbu,iunit,norbuempty,norbdempty
+  real(gp), dimension(norb), intent(out) :: occup,spinsgn
+  ! Local variables
+  integer :: iorb,nt,ne,it,ierror,iorb1,i
+  real(gp) :: rocc
+  character(len=20) :: string
+  character(len=100) :: line
+
+  do iorb=1,norb
+     spinsgn(iorb)=1.0_gp
+  end do
+  if (nspin/=1) then
+     do iorb=1,norbu
+        spinsgn(iorb)=1.0_gp
+     end do
+     do iorb=norbu+1,norb
+        spinsgn(iorb)=-1.0_gp
+     end do
+  end if
+  ! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
+
+  ! First fill the occupation numbers by default
+  nt=0
+  if (nspin==1) then
+     ne=(nelec+1)/2
+     do iorb=1,ne
+        it=min(2,nelec-nt)
+        occup(iorb)=real(it,gp)
+        nt=nt+it
+     enddo
+     do iorb=ne+1,norb
+        occup(iorb)=0._gp
+     end do
+  else
+     if (norbuempty+norbdempty == 0) then
+        if (norb > nelec) then
+           do iorb=1,min(norbu,norb/2+1)
+              it=min(1,nelec-nt)
+              occup(iorb)=real(it,gp)
+              nt=nt+it
+           enddo
+           do iorb=min(norbu,norb/2+1)+1,norbu
+              occup(iorb)=0.0_gp
+           end do
+           do iorb=norbu+1,norbu+min(norb-norbu,norb/2+1)
+              it=min(1,nelec-nt)
+              occup(iorb)=real(it,gp)
+              nt=nt+it
+           enddo
+           do iorb=norbu+min(norb-norbu,norb/2+1)+1,norb
+              occup(iorb)=0.0_gp
+           end do
+        else
+           do iorb=1,norb
+              occup(iorb)=1.0_gp
+           end do
+        end if
+     else
+        do iorb=1,norbu-norbuempty
+           occup(iorb)=1.0_gp
+        end do
+        do iorb=norbu-norbuempty+1,norbu
+           occup(iorb)=0.0_gp
+        end do
+        do iorb=1,norb-norbu-norbdempty
+           occup(norbu+iorb)=1.0_gp
+        end do
+        do iorb=norb-norbu-norbdempty+1,norb-norbu
+           occup(norbu+iorb)=0.0_gp
+        end do
+     end if
+  end if
+  ! Then read the file "input.occ" if does exist
+  if (iunit /= 0) then
+     nt=0
+     do
+        read(unit=iunit,fmt='(a100)',iostat=ierror) line
+        if (ierror /= 0) then
+           exit
+        end if
+        !Transform the line in case there are slashes (to ease the parsing)
+        do i=1,len(line)
+           if (line(i:i) == '/') then
+              line(i:i) = ':'
+           end if
+        end do
+        read(line,*,iostat=ierror) iorb,string
+        call read_fraction_string(string,rocc,ierror) 
+        if (ierror /= 0) then
+           exit
+        end if
+
+        if (ierror/=0) then
+           exit
+        else
+           nt=nt+1
+           if (iorb<0 .or. iorb>norb) then
+              !if (iproc==0) then
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
+              !end if
+              stop
+           elseif (rocc<0._gp .or. rocc>2._gp) then
+              !if (iproc==0) then
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
+              write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
+              !end if
+              stop
+           else
+              occup(iorb)=rocc
+           end if
+        end if
+     end do
+     if (iproc==0) then
+        write(*,'(1x,a,i0,a)') &
+             'The occupation numbers are read from the file "input.occ" (',nt,' lines read)'
+     end if
+     close(unit=iunit)
+
+     if (nspin/=1) then
+!!!        !Check if the polarisation is respected (mpol)
+!!!        rup=sum(occup(1:norbu))
+!!!        rdown=sum(occup(norbu+1:norb))
+!!!        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
+!!!           if (iproc==0) then
+!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "input.occ", the polarization ',rup-rdown,&
+!!!                             ' is not equal to ',norbu-norbd
+!!!           end if
+!!!           stop
+!!!        end if
+        !Fill spinsgn
+        do iorb=1,norbu
+           spinsgn(iorb)=1.0_gp
+        end do
+        do iorb=norbu+1,norb
+           spinsgn(iorb)=-1.0_gp
+        end do
+     end if
+  end if
+  if (iproc==0) then 
+     write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
+     iorb1=1
+     rocc=occup(1)
+     do iorb=1,norb
+        if (occup(iorb) /= rocc) then
+           if (iorb1 == iorb-1) then
+              write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
+           else
+              write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+           end if
+           rocc=occup(iorb)
+           iorb1=iorb
+        end if
+     enddo
+     if (iorb1 == norb) then
+        write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
+     else
+        write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+     end if
+  endif
+
+  !Check if sum(occup)=nelec
+  rocc=sum(occup)
+  if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
+     !if (iproc==0) then
+     write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
+          ' is not equal to ',nelec
+     !end if
+     stop
+  end if
+
+
+END SUBROUTINE occupation_input_variables
 
 
 module position_files

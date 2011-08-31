@@ -29,10 +29,12 @@ module module_input
           & var_char_compulsory
   end interface
 
-  public :: case_insensitive_equiv
   public :: input_set_file
-  public :: input_free
   public :: input_var
+  public :: input_free
+  public :: case_insensitive_equiv
+  public :: read_fraction_string
+  public :: read_fraction_string_old
 
 contains
 
@@ -138,12 +140,13 @@ contains
 !!$               trim(comment_file_usage)
 !!$       end if
 !!$    end if
+
   END SUBROUTINE input_set_file
 
   subroutine input_free(iproc)
     implicit none
     integer, intent(in), optional :: iproc
-    !local variables
+    !Local variables
     integer :: iline
 
     if (present(iproc)) then !case for compulsory variables
@@ -183,7 +186,7 @@ contains
   subroutine check(ierror)
     implicit none
     integer, intent(in) :: ierror
-    !local variables
+    !Local variables
     integer :: ierr
 
     if (ierror/=0) then
@@ -198,8 +201,8 @@ contains
   subroutine process_line(default,line_comment)
     implicit none
     character(len=*), intent(in), optional :: default,line_comment
-    !local variables
-    integer :: ierror,i,iblank
+    !Local variables
+    integer :: i,iblank
 
     if (iargument==1) then
        ipos=0
@@ -274,12 +277,74 @@ contains
     iline = 0
   END SUBROUTINE find
 
+
+  !> Read a real or real/real, real:real 
+  !! Here the fraction is indicated by the ':' or '/'
+  !! The problem is that / is a separator for Fortran
+  subroutine read_fraction_string(string,var,ierror)
+     use module_base
+     implicit none
+     !Arguments
+     character(len=*), intent(in) :: string
+     real(gp), intent(out) :: var
+     integer, intent(out) :: ierror
+     !Local variables
+     character(len=200) :: tmp
+     integer :: num,den,pfr,psp
+
+     !First look at the first blank after trim
+     tmp=trim(string)
+     psp = scan(tmp,' ')
+
+     !see whether there is a fraction in the string
+     if(psp==0) psp=len(tmp)
+     pfr = scan(tmp(1:psp),':')
+     if (pfr == 0) pfr = scan(tmp(1:psp),'/')
+     !It is not a fraction
+     if (pfr == 0) then
+        read(tmp(1:psp),*,iostat=ierror) var
+     else 
+        read(tmp(1:pfr-1),*,iostat=ierror) num
+        read(tmp(pfr+1:psp),*,iostat=ierror) den
+        if (ierror == 0) var=real(num,gp)/real(den,gp)
+     end if
+     !Value by defaut
+     if (ierror /= 0) var = huge(1_gp)
+  END SUBROUTINE read_fraction_string
+
+
+  !>  Here the fraction is indicated by the :
+  subroutine read_fraction_string_old(l,string,occ)
+     use module_base
+     implicit none
+     integer, intent(in) :: l
+     character(len=*), intent(in) :: string
+     real(gp), intent(out) :: occ
+     !local variables
+     integer :: num,den,pfr
+
+     !see whether there is a fraction in the string
+     if (l>3) then
+        pfr=3
+     else
+        pfr=2
+     end if
+     if (string(pfr:pfr) == ':') then
+        read(string(1:pfr-1),*)num
+        read(string(pfr+1:2*pfr-1),*)den
+        occ=real(num,gp)/real(den,gp)
+     else
+        read(string,*)occ
+     end if
+  END SUBROUTINE read_fraction_string_old
+
+
   !> Compare two strings (case-insensitive). Blanks are relevant!
   function case_insensitive_equiv(stra,strb)
     implicit none
     character(len=*), intent(in) :: stra,strb
     logical :: case_insensitive_equiv
-    !local variables
+    !Local variables
     integer :: i,ica,icb,ila,ilb,ilength
     ila=len(stra)
     ilb=len(strb)
@@ -308,7 +373,7 @@ contains
     integer, intent(out), optional :: input_iostat
     real(kind=8), dimension(2), intent(in), optional :: ranges
     real(kind=8), dimension(:), intent(in), optional :: exclusive
-    !local variables
+    !Local variables
     logical :: found
     integer :: ierror,ilist,ierr
 
@@ -341,6 +406,7 @@ contains
     else
        !read the argument
        call process_line()
+       print *,line_being_processed
        call read_fraction_string(line_being_processed,var,ierror)
        call check(ierror)
 
@@ -391,9 +457,10 @@ contains
     integer, intent(out), optional :: input_iostat
     real(kind=4), dimension(2), intent(in), optional :: ranges
     real(kind=4), dimension(:), intent(in), optional :: exclusive
-    !local variables
+    !Local variables
     logical :: found
     integer :: ierror,ilist,ierr
+    real(gp) :: double_var
 
     if (present(input_iostat)) then
        !first, check if the line is correct
@@ -418,14 +485,16 @@ contains
        else
           call process_line(default=default)
        end if
-       call read_fraction_string(default,var,ierror)
+       call read_fraction_string(default,double_var,ierror)
        call check(ierror)
+       var=real(double_var,kind=4)
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
-       call read_fraction_string(line_being_processed,var,ierror)
+       call read_fraction_string(line_being_processed,double_var,ierror)
        call check(ierror)
+       var=real(double_var,kind=4)
 
        !check the validity of the variable
        if (present(ranges)) then
@@ -474,7 +543,7 @@ contains
     integer, intent(out), optional :: input_iostat
     integer, dimension(2), intent(in), optional :: ranges
     integer, dimension(:), intent(in), optional :: exclusive
-    !local variables
+    !Local variables
     logical :: found
     integer :: ierror,ilist,ierr
 
@@ -557,7 +626,7 @@ contains
     character(len=*), intent(in), optional :: comment
     integer, intent(out), optional :: input_iostat
     character(len=*), dimension(:), intent(in), optional :: exclusive
-    !local variables
+    !Local variables
     logical :: found
     integer :: ierror,ilist,ierr
 
@@ -625,9 +694,8 @@ contains
     character(len=*), intent(in) :: default
     logical, intent(out) :: var
     character(len=*), intent(in), optional :: comment
-    !local variables
-    logical :: found
-    integer :: ierror,ilist,ierr
+    !Local variables
+    integer :: ierror
 
     !if the file has not been opened, use the default variable 
     !then write in the output lines the default
