@@ -1,7 +1,7 @@
 !> This subroutine initializes all parameters needed for the linear scaling version
 !! and allocate all arrays.
 subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
-    input, rxyz, nscatterarr, coeff, lphi)
+    input, rxyz, nscatterarr, tag, coeff, lphi)
 ! Calling arguments:
 ! ==================
 !   Input arguments:
@@ -35,18 +35,18 @@ type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer,intent(inout):: tag
 real(8),dimension(:),pointer,intent(out):: phi
 real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 
 ! Local variables
-integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, tag
+integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb
 integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
 integer :: npsidim
 
-tag=0
 
 
 ! Nullify all pointers
@@ -244,7 +244,7 @@ deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing input guess... '
-call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr)
+call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
 if(iproc==0) write(*,'(a)') 'done.'
 
 ! The initializations are done.

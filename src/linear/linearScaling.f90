@@ -98,7 +98,7 @@ real(8):: fnoise
 
 
 ! Local variables
-integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot, ist, istr, ilr
+integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot, ist, istr, ilr, tag
 real(8),dimension(:),pointer:: phi, phid
 real(8),dimension(:,:),pointer:: coeff, coeffd
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu
@@ -129,8 +129,9 @@ type(workarr_sumrho):: w
   call cpu_time(t1tot)
 
   ! Initialize the parameters for the linear scaling version and allocate all arrays.
+  tag=0
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
-       input, rxyz, nscatterarr, coeff, lphi)
+       input, rxyz, nscatterarr, tag, coeff, lphi)
 
   call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
 
@@ -139,7 +140,7 @@ type(workarr_sumrho):: w
        comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-       lphi, ehart, eexcu, vexcu)
+       tag, lphi, ehart, eexcu, vexcu)
   !!do iall=1,size(rhopot)
   !!    read(10000+iproc,*) rhopot(iall)
   !!end do
@@ -238,14 +239,16 @@ type(workarr_sumrho):: w
 
 
       ! Potential from electronic charge density
-      !!call cpu_time(t1)
+      call mpi_barrier(mpi_comm_world, ierr)
+      call cpu_time(t1)
       call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
            rhopot, at, nscatterarr)
+      call mpi_barrier(mpi_comm_world, ierr)
+      call cpu_time(t2)
+      time=t2-t1
       call deallocateCommunicationbufferSumrho(lin%comsr, subname)
-      !!call cpu_time(t2)
-      !!time=t2-t1
       !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-      !!if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
+      if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time
 
       ! Mix the density.
       if(trim(lin%mixingMethod)=='dens') then
