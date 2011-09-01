@@ -9,7 +9,7 @@ subroutine LinearDiagHam(iproc,at,etol,Lzd,orbs,nspin,natsc,Lhpsi,Lpsi,psit,orbs
   integer, intent(in) :: natsc                                          !> number of atoms having semicore states
   real(gp),intent(in) :: etol                                           !> Tolerance on energy for solve_eigensystem
   type(atoms_data),intent(in) :: at                                     !> Atoms data
-  type(linear_zone_descriptors) :: Lzd                                  !> Information about the locregs
+  type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs
   type(orbitals_data), intent(in) :: orbs                               !> description of orbitals after the input guess (less orbitals)
   type(orbitals_data), optional, intent(in) :: orbsv                    !> description of virtual orbitals (for davidson?)
   real(wp),dimension(Lzd%Lpsidimtot),intent(in):: Lhpsi                   !> All the local H|Psi>

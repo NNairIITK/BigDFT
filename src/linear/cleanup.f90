@@ -702,14 +702,14 @@ end module deallocatePointers
 !!  interface
 !!
 !!
-!!    subroutine deallocate_linear_zone_descriptors(lzd, subname)
+!!    subroutine deallocate_local_zone_descriptors(lzd, subname)
 !!      use module_base
 !!      use module_types
 !!      use deallocatePointers
 !!      implicit none
-!!      type(linear_zone_descriptors),intent(inout):: lzd
+!!      type(local_zone_descriptors),intent(inout):: lzd
 !!      character(len=*),intent(in):: subname
-!!    end subroutine deallocate_linear_zone_descriptors
+!!    end subroutine deallocate_local_zone_descriptors
 !!    
 !!    subroutine deallocate_orbitals_data(orbs, subname)
 !!      use module_base
@@ -844,7 +844,7 @@ subroutine deallocate_linearParameters(lin, subname)
   call deallocate_p2pCommsSumrho(lin%comsr, subname)
   call deallocate_p2pCommsGatherPot(lin%comgp, subname)
   call deallocate_largeBasis(lin%lb, subname)
-  call deallocate_linear_zone_descriptors(lin%lzd, subname)
+  call deallocate_local_zone_descriptors(lin%lzd, subname)
   call deallocate_p2pCommsOrthonormality(lin%comon, subname)
   call deallocate_overlapParameters(lin%op, subname)
   call deallocate_matrixDescriptors(lin%mad, subname)
@@ -853,15 +853,15 @@ end subroutine deallocate_linearParameters
 
 
 
-subroutine deallocate_linear_zone_descriptors(lzd, subname)
+subroutine deallocate_local_zone_descriptors(lzd, subname)
   use module_base
   use module_types
   use deallocatePointers
-  use module_interfaces, exceptThisOne => deallocate_linear_zone_descriptors
+  use module_interfaces, exceptThisOne => deallocate_local_zone_descriptors
   implicit none
   
   ! Calling arguments
-  type(linear_zone_descriptors),intent(inout):: lzd
+  type(local_zone_descriptors),intent(inout):: lzd
   character(len=*),intent(in):: subname
   
   ! Local variables
@@ -876,7 +876,7 @@ subroutine deallocate_linear_zone_descriptors(lzd, subname)
 !      call deallocate_orbitals_data(lzd%lorbs(i1), subname)
 !  end do
   
-  !call deallocate_communications_arrays(lzd%comms, subname)
+!  call deallocate_communications_arrays(lzd%comms, subname)
   
   call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
@@ -904,7 +904,7 @@ subroutine deallocate_linear_zone_descriptors(lzd, subname)
          call deallocate_nonlocal_psp_descriptors(lzd%lnlpspd(i1), subname)
      end do
   end if
-end subroutine deallocate_linear_zone_descriptors
+end subroutine deallocate_local_zone_descriptors
 
 
 subroutine deallocate_orbitals_data(orbs, subname)
@@ -1229,7 +1229,7 @@ subroutine deallocate_largeBasis(lb, subname)
   call deallocate_communications_arrays(lb%gcomms, subname)
   call deallocate_orbitals_data(lb%orbs, subname)
   call deallocate_orbitals_data(lb%gorbs, subname)
-  !call deallocate_linear_zone_descriptors(lb%lzd, subname)
+  !call deallocate_local_zone_descriptors(lb%lzd, subname)
   call dealloctae_p2pCommsRepartition(lb%comrp, subname)
   call deallocate_p2pCommsOrthonormality(lb%comon, subname)
   call deallocate_overlapParameters(lb%op, subname)

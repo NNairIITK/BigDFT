@@ -160,6 +160,7 @@ real(8),dimension(:,:),allocatable:: la, lb, lc
 integer,dimension(9):: desc_lc, desc_la, desc_lb
 character(len=*),parameter:: subname='dgemm_parallel'
 
+
   ! Block size for scalapack
   mbrow=blocksize
   mbcol=blocksize
@@ -297,7 +298,6 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   integer,dimension(9):: desc_lz, desc_la
   integer,dimension(:),allocatable:: iwork, ifail, icluster
   character(len=*),parameter:: subname='dsyev_parallel'
-  
   
   
   
@@ -489,7 +489,6 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   integer,dimension(9):: desc_lz, desc_la, desc_lb
   integer,dimension(:),allocatable:: iwork, ifail, icluster
   character(len=*),parameter:: subname='dsygv_parallel'
-  
   
   
   

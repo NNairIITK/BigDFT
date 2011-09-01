@@ -7,7 +7,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, it
 type(orbitals_data),intent(in):: orbs, lorbs
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 integer,dimension(orbs%norbp),intent(in):: onWhichAtom
 real(8),dimension(lorbs%npsidim),intent(in):: hphi
 real(8),dimension(lorbs%npsidim),intent(inout):: phi
@@ -188,7 +188,7 @@ implicit none
 
 ! Calling arguments
 integer,intent(in):: isx, norb
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(orbitals_data),intent(in):: orbs
 integer,dimension(orbs%norb),intent(in):: onWhichAtom
 logical,intent(in):: startWithSDx

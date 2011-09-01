@@ -413,7 +413,7 @@ module module_interfaces
        real(dp), dimension(*), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
-       type(linear_zone_descriptors),optional :: Lzd
+       type(local_zone_descriptors),optional :: Lzd
      END SUBROUTINE HamiltonianApplication
 
      subroutine HamiltonianApplicationConfinement(iproc,nproc,at,orbs,lin,hx,hy,hz,rxyz,&
@@ -671,7 +671,7 @@ module module_interfaces
        implicit none
        integer, intent(in) :: iproc,nproc
        type(orbitals_data), intent(in) :: orbs
-       type(linear_zone_descriptors), intent(in) :: Lzd
+       type(local_zone_descriptors), intent(in) :: Lzd
        type(communications_arrays), intent(in) :: comms
        real(wp), dimension(:), pointer :: psi
        real(wp), dimension(:), pointer, optional :: work
@@ -2212,7 +2212,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer, intent(in) :: nspin
       real(dp),dimension(max(nrho,1),nspin),intent(out):: rho
       real(gp), intent(in) :: hxh,hyh,hzh
-      type(linear_zone_descriptors), intent(in) :: Lzd
+      type(local_zone_descriptors), intent(in) :: Lzd
       type(orbitals_data),intent(in):: orbs
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
@@ -2243,7 +2243,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(gp), intent(in) :: hx,hy,hz
        type(atoms_data), intent(in) :: at
        type(input_variables), intent(in) :: input
-       type(linear_zone_descriptors),intent(inout) :: Lzd
+       type(local_zone_descriptors),intent(inout) :: Lzd
        type(orbitals_data),intent(in) :: orbs
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -2269,7 +2269,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer, intent(in) :: natsc                                          
        real(gp),intent(in) :: etol         
        type(atoms_data),intent(in) :: at                                  
-       type(linear_zone_descriptors) :: Lzd                                  
+       type(local_zone_descriptors) :: Lzd                                  
        type(orbitals_data), intent(in) :: orbs                               
        type(orbitals_data), optional, intent(in) :: orbsv                    
        real(wp),dimension(Lzd%Lpsidimtot),intent(in):: Lhpsi               
@@ -2285,7 +2285,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_types
        implicit none
        integer, intent(in) :: iproc,nproc,natsc,nspin
-       type(linear_zone_descriptors) :: Lzd                                  !> Information about the locregs
+       type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs
        type(communications_arrays), target, intent(in) :: comms
        type(orbitals_data), target, intent(inout) :: orbs
        type(input_variables):: input
@@ -2407,7 +2407,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(gp), intent(in) :: hx,hy,hz
        type(atoms_data), intent(in) :: at
        type(input_variables), intent(in) :: input
-       type(linear_zone_descriptors),intent(inout) :: Lzd
+       type(local_zone_descriptors),intent(inout) :: Lzd
        type(orbitals_data),intent(in):: orbs
        type(linearParameters),intent(in):: lin
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
@@ -2540,7 +2540,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        implicit none
        integer,intent(in):: iproc, nproc
        type(orbitals_data),intent(in):: orbs
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
        type(overlapParameters),intent(out):: op
        type(p2pCommsOrthonormality),intent(out):: comon
@@ -2552,7 +2552,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        implicit none
        integer,intent(in):: iproc, nproc
        type(orbitals_data),intent(in):: orbs
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
        type(overlapParameters),intent(out):: op
        type(p2pCommsOrthonormality),intent(out):: comon
@@ -2564,7 +2564,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        implicit none
        integer,intent(in):: iproc, nproc
        type(orbitals_data),intent(in):: orbs
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(locreg_descriptors),intent(in):: Glr
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
        type(overlapParameters),intent(inout):: op
@@ -2575,7 +2575,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
        type(input_variables),intent(in):: input
@@ -2609,7 +2609,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,intent(in):: iproc, nproc, sizePhi
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(overlapParameters),intent(inout):: op
        real(8),dimension(sizePhi),intent(in):: phi
        type(p2pCommsOrthonormality),intent(out):: comon
@@ -2665,7 +2665,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data),intent(in):: orbs
        type(input_variables),intent(in):: input
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(overlapParameters),intent(in):: op
        type(p2pCommsOrthonormality),intent(in):: comon
        real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
@@ -2678,7 +2678,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,intent(in):: iproc, nproc
        type(orbitals_data),intent(in):: orbs, lorbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(overlapParameters),intent(in):: op
        type(p2pCommsOrthonormality),intent(in):: comon
        real(8),dimension(maxval(op%noverlaps),orbs%norbp),intent(in):: lovrlp
@@ -2694,7 +2694,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,intent(in):: iproc, nproc
        type(orbitals_data),intent(in):: orbs, lorbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(overlapParameters),intent(in):: op
        real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
        real(8),dimension(op%ndim_lphiovrlp),intent(in):: lphiovrlp
@@ -2711,7 +2711,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data),intent(in):: orbs
        type(overlapParameters),intent(inout):: op
        type(p2pCommsOrthonormality),intent(inout):: comon
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
        real(8),intent(in):: convCritOrtho
        type(input_variables),intent(in):: input
@@ -2727,7 +2727,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        implicit none
        integer,intent(in):: iproc, nproc, it
        type(orbitals_data),intent(in):: orbs, lorbs
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        integer,dimension(orbs%norbp),intent(in):: onWhichAtom
        real(8),dimension(lorbs%npsidim),intent(in):: hphi
        real(8),dimension(lorbs%npsidim),intent(inout):: phi
@@ -2740,7 +2740,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, nat
-       type(linear_zone_descriptors),intent(in):: lzdig
+       type(local_zone_descriptors),intent(in):: lzdig
        type(locreg_descriptors),intent(in):: Glr
        type(input_variables),intent(in):: input
        type(orbitals_data),intent(in):: orbsig
@@ -2761,7 +2761,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,intent(in):: iproc, nproc
        integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
        type(orbitals_data),intent(in):: orbs
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(p2pCommsGatherPot),intent(out):: comgp
        integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
        integer,intent(inout):: tag
@@ -2803,7 +2803,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
        type(overlapParameters),intent(inout):: op_lb
        type(p2pCommsOrthonormality),intent(inout):: comon_lb
@@ -2823,7 +2823,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(norb),intent(in):: onWhichAtomAll
        real(8),dimension(at%nat),intent(in):: locrad
        real(8),dimension(3,at%nat),intent(in):: rxyz
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
      end subroutine determineLocalizationRegions
 
@@ -2878,7 +2878,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs, orbstot
        integer,dimension(orbstot%norb),intent(in):: onWhichAtom
        integer,dimension(orbs%norb),intent(in):: onWhichAtomPhi
@@ -2971,7 +2971,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(locreg_descriptors),intent(in):: Glr
        type(input_variables),intent(in):: input
        type(linearParameters),intent(in):: lin
-       type(linear_zone_descriptors),intent(inout):: lzdig
+       type(local_zone_descriptors),intent(inout):: lzdig
        integer,dimension(at%ntypes):: norbsPerType
        integer,dimension(orbsig%norb),intent(in):: onWhichAtom
        real(8),dimension(orbsig%npsidim):: lchi
@@ -3025,7 +3025,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc, nat
-       type(linear_zone_descriptors),intent(in):: lzdig
+       type(local_zone_descriptors),intent(in):: lzdig
        type(orbitals_data),intent(in):: orbsig
        type(locreg_descriptors),intent(in):: Glr
        type(input_variables),intent(in):: input
@@ -3055,7 +3055,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(linear_zone_descriptors),intent(in):: lzdig, lzd
+       type(local_zone_descriptors),intent(in):: lzdig, lzd
        type(orbitals_data),intent(in):: orbsig, orbs
        type(input_variables),intent(in):: input
        real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
@@ -3091,7 +3091,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,intent(in):: iproc, nproc, sizePhi
        type(orbitals_data),intent(in):: orbs
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(overlapParameters),intent(inout):: op
        real(8),dimension(sizePhi),intent(in):: phi
        type(p2pCommsOrthonormality),intent(out):: comon
@@ -3117,7 +3117,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data),intent(in):: orbs
        type(input_variables),intent(in):: input
        integer,dimension(orbs%norb),intent(in):: onWhichAtom
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(overlapParameters),intent(in):: op
        type(p2pCommsOrthonormality),intent(in):: comon
        real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
@@ -3141,7 +3141,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        use module_types
        implicit none
        integer,intent(in):: iproc, nproc
-       type(linear_zone_descriptors),intent(in):: lzd
+       type(local_zone_descriptors),intent(in):: lzd
        type(orbitals_data),intent(in):: orbs
        type(p2pCommsOrthonormality),intent(inout):: comon_lb
        type(overlapParameters),intent(inout):: op_lb
@@ -3343,23 +3343,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      !!end subroutine deallocate_matrixMinimization
 
 
-     !!subroutine deallocate_linear_zone_descriptors(lzd, subname)
+     !!subroutine deallocate_local_zone_descriptors(lzd, subname)
      !!  use module_base
      !!  use module_types
      !!  implicit none
-     !!  type(linear_zone_descriptors),intent(inout):: lzd
+     !!  type(local_zone_descriptors),intent(inout):: lzd
      !!  character(len=*),intent(in):: subname
-     !!end subroutine deallocate_linear_zone_descriptors
+     !!end subroutine deallocate_local_zone_descriptors
 
 
-    subroutine deallocate_linear_zone_descriptors(lzd, subname)
+    subroutine deallocate_local_zone_descriptors(lzd, subname)
       use module_base
       use module_types
       !use deallocatePointers
       implicit none
-      type(linear_zone_descriptors),intent(inout):: lzd
+      type(local_zone_descriptors),intent(inout):: lzd
       character(len=*),intent(in):: subname
-    end subroutine deallocate_linear_zone_descriptors
+    end subroutine deallocate_local_zone_descriptors
 
     subroutine deallocate_orbitals_data(orbs, subname)
       use module_base
@@ -3523,13 +3523,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(matrixDescriptors),intent(out):: mad
     end subroutine nullify_matrixDescriptors
 
-
-    subroutine nullify_linear_zone_descriptors(lzd)
+    subroutine nullify_local_zone_descriptors(lzd)
       use module_base
       use module_types
       implicit none
-      type(linear_zone_descriptors),intent(out):: lzd
-    end subroutine nullify_linear_zone_descriptors
+      type(local_zone_descriptors),intent(out):: lzd
+    end subroutine nullify_local_zone_descriptors
     
     subroutine nullify_orbitals_data(orbs)
       use module_base
@@ -3614,7 +3613,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       implicit none
       integer,intent(in):: iproc, nat
       real(8),dimension(3,nat),intent(in):: rxyz
-      type(linear_zone_descriptors),intent(inout):: lzd
+      type(local_zone_descriptors),intent(inout):: lzd
       type(orbitals_data),intent(inout):: orbs
       type(input_variables),intent(in):: input
       type(locreg_descriptors),intent(in):: Glr
@@ -3700,7 +3699,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(orbitals_data),intent(in):: orbs, orbsig
       integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
       type(input_variables),intent(in):: input
@@ -3715,7 +3714,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       implicit none
       integer,intent(in):: iproc, nproc
       type(orbitals_data),intent(in):: orbs, orbsig
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(overlapParameters),intent(out):: op
       type(p2pCommsOrthonormality),intent(out):: comon
     end subroutine countOverlapsVariable
@@ -3726,7 +3725,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       implicit none
       integer,intent(in):: iproc, nproc
       type(orbitals_data),intent(in):: orbs, orbsig
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(overlapParameters),intent(out):: op
       type(p2pCommsOrthonormality),intent(out):: comon
     end subroutine determineOverlapsVariable
@@ -3737,7 +3736,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       implicit none
       integer,intent(in):: iproc, nproc
       type(orbitals_data),intent(in):: orbs, orbsig
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(locreg_descriptors),intent(in):: Glr
       integer,dimension(orbs%norb),intent(in):: onWhichAtom
       type(overlapParameters),intent(inout):: op
@@ -3749,7 +3748,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       implicit none
       integer,intent(in):: iproc, nproc
       type(orbitals_data),intent(in):: orbs, orbsig
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(overlapParameters),intent(inout):: op
       type(p2pCommsOrthonormality),intent(out):: comon
       integer,intent(inout):: tag
@@ -3762,7 +3761,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer,intent(in):: iproc, nproc
       type(orbitals_data),intent(in):: orbs
       type(input_variables),intent(in):: input
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(overlapParameters),intent(in):: op
       type(p2pCommsOrthonormality),intent(in):: comon
     end subroutine indicesForExpansionVariable
@@ -3773,7 +3772,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       implicit none
       integer,intent(in):: iproc, nproc, sizePhi
       type(orbitals_data),intent(in):: orbs, orbsig
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(overlapParameters),intent(inout):: op
       type(p2pCommsOrthonormality),intent(out):: comon
     end subroutine indicesForExtractionVariable
@@ -3784,7 +3783,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       implicit none
       integer,intent(in):: iproc, nproc, sizePhi
       type(orbitals_data),intent(in):: orbs, orbsig
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(overlapParameters),intent(inout):: op
       real(8),dimension(sizePhi),intent(in):: phi
       type(p2pCommsOrthonormality),intent(out):: comon
@@ -3797,7 +3796,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer,intent(in):: iproc, nproc
       type(orbitals_data),intent(in):: orbs
       type(input_variables),intent(in):: input
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(overlapParameters),intent(in):: op
       type(p2pCommsOrthonormality),intent(in):: comon
       real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
@@ -3811,7 +3810,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
       ! Calling arguments
       integer,intent(in):: iproc, nproc
-      type(linear_zone_descriptors),intent(in):: lzdig, lzd
+      type(local_zone_descriptors),intent(in):: lzdig, lzd
       type(orbitals_data),intent(in):: orbsig, orbs
       type(input_variables),intent(in):: input
       real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
@@ -3855,7 +3854,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(orbitals_data),intent(in):: orbs
       type(input_variables),intent(in):: input
       real(8),dimension(orbs%npsidim),intent(inout):: lchi
@@ -3870,7 +3869,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       ! Calling arguments
       integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm
       real(8),intent(in):: convCritOrtho
-      type(linear_zone_descriptors),intent(in):: lzd
+      type(local_zone_descriptors),intent(in):: lzd
       type(orbitals_data),intent(in):: orbs
       type(input_variables),intent(in):: input
       type(p2pCommsOrthonormality),intent(inout):: comon
@@ -3891,7 +3890,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(locreg_descriptors),intent(in):: Glr
       type(input_variables),intent(in):: input
       type(linearParameters),intent(in):: lin
-      type(linear_zone_descriptors),intent(inout):: lzdig
+      type(local_zone_descriptors),intent(inout):: lzdig
       integer,dimension(at%ntypes):: norbsPerType
       integer,dimension(orbsig%norb),intent(in):: onWhichAtom
       real(8),dimension(orbsig%npsidim):: lchi
@@ -3920,7 +3919,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       use module_types
       implicit none
       integer,intent(in):: iproc, nproc, nprocTemp, nat, nlocregPerMPI
-      type(linear_zone_descriptors),intent(in):: lzdig
+      type(local_zone_descriptors),intent(in):: lzdig
       type(orbitals_data),intent(in):: orbsig, orbs
       integer,dimension(0:nprocTemp),intent(in):: norb_parTemp
       integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
@@ -3939,7 +3938,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, nprocTemp, ndim_lhchi, nlocregPerMPI
-        type(linear_zone_descriptors),intent(in):: lzdig
+        type(local_zone_descriptors),intent(in):: lzdig
         type(orbitals_data),intent(in):: orbsig, orbs
         integer,dimension(0:nprocTemp),intent(in):: norb_parTemp
         integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
@@ -3998,7 +3997,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
         type(orbitals_data),intent(in):: orbs, lorbs
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
-        type(linear_zone_descriptors),intent(in):: lzd
+        type(local_zone_descriptors),intent(in):: lzd
         type(overlapParameters),intent(in):: op
         real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
         real(8),dimension(orbs%norb,orbs%norb),intent(inout):: lagmat
@@ -4014,7 +4013,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,intent(in):: iproc, nproc
         type(orbitals_data),intent(in):: orbs
         type(input_variables),intent(in):: input
-        type(linear_zone_descriptors),intent(in):: lzd
+        type(local_zone_descriptors),intent(in):: lzd
         type(overlapParameters),intent(in):: op
         type(p2pCommsOrthonormality),intent(inout):: comon
         real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
@@ -4030,7 +4029,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(orbitals_data),intent(in):: orbs
         type(input_variables),intent(in):: input
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
-        type(linear_zone_descriptors),intent(in):: lzd
+        type(local_zone_descriptors),intent(in):: lzd
         type(overlapParameters),intent(in):: op
         type(p2pCommsOrthonormality),intent(in):: comon
         real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
@@ -4044,7 +4043,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(orbitals_data),intent(in):: orbs
         type(input_variables),intent(in):: input
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
-        type(linear_zone_descriptors),intent(in):: lzd
+        type(local_zone_descriptors),intent(in):: lzd
         type(overlapParameters),intent(in):: op
         type(p2pCommsOrthonormality),intent(in):: comon
         logical,dimension(orbs%norb,orbs%norbp),intent(in):: expanded
@@ -4058,7 +4057,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,intent(in):: iproc, nproc, sizePhi
         type(orbitals_data),intent(in):: orbs
         integer,dimension(orbs%norb),intent(in):: onWhichAtom
-        type(linear_zone_descriptors),intent(in):: lzd
+        type(local_zone_descriptors),intent(in):: lzd
         type(overlapParameters),intent(inout):: op
         real(8),dimension(sizePhi),intent(in):: phi
         integer,intent(in):: nsendBuf
@@ -4274,7 +4273,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       logical, intent(in) :: refill
       integer, intent(in) :: iproc, nproc
       real(gp), intent(in) :: hx,hy,hz
-      type(linear_zone_descriptors) :: Lzd
+      type(local_zone_descriptors) :: Lzd
       type(orbitals_data), intent(in) :: orbs
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(Lzd%Lpsidimtot), intent(inout) :: psi
@@ -4296,7 +4295,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(gp), intent(in) :: hx,hy,hz
       type(atoms_data), intent(in) :: at
       type(orbitals_data), intent(in) :: orbs
-      type(linear_zone_descriptors),intent(in) :: Lzd
+      type(local_zone_descriptors),intent(in) :: Lzd
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(Lzd%Lnprojel), intent(in) :: proj
@@ -4308,7 +4307,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(dp), dimension(*), optional :: pkernel
       type(orbitals_data), intent(in), optional :: orbsocc
       real(wp), dimension(:), pointer, optional :: psirocc
-     end subroutine
+     end subroutine HamiltonianApplication2
 
      !!subroutine local_hamiltonian2(iproc,exctX,orbs,Lzd,hx,hy,hz,&
      !! nspin,pot,size_potxc,potxc,psi,hpsi,ekin_sum,epot_sum)
@@ -4321,7 +4320,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      !!  real(gp), intent(in) :: hx,hy,hz
      !!  logical, intent(in) :: exctX
      !!  type(orbitals_data), intent(in) :: orbs
-     !!  type(linear_zone_descriptors), intent(in) :: Lzd
+     !!  type(local_zone_descriptors), intent(in) :: Lzd
      !!  real(wp), dimension(Lzd%Lpsidimtot,orbs%nspinor*orbs%norbp), intent(in) :: psi
      !!  real(wp), dimension(size_potxc),intent(in) :: potxc
      !!  real(wp), dimension(*) :: pot
@@ -4341,7 +4340,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(gp), intent(in) :: hx,hy,hz
        logical, intent(in) :: exctX
        type(orbitals_data), intent(in) :: orbs
-       type(linear_zone_descriptors), intent(in) :: Lzd
+       type(local_zone_descriptors), intent(in) :: Lzd
        real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
        real(wp), dimension(size_potxc),intent(in) :: potxc
        real(wp), dimension(*),target :: pot
@@ -4349,8 +4348,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(gp), intent(out) :: ekin_sum,epot_sum
        real(wp), dimension(Lzd%Lpsidimtot), intent(out) :: hpsi
      end subroutine local_hamiltonian2
-
-
 
      subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
           nspin,Lpot,psi,hpsi,ekin_sum,epot_sum,&
@@ -4363,9 +4360,9 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(gp), intent(in) :: hx,hy,hz
        logical, intent(in) :: exctX
        type(orbitals_data), intent(in) :: orbs
-       type(linear_zone_descriptors), intent(in) :: Lzd
+       type(local_zone_descriptors), intent(in) :: Lzd
        real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
-       real(wp), dimension(lzd%ndimpotisf),target :: Lpot
+       real(wp), dimension(Lzd%ndimpotisf),target :: Lpot
        !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
        real(gp), intent(out) :: ekin_sum,epot_sum
        real(wp), dimension(Lzd%Lpsidimtot), intent(out) :: hpsi
@@ -4375,8 +4372,6 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(linearParameters),intent(in),optional:: lin
        integer,dimension(orbs%norbp),intent(in),optional:: confinementCenter
      end subroutine local_hamiltonian3
-
-
 
      subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           proj,Lzd,ngatherarr,Lpot,psi,hpsi,&
@@ -4390,7 +4385,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(gp), intent(in) :: hx,hy,hz
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
-       type(linear_zone_descriptors),intent(in) :: Lzd
+       type(local_zone_descriptors),intent(in) :: Lzd
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(Lzd%Lnprojel), intent(in) :: proj
@@ -4408,22 +4403,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(orbs%norbp),intent(in),optional:: confinementCenter
      end subroutine HamiltonianApplication3
 
-
-
-     subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
+     subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,nspin,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
        use module_base
        use module_types
        use libxc_functionals
        implicit none
-       integer, intent(in) :: iproc,nproc,ndimpot,ndimgrid, flag
+       integer, intent(in) :: iproc,nproc,ndimpot,ndimgrid,flag,nspin
        type(orbitals_data),intent(inout):: orbs
-       type(linear_zone_descriptors),intent(inout):: lzd
+       type(local_zone_descriptors),intent(inout):: lzd
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(wp), dimension(max(ndimpot,1)*orbs%nspin), intent(in), target ::potential
        real(wp), dimension(:), pointer, intent(out) :: Lpot
        type(p2pCommsGatherPot),intent(inout), optional:: comgp
      end subroutine full_local_potential2
-
 
      subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
        use module_base
@@ -4435,23 +4427,17 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data),intent(in):: orbs
        real(8),dimension(3,at%nat),intent(in):: rxyz
        real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-       type(linear_zone_descriptors),intent(inout):: lzd
+       type(local_zone_descriptors),intent(inout):: lzd
      end subroutine prepare_lnlpspd
-
 
      subroutine free_lnlpspd(orbs, lzd)
        use module_base
        use module_types
        implicit none
        type(orbitals_data),intent(in):: orbs
-       type(linear_zone_descriptors),intent(inout):: lzd
+       type(local_zone_descriptors),intent(inout):: lzd
      end subroutine free_lnlpspd
 
-
-
-
-
   end interface
-
 
 end module module_interfaces

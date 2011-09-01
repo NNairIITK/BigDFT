@@ -1942,7 +1942,7 @@ integer,intent(in):: iproc, nproc
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 !type(linearParameters),intent(inout):: lin
 type(orbitals_data),intent(in):: orbs
-type(linear_zone_descriptors),intent(in):: lzd
+type(local_zone_descriptors),intent(in):: lzd
 type(p2pCommsGatherPot),intent(out):: comgp
 integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
 integer,intent(inout):: tag
@@ -2542,7 +2542,7 @@ subroutine prepare_lnlpspd(iproc, at, input, orbs, rxyz, radii_cf, lzd)
   type(orbitals_data),intent(in):: orbs
   real(8),dimension(3,at%nat),intent(in):: rxyz
   real(8),dimension(at%ntypes,3),intent(in):: radii_cf
-  type(linear_zone_descriptors),intent(inout):: lzd
+  type(local_zone_descriptors),intent(inout):: lzd
   
   ! Local variables
   integer:: ilr, istat, iorb
@@ -2587,7 +2587,7 @@ subroutine free_lnlpspd(orbs, lzd)
   
   ! Calling arguments
   type(orbitals_data),intent(in):: orbs
-  type(linear_zone_descriptors),intent(inout):: lzd
+  type(local_zone_descriptors),intent(inout):: lzd
 
   ! Local variables
   integer:: ilr, iorb, istat, iall

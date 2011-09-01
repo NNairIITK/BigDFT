@@ -24,7 +24,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,jproc,ikpts
   integer :: norbuempty,norbdempty
 
-  call read_system_variables('input.occup',iproc,in,atoms,radii_cf,nelec,&
+  call read_system_variables('input.occup',iproc,nproc,in,atoms,radii_cf,nelec,&
        norb,norbu,norbd,norbuempty,norbdempty,iunit)
 
   if(in%nspin==4) then
@@ -152,7 +152,7 @@ END SUBROUTINE calculate_rhocore
 !>   Assign some of the physical system variables
 !!   Performs also some cross-checks with other variables
 !!   The pointer in atoms structure have to be associated or nullified.
-subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
+subroutine read_system_variables(fileocc,iproc,nproc,in,atoms,radii_cf,&
      nelec,norb,norbu,norbd,norbuempty,norbdempty,iunit)
   use module_base
   use module_types
@@ -160,7 +160,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   implicit none
   character (len=*), intent(in) :: fileocc
   type(input_variables), intent(in) :: in
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(inout) :: atoms
   integer, intent(out) :: nelec,norb,norbu,norbd,iunit,norbuempty,norbdempty
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
@@ -182,6 +182,8 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
+  type(linearParameters) :: lin
+  character(len=20),dimension(atoms%ntypes):: atomNames
 
 integer,dimension(:),allocatable:: orbsPerAt
 character(len=20):: atomname
@@ -211,9 +213,16 @@ allocate(orbsPerAt(atoms%ntypes), stat=istat)
   allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
 
+  ! in case of linear scaling, allocate the localization radii
   if(in%linear /= 'OFF') then
-       allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
-       call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
+     allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
+     call memocc(i_stat,atoms%rloc,'atoms%rloc',subname)
+  end if
+  ! if linear scaling applied with more then InputGuess, then go read input.lin for radii
+  if (in%linear /= 'OFF' .and. in%linear /= 'LIG') then
+     lin%nlr=atoms%nat
+     call allocateBasicArrays(atoms, lin)
+     call readLinearParameters(iproc, nproc, lin, atoms, atomNames)
   end if
 
   if (iproc == 0) then
@@ -293,6 +302,11 @@ allocate(orbsPerAt(atoms%ntypes), stat=istat)
      call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
           neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
 
+     !define the localization radius for the Linear input guess
+     if(in%linear == 'LIG') then
+        atoms%rloc(ityp,:) = rcov * 10.0
+     end if
+
 !!if(in%inputPsiId==100) then
 !!     norbitals=0
 !!     do i_n=1,nmax
@@ -332,20 +346,15 @@ allocate(orbsPerAt(atoms%ntypes), stat=istat)
         !if (iproc ==0) write(*,*)&
         !     ' WARNING: last line of pseudopotential missing, put an empty line'
         line=''
-     else if(ierror /=0 .and. in%linear /='OFF') then
-        write(*,'(a)')'Linear scaling requires that localization radius be specified'
-        write(*,'(a)')'by hand on the last line of the PSP files.'
-        stop
+!     else if(ierror /=0 .and. in%linear /='OFF') then
+!        write(*,'(a)')'Linear scaling requires that localization radius be specified'
+!        write(*,'(a)')'by hand on the last line of the PSP files.'
+!        stop
      end if
-     if(in%linear=='OFF') then
-        read(line,*,iostat=ierror1) radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3)
-        if (ierror1 /= 0 ) then
-           read(line,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
-           radii_cf(ityp,3)=radii_cf(ityp,2)
-        end if
-     else
-        read(line,*,iostat=ierror1) atoms%rloc(ityp,1),atoms%rloc(ityp,2),atoms%rloc(ityp,3)
-        ierror = 4   !just to force the correct calculation of the radii_cf
+     read(line,*,iostat=ierror1) radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3)
+     if (ierror1 /= 0 ) then
+        read(line,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
+        radii_cf(ityp,3)=radii_cf(ityp,2)
      end if
      message='                   X ' 
 

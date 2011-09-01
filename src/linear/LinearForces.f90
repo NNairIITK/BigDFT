@@ -135,7 +135,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   logical, intent(in) :: refill
   integer, intent(in) :: iproc, nproc
   real(gp), intent(in) :: hx,hy,hz
-  type(linear_zone_descriptors) :: Lzd
+  type(local_zone_descriptors) :: Lzd
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(Lzd%Lpsidimtot), intent(inout) :: psi

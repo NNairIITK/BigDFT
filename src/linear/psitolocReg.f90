@@ -746,7 +746,7 @@ subroutine overlap_matrix_between_locreg(ilr,ilr2,isovrlp,nspin,orbscToAtom,psid
   integer,intent(in) :: psishift1                    ! starting index of the first orbital of locreg(ilr)
   integer,intent(in) :: psishift2                    ! starting index of the first orbital of locreg(ilr2)
   integer,intent(in) :: dim_Lhamovr                  ! dimension of the Local Hamiltonian/Overlap Matrix
-  type(linear_zone_descriptors), intent(in) :: Lzd   ! Descriptors of regions for linear scaling
+  type(local_zone_descriptors), intent(in) :: Lzd   ! Descriptors of regions for linear scaling
   type(orbitals_data),intent(in) :: orbs
   !########################################
   !Subroutine Array Arguments
@@ -955,7 +955,7 @@ subroutine semicore_overlap_matrices(ilr,nspin,nspinor,norbtot,Lzd,orbs,orbscToA
   implicit none
   integer, intent(in) :: ilr         ! localization region
   integer, intent(in) :: ndim_hamovr,nspinor,nspin,scstr,norbtot
-  type(linear_zone_descriptors),intent(in) :: Lzd
+  type(local_zone_descriptors),intent(in) :: Lzd
   type(orbitals_data) :: orbs
   integer, dimension(Lzd%nlr,nspin),intent(in) :: orbscToAtom 
   real(wp), dimension(nspin*ndim_hamovr,2,orbs%nkpts+ndebug), intent(inout) :: hamovr

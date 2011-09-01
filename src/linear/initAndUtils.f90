@@ -349,6 +349,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
               lin%norbsPerType(jtype)=npt
               lin%potentialPrefac(jtype)=pp
               locradType(jtype)=lt
+              at%rloc(jtype,:)=locradType(jtype)
           end if
       end do
       if(.not.found) then
@@ -1433,7 +1434,7 @@ subroutine allocateBasicArrays(at, lin)
 
   allocate(lin%locrad(lin%nlr),stat=istat)
   call memocc(istat,lin%locrad,'lin%locrad',subname)
-  
+
 end subroutine allocateBasicArrays
 
 
@@ -1554,7 +1555,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nat
 real(8),dimension(3,nat),intent(in):: rxyz
-type(linear_zone_descriptors),intent(inout):: lzd
+type(local_zone_descriptors),intent(inout):: lzd
 type(orbitals_data),intent(inout):: orbs
 type(input_variables),intent(in):: input
 type(locreg_descriptors),intent(in):: Glr

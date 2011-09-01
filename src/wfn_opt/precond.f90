@@ -120,6 +120,119 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zer
 END SUBROUTINE preconditionall
 
 
+! Generalized for the Linearscaling code
+subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,ncong
+  real(gp), intent(in) :: hx,hy,hz
+  type(local_zone_descriptors), intent(in) :: Lzd
+  type(orbitals_data), intent(in) :: orbs
+  real(dp), intent(out) :: gnrm,gnrm_zero
+  real(wp), dimension(Lzd%Lpsidimtot), intent(inout) :: hpsi
+  !local variables
+  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr
+  real(wp) :: cprecr,scpr,evalmax,eval_zero
+  real(gp) :: kx,ky,kz
+
+  ! Preconditions all orbitals belonging to iproc
+  !and calculate the norm of the residue
+
+  ! norm of gradient
+  gnrm=0.0_dp
+  !norm of gradient of unoccupied orbitals
+  gnrm_zero=0.0_dp
+
+
+  !commented out, never used
+!   evalmax=orbs%eval(orbs%isorb+1)
+!   do iorb=1,orbs%norbp
+!     evalmax=max(orbs%eval(orbs%isorb+iorb),evalmax)
+!   enddo
+!   call MPI_ALLREDUCE(evalmax,eval_zero,1,mpidtypd,&
+!        MPI_MAX,MPI_COMM_WORLD,ierr)
+
+  ist = 0
+  if (orbs%norbp >0) ikpt=orbs%iokpt(1)
+  do iorb=1,orbs%norbp
+     ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+     !if it is the first orbital or the k-point has changed calculate the max
+     if (orbs%iokpt(iorb) /= ikpt .or. iorb == 1) then
+        !the eval array contains all the values
+        !take the max for all k-points
+        !one may think to take the max per k-point
+        evalmax=orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+1)
+        do jorb=1,orbs%norb
+           evalmax=max(orbs%eval((orbs%iokpt(iorb)-1)*orbs%norb+jorb),evalmax)
+        enddo
+        eval_zero=evalmax
+        ikpt=orbs%iokpt(iorb)
+     end if
+
+     !indo=(iorb-1)*nspinor+1
+     !loop over the spinorial components
+     !k-point values, if present
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
+!       print *, iorb, orbs%kpts(1,orbs%iokpt(iorb)), orbs%kpts(2,orbs%iokpt(iorb)), orbs%kpts(3,orbs%iokpt(iorb))
+
+     !real k-point different from Gamma still not implemented
+     if (kx**2+ky**2+kz**2 > 0.0_gp .or. orbs%nspinor==2 ) then
+        ncplx=2
+     else
+        ncplx=1
+     end if
+
+     do inds=1,orbs%nspinor,ncplx
+
+        !the nrm2 function can be replaced here by ddot
+        scpr=nrm2(ncplx*(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f),hpsi(1+ist),1)
+        if (orbs%occup(orbs%isorb+iorb) == 0.0_gp) then
+           gnrm_zero=gnrm_zero+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        else
+           !write(17,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2
+           gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+        end if
+
+       if (scpr /= 0.0_wp) then
+
+          call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,orbs%eval(orbs%isorb+iorb),cprecr)
+           !cases with no CG iterations, diagonal preconditioning
+           !for Free BC it is incorporated in the standard procedure
+           if (ncong == 0 .and. Lzd%Llr(ilr)%geocode /= 'F') then
+              select case(Lzd%Llr(ilr)%geocode)
+              case('F')
+              case('S')
+                 call prec_fft_slab(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3, &
+                      Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nseg_f,&
+                      Lzd%Llr(ilr)%wfd%nvctr_f,Lzd%Llr(ilr)%wfd%keyg,Lzd%Llr(ilr)%wfd%keyv, &
+                      cprecr,hx,hy,hz,hpsi(1+ist))
+              case('P')
+                 call prec_fft(Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3, &
+                      Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
+                      Lzd%Llr(ilr)%wfd%keyg,Lzd%Llr(ilr)%wfd%keyv, &
+                      cprecr,hx,hy,hz,hpsi(1+ist))
+              end select
+
+           else !normal preconditioner
+
+              call precondition_residue(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
+                   hx,hy,hz,kx,ky,kz,hpsi(1+ist))
+
+           end if
+
+        end if
+        ist = ist + Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+!     print *,iorb,inds,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds,iorb),1,hpsi(1,inds,iorb),1)
+!     print *,iorb,inds+1,dot(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, hpsi(1,inds+1,iorb),1,hpsi(1,inds+1,iorb),1)
+     end do
+  enddo
+
+END SUBROUTINE preconditionall2
+
+
 ! > This function has been created also for the GPU-ported routines
 subroutine cprecr_from_eval(geocode,eval_zero,eval,cprecr)
   use module_base
