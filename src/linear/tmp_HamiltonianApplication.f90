@@ -785,7 +785,7 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,nspin,orbs,lzd,nga
   character(len=*), parameter :: subname='full_local_potential'
   logical :: exctX, newvalue
   integer :: npot,ispot,ispotential,ispin,ierr,i_stat, iilr, ilr, ii, iorb, iorb2, nilr, i_all
-  integer:: istg, istl, ist, size_Lpot, i3s, i3e
+  integer:: istl, ist, size_Lpot, i3s, i3e
   integer,dimension(:,:),allocatable:: ilrtable
   real(8),dimension(:),pointer:: pot
 
@@ -822,7 +822,7 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,nspin,orbs,lzd,nga
          if (exctX) then
             allocate(pot(npot+ndebug),stat=i_stat)
             call memocc(i_stat,pot,'pot',subname)
-            call dcopy(ndimgrid*orbs%nspin,potential,1,pot,1)
+            call dcopy(ndimgrid*nspin,potential,1,pot,1)
          else
             pot => potential
          end if
@@ -918,14 +918,8 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,nspin,orbs,lzd,nga
         ilr = ilrtable(iorb,1)
         
         ! Cut the potential into locreg pieces
-        !if(ilrtable(ilr,2)==1) then
-        if(ilrtable(iorb,2)==1) then
-            istg=1
-        else
-            istg=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i+1
-        end if
-        call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot(istg),Lpot(istl))
-        istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
+        call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot,Lpot(istl))
+        istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspin
      end do
   else
      allocate(Lpot(lzd%ndimpotisf+ndebug),stat=i_stat)
