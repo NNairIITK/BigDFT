@@ -1,6 +1,13 @@
 News
 ----
 
+2011 Version 1.6
+ - Add Hartree, Hartree-Fock functionals
+ - Add SIC (self-interaction correction) Perdew-Zunger and Non-Koopman correction (PRB82, 115121, 2010)
+2011/04/22 Version 1.5.3
+ - Correct some bugs mainly with when we combine MPI, OpenMP and OpenCL
+2011/03/25 Version 1.5.2
+ - Correct some bugs
 2011/03/21 Version 1.5.0
  - Full OpenCL implementaion
  - Fast parallel exat exchange calculation
