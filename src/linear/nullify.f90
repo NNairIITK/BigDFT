@@ -21,7 +21,7 @@ subroutine nullify_linearParameters(lin)
   call nullify_p2pCommsSumrho(lin%comsr)
   call nullify_p2pCommsGatherPot(lin%comgp)
   call nullify_largeBasis(lin%lb)
-  call nullify_linear_zone_descriptors(lin%lzd)
+  call nullify_local_zone_descriptors(lin%lzd)
   call nullify_p2pCommsOrthonormality(lin%comon)
   call nullify_overlapParameters(lin%op)
   call nullify_linearInputGuess(lin%lig)
@@ -154,8 +154,8 @@ subroutine nullify_linearInputGuess(lig)
   ! Calling argument
   type(linearInputGuess),intent(out):: lig
 
-  call nullify_linear_zone_descriptors(lig%lzdig)
-  call nullify_linear_zone_descriptors(lig%lzdGauss)
+  call nullify_local_zone_descriptors(lig%lzdig)
+  call nullify_local_zone_descriptors(lig%lzdGauss)
   call nullify_orbitals_data(lig%orbsig)
   call nullify_orbitals_data(lig%orbsGauss)
   call nullify_p2pCommsOrthonormality(lig%comon)
@@ -186,14 +186,14 @@ end subroutine nullify_matrixDescriptors
 
 
 
-subroutine nullify_linear_zone_descriptors(lzd)
+subroutine nullify_local_zone_descriptors(lzd)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => nullify_linear_zone_descriptors
+  use module_interfaces, exceptThisOne => nullify_local_zone_descriptors
   implicit none
 
   ! Calling arguments
-  type(linear_zone_descriptors),intent(out):: lzd
+  type(local_zone_descriptors),intent(out):: lzd
   
   !call nullify_orbitals_data(lzd%orbs)
   !nullify(lzd%lorbs)
@@ -205,7 +205,7 @@ subroutine nullify_linear_zone_descriptors(lzd)
   nullify(lzd%doHamAppl)
   !call nullify_matrixMinimization(lzd%matmin)
   
-end subroutine nullify_linear_zone_descriptors
+end subroutine nullify_local_zone_descriptors
 
 
 

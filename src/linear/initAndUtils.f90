@@ -279,7 +279,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   
   integer,intent(in):: iproc, nproc
   type(linearParameters):: lin
-  type(atoms_data),intent(in):: at
+  type(atoms_data),intent(inout):: at
   character(len=20),dimension(at%ntypes):: atomNames
   !integer,dimension(at%ntypes):: norbsPerType
   
@@ -322,6 +322,10 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   read(99,*) lin%plotBasisFunctions
   read(99,*) lin%transformToGlobal
   read(99,*) lin%norbsPerProcIG
+
+  ! This is maybe already done
+  allocate(at%rloc(at%ntypes,3), stat=istat)
+  call memocc(istat, at%rloc, 'at%rloc', subname)
 
   ! Now read in the parameters specific for each atom type.
   parametersSpecified=.false.
