@@ -927,7 +927,7 @@ contains
          ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-         ha%epot_sum,ha%eexctX,ha%eproj_sum,0,0.0_gp,ha%GPU)
+         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,0,0.0_gp,ha%GPU)
     call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
     Qvect_tmp   =  wrk
    
@@ -936,7 +936,7 @@ contains
          ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-         ha%epot_sum,ha%eexctX,ha%eproj_sum,0,0.0_gp,ha%GPU)
+         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,0,0.0_gp,ha%GPU)
     call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
 
 
@@ -1022,7 +1022,7 @@ contains
          ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-         ha%epot_sum,ha%eexctX,ha%eproj_sum,0,0.0_gp,ha%GPU)
+         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,0,0.0_gp,ha%GPU)
     if(  ha%iproc ==0 ) write(*,*)" done "
 
     if(ha%iproc==0 .and. .false.) then

@@ -20,7 +20,7 @@ program oneatom
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
   integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter
   real(gp) :: hxh,hyh,hzh
-  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
+  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   type(atoms_data) :: atoms
   type(input_variables) :: in
@@ -178,6 +178,7 @@ program oneatom
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
+  eSIC_DC=0.0_gp
 
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
@@ -204,11 +205,11 @@ program oneatom
      endloop=endloop .or. ndiis_sd_sw > 2
 
      call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          nlpspd,proj,Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,0,0.0_gp,GPU)
+          nlpspd,proj,Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,0,0.0_gp,GPU)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
-     energy=energybs-eexctX
+     energy=energybs-eexctX-eSIC_DC
 
      !check for convergence or whether max. numb. of iterations exceeded
      if (endloop) then 

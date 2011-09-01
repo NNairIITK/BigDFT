@@ -15,7 +15,7 @@
 !!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
 !!                   2 is the application of the Perdew-Zunger SIC
 subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
-     ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum)
+     ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
   use module_base
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian
@@ -28,14 +28,14 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
-  real(gp), intent(out) :: ekin_sum,epot_sum
+  real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
   real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,etest,eSICi
+  real(gp) :: ekin,epot,kx,ky,kz,etest,eSICi,eSIC_DCi
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir
 
@@ -48,7 +48,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      stop
   end if
 
-  if ((associated(pkernel) .or. alphaSIC /=0.0_gp) .neqv. ipotmethod == 2) then
+  if (.not.(associated(pkernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
      if (iproc==0) write(*,*)&
           'ERROR (local_hamiltonian): potential method not compatible with SIC'
      stop
@@ -75,6 +75,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
 
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
+  eSIC_DC=0.0_gp
 
   etest=0.0_gp
 
@@ -97,8 +98,9 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
 
      !Perdew-Zunger SIC scheme
+     eSIC_DCi=0.0_gp
      if (ipotmethod == 2) then
-        call PZ_SIC_potential(iorb,lr,orbs,ixc,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psir,vsicpsir,eSICi)
+        call PZ_SIC_potential(iorb,lr,orbs,ixc,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
      end if
      
 
@@ -135,7 +137,8 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,-alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
         !add the SIC caorrection to the potential energy
         epot=epot-alphaSIC*eSICi
-        !accumulate the ESIC energy
+        !accumulate the Double-Counted SIC energy
+        eSIC_DC=eSIC_DC+alphaSIC*eSIC_DCi
      end if
 
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
