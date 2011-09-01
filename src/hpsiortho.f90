@@ -61,7 +61,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   end if
 
   !initialise exact exchange energy 
-  op2p=(eexctX == -99.0_gp)
+  op2p=(eexctX == UNINITIALIZED(1.0_gp))
   eexctX=0.0_gp
 
   exctX = xc_exctXfac() /= 0.0_gp

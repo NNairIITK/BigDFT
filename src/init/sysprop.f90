@@ -934,7 +934,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   end do
 
   !create an array which indicate which processor has a GPU associated 
-  !from the viewpoint of the BLAS routines
+  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
   if (.not. GPUshare) then
      allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
      call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
@@ -951,37 +951,60 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
      call memocc(i_stat,i_all,'GPU_for_orbs',subname)
   end if
 
-  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
+  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,norb_par,'norb_par',subname)
 
-  !check the distribution
+  !old system for calculating k-point repartition
+!!$  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
+!!$
+!!$  !check the distribution
+!!$  norb_tot=0
+!!$  do jproc=0,iproc-1
+!!$     norb_tot=norb_tot+orbs%norb_par(jproc)
+!!$  end do
+!!$  !reference orbital for process
+!!$  orbs%isorb=norb_tot
+!!$  do jproc=iproc,nproc-1
+!!$     norb_tot=norb_tot+orbs%norb_par(jproc)
+!!$  end do
+!!$
+!!$  if(norb_tot /= norb*orbs%nkpts) then
+!!$     write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
+!!$     write(*,*)orbs%norb_par(:),norb*orbs%nkpts
+!!$     stop
+!!$  end if
+!!$
+!!$  !calculate the k-points related quantities
+!!$  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,mykpts,'mykpts',subname)
+!!$
+!!$  call parallel_repartition_per_kpoints(iproc,nproc,orbs%nkpts,norb,orbs%norb_par,&
+!!$       orbs%nkptsp,mykpts,norb_par)
+!!$  if (orbs%norb_par(iproc) >0) then
+!!$     orbs%iskpts=mykpts(1)-1
+!!$  else
+!!$     orbs%iskpts=0
+!!$  end if
+!!$  i_all=-product(shape(mykpts))*kind(mykpts)
+!!$  deallocate(mykpts,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'mykpts',subname)
+
+  !new system for k-point repartition
+  call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
+  !assign the values for norb_par and check the distribution
   norb_tot=0
-  do jproc=0,iproc-1
-     norb_tot=norb_tot+orbs%norb_par(jproc)
-  end do
-  !reference orbital for process
-  orbs%isorb=norb_tot
-  do jproc=iproc,nproc-1
+  do jproc=0,nproc-1
+     if (jproc==iproc) orbs%isorb=norb_tot
+     do ikpt=1,orbs%nkpts
+        orbs%norb_par(jproc)=orbs%norb_par(jproc)+norb_par(jproc,ikpt)
+     end do
      norb_tot=norb_tot+orbs%norb_par(jproc)
   end do
 
   if(norb_tot /= norb*orbs%nkpts) then
-     write(*,*)'ERROR: partition of orbitals incorrect'
+     write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
      write(*,*)orbs%norb_par(:),norb*orbs%nkpts
      stop
-  end if
-
-  !calculate the k-points related quantities
-  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,norb_par,'norb_par',subname)
-  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,mykpts,'mykpts',subname)
-
-  call parallel_repartition_per_kpoints(iproc,nproc,orbs%nkpts,norb,orbs%norb_par,&
-       orbs%nkptsp,mykpts,norb_par)
-  if (orbs%norb_par(iproc) >0) then
-     orbs%iskpts=mykpts(1)-1
-  else
-     orbs%iskpts=0
   end if
 
 
@@ -989,13 +1012,10 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !call memocc(i_stat,orbs%ikptsp,'orbs%ikptsp',subname)
   !orbs%ikptsp(1:orbs%nkptsp)=mykpts(1:orbs%nkptsp)
 
-
+  !this array will be reconstructed in the orbitals_communicators routine
   i_all=-product(shape(norb_par))*kind(norb_par)
   deallocate(norb_par,stat=i_stat)
   call memocc(i_stat,i_all,'norb_par',subname)
-  i_all=-product(shape(mykpts))*kind(mykpts)
-  deallocate(mykpts,stat=i_stat)
-  call memocc(i_stat,i_all,'mykpts',subname)
 
   !assign the values of the orbitals data
   orbs%norb=norb
@@ -1226,7 +1246,308 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,
 
 END SUBROUTINE input_occup
 
+!> Routine which assign to each processor the repartition of nobj*nkpts objects
+subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
+  use module_base
+  implicit none
+  integer, intent(in) :: nproc,nkpts,nobj
+  integer, dimension(0:nproc-1,nkpts), intent(out) :: nobj_par
+  !local varaibles
+  logical :: intrep
+  integer :: jproc,ikpt,iobj,nobjp_max_kpt,nprocs_with_floor,jobj,nobjp,nprocs_with_ceiling
+  integer :: jkpt,nproc_per_kpt,nproc_left,kproc,nkpt_per_proc,nkpts_left
+  real(gp) :: robjp,rounding_ratio
 
+  !decide the naive number of objects which should go to each processor.
+  robjp=real(nobj,gp)*real(nkpts,gp)/real(nproc,gp)
+
+  !maximum number of objects which has to go to each processor per k-point
+  nobjp_max_kpt=ceiling(modulo(robjp-epsilon(1.0_gp),real(nobj,gp)))
+  !print *,'eccoqui',nobjp_max_kpt,robjp
+  !see the conditions for the integer repartition of k-points
+  if (nobjp_max_kpt == nobj .or. (nobjp_max_kpt==1 .and. robjp < 1.0_gp)) then
+     intrep=.true.
+     rounding_ratio=0.0_gp
+     nprocs_with_floor=0
+  else
+     intrep=.false.
+     !the repartition is not obvious, some processors take nobj_max_kpt objects, others take the previous integer.
+     !to understand how many, we round the percentage of processors which is given by
+     rounding_ratio=(robjp-real(floor(robjp)))
+     !then this is the number of processors which will take the floor
+     nprocs_with_floor=ceiling((1.0_gp-rounding_ratio)*real(nproc,gp))!nproc-(nobj*nkpts-floor(robjp)*nproc)
+     !print *,'rounding_ratio,nprocs_with_floor',rounding_ratio,nprocs_with_floor
+     if (nprocs_with_floor > nproc) stop 'ERROR: should not happen'
+     !if (nprocs_with_floor == nproc) nprocs_with_floor=nproc-1
+  end if
+
+  !start separating the objects for the repartition which is suggested by rounding_ratio and nprocs_with_floor
+  nobj_par(0:nproc-1,1:nkpts)=0
+  !integer repartition
+  if (intrep) then 
+     !strategy for the repartition
+     if (nproc >= nkpts) then
+        !decide in how many processors a single k-point can be partitioned
+        nproc_per_kpt=max((nproc-1),1)/nkpts !this is the minimum
+        !count how many processors are left that way
+        !distribute the k-point among these
+        nproc_left=nproc-nproc_per_kpt*nkpts
+        ikpt=0
+        jproc=0
+        !print *,'qui',nproc_left,nproc_per_kpt
+        do kproc=0,nproc_left-1
+           ikpt=ikpt+1
+           if (ikpt > nkpts) stop 'ERROR: also this should not happen3'
+           do iobj=0,nobj-1
+              nobj_par(jproc+modulo(iobj,nproc_per_kpt+1),ikpt)=nobj_par(jproc+modulo(iobj,nproc_per_kpt+1),ikpt)+1
+           end do
+           jproc=jproc+nproc_per_kpt+1
+        end do
+        !print *,'ciao'
+        if ((nproc_per_kpt+1)*nproc_left < nproc) then
+           do jproc=(nproc_per_kpt+1)*nproc_left,nproc-1,nproc_per_kpt
+              ikpt=ikpt+1
+              !print *,'passed through here',modulo(nproc,nkpts),nkpts,ikpt,nproc_per_kpt,nproc,jproc,nproc_left
+              if (ikpt > nkpts .or. jproc > nproc-1) stop 'ERROR: also this should not happen3b'
+              do iobj=0,nobj-1
+                 nobj_par(jproc+modulo(iobj,nproc_per_kpt),ikpt)=nobj_par(jproc+modulo(iobj,nproc_per_kpt),ikpt)+1
+              end do
+           end do
+        end if
+        !print *,'passed through here',modulo(nproc,nkpts),nkpts,ikpt,nproc_per_kpt,nproc
+     else
+        !decide in how many kpoints single processor can be partitioned
+        nkpt_per_proc=max((nkpts-1),1)/nproc !this is the minimum
+        !count how many k-points are left that way
+        !distribute the processors among these
+        nkpts_left=nkpts-nkpt_per_proc*nproc
+        ikpt=1
+        jproc=-1
+        !print *,'qui',nkpts_left,nkpts_per_proc
+        do jkpt=1,nkpts_left
+           jproc=jproc+1
+           if (jproc > nproc-1) stop 'ERROR: also this should not happen4'
+           do iobj=0,(nobj)*(nkpt_per_proc+1)-1
+              nobj_par(jproc,ikpt+modulo(iobj,nkpt_per_proc+1))=nobj_par(jproc,ikpt+modulo(iobj,nkpt_per_proc+1))+1
+           end do
+           ikpt=ikpt+nkpt_per_proc+1
+        end do
+        !print *,'ciao'
+        if ((nkpt_per_proc+1)*nkpts_left < nkpts) then
+           do ikpt=(nkpt_per_proc+1)*nkpts_left+1,nkpts,nkpt_per_proc
+              jproc=jproc+1
+              !print *,'passed through here',modulo(nproc,nkpts),nkpts,ikpt,nproc_per_kpt,nproc,jproc,nproc_left
+              if (ikpt > nkpts .or. jproc > nproc-1) stop 'ERROR: also this should not happen4b'
+              do iobj=0,(nobj)*(nkpt_per_proc)-1
+                 nobj_par(jproc,ikpt+modulo(iobj,nkpt_per_proc))=nobj_par(jproc,ikpt+modulo(iobj,nkpt_per_proc))+1
+              end do
+           end do
+        end if
+           !print *,'passed through here',modulo(nproc,nkpts),nkpts,ikpt,nproc_per_kpt,nproc
+     end if
+  else
+     !non-integer repartition
+     iobj=0
+     ikpt=0
+     do jproc=0,nproc-2 !leave the last processor at the end
+        nobjp=floor(robjp)
+        !respect the rounding ratio
+        if (nproc-jproc > nprocs_with_floor) nobjp=nobjp+1
+        !print *,'jproc,nobjp',jproc,nobjp,nkpts,nobj,nkpts*nobj,iobj,nprocs_with_floor
+        do jobj=1,nobjp
+           if (modulo(iobj,nobj) ==0) ikpt=ikpt+1
+           iobj=iobj+1
+           if (iobj > nobj*nkpts) stop 'ERROR: also this should not happen'
+           nobj_par(jproc,ikpt)=nobj_par(jproc,ikpt)+1
+        end do
+     end do
+     !in the last processor we put the objects which are lacking
+     nobjp=nobj*nkpts-iobj
+     do jobj=1,nobjp
+        if (modulo(iobj,nobj) ==0) ikpt=ikpt+1
+        iobj=iobj+1
+        !print *,'finished',jobj,nobjp,iobj,nobj*nkpts,jproc,ikpt
+        if (iobj > nobj*nkpts) stop 'ERROR: also this should not happen2'
+        nobj_par(nproc-1,ikpt)=nobj_par(nproc-1,ikpt)+1
+     end do
+  end if
+end subroutine kpts_to_procs_via_obj
+
+subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
+  use module_base
+  implicit none
+  integer, intent(in) :: nproc,nkpts,nvctr,norb
+  integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par
+  integer, dimension(0:nproc-1,nkpts), intent(out) :: nvctr_par
+  !local variables
+  integer :: ikpt,jsproc,jeproc,kproc,icount,ivctr,jproc,numproc
+  real(gp) :: strprc,endprc
+
+  !for any of the k-points find the processors which have such k-point associated
+  call to_zero(nproc*nkpts,nvctr_par(0,1))
+
+  do ikpt=1,nkpts
+     jsproc=UNINITIALIZED(1)
+     jeproc=UNINITIALIZED(1)
+     find_start: do jproc=0,nproc-1
+        if(norb_par(jproc,ikpt) > 0) then 
+           jsproc=jproc
+           exit find_start
+        end if
+     end do find_start
+     if (jsproc == UNINITIALIZED(1)) stop 'ERROR in kpt assignments'
+     if(norb_par(jsproc,ikpt) /= norb) then
+        strprc=real(norb_par(jsproc,ikpt),gp)/real(norb,gp)     
+     else
+        strprc=1.0_gp
+     end if
+     if (ikpt < nkpts) then
+        find_end: do jproc=jsproc,nproc-1
+           if(norb_par(jproc,ikpt+1) > 0) then
+              if (norb_par(jproc,ikpt)==0) then
+                 jeproc=jproc-1
+              else
+                 jeproc=jproc
+              end if
+              exit find_end
+           end if
+        end do find_end
+        if (jeproc == UNINITIALIZED(1)) stop 'ERROR in kpt assignments'
+     else
+        jeproc=nproc-1
+     end if
+     if (jeproc /= jsproc) then
+        endprc=real(norb_par(jeproc,ikpt),gp)/real(norb,gp)     
+     else
+        endprc=0.0_gp
+     end if
+     !if the number of processors is bigger than the number of orbitals this means 
+     !that strprc and endprc are not correctly evaluated
+     !evaluate the percentace on the number of components
+     if (jeproc-jsproc+1 > norb) then
+        strprc=1.0_gp/real(jeproc-jsproc+1,gp)
+        endprc=strprc
+     end if
+     !assign the number of components which corresponds to the same orbital distribution
+     numproc=jeproc-jsproc+1
+     ivctr=0
+
+     !print *,'kpoint',ikpt,jsproc,jeproc,strprc,endprc,ceiling(strprc*real(nvctr,gp)),nvctr
+     !start filling the first processor
+     nvctr_par(jsproc,ikpt)=min(ceiling(strprc*real(nvctr,gp)),nvctr)
+     ivctr=min(ceiling(strprc*real(nvctr,gp)),nvctr)
+     fill_array: do 
+        if (ivctr==nvctr) exit fill_array
+        icount=icount+1
+        kproc=jsproc+modulo(icount,numproc)
+        !put the floor of the components to the first processor
+        if (strprc /= 1.0_gp .and. kproc==jsproc .and. nvctr_par(kproc,ikpt)==ceiling(strprc*real(nvctr,gp))) then
+           !do nothing, skip away
+        else
+           nvctr_par(kproc,ikpt)=&
+                nvctr_par(kproc,ikpt)+1
+           ivctr=ivctr+1
+        end if
+     end do fill_array
+  end do
+
+end subroutine components_kpt_distribution
+
+subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,info,lub_orbs,lub_comps)
+  use module_base
+  implicit none
+  integer, intent(in) :: nproc,nkpts,norb,ncomp
+  integer, dimension(0:nproc-1,nkpts), intent(in) :: norb_par
+  integer, dimension(0:nproc-1,nkpts), intent(in) :: ncomp_par
+  integer, intent(inout) :: info
+  integer, intent(out) :: lub_orbs,lub_comps
+  !local variables
+  character(len=*), parameter :: subname='check_kpt_distributions'
+  logical :: yesorb,yescomp,notcompatible
+  integer :: ikpt,jorb,jproc,ierr,norbs,ncomps,i_all,i_stat,kproc,ieproc,isproc
+  integer, dimension(:,:), allocatable :: load_unbalancing
+  !before printing the distribution schemes, check that the two distributions contain
+  !the same k-points
+  if (info == 0) call print_distribution_schemes(6,nproc,nkpts,norb_par,ncomp_par)
+
+  allocate(load_unbalancing(0:nproc-1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,load_unbalancing,'load_unbalancing',subname)
+
+  do ikpt=1,nkpts
+     isproc=UNINITIALIZED(1)
+     find_isproc : do kproc=0,nproc-1
+        if (ncomp_par(kproc,ikpt) > 0) then
+           isproc=kproc
+           exit find_isproc
+        end if
+     end do find_isproc
+     if (isproc == UNINITIALIZED(1)) stop 'ERROR(check_kpt_distributions): isproc cannot be found'
+     ieproc=UNINITIALIZED(1)
+     find_ieproc : do kproc=nproc-1,0,-1
+        if (ncomp_par(kproc,ikpt) > 0) then
+           ieproc=kproc
+           exit find_ieproc
+        end if
+     end do find_ieproc
+     if (ieproc == UNINITIALIZED(1)) stop 'ERROR(check_kpt_distributions): ieproc cannot be found'
+
+     norbs=0
+     ncomps=0
+     do jproc=0,nproc-1
+        !count the total number of components
+        norbs=norbs+norb_par(jproc,ikpt)
+        ncomps=ncomps+ncomp_par(jproc,ikpt)
+        notcompatible=(ncomp_par(jproc,ikpt) == 0 .neqv. norb_par(jproc,ikpt) == 0) 
+        !check whether there are only 0 orbitals
+        if (notcompatible .and. norb_par(jproc,ikpt)==0) then
+           if (isproc < jproc .and. jproc <= ieproc) notcompatible=.false.
+        end if
+        if (notcompatible) then     
+           if (info == 0) write(*,*)' ERROR: processor ', jproc,' kpt,',ikpt,&
+                'have components and orbital distributions not compatible'
+           info=1
+           return
+           !call MPI_ABORT(MPI_COMM_WORLD, ierr)
+        end if
+     end do
+     if (norb/=norbs .or. ncomps /= ncomp) then
+        if (info == 0) write(*,*)' ERROR: kpt,',ikpt,&
+             'has components or orbital distributions not correct'
+        info=2
+        return
+        !call MPI_ABORT(MPI_COMM_WORLD, ierr)
+     end if
+  end do
+  do jproc=0,nproc-1
+     load_unbalancing(jproc,:)=0
+     do ikpt=1,nkpts
+        load_unbalancing(jproc,1)=load_unbalancing(jproc,1)+norb_par(jproc,ikpt)
+        load_unbalancing(jproc,2)=load_unbalancing(jproc,2)+ncomp_par(jproc,ikpt)
+     end do
+  end do
+
+  !calculate the maximum load_unbalancing
+  lub_orbs=0
+  lub_comps=0
+  do jproc=0,nproc-1
+     do kproc=0,nproc-1
+        lub_orbs=max(lub_orbs,load_unbalancing(jproc,1)-load_unbalancing(kproc,1))
+        lub_comps=max(lub_comps,load_unbalancing(jproc,2)-load_unbalancing(kproc,2))
+     end do
+  end do
+
+  if (info==0) write(*,*)' Kpoints Distribuitions are compatible, load unbalancings, orbs,comps:',lub_orbs,&
+       '/',max(minval(load_unbalancing(:,1)),1),lub_comps,'/',minval(load_unbalancing(:,2))
+  info=0
+  i_all=-product(shape(load_unbalancing))*kind(load_unbalancing)
+  deallocate(load_unbalancing,stat=i_stat)
+  call memocc(i_stat,i_all,'load_unbalancing',subname)
+
+
+end subroutine check_kpt_distributions
+
+!>routine which associates to any of the processor a given number of objects
+!! depending of the number of processors and k-points
 subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   use module_base
   implicit none
@@ -1242,15 +1563,16 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   ! where r_i and r_ip are real values. There are two possibilities:
   !  - We can write r_i <= n_i <= n_ip <= r_ip with n_i and n_ip integers ;
   !  - or r_i <= n_i and n_ip <= r_ip and n_i = n_ip + 1.
-  ! For both case, we can divide nobj into the partition (real values):
-  !  - N_a = (n_i - r_i)*nobj*nkpts/nproc;
-  !  - N_b = max((n_ip - n_i)*nobj*nkpts / nproc, 0);
-  !  - N_c = (r_ip - n_ip) * nobj * orbs%nkpts / nproc;
-  ! Before going to integer values, we have r_i = (ikpt - 1) * nproc / orbs%nkpts
+  ! For both cases, we can divide nobj into the partition (real values):
+  !  - N_a = (n_i - r_i)*nobj*nkpts/nproc (the initial part);
+  !  - N_b = max((n_ip - n_i)*nobj*nkpts / nproc, 0) (the naive part, the only one if nkpts is a multiple of nproc);
+  !  - N_c = (r_ip - n_ip) * nobj * orbs%nkpts / nproc (the final part);
+  ! Before going to integer values, we have r_i = (ikpt - 1) * nproc / orbs%nkpts (the naive division)
+  ! and r_ip = (ikpt) * nproc / orbs%nkpts (the segment endpoint)
   ! So N_a and N_b can be simplified and written instead:
   !  - N_a = int(nobj * (n_i * orbs%nkpts - (ikpt - 1) * nproc) / nproc);
-  !  - N_c = int(nobj * ((ikpt - 1) * nproc - n_i * orbs%nkpts) / nproc);
-  !  - N_b = nobj - N_a - N_b.
+  !  - N_c = int(nobj * ((ikpt) * nproc - n_ip * orbs%nkpts) / nproc)
+  !  - N_b = nobj - N_a - N_c 
   ! After, if N_a > 0, we put this quantity to proc n_i - 1, if N_c > 0
   ! we put its quantity to proc n_ip ; and finally N_b is distributed
   ! among [n_i;n_ip[ procs.
@@ -1261,7 +1583,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
      rs_i=(ikpt-1)*nproc !integer variable for rounding purposes
 
      if (mod(rs_i,nkpts) == 0) then
-        n_i=rs_i/nkpts
+        n_i=rs_i/nkpts 
      else
         n_i=rs_i/nkpts+1
      end if
@@ -1307,7 +1629,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
         N_b = 0
      end if
 !!$     write(*,*) ikpt, N_a, N_b, N_c
-     if (nkpts > 1 .and. N_b < n_ip - n_i) stop 1
+     if (nkpts > 1 .and. N_b < n_ip - n_i) stop 'ERROR:parallel_repartion_with_kpoints'
      !assign to procs the objects.
      if (N_a>0) nobj_par(n_i-1)=nobj_par(n_i-1)+N_a
      if (N_b>0) then

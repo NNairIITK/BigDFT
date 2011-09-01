@@ -21,7 +21,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   character(len=*), parameter :: subname='forces_via_finite_differences'
   character(len=4) :: cc
   integer :: ik,km,n_order,i_all,i_stat,iat,ii,i,k,order,iorb_ref
-  real(gp) :: dd,alat,functional_ref,fd_alpha
+  real(gp) :: dd,alat,functional_ref,fd_alpha,energy_ref
   real(gp), dimension(3) :: fd_step
   integer, dimension(:), allocatable :: kmoves
   real(gp), dimension(:), allocatable :: functional,dfunctional
@@ -68,6 +68,8 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   fd_step(2) = fd_alpha*inputs%hy
   fd_step(3) = fd_alpha*inputs%hz
 
+  !first, mark the reference energy
+  energy_ref=energy
 
   !assign the reference
   if (iorb_ref==0) then
@@ -80,8 +82,9 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
      end if
   else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
      if (rst%orbs%HLgap/=UNINITIALIZED(rst%orbs%HLgap)) then
-        !chemical potential =1/2(e_HOMO+e_LUMO)= -e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
-        functional_ref=-rst%orbs%eval(iorb_ref)+ rst%orbs%HLgap !definition which brings to Fukui function
+        !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
+        !definition which brings to Chemical Potential
+        functional_ref=abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap) 
      else
         stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated' 
      end if
@@ -175,6 +178,9 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
               functional(km)=energy
            else if (iorb_ref==-1) then
               functional(km)=rst%orbs%HLgap
+           else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
+              !definition which brings Chemical potential
+              functional(km)=abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap)
            else
               functional(km)=rst%orbs%eval(iorb_ref)
            end if
@@ -212,6 +218,12 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   call clean_forces(iproc,atoms,rxyz_ref,fxyz,fnoise)
 
   energy=functional_ref
+
+  if (iproc == 0) then
+     write(*,"(1x,2(a,1pe20.10))") &
+          '=FD Step done, Internal Energy:',energy_ref,' functional value:', functional_ref
+  end if
+
 
   i_all=-product(shape(kmoves))*kind(kmoves)
   deallocate(kmoves,stat=i_stat)
