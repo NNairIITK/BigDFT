@@ -666,17 +666,6 @@ testLoop: do
             call mpi_test(lin%comsr%comarr(9,korb,jproc), receiveComplete, stat, ierr)
             ! Attention: mpi_test is a local function.
             if(sendComplete .and. receiveComplete) lin%comsr%communComplete(korb,jproc)=.true.
-            !!if(lin%comsr%communComplete(korb,jproc)) then
-            !!    !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
-            !!    mpisource=lin%comsr%comarr(1,korb,jproc)
-            !!    mpidest=lin%comsr%comarr(5,korb,jproc)
-            !!    if(mpisource/=mpidest) then
-            !!        nfast=nfast+1
-            !!    else
-            !!        nsameproc=nsameproc+1
-            !!    end if
-            !!    lin%comsr%computComplete(korb,jproc)=.true.
-            !!end if
         end do
     end do
     ! If we made it until here, either all all the communication is

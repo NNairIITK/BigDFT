@@ -278,32 +278,6 @@ type(workarr_sumrho):: w
 
       ! Post communications for gathering the potential
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-      !!!!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!  ! Calculate the forces we get with psi.
-      !!  allocate(nscatterarrTemp(0:nproc-1,4), stat=istat)
-      !!  call memocc(istat, nscatterarrTemp, 'nscatterarrTemp', subname)
-      !!  allocate(phiTemp(size(phi)), stat=istat)
-      !!  call memocc(istat, phiTemp, 'phiTemp', subname)
-      !!  allocate(projTemp(nlpspd%nprojel), stat=istat)
-      !!  call memocc(istat, projTemp, 'projTemp', subname)
-      !!  projTemp=proj
-      !!  nscatterarrTemp=nscatterarr
-      !!  phiTemp=phi
-      !!  call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-      !!      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
-      !!  proj=projTemp
-      !!  nscatterarr=nscatterarrTemp
-      !!  phi=phiTemp
-      !!  iall=-product(shape(nscatterarrTemp))*kind(nscatterarrTemp)
-      !!  deallocate(nscatterarrTemp, stat=istat)
-      !!  call memocc(istat, iall, 'nscatterarrTemp', subname)
-      !!  iall=-product(shape(phiTemp))*kind(phiTemp)
-      !!  deallocate(phiTemp, stat=istat)
-      !!  call memocc(istat, iall, 'phiTemp', subname)
-      !!  iall=-product(shape(projTemp))*kind(projTemp)
-      !!  deallocate(projTemp, stat=istat)
-      !!  call memocc(istat, iall, 'projTemp', subname)
-      !!!!!  TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! Mix the potential
       if(trim(lin%mixingMethod)=='pot') then

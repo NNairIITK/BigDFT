@@ -936,10 +936,92 @@ type(p2pCommsOrthonormality),intent(inout):: comon
 ! Local variables
 integer:: jproc, iorb, mpisource, istsource, ncount, mpidest, istdest, tag, nsends, nreceives, ierr
 
+!!! THIS IS THE ORIGINAL ##################################
+!nsends=0
+!nreceives=0
+!comon%communComplete=.false.
+!do jproc=0,nproc-1
+!    !write(*,'(3(a,i0))') 'iproc=',iproc,', jproc=',jproc,', comon%noverlaps(jproc)=', comon%noverlaps(jproc)
+!    do iorb=1,comon%noverlaps(jproc)
+!        mpisource=comon%comarr(1,iorb,jproc)
+!        istsource=comon%comarr(2,iorb,jproc)
+!        ncount=comon%comarr(3,iorb,jproc)
+!        mpidest=comon%comarr(4,iorb,jproc)
+!        istdest=comon%comarr(5,iorb,jproc)
+!        tag=comon%comarr(6,iorb,jproc)
+!        !write(*,'(6(a,i0))') 'iproc=',iproc,', tag=',tag,', mpisource=',mpisource,', mpidest=',mpidest,' jproc=',jproc,', iorb=',iorb
+!        if(mpisource/=mpidest) then
+!            ! The orbitals are on different processes, so we need a point to point communication.
+!            if(iproc==mpisource) then
+!                !write(*,'(6(a,i0))') 'overlap: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+!                call mpi_isend(comon%sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag,&
+!                     mpi_comm_world, comon%comarr(7,iorb,jproc), ierr)
+!                !call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
+!                comon%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
+!                nsends=nsends+1
+!            else if(iproc==mpidest) then
+!                !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+!                call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
+!                     mpi_comm_world, comon%comarr(8,iorb,jproc), ierr)
+!                comon%comarr(7,iorb,jproc)=mpi_request_null !is this correct?
+!                nreceives=nreceives+1
+!            else
+!                comon%comarr(7,iorb,jproc)=mpi_request_null
+!                comon%comarr(8,iorb,jproc)=mpi_request_null
+!            end if
+!        else
+!            ! The orbitals are on the same process, so simply copy them.
+!            if(iproc==mpisource) then
+!                call dcopy(ncount, comon%sendBuf(istsource), 1, comon%recvBuf(istdest), 1)
+!                !write(*,'(6(a,i0))') 'overlap: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+!                comon%comarr(7,iorb,jproc)=mpi_request_null
+!                comon%comarr(8,iorb,jproc)=mpi_request_null
+!                nsends=nsends+1
+!                nreceives=nreceives+1
+!                comon%communComplete(iorb,mpisource)=.true.
+!            else
+!                comon%comarr(7,iorb,jproc)=mpi_request_null
+!                comon%comarr(8,iorb,jproc)=mpi_request_null
+!                comon%communComplete(iorb,mpisource)=.true.
+!            end if
+!
+!        end if
+!    end do
+!end do
 
+
+
+!! NEW ####################################
+! First only post receives
 nsends=0
 nreceives=0
 comon%communComplete=.false.
+do jproc=0,nproc-1
+    !write(*,'(3(a,i0))') 'iproc=',iproc,', jproc=',jproc,', comon%noverlaps(jproc)=', comon%noverlaps(jproc)
+    do iorb=1,comon%noverlaps(jproc)
+        mpisource=comon%comarr(1,iorb,jproc)
+        istsource=comon%comarr(2,iorb,jproc)
+        ncount=comon%comarr(3,iorb,jproc)
+        mpidest=comon%comarr(4,iorb,jproc)
+        istdest=comon%comarr(5,iorb,jproc)
+        tag=comon%comarr(6,iorb,jproc)
+        !write(*,'(6(a,i0))') 'iproc=',iproc,', tag=',tag,', mpisource=',mpisource,', mpidest=',mpidest,' jproc=',jproc,', iorb=',iorb
+        if(mpisource/=mpidest) then
+            ! The orbitals are on different processes, so we need a point to point communication.
+            if(iproc==mpisource) then
+            else if(iproc==mpidest) then
+                !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
+                     mpi_comm_world, comon%comarr(8,iorb,jproc), ierr)
+                comon%comarr(7,iorb,jproc)=mpi_request_null !is this correct?
+                nreceives=nreceives+1
+            end if
+        end if
+    end do
+end do
+
+
+! Now the rest.
 do jproc=0,nproc-1
     !write(*,'(3(a,i0))') 'iproc=',iproc,', jproc=',jproc,', comon%noverlaps(jproc)=', comon%noverlaps(jproc)
     do iorb=1,comon%noverlaps(jproc)
@@ -960,11 +1042,6 @@ do jproc=0,nproc-1
                 comon%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
-                     mpi_comm_world, comon%comarr(8,iorb,jproc), ierr)
-                comon%comarr(7,iorb,jproc)=mpi_request_null !is this correct?
-                nreceives=nreceives+1
             else
                 comon%comarr(7,iorb,jproc)=mpi_request_null
                 comon%comarr(8,iorb,jproc)=mpi_request_null
@@ -988,6 +1065,7 @@ do jproc=0,nproc-1
         end if
     end do
 end do
+
 
 
 end subroutine postCommsOverlap
