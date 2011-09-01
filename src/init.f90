@@ -388,7 +388,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
 !  real(gp), dimension(3,at%nat) :: fsep                 !debug for debug nonlocal_forces
 !  real(wp), dimension(nlpspd%nprojel) :: projtmp        !debug for debug nonlocal forces
 !  integer :: ierr                                       !for debugging
-  real(8),dimension(:),pointer:: lpot
+  real(8),dimension(:),pointer:: Lpot
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -507,8 +507,8 @@ subroutine input_wf_diag(iproc,nproc,at,&
      call memocc(i_stat,calculateBounds,'calculateBounds',subname)
      calculateBounds=.true.
 
-     call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,calculateBounds)
-!     call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,orbse)
+!     call determine_locreg_periodic(iproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,calculateBounds)
+     call determine_locreg_parallel(iproc,nproc,Lzd%nlr,rxyz,locrad,hx,hy,hz,Lzd%Glr,Lzd%Llr,orbse)
      deallocate(calculateBounds,stat=i_stat)
      call memocc(i_stat,i_all,'calculateBounds',subname)
 
@@ -614,7 +614,6 @@ subroutine input_wf_diag(iproc,nproc,at,&
      !close(44)
 !END DEBUG
 
-
      call sumrhoLinear(iproc,nproc,Lzd,orbse,ixc,hxh,hyh,hzh,Lpsi,rhopot,&
        & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
        & symObj, irrzon, phnons)    
@@ -674,7 +673,7 @@ subroutine input_wf_diag(iproc,nproc,at,&
     ! Create local potential
     call full_local_potential2(iproc, nproc, lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
          lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin, orbse, lzd, &
-         ngatherarr, rhopot, lpot, 1)
+         ngatherarr, rhopot, Lpot, 1)
 
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
     allocate(Lhpsi(Lzd%Lpsidimtot+ndebug),stat=i_stat)
@@ -688,14 +687,18 @@ subroutine input_wf_diag(iproc,nproc,at,&
 
     withConfinement=.false.
     call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
-         proj, lzd, ngatherarr, lpot, lpsi, lhpsi, &
+         proj, lzd, ngatherarr, Lpot, lpsi, lhpsi, &
          ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
          pkernel=pkernelseq)
 
     ! Deallocate local potential
-    i_all=-product(shape(lpot))*kind(lpot)
-    deallocate(lpot,stat=i_stat)
-    call memocc(i_stat,i_all,'lpot',subname)
+    i_all=-product(shape(Lpot))*kind(Lpot)
+    deallocate(Lpot,stat=i_stat)
+    call memocc(i_stat,i_all,'Lpot',subname)
+    i_all=-product(shape(orbse%ispot))*kind(orbse%ispot)
+    deallocate(orbse%ispot,stat=i_stat)
+    call memocc(i_stat,i_all,'orbse%ispot',subname)
+
 
     ! Deallocate PSP stuff
     call free_lnlpspd(orbse, lzd)
@@ -746,12 +749,14 @@ subroutine input_wf_diag(iproc,nproc,at,&
     hpsi => Lhpsi
 
     ! Don't need Lpsi, Lhpsi and locrad anymore
-    !i_all = -product(shape(Lpsi))*kind(Lpsi)
+!    i_all = -product(shape(Lpsi))*kind(Lpsi)
+!    deallocate(Lpsi,stat=i_stat)
     nullify(Lpsi) ;i_stat=0
-    !call memocc(i_stat,i_all,'Lpsi',subname)
-    !i_all = -product(shape(Lhpsi))*kind(Lhpsi)
+!    call memocc(i_stat,i_all,'Lpsi',subname)
+!    i_all = -product(shape(Lhpsi))*kind(Lhpsi)
+!    deallocate(Lhpsi,stat=i_stat)
     nullify(Lhpsi);i_stat=0
-    !call memocc(i_stat,i_all,'Lhpsi',subname)
+!    call memocc(i_stat,i_all,'Lhpsi',subname)
     i_all=-product(shape(locrad))*kind(locrad)
     deallocate(locrad,stat=i_stat)
     call memocc(i_stat,i_all,'locrad',subname)

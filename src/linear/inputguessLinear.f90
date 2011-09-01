@@ -489,8 +489,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call cpu_time(t1)
   call prepare_lnlpspd(iproc, at, input, lin%lig%orbsig, rxyz, radii_cf, lin%lig%lzdig)
   call full_local_potential2(iproc, nproc, lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*nscatterarr(iproc,2), &
-       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*lin%lig%lzdig%glr%d%n3i, lin%lig%orbsig,lin%lig%lzdig, &
-       ngatherarr, rhopot, lpot, 2, lin%lig%comgp)
+       lin%lig%lzdig%glr%d%n1i*lin%lig%lzdig%glr%d%n2i*lin%lig%lzdig%glr%d%n3i, lin%lig%orbsig%nspin, lin%lig%orbsig,&
+       lin%lig%lzdig, ngatherarr, rhopot, lpot, 2, lin%lig%comgp)
 
   allocate(lin%lig%lzdig%doHamAppl(lin%lig%lzdig%nlr), stat=istat)
   call memocc(istat, lin%lig%lzdig%doHamAppl, 'lin%lig%lzdig%doHamAppl', subname)

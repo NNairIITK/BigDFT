@@ -949,11 +949,9 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,nspin,orbs,lzd,nga
      end do
   end if
 
-  !if(lzd%linear) then
-      i_all=-product(shape(ilrtable))*kind(ilrtable)
-      deallocate(ilrtable,stat=i_stat)
-      call memocc(i_stat,i_all,'ilrtable',subname)
-  !end if
+  i_all=-product(shape(ilrtable))*kind(ilrtable)
+  deallocate(ilrtable,stat=i_stat)
+  call memocc(i_stat,i_all,'ilrtable',subname)
 
   ! Deallocate pot.
   if (flag<2 .and. flag>0) then

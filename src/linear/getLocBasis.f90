@@ -206,11 +206,11 @@ real(8),dimension(:),pointer:: lpot
 
   if(.not.lin%useDerivativeBasisFunctions) then
       call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, lin%orbs,lin%lzd, &
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, lin%orbs%nspin, lin%orbs,lin%lzd, &
            ngatherarr, rhopot, lpot, 2, lin%comgp)
   else
       call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, lin%lb%orbs,lin%lzd, &
+           lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, lin%orbs%nspin, lin%lb%orbs,lin%lzd, &
            ngatherarr, rhopot, lpot, 2, lin%lb%comgp)
   end if
 
@@ -550,7 +550,7 @@ real(8),dimension(:),pointer:: lpot
 
   ! Build the required potential
   call full_local_potential2(iproc, nproc, lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*nscatterarr(iproc,2), &
-       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, lin%orbs,lin%lzd, &
+       lin%lzd%glr%d%n1i*lin%lzd%glr%d%n2i*lin%lzd%glr%d%n3i, lin%orbs%nspin, lin%orbs,lin%lzd, &
        ngatherarr, rhopot, lpot, 2, lin%comgp)
   ! Prepare PSP
   !call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
