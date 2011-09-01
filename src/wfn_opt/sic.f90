@@ -1,6 +1,6 @@
 !> Construct a Self-Interaction-Corrected potential based on the 
 !! Perdew-Zunger prescription (Phys. Rev. B 23, 10, 5048 (1981))
-subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi)
+subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi,vexi,eexi,ehi)
   use module_base
   use module_types
   use module_interfaces
@@ -13,12 +13,12 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(in) :: psir
   real(dp), dimension(*), intent(in) :: pkernel
-  real(gp), intent(out) :: eSICi
+  real(gp), intent(out) :: eSICi,vexi,eexi,ehi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor), intent(out) :: vpsir
   !local variables
   character(len=*), parameter :: subname='PZ_SIC_potential' 
   integer :: npsir,nspinn,ncomplex,i_all,i_stat,ispin,icomplex,jproc,nproc
-  real(gp) :: vexi,eexi,ehi,spinval,hfac
+  real(gp) :: spinval,hfac
   integer, dimension(:,:), allocatable :: nscarr_fake
   real(dp), dimension(:,:), allocatable :: rhopoti,vSICi
   real(dp), dimension(:), pointer :: rhocore_fake

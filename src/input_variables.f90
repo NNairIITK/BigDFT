@@ -917,7 +917,7 @@ subroutine sic_input_variables_new(iproc,filename,in)
   !Self-Interaction Correction input parameters
   call input_set_file(iproc,trim(filename),exists,'SIC Parameters')  
 
-  call input_var(in%SIC_approach,'NONE',exclusive=(/'NONE','PZ  '/),comment='SIC method: NONE')
+  call input_var(in%SIC_approach,'NONE',exclusive=(/'NONE','PZ  '/),comment='SIC method: NONE or PZ')
   call input_var(in%alphaSIC,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='SIC parameter')
 
   call input_free(iproc)
