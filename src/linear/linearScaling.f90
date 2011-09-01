@@ -141,15 +141,8 @@ type(workarr_sumrho):: w
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        tag, lphi, ehart, eexcu, vexcu)
-  !!do iall=1,size(rhopot)
-  !!    read(10000+iproc,*) rhopot(iall)
-  !!end do
-  !!do iall=1,size(lphi)
-  !!    !read(11000+iproc,*) lphi(iall)
-  !!    write(500+iproc,*) lphi(iall)
-  !!end do
 
-  ! Post communications for gathering the potential
+  ! Post communications for gathering the potential.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call allocateCommunicationsBuffersPotential(lin%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
@@ -222,9 +215,7 @@ type(workarr_sumrho):: w
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
   do itSCC=1,nitSCC
-      !if(itSCC==10) updatePhi=.false.
-      if(itSCC>1 .and. pnrm<2.d-8) updatePhi=.false.
-      !!if(itSCC>1 .and. pnrm<7.3d-9) lin%nItBasis=1
+      if(itSCC>1 .and. pnrm<lin%fixBasis) updatePhi=.false.
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
@@ -253,7 +244,8 @@ type(workarr_sumrho):: w
       ! Mix the density.
       if(trim(lin%mixingMethod)=='dens') then
           if(lin%mixHist==0) then
-              if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+              !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+              call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
           else 
               ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
               ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
@@ -353,13 +345,9 @@ type(workarr_sumrho):: w
   end if
 
   ! Calculate the forces we get with psi.
-  !!psi=0.d0
-  !!phi=0.d0
-  !!coeff=0.d0
   call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, lphi, coeff, rhopot, &
       fxyz, fnoise,radii_cf)
-
 
   call free_lnlpspd(lin%orbs, lin%lzd)
 
@@ -411,7 +399,8 @@ real(8):: tt
   pnrm=0.d0
   tt=1.d0-lin%alphaMix
   !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
-  do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
+  !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
+  do i=1,Glr%d%n1i*Glr%d%n2i*n3p
       pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
       rhopot(i)=tt*rhopotOld(i)+lin%alphaMix*rhopot(i)
   end do

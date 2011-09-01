@@ -155,7 +155,7 @@ do iorb=1,lin%orbs%norbp
  ilr=lin%orbs%inwhichlocreg(iorb+lin%orbs%isorb)
  npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
 end do
-lin%lzd%Lpsidimtot = npsidim
+lin%lzd%Lpsidimtot = max(npsidim,1)
 
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
@@ -304,7 +304,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
       stop
   end if
   open(unit=99, file='input.lin')
-  read(99,*) lin%nItBasisFirst, lin%nItBasis
+  read(99,*) lin%nItBasisFirst, lin%nItBasis, lin%fixBasis
   read(99,*) lin%convCrit
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
   read(99,*) lin%startWithSD, lin%startDIIS
@@ -432,15 +432,15 @@ if(lin%correctionOrthoconstraint==0) then
 else if(lin%correctionOrthoconstraint==1) then
     message1='  no    '
 end if
-write(*,'(4x,a,8x,l3,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a,5x,l,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
+write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a,5x,l,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
      lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
      lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|', &
      message1, '|', lin%transformToGlobal, '|'
 write(*,'(4x,a)') '----------------------------------------------------------------------'
 write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
-write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
-write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
-write(*,'(4x,a)') '|  first   else  |             |                |           |       |'
+write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |     stop     |'
+write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis | optimization |'
+write(*,'(4x,a)') '|  first   else  |             |                |           |       |              |'
 if(trim(lin%getCoeff)=='diag') then
     !if(trim(lin%diagMethod)=='seq') then
     !    message1='diag seq'
@@ -451,13 +451,13 @@ if(trim(lin%getCoeff)=='diag') then
 else if(trim(lin%getCoeff)=='min') then
     message1='   min  '
 end if
-write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l3,a)') '| ', &
+write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a,2x,es10.3,2x,a)') '| ', &
     repeat(' ', 5-ceiling(log10(dble(lin%nItBasisFirst+1)+1.d-10))), lin%nItBasisFirst, &
     repeat(' ', 5-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
       '| ', lin%convCrit, ' | ', &
       repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       | ' , &
       message1, '  |  ', &
-      lin%plotBasisFunctions, '   |'
+      lin%plotBasisFunctions, '   |', lin%fixBasis, '|'
 write(*,'(4x,a)') '---------------------------------------------------------------------'
 write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |'
 write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit | of overlap mat |'
@@ -1503,13 +1503,13 @@ do iorb=1,lin%orbs%norbp
     npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
 end do
 !lin%Lorbs%npsidim=npsidim
-lin%orbs%npsidim=npsidim
-lin%orbs%npsidim=npsidim
+lin%orbs%npsidim=max(npsidim,1)
+lin%orbs%npsidim=max(npsidim,1)
 
 if(.not. lin%useDerivativeBasisFunctions) then
     !lin%lb%Lorbs%npsidim=npsidim
-    lin%lb%orbs%npsidim=npsidim
-    lin%lb%orbs%npsidim=npsidim
+    lin%lb%orbs%npsidim=max(npsidim,1)
+    lin%lb%orbs%npsidim=max(npsidim,1)
 else
     npsidim=0
     do iorb=1,lin%lb%orbs%norbp
@@ -1518,8 +1518,8 @@ else
         !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
     end do
     !lin%lb%Lorbs%npsidim=npsidim
-    lin%lb%orbs%npsidim=npsidim
-    lin%lb%orbs%npsidim=npsidim
+    lin%lb%orbs%npsidim=max(npsidim,1)
+    lin%lb%orbs%npsidim=max(npsidim,1)
 end if
 
 
@@ -1628,7 +1628,7 @@ do iorb=1,orbs%norbp
     npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
 end do
 !! WARNING: CHECHK THIS
-orbs%npsidim=npsidim
+orbs%npsidim=max(npsidim,1)
 
 
 end subroutine initLocregs2
@@ -2137,6 +2137,8 @@ subroutine compressMatrix2(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displ
   ! Local variables
   integer:: iseg, jj, jorb, iiorb, jjorb, jjproc, jjprocold, ncount
   
+  sendcounts=0
+  displs=0
   
   jj=0
   ncount=0

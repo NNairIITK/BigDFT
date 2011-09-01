@@ -330,6 +330,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   allocate(lchi(lin%lig%orbsig%npsidim+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
   lchi=0.d0
+  !write(*,*) 'iproc, lin%lig%orbsig%npsidim+ndebug', iproc, lin%lig%orbsig%npsidim+ndebug
+  !write(*,*) 'iproc, lin%lig%orbsGauss%npsidim', iproc, lin%lig%orbsGauss%npsidim
 
   ! Transform chi to the localization region. This requires that the localizatin region of lchi2 is larger than that
   ! of lchi.
@@ -756,6 +758,11 @@ call memocc(istat, ovrlp, 'ovrlp', subname)
 
 call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm, &
      orbs, op, comon, lzd, orbs%inWhichLocreg, convCritOrtho, input, mad, lchi,  ovrlp)
+!!do iall=1,orbs%norb
+!!  do istat=1,orbs%norb
+!!  if(iproc==0) write(333,*) iall, istat, ovrlp(istat,iall)
+!!  end do
+!!end do
 
 iall=-product(shape(ovrlp))*kind(ovrlp)
 deallocate(ovrlp, stat=istat)
