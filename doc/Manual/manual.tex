@@ -896,41 +896,42 @@ In progress
 
 \section{Native ABINIT XC codes}
 \begin{longtable}{ll}
-0  & NO xc\\
-1  & LDA or LSD, Teter Pade parametrization\\
-   & (S. Goedecker, M. Teter, J. H\"utter, Phys. Rev. B54, 1703 (1996)),\\
-   & which reproduces Perdew-Wang (which reproduces Ceperley-Alder!)\\
-2  & LDA, Perdew-Zunger-Ceperley-Alder (no spin-polarization)\\
-3  & LDA, old Teter rational polynomial parametrization\\
-   & fit to Ceperley-Alder data (no spin-polarization)\\
-4  & LDA, Wigner functional (no spin-polarization)\\
-5  & LDA, Hedin-Lundqvist functional (no spin-polarization)\\
-6  & LDA, "X-alpha" functional (no spin-polarization)\\
-7  & LDA or LSD, Perdew-Wang 92 functional\\
-8  & LDA or LSD, x-only part of the Perdew-Wang 92 functional\\
-9  & LDA or LSD, x- and RPA correlation part of the Perdew-Wang 92 functional\\
-11 & GGA, Perdew-Burke-Ernzerhof GGA functional\\
-12 & GGA, x-only part of Perdew-Burke-Ernzerhof GGA functional\\
-13 & GGA potential of van Leeuwen-Baerends,\\
-   & while for energy, Perdew-Wang 92 functional\\
-14 & GGA, revPBE of Y. Zhang and W. Yang, Phys. Rev. Lett. 80, 890 (1998)\\
-15 & GGA, RPBE of B. Hammer, L.B. Hansen and J.K. Norskov,\\
-   & Phys. Rev. B 59, 7413 (1999)\\
-16 & GGA, HTCH93 of F.A. Hamprecht, A.J. Cohen, D.J. Tozer, N.C. Handy,\\
-   & J. Chem. Phys. 109, 6264 (1998)\\
-17 & GGA, HTCH120 of A.D. Boese, N.L. Doltsinis, N.C. Handy, and M. Sprik,\\
-   & J. Chem. Phys 112, 1670 (1998) -- The usual HCTH functional\\
-20 & Fermi-Amaldi xc (-1/N Hartree energy, \\
-   & where N is the number of electrons per cell\\
-   & G=0 is not taken into account however), for TDDFT tests. No spin-polarisation.\\
-21 & same as 20, except that the xc-kernel is the LDA (ixc=1) one,\\
-   & for TDDFT tests\\
-22 & same as 20, except that the xc-kernel is the Burke-Petersilka-Gross hybrid,\\
-   & for TDDFT tests\\
-23 & GGA of Z. Wu and R.E. Cohen, Phys. Rev. 73, 235116 (2006)\\
-26 & GGA, HTCH147 of A.D. Boese, N.L. Doltsinis, N.C. Handy, and M. Sprik,\\
-   & J. Chem. Phys 112, 1670 (1998)\\
-27 & GGA, HTCH407 of A.D. Boese, and N.C. Handy, J. Chem. Phys 114, 5497 (2001)\\
+0   & No semi-local xc, Hartree potential\\
+1   & LDA or LSD, Teter Pade parametrization\\
+    & (S. Goedecker, M. Teter, J. H\"utter, Phys. Rev. B54, 1703 (1996)),\\
+    & which reproduces Perdew-Wang (which reproduces Ceperley-Alder!)\\
+2   & LDA, Perdew-Zunger-Ceperley-Alder (no spin-polarization)\\
+3   & LDA, old Teter rational polynomial parametrization\\
+    & fit to Ceperley-Alder data (no spin-polarization)\\
+4   & LDA, Wigner functional (no spin-polarization)\\
+5   & LDA, Hedin-Lundqvist functional (no spin-polarization)\\
+6   & LDA, "X-alpha" functional (no spin-polarization)\\
+7   & LDA or LSD, Perdew-Wang 92 functional\\
+8   & LDA or LSD, x-only part of the Perdew-Wang 92 functional\\
+9   & LDA or LSD, x- and RPA correlation part of the Perdew-Wang 92 functional\\
+11  & GGA, Perdew-Burke-Ernzerhof GGA functional\\
+12  & GGA, x-only part of Perdew-Burke-Ernzerhof GGA functional\\
+13  & GGA potential of van Leeuwen-Baerends,\\
+    & while for energy, Perdew-Wang 92 functional\\
+14  & GGA, revPBE of Y. Zhang and W. Yang, Phys. Rev. Lett. 80, 890 (1998)\\
+15  & GGA, RPBE of B. Hammer, L.B. Hansen and J.K. Norskov,\\
+    & Phys. Rev. B 59, 7413 (1999)\\
+16  & GGA, HTCH93 of F.A. Hamprecht, A.J. Cohen, D.J. Tozer, N.C. Handy,\\
+    & J. Chem. Phys. 109, 6264 (1998)\\
+17  & GGA, HTCH120 of A.D. Boese, N.L. Doltsinis, N.C. Handy, and M. Sprik,\\
+    & J. Chem. Phys 112, 1670 (1998) -- The usual HCTH functional\\
+20  & Fermi-Amaldi xc (-1/N Hartree energy, \\
+    & where N is the number of electrons per cell\\
+    & G=0 is not taken into account however), for TDDFT tests. No spin-polarisation.\\
+21  & same as 20, except that the xc-kernel is the LDA (ixc=1) one,\\
+    & for TDDFT tests\\
+22  & same as 20, except that the xc-kernel is the Burke-Petersilka-Gross hybrid,\\
+    & for TDDFT tests\\
+23  & GGA of Z. Wu and R.E. Cohen, Phys. Rev. 73, 235116 (2006)\\
+26  & GGA, HTCH147 of A.D. Boese, N.L. Doltsinis, N.C. Handy, and M. Sprik,\\
+    & J. Chem. Phys 112, 1670 (1998)\\
+27  & GGA, HTCH407 of A.D. Boese, and N.C. Handy, J. Chem. Phys 114, 5497 (2001)\\
+100 & Hartree-Fock exchange only
 \end{longtable}
 
 \section{libXC functional codes}
