@@ -725,7 +725,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
   real(kind=4) :: tt,t0,t1
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrm_zero,gnrmGPU
-  real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec
+  real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec,eSIC_DC
   real(kind=8) :: CPUtime,GPUtime
   type(gaussian_basis) :: G
   type(GPU_pointers) :: GPU
@@ -903,7 +903,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !take timings
   call cpu_time(t0)
   do j=1,ntimes
-     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,0,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum)
+     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,0,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
      !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
   end do
   call cpu_time(t1)

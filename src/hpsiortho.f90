@@ -11,7 +11,7 @@
 !> Application of the Hamiltonian
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,ixcSIC,alphaSIC,GPU,pkernel,orbsocc,psirocc)
+     ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ixcSIC,alphaSIC,GPU,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use module_xc
@@ -28,7 +28,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension(:), pointer :: pot
-  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
+  real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
   real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   type(GPU_pointers), intent(inout) :: GPU
   real(dp), dimension(:), pointer, optional :: pkernel
@@ -46,7 +46,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
-  real(gp), dimension(3,2) :: wrkallred
+  real(gp), dimension(4) :: wrkallred
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0 .and. verbose > 1) then
@@ -65,6 +65,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !initialise exact exchange energy 
   op2p=(eexctX == UNINITIALIZED(1.0_gp))
   eexctX=0.0_gp
+  eSIC_DC=0.0_gp
 
   exctX = xc_exctXfac() /= 0.0_gp
 
@@ -75,8 +76,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   ipotmethod=0
   if (exctX) ipotmethod=1
 
-  if (alphaSIC /= 0.0) ipotmethod=2
-
+  !the PZ-SIC correction does not makes sense for virtual orbitals procedure
+  if (alphaSIC /= 0.0 .and. .not. present(orbsocc)) ipotmethod=2
 
   !the poisson kernel should be present and associated in the case of SIC
   if (ipotmethod == 2 .and. .not. associated(pkernel)) then
@@ -153,7 +154,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   else
      !local hamiltonian application for different methods
      !print *,'ecco',ipotmethod,associated(pkernelSIC),ixcSIC
-     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,ipotmethod,pot,psi,hpsi,pkernelSIC,ixcSIC,alphaSIC,ekin_sum,epot_sum)
+     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,ipotmethod,pot,psi,hpsi,pkernelSIC,ixcSIC,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
   end if
   !test part to check the results wrt OCL convolutions
 !!$  if (OCLconv) then
@@ -225,14 +226,17 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   !energies reduction
   if (nproc > 1) then
-     wrkallred(1,2)=ekin_sum 
-     wrkallred(2,2)=epot_sum 
-     wrkallred(3,2)=eproj_sum
-     call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
-          mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
-     ekin_sum=wrkallred(1,1)
-     epot_sum=wrkallred(2,1)
-     eproj_sum=wrkallred(3,1) 
+     wrkallred(1)=ekin_sum 
+     wrkallred(2)=epot_sum 
+     wrkallred(3)=eproj_sum
+     wrkallred(4)=eSIC_DC
+
+     call mpiallred(wrkallred(1),4,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+     ekin_sum=wrkallred(1)
+     epot_sum=wrkallred(2)
+     eproj_sum=wrkallred(3) 
+     eSIC_DC=wrkallred(4) 
   endif
 
   !up to this point, the value of the potential energy is 
@@ -332,13 +336,13 @@ END SUBROUTINE free_full_potential
 !! depending of the functional we want to calculate. The gradient wrt the wavefucntion
 !! Is the put in hpsi accordingly to the functional
 subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
-     ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+     ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,iscf,iter
-  real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp
+  real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   type(locreg_descriptors), intent(in) :: lr
@@ -355,7 +359,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   !band structure energy calculated with occupation numbers
   energybs=ekin+epot+eproj !the potential energy contains also exctX
   !this is the Kohn-Sham energy
-  energyKS=energybs-ehart+exc-evxc-eexctX+eion+edisp
+  energyKS=energybs-ehart+exc-evxc-eexctX-eSIC_DC+eion+edisp
 
   !calculate orbital poloarisation directions
   if(orbs%nspinor==4) then

@@ -79,7 +79,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   integer :: occnorb, occnorbu, occnorbd
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor,imin
   integer :: ise,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake,emin,diff_max,this_e
+  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,gnrm_fake,emin,diff_max,this_e
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
   real(wp), dimension(:), allocatable :: hv,g,hg,ew  !,Pv,Pg
@@ -275,7 +275,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   !   compute H|v> => hv, <v|H|v> => e(:,1) and <v|P|v> => e(:,2)
   !
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
+       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
        pkernel,orbs,psirocc) ! optional arguments
   ! 
   !transpose  v and hv
@@ -550,7 +550,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      ! apply hamiltonian on gradients
      !
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
           pkernel,orbs,psirocc) 
      !
      ! transpose  g and hg and Pg (v, hv and Pv are already transposed)
@@ -800,7 +800,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      !   compute H|v> => hv 
      !
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
           pkernel,orbs,psirocc)
      if(iproc==0)write(*,'(1x,a)')"done."
      ! 

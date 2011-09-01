@@ -221,7 +221,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
-  real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,rpnrm,gnrm,gnrm_zero
+  real(gp) :: eion,epot_sum,ekin_sum,eproj_sum,eexctX,ehart,eexcu,vexcu,eSIC_DC,rpnrm,gnrm,gnrm_zero
   real(gp) :: energybs,tt,tel,ehart_fake,psoffset
   real(kind=8) :: ttsum
   real(gp) :: edisp ! Dispersion energy
@@ -809,6 +809,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
+  eSIC_DC=0.0_gp
 
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
@@ -942,14 +943,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
                 orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
 
            call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
-                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,&
+                nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,&
                 ixc,in%alphaSIC,GPU,pkernel=pkernelseq)
 
            !deallocate potential
            call free_full_potential(nproc,potential,subname)
 
            energybs=ekin_sum+epot_sum+eproj_sum !the potential energy contains also exctX
-           energy=energybs-ehart+eexcu-vexcu-eexctX+eion+edisp
+           energy=energybs-ehart+eexcu-vexcu-eexctX-eSIC_DC+eion+edisp
 
            !check for convergence or whether max. numb. of iterations exceeded
            if (endloop) then
@@ -960,7 +961,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            !evaluate the functional of the wavefucntions and put it into the diis structure
            !the energy values is printed out in this routine
            call calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,Glr,hx,hy,hz,in%ncong,in%iscf,&
-                ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu,eexctX,eion,edisp,&
+                ekin_sum,epot_sum,eproj_sum,eSIC_DC,ehart,eexcu,vexcu,eexctX,eion,edisp,&
                 psi,psit,hpsi,gnrm,gnrm_zero,diis%energy)
 !!$
 !!$           call calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,Glr,in%orthpar,&
@@ -1487,7 +1488,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'kernel',subname)
 
-  if (in%exctxpar == 'OP2P') then
+  if (in%exctxpar == 'OP2P' .or. in%alphaSIC > 0.0_gp) then
      i_all=-product(shape(pkernelseq))*kind(pkernelseq)
      deallocate(pkernelseq,stat=i_stat)
      call memocc(i_stat,i_all,'kernelseq',subname)
@@ -1497,6 +1498,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !------------------------------------------------------------------------
   if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
+     if (in%alphaSIC > 0.0_gp) then
+        if (iproc==0)write(*,*)&
+             'ERROR: Tail correction not admitted with SIC corrections for the moment'
+        stop
+     end if
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
@@ -1551,7 +1557,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !end if
 
      energybs=ekin_sum+epot_sum+eproj_sum
-     energy=energybs-ehart+eexcu-vexcu+eion+edisp
+     energy=energybs-ehart+eexcu-vexcu-eSIC_DC+eion+edisp
 
      !if (iproc==0) then
      !   write(61,'(1pe19.11)')energy
@@ -1615,7 +1621,7 @@ contains
           call memocc(i_stat,i_all,'counter_ions',subname)
        end if
 
-       if (in%exctxpar == 'OP2P') then
+       if (in%exctxpar == 'OP2P' .or. in%alphaSIC > 0.0_gp) then
           i_all=-product(shape(pkernelseq))*kind(pkernelseq)
           deallocate(pkernelseq,stat=i_stat)
           call memocc(i_stat,i_all,'kernelseq',subname)

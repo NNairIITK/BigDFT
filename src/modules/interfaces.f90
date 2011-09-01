@@ -440,7 +440,7 @@ module module_interfaces
 
      subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,ixcSIC,alphaSIC,GPU,pkernel,orbsocc,psirocc)
+          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ixcSIC,alphaSIC,GPU,pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        implicit none
@@ -455,7 +455,7 @@ module module_interfaces
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
        real(wp), dimension(:), pointer :: pot
-       real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
+       real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
        real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
        real(dp), dimension(:), pointer, optional :: pkernel
@@ -1195,12 +1195,12 @@ module module_interfaces
     END SUBROUTINE select_active_space
 
     subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
-         ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+         ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
       use module_base
       use module_types
       implicit none
       integer, intent(in) :: iproc,nproc,ncong,iscf,iter
-      real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp
+      real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
       type(orbitals_data), intent(in) :: orbs
       type(communications_arrays), intent(in) :: comms
       type(locreg_descriptors), intent(in) :: lr
@@ -1253,7 +1253,7 @@ module module_interfaces
     end subroutine constrained_davidson
 
     subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
-         ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum)
+         ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
       use module_base
       use module_types
       implicit none
@@ -1263,7 +1263,7 @@ module module_interfaces
       type(locreg_descriptors), intent(in) :: lr
       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
       real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
-      real(gp), intent(out) :: ekin_sum,epot_sum
+      real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
       real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
     end subroutine local_hamiltonian

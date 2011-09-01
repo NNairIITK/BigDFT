@@ -40,7 +40,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   logical :: msg,exctX,occorbs,endloop !extended output
   integer :: occnorb, occnorbu, occnorbd
   integer :: i_stat,i_all,iter,ikpt,idsx_actual_before,ndiis_sd_sw
-  real(gp) :: gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum
+  real(gp) :: gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC
   real(gp) :: energy,energy_old,energybs,evsum
   type(diis_objects) :: diis
   real(wp), dimension(:), pointer :: psiw,psirocc,psitvirt,hpsivirt,pot
@@ -196,6 +196,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
+  eSIC_DC=0.0_gp
 
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
@@ -223,7 +224,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      !endloop=endloop .or. ndiis_sd_sw > 2
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
           pkernel,orbs,psirocc) ! optional arguments
 
      energybs=ekin_sum+epot_sum+eproj_sum
@@ -250,7 +251,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      !evaluate the functional of the wavefucntions and put it into the diis structure
      !the energy values should be printed out here
      call calculate_energy_and_gradient(iter,iproc,nproc,orbsv,commsv,GPU,lr,hx,hy,hz,in%ncong,in%iscf,&
-          ekin_sum,epot_sum,eproj_sum,0.0_gp,0.0_gp,0.0_gp,eexctX,0.0_gp,0.0_gp,&
+          ekin_sum,epot_sum,eproj_sum,eSIC_DC,0.0_gp,0.0_gp,0.0_gp,eexctX,0.0_gp,0.0_gp,&
           psivirt,psitvirt,hpsivirt,gnrm,gnrm_zero,diis%energy)
 
      !control the previous value of idsx_actual
@@ -397,7 +398,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   integer :: occnorb, occnorbu, occnorbd
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor
   integer :: ise,j,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
-  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,gnrm_fake
+  real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,gnrm_fake
   integer, dimension(:,:), allocatable :: ndimovrlp
   real(wp), dimension(:), allocatable :: work,work_rp,hamovr
   real(wp), dimension(:), allocatable :: hv,g,hg,ew
@@ -534,7 +535,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !call add_parabolic_potential(at%geocode,at%nat,lr%d%n1i,lr%d%n2i,lr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
 
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
+       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
        pkernel,orbs,psirocc) ! optional arguments
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -809,7 +810,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call memocc(i_stat,hg,'hg',subname)
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
           pkernel,orbs,psirocc) ! optional argument
 
      !transpose  g and hg
@@ -1073,7 +1074,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
           pkernel,orbs,psirocc) !optional arguments
 
      !transpose  v and hv

@@ -356,7 +356,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   logical :: switchGPUconv,switchOCLconv
   integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx
   real(kind=4) :: tt,builtin_rand
-  real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
+  real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,eSIC_DC,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
@@ -639,7 +639,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,pot,&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,ixc,input%alphaSIC,GPU,pkernel=pkernelseq)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ixc,input%alphaSIC,GPU,pkernel=pkernelseq)
 
   !deallocate potential
   call free_full_potential(nproc,pot,subname)

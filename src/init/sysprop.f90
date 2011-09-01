@@ -1290,9 +1290,6 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   !the same k-points
   if (info == 0) call print_distribution_schemes(6,nproc,nkpts,norb_par,ncomp_par)
 
-  allocate(load_unbalancing(0:nproc-1,2+ndebug),stat=i_stat)
-  call memocc(i_stat,load_unbalancing,'load_unbalancing',subname)
-
   do ikpt=1,nkpts
      isproc=UNINITIALIZED(1)
      find_isproc : do kproc=0,nproc-1
@@ -1338,6 +1335,10 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
         !call MPI_ABORT(MPI_COMM_WORLD, ierr)
      end if
   end do
+
+  allocate(load_unbalancing(0:nproc-1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,load_unbalancing,'load_unbalancing',subname)
+
   do jproc=0,nproc-1
      load_unbalancing(jproc,:)=0
      do ikpt=1,nkpts

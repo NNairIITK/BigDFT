@@ -1,6 +1,6 @@
 !> Construct a Self-Interaction-Corrected potential based on the 
 !! Perdew-Zunger prescription (Phys. Rev. B 23, 10, 5048 (1981))
-subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi,vexi,eexi,ehi)
+subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi,eSIC_DCi)
   use module_base
   use module_types
   use module_interfaces
@@ -13,12 +13,12 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(in) :: psir
   real(dp), dimension(*), intent(in) :: pkernel
-  real(gp), intent(out) :: eSICi,vexi,eexi,ehi
+  real(gp), intent(out) :: eSICi,eSIC_DCi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor), intent(out) :: vpsir
   !local variables
   character(len=*), parameter :: subname='PZ_SIC_potential' 
   integer :: npsir,nspinn,ncomplex,i_all,i_stat,ispin,icomplex,jproc,nproc
-  real(gp) :: spinval,hfac
+  real(gp) :: spinval,hfac,fi,vexi,eexi,ehi
   integer, dimension(:,:), allocatable :: nscarr_fake
   real(dp), dimension(:,:), allocatable :: rhopoti,vSICi
   real(dp), dimension(:), pointer :: rhocore_fake
@@ -65,8 +65,10 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   allocate(vSICi(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinn+ndebug),stat=i_stat)
   call memocc(i_stat,vSICi,'vSICi',subname)
 
-  !occupation number and k-point weight
-  hfac=orbs%kwgts(orbs%iokpt(iorb))*(orbs%occup(orbs%isorb+iorb)/(hxh*hyh*hzh))
+  !occupation number and k-point weight of the given orbital
+  fi=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(orbs%isorb+iorb)
+
+  hfac=fi/(hxh*hyh*hzh)
   !value of the spin state
   spinval=orbs%spinsgn(orbs%isorb+iorb)
   !spin up or down depending of spinval
@@ -76,7 +78,11 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
      ispin=2
   end if
   eSICi=0.0_gp
-  if (hfac /= 0.d0) then
+  ehi=0.0_gp
+  eexi=0.0_gp
+  vexi=0.0_gp
+  eSIC_DCi=0.0_gp
+  if (fi /= 0.d0) then
 
      !copy the psir function in the vpsir array
      call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir(1,1),1,vpsir(1,1),1)
@@ -151,6 +157,9 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
         call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npsir,vpsir,&
              rhopoti(1,ispin),eSICi)
      end select
+
+     !calculate the contribution to the double-counting SIC energy (to be multiplied by alphaSIC)
+     eSIC_DCi=(1.0_gp-2.0_gp*fi)*ehi-fi*vexi+eexi
 
   else
      !put to zero the corresponding potential

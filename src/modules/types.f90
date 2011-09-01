@@ -372,7 +372,7 @@ module module_types
      !arguments for the hamiltonian
      integer :: iproc,nproc,ndimpot,nspin
      real(gp) :: hx,hy,hz
-     real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum
+     real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
      type(atoms_data), pointer :: at
      type(orbitals_data) :: orbs
      type(communications_arrays) :: comms

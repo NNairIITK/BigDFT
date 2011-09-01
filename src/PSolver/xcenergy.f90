@@ -318,12 +318,14 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   nwb=nxcl+nxc+nxcr-2
   nxt=nwbr+nwb+nwbl
 
-  !quick return if ixc==0
-  if (ixc == 0) then
+  !quick return if no Semilocal XC potential is required (Hartree or Hratree-Fock)
+  if (ixc == 0 .or. ixc == 100) then
      if (datacode == 'G') then
-        call dscal(n01*n02*n03,0.0_dp,potxc,1)
+        call to_zero(n01*n02*n03,potxc(1))
+        !call dscal(n01*n02*n03,0.0_dp,potxc,1)
      else
-        call dscal(n01*n02*nxc,0.0_dp,potxc,1)
+        call to_zero(n01*n02*nxc,potxc(1))
+        !call dscal(n01*n02*nxc,0.0_dp,potxc,1)
      end if
      exc=0.0_gp
      vxc=0.0_gp
