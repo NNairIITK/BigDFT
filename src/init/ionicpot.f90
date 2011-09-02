@@ -1165,7 +1165,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   !read the specifications of the counter ions from pseudopotentials
-  call read_system_variables('input.occup',iproc,in,at,radii_cf,nelec,&
+  call read_system_variables('input.occup',iproc,nproc,in,at,radii_cf,nelec,&
        norb,norbu,norbd,norbuempty,norbdempty,iunit)
 
   pi=4.d0*atan(1.d0)

@@ -450,7 +450,6 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
   real(wp), dimension(0:3) :: scal
   real(gp), dimension(3) :: hgridh
 
-
   !control whether the k points are to be used
   !real k-point different from Gamma still not implemented
   usekpts = kx**2+ky**2+kz**2 > 0.0_gp .or. nspinor == 2
@@ -843,7 +842,7 @@ subroutine daub_to_isf(lr,w,psi,psir)
   implicit none
   type(locreg_descriptors), intent(in) :: lr
   type(workarr_sumrho), intent(inout) :: w
-  real(wp), dimension(lr%wfd%nvctr_c+lr%wfd%nvctr_f), intent(in) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i), intent(out) :: psir
   !local variables
   integer :: i,i_f,iseg_f

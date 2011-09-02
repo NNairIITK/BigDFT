@@ -54,6 +54,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   etest=0.0_gp
 
   do iorb=1,orbs%norbp
+
      if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
         nsoffset=1
      else
@@ -99,14 +100,15 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
         !add to the psir function the part of the potential coming from the exact exchange
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
      end if
-
+     
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin)
-!     print *,iorb, ekin+epot, epot
+
+ 
+
      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
-
   enddo
 
   !print *,'iproc,etest',etest
@@ -274,7 +276,7 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
                  do ispinor=1,nspinor
                     do i1=i1s,i1e
                        !the local potential is always real
-                       tt=0.d0 !pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)*psir(i1,i2,i3,ispinor)
+                       tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
                        psir(i1,i2,i3,ispinor)=tt
                     end do

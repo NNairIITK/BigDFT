@@ -81,7 +81,7 @@ module module_defs
 
   !> interface for MPI_ALLREDUCE routine
   interface mpiallred
-     module procedure mpiallred_int,mpiallred_real,mpiallred_double
+     module procedure mpiallred_int,mpiallred_real,mpiallred_double,mpiallred_logical
   end interface
 
 
@@ -247,6 +247,35 @@ module module_defs
 #endif
     end subroutine mpiallred_double
 
+    subroutine mpiallred_logical(buffer,ntot,mpi_op,mpi_comm,ierr)
+      implicit none
+      integer, intent(in) :: ntot,mpi_op,mpi_comm
+      logical, intent(in) :: buffer
+      integer, intent(out) :: ierr
+#ifdef HAVE_MPI2
+      !case with MPI_IN_PLACE
+      call MPI_ALLREDUCE(MPI_IN_PLACE,buffer,ntot,&
+           MPI_LOGICAL,mpi_op,mpi_comm,ierr)
+#else
+      !local variables
+      character(len=*), parameter :: subname='mpi_allred'
+      integer :: i_all,i_stat
+      logical, dimension(:), allocatable :: copybuf
+
+      !case without mpi_in_place
+      allocate(copybuf(ntot+ndebug),stat=i_stat)
+      call memocc(i_stat,copybuf,'copybuf',subname)
+      
+      call scopy(ntot,buffer,1,copybuf,1) 
+
+      call MPI_ALLREDUCE(copybuf,buffer,ntot,&
+           MPI_LOGICAL,mpi_op,mpi_comm,ierr)
+      
+      i_all=-product(shape(copybuf))*kind(copybuf)
+      deallocate(copybuf,stat=i_stat)
+      call memocc(i_stat,i_all,'copybuf',subname)
+#endif
+    end subroutine mpiallred_logical
 
     !> Interfaces for LAPACK routines
     !! @warning

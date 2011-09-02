@@ -664,7 +664,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call input_wf_diag(iproc,nproc,atoms_clone,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in)
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU,in,radii_cf)
      
      if( iand( in%potshortcut,16)>0) then
         if(iproc==0) write(*,*) "re-reading electronic_density for Xanes energy dependent potential "
@@ -728,7 +728,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      call input_wf_diag(iproc,nproc,atoms,&
           orbs,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
           nlpspd,proj,pkernel,pkernel,ixc,psi,hpsi,psit,Gvirt,&
-          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in)
+          nscatterarr,ngatherarr,nspin, in%potshortcut, -1, irrzon, phnons, GPU, in, radii_cf)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)

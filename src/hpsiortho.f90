@@ -11,7 +11,7 @@
 !> Application of the Hamiltonian
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc)
+     ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel,orbsocc,psirocc,Lzd)
   use module_base
   use module_types
   use libxc_functionals
@@ -33,6 +33,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(dp), dimension(*), optional :: pkernel
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
+  type(local_zone_descriptors),optional :: Lzd
   !local variables
   real(gp), dimension(2,orbs%norbp) :: ekin
   real(gp), dimension(2,orbs%norbp) :: epot
@@ -46,7 +47,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !OCL  real(gp) :: eproj,ek_fake,ep_fake
   real(gp), dimension(3,2) :: wrkallred
 !OCL  real(wp), dimension(:), allocatable :: hpsi_OCL
-
+ integer :: size_pot
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
@@ -68,6 +69,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   exctX = libxc_functionals_exctXfac() /= 0.0_gp
 
   ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin+1
+       size_pot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin + &
+         max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norb,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
+
 
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX) then
@@ -100,6 +104,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      eexctX = 0._gp
      !print *,'iproc,eexctX',iproc,eexctX
   end if
+        size_pot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin + &
+         max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norb,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
 
   call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -150,10 +156,10 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !here the localisation region should be changed, temporary only for cubic approach
   eproj_sum=0.0_gp
   !apply the projectors following the strategy (On-the-fly calculation or not)
-  if (DistProjApply) then
+  if (DistProjApply .and. .not.present(Lzd)) then
      call applyprojectorsonthefly(iproc,orbs,at,lr,&
           rxyz,hx,hy,hz,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
-  else if(orbs%norbp > 0) then
+  else if(orbs%norbp > 0 .and. .not.present(Lzd)) then
      !apply the projectors  k-point of the processor
      !starting k-point
      ikpt=orbs%iokpt(1)
@@ -178,9 +184,12 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         ikpt=ikpt+1
         ispsi_k=ispsi
      end do loop_kpt
-
      if (istart_ck-1 /= nlpspd%nprojel) stop 'incorrect once-and-for-all psp application'
      if (ispsi-1 /= (lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp) stop 'incorrect V_nl psi application'
+  
+  else if(orbs%norbp > 0 .and. present(Lzd)) then
+      stop 'the calling sequence of apply_local_projectors is wrong!'
+     call apply_local_projectors(at,hx,hy,hz,lr,nlpspd,proj,orbs,lr%projflg,psi,rxyz,hpsi,eproj_sum)
   end if
 
   if(OCLconv .and. ASYNCconv) then
@@ -211,10 +220,10 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !only taking into account the local potential part
   !whereas it should consider also the value coming from the 
   !exact exchange operator (twice the exact exchange energy)
+  
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
 END SUBROUTINE HamiltonianApplication
-
 
 !> Build the potential in the whole box
 subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
@@ -297,8 +306,8 @@ END SUBROUTINE free_full_potential
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
 !! and calculate the corresponding gradient.
 !! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
-!! depending of the functional we want to calculate. The gradient wrt the wavefucntion
-!! Is the put in hpsi accordingly to the functional
+!! depending of the functional we want to calculate. The gradient wrt the wavefunction
+!! is put in hpsi accordingly to the functional
 subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
      ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
   use module_base
@@ -325,7 +334,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,h
   !this is the Kohn-Sham energy
   energyKS=energybs-ehart+exc-evxc-eexctX+eion+edisp
 
-  !calculate orbital poloarisation directions
+  !calculate orbital polarisation directions
   if(orbs%nspinor==4) then
      allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
      call memocc(i_stat,mom_vec,'mom_vec',subname)

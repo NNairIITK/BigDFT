@@ -21,7 +21,7 @@
                         g        g     i         B    B    
                                  g     i        B     B    
                                 g               B    B     
-                           ggggg       i         BBBB                 (Ver 1.5-dev.6)
+                           ggggg       i         BBBB                 (Ver 1.6-dev.0)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -31,11 +31,11 @@
  |   debug                   !Option disabled
  |   fftcache 8192           !Cache size for the FFT
  |   accel NO                !Acceleration (NO, CUDAGPU, OCLGPU)
- |   blas  F                 !CUBLAS acceleration
+ |   blas   F                !CUBLAS acceleration
  |   projrad  15.00          !Radius of the projector as a function of the maxrad
  |   exctxpar BC             !Exact exchange parallelisation scheme
- |   ig_diag  T              !Input guess: Direct diagonalization of Hamiltonian
- |   ig_blocks 800 0         !Input guess: Block size for orthonormalisation
+ |   ig_diag   T             !Input guess: Direct diagonalization of Hamiltonian
+ |   ig_blocks 300 800       !Input guess: Block size for orthonormalisation
  |   ig_tol  1.00E-04        !Input guess: Tolerance criterion
  |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
  
@@ -49,15 +49,15 @@
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 100
  --- (file: input.dft) --------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
-   Max. hgrid=  0.400 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-05 | Calculate=   F
-        XC id=      1 |    Fine Wfs.= 9.00 | Max. N. Iter.=  500x 1 | Extension= 0.0
+   Max. hgrid=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-05 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 6.00 | Max. N. Iter.=  100x 1 | Extension= 0.0
  total charge=      0 |                    | CG Prec.Steps=       5 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=      15
    Input wf. policy=  100 (Error         ) |  Output wf. policy=     0 (none        )
  Output grid policy=    0   (none        ) | Output grid format=     0         (text)
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
-      C          4       3            1.58437  0.23268  0.50759         X              
+      C          4       3            1.58437  0.23268  0.76138         X              
       H          1       3            1.46342  0.20000  0.00000         X              
  ------------------------------------ Pseudopotential coefficients (Upper Triangular)
  Atom Name    rloc      C1        C2        C3        C4  
@@ -72,63 +72,135 @@
  Total Number of Orbitals         7
  occup(1:7)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
-     1      C  8.99800E+00  1.01607E+01  8.90948E+00       22.495    25.402    22.274
-     2      C  1.14020E+01  8.63935E+00  9.09049E+00       28.505    21.598    22.726
-     3      H  7.31371E+00  8.94189E+00  8.94033E+00       18.284    22.355    22.351
-     4      H  8.81600E+00  1.14999E+01  1.04896E+01       22.040    28.750    26.224
-     5      H  8.92209E+00  1.12702E+01  7.15254E+00       22.305    28.175    17.881
-     6      H  1.15839E+01  7.30007E+00  7.51039E+00       28.960    18.250    18.776
-     7      H  1.14780E+01  7.52993E+00  1.08475E+01       28.695    18.825    27.119
-     8      H  1.30863E+01  9.85815E+00  9.05953E+00       32.716    24.645    22.649
-    Shift of=  2.45019E+00  7.30348E+00  7.14546E+00 H grids=  0.4000  0.4000  0.4000
-   Box Sizes=  2.04000E+01  1.88000E+01  1.80000E+01           51        47        45
-       Extremes for the high resolution grid points:        14<37     14<33     14<31
+     1      C  8.92300E+00  9.98569E+00  8.90948E+00       19.829    22.190    19.799
+     2      C  1.13270E+01  8.46435E+00  9.09049E+00       25.171    18.810    20.201
+     3      H  7.23871E+00  8.76689E+00  8.94033E+00       16.086    19.482    19.867
+     4      H  8.74100E+00  1.13249E+01  1.04896E+01       19.424    25.167    23.310
+     5      H  8.84709E+00  1.10952E+01  7.15254E+00       19.660    24.656    15.895
+     6      H  1.15089E+01  7.12507E+00  7.51039E+00       25.575    15.833    16.690
+     7      H  1.14030E+01  7.35493E+00  1.08475E+01       25.340    16.344    24.105
+     8      H  1.30113E+01  9.68315E+00  9.05953E+00       28.914    21.518    20.132
+    Shift of=  2.37519E+00  7.12848E+00  7.14546E+00 H grids=  0.4500  0.4500  0.4500
+   Box Sizes=  2.02500E+01  1.84500E+01  1.80000E+01           45        41        40
+       Extremes for the high resolution grid points:        14<31     14<27     14<26
  wavelet localization is ON
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=2177280  Kernel=2210816
-                                 Full Grid Arrays=16093000
+ Memory occ. per proc. (Bytes):  Density=1693440  Kernel=1836928
+                                 Full Grid Arrays=12141624
  Load Balancing for Poisson Solver related operations:
- LB_density        : processors   0  -  6 work at 100%
-                     processor       7   works at  88%
+ LB_density        : processors   0  -  7 work at 100%
   LB_kernel        : processors   0  -  6 work at 100%
-                     processor       7   works at  94%
+                     processor         7   works at    56%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
- Coarse resolution grid: Number of segments=       1810 points=     56464
-   Fine resolution grid: Number of segments=        322 points=      2636
- Wavefunctions memory occupation for root processor (Bytes): 599328
+ Coarse resolution grid: Number of segments=       1420 points=     39620
+   Fine resolution grid: Number of segments=        164 points=       690
+ Wavefunctions memory occupation for root processor (Bytes): 355600
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       C               2                    1
     2       H               6                    0
                                             ------
  Total number of projectors =                    2
- Total number of components =                20958
+ Total number of components =                10570
  Percent of zero components =                    0
  Calculating wavelets expansion of projectors... done.
  ------------------------------------------------------------------ Memory Estimation
- Number of atoms=    8 Number of orbitals=     7 Sim. Box Dimensions=    51   47   45
+ Number of atoms=    8 Number of orbitals=     7 Sim. Box Dimensions=    45   41   40
  Estimation performed for 8 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     2 MB   111 KB
-              Poisson Solver Density (D):     2 MB    79 KB
-     Single Wavefunction for one orbital:     0 MB   586 KB
-    All Wavefunctions for each processor:     1 MB   732 KB
-       Wavefunctions + DIIS per proc (W):    18 MB   884 KB
-     Nonlocal Pseudopotential Arrays (P):     0 MB   164 KB
-    Arrays of full uncompressed grid (U):    15 MB   356 KB
+               Poisson Solver Kernel (K):     1 MB   770 KB
+              Poisson Solver Density (D):     1 MB   630 KB
+     Single Wavefunction for one orbital:     0 MB   348 KB
+    All Wavefunctions for each processor:     1 MB    18 KB
+       Wavefunctions + DIIS per proc (W):    11 MB   198 KB
+     Nonlocal Pseudopotential Arrays (P):     0 MB    83 KB
+    Arrays of full uncompressed grid (U):    11 MB   594 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~19*K         |     W+(~4)*U+D+K+P   |   ~12*D+K+W+P  |    ~W+(~5)*U+D+K+P 
-        40MB         |        73MB          |       46MB     |            80MB
- The overall memory requirement needed for this calculation is thus: 80 MB
+       ~19*K         |   W+~3*U+~ 3*D+K+P   |   ~12*D+K+W+P  |   W+~3*U+~ 3*D+K+P 
+        33MB         |        47MB          |       32MB     |            48MB
+ The overall memory requirement needed for this calculation is thus: 48 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
-  memory can be reduced but for this system it will never be less than 61 MB
+  memory can be reduced but for this system it will never be less than 44 MB
  ion-ion interaction energy  2.65633855517418E+01
  ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -13.999999959228   0.000E+00
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
+ total ionic charge, leaked charge           -14.000000099281   0.000E+00
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ ************************************************************************************
+ ****************************** LINEAR SCALING VERSION ******************************
+ Wavefunctions memory occupation for root processor (Bytes): 711200
+ Wavefunctions memory occupation for root processor (Bytes): 711200
+ Wavefunctions memory occupation for root processor (Bytes): 711200
+ Wavefunctions memory occupation for root processor (Bytes): 711200
+ ################################# Input parameters #################################
+ >>>> General parameters.
+    |           |    number of    |     prefactor for     | localization |
+    | atom type | basis functions | confinement potential |    radius    |
+    |     C     |         4       |       1.000E-03       |     7.0000   |
+    |     H     |         1       |       1.000E-03       |     7.0000   |
+    ----------------------------------------------------------------------
+    | mixing | mixing | iterations in | alpha mix | convergence crit. |
+    | scheme | method |  in SC cycle  |           |    for mixing     |
+    |  dens  | linear |        10     | 4.000E-01 |     1.000E-07     |
+    -------------------------------------------------------------------
+    | use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  | transform |
+    |  basis functions   |   potential    |  input guess  | per process  | orthoconstraint | to global |
+    |         F          |       4        |      5000     |       1      |       no        |      F    |
+    ----------------------------------------------------------------------
+ >>>> Parameters for the optimization of the basis functions.
+    | maximal number | convergence | iterations in  | get coef- | plot  |     stop     |
+    |  of iterations |  criterion  | preconditioner | ficients  | basis | optimization |
+    |  first   else  |             |                |           |       |              |
+    |     5       5  |  1.000E-05  |        5       |   diag    |   F   |   5.000E-07  |
+    ---------------------------------------------------------------------
+    | DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |
+    |  min   max   |            |          | with SD |            | nit max   conv crit | of overlap mat |
+    |   0     8    |  1.00E+00  | 1.00E-01 |     F    |  2.000E+02 |    2       1.0E-14  |     exact      |
+    ------------------------------------------------------------------------------------------------------
+ >>>> Parameters for the optimization of the coefficients.
+    | maximal number | convergence |
+    |  of iterations |  criterion  |
+    |      2000      |  1.000E-05  | 
+    --------------------------------
+ >>>> Performance options
+    | blocksize | blocksize | max proc | max proc |
+    |  pdsyev   |  pdgemm   |  pdsyev  |  pdgemm  |
+    |     -8    |     -8    |     4   |     4
+ >>>> Partition of the basis functions among the processes.
+    | Processes from 0 to 5 treat 2 orbitals, |
+    | processes from 6 to 7 treat 1 orbitals. |
+ -----------------------------------------------
+ >>>> Partition of the basis functions including the derivatives among the processes.
+    | Processes from 0 to 5 treat 2 orbitals, |
+    | processes from 6 to 7 treat 1 orbitals. |
+ ####################################################################################
+ Initializing localization regions... done.
+ Initializing communications sumrho... done.
+ Initializing communications potential... done.
+ Initializing communications orthonormalization... done.
+ Initializing input guess... done.
+done.
+ ################################# Memory estimator ##################################
+ WARNING: The memory requirements are underestimated by about 20-30%!
+ Memory requirements of the largest arrays:
+   trace minimizing orbitals phi: 1MB
+   DIIS history of the trace minimizing orbitals phi: 4MB
+   The Hamiltonian applied to the orbital, i.e. hphi: 4MB
+   charge density / potential: 3MB
+   communication buffers sumrho: 19MB
+   communication buffers for gathering the potential: 10MB
+   communication buffers / workk arrays for orthonormalization: 12MB
+   auxilliary arrays for orthonormalization: 4MB
+   potential / orbital in real space (Hamiltonian application): 13MB
+   input guess, all orbitals: 6MB
+   input guess, communication buffers and auxilliary arrays for orthonormalization : 22MB
+   input guess, communication buffers for gathering the potential: 10MB
+ >>> estimated memory peak: 50MB
+ >>> peak section: Calculation the Hamiltonian matrix
+ #####################################################################################
+ Initializing matrix compression... done.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 14 Atomic Input Orbitals
  Processes from 0 to 5 treat 2 inguess orbitals 
@@ -138,822 +210,1537 @@
    Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
  Generation of input wavefunction data for atom      H: 
    Elec. Configuration: s 1.00 , ... done.
- Wavefunctions memory occupation for root processor (Bytes): 1198656
  Writing wavefunctions in wavelet form... done.
- Deviation from normalization of the imported orbitals    1.01E-06
- Calculation of charge density... done. Total electronic charge=      13.999999921016
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done. ekin_sum,eks:      12.5886866501      12.5884217239
- ekin_sum,epot_sum,eproj_sum  1.25886866501E+01 -1.93172056778E+01  1.60094645354E+00
-    ehart,   eexcu,    vexcu  3.67898517615E+01 -5.57285732853E+00 -7.28746919972E+00
- Input Wavefunctions Orthogonalization:
- Overlap Matrix... Direct diagonalization...
- evale(1)= -7.41265700484314E-01
- evale(2)= -5.78537813201478E-01 <-
- evale(3)= -4.21196239906936E-01 <-
- evale(4)= -4.21148269151381E-01 <-
- evale(5)= -3.91295245020109E-01 <-
- evale(6)= -3.14277507650060E-01 <-
- evale(7)= -3.14217611844877E-01 <- Last InputGuess eval, H-L IG gap:  14.8529 eV
- evale(8)=  2.31615811202171E-01 <- First virtual eval
- evale(9)=  3.43330086423585E-01 <-
- evale(10)=  3.43449132995907E-01 <-
- evale(11)=  4.45310552762873E-01 <-
- evale(12)=  4.45485303033202E-01 <-
- evale(13)=  5.44077757609797E-01
- evale(14)=  5.65341743333000E-01
- Building orthogonal Wavefunctions... done.
- expected accuracy in energy  2.65E-04
- expected accuracy in energy per orbital  3.78E-05
- ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      13.999999957531
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.00E+00  1.00E+00
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.24059853055E+01 -1.81184642154E+01  1.09052554249E+00
-    ehart,   eexcu,    vexcu  3.83882043115E+01 -5.58949655950E+00 -7.30970917573E+00
- iter,total energy,gnrm     1  -1.47265595109785963E+01  2.03E-01
- ---------------------------------------------------------------------------- iter= 2
- Calculation of charge density... done. Total electronic charge=      13.999999949102
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -9.26E-02  1.09E+00 -3.80E-03
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.21208542072E+01 -1.86433536295E+01  7.89019468700E-01
-    ehart,   eexcu,    vexcu  3.73852588545E+01 -5.48310353592E+00 -7.16966917171E+00
- iter,total energy,gnrm     2  -1.48687876205871419E+01  8.64E-02
- ---------------------------------------------------------------------------- iter= 3
- Calculation of charge density... done. Total electronic charge=      13.999999940445
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -9.65E-02 -4.47E-01  1.54E+00 -4.44E-04
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22287150666E+01 -1.88252731652E+01  8.70323913618E-01
-    ehart,   eexcu,    vexcu  3.74264990761E+01 -5.51003456988E+00 -7.20528117295E+00
- iter,total energy,gnrm     3  -1.48941011062805657E+01  3.79E-02
- ---------------------------------------------------------------------------- iter= 4
- Calculation of charge density... done. Total electronic charge=      13.999999933921
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    5.68E-02  4.05E-02 -5.17E-01  1.42E+00 -5.22E-05
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22410635018E+01 -1.89445164342E+01  8.52381214473E-01
-    ehart,   eexcu,    vexcu  3.73097032157E+01 -5.51087457972E+00 -7.20644515343E+00
- iter,total energy,gnrm     4  -1.49018188081987120E+01  1.56E-02
- ---------------------------------------------------------------------------- iter= 5
- Calculation of charge density... done. Total electronic charge=      13.999999934412
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -9.74E-03  1.42E-02  8.20E-03 -4.05E-01  1.39E+00 -6.88E-06
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22236594288E+01 -1.89386787766E+01  8.66360091460E-01
-    ehart,   eexcu,    vexcu  3.73139501213E+01 -5.51400277795E+00 -7.21055644414E+00
- iter,total energy,gnrm     5  -1.49026701596993121E+01  6.35E-03
- ---------------------------------------------------------------------------- iter= 6
- Calculation of charge density... done. Total electronic charge=      13.999999934755
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -5.06E-03 -1.49E-02  8.10E-02 -5.84E-02 -5.26E-01  1.52E+00 -1.29E-06
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22165305242E+01 -1.89356493368E+01  8.65791291416E-01
-    ehart,   eexcu,    vexcu  3.73095531655E+01 -5.51437046609E+00 -7.21103774340E+00
- iter,total energy,gnrm     6  -1.49028278576224835E+01  2.62E-03
- ---------------------------------------------------------------------------- iter= 7
- Calculation of charge density... done. Total electronic charge=      13.999999934850
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    7.93E-04  4.59E-03 -2.12E-02  2.72E-02  1.53E-01 -8.40E-01  1.68E+00 -2.74E-07
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22121018272E+01 -1.89333688376E+01  8.67510015623E-01
-    ehart,   eexcu,    vexcu  3.73091568175E+01 -5.51437148402E+00 -7.21103754559E+00
- iter,total energy,gnrm     7  -1.49028621988934447E+01  1.12E-03
- ---------------------------------------------------------------------------- iter= 8
- Calculation of charge density... done. Total electronic charge=      13.999999934831
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.29E-05 -5.94E-04 -6.73E-04 -3.33E-03  2.00E-02  7.13E-02 -6.62E-01  1.58E+00 -3.90E-08
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22103710852E+01 -1.89324593318E+01  8.67793447323E-01
-    ehart,   eexcu,    vexcu  3.73085870469E+01 -5.51424986821E+00 -7.21087681396E+00
- iter,total energy,gnrm     8  -1.49028693487117607E+01  5.02E-04
- ---------------------------------------------------------------------------- iter= 9
- Calculation of charge density... done. Total electronic charge=      13.999999934818
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -7.51E-05 -1.37E-04  1.83E-03 -6.55E-05 -2.89E-02  8.60E-02 -2.72E-04 -5.29E-01  1.47E+00 -5.94E-09
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22099812504E+01 -1.89324164477E+01  8.67920676002E-01
-    ehart,   eexcu,    vexcu  3.73083559932E+01 -5.51421048016E+00 -7.21082492213E+00
- iter,total energy,gnrm     9  -1.49028705208244929E+01  1.98E-04
- --------------------------------------------------------------------------- iter= 10
- Calculation of charge density... done. Total electronic charge=      13.999999934827
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights   -1.40E-05  8.29E-05  4.34E-05  7.08E-04 -1.08E-03 -6.21E-03  2.74E-02  2.25E-02 -5.24E-01  1.48E+00 -1.01E-09
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22100431961E+01 -1.89324278545E+01  8.67868685542E-01
-    ehart,   eexcu,    vexcu  3.73083525333E+01 -5.51420372622E+00 -7.21081601627E+00
- iter,total energy,gnrm    10  -1.49028706643427427E+01  7.05E-05
- --------------------------------------------------------------------------- iter= 11
- Calculation of charge density... done. Total electronic charge=      13.999999934829
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    3.34E-05 -2.47E-05 -2.22E-04  7.17E-04 -5.68E-06 -4.51E-03 -5.33E-03  4.92E-02 -3.81E-02 -4.47E-01  1.45E+00 -1.06E-10
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22101488479E+01 -1.89324410981E+01  8.67804891912E-01
-    ehart,   eexcu,    vexcu  3.73083803125E+01 -5.51420107351E+00 -7.21081250513E+00
- iter,total energy,gnrm    11  -1.49028706874735306E+01  2.69E-05
- --------------------------------------------------------------------------- iter= 12
- Calculation of charge density... done. Total electronic charge=      13.999999934829
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
- DIIS weights    1.04E-05  9.63E-06 -1.11E-04  1.43E-04  1.73E-05  5.01E-05 -5.14E-04 -3.73E-03  3.30E-02 -2.43E-02 -3.23E-01  1.32E+00
- -1.04E-11
- Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22102068370E+01 -1.89324597169E+01  8.67784093264E-01
-    ehart,   eexcu,    vexcu  3.73083990865E+01 -5.51420172784E+00 -7.21081335881E+00
- iter,total energy,gnrm    12  -1.49028706904244359E+01  8.87E-06
- --------------------------------------------------------------------------- iter= 13
- Calculation of charge density... done. Total electronic charge=      13.999999934828
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done. 13 minimization iterations required
- --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   1.22102270275E+01 -1.89324696042E+01  8.67777982842E-01
- final ehart, eexcu,  vexcu   3.73084034806E+01 -5.51420236228E+00 -7.21081419437E+00
- FINAL iter,total energy,gnrm    13  -1.49028706906508077E+01  8.87E-06
- --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -6.80305444918472E-01 2.0000
- e(   2)= -5.46665985831923E-01 2.0000
- e(   3)= -3.88316433413303E-01 2.0000
- e(   4)= -3.88254417246749E-01 2.0000
- e(   5)= -3.33428300311017E-01 2.0000
- e(   6)= -2.95164251165244E-01 2.0000
- e(   7)= -2.95097464033075E-01 2.0000
- ************************************************************************************
- ****************************** LINEAR SCALING VERSION ******************************
- ********* Use the selfconsistent potential for the linear scaling version. *********
- ################################# Input parameters #################################
- >>>> General parameters.
-    |           |    number of    |     prefactor for     |
-    | atom type | basis functions | confinement potential |
-    |     C     |         4       |       1.000E-06       |
-    |     H     |         1       |       1.000E-06       |
-    -------------------------------------------------------
-    |  number of iterations in the   |
-    |     selfconsistency cycle      |
-    | basis functions / coefficients |
-    |               0                |
-    ----------------------------------
- >>>> Parameters for the optimization of the basis functions.
-    | maximal number | convergence | iterations in  | get coef- | plot  |
-    |  of iterations |  criterion  | preconditioner | ficients  | basis |
-    | inguess   SCC  |             |                |           |       |
-    |   100      0   |  1.000E-02  |        5       |   min     |   T   |
-    ---------------------------------------------------------------------
-    | DIIS history | alpha SD |  start  | allow DIIS |
-    |  min   max   |          | with SD |            |
-    |   0     8    | 1.00E-01 |    F    |  2.000E+02 |
-    --------------------------------------------------
- >>>> Parameters for the optimization of the coefficients.
-    | maximal number | convergence |
-    |  of iterations |  criterion  |
-    |      2000      |  1.000E-05  | 
-    --------------------------------
- >>>> Partition of the basis functions among the processes.
-    | Processes from 0 to 5 treat 2 orbitals, |
-    | processes from 6 to 7 treat 1 orbitals. |
- ####################################################################################
- Wavefunctions memory occupation for root processor (Bytes): 1198656
- ======================== Creation of the basis functions... ========================
+ Deviation from normalization of the imported orbitals    4.53E-06
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  4.4281E-01
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  9.2975E-10
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.625E-02=39.6%
+   time for communication:4.000E-02=60.4%
+   time for calculating overlap:3.750E-03= 5.7%
+   time for expansion:8.750E-03=13.2%
+   time for Loewdin:1.250E-03= 1.9%
+   time for transform:2.500E-03= 3.8%
+   time for extract:1.000E-02=15.1%
+ Calculating charge density... Calculation of charge density... done. Total electronic charge=      13.999999217908
+done.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ statistics: - 432 point to point communications, of which 0 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application for all atoms. This may take some time.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+   Hamiltonian application for atom 1...  Hamiltonian application...done.
+   Hamiltonian application for atom 2...  Hamiltonian application...done.
+   Hamiltonian application for atom 3...  Hamiltonian application...done.
+   Hamiltonian application for atom 4...  Hamiltonian application...done.
+   Hamiltonian application for atom 5...  Hamiltonian application...done.
+   Hamiltonian application for atom 6...  Hamiltonian application...done.
+   Hamiltonian application for atom 7...  Hamiltonian application...done.
+   Hamiltonian application for atom 8...  Hamiltonian application...done.
+ time for applying potential: 7.200E-01
+The minimization is performed using 8 processes.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Calculating Hamiltonian matrix for all atoms. This may take some time.
+   Calculating matrix for atom 1... done.
+   Calculating matrix for atom 2... done.
+   Calculating matrix for atom 3... done.
+   Calculating matrix for atom 4... done.
+   Calculating matrix for atom 5... done.
+   Calculating matrix for atom 6... done.
+   Calculating matrix for atom 7... done.
+   Calculating matrix for atom 8... done.
+ ------------------------------- Minimizing trace in the basis of the atomic orbitals
+The minimization is performed using 8 processes.
+ ============================== optmizing coefficients ==============================
  ----------------------------------------------------------------------------- iter=1
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     1  1.7806097E+02  5.0102239E+01   656.7888473837
+max deviation from unity:  1.262691E+00
+max deviation from unity:  1.571659E-14
+ fnrm, trace, mean alpha   6.65E-02   7.6176497966811E-01  1.00E-02
+ ----------------------------------------------------------------------------- iter=2
+max deviation from unity:  7.392766E-08
+max deviation from unity:  1.140634E-15
+ fnrm, trace, mean alpha   6.64E-02   7.6167709693423E-01  1.05E-02
+ ----------------------------------------------------------------------------- iter=3
+max deviation from unity:  8.123325E-08
+max deviation from unity:  1.582068E-15
+ fnrm, trace, mean alpha   6.63E-02   7.6158516076588E-01  1.10E-02
+ ----------------------------------------------------------------------------- iter=4
+max deviation from unity:  8.924578E-08
+max deviation from unity:  1.076747E-15
+ fnrm, trace, mean alpha   6.61E-02   7.6148900145686E-01  1.16E-02
+ ----------------------------------------------------------------------------- iter=5
+max deviation from unity:  9.803134E-08
+max deviation from unity:  1.956768E-15
+ fnrm, trace, mean alpha   6.60E-02   7.6138844390319E-01  1.22E-02
+ ----------------------------------------------------------------------------- iter=6
+max deviation from unity:  1.076618E-07
+max deviation from unity:  2.073808E-15
+ fnrm, trace, mean alpha   6.58E-02   7.6128330760731E-01  1.28E-02
+ ----------------------------------------------------------------------------- iter=7
+max deviation from unity:  1.182153E-07
+max deviation from unity:  7.718910E-16
+ fnrm, trace, mean alpha   6.57E-02   7.6117340670440E-01  1.34E-02
+ ----------------------------------------------------------------------------- iter=8
+max deviation from unity:  1.297767E-07
+max deviation from unity:  1.165734E-15
+ fnrm, trace, mean alpha   6.55E-02   7.6105855001372E-01  1.41E-02
+ ----------------------------------------------------------------------------- iter=9
+max deviation from unity:  1.424382E-07
+max deviation from unity:  1.467755E-15
+ fnrm, trace, mean alpha   6.54E-02   7.6093854111742E-01  1.48E-02
+ ---------------------------------------------------------------------------- iter=10
+max deviation from unity:  1.562996E-07
+max deviation from unity:  1.040834E-15
+ fnrm, trace, mean alpha   6.52E-02   7.6081317846998E-01  1.55E-02
+ ---------------------------------------------------------------------------- iter=11
+max deviation from unity:  1.714693E-07
+max deviation from unity:  1.013310E-15
+ fnrm, trace, mean alpha   6.50E-02   7.6068225554119E-01  1.63E-02
+ ---------------------------------------------------------------------------- iter=12
+max deviation from unity:  1.880644E-07
+max deviation from unity:  2.310218E-15
+ fnrm, trace, mean alpha   6.48E-02   7.6054556099608E-01  1.71E-02
+ ---------------------------------------------------------------------------- iter=13
+max deviation from unity:  2.062115E-07
+max deviation from unity:  2.123058E-15
+ fnrm, trace, mean alpha   6.46E-02   7.6040287891517E-01  1.80E-02
+ ---------------------------------------------------------------------------- iter=14
+max deviation from unity:  2.260474E-07
+max deviation from unity:  1.388646E-15
+ fnrm, trace, mean alpha   6.44E-02   7.6025398905868E-01  1.89E-02
+ ---------------------------------------------------------------------------- iter=15
+max deviation from unity:  2.477197E-07
+max deviation from unity:  2.065188E-15
+ fnrm, trace, mean alpha   6.42E-02   7.6009866717854E-01  1.98E-02
+ ---------------------------------------------------------------------------- iter=16
+max deviation from unity:  2.713872E-07
+max deviation from unity:  1.432882E-15
+ fnrm, trace, mean alpha   6.40E-02   7.5993668538200E-01  2.08E-02
+ ---------------------------------------------------------------------------- iter=17
+max deviation from unity:  2.972210E-07
+max deviation from unity:  1.093116E-15
+ fnrm, trace, mean alpha   6.37E-02   7.5976781255101E-01  2.18E-02
+ ---------------------------------------------------------------------------- iter=18
+max deviation from unity:  3.254047E-07
+max deviation from unity:  2.807216E-15
+ fnrm, trace, mean alpha   6.35E-02   7.5959181482146E-01  2.29E-02
+ ---------------------------------------------------------------------------- iter=19
+max deviation from unity:  3.561352E-07
+max deviation from unity:  1.754239E-15
+ fnrm, trace, mean alpha   6.32E-02   7.5940845612665E-01  2.41E-02
+ ---------------------------------------------------------------------------- iter=20
+max deviation from unity:  3.896233E-07
+max deviation from unity:  1.276756E-15
+ fnrm, trace, mean alpha   6.30E-02   7.5921749880915E-01  2.53E-02
+ ---------------------------------------------------------------------------- iter=21
+max deviation from unity:  4.260943E-07
+max deviation from unity:  1.334972E-15
+ fnrm, trace, mean alpha   6.27E-02   7.5901870430556E-01  2.65E-02
+ ---------------------------------------------------------------------------- iter=22
+max deviation from unity:  4.657883E-07
+max deviation from unity:  9.939966E-16
+ fnrm, trace, mean alpha   6.24E-02   7.5881183390833E-01  2.79E-02
+ ---------------------------------------------------------------------------- iter=23
+max deviation from unity:  5.089611E-07
+max deviation from unity:  1.473066E-15
+ fnrm, trace, mean alpha   6.21E-02   7.5859664960912E-01  2.93E-02
+ ---------------------------------------------------------------------------- iter=24
+max deviation from unity:  5.558840E-07
+max deviation from unity:  1.382636E-15
+ fnrm, trace, mean alpha   6.18E-02   7.5837291502769E-01  3.07E-02
+ ---------------------------------------------------------------------------- iter=25
+max deviation from unity:  6.068444E-07
+max deviation from unity:  1.507637E-15
+ fnrm, trace, mean alpha   6.15E-02   7.5814039643036E-01  3.23E-02
+ ---------------------------------------------------------------------------- iter=26
+max deviation from unity:  6.621456E-07
+max deviation from unity:  9.722803E-16
+ fnrm, trace, mean alpha   6.11E-02   7.5789886384185E-01  3.39E-02
+ ---------------------------------------------------------------------------- iter=27
+max deviation from unity:  7.221070E-07
+max deviation from unity:  1.774188E-15
+ fnrm, trace, mean alpha   6.08E-02   7.5764809225391E-01  3.56E-02
+ ---------------------------------------------------------------------------- iter=28
+max deviation from unity:  7.870639E-07
+max deviation from unity:  1.532628E-15
+ fnrm, trace, mean alpha   6.04E-02   7.5738786293370E-01  3.73E-02
+ ---------------------------------------------------------------------------- iter=29
+max deviation from unity:  8.573664E-07
+max deviation from unity:  2.046540E-15
+ fnrm, trace, mean alpha   6.00E-02   7.5711796483470E-01  3.92E-02
+ ---------------------------------------------------------------------------- iter=30
+max deviation from unity:  9.333794E-07
+max deviation from unity:  1.284509E-15
+ fnrm, trace, mean alpha   5.96E-02   7.5683819611189E-01  4.12E-02
+ ---------------------------------------------------------------------------- iter=31
+max deviation from unity:  1.015481E-06
+max deviation from unity:  2.341877E-15
+ fnrm, trace, mean alpha   5.92E-02   7.5654836574267E-01  4.32E-02
+ ---------------------------------------------------------------------------- iter=32
+max deviation from unity:  1.104060E-06
+max deviation from unity:  2.251671E-15
+ fnrm, trace, mean alpha   5.88E-02   7.5624829525391E-01  4.54E-02
+ ---------------------------------------------------------------------------- iter=33
+max deviation from unity:  1.199516E-06
+max deviation from unity:  1.407870E-15
+ fnrm, trace, mean alpha   5.83E-02   7.5593782055474E-01  4.76E-02
+ ---------------------------------------------------------------------------- iter=34
+max deviation from unity:  1.302257E-06
+max deviation from unity:  1.641048E-15
+ fnrm, trace, mean alpha   5.79E-02   7.5561679387345E-01  5.00E-02
+ ---------------------------------------------------------------------------- iter=35
+max deviation from unity:  1.412692E-06
+max deviation from unity:  1.154458E-15
+ fnrm, trace, mean alpha   5.74E-02   7.5528508579591E-01  5.25E-02
+ ---------------------------------------------------------------------------- iter=36
+max deviation from unity:  1.531234E-06
+max deviation from unity:  1.332268E-15
+ fnrm, trace, mean alpha   5.69E-02   7.5494258740124E-01  5.52E-02
+ ---------------------------------------------------------------------------- iter=37
+max deviation from unity:  1.658290E-06
+max deviation from unity:  1.262879E-15
+ fnrm, trace, mean alpha   5.64E-02   7.5458921248914E-01  5.79E-02
+ ---------------------------------------------------------------------------- iter=38
+max deviation from unity:  1.794259E-06
+max deviation from unity:  1.394718E-15
+ fnrm, trace, mean alpha   5.59E-02   7.5422489989142E-01  6.08E-02
+ ---------------------------------------------------------------------------- iter=39
+max deviation from unity:  1.939527E-06
+max deviation from unity:  9.593089E-16
+ fnrm, trace, mean alpha   5.53E-02   7.5384961585852E-01  6.39E-02
+ ---------------------------------------------------------------------------- iter=40
+max deviation from unity:  2.094455E-06
+max deviation from unity:  8.763064E-16
+ fnrm, trace, mean alpha   5.48E-02   7.5346335650936E-01  6.70E-02
+ ---------------------------------------------------------------------------- iter=41
+max deviation from unity:  2.259378E-06
+max deviation from unity:  1.222980E-15
+ fnrm, trace, mean alpha   5.42E-02   7.5306615033100E-01  7.04E-02
+ ---------------------------------------------------------------------------- iter=42
+max deviation from unity:  2.434592E-06
+max deviation from unity:  1.238809E-15
+ fnrm, trace, mean alpha   5.36E-02   7.5265806071153E-01  7.39E-02
+ ---------------------------------------------------------------------------- iter=43
+max deviation from unity:  2.620346E-06
+max deviation from unity:  1.925543E-15
+ fnrm, trace, mean alpha   5.29E-02   7.5223918848711E-01  7.76E-02
+ ---------------------------------------------------------------------------- iter=44
+max deviation from unity:  2.816830E-06
+max deviation from unity:  1.674496E-15
+ fnrm, trace, mean alpha   5.23E-02   7.5180967448100E-01  8.15E-02
+ ---------------------------------------------------------------------------- iter=45
+max deviation from unity:  3.024165E-06
+max deviation from unity:  1.078727E-15
+ fnrm, trace, mean alpha   5.16E-02   7.5136970200903E-01  8.56E-02
+ ---------------------------------------------------------------------------- iter=46
+max deviation from unity:  3.242390E-06
+max deviation from unity:  1.783750E-15
+ fnrm, trace, mean alpha   5.10E-02   7.5091949932253E-01  8.99E-02
+ ---------------------------------------------------------------------------- iter=47
+max deviation from unity:  3.471446E-06
+max deviation from unity:  9.211382E-16
+ fnrm, trace, mean alpha   5.03E-02   7.5045934195605E-01  9.43E-02
+ ---------------------------------------------------------------------------- iter=48
+max deviation from unity:  3.711165E-06
+max deviation from unity:  1.377370E-15
+ fnrm, trace, mean alpha   4.95E-02   7.4998955494316E-01  9.91E-02
+ ---------------------------------------------------------------------------- iter=49
+max deviation from unity:  3.961253E-06
+max deviation from unity:  1.308849E-15
+ fnrm, trace, mean alpha   4.88E-02   7.4951051485975E-01  1.04E-01
+ ---------------------------------------------------------------------------- iter=50
+max deviation from unity:  4.221276E-06
+max deviation from unity:  1.939421E-15
+ fnrm, trace, mean alpha   4.80E-02   7.4902265165001E-01  1.09E-01
+ ---------------------------------------------------------------------------- iter=51
+max deviation from unity:  4.490644E-06
+max deviation from unity:  9.714451E-16
+ fnrm, trace, mean alpha   4.73E-02   7.4852645018636E-01  1.15E-01
+ ---------------------------------------------------------------------------- iter=52
+max deviation from unity:  4.768593E-06
+max deviation from unity:  1.749902E-15
+ fnrm, trace, mean alpha   4.65E-02   7.4802245151061E-01  1.20E-01
+ ---------------------------------------------------------------------------- iter=53
+max deviation from unity:  5.054175E-06
+max deviation from unity:  1.332268E-15
+ fnrm, trace, mean alpha   4.56E-02   7.4751125370032E-01  1.26E-01
+ ---------------------------------------------------------------------------- iter=54
+max deviation from unity:  5.346241E-06
+max deviation from unity:  1.350157E-15
+ fnrm, trace, mean alpha   4.48E-02   7.4699351230119E-01  1.33E-01
+ ---------------------------------------------------------------------------- iter=55
+max deviation from unity:  5.643431E-06
+max deviation from unity:  1.750770E-15
+ fnrm, trace, mean alpha   4.39E-02   7.4646994026441E-01  1.39E-01
+ ---------------------------------------------------------------------------- iter=56
+max deviation from unity:  5.944163E-06
+max deviation from unity:  1.063277E-15
+ fnrm, trace, mean alpha   4.31E-02   7.4594130732692E-01  1.46E-01
+ ---------------------------------------------------------------------------- iter=57
+max deviation from unity:  6.246626E-06
+max deviation from unity:  1.151856E-15
+ fnrm, trace, mean alpha   4.22E-02   7.4540843877302E-01  1.54E-01
+ ---------------------------------------------------------------------------- iter=58
+max deviation from unity:  6.548779E-06
+max deviation from unity:  1.304512E-15
+ fnrm, trace, mean alpha   4.13E-02   7.4487221351827E-01  1.61E-01
+ ---------------------------------------------------------------------------- iter=59
+max deviation from unity:  6.848350E-06
+max deviation from unity:  1.850950E-15
+ fnrm, trace, mean alpha   4.03E-02   7.4433356146107E-01  1.69E-01
+ ---------------------------------------------------------------------------- iter=60
+max deviation from unity:  7.142846E-06
+max deviation from unity:  1.075529E-15
+ fnrm, trace, mean alpha   3.94E-02   7.4379346005474E-01  1.78E-01
+ ---------------------------------------------------------------------------- iter=61
+max deviation from unity:  7.429563E-06
+max deviation from unity:  8.714817E-16
+ fnrm, trace, mean alpha   3.84E-02   7.4325293006274E-01  1.87E-01
+ ---------------------------------------------------------------------------- iter=62
+max deviation from unity:  7.705605E-06
+max deviation from unity:  1.075529E-15
+ fnrm, trace, mean alpha   3.74E-02   7.4271303047309E-01  1.96E-01
+ ---------------------------------------------------------------------------- iter=63
+max deviation from unity:  7.967914E-06
+max deviation from unity:  1.637579E-15
+ fnrm, trace, mean alpha   3.65E-02   7.4217485256450E-01  2.06E-01
+ ---------------------------------------------------------------------------- iter=64
+max deviation from unity:  8.213303E-06
+max deviation from unity:  1.070324E-15
+ fnrm, trace, mean alpha   3.55E-02   7.4163951313634E-01  2.16E-01
+ ---------------------------------------------------------------------------- iter=65
+max deviation from unity:  8.438498E-06
+max deviation from unity:  1.045605E-15
+ fnrm, trace, mean alpha   3.45E-02   7.4110814693742E-01  2.27E-01
+ ---------------------------------------------------------------------------- iter=66
+max deviation from unity:  8.640192E-06
+max deviation from unity:  1.249001E-15
+ fnrm, trace, mean alpha   3.34E-02   7.4058189835365E-01  2.38E-01
+ ---------------------------------------------------------------------------- iter=67
+max deviation from unity:  8.815098E-06
+max deviation from unity:  1.443290E-15
+ fnrm, trace, mean alpha   3.24E-02   7.4006191244162E-01  2.50E-01
+ ---------------------------------------------------------------------------- iter=68
+max deviation from unity:  8.960021E-06
+max deviation from unity:  7.759906E-16
+ fnrm, trace, mean alpha   3.14E-02   7.3954932542316E-01  2.63E-01
+ ---------------------------------------------------------------------------- iter=69
+max deviation from unity:  9.071926E-06
+max deviation from unity:  1.652351E-15
+ fnrm, trace, mean alpha   3.03E-02   7.3904525478290E-01  2.76E-01
+ ---------------------------------------------------------------------------- iter=70
+max deviation from unity:  9.148014E-06
+max deviation from unity:  1.221245E-15
+ fnrm, trace, mean alpha   2.93E-02   7.3855078913675E-01  2.90E-01
+ ---------------------------------------------------------------------------- iter=71
+max deviation from unity:  9.185804E-06
+max deviation from unity:  8.604228E-16
+ fnrm, trace, mean alpha   2.83E-02   7.3806697806082E-01  3.04E-01
+ ---------------------------------------------------------------------------- iter=72
+max deviation from unity:  9.183210E-06
+max deviation from unity:  2.241263E-15
+ fnrm, trace, mean alpha   2.72E-02   7.3759482208747E-01  3.19E-01
+ ---------------------------------------------------------------------------- iter=73
+max deviation from unity:  9.138616E-06
+max deviation from unity:  1.384743E-15
+ fnrm, trace, mean alpha   2.62E-02   7.3713526308530E-01  3.35E-01
+ ---------------------------------------------------------------------------- iter=74
+max deviation from unity:  9.050952E-06
+max deviation from unity:  1.047773E-15
+ fnrm, trace, mean alpha   2.52E-02   7.3668917524216E-01  3.52E-01
+ ---------------------------------------------------------------------------- iter=75
+max deviation from unity:  8.919750E-06
+max deviation from unity:  1.097646E-15
+ fnrm, trace, mean alpha   2.41E-02   7.3625735686337E-01  3.70E-01
+ ---------------------------------------------------------------------------- iter=76
+max deviation from unity:  8.745201E-06
+max deviation from unity:  1.188286E-15
+ fnrm, trace, mean alpha   2.31E-02   7.3584052318112E-01  3.88E-01
+ ---------------------------------------------------------------------------- iter=77
+max deviation from unity:  8.543664E-06
+max deviation from unity:  7.216450E-16
+ fnrm, trace, mean alpha   2.21E-02   7.3543930034456E-01  4.08E-01
+ ---------------------------------------------------------------------------- iter=78
+max deviation from unity:  8.320759E-06
+max deviation from unity:  8.839636E-16
+ fnrm, trace, mean alpha   2.11E-02   7.3505422072552E-01  4.28E-01
+ ---------------------------------------------------------------------------- iter=79
+max deviation from unity:  8.061487E-06
+max deviation from unity:  1.290634E-15
+ fnrm, trace, mean alpha   2.01E-02   7.3468571963142E-01  4.50E-01
+ ---------------------------------------------------------------------------- iter=80
+max deviation from unity:  7.768470E-06
+max deviation from unity:  7.147061E-16
+ fnrm, trace, mean alpha   1.92E-02   7.3433413346872E-01  4.72E-01
+ ---------------------------------------------------------------------------- iter=81
+max deviation from unity:  7.444896E-06
+max deviation from unity:  1.776357E-15
+ fnrm, trace, mean alpha   1.82E-02   7.3399969934791E-01  4.96E-01
+ ---------------------------------------------------------------------------- iter=82
+max deviation from unity:  7.094453E-06
+max deviation from unity:  2.040035E-15
+ fnrm, trace, mean alpha   1.73E-02   7.3368255606888E-01  5.20E-01
+ ---------------------------------------------------------------------------- iter=83
+max deviation from unity:  6.750948E-06
+max deviation from unity:  1.471046E-15
+ fnrm, trace, mean alpha   1.64E-02   7.3338274637585E-01  5.46E-01
+ ---------------------------------------------------------------------------- iter=84
+max deviation from unity:  6.854993E-06
+max deviation from unity:  9.853229E-16
+ fnrm, trace, mean alpha   1.55E-02   7.3310022032801E-01  5.74E-01
+ ---------------------------------------------------------------------------- iter=85
+max deviation from unity:  6.933320E-06
+max deviation from unity:  1.568190E-15
+ fnrm, trace, mean alpha   1.47E-02   7.3283483959835E-01  6.02E-01
+ ---------------------------------------------------------------------------- iter=86
+max deviation from unity:  6.983830E-06
+max deviation from unity:  1.262011E-15
+ fnrm, trace, mean alpha   1.38E-02   7.3258638249201E-01  6.33E-01
+ ---------------------------------------------------------------------------- iter=87
+max deviation from unity:  7.004693E-06
+max deviation from unity:  1.498801E-15
+ fnrm, trace, mean alpha   1.30E-02   7.3235454946891E-01  6.64E-01
+ ---------------------------------------------------------------------------- iter=88
+max deviation from unity:  6.994415E-06
+max deviation from unity:  1.404909E-15
+ fnrm, trace, mean alpha   1.23E-02   7.3213896896522E-01  6.97E-01
+ ---------------------------------------------------------------------------- iter=89
+max deviation from unity:  6.951900E-06
+max deviation from unity:  2.040035E-15
+ fnrm, trace, mean alpha   1.15E-02   7.3193920333341E-01  7.32E-01
+ ---------------------------------------------------------------------------- iter=90
+max deviation from unity:  6.876514E-06
+max deviation from unity:  1.461505E-15
+ fnrm, trace, mean alpha   1.08E-02   7.3175475476074E-01  7.69E-01
+ ---------------------------------------------------------------------------- iter=91
+max deviation from unity:  6.768133E-06
+max deviation from unity:  1.068590E-15
+ fnrm, trace, mean alpha   1.01E-02   7.3158507107778E-01  8.07E-01
+ ---------------------------------------------------------------------------- iter=92
+max deviation from unity:  6.627185E-06
+max deviation from unity:  1.554095E-15
+ fnrm, trace, mean alpha   9.40E-03   7.3142955142718E-01  8.48E-01
+ ---------------------------------------------------------------------------- iter=93
+max deviation from unity:  6.454676E-06
+max deviation from unity:  1.526557E-15
+ fnrm, trace, mean alpha   8.75E-03   7.3128755182269E-01  8.90E-01
+ ---------------------------------------------------------------------------- iter=94
+max deviation from unity:  6.252202E-06
+max deviation from unity:  2.026157E-15
+ fnrm, trace, mean alpha   8.13E-03   7.3115839068269E-01  9.35E-01
+ ---------------------------------------------------------------------------- iter=95
+max deviation from unity:  6.021940E-06
+max deviation from unity:  1.413583E-15
+ fnrm, trace, mean alpha   7.55E-03   7.3104135446424E-01  9.81E-01
+ ---------------------------------------------------------------------------- iter=96
+max deviation from unity:  5.766621E-06
+max deviation from unity:  1.643217E-15
+ fnrm, trace, mean alpha   6.99E-03   7.3093570354567E-01  1.03E+00
+ ---------------------------------------------------------------------------- iter=97
+max deviation from unity:  5.489476E-06
+max deviation from unity:  1.706968E-15
+ fnrm, trace, mean alpha   6.46E-03   7.3084067850474E-01  1.08E+00
+ ---------------------------------------------------------------------------- iter=98
+max deviation from unity:  5.194168E-06
+max deviation from unity:  1.135810E-15
+ fnrm, trace, mean alpha   5.96E-03   7.3075550691032E-01  1.14E+00
+ ---------------------------------------------------------------------------- iter=99
+max deviation from unity:  4.884705E-06
+max deviation from unity:  1.387779E-15
+ fnrm, trace, mean alpha   5.50E-03   7.3067941069175E-01  1.19E+00
+ --------------------------------------------------------------------------- iter=100
+max deviation from unity:  4.565325E-06
+max deviation from unity:  1.429412E-15
+ fnrm, trace, mean alpha   5.06E-03   7.3061161407329E-01  1.25E+00
+ --------------------------------------------------------------------------- iter=101
+max deviation from unity:  4.240386E-06
+max deviation from unity:  1.852685E-15
+ fnrm, trace, mean alpha   4.65E-03   7.3055135196994E-01  1.32E+00
+ --------------------------------------------------------------------------- iter=102
+max deviation from unity:  3.914230E-06
+max deviation from unity:  2.357543E-15
+ fnrm, trace, mean alpha   4.27E-03   7.3049787864614E-01  1.38E+00
+ --------------------------------------------------------------------------- iter=103
+max deviation from unity:  3.591063E-06
+max deviation from unity:  1.502271E-15
+ fnrm, trace, mean alpha   3.93E-03   7.3045047635141E-01  1.45E+00
+ --------------------------------------------------------------------------- iter=104
+max deviation from unity:  3.274823E-06
+max deviation from unity:  1.465841E-15
+ fnrm, trace, mean alpha   3.61E-03   7.3040846357982E-01  1.47E+00
+ --------------------------------------------------------------------------- iter=105
+max deviation from unity:  3.837299E-05
+max deviation from unity:  1.623701E-15
+ fnrm, trace, mean alpha   3.32E-03   7.3037120271936E-01  1.51E+00
+ --------------------------------------------------------------------------- iter=106
+max deviation from unity:  9.514207E-05
+max deviation from unity:  1.368263E-15
+ fnrm, trace, mean alpha   3.05E-03   7.3033814804507E-01  1.57E+00
+ --------------------------------------------------------------------------- iter=107
+max deviation from unity:  1.643338E-04
+max deviation from unity:  1.778092E-15
+ fnrm, trace, mean alpha   2.81E-03   7.3030881169595E-01  1.64E+00
+ --------------------------------------------------------------------------- iter=108
+max deviation from unity:  2.330457E-04
+max deviation from unity:  1.659805E-15
+ fnrm, trace, mean alpha   2.59E-03   7.3028274475274E-01  1.72E+00
+ --------------------------------------------------------------------------- iter=109
+max deviation from unity:  2.993833E-04
+max deviation from unity:  1.991896E-15
+ fnrm, trace, mean alpha   2.40E-03   7.3025953806606E-01  1.81E+00
+ --------------------------------------------------------------------------- iter=110
+max deviation from unity:  3.630256E-04
+max deviation from unity:  1.231654E-15
+ fnrm, trace, mean alpha   2.22E-03   7.3023882548264E-01  1.90E+00
+ --------------------------------------------------------------------------- iter=111
+max deviation from unity:  4.239620E-04
+max deviation from unity:  1.156410E-15
+ fnrm, trace, mean alpha   2.06E-03   7.3022028554630E-01  1.99E+00
+ --------------------------------------------------------------------------- iter=112
+max deviation from unity:  4.807256E-04
+max deviation from unity:  1.269818E-15
+ fnrm, trace, mean alpha   1.92E-03   7.3020363925981E-01  2.09E+00
+ --------------------------------------------------------------------------- iter=113
+max deviation from unity:  5.349567E-04
+max deviation from unity:  2.074729E-15
+ fnrm, trace, mean alpha   1.79E-03   7.3018865208581E-01  2.19E+00
+ --------------------------------------------------------------------------- iter=114
+max deviation from unity:  5.862130E-04
+max deviation from unity:  1.415534E-15
+ fnrm, trace, mean alpha   1.67E-03   7.3017512829861E-01  2.30E+00
+ --------------------------------------------------------------------------- iter=115
+max deviation from unity:  6.340384E-04
+max deviation from unity:  1.183081E-15
+ fnrm, trace, mean alpha   1.56E-03   7.3016290610862E-01  2.42E+00
+ --------------------------------------------------------------------------- iter=116
+max deviation from unity:  6.781191E-04
+max deviation from unity:  1.332268E-15
+ fnrm, trace, mean alpha   1.45E-03   7.3015185389959E-01  2.54E+00
+ --------------------------------------------------------------------------- iter=117
+max deviation from unity:  7.179113E-04
+max deviation from unity:  1.242062E-15
+ fnrm, trace, mean alpha   1.36E-03   7.3014186586456E-01  2.67E+00
+ --------------------------------------------------------------------------- iter=118
+max deviation from unity:  7.536794E-04
+max deviation from unity:  2.046974E-15
+ fnrm, trace, mean alpha   1.30E-03   7.3013289556184E-01  2.57E+00
+ --------------------------------------------------------------------------- iter=119
+max deviation from unity:  7.537608E-04
+max deviation from unity:  1.163999E-15
+ fnrm, trace, mean alpha   1.29E-03   7.3012569227325E-01  2.12E+00
+ --------------------------------------------------------------------------- iter=120
+max deviation from unity:  6.433628E-04
+max deviation from unity:  2.871682E-15
+ fnrm, trace, mean alpha   1.24E-03   7.3012087000047E-01  1.99E+00
+ --------------------------------------------------------------------------- iter=121
+max deviation from unity:  6.406202E-04
+max deviation from unity:  1.457168E-15
+ fnrm, trace, mean alpha   1.10E-03   7.3011686535486E-01  2.09E+00
+ --------------------------------------------------------------------------- iter=122
+max deviation from unity:  6.363283E-04
+max deviation from unity:  1.332268E-15
+ fnrm, trace, mean alpha   1.05E-03   7.3011327099120E-01  2.19E+00
+ --------------------------------------------------------------------------- iter=123
+max deviation from unity:  6.303276E-04
+max deviation from unity:  1.110223E-15
+ fnrm, trace, mean alpha   1.02E-03   7.3010990590855E-01  2.30E+00
+ --------------------------------------------------------------------------- iter=124
+max deviation from unity:  6.225603E-04
+max deviation from unity:  1.226449E-15
+ fnrm, trace, mean alpha   9.78E-04   7.3010676487911E-01  2.41E+00
+ converged in 124 iterations.
+   Final values for fnrm, trace:   9.77725E-04   7.30107E-01
+ ====================================================================================
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ time for "buildLinearCombinations": 3.200E-01
+ ------------------------------------------------------------- Input guess generated.
+ Posting sends / receives for communicating the potential... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 432 point to point communications, of which 128 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application... Hamiltonian application... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ eval(1)=-6.72252E-01
+ eval(2)=-5.27060E-01
+ eval(3)=-3.71281E-01
+ eval(4)=-3.71249E-01
+ eval(5)=-3.20134E-01
+ eval(6)=-2.63081E-01
+ eval(7)=-2.62928E-01  <-- last occupied orbital
+ eval(8)= 3.38576E-01  <-- first virtual orbital
+ eval(9)= 3.86909E-01
+ eval(10)= 3.87036E-01
+ eval(11)= 5.09619E-01
+ eval(12)= 5.09761E-01
+ eval(13)= 5.86735E-01
+ eval(14)= 6.11167E-01
+ time for diagonalizing the Hamiltonian: 1.000E-02
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.0000E-01
+ done. TOTAL CHARGE =   1.399999955494E+01
+ time for sumrho:  1.2625E-01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ======================== Creation of the basis functions... ========================
+ statistics: - 432 point to point communications, of which 0 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ ----------------------------------------------------------------------------- iter=1
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  9.3743E-05
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.2056E-06
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.375E-02=57.6%
+   time for communication:1.750E-02=42.4%
+   time for calculating overlap:5.000E-03=12.1%
+   time for expansion:1.000E-02=24.2%
+   time for Loewdin:1.250E-03= 3.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:6.250E-03=15.2%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   3.750000E-03
+   time for computation:7.500E-03=42.9%
+   time for communication:1.000E-02=57.1%
+   time for calculating overlap:2.500E-03=14.3%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:7.500E-03=42.9%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     1  4.0937384E-01  4.6033300E-01     0.8114588525
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     2  4.0715075E+01  1.1625679E+01    94.7279081316
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.5692E-01
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.6133E-04
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.000E-02=22.9%
+   time for communication:6.750E-02=77.1%
+   time for calculating overlap:1.000E-02=11.4%
+   time for expansion:1.250E-03= 1.4%
+   time for Loewdin:6.250E-03= 7.1%
+   time for transform:0.000E+00= 0.0%
+   time for extract:2.500E-03= 2.9%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   0.000000E+00
+   time for computation:7.500E-03=40.0%
+   time for communication:1.125E-02=60.0%
+   time for calculating overlap:2.500E-03=13.3%
+   time for expansion:6.250E-03=33.3%
+   time for applying orthoconstraint:1.250E-03= 6.7%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     2  2.2605559E-01  2.4214951E-01    -0.2245159306
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     3  2.1983692E+01  6.4386119E+00    34.0037927236
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  9.9282E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.6544E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.625E-02=18.3%
+   time for communication:7.250E-02=81.7%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:1.000E-02=11.3%
+   time for Loewdin:0.000E+00= 0.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:5.000E-03= 5.6%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.000000E-02
+   time for computation:1.000E-02=47.1%
+   time for communication:1.125E-02=52.9%
+   time for calculating overlap:1.250E-03= 5.9%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.000E-02=47.1%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     3  1.5100089E-01  1.7342569E-01    -1.0110351709
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     4  3.5905030E+01  1.2531789E+01    47.9200057887
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  5.4227E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.8321E-04
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.750E-02=30.1%
+   time for communication:6.375E-02=69.9%
+   time for calculating overlap:8.750E-03= 9.6%
+   time for expansion:8.750E-03= 9.6%
+   time for Loewdin:1.250E-03= 1.4%
+   time for transform:0.000E+00= 0.0%
+   time for extract:7.500E-03= 8.2%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   0.000000E+00
+   time for computation:3.750E-03=27.3%
+   time for communication:1.000E-02=72.7%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:2.500E-03=18.2%
+   time for applying orthoconstraint:1.250E-03= 9.1%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     4  1.4833137E-01  1.9250583E-01    -1.3864711504
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=5
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  5.5633E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.2678E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.125E-02=23.9%
+   time for communication:6.750E-02=76.1%
+   time for calculating overlap:1.000E-02=11.3%
+   time for expansion:2.500E-03= 2.8%
+   time for Loewdin:5.000E-03= 5.6%
+   time for transform:0.000E+00= 0.0%
+   time for extract:3.750E-03= 4.2%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   2.500000E-03
+   time for computation:7.500E-03=40.0%
+   time for communication:1.125E-02=60.0%
+   time for calculating overlap:6.250E-03=33.3%
+   time for expansion:2.500E-03=13.3%
+   time for applying orthoconstraint:5.000E-03=26.7%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     5  1.0484418E-01  2.1350005E-01    -1.6063188731
+ WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   1.0484418E-01  2.1350005E-01  -1.6063189
+ ============================= Basis functions created. =============================
+ timings:
+   -total time: 2.365E+00
+     - orthonormalization: 3.987E-01=16.9%
+     - Hamiltonian application: 3.837E-01=16.2%
+     - orthoconstraint: 1.400E-01= 5.9%
+     - preconditioning: 1.431E+00=60.5%
+     - other: 1.125E-02= 0.5%
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application... Hamiltonian application... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ eval(1)=-6.22064E-01
+ eval(2)=-5.00623E-01
+ eval(3)=-3.47916E-01
+ eval(4)=-3.44679E-01
+ eval(5)=-2.83695E-01
+ eval(6)=-2.62383E-01
+ eval(7)=-2.60249E-01  <-- last occupied orbital
+ eval(8)= 6.55704E-02  <-- first virtual orbital
+ eval(9)= 1.27859E-01
+ eval(10)= 1.28681E-01
+ eval(11)= 1.48403E-01
+ eval(12)= 1.57164E-01
+ eval(13)= 1.74293E-01
+ eval(14)= 2.13374E-01
+ time for diagonalizing the Hamiltonian: 1.000E-02
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.0000E-01
+ done. TOTAL CHARGE =   1.399998989162E+01
+ time for sumrho: 1.000E-01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ##################################################################
+ at iteration 1 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy    1   1.19E-06   -1.41808774458150708E+01
+ ##################################################################
+ ======================== Creation of the basis functions... ========================
+ statistics: - 432 point to point communications, of which 0 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ ----------------------------------------------------------------------------- iter=1
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.2678E-03
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.1770E-04
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.750E-02=45.2%
+   time for communication:2.125E-02=54.8%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:1.000E-02=25.8%
+   time for Loewdin:0.000E+00= 0.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:6.250E-03=16.1%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   7.500000E-03
+   time for computation:1.000E-02=47.1%
+   time for communication:1.125E-02=52.9%
+   time for calculating overlap:1.250E-03= 5.9%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.000E-02=47.1%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     1  1.0194387E-01  2.0332139E-01    -2.1415116803
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=2
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  6.7490E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.1928E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.750E-02=30.1%
+   time for communication:6.375E-02=69.9%
+   time for calculating overlap:1.000E-02=11.0%
+   time for expansion:1.000E-02=11.0%
+   time for Loewdin:0.000E+00= 0.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:7.500E-03= 8.2%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   3.750000E-03
+   time for computation:5.000E-03=33.3%
+   time for communication:1.000E-02=66.7%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:1.250E-03= 8.3%
+   time for applying orthoconstraint:3.750E-03=25.0%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     2  6.5292438E-02  1.4659740E-01    -2.2228843019
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=3
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  3.0246E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  3.5883E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.000E-02=22.2%
+   time for communication:7.000E-02=77.8%
+   time for calculating overlap:1.250E-02=13.9%
+   time for expansion:0.000E+00= 0.0%
+   time for Loewdin:7.500E-03= 8.3%
+   time for transform:0.000E+00= 0.0%
+   time for extract:0.000E+00= 0.0%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   0.000000E+00
+   time for computation:7.500E-03=42.9%
+   time for communication:1.000E-02=57.1%
+   time for calculating overlap:2.500E-03=14.3%
+   time for expansion:7.500E-03=42.9%
+   time for applying orthoconstraint:0.000E+00= 0.0%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     3  5.5098701E-02  8.3112766E-02    -2.2794971030
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=4
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  3.5389E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  4.7919E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.250E-02=14.3%
+   time for communication:7.500E-02=85.7%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:5.000E-03= 5.7%
+   time for Loewdin:5.000E-03= 5.7%
+   time for transform:0.000E+00= 0.0%
+   time for extract:2.500E-03= 2.9%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   7.500000E-03
+   time for computation:1.000E-02=61.5%
+   time for communication:6.250E-03=38.5%
+   time for calculating overlap:1.000E-02=61.5%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.000E-02=61.5%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     4  6.5745543E-02  1.0419919E-01    -2.2778465981
  DIIS informations: history length=8, consecutive failures=1, total failures=1
  ----------------------------------------------------------------------------- iter=5
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     5  3.6681978E+01  1.3264083E+01    52.1348672420
- DIIS failed 2 times consecutievly. Switch to SD with stepsize 1.000E-01
- Recover the orbitals from iteration 3 which are the best so far.
- steepest descent informations: mean alpha=1.000E-01, consecutive successes=0, DIIS=y
- ----------------------------------------------------------------------------- iter=6
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     6  2.1983692E+01  6.4386119E+00    34.0037927236
- steepest descent informations: mean alpha=1.000E-01, consecutive successes=1, DIIS=y
- ----------------------------------------------------------------------------- iter=7
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     7  1.8391858E+01  5.3936464E+00    25.9835379759
- steepest descent informations: mean alpha=1.050E-01, consecutive successes=2, DIIS=y
- ----------------------------------------------------------------------------- iter=8
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     8  1.5486419E+01  4.5349512E+00    20.3893993269
- steepest descent informations: mean alpha=1.102E-01, consecutive successes=3, DIIS=y
- ----------------------------------------------------------------------------- iter=9
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace     9  1.3114920E+01  3.8305778E+00    16.3773942766
- steepest descent informations: mean alpha=1.158E-01, consecutive successes=4, DIIS=y
- ---------------------------------------------------------------------------- iter=10
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    10  1.1155367E+01  3.2491531E+00    13.4141963631
- steepest descent informations: mean alpha=1.216E-01, consecutive successes=5, DIIS=y
- ---------------------------------------------------------------------------- iter=11
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    11  9.5166574E+00  2.7648752E+00    11.1629706586
- steepest descent informations: mean alpha=1.276E-01, consecutive successes=6, DIIS=y
- ---------------------------------------------------------------------------- iter=12
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    12  8.1322878E+00  2.3579155E+00     9.4074321984
- steepest descent informations: mean alpha=1.340E-01, consecutive successes=7, DIIS=y
- ---------------------------------------------------------------------------- iter=13
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    13  6.9537577E+00  2.0133637E+00     8.0053856136
- steepest descent informations: mean alpha=1.407E-01, consecutive successes=8, DIIS=y
- ---------------------------------------------------------------------------- iter=14
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    14  5.9453285E+00  1.7199996E+00     6.8609871671
- steepest descent informations: mean alpha=1.477E-01, consecutive successes=9, DIIS=y
- ---------------------------------------------------------------------------- iter=15
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    15  5.0802131E+00  1.4692754E+00     5.9081353534
- switch to DIIS with new history length 7
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=16
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    16  1.3474217E+00  4.9218625E-01     2.4430801621
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=17
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    17  1.0290925E+00  3.4778576E-01     0.9820513375
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=18
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    18  1.0471147E+00  3.4803578E-01    -0.0091660256
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=19
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    19  8.4130299E-01  2.9513010E-01    -0.6329071342
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=20
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    20  1.0929765E+00  4.1967742E-01    -1.1839498839
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=21
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    21  8.3291231E-01  2.7959956E-01    -1.5494034228
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=22
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    22  7.3737017E-01  2.4920665E-01    -1.9210298261
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=23
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    23  3.7844464E-01  1.3751486E-01    -2.1323911429
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=24
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    24  3.0702146E-01  1.0158433E-01    -2.2282798083
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=25
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    25  2.3997511E-01  9.7233161E-02    -2.3122839633
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=26
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    26  1.5263263E-01  6.0964203E-02    -2.3352230946
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=27
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    27  1.4696527E-01  5.9919828E-02    -2.3669663493
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=28
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    28  1.3665030E-01  5.9595343E-02    -2.4024554505
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=29
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    29  8.8215144E-02  4.0023124E-02    -2.4269277119
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=30
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    30  7.3118511E-02  3.4167009E-02    -2.4431176002
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=31
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    31  1.0719812E-01  5.1519808E-02    -2.4575923662
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=32
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    32  6.2121626E-02  2.9412135E-02    -2.4686247248
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=33
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    33  4.9866611E-02  2.4889481E-02    -2.4751218331
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=34
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    34  6.7007233E-02  3.7105698E-02    -2.4824466285
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=35
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    35  4.7709024E-02  2.3557142E-02    -2.4892321096
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=36
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    36  3.2584585E-02  1.5641284E-02    -2.4933453791
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=37
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    37  2.9265147E-02  1.3533036E-02    -2.4956054082
- DIIS informations: history length=7, consecutive failures=0, total failures=0
- ---------------------------------------------------------------------------- iter=38
- Orthonormalization... Hamiltonian application... orthoconstraint... preconditioning. 
- iter, fnrm, fnrmMax, trace    38  2.0354941E-02  9.5433015E-03    -2.4970060709
- converged in 38 iterations.
- Final values for fnrm, fnrmMax, trace:   2.0354941E-02  9.5433015E-03  -2.4970061
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.8690E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  3.0877E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.625E-02=28.8%
+   time for communication:6.500E-02=71.2%
+   time for calculating overlap:7.500E-03= 8.2%
+   time for expansion:8.750E-03= 9.6%
+   time for Loewdin:0.000E+00= 0.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:8.750E-03= 9.6%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   5.000000E-03
+   time for computation:6.250E-03=35.7%
+   time for communication:1.125E-02=64.3%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:6.250E-03=35.7%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     5  5.9024630E-02  1.0413931E-01    -2.2812586825
+ WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   5.9024630E-02  1.0413931E-01  -2.2812587
  ============================= Basis functions created. =============================
+ timings:
+   -total time: 2.366E+00
+     - orthonormalization: 4.000E-01=16.9%
+     - Hamiltonian application: 3.775E-01=16.0%
+     - orthoconstraint: 1.425E-01= 6.0%
+     - preconditioning: 1.440E+00=60.9%
+     - other: 6.250E-03= 0.3%
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
- Hamiltonian application... Hamiltonian application... done. done.
- ============================== optmizing coefficients ==============================
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application... Hamiltonian application... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ eval(1)=-6.88723E-01
+ eval(2)=-5.45980E-01
+ eval(3)=-3.91094E-01
+ eval(4)=-3.88884E-01
+ eval(5)=-3.46068E-01
+ eval(6)=-3.02110E-01
+ eval(7)=-2.99746E-01  <-- last occupied orbital
+ eval(8)= 1.97823E-02  <-- first virtual orbital
+ eval(9)= 8.83245E-02
+ eval(10)= 9.13103E-02
+ eval(11)= 9.38345E-02
+ eval(12)= 1.04474E-01
+ eval(13)= 1.19167E-01
+ eval(14)= 1.64761E-01
+ time for diagonalizing the Hamiltonian: 1.000E-02
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.0000E-01
+ done. TOTAL CHARGE =   1.399998955241E+01
+ time for sumrho: 1.100E-01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ##################################################################
+ at iteration 2 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy    2   6.48E-07   -1.47835237774008021E+01
+ ##################################################################
+ ======================== Creation of the basis functions... ========================
+ statistics: - 432 point to point communications, of which 0 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
- fnrm, band structure energy, mean alpha   2.48E+00  -2.5428786190815E+00  5.00E-03
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  3.0877E-03
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  6.4839E-04
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.625E-02=43.3%
+   time for communication:2.125E-02=56.7%
+   time for calculating overlap:6.250E-03=16.7%
+   time for expansion:2.500E-03= 6.7%
+   time for Loewdin:3.750E-03=10.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:2.500E-03= 6.7%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.250000E-03
+   time for computation:8.750E-03=43.7%
+   time for communication:1.125E-02=56.3%
+   time for calculating overlap:5.000E-03=25.0%
+   time for expansion:3.750E-03=18.7%
+   time for applying orthoconstraint:5.000E-03=25.0%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     1  6.1645938E-02  1.1369443E-01    -2.3722843726
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- fnrm, band structure energy, mean alpha   2.48E+00  -2.5518801162527E+00  5.25E-03
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  4.3281E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.3144E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.375E-02=15.5%
+   time for communication:7.500E-02=84.5%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:8.750E-03= 9.9%
+   time for Loewdin:0.000E+00= 0.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:5.000E-03= 5.6%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   7.500000E-03
+   time for computation:1.125E-02=50.0%
+   time for communication:1.125E-02=50.0%
+   time for calculating overlap:1.250E-03= 5.6%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.125E-02=50.0%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     2  4.1583902E-02  8.3428482E-02    -2.4147601641
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- fnrm, band structure energy, mean alpha   2.48E+00  -2.5613333292904E+00  5.51E-03
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.5295E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.8880E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.500E-02=27.8%
+   time for communication:6.500E-02=72.2%
+   time for calculating overlap:8.750E-03= 9.7%
+   time for expansion:8.750E-03= 9.7%
+   time for Loewdin:1.250E-03= 1.4%
+   time for transform:0.000E+00= 0.0%
+   time for extract:6.250E-03= 6.9%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   1.250000E-03
+time for daxpy   2.500000E-03
+   time for computation:6.250E-03=35.7%
+   time for communication:1.125E-02=64.3%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:1.250E-03= 7.1%
+   time for applying orthoconstraint:5.000E-03=28.6%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     3  4.2380270E-02  6.6324379E-02    -2.4482532781
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- fnrm, band structure energy, mean alpha   2.48E+00  -2.5712608023281E+00  5.79E-03
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.5620E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.8605E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.125E-02=23.6%
+   time for communication:6.875E-02=76.4%
+   time for calculating overlap:1.000E-02=11.1%
+   time for expansion:2.500E-03= 2.8%
+   time for Loewdin:5.000E-03= 5.6%
+   time for transform:0.000E+00= 0.0%
+   time for extract:2.500E-03= 2.8%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.250000E-03
+   time for computation:7.500E-03=40.0%
+   time for communication:1.125E-02=60.0%
+   time for calculating overlap:5.000E-03=26.7%
+   time for expansion:3.750E-03=20.0%
+   time for applying orthoconstraint:3.750E-03=20.0%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     4  3.7500055E-02  6.0557213E-02    -2.4513930110
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
- fnrm, band structure energy, mean alpha   2.48E+00  -2.5816861681558E+00  6.08E-03
- ----------------------------------------------------------------------------- iter=6
- fnrm, band structure energy, mean alpha   2.48E+00  -2.5926341930408E+00  6.38E-03
- ----------------------------------------------------------------------------- iter=7
- fnrm, band structure energy, mean alpha   2.48E+00  -2.6041308218581E+00  6.70E-03
- ----------------------------------------------------------------------------- iter=8
- fnrm, band structure energy, mean alpha   2.48E+00  -2.6162032231860E+00  7.04E-03
- ----------------------------------------------------------------------------- iter=9
- fnrm, band structure energy, mean alpha   2.48E+00  -2.6288798339441E+00  7.39E-03
- ---------------------------------------------------------------------------- iter=10
- fnrm, band structure energy, mean alpha   2.48E+00  -2.6421904030515E+00  7.76E-03
- ---------------------------------------------------------------------------- iter=11
- fnrm, band structure energy, mean alpha   2.48E+00  -2.6561660334701E+00  8.14E-03
- ---------------------------------------------------------------------------- iter=12
- fnrm, band structure energy, mean alpha   2.48E+00  -2.6708392218611E+00  8.55E-03
- ---------------------------------------------------------------------------- iter=13
- fnrm, band structure energy, mean alpha   2.48E+00  -2.6862438949219E+00  8.98E-03
- ---------------------------------------------------------------------------- iter=14
- fnrm, band structure energy, mean alpha   2.48E+00  -2.7024154412830E+00  9.43E-03
- ---------------------------------------------------------------------------- iter=15
- fnrm, band structure energy, mean alpha   2.48E+00  -2.7193907376186E+00  9.90E-03
- ---------------------------------------------------------------------------- iter=16
- fnrm, band structure energy, mean alpha   2.48E+00  -2.7372081673638E+00  1.04E-02
- ---------------------------------------------------------------------------- iter=17
- fnrm, band structure energy, mean alpha   2.48E+00  -2.7559076301248E+00  1.09E-02
- ---------------------------------------------------------------------------- iter=18
- fnrm, band structure energy, mean alpha   2.47E+00  -2.7755305395057E+00  1.15E-02
- ---------------------------------------------------------------------------- iter=19
- fnrm, band structure energy, mean alpha   2.47E+00  -2.7961198066610E+00  1.20E-02
- ---------------------------------------------------------------------------- iter=20
- fnrm, band structure energy, mean alpha   2.47E+00  -2.8177198063930E+00  1.26E-02
- ---------------------------------------------------------------------------- iter=21
- fnrm, band structure energy, mean alpha   2.47E+00  -2.8403763220531E+00  1.33E-02
- ---------------------------------------------------------------------------- iter=22
- fnrm, band structure energy, mean alpha   2.47E+00  -2.8641364648631E+00  1.39E-02
- ---------------------------------------------------------------------------- iter=23
- fnrm, band structure energy, mean alpha   2.47E+00  -2.8890485625324E+00  1.46E-02
- ---------------------------------------------------------------------------- iter=24
- fnrm, band structure energy, mean alpha   2.46E+00  -2.9151620112207E+00  1.54E-02
- ---------------------------------------------------------------------------- iter=25
- fnrm, band structure energy, mean alpha   2.46E+00  -2.9425270839627E+00  1.61E-02
- ---------------------------------------------------------------------------- iter=26
- fnrm, band structure energy, mean alpha   2.46E+00  -2.9711946876472E+00  1.69E-02
- ---------------------------------------------------------------------------- iter=27
- fnrm, band structure energy, mean alpha   2.45E+00  -3.0012160595357E+00  1.78E-02
- ---------------------------------------------------------------------------- iter=28
- fnrm, band structure energy, mean alpha   2.45E+00  -3.0326423931329E+00  1.87E-02
- ---------------------------------------------------------------------------- iter=29
- fnrm, band structure energy, mean alpha   2.44E+00  -3.0655243820307E+00  1.96E-02
- ---------------------------------------------------------------------------- iter=30
- fnrm, band structure energy, mean alpha   2.44E+00  -3.0999116691959E+00  2.06E-02
- ---------------------------------------------------------------------------- iter=31
- fnrm, band structure energy, mean alpha   2.43E+00  -3.1358521881521E+00  2.16E-02
- ---------------------------------------------------------------------------- iter=32
- fnrm, band structure energy, mean alpha   2.42E+00  -3.1733913817562E+00  2.27E-02
- ---------------------------------------------------------------------------- iter=33
- fnrm, band structure energy, mean alpha   2.41E+00  -3.2125712839718E+00  2.38E-02
- ---------------------------------------------------------------------------- iter=34
- fnrm, band structure energy, mean alpha   2.41E+00  -3.2534294504377E+00  2.50E-02
- ---------------------------------------------------------------------------- iter=35
- fnrm, band structure energy, mean alpha   2.39E+00  -3.2959977250469E+00  2.63E-02
- ---------------------------------------------------------------------------- iter=36
- fnrm, band structure energy, mean alpha   2.38E+00  -3.3403008325806E+00  2.76E-02
- ---------------------------------------------------------------------------- iter=37
- fnrm, band structure energy, mean alpha   2.37E+00  -3.3863547921618E+00  2.90E-02
- ---------------------------------------------------------------------------- iter=38
- fnrm, band structure energy, mean alpha   2.35E+00  -3.4341651534490E+00  3.04E-02
- ---------------------------------------------------------------------------- iter=39
- fnrm, band structure energy, mean alpha   2.34E+00  -3.4837250676640E+00  3.19E-02
- ---------------------------------------------------------------------------- iter=40
- fnrm, band structure energy, mean alpha   2.32E+00  -3.5350132192859E+00  3.35E-02
- ---------------------------------------------------------------------------- iter=41
- fnrm, band structure energy, mean alpha   2.30E+00  -3.5879916619984E+00  3.52E-02
- ---------------------------------------------------------------------------- iter=42
- fnrm, band structure energy, mean alpha   2.27E+00  -3.6426036244139E+00  3.70E-02
- ---------------------------------------------------------------------------- iter=43
- fnrm, band structure energy, mean alpha   2.25E+00  -3.6987713769829E+00  3.88E-02
- ---------------------------------------------------------------------------- iter=44
- fnrm, band structure energy, mean alpha   2.22E+00  -3.7563942804044E+00  4.07E-02
- ---------------------------------------------------------------------------- iter=45
- fnrm, band structure energy, mean alpha   2.19E+00  -3.8153471660359E+00  4.28E-02
- ---------------------------------------------------------------------------- iter=46
- fnrm, band structure energy, mean alpha   2.15E+00  -3.8754792274228E+00  4.49E-02
- ---------------------------------------------------------------------------- iter=47
- fnrm, band structure energy, mean alpha   2.12E+00  -3.9366136252331E+00  4.72E-02
- ---------------------------------------------------------------------------- iter=48
- fnrm, band structure energy, mean alpha   2.08E+00  -3.9985480207309E+00  4.95E-02
- ---------------------------------------------------------------------------- iter=49
- fnrm, band structure energy, mean alpha   2.03E+00  -4.0610562501459E+00  5.20E-02
- ---------------------------------------------------------------------------- iter=50
- fnrm, band structure energy, mean alpha   1.99E+00  -4.1238913289565E+00  5.46E-02
- ---------------------------------------------------------------------------- iter=51
- fnrm, band structure energy, mean alpha   1.94E+00  -4.1867899278387E+00  5.73E-02
- ---------------------------------------------------------------------------- iter=52
- fnrm, band structure energy, mean alpha   1.88E+00  -4.2494783904317E+00  6.02E-02
- ---------------------------------------------------------------------------- iter=53
- fnrm, band structure energy, mean alpha   1.83E+00  -4.3116802709388E+00  6.32E-02
- ---------------------------------------------------------------------------- iter=54
- fnrm, band structure energy, mean alpha   1.77E+00  -4.3731252655760E+00  6.64E-02
- ---------------------------------------------------------------------------- iter=55
- fnrm, band structure energy, mean alpha   1.71E+00  -4.4335593090552E+00  6.97E-02
- ---------------------------------------------------------------------------- iter=56
- fnrm, band structure energy, mean alpha   1.65E+00  -4.4927555211663E+00  7.32E-02
- ---------------------------------------------------------------------------- iter=57
- fnrm, band structure energy, mean alpha   1.59E+00  -4.5505256335694E+00  7.68E-02
- ---------------------------------------------------------------------------- iter=58
- fnrm, band structure energy, mean alpha   1.52E+00  -4.6067315119473E+00  8.07E-02
- ---------------------------------------------------------------------------- iter=59
- fnrm, band structure energy, mean alpha   1.46E+00  -4.6612964119483E+00  8.47E-02
- ---------------------------------------------------------------------------- iter=60
- fnrm, band structure energy, mean alpha   1.40E+00  -4.7142156522636E+00  8.89E-02
- ---------------------------------------------------------------------------- iter=61
- fnrm, band structure energy, mean alpha   1.35E+00  -4.7655664204703E+00  9.34E-02
- ---------------------------------------------------------------------------- iter=62
- fnrm, band structure energy, mean alpha   1.29E+00  -4.8155163936968E+00  9.81E-02
- ---------------------------------------------------------------------------- iter=63
- fnrm, band structure energy, mean alpha   1.24E+00  -4.8643306847550E+00  1.03E-01
- ---------------------------------------------------------------------------- iter=64
- fnrm, band structure energy, mean alpha   1.20E+00  -4.9123762265618E+00  1.08E-01
- ---------------------------------------------------------------------------- iter=65
- fnrm, band structure energy, mean alpha   1.16E+00  -4.9601219859025E+00  1.14E-01
- ---------------------------------------------------------------------------- iter=66
- fnrm, band structure energy, mean alpha   1.13E+00  -5.0081322684584E+00  1.19E-01
- ---------------------------------------------------------------------------- iter=67
- fnrm, band structure energy, mean alpha   1.10E+00  -5.0570488302378E+00  1.25E-01
- ---------------------------------------------------------------------------- iter=68
- fnrm, band structure energy, mean alpha   1.08E+00  -5.1075557360179E+00  1.31E-01
- ---------------------------------------------------------------------------- iter=69
- fnrm, band structure energy, mean alpha   1.06E+00  -5.1603195198581E+00  1.38E-01
- ---------------------------------------------------------------------------- iter=70
- fnrm, band structure energy, mean alpha   1.05E+00  -5.2158975578917E+00  1.45E-01
- ---------------------------------------------------------------------------- iter=71
- fnrm, band structure energy, mean alpha   1.04E+00  -5.2746119531167E+00  1.52E-01
- ---------------------------------------------------------------------------- iter=72
- fnrm, band structure energy, mean alpha   1.02E+00  -5.3363974792132E+00  1.60E-01
- ---------------------------------------------------------------------------- iter=73
- fnrm, band structure energy, mean alpha   9.96E-01  -5.4006516815953E+00  1.68E-01
- ---------------------------------------------------------------------------- iter=74
- fnrm, band structure energy, mean alpha   9.64E-01  -5.4661392113424E+00  1.76E-01
- ---------------------------------------------------------------------------- iter=75
- fnrm, band structure energy, mean alpha   9.20E-01  -5.5310174662598E+00  1.85E-01
- ---------------------------------------------------------------------------- iter=76
- fnrm, band structure energy, mean alpha   8.63E-01  -5.5930354284012E+00  1.94E-01
- ---------------------------------------------------------------------------- iter=77
- fnrm, band structure energy, mean alpha   7.93E-01  -5.6498983032323E+00  2.04E-01
- ---------------------------------------------------------------------------- iter=78
- fnrm, band structure energy, mean alpha   7.13E-01  -5.6997044719821E+00  2.14E-01
- ---------------------------------------------------------------------------- iter=79
- fnrm, band structure energy, mean alpha   6.26E-01  -5.7413026427012E+00  2.25E-01
- ---------------------------------------------------------------------------- iter=80
- fnrm, band structure energy, mean alpha   5.38E-01  -5.7744391136959E+00  2.36E-01
- ---------------------------------------------------------------------------- iter=81
- fnrm, band structure energy, mean alpha   4.52E-01  -5.7996634571478E+00  2.48E-01
- ---------------------------------------------------------------------------- iter=82
- fnrm, band structure energy, mean alpha   3.73E-01  -5.8180680147168E+00  2.60E-01
- ---------------------------------------------------------------------------- iter=83
- fnrm, band structure energy, mean alpha   3.02E-01  -5.8309836466667E+00  2.73E-01
- ---------------------------------------------------------------------------- iter=84
- fnrm, band structure energy, mean alpha   2.40E-01  -5.8397299487148E+00  2.87E-01
- ---------------------------------------------------------------------------- iter=85
- fnrm, band structure energy, mean alpha   1.88E-01  -5.8454614073022E+00  3.01E-01
- ---------------------------------------------------------------------------- iter=86
- fnrm, band structure energy, mean alpha   1.45E-01  -5.8491035041831E+00  3.16E-01
- ---------------------------------------------------------------------------- iter=87
- fnrm, band structure energy, mean alpha   1.10E-01  -5.8513509091137E+00  3.32E-01
- ---------------------------------------------------------------------------- iter=88
- fnrm, band structure energy, mean alpha   8.24E-02  -5.8526984981405E+00  3.49E-01
- ---------------------------------------------------------------------------- iter=89
- fnrm, band structure energy, mean alpha   6.09E-02  -5.8534837767304E+00  3.66E-01
- ---------------------------------------------------------------------------- iter=90
- fnrm, band structure energy, mean alpha   4.44E-02  -5.8539283074537E+00  3.84E-01
- ---------------------------------------------------------------------------- iter=91
- fnrm, band structure energy, mean alpha   3.19E-02  -5.8541725495239E+00  4.04E-01
- ---------------------------------------------------------------------------- iter=92
- fnrm, band structure energy, mean alpha   2.26E-02  -5.8543026372372E+00  4.24E-01
- ---------------------------------------------------------------------------- iter=93
- fnrm, band structure energy, mean alpha   1.57E-02  -5.8543696943398E+00  4.45E-01
- ---------------------------------------------------------------------------- iter=94
- fnrm, band structure energy, mean alpha   1.07E-02  -5.8544030820309E+00  4.67E-01
- ---------------------------------------------------------------------------- iter=95
- fnrm, band structure energy, mean alpha   7.18E-03  -5.8544191015465E+00  4.91E-01
- ---------------------------------------------------------------------------- iter=96
- fnrm, band structure energy, mean alpha   4.70E-03  -5.8544264886408E+00  5.15E-01
- ---------------------------------------------------------------------------- iter=97
- fnrm, band structure energy, mean alpha   3.01E-03  -5.8544297526980E+00  5.41E-01
- ---------------------------------------------------------------------------- iter=98
- fnrm, band structure energy, mean alpha   1.88E-03  -5.8544311301343E+00  5.68E-01
- ---------------------------------------------------------------------------- iter=99
- fnrm, band structure energy, mean alpha   1.15E-03  -5.8544316833257E+00  5.96E-01
- --------------------------------------------------------------------------- iter=100
- fnrm, band structure energy, mean alpha   6.79E-04  -5.8544318939692E+00  6.26E-01
- --------------------------------------------------------------------------- iter=101
- fnrm, band structure energy, mean alpha   3.90E-04  -5.8544319697263E+00  6.58E-01
- --------------------------------------------------------------------------- iter=102
- fnrm, band structure energy, mean alpha   2.17E-04  -5.8544319953615E+00  6.90E-01
- --------------------------------------------------------------------------- iter=103
- fnrm, band structure energy, mean alpha   1.17E-04  -5.8544320034930E+00  7.25E-01
- --------------------------------------------------------------------------- iter=104
- fnrm, band structure energy, mean alpha   6.06E-05  -5.8544320059025E+00  7.61E-01
- --------------------------------------------------------------------------- iter=105
- fnrm, band structure energy, mean alpha   3.03E-05  -5.8544320065674E+00  7.99E-01
- --------------------------------------------------------------------------- iter=106
- fnrm, band structure energy, mean alpha   1.45E-05  -5.8544320067378E+00  8.39E-01
- --------------------------------------------------------------------------- iter=107
- fnrm, band structure energy, mean alpha   6.65E-06  -5.8544320067783E+00  8.81E-01
- converged in 107 iterations.
-   Final values for fnrm, Energy:   6.64684E-06  -5.85443E+00
- ====================================================================================
- after initial guess:
-   - basis functions converged
-   - coefficients converged
-   - modified band structure energy -5.85443201E+00
- ------------------------------------- Building linear combinations... done.
- -------------------------------------------------- Calculation of energy and forces.
- Calculation of charge density... done. Total electronic charge=      13.999999934846
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Hamiltonian application... done.
- ============================== optmizing coefficients ==============================
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.9913E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.9391E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.375E-02=15.7%
+   time for communication:7.375E-02=84.3%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:8.750E-03=10.0%
+   time for Loewdin:0.000E+00= 0.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:3.750E-03= 4.3%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   7.500000E-03
+   time for computation:1.125E-02=52.9%
+   time for communication:1.000E-02=47.1%
+   time for calculating overlap:2.500E-03=11.8%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.125E-02=52.9%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     5  3.5573680E-02  6.4749464E-02    -2.4515142267
+ WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   3.5573680E-02  6.4749464E-02  -2.4515142
+ ============================= Basis functions created. =============================
+ timings:
+   -total time: 2.366E+00
+     - orthonormalization: 3.938E-01=16.6%
+     - Hamiltonian application: 3.838E-01=16.2%
+     - orthoconstraint: 1.450E-01= 6.1%
+     - preconditioning: 1.436E+00=60.7%
+     - other: 7.500E-03= 0.3%
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application... Hamiltonian application... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ eval(1)=-6.91124E-01
+ eval(2)=-5.55993E-01
+ eval(3)=-4.00990E-01
+ eval(4)=-3.95481E-01
+ eval(5)=-3.50575E-01
+ eval(6)=-3.10456E-01
+ eval(7)=-3.08949E-01  <-- last occupied orbital
+ eval(8)= 4.51572E-03  <-- first virtual orbital
+ eval(9)= 6.66449E-02
+ eval(10)= 7.68120E-02
+ eval(11)= 8.16936E-02
+ eval(12)= 8.26083E-02
+ eval(13)= 9.57552E-02
+ eval(14)= 1.54320E-01
+ time for diagonalizing the Hamiltonian: 0.000E+00
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.0000E-01
+ done. TOTAL CHARGE =   1.399999131398E+01
+ time for sumrho: 1.100E-01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ##################################################################
+ at iteration 3 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy    3   5.54E-07   -1.49054806819513743E+01
+ ##################################################################
+ ======================== Creation of the basis functions... ========================
+ statistics: - 432 point to point communications, of which 0 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
  ----------------------------------------------------------------------------- iter=1
- fnrm, band structure energy, mean alpha   4.59E-03  -5.8410340355327E+00  5.00E-03
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.9391E-03
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  7.3034E-04
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.500E-02=62.5%
+   time for communication:1.500E-02=37.5%
+   time for calculating overlap:1.125E-02=28.1%
+   time for expansion:3.750E-03= 9.4%
+   time for Loewdin:3.750E-03= 9.4%
+   time for transform:0.000E+00= 0.0%
+   time for extract:6.250E-03=15.6%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.250000E-03
+   time for computation:1.000E-02=47.1%
+   time for communication:1.125E-02=52.9%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:7.500E-03=35.3%
+   time for applying orthoconstraint:2.500E-03=11.8%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     1  3.7457679E-02  6.8944539E-02    -2.4282668373
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
- fnrm, band structure energy, mean alpha   4.58E-03  -5.8410340687705E+00  5.25E-03
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.1778E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.2237E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.250E-02=25.0%
+   time for communication:6.750E-02=75.0%
+   time for calculating overlap:1.000E-02=11.1%
+   time for expansion:2.500E-03= 2.8%
+   time for Loewdin:5.000E-03= 5.6%
+   time for transform:0.000E+00= 0.0%
+   time for extract:3.750E-03= 4.2%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.250000E-03
+   time for computation:8.750E-03=41.2%
+   time for communication:1.250E-02=58.8%
+   time for calculating overlap:3.750E-03=17.6%
+   time for expansion:3.750E-03=17.6%
+   time for applying orthoconstraint:5.000E-03=23.5%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     2  2.8768841E-02  4.8810307E-02    -2.4509697279
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
- fnrm, band structure energy, mean alpha   4.56E-03  -5.8410341033833E+00  5.51E-03
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.0968E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  3.3594E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.500E-02=17.1%
+   time for communication:7.250E-02=82.9%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:8.750E-03=10.0%
+   time for Loewdin:0.000E+00= 0.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:5.000E-03= 5.7%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.000000E-02
+   time for computation:1.000E-02=44.4%
+   time for communication:1.250E-02=55.6%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.000E-02=44.4%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     3  2.8969474E-02  4.4749558E-02    -2.4653946756
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
- fnrm, band structure energy, mean alpha   4.54E-03  -5.8410341394131E+00  5.79E-03
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.3323E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  4.1642E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.500E-02=27.4%
+   time for communication:6.625E-02=72.6%
+   time for calculating overlap:8.750E-03= 9.6%
+   time for expansion:7.500E-03= 8.2%
+   time for Loewdin:3.750E-03= 4.1%
+   time for transform:0.000E+00= 0.0%
+   time for extract:5.000E-03= 5.5%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   0.000000E+00
+   time for computation:8.750E-03=46.7%
+   time for communication:1.000E-02=53.3%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:7.500E-03=40.0%
+   time for applying orthoconstraint:1.250E-03= 6.7%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     4  2.4825494E-02  3.1997794E-02    -2.4690694514
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
- fnrm, band structure energy, mean alpha   4.51E-03  -5.8410341769020E+00  6.08E-03
- ----------------------------------------------------------------------------- iter=6
- fnrm, band structure energy, mean alpha   4.49E-03  -5.8410342158913E+00  6.38E-03
- ----------------------------------------------------------------------------- iter=7
- fnrm, band structure energy, mean alpha   4.47E-03  -5.8410342564219E+00  6.70E-03
- ----------------------------------------------------------------------------- iter=8
- fnrm, band structure energy, mean alpha   4.45E-03  -5.8410342985337E+00  7.04E-03
- ----------------------------------------------------------------------------- iter=9
- fnrm, band structure energy, mean alpha   4.42E-03  -5.8410343422658E+00  7.39E-03
- ---------------------------------------------------------------------------- iter=10
- fnrm, band structure energy, mean alpha   4.39E-03  -5.8410343876554E+00  7.76E-03
- ---------------------------------------------------------------------------- iter=11
- fnrm, band structure energy, mean alpha   4.37E-03  -5.8410344347385E+00  8.14E-03
- ---------------------------------------------------------------------------- iter=12
- fnrm, band structure energy, mean alpha   4.34E-03  -5.8410344835487E+00  8.55E-03
- ---------------------------------------------------------------------------- iter=13
- fnrm, band structure energy, mean alpha   4.31E-03  -5.8410345341176E+00  8.98E-03
- ---------------------------------------------------------------------------- iter=14
- fnrm, band structure energy, mean alpha   4.28E-03  -5.8410345864736E+00  9.43E-03
- ---------------------------------------------------------------------------- iter=15
- fnrm, band structure energy, mean alpha   4.24E-03  -5.8410346406423E+00  9.90E-03
- ---------------------------------------------------------------------------- iter=16
- fnrm, band structure energy, mean alpha   4.21E-03  -5.8410346966456E+00  1.04E-02
- ---------------------------------------------------------------------------- iter=17
- fnrm, band structure energy, mean alpha   4.17E-03  -5.8410347545013E+00  1.09E-02
- ---------------------------------------------------------------------------- iter=18
- fnrm, band structure energy, mean alpha   4.14E-03  -5.8410348142226E+00  1.15E-02
- ---------------------------------------------------------------------------- iter=19
- fnrm, band structure energy, mean alpha   4.10E-03  -5.8410348758180E+00  1.20E-02
- ---------------------------------------------------------------------------- iter=20
- fnrm, band structure energy, mean alpha   4.06E-03  -5.8410349392900E+00  1.26E-02
- ---------------------------------------------------------------------------- iter=21
- fnrm, band structure energy, mean alpha   4.02E-03  -5.8410350046353E+00  1.33E-02
- ---------------------------------------------------------------------------- iter=22
- fnrm, band structure energy, mean alpha   3.98E-03  -5.8410350718440E+00  1.39E-02
- ---------------------------------------------------------------------------- iter=23
- fnrm, band structure energy, mean alpha   3.93E-03  -5.8410351408987E+00  1.46E-02
- ---------------------------------------------------------------------------- iter=24
- fnrm, band structure energy, mean alpha   3.88E-03  -5.8410352117744E+00  1.54E-02
- ---------------------------------------------------------------------------- iter=25
- fnrm, band structure energy, mean alpha   3.84E-03  -5.8410352844378E+00  1.61E-02
- ---------------------------------------------------------------------------- iter=26
- fnrm, band structure energy, mean alpha   3.79E-03  -5.8410353588463E+00  1.69E-02
- ---------------------------------------------------------------------------- iter=27
- fnrm, band structure energy, mean alpha   3.74E-03  -5.8410354349483E+00  1.78E-02
- ---------------------------------------------------------------------------- iter=28
- fnrm, band structure energy, mean alpha   3.68E-03  -5.8410355126818E+00  1.87E-02
- ---------------------------------------------------------------------------- iter=29
- fnrm, band structure energy, mean alpha   3.63E-03  -5.8410355919744E+00  1.96E-02
- ---------------------------------------------------------------------------- iter=30
- fnrm, band structure energy, mean alpha   3.57E-03  -5.8410356727427E+00  2.06E-02
- ---------------------------------------------------------------------------- iter=31
- fnrm, band structure energy, mean alpha   3.51E-03  -5.8410357548919E+00  2.16E-02
- ---------------------------------------------------------------------------- iter=32
- fnrm, band structure energy, mean alpha   3.45E-03  -5.8410358383155E+00  2.27E-02
- ---------------------------------------------------------------------------- iter=33
- fnrm, band structure energy, mean alpha   3.39E-03  -5.8410359228948E+00  2.38E-02
- ---------------------------------------------------------------------------- iter=34
- fnrm, band structure energy, mean alpha   3.33E-03  -5.8410360084991E+00  2.50E-02
- ---------------------------------------------------------------------------- iter=35
- fnrm, band structure energy, mean alpha   3.26E-03  -5.8410360949854E+00  2.63E-02
- ---------------------------------------------------------------------------- iter=36
- fnrm, band structure energy, mean alpha   3.19E-03  -5.8410361821987E+00  2.76E-02
- ---------------------------------------------------------------------------- iter=37
- fnrm, band structure energy, mean alpha   3.12E-03  -5.8410362699718E+00  2.90E-02
- ---------------------------------------------------------------------------- iter=38
- fnrm, band structure energy, mean alpha   3.05E-03  -5.8410363581259E+00  3.04E-02
- ---------------------------------------------------------------------------- iter=39
- fnrm, band structure energy, mean alpha   2.98E-03  -5.8410364464712E+00  3.19E-02
- ---------------------------------------------------------------------------- iter=40
- fnrm, band structure energy, mean alpha   2.91E-03  -5.8410365348075E+00  3.35E-02
- ---------------------------------------------------------------------------- iter=41
- fnrm, band structure energy, mean alpha   2.83E-03  -5.8410366229251E+00  3.52E-02
- ---------------------------------------------------------------------------- iter=42
- fnrm, band structure energy, mean alpha   2.75E-03  -5.8410367106059E+00  3.70E-02
- ---------------------------------------------------------------------------- iter=43
- fnrm, band structure energy, mean alpha   2.67E-03  -5.8410367976246E+00  3.88E-02
- ---------------------------------------------------------------------------- iter=44
- fnrm, band structure energy, mean alpha   2.59E-03  -5.8410368837505E+00  4.07E-02
- ---------------------------------------------------------------------------- iter=45
- fnrm, band structure energy, mean alpha   2.51E-03  -5.8410369687489E+00  4.28E-02
- ---------------------------------------------------------------------------- iter=46
- fnrm, band structure energy, mean alpha   2.43E-03  -5.8410370523832E+00  4.49E-02
- ---------------------------------------------------------------------------- iter=47
- fnrm, band structure energy, mean alpha   2.34E-03  -5.8410371344170E+00  4.72E-02
- ---------------------------------------------------------------------------- iter=48
- fnrm, band structure energy, mean alpha   2.26E-03  -5.8410372146164E+00  4.95E-02
- ---------------------------------------------------------------------------- iter=49
- fnrm, band structure energy, mean alpha   2.17E-03  -5.8410372927523E+00  5.20E-02
- ---------------------------------------------------------------------------- iter=50
- fnrm, band structure energy, mean alpha   2.09E-03  -5.8410373686031E+00  5.46E-02
- ---------------------------------------------------------------------------- iter=51
- fnrm, band structure energy, mean alpha   2.00E-03  -5.8410374419576E+00  5.73E-02
- ---------------------------------------------------------------------------- iter=52
- fnrm, band structure energy, mean alpha   1.91E-03  -5.8410375126168E+00  6.02E-02
- ---------------------------------------------------------------------------- iter=53
- fnrm, band structure energy, mean alpha   1.82E-03  -5.8410375803978E+00  6.32E-02
- ---------------------------------------------------------------------------- iter=54
- fnrm, band structure energy, mean alpha   1.74E-03  -5.8410376451352E+00  6.64E-02
- ---------------------------------------------------------------------------- iter=55
- fnrm, band structure energy, mean alpha   1.65E-03  -5.8410377066845E+00  6.97E-02
- ---------------------------------------------------------------------------- iter=56
- fnrm, band structure energy, mean alpha   1.56E-03  -5.8410377649237E+00  7.32E-02
- ---------------------------------------------------------------------------- iter=57
- fnrm, band structure energy, mean alpha   1.48E-03  -5.8410378197559E+00  7.68E-02
- ---------------------------------------------------------------------------- iter=58
- fnrm, band structure energy, mean alpha   1.39E-03  -5.8410378711104E+00  8.07E-02
- ---------------------------------------------------------------------------- iter=59
- fnrm, band structure energy, mean alpha   1.31E-03  -5.8410379189443E+00  8.47E-02
- ---------------------------------------------------------------------------- iter=60
- fnrm, band structure energy, mean alpha   1.23E-03  -5.8410379632433E+00  8.89E-02
- ---------------------------------------------------------------------------- iter=61
- fnrm, band structure energy, mean alpha   1.15E-03  -5.8410380040222E+00  9.34E-02
- ---------------------------------------------------------------------------- iter=62
- fnrm, band structure energy, mean alpha   1.07E-03  -5.8410380413243E+00  9.81E-02
- ---------------------------------------------------------------------------- iter=63
- fnrm, band structure energy, mean alpha   9.90E-04  -5.8410380752212E+00  1.03E-01
- ---------------------------------------------------------------------------- iter=64
- fnrm, band structure energy, mean alpha   9.15E-04  -5.8410381058109E+00  1.08E-01
- ---------------------------------------------------------------------------- iter=65
- fnrm, band structure energy, mean alpha   8.43E-04  -5.8410381332164E+00  1.14E-01
- ---------------------------------------------------------------------------- iter=66
- fnrm, band structure energy, mean alpha   7.74E-04  -5.8410381575832E+00  1.19E-01
- ---------------------------------------------------------------------------- iter=67
- fnrm, band structure energy, mean alpha   7.07E-04  -5.8410381790763E+00  1.25E-01
- ---------------------------------------------------------------------------- iter=68
- fnrm, band structure energy, mean alpha   6.43E-04  -5.8410381978771E+00  1.31E-01
- ---------------------------------------------------------------------------- iter=69
- fnrm, band structure energy, mean alpha   5.83E-04  -5.8410382141797E+00  1.38E-01
- ---------------------------------------------------------------------------- iter=70
- fnrm, band structure energy, mean alpha   5.25E-04  -5.8410382281872E+00  1.45E-01
- ---------------------------------------------------------------------------- iter=71
- fnrm, band structure energy, mean alpha   4.71E-04  -5.8410382401079E+00  1.52E-01
- ---------------------------------------------------------------------------- iter=72
- fnrm, band structure energy, mean alpha   4.21E-04  -5.8410382501513E+00  1.60E-01
- ---------------------------------------------------------------------------- iter=73
- fnrm, band structure energy, mean alpha   3.73E-04  -5.8410382585246E+00  1.68E-01
- ---------------------------------------------------------------------------- iter=74
- fnrm, band structure energy, mean alpha   3.30E-04  -5.8410382654288E+00  1.76E-01
- ---------------------------------------------------------------------------- iter=75
- fnrm, band structure energy, mean alpha   2.89E-04  -5.8410382710566E+00  1.85E-01
- ---------------------------------------------------------------------------- iter=76
- fnrm, band structure energy, mean alpha   2.52E-04  -5.8410382755887E+00  1.94E-01
- ---------------------------------------------------------------------------- iter=77
- fnrm, band structure energy, mean alpha   2.18E-04  -5.8410382791926E+00  2.04E-01
- ---------------------------------------------------------------------------- iter=78
- fnrm, band structure energy, mean alpha   1.88E-04  -5.8410382820205E+00  2.14E-01
- ---------------------------------------------------------------------------- iter=79
- fnrm, band structure energy, mean alpha   1.61E-04  -5.8410382842090E+00  2.25E-01
- ---------------------------------------------------------------------------- iter=80
- fnrm, band structure energy, mean alpha   1.36E-04  -5.8410382858780E+00  2.36E-01
- ---------------------------------------------------------------------------- iter=81
- fnrm, band structure energy, mean alpha   1.14E-04  -5.8410382871316E+00  2.48E-01
- ---------------------------------------------------------------------------- iter=82
- fnrm, band structure energy, mean alpha   9.55E-05  -5.8410382880582E+00  2.60E-01
- ---------------------------------------------------------------------------- iter=83
- fnrm, band structure energy, mean alpha   7.90E-05  -5.8410382887316E+00  2.73E-01
- ---------------------------------------------------------------------------- iter=84
- fnrm, band structure energy, mean alpha   6.47E-05  -5.8410382892124E+00  2.87E-01
- ---------------------------------------------------------------------------- iter=85
- fnrm, band structure energy, mean alpha   5.25E-05  -5.8410382895494E+00  3.01E-01
- ---------------------------------------------------------------------------- iter=86
- fnrm, band structure energy, mean alpha   4.22E-05  -5.8410382897810E+00  3.16E-01
- ---------------------------------------------------------------------------- iter=87
- fnrm, band structure energy, mean alpha   3.35E-05  -5.8410382899368E+00  3.32E-01
- ---------------------------------------------------------------------------- iter=88
- fnrm, band structure energy, mean alpha   2.63E-05  -5.8410382900395E+00  3.49E-01
- ---------------------------------------------------------------------------- iter=89
- fnrm, band structure energy, mean alpha   2.04E-05  -5.8410382901055E+00  3.66E-01
- ---------------------------------------------------------------------------- iter=90
- fnrm, band structure energy, mean alpha   1.56E-05  -5.8410382901470E+00  3.84E-01
- ---------------------------------------------------------------------------- iter=91
- fnrm, band structure energy, mean alpha   1.18E-05  -5.8410382901724E+00  4.04E-01
- ---------------------------------------------------------------------------- iter=92
- fnrm, band structure energy, mean alpha   8.79E-06  -5.8410382901875E+00  4.24E-01
- converged in 92 iterations.
-   Final values for fnrm, Energy:   8.79336E-06  -5.84104E+00
- ====================================================================================
- energybs, ebsMod  -5.84429298712085643E+00  -5.84103829018746090E+00
- ekin_sum,epot_sum,eproj_sum  8.53156792439E+00 -1.15723599145E+01  5.50353451631E-01
-    ehart,   eexcu,    vexcu  3.73188722201E+01 -5.51525156113E+00 -7.21219629905E+00
- total energy, modified energy  -1.49028349175112353E+01  -1.48995802205778336E+01
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.9635E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  4.5296E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.250E-02=13.9%
+   time for communication:7.750E-02=86.1%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:3.750E-03= 4.2%
+   time for Loewdin:6.250E-03= 6.9%
+   time for transform:0.000E+00= 0.0%
+   time for extract:1.250E-03= 1.4%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   7.500000E-03
+   time for computation:1.000E-02=57.1%
+   time for communication:7.500E-03=42.9%
+   time for calculating overlap:8.750E-03=50.0%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.000E-02=57.1%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     5  2.4680356E-02  3.6118361E-02    -2.4687093058
+ WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   2.4680356E-02  3.6118361E-02  -2.4687093
+ ============================= Basis functions created. =============================
+ timings:
+   -total time: 2.365E+00
+     - orthonormalization: 3.988E-01=16.9%
+     - Hamiltonian application: 3.762E-01=15.9%
+     - orthoconstraint: 1.500E-01= 6.3%
+     - preconditioning: 1.436E+00=60.7%
+     - other: 3.750E-03= 0.2%
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application... Hamiltonian application... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ eval(1)=-6.92804E-01
+ eval(2)=-5.54607E-01
+ eval(3)=-3.98405E-01
+ eval(4)=-3.96507E-01
+ eval(5)=-3.51129E-01
+ eval(6)=-3.08237E-01
+ eval(7)=-3.06435E-01  <-- last occupied orbital
+ eval(8)= 2.66229E-03  <-- first virtual orbital
+ eval(9)= 6.11041E-02
+ eval(10)= 7.12639E-02
+ eval(11)= 8.03030E-02
+ eval(12)= 8.27655E-02
+ eval(13)= 8.61721E-02
+ eval(14)= 1.55543E-01
+ time for diagonalizing the Hamiltonian: 0.000E+00
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.0000E-01
+ done. TOTAL CHARGE =   1.399999337622E+01
+ time for sumrho: 1.100E-01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ##################################################################
+ at iteration 4 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy    4   2.86E-07   -1.48572093609788496E+01
+ ##################################################################
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 432 point to point communications, of which 136 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application... Hamiltonian application... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ eval(1)=-6.93503E-01
+ eval(2)=-5.57981E-01
+ eval(3)=-4.00938E-01
+ eval(4)=-3.98187E-01
+ eval(5)=-3.52048E-01
+ eval(6)=-3.10673E-01
+ eval(7)=-3.10080E-01  <-- last occupied orbital
+ eval(8)=-4.27273E-04  <-- first virtual orbital
+ eval(9)= 5.83458E-02
+ eval(10)= 6.82137E-02
+ eval(11)= 7.77571E-02
+ eval(12)= 8.00771E-02
+ eval(13)= 8.42942E-02
+ eval(14)= 1.52789E-01
+ time for diagonalizing the Hamiltonian: 0.000E+00
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.1000E-01
+ done. TOTAL CHARGE =   1.399999337751E+01
+ time for sumrho: 1.100E-01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ##################################################################
+ at iteration 5 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy    5   1.44E-07   -1.48599407590308630E+01
+ ##################################################################
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 432 point to point communications, of which 128 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application... Hamiltonian application... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ eval(1)=-6.94851E-01
+ eval(2)=-5.60558E-01
+ eval(3)=-4.03164E-01
+ eval(4)=-3.99827E-01
+ eval(5)=-3.53378E-01
+ eval(6)=-3.12728E-01
+ eval(7)=-3.12648E-01  <-- last occupied orbital
+ eval(8)=-2.40821E-03  <-- first virtual orbital
+ eval(9)= 5.64334E-02
+ eval(10)= 6.62395E-02
+ eval(11)= 7.59530E-02
+ eval(12)= 7.81763E-02
+ eval(13)= 8.30640E-02
+ eval(14)= 1.50806E-01
+ time for diagonalizing the Hamiltonian: 1.000E-02
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.0000E-01
+ done. TOTAL CHARGE =   1.399999337713E+01
+ time for sumrho: 1.000E-01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ##################################################################
+ at iteration 6 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy    6   7.77E-08   -1.48679855115639441E+01
+ ##################################################################
+ Posting sends / receives for the calculation of the charge density... done.
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 40 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.1000E-01
+ done. TOTAL CHARGE =   1.399999337713E+01
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      13.999999934846
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   6.48427214E-04
- average noise along y direction:   1.55106479E-04
- average noise along z direction:   6.23968085E-04
- total average noise            :   9.13154994E-04
- clean forces norm (Ha/Bohr): maxval=  3.426825698865E-03  fnrm2=  2.352190424173E-05
- raw forces:                  maxval=  3.698566684839E-03  fnrm2=  2.462940248941E-05
+ average noise along x direction:  -1.68403512E-02
+ average noise along y direction:  -1.74617894E-02
+ average noise along z direction:  -1.74945594E-03
+ total average noise            :   2.43222555E-02
+ clean forces norm (Ha/Bohr): maxval=  4.415072016561E-02  fnrm2=  3.329649050725E-03
+ raw forces:                  maxval=  5.063467128082E-02  fnrm2=  3.984146193055E-03
  Force values for all atoms in x, y, z direction.
-   1      C   3.08503E-03 -1.27932E-03  7.67528E-04
-   2      C  -1.96392E-03  1.34023E-03  2.79035E-04
-   3      H   6.33902E-04 -1.18792E-05 -7.36673E-05
-   4      H   4.47868E-04 -6.48068E-04 -6.86646E-04
-   5      H   1.96409E-04 -5.66778E-04  6.42148E-05
-   6      H  -5.27242E-04  1.10488E-03  3.57368E-04
-   7      H  -4.53460E-04  2.15053E-04 -4.52282E-04
-   8      H  -1.41859E-03 -1.54117E-04 -2.55550E-04
- ************************ END OF THE LINEAR SCALING VERSION.  ************************
- ********** The program will now continue with the standard  cubic version. **********
- ********************* !!WARNING: What follows may be garbage!!  *********************
- ---------------------------------------------------------- Gaussian Basis Projection
- Generation of input wavefunction data for atom      C:
-   Elec. Configuration: s 2.00 , p 2/3 2/3 2/3 , ... done.
- Generation of input wavefunction data for atom      H:
-   Elec. Configuration: s 1.00 , ... done.
- ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=      13.999999934846
- PSolver, free  BC, dimensions:   133  125  121   proc    8 ... done.
- Calculate local forces...done. Leaked force:  0.00000E+00
- Calculate nonlocal forces... done.
- average noise along x direction:  -2.30587177E-02
- average noise along y direction:   2.44391152E-02
- average noise along z direction:   9.69159510E+00
- total average noise            :   9.69165334E+00
- clean forces norm (Ha/Bohr): maxval=  1.028529602916E+01  fnrm2=  2.817778325173E+02
- raw forces:                  maxval=  1.371223274480E+01  fnrm2=  3.757059836245E+02
- CPU time/ELAPSED time for root process     0        29.22        29.13
+   1      C   8.06175E-03 -4.31910E-02 -4.33942E-03
+   2      C  -2.76744E-02  3.38914E-03 -4.27097E-03
+   3      H  -1.12668E-03  3.16779E-03  4.14234E-03
+   4      H   9.66178E-03  6.48272E-03  5.73840E-03
+   5      H   9.05059E-03  5.69733E-03 -3.61671E-03
+   6      H  -7.50682E-04  1.00699E-02  3.04515E-03
+   7      H  -2.28049E-03  8.06643E-03 -2.92706E-03
+   8      H   5.05818E-03  6.31770E-03  2.22827E-03
+ ================================================
+ total time for linear scaling version: 1.47E+01s
+ ================================================
  Final values of the Forces for each atom
-     1      C -4.44902E-02  3.35276E-02  1.02734E+01
-     2      C -4.67916E-03  1.80474E-02  1.02853E+01
-     3      H  8.85818E-03 -7.69497E-03 -3.42566E+00
-     4      H  9.87831E-03 -9.09552E-03 -3.42618E+00
-     5      H  8.65887E-03 -8.39953E-03 -3.42551E+00
-     6      H  6.80580E-03 -7.61904E-03 -3.42670E+00
-     7      H  7.84759E-03 -9.12361E-03 -3.42743E+00
-     8      H  7.12059E-03 -9.64239E-03 -3.42722E+00
+     1      C  8.06175E-03 -4.31910E-02 -4.33942E-03
+     2      C -2.76744E-02  3.38914E-03 -4.27097E-03
+     3      H -1.12668E-03  3.16779E-03  4.14234E-03
+     4      H  9.66178E-03  6.48272E-03  5.73840E-03
+     5      H  9.05059E-03  5.69733E-03 -3.61671E-03
+     6      H -7.50682E-04  1.00699E-02  3.04515E-03
+     7      H -2.28049E-03  8.06643E-03 -2.92706E-03
+     8      H  5.05818E-03  6.31770E-03  2.22827E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 5100 allocations and 5100 deallocations, remaining memory(B): 0
- memory occupation peak: 91 MB
- for the array  psir in the routine local_hamiltonian
+ 7772 allocations and 7759 deallocations, remaining memory(B): 352
+ memory occupation peak: 75 MB
+ for the array  wz in the routine gaussians_to_wavelets_orb

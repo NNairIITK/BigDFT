@@ -970,6 +970,8 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%orthpar%methOrtho=0
   !Tolerance criterion for input guess
   inputs%orthpar%iguessTol=1.d-4
+  !Use Linear sclaing methods
+  inputs%linear='OFF'
 
   !initialization of the character string for printing
   string = "NO"
@@ -1034,6 +1036,10 @@ subroutine perf_input_variables(iproc,filename,inputs)
         else if (index(line,"ig_blocks") /= 0 .or. index(line,"IG_BLOCKS") /= 0) then
            ii = index(line,"ig_blocks")  + index(line,"IG_BLOCKS") + 8
            read(line(ii:),fmt=*,iostat=ierror) inputs%orthpar%bsLow,inputs%orthpar%bsUp
+
+        else if (index(line,"linear") /=0 .or. index(line,"LINEAR") /=0) then
+           ii = index(line,"linear") + index(line,"LINEAR") + 6
+           read(line(ii:),fmt=*,iostat=ierror) inputs%linear           
         end if
 
         !Check iostat error
@@ -1069,7 +1075,7 @@ subroutine perf_input_variables(iproc,filename,inputs)
           "|","fftcache",inputs%ncache_fft,  '!Cache size for the FFT'
      write(*,"(1x,a,3x,a,1x,a,t30,a)") &
           "|","accel",string,                '!Acceleration (NO, CUDAGPU, OCLGPU)'
-     write(*,"(1x,a,3x,a,1x,l,t30,a)") &             
+     write(*,"(1x,a,3x,a,1x,l3,t30,a)") &             
           "|","blas",GPUblas,                '!CUBLAS acceleration'
      write(*,"(1x,a,3x,a,1x,f6.2,t30,a)") &          
           "|","projrad",inputs%projrad,      '!Radius of the projector as a function of the maxrad'
@@ -1078,10 +1084,10 @@ subroutine perf_input_variables(iproc,filename,inputs)
 
      !Input guess performance variables
      if(inputs%orthpar%directDiag) then                   
-        write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
+        write(*,'(1x,a,3x,a,1x,l3,t30,a)') &          
           "|","ig_diag",inputs%orthpar%directDiag,   '!Input guess: Direct diagonalization of Hamiltonian'
      else if(.not.inputs%orthpar%directDiag) then         
-        write(*,'(1x,a,3x,a,1x,l,t30,a)') &          
+        write(*,'(1x,a,3x,a,1x,l3,t30,a)') &          
           "|","ig_diag",inputs%orthpar%directDiag,   '!Input guess: Iterative diagonalization of Hamiltonian'
         write(*,'(1x,a,3x,a,1x,i0,t30,a)') &
           "|","ig_norbp",inputs%orthpar%norbpInguess,'!Input guess: Orbitals per process for iterative diag.'

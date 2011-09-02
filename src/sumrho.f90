@@ -66,7 +66,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   
 !  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
 !             (ixc < 0 .and. libxc_functionals_isgga()), have_mpi2,rsflag
-
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
      nrhotot=0
@@ -291,7 +290,6 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   real(gp) :: hfac,spinval
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir
-real(8):: dnrm2
 
   call initialize_work_arrays_sumrho(lr,w)
 
@@ -356,7 +354,6 @@ real(8):: dnrm2
         end do
      end if
   enddo
-
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
@@ -501,7 +498,6 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
   !case without bounds
   i1s=1
   i1e=n1i
-
   loop_xc_overlap: do jproc=0,nproc-1
      !case for REDUCE_SCATTER approach, not used for GGA since it enlarges the 
      !communication buffer
@@ -513,6 +509,7 @@ subroutine partial_density_free(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
         i3off=0
         n3d=n3i
      end if
+
      !here the condition for the MPI_ALLREDUCE should be entered
      if(spinsgn > 0.0_gp) then
         isjmp=1
