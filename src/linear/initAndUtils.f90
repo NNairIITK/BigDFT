@@ -1,7 +1,7 @@
 !> This subroutine initializes all parameters needed for the linear scaling version
 !! and allocate all arrays.
 subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
-    input, rxyz, nscatterarr, coeff, lphi)
+    input, rxyz, nscatterarr, tag, coeff, lphi)
 ! Calling arguments:
 ! ==================
 !   Input arguments:
@@ -35,18 +35,18 @@ type(linearParameters),intent(inout):: lin
 type(input_variables),intent(in):: input
 real(8),dimension(3,at%nat),intent(in):: rxyz
 integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+integer,intent(inout):: tag
 real(8),dimension(:),pointer,intent(out):: phi
 real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 
 ! Local variables
-integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, tag
+integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb
 integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
 integer :: npsidim
 
-tag=0
 
 
 ! Nullify all pointers
@@ -155,7 +155,7 @@ do iorb=1,lin%orbs%norbp
  ilr=lin%orbs%inwhichlocreg(iorb+lin%orbs%isorb)
  npsidim = npsidim + lin%Lzd%Llr(ilr)%wfd%nvctr_c+7*lin%Lzd%Llr(ilr)%wfd%nvctr_f
 end do
-lin%lzd%Lpsidimtot = npsidim
+lin%lzd%Lpsidimtot = max(npsidim,1)
 
 ! Maybe this could be moved to another subroutine? Or be omitted at all?
 allocate(lin%orbs%eval(lin%orbs%norb), stat=istat)
@@ -244,7 +244,7 @@ deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing input guess... '
-call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr)
+call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
 if(iproc==0) write(*,'(a)') 'done.'
 
 ! The initializations are done.
@@ -279,7 +279,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   
   integer,intent(in):: iproc, nproc
   type(linearParameters):: lin
-  type(atoms_data),intent(in):: at
+  type(atoms_data),intent(inout):: at
   character(len=20),dimension(at%ntypes):: atomNames
   !integer,dimension(at%ntypes):: norbsPerType
   
@@ -304,7 +304,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
       stop
   end if
   open(unit=99, file='input.lin')
-  read(99,*) lin%nItBasisFirst, lin%nItBasis
+  read(99,*) lin%nItBasisFirst, lin%nItBasis, lin%fixBasis
   read(99,*) lin%convCrit
   read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
   read(99,*) lin%startWithSD, lin%startDIIS
@@ -320,7 +320,12 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
   read(99,*) lin%nItInguess
   read(99,*) lin%plotBasisFunctions
+  read(99,*) lin%transformToGlobal
   read(99,*) lin%norbsPerProcIG
+
+  ! This is maybe already done
+  allocate(at%rloc(at%ntypes,3), stat=istat)
+  call memocc(istat, at%rloc, 'at%rloc', subname)
 
   ! Now read in the parameters specific for each atom type.
   parametersSpecified=.false.
@@ -424,22 +429,22 @@ write(*,'(4x,a,2x,a,2x,a,a,a,a,i0,5x,a,x,es9.3,x,a,5x,es9.3,5x,a)') '|', &
      lin%mixingMethod, '|', message1, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItSCC+1)+1.d-10))), &
      lin%nItSCC, '|', lin%alphaMix, '|', lin%convCritMix, '|'
 write(*,'(4x,a)') '-------------------------------------------------------------------'
-write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  |'
-write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  | orthoconstraint |'
+write(*,'(4x,a)') '| use the derivative | order of conf. | iterations in | IG: orbitals | IG: correction  | transform |'
+write(*,'(4x,a)') '|  basis functions   |   potential    |  input guess  | per process  | orthoconstraint | to global |'
 if(lin%correctionOrthoconstraint==0) then
     message1='  yes   '
 else if(lin%correctionOrthoconstraint==1) then
     message1='  no    '
 end if
-write(*,'(4x,a,8x,l3,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
+write(*,'(4x,a,8x,l,10x,a,7x,i1,8x,a,a,i0,5x,a,a,i0,6x,a,5x,a,4x,a,5x,l,4x,a)')  '|', lin%useDerivativeBasisFunctions, '|', &
      lin%confPotOrder, '|', repeat(' ', 10-ceiling(log10(dble(lin%nItInguess+1)+1.d-10))), &
      lin%nItInguess, '|', repeat(' ', 8-ceiling(log10(dble(lin%norbsPerProcIG+1)+1.d-10))), lin%norbsPerProcIG, '|', &
-     message1, '|'
+     message1, '|', lin%transformToGlobal, '|'
 write(*,'(4x,a)') '----------------------------------------------------------------------'
 write(*,'(x,a)') '>>>> Parameters for the optimization of the basis functions.'
-write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |'
-write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis |'
-write(*,'(4x,a)') '|  first   else  |             |                |           |       |'
+write(*,'(4x,a)') '| maximal number | convergence | iterations in  | get coef- | plot  |     stop     |'
+write(*,'(4x,a)') '|  of iterations |  criterion  | preconditioner | ficients  | basis | optimization |'
+write(*,'(4x,a)') '|  first   else  |             |                |           |       |              |'
 if(trim(lin%getCoeff)=='diag') then
     !if(trim(lin%diagMethod)=='seq') then
     !    message1='diag seq'
@@ -450,13 +455,13 @@ if(trim(lin%getCoeff)=='diag') then
 else if(trim(lin%getCoeff)=='min') then
     message1='   min  '
 end if
-write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l3,a)') '| ', &
+write(*,'(4x,a,a,i0,3x,a,i0,2x,a,x,es9.3,x,a,a,i0,a,a,a,l,a,2x,es10.3,2x,a)') '| ', &
     repeat(' ', 5-ceiling(log10(dble(lin%nItBasisFirst+1)+1.d-10))), lin%nItBasisFirst, &
     repeat(' ', 5-ceiling(log10(dble(lin%nItBasis+1)+1.d-10))), lin%nItBasis, &
       '| ', lin%convCrit, ' | ', &
       repeat(' ', 8-ceiling(log10(dble(lin%nItPrecond+1)+1.d-10))), lin%nItPrecond, '       | ' , &
       message1, '  |  ', &
-      lin%plotBasisFunctions, '   |'
+      lin%plotBasisFunctions, '   |', lin%fixBasis, '|'
 write(*,'(4x,a)') '---------------------------------------------------------------------'
 write(*,'(4x,a)') '| DIIS history | alpha DIIS | alpha SD |  start  | allow DIIS | orthonormalization: | transformation |'
 write(*,'(4x,a)') '|  min   max   |            |          | with SD |            | nit max   conv crit | of overlap mat |'
@@ -737,8 +742,8 @@ integer:: norbTarget, nprocIG, ierr
       stop
   end if
 
-  if(lin%methTransformOverlap<0 .or. lin%methTransformOverlap>3) then
-      if(iproc==0) write(*,'(x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1,2 or 3, but you specified ', &
+  if(lin%methTransformOverlap<0 .or. lin%methTransformOverlap>2) then
+      if(iproc==0) write(*,'(x,a,i0,a)') 'ERROR: lin%methTransformOverlap must be 0,1 or 2, but you specified ', &
                                lin%methTransformOverlap,'.'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
@@ -1462,24 +1467,6 @@ allocate(lin%lzd%Llr(lin%lzd%nlr),stat=istat)
 do ilr=1,lin%lzd%nlr
     call nullify_locreg_descriptors(lin%lzd%llr(ilr))
 end do
-!allocate(lin%lb%lzd%Llr(lin%lzd%nlr),stat=istat)
-!do ilr=1,lin%lzd%nlr
-!    call nullify_locreg_descriptors(lin%lb%lzd%llr(ilr))
-!end do
-
-
-!! Write some physical information on the Glr
-!if(iproc==0) then
-!    write(*,'(x,a)') '>>>>> Global localization region:'
-!    write(*,'(3x,a,3i6)')'Global region n1,n2,n3: ',Glr%d%n1,Glr%d%n2,Glr%d%n3
-!    write(*,'(3x,a,3i6)')'Global region n1i,n2i,n3i: ',Glr%d%n1i,Glr%d%n2i,Glr%d%n3i
-!    write(*,'(3x,a,3i6)')'Global region nfl1,nfl2,nfl3: ',Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3
-!    write(*,'(3x,a,3i6)')'Global region nfu1,nfu2,nfu3: ',Glr%d%nfu1,Glr%d%nfu2,Glr%d%nfu3
-!    write(*,'(3x,a,f6.2,f6.2,f6.2)')'Global dimension (x,y,z):',Glr%d%n1*input%hx,Glr%d%n2*input%hy,Glr%d%n3*input%hz
-!    write(*,'(3x,a,f10.2)')'Global volume: ',Glr%d%n1*input%hx*Glr%d%n2*input%hy*Glr%d%n3*input%hz
-!    write(*,'(3x,a,4i10)')'Global statistics: nseg_c, nseg_f, nvctr_c, nvctr_f',Glr%wfd%nseg_c,Glr%wfd%nseg_f,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f
-!    write(*,'(x,a)') '----------------------------------------------------------------------------------------------'
-!end if
 
  allocate(calculateBounds(lin%lzd%nlr), stat=istat)
  call memocc(istat, calculateBounds, 'calculateBounds', subname)
@@ -1511,18 +1498,6 @@ end do
  deallocate(calculateBounds, stat=istat)
  call memocc(istat, iall, 'calculateBounds', subname)
 
-!!do ilr=1,lin%nlr
-!!    if(iproc==0) write(*,'(x,a,i0)') '>>>>>>> zone ', ilr
-!!    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
-!!    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
-!!    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
-!!    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
-!!    if(iproc==0) write(*,*) '---------------------------------'
-!!    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%lb%lzd%Llr(ilr)%wfd%nseg_c, lin%lb%lzd%Llr(ilr)%wfd%nseg_f, lin%lb%lzd%Llr(ilr)%wfd%nvctr_c, lin%lb%lzd%Llr(ilr)%wfd%nvctr_f
-!!    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%lb%lzd%Llr(ilr)%d%n1i, lin%lb%lzd%Llr(ilr)%d%n2i, lin%lb%lzd%Llr(ilr)%d%n3i', lin%lb%lzd%Llr(ilr)%d%n1i, lin%lb%lzd%Llr(ilr)%d%n2i, lin%lb%lzd%Llr(ilr)%d%n3i
-!!    if(iproc==0) write(*,'(a,6i8)') 'lin%lb%lzd%Llr(ilr)%d%nfl1,lin%lb%lzd%Llr(ilr)%d%nfu1,lin%lb%lzd%Llr(ilr)%d%nfl2,lin%lb%lzd%Llr(ilr)%d%nfu2,lin%lb%lzd%Llr(ilr)%d%nfl3,lin%lb%lzd%Llr(ilr)%d%nfu3',&
-!!    lin%lb%lzd%Llr(ilr)%d%nfl1,lin%lb%lzd%Llr(ilr)%d%nfu1,lin%lb%lzd%Llr(ilr)%d%nfl2,lin%lb%lzd%Llr(ilr)%d%nfu2,lin%lb%lzd%Llr(ilr)%d%nfl3,lin%lb%lzd%Llr(ilr)%d%nfu3
-!!end do
 
 ! Calculate the dimension of the wave function for each process.
 npsidim=0
@@ -1532,13 +1507,13 @@ do iorb=1,lin%orbs%norbp
     npsidim = npsidim + (lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f)*lin%orbs%nspinor
 end do
 !lin%Lorbs%npsidim=npsidim
-lin%orbs%npsidim=npsidim
-lin%orbs%npsidim=npsidim
+lin%orbs%npsidim=max(npsidim,1)
+lin%orbs%npsidim=max(npsidim,1)
 
 if(.not. lin%useDerivativeBasisFunctions) then
     !lin%lb%Lorbs%npsidim=npsidim
-    lin%lb%orbs%npsidim=npsidim
-    lin%lb%orbs%npsidim=npsidim
+    lin%lb%orbs%npsidim=max(npsidim,1)
+    lin%lb%orbs%npsidim=max(npsidim,1)
 else
     npsidim=0
     do iorb=1,lin%lb%orbs%norbp
@@ -1547,8 +1522,8 @@ else
         !npsidimr = npsidimr + lin%Llr(ilr)%d%n1i*lin%Llr(ilr)%d%n2i*lin%Llr(ilr)%d%n3i*lin%lb%orbs%nspinor
     end do
     !lin%lb%Lorbs%npsidim=npsidim
-    lin%lb%orbs%npsidim=npsidim
-    lin%lb%orbs%npsidim=npsidim
+    lin%lb%orbs%npsidim=max(npsidim,1)
+    lin%lb%orbs%npsidim=max(npsidim,1)
 end if
 
 
@@ -1657,7 +1632,7 @@ do iorb=1,orbs%norbp
     npsidim = npsidim + (lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
 end do
 !! WARNING: CHECHK THIS
-orbs%npsidim=npsidim
+orbs%npsidim=max(npsidim,1)
 
 
 end subroutine initLocregs2
@@ -1758,422 +1733,6 @@ end subroutine initCoefficients
 !!
 !!
 !!end subroutine allocateAndCopyLocreg
-
-
-subroutine nullify_linearParameters(lin)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_linearParameters
-  implicit none
-
-  ! Calling arguments
-  type(linearParameters),intent(out):: lin
-
-  nullify(lin%potentialPrefac)
-  nullify(lin%locrad)
-  nullify(lin%lphiRestart)
-  !nullify(lin%lphiold)
-  !nullify(lin%lhphiold)
-  !nullify(lin%hamold)
-  call nullify_orbitals_data(lin%orbs)
-  call nullify_orbitals_data(lin%gorbs)
-  call nullify_communications_arrays(lin%comms)
-  call nullify_communications_arrays(lin%gcomms)
-  nullify(lin%norbsPerType)
-  call nullify_p2pCommsSumrho(lin%comsr)
-  call nullify_p2pCommsGatherPot(lin%comgp)
-  call nullify_largeBasis(lin%lb)
-  call nullify_local_zone_descriptors(lin%lzd)
-  call nullify_p2pCommsOrthonormality(lin%comon)
-  call nullify_overlapParameters(lin%op)
-  call nullify_linearInputGuess(lin%lig)
-  call nullify_matrixDescriptors(lin%mad)
-
-end subroutine nullify_linearParameters
-
-
-subroutine nullify_p2pCommsSumrho(comsr)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsSumrho
-  implicit none
-
-  ! Calling argument
-  type(p2pCommsSumrho),intent(out):: comsr
-
-  nullify(comsr%noverlaps)
-  nullify(comsr%overlaps)
-  nullify(comsr%istarr)
-  nullify(comsr%istrarr)
-  nullify(comsr%sendBuf)
-  nullify(comsr%recvBuf)
-  nullify(comsr%comarr)
-  nullify(comsr%communComplete)
-  nullify(comsr%computComplete)
-end subroutine nullify_p2pCommsSumrho
-
-
-subroutine nullify_p2pCommsGatherPot(comgp)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsGatherPot
-  implicit none
-
-  ! Calling argument
-  type(p2pCommsGatherPot),intent(out):: comgp
-
-  nullify(comgp%noverlaps)
-  nullify(comgp%overlaps)
-  nullify(comgp%ise3)
-  nullify(comgp%comarr)
-  nullify(comgp%recvBuf)
-  nullify(comgp%communComplete)
-
-end subroutine nullify_p2pCommsGatherPot
-
-
-subroutine nullify_largeBasis(lb)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_largeBasis
-  implicit none
-
-  ! Calling argument
-  type(largeBasis),intent(out):: lb
-  call nullify_p2pCommsGatherPot(lb%comgp)
-  call nullify_communications_arrays(lb%comms)
-  call nullify_communications_arrays(lb%gcomms)
-  call nullify_orbitals_data(lb%orbs)
-  call nullify_orbitals_data(lb%gorbs)
-  call nullify_p2pCommsRepartition(lb%comrp)
-  call nullify_p2pCommsOrthonormality(lb%comon)
-  call nullify_overlapParameters(lb%op)
-  call nullify_p2pCommsGatherPot(lb%comgp)
-
-end subroutine nullify_largeBasis
-
-
-subroutine nullify_p2pCommsRepartition(comrp)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsRepartition
-  implicit none
-
-  ! Calling arguments
-  type(p2pCommsRepartition),intent(out):: comrp
-
-  nullify(comrp%comarr)
-  nullify(comrp%communComplete)
-
-end subroutine nullify_p2pCommsRepartition
-
-
-subroutine nullify_p2pCommsOrthonormality(comon)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_p2pCommsOrthonormality
-  implicit none
-
-  ! Calling argument
-  type(p2pCommsOrthonormality),intent(out):: comon
-
-  nullify(comon%noverlaps)
-  nullify(comon%overlaps)
-  nullify(comon%comarr)
-  nullify(comon%sendBuf)
-  nullify(comon%recvBuf)
-  nullify(comon%communComplete)
-
-end subroutine nullify_p2pCommsOrthonormality
-
-
-subroutine nullify_overlapParameters(op)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_overlapParameters
-  implicit none
-
-  ! Calling argument
-  type(overlapParameters),intent(out):: op
-
-  nullify(op%noverlaps)
-  nullify(op%indexExpand)
-  nullify(op%indexExtract)
-  nullify(op%overlaps)
-  nullify(op%indexInRecvBuf)
-  nullify(op%indexInSendBuf)
-  nullify(op%olr)
-
-end subroutine nullify_overlapParameters
-
-
-subroutine nullify_linearInputGuess(lig)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_linearInputGuess
-  implicit none
-
-  ! Calling argument
-  type(linearInputGuess),intent(out):: lig
-
-  call nullify_local_zone_descriptors(lig%lzdig)
-  call nullify_local_zone_descriptors(lig%lzdGauss)
-  call nullify_orbitals_data(lig%orbsig)
-  call nullify_orbitals_data(lig%orbsGauss)
-  call nullify_p2pCommsOrthonormality(lig%comon)
-  call nullify_overlapParameters(lig%op)
-  call nullify_p2pCommsGatherPot(lig%comgp)
-  call nullify_matrixDescriptors(lig%mad)
-
-end subroutine nullify_linearInputGuess
-
-
-subroutine nullify_matrixDescriptors(mad)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_matrixDescriptors
-  implicit none
-
-  ! Calling argument
-  type(matrixDescriptors),intent(out):: mad
-
-  nullify(mad%keyv)
-  nullify(mad%keyvmatmul)
-  nullify(mad%nsegline)
-  nullify(mad%keyg)
-  nullify(mad%keygmatmul)
-  nullify(mad%keygline)
-
-end subroutine nullify_matrixDescriptors
-
-
-
-subroutine nullify_local_zone_descriptors(lzd)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_local_zone_descriptors
-  implicit none
-
-  ! Calling arguments
-  type(local_zone_descriptors),intent(out):: lzd
-  
-  !call nullify_orbitals_data(lzd%orbs)
-  !nullify(lzd%lorbs)
-  !call nullify_communications_arrays(lzd%comms)
-  call nullify_locreg_descriptors(lzd%glr)
-  call nullify_nonlocal_psp_descriptors(lzd%gnlpspd)
-  nullify(lzd%llr)
-  nullify(lzd%lnlpspd)
-  nullify(lzd%doHamAppl)
-  !call nullify_matrixMinimization(lzd%matmin)
-  
-end subroutine nullify_local_zone_descriptors
-
-
-
-subroutine nullify_orbitals_data(orbs)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(orbitals_data),intent(out):: orbs
-  
-  nullify(orbs%norb_par)
-  nullify(orbs%iokpt)
-  nullify(orbs%ikptproc)
-  nullify(orbs%inwhichlocreg)
-  nullify(orbs%inWhichLocregP)
-  nullify(orbs%onWhichMPI)
-  nullify(orbs%isorb_par)
-  nullify(orbs%eval)
-  nullify(orbs%occup)
-  nullify(orbs%spinsgn)
-  nullify(orbs%kwgts)
-  nullify(orbs%kpts)
-  nullify(orbs%ispot)
-
-end subroutine nullify_orbitals_data
-
-
-subroutine nullify_communications_arrays(comms)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(communications_arrays),intent(out):: comms
-
-  nullify(comms%ncntd)
-  nullify(comms%ncntt)
-  nullify(comms%ndspld)
-  nullify(comms%ndsplt)
-  nullify(comms%nvctr_par)
-  
-end subroutine nullify_communications_arrays
-
-
-subroutine nullify_locreg_descriptors(lr)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_locreg_descriptors
-  implicit none
-
-  ! Calling arguments
-  type(locreg_descriptors),intent(out):: lr
-
-
-  !if(associated(lr%projflg)) then
-     nullify(lr%projflg)
-  !end if
-
-  call nullify_wavefunctions_descriptors(lr%wfd)
-  call nullify_convolutions_bounds(lr%bounds)
-
-end subroutine nullify_locreg_descriptors
-
-
-subroutine nullify_wavefunctions_descriptors(wfd)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(wavefunctions_descriptors),intent(out):: wfd
-
-  !if(associated(wfd%keyg)) then
-     nullify(wfd%keyg)
-     nullify(wfd%keyv)
-  !end if
-end subroutine nullify_wavefunctions_descriptors
-
-
-subroutine nullify_convolutions_bounds(bounds)
-  use module_base
-  use module_types
-  use module_interfaces, exceptThisOne => nullify_convolutions_bounds
-  implicit none
-
-  ! Calling arguments
-  type(convolutions_bounds),intent(out):: bounds
-
-  call nullify_kinetic_bounds(bounds%kb)
-  call nullify_shrink_bounds(bounds%sb)
-  call nullify_grow_bounds(bounds%gb)
-  !if(associated(bounds%ibyyzz_r)) then
-     nullify(bounds%ibyyzz_r)
-  !end if
-end subroutine nullify_convolutions_bounds
-
-
-
-subroutine nullify_kinetic_bounds(kb)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(kinetic_bounds),intent(out):: kb
-
-  !if(associated(kb%ibyz_c))then
-     nullify(kb%ibyz_c)
-     nullify(kb%ibxz_c)
-     nullify(kb%ibxy_c)
-     nullify(kb%ibyz_f)
-     nullify(kb%ibxz_f)
-     nullify(kb%ibxy_f)
-  !end if
-end subroutine nullify_kinetic_bounds
-
-
-
-subroutine nullify_shrink_bounds(sb)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(shrink_bounds),intent(out):: sb
-
-  !if(associated(sb%ibzzx_c)) then
-     nullify(sb%ibzzx_c)
-     nullify(sb%ibyyzz_c)
-     nullify(sb%ibxy_ff)
-     nullify(sb%ibzzx_f)
-     nullify(sb%ibyyzz_f)
-  !end if
-
-end subroutine nullify_shrink_bounds
-
-
-
-subroutine nullify_grow_bounds(gb)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(grow_bounds),intent(out):: gb
-
-  !if(associated(gb%ibzxx_c)) then
-     nullify(gb%ibzxx_c)
-     nullify(gb%ibxxyy_c)
-     nullify(gb%ibyz_ff)
-     nullify(gb%ibzxx_f)
-     nullify(gb%ibxxyy_f)
-  !end if
-end subroutine nullify_grow_bounds
-
-
-
-subroutine nullify_nonlocal_psp_descriptors(nlpspd)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(nonlocal_psp_descriptors),intent(out):: nlpspd
-
-  nullify(nlpspd%nvctr_p)
-  nullify(nlpspd%nseg_p)
-  nullify(nlpspd%keyv_p)
-  nullify(nlpspd%keyg_p)
-  nullify(nlpspd%nboxp_c)
-  nullify(nlpspd%nboxp_f)
-
-end subroutine nullify_nonlocal_psp_descriptors
-
-
-
-subroutine nullify_matrixMinimization(matmin)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(matrixMinimization),intent(out):: matmin
-
-  nullify(matmin%mlr)
-  nullify(matmin%inWhichLocregExtracted)
-  nullify(matmin%inWhichLocregOnMPI)
-  nullify(matmin%indexInLocreg)
-
-end subroutine nullify_matrixMinimization
-
-
-subroutine nullify_matrixLocalizationRegion(mlr)
-  use module_base
-  use module_types
-  implicit none
-
-  ! Calling arguments
-  type(matrixLocalizationRegion),intent(out):: mlr
-
-  nullify(mlr%indexInGlobal)
-
-end subroutine nullify_matrixLocalizationRegion
-
-
 
 
 
@@ -2563,6 +2122,67 @@ subroutine compressMatrix(norb, mad, mat, lmat)
   end if
   
 end subroutine compressMatrix
+
+
+
+subroutine compressMatrix2(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displs)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(orbitals_data),intent(in):: orbs
+  type(matrixDescriptors),intent(in):: mad
+  real(8),dimension(orbs%norb**2),intent(in):: mat
+  real(8),dimension(mad%nvctr),intent(out):: lmat
+  integer,dimension(0:nproc-1),intent(out):: sendcounts, displs
+  
+  ! Local variables
+  integer:: iseg, jj, jorb, iiorb, jjorb, jjproc, jjprocold, ncount
+  
+  sendcounts=0
+  displs=0
+  
+  jj=0
+  ncount=0
+  jjprocold=0
+  displs(0)=0
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          jj=jj+1
+          lmat(jj)=mat(jorb)
+          
+          ncount=ncount+1
+          jjorb=(jorb-1)/orbs%norb+1
+          jjproc=orbs%onWhichMPI(jjorb)
+          if(jjproc>jjprocold) then
+              ! This part of the matrix is calculated by a new MPI process.
+              sendcounts(jjproc-1)=ncount-1
+              displs(jjproc)=displs(jjproc-1)+sendcounts(jjproc-1)
+              ncount=1
+              jjprocold=jjproc
+          end if
+      end do
+  end do
+  sendcounts(nproc-1)=ncount
+  if(jj/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
+      stop
+  end if
+
+  if(sum(sendcounts)/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix2: sum(sendcounts)/=mad%nvctr',sum(sendcounts),mad%nvctr
+      stop
+  end if
+
+  !if(iproc==0) then
+  !    do jjproc=0,nproc-1
+  !        write(*,'(a,3i8)') 'jjproc, displs(jjproc), sendcounts(jjproc)', jjproc, displs(jjproc), sendcounts(jjproc)
+  !    end do
+  !end if
+  
+end subroutine compressMatrix2
 
 
 

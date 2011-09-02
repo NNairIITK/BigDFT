@@ -98,7 +98,7 @@ real(8):: fnoise
 
 
 ! Local variables
-integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot, ist, istr, ilr
+integer:: infoBasisFunctions, infoCoeff, istat, iall, itSCC, nitSCC, i, ierr, potshortcut, ndimpot, ist, istr, ilr, tag
 real(8),dimension(:),pointer:: phi, phid
 real(8),dimension(:,:),pointer:: coeff, coeffd
 real(8):: ebs, ebsMod, pnrm, tt, ehart, eexcu, vexcu
@@ -129,8 +129,9 @@ type(workarr_sumrho):: w
   call cpu_time(t1tot)
 
   ! Initialize the parameters for the linear scaling version and allocate all arrays.
+  tag=0
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
-       input, rxyz, nscatterarr, coeff, lphi)
+       input, rxyz, nscatterarr, tag, coeff, lphi)
 
   call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
 
@@ -139,16 +140,9 @@ type(workarr_sumrho):: w
        comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-       lphi, ehart, eexcu, vexcu)
-  !!do iall=1,size(rhopot)
-  !!    read(10000+iproc,*) rhopot(iall)
-  !!end do
-  !!do iall=1,size(lphi)
-  !!    !read(11000+iproc,*) lphi(iall)
-  !!    write(500+iproc,*) lphi(iall)
-  !!end do
+       tag, lphi, ehart, eexcu, vexcu)
 
-  ! Post communications for gathering the potential
+  ! Post communications for gathering the potential.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
   call allocateCommunicationsBuffersPotential(lin%comgp, subname)
   call postCommunicationsPotential(iproc, nproc, ndimpot, rhopot, lin%comgp)
@@ -221,9 +215,7 @@ type(workarr_sumrho):: w
   ! Flag that indicates that the basis functions shall be improved in the following.
   updatePhi=.true.
   do itSCC=1,nitSCC
-      !if(itSCC==10) updatePhi=.false.
-      if(itSCC>1 .and. pnrm<2.d-8) updatePhi=.false.
-      !!if(itSCC>1 .and. pnrm<7.3d-9) lin%nItBasis=1
+      if(itSCC>1 .and. pnrm<lin%fixBasis) updatePhi=.false.
       ! This subroutine gives back the new psi and psit, which are a linear combination of localized basis functions.
       call getLinearPsi(iproc, nproc, input%nspin, Glr, orbs, comms, at, lin, rxyz, rxyz, &
           nscatterarr, ngatherarr, rhopot, GPU, input, pkernelseq, phi, psi, psit, updatePhi, &
@@ -238,19 +230,22 @@ type(workarr_sumrho):: w
 
 
       ! Potential from electronic charge density
-      !!call cpu_time(t1)
+      call mpi_barrier(mpi_comm_world, ierr)
+      call cpu_time(t1)
       call sumrhoForLocalizedBasis2(iproc, nproc, orbs, Glr, input, lin, coeff, phi, Glr%d%n1i*Glr%d%n2i*n3d, &
            rhopot, at, nscatterarr)
+      call mpi_barrier(mpi_comm_world, ierr)
+      call cpu_time(t2)
+      time=t2-t1
       call deallocateCommunicationbufferSumrho(lin%comsr, subname)
-      !!call cpu_time(t2)
-      !!time=t2-t1
       !!call mpiallred(time, 1, mpi_sum, mpi_comm_world, ierr)
-      !!if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time/dble(nproc)
+      if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time
 
       ! Mix the density.
       if(trim(lin%mixingMethod)=='dens') then
           if(lin%mixHist==0) then
-              if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+              !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
+              call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
           else 
               ndimpot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
               ndimtot=lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*lin%lzd%Glr%d%n3i
@@ -275,32 +270,6 @@ type(workarr_sumrho):: w
 
       ! Post communications for gathering the potential
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
-      !!!!! TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!  ! Calculate the forces we get with psi.
-      !!  allocate(nscatterarrTemp(0:nproc-1,4), stat=istat)
-      !!  call memocc(istat, nscatterarrTemp, 'nscatterarrTemp', subname)
-      !!  allocate(phiTemp(size(phi)), stat=istat)
-      !!  call memocc(istat, phiTemp, 'phiTemp', subname)
-      !!  allocate(projTemp(nlpspd%nprojel), stat=istat)
-      !!  call memocc(istat, projTemp, 'projTemp', subname)
-      !!  projTemp=proj
-      !!  nscatterarrTemp=nscatterarr
-      !!  phiTemp=phi
-      !!  call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-      !!      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, psi, phi, coeff, fxyz, fnoise)
-      !!  proj=projTemp
-      !!  nscatterarr=nscatterarrTemp
-      !!  phi=phiTemp
-      !!  iall=-product(shape(nscatterarrTemp))*kind(nscatterarrTemp)
-      !!  deallocate(nscatterarrTemp, stat=istat)
-      !!  call memocc(istat, iall, 'nscatterarrTemp', subname)
-      !!  iall=-product(shape(phiTemp))*kind(phiTemp)
-      !!  deallocate(phiTemp, stat=istat)
-      !!  call memocc(istat, iall, 'phiTemp', subname)
-      !!  iall=-product(shape(projTemp))*kind(projTemp)
-      !!  deallocate(projTemp, stat=istat)
-      !!  call memocc(istat, iall, 'projTemp', subname)
-      !!!!!  TEST  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! Mix the potential
       if(trim(lin%mixingMethod)=='pot') then
@@ -370,12 +339,15 @@ type(workarr_sumrho):: w
        rhopot, at, nscatterarr)
   call deallocateCommunicationbufferSumrho(lin%comsr, subname)
 
+  ! Build global orbitals psi (the physical ones).
+  if(lin%transformToGlobal) then
+      call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
+  end if
 
   ! Calculate the forces we get with psi.
   call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, lphi, coeff, rhopot, &
       fxyz, fnoise,radii_cf)
-
 
   call free_lnlpspd(lin%orbs, lin%lzd)
 
@@ -427,7 +399,8 @@ real(8):: tt
   pnrm=0.d0
   tt=1.d0-lin%alphaMix
   !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)*input%nspin
-  do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
+  !do i=1,max(Glr%d%n1i*Glr%d%n2i*n3p,1)
+  do i=1,Glr%d%n1i*Glr%d%n2i*n3p
       pnrm=pnrm+(rhopot(i)-rhopotOld(i))**2
       rhopot(i)=tt*rhopotOld(i)+lin%alphaMix*rhopot(i)
   end do
@@ -513,3 +486,73 @@ do jproc=0,nproc-1
 end do
 
 end subroutine cancelCommunicationPotential
+
+
+
+
+subroutine transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
+use module_base
+use module_types
+use module_interfaces
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc
+type(linearParameters),intent(in):: lin
+type(orbitals_data),intent(in):: orbs
+type(communications_arrays):: comms
+type(input_variables),intent(in):: input
+real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
+real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
+real(8),dimension(orbs%npsidim),intent(out):: psi, psit
+
+! Local variables
+integer:: ind1, ind2, istat, iall, iorb, ilr, ldim, gdim
+real(8),dimension(:),pointer:: phiWork
+real(8),dimension(:),allocatable:: phi
+character(len=*),parameter:: subname='transformToGlobal'
+
+  allocate(phi(lin%gorbs%npsidim), stat=istat)
+  call memocc(istat, phi, 'phi', subname)
+  allocate(phiWork(max(size(phi),size(psi))), stat=istat)
+  call memocc(istat, phiWork, 'phiWork', subname)
+
+  ind1=1
+  ind2=1
+  phi=0.d0
+  do iorb=1,lin%lb%orbs%norbp
+      ilr = lin%lb%orbs%inWhichLocregp(iorb)
+      ldim=lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
+      gdim=lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
+      call Lpsi_to_global2(iproc, nproc, ldim, gdim, lin%lb%orbs%norb, lin%lb%orbs%nspinor, input%nspin, lin%lzd%Glr,&
+           lin%lzd%Llr(ilr), lphi(ind2), phi(ind1))
+      ind1=ind1+lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
+      ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
+  end do
+  call transpose_v(iproc, nproc, lin%lb%orbs, lin%lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
+
+
+  if(iproc==0) then
+      write(*,'(x,a)', advance='no') '------------------------------------- Building linear combinations... '
+  end if
+  ! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
+  ! this has to replaced, but at the moment it is still needed.
+  call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
+
+
+  call dcopy(orbs%npsidim, psi, 1, psit, 1)
+
+  call untranspose_v(iproc, nproc, lin%lb%orbs, lin%lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
+  call untranspose_v(iproc, nproc, orbs, lin%lzd%Glr%wfd, comms, psi, work=phiWork)
+
+  if(iproc==0) write(*,'(a)') 'done.'
+
+
+  iall=-product(shape(phi))*kind(phi)
+  deallocate(phi, stat=istat)
+  call memocc(istat, iall, 'phi', subname)
+  iall=-product(shape(phiWork))*kind(phiWork)
+  deallocate(phiWork, stat=istat)
+  call memocc(istat, iall, 'phiWork', subname)
+
+end subroutine transformToGlobal

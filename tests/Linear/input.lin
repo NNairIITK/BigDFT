@@ -1,4 +1,4 @@
-5  5                   max number of iterations for optimizing the basis functions in the very first iteration, the same for the other iterations in the SCC
+5  5  5                 max number of iterations for optimizing the basis functions in the very first iteration, the same for the other iterations in the SCC
 1.d-5                  convergence criterion
 0  8  1.d0  1.d-1      DIISHistMin, DIISHistMax, stepa size for DIIS, step size for SD
 F   2.d2               start with SD, start criterion for DIIS
@@ -14,6 +14,7 @@ dens                   mixing method: dens or pot
 F  4                   use the derivative basis functions, order of confinement potential
 5000                   number of iterations for the input guess
 F                      plot basis functions: true or false
+T                      transform to global
 1                      number of orbitals per process for trace minimization during input guess.
 C  4  1.0d-3  7.0      number of basis functions per atom, prefactor for confinement potential, localization radius
 H  1  1.0d-3  7.0      number of basis functions per atom, prefactor for confinement potential, localization radius

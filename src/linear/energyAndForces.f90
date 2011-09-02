@@ -139,6 +139,7 @@ real(wp) :: sum_psi
   ! calculate local part of the forces gxyz
   call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s+i3xcsh,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,rhopot,pot,gxyz)
+  !call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
 
   !!i_all=-product(shape(rho))*kind(rho)
   !!deallocate(rho,stat=i_stat)
@@ -152,12 +153,12 @@ real(wp) :: sum_psi
   !refill projectors for tails, davidson
   !refill_proj=(in%calc_tail .or. DoDavidson) .and. DoLastRunThings
   refill_proj=.false.  !! IS THIS CORRECT??
-  gxyz = 0.0_wp
-  fxyz = 0.0_wp
+  !gxyz = 0.0_wp
+  !fxyz = 0.0_wp
   !call nonlocal_forces(iproc,Glr,in%hx,in%hy,in%hz,atoms,rxyz,&
   !     orbs,nlpspd,proj,Glr%wfd,psi,gxyz,refill_proj)
 
-  !! ATTENTION: passing phi (after proj, before gxyz) is just to pass something of the right size
+  ! ATTENTION: passing phi (after proj, before gxyz) is just to pass something of the right size
   call Linearnonlocal_forces(iproc, nproc, lin%lzd, in%hx, in%hy, in%hz, atoms, rxyz, orbs, &
        proj, phi, gxyz, .false., lin%orbs, coeff, phi)
 
@@ -228,7 +229,12 @@ real(wp) :: sum_psi
 
   ! Add up all the force contributions
   if (nproc > 1) then
-!     call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !do iat=1,atoms%nat
+     !   fxyz(1,iat)=gxyz(1,iat)
+     !   fxyz(2,iat)=gxyz(2,iat)
+     !   fxyz(3,iat)=gxyz(3,iat)
+     !enddo
   else
      do iat=1,atoms%nat
         fxyz(1,iat)=gxyz(1,iat)

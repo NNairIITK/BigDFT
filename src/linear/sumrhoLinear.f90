@@ -604,7 +604,7 @@ integer:: i1s, i1e, i2s, i2e, i3s, i3e, i1d, j1d, i2d, j2d, i3d, j3d, indri, ind
 integer:: indi2, indi3, indj2, indj3, indl2, indl3, mpisource, mpidest, iiorb, jjorb
 integer:: ierr, jproc, is, ie, nreceives
 integer:: nfast, nslow, nsameproc, m, i1d0, j1d0, indri0, indrj0, indLarge0
-real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern
+real(8):: tt, hxh, hyh, hzh, factor, totalCharge, tt0, tt1, tt2, tt3, factorTimesDensKern, t1, t2, time
 real(8),dimension(:,:),allocatable:: densKern
 character(len=*),parameter:: subname='sumrhoForLocalizedBasis2'
 integer,dimension(mpi_status_size):: stat
@@ -621,16 +621,15 @@ if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
 allocate(densKern(lin%lb%orbs%norb,lin%lb%orbs%norb), stat=istat)
 call memocc(istat, densKern, 'densKern', subname)
 
+call mpi_barrier(mpi_comm_world, ierr)
+call cpu_time(t1)
 ! Calculate the density kernel.
-do iorb=1,lin%lb%orbs%norb
-    do jorb=1,lin%lb%orbs%norb
-        tt=0.d0
-        do korb=1,orbs%norb
-            tt = tt + coeff(iorb,korb)*coeff(jorb,korb)
-        end do
-        densKern(iorb,jorb)=tt
-    end do
-end do
+call dgemm('n', 't', lin%lb%orbs%norb, lin%lb%orbs%norb, orbs%norb, 1.d0, coeff(1,1), lin%lb%orbs%norb, &
+     coeff(1,1), lin%lb%orbs%norb, 0.d0, densKern(1,1), lin%lb%orbs%norb)
+call mpi_barrier(mpi_comm_world, ierr)
+call cpu_time(t2)
+time=t2-t1
+if(iproc==0) write(*,'(a,es12.4)') 'time for kernel:',time
 
 
 ! Define some constant factors.
@@ -655,6 +654,8 @@ end if
 
 
 ! Check whether the communication has completed.
+call mpi_barrier(mpi_comm_world, ierr)
+call cpu_time(t1)
 nfast=0
 nsameproc=0
 testLoop: do
@@ -665,29 +666,30 @@ testLoop: do
             call mpi_test(lin%comsr%comarr(9,korb,jproc), receiveComplete, stat, ierr)
             ! Attention: mpi_test is a local function.
             if(sendComplete .and. receiveComplete) lin%comsr%communComplete(korb,jproc)=.true.
-            !!if(lin%comsr%communComplete(korb,jproc)) then
-            !!    !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', korb
-            !!    mpisource=lin%comsr%comarr(1,korb,jproc)
-            !!    mpidest=lin%comsr%comarr(5,korb,jproc)
-            !!    if(mpisource/=mpidest) then
-            !!        nfast=nfast+1
-            !!    else
-            !!        nsameproc=nsameproc+1
-            !!    end if
-            !!    lin%comsr%computComplete(korb,jproc)=.true.
-            !!end if
         end do
     end do
     ! If we made it until here, either all all the communication is
     ! complete or we better wait for each single orbital.
     exit testLoop
 end do testLoop
+call mpi_barrier(mpi_comm_world, ierr)
+call cpu_time(t2)
+time=t2-t1
+if(iproc==0) write(*,'(a,es12.4)') 'time for test:',time
 
 ! Since mpi_test is a local function, check whether the communication has completed on all processes.
+call mpi_barrier(mpi_comm_world, ierr)
+call cpu_time(t1)
 call mpiallred(lin%comsr%communComplete(1,0), nproc*maxval(lin%comsr%noverlaps), mpi_land, mpi_comm_world, ierr)
+call mpi_barrier(mpi_comm_world, ierr)
+call cpu_time(t2)
+time=t2-t1
+if(iproc==0) write(*,'(a,es12.4)') 'time for allreduce:',time
 
 
 
+call mpi_barrier(mpi_comm_world, ierr)
+call cpu_time(t1)
 ! Wait for the communications that have not completed yet
 nslow=0
 do jproc=0,nproc-1
@@ -710,7 +712,10 @@ do jproc=0,nproc-1
         lin%comsr%computComplete(korb,jproc)=.true.
     end do
 end do
-
+call mpi_barrier(mpi_comm_world, ierr)
+call cpu_time(t2)
+time=t2-t1
+if(iproc==0) write(*,'(a,es12.4)') 'time for wait:',time
 !call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
 !call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
@@ -737,6 +742,8 @@ end do
 ! Such a slice has the full extent in the x and y direction, but is limited in the z direction.
 ! The bounds of the slice are given by nscatterarr. To do so, each process has received all orbitals that
 ! extend into this slice. The number of these orbitals is given by lin%comsr%noverlaps(iproc).
+call mpi_barrier(mpi_comm_world, ierr)
+call cpu_time(t1)
 
 ! Bounds of the slice in global coordinates.
 is=nscatterarr(iproc,3)-14
@@ -833,6 +840,10 @@ do iorb=1,lin%comsr%noverlaps(iproc)
         end do
     end do
 end do
+call mpi_barrier(mpi_comm_world, ierr)
+call cpu_time(t2)
+time=t2-t1
+if(iproc==0) write(*,'(a,es12.4)') 'time for large loop:',time
 
 call mpiallred(totalCharge, 1, mpi_sum, mpi_comm_world, ierr)
 if(iproc==0) write(*,'(x,a,es20.12)') 'done. TOTAL CHARGE = ', totalCharge*hxh*hyh*hzh

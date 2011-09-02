@@ -936,10 +936,92 @@ type(p2pCommsOrthonormality),intent(inout):: comon
 ! Local variables
 integer:: jproc, iorb, mpisource, istsource, ncount, mpidest, istdest, tag, nsends, nreceives, ierr
 
+!!! THIS IS THE ORIGINAL ##################################
+!nsends=0
+!nreceives=0
+!comon%communComplete=.false.
+!do jproc=0,nproc-1
+!    !write(*,'(3(a,i0))') 'iproc=',iproc,', jproc=',jproc,', comon%noverlaps(jproc)=', comon%noverlaps(jproc)
+!    do iorb=1,comon%noverlaps(jproc)
+!        mpisource=comon%comarr(1,iorb,jproc)
+!        istsource=comon%comarr(2,iorb,jproc)
+!        ncount=comon%comarr(3,iorb,jproc)
+!        mpidest=comon%comarr(4,iorb,jproc)
+!        istdest=comon%comarr(5,iorb,jproc)
+!        tag=comon%comarr(6,iorb,jproc)
+!        !write(*,'(6(a,i0))') 'iproc=',iproc,', tag=',tag,', mpisource=',mpisource,', mpidest=',mpidest,' jproc=',jproc,', iorb=',iorb
+!        if(mpisource/=mpidest) then
+!            ! The orbitals are on different processes, so we need a point to point communication.
+!            if(iproc==mpisource) then
+!                !write(*,'(6(a,i0))') 'overlap: process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+!                call mpi_isend(comon%sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag,&
+!                     mpi_comm_world, comon%comarr(7,iorb,jproc), ierr)
+!                !call mpi_isend(sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, mpi_comm_world, lin%comsr%comarr(8,iorb,jproc), ierr)
+!                comon%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
+!                nsends=nsends+1
+!            else if(iproc==mpidest) then
+!                !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+!                call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
+!                     mpi_comm_world, comon%comarr(8,iorb,jproc), ierr)
+!                comon%comarr(7,iorb,jproc)=mpi_request_null !is this correct?
+!                nreceives=nreceives+1
+!            else
+!                comon%comarr(7,iorb,jproc)=mpi_request_null
+!                comon%comarr(8,iorb,jproc)=mpi_request_null
+!            end if
+!        else
+!            ! The orbitals are on the same process, so simply copy them.
+!            if(iproc==mpisource) then
+!                call dcopy(ncount, comon%sendBuf(istsource), 1, comon%recvBuf(istdest), 1)
+!                !write(*,'(6(a,i0))') 'overlap: process ', iproc, ' copies ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', iproc, ', tag=',tag
+!                comon%comarr(7,iorb,jproc)=mpi_request_null
+!                comon%comarr(8,iorb,jproc)=mpi_request_null
+!                nsends=nsends+1
+!                nreceives=nreceives+1
+!                comon%communComplete(iorb,mpisource)=.true.
+!            else
+!                comon%comarr(7,iorb,jproc)=mpi_request_null
+!                comon%comarr(8,iorb,jproc)=mpi_request_null
+!                comon%communComplete(iorb,mpisource)=.true.
+!            end if
+!
+!        end if
+!    end do
+!end do
 
+
+
+!! NEW ####################################
+! First only post receives
 nsends=0
 nreceives=0
 comon%communComplete=.false.
+do jproc=0,nproc-1
+    !write(*,'(3(a,i0))') 'iproc=',iproc,', jproc=',jproc,', comon%noverlaps(jproc)=', comon%noverlaps(jproc)
+    do iorb=1,comon%noverlaps(jproc)
+        mpisource=comon%comarr(1,iorb,jproc)
+        istsource=comon%comarr(2,iorb,jproc)
+        ncount=comon%comarr(3,iorb,jproc)
+        mpidest=comon%comarr(4,iorb,jproc)
+        istdest=comon%comarr(5,iorb,jproc)
+        tag=comon%comarr(6,iorb,jproc)
+        !write(*,'(6(a,i0))') 'iproc=',iproc,', tag=',tag,', mpisource=',mpisource,', mpidest=',mpidest,' jproc=',jproc,', iorb=',iorb
+        if(mpisource/=mpidest) then
+            ! The orbitals are on different processes, so we need a point to point communication.
+            if(iproc==mpisource) then
+            else if(iproc==mpidest) then
+                !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+                call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
+                     mpi_comm_world, comon%comarr(8,iorb,jproc), ierr)
+                comon%comarr(7,iorb,jproc)=mpi_request_null !is this correct?
+                nreceives=nreceives+1
+            end if
+        end if
+    end do
+end do
+
+
+! Now the rest.
 do jproc=0,nproc-1
     !write(*,'(3(a,i0))') 'iproc=',iproc,', jproc=',jproc,', comon%noverlaps(jproc)=', comon%noverlaps(jproc)
     do iorb=1,comon%noverlaps(jproc)
@@ -960,11 +1042,6 @@ do jproc=0,nproc-1
                 comon%comarr(8,iorb,jproc)=mpi_request_null !is this correct?
                 nsends=nsends+1
             else if(iproc==mpidest) then
-                !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-                call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
-                     mpi_comm_world, comon%comarr(8,iorb,jproc), ierr)
-                comon%comarr(7,iorb,jproc)=mpi_request_null !is this correct?
-                nreceives=nreceives+1
             else
                 comon%comarr(7,iorb,jproc)=mpi_request_null
                 comon%comarr(8,iorb,jproc)=mpi_request_null
@@ -988,6 +1065,7 @@ do jproc=0,nproc-1
         end if
     end do
 end do
+
 
 
 end subroutine postCommsOverlap
@@ -1493,9 +1571,10 @@ real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
 
 ! Local variables
 integer:: iorb, jorb, iiorb, jjorb, jjproc, ii, ist, jst, jjlr, ncount, ierr, jj, korb, kkorb, iilr, iiproc, istat, iall
-real(8):: ddot
-real(8),dimension(:),allocatable:: ovrlpCompressed
+real(8):: ddot, tt, ttmax
+real(8),dimension(:),allocatable:: ovrlpCompressed, ovrlpCompressed2
 character(len=*),parameter:: subname='calculateOverlapMatrix3'
+integer,dimension(:),allocatable:: sendcounts, displs
 
 
 ovrlp=0.d0
@@ -1531,7 +1610,8 @@ do iorb=1,orbs%norbp
         ncount=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
         !write(*,'(a,4i8)') 'iproc, iiorb, jjorb, ncount', iproc, iiorb, jjorb, ncount
         !ovrlp(iiorb,jjorb)=ddot(ncount, comon%sendBuf(ist), 1, comon%recvBuf(jst), 1)
-        ovrlp(iiorb,jjorb)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
+        !ovrlp(iiorb,jjorb)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
+        ovrlp(jjorb,iiorb)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
     end do
 end do
 
@@ -1539,13 +1619,42 @@ end do
 allocate(ovrlpCompressed(mad%nvctr), stat=istat)
 call memocc(istat, ovrlpCompressed, 'ovrlpCompressed', subname)
 
-call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
-call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
-call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
+!call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
+allocate(sendcounts(0:nproc-1), stat=istat)
+call memocc(istat, sendcounts, 'sendcounts', subname)
+allocate(displs(0:nproc-1), stat=istat)
+call memocc(istat, displs, 'displs', subname)
+call compressMatrix2(iproc, nproc, orbs, mad, ovrlp, ovrlpCompressed, sendcounts, displs)
+!call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
+allocate(ovrlpCompressed2(mad%nvctr), stat=istat)
+call memocc(istat, ovrlpCompressed2, 'ovrlpCompressed2', subname)
+call mpi_allgatherv(ovrlpCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed2(1), &
+     sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
+call uncompressMatrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
 
 iall=-product(shape(ovrlpCompressed))*kind(ovrlpCompressed)
 deallocate(ovrlpCompressed, stat=istat)
 call memocc(istat, iall, 'ovrlpCompressed', subname)
+iall=-product(shape(ovrlpCompressed2))*kind(ovrlpCompressed2)
+deallocate(ovrlpCompressed2, stat=istat)
+call memocc(istat, iall, 'ovrlpCompressed2', subname)
+iall=-product(shape(sendcounts))*kind(sendcounts)
+deallocate(sendcounts, stat=istat)
+call memocc(istat, iall, 'sendcounts', subname)
+iall=-product(shape(displs))*kind(displs)
+deallocate(displs, stat=istat)
+call memocc(istat, iall, 'displs', subname)
+
+!ttmax=0.d0
+!do iorb=1,orbs%norb
+!    do jorb=iorb,orbs%norb
+!        tt=abs(ovrlp(jorb,iorb)-ovrlp(iorb,jorb))
+!        if(tt>ttmax) ttmax=tt
+!    end do
+!end do
+!if(iproc==0) write(*,*) 'in calculateOverlapMatrix3: max dev from symmetry:', ttmax
+
 
 !!call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
@@ -1993,38 +2102,38 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
       iall=-product(shape(ovrlp2))*kind(ovrlp2)
       deallocate(ovrlp2, stat=istat)
       call memocc(istat, iall, 'ovrlp2', subname)
-  else if(iorder==3) then
-      ! Taylor expansion up to third iorder.
-  
-      ! Calculate ovrlp**2
-      allocate(ovrlp2(norb,norb), stat=istat)
-      call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      allocate(ovrlp3(norb,norb), stat=istat)
-      call memocc(istat, ovrlp3, 'ovrlp3', subname)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
-      
-      ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
-      do iorb=1,norb
-          do jorb=1,norb
-              if(iorb==jorb) then
-                  ovrlp(jorb,iorb) = 4.d0 - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
-              else
-                  ovrlp(jorb,iorb) = - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
-              end if
-          end do
-      end do
-      
-      iall=-product(shape(ovrlp2))*kind(ovrlp2)
-      deallocate(ovrlp2, stat=istat)
-      call memocc(istat, iall, 'ovrlp2', subname)
-      iall=-product(shape(ovrlp3))*kind(ovrlp3)
-      deallocate(ovrlp3, stat=istat)
-      call memocc(istat, iall, 'ovrlp3', subname)
+  !!else if(iorder==3) then
+  !!    ! Taylor expansion up to third iorder.
+  !!
+  !!    ! Calculate ovrlp**2
+  !!    allocate(ovrlp2(norb,norb), stat=istat)
+  !!    call memocc(istat, ovrlp2, 'ovrlp2', subname)
+  !!    allocate(ovrlp3(norb,norb), stat=istat)
+  !!    call memocc(istat, ovrlp3, 'ovrlp3', subname)
+  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
+  !!    
+  !!    ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
+  !!    do iorb=1,norb
+  !!        do jorb=1,norb
+  !!            if(iorb==jorb) then
+  !!                ovrlp(jorb,iorb) = 4.d0 - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
+  !!            else
+  !!                ovrlp(jorb,iorb) = - 6.d0*ovrlp(jorb,iorb) + 4.d0*ovrlp2(jorb,iorb) - ovrlp3(jorb,iorb)
+  !!            end if
+  !!        end do
+  !!    end do
+  !!    
+  !!    iall=-product(shape(ovrlp2))*kind(ovrlp2)
+  !!    deallocate(ovrlp2, stat=istat)
+  !!    call memocc(istat, iall, 'ovrlp2', subname)
+  !!    iall=-product(shape(ovrlp3))*kind(ovrlp3)
+  !!    deallocate(ovrlp3, stat=istat)
+  !!    call memocc(istat, iall, 'ovrlp3', subname)
   else
-      write(*,'(x,a)') 'ERROR: iorder must be 0,1,2,3!'
+      write(*,'(x,a)') 'ERROR: iorder must be 0,1 or 2!'
       stop
 end if
 
@@ -2164,41 +2273,41 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
       deallocate(ovrlp2, stat=istat)
       call memocc(istat, iall, 'ovrlp2', subname)
 
-  else if(methTransformOrder==3) then
+  !!else if(methTransformOrder==3) then
 
-      ! Taylor expansion up to third order.
-  
-      ! Calculate ovrlp**2
-      allocate(ovrlp2(norb,norb), stat=istat)
-      call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      allocate(ovrlp3(norb,norb), stat=istat)
-      call memocc(istat, ovrlp3, 'ovrlp3', subname)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
-      
-      ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
-      do iorb=1,norb
-          do jorb=1,norb
-              if(iorb==jorb) then
-                  ovrlp(jorb,iorb) = 1.4375d0 - 0.6875d0*ovrlp(jorb,iorb) + 0.5625d0*ovrlp2(jorb,iorb) - 0.3125d0*ovrlp3(jorb,iorb)
-              else
-                  ovrlp(jorb,iorb) = - 0.6875d0*ovrlp(jorb,iorb) + 0.5625d0*ovrlp2(jorb,iorb) - 0.3125d0*ovrlp3(jorb,iorb)
-              end if
-          end do
-      end do
-      
-      iall=-product(shape(ovrlp2))*kind(ovrlp2)
-      deallocate(ovrlp2, stat=istat)
-      call memocc(istat, iall, 'ovrlp2', subname)
-      iall=-product(shape(ovrlp3))*kind(ovrlp3)
-      deallocate(ovrlp3, stat=istat)
-      call memocc(istat, iall, 'ovrlp3', subname)
+  !!    ! Taylor expansion up to third order.
+  !!
+  !!    ! Calculate ovrlp**2
+  !!    allocate(ovrlp2(norb,norb), stat=istat)
+  !!    call memocc(istat, ovrlp2, 'ovrlp2', subname)
+  !!    allocate(ovrlp3(norb,norb), stat=istat)
+  !!    call memocc(istat, ovrlp3, 'ovrlp3', subname)
+  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+  !!    call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+  !!         mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp2, ovrlp3)
+  !!    
+  !!    ! Build ovrlp**(-1/2) with a Taylor expansion up to third order.  
+  !!    do iorb=1,norb
+  !!        do jorb=1,norb
+  !!            if(iorb==jorb) then
+  !!                ovrlp(jorb,iorb) = 1.4375d0 - 0.6875d0*ovrlp(jorb,iorb) + 0.5625d0*ovrlp2(jorb,iorb) - 0.3125d0*ovrlp3(jorb,iorb)
+  !!            else
+  !!                ovrlp(jorb,iorb) = - 0.6875d0*ovrlp(jorb,iorb) + 0.5625d0*ovrlp2(jorb,iorb) - 0.3125d0*ovrlp3(jorb,iorb)
+  !!            end if
+  !!        end do
+  !!    end do
+  !!    
+  !!    iall=-product(shape(ovrlp2))*kind(ovrlp2)
+  !!    deallocate(ovrlp2, stat=istat)
+  !!    call memocc(istat, iall, 'ovrlp2', subname)
+  !!    iall=-product(shape(ovrlp3))*kind(ovrlp3)
+  !!    deallocate(ovrlp3, stat=istat)
+  !!    call memocc(istat, iall, 'ovrlp3', subname)
 
   else
 
-      write(*,'(x,a)') 'ERROR: methTransformOrder must be 0,1,2,3!'
+      write(*,'(x,a)') 'ERROR: methTransformOrder must be 0,1 or 2!'
       stop
 
 end if

@@ -346,7 +346,11 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 
 
 ! Communicate scalprod
+if(iproc==0) write(*,*) 'allocating scalprodGlobal...'
+call mpi_barrier(mpi_comm_world, ierr)
 allocate(scalprodGlobal(2,0:3,7,3,4,at%nat,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
+call mpi_barrier(mpi_comm_world, ierr)
+if(iproc==0) write(*,*) 'done.'
 call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
 allocate(sendcounts(0:nproc-1), stat=i_stat)
 call memocc(i_stat,sendcounts,'sendcounts',subname)
@@ -360,6 +364,10 @@ do jproc=0,nproc-1
 end do
 call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
      scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
+!call mpi_gatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
+!     scalprodGlobal, sendcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+!call mpi_bcast(scalprodGlobal, 2*4*7*3*4*at%nat*linorbs%norb*linorbs%nspinor, mpi_double_precision, 0, &
+!     mpi_comm_world, ierr)
 
 i_all = -product(shape(sendcounts))*kind(sendcounts)
 deallocate(sendcounts,stat=i_stat)
@@ -849,9 +857,13 @@ call memocc(i_stat,i_all,'scalprod',subname)
       deallocate(scalprod,stat=i_stat)
       call memocc(i_stat,i_all,'scalprod',subname)
   else
+      if(iproc==0) write(*,*) 'deallocating scalprodGlobal...'
+      call mpi_barrier(mpi_comm_world, ierr)
       i_all=-product(shape(scalprodGlobal))*kind(scalprodGlobal)
       deallocate(scalprodGlobal,stat=i_stat)
       call memocc(i_stat,i_all,'scalprodGlobal',subname)
+      call mpi_barrier(mpi_comm_world, ierr)
+      if(iproc==0) write(*,*) 'done.'
   end if
 
 END SUBROUTINE Linearnonlocal_forces

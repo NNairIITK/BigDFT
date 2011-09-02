@@ -1255,7 +1255,7 @@ module module_interfaces
 
 
     subroutine allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
-          input, rxyz, nscatterarr, coeff, lphi)
+          input, rxyz, nscatterarr, tag, coeff, lphi)
       use module_base
       use module_types
       implicit none
@@ -1269,6 +1269,7 @@ module module_interfaces
       type(input_variables),intent(in):: input
       real(8),dimension(3,at%nat),intent(in):: rxyz
       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+      integer,intent(inout):: tag
       real(8),dimension(:),pointer,intent(out):: phi
       real(8),dimension(:,:),pointer,intent(out):: coeff
       real(8),dimension(:),pointer,intent(out):: lphi
@@ -1969,7 +1970,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
          nlpspd, proj, pkernel, pkernelseq, &
          nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
-         lphi, ehart, eexcu, vexcu)
+         tag, lphi, ehart, eexcu, vexcu)
       use module_base
       use module_types
       implicit none
@@ -1995,6 +1996,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer, dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
       real(dp), dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
       real(8),dimension(at%ntypes,3),intent(in):: radii_cf
+      integer,intent(inout):: tag
       real(8),dimension(lin%orbs%npsidim),intent(out):: lphi
       real(8),intent(out):: ehart, eexcu, vexcu
     end subroutine inputguessConfinement
@@ -3048,7 +3050,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine getDerivativeBasisFunctions2
 
 
-     subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, lphi)
+     subroutine buildLinearCombinations(iproc, nproc, lzdig, lzd, orbsig, orbs, input, coeff, lchi, tag, lphi)
        use module_base
        use module_types
        implicit none
@@ -3058,6 +3060,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(input_variables),intent(in):: input
        real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
        real(8),dimension(orbsig%npsidim),intent(in):: lchi
+       integer,intent(inout):: tag
        real(8),dimension(orbs%npsidim),intent(out):: lphi
      end subroutine buildLinearCombinations
 
@@ -3800,7 +3803,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine expandOrbital2Variable
 
     subroutine buildLinearCombinationsVariable(iproc, nproc, lzdig, lzd, orbsig, &
-               orbs, input, coeff, lchi, lphi)
+               orbs, input, coeff, lchi, tag, lphi)
       use module_base
       use module_types
       implicit none
@@ -3812,6 +3815,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(input_variables),intent(in):: input
       real(8),dimension(orbsig%norb,orbs%norb),intent(in):: coeff
       real(8),dimension(orbsig%npsidim),intent(in):: lchi
+      integer,intent(inout):: tag
       real(8),dimension(orbs%npsidim),intent(out):: lphi
     end subroutine buildLinearCombinationsVariable
 
@@ -3830,7 +3834,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       integer,dimension(Ldim),intent(out) :: indexLpsi         !Wavefunction in localization region
     end subroutine index_of_Lpsi_to_global2
 
-    subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr)
+    subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
       use module_base
       use module_types
       implicit none
@@ -3842,6 +3846,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       type(linearParameters),intent(inout):: lin
       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+      integer,intent(inout):: tag
     end subroutine initInputguessConfinement
 
     subroutine orthonormalizeAtomicOrbitalsLocalized(iproc, nproc, lzd, orbs, input, lchi)
@@ -3874,7 +3879,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
     end subroutine orthonormalizeAtomicOrbitalsLocalized2
 
     subroutine buildLinearCombinationsLocalized3(iproc, nproc, orbsig, orbs, comms, at, Glr, input, norbsPerType, &
-      onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, ham3)
+      onWhichAtom, lchi, lphi, rxyz, onWhichAtomPhi, lin, lzdig, nlocregPerMPI, tag, ham3)
       use module_base
       use module_types
       implicit none
@@ -3892,6 +3897,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       real(8),dimension(lin%orbs%npsidim):: lphi
       real(8),dimension(3,at%nat):: rxyz
       integer,dimension(orbs%norb):: onWhichAtomPhi
+      integer,intent(inout):: tag
       real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
     end subroutine buildLinearCombinationsLocalized3
 
@@ -3927,7 +3933,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine getHamiltonianMatrix3
 
       subroutine getHamiltonianMatrix4(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, norb_parTemp, onWhichMPITemp, &
-                 Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, ham)
+                 Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, tag, ham)
         use module_base
         use module_types
         implicit none
@@ -3944,6 +3950,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(orbsig%npsidim,ndim_lhchi),intent(in):: lhchi
         logical,dimension(lzdig%nlr),intent(in):: skip
         type(matrixDescriptors),intent(in):: mad
+        integer,intent(inout):: tag
         real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
       end subroutine getHamiltonianMatrix4
 

@@ -716,6 +716,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      lin%as%size_irrzon(2)=size(irrzon,2)
      lin%as%size_irrzon(3)=size(irrzon,3)
 
+     if(.not.lin%transformToGlobal) then
+         ! psi and psit will not be calculated, so only allocate them with size 1
+         orbs%npsidim=1
+     end if
      allocate(psi(orbs%npsidim), stat=i_stat)
      call memocc(i_stat, psi, 'psi', subname)
      allocate(psit(orbs%npsidim), stat=i_stat)

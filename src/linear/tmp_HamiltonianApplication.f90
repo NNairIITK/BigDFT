@@ -433,17 +433,25 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   call timing(iproc,'ApplyProj     ','OF')
 
-  !energies reduction
-  if (nproc > 1) then
-     wrkallred(1,2)=ekin_sum
-     wrkallred(2,2)=epot_sum
-     wrkallred(3,2)=eproj_sum
-     call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
-          mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
-     ekin_sum=wrkallred(1,1)
-     epot_sum=wrkallred(2,1)
-     eproj_sum=wrkallred(3,1)
-  endif
+
+  if(energyReductionFlag) then
+      !energies reduction
+      if (nproc > 1) then
+         wrkallred(1,2)=ekin_sum
+         wrkallred(2,2)=epot_sum
+         wrkallred(3,2)=eproj_sum
+         call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
+              mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
+         ekin_sum=wrkallred(1,1)
+         epot_sum=wrkallred(2,1)
+         eproj_sum=wrkallred(3,1)
+      endif
+  else
+      ! Do not sum up the energies, but set them to default values
+      ekin_sum=0.d0
+      epot_sum=0.d0
+      eproj_sum=0.d0
+  end if
 
 
 

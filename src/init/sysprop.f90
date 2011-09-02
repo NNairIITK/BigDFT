@@ -212,7 +212,6 @@ allocate(orbsPerAt(atoms%ntypes), stat=istat)
   call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
   allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
-
   ! in case of linear scaling, allocate the localization radii
   if(in%linear /= 'OFF') then
      allocate(atoms%rloc(atoms%ntypes,3),stat=i_stat)
