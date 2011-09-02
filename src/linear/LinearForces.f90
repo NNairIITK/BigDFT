@@ -362,8 +362,12 @@ do jproc=0,nproc-1
     sendcounts(jproc)=2*4*7*3*4*at%nat*linorbs%norb_par(jproc)*linorbs%nspinor
     if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
 end do
-call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
-     scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
+!call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
+!     scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
+call mpi_gatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
+     scalprodGlobal, sendcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
+call mpi_bcast(scalprodGlobal, 2*4*7*3*4*at%nat*linorbs%norb*linorbs%nspinor, mpi_double_precision, 0, &
+     mpi_comm_world, ierr)
 
 i_all = -product(shape(sendcounts))*kind(sendcounts)
 deallocate(sendcounts,stat=i_stat)
