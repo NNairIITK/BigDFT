@@ -214,6 +214,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/coupling_matrix.f90 \
 	lib/fft/fft2d.f90 \
+	lib/lbfgs.f90 \
 	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
@@ -223,6 +224,8 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
+	sdcg.f90 \
+	bfgs.f90 \
         linear/filterModule.f90 \
         linear/getLocBasis.f90 \
         linear/applyHamiltonian.f90 \

@@ -153,6 +153,10 @@ module module_types
      character(len=4) :: exctxpar
   end type input_variables
 
+  type, public :: energy_terms
+     real(gp) :: eh,exc,vxc,eion,edisp,ekin,epot,eproj,eexctX
+     real(gp) :: ebs,eKS,trH
+  end type energy_terms
 
 !>  Bounds for coarse and fine grids for kinetic operations
 !!  Useful only for isolated systems AND in CPU

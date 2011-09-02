@@ -11,32 +11,36 @@
 !! and calculate the corresponding gradient.
 !! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
 !! depending of the functional we want to calculate. The gradient wrt the wavefucntion
-!! Is the put in hpsi accordingly to the functional
-subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
-     ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+!! Is then put in hpsi accordingly to the functional
+subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,orthpar,hx,hy,hz,ncong,iscf,&
+     energs,psi,psit,hpsi,gnrm,gnrm_zero,energy)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => calculate_energy_and_gradient
+  use module_interfaces!, except_this_one => calculate_energy_and_gradient_new
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,iscf,iter
-  real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp
-  type(orbitals_data), intent(in) :: orbs
+  real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(inout) :: orbs
   type(communications_arrays), intent(in) :: comms
   type(locreg_descriptors), intent(in) :: lr
   type(GPU_pointers), intent(in) :: GPU
+  type(orthon_data), intent(in) :: orthpar
+  type(energy_terms), intent(out) :: energs
   real(gp), intent(out) :: gnrm,gnrm_zero,energy
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
-  integer :: ierr,ikpt,iorb,i_all,i_stat,k
+  integer :: ierr,ikpt,iorb,i_all,i_stat,k,ncplx,jorb
   real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
+  real(wp), dimension(:), allocatable :: passmat
   real(wp), dimension(:,:,:), allocatable :: mom_vec
+  real(wp), dimension(:), pointer :: psiw !< fake pointer for the calculation of the hamiltonian matrix
 
   !band structure energy calculated with occupation numbers
-  energybs=ekin+epot+eproj !the potential energy contains also exctX
+  energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
   !this is the Kohn-Sham energy
-  energyKS=energybs-ehart+exc-evxc-eexctX+eion+edisp
+  energs%eKS=energs%ebs-energs%eh+energs%exc-energs%vxc-energs%eexctX+energs%eion+energs%edisp
 
   !calculate orbital poloarisation directions
   if(orbs%nspinor==4) then
@@ -64,9 +68,35 @@ subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,
   end if
 
   !calculate overlap matrix of the psi-hamiltonian to find the passage matrix for rho
-  !call DiagHam(iproc,nproc,0,orbs%nspin,orbs,wfd,comms,&
-  !   psi,hpsi,psit,input,& !mandatory
-  !   orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
+  !wavefunctions are in orbital distribution at the beginning and at the end
+  !the eigenvalues in orbs are overwritten with the diagonal matrix
+  !psit is the new transposed wavefunction 
+  !hpsi is destroyed
+
+  !allocate the passage matrix for transforming the LCAO wavefunctions in the IG wavefucntions
+  ncplx=1
+  if (orbs%nspinor > 1) ncplx=2
+  allocate(passmat(ncplx*orbs%nkptsp*(orbs%norbu*orbs%norbu+orbs%norbd*orbs%norbd)+ndebug),stat=i_stat)
+  call memocc(i_stat,passmat,'passmat',subname)
+
+  allocate(psiw(orbs%npsidim+ndebug),stat=i_stat)
+  call memocc(i_stat,psiw,'psiw',subname)
+
+  !put the hpsi wavefunction in the work array
+  call dcopy(orbs%npsidim,hpsi,1,psiw,1)
+
+  call DiagHam(iproc,nproc,0,orbs%nspin,orbs,lr%wfd,comms,&
+     psi,psiw,psit,orthpar,passmat)
+
+  !print out the passage matrix (valid for one k-point only and ncplx=1)
+  do iorb=1,orbs%norbu
+     write(*,'(100(1pe14.7))')(passmat(iorb+orbs%norbu*(jorb-1)),jorb=1,orbs%norbu)
+  end do
+
+  !DEBUG: test 
+  !this passage matrix should be applied to the 
+  !the second passage should give a passage matrix of identity
+  !the matrix
 
 !!$
 !!$
@@ -150,22 +180,22 @@ subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,
   !after having calcutated the trace of the hamiltonian, the functional have to be defined
   !new value without the trace, to be added in hpsitopsi
   if (iscf >1) then
-     energy=trH
+     energy=energs%trH
   else
-     energy=trH-ehart+exc-evxc-eexctX+eion+edisp
+     energy=energs%trH-energs%eh+energs%exc-energs%vxc-energs%eexctX+energs%eion+energs%edisp
   end if
 
   !check that the trace of the hamiltonian is compatible with the 
   !band structure energy 
   !this can be done only if the occupation numbers are all equal
-  tt=(energybs-trH)/trH
+  tt=(energs%ebs-energs%trH)/energs%trH
   if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
        (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
      !write this warning only if the system is closed shell
      call check_closed_shell(orbs,lcs)
      if (lcs) then
         write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
-             'ERROR: inconsistency between gradient and energy',tt,energybs,trH
+             'ERROR: inconsistency between gradient and energy',tt,energs%ebs,energs%trH
      end if
   endif
 
@@ -221,6 +251,16 @@ subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,
   end if
   call timing(iproc,'Precondition  ','OF')
 
+  i_all=-product(shape(passmat))*kind(passmat)
+  deallocate(passmat,stat=i_stat)
+  call memocc(i_stat,i_all,'passmat',subname)
+
+  i_all=-product(shape(psiw))*kind(psiw)
+  deallocate(psiw,stat=i_stat)
+  call memocc(i_stat,i_all,'psiw',subname)
+
+
+
   if (orbs%nspinor == 4) then
      !only the root process has the correct array
      if(iproc==0 .and. verbose > 0) then
@@ -238,31 +278,29 @@ subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,
      call memocc(i_stat,i_all,'mom_vec',subname)
   end if
 
-
   !write the energy information
   if (iproc == 0) then
      if (verbose > 0 .and. iscf<1) then
         write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-             ekin,epot,eproj
-        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,exc,evxc
+             energs%ekin,energs%epot,energs%eproj
+        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',energs%eh,energs%exc,energs%vxc
      end if
      if (iscf > 1) then
         if (gnrm_zero == 0.0_gp) then
-           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,energs%trH,gnrm
         else
-           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
+           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,energs%trH,gnrm,gnrm_zero
         end if
      else
         if (gnrm_zero == 0.0_gp) then
-           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energyKS,gnrm
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energs%eKS,gnrm
         else
-           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
+           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energs%eKS,gnrm,gnrm_zero
         end if
      end if
   endif
 
 end subroutine calculate_energy_and_gradient_new
-
 
 
 !> Mix the electronic density or the potential using DIIS
@@ -316,6 +354,10 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   end if
   rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
+
+  i_all=-product(shape(user_data))*kind(user_data)
+  deallocate(user_data,stat=i_stat)
+  call memocc(i_stat,i_all,'user_data',subname)
 
   i_all=-product(shape(user_data))*kind(user_data)
   deallocate(user_data,stat=i_stat)

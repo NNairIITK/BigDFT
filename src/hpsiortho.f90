@@ -484,7 +484,7 @@ end subroutine calculate_energy_and_gradient
 
 !>   Operations after h|psi> 
 !!   (transposition, orthonormalisation, inverse transposition)
-subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,input)
+subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,orthpar)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
@@ -493,7 +493,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspi
   type(locreg_descriptors), intent(in) :: lr
   type(communications_arrays), intent(in) :: comms
   type(orbitals_data), intent(in) :: orbs
-  type(input_variables), intent(in) :: input
+  type(orthon_data), intent(in) :: orthpar
   type(diis_objects), intent(inout) :: diis
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   !local variables
@@ -530,7 +530,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspi
           'Orthogonalization...'
   end if
 
-  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,input)
+  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,orthpar)
 
   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
@@ -672,7 +672,7 @@ end subroutine select_active_space
 
 
 !>   First orthonormalisation
-subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
+subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
   use module_base
   use module_types
   use module_interfaces, except_this_one_B => first_orthon
@@ -681,7 +681,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(communications_arrays), intent(in) :: comms
-  type(input_variables):: input
+  type(orthon_data):: orthpar
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='first_orthon'
@@ -710,7 +710,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
        work=hpsi,outadd=psit(1))
 
-  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,input)
+  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,orthpar)
 
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
