@@ -1,11 +1,268 @@
 !> @file
-!!   DIIS routine for density mixing
+!!   Routines for density mixing and wavefunction update
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+!> Extract the energy (the quantity which has to be minimised by the wavefunction)
+!! and calculate the corresponding gradient.
+!! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
+!! depending of the functional we want to calculate. The gradient wrt the wavefucntion
+!! Is the put in hpsi accordingly to the functional
+subroutine calculate_energy_and_gradient_new(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
+     ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => calculate_energy_and_gradient
+  implicit none
+  integer, intent(in) :: iproc,nproc,ncong,iscf,iter
+  real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp
+  type(orbitals_data), intent(in) :: orbs
+  type(communications_arrays), intent(in) :: comms
+  type(locreg_descriptors), intent(in) :: lr
+  type(GPU_pointers), intent(in) :: GPU
+  real(gp), intent(out) :: gnrm,gnrm_zero,energy
+  real(wp), dimension(:), pointer :: psi,psit,hpsi
+  !local variables
+  character(len=*), parameter :: subname='calculate_energy_and_gradient' 
+  logical :: lcs
+  integer :: ierr,ikpt,iorb,i_all,i_stat,k
+  real(gp) :: energybs,trH,rzeroorbs,tt,energyKS
+  real(wp), dimension(:,:,:), allocatable :: mom_vec
+
+  !band structure energy calculated with occupation numbers
+  energybs=ekin+epot+eproj !the potential energy contains also exctX
+  !this is the Kohn-Sham energy
+  energyKS=energybs-ehart+exc-evxc-eexctX+eion+edisp
+
+  !calculate orbital poloarisation directions
+  if(orbs%nspinor==4) then
+     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
+     call memocc(i_stat,mom_vec,'mom_vec',subname)
+
+     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
+          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
+  end if
+
+
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)',advance='no')&
+          'done,  orthoconstraint...'
+  end if
+
+!  !transpose the hpsi wavefunction
+!  call transpose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+!
+  !transpose the psit wavefunction for the non-collinear case
+  if (nproc == 1) then
+     !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
+     psit => psi
+     call transpose_v(iproc,nproc,orbs,lr%wfd,comms,psit)
+  end if
+
+  !calculate overlap matrix of the psi-hamiltonian to find the passage matrix for rho
+  !call DiagHam(iproc,nproc,0,orbs%nspin,orbs,wfd,comms,&
+  !   psi,hpsi,psit,input,& !mandatory
+  !   orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
+
+!!$
+!!$
+!!$  norbi_max=max(orbs%norbu,orbs%norbd) 
+!!$  ndim_hamovr=norbi_max**2
+!!$  !for complex matrices the dimension is doubled
+!!$  if (nspinor /=1) then
+!!$     ndim_hamovr=2*ndim_hamovr
+!!$  end if
+!!$  allocate(norbgrp(1,nspin+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,norbgrp,'norbgrp',subname)
+!!$  norbgrp(1,1)=orbs%norbu
+!!$  norbgrp(1,2)=orbs%norbd
+!!$
+!!$  allocate(hamovr(nspin*ndim_hamovr,2,orbsu%nkpts+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,hamovr,'hamovr',subname)
+!!$
+!!$  !initialise hamovr
+!!$  call razero(nspin*ndim_hamovr*2*orbsu%nkpts,hamovr)
+!!$  ispsi=1
+!!$  do ikptp=1,orbsu%nkptsp
+!!$     ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
+!!$     
+!!$     nvctrp=commu%nvctr_par(iproc,ikptp)
+!!$     if (nvctrp == 0) cycle
+!!$     
+!!$     !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
+!!$     call overlap_matrices(norbtot,nvctrp,natsceff,nspin,nspinor,&
+!!$          & ndim_hamovr,norbgrp,hamovr(1,1,ikpt),psi(ispsi),hpsi(ispsi))
+!!$     
+!!$     ispsi=ispsi+nvctrp*norbtot*orbsu%nspinor
+!!$  end do
+!!$  if (nproc > 1) then
+!!$     !reduce the overlap matrix between all the processors
+!!$     call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbsu%nkpts,&
+!!$          MPI_SUM,MPI_COMM_WORLD,ierr)
+!!$  end if
+!!$
+!!$  !diagonalize hamovr
+  
+
+
+!!$  i_all=-product(shape(hamovr))*kind(hamovr)
+!!$  deallocate(hamovr,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'hamovr',subname)
+!!$  i_all=-product(shape(norbgrp))*kind(norbgrp)
+!!$  deallocate(norbgrp,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'norbgrp',subname)
+
+
+  !after having applied the hamiltonian to all the atomic orbitals
+  !we split the semicore orbitals from the valence ones
+  !this is possible since the semicore orbitals are the first in the 
+  !order, so the linear algebra on the transposed wavefunctions 
+  !may be splitted
+
+!!$  ispsi=1
+!!$  do ikptp=1,orbsu%nkptsp
+!!$     ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
+!!$     
+!!$     nvctrp=commu%nvctr_par(iproc,ikptp)
+!!$     if (nvctrp == 0) cycle
+!!$     
+!!$     !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
+!!$     call overlap_matrices(norbtot,nvctrp,natsceff,nspin,nspinor,&
+!!$          & ndim_hamovr,norbgrp,hamovr(1,1,ikpt),psi(ispsi),hpsi(ispsi))
+!!$     
+!!$     ispsi=ispsi+nvctrp*norbtot*orbsu%nspinor
+!!$  end do
+
+
+  ! Apply  orthogonality constraints to all orbitals belonging to iproc
+  !takes also into account parallel k-points distribution
+  !here the orthogonality with respect to other occupied functions should be 
+  !passed as an optional argument
+  call orthoconstraint(iproc,nproc,orbs,comms,lr%wfd,psit,hpsi,trH)
+
+  !retranspose the hpsi wavefunction
+  call untranspose_v(iproc,nproc,orbs,lr%wfd,comms,hpsi,work=psi)
+
+  !after having calcutated the trace of the hamiltonian, the functional have to be defined
+  !new value without the trace, to be added in hpsitopsi
+  if (iscf >1) then
+     energy=trH
+  else
+     energy=trH-ehart+exc-evxc-eexctX+eion+edisp
+  end if
+
+  !check that the trace of the hamiltonian is compatible with the 
+  !band structure energy 
+  !this can be done only if the occupation numbers are all equal
+  tt=(energybs-trH)/trH
+  if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+       (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
+     !write this warning only if the system is closed shell
+     call check_closed_shell(orbs,lcs)
+     if (lcs) then
+        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
+             'ERROR: inconsistency between gradient and energy',tt,energybs,trH
+     end if
+  endif
+
+  call timing(iproc,'Precondition  ','ON')
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)',advance='no')&
+          'done,  preconditioning...'
+  end if
+
+  !Preconditions all orbitals belonging to iproc
+  !and calculate the partial norm of the residue
+  !switch between CPU and GPU treatment
+  if (GPUconv) then
+     call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+          hpsi,gnrm,gnrm_zero,GPU)
+  else if (OCLconv) then
+     call preconditionall_OCL(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+          hpsi,gnrm,gnrm_zero,GPU)
+  else
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
+  end if
+
+  !sum over all the partial residues
+  if (nproc > 1) then
+     call mpiallred(gnrm,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call mpiallred(gnrm_zero,1,MPI_SUM,MPI_COMM_WORLD,ierr)
+  endif
+
+  !count the number of orbitals which have zero occupation number
+  !weight this with the corresponding k point weight
+  rzeroorbs=0.0_gp
+  do ikpt=1,orbs%nkpts
+     do iorb=1,orbs%norb
+        if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
+           rzeroorbs=rzeroorbs+orbs%kwgts(ikpt)
+        end if
+     end do
+  end do
+  !commented out, the kwgts sum already to one
+  !if (orbs%nkpts > 1) nzeroorbs=nint(real(nzeroorbs,gp)/real(orbs%nkpts,gp))
+
+  gnrm=sqrt(gnrm/(real(orbs%norb,gp)-rzeroorbs))
+
+  if (rzeroorbs /= 0.0_gp) then
+     gnrm_zero=sqrt(gnrm_zero/rzeroorbs)
+  else
+     gnrm_zero=0.0_gp
+  end if
+
+  if (iproc==0 .and. verbose > 1) then
+     write(*,'(1x,a)')&
+          'done.'
+  end if
+  call timing(iproc,'Precondition  ','OF')
+
+  if (orbs%nspinor == 4) then
+     !only the root process has the correct array
+     if(iproc==0 .and. verbose > 0) then
+        write(*,'(1x,a)')&
+             'Magnetic polarization per orbital'
+        write(*,'(1x,a)')&
+             '  iorb    m_x       m_y       m_z'
+        do iorb=1,orbs%norb
+           write(*,'(1x,i5,3f10.5)') &
+                iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
+        end do
+     end if
+     i_all=-product(shape(mom_vec))*kind(mom_vec)
+     deallocate(mom_vec,stat=i_stat)
+     call memocc(i_stat,i_all,'mom_vec',subname)
+  end if
+
+
+  !write the energy information
+  if (iproc == 0) then
+     if (verbose > 0 .and. iscf<1) then
+        write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+             ekin,epot,eproj
+        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,exc,evxc
+     end if
+     if (iscf > 1) then
+        if (gnrm_zero == 0.0_gp) then
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter, tr(H),gnrm',iter,trH,gnrm
+        else
+           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter, tr(H),gnrm,gnrm_zero',iter,trH,gnrm,gnrm_zero
+        end if
+     else
+        if (gnrm_zero == 0.0_gp) then
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energyKS,gnrm
+        else
+           write( *,'(1x,a,i6,2x,1pe24.17,2(1x,1pe9.2))') 'iter,total energy,gnrm,gnrm_zero',iter,energyKS,gnrm,gnrm_zero
+        end if
+     end if
+  endif
+
+end subroutine calculate_energy_and_gradient_new
+
 
 
 !> Mix the electronic density or the potential using DIIS

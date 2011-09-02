@@ -52,7 +52,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
   ! methOrtho==0: Cholesky orthonormalization (i.e. a pseudo Gram-Schmidt)
   ! methOrtho==1: hybrid Gram-Schmidt/Cholesky orthonormalization
   ! methOrtho==2: Loewdin orthonormalization
-  if(input%methOrtho==0) then
+  if(input%orthpar%methOrtho==0) then
      category='Chol'
      call timing(iproc, trim(category)//'_comput', 'ON')
 
@@ -83,13 +83,13 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,input)
      deallocate(ovrlp,stat=i_stat)
      call memocc(i_stat,i_all,'ovrlp',subname)
 
-  else if(input%methOrtho==1) then
+  else if(input%orthpar%methOrtho==1) then
        category='GS/Chol'
        call timing(iproc, trim(category)//'_comput', 'ON')
        
        ! Make a hybrid Gram-Schmidt/Cholesky orthonormalization.
        call gsChol(iproc,nproc,psi(1),input,nspinor,orbs,nspin,ndimovrlp,norbArr,comms)
-  else if(input%methOrtho==2) then
+  else if(input%orthpar%methOrtho==2) then
      category='Loewdin'
      call timing(iproc,trim(category)//'_comput','ON')
 
@@ -1768,7 +1768,7 @@ END SUBROUTINE gramschmidt
 !!   @param  ispinIn    indicates whether the up or down orbitals shall be handled
 !!  Input/Output arguments:
 !!   @param  psi        the vectors that shall be orthonormalized
-!!   @param  ovrlp      the overlap matrix which will be destroyed during this subroutine
+!!   @param  Lc      the overlap matrix which will be destroyed during this subroutine
 subroutine cholesky(iproc, nproc, norbIn, psi, nspinor, nspin, orbs, comms, ndimL, Lc, norbTot, block1, ispinIn)
 
 use module_base

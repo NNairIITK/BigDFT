@@ -2877,13 +2877,13 @@ subroutine elim_torque_reza(nat,rat0,fat)
      rat(i+1)=rat(i+1)+cmy
      rat(i+2)=rat(i+2)+cmz
   enddo
-  
+
   vrotnrm=nrm2(3*nat,vrot(1,1),1)
-  vrot(1:3*nat,1)=vrot(1:3*nat,1)/vrotnrm
+  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,1)=vrot(1:3*nat,1)/vrotnrm
   vrotnrm=nrm2(3*nat,vrot(1,2),1)
-  vrot(1:3*nat,2)=vrot(1:3*nat,2)/vrotnrm
+  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,2)=vrot(1:3*nat,2)/vrotnrm
   vrotnrm=nrm2(3*nat,vrot(1,3),1)
-  vrot(1:3*nat,3)=vrot(1:3*nat,3)/vrotnrm
+  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,3)=vrot(1:3*nat,3)/vrotnrm
   
   do i=1,3
      alpha=0.0_gp  
@@ -2970,10 +2970,9 @@ subroutine normalizevector(n,v)
      vnrm=vnrm+v(i)**2
   enddo
   vnrm=sqrt(vnrm)
-  v(1:n)=v(1:n)/vnrm
+  if (vnrm /= 0.0_gp) v(1:n)=v(1:n)/vnrm
 
 END SUBROUTINE normalizevector
-
 
 subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   use module_base

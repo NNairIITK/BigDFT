@@ -217,7 +217,7 @@ END SUBROUTINE Gaussian_DiagHam
 !! INPUT VARIABLES
 !!    @param iproc  process id
 !!    @param nproc  number of mpi processes
-!!    n@param atsc  number of semicore atoms for the orthogonalisation treatment
+!!    @param natsc  number of semicore atoms for the orthogonalisation treatment
 !!                  used as a dimension for the array of semicore atoms
 !!    @param nspin  spin polarised id; 1 => non spin-polarised; 2 => spin-polarised (collinear)
 !!    @param norbu  number of up orbitals in the spin-polarised case; for non spin-pol equal to norb
@@ -251,6 +251,8 @@ END SUBROUTINE Gaussian_DiagHam
 !!           if nvirte=0: unchanged on output
 !!    @param eval   array of the first norb eigenvalues       
 !! Author:
+!!    Luigi Genovese (2007-2009-2011)
+!!    Stephan Mohr (2010-2011)
 subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      psi,hpsi,psit,input,& !mandatory
      orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
@@ -466,7 +468,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   end if
 
   ! There are two possibilities to generate the input guess
-  differentInputGuess: if(.not. input%directDiag) then
+  differentInputGuess: if(.not. input%orthpar%directDiag) then
       if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
 
       if(present(orbsv)) then
@@ -475,7 +477,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
           stop
        end if
        call inputguessParallel(iproc, nproc, orbs, norbsc_arr, hamovr, &
-            psi, psit, input, nspin, nspinor, npsidim, comms, natsc, ndim_hamovr, norbsc)
+            psi, psit, input%orthpar, nspin, nspinor, npsidim, comms, natsc, ndim_hamovr, norbsc)
        
   else
 
@@ -1170,7 +1172,7 @@ END SUBROUTINE psitospi
 !!  Output arguments
 !!    @param psiGuessWavelet  contains the input guess vectors in wavelet basis
 subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
-     psiGuessWavelet, input, nspin, nspinor, sizePsi, comms, natsc, ndim_hamovr, norbsc)
+     psiGuessWavelet, orthpar, nspin, nspinor, sizePsi, comms, natsc, ndim_hamovr, norbsc)
   use module_base
   use module_types
   implicit none
@@ -1183,7 +1185,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   real(kind=8),dimension(ndim_hamovr,nspin,2,orbs%nkpts),intent(inout):: hamovr
   real(kind=8),dimension(sizePsi),intent(in):: psi
   real(kind=8),dimension(orbs%npsidim),intent(out):: psiGuessWavelet
-  type(input_variables),intent(in out):: input
+  type(orthon_data),intent(inout):: orthpar
   type(communications_arrays), intent(in):: comms
 
   ! Local variables
@@ -1198,6 +1200,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   integer,dimension(:),allocatable:: sendcounts, sdispls, recvcounts, rdispls, norbpArr,&
        norbtotpArr, kArr, kstArr, nkArr, norbArr
   integer,dimension(:),allocatable:: newID, newIDu, newIDd, norbpArrSimul, norbpArrSimulLoc
+  real :: ttreal
   real(kind=8):: gradientNorm, cosangle, tol, tt, ddot, dnrm2
   real(kind=8),dimension(2):: gradientMax
   real(kind=8),dimension(:),allocatable:: alphaArr, rayleigh, evale, sceval, work, rwork
@@ -1219,8 +1222,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   ! Processes 1 to nprocSubu will handle the up orbitals, processes nprocSubu+1 to nprocSubu+nprocSubd will
   ! handle the down orbitals. If npsin==1, set nprocSubu=nprocSubd=nprocSub.
   if(nspin==2) then
-     nprocSubu=ceiling(dble((orbs%norbu-norbsc)*orbs%nkpts)/dble(input%norbpInguess))
-     nprocSubd=ceiling(dble((orbs%norbd-norbsc)*orbs%nkpts)/dble(input%norbpInguess))
+     nprocSubu=ceiling(dble((orbs%norbu-norbsc)*orbs%nkpts)/dble(orthpar%norbpInguess))
+     nprocSubd=ceiling(dble((orbs%norbd-norbsc)*orbs%nkpts)/dble(orthpar%norbpInguess))
      if(nprocSubu+nprocSubd<=nproc) then
         ! There are enough processes to treat spin up and down simultaneously. This is indicated by setting
         ! sumul=.true. and nspinSub=1, i.e. there will be no spin loop ispin=1,nspinSub.
@@ -1234,7 +1237,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
      end if
   else if(nspin==1) then
      nspinSub=nspin
-     nprocSub=ceiling(dble((orbs%norb-norbsc)*orbs%nkpts)/dble(input%norbpInguess))
+     nprocSub=ceiling(dble((orbs%norb-norbsc)*orbs%nkpts)/dble(orthpar%norbpInguess))
      nprocSubu=nprocSub
      nprocSubd=nprocSub
      simul=.false.
@@ -1279,23 +1282,23 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
      ! The variable input%norbpInguess indicates how many orbitals shall be treated by each process.
      ! This requires at least norb/input%norbpInguess processes.
-     if(input%norbpInguess>norb) then
+     if(orthpar%norbpInguess>norb) then
         if(.not. simul) then
            if(iproc==0) write(*,'(5x,a,2(i0,a))') 'WARNING: You want each process to treat ',&
-                input%norbpInguess,' orbitals, whereas there are only ',norb,'.'
-           if(iproc==0) write(*,'(7x,a,i0,a)') 'The value of input%norbpInguess is adjusted to ',norb, '.'
+                orthpar%norbpInguess,' orbitals, whereas there are only ',norb,'.'
+           if(iproc==0) write(*,'(7x,a,i0,a)') 'The value of orthpar%norbpInguess is adjusted to ',norb, '.'
         else
            if(iproc==0) write(*,'(3x,a,2(i0,a))') 'WARNING: You want each process to treat ',&
-                input%norbpInguess,' orbitals, whereas there are only ',norb,'.'
-           if(iproc==0) write(*,'(5x,a,i0,a)') 'The value of input%norbpInguess is adjusted to ',norb, '.'
+                orthpar%norbpInguess,' orbitals, whereas there are only ',norb,'.'
+           if(iproc==0) write(*,'(5x,a,i0,a)') 'The value of orthpar%norbpInguess is adjusted to ',norb, '.'
         end if
-        input%norbpInguess=norb
+        orthpar%norbpInguess=norb
      end if
 
      ! Determine how many processes are necessary for the input guess. If this number exceeds the total
      ! number of processes, the program does not stop, but adjusts the number of orbitals treated by each
      ! process and prints a warning.
-     nprocSub=ceiling(dble(norb)/dble(input%norbpInguess))
+     nprocSub=ceiling(dble(norb)/dble(orthpar%norbpInguess))
      if(nprocSub>nproc) then
         warning=.true.
         nprocSub=nproc
@@ -1713,8 +1716,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
         call initRandomSeed(iproc, ispin)
         do iorb=1,norbpArr(iproc)
            do j=1,norbtot*nspinor
-              call random_number(tt)
-              psiGuessP(j,iorb,ispin)=tt
+              call random_number(ttreal)
+              psiGuessP(j,iorb,ispin)=dble(ttreal)
            end do
            ! Pad with zeros.
            do j=norbtot*nspinor+1,norbtotPad*nspinor
@@ -1771,11 +1774,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
         if(.not. simul .or. iproc<nprocSubu) then
            call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), &
                 norbpArr(0), norbtotpArr(0), psiGuessP(1,1,ispin), &
-                overlapPsiGuessP(1,1,ispin), newComm, input, simul, orbs, 0, nspinor, blocksize, blocksizeSmall)
+                overlapPsiGuessP(1,1,ispin), newComm, orthpar, simul, orbs, 0, nspinor, blocksize, blocksizeSmall)
         else
            call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), &
                 norbpArr(nprocSubu), norbtotpArr(nprocSubu), &
-                psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm, input, &
+                psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm, orthpar, &
                 simul, orbs, nprocSubu, nspinor, blocksize, blocksizeSmall)
         end if
 
@@ -1790,7 +1793,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
         itermax=500 
         success=.false.
         alphaArr=5.d-1  ! the initial step size
-        tol=input%iguessTol  ! the criterion for exiting the loop
+        tol=orthpar%iguessTol  ! the criterion for exiting the loop
 
         if(.not. simul) then
            if(iproc==0) write(*,'(5x,a,$)') 'Iteratively determining eigenvectors... '
@@ -1913,11 +1916,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
            if(.not. simul .or. iproc<nprocSubu) then
               call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), norbpArr(0), &
                    norbtotpArr(0), psiGuessP(1,1,ispin), &
-                   overlapPsiGuessP(1,1,ispin), newComm, input, simul, orbs, 0, nspinor, blocksize, blocksizeSmall)
+                   overlapPsiGuessP(1,1,ispin), newComm, orthpar, simul, orbs, 0, nspinor, blocksize, blocksizeSmall)
            else
               call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), norbpArr(nprocSubu),&
                    norbtotpArr(nprocSubu), &
-                   psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm, input, simul, orbs, nprocSubu, &
+                   psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm,orthpar, simul, orbs, nprocSubu, &
                    nspinor, blocksize, blocksizeSmall)
            end if
 
@@ -2738,7 +2741,7 @@ END SUBROUTINE inputguessParallel
 !!    @param psi                    on input: the vectors to be orthonormalized
 !!                                  on output: the orthonomalized vectors
 subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
-     norbtotpArr, psi, overlapPsi, newComm, input, simul, &
+     norbtotpArr, psi, overlapPsi, newComm, orthpar, simul, &
      orbs, nprocSt, nspinor, blocksize, blocksizeSmall)
   use module_base
   use module_types
@@ -2751,7 +2754,7 @@ subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
   logical,intent(in):: simul
   real(kind=8),dimension(norbtot*norbp*nspinor),intent(in):: overlapPsi
   real(kind=8),dimension(norbtot*norbp*nspinor),intent(in out):: psi
-  type(input_variables), intent(in):: input
+  type(orthon_data), intent(in):: orthpar
   type(orbitals_data), intent(in out) :: orbs
 
   ! Local variables
@@ -2874,7 +2877,7 @@ subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
   ! There are two orthonormalization subroutines: gramschmidtOverlap orthogonalizes a given bunch of vectors to another bunch
   ! of already orthonormal vectors, and the subroutine choleskyOverlap orthonormalizes the given bunch.
   ! First determine how many bunches can be created for the given blocksize.
-  if(blocksize==-1) blocksize=getBlocksize(iproc, nproc, input, norb/orbs%nkpts)
+  if(blocksize==-1) blocksize=getBlocksize(iproc, nproc, orthpar, norb/orbs%nkpts)
   iter=floor(real(norb)/real(blocksize*orbs%nkpts))
   do iblock=1,iter
      ! ist is the starting vector of the current bunch. 
@@ -3239,7 +3242,7 @@ end function gcd
 !!    @param norb          number of vectors that have to be orthonormalized
 !! Output arguments:
 !!    @param getBlocksize  the good block size
-function getBlocksize(iproc, nproc, input, norb)
+function getBlocksize(iproc, nproc, orthpar, norb)
 !use module_base
 use module_types
 implicit none
@@ -3247,7 +3250,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, norb
 integer:: getBlocksize
-type(input_variables),intent(in):: input
+type(orthon_data),intent(in):: orthpar
 
 ! Local variables
 integer:: remain, gcd, gcdCurr, gcdMax, i
@@ -3256,17 +3259,17 @@ integer:: remain, gcd, gcdCurr, gcdMax, i
 getBlocksize=-1
 
 
-if(input%bsLow<input%bsUp) then
+if(orthpar%bsLow<orthpar%bsUp) then
     ! choose automatically
-    !if(iproc==0) write(*,'(1x,a,2(i0,a))') 'Choose block size automatically between ',input%bsLow,' and ',input%bsUp
-    !if(iproc==0) write(*,'(1x,a,i0,a)') '(or between 1 and ',input%bsUp,' if norb<input%bsUp, respectively).'
+    !if(iproc==0) write(*,'(1x,a,2(i0,a))') 'Choose block size automatically between ',orthpar%bsLow,' and ',orthpar%bsUp
+    !if(iproc==0) write(*,'(1x,a,i0,a)') '(or between 1 and ',orthpar%bsUp,' if norb<orthpar%bsUp, respectively).'
     getBlocksize=-1
-    if(norb<input%bsUp) then
+    if(norb<orthpar%bsUp) then
         ! In this case we just take one block
         getBlocksize=norb
     else
-        ! Else try to take a divisor of norb which is between input%bsLow and input%bsUp.
-        do i=input%bsLow,input%bsUp
+        ! Else try to take a divisor of norb which is between orthpar%bsLow and orthpar%bsUp.
+        do i=orthpar%bsLow,orthpar%bsUp
             if(mod(norb,i)==0) then
                 getBlocksize=i
                 exit
@@ -3275,10 +3278,10 @@ if(input%bsLow<input%bsUp) then
     end if
     ! If this is not possible, try to take a block size such that the greatest common divisor of the remainding block (i.e. the vectors 
     ! which do not fit into this block size) and the vectors that are already orthonormal is maximal. The block size is again limited
-    ! to be bweteen input%bsLow and input%bsUp.
+    ! to be bweteen orthpar%bsLow and orthpar%bsUp.
     if(getBlocksize==-1) then
         gcdMax=0
-        do i=input%bsLow,input%bsUp
+        do i=orthpar%bsLow,orthpar%bsUp
             remain=mod(norb,i)
             gcdCurr=gcd(norb-remain, remain)
             if(gcdCurr>gcdMax) then
@@ -3287,18 +3290,18 @@ if(input%bsLow<input%bsUp) then
             end if
         end do
     end if
-else if(input%bsLow==input%bsUp) then
+else if(orthpar%bsLow==orthpar%bsUp) then
     ! take the value specified by the user
     !if(iproc==0) write(*,'(1x,a)') 'Take blocksize specified by user.'
-    if(input%bsLow<=norb) then
-        getBlocksize=input%bsLow
+    if(orthpar%bsLow<=norb) then
+        getBlocksize=orthpar%bsLow
     else
         !if(iproc==0) write(*,'(1x,a)') 'WARNING: specified blocksize is larger than the number of orbitals.'
         !if(iproc==0) write(*,'(1x,a,i0,a)') 'The blocksize is adjusted to ',norb,'.'
         getBlocksize=norb
     end if
 else
-    !if(iproc==0) write(*,'(1x,a)') 'ERROR: invalid values of input%bsLow and input%bsUp. Change them in input.perf!'
+    !if(iproc==0) write(*,'(1x,a)') 'ERROR: invalid values of orthpar%bsLow and orthpar%bsUp. Change them in input.perf!'
     stop
 end if
 

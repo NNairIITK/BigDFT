@@ -8,6 +8,7 @@ SUBDIRS = \
 	  NEB \
 	  XabsCheb \
 	  SPLSAD \
+	  TDDFT \
 	  Linear
 
 
