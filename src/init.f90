@@ -354,7 +354,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx
+  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx,nrhodim,i3rho_add,irhotot_add,irho_add,ispin
   real(kind=4) :: tt,builtin_rand
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,eSIC_DC,etol,accurex
   type(orbitals_data) :: orbse
@@ -466,6 +466,14 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
 
+  !check the size of the rhopot array related to NK SIC
+  nrhodim=nspin
+  i3rho_add=0
+  if (input%SIC_approach=='NK') then
+     nrhodim=2*nrhodim
+     i3rho_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)+1
+  end if
+
   !application of the hamiltonian for gaussian based treatment
   call sumrho(iproc,nproc,orbse,Glr,hxh,hyh,hzh,psi,rhopot,&
        nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
@@ -481,6 +489,18 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   endif
   !---
   
+  !before creating the potential, save the density in the second part 
+  !if the case of NK SIC, so that the potential can be created afterwards
+  !copy the density contiguously since the GGA is calculated inside the NK routines
+  if (input%SIC_approach=='NK') then
+     irhotot_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)+1
+     irho_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)*input%nspin+1
+     do ispin=1,input%nspin
+        call dcopy(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),rhopot(irhotot_add),1,rhopot(irho_add),1)
+        irhotot_add=irhotot_add+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)
+        irho_add=irho_add+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)
+     end do
+  end if
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
      call PSolverNC(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
@@ -635,6 +655,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   if (input%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
 
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,nspin,&
+       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
        orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
 
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&

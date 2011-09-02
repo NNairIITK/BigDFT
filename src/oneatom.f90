@@ -187,6 +187,7 @@ program oneatom
 
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+       Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,0,&
        orbs%norb,orbs%norbp,ngatherarr,pot_ion,pot)
   
   wfn_loop: do iter=1,in%itermax

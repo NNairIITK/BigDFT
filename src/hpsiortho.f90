@@ -253,13 +253,19 @@ END SUBROUTINE HamiltonianApplication
 
 
 !> Build the potential in the whole box
-subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
+!! Control also the generation of an orbital
+!! @ param i3rho_add Integer which controls the presence of a density after the potential array
+!!                   if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
+!!                   the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
+!!                   the same holds for non-collinear calculations
+subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3rho_add,norb,norbp,ngatherarr,potential,pot)
   use module_base
   use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
+  integer, intent(in) :: ndimrhopot,i3rho_add
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+  real(wp), dimension(ndimrhopot), intent(in), target :: potential !< Distributed potential. Might contain the density for the 
   real(wp), dimension(:), pointer :: pot
   !local variables
   character(len=*), parameter :: subname='full_local_potential'
@@ -268,11 +274,11 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
 
   call timing(iproc,'Rho_commun    ','ON')
   
-  odp = xc_exctXfac() /= 0.0_gp
+  odp = (xc_exctXfac() /= 0.0_gp .or. (i3rho_add /= 0 .and. norbp > 0))
   !determine the dimension of the potential array
   if (odp) then
      npot=ndimgrid*nspin+&
-          max(max(ndimgrid*norbp,ngatherarr(0,1)*norb),1) !part which refers to exact exchange
+          max(max(ndimgrid*norbp,ngatherarr(0,1)*norb),1) !part which refers to exact exchange or to SIC correction
   else
      npot=ndimgrid*nspin
   end if
@@ -292,15 +298,29 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
         ispot=ispot+ndimgrid
         ispotential=ispotential+max(1,ndimpot)
      end do
+     !continue to copy the density after the potential if required
+     if (i3rho_add >0 .and. norbp > 0) then
+        ispot=ispot+i3rho_add-1
+        do ispin=1,nspin
+           call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
+                mpidtypw,pot(ispot),ngatherarr(0,1),&
+                ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+           ispot=ispot+ndimgrid
+           ispotential=ispotential+max(1,ndimpot)
+        end do
+     end if
   else
      if (odp) then
         allocate(pot(npot+ndebug),stat=i_stat)
         call memocc(i_stat,pot,'pot',subname)
         call dcopy(ndimgrid*nspin,potential,1,pot,1)
+        if (i3rho_add >0 .and. norbp > 0) then
+           ispot=ndimgrid*nspin+1
+           call dcopy(ndimgrid*nspin,potential(ispot+i3rho_add),1,pot(ispot),1)
+        end if
      else
         pot => potential
      end if
-     ispot=ndimgrid*nspin+1
   end if
 
   call timing(iproc,'Rho_commun    ','OF') 

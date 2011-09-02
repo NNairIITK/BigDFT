@@ -159,7 +159,8 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
      end select
 
      !calculate the contribution to the double-counting SIC energy (to be multiplied by alphaSIC)
-     eSIC_DCi=(1.0_gp-2.0_gp*fi)*ehi-fi*vexi+eexi
+     
+     eSIC_DCi=-ehi-vexi+eexi
 
   else
      !put to zero the corresponding potential
@@ -179,3 +180,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSIC
   call memocc(i_stat,i_all,'nscarr_fake',subname)
 
 end subroutine PZ_SIC_potential
+
+!> Construct a Self-Interaction-Corrected potential based on the 
+!! Koopmans' correction for DFT (Phys. Rev. B 82 115121 (2010))
+!subroutine NK_SIC_potential(lr,orbs,ixc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi,eSIC_DCi)

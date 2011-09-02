@@ -49,14 +49,14 @@
 !!   (retranspose v and psi)\n
 subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      orbs,orbsv,nvirt,lr,comms,commsv,&
-     hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
+     hx,hy,hz,rxyz,rhopot,nlpspd,proj,pkernel,psi,v,nscatterarr,ngatherarr,GPU)
   use module_base
   use module_types
   use module_interfaces, except_this_one => constrained_davidson
   use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i
-  integer, intent(in) :: nvirt,n3p
+  integer, intent(in) :: nvirt
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -65,6 +65,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   type(communications_arrays), intent(in) :: comms, commsv
   real(gp), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: rhopot
@@ -76,7 +77,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   !local variables
   character(len=*), parameter :: subname='davidson'
   logical :: msg,exctX,occorbs !extended output
-  integer :: occnorb, occnorbu, occnorbd
+  integer :: occnorb, occnorbu, occnorbd,nrhodim,i3rho_add
   integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor,imin
   integer :: ise,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
   real(gp) :: tt,gnrm,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,gnrm_fake,emin,diff_max,this_e
@@ -125,8 +126,16 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
  
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
-  !should be preformed
+  !should be performed
   exctX = (xc_exctXfac() /= 0.0_gp)
+
+  !check the size of the rhopot array related to NK SIC
+  nrhodim=in%nspin
+  i3rho_add=0
+  if (in%SIC_approach=='NK') then
+     nrhodim=2*nrhodim
+     i3rho_add=lr%d%n1i*lr%d%n2i*nscatterarr(iproc,4)+1
+  end if
 
   !last index of e and hamovr are for mpi_allreduce. 
   !e (eigenvalues) is also used as 2 work arrays
@@ -145,7 +154,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
           ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
      call memocc(i_stat,psirocc,'psirocc',subname)
 
-     call prepare_psirocc(iproc,nproc,lr,orbs,n3p,ngatherarr(0,1),psi,psirocc)
+     call prepare_psirocc(iproc,nproc,lr,orbs,nscatterarr(iproc,2),ngatherarr(0,1),psi,psirocc)
   end if
 
   
@@ -179,7 +188,8 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
 
 
   ! allocate the potential in the full box
-  call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*n3p,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+  call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       lr%d%n1i*lr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
        orbs%norb,orbs%norbp,ngatherarr,rhopot,pot)
    
   
@@ -925,7 +935,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   deallocate(g,stat=i_stat)
   call memocc(i_stat,i_all,'g',subname)
 
-  call free_full_potential(nproc,pot,subname)
+  call free_full_otential(nproc,pot,subname)
 
   i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
   deallocate(ndimovrlp,stat=i_stat)

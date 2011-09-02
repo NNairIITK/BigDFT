@@ -616,14 +616,15 @@ module module_interfaces
        real(gp), dimension(3,nat), intent(in) :: rxyz
      END SUBROUTINE writeonewave
 
-     subroutine davidson(iproc,nproc,n1i,n2i,in,at,& 
+     subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
-          hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
+          hx,hy,hz,rxyz,rhopot,nlpspd,proj,pkernel,psi,v,nscatterarr,ngatherarr,GPU)
        use module_base
        use module_types
+       use module_xc
        implicit none
        integer, intent(in) :: iproc,nproc,n1i,n2i
-       integer, intent(in) :: nvirt,n3p
+       integer, intent(in) :: nvirt
        type(input_variables), intent(in) :: in
        type(atoms_data), intent(in) :: at
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -632,6 +633,7 @@ module module_interfaces
        type(communications_arrays), intent(in) :: comms, commsv
        real(gp), intent(in) :: hx,hy,hz
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
        real(dp), dimension(:), pointer :: pkernel
@@ -1090,12 +1092,12 @@ module module_interfaces
 
      subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
-          hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
-          pkernel,psi,psivirt,ngatherarr,GPU)
+          hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
+          pkernel,psi,psivirt,nscatterarr,ngatherarr,GPU)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,n1i,n2i,nvirt,n3p
+       integer, intent(in) :: iproc,nproc,n1i,n2i,nvirt
        type(input_variables), intent(in) :: in
        type(atoms_data), intent(in) :: at
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -1104,6 +1106,7 @@ module module_interfaces
        type(communications_arrays), intent(in) :: comms, commsv
        real(gp), intent(in) :: hx,hy,hz
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
        real(dp), dimension(:), pointer :: pkernel
@@ -1162,12 +1165,13 @@ module module_interfaces
       real(wp), dimension(:), pointer :: psi,psivirt
     END SUBROUTINE write_eigen_objects
 
-    subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
+    subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3rho_add,norb,norbp,ngatherarr,potential,pot)
       use module_base
       implicit none
       integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
+      integer, intent(in) :: ndimrhopot,i3rho_add
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-      real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+      real(wp), dimension(ndimrhopot), intent(in), target :: potential
       real(wp), dimension(:), pointer :: pot
     END SUBROUTINE full_local_potential
 
@@ -1229,12 +1233,12 @@ module module_interfaces
 
     subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
          orbs,orbsv,nvirt,lr,comms,commsv,&
-         hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
+         hx,hy,hz,rxyz,rhopot,nlpspd,proj,pkernel,psi,v,nscatterarr,ngatherarr,GPU)
       use module_base
       use module_types
       implicit none
       integer, intent(in) :: iproc,nproc,n1i,n2i
-      integer, intent(in) :: nvirt,n3p
+      integer, intent(in) :: nvirt
       type(input_variables), intent(in) :: in
       type(atoms_data), intent(in) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -1243,10 +1247,11 @@ module module_interfaces
       type(communications_arrays), intent(in) :: comms, commsv
       real(gp), intent(in) :: hx,hy,hz
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-      real(dp), dimension(:), pointer :: pkernel
       real(dp), dimension(*), intent(in) :: rhopot
+      real(dp), dimension(:), pointer :: pkernel
       type(orbitals_data), intent(inout) :: orbsv
       type(GPU_pointers), intent(inout) :: GPU
       real(wp), dimension(:), pointer :: psi,v
