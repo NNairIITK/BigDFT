@@ -2561,7 +2561,7 @@ integer,dimension(:),allocatable:: recvcounts, displs, norb_par
 real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinationsLocalized'
-real(4):: ttreal
+real(4):: ttreal, builtin_rand
 integer:: wholeGroup, newGroup, newComm, norbtot
 integer,dimension(:),allocatable:: newID
   
@@ -2640,8 +2640,7 @@ logical:: same
       ! reasonable (i.e. close to the atom where the basis function is centered).
       ! Make sure that the random initialization is done in the same way independent
       ! of the number of preocesses that are used.
-      call initRandomSeed(0, 1)
-      coeffPad=0.d0
+      !call initRandomSeed(0, 1)
 
       !!do istat=1,size(hamextract,3)
       !!  do ierr=1,size(hamextract,2)
@@ -2651,6 +2650,7 @@ logical:: same
       !!  end do
       !!end do
     
+      coeffPad=0.d0
       ii=0
       do jproc=0,ip%nproc-1
           do iorb=1,ip%norb_par(jproc)
@@ -2658,7 +2658,9 @@ logical:: same
               ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
               cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
               do jorb=1,ip%norbtot
-                  call random_number(ttreal) ! Always call random_number to make it independent of the number of processes.
+                  ii=ii+1
+                  !call random_number(ttreal) ! Always call random_number to make it independent of the number of processes.
+                  ttreal=builtin_rand(ii)
                   if(iproc==jproc) then
                       jjAt=onWhichAtom(jorb)
                       tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2

@@ -219,13 +219,13 @@ done.
              - 18 copies on the same processor.
    maximal deviation from unity:  9.2975E-10
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:2.375E-02=35.8%
-   time for communication:4.250E-02=64.2%
-   time for calculating overlap:1.000E-02=15.1%
-   time for expansion:2.500E-03= 3.8%
-   time for Loewdin:1.000E-02=15.1%
-   time for transform:0.000E+00= 0.0%
-   time for extract:1.250E-03= 1.9%
+   time for computation:2.625E-02=39.6%
+   time for communication:4.000E-02=60.4%
+   time for calculating overlap:3.750E-03= 5.7%
+   time for expansion:8.750E-03=13.2%
+   time for Loewdin:1.250E-03= 1.9%
+   time for transform:2.500E-03= 3.8%
+   time for extract:1.000E-02=15.1%
  Calculating charge density... Calculation of charge density... done. Total electronic charge=      13.999999217908
 done.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -243,7 +243,7 @@ done.
    Hamiltonian application for atom 6...  Hamiltonian application...done.
    Hamiltonian application for atom 7...  Hamiltonian application...done.
    Hamiltonian application for atom 8...  Hamiltonian application...done.
- time for applying potential: 8.700E-01
+ time for applying potential: 7.200E-01
 The minimization is performed using 8 processes.
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
@@ -260,502 +260,514 @@ The minimization is performed using 8 processes.
 The minimization is performed using 8 processes.
  ============================== optmizing coefficients ==============================
  ----------------------------------------------------------------------------- iter=1
-max deviation from unity:  1.776838E+00
-max deviation from unity:  2.705058E-13
+max deviation from unity:  1.262691E+00
+max deviation from unity:  1.571659E-14
  fnrm, trace, mean alpha   6.65E-02   7.6176497966811E-01  1.00E-02
  ----------------------------------------------------------------------------- iter=2
-max deviation from unity:  7.004002E-08
-max deviation from unity:  1.221245E-15
- fnrm, trace, mean alpha   6.64E-02   7.6167709693422E-01  1.05E-02
+max deviation from unity:  7.392766E-08
+max deviation from unity:  1.140634E-15
+ fnrm, trace, mean alpha   6.64E-02   7.6167709693423E-01  1.05E-02
  ----------------------------------------------------------------------------- iter=3
-max deviation from unity:  7.695795E-08
-max deviation from unity:  1.638772E-15
+max deviation from unity:  8.123325E-08
+max deviation from unity:  1.582068E-15
  fnrm, trace, mean alpha   6.63E-02   7.6158516076588E-01  1.10E-02
  ----------------------------------------------------------------------------- iter=4
-max deviation from unity:  8.454480E-08
-max deviation from unity:  9.675691E-16
- fnrm, trace, mean alpha   6.61E-02   7.6148900145685E-01  1.16E-02
+max deviation from unity:  8.924578E-08
+max deviation from unity:  1.076747E-15
+ fnrm, trace, mean alpha   6.61E-02   7.6148900145686E-01  1.16E-02
  ----------------------------------------------------------------------------- iter=5
-max deviation from unity:  9.286303E-08
-max deviation from unity:  1.839295E-15
- fnrm, trace, mean alpha   6.60E-02   7.6138844390320E-01  1.22E-02
+max deviation from unity:  9.803134E-08
+max deviation from unity:  1.956768E-15
+ fnrm, trace, mean alpha   6.60E-02   7.6138844390319E-01  1.22E-02
  ----------------------------------------------------------------------------- iter=6
-max deviation from unity:  1.019806E-07
-max deviation from unity:  9.992007E-16
- fnrm, trace, mean alpha   6.58E-02   7.6128330760732E-01  1.28E-02
+max deviation from unity:  1.076618E-07
+max deviation from unity:  2.073808E-15
+ fnrm, trace, mean alpha   6.58E-02   7.6128330760731E-01  1.28E-02
  ----------------------------------------------------------------------------- iter=7
-max deviation from unity:  1.119712E-07
-max deviation from unity:  1.235394E-15
- fnrm, trace, mean alpha   6.57E-02   7.6117340670441E-01  1.34E-02
+max deviation from unity:  1.182153E-07
+max deviation from unity:  7.718910E-16
+ fnrm, trace, mean alpha   6.57E-02   7.6117340670440E-01  1.34E-02
  ----------------------------------------------------------------------------- iter=8
-max deviation from unity:  1.229152E-07
+max deviation from unity:  1.297767E-07
 max deviation from unity:  1.165734E-15
  fnrm, trace, mean alpha   6.55E-02   7.6105855001372E-01  1.41E-02
  ----------------------------------------------------------------------------- iter=9
-max deviation from unity:  1.348996E-07
-max deviation from unity:  1.125049E-15
+max deviation from unity:  1.424382E-07
+max deviation from unity:  1.467755E-15
  fnrm, trace, mean alpha   6.54E-02   7.6093854111742E-01  1.48E-02
  ---------------------------------------------------------------------------- iter=10
-max deviation from unity:  1.480187E-07
-max deviation from unity:  1.273883E-15
- fnrm, trace, mean alpha   6.52E-02   7.6081317846997E-01  1.55E-02
+max deviation from unity:  1.562996E-07
+max deviation from unity:  1.040834E-15
+ fnrm, trace, mean alpha   6.52E-02   7.6081317846998E-01  1.55E-02
  ---------------------------------------------------------------------------- iter=11
-max deviation from unity:  1.623747E-07
-max deviation from unity:  1.193490E-15
+max deviation from unity:  1.714693E-07
+max deviation from unity:  1.013310E-15
  fnrm, trace, mean alpha   6.50E-02   7.6068225554119E-01  1.63E-02
  ---------------------------------------------------------------------------- iter=12
-max deviation from unity:  1.780783E-07
-max deviation from unity:  1.137230E-15
+max deviation from unity:  1.880644E-07
+max deviation from unity:  2.310218E-15
  fnrm, trace, mean alpha   6.48E-02   7.6054556099608E-01  1.71E-02
  ---------------------------------------------------------------------------- iter=13
-max deviation from unity:  1.952491E-07
-max deviation from unity:  1.515444E-15
+max deviation from unity:  2.062115E-07
+max deviation from unity:  2.123058E-15
  fnrm, trace, mean alpha   6.46E-02   7.6040287891517E-01  1.80E-02
  ---------------------------------------------------------------------------- iter=14
-max deviation from unity:  2.140160E-07
-max deviation from unity:  1.405705E-15
+max deviation from unity:  2.260474E-07
+max deviation from unity:  1.388646E-15
  fnrm, trace, mean alpha   6.44E-02   7.6025398905868E-01  1.89E-02
  ---------------------------------------------------------------------------- iter=15
-max deviation from unity:  2.345184E-07
-max deviation from unity:  1.387779E-15
+max deviation from unity:  2.477197E-07
+max deviation from unity:  2.065188E-15
  fnrm, trace, mean alpha   6.42E-02   7.6009866717854E-01  1.98E-02
  ---------------------------------------------------------------------------- iter=16
-max deviation from unity:  2.569062E-07
-max deviation from unity:  1.526557E-15
+max deviation from unity:  2.713872E-07
+max deviation from unity:  1.432882E-15
  fnrm, trace, mean alpha   6.40E-02   7.5993668538200E-01  2.08E-02
  ---------------------------------------------------------------------------- iter=17
-max deviation from unity:  2.813407E-07
-max deviation from unity:  1.087509E-15
- fnrm, trace, mean alpha   6.37E-02   7.5976781255100E-01  2.18E-02
+max deviation from unity:  2.972210E-07
+max deviation from unity:  1.093116E-15
+ fnrm, trace, mean alpha   6.37E-02   7.5976781255101E-01  2.18E-02
  ---------------------------------------------------------------------------- iter=18
-max deviation from unity:  3.079951E-07
-max deviation from unity:  1.748601E-15
- fnrm, trace, mean alpha   6.35E-02   7.5959181482145E-01  2.29E-02
+max deviation from unity:  3.254047E-07
+max deviation from unity:  2.807216E-15
+ fnrm, trace, mean alpha   6.35E-02   7.5959181482146E-01  2.29E-02
  ---------------------------------------------------------------------------- iter=19
-max deviation from unity:  3.370551E-07
-max deviation from unity:  1.499394E-15
+max deviation from unity:  3.561352E-07
+max deviation from unity:  1.754239E-15
  fnrm, trace, mean alpha   6.32E-02   7.5940845612665E-01  2.41E-02
  ---------------------------------------------------------------------------- iter=20
-max deviation from unity:  3.687196E-07
-max deviation from unity:  1.061217E-15
+max deviation from unity:  3.896233E-07
+max deviation from unity:  1.276756E-15
  fnrm, trace, mean alpha   6.30E-02   7.5921749880915E-01  2.53E-02
  ---------------------------------------------------------------------------- iter=21
-max deviation from unity:  4.032008E-07
-max deviation from unity:  1.583477E-15
+max deviation from unity:  4.260943E-07
+max deviation from unity:  1.334972E-15
  fnrm, trace, mean alpha   6.27E-02   7.5901870430556E-01  2.65E-02
  ---------------------------------------------------------------------------- iter=22
-max deviation from unity:  4.407252E-07
-max deviation from unity:  1.098514E-15
+max deviation from unity:  4.657883E-07
+max deviation from unity:  9.939966E-16
  fnrm, trace, mean alpha   6.24E-02   7.5881183390833E-01  2.79E-02
  ---------------------------------------------------------------------------- iter=23
-max deviation from unity:  4.815338E-07
-max deviation from unity:  9.581145E-16
+max deviation from unity:  5.089611E-07
+max deviation from unity:  1.473066E-15
  fnrm, trace, mean alpha   6.21E-02   7.5859664960912E-01  2.93E-02
  ---------------------------------------------------------------------------- iter=24
-max deviation from unity:  5.258824E-07
-max deviation from unity:  9.436896E-16
+max deviation from unity:  5.558840E-07
+max deviation from unity:  1.382636E-15
  fnrm, trace, mean alpha   6.18E-02   7.5837291502769E-01  3.07E-02
  ---------------------------------------------------------------------------- iter=25
-max deviation from unity:  5.740417E-07
-max deviation from unity:  1.199398E-15
+max deviation from unity:  6.068444E-07
+max deviation from unity:  1.507637E-15
  fnrm, trace, mean alpha   6.15E-02   7.5814039643036E-01  3.23E-02
  ---------------------------------------------------------------------------- iter=26
-max deviation from unity:  6.262977E-07
-max deviation from unity:  1.198694E-15
+max deviation from unity:  6.621456E-07
+max deviation from unity:  9.722803E-16
  fnrm, trace, mean alpha   6.11E-02   7.5789886384185E-01  3.39E-02
  ---------------------------------------------------------------------------- iter=27
-max deviation from unity:  6.829513E-07
-max deviation from unity:  9.992007E-16
+max deviation from unity:  7.221070E-07
+max deviation from unity:  1.774188E-15
  fnrm, trace, mean alpha   6.08E-02   7.5764809225391E-01  3.56E-02
  ---------------------------------------------------------------------------- iter=28
-max deviation from unity:  7.443184E-07
-max deviation from unity:  1.662810E-15
+max deviation from unity:  7.870639E-07
+max deviation from unity:  1.532628E-15
  fnrm, trace, mean alpha   6.04E-02   7.5738786293370E-01  3.73E-02
  ---------------------------------------------------------------------------- iter=29
-max deviation from unity:  8.107292E-07
-max deviation from unity:  1.049508E-15
+max deviation from unity:  8.573664E-07
+max deviation from unity:  2.046540E-15
  fnrm, trace, mean alpha   6.00E-02   7.5711796483470E-01  3.92E-02
  ---------------------------------------------------------------------------- iter=30
-max deviation from unity:  8.825274E-07
-max deviation from unity:  8.326673E-16
+max deviation from unity:  9.333794E-07
+max deviation from unity:  1.284509E-15
  fnrm, trace, mean alpha   5.96E-02   7.5683819611189E-01  4.12E-02
  ---------------------------------------------------------------------------- iter=31
-max deviation from unity:  9.600692E-07
-max deviation from unity:  1.290634E-15
+max deviation from unity:  1.015481E-06
+max deviation from unity:  2.341877E-15
  fnrm, trace, mean alpha   5.92E-02   7.5654836574267E-01  4.32E-02
  ---------------------------------------------------------------------------- iter=32
-max deviation from unity:  1.043722E-06
-max deviation from unity:  1.250051E-15
+max deviation from unity:  1.104060E-06
+max deviation from unity:  2.251671E-15
  fnrm, trace, mean alpha   5.88E-02   7.5624829525391E-01  4.54E-02
  ---------------------------------------------------------------------------- iter=33
-max deviation from unity:  1.133863E-06
-max deviation from unity:  1.915135E-15
+max deviation from unity:  1.199516E-06
+max deviation from unity:  1.407870E-15
  fnrm, trace, mean alpha   5.83E-02   7.5593782055474E-01  4.76E-02
  ---------------------------------------------------------------------------- iter=34
-max deviation from unity:  1.230876E-06
-max deviation from unity:  1.089406E-15
+max deviation from unity:  1.302257E-06
+max deviation from unity:  1.641048E-15
  fnrm, trace, mean alpha   5.79E-02   7.5561679387345E-01  5.00E-02
  ---------------------------------------------------------------------------- iter=35
-max deviation from unity:  1.335149E-06
-max deviation from unity:  1.378238E-15
+max deviation from unity:  1.412692E-06
+max deviation from unity:  1.154458E-15
  fnrm, trace, mean alpha   5.74E-02   7.5528508579591E-01  5.25E-02
  ---------------------------------------------------------------------------- iter=36
-max deviation from unity:  1.447071E-06
-max deviation from unity:  1.387779E-15
+max deviation from unity:  1.531234E-06
+max deviation from unity:  1.332268E-15
  fnrm, trace, mean alpha   5.69E-02   7.5494258740124E-01  5.52E-02
  ---------------------------------------------------------------------------- iter=37
-max deviation from unity:  1.567029E-06
-max deviation from unity:  1.026956E-15
+max deviation from unity:  1.658290E-06
+max deviation from unity:  1.262879E-15
  fnrm, trace, mean alpha   5.64E-02   7.5458921248914E-01  5.79E-02
  ---------------------------------------------------------------------------- iter=38
-max deviation from unity:  1.695402E-06
-max deviation from unity:  1.471046E-15
- fnrm, trace, mean alpha   5.59E-02   7.5422489989143E-01  6.08E-02
+max deviation from unity:  1.794259E-06
+max deviation from unity:  1.394718E-15
+ fnrm, trace, mean alpha   5.59E-02   7.5422489989142E-01  6.08E-02
  ---------------------------------------------------------------------------- iter=39
-max deviation from unity:  1.832555E-06
-max deviation from unity:  8.604228E-16
+max deviation from unity:  1.939527E-06
+max deviation from unity:  9.593089E-16
  fnrm, trace, mean alpha   5.53E-02   7.5384961585852E-01  6.39E-02
  ---------------------------------------------------------------------------- iter=40
-max deviation from unity:  1.978835E-06
-max deviation from unity:  1.307727E-15
+max deviation from unity:  2.094455E-06
+max deviation from unity:  8.763064E-16
  fnrm, trace, mean alpha   5.48E-02   7.5346335650936E-01  6.70E-02
  ---------------------------------------------------------------------------- iter=41
-max deviation from unity:  2.134563E-06
-max deviation from unity:  1.136617E-15
+max deviation from unity:  2.259378E-06
+max deviation from unity:  1.222980E-15
  fnrm, trace, mean alpha   5.42E-02   7.5306615033100E-01  7.04E-02
  ---------------------------------------------------------------------------- iter=42
-max deviation from unity:  2.300024E-06
-max deviation from unity:  1.668804E-15
+max deviation from unity:  2.434592E-06
+max deviation from unity:  1.238809E-15
  fnrm, trace, mean alpha   5.36E-02   7.5265806071153E-01  7.39E-02
  ---------------------------------------------------------------------------- iter=43
-max deviation from unity:  2.475463E-06
-max deviation from unity:  1.385177E-15
+max deviation from unity:  2.620346E-06
+max deviation from unity:  1.925543E-15
  fnrm, trace, mean alpha   5.29E-02   7.5223918848711E-01  7.76E-02
  ---------------------------------------------------------------------------- iter=44
-max deviation from unity:  2.661071E-06
-max deviation from unity:  1.327009E-15
+max deviation from unity:  2.816830E-06
+max deviation from unity:  1.674496E-15
  fnrm, trace, mean alpha   5.23E-02   7.5180967448100E-01  8.15E-02
  ---------------------------------------------------------------------------- iter=45
-max deviation from unity:  2.856975E-06
-max deviation from unity:  1.521569E-15
+max deviation from unity:  3.024165E-06
+max deviation from unity:  1.078727E-15
  fnrm, trace, mean alpha   5.16E-02   7.5136970200903E-01  8.56E-02
  ---------------------------------------------------------------------------- iter=46
-max deviation from unity:  3.063228E-06
-max deviation from unity:  1.609823E-15
+max deviation from unity:  3.242390E-06
+max deviation from unity:  1.783750E-15
  fnrm, trace, mean alpha   5.10E-02   7.5091949932253E-01  8.99E-02
  ---------------------------------------------------------------------------- iter=47
-max deviation from unity:  3.279796E-06
-max deviation from unity:  1.140655E-15
+max deviation from unity:  3.471446E-06
+max deviation from unity:  9.211382E-16
  fnrm, trace, mean alpha   5.03E-02   7.5045934195605E-01  9.43E-02
  ---------------------------------------------------------------------------- iter=48
-max deviation from unity:  3.506544E-06
-max deviation from unity:  1.144335E-15
+max deviation from unity:  3.711165E-06
+max deviation from unity:  1.377370E-15
  fnrm, trace, mean alpha   4.95E-02   7.4998955494316E-01  9.91E-02
  ---------------------------------------------------------------------------- iter=49
-max deviation from unity:  3.743223E-06
-max deviation from unity:  1.200429E-15
+max deviation from unity:  3.961253E-06
+max deviation from unity:  1.308849E-15
  fnrm, trace, mean alpha   4.88E-02   7.4951051485975E-01  1.04E-01
  ---------------------------------------------------------------------------- iter=50
-max deviation from unity:  3.989459E-06
-max deviation from unity:  9.859870E-16
+max deviation from unity:  4.221276E-06
+max deviation from unity:  1.939421E-15
  fnrm, trace, mean alpha   4.80E-02   7.4902265165001E-01  1.09E-01
  ---------------------------------------------------------------------------- iter=51
-max deviation from unity:  4.244732E-06
-max deviation from unity:  1.190888E-15
+max deviation from unity:  4.490644E-06
+max deviation from unity:  9.714451E-16
  fnrm, trace, mean alpha   4.73E-02   7.4852645018636E-01  1.15E-01
  ---------------------------------------------------------------------------- iter=52
-max deviation from unity:  4.508369E-06
-max deviation from unity:  1.276756E-15
+max deviation from unity:  4.768593E-06
+max deviation from unity:  1.749902E-15
  fnrm, trace, mean alpha   4.65E-02   7.4802245151061E-01  1.20E-01
  ---------------------------------------------------------------------------- iter=53
-max deviation from unity:  4.779525E-06
-max deviation from unity:  2.109424E-15
+max deviation from unity:  5.054175E-06
+max deviation from unity:  1.332268E-15
  fnrm, trace, mean alpha   4.56E-02   7.4751125370032E-01  1.26E-01
  ---------------------------------------------------------------------------- iter=54
-max deviation from unity:  5.057177E-06
-max deviation from unity:  9.216667E-16
+max deviation from unity:  5.346241E-06
+max deviation from unity:  1.350157E-15
  fnrm, trace, mean alpha   4.48E-02   7.4699351230119E-01  1.33E-01
  ---------------------------------------------------------------------------- iter=55
-max deviation from unity:  5.340105E-06
-max deviation from unity:  1.165734E-15
+max deviation from unity:  5.643431E-06
+max deviation from unity:  1.750770E-15
  fnrm, trace, mean alpha   4.39E-02   7.4646994026441E-01  1.39E-01
  ---------------------------------------------------------------------------- iter=56
-max deviation from unity:  5.626891E-06
-max deviation from unity:  1.693090E-15
+max deviation from unity:  5.944163E-06
+max deviation from unity:  1.063277E-15
  fnrm, trace, mean alpha   4.31E-02   7.4594130732692E-01  1.46E-01
  ---------------------------------------------------------------------------- iter=57
-max deviation from unity:  5.915906E-06
-max deviation from unity:  7.216450E-16
+max deviation from unity:  6.246626E-06
+max deviation from unity:  1.151856E-15
  fnrm, trace, mean alpha   4.22E-02   7.4540843877302E-01  1.54E-01
  ---------------------------------------------------------------------------- iter=58
-max deviation from unity:  6.205311E-06
-max deviation from unity:  1.776357E-15
+max deviation from unity:  6.548779E-06
+max deviation from unity:  1.304512E-15
  fnrm, trace, mean alpha   4.13E-02   7.4487221351827E-01  1.61E-01
  ---------------------------------------------------------------------------- iter=59
-max deviation from unity:  6.493057E-06
-max deviation from unity:  1.276756E-15
+max deviation from unity:  6.848350E-06
+max deviation from unity:  1.850950E-15
  fnrm, trace, mean alpha   4.03E-02   7.4433356146107E-01  1.69E-01
  ---------------------------------------------------------------------------- iter=60
-max deviation from unity:  6.776890E-06
-max deviation from unity:  1.362110E-15
+max deviation from unity:  7.142846E-06
+max deviation from unity:  1.075529E-15
  fnrm, trace, mean alpha   3.94E-02   7.4379346005474E-01  1.78E-01
  ---------------------------------------------------------------------------- iter=61
-max deviation from unity:  7.054364E-06
-max deviation from unity:  9.992007E-16
+max deviation from unity:  7.429563E-06
+max deviation from unity:  8.714817E-16
  fnrm, trace, mean alpha   3.84E-02   7.4325293006274E-01  1.87E-01
  ---------------------------------------------------------------------------- iter=62
-max deviation from unity:  7.322853E-06
-max deviation from unity:  9.029236E-16
+max deviation from unity:  7.705605E-06
+max deviation from unity:  1.075529E-15
  fnrm, trace, mean alpha   3.74E-02   7.4271303047309E-01  1.96E-01
  ---------------------------------------------------------------------------- iter=63
-max deviation from unity:  7.579580E-06
-max deviation from unity:  1.054712E-15
+max deviation from unity:  7.967914E-06
+max deviation from unity:  1.637579E-15
  fnrm, trace, mean alpha   3.65E-02   7.4217485256450E-01  2.06E-01
  ---------------------------------------------------------------------------- iter=64
-max deviation from unity:  7.821646E-06
-max deviation from unity:  1.228184E-15
+max deviation from unity:  8.213303E-06
+max deviation from unity:  1.070324E-15
  fnrm, trace, mean alpha   3.55E-02   7.4163951313634E-01  2.16E-01
  ---------------------------------------------------------------------------- iter=65
-max deviation from unity:  8.046066E-06
-max deviation from unity:  1.394718E-15
- fnrm, trace, mean alpha   3.45E-02   7.4110814693743E-01  2.27E-01
+max deviation from unity:  8.438498E-06
+max deviation from unity:  1.045605E-15
+ fnrm, trace, mean alpha   3.45E-02   7.4110814693742E-01  2.27E-01
  ---------------------------------------------------------------------------- iter=66
-max deviation from unity:  8.249814E-06
-max deviation from unity:  1.332268E-15
+max deviation from unity:  8.640192E-06
+max deviation from unity:  1.249001E-15
  fnrm, trace, mean alpha   3.34E-02   7.4058189835365E-01  2.38E-01
  ---------------------------------------------------------------------------- iter=67
-max deviation from unity:  8.429877E-06
-max deviation from unity:  1.237420E-15
+max deviation from unity:  8.815098E-06
+max deviation from unity:  1.443290E-15
  fnrm, trace, mean alpha   3.24E-02   7.4006191244162E-01  2.50E-01
  ---------------------------------------------------------------------------- iter=68
-max deviation from unity:  8.583312E-06
-max deviation from unity:  1.164975E-15
- fnrm, trace, mean alpha   3.14E-02   7.3954932542315E-01  2.63E-01
+max deviation from unity:  8.960021E-06
+max deviation from unity:  7.759906E-16
+ fnrm, trace, mean alpha   3.14E-02   7.3954932542316E-01  2.63E-01
  ---------------------------------------------------------------------------- iter=69
-max deviation from unity:  8.707310E-06
-max deviation from unity:  1.779826E-15
+max deviation from unity:  9.071926E-06
+max deviation from unity:  1.652351E-15
  fnrm, trace, mean alpha   3.03E-02   7.3904525478290E-01  2.76E-01
  ---------------------------------------------------------------------------- iter=70
-max deviation from unity:  8.799262E-06
-max deviation from unity:  1.113692E-15
+max deviation from unity:  9.148014E-06
+max deviation from unity:  1.221245E-15
  fnrm, trace, mean alpha   2.93E-02   7.3855078913675E-01  2.90E-01
  ---------------------------------------------------------------------------- iter=71
-max deviation from unity:  8.856834E-06
-max deviation from unity:  1.641048E-15
+max deviation from unity:  9.185804E-06
+max deviation from unity:  8.604228E-16
  fnrm, trace, mean alpha   2.83E-02   7.3806697806082E-01  3.04E-01
  ---------------------------------------------------------------------------- iter=72
-max deviation from unity:  8.878030E-06
-max deviation from unity:  1.720846E-15
+max deviation from unity:  9.183210E-06
+max deviation from unity:  2.241263E-15
  fnrm, trace, mean alpha   2.72E-02   7.3759482208747E-01  3.19E-01
  ---------------------------------------------------------------------------- iter=73
-max deviation from unity:  8.861270E-06
-max deviation from unity:  1.275889E-15
+max deviation from unity:  9.138616E-06
+max deviation from unity:  1.384743E-15
  fnrm, trace, mean alpha   2.62E-02   7.3713526308530E-01  3.35E-01
  ---------------------------------------------------------------------------- iter=74
-max deviation from unity:  8.805446E-06
-max deviation from unity:  9.992007E-16
+max deviation from unity:  9.050952E-06
+max deviation from unity:  1.047773E-15
  fnrm, trace, mean alpha   2.52E-02   7.3668917524216E-01  3.52E-01
  ---------------------------------------------------------------------------- iter=75
-max deviation from unity:  8.709983E-06
-max deviation from unity:  1.227317E-15
+max deviation from unity:  8.919750E-06
+max deviation from unity:  1.097646E-15
  fnrm, trace, mean alpha   2.41E-02   7.3625735686337E-01  3.70E-01
  ---------------------------------------------------------------------------- iter=76
-max deviation from unity:  8.574879E-06
-max deviation from unity:  7.771561E-16
- fnrm, trace, mean alpha   2.31E-02   7.3584052318111E-01  3.88E-01
+max deviation from unity:  8.745201E-06
+max deviation from unity:  1.188286E-15
+ fnrm, trace, mean alpha   2.31E-02   7.3584052318112E-01  3.88E-01
  ---------------------------------------------------------------------------- iter=77
-max deviation from unity:  8.400744E-06
-max deviation from unity:  8.326673E-16
+max deviation from unity:  8.543664E-06
+max deviation from unity:  7.216450E-16
  fnrm, trace, mean alpha   2.21E-02   7.3543930034456E-01  4.08E-01
  ---------------------------------------------------------------------------- iter=78
-max deviation from unity:  8.188810E-06
-max deviation from unity:  1.179612E-15
+max deviation from unity:  8.320759E-06
+max deviation from unity:  8.839636E-16
  fnrm, trace, mean alpha   2.11E-02   7.3505422072552E-01  4.28E-01
  ---------------------------------------------------------------------------- iter=79
-max deviation from unity:  7.940929E-06
-max deviation from unity:  1.373901E-15
+max deviation from unity:  8.061487E-06
+max deviation from unity:  1.290634E-15
  fnrm, trace, mean alpha   2.01E-02   7.3468571963142E-01  4.50E-01
  ---------------------------------------------------------------------------- iter=80
-max deviation from unity:  7.659556E-06
-max deviation from unity:  1.089406E-15
+max deviation from unity:  7.768470E-06
+max deviation from unity:  7.147061E-16
  fnrm, trace, mean alpha   1.92E-02   7.3433413346872E-01  4.72E-01
  ---------------------------------------------------------------------------- iter=81
-max deviation from unity:  7.347697E-06
-max deviation from unity:  1.024937E-15
+max deviation from unity:  7.444896E-06
+max deviation from unity:  1.776357E-15
  fnrm, trace, mean alpha   1.82E-02   7.3399969934791E-01  4.96E-01
  ---------------------------------------------------------------------------- iter=82
-max deviation from unity:  7.008859E-06
-max deviation from unity:  1.519943E-15
+max deviation from unity:  7.094453E-06
+max deviation from unity:  2.040035E-15
  fnrm, trace, mean alpha   1.73E-02   7.3368255606888E-01  5.20E-01
  ---------------------------------------------------------------------------- iter=83
-max deviation from unity:  6.768078E-06
-max deviation from unity:  1.290634E-15
+max deviation from unity:  6.750948E-06
+max deviation from unity:  1.471046E-15
  fnrm, trace, mean alpha   1.64E-02   7.3338274637585E-01  5.46E-01
  ---------------------------------------------------------------------------- iter=84
-max deviation from unity:  6.840215E-06
-max deviation from unity:  1.221245E-15
+max deviation from unity:  6.854993E-06
+max deviation from unity:  9.853229E-16
  fnrm, trace, mean alpha   1.55E-02   7.3310022032801E-01  5.74E-01
  ---------------------------------------------------------------------------- iter=85
-max deviation from unity:  6.887381E-06
-max deviation from unity:  9.159340E-16
- fnrm, trace, mean alpha   1.47E-02   7.3283483959836E-01  6.02E-01
+max deviation from unity:  6.933320E-06
+max deviation from unity:  1.568190E-15
+ fnrm, trace, mean alpha   1.47E-02   7.3283483959835E-01  6.02E-01
  ---------------------------------------------------------------------------- iter=86
-max deviation from unity:  6.907905E-06
-max deviation from unity:  8.471956E-16
+max deviation from unity:  6.983830E-06
+max deviation from unity:  1.262011E-15
  fnrm, trace, mean alpha   1.38E-02   7.3258638249201E-01  6.33E-01
  ---------------------------------------------------------------------------- iter=87
-max deviation from unity:  6.900365E-06
-max deviation from unity:  1.132991E-15
+max deviation from unity:  7.004693E-06
+max deviation from unity:  1.498801E-15
  fnrm, trace, mean alpha   1.30E-02   7.3235454946891E-01  6.64E-01
  ---------------------------------------------------------------------------- iter=88
-max deviation from unity:  6.863639E-06
-max deviation from unity:  9.436896E-16
+max deviation from unity:  6.994415E-06
+max deviation from unity:  1.404909E-15
  fnrm, trace, mean alpha   1.23E-02   7.3213896896522E-01  6.97E-01
  ---------------------------------------------------------------------------- iter=89
-max deviation from unity:  6.796960E-06
-max deviation from unity:  1.603752E-15
+max deviation from unity:  6.951900E-06
+max deviation from unity:  2.040035E-15
  fnrm, trace, mean alpha   1.15E-02   7.3193920333341E-01  7.32E-01
  ---------------------------------------------------------------------------- iter=90
-max deviation from unity:  6.699970E-06
-max deviation from unity:  1.165734E-15
+max deviation from unity:  6.876514E-06
+max deviation from unity:  1.461505E-15
  fnrm, trace, mean alpha   1.08E-02   7.3175475476074E-01  7.69E-01
  ---------------------------------------------------------------------------- iter=91
-max deviation from unity:  6.572759E-06
-max deviation from unity:  1.165734E-15
+max deviation from unity:  6.768133E-06
+max deviation from unity:  1.068590E-15
  fnrm, trace, mean alpha   1.01E-02   7.3158507107778E-01  8.07E-01
  ---------------------------------------------------------------------------- iter=92
-max deviation from unity:  6.415905E-06
-max deviation from unity:  1.135363E-15
+max deviation from unity:  6.627185E-06
+max deviation from unity:  1.554095E-15
  fnrm, trace, mean alpha   9.40E-03   7.3142955142718E-01  8.48E-01
  ---------------------------------------------------------------------------- iter=93
-max deviation from unity:  6.230499E-06
-max deviation from unity:  9.992007E-16
+max deviation from unity:  6.454676E-06
+max deviation from unity:  1.526557E-15
  fnrm, trace, mean alpha   8.75E-03   7.3128755182269E-01  8.90E-01
  ---------------------------------------------------------------------------- iter=94
-max deviation from unity:  6.018155E-06
-max deviation from unity:  1.249001E-15
- fnrm, trace, mean alpha   8.13E-03   7.3115839068270E-01  9.35E-01
+max deviation from unity:  6.252202E-06
+max deviation from unity:  2.026157E-15
+ fnrm, trace, mean alpha   8.13E-03   7.3115839068269E-01  9.35E-01
  ---------------------------------------------------------------------------- iter=95
-max deviation from unity:  5.781008E-06
-max deviation from unity:  1.387779E-15
+max deviation from unity:  6.021940E-06
+max deviation from unity:  1.413583E-15
  fnrm, trace, mean alpha   7.55E-03   7.3104135446424E-01  9.81E-01
  ---------------------------------------------------------------------------- iter=96
-max deviation from unity:  5.521689E-06
-max deviation from unity:  1.017415E-15
+max deviation from unity:  5.766621E-06
+max deviation from unity:  1.643217E-15
  fnrm, trace, mean alpha   6.99E-03   7.3093570354567E-01  1.03E+00
  ---------------------------------------------------------------------------- iter=97
-max deviation from unity:  5.243284E-06
-max deviation from unity:  2.273355E-15
+max deviation from unity:  5.489476E-06
+max deviation from unity:  1.706968E-15
  fnrm, trace, mean alpha   6.46E-03   7.3084067850474E-01  1.08E+00
  ---------------------------------------------------------------------------- iter=98
-max deviation from unity:  4.949271E-06
-max deviation from unity:  1.360023E-15
+max deviation from unity:  5.194168E-06
+max deviation from unity:  1.135810E-15
  fnrm, trace, mean alpha   5.96E-03   7.3075550691032E-01  1.14E+00
  ---------------------------------------------------------------------------- iter=99
-max deviation from unity:  4.643439E-06
-max deviation from unity:  1.471046E-15
+max deviation from unity:  4.884705E-06
+max deviation from unity:  1.387779E-15
  fnrm, trace, mean alpha   5.50E-03   7.3067941069175E-01  1.19E+00
  --------------------------------------------------------------------------- iter=100
-max deviation from unity:  4.329790E-06
-max deviation from unity:  1.221245E-15
+max deviation from unity:  4.565325E-06
+max deviation from unity:  1.429412E-15
  fnrm, trace, mean alpha   5.06E-03   7.3061161407329E-01  1.25E+00
  --------------------------------------------------------------------------- iter=101
-max deviation from unity:  4.012427E-06
-max deviation from unity:  9.575674E-16
- fnrm, trace, mean alpha   4.65E-03   7.3055135196993E-01  1.32E+00
+max deviation from unity:  4.240386E-06
+max deviation from unity:  1.852685E-15
+ fnrm, trace, mean alpha   4.65E-03   7.3055135196994E-01  1.32E+00
  --------------------------------------------------------------------------- iter=102
-max deviation from unity:  3.695436E-06
-max deviation from unity:  1.740144E-15
+max deviation from unity:  3.914230E-06
+max deviation from unity:  2.357543E-15
  fnrm, trace, mean alpha   4.27E-03   7.3049787864614E-01  1.38E+00
  --------------------------------------------------------------------------- iter=103
-max deviation from unity:  3.382759E-06
-max deviation from unity:  1.516040E-15
+max deviation from unity:  3.591063E-06
+max deviation from unity:  1.502271E-15
  fnrm, trace, mean alpha   3.93E-03   7.3045047635141E-01  1.45E+00
  --------------------------------------------------------------------------- iter=104
-max deviation from unity:  3.078078E-06
-max deviation from unity:  1.602234E-15
- fnrm, trace, mean alpha   3.61E-03   7.3040846357982E-01  1.52E+00
+max deviation from unity:  3.274823E-06
+max deviation from unity:  1.465841E-15
+ fnrm, trace, mean alpha   3.61E-03   7.3040846357982E-01  1.47E+00
  --------------------------------------------------------------------------- iter=105
-max deviation from unity:  2.784705E-06
-max deviation from unity:  1.703932E-15
- fnrm, trace, mean alpha   3.32E-03   7.3037120256396E-01  1.60E+00
+max deviation from unity:  3.837299E-05
+max deviation from unity:  1.623701E-15
+ fnrm, trace, mean alpha   3.32E-03   7.3037120271936E-01  1.51E+00
  --------------------------------------------------------------------------- iter=106
-max deviation from unity:  2.505650E-06
-max deviation from unity:  1.249001E-15
- fnrm, trace, mean alpha   3.05E-03   7.3033810561518E-01  1.68E+00
+max deviation from unity:  9.514207E-05
+max deviation from unity:  1.368263E-15
+ fnrm, trace, mean alpha   3.05E-03   7.3033814804507E-01  1.57E+00
  --------------------------------------------------------------------------- iter=107
-max deviation from unity:  2.292010E-06
-max deviation from unity:  1.121499E-15
- fnrm, trace, mean alpha   2.81E-03   7.3030863996432E-01  1.76E+00
+max deviation from unity:  1.643338E-04
+max deviation from unity:  1.778092E-15
+ fnrm, trace, mean alpha   2.81E-03   7.3030881169595E-01  1.64E+00
  --------------------------------------------------------------------------- iter=108
-max deviation from unity:  2.092128E-06
-max deviation from unity:  1.123233E-15
- fnrm, trace, mean alpha   2.60E-03   7.3028233083699E-01  1.85E+00
+max deviation from unity:  2.330457E-04
+max deviation from unity:  1.659805E-15
+ fnrm, trace, mean alpha   2.59E-03   7.3028274475274E-01  1.72E+00
  --------------------------------------------------------------------------- iter=109
-max deviation from unity:  1.930730E-06
-max deviation from unity:  1.328365E-15
- fnrm, trace, mean alpha   2.40E-03   7.3025876260843E-01  1.94E+00
+max deviation from unity:  2.993833E-04
+max deviation from unity:  1.991896E-15
+ fnrm, trace, mean alpha   2.40E-03   7.3025953806606E-01  1.81E+00
  --------------------------------------------------------------------------- iter=110
-max deviation from unity:  1.900124E-06
-max deviation from unity:  8.812395E-16
- fnrm, trace, mean alpha   2.22E-03   7.3023757801203E-01  2.04E+00
+max deviation from unity:  3.630256E-04
+max deviation from unity:  1.231654E-15
+ fnrm, trace, mean alpha   2.22E-03   7.3023882548264E-01  1.90E+00
  --------------------------------------------------------------------------- iter=111
-max deviation from unity:  1.867489E-06
-max deviation from unity:  1.103284E-15
- fnrm, trace, mean alpha   2.06E-03   7.3021847551033E-01  2.14E+00
+max deviation from unity:  4.239620E-04
+max deviation from unity:  1.156410E-15
+ fnrm, trace, mean alpha   2.06E-03   7.3022028554630E-01  1.99E+00
  --------------------------------------------------------------------------- iter=112
-max deviation from unity:  1.831426E-06
-max deviation from unity:  1.577731E-15
- fnrm, trace, mean alpha   1.91E-03   7.3020120506038E-01  2.25E+00
+max deviation from unity:  4.807256E-04
+max deviation from unity:  1.269818E-15
+ fnrm, trace, mean alpha   1.92E-03   7.3020363925981E-01  2.09E+00
  --------------------------------------------------------------------------- iter=113
-max deviation from unity:  1.790644E-06
-max deviation from unity:  1.519618E-15
- fnrm, trace, mean alpha   1.78E-03   7.3018556260693E-01  2.36E+00
+max deviation from unity:  5.349567E-04
+max deviation from unity:  2.074729E-15
+ fnrm, trace, mean alpha   1.79E-03   7.3018865208581E-01  2.19E+00
  --------------------------------------------------------------------------- iter=114
-max deviation from unity:  1.744034E-06
-max deviation from unity:  1.272637E-15
- fnrm, trace, mean alpha   1.65E-03   7.3017138370353E-01  2.48E+00
+max deviation from unity:  5.862130E-04
+max deviation from unity:  1.415534E-15
+ fnrm, trace, mean alpha   1.67E-03   7.3017512829861E-01  2.30E+00
  --------------------------------------------------------------------------- iter=115
-max deviation from unity:  1.690731E-06
-max deviation from unity:  1.174841E-15
- fnrm, trace, mean alpha   1.53E-03   7.3015853669129E-01  2.60E+00
+max deviation from unity:  6.340384E-04
+max deviation from unity:  1.183081E-15
+ fnrm, trace, mean alpha   1.56E-03   7.3016290610862E-01  2.42E+00
  --------------------------------------------------------------------------- iter=116
-max deviation from unity:  1.630167E-06
-max deviation from unity:  1.276756E-15
- fnrm, trace, mean alpha   1.42E-03   7.3014691585454E-01  2.73E+00
+max deviation from unity:  6.781191E-04
+max deviation from unity:  1.332268E-15
+ fnrm, trace, mean alpha   1.45E-03   7.3015185389959E-01  2.54E+00
  --------------------------------------------------------------------------- iter=117
-max deviation from unity:  1.562103E-06
-max deviation from unity:  1.137979E-15
- fnrm, trace, mean alpha   1.31E-03   7.3013643492795E-01  2.87E+00
+max deviation from unity:  7.179113E-04
+max deviation from unity:  1.242062E-15
+ fnrm, trace, mean alpha   1.36E-03   7.3014186586456E-01  2.67E+00
  --------------------------------------------------------------------------- iter=118
-max deviation from unity:  1.486652E-06
-max deviation from unity:  1.318390E-15
- fnrm, trace, mean alpha   1.21E-03   7.3012702125817E-01  3.01E+00
+max deviation from unity:  7.536794E-04
+max deviation from unity:  2.046974E-15
+ fnrm, trace, mean alpha   1.30E-03   7.3013289556184E-01  2.57E+00
  --------------------------------------------------------------------------- iter=119
-max deviation from unity:  1.404272E-06
-max deviation from unity:  1.054712E-15
- fnrm, trace, mean alpha   1.11E-03   7.3011861083483E-01  3.16E+00
+max deviation from unity:  7.537608E-04
+max deviation from unity:  1.163999E-15
+ fnrm, trace, mean alpha   1.29E-03   7.3012569227325E-01  2.12E+00
  --------------------------------------------------------------------------- iter=120
-max deviation from unity:  1.315747E-06
-max deviation from unity:  1.360023E-15
- fnrm, trace, mean alpha   1.02E-03   7.3011114431208E-01  3.32E+00
+max deviation from unity:  6.433628E-04
+max deviation from unity:  2.871682E-15
+ fnrm, trace, mean alpha   1.24E-03   7.3012087000047E-01  1.99E+00
  --------------------------------------------------------------------------- iter=121
-max deviation from unity:  1.222144E-06
-max deviation from unity:  1.609823E-15
- fnrm, trace, mean alpha   9.30E-04   7.3010456405326E-01  3.49E+00
- converged in 121 iterations.
-   Final values for fnrm, trace:   9.29636E-04   7.30105E-01
+max deviation from unity:  6.406202E-04
+max deviation from unity:  1.457168E-15
+ fnrm, trace, mean alpha   1.10E-03   7.3011686535486E-01  2.09E+00
+ --------------------------------------------------------------------------- iter=122
+max deviation from unity:  6.363283E-04
+max deviation from unity:  1.332268E-15
+ fnrm, trace, mean alpha   1.05E-03   7.3011327099120E-01  2.19E+00
+ --------------------------------------------------------------------------- iter=123
+max deviation from unity:  6.303276E-04
+max deviation from unity:  1.110223E-15
+ fnrm, trace, mean alpha   1.02E-03   7.3010990590855E-01  2.30E+00
+ --------------------------------------------------------------------------- iter=124
+max deviation from unity:  6.225603E-04
+max deviation from unity:  1.226449E-15
+ fnrm, trace, mean alpha   9.78E-04   7.3010676487911E-01  2.41E+00
+ converged in 124 iterations.
+   Final values for fnrm, trace:   9.77725E-04   7.30107E-01
  ====================================================================================
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
- time for "buildLinearCombinations": 3.338E-01
+ time for "buildLinearCombinations": 3.200E-01
  ------------------------------------------------------------- Input guess generated.
  Posting sends / receives for communicating the potential... done.
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 432 point to point communications, of which 232 could be overlapped with computation.
+ statistics: - 432 point to point communications, of which 128 could be overlapped with computation.
              - 64 copies on the same processor.
  statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
              - 64 copies on the same processor.
@@ -768,25 +780,25 @@ max deviation from unity:  1.609823E-15
  eval(3)=-3.71281E-01
  eval(4)=-3.71249E-01
  eval(5)=-3.20134E-01
- eval(6)=-2.63079E-01
+ eval(6)=-2.63081E-01
  eval(7)=-2.62928E-01  <-- last occupied orbital
  eval(8)= 3.38576E-01  <-- first virtual orbital
  eval(9)= 3.86909E-01
- eval(10)= 3.87035E-01
- eval(11)= 5.09620E-01
- eval(12)= 5.09762E-01
+ eval(10)= 3.87036E-01
+ eval(11)= 5.09619E-01
+ eval(12)= 5.09761E-01
  eval(13)= 5.86735E-01
- eval(14)= 6.11166E-01
- time for diagonalizing the Hamiltonian: 0.000E+00
+ eval(14)= 6.11167E-01
+ time for diagonalizing the Hamiltonian: 1.000E-02
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
              - 14 copies on the same processor.
-time for large loop:  1.1000E-01
- done. TOTAL CHARGE =   1.399999955408E+01
- time for sumrho:  1.1875E-01
+time for large loop:  1.0000E-01
+ done. TOTAL CHARGE =   1.399999955494E+01
+ time for sumrho:  1.2625E-01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -799,156 +811,156 @@ time for large loop:  1.1000E-01
  Orthonormalization... 
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  9.2736E-05
+   maximal deviation from unity:  9.3743E-05
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  1.1917E-06
+   maximal deviation from unity:  1.2056E-06
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:1.375E-02=36.7%
-   time for communication:2.375E-02=63.3%
-   time for calculating overlap:1.250E-03= 3.3%
-   time for expansion:3.750E-03=10.0%
-   time for Loewdin:5.000E-03=13.3%
+   time for computation:2.375E-02=57.6%
+   time for communication:1.750E-02=42.4%
+   time for calculating overlap:5.000E-03=12.1%
+   time for expansion:1.000E-02=24.2%
+   time for Loewdin:1.250E-03= 3.0%
    time for transform:0.000E+00= 0.0%
-   time for extract:2.500E-03= 6.7%
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1710 point to point communications, of which 734 could be overlapped with computation.
+   time for extract:6.250E-03=15.2%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
              - 0 copies on the same processor.
 time for dsymm   0.000000E+00
-time for daxpy   0.000000E+00
-   time for computation:1.750E-02=58.3%
-   time for communication:1.250E-02=41.7%
-   time for calculating overlap:1.250E-03= 4.2%
-   time for expansion:3.750E-03=12.5%
-   time for applying orthoconstraint:1.375E-02=45.8%
+time for daxpy   3.750000E-03
+   time for computation:7.500E-03=42.9%
+   time for communication:1.000E-02=57.1%
+   time for calculating overlap:2.500E-03=14.3%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:7.500E-03=42.9%
    time for extract:0.000E+00= 0.0%
 done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  4.0937389E-01  4.5646851E-01     0.8114625997
+ iter, fnrm, fnrmMax, trace     1  4.0937384E-01  4.6033300E-01     0.8114588525
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  1.5677E-01
+   maximal deviation from unity:  1.5692E-01
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  1.6220E-04
+   maximal deviation from unity:  1.6133E-04
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:2.125E-02=22.4%
-   time for communication:7.375E-02=77.6%
-   time for calculating overlap:8.750E-03= 9.2%
-   time for expansion:2.500E-03= 2.6%
-   time for Loewdin:5.000E-03= 5.3%
+   time for computation:2.000E-02=22.9%
+   time for communication:6.750E-02=77.1%
+   time for calculating overlap:1.000E-02=11.4%
+   time for expansion:1.250E-03= 1.4%
+   time for Loewdin:6.250E-03= 7.1%
    time for transform:0.000E+00= 0.0%
-   time for extract:3.750E-03= 3.9%
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1710 point to point communications, of which 734 could be overlapped with computation.
+   time for extract:2.500E-03= 2.9%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
              - 0 copies on the same processor.
 time for dsymm   0.000000E+00
-time for daxpy   1.000000E-02
-   time for computation:1.000E-02=47.1%
-   time for communication:1.125E-02=52.9%
-   time for calculating overlap:3.750E-03=17.6%
-   time for expansion:0.000E+00= 0.0%
-   time for applying orthoconstraint:1.000E-02=47.1%
+time for daxpy   0.000000E+00
+   time for computation:7.500E-03=40.0%
+   time for communication:1.125E-02=60.0%
+   time for calculating overlap:2.500E-03=13.3%
+   time for expansion:6.250E-03=33.3%
+   time for applying orthoconstraint:1.250E-03= 6.7%
    time for extract:0.000E+00= 0.0%
 done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  2.2609465E-01  2.4390167E-01    -0.2243585882
+ iter, fnrm, fnrmMax, trace     2  2.2605559E-01  2.4214951E-01    -0.2245159306
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  9.9213E-02
+   maximal deviation from unity:  9.9282E-02
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  1.6283E-03
+   maximal deviation from unity:  1.6544E-03
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:2.000E-02=20.5%
-   time for communication:7.750E-02=79.5%
-   time for calculating overlap:7.500E-03= 7.7%
-   time for expansion:8.750E-03= 9.0%
+   time for computation:1.625E-02=18.3%
+   time for communication:7.250E-02=81.7%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:1.000E-02=11.3%
    time for Loewdin:0.000E+00= 0.0%
    time for transform:0.000E+00= 0.0%
-   time for extract:2.500E-03= 2.6%
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1710 point to point communications, of which 734 could be overlapped with computation.
+   time for extract:5.000E-03= 5.6%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
              - 0 copies on the same processor.
 time for dsymm   0.000000E+00
-time for daxpy   0.000000E+00
-   time for computation:1.125E-02=52.9%
-   time for communication:1.000E-02=47.1%
-   time for calculating overlap:0.000E+00= 0.0%
-   time for expansion:1.000E-02=47.1%
-   time for applying orthoconstraint:1.250E-03= 5.9%
+time for daxpy   1.000000E-02
+   time for computation:1.000E-02=47.1%
+   time for communication:1.125E-02=52.9%
+   time for calculating overlap:1.250E-03= 5.9%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.000E-02=47.1%
    time for extract:0.000E+00= 0.0%
 done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  1.5137258E-01  1.7663504E-01    -1.0089049435
+ iter, fnrm, fnrmMax, trace     3  1.5100089E-01  1.7342569E-01    -1.0110351709
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  5.4746E-02
+   maximal deviation from unity:  5.4227E-02
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  2.5106E-04
+   maximal deviation from unity:  2.8321E-04
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:1.875E-02=19.5%
-   time for communication:7.750E-02=80.5%
-   time for calculating overlap:8.750E-03= 9.1%
-   time for expansion:0.000E+00= 0.0%
-   time for Loewdin:7.500E-03= 7.8%
-   time for transform:1.250E-03= 1.3%
-   time for extract:1.250E-03= 1.3%
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1710 point to point communications, of which 734 could be overlapped with computation.
+   time for computation:2.750E-02=30.1%
+   time for communication:6.375E-02=69.9%
+   time for calculating overlap:8.750E-03= 9.6%
+   time for expansion:8.750E-03= 9.6%
+   time for Loewdin:1.250E-03= 1.4%
+   time for transform:0.000E+00= 0.0%
+   time for extract:7.500E-03= 8.2%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
              - 0 copies on the same processor.
 time for dsymm   0.000000E+00
-time for daxpy   7.500000E-03
-   time for computation:1.000E-02=47.1%
-   time for communication:1.125E-02=52.9%
-   time for calculating overlap:8.750E-03=41.2%
-   time for expansion:0.000E+00= 0.0%
-   time for applying orthoconstraint:1.000E-02=47.1%
+time for daxpy   0.000000E+00
+   time for computation:3.750E-03=27.3%
+   time for communication:1.000E-02=72.7%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:2.500E-03=18.2%
+   time for applying orthoconstraint:1.250E-03= 9.1%
    time for extract:0.000E+00= 0.0%
 done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  1.4747329E-01  2.2386414E-01    -1.3912425580
+ iter, fnrm, fnrmMax, trace     4  1.4833137E-01  1.9250583E-01    -1.3864711504
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... 
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  6.2158E-02
+   maximal deviation from unity:  5.5633E-02
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  8.3456E-04
+   maximal deviation from unity:  1.2678E-03
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:1.750E-02=18.4%
-   time for communication:7.750E-02=81.6%
-   time for calculating overlap:5.000E-03= 5.3%
-   time for expansion:8.750E-03= 9.2%
-   time for Loewdin:1.250E-03= 1.3%
+   time for computation:2.125E-02=23.9%
+   time for communication:6.750E-02=76.1%
+   time for calculating overlap:1.000E-02=11.3%
+   time for expansion:2.500E-03= 2.8%
+   time for Loewdin:5.000E-03= 5.6%
    time for transform:0.000E+00= 0.0%
-   time for extract:2.500E-03= 2.6%
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1710 point to point communications, of which 734 could be overlapped with computation.
+   time for extract:3.750E-03= 4.2%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
              - 0 copies on the same processor.
 time for dsymm   0.000000E+00
-time for daxpy   0.000000E+00
-   time for computation:1.000E-02=50.0%
-   time for communication:1.000E-02=50.0%
-   time for calculating overlap:0.000E+00= 0.0%
-   time for expansion:8.750E-03=43.7%
-   time for applying orthoconstraint:1.250E-03= 6.2%
+time for daxpy   2.500000E-03
+   time for computation:7.500E-03=40.0%
+   time for communication:1.125E-02=60.0%
+   time for calculating overlap:6.250E-03=33.3%
+   time for expansion:2.500E-03=13.3%
+   time for applying orthoconstraint:5.000E-03=26.7%
    time for extract:0.000E+00= 0.0%
 done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     5  1.0702280E-01  1.9492497E-01    -1.6363138128
+ iter, fnrm, fnrmMax, trace     5  1.0484418E-01  2.1350005E-01    -1.6063188731
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   1.0702280E-01  1.9492497E-01  -1.6363138
+ Final values for fnrm, fnrmMax, trace:   1.0484418E-01  2.1350005E-01  -1.6063189
  ============================= Basis functions created. =============================
  timings:
-   -total time: 2.525E+00
-     - orthonormalization: 4.213E-01=16.7%
-     - Hamiltonian application: 4.825E-01=19.1%
-     - orthoconstraint: 1.663E-01= 6.6%
-     - preconditioning: 1.450E+00=57.4%
-     - other: 5.000E-03= 0.2%
+   -total time: 2.365E+00
+     - orthonormalization: 3.987E-01=16.9%
+     - Hamiltonian application: 3.837E-01=16.2%
+     - orthoconstraint: 1.400E-01= 5.9%
+     - preconditioning: 1.431E+00=60.5%
+     - other: 1.125E-02= 0.5%
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
  Posting sends / receives for the calculation of the charge density... done.
@@ -959,30 +971,30 @@ done. Preconditioning... done.
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.28463E-01
- eval(2)=-5.03182E-01
- eval(3)=-3.48136E-01
- eval(4)=-3.43696E-01
- eval(5)=-2.86250E-01
- eval(6)=-2.60789E-01
- eval(7)=-2.60553E-01  <-- last occupied orbital
- eval(8)= 6.34995E-02  <-- first virtual orbital
- eval(9)= 1.28747E-01
- eval(10)= 1.32619E-01
- eval(11)= 1.47181E-01
- eval(12)= 1.54395E-01
- eval(13)= 1.61912E-01
- eval(14)= 2.06414E-01
- time for diagonalizing the Hamiltonian: 0.000E+00
+ eval(1)=-6.22064E-01
+ eval(2)=-5.00623E-01
+ eval(3)=-3.47916E-01
+ eval(4)=-3.44679E-01
+ eval(5)=-2.83695E-01
+ eval(6)=-2.62383E-01
+ eval(7)=-2.60249E-01  <-- last occupied orbital
+ eval(8)= 6.55704E-02  <-- first virtual orbital
+ eval(9)= 1.27859E-01
+ eval(10)= 1.28681E-01
+ eval(11)= 1.48403E-01
+ eval(12)= 1.57164E-01
+ eval(13)= 1.74293E-01
+ eval(14)= 2.13374E-01
+ time for diagonalizing the Hamiltonian: 1.000E-02
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
  statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
              - 14 copies on the same processor.
-time for large loop:  1.1000E-01
- done. TOTAL CHARGE =   1.399998876634E+01
- time for sumrho: 1.100E-01
+time for large loop:  1.0000E-01
+ done. TOTAL CHARGE =   1.399998989162E+01
+ time for sumrho: 1.000E-01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -990,7 +1002,7 @@ time for large loop:  1.1000E-01
  at iteration 1 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy    1   1.17E-06   -1.42321283004001486E+01
+   it, Delta DENS, energy    1   1.19E-06   -1.41808774458150708E+01
  ##################################################################
  ======================== Creation of the basis functions... ========================
  statistics: - 432 point to point communications, of which 0 could be overlapped with computation.
@@ -1001,155 +1013,155 @@ time for large loop:  1.1000E-01
  Orthonormalization... 
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  8.3456E-04
+   maximal deviation from unity:  1.2678E-03
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  1.4183E-04
+   maximal deviation from unity:  2.1770E-04
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:1.500E-02=38.7%
-   time for communication:2.375E-02=61.3%
-   time for calculating overlap:1.250E-03= 3.2%
-   time for expansion:2.500E-03= 6.5%
-   time for Loewdin:7.500E-03=19.4%
+   time for computation:1.750E-02=45.2%
+   time for communication:2.125E-02=54.8%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:1.000E-02=25.8%
+   time for Loewdin:0.000E+00= 0.0%
    time for transform:0.000E+00= 0.0%
-   time for extract:2.500E-03= 6.5%
- Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1710 point to point communications, of which 734 could be overlapped with computation.
+   time for extract:6.250E-03=16.1%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
              - 0 copies on the same processor.
 time for dsymm   0.000000E+00
-time for daxpy   8.750000E-03
-   time for computation:1.000E-02=50.0%
-   time for communication:1.000E-02=50.0%
-   time for calculating overlap:3.750E-03=18.8%
+time for daxpy   7.500000E-03
+   time for computation:1.000E-02=47.1%
+   time for communication:1.125E-02=52.9%
+   time for calculating overlap:1.250E-03= 5.9%
    time for expansion:0.000E+00= 0.0%
-   time for applying orthoconstraint:1.000E-02=50.0%
+   time for applying orthoconstraint:1.000E-02=47.1%
    time for extract:0.000E+00= 0.0%
 done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     1  1.0376131E-01  1.8482276E-01    -2.1441864461
+ iter, fnrm, fnrmMax, trace     1  1.0194387E-01  2.0332139E-01    -2.1415116803
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=2
  Orthonormalization... 
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  4.1994E-02
+   maximal deviation from unity:  6.7490E-02
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  2.4607E-03
+   maximal deviation from unity:  2.1928E-03
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:1.625E-02=18.6%
-   time for communication:7.125E-02=81.4%
-   time for calculating overlap:6.250E-03= 7.1%
-   time for expansion:2.500E-03= 2.9%
-   time for Loewdin:6.250E-03= 7.1%
+   time for computation:2.750E-02=30.1%
+   time for communication:6.375E-02=69.9%
+   time for calculating overlap:1.000E-02=11.0%
+   time for expansion:1.000E-02=11.0%
+   time for Loewdin:0.000E+00= 0.0%
    time for transform:0.000E+00= 0.0%
-   time for extract:1.250E-03= 1.4%
+   time for extract:7.500E-03= 8.2%
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
              - 0 copies on the same processor.
 time for dsymm   0.000000E+00
-time for daxpy   7.500000E-03
-   time for computation:1.125E-02=52.9%
-   time for communication:1.000E-02=47.1%
-   time for calculating overlap:8.750E-03=41.2%
-   time for expansion:0.000E+00= 0.0%
-   time for applying orthoconstraint:1.125E-02=52.9%
+time for daxpy   3.750000E-03
+   time for computation:5.000E-03=33.3%
+   time for communication:1.000E-02=66.7%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:1.250E-03= 8.3%
+   time for applying orthoconstraint:3.750E-03=25.0%
    time for extract:0.000E+00= 0.0%
 done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     2  6.1518191E-02  1.0282874E-01    -2.2106228291
+ iter, fnrm, fnrmMax, trace     2  6.5292438E-02  1.4659740E-01    -2.2228843019
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=3
  Orthonormalization... 
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  1.7582E-02
+   maximal deviation from unity:  3.0246E-02
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  4.2614E-03
+   maximal deviation from unity:  3.5883E-03
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:1.875E-02=20.8%
-   time for communication:7.125E-02=79.2%
-   time for calculating overlap:8.750E-03= 9.7%
-   time for expansion:2.500E-03= 2.8%
-   time for Loewdin:6.250E-03= 6.9%
+   time for computation:2.000E-02=22.2%
+   time for communication:7.000E-02=77.8%
+   time for calculating overlap:1.250E-02=13.9%
+   time for expansion:0.000E+00= 0.0%
+   time for Loewdin:7.500E-03= 8.3%
    time for transform:0.000E+00= 0.0%
-   time for extract:1.250E-03= 1.4%
+   time for extract:0.000E+00= 0.0%
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
              - 0 copies on the same processor.
 time for dsymm   0.000000E+00
-time for daxpy   7.500000E-03
-   time for computation:1.000E-02=53.3%
-   time for communication:8.750E-03=46.7%
-   time for calculating overlap:1.000E-02=53.3%
-   time for expansion:0.000E+00= 0.0%
-   time for applying orthoconstraint:1.000E-02=53.3%
+time for daxpy   0.000000E+00
+   time for computation:7.500E-03=42.9%
+   time for communication:1.000E-02=57.1%
+   time for calculating overlap:2.500E-03=14.3%
+   time for expansion:7.500E-03=42.9%
+   time for applying orthoconstraint:0.000E+00= 0.0%
    time for extract:0.000E+00= 0.0%
 done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     3  5.4653787E-02  6.8957831E-02    -2.2723107853
+ iter, fnrm, fnrmMax, trace     3  5.5098701E-02  8.3112766E-02    -2.2794971030
  DIIS informations: history length=8, consecutive failures=0, total failures=0
  ----------------------------------------------------------------------------- iter=4
  Orthonormalization... 
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  1.8326E-02
+   maximal deviation from unity:  3.5389E-02
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  5.6256E-03
+   maximal deviation from unity:  4.7919E-03
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:2.000E-02=21.9%
-   time for communication:7.125E-02=78.1%
-   time for calculating overlap:7.500E-03= 8.2%
-   time for expansion:2.500E-03= 2.7%
-   time for Loewdin:7.500E-03= 8.2%
+   time for computation:1.250E-02=14.3%
+   time for communication:7.500E-02=85.7%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:5.000E-03= 5.7%
+   time for Loewdin:5.000E-03= 5.7%
    time for transform:0.000E+00= 0.0%
-   time for extract:2.500E-03= 2.7%
+   time for extract:2.500E-03= 2.9%
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
              - 0 copies on the same processor.
 time for dsymm   0.000000E+00
 time for daxpy   7.500000E-03
-   time for computation:1.000E-02=53.3%
-   time for communication:8.750E-03=46.7%
-   time for calculating overlap:1.000E-02=53.3%
+   time for computation:1.000E-02=61.5%
+   time for communication:6.250E-03=38.5%
+   time for calculating overlap:1.000E-02=61.5%
    time for expansion:0.000E+00= 0.0%
-   time for applying orthoconstraint:1.000E-02=53.3%
+   time for applying orthoconstraint:1.000E-02=61.5%
    time for extract:0.000E+00= 0.0%
 done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     4  5.3059121E-02  8.5978667E-02    -2.2822401156
- DIIS informations: history length=8, consecutive failures=0, total failures=0
+ iter, fnrm, fnrmMax, trace     4  6.5745543E-02  1.0419919E-01    -2.2778465981
+ DIIS informations: history length=8, consecutive failures=1, total failures=1
  ----------------------------------------------------------------------------- iter=5
  Orthonormalization... 
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  2.0816E-02
+   maximal deviation from unity:  1.8690E-02
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
-   maximal deviation from unity:  5.6479E-03
+   maximal deviation from unity:  3.0877E-03
    WARNING: orthonormalization not converged within 2 iterations.
-   time for computation:1.750E-02=19.7%
-   time for communication:7.125E-02=80.3%
-   time for calculating overlap:6.250E-03= 7.0%
-   time for expansion:2.500E-03= 2.8%
-   time for Loewdin:7.500E-03= 8.5%
+   time for computation:2.625E-02=28.8%
+   time for communication:6.500E-02=71.2%
+   time for calculating overlap:7.500E-03= 8.2%
+   time for expansion:8.750E-03= 9.6%
+   time for Loewdin:0.000E+00= 0.0%
    time for transform:0.000E+00= 0.0%
-   time for extract:1.250E-03= 1.4%
+   time for extract:8.750E-03= 9.6%
  Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
              - 0 copies on the same processor.
 time for dsymm   0.000000E+00
-time for daxpy   7.500000E-03
-   time for computation:1.125E-02=52.9%
-   time for communication:1.000E-02=47.1%
-   time for calculating overlap:8.750E-03=41.2%
+time for daxpy   5.000000E-03
+   time for computation:6.250E-03=35.7%
+   time for communication:1.125E-02=64.3%
+   time for calculating overlap:0.000E+00= 0.0%
    time for expansion:0.000E+00= 0.0%
-   time for applying orthoconstraint:1.125E-02=52.9%
+   time for applying orthoconstraint:6.250E-03=35.7%
    time for extract:0.000E+00= 0.0%
 done. Preconditioning... done. 
- iter, fnrm, fnrmMax, trace     5  5.1394782E-02  8.5911582E-02    -2.2788453033
+ iter, fnrm, fnrmMax, trace     5  5.9024630E-02  1.0413931E-01    -2.2812586825
  WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
- Final values for fnrm, fnrmMax, trace:   5.1394782E-02  8.5911582E-02  -2.2788453
+ Final values for fnrm, fnrmMax, trace:   5.9024630E-02  1.0413931E-01  -2.2812587
  ============================= Basis functions created. =============================
  timings:
-   -total time: 2.440E+00
-     - orthonormalization: 3.975E-01=16.3%
-     - Hamiltonian application: 4.475E-01=18.3%
-     - orthoconstraint: 1.512E-01= 6.2%
-     - preconditioning: 1.438E+00=58.9%
+   -total time: 2.366E+00
+     - orthonormalization: 4.000E-01=16.9%
+     - Hamiltonian application: 3.775E-01=16.0%
+     - orthoconstraint: 1.425E-01= 6.0%
+     - preconditioning: 1.440E+00=60.9%
      - other: 6.250E-03= 0.3%
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
@@ -1161,20 +1173,20 @@ done. Preconditioning... done.
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.88803E-01
- eval(2)=-5.46025E-01
- eval(3)=-3.90010E-01
- eval(4)=-3.83938E-01
- eval(5)=-3.45388E-01
- eval(6)=-3.00772E-01
- eval(7)=-2.97552E-01  <-- last occupied orbital
- eval(8)= 1.94677E-02  <-- first virtual orbital
- eval(9)= 7.29549E-02
- eval(10)= 9.22411E-02
- eval(11)= 9.54808E-02
- eval(12)= 1.02748E-01
- eval(13)= 1.25668E-01
- eval(14)= 1.65780E-01
+ eval(1)=-6.88723E-01
+ eval(2)=-5.45980E-01
+ eval(3)=-3.91094E-01
+ eval(4)=-3.88884E-01
+ eval(5)=-3.46068E-01
+ eval(6)=-3.02110E-01
+ eval(7)=-2.99746E-01  <-- last occupied orbital
+ eval(8)= 1.97823E-02  <-- first virtual orbital
+ eval(9)= 8.83245E-02
+ eval(10)= 9.13103E-02
+ eval(11)= 9.38345E-02
+ eval(12)= 1.04474E-01
+ eval(13)= 1.19167E-01
+ eval(14)= 1.64761E-01
  time for diagonalizing the Hamiltonian: 1.000E-02
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
@@ -1183,8 +1195,8 @@ time for wait:  0.0000E+00
  statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
              - 14 copies on the same processor.
 time for large loop:  1.0000E-01
- done. TOTAL CHARGE =   1.399998932673E+01
- time for sumrho: 1.000E-01
+ done. TOTAL CHARGE =   1.399998955241E+01
+ time for sumrho: 1.100E-01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Posting sends / receives for communicating the potential... done.
@@ -1192,124 +1204,191 @@ time for large loop:  1.0000E-01
  at iteration 2 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy    2   4.91E-07   -1.47489998130630227E+01
+   it, Delta DENS, energy    2   6.48E-07   -1.47835237774008021E+01
  ##################################################################
+ ======================== Creation of the basis functions... ========================
+ statistics: - 432 point to point communications, of which 0 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ ----------------------------------------------------------------------------- iter=1
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  3.0877E-03
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  6.4839E-04
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.625E-02=43.3%
+   time for communication:2.125E-02=56.7%
+   time for calculating overlap:6.250E-03=16.7%
+   time for expansion:2.500E-03= 6.7%
+   time for Loewdin:3.750E-03=10.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:2.500E-03= 6.7%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.250000E-03
+   time for computation:8.750E-03=43.7%
+   time for communication:1.125E-02=56.3%
+   time for calculating overlap:5.000E-03=25.0%
+   time for expansion:3.750E-03=18.7%
+   time for applying orthoconstraint:5.000E-03=25.0%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     1  6.1645938E-02  1.1369443E-01    -2.3722843726
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=2
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  4.3281E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.3144E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.375E-02=15.5%
+   time for communication:7.500E-02=84.5%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:8.750E-03= 9.9%
+   time for Loewdin:0.000E+00= 0.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:5.000E-03= 5.6%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   7.500000E-03
+   time for computation:1.125E-02=50.0%
+   time for communication:1.125E-02=50.0%
+   time for calculating overlap:1.250E-03= 5.6%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.125E-02=50.0%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     2  4.1583902E-02  8.3428482E-02    -2.4147601641
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=3
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.5295E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.8880E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.500E-02=27.8%
+   time for communication:6.500E-02=72.2%
+   time for calculating overlap:8.750E-03= 9.7%
+   time for expansion:8.750E-03= 9.7%
+   time for Loewdin:1.250E-03= 1.4%
+   time for transform:0.000E+00= 0.0%
+   time for extract:6.250E-03= 6.9%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   1.250000E-03
+time for daxpy   2.500000E-03
+   time for computation:6.250E-03=35.7%
+   time for communication:1.125E-02=64.3%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:1.250E-03= 7.1%
+   time for applying orthoconstraint:5.000E-03=28.6%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     3  4.2380270E-02  6.6324379E-02    -2.4482532781
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=4
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.5620E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.8605E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.125E-02=23.6%
+   time for communication:6.875E-02=76.4%
+   time for calculating overlap:1.000E-02=11.1%
+   time for expansion:2.500E-03= 2.8%
+   time for Loewdin:5.000E-03= 5.6%
+   time for transform:0.000E+00= 0.0%
+   time for extract:2.500E-03= 2.8%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.250000E-03
+   time for computation:7.500E-03=40.0%
+   time for communication:1.125E-02=60.0%
+   time for calculating overlap:5.000E-03=26.7%
+   time for expansion:3.750E-03=20.0%
+   time for applying orthoconstraint:3.750E-03=20.0%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     4  3.7500055E-02  6.0557213E-02    -2.4513930110
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=5
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.9913E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.9391E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.375E-02=15.7%
+   time for communication:7.375E-02=84.3%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:8.750E-03=10.0%
+   time for Loewdin:0.000E+00= 0.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:3.750E-03= 4.3%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   7.500000E-03
+   time for computation:1.125E-02=52.9%
+   time for communication:1.000E-02=47.1%
+   time for calculating overlap:2.500E-03=11.8%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.125E-02=52.9%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     5  3.5573680E-02  6.4749464E-02    -2.4515142267
+ WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   3.5573680E-02  6.4749464E-02  -2.4515142
+ ============================= Basis functions created. =============================
+ timings:
+   -total time: 2.366E+00
+     - orthonormalization: 3.938E-01=16.6%
+     - Hamiltonian application: 3.838E-01=16.2%
+     - orthoconstraint: 1.450E-01= 6.1%
+     - preconditioning: 1.436E+00=60.7%
+     - other: 7.500E-03= 0.3%
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
  Posting sends / receives for the calculation of the charge density... done.
  ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 432 point to point communications, of which 136 could be overlapped with computation.
-             - 64 copies on the same processor.
  statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
              - 64 copies on the same processor.
  Hamiltonian application... Hamiltonian application... done.
  statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
              - 18 copies on the same processor.
  Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.93999E-01
- eval(2)=-5.56034E-01
- eval(3)=-3.97307E-01
- eval(4)=-3.94356E-01
- eval(5)=-3.50154E-01
- eval(6)=-3.09967E-01
- eval(7)=-3.08975E-01  <-- last occupied orbital
- eval(8)= 8.16926E-03  <-- first virtual orbital
- eval(9)= 6.44119E-02
- eval(10)= 8.14327E-02
- eval(11)= 8.42397E-02
- eval(12)= 9.23211E-02
- eval(13)= 1.13671E-01
- eval(14)= 1.56039E-01
- time for diagonalizing the Hamiltonian: 1.000E-02
- Calculating charge density...time for kernel:  0.0000E+00
-time for test:  0.0000E+00
-time for allreduce:  0.0000E+00
-time for wait:  0.0000E+00
- statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
-             - 14 copies on the same processor.
-time for large loop:  1.0000E-01
- done. TOTAL CHARGE =   1.399998930150E+01
- time for sumrho: 1.100E-01
- ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
- Posting sends / receives for communicating the potential... done.
- ##################################################################
- at iteration 3 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
-   it, Delta DENS, energy    3   2.76E-07   -1.47676049562742406E+01
- ##################################################################
- statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
-             - 18 copies on the same processor.
- Posting sends / receives for the calculation of the charge density... done.
- ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 432 point to point communications, of which 136 could be overlapped with computation.
-             - 64 copies on the same processor.
- statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
-             - 64 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
-             - 18 copies on the same processor.
- Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-6.99800E-01
- eval(2)=-5.63907E-01
- eval(3)=-4.03950E-01
- eval(4)=-4.02063E-01
- eval(5)=-3.55315E-01
- eval(6)=-3.18772E-01
- eval(7)=-3.15578E-01  <-- last occupied orbital
- eval(8)= 1.54959E-03  <-- first virtual orbital
- eval(9)= 5.89668E-02
- eval(10)= 7.49149E-02
- eval(11)= 7.75947E-02
- eval(12)= 8.58743E-02
- eval(13)= 1.06286E-01
- eval(14)= 1.49531E-01
- time for diagonalizing the Hamiltonian: 1.000E-02
- Calculating charge density...time for kernel:  0.0000E+00
-time for test:  0.0000E+00
-time for allreduce:  0.0000E+00
-time for wait:  0.0000E+00
- statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
-             - 14 copies on the same processor.
-time for large loop:  1.0000E-01
- done. TOTAL CHARGE =   1.399998928736E+01
- time for sumrho: 1.100E-01
- ---------------------------------------------------------------- Updating potential.
- PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
- Posting sends / receives for communicating the potential... done.
- ##################################################################
- at iteration 4 of the self consistency cycle:
-   - WARNING: basis functions not converged!
-   - coefficients obtained by diagonalization.
-   it, Delta DENS, energy    4   1.61E-07   -1.48003683560003125E+01
- ##################################################################
- statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
-             - 18 copies on the same processor.
- Posting sends / receives for the calculation of the charge density... done.
- ----------------------------------- Determination of the orbitals in this new basis.
- statistics: - 432 point to point communications, of which 136 could be overlapped with computation.
-             - 64 copies on the same processor.
- statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
-             - 64 copies on the same processor.
- Hamiltonian application... Hamiltonian application... done.
- statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
-             - 18 copies on the same processor.
- Diagonalizing the Hamiltonian, sequential version... done.
- eval(1)=-7.03877E-01
- eval(2)=-5.69002E-01
- eval(3)=-4.08684E-01
- eval(4)=-4.06736E-01
- eval(5)=-3.58925E-01
- eval(6)=-3.24341E-01
- eval(7)=-3.19878E-01  <-- last occupied orbital
- eval(8)=-2.39785E-03  <-- first virtual orbital
- eval(9)= 5.56248E-02
- eval(10)= 7.09652E-02
- eval(11)= 7.36132E-02
- eval(12)= 8.19510E-02
- eval(13)= 1.01817E-01
- eval(14)= 1.45488E-01
+ eval(1)=-6.91124E-01
+ eval(2)=-5.55993E-01
+ eval(3)=-4.00990E-01
+ eval(4)=-3.95481E-01
+ eval(5)=-3.50575E-01
+ eval(6)=-3.10456E-01
+ eval(7)=-3.08949E-01  <-- last occupied orbital
+ eval(8)= 4.51572E-03  <-- first virtual orbital
+ eval(9)= 6.66449E-02
+ eval(10)= 7.68120E-02
+ eval(11)= 8.16936E-02
+ eval(12)= 8.26083E-02
+ eval(13)= 9.57552E-02
+ eval(14)= 1.54320E-01
  time for diagonalizing the Hamiltonian: 0.000E+00
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
@@ -1318,7 +1397,254 @@ time for wait:  0.0000E+00
  statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
              - 14 copies on the same processor.
 time for large loop:  1.0000E-01
- done. TOTAL CHARGE =   1.399998927958E+01
+ done. TOTAL CHARGE =   1.399999131398E+01
+ time for sumrho: 1.100E-01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ##################################################################
+ at iteration 3 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy    3   5.54E-07   -1.49054806819513743E+01
+ ##################################################################
+ ======================== Creation of the basis functions... ========================
+ statistics: - 432 point to point communications, of which 0 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ ----------------------------------------------------------------------------- iter=1
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.9391E-03
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  7.3034E-04
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.500E-02=62.5%
+   time for communication:1.500E-02=37.5%
+   time for calculating overlap:1.125E-02=28.1%
+   time for expansion:3.750E-03= 9.4%
+   time for Loewdin:3.750E-03= 9.4%
+   time for transform:0.000E+00= 0.0%
+   time for extract:6.250E-03=15.6%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.250000E-03
+   time for computation:1.000E-02=47.1%
+   time for communication:1.125E-02=52.9%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:7.500E-03=35.3%
+   time for applying orthoconstraint:2.500E-03=11.8%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     1  3.7457679E-02  6.8944539E-02    -2.4282668373
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=2
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.1778E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  2.2237E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.250E-02=25.0%
+   time for communication:6.750E-02=75.0%
+   time for calculating overlap:1.000E-02=11.1%
+   time for expansion:2.500E-03= 2.8%
+   time for Loewdin:5.000E-03= 5.6%
+   time for transform:0.000E+00= 0.0%
+   time for extract:3.750E-03= 4.2%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.250000E-03
+   time for computation:8.750E-03=41.2%
+   time for communication:1.250E-02=58.8%
+   time for calculating overlap:3.750E-03=17.6%
+   time for expansion:3.750E-03=17.6%
+   time for applying orthoconstraint:5.000E-03=23.5%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     2  2.8768841E-02  4.8810307E-02    -2.4509697279
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=3
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.0968E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  3.3594E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.500E-02=17.1%
+   time for communication:7.250E-02=82.9%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:8.750E-03=10.0%
+   time for Loewdin:0.000E+00= 0.0%
+   time for transform:0.000E+00= 0.0%
+   time for extract:5.000E-03= 5.7%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   1.000000E-02
+   time for computation:1.000E-02=44.4%
+   time for communication:1.250E-02=55.6%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.000E-02=44.4%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     3  2.8969474E-02  4.4749558E-02    -2.4653946756
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=4
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.3323E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  4.1642E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:2.500E-02=27.4%
+   time for communication:6.625E-02=72.6%
+   time for calculating overlap:8.750E-03= 9.6%
+   time for expansion:7.500E-03= 8.2%
+   time for Loewdin:3.750E-03= 4.1%
+   time for transform:0.000E+00= 0.0%
+   time for extract:5.000E-03= 5.5%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   0.000000E+00
+   time for computation:8.750E-03=46.7%
+   time for communication:1.000E-02=53.3%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:7.500E-03=40.0%
+   time for applying orthoconstraint:1.250E-03= 6.7%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     4  2.4825494E-02  3.1997794E-02    -2.4690694514
+ DIIS informations: history length=8, consecutive failures=0, total failures=0
+ ----------------------------------------------------------------------------- iter=5
+ Orthonormalization... 
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  1.9635E-02
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+   maximal deviation from unity:  4.5296E-03
+   WARNING: orthonormalization not converged within 2 iterations.
+   time for computation:1.250E-02=13.9%
+   time for communication:7.750E-02=86.1%
+   time for calculating overlap:0.000E+00= 0.0%
+   time for expansion:3.750E-03= 4.2%
+   time for Loewdin:6.250E-03= 6.9%
+   time for transform:0.000E+00= 0.0%
+   time for extract:1.250E-03= 1.4%
+ Hamiltonian application...  Hamiltonian application...done. Orthoconstraint...  statistics: - 1708 point to point communications, of which 732 could be overlapped with computation.
+             - 0 copies on the same processor.
+time for dsymm   0.000000E+00
+time for daxpy   7.500000E-03
+   time for computation:1.000E-02=57.1%
+   time for communication:7.500E-03=42.9%
+   time for calculating overlap:8.750E-03=50.0%
+   time for expansion:0.000E+00= 0.0%
+   time for applying orthoconstraint:1.000E-02=57.1%
+   time for extract:0.000E+00= 0.0%
+done. Preconditioning... done. 
+ iter, fnrm, fnrmMax, trace     5  2.4680356E-02  3.6118361E-02    -2.4687093058
+ WARNING: not converged within 5 iterations! Exiting loop due to limitations of iterations.
+ Final values for fnrm, fnrmMax, trace:   2.4680356E-02  3.6118361E-02  -2.4687093
+ ============================= Basis functions created. =============================
+ timings:
+   -total time: 2.365E+00
+     - orthonormalization: 3.988E-01=16.9%
+     - Hamiltonian application: 3.762E-01=15.9%
+     - orthoconstraint: 1.500E-01= 6.3%
+     - preconditioning: 1.436E+00=60.7%
+     - other: 3.750E-03= 0.2%
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application... Hamiltonian application... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ eval(1)=-6.92804E-01
+ eval(2)=-5.54607E-01
+ eval(3)=-3.98405E-01
+ eval(4)=-3.96507E-01
+ eval(5)=-3.51129E-01
+ eval(6)=-3.08237E-01
+ eval(7)=-3.06435E-01  <-- last occupied orbital
+ eval(8)= 2.66229E-03  <-- first virtual orbital
+ eval(9)= 6.11041E-02
+ eval(10)= 7.12639E-02
+ eval(11)= 8.03030E-02
+ eval(12)= 8.27655E-02
+ eval(13)= 8.61721E-02
+ eval(14)= 1.55543E-01
+ time for diagonalizing the Hamiltonian: 0.000E+00
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.0000E-01
+ done. TOTAL CHARGE =   1.399999337622E+01
+ time for sumrho: 1.100E-01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ##################################################################
+ at iteration 4 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy    4   2.86E-07   -1.48572093609788496E+01
+ ##################################################################
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 432 point to point communications, of which 136 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application... Hamiltonian application... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ eval(1)=-6.93503E-01
+ eval(2)=-5.57981E-01
+ eval(3)=-4.00938E-01
+ eval(4)=-3.98187E-01
+ eval(5)=-3.52048E-01
+ eval(6)=-3.10673E-01
+ eval(7)=-3.10080E-01  <-- last occupied orbital
+ eval(8)=-4.27273E-04  <-- first virtual orbital
+ eval(9)= 5.83458E-02
+ eval(10)= 6.82137E-02
+ eval(11)= 7.77571E-02
+ eval(12)= 8.00771E-02
+ eval(13)= 8.42942E-02
+ eval(14)= 1.52789E-01
+ time for diagonalizing the Hamiltonian: 0.000E+00
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.1000E-01
+ done. TOTAL CHARGE =   1.399999337751E+01
  time for sumrho: 1.100E-01
  ---------------------------------------------------------------- Updating potential.
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
@@ -1327,49 +1653,94 @@ time for large loop:  1.0000E-01
  at iteration 5 of the self consistency cycle:
    - WARNING: basis functions not converged!
    - coefficients obtained by diagonalization.
-   it, Delta DENS, energy    5   9.52E-08   -1.48247863034781062E+01
+   it, Delta DENS, energy    5   1.44E-07   -1.48599407590308630E+01
+ ##################################################################
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Posting sends / receives for the calculation of the charge density... done.
+ ----------------------------------- Determination of the orbitals in this new basis.
+ statistics: - 432 point to point communications, of which 128 could be overlapped with computation.
+             - 64 copies on the same processor.
+ statistics: - 432 point to point communications, of which 432 could be overlapped with computation.
+             - 64 copies on the same processor.
+ Hamiltonian application... Hamiltonian application... done.
+ statistics: - 122 point to point communications, of which 0 could be overlapped with computation.
+             - 18 copies on the same processor.
+ Diagonalizing the Hamiltonian, sequential version... done.
+ eval(1)=-6.94851E-01
+ eval(2)=-5.60558E-01
+ eval(3)=-4.03164E-01
+ eval(4)=-3.99827E-01
+ eval(5)=-3.53378E-01
+ eval(6)=-3.12728E-01
+ eval(7)=-3.12648E-01  <-- last occupied orbital
+ eval(8)=-2.40821E-03  <-- first virtual orbital
+ eval(9)= 5.64334E-02
+ eval(10)= 6.62395E-02
+ eval(11)= 7.59530E-02
+ eval(12)= 7.81763E-02
+ eval(13)= 8.30640E-02
+ eval(14)= 1.50806E-01
+ time for diagonalizing the Hamiltonian: 1.000E-02
+ Calculating charge density...time for kernel:  0.0000E+00
+time for test:  0.0000E+00
+time for allreduce:  0.0000E+00
+time for wait:  0.0000E+00
+ statistics: - 94 point to point communications, of which 94 could be overlapped with computation.
+             - 14 copies on the same processor.
+time for large loop:  1.0000E-01
+ done. TOTAL CHARGE =   1.399999337713E+01
+ time for sumrho: 1.000E-01
+ ---------------------------------------------------------------- Updating potential.
+ PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
+ Posting sends / receives for communicating the potential... done.
+ ##################################################################
+ at iteration 6 of the self consistency cycle:
+   - WARNING: basis functions not converged!
+   - coefficients obtained by diagonalization.
+   it, Delta DENS, energy    6   7.77E-08   -1.48679855115639441E+01
  ##################################################################
  Posting sends / receives for the calculation of the charge density... done.
  Calculating charge density...time for kernel:  0.0000E+00
 time for test:  0.0000E+00
 time for allreduce:  0.0000E+00
 time for wait:  0.0000E+00
- statistics: - 94 point to point communications, of which 28 could be overlapped with computation.
+ statistics: - 94 point to point communications, of which 40 could be overlapped with computation.
              - 14 copies on the same processor.
-time for large loop:  1.0000E-01
- done. TOTAL CHARGE =   1.399998927958E+01
+time for large loop:  1.1000E-01
+ done. TOTAL CHARGE =   1.399999337713E+01
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:   121  113  111   proc    8 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
- average noise along x direction:   2.01555966E-03
- average noise along y direction:   1.97080103E-03
- average noise along z direction:  -3.81490708E-03
- total average noise            :   4.74342213E-03
- clean forces norm (Ha/Bohr): maxval=  5.787102650587E-02  fnrm2=  6.067955028529E-03
- raw forces:                  maxval=  5.995826857697E-02  fnrm2=  6.147392130259E-03
+ average noise along x direction:  -1.68403512E-02
+ average noise along y direction:  -1.74617894E-02
+ average noise along z direction:  -1.74945594E-03
+ total average noise            :   2.43222555E-02
+ clean forces norm (Ha/Bohr): maxval=  4.415072016561E-02  fnrm2=  3.329649050725E-03
+ raw forces:                  maxval=  5.063467128082E-02  fnrm2=  3.984146193055E-03
  Force values for all atoms in x, y, z direction.
-   1      C   4.99640E-02 -1.05164E-02 -2.72408E-02
-   2      C  -4.49341E-02  1.46705E-02  1.14516E-02
-   3      H  -6.75134E-03 -6.59468E-03  5.43366E-03
-   4      H   2.39837E-03 -6.24162E-03  8.06993E-03
-   5      H  -3.60161E-03 -2.08719E-03  4.52903E-03
-   6      H  -2.94223E-03  4.98134E-03 -1.44212E-03
-   7      H   5.78631E-04  1.93670E-03  1.08985E-03
-   8      H   5.28822E-03  3.85133E-03 -1.89117E-03
+   1      C   8.06175E-03 -4.31910E-02 -4.33942E-03
+   2      C  -2.76744E-02  3.38914E-03 -4.27097E-03
+   3      H  -1.12668E-03  3.16779E-03  4.14234E-03
+   4      H   9.66178E-03  6.48272E-03  5.73840E-03
+   5      H   9.05059E-03  5.69733E-03 -3.61671E-03
+   6      H  -7.50682E-04  1.00699E-02  3.04515E-03
+   7      H  -2.28049E-03  8.06643E-03 -2.92706E-03
+   8      H   5.05818E-03  6.31770E-03  2.22827E-03
  ================================================
- total time for linear scaling version: 9.99E+00s
+ total time for linear scaling version: 1.47E+01s
  ================================================
  Final values of the Forces for each atom
-     1      C  4.99640E-02 -1.05164E-02 -2.72408E-02
-     2      C -4.49341E-02  1.46705E-02  1.14516E-02
-     3      H -6.75134E-03 -6.59468E-03  5.43366E-03
-     4      H  2.39837E-03 -6.24162E-03  8.06993E-03
-     5      H -3.60161E-03 -2.08719E-03  4.52903E-03
-     6      H -2.94223E-03  4.98134E-03 -1.44212E-03
-     7      H  5.78631E-04  1.93670E-03  1.08985E-03
-     8      H  5.28822E-03  3.85133E-03 -1.89117E-03
+     1      C  8.06175E-03 -4.31910E-02 -4.33942E-03
+     2      C -2.76744E-02  3.38914E-03 -4.27097E-03
+     3      H -1.12668E-03  3.16779E-03  4.14234E-03
+     4      H  9.66178E-03  6.48272E-03  5.73840E-03
+     5      H  9.05059E-03  5.69733E-03 -3.61671E-03
+     6      H -7.50682E-04  1.00699E-02  3.04515E-03
+     7      H -2.28049E-03  8.06643E-03 -2.92706E-03
+     8      H  5.05818E-03  6.31770E-03  2.22827E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 6247 allocations and 6237 deallocations, remaining memory(B): 328
+ 7772 allocations and 7759 deallocations, remaining memory(B): 352
  memory occupation peak: 75 MB
  for the array  wz in the routine gaussians_to_wavelets_orb
