@@ -1563,7 +1563,7 @@ module module_interfaces
       implicit none
       integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
       type(locreg_descriptors),intent(in) :: Glr
-      type(orbitals_data),intent(in):: orbs
+      type(orbitals_data),intent(inout):: orbs
       type(communications_arrays),intent(in) :: comms
       type(atoms_data),intent(inout):: at
       type(linearParameters),intent(in out):: lin
@@ -1589,8 +1589,8 @@ module module_interfaces
       character(len=3),intent(in):: PSquiet
       real(gp),intent(in):: eion, edisp, eexctX
       logical,intent(in):: scpot
-      real(8),dimension(orbs%npsidim),intent(out):: psi
-      real(8),dimension(:),pointer,intent(out):: psit
+      !real(8),dimension(orbs%npsidim),intent(out):: psi
+      real(8),dimension(:),pointer,intent(out):: psi, psit
       real(8),intent(out):: energy
       real(8),dimension(3,at%nat),intent(out):: fxyz
       !real(8),intent(out):: fnoise
@@ -4437,6 +4437,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        type(orbitals_data),intent(in):: orbs
        type(local_zone_descriptors),intent(inout):: lzd
      end subroutine free_lnlpspd
+
+
+     subroutine transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(linearParameters),intent(in):: lin
+       type(orbitals_data),intent(in):: orbs
+       type(communications_arrays):: comms
+       type(input_variables),intent(in):: input
+       real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
+       real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
+       real(8),dimension(orbs%npsidim),intent(out):: psi, psit
+     end subroutine transformToGlobal
+
+
 
   end interface
 

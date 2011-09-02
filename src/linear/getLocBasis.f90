@@ -1340,6 +1340,7 @@ end subroutine buildWavefunction
 
 
 subroutine buildWavefunctionModified(iproc, nproc, orbs, orbsLIN, comms, commsLIN, phi, psi, coeff)
+
 !
 ! Purpose:
 ! =======

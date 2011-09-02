@@ -62,7 +62,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
 type(locreg_descriptors),intent(in) :: Glr
-type(orbitals_data),intent(in):: orbs
+type(orbitals_data),intent(inout):: orbs
 type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(inout):: at
 type(linearParameters),intent(in out):: lin
@@ -88,8 +88,8 @@ real(wp), dimension(lin%as%size_potxc(1),lin%as%size_potxc(2),lin%as%size_potxc(
 character(len=3),intent(in):: PSquiet
 real(gp),intent(in):: eion, edisp, eexctX
 logical,intent(in):: scpot
-real(8),dimension(orbs%npsidim),intent(out):: psi
-real(8),dimension(:),pointer,intent(out):: psit
+!real(8),dimension(orbs),intent(out):: psi
+real(8),dimension(:),pointer,intent(out):: psi, psit
 real(8),intent(out):: energy
 real(8),dimension(3,at%nat),intent(out):: fxyz
 !real(8),intent(out):: fnoise
@@ -120,6 +120,9 @@ type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
 
 
+  !do iall=0,nproc-1
+  !    write(*,'(a,i5,4i12)') 'START: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
+  !end do
 
 
   if(iproc==0) then
@@ -132,6 +135,16 @@ type(workarr_sumrho):: w
   tag=0
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
        input, rxyz, nscatterarr, tag, coeff, lphi)
+
+  if(.not.lin%transformToGlobal) then
+      ! psi and psit will not be calculated, so only allocate them with size 1
+      orbs%npsidim=1
+  end if
+  allocate(psi(orbs%npsidim), stat=istat)
+  call memocc(istat, psi, 'psi', subname)
+  allocate(psit(orbs%npsidim), stat=istat)
+  call memocc(istat, psit, 'psit', subname)
+
 
   call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
 
@@ -341,6 +354,9 @@ type(workarr_sumrho):: w
 
   ! Build global orbitals psi (the physical ones).
   if(lin%transformToGlobal) then
+      !do iall=0,nproc-1
+      !    write(*,'(a,i5,4i12)') 'CALLING transformToGlobal: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
+      !end do
       call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
   end if
 
@@ -493,7 +509,7 @@ end subroutine cancelCommunicationPotential
 subroutine transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
 use module_base
 use module_types
-use module_interfaces
+use module_interfaces, exceptThisOne => transformToGlobal
 implicit none
 
 ! Calling arguments
@@ -503,14 +519,17 @@ type(orbitals_data),intent(in):: orbs
 type(communications_arrays):: comms
 type(input_variables),intent(in):: input
 real(8),dimension(lin%lb%orbs%norb,orbs%norb),intent(in):: coeff
-real(8),dimension(lin%orbs%npsidim),intent(inout):: lphi
+real(8),dimension(lin%lb%orbs%npsidim),intent(inout):: lphi
 real(8),dimension(orbs%npsidim),intent(out):: psi, psit
 
 ! Local variables
-integer:: ind1, ind2, istat, iall, iorb, ilr, ldim, gdim
+integer:: ind1, ind2, istat, iall, iorb, ilr, ldim, gdim, nvctrp
 real(8),dimension(:),pointer:: phiWork
 real(8),dimension(:),allocatable:: phi
 character(len=*),parameter:: subname='transformToGlobal'
+  !do iall=0,nproc-1
+  !    write(*,'(a,i5,4i12)') 'START transformToGlobal: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
+  !end do
 
   allocate(phi(lin%gorbs%npsidim), stat=istat)
   call memocc(istat, phi, 'phi', subname)
@@ -529,7 +548,19 @@ character(len=*),parameter:: subname='transformToGlobal'
       ind1=ind1+lin%lzd%Glr%wfd%nvctr_c+7*lin%lzd%Glr%wfd%nvctr_f
       ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
   end do
+  !if(ind1/=lin%gorbs%npsidim+1) then
+  !    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ind1/=lin%gorbs%npsidim',ind1,lin%gorbs%npsidim
+  !end if
+  !if(ind2/=lin%lb%orbs%npsidim+1) then
+  !    write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ',iproc,': ind1/=lin%lb%orbs%npsidim',ind1,lin%lb%orbs%npsidim
+  !end if
+  !do iall=0,nproc-1
+  !    write(*,'(a,i5,4i12)') 'after loop: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
+  !end do
   call transpose_v(iproc, nproc, lin%lb%orbs, lin%lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
+  !do iall=0,nproc-1
+  !    write(*,'(a,i5,4i12)') 'after transpose phi: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
+  !end do
 
 
   if(iproc==0) then
@@ -537,12 +568,31 @@ character(len=*),parameter:: subname='transformToGlobal'
   end if
   ! Build the extended orbital psi as a linear combination of localized basis functions phi. for real O(N)
   ! this has to replaced, but at the moment it is still needed.
-  call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%orbs, comms, lin%lb%comms, phi, psi, coeff)
+  !call buildWavefunctionModified(iproc, nproc, orbs, lin%lb%gorbs, comms, lin%lb%gcomms, phi, psi, coeff)
+  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
+  !write(*,*) 'iproc, nvctrp', iproc, nvctrp
+  !write(*,*) 'iproc, orbs%npsidim', iproc, orbs%npsidim
+  call dgemm('n', 'n', nvctrp, orbs%norb, lin%lb%orbs%norb, 1.d0, phi(1), nvctrp, coeff(1,1), &
+       lin%lb%orbs%norb, 0.d0, psi(1), nvctrp)
+
+  !do iall=0,nproc-1
+  !    write(*,'(a,i5,4i12)') 'after buildWavefunctionModified: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
+  !end do
 
 
   call dcopy(orbs%npsidim, psi, 1, psit, 1)
 
   call untranspose_v(iproc, nproc, lin%lb%orbs, lin%lzd%Glr%wfd, lin%lb%comms, phi, work=phiWork)
+!  do iall=0,nproc-1
+!      write(*,'(a,i5,4i12)') 'after untranspose phi: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
+!  end do
+!
+  !do iall=0,nproc-1
+  !    write(*,'(a,i5,4i12)') 'iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
+  !end do
+  !call mpi_barrier(mpi_comm_world, iall)
+  !flush(6)
+  !stop
   call untranspose_v(iproc, nproc, orbs, lin%lzd%Glr%wfd, comms, psi, work=phiWork)
 
   if(iproc==0) write(*,'(a)') 'done.'
