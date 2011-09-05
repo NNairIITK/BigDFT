@@ -686,6 +686,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
            call razero(3*at%nat,fxyz_orb)
            do iat=1,at%nat
               ityp=at%iatype(iat)
+              if(iproc==0) write(*,'(a,i0)') 'iat=',iat
 
               ! Copy scalprod to temporary array for communication.
               ncount=2*4*7*3*4
