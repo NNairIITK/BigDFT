@@ -493,7 +493,7 @@ end subroutine calculate_energy_and_gradient
 
 !>   Operations after h|psi> 
 !!   (transposition, orthonormalisation, inverse transposition)
-subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,input)
+subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspin,orthpar)
   use module_base
   use module_types
   use module_interfaces, except_this_one_A => hpsitopsi
@@ -502,7 +502,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspi
   type(locreg_descriptors), intent(in) :: lr
   type(communications_arrays), intent(in) :: comms
   type(orbitals_data), intent(in) :: orbs
-  type(input_variables), intent(in) :: input
+  type(orthon_data), intent(in) :: orthpar
   type(diis_objects), intent(inout) :: diis
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   !local variables
@@ -539,7 +539,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,lr,comms,iter,diis,idsx,psi,psit,hpsi,nspi
           'Orthogonalization...'
   end if
 
-  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,input)
+  call orthogonalize(iproc,nproc,orbs,comms,lr%wfd,psit,orthpar)
 
   !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
@@ -681,7 +681,7 @@ end subroutine select_active_space
 
 
 !>   First orthonormalisation
-subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
+subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,orthpar)
   use module_base
   use module_types
   use module_interfaces, except_this_one_B => first_orthon
@@ -690,7 +690,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(communications_arrays), intent(in) :: comms
-  type(input_variables):: input
+  type(orthon_data):: orthpar
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='first_orthon'
@@ -719,7 +719,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit,input)
   call transpose_v(iproc,nproc,orbs,wfd,comms,psi,&
        work=hpsi,outadd=psit(1))
 
-  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,input)
+  call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,orthpar)
 
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
@@ -766,8 +766,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum, opt
      keeppsit=.false.
   end if
 
-  call transpose_v(iproc,nproc,orbs,wfd,comms,&
-       hpsi,work=psi)
+  call transpose_v(iproc,nproc,orbs,wfd,comms,hpsi,work=psi)
   if (nproc==1) then
      psit => psi
      call transpose_v(iproc,nproc,orbs,wfd,comms,psit)
@@ -957,7 +956,6 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
              end if
           enddo
        enddo
-
        if (occopt == SMEARING_DIST_ERF) then
           ! next  line error function distribution
           dlectrons=dlectrons*factor
@@ -965,16 +963,20 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf,orbs)
           ! next  line Fermi function distribution
           dlectrons=dlectrons/wf
        end if
-       
        diff=real(melec,gp)/full-electrons
        if (abs(diff) < 1.d-12) exit loop_fermi
-       corr=diff/dlectrons
+       if (abs(dlectrons) <= 1d-45) then
+          corr=wf
+       else
+          corr=diff/dlectrons
+       end if
        !if (iproc==0) write(*,*) ii,electrons,ef,dlectrons,melec,corr
        if (corr > 1.d0*wf) corr=1.d0*wf
        if (corr < -1.d0*wf) corr=-1.d0*wf
        if (abs(dlectrons) < 1.d-18  .and. electrons > real(melec,gp)/full) corr=3.d0*wf
        if (abs(dlectrons) < 1.d-18  .and. electrons < real(melec,gp)/full) corr=-3.d0*wf
        ef=ef-corr
+
     end do loop_fermi
     
     do ikpt=1,orbs%nkpts

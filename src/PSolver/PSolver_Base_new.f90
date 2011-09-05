@@ -278,7 +278,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
   !now each process perform complete convolution of its planes
 
   !$omp parallel default(shared)&
-  !$omp private(nfft,Jp2stb,J2stb,Jp2stf,J2stf,ma,mb,inzee,zt,zw,lot)
+  !$omp private(nfft,Jp2stb,J2stb,Jp2stf,J2stf,ma,mb,inzee,zt,zw,lot,i3)
   !$omp critical
     allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
     call memocc(i_stat,zw,'zw',subname)

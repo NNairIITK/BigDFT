@@ -67,10 +67,9 @@ program BigDFT
      arr_posinp(1)='posinp'
   end if
 
-        open(unit=16,file='geopt.mon',status='unknown',position='append')
-        if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+  open(unit=16,file='geopt.mon',status='unknown',position='append')
+  if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
   do iconfig=1,nconfig
-
      !welcome screen
      if (iproc==0) call print_logo()
 
@@ -113,7 +112,6 @@ program BigDFT
         call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
      end if
 
-
      if (iproc == 0) then
         sumx=0.d0
         sumy=0.d0
@@ -154,7 +152,7 @@ program BigDFT
 
   deallocate(arr_posinp)
 
-  ! Barrier suggested by support for titane.ccc.cea.fr, before finalise.
+  !wait all processes before finalisation
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   call MPI_FINALIZE(ierr)

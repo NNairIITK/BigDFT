@@ -217,7 +217,7 @@ END SUBROUTINE Gaussian_DiagHam
 !! INPUT VARIABLES
 !!    @param iproc  process id
 !!    @param nproc  number of mpi processes
-!!    n@param atsc  number of semicore atoms for the orthogonalisation treatment
+!!    @param natsc  number of semicore atoms for the orthogonalisation treatment
 !!                  used as a dimension for the array of semicore atoms
 !!    @param nspin  spin polarised id; 1 => non spin-polarised; 2 => spin-polarised (collinear)
 !!    @param norbu  number of up orbitals in the spin-polarised case; for non spin-pol equal to norb
@@ -251,8 +251,10 @@ END SUBROUTINE Gaussian_DiagHam
 !!           if nvirte=0: unchanged on output
 !!    @param eval   array of the first norb eigenvalues       
 !! Author:
+!!    Luigi Genovese (2007-2009-2011)
+!!    Stephan Mohr (2010-2011)
 subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
-     psi,hpsi,psit,input,& !mandatory
+     psi,hpsi,psit,orthpar,passmat,& !mandatory
      orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
   use module_base
   use module_types
@@ -262,7 +264,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   type(wavefunctions_descriptors) :: wfd
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
-  type(input_variables):: input
+  type(orthon_data), intent(in) :: orthpar
+  real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
   real(wp), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
   real(gp), optional, intent(in) :: etol
@@ -276,7 +279,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal,linear_nosemicore
   integer :: ikptp,ikpt,nvctrp
-  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll
+  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(gp) :: tolerance
   type(orbitals_data), pointer :: orbsu
@@ -284,7 +287,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   integer, dimension(:,:), allocatable :: norbgrp
   real(wp), dimension(:,:,:), allocatable :: hamovr
   real(wp), dimension(:), pointer :: psiw
-     
+
   !performs some check of the arguments
   if (present(orbse) .neqv. present(commse)) then
      !if (iproc ==0) 
@@ -322,7 +325,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      allocate(psiw(npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   else
-     psiw => null()
+     nullify(psiw)
   end if
 
   !transpose all the wavefunctions for having a piece of all the orbitals 
@@ -463,97 +466,105 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 
   !in the case of minimal basis allocate now the transposed wavefunction
   !otherwise do it only in parallel
-  if (minimal .or. nproc > 1) then
-     allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psit,'psit',subname)
-  else
-     psit => hpsi
+  if (.not. associated(psit)) then
+     if (minimal .or. nproc > 1) then
+        allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psit,'psit',subname)
+     else
+        psit => hpsi
+     end if
   end if
 
   ! There are two possibilities to generate the input guess
-  differentInputGuess: if(.not. input%directDiag) then
-      if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
+  differentInputGuess: if(.not. orthpar%directDiag) then
+     if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
 
-      if(present(orbsv)) then
-          write(*,'(a)') 'ERROR: Virtual orbitals cannot be handled with the iterative input guess at the moment.'
-          write(*,'(a)') "Change the value of input%directDiag in 'input.perf' to 'T'."
-          stop
-       end if
-       call inputguessParallel(iproc, nproc, orbs, norbsc_arr, hamovr, &
-            psi, psit, input, nspin, nspinor, npsidim, comms, natsc, ndim_hamovr, norbsc)
-       
+     if(present(orbsv)) then
+        write(*,'(a)') 'ERROR: Virtual orbitals cannot be handled with the iterative input guess at the moment.'
+        write(*,'(a)') "Change the value of input%directDiag in 'input.perf' to 'T'."
+        stop
+     end if
+     call inputguessParallel(iproc, nproc, orbs, norbsc_arr, hamovr, &
+          psi, psit, orthpar, nspin, nspinor, npsidim, comms, natsc, ndim_hamovr, norbsc)
+
   else
 
-      if(iproc==0) write(*,'(1x,a)') 'Direct diagonalization...'
+     if(iproc==0) write(*,'(1x,a)') 'Direct diagonalization...'
 
-      call timing(iproc, 'Input_comput', 'ON')
+     call timing(iproc, 'Input_comput', 'ON')
 
-      ispsi=1
-      !it is important that the k-points repartition of the inputguess orbitals
-      !coincides with the one of the SCF orbitals
-      do ikptp=1,orbsu%nkptsp
-         ikpt=orbsu%iskpts+ikptp!orbs%ikptsp(ikptp)
-         call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
-              ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,1,ikpt),&
-              orbs%eval((ikpt-1)*orbs%norb+1))
-      end do
-      
-    !!$  !not necessary anymore since psivirt is gaussian
-      !allocate the pointer for virtual orbitals
-  if(present(orbsv) .and. present(psivirt)) then
-     if (orbsv%norb > 0) then
-        allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
-        call memocc(i_stat,psivirt,'psivirt',subname)
+     ispsi=1
+     !it is important that the k-points repartition of the inputguess orbitals
+     !coincides with the one of the SCF orbitals
+     do ikptp=1,orbsu%nkptsp
+        ikpt=orbsu%iskpts+ikptp!orbs%ikptsp(ikptp)
+        call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
+             ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,1,ikpt),&
+             orbs%eval((ikpt-1)*orbs%norb+1))
+     end do
+
+!!$  !not necessary anymore since psivirt is gaussian
+     !allocate the pointer for virtual orbitals
+     if(present(orbsv) .and. present(psivirt)) then
+        if (orbsv%norb > 0) then
+           allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
+           call memocc(i_stat,psivirt,'psivirt',subname)
+        end if
+     else if(present(psivirt)) then
+        if (orbsv%norb == 0) then
+           allocate(psivirt(1+ndebug),stat=i_stat)
+           call memocc(i_stat,psivirt,'psivirt',subname)
+        end if
      end if
-  else if(present(psivirt)) then
-     if (orbsv%norb == 0) then
-        allocate(psivirt(1+ndebug),stat=i_stat)
-        call memocc(i_stat,psivirt,'psivirt',subname)
-     end if
-  end if
-    
-      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
-      nvctr=wfd%nvctr_c+7*wfd%nvctr_f
 
-      ispsi=1
-      ispsie=1
-      ispsiv=1
-      do ikptp=1,orbsu%nkptsp
-         ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
-         
-         nvctrp=commu%nvctr_par(iproc,ikptp)
-         if (nvctrp == 0) cycle
-    
-         if (.not. present(orbsv)) then
-            call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-                 natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
-                 psi(ispsie:),psit(ispsi:))
-         else
-            call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-                 natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
-                 psi(ispsie:),psit(ispsi:),&
-                 (/orbsv%norbu,orbsv%norbd/),psivirt(ispsiv:))
-         end if
-         ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
-         ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
-         if (present(orbsv)) ispsiv=ispsiv+nvctrp*orbsv%norb*orbs%nspinor
-      end do
-    
-      !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
-      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
-    
-  if(present(psivirt)) then
-     if (orbsv%norb == 0) then
-         i_all=-product(shape(psivirt))*kind(psivirt)
-         deallocate(psivirt,stat=i_stat)
-         call memocc(i_stat,i_all,'psivirt',subname)
-      end if
-  end if
-      call timing(iproc, 'Input_comput', 'OF')
+     if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
+     nvctr=wfd%nvctr_c+7*wfd%nvctr_f
+
+     ispsi=1
+     ispsie=1
+     ispsiv=1
+     ispm=1
+     !number of complex components
+     ncplx=1
+     if (nspinor > 1) ncplx=2
+     do ikptp=1,orbsu%nkptsp
+        ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
+
+        nvctrp=commu%nvctr_par(iproc,ikptp)
+        if (nvctrp == 0) cycle
+
+        if (.not. present(orbsv)) then
+           call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+                natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
+                psi(ispsie:),psit(ispsi:),passmat(ispm))
+        else
+           call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
+                natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
+                psi(ispsie:),psit(ispsi:),passmat(ispm),&
+                (/orbsv%norbu,orbsv%norbd/),psivirt(ispsiv:))
+        end if
+        ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
+        ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
+        ispm=ispm+ncplx*(orbsu%norbu*orbs%norbu+orbsu%norbd*orbs%norbd)
+        !print *,'iproc,nkptsp,',iproc,orbsu%nkptsp,ispm
+        if (present(orbsv)) ispsiv=ispsiv+nvctrp*orbsv%norb*orbs%nspinor
+     end do
+
+     !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
+     if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
+
+     if(present(psivirt)) then
+        if (orbsv%norb == 0) then
+           i_all=-product(shape(psivirt))*kind(psivirt)
+           deallocate(psivirt,stat=i_stat)
+           call memocc(i_stat,i_all,'psivirt',subname)
+        end if
+     end if
+     call timing(iproc, 'Input_comput', 'OF')
 
   end if differentInputGuess
 
-     
+
   i_all=-product(shape(hamovr))*kind(hamovr)
   deallocate(hamovr,stat=i_stat)
   call memocc(i_stat,i_all,'hamovr',subname)
@@ -573,15 +584,14 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      !this will restore the correct identification
      nullify(hpsi)
      hpsi => psi
-!     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
+     !     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
      nullify(psi)
      psi => psit
   end if
 
-
   !orthogonalise the orbitals in the case of semi-core atoms
   if (norbsc > 0) then
-     call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,input)
+     call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,orthpar)
   end if
 
   if (minimal) then
@@ -608,7 +618,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 END SUBROUTINE DiagHam
 
 subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
-     psi,hpsi,psit,input,& !mandatory
+     psi,hpsi,psit,orthpar,passmat,& !mandatory
      orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
   use module_base
   use module_types
@@ -618,7 +628,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
-  type(input_variables):: input
+  type(orthon_data),intent(in):: orthpar 
+  real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
   real(wp), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
   real(gp), optional, intent(in) :: etol
@@ -632,7 +643,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal,linear_nosemicore
   integer :: ikptp,ikpt,nvctrp,ilr,psishift1,ldim,totshift,iorb
-  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll
+  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(gp) :: tolerance
   type(orbitals_data), pointer :: orbsu
@@ -690,9 +701,10 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      allocate(psiw(npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   else
-     psiw => null()
+     nullify(psiw)
   end if
 
+  !transpose all the wavefunctions for having a piece of all the orbitals
   call transpose_v2(iproc,nproc,orbsu,Lzd,commu,psi,work=psiw)
   call transpose_v2(iproc,nproc,orbsu,Lzd,commu,hpsi,work=psiw)
 
@@ -808,12 +820,12 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
 !  if(iproc==0 .and. verbose>1) write(*,'(a)') ' done.'
   !if (iproc == 0) print *,'hamovr,iproc:',iproc,hamovr
 
-!!$  if (minimal) then
-!!$     !deallocate hpsi in the case of a minimal basis
-!!$     i_all=-product(shape(hpsi))*kind(hpsi)
-!!$     deallocate(hpsi,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'hpsi',subname)
-!!$  end if
+  if (minimal) then
+     !deallocate hpsi in the case of a minimal basis
+     i_all=-product(shape(hpsi))*kind(hpsi)
+     deallocate(hpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi',subname)
+  end if
 
   if (nproc > 1) then
      !reduce the overlap matrix between all the processors
@@ -832,15 +844,17 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
 
   !in the case of minimal basis allocate now the transposed wavefunction
   !otherwise do it only in parallel
-  if (minimal) then
-     allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psit,'psit',subname)
-  else
-     psit => hpsi
+  if(.not. associated(psit)) then
+     if (minimal .or. nproc > 1) then
+        allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psit,'psit',subname)
+     else
+        psit => hpsi
+     end if
   end if
 
   ! There are two possibilities to generate the input guess
-  differentInputGuess: if(.not. input%directDiag) then
+  differentInputGuess: if(.not. orthpar%directDiag) then
       if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
 
       if(present(orbsv)) then
@@ -849,7 +863,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
           stop
        end if
        call inputguessParallel(iproc, nproc, orbs, norbsc_arr, hamovr, &
-            psi, psit, input, nspin, nspinor, npsidim, comms, natsc, ndim_hamovr, norbsc)
+            psi, psit, orthpar, nspin, nspinor, npsidim, comms, natsc, ndim_hamovr, norbsc)
        
   else
 
@@ -887,6 +901,10 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
       ispsi=1
       ispsie=1
       ispsiv=1
+      ispm=1
+      !number of complex components
+      ncplx=1
+      if (nspinor > 1) ncplx=2
       do ikptp=1,orbsu%nkptsp
          ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
          
@@ -896,15 +914,16 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
          if (.not. present(orbsv)) then
             call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
                  natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
-                 psi(ispsie:),psit(ispsi:))
+                 psi(ispsie:),psit(ispsi:),passmat(ispm))
          else
             call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
                  natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
-                 psi(ispsie:),psit(ispsi:),&
+                 psi(ispsie:),psit(ispsi:),passmat(ispm),&
                  (/orbsv%norbu,orbsv%norbd/),psivirt(ispsiv:))
          end if
          ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
          ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
+         ispm=ispm+ncplx*(orbsu%norbu*orbs%norbu+orbsu%norbd*orbs%norbd)
          if (present(orbsv)) ispsiv=ispsiv+nvctrp*orbsv%norb*orbs%nspinor
       end do
     
@@ -950,7 +969,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
 
   !orthogonalise the orbitals in the case of semi-core atoms
   if (norbsc > 0) then
-     call orthogonalize(iproc,nproc,orbs,comms,Lzd%Glr%wfd,psit,input)
+     call orthogonalize(iproc,nproc,orbs,comms,Lzd%Glr%wfd,psit,orthpar)
   end if
 
   if (minimal) then
@@ -1309,7 +1328,7 @@ END SUBROUTINE solve_eigensystem
 
 
 subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
-     ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,nvirte,psivirt)
+     ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,passmat,nvirte,psivirt)
   use module_base
   implicit none
   !Arguments
@@ -1318,6 +1337,7 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
   real(wp), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
   real(wp), dimension(nvctrp*nspinore,norbe), intent(in) :: psi
   real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
+  real(wp), dimension(*), intent(out) :: passmat !< passage matrix between ppsit and psi (the size depends of the complex arguments)
   integer, dimension(2), intent(in), optional :: nvirte
   real(wp), dimension(*), optional :: psivirt
   !Local variables
@@ -1325,7 +1345,7 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
   integer, parameter :: iunit=1978
   integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj
   integer :: ncplx,ncomp,i,ispsiv
-  integer:: j,iproc
+  integer:: j,iproc,ispm
 
 !  if(iproc==0) then
 !      do j=1,size(hamovr)
@@ -1368,6 +1388,7 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
   iorbst2=1
   imatrst=1
   ispsiv=1
+  ispm=1
   do ispin=1,nspin
      norbsc=0
      do i=1,natsc
@@ -1381,9 +1402,13 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
                 psi(1,iorbst),max(1,ncomp*nvctrp),hamovr(imatrst),norbi,&
                 (0.0_wp,0.0_wp),ppsit(1,iorbst2),max(1,ncomp*nvctrp))
         end if
+        !store the values of the passage matrix in passmat array
+        call dcopy(ncplx*norbi**2,hamovr(imatrst),1,passmat(imatrst),1)
+
         iorbst=iorbst+norbi
         iorbst2=iorbst2+norbi
         imatrst=imatrst+ncplx*norbi**2
+        ispm=ispm+ncplx*norbi**2
      end do
      norbi=norbsc_arr(natsc+1,ispin)
      if(ispin==1) norbj=norbu-norbsc
@@ -1401,6 +1426,11 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
 
         end if
      end if
+     !store the values of the passage matrix in passmat array
+     !print *,'iproc,BBBB11111,',iproc,ispm,norbi,norbj
+     call dcopy(ncplx*norbi*norbj,hamovr(imatrst),1,passmat(ispm),1)
+     ispm=ispm+ncplx*norbi*norbj
+     !print *,'iproc,BBBB,',iproc,ispm,norbi,norbj
 !!$     !now store the input wavefunctions for the Davidson treatment
 !!$     !we take the rest of the orbitals which are not assigned
 !!$     !from the group of non-semicore orbitals
@@ -1419,6 +1449,9 @@ subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,ns
            end if
            ispsiv=ispsiv+nvctrp*nvirte(ispin)*nspinor
         end if
+        !store the values of the passage matrix in passmat array
+        call dcopy(ncplx*norbi*nvirte(ispin),hamovr(imatrst+ncplx*norbi*norbj),1,passmat(ispm),1)
+        ispm=ispm+ncplx*norbi*nvirte(ispin)
      end if
      iorbst=norbi+norbsc+1 !this is equal to norbe+1
      iorbst2=norbu+1
@@ -1542,7 +1575,7 @@ END SUBROUTINE psitospi
 !!  Output arguments
 !!    @param psiGuessWavelet  contains the input guess vectors in wavelet basis
 subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
-     psiGuessWavelet, input, nspin, nspinor, sizePsi, comms, natsc, ndim_hamovr, norbsc)
+     psiGuessWavelet, orthpar, nspin, nspinor, sizePsi, comms, natsc, ndim_hamovr, norbsc)
   use module_base
   use module_types
   implicit none
@@ -1555,7 +1588,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   real(kind=8),dimension(ndim_hamovr,nspin,2,orbs%nkpts),intent(inout):: hamovr
   real(kind=8),dimension(sizePsi),intent(in):: psi
   real(kind=8),dimension(orbs%npsidim),intent(out):: psiGuessWavelet
-  type(input_variables),intent(in out):: input
+  type(orthon_data),intent(inout):: orthpar
   type(communications_arrays), intent(in):: comms
 
   ! Local variables
@@ -1570,6 +1603,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   integer,dimension(:),allocatable:: sendcounts, sdispls, recvcounts, rdispls, norbpArr,&
        norbtotpArr, kArr, kstArr, nkArr, norbArr
   integer,dimension(:),allocatable:: newID, newIDu, newIDd, norbpArrSimul, norbpArrSimulLoc
+  real :: ttreal
   real(kind=8):: gradientNorm, cosangle, tol, tt, ddot, dnrm2
   real(kind=8),dimension(2):: gradientMax
   real(kind=8),dimension(:),allocatable:: alphaArr, rayleigh, evale, sceval, work, rwork
@@ -1591,8 +1625,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
   ! Processes 1 to nprocSubu will handle the up orbitals, processes nprocSubu+1 to nprocSubu+nprocSubd will
   ! handle the down orbitals. If npsin==1, set nprocSubu=nprocSubd=nprocSub.
   if(nspin==2) then
-     nprocSubu=ceiling(dble((orbs%norbu-norbsc)*orbs%nkpts)/dble(input%norbpInguess))
-     nprocSubd=ceiling(dble((orbs%norbd-norbsc)*orbs%nkpts)/dble(input%norbpInguess))
+     nprocSubu=ceiling(dble((orbs%norbu-norbsc)*orbs%nkpts)/dble(orthpar%norbpInguess))
+     nprocSubd=ceiling(dble((orbs%norbd-norbsc)*orbs%nkpts)/dble(orthpar%norbpInguess))
      if(nprocSubu+nprocSubd<=nproc) then
         ! There are enough processes to treat spin up and down simultaneously. This is indicated by setting
         ! sumul=.true. and nspinSub=1, i.e. there will be no spin loop ispin=1,nspinSub.
@@ -1606,7 +1640,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
      end if
   else if(nspin==1) then
      nspinSub=nspin
-     nprocSub=ceiling(dble((orbs%norb-norbsc)*orbs%nkpts)/dble(input%norbpInguess))
+     nprocSub=ceiling(dble((orbs%norb-norbsc)*orbs%nkpts)/dble(orthpar%norbpInguess))
      nprocSubu=nprocSub
      nprocSubd=nprocSub
      simul=.false.
@@ -1651,23 +1685,23 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
      ! The variable input%norbpInguess indicates how many orbitals shall be treated by each process.
      ! This requires at least norb/input%norbpInguess processes.
-     if(input%norbpInguess>norb) then
+     if(orthpar%norbpInguess>norb) then
         if(.not. simul) then
            if(iproc==0) write(*,'(5x,a,2(i0,a))') 'WARNING: You want each process to treat ',&
-                input%norbpInguess,' orbitals, whereas there are only ',norb,'.'
-           if(iproc==0) write(*,'(7x,a,i0,a)') 'The value of input%norbpInguess is adjusted to ',norb, '.'
+                orthpar%norbpInguess,' orbitals, whereas there are only ',norb,'.'
+           if(iproc==0) write(*,'(7x,a,i0,a)') 'The value of orthpar%norbpInguess is adjusted to ',norb, '.'
         else
            if(iproc==0) write(*,'(3x,a,2(i0,a))') 'WARNING: You want each process to treat ',&
-                input%norbpInguess,' orbitals, whereas there are only ',norb,'.'
-           if(iproc==0) write(*,'(5x,a,i0,a)') 'The value of input%norbpInguess is adjusted to ',norb, '.'
+                orthpar%norbpInguess,' orbitals, whereas there are only ',norb,'.'
+           if(iproc==0) write(*,'(5x,a,i0,a)') 'The value of orthpar%norbpInguess is adjusted to ',norb, '.'
         end if
-        input%norbpInguess=norb
+        orthpar%norbpInguess=norb
      end if
 
      ! Determine how many processes are necessary for the input guess. If this number exceeds the total
      ! number of processes, the program does not stop, but adjusts the number of orbitals treated by each
      ! process and prints a warning.
-     nprocSub=ceiling(dble(norb)/dble(input%norbpInguess))
+     nprocSub=ceiling(dble(norb)/dble(orthpar%norbpInguess))
      if(nprocSub>nproc) then
         warning=.true.
         nprocSub=nproc
@@ -2085,8 +2119,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
         call initRandomSeed(iproc, ispin)
         do iorb=1,norbpArr(iproc)
            do j=1,norbtot*nspinor
-              call random_number(tt)
-              psiGuessP(j,iorb,ispin)=tt
+              call random_number(ttreal)
+              psiGuessP(j,iorb,ispin)=dble(ttreal)
            end do
            ! Pad with zeros.
            do j=norbtot*nspinor+1,norbtotPad*nspinor
@@ -2143,11 +2177,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
         if(.not. simul .or. iproc<nprocSubu) then
            call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), &
                 norbpArr(0), norbtotpArr(0), psiGuessP(1,1,ispin), &
-                overlapPsiGuessP(1,1,ispin), newComm, input, simul, orbs, 0, nspinor, blocksize, blocksizeSmall)
+                overlapPsiGuessP(1,1,ispin), newComm, orthpar, simul, orbs, 0, nspinor, blocksize, blocksizeSmall)
         else
            call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), &
                 norbpArr(nprocSubu), norbtotpArr(nprocSubu), &
-                psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm, input, &
+                psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm, orthpar, &
                 simul, orbs, nprocSubu, nspinor, blocksize, blocksizeSmall)
         end if
 
@@ -2162,12 +2196,12 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
         itermax=500 
         success=.false.
         alphaArr=5.d-1  ! the initial step size
-        tol=input%iguessTol  ! the criterion for exiting the loop
+        tol=orthpar%iguessTol  ! the criterion for exiting the loop
 
         if(.not. simul) then
-           if(iproc==0) write(*,'(5x,a,$)') 'Iteratively determining eigenvectors... '
+           if(iproc==0) write(*,'(5x,a)',advance='no') 'Iteratively determining eigenvectors... '
         else
-           if(iproc==0) write(*,'(3x,a,$)') 'Iteratively determining eigenvectors... '
+           if(iproc==0) write(*,'(3x,a)',advance='no') 'Iteratively determining eigenvectors... '
         end if
 
         ! This is the main loop
@@ -2285,11 +2319,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
            if(.not. simul .or. iproc<nprocSubu) then
               call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), norbpArr(0), &
                    norbtotpArr(0), psiGuessP(1,1,ispin), &
-                   overlapPsiGuessP(1,1,ispin), newComm, input, simul, orbs, 0, nspinor, blocksize, blocksizeSmall)
+                   overlapPsiGuessP(1,1,ispin), newComm, orthpar, simul, orbs, 0, nspinor, blocksize, blocksizeSmall)
            else
               call orthonormalize(iproc, nprocSub, norbtotPad, norb, norbpArr(iproc), norbpArr(nprocSubu),&
                    norbtotpArr(nprocSubu), &
-                   psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm, input, simul, orbs, nprocSubu, &
+                   psiGuessP(1,1,ispin), overlapPsiGuessP(1,1,ispin), newComm,orthpar, simul, orbs, nprocSubu, &
                    nspinor, blocksize, blocksizeSmall)
            end if
 
@@ -2442,9 +2476,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
 
      if(.not. simul) then
-        if(iproc==0) write(*,'(5x,a,$)') 'Transforming to wavelet basis... '
+        if(iproc==0) write(*,'(5x,a)',advance='no') 'Transforming to wavelet basis... '
      else
-        if(iproc==0) write(*,'(3x,a,$)') 'Transforming to wavelet basis... '
+        if(iproc==0) write(*,'(3x,a)',advance='no') 'Transforming to wavelet basis... '
      end if
      ! First make a loop over the k points handled by this process.
      do ikptp=1,orbs%nkptsp
@@ -2549,7 +2583,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
   ! Now treat the semicore orbitals, if there are any.
 semicoreIf: if(natsc>0) then
-     if(iproc==0) write(*,'(3x,a,$)') 'Generating input guess for semicore orbitals...'
+     if(iproc==0) write(*,'(3x,a)',advance='no') 'Generating input guess for semicore orbitals...'
 
      if(nspinor == 1) then
         ncplx=1
@@ -3110,7 +3144,7 @@ END SUBROUTINE inputguessParallel
 !!    @param psi                    on input: the vectors to be orthonormalized
 !!                                  on output: the orthonomalized vectors
 subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
-     norbtotpArr, psi, overlapPsi, newComm, input, simul, &
+     norbtotpArr, psi, overlapPsi, newComm, orthpar, simul, &
      orbs, nprocSt, nspinor, blocksize, blocksizeSmall)
   use module_base
   use module_types
@@ -3123,7 +3157,7 @@ subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
   logical,intent(in):: simul
   real(kind=8),dimension(norbtot*norbp*nspinor),intent(in):: overlapPsi
   real(kind=8),dimension(norbtot*norbp*nspinor),intent(in out):: psi
-  type(input_variables), intent(in):: input
+  type(orthon_data), intent(in):: orthpar
   type(orbitals_data), intent(in out) :: orbs
 
   ! Local variables
@@ -3246,7 +3280,7 @@ subroutine orthonormalize(iproc, nproc, norbtot, norb, norbp, norbpArr,&
   ! There are two orthonormalization subroutines: gramschmidtOverlap orthogonalizes a given bunch of vectors to another bunch
   ! of already orthonormal vectors, and the subroutine choleskyOverlap orthonormalizes the given bunch.
   ! First determine how many bunches can be created for the given blocksize.
-  if(blocksize==-1) blocksize=getBlocksize(iproc, nproc, input, norb/orbs%nkpts)
+  if(blocksize==-1) blocksize=getBlocksize(iproc, nproc, orthpar, norb/orbs%nkpts)
   iter=floor(real(norb)/real(blocksize*orbs%nkpts))
   do iblock=1,iter
      ! ist is the starting vector of the current bunch. 
@@ -3611,7 +3645,7 @@ end function gcd
 !!    @param norb          number of vectors that have to be orthonormalized
 !! Output arguments:
 !!    @param getBlocksize  the good block size
-function getBlocksize(iproc, nproc, input, norb)
+function getBlocksize(iproc, nproc, orthpar, norb)
 !use module_base
 use module_types
 implicit none
@@ -3619,7 +3653,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc, norb
 integer:: getBlocksize
-type(input_variables),intent(in):: input
+type(orthon_data),intent(in):: orthpar
 
 ! Local variables
 integer:: remain, gcd, gcdCurr, gcdMax, i
@@ -3628,17 +3662,17 @@ integer:: remain, gcd, gcdCurr, gcdMax, i
 getBlocksize=-1
 
 
-if(input%bsLow<input%bsUp) then
+if(orthpar%bsLow<orthpar%bsUp) then
     ! choose automatically
-    !if(iproc==0) write(*,'(1x,a,2(i0,a))') 'Choose block size automatically between ',input%bsLow,' and ',input%bsUp
-    !if(iproc==0) write(*,'(1x,a,i0,a)') '(or between 1 and ',input%bsUp,' if norb<input%bsUp, respectively).'
+    !if(iproc==0) write(*,'(1x,a,2(i0,a))') 'Choose block size automatically between ',orthpar%bsLow,' and ',orthpar%bsUp
+    !if(iproc==0) write(*,'(1x,a,i0,a)') '(or between 1 and ',orthpar%bsUp,' if norb<orthpar%bsUp, respectively).'
     getBlocksize=-1
-    if(norb<input%bsUp) then
+    if(norb<orthpar%bsUp) then
         ! In this case we just take one block
         getBlocksize=norb
     else
-        ! Else try to take a divisor of norb which is between input%bsLow and input%bsUp.
-        do i=input%bsLow,input%bsUp
+        ! Else try to take a divisor of norb which is between orthpar%bsLow and orthpar%bsUp.
+        do i=orthpar%bsLow,orthpar%bsUp
             if(mod(norb,i)==0) then
                 getBlocksize=i
                 exit
@@ -3647,10 +3681,10 @@ if(input%bsLow<input%bsUp) then
     end if
     ! If this is not possible, try to take a block size such that the greatest common divisor of the remainding block (i.e. the vectors 
     ! which do not fit into this block size) and the vectors that are already orthonormal is maximal. The block size is again limited
-    ! to be bweteen input%bsLow and input%bsUp.
+    ! to be bweteen orthpar%bsLow and orthpar%bsUp.
     if(getBlocksize==-1) then
         gcdMax=0
-        do i=input%bsLow,input%bsUp
+        do i=orthpar%bsLow,orthpar%bsUp
             remain=mod(norb,i)
             gcdCurr=gcd(norb-remain, remain)
             if(gcdCurr>gcdMax) then
@@ -3659,18 +3693,18 @@ if(input%bsLow<input%bsUp) then
             end if
         end do
     end if
-else if(input%bsLow==input%bsUp) then
+else if(orthpar%bsLow==orthpar%bsUp) then
     ! take the value specified by the user
     !if(iproc==0) write(*,'(1x,a)') 'Take blocksize specified by user.'
-    if(input%bsLow<=norb) then
-        getBlocksize=input%bsLow
+    if(orthpar%bsLow<=norb) then
+        getBlocksize=orthpar%bsLow
     else
         !if(iproc==0) write(*,'(1x,a)') 'WARNING: specified blocksize is larger than the number of orbitals.'
         !if(iproc==0) write(*,'(1x,a,i0,a)') 'The blocksize is adjusted to ',norb,'.'
         getBlocksize=norb
     end if
 else
-    !if(iproc==0) write(*,'(1x,a)') 'ERROR: invalid values of input%bsLow and input%bsUp. Change them in input.perf!'
+    !if(iproc==0) write(*,'(1x,a)') 'ERROR: invalid values of orthpar%bsLow and orthpar%bsUp. Change them in input.perf!'
     stop
 end if
 
