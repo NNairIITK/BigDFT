@@ -86,8 +86,8 @@
             0.85712   0.47113
  Total Number of Electrons       13
  WARNING: odd number of electrons, no closed shell system
- Processes from 0 to 1 treat 4 orbitals 
- Processes from 2 to 2 treat 3 orbitals 
+ Processes from 0 to 0 treat 6 orbitals 
+ Processes from 1 to 1 treat 5 orbitals 
  Total Number of Orbitals        11
  occup(1:6)= 2.0000
  occup(7)= 1.0000
@@ -101,17 +101,17 @@
  wavelet localization is ON
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=6164480  Kernel=6257016
+ Memory occ. per proc. (Bytes):  Density=9175040  Kernel=9458280
                                  Full Grid Arrays=17935448
  Load Balancing for Poisson Solver related operations:
  LB_density        : processors   0  -  1 work at 100%
-                     processor       2   works at  98%
-  LB_kernel        : processors   0  -  2 work at 100%
+  LB_kernel        : processors   0  -  0 work at 100%
+                     processor       1   works at  98%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1885 points=     64871
    Fine resolution grid: Number of segments=         69 points=       474
- Wavefunctions memory occupation for root processor (Bytes): 2182048
+ Wavefunctions memory occupation for root processor (Bytes): 3273072
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Ti               1                   13
@@ -122,155 +122,155 @@
  Percent of zero components =                   18
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=    2 Number of orbitals=    11 Sim. Box Dimensions=    54   48   48
- Estimation performed for 3 processors.
+ Estimation performed for 2 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     5 MB   991 KB
-              Poisson Solver Density (D):     5 MB   900 KB
+               Poisson Solver Kernel (K):     9 MB    21 KB
+              Poisson Solver Density (D):     8 MB   768 KB
      Single Wavefunction for one orbital:     0 MB   533 KB
-    All Wavefunctions for each processor:     6 MB   249 KB
-       Wavefunctions + DIIS per proc (W):     6 MB   249 KB
+    All Wavefunctions for each processor:     9 MB   374 KB
+       Wavefunctions + DIIS per proc (W):     9 MB   374 KB
      Nonlocal Pseudopotential Arrays (P):     2 MB   339 KB
     Arrays of full uncompressed grid (U):    17 MB   108 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
        ~19*K         |   W+~3*U+~18*D+K+P   |   ~12*D+K+W+P  |   W+~3*U+~18*D+K+P 
-       113MB         |       164MB          |       85MB     |           165MB
- The overall memory requirement needed for this calculation is thus: 165 MB
+       171MB         |       222MB          |      125MB     |           223MB
+ The overall memory requirement needed for this calculation is thus: 223 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 70 MB
  ion-ion interaction energy  2.54955460188745E+00
  ----------------------------------------------------------- Ionic Potential Creation
- total ionic charge, leaked charge           -12.999999999998   0.000E+00
- PSolver, free  BC, dimensions:   139  127  127   proc    3 ... done.
+ total ionic charge, leaked charge           -13.000000000000   0.000E+00
+ PSolver, free  BC, dimensions:   139  127  127   proc    2 ... done.
  ------------------------------------------------------- Input Wavefunctions Creation
  Generating 11 Atomic Input Orbitals
    of which 4 are semicore orbitals
- Processes from 0 to 1 treat 4 inguess orbitals 
- Processes from 2 to 2 treat 3 inguess orbitals 
+ Processes from 0 to 0 treat 6 inguess orbitals 
+ Processes from 1 to 1 treat 5 inguess orbitals 
  Calculating AIO wavefunctions: 
  Generation of input wavefunction data for atom     Ti: 
    Elec. Configuration: [s] 2.00 , [p] 2.00 2.00 2.00 , d 0.33 0.33 0.33 0.50 0.50 , s 2.00 , ... done.
  Generation of input wavefunction data for atom     Na: 
    Elec. Configuration: s 1.00 , ... done.
- Wavefunctions memory occupation for root processor (Bytes): 2182048
+ Wavefunctions memory occupation for root processor (Bytes): 3273072
  Writing wavefunctions in wavelet form... done.
  Deviation from normalization of the imported orbitals    1.12E-03
  Calculation of charge density... done. Total electronic charge=      12.999995445728
- PSolver, free  BC, dimensions:   139  127  127   proc    3 ... done.
+ PSolver, free  BC, dimensions:   139  127  127   proc    2 ... done.
  Hamiltonian application... done. ekin_sum,eks:      25.0984902080      25.0822283779
  ekin_sum,epot_sum,eproj_sum  2.50984902080E+01 -3.60162246614E+01 -3.29662977669E+00
     ehart,   eexcu,    vexcu  4.86467482285E+01 -7.21408278897E+00 -9.36171835460E+00
  Input Wavefunctions Orthogonalization:
  Overlap Matrix... Direct diagonalization...
- evale(1)= -2.36644610589737E+00
- evale(2)= -1.43788978585169E+00
- evale(3)= -1.43261592832649E+00
- evale(4)= -1.43261543813546E+00
- evale(5)= -1.97481654216763E-01
- evale(6)= -1.71999272350169E-01 <-
- evale(7)= -1.71998684880258E-01 <-
- evale(8)= -1.66968756190281E-01 <-
- evale(9)= -1.64404496751586E-01 <-
- evale(10)= -1.62667692862115E-01 <-
- evale(11)= -1.39203835801328E-01 <- Last InputGuess eval
+ evale(1)= -2.36644610589739E+00
+ evale(2)= -1.43788978585170E+00
+ evale(3)= -1.43261592832650E+00
+ evale(4)= -1.43261543813547E+00
+ evale(5)= -1.97481654216768E-01
+ evale(6)= -1.71999272350181E-01 <-
+ evale(7)= -1.71998684880269E-01 <-
+ evale(8)= -1.66968756190291E-01 <-
+ evale(9)= -1.64404496751597E-01 <-
+ evale(10)= -1.62667692862128E-01 <-
+ evale(11)= -1.39203835801333E-01 <- Last InputGuess eval
  Building orthogonal Wavefunctions... done.
- Fermi level, Fermi distribution cut off at:  -1.71611008470893E-01  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:  -1.71611008470905E-01  0.0E+00  0.0E+00
  expected accuracy in energy  1.63E-02
  expected accuracy in energy per orbital  1.48E-03
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      12.999995629991
- PSolver, free  BC, dimensions:   139  127  127   proc    3 ... done.
+ Calculation of charge density... done. Total electronic charge=      12.999995629992
+ PSolver, free  BC, dimensions:   139  127  127   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
+ iter, tr(H),gnrm,gnrm_zero     1  -9.32404196529047091E+00  1.61E-01  2.13E-01
  alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.80220275394292599E+01  1.61E-01  2.13E-01
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
+ iter, tr(H),gnrm,gnrm_zero     2  -9.79412672884772562E+00  1.30E-01  1.93E-01
  alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -9.79412672884848234E+00  1.30E-01  1.93E-01
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
+ iter, tr(H),gnrm,gnrm_zero     3  -9.94941132079569002E+00  1.38E-01  2.21E-01
  alpha=  2.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -9.94941132079641122E+00  1.38E-01  2.21E-01
  ---------------------------------------------------------------------------- iter= 4
  Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   2.22420905165E+01 -2.98364634018E+01 -2.72911540527E+00
+ final  ekin,  epot,  eproj   2.22420905165E+01 -2.98364634019E+01 -2.72911540526E+00
  final ehart, eexcu,  vexcu   5.28240194677E+01 -7.79337970177E+00 -1.01168430713E+01
- final iter,total energy,gnrm,gnrm_zero     4  -5.82744897868559093E+01  1.38E-01  2.21E-01
+ final iter,total energy,gnrm,gnrm_zero     4  -5.82744897868705181E+01  1.38E-01  2.21E-01
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -1.97290132947331E+00 2.0000
- e(   2)= -1.08247399537427E+00 2.0000
- e(   3)= -1.08089492304722E+00 2.0000
- e(   4)= -1.02205593368642E+00 2.0000
- e(   5)= -9.65961540296457E-02 2.0000
- e(   6)= -1.20457915494499E-02 1.4794
- e(   7)=  4.05739360952992E-02 1.5206
- e(   8)=  4.09478109205033E-02 0.0000
- e(   9)=  4.95460333915543E-02 0.0000
- e(  10)=  5.03002662775150E-02 0.0000
- e(  11)=  8.26577641016898E-02 0.0000
+ e(   1)= -1.97290132947326E+00 2.0000
+ e(   2)= -1.08247399537420E+00 2.0000
+ e(   3)= -1.08089492304718E+00 2.0000
+ e(   4)= -1.02205593368637E+00 2.0000
+ e(   5)= -9.65961540296413E-02 2.0000
+ e(   6)= -1.20457915494433E-02 1.4794
+ e(   7)=  4.05739360953333E-02 1.5206
+ e(   8)=  4.09478109205137E-02 0.0000
+ e(   9)=  4.95460333915823E-02 0.0000
+ e(  10)=  5.03002662775387E-02 0.0000
+ e(  11)=  8.26577641017136E-02 0.0000
   WARNING: Wavefunctions not converged after cycle           1
- Fermi level, Fermi distribution cut off at:   4.02670707308240E-02  0.0E+00  0.0E+00
+ Fermi level, Fermi distribution cut off at:   4.02670707308484E-02  0.0E+00  0.0E+00
  ---------------------------------------------------------------------------- iter= 1
- Calculation of charge density... done. Total electronic charge=      12.999997740761
+ Calculation of charge density... done. Total electronic charge=      12.999997740762
  DENSITY iteration,Delta P (Norm 2/Volume)     2    2.70E-06
- PSolver, free  BC, dimensions:   139  127  127   proc    3 ... done.
+ PSolver, free  BC, dimensions:   139  127  127   proc    2 ... done.
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
+ iter, tr(H),gnrm,gnrm_zero     1  -1.08653200869752631E+01  2.06E-01  1.20E-01
  alpha=  2.000E+00
  Orthogonalization... done.
- iter,total energy,gnrm,gnrm_zero     1  -5.83180830120270457E+01  2.06E-01  1.20E-01
  ---------------------------------------------------------------------------- iter= 2
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
+ iter, tr(H),gnrm,gnrm_zero     2  -1.08048422462829521E+01  2.49E-01  1.20E-01
  alpha=  1.000E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     2  -1.08048422462835809E+01  2.49E-01  1.20E-01
  ---------------------------------------------------------------------------- iter= 3
  Hamiltonian application... done,  orthoconstraint... done,  preconditioning... done.
+ iter, tr(H),gnrm,gnrm_zero     3  -1.10272745381343125E+01  6.27E-02  2.57E-02
  alpha=  1.050E+00
  Orthogonalization... done.
- iter, tr(H),gnrm,gnrm_zero     3  -1.10272745381349822E+01  6.27E-02  2.57E-02
  ---------------------------------------------------------------------------- iter= 4
  Hamiltonian application... done. 4 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   1.85619185217E+01 -2.82611773396E+01 -1.49025914810E+00
  final ehart, eexcu,  vexcu   5.20995356602E+01 -7.70747967439E+00 -1.00043919522E+01
- FINAL iter,total energy,gnrm,gnrm_zero     4  -5.84425867464133546E+01  6.27E-02  2.57E-02
+ FINAL iter,total energy,gnrm,gnrm_zero     4  -5.84425867464199058E+01  6.27E-02  2.57E-02
  No convergence within the allowed number of minimization steps
  --------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers
- e(   1)= -2.03943468221524E+00 2.0000
- e(   2)= -1.14404905960420E+00 2.0000
- e(   3)= -1.14291108445674E+00 2.0000
- e(   4)= -1.08691197707567E+00 2.0000
- e(   5)= -1.25149647405436E-01 2.0000
- e(   6)= -5.50483217458774E-02 2.0000
- e(   7)= -2.84766823349471E-03 0.6643
- e(   8)= -2.57024572886638E-03 0.3357
- e(   9)=  1.39134212783916E-02 0.0000
- e(  10)=  1.50356628920421E-02 0.0000
- e(  11)=  4.08922153858829E-02 0.0000
+ e(   1)= -2.03943468221519E+00 2.0000
+ e(   2)= -1.14404905960416E+00 2.0000
+ e(   3)= -1.14291108445670E+00 2.0000
+ e(   4)= -1.08691197707562E+00 2.0000
+ e(   5)= -1.25149647405426E-01 2.0000
+ e(   6)= -5.50483217458708E-02 2.0000
+ e(   7)= -2.84766823338865E-03 0.6643
+ e(   8)= -2.57024572886032E-03 0.3357
+ e(   9)=  1.39134212784166E-02 0.0000
+ e(  10)=  1.50356628920647E-02 0.0000
+ e(  11)=  4.08922153859061E-02 0.0000
   WARNING: Wavefunctions not converged after cycle           1
- Difference:evsum,energybs -1.1189764084705E+01 -1.1189517965955E+01
+ Difference:evsum,energybs -1.1189764084705E+01 -1.1189517965961E+01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=      12.999997573275
- PSolver, free  BC, dimensions:   139  127  127   proc    3 ... done.
+ PSolver, free  BC, dimensions:   139  127  127   proc    2 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate nonlocal forces... done.
  average noise along x direction:   2.43743898E-02
  average noise along y direction:   3.05279879E-03
  average noise along z direction:   3.08589620E-03
  total average noise            :   2.47578920E-02
- clean forces norm (Ha/Bohr): maxval=  1.072907057498E-01  fnrm2=  2.302259108057E-02
- raw forces:                  maxval=  1.245261046937E-01  fnrm2=  2.365247508012E-02
- CPU time/ELAPSED time for root process     0        24.99        24.91
+ clean forces norm (Ha/Bohr): maxval=  1.072907057497E-01  fnrm2=  2.302259108055E-02
+ raw forces:                  maxval=  1.245261046937E-01  fnrm2=  2.365247508010E-02
+ CPU time/ELAPSED time for root process     0        24.73        42.76
   WARNING: Self-consistent cycle did not meet convergence criteria
  Final values of the Forces for each atom
-     1     Ti -1.07291E-01  1.30104E-18  8.67362E-19
-     2     Na  1.07291E-01  4.33681E-19  8.67362E-19
+     1     Ti -1.07291E-01  8.67362E-19  4.33681E-19
+     2     Na  1.07291E-01  8.67362E-19  8.67362E-19
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 2307 allocations and 2307 deallocations, remaining memory(B): 0
- memory occupation peak: 212 MB
+ 2768 allocations and 2768 deallocations, remaining memory(B): 0
+ memory occupation peak: 303 MB
  for the array  f_i in the routine vxcpostprocessing

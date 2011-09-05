@@ -88,15 +88,15 @@ module module_types
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
-     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix
+     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix,file_sic
      !miscellaneous variables
-     logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
+     logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
      integer :: norbv,nvirt,nplot,iscf,norbsempty,norbsuempty,norbsdempty
      integer :: output_grid, dispersion,last_run,output_wf_format,output_grid_format
      real(gp) :: frac_fluct,gnrm_sw,alphamix,Tel,alphadiis
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf,rpnrm_cv,gnrm_startmix
-     integer :: nvacancy,verbosity
+     integer :: verbosity
      real(gp) :: elecfield
      logical :: disableSym
 
@@ -130,8 +130,11 @@ module module_types
      real(gp) :: strtarget(6)
      real(gp), pointer :: qmass(:)
      real(gp) :: dtinit,dtmax !for FIRE
-     ! tddft vaiables from *.tddft
+     ! tddft variables from *.tddft
      character(len=10) :: tddft_approach
+     !variables for SIC
+     character(len=4) :: sic_approach
+     real(gp) :: alphaSIC
 
      !> variable for material acceleration
      !! values 0: traditional CPU calculation
@@ -152,6 +155,11 @@ module module_types
      !!   BC (Blocking Collective)
      !!   OP2P (Overlap Point-to-Point)
      character(len=4) :: exctxpar
+
+     !> communication scheme for the density
+     !!  DBL traditional scheme with double precision
+     !!  MIX mixed single-double precision scheme (requires rho_descriptors)
+     character(len=3) :: rho_commun
   end type input_variables
 
   type, public :: energy_terms
@@ -200,6 +208,14 @@ module module_types
      integer, dimension(:), pointer :: keyv
   end type wavefunctions_descriptors
 
+!> Used to split between points to be treated in simple or in double precision
+  type, public :: rho_descriptors
+     character(len=1) :: geocode
+     integer :: icomm !< method for communicating the density
+     integer :: n_csegs,n_fsegs,dp_size,sp_size
+     integer, dimension(:,:), pointer :: spkey,dpkey
+     integer, dimension(:), pointer :: cseg_b,fseg_b
+  end type rho_descriptors
 
 !>  Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
@@ -217,18 +233,25 @@ module module_types
      character(len=1) :: geocode
      character(len=5) :: format
      character(len=20) :: units
-     integer :: nat                                !< nat          Number of atoms
-     integer :: ntypes                             !< ntypes       Number of type of atoms
+     integer :: nat                                        !< nat            Number of atoms
+     integer :: ntypes                                     !< ntypes         Number of type of atoms
      integer :: natsc
-     character(len=20), dimension(:), pointer :: atomnames
-     real(gp) :: alat1,alat2,alat3
-     integer, dimension(:), pointer :: iatype      !< iatype(nat)  Type of the atoms
-     integer, dimension(:), pointer :: iasctype,natpol,nelpsp,npspcode,nzatom
-     integer, dimension(:), pointer :: ifrztyp     !< ifrztyp(nat) Frozen atoms
-     real(gp), dimension(:), pointer :: amu        !< amu(ntypes)  Atomic Mass Unit for each type of atoms
+     character(len=20), dimension(:), pointer :: atomnames !< atomnames(ntypes) Name of type of atoms
+     real(gp) :: alat1,alat2,alat3                         !< dimension of the periodic supercell
+     integer, dimension(:), pointer :: iatype              !< iatype(nat)    Type of the atoms
+     integer, dimension(:), pointer :: iasctype
+     integer, dimension(:), pointer :: natpol
+     integer, dimension(:), pointer :: nelpsp
+     integer, dimension(:), pointer :: npspcode
+     integer, dimension(:), pointer :: nzatom
+     integer, dimension(:), pointer :: ifrztyp             !< ifrztyp(nat) Frozen atoms
+     real(gp), dimension(:), pointer :: amu                !< amu(ntypes)  Atomic Mass Unit for each type of atoms
      real(gp), dimension(:,:), pointer :: aocc,rloc
-     real(gp), dimension(:,:,:), pointer :: psppar
-     integer :: symObj                             !< The symmetry object from ABINIT
+     real(gp), dimension(:,:,:), pointer :: psppar         !< pseudopotential parameters (HGH SR section)
+     logical :: donlcc                                     !< activate non-linear core correction treatment
+     integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc   !<number of valence and core gaussians describing NLCC 
+     real(gp), dimension(:,:), pointer :: nlccpar          !< parameters for the non-linear core correction, if present
+     integer :: symObj                                     !< The symmetry object from ABINIT
      integer :: iat_absorber 
   end type atoms_data
 
@@ -252,7 +275,7 @@ module module_types
 !! Add also the objects related to k-points sampling, after symmetries applications
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
-     real(gp) :: efermi
+     real(gp) :: efermi,HLgap
      integer, dimension(:), pointer :: norb_par,iokpt,ikptproc,inwhichlocreg, inWhichLocregP !,ikptsp
      integer,dimension(:),pointer:: onWhichMPI, isorb_par, ispot
      real(wp), dimension(:), pointer :: eval
@@ -360,7 +383,7 @@ module module_types
      !arguments for the hamiltonian
      integer :: iproc,nproc,ndimpot,nspin
      real(gp) :: hx,hy,hz
-     real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum
+     real(gp) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
      type(atoms_data), pointer :: at
      type(orbitals_data) :: orbs
      type(communications_arrays) :: comms
@@ -569,9 +592,9 @@ end type largeBasis
      logical :: switchSD
      integer :: idiistol,mids,ids,idsx
      real(gp) :: energy_min,energy_old,energy,alpha,alpha_max
-     real(wp), dimension(:), pointer :: psidst
+     real(tp), dimension(:), pointer :: psidst
      real(tp), dimension(:), pointer :: hpsidst
-     real(wp), dimension(:,:,:,:), pointer :: ads
+     real(tp), dimension(:,:,:,:,:,:), pointer :: ads
   end type diis_objects
 
 
@@ -579,21 +602,52 @@ contains
 
 
 !> Allocate diis objects
-  subroutine allocate_diis_objects(idsx,npsidim,nkptsp,diis,subname)
+  subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,norbd,diis,subname)
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    integer, intent(in) :: idsx,npsidim,nkptsp
+    integer, intent(in) :: idsx,npsidim,nkptsp,nspinor,norbd
+    real(gp), intent(in) :: alphadiis
     type(diis_objects), intent(inout) :: diis
     !local variables
-    integer :: i_stat
+    integer :: i_stat,ncplx,ngroup
+
+    !calculate the number of complex components
+    if (nspinor > 1) then
+       ncplx=2
+    else
+       ncplx=1
+    end if
+
+    !always better to allow real combination of the wavefunctions
+    ncplx=1
+
+    !add the possibility of more than one diis group
+    ngroup=1
+
     allocate(diis%psidst(npsidim*idsx+ndebug),stat=i_stat)
     call memocc(i_stat,diis%psidst,'psidst',subname)
     allocate(diis%hpsidst(npsidim*idsx+ndebug),stat=i_stat)
     call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
-    allocate(diis%ads(idsx+1,idsx+1,nkptsp,3+ndebug),stat=i_stat)
+    allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
     call memocc(i_stat,diis%ads,'ads',subname)
-    call razero(nkptsp*3*(idsx+1)**2,diis%ads)
+    call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
+
+    !initialize scalar variables
+    !diis initialisation variables
+    diis%alpha=alphadiis
+    diis%alpha_max=alphadiis
+    diis%energy=1.d10
+    !minimum value of the energy during the minimisation procedure
+    diis%energy_min=1.d10
+    !previous value already fulfilled
+    diis%energy_old=diis%energy
+    !local variable for the diis history
+    diis%idsx=idsx
+    !logical control variable for switch DIIS-SD
+    diis%switchSD=.false.
+    
+
   END SUBROUTINE allocate_diis_objects
 
 
@@ -816,7 +870,9 @@ END SUBROUTINE deallocate_orbs
     if (associated(rst%gbd%rxyz)) then
        nullify(rst%gbd%rxyz)
        call deallocate_gwf(rst%gbd,subname)
+    end if
 
+    if (associated(rst%gaucoeffs)) then
        i_all=-product(shape(rst%gaucoeffs))*kind(rst%gaucoeffs)
        deallocate(rst%gaucoeffs,stat=i_stat)
        call memocc(i_stat,i_all,'gaucoeffs',subname)
@@ -864,6 +920,37 @@ END SUBROUTINE deallocate_orbs
        call memocc(i_stat,i_all,'wfd%keyv',subname)
     end if
   END SUBROUTINE deallocate_wfd
+
+  subroutine deallocate_rho_descriptors(rhodsc,subname)
+    use module_base
+    implicit none
+    type(rho_descriptors) :: rhodsc
+    character(len=*), intent(in) :: subname
+    !local variables
+    integer :: i_all,i_stat
+
+    if (associated(rhodsc%spkey))then
+       i_all=-product(shape(rhodsc%spkey))*kind(rhodsc%spkey)
+       deallocate(rhodsc%spkey,stat=i_stat)
+       call memocc(i_stat,i_all,'spkey',subname)
+    end if
+    if (associated(rhodsc%dpkey))then
+       i_all=-product(shape(rhodsc%dpkey))*kind(rhodsc%dpkey)
+       deallocate(rhodsc%dpkey,stat=i_stat)
+       call memocc(i_stat,i_all,'dpkey',subname)
+    end if
+    if (associated(rhodsc%cseg_b))then
+       i_all=-product(shape(rhodsc%cseg_b))*kind(rhodsc%cseg_b)
+       deallocate(rhodsc%cseg_b,stat=i_stat)
+       call memocc(i_stat,i_all,'csegb',subname)
+    end if
+    if (associated(rhodsc%fseg_b))then
+       i_all=-product(shape(rhodsc%fseg_b))*kind(rhodsc%fseg_b)
+       deallocate(rhodsc%fseg_b,stat=i_stat)
+       call memocc(i_stat,i_all,'fsegb',subname)
+    end if
+
+  end subroutine deallocate_rho_descriptors
 
 
 !> De-Allocate gaussian_basis type

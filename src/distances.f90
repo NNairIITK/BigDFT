@@ -25,13 +25,16 @@ program find_angles
  real(kind=8), dimension(nsegr) :: nistor
  real(kind=8), dimension(nnmax+1) :: integrals
  character(len=1) :: whichone
- character(len=5) :: fn4
  integer :: icount,ncount,ncountmax,tot,atcenter,atangles,nstep,jr,posout,iunit
  logical :: exists
  character(len=40) :: contcar
  character(len=40) :: xdatcar
  integer, dimension(:), pointer :: iatype
  real(kind=8), dimension(:,:), pointer :: pos
+ ! Debug variables
+ integer :: timecount, timeread_start, timeread_stop
+
+ call system_clock(count_rate = timecount)
 
  inquire(file='input',exist=exists)
  if (exists) then
@@ -65,8 +68,9 @@ program find_angles
     if (whichone =='B') then
       !initial file to read the box features
       read(contcar,'(i5)') posout
-      write(fn4,'(i5.5)') posout
-      contcar='posmd_'//fn4
+      !write(fn4,'(i5.5)') posout
+      !contcar='posmd_'//fn4
+       contcar='posinp'
      end if
 
  else
@@ -103,8 +107,9 @@ program find_angles
        xdatcar=contcar
     else if (whichone =='B') then
        !initial file to read the box features
-       write(fn4,'(i5.5)') posout
-       contcar='posmd_'//fn4
+       !write(fn4,'(i5.5)') posout
+       !contcar='posmd_'//fn4
+       contcar='posinp'
     end if
  end if
  call box_features(whichone,contcar,nrep,nat,ntypes,iatype,pos,factor)
@@ -135,6 +140,7 @@ program find_angles
     end do
  end if
 
+ call system_clock(timeread_start)
  !this loop is over the frames
  loop_step: do j1=1,nstep
     istep=istep+1
@@ -182,7 +188,7 @@ program find_angles
                 th=theta(pos(1,nrstn(icount)),pos(1,i),pos(1,nrstn(k)))
                 anglemin=min(anglemin,th)
                 anglemax=max(anglemax,th)
-                j=int(th*real(nseg,kind=8)/180.d0)
+                j=int(th*real(nseg,kind=8)/180.d0) + 1
                 isto(j,ncount)=isto(j,ncount)+1
                 isto(j,nnmax+1)=isto(j,nnmax+1)+1
              end do
@@ -199,6 +205,10 @@ program find_angles
  end if
  print *,''
  print *,'anglemin,anglemax,ncountmax=',anglemin,anglemax,ncountmax
+ call system_clock(timeread_stop)
+ write(0, "(A,F20.8,A)") "Global file read: ", &
+      & real(timeread_stop - timeread_start) / real(timecount) , "s"
+ call finaliseExtract()
 
  !values of the normalisations
  integrals(:)=0.d0
@@ -334,10 +344,10 @@ contains
        factor=xhi-xlo
     else if (whichone == 'B') then
        !open the first file to check box features
-print *,'here'
+!print *,'here'
        call read_atomic_file(trim(contcar),0,atoms,rxyz)
        nat=atoms%nat
-print *,'nat',nat
+!print *,'nat',nat
        allocate(iatype(nrep**3*nat),pos(3,nrep**3*nat))
        do i=1,nat
           iatype(i)=atoms%iatype(i)
@@ -379,7 +389,7 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
   !local variables
   character(len=5) :: fn4
   integer :: i,iat,ityp,i1,i2,i3
-  real(kind=8) :: x,y,z,vx,vy,vz,xlo,xhi,ylo,yhi,zlo,zhi
+  real(kind=8) :: x,y,z,vx,vy,vz,xlo,xhi,ylo,yhi,zlo,zhi,alat(3)
   type(atoms_data) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
 
@@ -407,20 +417,18 @@ subroutine read_pos(iunit,whichone,nat,pos,nrep)
      write(fn4,'(i5.5)') iunit
      call read_atomic_file('posmd_'//fn4,0,atoms,rxyz)
      !transform the positions in reduced coordinates
+     alat(1) = atoms%alat1
+     if (atoms%geocode == 'F') alat(1) = 1.d0
+     alat(2) = atoms%alat2
+     if (atoms%geocode == 'F' .or. atoms%geocode == 'S') alat(2) = 1.d0
+     alat(3) = atoms%alat3
+     if (atoms%geocode == 'F') alat(3) = 1.d0
      do iat=1,nat
-        pos(1,iat)=rxyz(1,iat)/atoms%alat1
-        pos(2,iat)=rxyz(2,iat)/atoms%alat2
-        pos(3,iat)=rxyz(3,iat)/atoms%alat3
+        pos(1,iat)=rxyz(1,iat)/alat(1)
+        pos(2,iat)=rxyz(2,iat)/alat(2)
+        pos(3,iat)=rxyz(3,iat)/alat(3)
      enddo
-     ! TODO, move them into input_variables as a free method for atoms
-     deallocate(atoms%ifrztyp)
-     deallocate(atoms%iatype)
-     deallocate(atoms%natpol)
-     deallocate(atoms%atomnames)
-     deallocate(atoms%amu)
-     deallocate(rxyz)
-     if (atoms%symObj >= 0) call ab6_symmetry_free(atoms%symObj)
-
+     call deallocate_atoms(atoms, 'distance')
   end if
 
   !replica of the atom positions

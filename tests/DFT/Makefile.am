@@ -98,7 +98,7 @@ report:
 	$(abs_top_builddir)/src/memguess 1 > $@
 %.out.out: $(abs_top_builddir)/src/bigdft
 	$(run_parallel) $(abs_top_builddir)/src/bigdft > $@
-%.geopt.mon.out:
+%.geopt.mon.out: $(abs_top_builddir)/src/bigdft
 	$(MAKE) -f ../Makefile $*.out.out && mv geopt.mon $@
 
 %.report: %.ref
@@ -107,13 +107,13 @@ report:
           *) mode="";; \
         esac ; \
         case $* in \
-          Ca2.out*) prec="4.e-10" ;; \
-          Davidson-SiH4.out*) prec="1.e-8" ;; \
-          NaCl.out*) prec="2.e-8" ;; \
-          SiBulk.out*) prec="2.e-7" ;; \
-          GEOPT-BFGS.out*) prec="4.e-9" ;; \
-          SiH4.out*) prec="1.5e-9" ;; \
-          *) prec="1.1e-10" ;; \
+          Ca2.out*)         prec="4.e-10" ;; \
+          GEOPT-BFGS.out*)  prec="1.e-9" ;; \
+          GEOPT-LBFGS.out*) prec="1.e-9" ;; \
+          NaCl.out*)        prec="1.e-9" ;; \
+          SiBulk.out*)      prec="2.e-7" ;; \
+          SiH4.out*)        prec="2.3e-9" ;; \
+          *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
@@ -178,10 +178,11 @@ run_message:
 
 %.recheck: %.in
 	@dir=`basename $@ .recheck` ; \
-        reps="$$dir/*.report" ; \
-	for r in $$reps ; do \
-	  if ! grep -qs "succeeded" $$r ; then \
-	    target=` basename $$r .report` ; \
+        refs="$$dir/*.ref" ; \
+	for r in $$refs ; do \
+	  rep=`basename $$r .ref`".report" ; \
+	  if ! grep -qs "succeeded" $$dir/$$rep ; then \
+	    target=` basename $$r .ref` ; \
 	    $(MAKE) $*".in" && rm -f $*".in" ; \
 	    rm -f $$dir/$$target".out" $$dir/$$target".report" ; \
 	    cd $$dir && $(MAKE) -f ../Makefile $$target".out" $$target".report" && cd - ; \

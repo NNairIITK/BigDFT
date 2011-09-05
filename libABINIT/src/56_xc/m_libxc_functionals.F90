@@ -278,17 +278,14 @@ contains
 
 ! *************************************************************************
 
+    libxc_functionals_exctXfac = 0.d0
 #if defined HAVE_LIBXC
     if (any(funcs%family == XC_FAMILY_HYB_GGA)) then
        !factors for the exact exchange contribution of different hybrid functionals
        if (any(funcs%id == XC_HYB_GGA_XC_PBEH)) then
           libxc_functionals_exctXfac = 0.25d0 
        end if
-    else
-      libxc_functionals_exctXfac = 0.d0
     end if
-#else
-    libxc_functionals_exctXfac = 0.d0
 #endif
 
   end function libxc_functionals_exctXfac
@@ -432,7 +429,7 @@ contains
         if (funcs(i)%id == 0) cycle
 
         !Get the potential (and possibly the energy)
-        if (iand(xc_f90_info_provides(funcs(i)%info), XC_PROVIDES_EXC) .ne. 0) then
+        if (iand(xc_f90_info_flags(funcs(i)%info), XC_FLAGS_HAVE_EXC) .ne. 0) then
           select case (funcs(i)%family)
           case (XC_FAMILY_LDA)
             call xc_f90_lda_exc_vxc(funcs(i)%conf,1,rhotmp(1),exctmp,vxctmp(1))
@@ -441,7 +438,7 @@ contains
           case (XC_FAMILY_HYB_GGA)
             call xc_f90_gga_exc_vxc(funcs(i)%conf,1,rhotmp(1),sigma(1),exctmp,vxctmp(1),vsigma(1))
           case (XC_FAMILY_MGGA)
-            call xc_f90_mgga_exc_vxc(funcs(i)%conf,rhotmp(1),sigma(1),lrhotmp(1),&
+            call xc_f90_mgga_exc_vxc(funcs(i)%conf,1,rhotmp(1),sigma(1),lrhotmp(1),&
                         tautmp(1),exctmp,vxctmp(1),vsigma(1),vxclrhotmp(1),vxctautmp(1))
 !            write(message, '(7a)' )ch10,&
 !                 &    ' libxc_functionals_init : ERROR -',ch10,&
@@ -461,7 +458,7 @@ contains
           case (XC_FAMILY_HYB_GGA)
              call xc_f90_gga_vxc(funcs(i)%conf,1,rhotmp(1),sigma(1),vxctmp(1),vsigma(1))
           case (XC_FAMILY_MGGA)
-             call xc_f90_mgga_vxc(funcs(i)%conf,rhotmp(1),sigma(1),lrhotmp(1),&
+             call xc_f90_mgga_vxc(funcs(i)%conf,1,rhotmp(1),sigma(1),lrhotmp(1),&
                   tautmp(1),vxctmp(1),vsigma(1),vxclrhotmp(1),vxctautmp(1))
           end select
         end if

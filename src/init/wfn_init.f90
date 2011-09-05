@@ -410,7 +410,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      ndim_hamovr=2*ndim_hamovr
   end if
 
-
   allocate(hamovr(nspin*ndim_hamovr,2,orbsu%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,hamovr,'hamovr',subname)
 
@@ -500,9 +499,29 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
         ikpt=orbsu%iskpts+ikptp!orbs%ikptsp(ikptp)
         call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
              ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,1,ikpt),&
-             orbs%eval((ikpt-1)*orbs%norb+1))
+             orbsu%eval((ikpt-1)*orbsu%norb+1)) !changed from orbs
+
+        !assign the value for the orbital
+        call vcopy(orbs%norbu,orbsu%eval((ikpt-1)*orbsu%norb+1),1,orbs%eval((ikpt-1)*orbs%norb+1),1)
+        if (orbs%norbd >0) then
+           call vcopy(orbs%norbd,orbsu%eval((ikpt-1)*orbsu%norb+orbsu%norbu+1),1,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+1),1)
+        end if
+        !do iorb=1,orbs%norbu
+        !   orbs%eval((ikpt-1)*orbs%norb+iorb)=orbsu%eval((ikpt-1)*orbsu%norb+iorb)
+        !end do
+        !case for collinear spin
+        !do iorb=1,orbs%norbd
+        !   orbs%eval((ikpt-1)*orbs%norb+iorb+orbs%norbu)=orbsu%eval((ikpt-1)*orbsu%norb+iorb+orbsu%norbu)
+        !end do
      end do
 
+     !broadcast values for k-points 
+     call broadcast_kpt_objects(nproc, orbsu%nkpts, orbsu%norb, &
+          & orbsu%eval(1), orbsu%ikptproc)
+
+     if (iproc ==0) then !this case works only for the first k-point
+        call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
+     end if
 !!$  !not necessary anymore since psivirt is gaussian
      !allocate the pointer for virtual orbitals
      if(present(orbsv) .and. present(psivirt)) then
@@ -579,21 +598,20 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      deallocate(psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi',subname)
   else if (nproc == 1) then
-     !reverse objects for the normal diagonalisation in serial
-     !at this stage hpsi is the eigenvectors and psi is the old wavefunction
-     !this will restore the correct identification
-     nullify(hpsi)
-     hpsi => psi
-     !     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
-     nullify(psi)
-     psi => psit
+!!$     !reverse objects for the normal diagonalisation in serial
+!!$     !at this stage hpsi is the eigenvectors and psi is the old wavefunction
+!!$     !this will restore the correct identification
+!!$     nullify(hpsi)
+!!$     hpsi => psi
+!!$     !     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
+!!$     nullify(psi)
+!!$     psi => psit
   end if
 
   !orthogonalise the orbitals in the case of semi-core atoms
   if (norbsc > 0) then
      call orthogonalize(iproc,nproc,orbs,comms,wfd,psit,orthpar)
   end if
-
   if (minimal) then
      allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
@@ -611,14 +629,14 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   call untranspose_v(iproc,nproc,orbs,wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
 
-  if (nproc == 1) then
+  if (nproc == 1 .and. minimal) then
      nullify(psit)
   end if
 
 END SUBROUTINE DiagHam
 
 subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
-     psi,hpsi,psit,input,& !mandatory
+     psi,hpsi,psit,orthpar,& !mandatory
      orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
   use module_base
   use module_types
@@ -628,7 +646,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
-  type(input_variables):: input
+  type(orthon_data) :: orthpar
   real(wp), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
   real(gp), optional, intent(in) :: etol
@@ -850,7 +868,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   end if
 
   ! There are two possibilities to generate the input guess
-  differentInputGuess: if(.not. input%directDiag) then
+  differentInputGuess: if(.not. orthpar%directDiag) then
       if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
 
       if(present(orbsv)) then
@@ -859,7 +877,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
           stop
        end if
        call inputguessParallel(iproc, nproc, orbs, norbsc_arr, hamovr, &
-            psi, psit, input, nspin, nspinor, npsidim, comms, natsc, ndim_hamovr, norbsc)
+            psi, psit, orthpar, nspin, nspinor, npsidim, comms, natsc, ndim_hamovr, norbsc)
        
   else
 
@@ -960,7 +978,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
 
   !orthogonalise the orbitals in the case of semi-core atoms
   if (norbsc > 0) then
-     call orthogonalize(iproc,nproc,orbs,comms,Lzd%Glr%wfd,psit,input)
+     call orthogonalize(iproc,nproc,orbs,comms,Lzd%Glr%wfd,psit,orthpar)
   end if
 
   if (minimal) then
@@ -997,6 +1015,7 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
   real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
   !local variables
   integer :: iorbst,imatrst,norbi,i,ispin,ncomp,ncplx
+!  integer :: iorb, jorb, icplx
   !WARNING: here nspin=1 for nspinor=4
   if(nspinor == 1) then
      ncplx=1
@@ -1032,19 +1051,30 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
                 max(1,ncomp*nvctrp),psi(1,iorbst),max(1,ncomp*nvctrp),&
                 (0.0_wp,0.0_wp),hamovr(imatrst,2),norbi)
         end if
-!!$        open(17)
-!!$        open(18)
-!!$        print *,'ncplx,nspinor',ncplx,nspinor
-!!$        do jorb=1,8!norbi
-!!$           write(17,'(i0,1x,48(1pe10.1))')jorb,&
-!!$                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=2,ncplx),iorb=1,8)!norbi)
-!!$           write(18,'(i0,1x,48(1pe10.1))')jorb,&
-!!$                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=2,ncplx),iorb=1,8)!norbi)
-!!$        end do
-!!$
-!!$        close(17)
-!!$        close(18)
+!        open(17)
+!        open(18)
+!        print *,'ncplx,nspinor',ncplx,nspinor
+!        do jorb=1,8!norbi
+!           write(17,'(i0,1x,48(1pe10.1))')jorb,&
+!                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=1,ncplx),iorb=1,8)!norbi)
+!           write(18,'(i0,1x,48(1pe10.1))')jorb,&
+!                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=1,ncplx),iorb=1,8)!norbi)
+!        end do
+!
+!        close(17)
+!        close(18)
 !!$        stop
+
+!!$        !print out the passage matrix (valid for one k-point only and ncplx=1)
+!!$        print *,'HAMILTONIAN' 
+!!$        do iorb=1,norbi
+!!$           write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),1),jorb=1,norbi)
+!!$        end do
+!!$        print *,'OVERLAP' 
+!!$        do iorb=1,norbi
+!!$           write(*,'(i6,100(1pe16.7))')iorb,(hamovr(imatrst+iorb-1+norbi*(jorb-1),2),jorb=1,norbi)
+!!$        end do
+
         iorbst=iorbst+norbi
         imatrst=imatrst+ncplx*norbi**2
      end do
@@ -1062,13 +1092,13 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(gp), intent(in) :: etol
   real(wp), dimension(nspin*ndim_hamovr,2), intent(inout) :: hamovr
-  real(wp), dimension(norb), intent(out) :: eval
+  real(wp), dimension(sum(norbsc_arr)), intent(out) :: eval
   !local variables
   character(len=*), parameter :: subname='solve_eigensystem'
   character(len=25) :: gapstring
   character(len=64) :: message
   integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,ncplx,ncomp
-  integer :: nwrtmsg,norbj,jiorb,jjorb,ihs,ispin,norbij
+  integer :: nwrtmsg,norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig
   real(wp), dimension(2) :: preval
   real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
   real(gp) :: HLIGgap
@@ -1077,6 +1107,12 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
 !if(iproc==0) write(30110,*) hamovr(1:ndim_hamovr,2)
 !if(iproc==0) write(30101,*) hamovr(ndim_hamovr+1:2*ndim_hamovr,1)
 !if(iproc==0) write(30111,*) hamovr(ndim_hamovr+1:2*ndim_hamovr,2)
+
+  !calculate the total number of up orbitals for the input guess
+  norbu_ig=0
+  do i=1,natsc+1
+     norbu_ig=norbu_ig+norbsc_arr(i,1)
+  end do
 
   !WARNING: here nspin=1 for nspinor=4
   if(nspinor == 1) then
@@ -1192,112 +1228,28 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
 !!$     !end if
 !!$     stop
 
-     !writing rules, control if the last eigenvector is degenerate
-     !do this for each spin
-     !for each spin it is supposed that only the last group is not completely passed
-     !and also that the components of each of the group but the last are the same for up and 
-     !down polarisation. Do not work properly in the other cases
-     do iorb=1,norbi
-        if (nspin==1) then
-           if (nwrtmsg==1) then
-              if (abs(evale(iorb)-preval(1)) <= etol) then
-                 !degeneracy found
-                 message='  <- found degeneracy'
-                 ndegen=ndegen+1
-              else
-                 nwrtmsg=0
-              end if
-           end if
-           if (abs(iorb+iorbst-1 - norb).le.5) then
-              nwrtmsg=1
-              message=' <- '
-           end if
-           if (iorb+iorbst-1 == norb) then
-              !calculate the IG HOMO-LUMO gap
-              !if(iorb+iorbst <= norbi) then !Luigi and I did together
-              if(norb<norbi) then !I added after they left Basel.
-                 HLIGgap=evale(iorb+1)-evale(iorb)
-                 
-                 write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*ha2ev,' eV'
-                 !if(iproc==0) write(*,*) "REZA ",HLIGgap,ha2ev,iproc,iorb,norbi,norb
-              else
-                gapstring=''
-              end if
-              nwrtmsg=1
-              message=' <- Last InputGuess eval'//gapstring
-              preval(1)=evale(iorb)
-           end if
-           if (iorb+iorbst-2 == norb) then
-              nwrtmsg=1
-              message=' <- First virtual eval '
-           end if
-           if (iproc == 0) then
-              if (nwrtmsg == 1) then
-                 write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
-                      'evale(',iorb+iorbst-1,')=',evale(iorb),trim(message)
-              else
-                 if ((iorb <= 5 .or. iorb >= norbi-5) .or. verbose > 0) & 
-                 write(*,'(1x,a,i0,a,1x,1pe21.14)') &
-                      'evale(',iorb+iorbst-1,')=',evale(iorb)
-              end if
-           end if
-        else
-           if (nwrtmsg==1) then
-              if (abs(evale(iorb)-preval(1)) <= etol .and. &
-                   abs(evale(iorb+norbi)-preval(2)) <= etol) then
-                 !degeneracy found
-                 message='  <-deg->  '
-                 !ndegen=ndegen+1 removed, only for non magnetized cases
-              else if (abs(evale(iorb)-preval(1)) <= etol) then
-                 !degeneracy found
-                 message='  <-deg    '
-              else if (abs(evale(iorb+norbi)-preval(2)) <= etol) then
-                 !degeneracy found
-                 message='    deg->  '
-              else
-                 nwrtmsg=0
-              end if
-           end if
-           if (iorb+iorbst-1 == norbu .and. iorb+iorbst-1 == norbd) then
-              nwrtmsg=1
-              message='  <-Last-> ' 
-              preval(1)=evale(iorb)
-              preval(2)=evale(iorb+norbi)
-           else if (iorb+iorbst-1 == norbu) then
-              nwrtmsg=1
-              message='  <-Last   '
-              preval(1)=evale(iorb)
-           else if (iorb+iorbst-1 == norbd) then
-              nwrtmsg=1
-              message='    Last-> '
-              preval(2)=evale(iorb+norbi)
-           end if
-           if (iproc == 0) then
-              if (nwrtmsg==1) then
-                 write(*,'(1x,a,i4,a,1x,1pe21.14,a12,a,i4,a,1x,1pe21.14)') &
-                      'evale(',iorb+iorbst-1,',u)=',evale(iorb),message,&
-                      'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
-              else
-                 if ((iorb <= 5 .or. iorb >= norbi-5) .or. verbose > 0) & 
-                 write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
-                      'evale(',iorb+iorbst-1,',u)=',evale(iorb),&
-                      'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
-              end if
-           end if
-        end if
-     end do
-     if (nspin==1) then
-        do iorb=iorbst,min(norbi+iorbst-1,norb)
-           eval(iorb)=evale(iorb-iorbst+1)
-        end do
-     else
-        do iorb=iorbst,min(norbi+iorbst-1,norbu)
-           eval(iorb)=evale(iorb-iorbst+1)
-        end do
-        do iorb=iorbst,min(norbi+iorbst-1,norbd)
-           eval(iorb+norbu)=evale(iorb-iorbst+1+norbi)
-        end do
-     end if
+!!$     if (iproc ==0) then
+!!$        call write_ig_eigenvectors(etol,norbi,nspin,iorbst,norb,norbu,norbd,evale)
+!!$     end if
+!!$     if (nspin==1) then
+!!$        do iorb=iorbst,min(norbi+iorbst-1,norb)
+!!$           eval(iorb)=evale(iorb-iorbst+1)
+!!$        end do
+!!$     else
+!!$        do iorb=iorbst,min(norbi+iorbst-1,norbu)
+!!$           eval(iorb)=evale(iorb-iorbst+1)
+!!$        end do
+!!$        do iorb=iorbst,min(norbi+iorbst-1,norbd)
+!!$           eval(iorb+norbu)=evale(iorb-iorbst+1+norbi)
+!!$        end do
+!!$     end if
+
+     !here we should copy all the eigenvalues in the eval array
+     if (nspin > 2) stop 'ERROR(solve_eigensystem): nspin too high'
+
+     call vcopy(norbi,evale(1),1,eval(iorbst),1)
+     if (nspin==2) call vcopy(norbi,evale(norbi+1),1,eval(iorbst+norbu_ig),1)
+
      iorbst=iorbst+norbi
      imatrst=imatrst+ncplx*norbi**2
   end do
@@ -1316,6 +1268,127 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
   call memocc(i_stat,i_all,'evale',subname)
 
 END SUBROUTINE solve_eigensystem
+
+!> @routine
+!!writing rules, control if the last eigenvector is degenerate
+!!do this for each spin
+!!for each spin it is supposed that only the last group is not completely passed
+!!and also that the components of each of the group but the last are the same for up and 
+!!down polarisation. Do not work properly in the other cases
+subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspin,norb,norbu,norbd
+  real(gp), intent(in) :: etol
+  type(orbitals_data), intent(in) :: orbse
+  !local variables
+  character(len=64) :: message
+  character(len=25) :: gapstring
+  integer :: iorb,ndegen,nwrtmsg,ikpt,iorbst
+  real(gp) :: HLIGgap
+  real(wp), dimension(2) :: preval
+  
+  !loop over all the k-points of the IG 
+  iorbst=0 !starting orbital in the k-points distribution
+  !check if norbu and norbd are equal
+  if (nspin==2 .and. orbse%norbu /= orbse%norbd) then
+     write(*,*)'ERROR (write_ig_eigenvectors): the IG orbs structure should have norbu=norbd',orbse%norbu,orbse%norbd
+     stop
+  end if
+
+  do ikpt=1,orbse%nkpts
+     if (orbse%nkpts > 1 .and. orbse%nspinor >= 2) write(*,"(1x,A,I4.4,A,3F12.6)") &
+          & "Kpt #", ikpt, " BZ coord. = ", orbse%kpts(:, ikpt)
+     preval=0.0_wp
+     nwrtmsg=0
+     ndegen=0
+     do iorb=1,orbse%norbu
+        if (nspin==1) then
+           if (nwrtmsg==1) then
+              if (abs(orbse%eval(iorb+iorbst)-preval(1)) <= etol) then
+                 !degeneracy found
+                 message='  <- found degeneracy'
+                 ndegen=ndegen+1
+              else
+                 nwrtmsg=0
+              end if
+           end if
+           if (abs(iorb - norb) <= 5) then
+              nwrtmsg=1
+              message=' <- '
+           end if
+           if (iorb == norb) then
+              !calculate the IG HOMO-LUMO gap
+              if(norb<orbse%norbu) then !I added after they left Basel.
+                 HLIGgap=orbse%eval(iorb+1+iorbst)-orbse%eval(iorb+iorbst)
+                 write(gapstring,'(a,f8.4,a)') ', H-L IG gap: ',HLIGgap*ha2ev,' eV'
+              else
+                 gapstring=''
+              end if
+              nwrtmsg=1
+              message=' <- Last InputGuess eval'//gapstring
+              preval(1)=orbse%eval(iorb+iorbst)
+           end if
+           if (iorb-1 == norb) then
+              nwrtmsg=1
+              message=' <- First virtual eval '
+           end if
+           if (nwrtmsg == 1) then
+              write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                   'evale(',iorb,')=',orbse%eval(iorb+iorbst),trim(message)
+           else
+              if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) & 
+                   write(*,'(1x,a,i0,a,1x,1pe21.14)') &
+                   'evale(',iorb,')=',orbse%eval(iorb+iorbst)
+           end if
+        else
+           if (nwrtmsg==1) then
+              if (abs(orbse%eval(iorb+iorbst)-preval(1)) <= etol .and. &
+                   abs(orbse%eval(iorb+orbse%norbu+iorbst)-preval(2)) <= etol) then
+                 !degeneracy found
+                 message='  <-deg->  '
+                 !ndegen=ndegen+1 removed, only for non magnetized cases
+              else if (abs(orbse%eval(iorb+iorbst)-preval(1)) <= etol) then
+                 !degeneracy found
+                 message='  <-deg    '
+              else if (abs(orbse%eval(iorb+orbse%norbu+iorbst)-preval(2)) <= etol) then
+                 !degeneracy found
+                 message='    deg->  '
+              else
+                 nwrtmsg=0
+              end if
+           end if
+           if (iorb == norbu .and. iorb == norbd) then
+              nwrtmsg=1
+              message='  <-Last-> ' 
+              preval(1)=orbse%eval(iorb+iorbst)
+              preval(2)=orbse%eval(iorb+orbse%norbu+iorbst)
+           else if (iorb == norbu) then
+              nwrtmsg=1
+              message='  <-Last   '
+              preval(1)=orbse%eval(iorb+iorbst)
+           else if (iorb == norbd) then
+              nwrtmsg=1
+              message='    Last-> '
+              preval(2)=orbse%eval(iorb+orbse%norbu+iorbst)
+           end if
+           if (nwrtmsg==1) then
+              write(*,'(1x,a,i4,a,1x,1pe21.14,a12,a,i4,a,1x,1pe21.14)') &
+                   'evale(',iorb,',u)=',orbse%eval(iorb+iorbst),message,&
+                   'evale(',iorb,',d)=',orbse%eval(iorb+orbse%norbu+iorbst)
+           else
+              if ((iorb <= 5 .or. iorb >= orbse%norbu-5) .or. verbose > 0) & 
+                   write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
+                   'evale(',iorb,',u)=',orbse%eval(iorb+iorbst),&
+                   'evale(',iorb,',d)=',orbse%eval(iorb+orbse%norbu+iorbst)
+           end if
+        end if
+     end do
+     !increment k-points shift
+     iorbst=iorbst+orbse%norb
+  end do
+end subroutine write_ig_eigenvectors
 
 
 subroutine build_eigenvectors(iproc,norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
@@ -3098,7 +3171,7 @@ end if semicoreIf
      call memocc(i_stat, i_all, 'evale', subname)
   end if
 
-  if(iproc==0) write(*,'(1xa)') 'Input guess successfully generated.'
+  if(iproc==0) write(*,'(1x,a)') 'Input guess successfully generated.'
 
   ! Stop the timing for the input guess.
   call timing(iproc, 'Input_comput', 'OF')

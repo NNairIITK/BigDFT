@@ -39,7 +39,7 @@ endif
 if USE_OCL
 sub_dirs_ocl=OpenCL
 OCL_INTERFACE = convolutions/convolut_common_interface_ocl.f90
-libs_ocl=OpenCL/libOCL.a
+libs_ocl=OpenCL/libOCL.a -lstdc++
 else
 sub_dirs_ocl=
 OCL_INTERFACE = convolutions/interface_ocl_fake.f90
@@ -73,6 +73,11 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
+if HAVE_FC_FLUSH
+flush_files =
+else
+flush_files = modules/flush_fake.f90
+endif
 
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
@@ -100,8 +105,10 @@ EXTRA_DIST = \
 	wavelib/sym_16.inc \
 	NEB_driver.sh 
 
-AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
-	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @LIBETSFIO_INCLUDE@
+AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdir)/wavelib \
+	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
+	@LIBETSFIO_INCLUDE@
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@
 
 bin_PROGRAMS = $(binaries_sources)
 bin_SCRIPTS = $(scripts_sources)
@@ -162,6 +169,9 @@ modules_source = modules/base.f90 \
 	modules/defs.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
+	modules/input.f90 \
+	modules/xc.f90 \
+	modules/op2p_module.f90 \
 	$(GPU_BLAS)
 
 modules_objects = $(modules_source:.f90=.o)
@@ -177,6 +187,7 @@ high_level = cluster.f90 \
 	restart.f90 \
 	geometry.f90 \
 	davidson.f90 \
+	ConstrainedDavidson.f90 \
 	pdos.f90 \
 	vdwcorrection.f90 \
 	lanczos_interface.f90 \
@@ -207,6 +218,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/exctX.f90 \
+	wfn_opt/sic.f90 \
 	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_hyb.f90 \
 	wfn_opt/precond_slab.f90 \
@@ -224,6 +236,7 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
+	posfiles.c \
 	sdcg.f90 \
 	bfgs.f90 \
         linear/filterModule.f90 \
@@ -299,7 +312,7 @@ rism_LDADD = libbigdft.a \
 #        @MPI_LIBS@ \
 #        $(libs_opt)
 
- 
+
 oneatom_SOURCES = oneatom.f90
 oneatom_LDFLAGS = 
 oneatom_LDADD = libbigdft.a \
@@ -307,7 +320,6 @@ oneatom_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_opt)
-
 
 MDanalysis_SOURCES = distances.f90 
 MDanalysis_LDFLAGS = 
@@ -382,6 +394,7 @@ CLEANFILES = \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
+	module_defs.@MODULE_EXT@ MODULE_DEFS.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
 	esatto.@MODULE_EXT@ ESATTO.@MODULE_EXT@ \
@@ -399,14 +412,19 @@ CLEANFILES = \
 	lanczos_defs.@MODULE_EXT@ LANCZOS_DEFS.@MODULE_EXT@ \
 	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
 	minpar.@MODULE_EXT@ MINPAR.@MODULE_EXT@ \
-	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@
+	saddles.@MODULE_EXT@ SADDLES.@MODULE_EXT@ \
+	minimization_sp.@MODULE_EXT@ MINIMIZATION_SP.@MODULE_EXT@ \
+	modulesplinedsaddle.@MODULE_EXT@ MODULESPLINEDSADDLE.@MODULE_EXT@ \
+	randomdata.@MODULE_EXT@ RANDOMDATA.@MODULE_EXT@ \
+	module_input.@MODULE_EXT@ MODULE_INPUT.@MODULE_EXT@ \
+	position_files.@MODULE_EXT@ POSITION_FILES.@MODULE_EXT@
 
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
 
 #dependencies
-$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o : $(mpi_include)  $(modules_objects)
+$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o global.o abscalc.o : $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o xabsorber.o: vdwcorrection.o esatto.o scfloop_API.o
 
@@ -422,15 +440,13 @@ xabsorber.o init/xabsorber.o : init/xabsorber.f90 esatto.o
 
 #BigDFT_API.o: base.o types.o interfaces.o
 
-#$(high_level:.f90=.o) : base.o types.o
+$(high_level:.f90=.o) : $(modules_objects)
 
 test_forces.o: $(mod_bigdft)
 
 $(mod_bigdft) : BigDFT_API.o
 
 $(modules_objects) : $(mpi_include)
-
-modules/defs.o: modules/base.o
 
 #BigDFT.o: \
 #	base.o \

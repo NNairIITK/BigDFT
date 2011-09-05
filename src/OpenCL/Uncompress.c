@@ -15,8 +15,12 @@
 #include <math.h>
 
 char * uncompress_program="\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void uncompress_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, __global const uint * keyg_c, __global const uint * keyv_c, __global const double * psi_c, __global double * psi_g) {\n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
+__kernel void uncompress_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, __global const uint * restrict keyg_c, __global const uint *  restrict keyv_c, __global const double *  restrict psi_c, __global double *  restrict psi_g) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
 size_t length = nseg_c;\n\
@@ -47,7 +51,7 @@ i1=ii-i2*(n1)+ig-(*first-1);\n\
 psi_g[ ( ( ( (0 * n3 + i3 ) * 2 + 0 ) * n2 + i2 ) * 2 + 0 ) * n1  + i1] = psi_c[ig];\n\
 };\n\
 \n\
-__kernel void uncompress_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, __global const uint * keyg_f, __global const uint const * keyv_f, __global const double * psi_f, __global double * psi_g, __local double * tmp) {\n\
+__kernel void uncompress_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, __global const uint *  restrict keyg_f, __global const uint const *  restrict keyv_f, __global const double *  restrict psi_f, __global double *  restrict psi_g, __local double * tmp) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_f ) : ig;\n\
 size_t length = nseg_f;\n\
@@ -107,7 +111,7 @@ __kernel void scale_psi_coarseKernel_d(uint nvctr_c, double GPUscal0, __global d
   if(ig<nvctr_c)\n\
     psi_c[ig] *= GPUscal0;\n\
 }\n\
-__kernel void uncompress_scale_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, double GPUscal0, __global const uint * keyg_c, __global const uint const * keyv_c, __global const double * psi_c, __global double * psi_g) {\n\
+__kernel void uncompress_scale_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, double GPUscal0, __global const uint *  restrict keyg_c, __global const uint const *  restrict keyv_c, __global const double *  restrict psi_c, __global double *  restrict psi_g) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
 size_t length = nseg_c;\n\
@@ -137,7 +141,7 @@ i1=ii-i2*(n1)+ig-(*first-1);\n\
 //psi_g(i1,1,i2,1,i3,1)=psi_c[ig]\n\
 psi_g[ ( ( ( (0 * n3 + i3 ) * 2 + 0 ) * n2 + i2 ) * 2 + 0 ) * n1  + i1] = psi_c[ig]*GPUscal0;\n\
 };\n\
-__kernel void scale_psi_fineKernel_d(uint nvctr_f, double GPUscal1, double GPUscal2, double GPUscal3, double GPUscal4, double GPUscal5, double GPUscal6, double GPUscal7, __global double * psi_f) {\n\
+__kernel void scale_psi_fineKernel_d(uint nvctr_f, double GPUscal1, double GPUscal2, double GPUscal3, double GPUscal4, double GPUscal5, double GPUscal6, double GPUscal7, __global double *  restrict psi_f) {\n\
   size_t ig = get_global_id(0);\n\
   if(ig<nvctr_f){\n\
     psi_f[ig*7] *= GPUscal1;\n\
@@ -149,7 +153,7 @@ __kernel void scale_psi_fineKernel_d(uint nvctr_f, double GPUscal1, double GPUsc
     psi_f[ig*7+6] *= GPUscal7;\n\
   }\n\
 }\n\
-__kernel void uncompress_scale_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, double GPUscal1, double GPUscal2, double GPUscal3, double GPUscal4, double GPUscal5, double GPUscal6, double GPUscal7, __global const uint * keyg_f, __global const uint const * keyv_f, __global const double * psi_f, __global double * psi_g, __local double * tmp) {\n\
+__kernel void uncompress_scale_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, double GPUscal1, double GPUscal2, double GPUscal3, double GPUscal4, double GPUscal5, double GPUscal6, double GPUscal7, __global const uint *  restrict keyg_f, __global const uint const *  restrict keyv_f, __global const double *  restrict psi_f, __global double *  restrict psi_g, __local double * tmp) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_f ) : ig;\n\
 size_t length = nseg_f;\n\
@@ -207,8 +211,12 @@ psi_g[ ( ( ( (1 * n3 + i3 ) * 2 + 1 ) * n2 + i2 ) * 2 + 1 ) * n1  + i1] = tmp_o[
 ";
 
 char * compress_program="\
+#ifdef cl_khr_fp64\n\
 #pragma OPENCL EXTENSION cl_khr_fp64: enable \n\
-__kernel void compress_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, __global const uint * keyg_c, __global const uint const * keyv_c, __global double * psi_c, __global const double * psi_g) {\n\
+#elif defined (cl_amd_fp64)\n\
+#pragma OPENCL EXTENSION cl_amd_fp64: enable \n\
+#endif\n\
+__kernel void compress_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, __global const uint *  restrict keyg_c, __global const uint const *  restrict keyv_c, __global double *  restrict psi_c, __global const double *  restrict psi_g) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
 size_t length = nseg_c;\n\
@@ -238,7 +246,7 @@ i1=ii-i2*(n1)+ig-(*first-1);\n\
 //psi_g(i1,1,i2,1,i3,1)=psi_c[ig]\n\
 psi_c[ig] = psi_g[ ( ( ( (0 * n3 + i3 ) * 2 + 0 ) * n2 + i2 ) * 2 + 0 ) * n1  + i1];\n\
 };\n\
-__kernel void compress_scale_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, double GPUscal0, __global const uint * keyg_c, __global const uint const * keyv_c, __global double * psi_c, __global const double * psi_g) {\n\
+__kernel void compress_scale_coarseKernel_d(uint n1, uint n2, uint n3, uint nseg_c, uint nvctr_c, double GPUscal0, __global const uint *  restrict keyg_c, __global const uint const *  restrict keyv_c, __global double *  restrict psi_c, __global const double *  restrict psi_g) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_c ) : ig;\n\
 size_t length = nseg_c;\n\
@@ -270,7 +278,7 @@ psi_c[ig] = psi_g[ ( ( ( (0 * n3 + i3 ) * 2 + 0 ) * n2 + i2 ) * 2 + 0 ) * n1  + 
 };\n\
 \n\
 //hypothesis : nseg_f > 0\n\
-__kernel void compress_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, __global const uint * keyg_f, __global uint * keyv_f, __global double * psi_f, __global const double * psi_g, __local double * tmp) {\n\
+__kernel void compress_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, __global const uint *  restrict keyg_f, __global uint *  restrict keyv_f, __global double *  restrict psi_f, __global const double *  restrict psi_g, __local double * tmp) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_f ) : ig;\n\
 size_t length = nseg_f;\n\
@@ -317,7 +325,7 @@ psi_f[igr * 7 + i + 4*64] = tmp_o[4*64];\n\
 psi_f[igr * 7 + i + 5*64] = tmp_o[5*64];\n\
 psi_f[igr * 7 + i + 6*64] = tmp_o[6*64];\n\
 };\n\
-__kernel void compress_scale_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, double GPUscal1, double GPUscal2, double GPUscal3, double GPUscal4, double GPUscal5, double GPUscal6, double GPUscal7, __global const uint * keyg_f, __global uint * keyv_f, __global double * psi_f, __global const double * psi_g, __local double * tmp) {\n\
+__kernel void compress_scale_fineKernel_d(uint n1, uint n2, uint n3, uint nseg_f, uint nvctr_f, double GPUscal1, double GPUscal2, double GPUscal3, double GPUscal4, double GPUscal5, double GPUscal6, double GPUscal7, __global const uint *  restrict keyg_f, __global uint *  restrict keyv_f, __global double *  restrict psi_f, __global const double *  restrict psi_g, __local double * tmp) {\n\
 size_t ig = get_global_id(0);\n\
 ig = get_group_id(0) == get_num_groups(0) - 1 ? ig - ( get_global_size(0) - nvctr_f ) : ig;\n\
 size_t length = nseg_f;\n\

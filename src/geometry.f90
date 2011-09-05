@@ -59,10 +59,10 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   !local variables
   logical :: fail
   integer :: ibfgs
-
-  !-------------------------------------------
-  character*4 fn4
+  character(len=6) :: outfile, fmt
+  character*5 fn4
   character*40 comment
+  !-------------------------------------------
 
   call geopt_init()
   if (iproc ==0 .and. parmin%verbosity > 0)  write(16,'(a)')  & 
@@ -78,11 +78,16 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 
   epot=0.d0
   ncount_bigdft=0
-  write(fn4,'(i4.4)') ncount_bigdft
-  write(comment,'(a)')'INITIAL CONFIGURATION '
-  if (iproc == 0) call write_atomic_file('posout_'//fn4,epot,pos,at,trim(comment))
-
-  if (iproc ==0)  write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
+  if (iproc == 0) then
+     outfile = 'posout'
+     if (trim(parmin%approach)=='AB6MD') outfile = 'posmd '
+     fmt = "(i4.4)"
+     if (trim(parmin%approach)=='AB6MD') fmt = '(i5.5)'
+     write(fn4,fmt) ncount_bigdft
+     write(comment,'(a)')'INITIAL CONFIGURATION '
+     call write_atomic_file(trim(outfile)//'_'//trim(fn4),epot,pos,at,trim(comment))
+     write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
+  end if
 
   if (trim(parmin%approach)=='LBFGS') then
   
@@ -109,7 +114,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 !        call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 !     end if
 !
-  else if(trim(parmin%approach)=='BFGS') then
+  else if(trim(parmin%approach)=='BFGS' .or. trim(parmin%approach)=='PBFGS') then
      call bfgsdriver(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft)
   else if(trim(parmin%approach)=='SDCG') then
 
@@ -141,6 +146,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
      stop 
   endif
   if (iproc==0) write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
+
+  if (iproc==0) call finaliseCompress()
 
 END SUBROUTINE geopt
 
@@ -674,8 +681,6 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
      enddo
 
      in%inputPsiId=1
-     in%output_grid=0
-     in%output_wf=.false.
      call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,fnoise,rst,infocode)
      ncount_bigdft=ncount_bigdft+1
      call fnrmandforcemax(fpred,fnrm,fmax,at%nat)

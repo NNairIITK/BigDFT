@@ -6,18 +6,18 @@
 
 runstat new
 approach BFGS
-alphax 4.d0
-fmaxtol 1.d-3
+alphax 14.d0
+fmaxtol 2.d-3
 np 2
 maxforcecall 350
 vdtol 1.d-1
 ns2 0
 htol 2.d-2
 hybrid yes
-npneb 3
-fmaxtolneb 3.2d-2
+npneb 2
+fmaxtolneb 2.d-2
 #fmaxtolneb 3.d-2
-#pickbestanchorpoints yes
+pickbestanchorpoints no
 
 #runstat: new or restart (default is new)
 #Notice that in case of restart file "anchorposinp.xyz" must be present in the 
