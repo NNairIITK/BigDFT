@@ -150,12 +150,14 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,jorbd
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,ispinor
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac
-  integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
+  integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb, jst
   real(gp), dimension(2,2,3) :: offdiagarr
+  real(gp),dimension(:),allocatable:: temparr
   real(gp), dimension(:,:), allocatable :: fxyz_orb,fxyz_tmorb
-  real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod, scalprodGlobal
+  real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod!!, scalprodGlobal
+  real(dp), dimension(:,:,:,:,:,:), allocatable :: scalprodGlobal
   integer :: ilr,iatom,ii,iiat,iilr,iorb2,nilr,iiorb,ilr2,kptshft,orbtot
-  integer :: norb,itmorb,itmorb2,jorb2
+  integer :: norb,itmorb,itmorb2,jorb2, ncount
   real(gp) :: spi2,sp1,sum_scalprod
   integer,dimension(:),allocatable :: ilrtable, sendcounts, displs
   logical :: calcproj,newvalue,useTMO
@@ -346,34 +348,34 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 
 
 ! Communicate scalprod
-allocate(scalprodGlobal(2,0:3,7,3,4,at%nat,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
-call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
-allocate(sendcounts(0:nproc-1), stat=i_stat)
-call memocc(i_stat,sendcounts,'sendcounts',subname)
-allocate(displs(0:nproc-1), stat=i_stat)
-call memocc(i_stat,displs,'displs',subname)
+!!allocate(sendcounts(0:nproc-1), stat=i_stat)
+!!call memocc(i_stat,sendcounts,'sendcounts',subname)
+!!allocate(displs(0:nproc-1), stat=i_stat)
+!!call memocc(i_stat,displs,'displs',subname)
 
-displs(0)=0
-do jproc=0,nproc-1
-    sendcounts(jproc)=2*4*7*3*4*at%nat*linorbs%norb_par(jproc)*linorbs%nspinor
-    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
-end do
-call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
-     scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
-!call mpi_gatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
+!!allocate(scalprodGlobal(2,0:3,7,3,4,at%nat,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
+!!call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
+!!displs(0)=0
+!!do jproc=0,nproc-1
+!!    sendcounts(jproc)=2*4*7*3*4*at%nat*linorbs%norb_par(jproc)*linorbs%nspinor
+!!    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+!!end do
+!!call mpi_allgatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
+!!     scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
+!!!call mpi_gatherv(scalprod, sendcounts(iproc), mpi_double_precision, &
 !     scalprodGlobal, sendcounts, displs, mpi_double_precision, 0, mpi_comm_world, ierr)
 !call mpi_bcast(scalprodGlobal, 2*4*7*3*4*at%nat*linorbs%norb*linorbs%nspinor, mpi_double_precision, 0, &
 !     mpi_comm_world, ierr)
 
-i_all = -product(shape(sendcounts))*kind(sendcounts)
-deallocate(sendcounts,stat=i_stat)
-call memocc(i_stat,i_all,'sendcounts',subname)
-i_all = -product(shape(displs))*kind(displs)
-deallocate(displs,stat=i_stat)
-call memocc(i_stat,i_all,'displs',subname)
-i_all = -product(shape(scalprod))*kind(scalprod)
-deallocate(scalprod,stat=i_stat)
-call memocc(i_stat,i_all,'scalprod',subname)
+!!i_all = -product(shape(sendcounts))*kind(sendcounts)
+!!deallocate(sendcounts,stat=i_stat)
+!!call memocc(i_stat,i_all,'sendcounts',subname)
+!!i_all = -product(shape(displs))*kind(displs)
+!!deallocate(displs,stat=i_stat)
+!!call memocc(i_stat,i_all,'displs',subname)
+!!i_all = -product(shape(scalprod))*kind(scalprod)
+!!deallocate(scalprod,stat=i_stat)
+!!call memocc(i_stat,i_all,'scalprod',subname)
 
 
 
@@ -645,6 +647,23 @@ call memocc(i_stat,i_all,'scalprod',subname)
   
      allocate(fxyz_tmorb(3,at%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz_tmorb,'fxyz_tmorb',subname)
+
+     allocate(scalprodGlobal(2,0:3,7,3,4,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
+     call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
+     ncount=2*4*7*3*4*max(linorbs%norbp,1)*linorbs%nspinor
+     allocate(temparr(ncount+ndebug),stat=i_stat)   
+     call memocc(i_stat,temparr,'temparr',subname)
+
+     allocate(sendcounts(0:nproc-1), stat=i_stat)
+     call memocc(i_stat,sendcounts,'sendcounts',subname)
+     allocate(displs(0:nproc-1), stat=i_stat)
+     call memocc(i_stat,displs,'displs',subname)
+
+     displs(0)=0
+     do jproc=0,nproc-1
+         sendcounts(jproc)=2*4*7*3*4*linorbs%norb_par(jproc)*linorbs%nspinor
+         if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+     end do
      
      !apply the projectors  k-point of the processor
      !starting k-point
@@ -658,26 +677,41 @@ call memocc(i_stat,i_all,'scalprod',subname)
 
         kptshft = orbtot
         ! loop over all my orbitals for calculating forces
-        do iorb=1,orbs%norbp
+        !do iorb=1,orbs%norbp
+        do iorb=1,maxval(orbs%norb_par)
            call razero(3*at%nat,fxyz_orb)
-           do itmorb = 1, linorbs%norb
-              jorb = itmorb + kptshft
-              do itmorb2=1,linorbs%norb
-                 jorb2=itmorb2 + kptshft
-                 call razero(3*at%nat,fxyz_tmorb)
-                 do ispinor=1,orbs%nspinor,ncplx
-                    do iat=1,at%nat
-                       ityp=at%iatype(iat)
+           do iat=1,at%nat
+              ityp=at%iatype(iat)
+
+              ! Copy scalprod to temporary array for communication.
+              ncount=2*4*7*3*4
+              jst=1
+              !do jorb=1,max(linorbs%norbp,1)*linorbs%nspinor
+              do jorb=1,linorbs%norbp*linorbs%nspinor
+                  call dcopy(ncount, scalprod(1,0,1,1,1,iat,jorb), 1, temparr(jst), 1)
+                  jst=jst+ncount
+              end do
+              call mpi_allgatherv(temparr, sendcounts(iproc), mpi_double_precision, &
+                   scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
+
+              do itmorb = 1,linorbs%norb
+                 jorb = itmorb + kptshft
+                 do itmorb2=1,linorbs%norb
+                    jorb2=itmorb2 + kptshft
+                    call razero(3,fxyz_tmorb(1,iat))
+                    do ispinor=1,orbs%nspinor,ncplx
                        do l=1,4
                           do i=1,3
                              if (at%psppar(l,i,ityp) /= 0.0_gp) then
                                 do m=1,2*l-1
                                    do icplx=1,ncplx
                                       ! scalar product with the derivatives in all the directions
-                                      sp0=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
+                                      !!sp0=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
+                                      sp0=real(scalprodGlobal(icplx,0,m,i,l,jorb),gp)
                                       !sp1=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb2),gp)
                                       do idir=1,3
-                                         spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb2),gp)
+                                         !!spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb2),gp)
+                                         spi=real(scalprodGlobal(icplx,idir,m,i,l,jorb2),gp)
                                        !  spi2=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
                                          fxyz_tmorb(idir,iat)=fxyz_tmorb(idir,iat)+&
                                               at%psppar(l,i,ityp)*(sp0*spi)!+sp1*spi2)
@@ -704,11 +738,15 @@ call memocc(i_stat,i_all,'scalprod',subname)
                                          !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
                                          !(the two factor is below)
                                          do icplx=1,ncplx
-                                            sp0i=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
-                                            sp0j=real(scalprodGlobal(icplx,0,m,j,l,iat,jorb2),gp)
+                                            !!sp0i=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
+                                            !!sp0j=real(scalprodGlobal(icplx,0,m,j,l,iat,jorb2),gp)
+                                            sp0i=real(scalprodGlobal(icplx,0,m,i,l,jorb),gp)
+                                            sp0j=real(scalprodGlobal(icplx,0,m,j,l,jorb2),gp)
                                             do idir=1,3
-                                               spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
-                                               spj=real(scalprodGlobal(icplx,idir,m,j,l,iat,jorb2),gp)
+                                               !!spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
+                                               !!spj=real(scalprodGlobal(icplx,idir,m,j,l,iat,jorb2),gp)
+                                               spi=real(scalprodGlobal(icplx,idir,m,i,l,jorb),gp)
+                                               spj=real(scalprodGlobal(icplx,idir,m,j,l,jorb2),gp)
                                                fxyz_tmorb(idir,iat)=fxyz_tmorb(idir,iat)+&
                                                     hij*(sp0j*spi+spj*sp0i)
                                             end do
@@ -720,16 +758,18 @@ call memocc(i_stat,i_all,'scalprod',subname)
                           end do
                        end if
                     end do
+                    !here sum over the trace minimizing orbitals to reconstruct the force for orbital iorb
+                    ! coeff is REAL (only finite systems???)
+                    if(iorb<=orbs%norbp) then
+                        do idir=1,3
+                           !do iat=1,at%nat
+                              fxyz_orb(idir,iat) = fxyz_orb(idir,iat) + coeff(jorb,iorb+orbs%isorb)*coeff(jorb2,iorb+orbs%isorb)&
+                                   *fxyz_tmorb(idir,iat)
+                           !end do
+                        end do
+                    end if
+                    jorb2 = jorb2+1 
                  end do
-                 !here sum over the trace minimizing orbitals to reconstruct the force for orbital iorb
-                 ! coeff is REAL (only finite systems???)
-                 do idir=1,3
-                    do iat=1,at%nat
-                       fxyz_orb(idir,iat) = fxyz_orb(idir,iat) + coeff(jorb,iorb+orbs%isorb)*coeff(jorb2,iorb+orbs%isorb)&
-                            *fxyz_tmorb(idir,iat)
-                    end do
-                 end do
-                 jorb2 = jorb2+1 
               end do
               jorb = jorb +1
               orbtot = orbtot + 1
@@ -737,18 +777,34 @@ call memocc(i_stat,i_all,'scalprod',subname)
 
            !orbital-dependent factor for the forces
 !           orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb)*2.0_gp
-            orbfac=orbs%occup(iorb+orbs%isorb)*2.0_gp
-           do iat=1,at%nat
-              fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
-              fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
-              fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
-           end do
+            if(iorb<=orbs%norbp) then
+                orbfac=orbs%occup(iorb+orbs%isorb)*2.0_gp
+                do iat=1,at%nat
+                   fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
+                   fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
+                   fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
+                end do
+            end if
 
         end do
 !        if (ieorb == orbs%norbp) exit loop_kptF
 !        ikpt=ikpt+1
 !        ispsi_k=ispsi
 !     end do loop_kptF
+
+     i_all=-product(shape(temparr))*kind(temparr)
+     deallocate(temparr,stat=i_stat)
+     call memocc(i_stat,i_all,'temparr',subname)
+     i_all = -product(shape(sendcounts))*kind(sendcounts)
+     deallocate(sendcounts,stat=i_stat)
+     call memocc(i_stat,i_all,'sendcounts',subname)
+     i_all = -product(shape(displs))*kind(displs)
+     deallocate(displs,stat=i_stat)
+     call memocc(i_stat,i_all,'displs',subname)
+     i_all = -product(shape(scalprod))*kind(scalprod)
+     deallocate(scalprod,stat=i_stat)
+     call memocc(i_stat,i_all,'scalprod',subname)
+
   else
      !apply the projectors  k-point of the processor
      !starting k-point
