@@ -294,7 +294,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   
   allocate(locradType(at%ntypes), stat=istat)
   call memocc(istat, locradType, 'locradType', subname)
-    
+
   ! Open the input file and read in the parameters.
   inquire(file='input.lin', exist=fileExists)
   if(.not. fileExists) then
@@ -370,7 +370,6 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
       itype=at%iatype(iat)
       lin%locrad(iat)=locradType(itype)
   end do
-  
   
   iall=-product(shape(locradType))*kind(locradType)
   deallocate(locradType, stat=istat)

@@ -154,6 +154,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp),dimension(:),allocatable:: temparr
   real(gp), dimension(:,:), allocatable :: fxyz_orb,fxyz_tmorb
+  real(gp),dimension(:,:,:),allocatable:: mat
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod!!, scalprodGlobal
   real(dp), dimension(:,:,:,:,:,:), allocatable :: scalprodGlobal
   integer :: ilr,iatom,ii,iiat,iilr,iorb2,nilr,iiorb,ilr2,kptshft,orbtot
@@ -648,6 +649,9 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      allocate(fxyz_tmorb(3,at%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz_tmorb,'fxyz_tmorb',subname)
 
+     allocate(mat(3,linorbs%norb,linorbs%norb), stat=i_stat)
+     call memocc(i_stat, mat, 'mat', subname)
+
      allocate(scalprodGlobal(2,0:3,7,3,4,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
      call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
      ncount=2*4*7*3*4*max(linorbs%norbp,1)*linorbs%nspinor
@@ -694,8 +698,11 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               call mpi_allgatherv(temparr, sendcounts(iproc), mpi_double_precision, &
                    scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
 
-              do itmorb = 1,linorbs%norb
-                 jorb = itmorb + kptshft
+              mat=0.d0
+              !do itmorb = 1,linorbs%norb
+              do itmorb = 1,linorbs%norbp
+                 !jorb = itmorb + kptshft
+                 jorb = itmorb + kptshft + linorbs%isorb
                  do itmorb2=1,linorbs%norb
                     jorb2=itmorb2 + kptshft
                     call razero(3,fxyz_tmorb(1,iat))
@@ -715,6 +722,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                        !  spi2=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
                                          fxyz_tmorb(idir,iat)=fxyz_tmorb(idir,iat)+&
                                               at%psppar(l,i,ityp)*(sp0*spi)!+sp1*spi2)
+                                         mat(idir,jorb2,jorb)=fxyz_tmorb(idir,iat)
                                       end do
                                    end do
                                 end do
@@ -749,6 +757,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                                spj=real(scalprodGlobal(icplx,idir,m,j,l,jorb2),gp)
                                                fxyz_tmorb(idir,iat)=fxyz_tmorb(idir,iat)+&
                                                     hij*(sp0j*spi+spj*sp0i)
+                                            mat(idir,jorb2,jorb)=fxyz_tmorb(idir,iat)
                                             end do
                                          end do
                                       end do
@@ -760,20 +769,39 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                     end do
                     !here sum over the trace minimizing orbitals to reconstruct the force for orbital iorb
                     ! coeff is REAL (only finite systems???)
-                    if(iorb<=orbs%norbp) then
-                        do idir=1,3
-                           !do iat=1,at%nat
-                              fxyz_orb(idir,iat) = fxyz_orb(idir,iat) + coeff(jorb,iorb+orbs%isorb)*coeff(jorb2,iorb+orbs%isorb)&
-                                   *fxyz_tmorb(idir,iat)
-                           !end do
-                        end do
-                    end if
+                    !if(iorb<=orbs%norbp) then
+                    !    do idir=1,3
+                    !       !do iat=1,at%nat
+                    !          fxyz_orb(idir,iat) = fxyz_orb(idir,iat) + coeff(jorb,iorb+orbs%isorb)*coeff(jorb2,iorb+orbs%isorb)&
+                    !               *fxyz_tmorb(idir,iat)
+                    !       !end do
+                    !    end do
+                    !end if
                     jorb2 = jorb2+1 
                  end do
               end do
               jorb = jorb +1
               orbtot = orbtot + 1
+
+              call mpiallred(mat(1,1,1), 3*linorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
+              if(iorb<=orbs%norbp) then
+                 do itmorb = 1,linorbs%norb
+                    jorb = itmorb + kptshft
+                    do itmorb2=1,linorbs%norb
+                       jorb2=itmorb2 + kptshft
+                       do idir=1,3
+                          !do iat=1,at%nat
+                             fxyz_orb(idir,iat) = fxyz_orb(idir,iat) + coeff(jorb,iorb+orbs%isorb)*coeff(jorb2,iorb+orbs%isorb)*mat(idir,jorb2,jorb)
+                          !end do
+                       end do
+                    end do
+                 end do
+              end if
            end do
+
+
+           !write(*,'(a,i5,es15.7)') 'iproc, fxyz_orb(1,1)', iproc, fxyz_orb(1,1)
+           !call mpiallred(fxyz_orb(1,1), 3*at%nat, mpi_sum, mpi_comm_world, ierr)
 
            !orbital-dependent factor for the forces
 !           orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb)*2.0_gp
@@ -804,6 +832,9 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      i_all = -product(shape(scalprod))*kind(scalprod)
      deallocate(scalprod,stat=i_stat)
      call memocc(i_stat,i_all,'scalprod',subname)
+     i_all = -product(shape(mat))*kind(mat)
+     deallocate(mat,stat=i_stat)
+     call memocc(i_stat,i_all,'mat',subname)
 
   else
      !apply the projectors  k-point of the processor
