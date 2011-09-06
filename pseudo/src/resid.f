@@ -6,7 +6,8 @@
      :     hsep,
      :     ud,nint,ng,ngmx,psi,rho,pp1,pp2,pp3,
      :     potgrd,pexgrd,xcgrd,rr,rw,
-     :     ppr1,ppr2,ppr3,aux1,aux2,expxpr)
+     :     ppr1,ppr2,ppr3,aux1,aux2,
+     :     expxpr)
 
 c          NEW
 c          spin polarized treatment if nspol == 2
@@ -60,18 +61,18 @@ c add hartree potential
 
 c        potgrd(k)=+ud(k,i,j,l+1)*rho(i,j,l+1)
       call DGEMV('N',nint,((ng+1)*(ng+2))/2*(lcx+1),1.d0,ud,nint,
-     &             rho(:,:,1),1,1.d0,potgrd,1)
+     &             rho(1,1,1),1,1.d0,potgrd,1)
 c polarized: both channels of rho are needed for the Hartree term
-      if(nspol==2)
+      if(nspol.eq.2)
      &call DGEMV('N',nint,((ng+1)*(ng+2))/2*(lcx+1),1.d0,ud,nint,
-     &             rho(:,:,2),1,1.d0,potgrd,1)
+     &             rho(1,1,2),1,1.d0,potgrd,1)
       do ll=0,lmax
 c        if nspol=2, s orbitals have two spin states, too
          do ispin=1,max(min(2*ll+1,nspin),nspol)
             do iocc=1,noccmax
                if (res(iocc,ll+1,ispin).ne.-1.0d0) then
 c     separabel part
-                  if (ll.le.lpx) then
+                  if (ll.le.lpx-1) then
                      scpr1(ispin)=DDOT(ng+1,psi(0,iocc,ll+1,ispin),
      :                    1,pp1(0,ll+1),1)
                      scpr2(ispin)=DDOT(ng+1,psi(0,iocc,ll+1,ispin),
@@ -93,7 +94,7 @@ c     kinetic energy
                      enddo
                      rkin=rkin*r**ll
 c     separabel part
-                     if (ll.le.lpx) then
+                     if (ll.le.lpx-1) then
                         sep = (scpr1(ispin)*hsep(1,ll+1,ispin) 
      :                       + scpr2(ispin)*hsep(2,ll+1,ispin) 
      :                       + scpr3(ispin)*hsep(4,ll+1,ispin))

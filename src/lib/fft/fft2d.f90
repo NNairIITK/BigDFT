@@ -49,126 +49,127 @@
 !!
 subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
 
-    implicit real*8 (a-h,o-z)
-    integer after,before,now
-    dimension trig(2,1024),zw(2,ncache/4,2),z(2,nd1*nd2,2),after(20),now(20),before(20)
-    if (max(n1,n2).gt.1024) stop '1024'
-    ntrig=1024
-! vector computer with memory banks:
-    if (ncache.eq.0) then
+   implicit real*8 (a-h,o-z)
+   integer after,before,now
+   dimension trig(2,1024),zw(2,ncache/4,2),z(2,nd1*nd2,2),after(20),now(20),before(20)
+   if (max(n1,n2).gt.1024) stop '1024'
+   ntrig=1024
+   ! vector computer with memory banks:
+   if (ncache.eq.0) then
 
-! TRANSFORM ALONG Y AXIS
-       call ctrig_sg(n2,ntrig,trig,after,before,now,isign,ic)
-       nfft=n1
-       mm=nd1
-       do i=1,ic-1
-          call fftstp_sg(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
-          inzee=3-inzee
-       end do
-       i=ic
-       call fftrot_sg(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
-       inzee=3-inzee
+      ! TRANSFORM ALONG Y AXIS
+      call ctrig_sg(n2,ntrig,trig,after,before,now,isign,ic)
+      nfft=n1
+      mm=nd1
+      do i=1,ic-1
+         call fftstp_sg(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
+         inzee=3-inzee
+      end do
+      i=ic
+      call fftrot_sg(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
+      inzee=3-inzee
 
-! TRANSFORM ALONG X AXIS
-       if (n1.ne.n2) call ctrig_sg(n1,ntrig,trig,after,before,now,isign,ic)
-       nfft=n2
-       mm=nd2
-       do i=1,ic-1
-          call fftstp_sg(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
-            inzee=3-inzee
-       end do
-       i=ic
-       call fftrot_sg(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
-       inzee=3-inzee
+      ! TRANSFORM ALONG X AXIS
+      if (n1.ne.n2) call ctrig_sg(n1,ntrig,trig,after,before,now,isign,ic)
+      nfft=n2
+      mm=nd2
+      do i=1,ic-1
+         call fftstp_sg(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
+         inzee=3-inzee
+      end do
+      i=ic
+      call fftrot_sg(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
+      inzee=3-inzee
 
-! RISC machine with cache:
-    else
+      ! RISC machine with cache:
+   else
 
 
-! TRANSFORM ALONG Y AXIS
-    mm=nd1
-    m=nd2
-        lot=max(1,ncache/(4*n2))
-!    print*,'lot',lot
-    nn=lot
-    n=n2
-    if (2*n*lot*2.gt.ncache) stop 'enlarge ncache :2'
-    call ctrig_sg(n2,ntrig,trig,after,before,now,isign,ic)
+      ! TRANSFORM ALONG Y AXIS
+      mm=nd1
+      m=nd2
+      lot=max(1,ncache/(4*n2))
+      !    print*,'lot',lot
+      nn=lot
+      n=n2
+      if (2*n*lot*2.gt.ncache) stop 'enlarge ncache :2'
+      call ctrig_sg(n2,ntrig,trig,after,before,now,isign,ic)
 
-    ja=1
-    jb=n1
+      ja=1
+      jb=n1
 
       if (ic.eq.1) then
-    i=ic
-    jj=ja*nd2-nd2+1
-    nfft=jb-ja+1
-    call fftrot_sg(mm,nfft,m,mm,m,z(1,ja,inzee),z(1,jj,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
+         i=ic
+         jj=ja*nd2-nd2+1
+         nfft=jb-ja+1
+         call fftrot_sg(mm,nfft,m,mm,m,z(1,ja,inzee),z(1,jj,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
 
       else
 
-        do 2000,j=ja,jb,lot
-        ma=j
-        mb=min(j+(lot-1),jb)
-    nfft=mb-ma+1
-    jj=j*nd2-nd2+1
+         do j=ja,jb,lot
+            ma=j
+            mb=min(j+(lot-1),jb)
+            nfft=mb-ma+1
+            jj=j*nd2-nd2+1
 
-    i=1
-    inzeep=2
-    call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzee),zw(1,1,3-inzeep),ntrig,trig,after(i),now(i),before(i),isign)
-    inzeep=1
+            i=1
+            inzeep=2
+            call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzee),zw(1,1,3-inzeep),ntrig,trig,after(i),now(i),before(i),isign)
+            inzeep=1
 
-    do 2093,i=2,ic-1
-    call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep),ntrig,trig,after(i),now(i),before(i),isign)
-2093    inzeep=3-inzeep
+            do i=2,ic-1
+               call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep),ntrig,trig,after(i),now(i),before(i),isign)
+               inzeep=3-inzeep
+            end do
 
-    i=ic
-    call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
-2000    continue
+            i=ic
+            call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
+         end do
       endif
-    inzee=3-inzee
+      inzee=3-inzee
 
 
-! TRANSFORM ALONG X AXIS
-    mm=nd2
-    m=nd1
-        lot=max(1,ncache/(4*n1))
-!    print*,'lot',lot
-    nn=lot
-    n=n1
-    if (2*n*lot*2.gt.ncache) stop 'enlarge ncache :1'
-    if (n1.ne.n2) call ctrig_sg(n1,ntrig,trig,after,before,now,isign,ic)
- 
-    if (ic.eq.1) then
-    i=ic
-    j=1
-    jp=nd2
-    jj=j*nd1-nd1+1
-    nfft=jp-j+1
-    call fftrot_sg(mm,nfft,m,mm,m,z(1,j,inzee),z(1,jj,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
+      ! TRANSFORM ALONG X AXIS
+      mm=nd2
+      m=nd1
+      lot=max(1,ncache/(4*n1))
+      !    print*,'lot',lot
+      nn=lot
+      n=n1
+      if (2*n*lot*2.gt.ncache) stop 'enlarge ncache :1'
+      if (n1.ne.n2) call ctrig_sg(n1,ntrig,trig,after,before,now,isign,ic)
+
+      if (ic.eq.1) then
+         i=ic
+         j=1
+         jp=nd2
+         jj=j*nd1-nd1+1
+         nfft=jp-j+1
+         call fftrot_sg(mm,nfft,m,mm,m,z(1,j,inzee),z(1,jj,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
 
       else
 
-        do 3000,j=1,nd2,lot
-        ma=j
-        mb=min(j+(lot-1),nd2)
-    nfft=mb-ma+1
-    jj=j*nd1-nd1+1
+         do j=1,nd2,lot
+            ma=j
+            mb=min(j+(lot-1),nd2)
+            nfft=mb-ma+1
+            jj=j*nd1-nd1+1
 
-    i=1
-    inzeep=2
-    call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzee),zw(1,1,3-inzeep),ntrig,trig,after(i),now(i),before(i),isign)
-    inzeep=1
+            i=1
+            inzeep=2
+            call fftstp_sg(mm,nfft,m,nn,n,z(1,j,inzee),zw(1,1,3-inzeep),ntrig,trig,after(i),now(i),before(i),isign)
+            inzeep=1
 
-    do 3093,i=2,ic-1
-    call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep),ntrig,trig,after(i),now(i),before(i),isign)
-3093    inzeep=3-inzeep
-    i=ic
-    call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
-3000    continue
+            do i=2,ic-1
+               call fftstp_sg(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep),ntrig,trig,after(i),now(i),before(i),isign)
+               inzeep=3-inzeep
+            end do
+            i=ic
+            call fftrot_sg(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzee),ntrig,trig,after(i),now(i),before(i),isign)
+         end do
       endif
-    inzee=3-inzee
+      inzee=3-inzee
 
+   endif
 
-      endif
-    return
-end subroutine fft2d
+END SUBROUTINE fft2d

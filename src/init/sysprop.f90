@@ -56,7 +56,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   !assign to each k-point the same occupation number
   do ikpts=1,orbs%nkpts
-     call input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
+     call occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
 END SUBROUTINE system_properties
@@ -904,7 +904,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   character(len=*), parameter :: subname='orbitals_descriptors'
   integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
   logical, dimension(:), allocatable :: GPU_for_orbs
-  integer, dimension(:), allocatable :: mykpts
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
@@ -1065,187 +1064,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 END SUBROUTINE orbitals_descriptors
 
 
-!>    Fill the arrays occup and spinsgn
-!!    if iunit /=0 this means that the file 'input.occ' does exist and it opens
-subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
-  use module_base
-  implicit none
-  ! Arguments
-  integer, intent(in) :: nelec,nspin,iproc,norb,norbu,iunit,norbuempty,norbdempty
-  real(gp), dimension(norb), intent(out) :: occup,spinsgn
-  ! Local variables
-  integer :: iorb,nt,ne,it,ierror,iorb1,i
-  real(gp) :: rocc
-  character(len=20) :: string
-  character(len=100) :: line
-
-
-  do iorb=1,norb
-     spinsgn(iorb)=1.0_gp
-  end do
-  if (nspin/=1) then
-     do iorb=1,norbu
-        spinsgn(iorb)=1.0_gp
-     end do
-     do iorb=norbu+1,norb
-        spinsgn(iorb)=-1.0_gp
-     end do
-  end if
-  ! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
-
-  ! First fill the occupation numbers by default
-  nt=0
-  if (nspin==1) then
-     ne=(nelec+1)/2
-     do iorb=1,ne
-        it=min(2,nelec-nt)
-        occup(iorb)=real(it,gp)
-        nt=nt+it
-     enddo
-     do iorb=ne+1,norb
-        occup(iorb)=0._gp
-     end do
-  else
-     if (norbuempty+norbdempty == 0) then
-        if (norb > nelec) then
-           do iorb=1,min(norbu,norb/2+1)
-              it=min(1,nelec-nt)
-              occup(iorb)=real(it,gp)
-              nt=nt+it
-           enddo
-           do iorb=min(norbu,norb/2+1)+1,norbu
-              occup(iorb)=0.0_gp
-           end do
-           do iorb=norbu+1,norbu+min(norb-norbu,norb/2+1)
-              it=min(1,nelec-nt)
-              occup(iorb)=real(it,gp)
-              nt=nt+it
-           enddo
-           do iorb=norbu+min(norb-norbu,norb/2+1)+1,norb
-              occup(iorb)=0.0_gp
-           end do
-        else
-           do iorb=1,norb
-              occup(iorb)=1.0_gp
-           end do
-        end if
-     else
-        do iorb=1,norbu-norbuempty
-           occup(iorb)=1.0_gp
-        end do
-        do iorb=norbu-norbuempty+1,norbu
-           occup(iorb)=0.0_gp
-        end do
-        do iorb=1,norb-norbu-norbdempty
-           occup(norbu+iorb)=1.0_gp
-        end do
-        do iorb=norb-norbu-norbdempty+1,norb-norbu
-           occup(norbu+iorb)=0.0_gp
-        end do
-     end if
-  end if
-  ! Then read the file "input.occ" if does exist
-  if (iunit /= 0) then
-     nt=0
-     do
-        read(unit=iunit,fmt='(a100)',iostat=ierror) line
-        if (ierror /= 0) then
-           exit
-        end if
-        !Transform the line in case there are slashes (to ease the parsing)
-        do i=1,len(line)
-           if (line(i:i) == '/') then
-              line(i:i) = ':'
-           end if
-        end do
-        read(line,*,iostat=ierror) iorb,string
-        call read_fraction_string(string,rocc,ierror) 
-        if (ierror /= 0) then
-           exit
-        end if
-
-        if (ierror/=0) then
-           exit
-        else
-           nt=nt+1
-           if (iorb<0 .or. iorb>norb) then
-              !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
-              write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
-              !end if
-              stop
-           elseif (rocc<0._gp .or. rocc>2._gp) then
-              !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "input.occ"'
-              write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
-              !end if
-              stop
-           else
-              occup(iorb)=rocc
-           end if
-        end if
-     end do
-     if (iproc==0) then
-        write(*,'(1x,a,i0,a)') &
-             'The occupation numbers are read from the file "input.occ" (',nt,' lines read)'
-     end if
-     close(unit=iunit)
-
-     if (nspin/=1) then
-!!!        !Check if the polarisation is respected (mpol)
-!!!        rup=sum(occup(1:norbu))
-!!!        rdown=sum(occup(norbu+1:norb))
-!!!        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
-!!!           if (iproc==0) then
-!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "input.occ", the polarization ',rup-rdown,&
-!!!                             ' is not equal to ',norbu-norbd
-!!!           end if
-!!!           stop
-!!!        end if
-        !Fill spinsgn
-        do iorb=1,norbu
-           spinsgn(iorb)=1.0_gp
-        end do
-        do iorb=norbu+1,norb
-           spinsgn(iorb)=-1.0_gp
-        end do
-     end if
-  end if
-  if (iproc==0) then 
-     write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
-     iorb1=1
-     rocc=occup(1)
-     do iorb=1,norb
-        if (occup(iorb) /= rocc) then
-           if (iorb1 == iorb-1) then
-              write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
-           else
-              write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
-           end if
-           rocc=occup(iorb)
-           iorb1=iorb
-        end if
-     enddo
-     if (iorb1 == norb) then
-        write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
-     else
-        write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
-     end if
-  endif
-
-  !Check if sum(occup)=nelec
-  rocc=sum(occup)
-  if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
-     !if (iproc==0) then
-     write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
-          ' is not equal to ',nelec
-     !end if
-     stop
-  end if
-
-
-END SUBROUTINE input_occup
-
 !> Routine which assign to each processor the repartition of nobj*nkpts objects
 subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
   use module_base
@@ -1254,7 +1072,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
   integer, dimension(0:nproc-1,nkpts), intent(out) :: nobj_par
   !local varaibles
   logical :: intrep
-  integer :: jproc,ikpt,iobj,nobjp_max_kpt,nprocs_with_floor,jobj,nobjp,nprocs_with_ceiling
+  integer :: jproc,ikpt,iobj,nobjp_max_kpt,nprocs_with_floor,jobj,nobjp
   integer :: jkpt,nproc_per_kpt,nproc_left,kproc,nkpt_per_proc,nkpts_left
   real(gp) :: robjp,rounding_ratio
 
@@ -1371,7 +1189,7 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
         nobj_par(nproc-1,ikpt)=nobj_par(nproc-1,ikpt)+1
      end do
   end if
-end subroutine kpts_to_procs_via_obj
+END SUBROUTINE kpts_to_procs_via_obj
 
 subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
   use module_base
@@ -1451,8 +1269,10 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
      end do fill_array
   end do
 
-end subroutine components_kpt_distribution
+END SUBROUTINE components_kpt_distribution
 
+
+!> Check the distribution of k points over the processors
 subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,info,lub_orbs,lub_comps)
   use module_base
   implicit none
@@ -1463,15 +1283,12 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   integer, intent(out) :: lub_orbs,lub_comps
   !local variables
   character(len=*), parameter :: subname='check_kpt_distributions'
-  logical :: yesorb,yescomp,notcompatible
-  integer :: ikpt,jorb,jproc,ierr,norbs,ncomps,i_all,i_stat,kproc,ieproc,isproc
+  logical :: notcompatible
+  integer :: ikpt,jproc,norbs,ncomps,i_all,i_stat,kproc,ieproc,isproc
   integer, dimension(:,:), allocatable :: load_unbalancing
   !before printing the distribution schemes, check that the two distributions contain
   !the same k-points
   if (info == 0) call print_distribution_schemes(6,nproc,nkpts,norb_par,ncomp_par)
-
-  allocate(load_unbalancing(0:nproc-1,2+ndebug),stat=i_stat)
-  call memocc(i_stat,load_unbalancing,'load_unbalancing',subname)
 
   do ikpt=1,nkpts
      isproc=UNINITIALIZED(1)
@@ -1518,6 +1335,11 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
         !call MPI_ABORT(MPI_COMM_WORLD, ierr)
      end if
   end do
+
+  allocate(load_unbalancing(0:nproc-1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,load_unbalancing,'load_unbalancing',subname)
+
+
   do jproc=0,nproc-1
      load_unbalancing(jproc,:)=0
      do ikpt=1,nkpts
@@ -1544,7 +1366,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   call memocc(i_stat,i_all,'load_unbalancing',subname)
 
 
-end subroutine check_kpt_distributions
+END SUBROUTINE check_kpt_distributions
 
 !>routine which associates to any of the processor a given number of objects
 !! depending of the number of processors and k-points

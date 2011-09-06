@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Calculate the array of the core density for the atom iat
+!> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore)
   use module_base
@@ -24,7 +24,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   logical :: gox,goy,goz,perx,pery,perz
   integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,ilcc,islcc
-  integer :: i1,i2,i3,j1,j2,j3,ind,jtyp
+  integer :: i1,i2,i3,j1,j2,j3,ind
   real(gp) :: x,y,z,r2,rhov,rhoc,chv,chc,charge_from_gaussians,spherical_gaussian_value
   !real(gp), dimension(:), allocatable :: rhovxp,rhocxp
   !real(gp), dimension(:,:), allocatable :: rhovc,rhocc
@@ -266,7 +266,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i_all,i_stat,ierr,i,j
   integer :: i1,i2,i3,istart,iend,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
-  integer :: ndvxc,nvxcdgr,ngr2,nd2vxc,order
+  integer :: ndvxc,order
   real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rho_G

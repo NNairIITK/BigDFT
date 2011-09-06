@@ -8,8 +8,8 @@
 !!   For the list of contributors, see ~/AUTHORS 
 
 
-!>  Test the input files and estimates the memory occupation versus the number
-!!  of processors
+!> Test the input files and estimates the memory occupation versus the number
+!! of processors
 program memguess
 
   use module_base
@@ -26,7 +26,7 @@ program memguess
   logical :: optimise,GPUtest,atwf,convert=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: norbgpu,nspin_ig,ng,info,lubo,lubc
+  integer :: norbgpu,nspin_ig,ng
   real(gp) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
@@ -37,7 +37,7 @@ program memguess
   type(gaussian_basis) :: G !basis for davidson IG
   real(gp), dimension(3) :: shift
   logical, dimension(:,:,:), allocatable :: logrid
-  integer, dimension(:,:), allocatable :: norbsc_arr,norb_par,nvctr_par
+  integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
   real(wp), dimension(:), allocatable :: rhoexpo
   real(wp), dimension(:,:), pointer :: rhocoeff
@@ -188,7 +188,7 @@ program memguess
      call xc_init(in%ixc, XC_ABINIT, nspin)
   end if
 
-  call print_general_parameters(in,atoms)
+  call print_general_parameters(nproc,in,atoms)
   call print_dft_parameters(in,atoms)
   call xc_dump()
 
@@ -288,32 +288,6 @@ program memguess
   call createWavefunctionsDescriptors(0,hx,hy,hz,&
        atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
-
-  !verify the communication repartition
-  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,norb_par,'norb_par',subname)
-  allocate(nvctr_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,nvctr_par,'nvctr_par',subname)
-
-  call kpts_to_procs_via_obj(nproc,orbs%nkpts,orbs%norb,norb_par)
-  call kpts_to_procs_via_obj(nproc,orbs%nkpts,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,nvctr_par)
-  info=-1
-  call check_kpt_distributions(nproc,orbs%nkpts,orbs%norb,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,nvctr_par,info,lubo,lubc)
-  if (info/=0) then !redo the distribution based on the orbitals scheme
-     info=-1
-     call components_kpt_distribution(nproc,orbs%nkpts,orbs%norb,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,norb_par,nvctr_par)
-     call check_kpt_distributions(nproc,orbs%nkpts,orbs%norb,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,nvctr_par,info,lubo,lubc)
-  end if
-
-
-  i_all=-product(shape(nvctr_par))*kind(nvctr_par)
-  deallocate(nvctr_par,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_par',subname)
-  i_all=-product(shape(norb_par))*kind(norb_par)
-  deallocate(norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'norb_par',subname)
-
-
 
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
@@ -760,6 +734,10 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
   real(wp), dimension(:,:,:), allocatable :: overlap
   real(wp), dimension(:), pointer :: gbd_occ
+  real(wp), dimension(:), pointer :: fake_pkernelSIC
+
+  !nullify pkernelSIC pointer
+  nullify(fake_pkernelSIC)
 
   !nullify the G%rxyz pointer
   nullify(G%rxyz)
@@ -925,7 +903,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !take timings
   call cpu_time(t0)
   do j=1,ntimes
-     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
+     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,0,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum)
+     !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
   end do
   call cpu_time(t1)
 
@@ -1124,99 +1103,3 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 
 END SUBROUTINE compare_data_and_gflops
-
-
-!>  Convert the input variables into a input.dft file
-subroutine dft_input_creator(in)
-  use module_base
-  use module_types
-  implicit none
-  type(input_variables), intent(in) :: in
-  !local variables
-  character(len=100) :: line
-  integer :: iline
-
-  ! Read the input variables.
-  open(unit=1,file='input_created.dft',status='new')
-
-  !line number, to control the input values
-  iline=0
-  !grid spacings
-  line=''
-  line=' hx,hy,hz: grid spacing in the three directions'
-  write(1,'(3(f6.3),a)') in%hx,in%hy,in%hz,trim(line)
-  !coarse and fine radii around atoms
-  line=''
-  line=' crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom'
-  write(1,'(2(1x,f4.1),a)') in%crmult,in%frmult,trim(line)
-  line=''
-  line=' ixc: exchange-correlation parameter (LDA=1,PBE=11)'
-  !XC functional (ABINIT XC codes)
-  write(1,'(i3,a)') in%ixc,trim(line)
-
-  line=''
-  line=' ncharge: charge of the system, Electric field'
-  write(1,'(i3,1(f6.3),a)') in%ncharge,in%elecfield,trim(line)
-
-  line=''
-  line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
-  write(1,'(2(i3),a)') in%nspin,in%mpol,trim(line)
-
-  line=''
-  line=' gnrm_cv: convergence criterion gradient'
-  write(1,'(1pe7.0,a)') in%gnrm_cv,trim(line)
-  
-  line=''
-  line=' itermax,nrepmax: maximum number of wavefunction optimizations and of re-diagonalised runs'
-  write(1,'(2(i3),a)') in%itermax,in%nrepmax,trim(line)
-  
-  line=''
-  line=' ncong, idsx: # CG iterations for the preconditioning equation, length of the diis history'
-  write(1,'(2(i3),a)') in%ncong,in%idsx,trim(line)
-  
-  line=''
-  line=' dispersion correction functional (values 1,2,3), 0=no correction'
-  write(1,'(i3,a)') in%dispersion,trim(line)
-  
-  line=''
-  line=' write "CUDAGPU" on this line to use GPU acceleration (GPU.config file is needed)'
-  write(1,'(a)') trim(line)
-
-  !now the varaibles which are to be used only for the last run
-  line=''
-  line=' InputPsiId, output_wf, output_grid'
-  write(1,*) in%inputPsiId,in%output_wf_format,in%output_grid,trim(line)
-  
-
-  line=''
-  line=' rbuf, ncongt: length of the tail (AU),# tail CG iterations'
-  if (in%calc_tail) then
-     write(1,'(f4.1,i4,a)') in%rbuf,in%ncongt,trim(line)
-  else
-     write(1,'(f4.1,i4,a)') 0.0_gp,in%ncongt,trim(line)
-  end if
-
-
-  !davidson treatment
-  line=''
-  line=' davidson treatment, no. of virtual orbitals, no of plotted orbitals'
-  write(1,'(3(i3),a)') in%nvirt, in%nvirt,in%nplot,trim(line)
-  
-!  line=''
-!  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw'
-!  !electrostatic treatment of the vacancy (experimental)
-!  write(1,*) trim(line)
-
-
-  line=''
-  line=' 2   verbosity of the output 0=low, 2=high'
-  !electrostatic treatment of the vacancy (experimental)
-  write(1,*) trim(line)
-
-  line=''
-  line='disable the symmetry detection'
-  !Disable automatic capabilities...
-  write(1,*) in%disableSym, trim(line)
-   
-  close(unit=1)
-END SUBROUTINE dft_input_creator

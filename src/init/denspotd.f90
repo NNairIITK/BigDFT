@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   Create the descriptors for the density and the potential
+!> Create the descriptors for the density and the potential
 subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
      rxyz,crmult,frmult,radii_cf,nspin,datacode,ixc,rho_commun,&
      n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
@@ -90,17 +90,17 @@ subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
 END SUBROUTINE createDensPotDescriptors
 
 
-!>   Partition the orbitals between processors to ensure load balancing
-!!   the criterion will depend on GPU computation
-!!   and/or on the sizes of the different localisation region.
+!> Partition the orbitals between processors to ensure load balancing
+!! the criterion will depend on GPU computation
+!! and/or on the sizes of the different localisation region.
 !!
-!!   Calculate the number of elements to be sent to each process
-!!   and the array of displacements.
-!!   Cubic strategy: 
-!!      - the components are equally distributed among the wavefunctions
-!!      - each processor has all the orbitals in transposed form
-!!      - each wavefunction is equally distributed in its transposed form
-!!      - this holds for each k-point, which regroups different processors
+!! Calculate the number of elements to be sent to each process
+!! and the array of displacements.
+!! Cubic strategy: 
+!!    - the components are equally distributed among the wavefunctions
+!!    - each processor has all the orbitals in transposed form
+!!    - each wavefunction is equally distributed in its transposed form
+!!    - this holds for each k-point, which regroups different processors
 subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   use module_base
   use module_types
@@ -113,7 +113,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   character(len=*), parameter :: subname='orbitals_communicators'
   logical :: yesorb,yescomp
   integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
-  integer :: ncomp_res,nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info
+  integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info
   integer, dimension(:), allocatable :: mykpts
   logical, dimension(:), allocatable :: GPU_for_comp
   integer, dimension(:,:), allocatable :: nvctr_par,norb_par !<for all the components and orbitals (with k-pts)
@@ -416,6 +416,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 END SUBROUTINE orbitals_communicators
 
 
+!> Print the distribution schemes
 subroutine print_distribution_schemes(unit,nproc,nkpts,norb_par,nvctr_par)
   use module_base
   implicit none

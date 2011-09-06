@@ -383,7 +383,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      nspin_ig=nspin
   end if
 
-  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
        orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
 
   !allocate communications arrays for inputguess orbitals
@@ -608,6 +608,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      end if
 
      call deallocate_orbs(orbse,subname)
+     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
+     deallocate(orbse%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'orbse%eval',subname)
+
      
      !deallocate the gaussian basis descriptors
      call deallocate_gwf(G,subname)
@@ -619,8 +623,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
      deallocate(norbsc_arr,stat=i_stat)
      call memocc(i_stat,i_all,'norbsc_arr',subname)
+ 
     return 
-  end if
+ end if
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
@@ -634,7 +639,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,pot,&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,ixc,input%alphaSIC,GPU,pkernel=pkernelseq)
 
   !deallocate potential
   call free_full_potential(nproc,pot,subname)

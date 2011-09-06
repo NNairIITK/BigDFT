@@ -1,3 +1,14 @@
+!> @file
+!!  File to define information used for the overlap point to point between wavefunctions
+!! @author
+!!    Copyright (C) 2011-2011 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Modules which contains the defintions for overlap point to point
 module overlap_point_to_point
   use module_base
   implicit none
@@ -20,7 +31,7 @@ module overlap_point_to_point
      
 contains
 
-  !initialise the data needed to manage communication operations
+  !<initialise the data needed to manage communication operations
   !objects_attributes(:,1) <= group to which the object belongs
   !objects_attributes(:,2) <= size in number of elements of the object
   !objects_attributes(:,3) <= size in number of elements of the results of the operations associated to the object
@@ -273,13 +284,14 @@ contains
 
   end subroutine initialize_OP2P_descriptors
 
+
   subroutine print_group_schemes(unit,nproc,OP2P)
     implicit none
     !Arguments
     integer, intent(in) :: nproc,unit
     type(OP2P_descriptors), intent(in) :: OP2P
     !local variables
-    integer :: jproc,norbp,nvctrp,igroup,nsteps,i,istep
+    integer :: jproc,nvctrp,igroup,nsteps,i,istep
 
     write(unit,'(1x,a,a)')repeat('-',45),'Overlap point-to-point data repartition'
     write(unit,'(1x,8(a))')'| proc |',' No. Groups  |  Grp | #Obj- #Res ',&
@@ -318,6 +330,7 @@ contains
     write(unit,'(1x,a,a)')repeat('-',84)
 
   END SUBROUTINE print_group_schemes
+
 
   subroutine OP2P_communication(iproc,nproc,OP2P,objects_data,results_data,apply_symmetric_operator,&
        send_op,receive_op,wait_op)
@@ -365,10 +378,9 @@ contains
     !local variables
     character(len=*), parameter :: subname='op2p_communication'
     logical :: doit,remote_result
-    integer :: ireq,isnow,ncommsstep,irnow,igroup,istep,isnow_results,irnow_results,ncommsstep_results,iaddress_local
+    integer :: isnow,ncommsstep,irnow,igroup,istep,isnow_results,irnow_results,ncommsstep_results,iaddress_local
     integer :: istart_results,i_all,i_stat,nvctri,nvctrj,nvctri_results,nvctrj_results
     integer :: isorb,jsorb,iorbs,jorbs,norbi,norbj,jproc,istart,jproc_to_send,jproc_to_recv,nelems_to_send,nelems_to_recv
-    real(kind=8), dimension(0:nproc-1) :: receive_buffer
     integer, dimension(:,:), allocatable :: mpireq
     real(kind=8), dimension(:,:,:), allocatable :: sendreceive_buffer,restemp_buffer
 
@@ -625,13 +637,12 @@ contains
 
   end subroutine free_OP2P_descriptors
 
+
   subroutine wait_mpi(iproc,istep,nreq,requests)
     implicit none
     integer, intent(in) :: iproc,istep,nreq
     integer, dimension(nreq), intent(in) :: requests
     !local variables
-    logical :: error_found
-    integer :: jproc,isr
     integer, dimension(MPI_STATUS_SIZE,4) :: mpistat
     !local variables
     integer :: ierr
@@ -639,9 +650,10 @@ contains
     !verify that the messages have been passed
     call MPI_WAITALL(nreq,requests,mpistat,ierr)
     if (ierr /=0)  then
-       write(*,*),'ERROR WAITALL, iproc,step,ierr:',iproc,istep,ierr,mpistat,MPI_STATUSES_IGNORE
+       write(*,*) 'ERROR WAITALL, iproc,step,ierr:',iproc,istep,ierr,mpistat,MPI_STATUSES_IGNORE
     end if
   end subroutine wait_mpi
+
 
   !> fake receiving of the arrays
   subroutine receive_mpi(istep,isendproc,irecvproc,ncount,itag,irequest,recvbuf)

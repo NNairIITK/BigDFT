@@ -39,7 +39,7 @@ conv_check_LDFLAGS = -lrt -lstdc++
 
 
 conv_check.out: conv_check
-	echo 1 128 128 16384 16384 2 > fort.1
+	echo 124 132 130 2 > fort.1
 	./conv_check > conv_check.out
 
 OpenCL.report: conv_check.out

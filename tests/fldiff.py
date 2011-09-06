@@ -8,7 +8,7 @@
 # 4 - compare each floating point expressions
 
 # Use diff because difflib has some troubles (TD)
-# Date: 08/04/2011
+# Date: 31/08/2011
 #----------------------------------------------------------------------------
 
 #import difflib
@@ -29,8 +29,8 @@ if  version < [2,3,0]:
 
 #Match the version number ex. 1.1.9
 re_version = re.compile("[(]ver[ ]+[0-9.\-a-z]+[)]",re.IGNORECASE)
-#Match a floating number
-re_float = re.compile("([- ]?[0-9]+[.][0-9]*([EDed][-+]?[0-9]+)?)")
+#Match a floating number (d or D are not permitted)
+re_float = re.compile("([- ]?[0-9]+[.][0-9]*([DEde][-+]?[0-9]+)?)")
 
 #Maximum discrepancy between float results (default)
 max_discrepancy = 1.1e-10
@@ -46,7 +46,7 @@ def n_digits(figure):
     """Return the number of decimals of the given figure."""
     n = 0
     for ch in figure:
-        if ch == "E":
+        if ch == "e":
             return n
         elif ch in "0123456789":
             n += 1
@@ -90,10 +90,12 @@ end = "\033[m"
 #if sys.stdout.isatty():
 #    start_fail = "\033[0;31m"
 #    start_success = "\033[0;32m"
+#    start_pass = "\033[0;33m"
 #    end = "\033[m"
 #else:
 #    start_fail = ""
 #    start_success = ""
+#    start_pass = ""
 #    end = ""
 
 #Define a junk line
@@ -161,6 +163,7 @@ except IOError:
     sys.exit(1)
 
 maximum = 0.0
+#Use for non-significant discrepancy (float <= min_digits digits)
 min_digits = 5
 ns_discrepancy = False #Non significant discrepancy.
 context_discrepancy = ""
@@ -221,11 +224,23 @@ if bigdft:
         sys.exit(1)
 
 #Remove line_junk before comparing (the line number is wrong)
+memory = 0
+if bigdft:
+    time = 0
 #Open 2 temporary files
 t1 = tempfile.NamedTemporaryFile()
 for line in original1:
     if not line_junk(line):
         t1.write(line)
+    else:
+        #Only for BigDFT
+        if bigdft:
+            #Keep sum of elapsed time
+            if "CPU time/ELAPSED time" in line:
+                time += float(line.split()[-2])
+            #Test if memory remaining is 0
+            if "remaining memory" in line:
+                memory = int(line.split()[-1])
 t1.flush()
 t2 = tempfile.NamedTemporaryFile()
 for line in original2:
@@ -287,9 +302,13 @@ while not EOF:
             continue
         floats1 = list()
         for (one,two) in re_float.findall(line1):
+            #'d' is not recognised by python
+            one = one.lower().replace("d","e")
             floats1.append((float(one), n_digits(one)))
         floats2 = list()
         for (one,two) in re_float.findall(line2):
+            #'d' is not recognised by python
+            one = one.lower().replace("d","e")
             floats2.append((float(one), n_digits(one)))
         #Replace all floating point by XXX and ' ' characters
         new1 = re_float.sub('XXX',line1[2:]).replace(' ','')
@@ -340,6 +359,8 @@ while not EOF:
             print left[i1],
             floats = list()
             for (one,two) in re_float.findall(left[i1]):
+                #'d' is not recognised by python
+                one = one.lower().replace("d","e")
                 floats.append((float(one), n_digits(one)))
             if len(floats) > 0:
                 maximum = 99
@@ -352,6 +373,8 @@ while not EOF:
             print right[i2],
             floats = list()
             for (one,two) in re_float.findall(right[i2]):
+                #'d' is not recognised by python
+                one = one.lower().replace("d","e")
                 floats.append((float(one), n_digits(one)))
             if len(floats) > 0:
                 maximum = 99
@@ -361,9 +384,13 @@ if context_lines is not None:
 else:
     print
 
-if maximum > max_discrepancy:
+#Check if the test is OK.
+if maximum > max_discrepancy or memory:
     start = start_fail
-    message = "failed    < "
+    if memory:
+        message = "failed-memory remaining-(%sB) " % memory
+    else:
+        message = "failed    < "
 elif ns_discrepancy:
     start = start_pass
     message = "passed    < "
@@ -371,6 +398,11 @@ else:
     start = start_success
     message = "succeeded < "
 
-print "%sMax discrepancy %s: %s (%s%s)%s" % (start,context_discrepancy,maximum,message,max_discrepancy,end)
-sys.exit(0)
+if bigdft and time:
+    print "%sMax discrepancy %s: %s (%s%s) -- time %7.2f%s " % \
+        (start,context_discrepancy,maximum,message,max_discrepancy,time,end)
+else:
+    print "%sMax discrepancy %s: %s (%s%s)%s" % \
+        (start,context_discrepancy,maximum,message,max_discrepancy,end)
 
+sys.exit(0)

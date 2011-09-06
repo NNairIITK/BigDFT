@@ -67,7 +67,8 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(dp), dimension(*), intent(in) :: pkernel,rhopot
+  real(dp), dimension(*), intent(in) :: rhopot
+  real(dp), dimension(:), pointer :: pkernel
   type(orbitals_data), intent(inout) :: orbsv
   type(GPU_pointers), intent(inout) :: GPU
   real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
@@ -274,7 +275,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   !   compute H|v> => hv, <v|H|v> => e(:,1) and <v|P|v> => e(:,2)
   !
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
        pkernel,orbs,psirocc) ! optional arguments
   ! 
   !transpose  v and hv
@@ -549,7 +550,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      ! apply hamiltonian on gradients
      !
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
           pkernel,orbs,psirocc) 
      !
      ! transpose  g and hg and Pg (v, hv and Pv are already transposed)
@@ -799,7 +800,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      !   compute H|v> => hv 
      !
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,in%ixc,in%alphaSIC,GPU,&
           pkernel,orbs,psirocc)
      if(iproc==0)write(*,'(1x,a)')"done."
      ! 

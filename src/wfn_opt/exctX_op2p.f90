@@ -82,8 +82,8 @@ module module_exctx_op2p
 
   character(len=1) :: geocode
   real(gp) :: sfac,hfac,hxh,hyh,hzh,eexctX
-  type(locreg_descriptors) :: lr
-  type(orbitals_data) :: orbs
+  type(locreg_descriptors), pointer :: lr
+  type(orbitals_data), pointer :: orbs
   real(dp), dimension(:), pointer :: pkernel
 
 contains
@@ -229,7 +229,13 @@ contains
     !print *,'iproc,icount2',iproc,icount
     call free_OP2P_descriptors(OP2P,subname)
 
-
   end subroutine op2p_exctx_binding
+
+  subroutine bind_op2p_eexctx
+    use module_base
+    use module_types
+    implicit none
+    
+  end subroutine bind_op2p_eexctx
 
 end module module_exctx_op2p

@@ -27,6 +27,12 @@ H2-freq.out: $(top_builddir)/src/frequencies $(PPFILES)
 	    ln -fs $(srcdir)/$$i ; \
 	  done ; \
         fi
+	@if ! test -f input.perf ; then \
+	  rm -f input.perf ; \
+	  if test -n "$(run_ocl)" ; then \
+	    echo "ACCEL OCLGPU" > input.perf ; \
+	  fi ; \
+	fi
 	$(run_parallel) $(top_builddir)/src/frequencies > $@
 	$(run_parallel) $(top_builddir)/src/frequencies > $@.2
 	@if ! test x"$(srcdir)" = x"." ; then \

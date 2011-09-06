@@ -300,17 +300,17 @@ contains
 
 
     SUBROUTINE ZGEMM_i(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
-      DOUBLE COMPLEX ALPHA,BETA
-      INTEGER K,LDA,LDB,LDC,M,N
-      CHARACTER TRANSA,TRANSB
-      DOUBLE COMPLEX A(LDA,*),B(LDB,*),C(LDC,*)
+      complex(kind=8) :: ALPHA,BETA
+      integer :: K,LDA,LDB,LDC,M,N
+      character(len=1) :: TRANSA,TRANSB
+      complex(kind=8) :: A(LDA,*),B(LDB,*),C(LDC,*)
       print *, TRANSA,TRANSB,M,N,K,ALPHA,LDA,LDB,BETA,LDC
       call ZGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
     END SUBROUTINE ZGEMM_i
 
 
    subroutine Propaga( R1, R2,Energy, E, dE_dz)
-     real(gp) R1,R2,Energy
+     real(gp) :: R1,R2,Energy
      complex(gp) :: E(0:nls-1,0:nls-1), dE_dz(0:nls-1,0:nls-1)
 
      real(gp) hh,h6

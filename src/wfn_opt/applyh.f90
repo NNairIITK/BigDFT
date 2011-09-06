@@ -9,31 +9,50 @@
 
 
 !>   Calculate the action of the local hamiltonian on the orbitals
+!! @param ipotmethod Indicates the method which has to be chosen for applying the potential to the wavefunctions in the 
+!!                   real space form:
+!!                   0 is the traditional potential application
+!!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
+!!                   2 is the application of the Perdew-Zunger SIC
 subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
-     nspin,pot,psi,hpsi,ekin_sum,epot_sum)
+     ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => local_hamiltonian
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nspin
-  real(gp), intent(in) :: hx,hy,hz
+  integer, intent(in) :: iproc,ipotmethod,ixc
+  real(gp), intent(in) :: hx,hy,hz,alphaSIC
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(*) :: pot
+  real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
   real(gp), intent(out) :: ekin_sum,epot_sum
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+  real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
   real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,etest
+  real(gp) :: ekin,epot,kx,ky,kz,etest,eSICi
   type(workarr_locham) :: wrk_lh
-  real(wp), dimension(:,:), allocatable :: psir
+  real(wp), dimension(:,:), allocatable :: psir,vsicpsir
 
+  !some checks
   exctXcoeff=xc_exctXfac()
+
+  if (exctXcoeff /= 0.0_gp .neqv. ipotmethod ==1) then
+     if (iproc==0) write(*,*)&
+          'ERROR (local_hamiltonian): potential method not compatible with exact exchange'
+     stop
+  end if
+
+  if ((associated(pkernel) .or. alphaSIC /=0.0_gp) .neqv. ipotmethod == 2) then
+     if (iproc==0) write(*,*)&
+          'ERROR (local_hamiltonian): potential method not compatible with SIC'
+     stop
+  end if
 
   !initialise the work arrays
   call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
@@ -48,13 +67,21 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
 
   call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 
+  if (ipotmethod == 2) then! wavefunction after application of the self-interaction potential
+     allocate(vsicpsir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,vsicpsir,'vsicpsir',subname)
+  end if
+
+
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
 
   etest=0.0_gp
 
   do iorb=1,orbs%norbp
-     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
+     !this section should be replaced with the ispot array, calculated in fill_local_potential (or maybe before)
+
+     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. orbs%nspin == 1 .or. orbs%nspin == 4 ) then
         nsoffset=1
      else
         nsoffset=lr%d%n1i*lr%d%n2i*lr%d%n3i+1
@@ -68,6 +95,12 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
      !etest=etest+dot(lr%d%n1i*lr%d%n2i*lr%d%n3i,pot(ispot),1,psir(1,1),1)
      !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
+
+     !Perdew-Zunger SIC scheme
+     if (ipotmethod == 2) then
+        call PZ_SIC_potential(iorb,lr,orbs,ixc,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psir,vsicpsir,eSICi)
+     end if
+     
 
      !apply the potential to the psir wavefunction and calculate potential energy
      select case(lr%geocode)
@@ -93,10 +126,16 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      ky=orbs%kpts(2,orbs%iokpt(iorb))
      kz=orbs%kpts(3,orbs%iokpt(iorb))
 
-     if (exctXcoeff /= 0.0_gp) then
-        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(nspin+iorb-1)
+     if (ipotmethod==1) then
+        ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(orbs%nspin+iorb-1)
         !add to the psir function the part of the potential coming from the exact exchange
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i,exctXcoeff,pot(ispot),1,psir(1,1),1)
+     else if (ipotmethod == 2) then
+        !subtract the sic potential from the vpsi function
+        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,-alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
+        !add the SIC caorrection to the potential energy
+        epot=epot-alphaSIC*eSICi
+        !accumulate the ESIC energy
      end if
 
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
@@ -112,7 +151,11 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
-
+  if (ipotmethod == 2) then
+     i_all=-product(shape(vsicpsir))*kind(vsicpsir)
+     deallocate(vsicpsir,stat=i_stat)
+     call memocc(i_stat,i_all,'vsicpsir',subname)
+  end if
   call deallocate_work_arrays_locham(lr,wrk_lh)
 
 END SUBROUTINE local_hamiltonian
