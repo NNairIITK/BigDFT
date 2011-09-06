@@ -149,7 +149,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,jproc, ierr, jjorb2, jjorb
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,jorbd
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,ispinor
-  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac, t1, t2, time, tcomm1, tcomm2, timecomm, tcomp1, tcomp2, timecomp
+  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac, t1, t2, ttot1, timecomm1, timecomm2, timecomp1, timecomp2, timetot
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb, jst
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp),dimension(:),allocatable:: temparr
@@ -270,7 +270,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
         iproj=0 !should be equal to four times nproj at the end
         kptshft = orbtot
         call mpi_barrier(mpi_comm_world, ierr)
-        call cpu_time(t1)
+        t1=mpi_wtime()
         do iat=1,at%nat
            !check if projector for this atom must be generated
            calcproj = .false.
@@ -353,9 +353,9 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
            end do
         end do
         call mpi_barrier(mpi_comm_world, ierr)
-        call cpu_time(t2)
-        time=t2-t1
-        if(iproc==0) write(*,'(a,es11.4)') 'time for calculating scalprod:',time
+        t2=mpi_wtime()
+        timecomp1=t2-t1
+        if(iproc==0) write(*,'(a,es11.4)') 'time for calculating scalprod:',timecomp1
 !        if (ieorb == orbs%norbp) exit loop_kptTMO
 !        ikpt=ikpt+1
 !        ispsi_k=ispsi
@@ -695,6 +695,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
         do iorb=1,maxval(orbs%norb_par)
            call razero(3*at%nat,fxyz_orb)
            do iat=1,at%nat
+              ttot1=mpi_wtime()
               ityp=at%iatype(iat)
               if(iproc==0) write(*,'(a,i0)') 'iat=',iat
 
@@ -730,21 +731,18 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                   sendcounts(jproc)=2*4*7*3*4*iiorb*linorbs%nspinor
                   if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
               end do
-              call mpi_barrier(mpi_comm_world, ierr)
-              call cpu_time(tcomm1)
+              t1=mpi_wtime()
               call mpi_allgatherv(temparr, sendcounts(iproc), mpi_double_precision, &
                    scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
               call mpi_barrier(mpi_comm_world, ierr)
-              call cpu_time(tcomm2)
-              timecomm=tcomm2-tcomm1
-              if(iproc==0) write(*,'(a,es12.5)') 'first timecomm:',timecomm
+              t2=mpi_wtime()
+              timecomm1=t2-t1
 
               fxyz_tmo=0.d0
               fxyz_tmo_temp=0.d0
               !do itmorb = 1,linorbs%norb
               jorb=0
-              call mpi_barrier(mpi_comm_world, ierr)
-              call cpu_time(tcomp1)
+              t1=mpi_wtime()
               do itmorb = 1,linorbs%norbp
                  !jorb = itmorb + kptshft
                  !jjorb=itmorb+linorbs%isorb
@@ -828,27 +826,21 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                     end do
                  end if
               end do
-              call mpi_barrier(mpi_comm_world, ierr)
-              call cpu_time(tcomp2)
-              timecomp=tcomp2-tcomp1
-              if(iproc==0) write(*,'(a,es15.7)') 'time for first loop:',timecomp
+              t2=mpi_wtime()
+              timecomp1=t2-t1
 
               displs(0)=0
               do jproc=0,nproc-1
                   sendcounts(jproc)=3*linorbs%norb_par(jproc)*linorbs%norb
                   if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
               end do
-              call mpi_barrier(mpi_comm_world, ierr)
-              call cpu_time(tcomm1)
+              t1=mpi_wtime()
               call mpi_allgatherv(fxyz_tmo_temp, sendcounts(iproc), mpi_double_precision, &
                    fxyz_tmo, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
-              call mpi_barrier(mpi_comm_world, ierr)
-              call cpu_time(tcomm2)
-              timecomm=tcomm2-tcomm1
-              if(iproc==0) write(*,'(a,es12.5)') 'second timecomm:',timecomm
+              t2=mpi_wtime()
+              timecomm2=t2-t1
               !call mpiallred(fxyz_tmo(1,1,1), 3*linorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-              call mpi_barrier(mpi_comm_world, ierr)
-              call cpu_time(tcomp1)
+              t1=mpi_wtime()
               if(iorb<=orbs%norbp) then
                  do itmorb = 1,linorbs%norb
                     jorb = itmorb + kptshft
@@ -860,12 +852,19 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                     end do
                  end do
               end if
-              call mpi_barrier(mpi_comm_world, ierr)
-              call cpu_time(t2)
-              timecomp=t2-tcomp1
-              if(iproc==0) write(*,'(a,es15.7)') 'time for send loop:',timecomp
-              time=t2-t1
-              if(iproc==0) write(*,'(a,i0,a,es11.4)') 'time for calculating atom',iat,':',time
+              t2=mpi_wtime()
+              timecomp2=t2-t1
+              timetot=t2-ttot1
+              call mpiallred(timecomm1, 1, mpi_sum, mpi_comm_world, ierr)
+              call mpiallred(timecomm2, 1, mpi_sum, mpi_comm_world, ierr)
+              call mpiallred(timecomp1, 1, mpi_sum, mpi_comm_world, ierr)
+              call mpiallred(timecomp2, 1, mpi_sum, mpi_comm_world, ierr)
+              call mpiallred(timetot, 1, mpi_sum, mpi_comm_world, ierr)
+              if(iproc==0) write(*,'(a,es15.7)') 'time for first communication:',timecomm1/dble(nproc)
+              if(iproc==0) write(*,'(a,es15.7)') 'time for second communication:',timecomm2/dble(nproc)
+              if(iproc==0) write(*,'(a,es15.7)') 'time for first loop:',timecomp1/dble(nproc)
+              if(iproc==0) write(*,'(a,es15.7)') 'time for second loop:',timecomp2/dble(nproc)
+              if(iproc==0) write(*,'(a,i0,a,es11.4)') 'total time for atom',iat,':',timetot/dble(nproc)
            end do
 
 

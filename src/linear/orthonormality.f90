@@ -215,12 +215,15 @@ logical,dimension(:,:),allocatable:: expanded
   timeExtract=t2-t1
   call cpu_time(t1)
   call postCommsOverlap(iproc, nproc, lin%comon)
+  call cpu_time(t2)
+  timeCommun=t2-t1
   call cpu_time(t1)
   call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
                        lhphi, lin%comon%nsendBuf, sendBuf)
   call cpu_time(t2)
   timeExtract=t2-t1
   !call gatherOrbitals2(iproc, nproc, lin%comon)
+  call cpu_time(t1)
   call gatherOrbitalsOverlapWithComput(iproc, nproc, lin%orbs, input, lin%lzd, lin%op, lin%comon, lphiovrlp, expanded)
   call cpu_time(t2)
   timeCommun=t2-t1
@@ -1496,9 +1499,9 @@ testLoop: do
                     expanded(orbsource,orbdest-orbs%isorb)=.true.
                 end if
                 if(mpisource/=mpidest) then
-                    nfast=nfast+1
+                    !nfast=nfast+1
                 else
-                    nsameproc=nsameproc+1
+                    !nsameproc=nsameproc+1
                 end if
             end if
         end do
@@ -1515,13 +1518,22 @@ call mpiallred(comon%communComplete(1,0), nproc*maxval(comon%noverlaps), mpi_lan
 nslow=0
 do jproc=0,nproc-1
     do jorb=1,comon%noverlaps(jproc)
-        if(comon%communComplete(jorb,jproc)) cycle
+        !!if(comon%communComplete(jorb,jproc)) cycle
+        if(comon%communComplete(jorb,jproc)) then
+            mpisource=comon%comarr(1,jorb,jproc)
+            mpidest=comon%comarr(4,jorb,jproc)
+            if(mpisource==mpidest) then
+                nsameproc=nsameproc+1
+            else
+                nfast=nfast+1
+            end if
+            cycle
+        end if
         !write(*,'(3(a,i0))') 'process ', iproc, ' is waiting for orbital ',jorb,'; tag=',comon%comarr(6,jorb,jproc)
         nslow=nslow+1
         call mpi_wait(comon%comarr(7,jorb,jproc), stat, ierr)   !COMMENTED BY PB
         call mpi_wait(comon%comarr(8,jorb,jproc), stat, ierr)   !COMMENTED BY PB
         comon%communComplete(jorb,jproc)=.true.
-        mpisource=comon%comarr(1,jorb,jproc)
         mpidest=comon%comarr(4,jorb,jproc)
         orbsource=comon%comarr(9,jorb,jproc)
         orbdest=comon%comarr(10,jorb,jproc)
@@ -1529,14 +1541,33 @@ do jproc=0,nproc-1
             !call expandOneOrbital(iproc, nproc, jjorb, orbs, input, orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
             expanded(orbsource,orbdest-orbs%isorb)=.false.
         end if
-        !write(*,'(3(a,i0))') 'process ', iproc, ' has finally received orbital ',jorb,'; tag=',comon%comarr(6,jorb,jproc)
+
+
+
+
+
+
+        !!!write(*,'(3(a,i0))') 'process ', iproc, ' is waiting for orbital ',jorb,'; tag=',comon%comarr(6,jorb,jproc)
+        !!nslow=nslow+1
+        !!call mpi_wait(comon%comarr(7,jorb,jproc), stat, ierr)   !COMMENTED BY PB
+        !!call mpi_wait(comon%comarr(8,jorb,jproc), stat, ierr)   !COMMENTED BY PB
+        !!comon%communComplete(jorb,jproc)=.true.
+        !!mpisource=comon%comarr(1,jorb,jproc)
+        !!mpidest=comon%comarr(4,jorb,jproc)
+        !!orbsource=comon%comarr(9,jorb,jproc)
+        !!orbdest=comon%comarr(10,jorb,jproc)
+        !!if(iproc==mpidest) then
+        !!    !call expandOneOrbital(iproc, nproc, jjorb, orbs, input, orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
+        !!    expanded(orbsource,orbdest-orbs%isorb)=.false.
+        !!end if
+        !!!write(*,'(3(a,i0))') 'process ', iproc, ' has finally received orbital ',jorb,'; tag=',comon%comarr(6,jorb,jproc)
     end do
 end do
 
 !call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
+!call mpiallred(nfast, 1, mpi_sum, mpi_comm_world, ierr)
+!call mpiallred(nslow, 1, mpi_sum, mpi_comm_world, ierr)
+!call mpiallred(nsameproc, 1, mpi_sum, mpi_comm_world, ierr)
 if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
                        nfast, ' could be overlapped with computation.'
 if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
