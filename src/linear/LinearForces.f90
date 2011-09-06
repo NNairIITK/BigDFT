@@ -146,7 +146,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   real(8),dimension(linorbs%norb,orbs%norb),intent(in),optional:: coeff       !optional for Trace Minimizing orbitals
   !local variables--------------
   character(len=*), parameter :: subname='Linearnonlocal_forces'
-  integer :: istart_c,iproj,iat,ityp,i,j,l,m,jproc, ierr
+  integer :: istart_c,iproj,iat,ityp,i,j,l,m,jproc, ierr, jjorb2, jjorb
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,jorbd
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,ispinor
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac, t1, t2, time, tcomm1, tcomm2, timecomm
@@ -159,9 +159,11 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   real(dp), dimension(:,:,:,:,:,:), allocatable :: scalprodGlobal
   integer :: ilr,iatom,ii,iiat,iilr,iorb2,nilr,iiorb,ilr2,kptshft,orbtot
   integer :: norb,itmorb,itmorb2,jorb2, ncount
-  real(gp) :: spi2,sp1,sum_scalprod
+  real(gp) :: spi2,sp1,sum_scalprod, dsum
   integer,dimension(:),allocatable :: ilrtable, sendcounts, displs
   logical :: calcproj,newvalue,useTMO
+  logical,dimension(:,:),allocatable:: nonzeroValue
+  logical,dimension(:),allocatable:: nonzero
 
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0 .and. .not.present(phi)) return
@@ -238,6 +240,9 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      allocate(scalprod(2,0:3,7,3,4,at%nat,max(linorbs%norbp,1)*linorbs%nspinor+ndebug),stat=i_stat)   
      call memocc(i_stat,scalprod,'scalprod',subname)
      call razero(2*4*7*3*4*at%nat*max(linorbs%norbp,1)*linorbs%nspinor,scalprod)
+     allocate(nonzeroValue(max(linorbs%norbp,1),at%nat), stat=i_stat)
+     call memocc(i_stat,nonzeroValue,'nonzeroValue',subname)
+     nonzeroValue=.false.
   else
      allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)   
      call memocc(i_stat,scalprod,'scalprod',subname)
@@ -331,11 +336,14 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                         Lzd%Lnlpspd(ilr)%keyv_p(jseg_c),Lzd%Lnlpspd(ilr)%keyg_p(1,jseg_c),&        !must define jseg_c
                                         proj(istart_c),&
                                         scalprod(1,idir,m,i,l,iat,jorb))
+                                        !write(*,'(a,7i7,es15.7)') 'iproc, iat, jorb, idir, m, i, l, value', iproc, iat, jorb, idir, m, i, l, scalprod(1,idir,m,i,l,iat,jorb)
+                                        nonzeroValue(jorb,iat)=.true.
                                    istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                 end do
                              end if
                           end do
                        end do
+                       !write(*,'(a,3i7,es15.7)') 'iproc, iat, jorb, dsum', iproc, iat, jorb, dsum(2*4*7*3*4, scalprod(1,0,1,1,1,iat,jorb))
                        jorb = jorb + 1
                        orbtot = orbtot + 1
                     end do
@@ -667,6 +675,8 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      call memocc(i_stat,sendcounts,'sendcounts',subname)
      allocate(displs(0:nproc-1), stat=i_stat)
      call memocc(i_stat,displs,'displs',subname)
+     allocate(nonzero(linorbs%norb), stat=i_stat)
+     call memocc(i_stat,nonzero,'nonzero',subname)
 
      
      !apply the projectors  k-point of the processor
@@ -693,12 +703,31 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               jst=1
               !do jorb=1,max(linorbs%norbp,1)*linorbs%nspinor
               do jorb=1,linorbs%norbp*linorbs%nspinor
-                  call dcopy(ncount, scalprod(1,0,1,1,1,iat,jorb), 1, temparr(jst), 1)
-                  jst=jst+ncount
+                  if(nonzeroValue(jorb,iat)) then
+                      call dcopy(ncount, scalprod(1,0,1,1,1,iat,jorb), 1, temparr(jst), 1)
+                      jst=jst+ncount
+                  !else
+                  !    write(*,*) 'CHECK: ', dsum(ncount, scalprod(1,0,1,1,1,iat,jorb))==0.d0
+                  end if
               end do
+
+              ! Communicate nonzeroValue to communicate scalprod later.
               displs(0)=0
               do jproc=0,nproc-1
-                  sendcounts(jproc)=2*4*7*3*4*linorbs%norb_par(jproc)*linorbs%nspinor
+                  sendcounts(jproc)=linorbs%norb_par(jproc)
+                  if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+              end do
+              call mpi_allgatherv(nonzeroValue(1,iat), sendcounts(iproc), mpi_logical, &
+                   nonzero, sendcounts, displs, mpi_logical, mpi_comm_world, ierr) 
+
+              displs(0)=0
+              do jproc=0,nproc-1
+                  iiorb=0
+                  do jorb=1,linorbs%norb_par(jproc)
+                      jjorb=jorb+linorbs%isorb_par(jproc)
+                      if(nonzero(jjorb)) iiorb = iiorb + 1
+                  end do
+                  sendcounts(jproc)=2*4*7*3*4*iiorb*linorbs%nspinor
                   if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
               end do
               call mpi_barrier(mpi_comm_world, ierr)
@@ -713,71 +742,89 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               fxyz_tmo=0.d0
               fxyz_tmo_temp=0.d0
               !do itmorb = 1,linorbs%norb
+              jorb=0
               do itmorb = 1,linorbs%norbp
                  !jorb = itmorb + kptshft
-                 jorb = itmorb + kptshft + linorbs%isorb
-                 do itmorb2=1,linorbs%norb
-                    jorb2=itmorb2 + kptshft
-                    do ispinor=1,orbs%nspinor,ncplx
-                       do l=1,4
-                          do i=1,3
-                             if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                do m=1,2*l-1
-                                   do icplx=1,ncplx
-                                      ! scalar product with the derivatives in all the directions
-                                      !!sp0=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
-                                      sp0=real(scalprodGlobal(icplx,0,m,i,l,jorb),gp)
-                                      !sp1=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb2),gp)
-                                      do idir=1,3
-                                         !!spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb2),gp)
-                                         spi=real(scalprodGlobal(icplx,idir,m,i,l,jorb2),gp)
-                                       !  spi2=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
-                                         !fxyz_tmo(idir,jorb2,jorb) = fxyz_tmo(idir,jorb2,jorb) + at%psppar(l,i,ityp)*(sp0*spi)
-                                         fxyz_tmo_temp(idir,jorb2,itmorb) = fxyz_tmo_temp(idir,jorb2,itmorb) + at%psppar(l,i,ityp)*(sp0*spi)
+                 !jjorb=itmorb+linorbs%isorb
+                 if(nonzeroValue(itmorb,iat)) then
+                    !jorb = itmorb + kptshft + linorbs%isorb
+                    !jorb = itmorb + kptshft + linorbs%isorb
+                    jjorb2=0
+                    do itmorb2=1,linorbs%norb
+                       jorb2=itmorb2 + kptshft
+                       if(nonzero(jorb2)) then
+                          jjorb2=jjorb2+1
+                          do ispinor=1,orbs%nspinor,ncplx
+                             do l=1,4
+                                do i=1,3
+                                   if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                      do m=1,2*l-1
+                                         do icplx=1,ncplx
+                                            ! scalar product with the derivatives in all the directions
+                                            !!sp0=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
+                                            !sp0=real(scalprodGlobal(icplx,0,m,i,l,jorb),gp)
+                                            sp0=real(scalprod(icplx,0,m,i,l,iat,itmorb),gp)
+                                            !sp1=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb2),gp)
+                                            do idir=1,3
+                                               !!spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb2),gp)
+                                               !spi=real(scalprodGlobal(icplx,idir,m,i,l,jorb2),gp)
+                                               spi=real(scalprodGlobal(icplx,idir,m,i,l,jjorb2),gp)
+                                             !  spi2=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
+                                               !fxyz_tmo(idir,jorb2,jorb) = fxyz_tmo(idir,jorb2,jorb) + at%psppar(l,i,ityp)*(sp0*spi)
+                                               !write(*,'(a,4i6,2es15.7)') 'iat, iorb, jorb, jorb2, sp0, spi', iat, iorb, jorb, jorb2, sp0, spi
+                                               !fxyz_tmo_temp(idir,jorb2,itmorb) = fxyz_tmo_temp(idir,jorb2,itmorb) + at%psppar(l,i,ityp)*(sp0*spi)
+                                               fxyz_tmo_temp(idir,jorb2,itmorb) = fxyz_tmo_temp(idir,jorb2,itmorb) + at%psppar(l,i,ityp)*(sp0*spi)
+                                            end do
+                                         end do
                                       end do
+                                   end if
+                                end do
+                             end do
+                             !HGH case, offdiagonal terms
+                             if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
+                                do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
+                                   do i=1,2
+                                      if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                         loop_jTMO: do j=i+1,3
+                                            if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_jTMO
+                                            !offdiagonal HGH term
+                                            if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                                               hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
+                                            else !HGH-K convention
+                                               hij=at%psppar(l,i+j+1,ityp)
+                                            end if
+                                            do m=1,2*l-1
+                                               !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
+                                               !(the two factor is below)
+                                               do icplx=1,ncplx
+                                                  !!sp0i=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
+                                                  !!sp0j=real(scalprodGlobal(icplx,0,m,j,l,iat,jorb2),gp)
+                                                  !sp0i=real(scalprodGlobal(icplx,0,m,i,l,jorb),gp)
+                                                  sp0i=real(scalprod(icplx,0,m,i,l,iat,itmorb),gp)
+                                                  !sp0j=real(scalprodGlobal(icplx,0,m,j,l,jorb2),gp)
+                                                  sp0j=real(scalprodGlobal(icplx,0,m,j,l,jjorb2),gp)
+                                                  do idir=1,3
+                                                     !!spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
+                                                     !!spj=real(scalprodGlobal(icplx,idir,m,j,l,iat,jorb2),gp)
+                                                     !spi=real(scalprodGlobal(icplx,idir,m,i,l,jorb),gp)
+                                                     spi=real(scalprod(icplx,idir,m,i,l,iat,itmorb),gp)
+                                                     !spj=real(scalprodGlobal(icplx,idir,m,j,l,jorb2),gp)
+                                                     spj=real(scalprodGlobal(icplx,idir,m,j,l,jjorb2),gp)
+                                                     !fxyz_tmo(idir,jorb2,jorb) = fxyz_tmo(idir,jorb2,jorb) + hij*(sp0j*spi+spj*sp0i)
+                                                     !fxyz_tmo_temp(idir,jorb2,itmorb) = fxyz_tmo(idir,jorb2,itmorb) + hij*(sp0j*spi+spj*sp0i)
+                                                     fxyz_tmo_temp(idir,jorb2,itmorb) = fxyz_tmo(idir,jorb2,itmorb) + hij*(sp0j*spi+spj*sp0i)
+                                                  end do
+                                               end do
+                                            end do
+                                         end do loop_jTMO
+                                      end if
                                    end do
                                 end do
                              end if
                           end do
-                       end do
-                       !HGH case, offdiagonal terms
-                       if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
-                          do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
-                             do i=1,2
-                                if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                   loop_jTMO: do j=i+1,3
-                                      if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_jTMO
-                                      !offdiagonal HGH term
-                                      if (at%npspcode(ityp) == 3) then !traditional HGH convention
-                                         hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
-                                      else !HGH-K convention
-                                         hij=at%psppar(l,i+j+1,ityp)
-                                      end if
-                                      do m=1,2*l-1
-                                         !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-                                         !(the two factor is below)
-                                         do icplx=1,ncplx
-                                            !!sp0i=real(scalprodGlobal(icplx,0,m,i,l,iat,jorb),gp)
-                                            !!sp0j=real(scalprodGlobal(icplx,0,m,j,l,iat,jorb2),gp)
-                                            sp0i=real(scalprodGlobal(icplx,0,m,i,l,jorb),gp)
-                                            sp0j=real(scalprodGlobal(icplx,0,m,j,l,jorb2),gp)
-                                            do idir=1,3
-                                               !!spi=real(scalprodGlobal(icplx,idir,m,i,l,iat,jorb),gp)
-                                               !!spj=real(scalprodGlobal(icplx,idir,m,j,l,iat,jorb2),gp)
-                                               spi=real(scalprodGlobal(icplx,idir,m,i,l,jorb),gp)
-                                               spj=real(scalprodGlobal(icplx,idir,m,j,l,jorb2),gp)
-                                               !fxyz_tmo(idir,jorb2,jorb) = fxyz_tmo(idir,jorb2,jorb) + hij*(sp0j*spi+spj*sp0i)
-                                               fxyz_tmo_temp(idir,jorb2,itmorb) = fxyz_tmo(idir,jorb2,itmorb) + hij*(sp0j*spi+spj*sp0i)
-                                            end do
-                                         end do
-                                      end do
-                                   end do loop_jTMO
-                                end if
-                             end do
-                          end do
                        end if
                     end do
-                 end do
+                 end if
               end do
 
               displs(0)=0
@@ -839,6 +886,12 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      i_all = -product(shape(fxyz_tmo))*kind(fxyz_tmo)
      deallocate(fxyz_tmo,stat=i_stat)
      call memocc(i_stat,i_all,'fxyz_tmo',subname)
+     i_all = -product(shape(nonzeroValue))*kind(nonzeroValue)
+     deallocate(nonzeroValue,stat=i_stat)
+     call memocc(i_stat,i_all,'nonzeroValue',subname)
+     i_all = -product(shape(nonzero))*kind(nonzero)
+     deallocate(nonzero,stat=i_stat)
+     call memocc(i_stat,i_all,'nonzero',subname)
 
   else
      !apply the projectors  k-point of the processor
@@ -950,4 +1003,45 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   end if
 
 END SUBROUTINE Linearnonlocal_forces
+
+
+
+
+
+function dsum(n, x)
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: n
+  real(8),dimension(n),intent(in):: x
+  real(8):: dsum
+  
+  ! Local variables
+  integer:: m, i, mp1
+  real(8):: tt
+  
+  dsum=0.d0
+  do i=1,n
+      dsum = dsum + x(i)
+  end do
+  
+  !!tt=0.d0
+  !!dsum=0.d0
+  !!m=mod(n,5)
+  !!if(m/=0) then
+  !!    do i=1,m
+  !!        tt=tt+x(i)
+  !!    end do
+  !!    if(n<5) then
+  !!        dsum=tt
+  !!        return
+  !!    end if
+  !!end if
+  !!mp1=m+1
+  !!do i=mp1,n,5
+  !!    tt = tt + x(i) + x(i+1) + x(i+2) + x(i+3) + x(i+4)
+  !!end do
+  !!dsum=tt
+
+end function dsum
 
