@@ -157,13 +157,14 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   real(gp),dimension(:,:,:,:),allocatable:: fxyz_tmo, fxyz_tmo_temp
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod!!, scalprodGlobal
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprodGlobal
-  integer :: ilr,iatom,ii,iiat,iilr,iorb2,nilr,iiorb,ilr2,kptshft,orbtot, nitoverlaps, ioverlap, tag1x, tag2x, tag1, tag2, jat
+  integer :: ilr,iatom,ii,iiat,iilr,iorb2,nilr,iiorb,ilr2,kptshft,orbtot, nitoverlaps, ioverlap, tag1x, tag2x, tag1, tag2, jat, jj
   integer :: norb,itmorb,itmorb2,jorb2, ncount
   real(gp) :: spi2,sp1,sum_scalprod, dsum, tt
   integer,dimension(:),allocatable :: ilrtable, sendcounts1, displs
   integer,dimension(:,:),allocatable :: sendcounts2
   integer,dimension(:,:,:),allocatable:: requests1, requests2
   logical :: calcproj,newvalue,useTMO
+  logical,dimension(:),allocatable:: temparr_logical
   logical,dimension(:,:),allocatable:: nonzeroValue
   logical,dimension(:,:),allocatable:: nonzero
 
@@ -666,9 +667,6 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 
      allocate(scalprodGlobal(2,0:3,7,3,4,linorbs%norb*linorbs%nspinor,nitoverlaps),stat=i_stat)   
      call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
-     ncount=2*4*7*3*4*max(linorbs%norbp,1)*linorbs%nspinor*nitoverlaps
-     allocate(temparr(ncount+ndebug),stat=i_stat)   
-     call memocc(i_stat,temparr,'temparr',subname)
 
      allocate(sendcounts2(0:nproc-1,nitoverlaps), stat=i_stat)
      call memocc(i_stat,sendcounts2,'sendcounts2',subname)
@@ -699,6 +697,34 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 !
 !        call ncplx_kpt(ikpt,orbs,ncplx)
 
+        allocate(temparr_logical(linorbs%norb*at%nat), stat=i_stat)
+        call memocc(i_stat, temparr_logical, 'temparr_logical', subname)
+        ! Communicate nonzeroValue to communicate scalprod later.
+        displs(0)=0
+        do jproc=0,nproc-1
+            sendcounts1(jproc)=linorbs%norb_par(jproc)*at%nat
+            if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts1(jproc-1)
+        end do
+        call mpi_allgatherv(nonzeroValue(1,1), sendcounts1(iproc), mpi_logical, &
+             temparr_logical(1), sendcounts1, displs, mpi_logical, mpi_comm_world, ierr)
+        jj=0
+        do jproc=0,nproc-1
+            do jat=1,at%nat
+                do jorb=1,linorbs%norb_par(jproc)
+                    jjorb=jorb+linorbs%isorb_par(jproc)
+                    jj=jj+1
+                    nonzero(jjorb,jat)=temparr_logical(jj)
+                end do
+            end do
+        end do
+        i_all=-product(shape(temparr_logical))*kind(temparr_logical)
+        deallocate(temparr_logical, stat=i_stat)
+        call memocc(i_stat,i_all,'temparr_logical',subname)
+
+        ncount=2*4*7*3*4*max(linorbs%norbp,1)*linorbs%nspinor*nitoverlaps
+        allocate(temparr(ncount+ndebug),stat=i_stat)   
+        call memocc(i_stat,temparr,'temparr',subname)
+
         kptshft = orbtot
         ! loop over all my orbitals for calculating forces
         !do iorb=1,orbs%norbp
@@ -710,16 +736,6 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
            timecomm2=0.d0
            timetot=0.d0
 
-           do iat=1,at%nat
-              ! Communicate nonzeroValue to communicate scalprod later.
-              displs(0)=0
-              do jproc=0,nproc-1
-                  sendcounts1(jproc)=linorbs%norb_par(jproc)
-                  if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts1(jproc-1)
-              end do
-              call mpi_allgatherv(nonzeroValue(1,iat), sendcounts1(iproc), mpi_logical, &
-                   nonzero(1,iat), sendcounts1, displs, mpi_logical, mpi_comm_world, ierr) 
-           end do
 
            tag1x=1
            tag2x=tag1x+nitoverlaps*nproc**2
