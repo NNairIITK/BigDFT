@@ -721,7 +721,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                    nonzero(1,iat), sendcounts1, displs, mpi_logical, mpi_comm_world, ierr) 
            end do
 
-           tag1x=0
+           tag1x=1
            tag2x=tag1x+nitoverlaps*nproc**2
 
            do iat=1,at%nat
@@ -730,18 +730,18 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               if(iproc==0) write(*,'(a,i0)') 'iat=',iat
               ioverlap=mod(iat-1,nitoverlaps)+1
 
-              ! Copy scalprod to temporary array for communication.
-              ncount=2*4*7*3*4
-              jst=1
-              !do jorb=1,max(linorbs%norbp,1)*linorbs%nspinor
-              do jorb=1,linorbs%norbp*linorbs%nspinor
-                  if(nonzeroValue(jorb,iat)) then
-                      call dcopy(ncount, scalprod(1,0,1,1,1,iat,jorb), 1, temparr(jst), 1)
-                      jst=jst+ncount
-                  !else
-                  !    write(*,*) 'CHECK: ', dsum(ncount, scalprod(1,0,1,1,1,iat,jorb))==0.d0
-                  end if
-              end do
+              !!! Copy scalprod to temporary array for communication.
+              !!ncount=2*4*7*3*4
+              !!jst=1
+              !!!do jorb=1,max(linorbs%norbp,1)*linorbs%nspinor
+              !!do jorb=1,linorbs%norbp*linorbs%nspinor
+              !!    if(nonzeroValue(jorb,iat)) then
+              !!        call dcopy(ncount, scalprod(1,0,1,1,1,iat,jorb), 1, temparr(jst), 1)
+              !!        jst=jst+ncount
+              !!    !else
+              !!    !    write(*,*) 'CHECK: ', dsum(ncount, scalprod(1,0,1,1,1,iat,jorb))==0.d0
+              !!    end if
+              !!end do
 
 
               if(iat==1) then
@@ -761,7 +761,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                           iiorb=0
                           do jorb=1,linorbs%norb_par(jproc)
                               jjorb=jorb+linorbs%isorb_par(jproc)
-                              if(nonzero(jjorb,iat)) iiorb = iiorb + 1
+                              if(nonzero(jjorb,jat)) iiorb = iiorb + 1
                           end do
                           sendcounts2(jproc,ii)=2*4*7*3*4*iiorb*linorbs%nspinor
                           if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts2(jproc-1,ii)
@@ -769,9 +769,9 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                       t1=mpi_wtime()
                       !call mpi_allgatherv(temparr, sendcounts(iproc), mpi_double_precision, &
                       !     scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
-                      tag2 = tag2x + ii*nproc**2
+                      tag2 = tag2x + (ii-1)*nproc**2
                       jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
-                      call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), scalprodGlobal(1,0,1,1,1,1,jat), sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
+                      call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
                       call mpi_barrier(mpi_comm_world, ierr)
                       t2=mpi_wtime()
                       timecomm1=timecomm1+t2-t1
@@ -788,7 +788,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               !     fxyz_tmo, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
               if(iat>nitoverlaps) then
                   ii=mod(iat-1,nitoverlaps)+1
-                  tag1=tag1x+ii*nproc**2
+                  tag1=tag1x+(ii-1)*nproc**2
                   t1=mpi_wtime()
                   !call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts(iproc), fxyz_tmo(1,1,1,ii), sendcounts, displs, mpi_comm_world, 'recv', tag1, requests(1,1,ii))
                   do jproc=0,nproc-1
@@ -818,7 +818,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               ! Collect scalprodGloabl for atom iat
               t1=mpi_wtime()
               ii=mod(iat-1,nitoverlaps)+1
-              call my_iallgather_collect(iproc, nproc, sendcounts2(iproc,ii), sendcounts2(1,ii), requests2(1,1,ii))
+              call my_iallgather_collect(iproc, nproc, sendcounts2(iproc,ii), sendcounts2(0,ii), requests2(1,1,ii))
               t2=mpi_wtime()
               timecomm1=timecomm1+t2-t1
 
@@ -923,8 +923,8 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                   jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
                   ! Copy scalprod to temporary array for communication.
                   do jorb=1,linorbs%norbp*linorbs%nspinor
-                      if(nonzeroValue(jorb,jat)) then
-                          call dcopy(ncount, scalprod(1,0,1,1,1,iat,jorb), 1, temparr(jst), 1)
+                      if(nonzeroValue(jorb,iat+nitoverlaps)) then
+                          call dcopy(ncount, scalprod(1,0,1,1,1,iat+nitoverlaps,jorb), 1, temparr(jst), 1)
                           jst=jst+ncount
                       end if
                   end do
@@ -933,12 +933,13 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                       iiorb=0
                       do jorb=1,linorbs%norb_par(jproc)
                           jjorb=jorb+linorbs%isorb_par(jproc)
-                          if(nonzero(jjorb,iat)) iiorb = iiorb + 1
+                          if(nonzero(jjorb,iat+nitoverlaps)) iiorb = iiorb + 1
                       end do
                       sendcounts2(jproc,ii)=2*4*7*3*4*iiorb*linorbs%nspinor
                       if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts2(jproc-1,ii)
                   end do
-                  tag2 = tag2x + ii*nproc**2
+                  tag2 = tag2x + (ii-1)*nproc**2
+                  if(iproc==0) write(*,'(a,i0)') 'calling second time with tag2=',tag2
                   jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
                   call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
                   t2=mpi_wtime()
@@ -955,7 +956,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               !call mpi_allgatherv(fxyz_tmo_temp, sendcounts(iproc), mpi_double_precision, &
               !     fxyz_tmo, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
               ii=mod(iat-1,nitoverlaps)+1
-              tag1=tag1x+ii*nproc**2
+              tag1=tag1x+(ii-1)*nproc**2
               call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts1(iproc), fxyz_tmo(1,1,1,ii), sendcounts1, displs, mpi_comm_world, tag1, requests1(1,1,ii))
               t2=mpi_wtime()
               timecomm2=timecomm2+t2-t1
@@ -963,7 +964,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
               if(iat==at%nat) then
                   do jat=max(at%nat-nitoverlaps+1,1),at%nat
                       ii=mod(jat-1,nitoverlaps)+1
-                      tag1=tag1x+ii*nproc**2
+                      tag1=tag1x+(ii-1)*nproc**2
                       t1=mpi_wtime()
                       !call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts(iproc), fxyz_tmo(1,1,1,ii), sendcounts, displs, mpi_comm_world, 'recv', tag1, requests(1,1,ii))
                       call my_iallgather_collect(iproc, nproc, sendcounts1(iproc), sendcounts1, requests1(1,1,ii))
@@ -1233,7 +1234,7 @@ subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts,
           if(iproc==kproc .and. recvcounts(jproc)/=0) then
               tag0=jproc*nproc+kproc
               tag=tagx+tag0
-              !write(*,'(5(a,i0))') 'process ',kproc,' receives ',recvcounts(jproc),' elements at position ',displs(jproc)+1,' from process ',jproc,' with tag ',tag
+              write(*,'(5(a,i0))') 'process ',kproc,' receives ',recvcounts(jproc),' elements at position ',displs(jproc)+1,' from process ',jproc,' with tag ',tag
               call mpi_irecv(recvbuf(displs(jproc)+1), recvcounts(jproc), mpi_double_precision, jproc, tag, comm, requests(2,tag0), ierr)
           end if
       end do
@@ -1244,7 +1245,7 @@ subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts,
           do kproc=0,nproc-1
               tag0=jproc*nproc+kproc
               tag=tagx+tag0
-              !write(*,'(4(a,i0))') 'process ',jproc,' sends ',sendcount,' elements to process ',kproc,' with tag ',tag
+              write(*,'(4(a,i0))') 'process ',jproc,' sends ',sendcount,' elements to process ',kproc,' with tag ',tag
               call mpi_isend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
           end do
       end if
