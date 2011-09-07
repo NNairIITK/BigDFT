@@ -149,18 +149,19 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,jproc, ierr, jjorb2, jjorb
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,jorbd
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,ispinor
-  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac, t1, t2, ttot1, timecomm1, timecomm2, timecomp1, timecomp2, timetot
+  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,orbfac, t1, t2, ttot1, ttot2, timecomm1, timecomm2, timecomp1, timecomp2, timetot
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb, jst
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp),dimension(:),allocatable:: temparr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
-  real(gp),dimension(:,:,:),allocatable:: fxyz_tmo, fxyz_tmo_temp
+  real(gp),dimension(:,:,:,:),allocatable:: fxyz_tmo, fxyz_tmo_temp
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod!!, scalprodGlobal
   real(dp), dimension(:,:,:,:,:,:), allocatable :: scalprodGlobal
-  integer :: ilr,iatom,ii,iiat,iilr,iorb2,nilr,iiorb,ilr2,kptshft,orbtot
+  integer :: ilr,iatom,ii,iiat,iilr,iorb2,nilr,iiorb,ilr2,kptshft,orbtot, nitoverlaps, ioverlap, tag1, jat
   integer :: norb,itmorb,itmorb2,jorb2, ncount
-  real(gp) :: spi2,sp1,sum_scalprod, dsum
+  real(gp) :: spi2,sp1,sum_scalprod, dsum, tt
   integer,dimension(:),allocatable :: ilrtable, sendcounts, displs
+  integer,dimension(:,:,:),allocatable:: requests
   logical :: calcproj,newvalue,useTMO
   logical,dimension(:,:),allocatable:: nonzeroValue
   logical,dimension(:),allocatable:: nonzero
@@ -660,10 +661,6 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 
   if(useTMO) then
   
-     allocate(fxyz_tmo(3,linorbs%norb,linorbs%norb), stat=i_stat)
-     call memocc(i_stat, fxyz_tmo, 'fxyz_tmo', subname)
-     allocate(fxyz_tmo_temp(3,linorbs%norb,linorbs%norbp), stat=i_stat)
-     call memocc(i_stat, fxyz_tmo_temp, 'fxyz_tmo_temp', subname)
 
      allocate(scalprodGlobal(2,0:3,7,3,4,linorbs%norb*linorbs%nspinor+ndebug),stat=i_stat)   
      call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
@@ -677,6 +674,14 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      call memocc(i_stat,displs,'displs',subname)
      allocate(nonzero(linorbs%norb), stat=i_stat)
      call memocc(i_stat,nonzero,'nonzero',subname)
+
+     nitoverlaps=8
+     allocate(requests(2,nproc**2,nitoverlaps), stat=i_stat)
+     call memocc(i_stat,requests,'requests',subname)
+     allocate(fxyz_tmo(3,linorbs%norb,linorbs%norb,nitoverlaps), stat=i_stat)
+     call memocc(i_stat, fxyz_tmo, 'fxyz_tmo', subname)
+     allocate(fxyz_tmo_temp(3,linorbs%norb,linorbs%norbp,nitoverlaps), stat=i_stat)
+     call memocc(i_stat, fxyz_tmo_temp, 'fxyz_tmo_temp', subname)
 
      
      !apply the projectors  k-point of the processor
@@ -694,10 +699,16 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
         !do iorb=1,orbs%norbp
         do iorb=1,maxval(orbs%norb_par)
            call razero(3*at%nat,fxyz_orb)
+           timecomp1=0.d0
+           timecomp2=0.d0
+           timecomm1=0.d0
+           timecomm2=0.d0
+           timetot=0.d0
            do iat=1,at%nat
               ttot1=mpi_wtime()
               ityp=at%iatype(iat)
               if(iproc==0) write(*,'(a,i0)') 'iat=',iat
+              ioverlap=mod(iat-1,nitoverlaps)+1
 
               ! Copy scalprod to temporary array for communication.
               ncount=2*4*7*3*4
@@ -736,10 +747,48 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                    scalprodGlobal, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
               call mpi_barrier(mpi_comm_world, ierr)
               t2=mpi_wtime()
-              timecomm1=t2-t1
+              timecomm1=timecomm1+t2-t1
 
-              fxyz_tmo=0.d0
-              fxyz_tmo_temp=0.d0
+
+              displs(0)=0
+              do jproc=0,nproc-1
+                  sendcounts(jproc)=3*linorbs%norb_par(jproc)*linorbs%norb
+                  if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+              end do
+              t1=mpi_wtime()
+              !call mpi_allgatherv(fxyz_tmo_temp, sendcounts(iproc), mpi_double_precision, &
+              !     fxyz_tmo, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+              if(iat>nitoverlaps) then
+                  ii=mod(iat-1,nitoverlaps)+1
+                  tag1=ii*nproc**2
+                  t1=mpi_wtime()
+                  !call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts(iproc), fxyz_tmo(1,1,1,ii), sendcounts, displs, mpi_comm_world, 'recv', tag1, requests(1,1,ii))
+                  call my_iallgather_collect(iproc, nproc, sendcounts(iproc), sendcounts, requests(1,1,ii))
+                  t2=mpi_wtime()
+                  timecomm2=timecomm2+t2-t1
+                  t1=mpi_wtime()
+                  if(iorb<=orbs%norbp) then
+                     iiorb=iorb+orbs%isorb
+                     do itmorb = 1,linorbs%norb
+                        jorb = itmorb + kptshft
+                        do itmorb2=1,linorbs%norb
+                           jorb2=itmorb2 + kptshft
+                           tt=coeff(jorb,iiorb)*coeff(jorb2,iiorb)
+                           fxyz_orb(1,iat-nitoverlaps) = fxyz_orb(1,iat-nitoverlaps) + tt*fxyz_tmo(1,jorb2,jorb,ii)
+                           fxyz_orb(2,iat-nitoverlaps) = fxyz_orb(2,iat-nitoverlaps) + tt*fxyz_tmo(2,jorb2,jorb,ii)
+                           fxyz_orb(3,iat-nitoverlaps) = fxyz_orb(3,iat-nitoverlaps) + tt*fxyz_tmo(3,jorb2,jorb,ii)
+                        end do
+                     end do
+                  end if
+                  t2=mpi_wtime()
+                  timecomp2=timecomp2+t2-t1
+              end if
+
+
+              !fxyz_tmo=0.d0
+              !fxyz_tmo_temp=0.d0
+              call razero(3*linorbs%norb*linorbs%norb, fxyz_tmo(1,1,1,ioverlap))
+              call razero(3*linorbs%norb*linorbs%norbp, fxyz_tmo_temp(1,1,1,ioverlap))
               !do itmorb = 1,linorbs%norb
               jorb=0
               t1=mpi_wtime()
@@ -773,7 +822,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                                !fxyz_tmo(idir,jorb2,jorb) = fxyz_tmo(idir,jorb2,jorb) + at%psppar(l,i,ityp)*(sp0*spi)
                                                !write(*,'(a,4i6,2es15.7)') 'iat, iorb, jorb, jorb2, sp0, spi', iat, iorb, jorb, jorb2, sp0, spi
                                                !fxyz_tmo_temp(idir,jorb2,itmorb) = fxyz_tmo_temp(idir,jorb2,itmorb) + at%psppar(l,i,ityp)*(sp0*spi)
-                                               fxyz_tmo_temp(idir,jorb2,itmorb) = fxyz_tmo_temp(idir,jorb2,itmorb) + at%psppar(l,i,ityp)*(sp0*spi)
+                                               fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) = fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) + at%psppar(l,i,ityp)*(sp0*spi)
                                             end do
                                          end do
                                       end do
@@ -812,7 +861,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                                                      spj=real(scalprodGlobal(icplx,idir,m,j,l,jjorb2),gp)
                                                      !fxyz_tmo(idir,jorb2,jorb) = fxyz_tmo(idir,jorb2,jorb) + hij*(sp0j*spi+spj*sp0i)
                                                      !fxyz_tmo_temp(idir,jorb2,itmorb) = fxyz_tmo(idir,jorb2,itmorb) + hij*(sp0j*spi+spj*sp0i)
-                                                     fxyz_tmo_temp(idir,jorb2,itmorb) = fxyz_tmo(idir,jorb2,itmorb) + hij*(sp0j*spi+spj*sp0i)
+                                                     fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) = fxyz_tmo_temp(idir,jorb2,itmorb,ioverlap) + hij*(sp0j*spi+spj*sp0i)  !! CHECK THIS
                                                   end do
                                                end do
                                             end do
@@ -827,7 +876,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                  end if
               end do
               t2=mpi_wtime()
-              timecomp1=t2-t1
+              timecomp1=timecomp1+t2-t1
 
               displs(0)=0
               do jproc=0,nproc-1
@@ -835,37 +884,59 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                   if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
               end do
               t1=mpi_wtime()
-              call mpi_allgatherv(fxyz_tmo_temp, sendcounts(iproc), mpi_double_precision, &
-                   fxyz_tmo, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr) 
+              !call mpi_allgatherv(fxyz_tmo_temp, sendcounts(iproc), mpi_double_precision, &
+              !     fxyz_tmo, sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+              ii=mod(iat-1,nitoverlaps)+1
+              tag1=ii*nproc**2
+              call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts(iproc), fxyz_tmo(1,1,1,ii), sendcounts, displs, mpi_comm_world, tag1, requests(1,1,ii))
               t2=mpi_wtime()
-              timecomm2=t2-t1
+              timecomm2=timecomm2+t2-t1
               !call mpiallred(fxyz_tmo(1,1,1), 3*linorbs%norb**2, mpi_sum, mpi_comm_world, ierr)
-              t1=mpi_wtime()
-              if(iorb<=orbs%norbp) then
-                 do itmorb = 1,linorbs%norb
-                    jorb = itmorb + kptshft
-                    do itmorb2=1,linorbs%norb
-                       jorb2=itmorb2 + kptshft
-                       do idir=1,3
-                          fxyz_orb(idir,iat) = fxyz_orb(idir,iat) + coeff(jorb,iorb+orbs%isorb)*coeff(jorb2,iorb+orbs%isorb)*fxyz_tmo(idir,jorb2,jorb)
-                       end do
-                    end do
-                 end do
+              if(iat==at%nat) then
+                  do jat=max(at%nat-nitoverlaps+1,1),at%nat
+                      ii=mod(jat-1,nitoverlaps)+1
+                      tag1=ii*nproc**2
+                      t1=mpi_wtime()
+                      !call my_iallgatherv(iproc, nproc, fxyz_tmo_temp(1,1,1,ioverlap), sendcounts(iproc), fxyz_tmo(1,1,1,ii), sendcounts, displs, mpi_comm_world, 'recv', tag1, requests(1,1,ii))
+                      call my_iallgather_collect(iproc, nproc, sendcounts(iproc), sendcounts, requests(1,1,ii))
+                      t2=mpi_wtime()
+                      timecomm2=timecomm2+t2-t1
+                      t1=mpi_wtime()
+                      if(iorb<=orbs%norbp) then
+                         iiorb=iorb+orbs%isorb
+                         do itmorb = 1,linorbs%norb
+                            jorb = itmorb + kptshft
+                            do itmorb2=1,linorbs%norb
+                               jorb2=itmorb2 + kptshft
+                               tt=coeff(jorb,iiorb)*coeff(jorb2,iiorb)
+                               fxyz_orb(1,jat) = fxyz_orb(1,jat) + tt*fxyz_tmo(1,jorb2,jorb,ii)
+                               fxyz_orb(2,jat) = fxyz_orb(2,jat) + tt*fxyz_tmo(2,jorb2,jorb,ii)
+                               fxyz_orb(3,jat) = fxyz_orb(3,jat) + tt*fxyz_tmo(3,jorb2,jorb,ii)
+                            end do
+                         end do
+                      end if
+                      t2=mpi_wtime()
+                      timecomp2=timecomp2+t2-t1
+                  end do
               end if
-              t2=mpi_wtime()
-              timecomp2=t2-t1
-              timetot=t2-ttot1
-              call mpiallred(timecomm1, 1, mpi_sum, mpi_comm_world, ierr)
-              call mpiallred(timecomm2, 1, mpi_sum, mpi_comm_world, ierr)
-              call mpiallred(timecomp1, 1, mpi_sum, mpi_comm_world, ierr)
-              call mpiallred(timecomp2, 1, mpi_sum, mpi_comm_world, ierr)
-              call mpiallred(timetot, 1, mpi_sum, mpi_comm_world, ierr)
+              ttot2=mpi_wtime()
+              timetot=timetot+ttot2-ttot1
               if(iproc==0) write(*,'(a,es15.7)') 'time for first communication:',timecomm1/dble(nproc)
               if(iproc==0) write(*,'(a,es15.7)') 'time for second communication:',timecomm2/dble(nproc)
               if(iproc==0) write(*,'(a,es15.7)') 'time for first loop:',timecomp1/dble(nproc)
               if(iproc==0) write(*,'(a,es15.7)') 'time for second loop:',timecomp2/dble(nproc)
               if(iproc==0) write(*,'(a,i0,a,es11.4)') 'total time for atom',iat,':',timetot/dble(nproc)
            end do
+           call mpiallred(timecomm1, 1, mpi_sum, mpi_comm_world, ierr)
+           call mpiallred(timecomm2, 1, mpi_sum, mpi_comm_world, ierr)
+           call mpiallred(timecomp1, 1, mpi_sum, mpi_comm_world, ierr)
+           call mpiallred(timecomp2, 1, mpi_sum, mpi_comm_world, ierr)
+           call mpiallred(timetot, 1, mpi_sum, mpi_comm_world, ierr)
+           if(iproc==0) write(*,'(a,es15.7)') 'FINAL TIME: time for first communication:',timecomm1/dble(nproc)
+           if(iproc==0) write(*,'(a,es15.7)') 'FINAL TIME: time for second communication:',timecomm2/dble(nproc)
+           if(iproc==0) write(*,'(a,es15.7)') 'FINAL TIME: time for first loop:',timecomp1/dble(nproc)
+           if(iproc==0) write(*,'(a,es15.7)') 'FINAL TIME: time for second loop:',timecomp2/dble(nproc)
+           if(iproc==0) write(*,'(a,es15.7)') 'FINAL TIME: total time: ',timetot/dble(nproc)
 
 
 
@@ -907,6 +978,9 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
      i_all = -product(shape(nonzero))*kind(nonzero)
      deallocate(nonzero,stat=i_stat)
      call memocc(i_stat,i_all,'nonzero',subname)
+     i_all = -product(shape(requests))*kind(requests)
+     deallocate(requests,stat=i_stat)
+     call memocc(i_stat,i_all,'requests',subname)
 
   else
      !apply the projectors  k-point of the processor
@@ -1060,3 +1134,85 @@ function dsum(n, x)
 
 end function dsum
 
+
+
+
+
+subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
+  use module_base
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, sendcount, comm
+  integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
+  real(8),dimension(sendcount),intent(in):: sendbuf
+  integer,dimension(2,0:nproc*nproc-1),intent(in):: requests
+  integer,intent(in):: tagx
+  real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
+  
+  ! Local variables
+  integer:: jproc, kproc, tag, tag0, ierr
+
+
+  do jproc=0,nproc-1
+      do kproc=0,nproc-1
+          if(iproc==kproc .and. recvcounts(jproc)/=0) then
+              tag0=jproc*nproc+kproc
+              tag=tagx+tag0
+              !write(*,'(5(a,i0))') 'process ',kproc,' receives ',recvcounts(jproc),' elements at position ',displs(jproc)+1,' from process ',jproc,' with tag ',tag
+              call mpi_irecv(recvbuf(displs(jproc)+1), recvcounts(jproc), mpi_double_precision, jproc, tag, comm, requests(2,tag0), ierr)
+          end if
+      end do
+  end do
+  
+  do jproc=0,nproc-1
+      if(iproc==jproc .and. sendcount/=0) then
+          do kproc=0,nproc-1
+              tag0=jproc*nproc+kproc
+              tag=tagx+tag0
+              !write(*,'(4(a,i0))') 'process ',jproc,' sends ',sendcount,' elements to process ',kproc,' with tag ',tag
+              call mpi_isend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
+          end do
+      end if
+  end do
+
+
+
+end subroutine my_iallgatherv
+
+
+
+subroutine my_iallgather_collect(iproc, nproc, sendcount, recvcounts, requests)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, sendcount
+  integer,dimension(0:nproc),intent(in):: recvcounts
+  integer,dimension(2,0:nproc*nproc-1),intent(inout):: requests
+
+  ! Local variables
+  integer:: jproc, kproc, tag0, ierr
+
+
+  do jproc=0,nproc-1
+      if(iproc==jproc .and. sendcount/=0) then
+          do kproc=0,nproc-1
+              tag0=jproc*nproc+kproc
+              call mpi_wait(requests(1,tag0), mpi_status_ignore, ierr)
+          end do
+      end if
+  end do
+  
+  do jproc=0,nproc-1
+      do kproc=0,nproc-1
+          if(iproc==kproc .and. recvcounts(jproc)/=0) then
+              tag0=jproc*nproc+kproc
+              call mpi_wait(requests(2,tag0), mpi_status_ignore, ierr)
+          end if
+      end do
+  end do
+
+  call mpi_barrier(mpi_comm_world, ierr)
+
+end subroutine my_iallgather_collect
