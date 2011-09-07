@@ -662,7 +662,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 
   if(useTMO) then
   
-     nitoverlaps=3
+     nitoverlaps=10
 
      allocate(scalprodGlobal(2,0:3,7,3,4,linorbs%norb*linorbs%nspinor,nitoverlaps),stat=i_stat)   
      call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
@@ -939,7 +939,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
                       if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts2(jproc-1,ii)
                   end do
                   tag2 = tag2x + (ii-1)*nproc**2
-                  if(iproc==0) write(*,'(a,i0)') 'calling second time with tag2=',tag2
+                  !if(iproc==0) write(*,'(a,i0)') 'calling second time with tag2=',tag2
                   jst=(ii-1)*ncount*linorbs%norbp*linorbs%nspinor+1
                   call my_iallgatherv(iproc, nproc, temparr(jst), sendcounts2(iproc,ii), scalprodGlobal(1,0,1,1,1,1,ii), sendcounts2(0,ii), displs, mpi_comm_world, tag2, requests2(1,1,ii))
                   t2=mpi_wtime()
@@ -1234,7 +1234,7 @@ subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts,
           if(iproc==kproc .and. recvcounts(jproc)/=0) then
               tag0=jproc*nproc+kproc
               tag=tagx+tag0
-              write(*,'(5(a,i0))') 'process ',kproc,' receives ',recvcounts(jproc),' elements at position ',displs(jproc)+1,' from process ',jproc,' with tag ',tag
+              !write(*,'(5(a,i0))') 'process ',kproc,' receives ',recvcounts(jproc),' elements at position ',displs(jproc)+1,' from process ',jproc,' with tag ',tag
               call mpi_irecv(recvbuf(displs(jproc)+1), recvcounts(jproc), mpi_double_precision, jproc, tag, comm, requests(2,tag0), ierr)
           end if
       end do
@@ -1245,7 +1245,7 @@ subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts,
           do kproc=0,nproc-1
               tag0=jproc*nproc+kproc
               tag=tagx+tag0
-              write(*,'(4(a,i0))') 'process ',jproc,' sends ',sendcount,' elements to process ',kproc,' with tag ',tag
+              !write(*,'(4(a,i0))') 'process ',jproc,' sends ',sendcount,' elements to process ',kproc,' with tag ',tag
               call mpi_isend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
           end do
       end if
