@@ -66,7 +66,8 @@ c
       character(len=25) :: form
       character(len=80) :: label
       integer :: namoeb,nsmplx
-      integer ::  nconfpaw, npawchannels, npawl
+      integer ::  nconfpaw, npawchannels, npawl, pawstN, pawstL, pawstP
+      character(len=125) :: pawstatom
       character(len=8) :: dateYMD
 
 
@@ -155,7 +156,7 @@ c
       npawconf=-1
       npawl   = 3
       npawchannels = 4
-      
+      pawstatom=''
       
       
 c
@@ -214,8 +215,18 @@ c     This modification is needed for a parallel run.
             write(6,*) '                  -nchannelspawN       ',
      :           ' set number of paw projectors to N (defaults to 4)'
 
+            write(6,*) '                  -pawstatomName       ',
+     :           '  file named Name will be read for initial ' , 
+     :           '  wave funct. '
+            write(6,*) '                  -pawstnN       ',
+     :           '  initial wave function has first quantum number N ' 
+            write(6,*) '                  -pawstlL       ',
+     :           '  initial wave function has angular momentum L' 
+            write(6,*) '                  -pawpowP       ',
+     :           '  initial wave function is multiplied by r**P' 
 
-            write(6,*)
+
+
         goto 11
         end if
 
@@ -331,6 +342,7 @@ c      No loop over command line arguments needed.
      :          nconfpaw, ' first Ls '
 
             endif
+
             ii=index(string,'-nchannelspaw')
             if (ii.ne.0) then
                label=string(ii+13:min(ii+20,120))
@@ -340,8 +352,34 @@ c      No loop over command line arguments needed.
 
             endif
 
+            ii=index(string,'-pawstatom')
+            if (ii.ne.0) then
+               pawstatom=string(ii+13:min(ii+133,120))
+               write(6,*)  'will consider',
+     :        pawstatom  , ' file for reading the initial potential '
+            endif
 
 
+            ii=index(string,'-pawstn')
+            if (ii.ne.0) then
+               label=string(ii+7:min(ii+14,120))
+               read(label,*)  pawstN
+               write(6,*)  ' N of st. wf. is ', pawstN
+            endif
+
+            ii=index(string,'-pawstl')
+            if (ii.ne.0) then
+               label=string(ii+7:min(ii+14,120))
+               read(label,*)  pawstL
+               write(6,*)  ' L of st. wf. is ' , pawstL
+            endif
+
+            ii=index(string,'-pawstP')
+            if (ii.ne.0) then
+               label=string(ii+7:min(ii+14,120))
+               read(label,*)  pawstP
+               write(6,*)  ' initial wf radial part is multiplied by r**' , pawstP
+            endif
 c           End of rading options from input.dat's first line 
  11         continue
 
@@ -1550,7 +1588,8 @@ c                the following lines differ from pseudo2.2
      :          wghthij,
      :              nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,
      :              excitAE,ntime,iter,itertot,penref,time,ngrid, 
-     :               nconfpaw, npawl, nchannelspaw )
+     :               nconfpaw, npawl, nchannelspaw , ispp, pawstatom,
+     :              pawstN, pawstL  , pawstP        )
 
 
             else
