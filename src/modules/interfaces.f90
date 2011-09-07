@@ -4454,6 +4454,19 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine transformToGlobal
 
 
+     subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
+       use module_base
+       implicit none
+
+       ! Calling arguments
+       integer,intent(in):: iproc, nproc, sendcount, comm
+       integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
+       real(8),dimension(sendcount),intent(in):: sendbuf
+       integer,dimension(2,0:nproc*nproc-1),intent(in):: requests
+       integer,intent(in):: tagx
+       real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
+     end subroutine my_iallgatherv
+
 
   end interface
 
