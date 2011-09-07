@@ -1614,28 +1614,29 @@ do iorb=1,orbs%norbp
     iiorb=orbs%isorb+iorb
     do jorb=1,op%noverlaps(iiorb)
         jjorb=op%overlaps(jorb,iiorb)
-        ! Starting index of orbital iorb, already transformed to overlap region with jjorb.
-        ! We have to find the first orbital on the same MPI and in the same locreg as jjorb.
-        jjlr=onWhichAtom(jjorb)
-        jjproc=orbs%onWhichMPI(jjorb)
-        jj=orbs%isorb_par(jjproc)+1
-        do
-            if(onWhichAtom(jj)==jjlr) exit
-            jj=jj+1
-        end do
-        ist=op%indexInSendBuf(iorb,jj)
-        ! Starting index of orbital jjorb.
-        ! We have to find the first orbital on the same MPI and in the same locreg as iiorb.
-        iilr=onWhichAtom(iiorb)
-        iiproc=orbs%onWhichMPI(iiorb)
-        do korb=1,orbs%norbp
-            kkorb=orbs%isorb_par(iiproc)+korb
-            if(onWhichAtom(kkorb)==iilr) then
-                ii=korb
-                exit
-            end if
-        end do
-        jst=op%indexInRecvBuf(ii,jjorb)
+        !!! Starting index of orbital iorb, already transformed to overlap region with jjorb.
+        !!! We have to find the first orbital on the same MPI and in the same locreg as jjorb.
+        !!jjlr=onWhichAtom(jjorb)
+        !!jjproc=orbs%onWhichMPI(jjorb)
+        !!jj=orbs%isorb_par(jjproc)+1
+        !!do
+        !!    if(onWhichAtom(jj)==jjlr) exit
+        !!    jj=jj+1
+        !!end do
+        !!ist=op%indexInSendBuf(iorb,jj)
+        !!! Starting index of orbital jjorb.
+        !!! We have to find the first orbital on the same MPI and in the same locreg as iiorb.
+        !!iilr=onWhichAtom(iiorb)
+        !!iiproc=orbs%onWhichMPI(iiorb)
+        !!do korb=1,orbs%norbp
+        !!    kkorb=orbs%isorb_par(iiproc)+korb
+        !!    if(onWhichAtom(kkorb)==iilr) then
+        !!        ii=korb
+        !!        exit
+        !!    end if
+        !!end do
+        !!jst=op%indexInRecvBuf(ii,jjorb)
+        call getStartingIndices(iorb, jorb, op, orbs, ist, jst)
         !write(*,'(5(a,i0))') 'process ',iproc,' calculates overlap of ',iiorb,' and ',jjorb,'. ist=',ist,' jst=',jst 
         !ncount=op%olr(jorb,iiorb)%wfd%nvctr_c+7*op%olr(jorb,iiorb)%wfd%nvctr_f
         ncount=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
@@ -3191,3 +3192,45 @@ end subroutine expandOrbital2Variable
 !!end subroutine getOrbitals
 
 
+subroutine getStartingIndices(iorb, jorb, op, orbs, ist, jst)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iorb, jorb
+  type(overlapParameters),intent(in):: op
+  type(orbitals_data),intent(in):: orbs
+  integer,intent(out):: ist, jst
+  
+  ! Local variables
+  integer:: jjlr, jjproc, jj, iilr, iiproc, korb, kkorb, ii, iiorb, jjorb
+
+
+  iiorb=orbs%isorb+iorb
+  jjorb=op%overlaps(jorb,iiorb)
+  ! Starting index of orbital iorb, already transformed to overlap region with jjorb.
+  ! We have to find the first orbital on the same MPI and in the same locreg as jjorb.
+  jjlr=orbs%inWhichLocreg(jjorb)
+  jjproc=orbs%onWhichMPI(jjorb)
+  jj=orbs%isorb_par(jjproc)+1
+  do
+      if(orbs%inWhichLocreg(jj)==jjlr) exit
+      jj=jj+1
+  end do
+  ist=op%indexInSendBuf(iorb,jj)
+  ! Starting index of orbital jjorb.
+  ! We have to find the first orbital on the same MPI and in the same locreg as iiorb.
+  iilr=orbs%inWhichLocreg(iiorb)
+  iiproc=orbs%onWhichMPI(iiorb)
+  do korb=1,orbs%norbp
+      kkorb=orbs%isorb_par(iiproc)+korb
+      if(orbs%inWhichLocreg(kkorb)==iilr) then
+          ii=korb
+          exit
+      end if
+  end do
+  jst=op%indexInRecvBuf(ii,jjorb)
+
+
+end subroutine getStartingIndices
