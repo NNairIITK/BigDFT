@@ -40,84 +40,74 @@ real(8):: maxError, t1, t2, timeCommun, timeComput, timeCalcOvrlp, t3, t4, timeE
   !call allocateCommuncationBuffersOrtho(comon, subname)
   do it=1,nItOrtho
       !if(iproc==0) write(*,'(a,i0)') 'at it=',it
-      call cpu_time(t1)
+      t1=mpi_wtime()
       call allocateSendBufferOrtho(comon, subname)
       call allocateRecvBufferOrtho(comon, subname)
       !call extractOrbital2(iproc, nproc, orbs, orbs%npsidim, onWhichAtomAll, lzd, op, lphi, comon)
       call extractOrbital3(iproc, nproc, orbs, orbs%npsidim, onWhichAtomAll, lzd, op, lphi, comon%nsendBuf, comon%sendBuf)
-      call cpu_time(t2)
+      t2=mpi_wtime()
       timeExtract=timeExtract+t2-t1
       timeComput=timeComput+t2-t1
-      call cpu_time(t1)
+      t1=mpi_wtime()
         !call postCommsOverlap(iproc, nproc, comon)
       call postCommsOverlapNew(iproc, nproc, comon)
         !call gatherOrbitals(iproc, nproc, lin%comon)
         !call gatherOrbitals2(iproc, nproc, comon)
-      call collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, comon%nsendbuf, comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp)
+      allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
+      call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
+      call collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
+           comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp, lphiovrlp)
       !call getOrbitals(iproc, nproc, comon)
-      call cpu_time(t2)
+      t2=mpi_wtime()
       timeCommun=timeCommun+t2-t1
-      call cpu_time(t1)
+      t1=mpi_wtime()
       !call calculateOverlapMatrix2(iproc, nproc, orbs, op, comon, onWhichAtomAll, mad, ovrlp)
       !! THSI WAS THE ORIGINAL
       !call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
       !                             comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
       call deallocateSendBufferOrtho(comon, subname)
-      call cpu_time(t2)
+      t2=mpi_wtime()
       timeCalcOvrlp=timeCalcOvrlp+t2-t1
       call checkUnity(iproc, orbs%norb, ovrlp, maxError)
       if(iproc==0) write(*,'(3x,a,es12.4)') 'maximal deviation from unity:', maxError
       if(maxError<convCritOrtho) then
           converged=.true.
           call deallocateRecvBufferOrtho(comon, subname)
-          call cpu_time(t2)
+          t2=mpi_wtime()
           timeComput=timeComput+t2-t1
           exit
       else if(it==nItOrtho) then
           call deallocateRecvBufferOrtho(comon, subname)
-          call cpu_time(t2)
+          t2=mpi_wtime()
           timeComput=timeComput+t2-t1
           exit
       end if
-      call cpu_time(t3)
-      !do iorb=1,orbs%norb
-      !    do jorb=1,orbs%norb
-      !        write(10000+iproc,'(2i8,es20.8)') iorb, jorb, ovrlp(jorb,iorb)
-      !    end do
-      !end do
+      t3=mpi_wtime()
+
       call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, &
             blocksize_pdgemm, orbs%norb, mad, ovrlp)
-      !!if(methTransformOverlap==0) then
-      !!    call transformOverlapMatrix(iproc, nproc, mpi_comm_world, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
-      !!else
-      !!    !call transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
-      !!    !call transformOverlapMatrixTaylorVariable(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
-      !!    call overlapPowerMinusOneHalfTaylor(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp)
-      !!end if
-      !!else if(methTransformOverlap==1) then
-      !!    call transformOverlapMatrixTaylor(iproc, nproc, orbs%norb, ovrlp)
-      !!else if(methTransformOverlap==2) then
-      !!    call transformOverlapMatrixTaylorOrder2(iproc, nproc, orbs%norb, mad, ovrlp)
-      !!else
-      !!    stop 'ERROR: methTransformOverlap is wrong'
-      !!end if
-      call cpu_time(t4)
+      t4=mpi_wtime()
       timeTransform=timeTransform+t4-t3
-      call cpu_time(t3)
-      allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
-      call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
-      call expandOrbital2(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon, lphiovrlp)
+      t3=mpi_wtime()
+      !!do iall=1,op%ndim_lphiovrlp
+      !!    write(200+iproc,*) iall, lphiovrlp(iall)
+      !!end do
+      !!write(*,*) 'iproc, op%ndim_lphiovrlp', iproc, op%ndim_lphiovrlp
+      !!call expandOrbital2(iproc, nproc, orbs, input, onWhichAtomAll, lzd, op, comon, lphiovrlp)
+      !!do iall=1,op%ndim_lphiovrlp
+      !!    write(210+iproc,*) iall, lphiovrlp(iall)
+      !!end do
       call deallocateRecvBufferOrtho(comon, subname)
-      call cpu_time(t4)
+      t4=mpi_wtime()
       timeExpand=timeExpand+t4-t3
-      call cpu_time(t3)
+      t3=mpi_wtime()
       call globalLoewdin(iproc, nproc, orbs, orbs, onWhichAtomAll, lzd, op, ovrlp, lphiovrlp, lphi)
       iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
       deallocate(lphiovrlp, stat=istat)
       call memocc(istat, iall, 'lphiovrlp', subname)
-      call cpu_time(t4)
+      t4=mpi_wtime()
       timeLoewdin=timeLoewdin+t4-t3
-      call cpu_time(t2)
+      t2=mpi_wtime()
       timeComput=timeComput+t2-t1
   end do
   !call deallocateCommuncationBuffersOrtho(comon, subname)
@@ -3550,7 +3540,8 @@ end subroutine postCommsOverlapNew
 
 
 
-subroutine collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp)
+subroutine collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, lzd, &
+           nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, lphiovrlp)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => collectAndCalculateOverlap
@@ -3562,9 +3553,12 @@ type(p2pCommsOrthonormality),intent(inout):: comon
 type(matrixDescriptors),intent(in):: mad
 type(overlapParameters),intent(in):: op
 type(orbitals_data),intent(in):: orbs
+type(input_variables),intent(in):: input
+type(local_zone_descriptors),intent(in):: lzd
 real(8),dimension(nsendbuf),intent(in):: sendbuf
 real(8),dimension(nrecvbuf),intent(inout):: recvbuf
 real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
 
 ! Local variables
 integer:: iorb, orbsource, orbdest, nrecv, nsend, ist, jst, ncount, ierr, ncomplete, i, istat, iall, jorb
@@ -3580,6 +3574,7 @@ allocate(done(comon%nrecv), stat=istat)
 call memocc(istat, done, 'done', subname)
 done=.false.
 
+lphiovrlp=0.d0
 nrecv=0
 waitLoopRecv: do
     call mpi_waitsome(comon%nrecv, comon%requests(1,2), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
@@ -3595,6 +3590,8 @@ waitLoopRecv: do
                 !write(*,'(a,8i8)') 'iproc, i, iorb, orbsource, orbdest, ist, jst, ncount', iproc, i, iorb, orbsource, orbdest, ist, jst, ncount
                 !ovrlp(orbdest,orbsource)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
                 ovrlp(orbsource,orbdest)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
+                call expandOneOrbital(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, &
+                     orbs%inWhichLocreg, lzd, op, comon, lphiovrlp)
             end do
             done(jorb)=.true.
         end if

@@ -4507,19 +4507,24 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         integer,intent(out):: ist, jst, ncount
       end subroutine getStartingIndicesGlobal
 
-      subroutine collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp) 
+      subroutine collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, &
+                 lzd, nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, lphiovrlp)
         use module_base
         use module_types
-        implicit none                                                                                                         
-        integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf                                                                 
-        type(p2pCommsOrthonormality),intent(inout):: comon                                                                    
-        type(matrixDescriptors),intent(in):: mad                                                                              
-        type(overlapParameters),intent(in):: op                                                                               
+        implicit none
+        integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
+        type(p2pCommsOrthonormality),intent(inout):: comon
+        type(matrixDescriptors),intent(in):: mad
+        type(overlapParameters),intent(in):: op
         type(orbitals_data),intent(in):: orbs
+        type(input_variables),intent(in):: input
+        type(local_zone_descriptors),intent(in):: lzd
         real(8),dimension(nsendbuf),intent(in):: sendbuf
         real(8),dimension(nrecvbuf),intent(inout):: recvbuf
-        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp  
+        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+        real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
       end subroutine collectAndCalculateOverlap
+
 
       subroutine postCommsOverlapNew(iproc, nproc, comon)
         use module_base
