@@ -83,6 +83,13 @@ module module_types
      real(gp):: iguessTol
   end type orthon_data
 
+  type, public :: SIC_data
+     character(len=4) :: approach !< approach for the Self-Interaction-Correction (PZ, NK)
+     integer :: ixc !< base for the SIC correction
+     real(gp) :: alpha !<downscaling coefficient
+     real(gp) :: fref !< reference occupation (for alphaNK case)
+  end type SIC_data
+
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
@@ -131,8 +138,7 @@ module module_types
      ! tddft variables from *.tddft
      character(len=10) :: tddft_approach
      !variables for SIC
-     character(len=4) :: sic_approach
-     real(gp) :: alphaSIC
+     type(SIC_data) :: SIC !<parameters for the SIC methods
 
      !> variable for material acceleration
      !! values 0: traditional CPU calculation
@@ -379,6 +385,7 @@ module module_types
      type(nonlocal_psp_descriptors), pointer :: nlpspd
      type(locreg_descriptors), pointer :: lr 
      type(gaussian_basis), pointer :: Gabsorber    
+     type(SIC_data), pointer :: SIC
      integer, dimension(:,:), pointer :: ngatherarr 
      real(gp), dimension(:,:),  pointer :: rxyz,radii_cf
      real(wp), dimension(:), pointer :: proj

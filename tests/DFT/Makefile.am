@@ -112,7 +112,7 @@ report:
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
           NaCl.out*)        prec="1.e-9" ;; \
           SiBulk.out*)      prec="2.e-7" ;; \
-          SiH4.out*)        prec="2.3e-9" ;; \
+          SiH4.out*)        prec="2.5e-9" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

@@ -92,7 +92,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin
   i3rho_add=0
-  if (in%SIC_approach=='NK') then
+  if (in%SIC%approach=='NK') then
      nrhodim=2*nrhodim
      i3rho_add=lr%d%n1i*lr%d%n2i*nscatterarr(iproc,4)+1
   end if
@@ -111,6 +111,9 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      call memocc(i_stat,psirocc,'psirocc',subname)
 
      call prepare_psirocc(iproc,nproc,lr,orbs,nscatterarr(iproc,2),ngatherarr(0,1),psi,psirocc)
+  else if (in%SIC%approach=='NK') then
+     allocate(psirocc(lr%d%n1i*lr%d%n2i*lr%d%n3i*2*orbs%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,psirocc,'psirocc',subname)
   else
      nullify(psirocc)
   end if
@@ -187,7 +190,19 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        lr%d%n1i*lr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
-       orbs%norb,orbs%norbp,ngatherarr,rhopot,pot)
+       orbsv%norb,orbsv%norbp,ngatherarr,rhopot,pot)
+  
+  !in the case of NK SIC, put the total density in the psirocc pointer, so that it could be reused for building the 
+  !Hamiltonian Application
+  if (in%SIC%approach=='NK') then
+     !put the wxd term in the psirocc array
+!!$     call NK_SIC_potential(lr,orbs,in%ixc,0.5_gp,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
+!!$          psi,pot,eSIC_DC,wxdsave=psirocc)
+     !put the density in the *second* part of psirocc (off diangonal term presence should be verified still)
+     call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1),1,&
+          psirocc(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1),1)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,psirocc(1))
+  end if
   
 
   !-----------starting point of the routine of direct minimisation
@@ -233,7 +248,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
      !endloop=endloop .or. ndiis_sd_sw > 2
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,psivirt,hpsivirt,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
           pkernel,orbs,psirocc) ! optional arguments
 
      energybs=ekin_sum+epot_sum+eproj_sum
@@ -286,7 +301,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
        write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
   !deallocate real array of wavefunctions
-  if(exctX)then
+  if(exctX .or. in%SIC%approach=='NK')then
      i_all=-product(shape(psirocc))*kind(psirocc)
      deallocate(psirocc,stat=i_stat)
      call memocc(i_stat,i_all,'psirocc',subname)
@@ -458,7 +473,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin
   i3rho_add=0
-  if (in%SIC_approach=='NK') then
+  if (in%SIC%approach=='NK') then
      nrhodim=2*nrhodim
      i3rho_add=lr%d%n1i*lr%d%n2i*nscatterarr(iproc,4)+1
   end if
@@ -483,6 +498,11 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call memocc(i_stat,psirocc,'psirocc',subname)
 
      call prepare_psirocc(iproc,nproc,lr,orbs,nscatterarr(iproc,2),ngatherarr(0,1),psi,psirocc)
+  else if (in%SIC%approach=='NK') then
+     allocate(psirocc(lr%d%n1i*lr%d%n2i*lr%d%n3i*2*orbs%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,psirocc,'psirocc',subname)
+  else
+     nullify(psirocc)
   end if
 
   !n2virt=2*orbsv%norb! the dimension of the subspace
@@ -548,13 +568,26 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2),lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        lr%d%n1i*lr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
-       orbs%norb,orbs%norbp,ngatherarr,rhopot,pot)
+       orbsv%norb,orbsv%norbp,ngatherarr,rhopot,pot)
+
+  !in the case of NK SIC, put the total density in the psirocc pointer, so that it could be reused for building the 
+  !Hamiltonian Application
+  if (in%SIC%approach=='NK') then
+     !put the density in the *second* part of psirocc
+     call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1),1,&
+          psirocc(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1),1)
+     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,psirocc(1))
+!!$     !put the wxd term in the psirocc array (leav it like that in case the off-diagonal term is needed
+!!$     call NK_SIC_potential(lr,orbs,in%SIC%ixc,in%SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
+!!$          psi,pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1:),eSIC_DC,wxdsave=psirocc)
+  end if
+
 
   !experimental: add parabolic potential to the hamiltonian
   !call add_parabolic_potential(at%geocode,at%nat,lr%d%n1i,lr%d%n2i,lr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
 
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
+       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
        pkernel,orbs,psirocc) ! optional arguments
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -829,7 +862,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      call memocc(i_stat,hg,'hg',subname)
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
           pkernel,orbs,psirocc) ! optional argument
 
      !transpose  g and hg
@@ -1093,7 +1126,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
           pkernel,orbs,psirocc) !optional arguments
 
      !transpose  v and hv
@@ -1132,7 +1165,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
 
   !deallocate real array of wavefunctions
-  if(exctX)then
+  if(exctX .or. in%SIC%approach=='NK')then
      i_all=-product(shape(psirocc))*kind(psirocc)
      deallocate(psirocc,stat=i_stat)
      call memocc(i_stat,i_all,'psirocc',subname)

@@ -469,7 +469,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   !check the size of the rhopot array related to NK SIC
   nrhodim=nspin
   i3rho_add=0
-  if (input%SIC_approach=='NK') then
+  if (input%SIC%approach=='NK') then
      nrhodim=2*nrhodim
      i3rho_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)+1
   end if
@@ -492,7 +492,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   !before creating the potential, save the density in the second part 
   !if the case of NK SIC, so that the potential can be created afterwards
   !copy the density contiguously since the GGA is calculated inside the NK routines
-  if (input%SIC_approach=='NK') then
+  if (input%SIC%approach=='NK') then
      irhotot_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)+1
      irho_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)*input%nspin+1
      do ispin=1,input%nspin
@@ -660,7 +660,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,pot,&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ixc,input%alphaSIC,GPU,pkernel=pkernelseq)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
 
   !deallocate potential
   call free_full_potential(nproc,pot,subname)

@@ -392,7 +392,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
        quiet=PSquiet)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
-  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%alphaSIC /= 0.0_gp).and. nproc > 1) then
+  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp).and. nproc > 1) then
      call createKernel(0,1,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
           pkernelseq,quiet='YES')
   else 
@@ -510,7 +510,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !Allocate Charge density, Potential in real space
   nrhodim=in%nspin
   i3rho_add=0
-  if (in%SIC_approach=='NK') then
+  if (in%SIC%approach=='NK') then
      nrhodim=2*nrhodim
      i3rho_add=Glr%d%n1i*Glr%d%n2i*i3xcsh+1
   end if
@@ -906,7 +906,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               !before creating the potential, save the density in the second part 
               !if the case of NK SIC, so that the potential can be created afterwards
               !copy the density contiguously since the GGA is calculated inside the NK routines
-              if (in%SIC_approach=='NK') then
+              if (in%SIC%approach=='NK') then
                  irhotot_add=Glr%d%n1i*Glr%d%n2i*i3xcsh+1
                  irho_add=Glr%d%n1i*Glr%d%n2i*n3d*in%nspin+1
                  do ispin=1,in%nspin
@@ -963,7 +963,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
                 nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,&
-                ixc,in%alphaSIC,GPU,pkernel=pkernelseq)
+                in%SIC,GPU,pkernel=pkernelseq)
 
            !deallocate potential
            call free_full_potential(nproc,potential,subname)
@@ -1057,7 +1057,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         if (iter == in%itermax .and. iproc == 0 .and. infocode/=0) &
              write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
-
+        
         call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
              comms,psi,hpsi,psit,evsum,.true.) !never deallocate psit and hpsi
 
@@ -1507,7 +1507,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'kernel',subname)
 
-  if (in%exctxpar == 'OP2P' .or. in%alphaSIC > 0.0_gp) then
+  if (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp) then
      i_all=-product(shape(pkernelseq))*kind(pkernelseq)
      deallocate(pkernelseq,stat=i_stat)
      call memocc(i_stat,i_all,'kernelseq',subname)
@@ -1517,7 +1517,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !------------------------------------------------------------------------
   if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
-     if (in%alphaSIC > 0.0_gp) then
+     if (in%SIC%alpha /= 0.0_gp) then
         if (iproc==0)write(*,*)&
              'ERROR: Tail correction not admitted with SIC corrections for the moment'
         stop
@@ -1640,12 +1640,11 @@ contains
           call memocc(i_stat,i_all,'counter_ions',subname)
        end if
 
-       if (in%exctxpar == 'OP2P' .or. in%alphaSIC > 0.0_gp) then
+       if (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp) then
           i_all=-product(shape(pkernelseq))*kind(pkernelseq)
           deallocate(pkernelseq,stat=i_stat)
           call memocc(i_stat,i_all,'kernelseq',subname)
        end if
-
 
        i_all=-product(shape(pkernel))*kind(pkernel)
        deallocate(pkernel,stat=i_stat)
