@@ -1272,6 +1272,7 @@ subroutine deallocate_p2pCommsOrthonormality(comon, subname)
   call checkAndDeallocatePointer(comon%sendBuf, 'comon%sendBuf', subname)
   call checkAndDeallocatePointer(comon%recvBuf, 'comon%recvBuf', subname)
   call checkAndDeallocatePointer(comon%communComplete, 'comon%communComplete', subname)
+  call checkAndDeallocatePointer(comon%requests, 'comon%requests', subname)
 
 end subroutine deallocate_p2pCommsOrthonormality
 

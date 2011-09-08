@@ -4468,6 +4468,70 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine my_iallgatherv
 
 
+     subroutine gatherOrbitalsOverlapWithComput2(iproc, nproc, orbs, input, lzd, op, comon, nsendbuf, sendbuf, nrecvbuf, recvbuf, lphiovrlp, expanded, ovrlp)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf                                                                 
+       type(orbitals_data),intent(in):: orbs
+       type(input_variables),intent(in):: input
+       type(local_zone_descriptors),intent(in):: lzd                                                                         
+       type(overlapParameters),intent(in):: op                                                                               
+       type(p2pCommsOrthonormality),intent(inout):: comon
+       real(8),dimension(nsendbuf),intent(in):: sendbuf                                                                      
+       real(8),dimension(nrecvbuf),intent(in):: recvbuf                                                                      
+       real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+       logical,dimension(orbs%norb,orbs%norbp),intent(out):: expanded
+       real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+     end subroutine gatherOrbitalsOverlapWithComput2
+
+
+     subroutine getStartingIndices(iorb, jorb, op, orbs, ist, jst)
+       use module_base
+       use module_types
+       implicit none
+       integer,intent(in):: iorb, jorb
+       type(overlapParameters),intent(in):: op
+       type(orbitals_data),intent(in):: orbs
+       integer,intent(out):: ist, jst
+     end subroutine getStartingIndices
+
+
+      subroutine getStartingIndicesGlobal(iiorbx, jjorbx, op, orbs, ist, jst, ncount)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iiorbx, jjorbx
+        type(overlapParameters),intent(in):: op
+        type(orbitals_data),intent(in):: orbs
+        integer,intent(out):: ist, jst, ncount
+      end subroutine getStartingIndicesGlobal
+
+      subroutine collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp) 
+        use module_base
+        use module_types
+        implicit none                                                                                                         
+        integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf                                                                 
+        type(p2pCommsOrthonormality),intent(inout):: comon                                                                    
+        type(matrixDescriptors),intent(in):: mad                                                                              
+        type(overlapParameters),intent(in):: op                                                                               
+        type(orbitals_data),intent(in):: orbs
+        real(8),dimension(nsendbuf),intent(in):: sendbuf
+        real(8),dimension(nrecvbuf),intent(inout):: recvbuf
+        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp  
+      end subroutine collectAndCalculateOverlap
+
+      subroutine postCommsOverlapNew(iproc, nproc, comon)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc
+        type(p2pCommsOrthonormality),intent(inout):: comon
+      end subroutine postCommsOverlapNew
+
+
+
+
   end interface
 
 end module module_interfaces

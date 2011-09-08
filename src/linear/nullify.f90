@@ -121,6 +121,7 @@ subroutine nullify_p2pCommsOrthonormality(comon)
   nullify(comon%sendBuf)
   nullify(comon%recvBuf)
   nullify(comon%communComplete)
+  nullify(comon%requests)
 
 end subroutine nullify_p2pCommsOrthonormality
 
