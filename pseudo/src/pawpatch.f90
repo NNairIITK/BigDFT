@@ -13,6 +13,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   
   implicit none
   !! implicit real*8 (a-h,o-z)
+  integer, parameter :: gp=kind(1.0d0) 
   logical avgl1,avgl2,avgl3,ortprj,litprj,igrad
   real(8) pp(maxdim),so(norb),ev(norb),crcov(norb),&
        dcrcov(norb),ddcrcov(norb),occup(noccmx,lmx,nsmx),aeval(noccmx,lmx,nsmx),&
@@ -44,7 +45,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   integer Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl
   real(8) boxradius, biggerboxradius, a,b
   real(8), pointer :: rgrid(:), yp(:), ypp(:), w(:), aepot(:), aepot_p(:), aepot_pp(:), &
-       rgrid_ab(:), aepot_cent(:)
+       rgrid_ab(:), aepot_cent(:), staepot(:)
   real(8) a1,b1,an,bn
   integer ierr, isx
   integer LPaw, n, Nsol
@@ -55,15 +56,16 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   character(len=125) :: pawstatom
   real(gp) , pointer ::  psigrid(:,:), Egrid(:)
   real(gp) , pointer ::  psigrid_pseudo(:,:), Egrid_pseudo(:)
-  real(gp) , pointer ::  expo(:)
-  real(gp), pointer::PAWpatch(:,:)
-  logical dumpfunctions
+  real(gp) , pointer ::  psipsigrid_pseudo(:,:)
+  real(gp) , pointer ::  psigrid_bigger(:,:)
   
-  dumpfunctions= .true.
-
-
-
+  real(gp) , pointer ::  expo(:)
+  real(gp), pointer::PAWpatch_matrix(:,:)
+  logical dump_functions
+  integer real_start
   include 'mpif.h'
+  
+  dump_functions= .true.
   
 
   if (nspin/=1) then
@@ -218,12 +220,15 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   allocate( Egrid  (Nsol         ))
 
   allocate( psigrid_pseudo(Ngrid  , Nsol ))
+  allocate( psipsigrid_pseudo(Ngrid  , Nsol ))
   allocate( Egrid_pseudo  (Nsol         ))
+
+  allocate( psigrid_bigger(Ngrid  , Nsol ))
 
   allocate(psi_initial( Ngrid )) 
   allocate(dumpsi_p(Ngrid))
-  deallocate(expo(ng))
-  allocate( PAWpatch(Npaw,Npaw ))
+  allocate(expo(ng))
+  allocate( PAWpatch_matrix(Npaw,Npaw ))
 
   do LPaw=0, npawl-1     
      if ( trim(pawstatom)/='') then
@@ -235,9 +240,14 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
         write(filename,'(a,I0)')'psi_initial_L_',LPaw
         open(unit=22,file=trim(filename))
         do igrid=1, Ngrid
-           write(22,'(4(f20.10,1x))') rgrid(igrid), (psi_initial(igrid,j ), j=1,3)   
+           write(22,'(2(f20.10,1x))') rgrid(igrid),psi_initial(igrid )  
         enddo
         close(unit=22)
+
+        do igrid=1, Ngrid
+          psi_initial(igrid)=psi_initial(igrid)*rgrid(igrid)**pawstP 
+        enddo
+
      endif
 
      aepot_cent=aepot + (Lpaw*(Lpaw+1) )/rgrid/rgrid 
@@ -261,18 +271,15 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      !! energy by energy and the calculation of paw stuff
      print *, "copy psigrid_pseudo "
      psigrid_pseudo=psigrid
-!!$  print *, "  chiamo   abs_generator_modified con psipsigrid_pseudo, Ngrid_biggerbox  ", Ngrid_biggerbox
-!!$ psipsigrid_pseudo(1,1)=Ngrid_biggerbox
-
-
+ 
      call paw_generator( znuc , zion   , lpmx,    hsep, gpot, &
           rloc, r_l, &                         !! rloc=alpz=alpl    r_l=alps
           ng-1 ,noccmax ,  expo,  psi,aeval, occup ,  &
-          Nsol, abs_final_L , Ngrid, Ngrid_box,Egrid_pseudo,  rgrid , psigrid_pseudo ,&
-          Npaw, PAWpatch,  psipsigrid_pseudo)
+          Nsol, Lpaw , Ngrid, Ngrid_box,Egrid_pseudo,  rgrid , psigrid_pseudo ,&
+          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rcov)
      
 
-     if( dump_functions.eq.1) then
+     if( dump_functions) then
         write(plotfile, '(a,i0,a)') 'ptildes.L=',LPaw,'.plt'
         open(unit=22,file=trim(plotfile))
         do igrid=1, Ngrid
@@ -291,19 +298,107 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      
      real_start=-1
      print *, " Comparaison Egrid  Egrid_pseudo "
-     do iocc=1, Nsol
-        if((Egrid(iocc)+0.1).ge.Egrid_pseudo(1)) then
+     do n=1, Nsol
+        if((Egrid(n)+0.1).ge.Egrid_pseudo(1)) then
            if(real_start==-1) then
-              real_start = iocc
-              print *, Egrid(iocc)
+               real_start = n
+              print *, Egrid(n)
            else
-              print *, Egrid(iocc), Egrid_pseudo(iocc -real_start+1)
+              print *, Egrid(n), Egrid_pseudo(n -real_start+1)
            endif
         endif
      enddo
 
+
+     !! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     !!  In the following   AE are calculated on a bigger grid to 
+     !! avoid compression of the  missing bound states
+     !!
+     
+     psigrid=0.0D0
+     do n=1, Nsol
+        call difnrl(aepot_cent ,psigrid_bigger(1, n ) , dumpsi_p ,Ngrid_box, a,b, rgrid,rgrid_ab,n+Lpaw ,Lpaw , znuc,Egrid(n) )
+     enddo
+     
+     
+     if(iproc.eq.0 .and. dump_functions) then
+        write(plotfile, '(a,i0,a)') 'wf_bigger.L=',LPaw,'.plt'
+        open(unit=22,file=trim(plotfile))
+        do igrid=1, Ngrid
+           write(22,'(200(f20.10,1x))') rgrid(igrid), (psigrid_bigger(igrid,j ), j=1,Nsol)   
+        enddo
+        close(unit=22)
+     endif
+     
+
+     if ( trim(pawstatom)/='') then
+        print *, " routine pawpatch  , PROJECT  initial wf*r**pawstP on pseudos "
+        call find_pfproj_4tail( Nsol,Npaw,Ngrid,  Ngrid_box,Ngrid_biggerbox, rgrid, psi_initial, psigrid, real_start, &
+             psigrid_pseudo, psipsigrid_pseudo,  &
+             psigrid_bigger,dump_functions) 
+        
+
+        !! if(iproc.eq.0 .and. dump_functions.eq.1) then 
+        write(plotfile, '(a,i0,a)') 'projres.L=',LPaw,'.plt'
+        open(unit=22,file=trim(plotfile))
+        do igrid=1, Ngrid_biggerbox
+           !! la funzione proiettata e in ultima colonna
+           write(22,'(200(f20.10,1x))') rgrid(igrid),  psi_initial(igrid), psigrid(igrid,1), psigrid(igrid,2)
+        enddo
+        close(unit=22)
+     endif
+        
+     write(plotfile, '(a,i0,a)') 'pawdata.L=',LPaw,'.dat'
+     open(unit=22,file=trim(plotfile))
+          
+     print *, "now writing the dual functions and PAWpatch for ", Npaw," duals "
+     write(22,'(A)') "now writing the dual functions and PAWpatch  "
+     write(22,'(I4,1x,I6,1x,I4)') Npaw, Ngrid_box, Lpaw
+     do igrid=1, Ngrid_box
+        write(22,'(E20.14)') rgrid(igrid)
+     enddo
+     
+     write(22,'(A)') " "
+     do n=1, Npaw
+        do igrid=1, Ngrid_box
+           write(22,'(E20.14)') psigrid_pseudo(igrid, n)
+        enddo
+        write(22,'(A)') " "
+     enddo
+     
+     do n=1, Npaw
+        do j=1, Npaw
+           write(22,'(E20.14)') PawPatch_matrix(j,n)
+        enddo
+     enddo
+     
+     
+     if(pawstatom/=" " ) then
+        print *, "now writing the dual functions and PAWpatch for ", 1," duals "
+        write(22,'(A)') "now writing the dual functions and PAWpatch  "
+        write(22,'(I4,1x,I6,1x,I4)') 1, Ngrid_biggerbox, -Lpaw-1
+        do igrid=1, Ngrid_biggerbox
+           write(22,'(E20.14)') rgrid(igrid)
+        enddo
+        
+        write(22,'(A)') " "
+        do n=1, 1
+           do igrid=1, Ngrid_biggerbox
+              write(22,'(E20.14)') psigrid(igrid,2)
+           enddo
+           write(22,'(A)') " "
+        enddo
+        
+        do n=1, 1
+           do j=1, 1
+              write(22,'(E20.14)') 0.0_8
+           enddo
+        enddo
+     endif
+
+     close(unit=22)
+     
   enddo
-  
   deallocate(Egrid)
   deallocate(psigrid)
   deallocate(Egrid_pseudo)
@@ -314,8 +409,140 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   deallocate(statom_potential)
   deallocate(staepot)
   deallocate(expo)
-  deallocate(PAWpatch)
-
+  deallocate(PAWpatch_matrix)
+  
   stop
 END subroutine pawpatch
 
+
+
+subroutine find_pfproj_4tail( Nsol,Npaw, Ngrid,Ngrid_box,Ngrid_biggerbox,&
+     rgrid, psi1s, psigrid, real_start,&
+     ptilde, psitilde, &
+     psigrid_bigger, dump_functions )
+  implicit none
+  integer, parameter :: gp=kind(1.0d0) 
+  !Arguments
+  integer, intent(in) ::  Nsol,Npaw,Ngrid,Ngrid_box,Ngrid_biggerbox,real_start
+  real(gp), intent(inout) :: psi1s(Ngrid), rgrid(Ngrid)
+  real(gp), intent(inout) :: psigrid(Ngrid,Nsol),psigrid_bigger(Ngrid,Nsol)
+  real(gp), intent(inout) :: psitilde(Ngrid,Nsol),ptilde(Ngrid,Nsol)
+  !! real(gp) , intent(out) :: coeffs_out(Npaw)
+  logical :: dump_functions
+  !Local variables
+  real(gp)   :: coeffs_out(Npaw)
+  real(gp) :: dumgrid(Ngrid),  dumgrid2(Ngrid), mass, mass_pseudo
+  integer :: segno(Nsol), segno_pseudo(Nsol)
+  integer :: i,k, igrid,j
+  real(gp)  :: coeffs(Nsol), ratio, dum, x
+
+  print *, " in 4tail "
+  !! check
+  do i=1, Nsol-real_start+1
+
+     dumgrid =psigrid_bigger(:,i)*psigrid_bigger(:,i)
+     call integrate(dumgrid, dumgrid2, rgrid, Ngrid_biggerbox)
+     if( abs(dumgrid2(Ngrid_biggerbox)-1.0_gp).gt.1.0D-5) Then
+        print *, "  norm(psigrid_bigger) != 1 in find_pfproj_4tail"
+        STOP
+     endif
+
+
+     dumgrid =psigrid(:,i)*psigrid(:,i)
+     call integrate(dumgrid, dumgrid2, rgrid, Ngrid_box)
+     if( abs(dumgrid2(Ngrid_box)-1.0_gp).gt.1.0D-5) Then
+        print *, "  norm(psigrid) != 1 in find_pfproj_4tail", dumgrid2(Ngrid_box)-1.0_gp
+        STOP
+     endif
+
+     dumgrid =psigrid_bigger(:,1)*psigrid(:,i)
+     call integrate(dumgrid, dumgrid2, rgrid, Ngrid_box)
+     print * , " >>>>>>>> " , i, "  " , dumgrid2(Ngrid_box)
+
+  end do
+  print *, " in 4tail 2,  real_start ", real_start
+
+  do i=1, real_start-1
+     print *, i
+     do k=1, Ngrid
+        dumgrid(k)=psigrid_bigger(k,i)*psi1s(k)
+     enddo
+     print *, " integ " 
+     call integrate(dumgrid, dumgrid2, rgrid, Ngrid_biggerbox)
+     print *, " integ OK " 
+
+     coeffs(i)=dumgrid2(Ngrid_biggerbox)
+     print *, " subtract coeff ", coeffs(i)  
+     do k=1, Ngrid
+        psi1s(k) = psi1s(k) -coeffs(i)*psigrid_bigger(k,i)
+     enddo
+  end do
+  print *, " in 4tail 2.1"
+
+
+  coeffs=0.0_gp
+  do i=1, Nsol-real_start+1
+     do k=1, Ngrid_box
+        if( rgrid(k)>rgrid(Ngrid_box)*0.75_gp ) then
+           x =  ( rgrid(k)-rgrid(Ngrid_box)*0.75_gp )/(  0.25_gp* rgrid(Ngrid_box) )
+           dumgrid(k)=psigrid(k,i)*(psi1s(k)- psi1s(Ngrid_box) *  exp( -7.0_gp*(1.0_gp-x)**3.5_gp)   )
+        else
+           dumgrid(k)=psigrid(k,i)*psi1s(k)
+        endif
+     enddo
+     call integrate(dumgrid, dumgrid2, rgrid, Ngrid_box)
+     coeffs(i)=dumgrid2(Ngrid_box)
+     print *, " ============= coeff ", i , " " , coeffs(i)
+  end do
+ 
+  print *, " in 4tail 3"
+
+
+  print *, " Npaw ", Npaw
+
+  coeffs_out(:)=coeffs(real_start:real_start+Npaw-1)
+
+
+  do i=1, Nsol-real_start+1
+     ratio = psigrid( Ngrid_box-10,i+real_start-1)/psitilde( Ngrid_box-10,i)
+     print *, "psigrid ", i , "would require q correction factor ", ratio 
+     !!$ psitilde(:,i)=ratio *psitilde(:,i)
+  enddo
+  print *, " in 4tail 4"
+
+  dumgrid (:) = psi1s 
+  dumgrid2(:) = psi1s
+
+  do k=1, Ngrid_box
+     if( rgrid(k)>rgrid(Ngrid_box)*0.75_gp ) then
+        x =  ( rgrid(k)-rgrid(Ngrid_box)*0.75_gp )/(  0.25_gp* rgrid(Ngrid_box) )
+        dumgrid2(k)= psi1s(Ngrid_box) *  exp( -7.0_gp*(1.0_gp-x )** 3.5_gp )   
+     else
+        dumgrid2(k)=0.0_gp
+     end if
+  enddo
+     
+
+  do i=1, Npaw
+!!$     do k=1, Ngrid
+!!$        dumgrid(k)=ptilde(k,i)*psi1s(k)
+!!$     enddo
+!!$     call integrate(dumgrid, dumgrid2, rgrid, Ngrid_box)
+!!$     dum =dumgrid2(Ngrid_box)
+     do k=1, Ngrid_box
+        !! psi1s(k)     = 0.0_wp
+        !! psi1s(k)     =   psi1s(k) -dum*psitilde(k,i)
+        !! psi1s(k)     =   psi1s(k) -coeffs(i+real_start-1)*psigrid(k,i+real_start-1)
+        dumgrid2(k)  =  dumgrid2(k)   +  coeffs_out(i)*psitilde(k,i)
+     enddo
+  end do
+
+  print *, " in 4tail 5"
+
+  psigrid(:,1)=dumgrid
+  psigrid(:,2)=dumgrid2
+
+  print *, " in 4tail 6"
+
+  return
+END SUBROUTINE find_pfproj_4tail

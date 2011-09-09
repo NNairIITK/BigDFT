@@ -378,7 +378,8 @@ c      No loop over command line arguments needed.
             if (ii.ne.0) then
                label=string(ii+7:min(ii+14,120))
                read(label,*)  pawstP
-               write(6,*)  ' initial wf radial part is multiplied by r**' , pawstP
+               write(6,*)  ' initial wf radial part is ',
+     :          ' multiplied by r**' , pawstP
             endif
 c           End of rading options from input.dat's first line 
  11         continue
