@@ -4508,7 +4508,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine getStartingIndicesGlobal
 
       subroutine collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, &
-                 lzd, nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, lphiovrlp)
+                 lzd, nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, lphiovrlp, timecommunp2p, timecommuncoll, timeoverlap, timeexpand, timecompress)
         use module_base
         use module_types
         implicit none
@@ -4523,10 +4523,11 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(nrecvbuf),intent(inout):: recvbuf
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
         real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+        real(8),intent(inout):: timecommunp2p, timecommuncoll, timeoverlap, timeexpand, timecompress
       end subroutine collectAndCalculateOverlap
 
 
-      subroutine postCommsOverlapNew(iproc, nproc, orbs, op, lzd, phi, comon)
+      subroutine postCommsOverlapNew(iproc, nproc, orbs, op, lzd, phi, comon, timecommun, timeextract)
         use module_base
         use module_types
         implicit none
@@ -4536,6 +4537,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(local_zone_descriptors),intent(in):: lzd
         real(8),dimension(lzd%lpsidimtot),intent(in):: phi
         type(p2pCommsOrthonormality),intent(inout):: comon
+        real(8),intent(out):: timecommun, timeextract
       end subroutine postCommsOverlapNew
 
       subroutine expandOneOrbital2(iproc, nproc, orbsource, orbdest, orbs, input, onWhichAtom, lzd, op, nrecvbuf, recvbuf, lphiovrlp)
