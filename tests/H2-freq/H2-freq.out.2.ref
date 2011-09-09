@@ -40,9 +40,6 @@
  |   methortho 0             !Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
 
 
- =F= Step size factor  1.562500E-02
- =F= Order scheme             2
- =F= Used method              1
  =F=> Check if the file "frequencies.res" is present.
  =F=> The reference state is already calculated.
  =F=> There are 12 moves already calculated over 12 frequencies.

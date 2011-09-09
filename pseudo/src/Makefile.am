@@ -30,14 +30,14 @@ mpi_include = mpif.h
 LMPI =
 endif
 
-atom_SOURCES = atom.f atom.splines.f $(xc_level)
+atom_SOURCES = atom.f90 atom.splines.f $(xc_level)
 atom_LDADD = \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
 
-pseudo_SOURCES = pseudo.f $(low_level) $(f90_level) $(xc_level) $(cuda_level) $(mpi_source)
+pseudo_SOURCES = pseudo.f90 $(low_level) $(f90_level) $(xc_level) $(cuda_level) $(mpi_source)
 pseudo_LDADD = \
 	$(LMPI) \
 	@MPI_LIBS@ \
@@ -46,25 +46,25 @@ pseudo_LDADD = \
   
 #List of sources (objects) grouped by dependencies
 low_level = crtvh.f \
-	penalty.f \
-	amoeba.f \
-	gatom.f \
 	wave.f \
 	wave2.f \
 	wave3.f \
 	detnp.f \
 	resid.f \
-	etot.f \
 	pj2test.f \
 	xpown.f \
 	gamma.f \
-	ppack.f \
 	radgrid.f \
 	zero.f \
 	zbrent.f
 
 f90_level = \
 	ekin_gauss_wvlt.f90 \
+	amoeba.f90 \
+	gatom.f90 \
+	etot.f90 \
+	ppack.f90 \
+	penalty.f90 \
 	errorhandler.f90
 
 xc_level = \

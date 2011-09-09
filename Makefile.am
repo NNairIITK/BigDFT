@@ -11,7 +11,7 @@ libABINIT_dir =
 endif
 
 if BUILD_LIBXC
-libXC_dir = libXC
+libXC_dir = libxc-1.1.0
 else
 libXC_dir = 
 endif

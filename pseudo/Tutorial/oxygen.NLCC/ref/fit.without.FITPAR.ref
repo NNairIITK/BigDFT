@@ -1,0 +1,302 @@
+ *********************************************
+ ***              pseudo_2.5               ***
+ ***              fitting of               ***
+ ***   goedecker type pseudopotentials     ***
+ ***   last changes:         July 2011     ***
+ ***   parallel run with  2 processes      ***
+ *********************************************
+
+ Reading the file input.dat
+ __________________________
+
+ Do one fit cycle
+ 200max. simplex iterations
+ plot wfs after each iteration
+  2 lines have been read.
+
+ Reading data from atom.00.ae
+ ____________________________
+
+
+
+ pseudo states =            18
+ znuc          =     8.000000000000000     
+ zpseudo       =     6.000000000000000     
+ r_covalent    =     1.380000000000000     
+ r_confining   =     6.000000000000000     
+ ispp          = s
+ gridpoints    =           906
+
+ Initializing libXC with iXC =    -20; nspol =    2
+
+  nl    s      occ        eigenvalue     charge(rcov)    
+ 2s  -0.5    1.0000   -0.8689416243    0.7254021527
+ 2s   0.5    1.0000   -0.8689416243    0.7254021527
+ 3s  -0.5    0.0000    0.0151372211    0.0175632463
+ 3s   0.5    0.0000    0.0151372211    0.0175632463
+ 4s  -0.5    0.0000    0.0883882720    0.0089555627
+ 4s   0.5    0.0000    0.0883882720    0.0089555627
+ 2p  -0.5    2.0000   -0.3358904554    0.6523808984
+ 2p   0.5    2.0000   -0.3358904554    0.6523808984
+ 3p  -0.5    0.0000    0.0559529538    0.0125193436
+ 3p   0.5    0.0000    0.0559529538    0.0125193436
+ 4p  -0.5    0.0000    0.1123282821    0.0127731263
+ 4p   0.5    0.0000    0.1123282821    0.0127731263
+ 3d  -0.5    0.0000    0.0911350106    0.0000649589
+ 3d   0.5    0.0000    0.0911350106    0.0000649589
+ 4d  -0.5    0.0000    0.1387255306    0.0001830829
+ 4d   0.5    0.0000    0.1387255306    0.0001830829
+ 4f  -0.5    0.0000    0.1224616901    0.0000002207
+ 4f   0.5    0.0000    0.1224616901    0.0000002207
+ noccmax             3
+
+ All electron and pseudo-wfn quantum numbers
+         n(AE)   l   inl(PS)   
+           2     0     1
+           2     0     1
+           3     0     2
+           3     0     2
+           4     0     3
+           4     0     3
+           2     1     1
+           2     1     1
+           3     1     2
+           3     1     2
+           4     1     3
+           4     1     3
+           3     2     1
+           3     2     1
+           4     2     2
+           4     2     2
+           4     3     1
+           4     3     1
+
+ Reading actual weights from file weights.par
+ ____________________________________________
+
+ Weight for psi(r=0)=0 is      0.000E+00
+ for Ekin(gauss-wavelet)       0.100E+06
+ for keeping radii wide        0.100E+01
+ for keeping hij small         0.100E+01
+ for keeping Vloc local        0.100E+01
+ and for excitation energies   0.100E+04
+
+ all electron energy (Ryd):   -148.9343056619513     
+
+ excitation energies (AE)
+   0     0.0000000000E+00
+   1    -0.5508004080E-01
+
+ Reading core charge coefficients from nlcc
+ __________________________________________
+
+ rcore and c0            0.14997996    477.37706681
+ c2 to c4            -3859.52393264  15663.69896148      0.00000000
+ scaled by rcore:      -86.81608734      7.92551093      0.00000000
+
+
+ Reading data from psppar
+ ________________________
+
+ HGH matrix format
+
+     1.380     6.000    rcov and rprb (charge integr and confinement)
+                             spin polarized calculation
+        -20                  ixc for XC-functional
+
+ local part
+   8.   6.00  0.248 -0.149E+02  0.213E+01  0.000E+00  0.000E+00 znuc,zion, rloc, gpot() 
+ nonlocal part in internal format
+   1                                                       lpx, (Projectors for l=0..lpx)
+ s-projector
+  0.223  0.181E+02  0.000E+00  0.000E+00  0.000E+00  0.000E+00  0.000E+00  r_l(),hsep(), so=+0.5
+
+ This calculation will use NLCC
+ (nonlinear core corrections).
+ Parameters rcore and gcore(1:4) are
+       0.149980E+00      0.477377E+03     -0.868161E+02      0.792551E+01      0.000000E+00
+
+
+ Gaussian basis
+ ______________
+
+ amin,amax 0.1239E+00 0.9761E+01
+ gaussian 0.2150E+02 0.1418E+02 0.9357E+01 ....  0.1206E-01 0.7955E-02
+ gaussians:           20
+ r-grid:  0.3097E-03 0.3338E-03 0.3597E-03 ....  0.7748E+02 0.8351E+02
+ gridpoints:          168
+
+
+ Reading fitting parameters from FITPAR
+ ______________________________________
+
+  0 lines have been read. Free params are:
+ Could not recognize any keyword for free
+ fitting variables in the file FITPAR.
+
+ Valid keywords are the following:
+ auto
+  rloc        gpot1       gpot2       gpot3       gpot4     
+  rcore       gcore1      gcore2      gcore3      gcore4    
+  rs          hs11        hs12        hs22        hs13        hs23        hs33        r2s       
+  rp          hp11        hp12        hp22        hp13        hp23        hp33        r2p       
+  rd          hd11        hd12        hd22        hd13        hd23        hd33        r2d       
+  rf          hf11        hf12        hf22        hf13        hf23        hf33        r2f       
+
+ The keyword "auto" will free all parameters read from psppar and
+ override previous keywords for params that are not present there.
+ Exception: Does not free rloc.
+
+
+ starting amoeba cycle   1
+ _________________________
+
+ Penalty contributions of the initial parameters and random simplex vertices
+ ___________________________________________________________________________
+
+  amoeba   vertex    overall penalty      softness             psp empirical        all configurations   all excitation       this configuration
+    step   number    value                gauss-wvlt           (hgridmax/r)**12     E_KS, integrals      energies             and its excitation
+       0       1     0.7935835027E+00     0.0000000000E+00     0.4906973354E+00     0.5243856512E+00     0.3376545418E+00     0.4376783102E+00
+
+ Penalty contributions of the currently lowest vertex
+ ____________________________________________________
+
+  amoeba   gatom     overall penalty      softness             psp empirical        all configurations   all excitation       this configuration
+    step   calls     value                gauss-wvlt           (hgridmax/r)**12     E_KS, integrals      energies             and its excitation
+ entered amoeba with nfit=            0
+ no fit!
+
+ Penalty contribtions from this configuration
+ ____________________________________________
+
+          psi(r=0) =  0.6973E-03          ; psi(0)*wght=  0.0000E+00
+
+ nl    s      occ              ae        pseudo       diff     diff*weight
+ 2s  -0.5    1.0000
+         eigenvalue      -0.8689E+00 -0.8690E+00 -0.1813E-04  0.1813E+00
+         charge           0.7254E+00  0.7253E+00 -0.5930E-04  0.5930E-01
+         residue                      0.1824E-05              0.0000E+00
+         rnode                        0.0000E+00              0.0000E+00
+
+ 2s   0.5    1.0000
+         eigenvalue      -0.8689E+00 -0.8690E+00 -0.1813E-04  0.1813E+00
+         charge           0.7254E+00  0.7253E+00 -0.5930E-04  0.5930E-01
+         residue                      0.1824E-05              0.0000E+00
+         rnode                        0.0000E+00              0.0000E+00
+
+ 3s  -0.5    0.0000
+         eigenvalue       0.1514E-01  0.1510E-01 -0.4009E-04  0.0000E+00
+         charge           0.1756E-01  0.1764E-01  0.7369E-04  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 3s   0.5    0.0000
+         eigenvalue       0.1514E-01  0.1510E-01 -0.4009E-04  0.0000E+00
+         charge           0.1756E-01  0.1764E-01  0.7369E-04  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 4s  -0.5    0.0000
+         eigenvalue       0.8839E-01  0.8861E-01  0.2257E-03  0.0000E+00
+         charge           0.8956E-02  0.9041E-02  0.8520E-04  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 4s   0.5    0.0000
+         eigenvalue       0.8839E-01  0.8861E-01  0.2257E-03  0.0000E+00
+         charge           0.8956E-02  0.9041E-02  0.8520E-04  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 2p  -0.5    2.0000
+         eigenvalue      -0.3359E+00 -0.3359E+00  0.1659E-04  0.1659E+00
+         charge           0.6524E+00  0.6522E+00 -0.1785E-03  0.1785E+00
+         residue                      0.4342E-06              0.0000E+00
+         rnode                        0.0000E+00              0.0000E+00
+
+ 2p   0.5    2.0000
+         eigenvalue      -0.3359E+00 -0.3359E+00  0.1659E-04  0.1659E+00
+         charge           0.6524E+00  0.6522E+00 -0.1785E-03  0.1785E+00
+         residue                      0.4342E-06              0.0000E+00
+         rnode                        0.0000E+00              0.0000E+00
+
+ 3p  -0.5    0.0000
+         eigenvalue       0.5595E-01  0.5597E-01  0.1285E-04  0.0000E+00
+         charge           0.1252E-01  0.1252E-01 -0.1957E-05  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 3p   0.5    0.0000
+         eigenvalue       0.5595E-01  0.5597E-01  0.1285E-04  0.0000E+00
+         charge           0.1252E-01  0.1252E-01 -0.1957E-05  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 4p  -0.5    0.0000
+         eigenvalue       0.1123E+00  0.1133E+00  0.9799E-03  0.0000E+00
+         charge           0.1277E-01  0.1296E-01  0.1840E-03  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 4p   0.5    0.0000
+         eigenvalue       0.1123E+00  0.1133E+00  0.9799E-03  0.0000E+00
+         charge           0.1277E-01  0.1296E-01  0.1840E-03  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 3d  -0.5    0.0000
+         eigenvalue       0.9114E-01  0.9124E-01  0.1040E-03  0.0000E+00
+         charge           0.6496E-04  0.6533E-04  0.3703E-06  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 3d   0.5    0.0000
+         eigenvalue       0.9114E-01  0.9124E-01  0.1040E-03  0.0000E+00
+         charge           0.6496E-04  0.6533E-04  0.3703E-06  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 4d  -0.5    0.0000
+         eigenvalue       0.1387E+00  0.1435E+00  0.4759E-02  0.0000E+00
+         charge           0.1831E-03  0.2026E-03  0.1951E-04  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 4d   0.5    0.0000
+         eigenvalue       0.1387E+00  0.1435E+00  0.4759E-02  0.0000E+00
+         charge           0.1831E-03  0.2026E-03  0.1951E-04  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 4f  -0.5    0.0000
+         eigenvalue       0.1225E+00  0.1230E+00  0.5845E-03  0.0000E+00
+         charge           0.2207E-06  0.2274E-06  0.6719E-08  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ 4f   0.5    0.0000
+         eigenvalue       0.1225E+00  0.1230E+00  0.5845E-03  0.0000E+00
+         charge           0.2207E-06  0.2274E-06  0.6719E-08  0.0000E+00
+         residue                      0.0000E+00              0.0000E+00
+
+ diff for dcharg and echarge is given in (%)
+
+ Resulting Pseudpotential Parameters
+ ___________________________________
+
+    8    6  071811 zatom, zion, date (ddmmyy)
+    10    -20 0 0 2002 0     pspcod, IXC, lmax, lloc, mmax, r2well
+        0.24775350  2    -14.91752034      2.13269841 rloc nloc c1 .. cnloc
+   1                       0.14997996    477.37706681    -86.81608734      7.92551093      0.00000000 nsep, rcore, gcore (NLCC)
+        0.22250350  1     18.05809653      s-projector
+
+ Analytic core charge of the NLCC:    1.419891550651198     
+ Value for the radial grid used:      1.419891526168746     
+
+
+ Plot files for gnuplot written.
+ To plot wfs type 'gnuplot pswf.gnu' 
+
+
+ Total SCF-cycles:           34
+ Pseudoatom calculations:            1
+
+ Simple Time Profiling
+ _____________________
+
+ gatom  overall runtime     0.055 seconds
+ MPI comminactions time     0.060 seconds
+ wavelet libraries time     0.000 seconds
+ ________________________________________
+               CPU time     2.832 seconds
+
+ ______________________________________________________
+                                               finished
+

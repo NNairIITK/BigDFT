@@ -11,27 +11,27 @@
 !> Calculates the charge density by summing the square of all orbitals
 !! Input: psi
 !! Output: rho
-subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
-     & nscatterarr,nspin,GPU,symObj,irrzon,phnons)
+subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,hxh,hyh,hzh,psi,rho,&
+     & nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
-  use libxc_functionals
+  use module_xc
 
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc,nrho,nspin,ixc,symObj
+  integer, intent(in) :: iproc,nproc,nspin,symObj
   real(gp), intent(in) :: hxh,hyh,hzh
-  type(local_zone_descriptors), intent(in) :: Lzd
+  type(rho_descriptors),intent(in) :: rhodsc
   type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: Lzd
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
-  real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
+  real(dp), dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),1),nspin), intent(out), target :: rho
   type(GPU_pointers), intent(inout) :: GPU
   integer, dimension(*), intent(in) :: irrzon
   real(dp), dimension(*), intent(in) :: phnons
   !Local variables
   character(len=*), parameter :: subname='sumrhoLinear'
-  logical :: rsflag
   integer :: nrhotot,n3d,itmred
   integer :: nspinn
   integer :: i1,i2,i3,i3off,i3s,i,ispin,jproc,i_all,i_stat,ierr,j3,j3p,j
@@ -42,10 +42,8 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 !!  real(dp), dimension(:,:), allocatable :: psi_OCL
 
 !  integer :: ncount0,ncount1,ncount2,ncount3,ncountmpi0,ncountmpi1,ncount_max,ncount_rate
-!  real(kind=8) :: stream_ptr
-
-  !call system_clock(ncount0,ncount_rate,ncount_max)
-
+  real(gp),dimension(:,:),allocatable :: dprho_comp
+  real(4) ,dimension(:,:),allocatable :: sprho_comp
 
   call timing(iproc,'Rho_comput    ','ON')
 
@@ -61,15 +59,15 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      nspinn=nspin
   end if
 
-  !flag for toggling the REDUCE_SCATTER stategy
-  rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-       & (ixc < 0 .and. libxc_functionals_isgga()))
+  !flag for toggling the REDUCE_SCATTER stategy (deprecated, icomm used instead of ixc value)
+  !rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
+  !     & (ixc < 0 .and. module_xc_isgga()))
 
 !  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
-!             (ixc < 0 .and. libxc_functionals_isgga()), have_mpi2,rsflag
+!             (ixc < 0 .and. module_xc_isgga()), have_mpi2,rsflag
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
-  if (rsflag) then
+  if (rhodsc%icomm==1) then
      nrhotot=0
      do jproc=0,nproc-1
         nrhotot=nrhotot+nscatterarr(jproc,1)
@@ -104,49 +102,42 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
      if(Lzd%linear) stop 'local_partial_density_OCL not implemented with Linear scaling!'
      call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else if(Lzd%linear) then
-     call local_partial_densityLinear(iproc,nproc,ixc,Lzd,orbs,rsflag,nscatterarr,nrhotot,&
-          Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,rho_p,hxh,hyh,hzh,nspin,psi)
+     call local_partial_densityLinear(iproc,nproc,(rhodsc%icomm==1),nscatterarr,nrhotot,&
+          Lzd,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   else
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
      !otherwise use libXC routine
-     if (libxc_functionals_isgga()) then
-        call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot*nspinn,rho_p)
-     else
-        call tenminustwenty(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot*nspinn,rho_p,nproc)
-     end if
+     call xc_init_rho(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot*nspinn,rho_p,nproc)
 
      !for each of the orbitals treated by the processor build the partial densities
-     !call system_clock(ncount2,ncount_rate,ncount_max)
-     call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+     call local_partial_density(iproc,nproc,(rhodsc%icomm==1),nscatterarr,&
           nrhotot,Lzd%Glr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
-     !call system_clock(ncount3,ncount_rate,ncount_max)
-
   end if
 
-!!$  if (OCLconv) then
-!!$     call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,Glr,hxh,hyh,hzh,nspin,psi_OCL,rho_p_OCL,GPU)
-!!$     maxdiff=0.0_wp
-!!$     do i=1,max(nrho,1)
-!!$       do j=1,nspin
-!!$        maxdiff=max(maxdiff,abs(rho_p(i,j)-rho_p_OCL(i,j)))
-!!$       end do
-!!$     end do
-!!$     print *,''
-!!$     print *,'maxdiff',maxdiff
-!!$     i_all=-product(shape(rho_p_OCL))*kind(rho_p_OCL)
-!!$     deallocate(rho_p_OCL,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'rho_p_OCL',subname)
-!!$     i_all=-product(shape(psi_OCL))*kind(psi_OCL)
-!!$     deallocate(psi_OCL,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'psi_OCL',subname)
-!!$  end if
+!!  if (OCLconv) then
+!!     call local_partial_density_OCL(iproc,nproc,orbs,nrhotot,Glr,hxh,hyh,hzh,nspin,psi_OCL,rho_p_OCL,GPU)
+!!     maxdiff=0.0_wp
+!!     do i=1,max(nrho,1)
+!!       do j=1,nspin
+!!        maxdiff=max(maxdiff,abs(rho_p(i,j)-rho_p_OCL(i,j)))
+!!       end do
+!!     end do
+!!     print *,''
+!!     print *,'maxdiff',maxdiff
+!!     i_all=-product(shape(rho_p_OCL))*kind(rho_p_OCL)
+!!     deallocate(rho_p_OCL,stat=i_stat)
+!!     call memocc(i_stat,i_all,'rho_p_OCL',subname)
+!!     i_all=-product(shape(psi_OCL))*kind(psi_OCL)
+!!     deallocate(psi_OCL,stat=i_stat)
+!!     call memocc(i_stat,i_all,'psi_OCL',subname)
+!!  end if
 
   ! Symmetrise density, TODO...
   !after validation this point can be deplaced after the allreduce such as to reduce the number of operations
   if (symObj >= 0) then
      call symmetrise_density(0,1,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,nscatterarr,nspin,&
           Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-          rho,symObj,irrzon,phnons)
+          rho_p,symObj,irrzon,phnons)
   end if
 
   !write(*,*) 'iproc,TIMING:SR1',iproc,real(ncount1-ncount0)/real(ncount_rate)
@@ -154,31 +145,56 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
   if (nproc > 1) then
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
-     if (rsflag) then
+     !communication strategy for the density
+     !LDA case (icomm==1)
+     if (rhodsc%icomm==1) then
         do ispin=1,nspin
           call MPI_REDUCE_SCATTER(rho_p(1,ispin),rho(1,ispin),&
                Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(:,1),&
                MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         end do
+     ! splitted single-double precision communication (icomm=2)
+     else if (rhodsc%icomm==2) then
+        !        if (rho_compress .and. rhodsc%geocode.eq.'F') then
+        !if (rhodsc%geocode == 'F') then
+        !call system_clock(ncount0,ncount_rate,ncount_max)
+        !write(*,*) 'geocode=F, compress rho called'
+        allocate(sprho_comp(rhodsc%sp_size,nspin),stat=i_stat)
+        call memocc(i_stat,sprho_comp,'sprho_comp',subname)
+        allocate(dprho_comp(rhodsc%dp_size,nspin),stat=i_stat)
+        call memocc(i_stat,dprho_comp,'dprho_comp',subname)
+        call compress_rho(iproc,nproc,rho_p,Lzd%Glr,nspin,rhodsc,sprho_comp,dprho_comp)
+        !call system_clock(ncount1,ncount_rate,ncount_max)
+        !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
+        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,MPI_COMM_WORLD,ierr)
+        !call system_clock(ncount2,ncount_rate,ncount_max)
+        !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
+        i3s=nscatterarr(iproc,3)-nscatterarr(iproc,4)
+        n3d=nscatterarr(iproc,1)
+        call uncompress_rho(iproc,nproc,sprho_comp,dprho_comp,&
+             Lzd%Glr,nspin,rhodsc,rho_p,i3s,n3d)
+        !call system_clock(ncount3,ncount_rate,ncount_max)
+        !write(*,*) 'TIMING:ARED3',real(ncount3-ncount2)/real(ncount_rate)
+        i_all=-product(shape(sprho_comp))*kind(sprho_comp)
+        deallocate(sprho_comp,stat=i_stat)
+        call memocc(i_stat,i_all,'sprho_comp',subname)
+        i_all=-product(shape(dprho_comp))*kind(dprho_comp)
+        deallocate(dprho_comp,stat=i_stat)
+        call memocc(i_stat,i_all,'dprho_comp',subname)
+
+     !naive communication (unsplitted GGA case) (icomm=0)
+     else if (rhodsc%icomm==0) then
+        call mpiallred(rho_p(1,1),Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin,&
+             MPI_SUM,MPI_COMM_WORLD,ierr)
      else
-       !  call system_clock(ncountmpi0,ncount_rate,ncount_max)
-       !  call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*nspin,&
-       !       MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-         call mpiallred(rho_p(1,1),Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*nspin,&
-               MPI_SUM,MPI_COMM_WORLD,ierr)
-       !  call system_clock(ncountmpi1,ncount_rate,ncount_max)
-       !  write(*,'(A,4(1X,f6.3))') 'TIMING:ARED'
-       !             real(ncount1-ncount0)/real(ncount_rate),&
-       !             real(ncount2-ncount1)/real(ncount_rate),&
-       !             real(ncount3-ncount2)/real(ncount_rate),&
-       !             real(ncountmpi1-ncountmpi0)/real(ncount_rate)
-         !stop 'rsflag active in sumrho.f90, check MPI2 implementation'
-     end if
+        STOP 'DENSITY COMMUNICATION KEY UNVALID' 
+     endif
 
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
 
-     if (.not. rsflag) then
+     if (rhodsc%icomm /= 1) then
         !treatment which includes the periodic GGA
         !the density should meet the poisson solver distribution
         i3s=nscatterarr(iproc,3)-nscatterarr(iproc,4)
@@ -198,8 +214,6 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
         end do
      end if
   end if
-  !call system_clock(ncount2,ncount_rate,ncount_max)
-  !write(*,*) 'TIMING:SR2',real(ncount2-ncount1)/real(ncount_rate)
   ! Check
   tt=0.d0
   i3off=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,4)
@@ -271,33 +285,30 @@ subroutine sumrhoLinear(iproc,nproc,Lzd,orbs,ixc,hxh,hyh,hzh,psi,rho,nrho,&
 
   call timing(iproc,'Rho_comput    ','OF')
 
-  !call system_clock(ncount3,ncount_rate,ncount_max)
-  !write(*,*) 'TIMING:SR3',real(ncount3-ncount2)/real(ncount_rate)
-  !write(*,*) 'TIMING:SR',real(ncount3-ncount0)/real(ncount_rate)
 END SUBROUTINE sumrhoLinear
 
 
 !>   Here starts the routine for building partial density inside the localisation region
 !!   This routine should be treated as a building-block for the linear scaling code
-subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,orbs,rsflag,nscatterarr,&
-     nrhotot,nrho,rho,hxh,hyh,hzh,nspin,psi)
+subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
+     nrhotot,Lzd,hxh,hyh,hzh,nspin,orbs,psi,rho)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => local_partial_densityLinear
-  use libxc_functionals
+
   implicit none
   logical, intent(in) :: rsflag
-  integer, intent(in) :: iproc,nproc,nrho,ixc
+  integer, intent(in) :: iproc,nproc
   integer,intent(inout):: nrhotot
   integer, intent(in) :: nspin
-  real(dp),dimension(max(nrho,1),nspin),intent(out):: rho
   real(gp), intent(in) :: hxh,hyh,hzh
   type(local_zone_descriptors), intent(in) :: Lzd
   type(orbitals_data),intent(in) :: orbs
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(wp), dimension(Lzd%Lpsidimtot), intent(in) :: psi
+  real(dp),dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1),max(nspin,orbs%nspinor)),intent(out):: rho
   !local variables
-  character(len=*), parameter :: subname='local_partial_density'
+  character(len=*), parameter :: subname='local_partial_densityLinear'
   integer :: iorb,i_stat,i_all,ii, ind, indSmall, indLarge, orbtot
   integer :: oidx,sidx,nspinn,npsir,ncomplex, i1, i2, i3, ilr, ispin
   integer :: nspincomp,i3s,i3e
@@ -306,7 +317,7 @@ subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,orbs,rsflag,nscattera
   real(wp), dimension(:,:), allocatable :: psir
   real(dp), dimension(:),allocatable :: rho_p
   real(8):: dnrm2
-  integer, dimension(:,:), allocatable :: Lnscatterarr,Lngatherarr
+  integer, dimension(:,:), allocatable :: Lnscatterarr
   integer :: n3d,n3p,n3pi,i3xcsh,i3tmp
 
  !components of wavefunction in real space which must be considered simultaneously
@@ -322,147 +333,108 @@ subroutine local_partial_densityLinear(iproc,nproc,ixc,Lzd,orbs,rsflag,nscattera
   end if
   nspincomp = 1
   if (nspin > 1) nspincomp = 2
-
-  !initialisation
-  !print *,iproc,'there'
-  
   ind=1
-!  write(*,*) 'starting locRegLoop...'
-  
- !initialize rho
-  if (libxc_functionals_isgga()) then
-      call razero(max(nrho,1)*nspin,rho)
-  else
-      call tenminustwenty(max(nrho,1)*nspin,rho,nproc)
-  end if
-  
- !allocate Lnscatterarr
+
+ !allocate and define Lnscatterarr which is just a fake
   allocate(Lnscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
   call memocc(i_stat,Lnscatterarr,'Lnscatterarr',subname)
-  allocate(Lngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
-  call memocc(i_stat,Lngatherarr,'Lngatherarr',subname)
+  Lnscatterarr(:,3) = 0
+  Lnscatterarr(:,4) = 0
 
-
-!  locRegLoop: do ilr=1,Lzd%nlr
-!      call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
-!      allocate(rho_p(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn), stat=i_stat)
-!      call memocc(i_stat,rho_p,'rho_p',subname)
-!      allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,npsir+ndebug),stat=i_stat)
-!      call memocc(i_stat,psir,'psir',subname)
-!
-!      if (Lzd%Llr(ilr)%geocode == 'F') then
-!          call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
-!      end if
-!
-!      nrhotot=Lzd%Llr(ilr)%d%n3i
+!Need to initilize rho?
          
-      orbitalsLoop: do ii=1,orbs%norbp
+  orbitalsLoop: do ii=1,orbs%norbp
 
-         iorb = ii + orbs%isorb
-         ilr = orbs%inwhichLocreg(iorb)
-
-        ! create descriptors for local potential (for Lnscatterarr)
-         call createDensPotDescriptors(iproc,nproc,Lzd%Llr(ilr)%geocode,'D',Lzd%Llr(ilr)%d%n1i,&
-              Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,ixc,n3d,n3p,n3pi,i3xcsh,i3tmp,Lnscatterarr,Lngatherarr) 
-         
-         call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
-         allocate(rho_p(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn), stat=i_stat) !must redefine the size of rho_p?
-         call memocc(i_stat,rho_p,'rho_p',subname)
-         allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,npsir+ndebug),stat=i_stat)
-         call memocc(i_stat,psir,'psir',subname)
-   
-         if (Lzd%Llr(ilr)%geocode == 'F') then
-            call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
-         end if
+     iorb = ii + orbs%isorb
+     ilr = orbs%inwhichLocreg(iorb)
+     Lnscatterarr(:,1) = Lzd%Llr(ilr)%d%n3i
+     Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i
+     
+     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
+     allocate(rho_p(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn), stat=i_stat) !must redefine the size of rho_p?
+     call memocc(i_stat,rho_p,'rho_p',subname)
+     allocate(psir(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i,npsir+ndebug),stat=i_stat)
+     call memocc(i_stat,psir,'psir',subname)
+  
+     if (Lzd%Llr(ilr)%geocode == 'F') then
+        call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
+     end if
  
+     !Need to zero rho_p?
 
-         if (libxc_functionals_isgga()) then
-             call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,rho_p) !must redefine the size of rho_p?
-         else
-             call tenminustwenty(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,rho_p,nproc)
-         end if
+     !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
+     hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(iorb)/(hxh*hyh*hzh))
+     spinval=orbs%spinsgn(iorb)
 
-         !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
-         hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(iorb)/(hxh*hyh*hzh))
-         spinval=orbs%spinsgn(iorb)
+     if (hfac /= 0.d0) then
 
-         if (hfac /= 0.d0) then
+        !sum for complex function case, npsir=1 in that case
+        do oidx=0,ncomplex
 
-            !sum for complex function case, npsir=1 in that case
-            do oidx=0,ncomplex
+           do sidx=1,npsir
+              call daub_to_isf(Lzd%Llr(ilr),w,psi(ind),psir(1,sidx))
+              ind=ind+Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
+           end do
 
-               do sidx=1,npsir
-                  !call daub_to_isf(Glr,w,psi(1,oidx+sidx,iorb),psir(1,sidx))
-                  call daub_to_isf(Lzd%Llr(ilr),w,psi(ind),psir(1,sidx))
-                  ind=ind+Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f
-               end do
+           select case(Lzd%Llr(ilr)%geocode)
+           case('F')
+              call partial_density_free((rsflag .and. .not. Lzd%linear),nproc,Lzd%Llr(ilr)%d%n1i,&
+                   Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
+                   hfac,Lnscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
 
-               select case(Lzd%Llr(ilr)%geocode)
-               case('F')
-                  call partial_density_linear(rsflag,nproc,Lzd%Llr(ilr)%d%n1i,Lzd%Llr(ilr)%d%n2i,Lzd%Llr(ilr)%d%n3i,&
-                       npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
-                       hfac,Lnscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
+           case('P')
 
-               case('P')
+              call partial_density(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
+                   npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
+                   hfac,Lnscatterarr,spinval,psir,rho_p)
 
-                  call partial_density_linear(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
-                       npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
-                       hfac,Lnscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
+           case('S')
 
-               case('S')
+              call partial_density(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
+                   npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
+                   hfac,Lnscatterarr,spinval,psir,rho_p)
 
-                  call partial_density_linear(rsflag,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,&
-                       npsir,nspinn,Lzd%Llr(ilr)%d%n3i,&!nrhotot,&
-                       hfac,Lnscatterarr,spinval,psir,rho_p,Lzd%Llr(ilr)%bounds%ibyyzz_r)
+           end select
 
-               end select
-
-               ! Copy rho_p to the correct place in rho
-               indSmall=0
-               do ispin=1,nspinn
-                   do i3=1,Lzd%Llr(ilr)%d%n3i !min(Lzd%Llr(ilr)%d%n3i,nscatterarr(iproc,1)) 
-                       if(Lzd%Llr(ilr)%nsi3 + i3 - 1 < 0) cycle   !throwing away the extra buffer of the locreg, related to the change of boundary conditions
-                       if(Lzd%Llr(ilr)%nsi3 + i3  > Lzd%Glr%d%n3i) cycle
-                       do i2=1,Lzd%Llr(ilr)%d%n2i
-                           if(Lzd%Llr(ilr)%nsi2+ i2 - 1 < 0) cycle !same
-                           if(Lzd%Llr(ilr)%nsi2 + i2  > Lzd%Glr%d%n2i) cycle
-                           do i1=1,Lzd%Llr(ilr)%d%n1i
-                               if(Lzd%Llr(ilr)%nsi1+ i1 - 1 < 0) cycle ! same
-                               if(Lzd%Llr(ilr)%nsi1 + i1  > Lzd%Glr%d%n1i) cycle
-                               ! indSmall is the index in the currect localization region
-                               indSmall=indSmall+1
-                               ! indLarge is the index in the whole box. 
-                               indLarge=(Lzd%Llr(ilr)%nsi3+i3-1)*Lzd%Glr%d%n2i*Lzd%Glr%d%n1i +&
-                                   (Lzd%Llr(ilr)%nsi2+i2-1)*Lzd%Glr%d%n1i + Lzd%Llr(ilr)%nsi1+i1
-                               rho(indLarge,ispin)=rho(indLarge,ispin)+rho_p(indSmall)
-                           end do
+           ! Copy rho_p to the correct place in rho
+           indSmall=0
+           do ispin=1,nspinn
+               do i3=1,Lzd%Llr(ilr)%d%n3i !min(Lzd%Llr(ilr)%d%n3i,nscatterarr(iproc,1)) 
+                   if(Lzd%Llr(ilr)%nsi3 + i3 - 1 < 0) cycle   !throwing away the extra buffer of the locreg, related to the change of boundary conditions
+                   if(Lzd%Llr(ilr)%nsi3 + i3  > Lzd%Glr%d%n3i) cycle
+                   do i2=1,Lzd%Llr(ilr)%d%n2i
+                       if(Lzd%Llr(ilr)%nsi2+ i2 - 1 < 0) cycle !same
+                       if(Lzd%Llr(ilr)%nsi2 + i2  > Lzd%Glr%d%n2i) cycle
+                       do i1=1,Lzd%Llr(ilr)%d%n1i
+                           if(Lzd%Llr(ilr)%nsi1+ i1 - 1 < 0) cycle ! same
+                           if(Lzd%Llr(ilr)%nsi1 + i1  > Lzd%Glr%d%n1i) cycle
+                           ! indSmall is the index in the currect localization region
+                           indSmall=indSmall+1
+                           ! indLarge is the index in the whole box. 
+                           indLarge=(Lzd%Llr(ilr)%nsi3+i3-1)*Lzd%Glr%d%n2i*Lzd%Glr%d%n1i +&
+                               (Lzd%Llr(ilr)%nsi2+i2-1)*Lzd%Glr%d%n1i + Lzd%Llr(ilr)%nsi1+i1
+                           rho(indLarge,ispin)=rho(indLarge,ispin)+rho_p(indSmall)
                        end do
                    end do
                end do
-            end do
-         else
-            ind=ind+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*max(ncomplex,1)*npsir
-         end if
+           end do
+        end do
+     else
+        ind=ind+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*max(ncomplex,1)*npsir
+     end if
 
-         i_all=-product(shape(rho_p))*kind(rho_p)
-         deallocate(rho_p,stat=i_stat)
-         call memocc(i_stat,i_all,'rho_p',subname)
-         i_all=-product(shape(psir))*kind(psir)
-         deallocate(psir,stat=i_stat)
-         call memocc(i_stat,i_all,'psir',subname)
-         call deallocate_work_arrays_sumrho(w)
-      end do orbitalsLoop
-!  end do locRegLoop
-  !i_all=-product(shape(psir))*kind(psir)
-  !deallocate(psir,stat=i_stat)
-  !call memocc(i_stat,i_all,'psir',subname)
+     i_all=-product(shape(rho_p))*kind(rho_p)
+     deallocate(rho_p,stat=i_stat)
+     call memocc(i_stat,i_all,'rho_p',subname)
+     i_all=-product(shape(psir))*kind(psir)
+     deallocate(psir,stat=i_stat)
+     call memocc(i_stat,i_all,'psir',subname)
+     call deallocate_work_arrays_sumrho(w)
+  end do orbitalsLoop
  
   i_all=-product(shape(Lnscatterarr))*kind(Lnscatterarr)
   deallocate(Lnscatterarr,stat=i_stat)
   call memocc(i_stat,i_all,'Lnscatterarr',subname)
-  i_all=-product(shape(Lngatherarr))*kind(Lngatherarr)
-  deallocate(Lngatherarr,stat=i_stat)
-  call memocc(i_stat,i_all,'Lngatherarr',subname)
  
 
 END SUBROUTINE local_partial_densityLinear
@@ -988,3 +960,44 @@ commsSumrho(7)=tag
 
 
 end subroutine setCommunicationInformation2
+
+
+!!subroutine setNscatterarr(iproc,nproc,datacode,atoms,n1i,n2i,n3i,ixc,nscatterarr)
+!!  use module_base
+!!  use module_types
+!!  use Poisson_Solver
+!!  use module_xc
+!!  implicit none
+!!  !Arguments
+!!  character(len=1), intent(in) :: datacode
+!!  integer, intent(in) :: iproc,nproc,ixc,n1i,n2i,n3i
+!!  real(gp), intent(in) :: hxh,hyh,hzh
+!!  type(atoms_data), intent(in) :: atoms
+!!  integer, dimension(0:nproc-1,4), intent(out) :: nscatterarr
+!!  !Local Variables
+!!   integer :: jproc
+!!
+!!  if (datacode == 'D') then
+!!     do jproc=0,iproc-1
+!!        call PS_dim4allocation(atoms%geocode,datacode,jproc,nproc,n1i,n2i,n3i,ixc,n3d,n3p,n3pi,i3xcsh,i3s)
+!!        nscatterarr(jproc,1)=n3d            !number of planes for the density
+!!        nscatterarr(jproc,2)=n3p            !number of planes for the potential
+!!        nscatterarr(jproc,3)=i3s+i3xcsh-1   !starting offset for the potential
+!!        nscatterarr(jproc,4)=i3xcsh         !GGA XC shift between density and potential
+!!     end do
+!!     do jproc=iproc+1,nproc-1
+!!        call PS_dim4allocation(atoms%geocode,datacode,jproc,nproc,n1i,n2i,n3i,ixc,n3d,n3p,n3pi,i3xcsh,i3s)
+!!        nscatterarr(jproc,1)=n3d
+!!        nscatterarr(jproc,2)=n3p
+!!        nscatterarr(jproc,3)=i3s+i3xcsh-1
+!!        nscatterarr(jproc,4)=i3xcsh
+!!     end do
+!!  end if
+!!
+!!  call PS_dim4allocation(atoms%geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,n3d,n3p,n3pi,i3xcsh,i3s)
+!!  nscatterarr(iproc,1)=n3d
+!!  nscatterarr(iproc,2)=n3p
+!!  nscatterarr(iproc,3)=i3s+i3xcsh-1
+!!  nscatterarr(iproc,4)=i3xcsh
+!!
+!!end subroutine setNscatterarr

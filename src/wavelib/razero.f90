@@ -21,6 +21,31 @@ subroutine razero(n,x)
   end do
 END SUBROUTINE razero
 
+!>   Set to zero an array x(n)
+subroutine razero_simple(n,x)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n
+  real(kind=4), intent(out) :: x(n)
+  !Local variables
+  integer :: i
+  do i=1,n
+     x(i)=0.e0
+  end do
+END SUBROUTINE razero_simple
+
+!>   Set to zero an array x(n)
+subroutine razero_integer(n,x)
+  implicit none
+  !Arguments
+  integer, intent(in) :: n
+  integer, dimension(n), intent(out) :: x
+  !Local variables
+  integer :: i
+  do i=1,n
+     x(i)=0
+  end do
+END SUBROUTINE razero_integer
 
 !>   Set to zero an array x(n): omp version of razero
 subroutine omp_razero(n,x)
@@ -53,7 +78,6 @@ subroutine tenminustwenty(n,x,nproc)
   end do
 END SUBROUTINE tenminustwenty
 
-
 !>   Set to 10^-10 an array x(n) for exchange-correlation function of ABINIT.
 !!   We use 10^-10 here since the array will be squared later and we then arrive at
 !!   the desired 10^-20.
@@ -70,6 +94,41 @@ subroutine tenminusten(n,x,nproc)
 END SUBROUTINE tenminusten
 
 
+subroutine dasxpdy(n,da,dx,incx,dy,incy)
+  implicit none
+  integer, intent(in) :: n,incx,incy
+  real(kind=8), intent(in) :: da
+  real(kind=4), dimension(*), intent(in) :: dx
+  real(kind=8), dimension(*), intent(inout) :: dy
+  !local variables
+  integer :: i,ix,iy
+  
+  ix=0
+  iy=0
+  do i=1,n
+     ix=ix+incx
+     iy=iy+incy
+     dy(iy)=dy(iy)+da*real(dx(ix),kind=8)
+  end do
+end subroutine dasxpdy
+
+subroutine dscopy(n,dx,incx,dy,incy)
+  implicit none
+  integer, intent(in) :: n,incx,incy
+  real(kind=8), dimension(*), intent(in) :: dx
+  real(kind=4), dimension(*), intent(out) :: dy
+  !local variables
+  integer :: i,ix,iy
+  
+  ix=0
+  iy=0
+  do i=1,n
+     ix=ix+incx
+     iy=iy+incy
+     dy(iy)=real(dx(ix),kind=4)
+  end do
+
+end subroutine dscopy
 !>   To be used in the following function.
 module randomData
   implicit none

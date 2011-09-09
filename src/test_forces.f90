@@ -1,22 +1,21 @@
-!!****p* BigDFT/test_forces
-!! FUNCTION
-!!    Runs BigDFT and test whether the forces are the 
-!!    derivative of the energy.
-!!    Performs the integration of the calculated forces over
-!!    some random displacement and compare the result with the 
-!!    difference of the energy between the final and the initial 
-!!    position
+!> @file 
+!!   Routines to test atomic forces
+!! @author
+!!   Copyright (C) 2005-2011 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+
+!> Runs BigDFT and test whether the forces are the 
+!! derivative of the energy.
+!! Performs the integration of the calculated forces over
+!! some random displacement and compare the result with the 
+!! difference of the energy between the final and the initial 
+!! position
 !! WARNING
 !!    Date: 10/07; THIS PROGRAM MUST BE COMPLETELY CHANGED
 !!  ***  Date: Feb 2011:  This program was modified and updated by Ali Sadeghi ***
-!! AUTHOR
-!!    Luigi Genovese
-!! COPYRIGHT
-!!    Copyright (C) 2005-2008 CEA
-!! CREATION DATE
-!!    09/2006
-!! SOURCE
-!!
 program test_forces
 
   use module_base
@@ -29,16 +28,15 @@ program test_forces
 
   implicit none
   character(len=*), parameter :: subname='test_forces'
-  integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
-  integer :: ncount_bigdft
-  real(gp) :: etot,sumx,sumy,sumz,fnoise
+  integer :: iproc,nproc,iat,i_stat,i_all,ierr,infocode
+  real(gp) :: etot,fnoise
   logical :: exist_list
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=50), dimension(:), allocatable :: arr_posinp
-  character(len=60) :: filename
+  character(len=60), parameter :: filename="list_posinp"
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz,drxyz
@@ -56,9 +54,9 @@ program test_forces
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
   ! find out which input files will be used
-  inquire(file="list_posinp",exist=exist_list)
+  inquire(file=filename,exist=exist_list)
   if (exist_list) then
-     open(54,file="list_posinp")
+     open(54,file=filename)
      read(54,*) nconfig
      if (nconfig > 0) then 
         !allocation not referenced since memocc count not initialised
@@ -79,7 +77,7 @@ program test_forces
      arr_posinp(1)='posinp'
   end if
   
- !prepare the array of the correct Simpson's rule weigths for the intagration
+ !prepare the array of the correct Simpson's rule weigths for the integration
   if (mod(npath,2).ne.1) stop 'the number of iteration steps has to be odd'
   simpson(1)=1.d0/3.d0
   simpson(2)=4.d0/3.d0
@@ -104,7 +102,7 @@ do iconfig=1,nconfig
                                              " random displacement (in the range [", -dx, ",",dx,"] a.u.)"
              print*, "and compares the result with the difference of the energy  between the final and the initial position:"// &
                   " E2-E1 = -Integral F.dR" 
-             print*," The advatage is two fold: 1) evoiding cancellation error in finite difference derivative," // & 
+             print*," The advantage is two fold: 1) avoiding cancellation error in finite difference derivative," // & 
                     " 2) considernig the forces over all atoms "
              print*,'*********************************************************************************************************'
              print*
@@ -112,9 +110,11 @@ do iconfig=1,nconfig
      endif
 
      ! Read all input files.
+     !standard names
+     call standard_inputfile_names(inputs)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 !     if (iproc == 0) then
- !       call print_general_parameters(inputs,atoms)
+ !       call print_general_parameters(nproc,inputs,atoms)
  !    end if
 
      !initialize memory counting
@@ -131,7 +131,7 @@ do iconfig=1,nconfig
         inputs%last_run = 1
      end if
  
- ! path intagral   
+ ! path integral   
    path=0.d0
   !calculate the displacement at each integration step
   !(use sin instead of random numbers)
@@ -146,10 +146,13 @@ do iconfig=1,nconfig
   do ipath=1,npath
 
         !update atomic positions alog the path
-     if(ipath>1) rxyz(:,:)=rxyz(:,:)+drxyz(:,:)
+     if(ipath>1) then
+        rxyz(:,:)=rxyz(:,:)+drxyz(:,:)
+        inputs%inputPsiId=1
+     end if
 
      if (iproc == 0) then
-        call print_general_parameters(inputs,atoms) ! to know the new positions
+        call print_general_parameters(nproc,inputs,atoms) ! to know the new positions
      end if
                        
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
@@ -214,6 +217,4 @@ do iconfig=1,nconfig
 
   call MPI_FINALIZE(ierr)
 
-
 end program test_forces
-!!***

@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Program test for the convolution in GPU
-program conv_check
+!> Program test for the convolution in GPU with CUDA
+program conv_check_cuda
   use module_base
   implicit none
   integer  :: n1,n2,n3
@@ -35,8 +35,8 @@ program conv_check
   integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
   integer, parameter :: lowfilK=-14,lupfilK=14 ! kinetic term
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
+  integer(kind=8) :: tsc0, tsc1
 
- 
 !!!  !Use arguments
 !!!  call getarg(1,chain)
 !!!  read(unit=chain,fmt=*) n1
@@ -134,14 +134,18 @@ program conv_check
 
            !take timings
            !call system_clock(it0,count_rate,count_max)
-           call cpu_time(t0)
+
+           call nanosec_cuda(tsc0)
+
            do i=1,ntimes
               call convrot_n_per(n1-1,ndat,psi_in,psi_out)
            end do
-           call cpu_time(t1)
+
+           call nanosec_cuda(tsc1)
+
            !call system_clock(it1,count_rate,count_max)
 
-           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
@@ -173,12 +177,13 @@ program conv_check
 
            write(*,'(a,i6,i6)')'GPU Convolutions, dimensions:',n1,ndat
 
-           call cpu_time(t0)
+           call nanosec_cuda(tsc0)
+
            do i=1,ntimes
               call magicfilter1d(n1-1,ndat,work_GPU,psi_GPU)
            end do
-           call cpu_time(t1)
-           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           call nanosec_cuda(tsc1)
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
@@ -242,7 +247,7 @@ program conv_check
 
            psi_out=0.d0
            !take timings
-           call cpu_time(t0)
+           call nanosec_cuda(tsc0)
            do itimes=1,ntimes
               ekin=0.0_gp
 !!!              do i2=1,ndat
@@ -259,9 +264,9 @@ program conv_check
               call conv_kin_x(psi_in,psi_out,ndat,ekin)   
 
            end do
-           call cpu_time(t1)
+           call nanosec_cuda(tsc1)
 
-           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            i_all=-product(shape(modarr))
            deallocate(modarr,stat=i_stat)
@@ -291,14 +296,14 @@ program conv_check
            !take timings
            write(*,'(a,i6,i6)')'GPU Kinetic, dimensions:',n1,ndat
 
-           call cpu_time(t0)
+           call nanosec_cuda(tsc0)
            do i=1,ntimes
               call kinetic1d(n1-1,ndat,hx,0.d0,&
                    work_GPU,psi_GPU,work2_GPU,v_GPU,ekinGPUd)
            end do
-           call cpu_time(t1)
+           call nanosec_cuda(tsc1)
 
-           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
@@ -359,13 +364,13 @@ program conv_check
 
               !take timings
               !call system_clock(it0,count_rate,count_max)
-              call cpu_time(t0)
+              call nanosec_cuda(tsc0)
               do i=1,ntimes
                  call ana_rot_per(n1/2-1,ndat,psi_in,psi_out)
               end do
-              call cpu_time(t1)
+              call nanosec_cuda(tsc1)
 
-              CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+              CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
               write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                    CPUtime*1.d3/real(ntimes,kind=8),&
@@ -384,12 +389,12 @@ program conv_check
 
               write(*,'(a,i6,i6)')'GPU Analysis, dimensions:',n1,ndat
 
-              call cpu_time(t0)
+              call nanosec_cuda(tsc0)
               do i=1,ntimes
                  call ana1d(n1/2-1,ndat,work_GPU,psi_GPU)
               end do
-              call cpu_time(t1)
-              GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+              call nanosec_cuda(tsc1)
+              GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
               write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                    GPUtime*1.d3/real(ntimes,kind=8),&
@@ -441,13 +446,13 @@ program conv_check
 
               !take timings
               !call system_clock(it0,count_rate,count_max)
-              call cpu_time(t0)
+              call nanosec_cuda(tsc0)
               do i=1,ntimes
                  call syn_rot_per(n1/2-1,ndat,psi_in,psi_out)
               end do
-              call cpu_time(t1)
+              call nanosec_cuda(tsc1)
 
-              CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+              CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
               write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                    CPUtime*1.d3/real(ntimes,kind=8),&
@@ -469,12 +474,12 @@ program conv_check
 
               write(*,'(a,i6,i6)')'GPU Synthesis, dimensions:',n1,ndat
 
-              call cpu_time(t0)
+              call nanosec_cuda(tsc0)
               do i=1,ntimes
                  call syn1d(n1/2-1,ndat,work_GPU,psi_GPU)
               end do
-              call cpu_time(t1)
-              GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+              call nanosec_cuda(tsc1)
+              GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
               write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                    GPUtime*1.d3/real(ntimes,kind=8),&
@@ -580,12 +585,11 @@ program conv_check
            allocate(psi_cuda((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
            call memocc(i_stat,psi_cuda,'psi_cuda',subname)
 
-
            
            write(*,'(a,3(i6))')'CPU Uncompress, dimensions:',n1,n1,n1
 
            !take timings
-           call cpu_time(t0)
+           call nanosec_cuda(tsc0)
            do i=1,ntimes
               call uncompress(n1,n1,n1,nseg,nvctr_cf,keyg,keyv,  & 
                    nseg,nvctr_cf,keyg,keyv,psi(1),psi(nvctr_cf+1),psi_in)
@@ -593,9 +597,9 @@ program conv_check
               !call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,mvctr_cf,keyg,keyv,  & 
               !     nseg,mvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
            end do
-           call cpu_time(t1)
+           call nanosec_cuda(tsc1)
 
-           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
@@ -616,12 +620,12 @@ program conv_check
 
            write(*,'(a,3(i6))')'GPU Uncompress, dimensions:',n1,n1,n1
 
-           call cpu_time(t0)
+           call nanosec_cuda(tsc0)
            do i=1,ntimes
               call uncompressgpu(n1,n1,n1,psi_GPU,work_GPU,keys_GPU)
            end do
-           call cpu_time(t1)
-           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           call nanosec_cuda(tsc1)
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
@@ -682,14 +686,14 @@ program conv_check
            write(*,'(a,3(i6))')'CPU Compress, dimensions:',n1,n1,n1
 
            !take timings
-           call cpu_time(t0)
+           call nanosec_cuda(tsc0)
            do i=1,ntimes
               call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
                    nseg,nvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
            end do
-           call cpu_time(t1)
+           call nanosec_cuda(tsc1)
 
-           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
@@ -709,12 +713,13 @@ program conv_check
 
            write(*,'(a,3(i6))')'GPU Compress, dimensions:',n1,n1,n1
 
-           call cpu_time(t0)
+           call nanosec_cuda(tsc0)
            do i=1,ntimes
               call compressgpu(n1,n1,n1,work_GPU,psi_GPU,keys_GPU)
            end do
-           call cpu_time(t1)
-           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+           call nanosec_cuda(tsc1)
+
+           GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
                 GPUtime*1.d3/real(ntimes,kind=8),&
@@ -770,14 +775,12 @@ program conv_check
            call memocc(i_stat,i_all,'psi_cuda',subname)
 
 
-
            i_all=-product(shape(keyg))
            deallocate(keyg,stat=i_stat)
            call memocc(i_stat,i_all,'keyg',subname)
            i_all=-product(shape(keyv))
            deallocate(keyv,stat=i_stat)
            call memocc(i_stat,i_all,'keyv',subname)
-
 
 
         end do
@@ -829,18 +832,18 @@ contains
              tt11=tt11+x(j,i*12+11)*fil(l)
              tt12=tt12+x(j,i*12+12)*fil(l)
           enddo
-          y(i*12+1 ,i1)=tt1;	 ekin=ekin+tt1*x(i1,i*12+1)
-          y(i*12+2 ,i1)=tt2;	 ekin=ekin+tt2*x(i1,i*12+2)
-          y(i*12+3 ,i1)=tt3;	 ekin=ekin+tt3*x(i1,i*12+3)
-          y(i*12+4 ,i1)=tt4;	 ekin=ekin+tt4*x(i1,i*12+4)
-          y(i*12+5 ,i1)=tt5;	 ekin=ekin+tt5*x(i1,i*12+5)
-          y(i*12+6 ,i1)=tt6;	 ekin=ekin+tt6*x(i1,i*12+6)
-          y(i*12+7 ,i1)=tt7;	 ekin=ekin+tt7*x(i1,i*12+7)
-          y(i*12+8 ,i1)=tt8;	 ekin=ekin+tt8*x(i1,i*12+8)
-          y(i*12+9 ,i1)=tt9 ;	 ekin=ekin+tt9 *x(i1,i*12+9 )
-          y(i*12+10,i1)=tt10;	 ekin=ekin+tt10*x(i1,i*12+10)
-          y(i*12+11,i1)=tt11;	 ekin=ekin+tt11*x(i1,i*12+11)
-          y(i*12+12,i1)=tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
+          y(i*12+1 ,i1)=tt1;     ekin=ekin+tt1*x(i1,i*12+1)
+          y(i*12+2 ,i1)=tt2;     ekin=ekin+tt2*x(i1,i*12+2)
+          y(i*12+3 ,i1)=tt3;     ekin=ekin+tt3*x(i1,i*12+3)
+          y(i*12+4 ,i1)=tt4;     ekin=ekin+tt4*x(i1,i*12+4)
+          y(i*12+5 ,i1)=tt5;     ekin=ekin+tt5*x(i1,i*12+5)
+          y(i*12+6 ,i1)=tt6;     ekin=ekin+tt6*x(i1,i*12+6)
+          y(i*12+7 ,i1)=tt7;     ekin=ekin+tt7*x(i1,i*12+7)
+          y(i*12+8 ,i1)=tt8;     ekin=ekin+tt8*x(i1,i*12+8)
+          y(i*12+9 ,i1)=tt9 ;    ekin=ekin+tt9 *x(i1,i*12+9 )
+          y(i*12+10,i1)=tt10;    ekin=ekin+tt10*x(i1,i*12+10)
+          y(i*12+11,i1)=tt11;    ekin=ekin+tt11*x(i1,i*12+11)
+          y(i*12+12,i1)=tt12;    ekin=ekin+tt12*x(i1,i*12+12)
        enddo
     enddo
     !$omp end do
@@ -859,4 +862,4 @@ contains
     !$omp end do
   END SUBROUTINE conv_kin_x
 
-end program conv_check
+end program conv_check_cuda

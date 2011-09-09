@@ -1120,7 +1120,7 @@ subroutine cubic_exact_exchange(iproc,nproc,nspin,npsidim,size_potxc,hx,hy,hz,Gl
            ngatherarr,psi,potxc,eexctX,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
-  use libxc_functionals
+  use module_xc 
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,npsidim,size_potxc
   real(gp), intent(in) :: hx,hy,hz
@@ -1139,10 +1139,10 @@ subroutine cubic_exact_exchange(iproc,nproc,nspin,npsidim,size_potxc,hx,hy,hz,Gl
   integer :: n3p
 
   !initialise exact exchange energy 
-  op2p=(eexctX == -99.0_gp)
+  op2p=(eexctX ==  UNINITIALIZED(1.0_gp))
   eexctX=0.0_gp
 
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
 
   !fill the rest of the potential with the exact-exchange terms
   if (present(pkernel) .and. exctX ) then
@@ -1156,8 +1156,8 @@ subroutine cubic_exact_exchange(iproc,nproc,nspin,npsidim,size_potxc,hx,hy,hz,Gl
              0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psirocc,psi,potxc)
         eexctX = 0._gp
      else
- !$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
- !$             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
+ !!$        call exact_exchange_potential_round(iproc,nproc,at%geocode,nspin,lr,orbs,&
+ !!$             0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psi,pot(ispot),eexctX)
 
         !here the condition for the scheme should be chosen
         if (.not. op2p) then

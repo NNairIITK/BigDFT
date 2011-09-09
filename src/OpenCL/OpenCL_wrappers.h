@@ -6,7 +6,7 @@
 #include <config.h>
 #include <math.h>
 #include <assert.h>
-#include <Tool.h>
+//#include <Tool.h>
 #include <time.h>
 
 /** @file OpenCL_wrappers.h
@@ -85,14 +85,36 @@ struct bigdft_kernels {
   cl_kernel benchmark_flops_kernel_d;
   cl_kernel benchmark_mops_kernel_d;
   cl_kernel transpose_kernel_d;
+  cl_kernel notranspose_kernel_d;
+  cl_kernel fft_kernel_d0_d;
+  cl_kernel fft_kernel_d1_d;
+  cl_kernel fft_kernel_d2_d;
+  cl_kernel fft_kernel_d0_r_d;
+  cl_kernel fft_kernel_d1_r_d;
+  cl_kernel fft_kernel_d2_r_d;
+};
+
+struct bigdft_device_infos {
+  size_t MAX_WORK_GROUP_SIZE;
+  cl_ulong LOCAL_MEM_SIZE;
+  cl_uint MAX_COMPUTE_UNITS;
+  char NAME[1024];
 };
 
 struct _bigdft_command_queue {
   struct bigdft_kernels kernels;
+  struct bigdft_device_infos device_infos;
   cl_command_queue command_queue;
 };
 typedef struct _bigdft_command_queue * bigdft_command_queue;
 
+extern cl_uint fft_size[3];
+void FC_FUNC_(customize_fft,CUSTOMIZE_FFT)(cl_uint *dimensions);
+
+
+/** Recovers device info used by BigDFT code generator. */
+void get_context_devices_infos(cl_context * context, struct bigdft_device_infos * infos);
+void get_device_infos(cl_device_id device, struct bigdft_device_infos * infos);
 /** Creates all bigdft kernels*/
 void create_kernels(struct bigdft_kernels *kernels);
 /** Creates magicfilter kernels. to be called after building the magicfilter programs. */
@@ -103,6 +125,7 @@ void create_wavelet_kernels(struct bigdft_kernels * kernels);
 void create_uncompress_kernels(struct bigdft_kernels * kernels);
 void create_initialize_kernels(struct bigdft_kernels * kernels);
 void create_reduction_kernels(struct bigdft_kernels * kernels);
+void create_fft_kernels(struct bigdft_kernels * kernels);
 /** Compiles magicfilter programs in the given context. */
 void build_magicfilter_programs(cl_context * context);
 void build_reduction_programs(cl_context * context);
@@ -111,6 +134,7 @@ void build_kinetic_programs(cl_context * context);
 void build_wavelet_programs(cl_context * context);
 void build_uncompress_programs(cl_context * context);
 void build_initialize_programs(cl_context * context);
+void build_fft_programs(cl_context * context);
 /** Releases magicfilter kernels. */
 void clean_magicfilter_kernels(struct bigdft_kernels * kernels);
 void clean_benchmark_kernels(struct bigdft_kernels * kernels);
@@ -119,6 +143,7 @@ void clean_wavelet_kernels(struct bigdft_kernels * kernels);
 void clean_uncompress_kernels(struct bigdft_kernels * kernels);
 void clean_initialize_kernels(struct bigdft_kernels * kernels);
 void clean_reduction_kernels(struct bigdft_kernels * kernels);
+void clean_fft_kernels(struct bigdft_kernels * kernels);
 /** Releases magicfilter programs. */
 void clean_magicfilter_programs();
 void clean_benchmark_programs();
@@ -127,6 +152,7 @@ void clean_initialize_programs();
 void clean_wavelet_programs();
 void clean_uncompress_programs();
 void clean_reduction_programs();
+void clean_fft_programs();
 
 /** Returns the first device available in a given context. */
 cl_device_id oclGetFirstDev(cl_context cxGPUContext);
@@ -418,6 +444,14 @@ void FC_FUNC_(potential_application_d,POTENTIAL_APPLICATION_D)(bigdft_command_qu
  */
 void FC_FUNC_(potential_application_d_generic,POTENTIAL_APPLICATION_D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out, cl_mem *pot, cl_double *epot);
 
+/** Benchmark to evaluate the throughput of the copy mechanism used in the convolutions.
+ *  @param command_queue used to process the convolution.
+ *  @param n size of the first dimension.
+ *  @param ndat size of the second dimension.
+ *  @param psi input buffer of size ndat * n * sizeof(double), stored in column major order.
+ *  @param out output buffer of size ndat * n * sizeof(double), stored in column major order.
+ */
+void FC_FUNC_(notranspose_d,NOTRANSPOSE_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
 /** Benchmark to evaluate the throughput of the transposition mechanism used in the convolutions.
  *  @param command_queue used to process the convolution.
  *  @param n size of the first dimension.
@@ -849,4 +883,6 @@ void FC_FUNC_(ocl_daub_to_isf,OCL_DAUB_TO_ISF)(bigdft_command_queue *command_que
                                           cl_mem *work, cl_mem *kinres);
 void FC_FUNC_(magic_filter_t_3d_generic,MAGIC_FILTER_T_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out);
 void FC_FUNC_(magic_filter_3d_generic,MAGIC_FILTER_3D_GENERIC)(bigdft_command_queue *command_queue, cl_uint *dimensions, cl_uint *periodic, cl_mem *tmp, cl_mem *tmp_dot, cl_mem *psi, cl_mem *out);
+void FC_FUNC_(fft1d_d,FFT1D_D)(bigdft_command_queue *command_queue, cl_uint *n,cl_uint *ndat,cl_mem *psi,cl_mem *out);
+void FC_FUNC_(fft3d_d,FFT3D_D)(bigdft_command_queue *command_queue, cl_uint *dimensions,cl_mem *psi,cl_mem *out,cl_mem *tmp);
 #endif

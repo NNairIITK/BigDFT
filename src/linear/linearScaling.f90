@@ -1,6 +1,6 @@
-subroutine linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, at, input, lin, rxyz, fion, fdisp, radii_cf, &
-    nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, &
-    eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
+subroutine linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, at, input, rhodsc, lin, rxyz, fion, fdisp,&
+    radii_cf, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, phnons, pkernel, pot_ion, rhocore, potxc,&
+    PSquiet, eion, edisp, eexctX, scpot, psi, psit, energy, fxyz)
 !
 ! Purpose:
 ! ========
@@ -67,6 +67,7 @@ type(communications_arrays),intent(in) :: comms
 type(atoms_data),intent(inout):: at
 type(linearParameters),intent(in out):: lin
 type(input_variables),intent(in):: input
+type(rho_descriptors),intent(in) :: rhodsc
 real(8),dimension(3,at%nat),intent(inout):: rxyz
 real(8),dimension(3,at%nat),intent(in):: fion, fdisp
 real(8),dimension(at%ntypes,3),intent(in):: radii_cf
@@ -150,7 +151,7 @@ type(workarr_sumrho):: w
 
   potshortcut=0 ! What is this?
   call inputguessConfinement(iproc, nproc, at, &
-       comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
+       comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        tag, lphi, ehart, eexcu, vexcu)
