@@ -295,7 +295,7 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => local_partial_densityLinear
-
+  use module_xc
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: iproc,nproc
@@ -333,7 +333,6 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   end if
   nspincomp = 1
   if (nspin > 1) nspincomp = 2
-  ind=1
 
  !allocate and define Lnscatterarr which is just a fake
   allocate(Lnscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
@@ -341,8 +340,13 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
   Lnscatterarr(:,3) = 0
   Lnscatterarr(:,4) = 0
 
-!Need to initilize rho?
-         
+  if (xc_isgga()) then   !is this xc logical ok?
+     call razero(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1)*max(nspin,orbs%nspinor),rho)
+  else
+     call tenminustwenty(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1)*max(nspin,orbs%nspinor),rho,nproc)
+  end if
+
+  ind=1
   orbitalsLoop: do ii=1,orbs%norbp
 
      iorb = ii + orbs%isorb
@@ -360,7 +364,8 @@ subroutine local_partial_densityLinear(iproc,nproc,rsflag,nscatterarr,&
         call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
      end if
  
-     !Need to zero rho_p?
+     !Need to zero rho_p
+     call razero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn, rho_p)
 
      !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
      hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(iorb)/(hxh*hyh*hzh))
