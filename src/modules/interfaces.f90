@@ -4526,14 +4526,31 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine collectAndCalculateOverlap
 
 
-      subroutine postCommsOverlapNew(iproc, nproc, comon)
+      subroutine postCommsOverlapNew(iproc, nproc, orbs, op, lzd, phi, comon)
         use module_base
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc
+        type(orbitals_data),intent(in):: orbs
+        type(overlapParameters),intent(in):: op
+        type(local_zone_descriptors),intent(in):: lzd
+        real(8),dimension(lzd%lpsidimtot),intent(in):: phi
         type(p2pCommsOrthonormality),intent(inout):: comon
       end subroutine postCommsOverlapNew
 
+      subroutine expandOneOrbital2(iproc, nproc, orbsource, orbdest, orbs, input, onWhichAtom, lzd, op, nrecvbuf, recvbuf, lphiovrlp)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, orbsource, orbdest, nrecvbuf
+        type(orbitals_data),intent(in):: orbs
+        type(input_variables),intent(in):: input
+        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+        type(local_zone_descriptors),intent(in):: lzd
+        type(overlapParameters),intent(in):: op
+        real(8),dimension(nrecvbuf),intent(in):: recvbuf
+        real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
+      end subroutine expandOneOrbital2
 
 
 
