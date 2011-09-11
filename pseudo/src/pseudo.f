@@ -336,7 +336,7 @@ c      No loop over command line arguments needed.
             endif
             ii=index(string,'-noflpaw')
             if (ii.ne.0) then
-               label=string(ii+8:min(ii+15,120))
+               label=string(ii+8:min(ii+16,120))
                read(label,*) npawl
                write(6,*)  'will calculate paw patches for the',
      :          nconfpaw, ' first Ls '
@@ -345,7 +345,7 @@ c      No loop over command line arguments needed.
 
             ii=index(string,'-nchannelspaw')
             if (ii.ne.0) then
-               label=string(ii+13:min(ii+20,120))
+               label=string(ii+13:min(ii+21,120))
                read(label,*) npawchannels 
                write(6,*)  'will consider',
      :         npawchannels , ' paw channels  '
@@ -362,21 +362,21 @@ c      No loop over command line arguments needed.
 
             ii=index(string,'-pawstn')
             if (ii.ne.0) then
-               label=string(ii+7:min(ii+14,120))
+               label=string(ii+7:min(ii+15,120))
                read(label,*)  pawstN
                write(6,*)  ' N of st. wf. is ', pawstN
             endif
 
             ii=index(string,'-pawstl')
             if (ii.ne.0) then
-               label=string(ii+7:min(ii+14,120))
+               label=string(ii+7:min(ii+15,120))
                read(label,*)  pawstL
                write(6,*)  ' L of st. wf. is ' , pawstL
             endif
 
             ii=index(string,'-pawstP')
             if (ii.ne.0) then
-               label=string(ii+7:min(ii+14,120))
+               label=string(ii+7:min(ii+15,120))
                read(label,*)  pawstP
                write(6,*)  ' initial wf radial part is ',
      :          ' multiplied by r**' , pawstP
@@ -1575,7 +1575,6 @@ c           if(ipspcod.le.9)lpx=-2
             if (nconfpaw/=-1) then
                verbose=.true.
 
-               print *, "  ngrid ", ngrid
                call pawpatch(energ,verbose,nfit,pp(1),yp(1),
      :              noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,
      :              no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,
