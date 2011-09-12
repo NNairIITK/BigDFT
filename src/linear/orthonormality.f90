@@ -2141,8 +2141,8 @@ subroutine expandOneOrbital2(iproc, nproc, orbsource, orbdest, orbs, input, onWh
           if(jjorb==orbsource .and. iorb==orbdest) then
               do i=0,ldim-1
                   indDest=ind+op%indexExpand(jst+i)-1
-                  !lphiovrlp(indDest)=recvbuf(jst+i)
-                  lphiovrlp(indDest)=recvbuf(1+i)
+                  lphiovrlp(indDest)=recvbuf(jst+i)
+                  !lphiovrlp(indDest)=recvbuf(1+i)
               end do
           end if
           ind=ind+gdim
