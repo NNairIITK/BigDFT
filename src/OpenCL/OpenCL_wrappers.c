@@ -86,6 +86,7 @@ void get_device_infos(cl_device_id device, struct bigdft_device_infos * infos){
     clGetDeviceInfo(device, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(infos->LOCAL_MEM_SIZE), &(infos->LOCAL_MEM_SIZE), NULL);
     clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(infos->MAX_WORK_GROUP_SIZE), &(infos->MAX_WORK_GROUP_SIZE), NULL);
     clGetDeviceInfo(device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(infos->MAX_COMPUTE_UNITS), &(infos->MAX_COMPUTE_UNITS), NULL);
+    clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(infos->NAME), infos->NAME, NULL);
 }
 
 void FC_FUNC_(ocl_create_gpu_context,OCL_CREATE_GPU_CONTEXT)(cl_context * context) {

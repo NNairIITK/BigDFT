@@ -134,19 +134,15 @@ program conv_check_cuda
 
            !take timings
            !call system_clock(it0,count_rate,count_max)
-<<<<<<< TREE
+
            call nanosec_cuda(tsc0)
-=======
-           call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
+
            do i=1,ntimes
               call convrot_n_per(n1-1,ndat,psi_in,psi_out)
            end do
-<<<<<<< TREE
+
            call nanosec_cuda(tsc1)
-=======
-           call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
+
            !call system_clock(it1,count_rate,count_max)
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
@@ -181,19 +177,12 @@ program conv_check_cuda
 
            write(*,'(a,i6,i6)')'GPU Convolutions, dimensions:',n1,ndat
 
-<<<<<<< TREE
            call nanosec_cuda(tsc0)
-=======
-           call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
+
            do i=1,ntimes
               call magicfilter1d(n1-1,ndat,work_GPU,psi_GPU)
            end do
-<<<<<<< TREE
            call nanosec_cuda(tsc1)
-=======
-           call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
@@ -258,11 +247,7 @@ program conv_check_cuda
 
            psi_out=0.d0
            !take timings
-<<<<<<< TREE
            call nanosec_cuda(tsc0)
-=======
-           call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
            do itimes=1,ntimes
               ekin=0.0_gp
 !!!              do i2=1,ndat
@@ -279,11 +264,7 @@ program conv_check_cuda
               call conv_kin_x(psi_in,psi_out,ndat,ekin)   
 
            end do
-<<<<<<< TREE
            call nanosec_cuda(tsc1)
-=======
-           call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -315,20 +296,12 @@ program conv_check_cuda
            !take timings
            write(*,'(a,i6,i6)')'GPU Kinetic, dimensions:',n1,ndat
 
-<<<<<<< TREE
            call nanosec_cuda(tsc0)
-=======
-           call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
            do i=1,ntimes
               call kinetic1d(n1-1,ndat,hx,0.d0,&
                    work_GPU,psi_GPU,work2_GPU,v_GPU,ekinGPUd)
            end do
-<<<<<<< TREE
            call nanosec_cuda(tsc1)
-=======
-           call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -391,19 +364,11 @@ program conv_check_cuda
 
               !take timings
               !call system_clock(it0,count_rate,count_max)
-<<<<<<< TREE
               call nanosec_cuda(tsc0)
-=======
-              call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
               do i=1,ntimes
                  call ana_rot_per(n1/2-1,ndat,psi_in,psi_out)
               end do
-<<<<<<< TREE
               call nanosec_cuda(tsc1)
-=======
-              call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
 
               CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -424,19 +389,11 @@ program conv_check_cuda
 
               write(*,'(a,i6,i6)')'GPU Analysis, dimensions:',n1,ndat
 
-<<<<<<< TREE
               call nanosec_cuda(tsc0)
-=======
-              call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
               do i=1,ntimes
                  call ana1d(n1/2-1,ndat,work_GPU,psi_GPU)
               end do
-<<<<<<< TREE
               call nanosec_cuda(tsc1)
-=======
-              call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
               GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
               write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
@@ -489,19 +446,11 @@ program conv_check_cuda
 
               !take timings
               !call system_clock(it0,count_rate,count_max)
-<<<<<<< TREE
               call nanosec_cuda(tsc0)
-=======
-              call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
               do i=1,ntimes
                  call syn_rot_per(n1/2-1,ndat,psi_in,psi_out)
               end do
-<<<<<<< TREE
               call nanosec_cuda(tsc1)
-=======
-              call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
 
               CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -525,19 +474,11 @@ program conv_check_cuda
 
               write(*,'(a,i6,i6)')'GPU Synthesis, dimensions:',n1,ndat
 
-<<<<<<< TREE
               call nanosec_cuda(tsc0)
-=======
-              call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
               do i=1,ntimes
                  call syn1d(n1/2-1,ndat,work_GPU,psi_GPU)
               end do
-<<<<<<< TREE
               call nanosec_cuda(tsc1)
-=======
-              call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
               GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
               write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
@@ -648,11 +589,7 @@ program conv_check_cuda
            write(*,'(a,3(i6))')'CPU Uncompress, dimensions:',n1,n1,n1
 
            !take timings
-<<<<<<< TREE
            call nanosec_cuda(tsc0)
-=======
-           call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
            do i=1,ntimes
               call uncompress(n1,n1,n1,nseg,nvctr_cf,keyg,keyv,  & 
                    nseg,nvctr_cf,keyg,keyv,psi(1),psi(nvctr_cf+1),psi_in)
@@ -660,11 +597,7 @@ program conv_check_cuda
               !call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,mvctr_cf,keyg,keyv,  & 
               !     nseg,mvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
            end do
-<<<<<<< TREE
            call nanosec_cuda(tsc1)
-=======
-           call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -687,19 +620,11 @@ program conv_check_cuda
 
            write(*,'(a,3(i6))')'GPU Uncompress, dimensions:',n1,n1,n1
 
-<<<<<<< TREE
            call nanosec_cuda(tsc0)
-=======
-           call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
            do i=1,ntimes
               call uncompressgpu(n1,n1,n1,psi_GPU,work_GPU,keys_GPU)
            end do
-<<<<<<< TREE
            call nanosec_cuda(tsc1)
-=======
-           call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
@@ -761,20 +686,12 @@ program conv_check_cuda
            write(*,'(a,3(i6))')'CPU Compress, dimensions:',n1,n1,n1
 
            !take timings
-<<<<<<< TREE
            call nanosec_cuda(tsc0)
-=======
-           call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
            do i=1,ntimes
               call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
                    nseg,nvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
            end do
-<<<<<<< TREE
            call nanosec_cuda(tsc1)
-=======
-           call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
 
            CPUtime=real(tsc1-tsc0,kind=8)*1d-9
 
@@ -796,19 +713,11 @@ program conv_check_cuda
 
            write(*,'(a,3(i6))')'GPU Compress, dimensions:',n1,n1,n1
 
-<<<<<<< TREE
            call nanosec_cuda(tsc0)
-=======
-           call nanosec(tsc0)
->>>>>>> MERGE-SOURCE
            do i=1,ntimes
               call compressgpu(n1,n1,n1,work_GPU,psi_GPU,keys_GPU)
            end do
-<<<<<<< TREE
            call nanosec_cuda(tsc1)
-=======
-           call nanosec(tsc1)
->>>>>>> MERGE-SOURCE
 
            GPUtime=real(tsc1-tsc0,kind=8)*1d-9
 

@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Orthogonality routine, for all the orbitals
-!!    Uses wavefunctions in their transposed form
+!> Orthogonality routine, for all the orbitals
+!! Uses wavefunctions in their transposed form
 subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,orthpar)
   use module_base
   use module_types
@@ -1525,10 +1525,15 @@ END SUBROUTINE KStrans_p
 !!  and Cholesky orthonomalization. At the end the vectors are again untransposed.
 !!
 !!  Input arguments:
-!!   @param  iproc     process ID
-!!   @param  nproc     total number of processes
-!!   @param  norb      total number of vectors that have to be orthonomalized, shared over all processes
-!!   @param  input     data type containing many parameters
+!!   @param  iproc      process ID
+!!   @param  nproc      total number of processes
+!!   @param  norb       total number of vectors that have to be orthonomalized, shared over all processes
+!!   @param  orthpar    data type containing many parameters
+!!   @param  nspinor    size of spinor
+!!   @param  nspin      spin components
+!!   @param  ndilmovrlp dimension of overlap
+!!   @param  norbArr
+!!   @param  comms      Communication arrays
 !!  Input/Output arguments:
 !!   @param  psi
 !!       - on input: the vectors to be orthonormalized
@@ -1541,7 +1546,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
   ! Calling arguments
   !integer, intent(in) :: ikpt
   integer, intent(in) :: iproc, nproc, nspinor,nspin
-  type(orthon_data):: orthpar
+  type(orthon_data), intent(in):: orthpar
   type(orbitals_data):: orbs
   type(communications_arrays), intent(in) :: comms
   integer, dimension(nspin), intent(in) :: norbArr

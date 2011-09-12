@@ -16,7 +16,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   ! Output: rho
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
-  use libxc_functionals
+  use module_xc
 
   implicit none
   !Arguments
@@ -64,10 +64,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
 
   !flag for toggling the REDUCE_SCATTER stategy (deprecated, icomm used instead of ixc value)
   !rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-  !     & (ixc < 0 .and. libxc_functionals_isgga()))
+  !     & (ixc < 0 .and. module_xc_isgga()))
   
 !  write(*,*) 'RSFLAG stuffs ',(ixc >= 11 .and. ixc <= 16),&
-!             (ixc < 0 .and. libxc_functionals_isgga()), have_mpi2,rsflag
+!             (ixc < 0 .and. module_xc_isgga()), have_mpi2,rsflag
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rhodsc%icomm==1) then
@@ -105,11 +105,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,hxh,hyh,hzh,psi,rho,&
   else
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
      !otherwise use libXC routine
-     if (libxc_functionals_isgga()) then
-        call razero(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p)
-     else
-        call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
-     end if
+     call xc_init_rho(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
 
      !for each of the orbitals treated by the processor build the partial densities
      call local_partial_density(iproc,nproc,(rhodsc%icomm==1),nscatterarr,&

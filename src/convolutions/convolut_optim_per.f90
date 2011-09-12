@@ -891,6 +891,8 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
      ekin_out=ekin_out+ekin1+ekin2+ekin3
   !$omp end critical
   !$omp end parallel
+
+
 !dee
 !!$!  open(unit=97,file='check_ekin3',status='unknown')
 !!$    write(197,*) '-------------------------------------------------------------------'
@@ -906,8 +908,8 @@ subroutine conv_kin_x(x,y,n1,n2,n3,ekin,fil,mod_arr1)
   use module_base
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
-  integer, intent(in) :: mod_arr1(lowfil:n1+lupfil)
   integer, intent(in) :: n1,n2,n3
+  integer, intent(in) :: mod_arr1(lowfil:n1+lupfil)
   real(wp), intent(in) :: fil(lowfil:lupfil,3) 
   integer :: ndat
   real(wp),intent(in) :: x(0:n1,(n2+1)*(n3+1))
@@ -979,13 +981,12 @@ subroutine conv_kin_x(x,y,n1,n2,n3,ekin,fil,mod_arr1)
    !$omp end do
 END SUBROUTINE conv_kin_x
 
-
 subroutine conv_kin_y(x,y,n1,n2,n3,ekin,fil,mod_arr2)
   use module_base
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
-  integer, intent(in) :: mod_arr2(lowfil:n2+lupfil)
   integer, intent(in) :: n1,n2,n3
+  integer, intent(in) :: mod_arr2(lowfil:n2+lupfil)
   real(wp), intent(in) :: fil(lowfil:lupfil,3) 
   real(wp),intent(in) :: x(0:n1,0:n2,0:n3)
   real(wp),intent(inout) :: y(0:n1,0:n2,0:n3)

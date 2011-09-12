@@ -9,6 +9,13 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 !!
+
+!>    Calculate the Hartree potential by solving Poisson equation 
+!!    @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
+!!    from a given @f$\rho@f$, 
+!!    for different boundary conditions an for different data distributions.
+!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
+!!    
 !!  @param geocode Indicates the boundary conditions (BC) of the problem:
 !!          - 'F' free BC, isolated systems.
 !!                The program calculates the solution as if the given density is
@@ -65,13 +72,6 @@
 !!
 !! @todo
 !!    Wire boundary condition is missing
-
-
-!>    Calculate the Hartree potential by solving Poisson equation 
-!!    @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
-!!    from a given @f$\rho@f$, 
-!!    for different boundary conditions an for different data distributions.
-!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
 subroutine H_potential(geocode,datacode,iproc,nproc,n01,n02,n03,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,offset,sumpion,&
      quiet) !optional argument
@@ -979,7 +979,7 @@ END SUBROUTINE PSolverNC
 !!    related to the Poisson Solver
 !!
 !! SYNOPSIS
-!!    geocode  Indicates the boundary conditions (BC) of the problem:
+!!    @param geocode  Indicates the boundary conditions (BC) of the problem:
 !!            'F' free BC, isolated systems.
 !!                The program calculates the solution as if the given density is
 !!                "alone" in R^3 space.
@@ -991,7 +991,7 @@ END SUBROUTINE PSolverNC
 !!                The density is supposed to be periodic in all the three directions,
 !!                then all the dimensions must be compatible with the FFT.
 !!                No need for setting up the kernel.
-!!    datacode Indicates the distribution of the data of the input/output array:
+!!    @param datacode Indicates the distribution of the data of the input/output array:
 !!            'G' global data. Each process has the whole array of the density 
 !!                which will be overwritten with the whole array of the potential
 !!            'D' distributed data. Each process has only the needed part of the density
@@ -1096,18 +1096,13 @@ END SUBROUTINE PS_dim4allocation
 !! SYNOPSIS
 !!    geocode   choice of the boundary conditions
 !!
-!!    ixc       XC id
-!!
-!!    m2        dimension to be parallelised
-!!   
-!!    nxc       size of the parallelised XC potential
-!!
-!!    ncxl,ncxr left and right buffers for calculating the WB correction after call drivexc
-!!    nwbl,nwbr left and right buffers for calculating the gradient to pass to drivexc
-!!    
-!!    i3s       starting addres of the distributed dimension
-!!
-!!    i3xcsh    shift to be applied to i3s for having the striting address of the potential
+!!    @param ixc       XC id
+!!    @param m2        dimension to be parallelised
+!!    @param nxc       size of the parallelised XC potential
+!!    @param ncxl,ncxr left and right buffers for calculating the WB correction after call drivexc
+!!    @param nwbl,nwbr left and right buffers for calculating the gradient to pass to drivexc    
+!!    @param i3s       starting addres of the distributed dimension
+!!    @param i3xcsh    shift to be applied to i3s for having the striting address of the potential
 !!
 !! @warning
 !!    It is imperative that iend <=m2
@@ -1117,7 +1112,7 @@ END SUBROUTINE PS_dim4allocation
 !!    May 2008
 !!
 subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
-  use libxc_functionals
+  use module_xc
 
   implicit none
 
@@ -1129,8 +1124,7 @@ subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,
   logical :: use_gradient
 
   if (istart <= m2-1) then
-     use_gradient = (ixc >= 11 .and. ixc <= 16) .or. &
-          & (ixc < 0 .and. libxc_functionals_isgga())
+     use_gradient = xc_isgga()
      nxc=iend-istart
      if (use_gradient .and. geocode == 'F') then
         if (ixc==13) then

@@ -413,7 +413,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
                     jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
                     if (abs(Kbig(jmulti,imulti)) > 5.d-02) then 
                        write(6,60) iorbi, iorba,  abs(Kbig(jmulti,imulti))
-60                     format (i4,'----->',i3,2x,' Coeff )=',1pe12.5) 
+60                     format (i4,'----->',i3,2x,' Coeff =',1pe10.3) 
                     end if
                  end do
               end do

@@ -39,7 +39,7 @@
 
 <p>A <a href="BigDFT-manual.pdf"><img src="images/pdf-icon.png" class="icon" />
     manual</a> and some <a href="tutorials.html">tutorials</a> are also available.
-  BigDFT is provided with several built-in tests providing extensive
+  BigDFT is shipped with several built-in tests providing extensive
   examples of input files and capabilities.</p>
 
 <p>The code BigDFT is available in

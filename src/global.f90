@@ -485,7 +485,7 @@ program MINHOP
       e_hop=1.d100                                                                                            
       ediff=ediff*alpha1                               
 ! write intermediate results
-      write(*,*) 'WINTER'
+      if (iproc == 0) write(*,*) 'WINTER'
       if (iproc == 0) call winter(atoms,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, & 
            earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
       goto 1000
