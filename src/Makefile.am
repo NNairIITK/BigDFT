@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft test_forces memguess splsad NEB frequencies MDanalysis rism oneatom  $(minima_hopping_sources) bart abscalc
+binaries_sources = bigdft test_forces memguess splsad NEB frequencies MDanalysis rism oneatom BigDFT2Wannier  $(minima_hopping_sources) bart abscalc
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -319,6 +319,16 @@ oneatom_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_opt)
+
+BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90                                                                                                                                                                                  
+BigDFT2Wannier_LDFLAGS =
+BigDFT2Wannier_LDADD = libbigdft.a \
+        PSolver/libpoissonsolver.a \
+        $(LMPI) \
+        @MPI_LIBS@ \
+        $(libs_opt)
+
+
 
 MDanalysis_SOURCES = distances.f90 
 MDanalysis_LDFLAGS = 
