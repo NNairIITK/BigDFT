@@ -66,11 +66,11 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
       allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
       call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
       !!call mpi_barrier(mpi_comm_world, ierr)
-      allocate(sendbufcopy(comon%nsendbuf), stat=istat)
-      call dcopy(comon%nsendbuf, comon%sendbuf(1), 1, sendbufcopy(1), 1)
+      !allocate(sendbufcopy(comon%nsendbuf), stat=istat)
+      !call dcopy(comon%nsendbuf, comon%sendbuf(1), 1, sendbufcopy(1), 1)
       call collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
-           sendbufcopy, comon%nrecvbuf, comon%recvbuf, ovrlp, lphiovrlp, timecommunp2p, timecommuncoll, timeoverlap, timeexpand, timecompress)
-      deallocate(sendbufcopy, stat=istat)
+           comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp, lphiovrlp, timecommunp2p, timecommuncoll, timeoverlap, timeexpand, timecompress)
+      !deallocate(sendbufcopy, stat=istat)
       !write(*,*) 'second timecommunp2p',timecommunp2p
       !call getOrbitals(iproc, nproc, comon)
       t2=mpi_wtime()
@@ -83,21 +83,22 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
       call deallocateSendBufferOrtho(comon, subname)
       t2=mpi_wtime()
       !timeCalcOvrlp=timeCalcOvrlp+t2-t1
-!!do iorb=1,orbs%norb
-!!  do jorb=1,orbs%norb
-!!    write(500+iproc,*) iorb, jorb, ovrlp(jorb,iorb)
-!!  end do
-!!end do
       call checkUnity(iproc, orbs%norb, ovrlp, maxError)
       if(iproc==0) write(*,'(3x,a,es12.4)') 'maximal deviation from unity:', maxError
       if(maxError<convCritOrtho) then
           converged=.true.
           call deallocateRecvBufferOrtho(comon, subname)
+          iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
+          deallocate(lphiovrlp, stat=istat)
+          call memocc(istat, iall, 'lphiovrlp', subname)
           t2=mpi_wtime()
           timeComput=timeComput+t2-t1
           exit
       else if(it==nItOrtho) then
           call deallocateRecvBufferOrtho(comon, subname)
+          iall=-product(shape(lphiovrlp))*kind(lphiovrlp)
+          deallocate(lphiovrlp, stat=istat)
+          call memocc(istat, iall, 'lphiovrlp', subname)
           t2=mpi_wtime()
           timeComput=timeComput+t2-t1
           exit
@@ -3809,46 +3810,10 @@ call memocc(istat, done, 'done', subname)
 done=.false.
 
 allocate(indexarray(comon%nrecv), stat=istat)
+call memocc(istat, indexarray, 'indexarray', subname)
 do i=1,comon%nrecv
     indexarray(i)=i
 end do
-
-
-!!!!!!!!!! NEW  ###################################################################
-!!!!!!!! First only post receives
-!!!!!!!irecv=0
-!!!!!!!do jproc=0,nproc-1
-!!!!!!!    do jorb=1,comon%noverlaps(jproc)
-!!!!!!!        mpisource=comon%comarr(1,jorb,jproc)
-!!!!!!!        istsource=comon%comarr(2,jorb,jproc)
-!!!!!!!        ncount=comon%comarr(3,jorb,jproc)
-!!!!!!!        mpidest=comon%comarr(4,jorb,jproc)
-!!!!!!!        istdest=comon%comarr(5,jorb,jproc)
-!!!!!!!        tag=comon%comarr(6,jorb,jproc)
-!!!!!!!        !write(*,'(6(a,i0))') 'iproc=',iproc,', tag=',tag,', mpisource=',mpisource,', mpidest=',mpidest,' jproc=',jproc,', iorb=',iorb
-!!!!!!!        irecv=irecv+1
-!!!!!!!        call mpi_waitany(comon%nrecv-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
-!!!!!!!        if(iproc==mpidest) then
-!!!!!!!            !irecv=irecv+1
-!!!!!!!            !write(*,'(6(a,i0))') 'overlap: process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
-!!!!!!!            !call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
-!!!!!!!            !     mpi_comm_world, comon%comarr(8,iorb,jproc), ierr)
-!!!!!!!            tag=jorb
-!!!!!!!            t1=mpi_wtime()
-!!!!!!!            call mpi_irecv(comon%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag,&
-!!!!!!!                 mpi_comm_world, comon%requests(irecv,2), ierr)
-!!!!!!!            t2=mpi_wtime()
-!!!!!!!            timecommun=timecommun+t2-t1
-!!!!!!!        else
-!!!!!!!             comon%requests(irecv,2)=mpi_request_null
-!!!!!!!        end if
-!!!!!!!    end do
-!!!!!!!end do
-
-
-
-
-call mpi_barrier(mpi_comm_world, ierr)
 
 
 
@@ -3857,26 +3822,17 @@ lphiovrlp=0.d0
 nrecv=0
 waitLoopRecv: do
     t1=mpi_wtime()
-    !call mpi_waitsome(comon%nrecv, comon%requests(1,2), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
-    !write(*,*) 'iproc, nrecv', iproc, nrecv
-    !call mpi_waitany(comon%nrecv-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
-    call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
-    !call mpi_waitany(1, comon%requests(1,2), ind, mpi_status_ignore, ierr)
-    !call mpi_wait(comon%requests(1,2), mpi_status_ignore, ierr)
+    call mpi_waitany(comon%nrecv-nrecv, comon%requests(1,2), ind, mpi_status_ignore, ierr)
+    !call mpi_testany(comon%nrecv-nrecv, comon%requests(1,2), ind, received, mpi_status_ignore, ierr)
     !ind=1
     t2=mpi_wtime()
     timecommunp2p=timecommunp2p+t2-t1
     ncomplete=1
+    received=.true.
     if(received) then
         do i=1,ncomplete
             ! Calculate overlap matrix
             !jorb=indcomplete(i)
-            !jorb=ind+nrecv
-            ! ind gives the index of the shortened request array, so move to the right index.
-            !!if(iproc==0) then
-            !!    do
-            !!    end do
-            !!end if
             jorb=indexarray(ind)
             !!write(*,'(2(a,i0))') 'process ',iproc,' has received message ',jorb
             if(.not.done(jorb)) then
@@ -3887,21 +3843,13 @@ waitLoopRecv: do
                     !jst=comon%comarr(5,jorb,iproc)
                     !ncount=comon%comarr(3,jorb,iproc)
                     !write(*,'(a,i4,2i5,3x,2i8,4x,2i8)') 'iproc, ind, jorb, ncount, comon%comarr(3,jorb,iproc) ; jst, comon%comarr(5,jorb,iproc)', iproc, ind, jorb, ncount, comon%comarr(3,jorb,iproc), jst, comon%comarr(5,jorb,iproc)
-                    allocate(temparr(ncount), stat=istat)
-                    !call dcopy(ncount, recvBuf(jst), 1, temparr(1), 1)
-                    !write(*,'(a,8i8)') 'iproc, i, iorb, orbsource, orbdest, ist, jst, ncount', iproc, i, iorb, orbsource, orbdest, ist, jst, ncount
-                    !write(*,'(2(a,i0))') 'iproc=',iproc,' uses data at ',jst
                     t1=mpi_wtime()
                     ovrlp(orbsource,orbdest)=ddot(ncount, sendBuf(ist), 1, recvBuf(jst), 1)
-                    !ovrlp(orbsource,orbdest)=ddot(ncount, sendBuf(ist), 1, temparr(1), 1)
                     t2=mpi_wtime()
                     timeoverlap=timeoverlap+t2-t1
                     t1=mpi_wtime()
                     call expandoneorbital2(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, &
                          orbs%inwhichlocreg, lzd, op, nrecvbuf, recvbuf, lphiovrlp)
-                    !call expandoneorbital2(iproc, nproc, orbsource, orbdest-orbs%isorb, orbs, input, &
-                    !     orbs%inwhichlocreg, lzd, op, nrecvbuf, temparr, lphiovrlp)
-                    deallocate(temparr)
                     t2=mpi_wtime()
                     timeexpand=timeexpand+t2-t1
                 end do
@@ -3930,10 +3878,12 @@ iall=-product(shape(indcomplete))*kind(indcomplete)
 deallocate(indcomplete, stat=istat)
 call memocc(istat, iall, 'indcomplete', subname)
 
+iall=-product(shape(indexarray))*kind(indexarray)
 deallocate(indexarray, stat=istat)
+call memocc(istat, iall, 'indexarray', subname)
 
-allocate(indcomplete(comon%nsend), stat=istat)
-call memocc(istat, indcomplete, 'indcomplete', subname)
+!!allocate(indcomplete(comon%nsend), stat=istat)
+!!call memocc(istat, indcomplete, 'indcomplete', subname)
 
 !!do iorb=1,orbs%norb
 !!  do jorb=1,orbs%norb
@@ -3954,9 +3904,9 @@ call memocc(istat, indcomplete, 'indcomplete', subname)
 !call mpi_finalize(ierr)
 !stop
 
-iall=-product(shape(indcomplete))*kind(indcomplete)
-deallocate(indcomplete, stat=istat)
-call memocc(istat, iall, 'indcomplete', subname)
+!!iall=-product(shape(indcomplete))*kind(indcomplete)
+!!deallocate(indcomplete, stat=istat)
+!!call memocc(istat, iall, 'indcomplete', subname)
 
 !do iorb=1,orbs%norb
 !  do jorb=1,orbs%norb

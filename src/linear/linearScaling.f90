@@ -361,6 +361,12 @@ type(workarr_sumrho):: w
       call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
   end if
 
+  do iorb=1,orbs%norb
+      do iall=1,lin%lb%orbs%norb
+          write(600+iproc,*) iorb, iall, coeff(iall,iorb)
+      end do
+  end do
+
   ! Calculate the forces we get with psi.
   !!call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
   !!    proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, lphi, coeff, rhopot, &

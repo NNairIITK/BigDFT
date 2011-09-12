@@ -14,7 +14,7 @@ dens                   mixing method: dens or pot
 F  4                   use the derivative basis functions, order of confinement potential
 5000                   number of iterations for the input guess
 F                      plot basis functions: true or false
-F                      transform to global orbitals in the end (T/F)
+T                      transform to global orbitals in the end (T/F)
 1                      number of orbitals per process for trace minimization during input guess.
 C  4  1.0d-3  7.0      number of basis functions per atom, prefactor for confinement potential, localization radius
 H  1  1.0d-3  7.0      number of basis functions per atom, prefactor for confinement potential, localization radius
