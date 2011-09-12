@@ -8,8 +8,11 @@ SUBDIRS = \
 	  NEB \
 	  XabsCheb \
 	  SPLSAD   \
-	  Linear
-
+	  TDDFT \
+	  OP2P \
+	  Linear \
+	  tutorials \
+	  xc
 
 #This will run the automatic tests also for minima hopping
 if USE_MINIMA_HOPPING
@@ -56,7 +59,8 @@ oclrun: head_message $(mpirun_message)
 EXTRA_DIST = \
 	README \
 	fldiff.py \
-	report.py
+	report.py \
+	styles images
 
 CLEANFILES =
 

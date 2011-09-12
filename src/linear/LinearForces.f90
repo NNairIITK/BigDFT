@@ -1014,6 +1014,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
             end if
 
         end do
+
 !        if (ieorb == orbs%norbp) exit loop_kptF
 !        ikpt=ikpt+1
 !        ispsi_k=ispsi

@@ -222,8 +222,11 @@ subroutine timing(iproc,category,action)
         end if
         init=.false.
      else
-        print *,action,ii,ncaton,trim(category)
-        stop 'TIMING ACTION UNDEFINED'
+        !some other category was initalized before, taking that one
+        return
+        !print *,action,ii,ncaton,trim(category)
+        !stop 'TIMING ACTION UNDEFINED'
+        
      endif
 
   endif
@@ -280,7 +283,7 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
   endif
   !total=real(timemax(ncat+1),kind=4)
 
-  if (iproc.eq.0) then
+  if (iproc == 0) then
      if (parallel) then
         call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
      else
@@ -291,7 +294,11 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      write(60,*) 'CATEGORY          mean TIME(sec)       PERCENT'
      total_pc=0.d0
      do i=1,ncat
-        pc=100.d0*timetot(i)/timetot(ncat+1)!real(total,kind=8)
+        if (timetot(ncat+1) /= 0.0d0) then
+           pc=100.d0*timetot(i)/timetot(ncat+1)!real(total,kind=8)
+        else
+           pc=0.0d0
+        end if
 !!        if (timetot(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
         write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
         total_pc=total_pc+pc

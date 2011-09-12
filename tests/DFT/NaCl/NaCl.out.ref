@@ -684,6 +684,9 @@ End of minimization using  VSSD
  e(   3)= -1.47323122929275E-01 2.0000
  e(   4)= -1.47323122929274E-01 2.0000
  ---------------------------------------------------------- Gaussian Basis Projection
+ Writing wavefunctions in wavefucntion.gau file
+ Deviation from normalization of the imported orbitals    1.27E-02
+ Mean L2 norm of gaussian-wavelet difference: 4.11819E-03
  ----------------------------------------------------------------- Forces Calculation
  PSolver, free  BC, dimensions:   125  125  125   proc    4 ... done.
  average noise along x direction:  -2.37581519E-04

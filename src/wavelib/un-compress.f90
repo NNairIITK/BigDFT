@@ -216,8 +216,8 @@ subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   real(wp), dimension(0:3), intent(in) :: scal
   real(wp), dimension(mvctr_c), intent(in) :: psi_c
   real(wp), dimension(7,mvctr_f), intent(in) :: psi_f
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: psig_c
-  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: psig_f
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: psig_c !these have been already initialised
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: psig_f
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 

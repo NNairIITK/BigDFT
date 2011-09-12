@@ -20,7 +20,7 @@ program oneatom
   integer :: n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ndegree_ip
   integer :: idsx_actual,ndiis_sd_sw,idsx_actual_before,iter
   real(gp) :: hxh,hyh,hzh
-  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,alpha
+  real(gp) :: tt,gnrm,gnrm_zero,epot_sum,eexctX,ekin_sum,eproj_sum,eSIC_DC,alpha
   real(gp) :: energy,energy_min,energy_old,energybs,evsum,scprsum
   type(atoms_data) :: atoms
   type(input_variables) :: in
@@ -30,6 +30,7 @@ program oneatom
   type(communications_arrays) :: comms
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
+  type(rho_descriptors)  :: rhodsc
   character(len=4) :: itername
   real(gp), dimension(3) :: shift
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
@@ -47,7 +48,7 @@ program oneatom
   call read_input_variables(iproc,'posinp',in, atoms, rxyz)
 
   if (iproc == 0) then
-     call print_general_parameters(in,atoms)
+     call print_general_parameters(nproc,in,atoms)
   end if
        
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
@@ -90,9 +91,9 @@ program oneatom
   allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
 
-  call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',&
-       Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,in%ixc,&
-       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+  call createDensPotDescriptors(iproc,nproc,atoms,Glr%d,hxh,hyh,hzh,&
+       rxyz,in%crmult,in%frmult,radii_cf,in%nspin,'D',0,in%rho_commun,&
+       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
 
   !commented out, to be used in the future
   if (dokernel) then
@@ -125,9 +126,8 @@ program oneatom
   ! allocate arrays necessary for DIIS convergence acceleration
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transposed form
-  if (in%idsx > 0) then
-     call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)  
-  endif
+  call allocate_diis_objects(in%idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
+       orbs%nkptsp,orbs%nspinor,orbs%norbd,diis,subname)  
 
   !write the local potential in pot_ion array
   call createPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
@@ -155,14 +155,14 @@ program oneatom
 !!$  psi=1.d0
 
 
-  call plot_wf_oneatom('iter0',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
+  call plot_wf_oneatom('iter0',1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'          ')
 
 
   !othogonalise them
   !transpose the psi wavefunction
   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,&
        psi,work=hpsi)
-  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi,in)
+  call orthogonalize(iproc,nproc,orbs,comms,Glr%wfd,psi,in%orthpar)
   !untranspose psi
   call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi,work=hpsi)
 
@@ -178,17 +178,16 @@ program oneatom
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
-  !minimum value of the energy during the minimisation procedure
-  energy_min=1.d10
-  !local variable for the diis history
-  idsx_actual=in%idsx
+  eSIC_DC=0.0_gp
+
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0
   !previous value of idsx_actual to control if switching has appeared
-  idsx_actual_before=idsx_actual
+  idsx_actual_before=diis%idsx
 
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+       Glr%d%n1i*Glr%d%n2i*n3d*in%nspin,0,&
        orbs%norb,orbs%norbp,ngatherarr,pot_ion,pot)
   
   wfn_loop: do iter=1,in%itermax
@@ -207,11 +206,11 @@ program oneatom
      endloop=endloop .or. ndiis_sd_sw > 2
 
      call HamiltonianApplication(iproc,nproc,atoms,orbs,in%hx,in%hy,in%hz,rxyz,&
-          nlpspd,proj,Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,in%nspin,GPU)
+          nlpspd,proj,Glr,ngatherarr,pot_ion,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,0,0.0_gp,GPU)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
-     energy=energybs-eexctX
+     energy=energybs-eexctX-eSIC_DC
 
      !check for convergence or whether max. numb. of iterations exceeded
      if (endloop) then 
@@ -233,10 +232,10 @@ program oneatom
      !control the previous value of idsx_actual
      idsx_actual_before=idsx_actual
 
-     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%nspin,in)
+     call hpsitopsi(iproc,nproc,orbs,Glr,comms,iter,diis,in%idsx,psi,psit,hpsi,in%nspin,in%orthpar)
 
      write(itername,'(i4.4)')iter
-     call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'')
+     call plot_wf_oneatom('iter'//itername,1,atoms,Glr,hxh,hyh,hzh,rxyz,psi,'           ')
 
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
@@ -260,9 +259,7 @@ program oneatom
   call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
        comms,psi,hpsi,psit,evsum)
   
-  if (in%idsx > 0) then
-     call deallocate_diis_objects(diis,subname)
-  end if
+  call deallocate_diis_objects(diis,subname)
 
   if (nproc > 1) then
      i_all=-product(shape(psit))*kind(psit)
@@ -319,6 +316,8 @@ program oneatom
   deallocate(rxyz,stat=i_stat)
   call memocc(i_stat,i_all,'rxyz',subname)
   call free_input_variables(in)
+
+  call deallocate_rho_descriptors(rhodsc,subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

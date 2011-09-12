@@ -147,7 +147,7 @@ END SUBROUTINE initInputguessConfinement
 
 !>   input guess wavefunction diagonalization
 subroutine inputguessConfinement(iproc, nproc, at, &
-     comms, Glr, input, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
+     comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
      nlpspd, proj, pkernel, pkernelseq, &
      nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf,  &
      tag, lphi, ehart, eexcu, vexcu)
@@ -167,6 +167,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(communications_arrays), intent(in) :: comms
   type(GPU_pointers), intent(inout) :: GPU
   type(input_variables):: input
+  type(rho_descriptors),intent(in) :: rhodsc
   type(linearParameters),intent(inout):: lin
   type(orbitals_data),intent(in):: orbs
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -277,7 +278,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! recalculated in inputguess_gaussian_orbitals.
   nvirt=0
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
-  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
        orbs,lin%lig%orbsig,norbsc_arr,locrad,G,psigau,eks)
 
   ! lin%lig%orbsig%inWhichLocreg has been allocated in inputguess_gaussian_orbitals. Since it will again be allcoated
@@ -361,9 +362,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Create the potential. First calculate the charge density.
   if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
-  call sumrhoLinear(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, input%ixc, hxh, hyh, hzh, lchi2, rhopot,&
-       lin%lig%lzdGauss%Glr%d%n1i*lin%lig%lzdGauss%Glr%d%n2i*nscatterarr(iproc,1), nscatterarr, input%nspin, GPU, &
-       at%symObj, irrzon, phnons)
+  call sumrhoLinear(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, hxh, hyh, hzh, lchi2, rhopot,&
+       nscatterarr, input%nspin, GPU, at%symObj, irrzon, phnons, rhodsc)
   if(iproc==0) write(*,'(a)') 'done.'
 
   ! Deallocate lin%lig%lzdGauss since it is not  needed anymore.

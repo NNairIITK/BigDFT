@@ -1,119 +1,114 @@
-The BigDFT project was an European project (FP6-NEST) from 2005 to 2008.
+<p>The BigDFT project was an European project (FP6-NEST) from 2005 to 2008.</p>
 
-Four institutions were implicated in the BigDFT project (version < 1.1):
-- Commissariat a l'Energie Atomique (T. Deutsch),
-- University of Basel (S. Goedecker)
-- Université catholique de Louvain (X. Gonze)
-- Christian-Albrechts Universität zu Kiel (R. Schneider)
+<p>Four institutions were implicated in the BigDFT project (version < 1.1):</p>
+<ul>
+  <li>Commissariat à l'Énergie Atomique (T. Deutsch),</li>
+  <li>University of Basel (S. Goedecker),</li>
+  <li>Université catholique de Louvain (X. Gonze),</li>
+  <li>Christian-Albrechts Universität zu Kiel (R. Schneider).</li>
+</ul>
 
-From 2010, three laboratories are contributing: L_Sim (CEA), UNIBAS and ESRF.
+<p>From 2010, three laboratories are contributing: L_Sim (CEA), UNIBAS and ESRF.</p>
 
-
-Coming now to individuals,
-direct contributors to BigDFT (version 1.5) are :
-
-Name                      Initials  Email
-
-Max Amsler                MA        m.amsler@unibas.ch
-Eric Bainville            EB        eric.bainville@bealto.com
-Damien Caliste            DC        damien.caliste@cea.fr
-Thierry Deutsch           TD        Thierry.Deutsch@cea.fr
-Ivan Duchemin             ID        Ivan.Duchemin@cea.fr
-Luigi Genovese            LG        Luigi.Genovese@esrf.fr
-Seyed Alireza Ghasemi     AG        Alireza.Ghasemi@unibas.ch
-Stefan Goedecker          SG        Stefan.Goedecker@unibas.ch
-Eduardo Machado-Charry    EM        Eduardo.Machado-charry@cea.fr
-Alessandro Mirone         AM        Alessandro.Mirone@esrf.fr
-Stephan Mohr              SM        Stephan.Mohr@unibas.ch
-Normand Mousseau          NM        Normand.Mousseau@umontreal.ca
-Bhaarathi Natarajan       BN        Bhaarathi.Natarajan@cea.fr
-Matthieu Ospici           MO        Matthieu.Ospici@imag.fr
-Brice Videau              BV        Brice.Videau@cea.fr
-Alexander Willand         AW        A.Willand@unibas.ch
-
-
-Coming now to individuals,
-direct contributors to BigDFT (version 1.4) are :
-
-Name                      Initials  Email
-
-Max Amsler                MA        M.Amsler@unibas.ch
-Damien Caliste            DC        Damien.Caliste@cea.fr
-Thierry Deutsch           TD        Thierry.Deutsch@cea.fr
-Luigi Genovese            LG        Luigi.Genovese@esrf.fr
-Seyed Alireza Ghasemi     AG        Alireza.Ghasemi@unibas.ch
-Stefan Goedecker          SG        Stefan.Goedecker@unibas.ch
-Eduardo Machado-Charry    EM        Eduardo.Machado-charry@cea.fr
-Alessandro Mirone         AM        Alessandro.Mirone@esrf.fr
-Stephan Mohr              SM        Stephan.Mohr@unibas.ch
-Normand Mousseau          NM        Normand.Mousseau@umontreal.ca
-Bhaarathi Natarajan       BN        Bhaarathi.Natarajan@ujf-grenoble.fr
-Matthieu Ospici           MO        Matthieu.Ospici@imag.fr
-Brice Videau              BV        Brice.Videau@cea.fr
-Alexander Willand         AW        A.Willand@unibas.ch
+<h2>Contributors (v1.5)</h2>
+<ul>
+<!-- Name          Initials Email                         Institution -->
+Max Amsler              MA  m.amsler@unibas.ch            Basel Universität, Switzerland
+Eric Bainville          EB  eric.bainville@bealto.com     Bealto, Italy
+Damien Caliste          DC  damien.caliste@cea.fr         INAC, CEA-Grenoble, France
+Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
+Ivan Duchemin           ID  Ivan.Duchemin@cea.fr          INAC, CEA-Grenoble, France
+Luigi Genovese          LG  Luigi.Genovese@esrf.fr        INAC, CEA-Grenoble, France
+Seyed Alireza Ghasemi   AG  Alireza.Ghasemi@unibas.ch     Basel Universität, Switzerland
+Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
+Eduardo Machado-Charry  EM  Eduardo.Machado-charry@cea.fr INAC, CEA-Grenoble, France
+Alessandro Mirone       AM  Alessandro.Mirone@esrf.fr     ESRF, Grenoble, France
+Stephan Mohr            SM  Stephan.Mohr@unibas.ch        Basel Universität, Switzerland
+Normand Mousseau        NM  Normand.Mousseau@umontreal.ca University of Montreal, Canada
+Bhaarathi Natarajan     BN  Bhaarathi.Natarajan@cea.fr    INAC, CEA-Grenoble, France
+Matthieu Ospici         MO  Matthieu.Ospici@imag.fr       Bull, IMAG, CEA, France
+Brice Videau            BV  Brice.Videau@cea.fr           INAC, CEA-Grenoble, France
+Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Switzerland
+</ul>
 
 
-Coming now to individuals,
-direct contributors to BigDFT (version 1.3) are :
-
-Name                      Initials  Email
-
-Damien Caliste            DC        Damien.Caliste@cea.fr
-Thierry Deutsch           TD        Thierry.Deutsch@cea.fr
-Luigi Genovese            LG        Luigi.Genovese@esrf.fr
-Alireza Ghasemi           AG        Alireza.Ghasemi@unibas.ch
-Stefan Goedecker          SG        Stefan.Goedecker@unibas.ch
-Quintin Hill              QH        Quintin.Hill@soton.ac.uk
-Alessandro Mirone         AM        Alessandro.Mirone@esrf.fr
-Alexey Neelov             AN        Alexey.Neelov@unibas.ch
-Matthieu Ospici           MO        Matthieu.Ospici@imag.fr
-Carlo Sbraccia            CS
-
-
-Coming now to individuals,
-direct contributors to BigDFT (version 1.2) are :
-
-Name                      Initials  Email
-
-Damien Caliste            DC        damien.caliste@cea.fr
-Thierry Deutsch           TD        Thierry.Deutsch@cea.fr
-Luigi Genovese            LG        Luigi.Genovese@gmail.com
-Alexey Neelov             AN        alexey.neelov@unibas.ch
-Matthieu Ospici           MO        Matthieu.Ospici@imag.fr
+<h2>Contributors (v1.4)</h2>
+<ul>
+<!-- Name          Initials Email                         Institution -->
+Max Amsler              MA  M.Amsler@unibas.ch            Basel Universität, Switzerland
+Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France
+Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
+Luigi Genovese          LG  Luigi.Genovese@esrf.fr        ESRF, Grenoble, France
+Seyed Alireza Ghasemi   AG  Alireza.Ghasemi@unibas.ch     Basel Universität, Switzerland
+Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
+Eduardo Machado-Charry  EM  Eduardo.Machado-charry@cea.fr INAC, CEA-Grenoble, France
+Alessandro Mirone       AM  Alessandro.Mirone@esrf.fr     ESRF, Grenoble, France
+Stephan Mohr            SM  Stephan.Mohr@unibas.ch        Basel Universität, Switzerland
+Normand Mousseau        NM  Normand.Mousseau@umontreal.ca University of Montreal, Canada
+Bhaarathi Natarajan     BN  Bhaarathi.Natarajan@ujf-grenoble.fr INAC, CEA-Grenoble, France
+Matthieu Ospici         MO  Matthieu.Ospici@imag.fr       Bull, IMAG, CEA, France
+Brice Videau            BV  Brice.Videau@cea.fr           INAC, CEA-Grenoble, France
+Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Switzerland
+</ul>
 
 
-Coming now to individuals,
-direct contributors to BigDFT (version 1.1) are :
+<h2>Contributors (v1.3)</h2>
+<ul>
+<!-- Name          Initials Email                         Institution -->
+Damien Caliste          DC  Damien.Caliste@cea.fr         INAC, CEA-Grenoble, France
+Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
+Luigi Genovese          LG  Luigi.Genovese@esrf.fr        ESRF, Grenoble, France
+Alireza Ghasemi         AG  Alireza.Ghasemi@unibas.ch     Basel Universität, Switzerland
+Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
+Quintin Hill            QH  Quintin.Hill@soton.ac.uk      University of Southampton, United-Kingdom
+Alessandro Mirone       AM  Alessandro.Mirone@esrf.fr     ESRF, Grenoble, France
+Alexey Neelov           AN  Alexey.Neelov@unibas.ch       Basel Universität, Switzerland
+Matthieu Ospici         MO  Matthieu.Ospici@imag.fr       Bull, IMAG, CEA, France
+Carlo Sbraccia          CS
+</ul>
 
-Name                      Initials  Email
 
-Anders Bergman            AB        Anders.Bergman@cea.fr
-Damien Caliste            DC        damien.caliste@cea.fr
-Thierry Deutsch           TD        Thierry.Deutsch@cea.fr
-Alireza Ghasemi           AG        alireza.ghasemi@unibas.ch
-Luigi Genovese            LG        Luigi.Genovese@gmail.com
-Stefan Goedecker          SG        Stefan.Goedecker@unibas.ch
-Alexey Neelov             AN        alexey.neelov@unibas.ch
-Matthieu Ospici           MO        Matthieu.Ospici@free.fr
-Alexander Willand         AW
+<h2>Contributors (v1.2)</h2>
+<ul>
+<!-- Name          Initials Email                         Institution -->
+Damien Caliste          DC  damien.caliste@cea.fr         INAC, CEA-Grenoble, France
+Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
+Luigi Genovese          LG  Luigi.Genovese@gmail.com      ESRF, Grenoble, France
+Alexey Neelov           AN  alexey.neelov@unibas.ch       Basel Universität, Switzerland
+Matthieu Ospici         MO  Matthieu.Ospici@imag.fr       Bull, IMAG, CEA, France
+</ul>
 
 
-Coming now to individuals,
-direct contributors to BigDFT (version 1.0) are :
+<h2>Contributors (v1.1)</h2>
+<ul>
+<!-- Name          Initials Email                         Institution -->
+Anders Bergman          AB  Anders.Bergman@cea.fr         INAC, CEA-Grenoble, France
+Damien Caliste          DC  damien.caliste@cea.fr         INAC, CEA-Grenoble, France
+Thierry Deutsch         TD  Thierry.Deutsch@cea.fr        INAC, CEA-Grenoble, France
+Alireza Ghasemi         AG  alireza.ghasemi@unibas.ch     Basel Universität, Switzerland
+Luigi Genovese          LG  Luigi.Genovese@gmail.com      ESRF, Grenoble, France
+Stefan Goedecker        SG  Stefan.Goedecker@unibas.ch    Basel Universität, Switzerland
+Alexey Neelov           AN  alexey.neelov@unibas.ch       Basel Universität, Switzerland
+Matthieu Ospici         MO  Matthieu.Ospici@free.fr       Bull, IMAG, CEA, France
+Alexander Willand       AW  A.Willand@unibas.ch           Basel Universität, Switzerland
+</ul>
 
-Name                      Initials  Email
 
-Pierre-Matthieu Anglade   PMA       anglade@gmail.com
-Anders Bergman            AB        Anders.Bergman@cea.fr
-Damien Caliste            DC        damien.caliste@cea.fr
-Thierry Deutsch           TD        Thierry.Deutsch@cea.fr
-Fritz Krüger              FK        fkr@numerik.uni-kiel.de
-Alireza Ghasemi           AG        alireza.ghasemi@unibas.ch
-Luigi Genovese            LG        Luigi.Genovese@gmail.com
-Stefan Goedecker          SG        Stefan.Goedecker@unibas.ch
-Xavier Gonze              XG        gonze@pcpm.ucl.ac.be
-Alexey Neelov             AN        alexey.neelov@unibas.ch
-Jaroslav Piwonski         JP        jpi@numerik.uni-kiel.de
-Mark Rayson               MR        Mark.Rayson@unibas.ch
-Reinhold Schneider        RS        schneidr@silica.math.TU-Berlin.de
-Oded Zilberberg           OZ
+<h2>Contributors (v1.0)</h2>
+<ul>
+<!-- Name          Initials Email                         Institution -->
+Pierre-Matthieu Anglade  PMA anglade@gmail.com            Université de Caen, France
+Anders Bergman           AB  Anders.Bergman@cea.fr        INAC, CEA-Grenoble, France
+Damien Caliste           DC  damien.caliste@cea.fr        INAC, CEA-Grenoble, France
+Thierry Deutsch          TD  Thierry.Deutsch@cea.fr       INAC, CEA-Grenoble, France
+Fritz Krüger             FK  fkr@numerik.uni-kiel.de      Kiel Universität, Germany
+Alireza Ghasemi          AG  alireza.ghasemi@unibas.ch    Basel Universität, Switzerland
+Luigi Genovese           LG  Luigi.Genovese@gmail.com     ESRF, Grenoble, France
+Stefan Goedecker         SG  Stefan.Goedecker@unibas.ch   Basel Universität, Switzerland
+Xavier Gonze             XG  gonze@pcpm.ucl.ac.be         Université Catholique de Louvain, Belgium
+Alexey Neelov            AN  alexey.neelov@unibas.ch      Basel Universität, Switzerland
+Jaroslav Piwonski        JP  jpi@numerik.uni-kiel.de      Kiel Universität, Germany
+Mark Rayson              MR  Mark.Rayson@unibas.ch        Basel Universität, Switzerland
+Reinhold Schneider       RS  schneidr@silica.math.TU-Berlin.de TU Berlin, Germany
+Oded Zilberberg          OZ
+</ul>

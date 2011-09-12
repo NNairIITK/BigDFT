@@ -879,6 +879,7 @@ subroutine deallocate_local_zone_descriptors(lzd, subname)
 !  call deallocate_communications_arrays(lzd%comms, subname)
   
   call checkAndDeallocatePointer(lzd%Glr%projflg, 'lzd%Glr%projflg', subname)
+  call checkAndDeallocatePointer(lzd%doHamAppl, 'lzd%doHamAppl', subname)
   call deallocate_locreg_descriptors(lzd%Glr, subname)
 
   call deallocate_nonlocal_psp_descriptors(lzd%Gnlpspd, subname)

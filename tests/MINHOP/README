@@ -1,7 +1,6 @@
-Example to use the minima hopping method.
+example to use the minima hopping method.
 
-Input Files:
-
+Input Files are:
  - CPUlimit:   CPUlimit in hours
  - earr.dat:   First line,  # of minima found and # of minima to be found
                Second line, Eref  (Reference energy) stop if less than that

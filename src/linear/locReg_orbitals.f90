@@ -476,7 +476,7 @@ subroutine linear_orbitals_descriptors(ilr,nlr,iwl,iproc,nproc,Gorbs,norb,norbu,
   end do
 
   !put a default value for the fermi energy
-  orbs%efermi = UNINITIALISED
+  orbs%efermi = UNINITIALIZED(orbs%efermi)
 
   !allocate the array which assign the k-point to processor in transposed version
   allocate(orbs%ikptproc(orbs%nkpts+ndebug),stat=i_stat)

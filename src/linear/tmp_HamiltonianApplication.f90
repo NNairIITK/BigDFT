@@ -235,7 +235,7 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   use module_base
   use module_types
   use module_interfaces, except_this_one => HamiltonianApplication3
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hx,hy,hz
@@ -293,10 +293,10 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 ! Defined new subroutine cubic_exact_exchange to ease futur change
 !##################################################################################################
   !initialise exact exchange energy 
-  op2p=(eexctX == -99.0_gp)
+  op2p=(eexctX ==  UNINITIALIZED(1.0_gp))
   eexctX=0.0_gp
 
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
 
   size_potxc = 0
   if (exctX .and. .not.present(lin)) then
@@ -306,6 +306,7 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         call cubic_exact_exchange(iproc,nproc,nspin,Lzd%Lpsidimtot,size_potxc,hx,hy,hz,Lzd%Glr,orbs,&
              ngatherarr,psi,Lpot(ist),eexctX,pkernel,orbsocc,psirocc)
      else if(present(pkernel)) then
+
          call cubic_exact_exchange(iproc,nproc,nspin,Lzd%Lpsidimtot,size_potxc,hx,hy,hz,Lzd%Glr,orbs,&
              ngatherarr,psi,Lpot(ist),eexctX,pkernel=pkernel)
      else
@@ -652,7 +653,7 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   use module_base
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian3
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nspin, istexct
   real(gp), intent(in) :: hx,hy,hz
@@ -682,7 +683,7 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
       stop "'lin' must be present when 'withConfinement' is true!"
   end if
 
-  exctXcoeff=libxc_functionals_exctXfac()
+  exctXcoeff=xc_exctXfac()
 
   !components of the potential
   npot=orbs%nspinor
@@ -780,7 +781,7 @@ END SUBROUTINE local_hamiltonian3
 subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,nspin,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
   use module_base
   use module_types
-  use libxc_functionals
+  use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,ndimpot,ndimgrid, flag,nspin
   type(orbitals_data),intent(inout):: orbs
@@ -799,7 +800,7 @@ subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,nspin,orbs,lzd,nga
 
   call timing(iproc,'Rho_commun    ','ON')
 
-  exctX = libxc_functionals_exctXfac() /= 0.0_gp
+  exctX = xc_exctXfac() /= 0.0_gp
 
 !#########################################################################################################################
 ! Build the potential on the whole simulation box
