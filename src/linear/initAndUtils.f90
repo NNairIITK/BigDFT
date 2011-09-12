@@ -1308,6 +1308,9 @@ do jproc=0,nproc-1
     end do
 end do
 
+! To avoid allocations with size 0.
+lin%comsr%nrecvbuf=max(lin%comsr%nrecvbuf,1)
+
 
 allocate(lin%comsr%communComplete(maxval(lin%comsr%noverlaps(:)),0:nproc-1), stat=istat)
 call memocc(istat, lin%comsr%communComplete, 'lin%comsr%communComplete', subname)
