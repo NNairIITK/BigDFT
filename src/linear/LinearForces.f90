@@ -663,7 +663,7 @@ subroutine Linearnonlocal_forces(iproc,nproc,Lzd,hx,hy,hz,at,rxyz,&
 
   if(useTMO) then
   
-     nitoverlaps=10
+     nitoverlaps=2
 
      allocate(scalprodGlobal(2,0:3,7,3,4,linorbs%norb*linorbs%nspinor,nitoverlaps),stat=i_stat)   
      call memocc(i_stat,scalprodGlobal,'scalprodGlobal',subname)
@@ -1233,6 +1233,8 @@ subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts,
           end if
       end do
   end do
+
+  call mpi_barrier(mpi_comm_world, ierr)
   
   do jproc=0,nproc-1
       if(iproc==jproc .and. sendcount/=0) then
@@ -1241,7 +1243,8 @@ subroutine my_iallgatherv(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts,
               tag0=kproc
               tag=tagx+tag0
               !write(*,'(4(a,i0))') 'process ',jproc,' sends ',sendcount,' elements to process ',kproc,' with tag ',tag
-              call mpi_isend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
+              !call mpi_irsend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
+              call mpi_rsend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, ierr)
           end do
       end if
   end do
@@ -1265,16 +1268,17 @@ subroutine my_iallgather_collect(iproc, nproc, sendcount, recvcounts, requests)
   integer:: jproc, kproc, tag0, ierr
 
 
-  ! Wait for the send operation to finish.
-  do jproc=0,nproc-1
-      if(iproc==jproc .and. sendcount/=0) then
-          do kproc=0,nproc-1
-              !tag0=jproc*nproc+kproc
-              tag0=kproc
-              call mpi_wait(requests(1,tag0), mpi_status_ignore, ierr)
-          end do
-      end if
-  end do
+  !!! Wait for the send operation to finish.
+  !!do jproc=0,nproc-1
+  !!    if(iproc==jproc .and. sendcount/=0) then
+  !!        do kproc=0,nproc-1
+  !!            !tag0=jproc*nproc+kproc
+  !!            tag0=kproc
+  !!            !write(*,'(3(a,i0))') 'process ',iproc,' waits for send to finish; dest= ',kproc,', tag=',tag0
+  !!            call mpi_wait(requests(1,tag0), mpi_status_ignore, ierr)
+  !!        end do
+  !!    end if
+  !!end do
   
   ! Wait for the receive operation to finish.
   do jproc=0,nproc-1
@@ -1282,6 +1286,7 @@ subroutine my_iallgather_collect(iproc, nproc, sendcount, recvcounts, requests)
           if(iproc==kproc .and. recvcounts(jproc)/=0) then
               !tag0=jproc*nproc+kproc
               tag0=kproc
+              !write(*,'(3(a,i0))') 'process ',iproc,' waits for receive to finish; source= ',jproc,', tag=',tag0
               call mpi_wait(requests(2,tag0), mpi_status_ignore, ierr)
           end if
       end do
