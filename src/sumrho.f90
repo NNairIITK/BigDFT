@@ -1037,16 +1037,19 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
   integer,dimension(n1i*n2i*n3i,2) :: dpkey,spkey
   integer :: n_fsegs,n_csegs
   character(len=*), parameter :: subname='rhokey'
-  integer :: nbx,nby,nbz,nl1,nl2,nl3
-  real(gp) :: dpmult,dsq,dsq_cr,dsq_fr,spadd
-  integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax,&
-      i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax,imin,imax,&
-      i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,csegstot,fsegstot,corx,cory,corz
-  !integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
+  integer :: nbx,nby,nbz,nl1,nl2,nl3,nat
+  real(gp) :: dpmult,dsq,spadd
+  integer :: i1min,i1max,i2min,i2max,i3min,i3max,nrhomin,nrhomax
+  integer,dimension(at%nat) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax,imin,imax,&
+      i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,dsq_cr,dsq_fr
+  integer :: csegstot,fsegstot,corx,cory,corz
+  integer :: ncount0,ncount1,ncount2,ncount3,ncount4,ncount_rate,ncount_max
 
   rhodsc%geocode=at%geocode
+  nat=at%nat
+
   !paprmeter to adjust the single precision and double precision regions
-  spadd=10._gp
+  spadd=10.0_gp
   dpmult=1.0_gp
 
   !call system_clock(ncount0,ncount_rate,ncount_max)
@@ -1075,29 +1078,30 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
   !call system_clock(ncount1,ncount_rate,ncount_max)
   !write(*,*) 'TIMING:RHOKEY1',real(ncount1-ncount0)/real(ncount_rate)
 
-  !$omp parallel default(none)&
-  !$omp private(iat,irho,i1cmin,i1cmax,i2cmin,i2cmax,i3cmin)&
-  !$omp private(i3cmax,i1fmin,i1fmax,i2fmin,i2fmax,i3fmin)&
-  !$omp private(i3fmax,imin,imax,dsq,dsq_cr,dsq_fr,i1,i2,i3)&
-  !$omp shared(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh)&
-  !$omp shared(spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,reg)
-  !$omp do schedule(static,1)
-  do iat=1,at%nat
-    ! determine the bounds around the current atom within which
-    ! search for single precision points done
+  do iat=1,nat
     call get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,&
       hyh,hzh,spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,&
-      i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,&
-      i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax)
-    dsq_cr=(radii_cf(at%iatype(iat),1)*crmult+hxh*spadd)**2
-    do i1=i1cmin,i1cmax
-      do i2=i2cmin,i2cmax
-        do i3=i3cmin,i3cmax
+      i1cmin(iat),i1cmax(iat),i2cmin(iat),i2cmax(iat),i3cmin(iat),i3cmax(iat),&
+      i1fmin(iat),i1fmax(iat),i2fmin(iat),i2fmax(iat),i3fmin(iat),i3fmax(iat))
+    dsq_cr(iat)=(radii_cf(at%iatype(iat),1)*crmult+hxh*spadd)**2
+    dsq_fr(iat)=(radii_cf(at%iatype(iat),2)*frmult*dpmult)**2
+  enddo
+
+  !$omp parallel default(none)&
+  !$omp private(iat,irho,dsq,i1,i2,i3)&
+  !$omp shared(nat,rxyz,hxh,hyh,hzh,dsq_cr,dsq_fr,reg)&
+  !$omp shared(i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax)&
+  !$omp shared(n1i,n2i,n3i,corx,cory,corz,nrhomin,nrhomax)
+  !$omp do schedule(static,1)
+  do iat=1,nat
+    do i1=i1cmin(iat),i1cmax(iat)
+      do i2=i2cmin(iat),i2cmax(iat)
+        do i3=i3cmin(iat),i3cmax(iat)
           dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
               (rxyz(2,iat)-(i2-cory)*hyh)**2+&
-              (rxyz(3,iat)-(i3-corz)*hzh)**2          
-          if(dsq.lt.dsq_cr) then
-            irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+              (rxyz(3,iat)-(i3-corz)*hzh)**2
+          irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+          if(dsq.lt.dsq_cr(iat)) then
             reg(irho)=1
           endif
         enddo
@@ -1105,34 +1109,29 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
     enddo
   enddo
   !$omp enddo
+  !$omp end parallel
 
-  !$omp do schedule(static,1)
+  !call system_clock(ncount2,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
+
   do iat=1,at%nat
-    ! determine the bounds around the current atom within which
-    ! search for double precision points done
-    call get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,&
-      spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,i1cmin,&
-      i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,i1fmin,i1fmax,i2fmin,&
-      i2fmax,i3fmin,i3fmax)
-    dsq_fr=((radii_cf(at%iatype(iat),2)*frmult*dpmult)**2)
-    do i1=i1fmin,i1fmax
-      do i2=i2fmin,i2fmax
-        do i3=i3fmin,i3fmax
+    do i1=i1fmin(iat),i1fmax(iat)
+      do i2=i2fmin(iat),i2fmax(iat)
+        do i3=i3fmin(iat),i3fmax(iat)
           dsq=(rxyz(1,iat)-(i1-corx)*hxh)**2+&
               (rxyz(2,iat)-(i2-cory)*hyh)**2+&
               (rxyz(3,iat)-(i3-corz)*hzh)**2          
-          if(dsq.lt.dsq_fr) then
-            irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+          irho = (i3-1)*n1i*n2i+(i2-1)*n1i+i1
+          if(dsq.lt.dsq_fr(iat)) then
             reg(irho)=2
           endif
         enddo
       enddo
     enddo
   enddo
-  !$omp enddo
-  !$omp end parallel
-  !call system_clock(ncount2,ncount_rate,ncount_max)
-  !write(*,*) 'TIMING:RHOKEY2',real(ncount2-ncount1)/real(ncount_rate)
+
+  !call system_clock(ncount3,ncount_rate,ncount_max)
+  !write(*,*) 'TIMING:RHOKEY3',real(ncount3-ncount2)/real(ncount_rate)
 
   do irho=nrhomin,nrhomax
     if (irho.eq.nrhomin) then
@@ -1372,9 +1371,9 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
 end subroutine get_boxbound
 
 subroutine get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,&
-    spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,i1cmin,&
-    i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,i1fmin,i1fmax,i2fmin,&
-    i2fmax,i3fmin,i3fmax)
+    spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,&
+    i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,&
+    i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax)
   use module_base
   use module_types
   implicit none
