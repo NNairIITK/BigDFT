@@ -732,7 +732,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !!call memocc(i_stat, psit, 'psit', subname)
      scpot=.true.
      ! This is the main routine that does everything related to the linear scaling version.
-     call linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, atoms, in, lin, rxyz, &
+     call linearScaling(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, comms, atoms, in, rhodsc, lin, rxyz, &
          fion, fdisp, radii_cf, nscatterarr, ngatherarr, nlpspd, proj, rhopot, GPU, pkernelseq, irrzon, &
          phnons, pkernel, pot_ion, rhocore, potxc, PSquiet, eion, edisp, eexctX, scpot, psi, psit, &
          energy, fxyz)
@@ -1761,6 +1761,11 @@ contains
 
     call deallocate_bounds(Glr%geocode,Glr%hybrid_on,Glr%bounds,subname)
 
+    i_all=-product(shape(Glr%projflg))*kind(Glr%projflg)
+    deallocate(Glr%projflg,stat=i_stat)
+    call memocc(i_stat,i_all,'Glr%projflg',subname)
+
+
     !free GPU if it is the case
     if (GPUconv .and. .not.(DoDavidson)) then
        call free_gpu(GPU,orbs%norbp)
@@ -1884,6 +1889,14 @@ contains
     call memocc(i_stat,i_all,'phnons',subname)
 
     call deallocate_bounds(Glr%geocode,Glr%hybrid_on,Glr%bounds,subname)
+    i_all=-product(shape(Glr%projflg))*kind(Glr%projflg)
+    deallocate(Glr%projflg,stat=i_stat)
+    call memocc(i_stat,i_all,'Glr%projflg',subname)
+
+    i_all=-product(shape(atoms%rloc))*kind(atoms%rloc)
+    deallocate(atoms%rloc,stat=i_stat)
+    call memocc(i_stat,i_all,'atoms%rloc',subname)
+
 
     !free GPU if it is the case
     if (GPUconv .and. .not.(DoDavidson)) then

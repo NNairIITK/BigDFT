@@ -465,7 +465,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   end if
   Lzd%linear = linear 
   allocate(Lzd%doHamAppl(Lzd%nlr), stat=i_stat)
-  call memocc(i_stat, Lzd%doHamAppl, 'Lzd%doHamAppl', subname)
+!  call memocc(i_stat, Lzd%doHamAppl, 'Lzd%doHamAppl', subname)
   Lzd%doHamAppl=.true.
 
   if (Lzd%linear) then
@@ -619,9 +619,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      !close(44)
 !END DEBUG
 
-     call sumrhoLinear(iproc,nproc,Lzd,orbse,ixc,hxh,hyh,hzh,Lpsi,rhopot,&
-       & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
-       & symObj, irrzon, phnons)    
+     call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,Lpsi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
 
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
@@ -740,11 +738,19 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
     ! 1) take the Lpsi and Lhpsi in the LOD 
     ! 2) create the IG transposed psit in the GCD
     ! 3) deallocate Lpsi
+    ncplx=1
+    if (orbs%nspinor > 1) ncplx=2
+    allocate(passmat(ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd)+ndebug),stat=i_stat)
+    call memocc(i_stat,passmat,'passmat',subname)
 
     call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,comms,&
-         Lpsi,Lhpsi,psit,input,orbse,commse,etol,norbsc_arr)
+         Lpsi,Lhpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
 
 !    call LinearDiagHam(iproc,at,etol,Lzd,orbse,orbs,nspin,at%natsc,Lhpsi,Lpsi,psit,norbsc_arr=norbsc_arr)!,orbsv)
+
+     i_all=-product(shape(passmat))*kind(passmat)
+     deallocate(passmat,stat=i_stat)
+     call memocc(i_stat,i_all,'passmat',subname)
     
     ! Don't need Lzd anymore (if only input guess)
 !    call deallocate_Lzd(Lzd,subname)
@@ -793,7 +799,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
         switchOCLconv=.true.
         OCLconv=.false.
      end if
-   
+
     call timing(iproc,'wavefunction  ','ON')   
    !use only the part of the arrays for building the hamiltonian matrix
      call gaussians_to_wavelets_new(iproc,nproc,Glr,orbse,hx,hy,hz,G,&
@@ -802,7 +808,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      i_all=-product(shape(locrad))*kind(locrad)
      deallocate(locrad,stat=i_stat)
      call memocc(i_stat,i_all,'locrad',subname)
-   
+
   !check the size of the rhopot array related to NK SIC
   nrhodim=nspin
   i3rho_add=0
@@ -817,9 +823,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
 
      ! test merging of the cubic and linear code
-     call sumrhoLinear(iproc,nproc,Lzd,orbse,ixc,hxh,hyh,hzh,psi,rhopot,&
-       & Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU, &
-       & symObj, irrzon, phnons)
+     call sumrhoLinear(iproc,nproc,Lzd,orbse,hxh,hyh,hzh,psi,rhopot,nscatterarr,nspin,GPU,symObj, irrzon, phnons, rhodsc)    
 
      !-- if spectra calculation uses a energy dependent potential
      !    input_wf_diag will write (to be used in abscalc)
@@ -997,8 +1001,8 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   if (input%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
 
 !     call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-!       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
-!        orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
+!       Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
+!       i3rho_add,orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
 !
 ! call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
 !       nlpspd,proj,Glr,ngatherarr,pot,&
@@ -1010,8 +1014,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
     ! Create local potential
     call full_local_potential2(iproc, nproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2), &
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ixc,input%alphaSIC,GPU,pkernel=pkernelseq)
-         ngatherarr, rhopot, pot, 0)
+         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin, orbse, Lzd, ngatherarr, rhopot, pot, 0)
 
     withConfinement=.false.
     call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
@@ -1020,7 +1023,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
          pkernel=pkernel)
  
      !deallocate potential
-!     call free_full_potential(nproc,pot,subname)
+     call free_full_potential(nproc,pot,subname)
+     i_all = -product(shape(orbse%ispot))*kind(orbse%ispot)
+     deallocate(orbse%ispot,stat=i_stat)
+     call memocc(i_stat,i_all,'orbse%ispot',subname)
  
    !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
    !!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -1070,8 +1076,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
      if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')&
           'Input Wavefunctions Orthogonalization:'
-  !nullify psit (will be created in DiagHam)
-  nullify(psit)
+  
+     !nullify psit (will be created in DiagHam)
+     nullify(psit)
 
      !psivirt can be eliminated here, since it will be allocated before davidson
      !with a gaussian basis
@@ -1079,24 +1086,25 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
    !!$       psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
  
   
-!test merging of Linear and cubic
-  call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,comms,&
-       psi,hpsi,psit,input,orbse,commse,etol,norbsc_arr)
 
     !allocate the passage matrix for transforming the LCAO wavefunctions in the IG wavefucntions
-  !ncplx=1
-  !if (orbs%nspinor > 1) ncplx=2
-  !allocate(passmat(ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd)+ndebug),stat=i_stat)
-  !call memocc(i_stat,passmat,'passmat',subname)
+     ncplx=1
+     if (orbs%nspinor > 1) ncplx=2
+     allocate(passmat(ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd)+ndebug),stat=i_stat)
+     call memocc(i_stat,passmat,'passmat',subname)
   !!print '(a,10i5)','iproc,passmat',iproc,ncplx*orbs%nkptsp*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd),&
   !!     orbs%nspinor,orbs%nkptsp,orbse%norbu,orbse%norbd,orbs%norbu,orbs%norbd
 
-   ! call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
-   !    psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
+  !  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
+  !     psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
 
-  !i_all=-product(shape(passmat))*kind(passmat)
-  !deallocate(passmat,stat=i_stat)
-  !call memocc(i_stat,i_all,'passmat',subname)
+   !test merging of Linear and cubic
+     call LDiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Lzd,comms,&
+         psi,hpsi,psit,input%orthpar,passmat,orbse,commse,etol,norbsc_arr)
+
+     i_all=-product(shape(passmat))*kind(passmat)
+     deallocate(passmat,stat=i_stat)
+     call memocc(i_stat,i_all,'passmat',subname)
 
   end if  !if on linear         <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 

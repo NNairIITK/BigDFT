@@ -437,10 +437,6 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   deallocate(user_data,stat=i_stat)
   call memocc(i_stat,i_all,'user_data',subname)
 
-  i_all=-product(shape(user_data))*kind(user_data)
-  deallocate(user_data,stat=i_stat)
-  call memocc(i_stat,i_all,'user_data',subname)
-
   ! Copy new in vrespc
   call dcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
 
@@ -1113,7 +1109,7 @@ subroutine diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
             ! shift left up matrix
             do i=1,diisArr(iorb)%idsx-1
                do j=1,i
-                  diisArr(iorb)%ads(j,i,ikptp,1)=diisArr(iorb)%ads(j+1,i+1,ikptp,1)
+                  diisArr(iorb)%ads(1,j,i,1,ikptp,1)=diisArr(iorb)%ads(1,j+1,i+1,1,ikptp,1)
                end do
             end do
          end if
@@ -1156,18 +1152,19 @@ subroutine diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
          if (nvctrp == 0) cycle
 
          do i=1,min(diisArr(iorb)%ids,diisArr(iorb)%idsx)
-            diisArr(iorb)%ads(i,min(diisArr(iorb)%idsx,diisArr(iorb)%ids),ikptp,1)=rds(i,ikpt)
+            diisArr(iorb)%ads(1,i,min(diisArr(iorb)%idsx,diisArr(iorb)%ids),1,ikptp,1)=rds(i,ikpt)
          end do
 
          ! copy to work array, right hand side, boundary elements
          do j=1,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)
-            diisArr(iorb)%ads(j,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,ikptp,2)=1.0_wp
+            diisArr(iorb)%ads(1,j,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,1,ikptp,2)=1.0_wp
             rds(j,ikpt)=0.d0
             do i=j,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)
-               diisArr(iorb)%ads(j,i,ikptp,2)=diisArr(iorb)%ads(j,i,ikptp,1)
+               diisArr(iorb)%ads(1,j,i,1,ikptp,2)=diisArr(iorb)%ads(1,j,i,1,ikptp,1)
             end do
          end do
-         diisArr(iorb)%ads(min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,ikptp,2)=0.0_dp
+         diisArr(iorb)%ads(1,min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,&
+              min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,1,ikptp,2)=0.0_dp
          rds(min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,ikpt)=1.0_dp
          
          !if(iproc==0)  write(6,*) 'DIIS matrix'
@@ -1176,8 +1173,8 @@ subroutine diisstpVariable(iproc,nproc,orbs,comms,diis,diisArr,psit,quiet)
          !enddo
          if (diisArr(iorb)%ids > 1) then
             ! solve linear system:(LAPACK)
-            call DSYSV('U',min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,1,diisArr(iorb)%ads(1,1,ikptp,2),diisArr(iorb)%idsx+1,  & 
-                 ipiv,rds(1,ikpt),diisArr(iorb)%idsx+1,diisArr(iorb)%ads(1,1,ikptp,3),(diisArr(iorb)%idsx+1)**2,info)
+            call DSYSV('U',min(diisArr(iorb)%idsx,diisArr(iorb)%ids)+1,1,diisArr(iorb)%ads(1,1,1,1,ikptp,2),diisArr(iorb)%idsx+1,  & 
+                 ipiv,rds(1,ikpt),diisArr(iorb)%idsx+1,diisArr(iorb)%ads(1,1,1,1,ikptp,3),(diisArr(iorb)%idsx+1)**2,info)
             
             if (info /= 0) then
                print*, 'diisstp: DSYSV',info

@@ -636,7 +636,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
 END SUBROUTINE DiagHam
 
 subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
-     psi,hpsi,psit,orthpar,& !mandatory
+     psi,hpsi,psit,orthpar,passmat,& !mandatory
      orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
   use module_base
   use module_types
@@ -646,7 +646,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   type(local_zone_descriptors) :: Lzd                                  !> Information about the locregs
   type(communications_arrays), target, intent(in) :: comms
   type(orbitals_data), target, intent(inout) :: orbs
-  type(orthon_data) :: orthpar
+  type(orthon_data),intent(in):: orthpar 
+  real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
   real(wp), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
   real(gp), optional, intent(in) :: etol
@@ -660,7 +661,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal,linear_nosemicore
   integer :: ikptp,ikpt,nvctrp,ilr,psishift1,ldim,totshift,iorb
-  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll
+  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(gp) :: tolerance
   type(orbitals_data), pointer :: orbsu
@@ -686,18 +687,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   end if
 
   !check for semicore approach (not allowed in the linear case)
-  semicore=present(norbsc_arr) .and. natsc > 0
+  semicore=present(norbsc_arr) 
 
-!!  if (semicore) then
-!!     write(*,*) 'ERROR: LDiagHam not allowed with semicore IG orbitals'
-!!     stop
-!!  end if
-
-  if (.not. minimal) then
-     write(*,*) 'ERROR: LDiagHam allowed only for IG orbitals'
-     stop
-  end if
-  
   !assign total orbital number for calculating the overlap matrix and diagonalise the system
 
   if(minimal) then
@@ -718,13 +709,14 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      allocate(psiw(npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   else
-     psiw => null()
+     nullify(psiw)
   end if
 
+  !transpose all the wavefunctions for having a piece of all the orbitals
   call transpose_v2(iproc,nproc,orbsu,Lzd,commu,psi,work=psiw)
   call transpose_v2(iproc,nproc,orbsu,Lzd,commu,hpsi,work=psiw)
 
-  if(nproc > 1 .or. Lzd%linear) then
+  if(nproc > 1.or. Lzd%linear) then
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw',subname)
@@ -786,15 +778,15 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      end do
   else
      !this works also for non spin-polarised since there norbu=norb
-     norbi_max=max(orbsu%norbu,orbsu%norbd) 
+     norbi_max=max(orbs%norbu,orbs%norbd) 
      ndim_hamovr=norbi_max**2
      natsceff=0
      allocate(norbgrp(1,nspin+ndebug),stat=i_stat)
      call memocc(i_stat,norbgrp,'norbgrp',subname)
 
      norbsc=0
-     norbgrp(1,1)=orbsu%norbu
-     if (nspin == 2) norbgrp(1,2)=orbsu%norbd
+     norbgrp(1,1)=orbs%norbu
+     if (nspin == 2) norbgrp(1,2)=orbs%norbd
 
   end if
 
@@ -836,12 +828,12 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
 !  if(iproc==0 .and. verbose>1) write(*,'(a)') ' done.'
   !if (iproc == 0) print *,'hamovr,iproc:',iproc,hamovr
 
-!!$  if (minimal) then
-!!$     !deallocate hpsi in the case of a minimal basis
-!!$     i_all=-product(shape(hpsi))*kind(hpsi)
-!!$     deallocate(hpsi,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'hpsi',subname)
-!!$  end if
+  if (minimal) then
+     !deallocate hpsi in the case of a minimal basis
+     i_all=-product(shape(hpsi))*kind(hpsi)
+     deallocate(hpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi',subname)
+  end if
 
   if (nproc > 1) then
      !reduce the overlap matrix between all the processors
@@ -860,11 +852,13 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
 
   !in the case of minimal basis allocate now the transposed wavefunction
   !otherwise do it only in parallel
-  if (minimal) then
-     allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psit,'psit',subname)
-  else
-     psit => hpsi
+  if(.not. associated(psit)) then
+     if (minimal .or. nproc > 1) then
+        allocate(psit(orbs%npsidim+ndebug),stat=i_stat)
+        call memocc(i_stat,psit,'psit',subname)
+     else
+        psit => hpsi
+     end if
   end if
 
   ! There are two possibilities to generate the input guess
@@ -885,16 +879,36 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
 
       call timing(iproc, 'Input_comput', 'ON')
 
-      ispsi=1
       !it is important that the k-points repartition of the inputguess orbitals
       !coincides with the one of the SCF orbitals
       do ikptp=1,orbsu%nkptsp
          ikpt=orbsu%iskpts+ikptp!orbs%ikptsp(ikptp)
          call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
               ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr(1,1,ikpt),&
-              orbs%eval((ikpt-1)*orbs%norb+1))
+              orbsu%eval((ikpt-1)*orbsu%norb+1)) !changed from orbs
+
+        !assign the value for the orbital
+        call vcopy(orbs%norbu,orbsu%eval((ikpt-1)*orbsu%norb+1),1,orbs%eval((ikpt-1)*orbs%norb+1),1)
+        if (orbs%norbd >0) then
+           call vcopy(orbs%norbd,orbsu%eval((ikpt-1)*orbsu%norb+orbsu%norbu+1),1,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+1),1)
+        end if
+        !do iorb=1,orbs%norbu
+        !   orbs%eval((ikpt-1)*orbs%norb+iorb)=orbsu%eval((ikpt-1)*orbsu%norb+iorb)
+        !end do
+        !case for collinear spin
+        !do iorb=1,orbs%norbd
+        !   orbs%eval((ikpt-1)*orbs%norb+iorb+orbs%norbu)=orbsu%eval((ikpt-1)*orbsu%norb+iorb+orbsu%norbu)
+        !end do
       end do
       
+     !broadcast values for k-points 
+     call broadcast_kpt_objects(nproc, orbsu%nkpts, orbsu%norb, &
+          & orbsu%eval(1), orbsu%ikptproc)
+
+     if (iproc ==0) then !this case works only for the first k-point
+        call write_ig_eigenvectors(tolerance,orbsu,nspin,orbs%norb,orbs%norbu,orbs%norbd)
+     end if
+
     !!$  !not necessary anymore since psivirt is gaussian
       !allocate the pointer for virtual orbitals
   if(present(orbsv) .and. present(psivirt)) then
@@ -915,24 +929,29 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
       ispsi=1
       ispsie=1
       ispsiv=1
+      ispm=1
+      !number of complex components
+      ncplx=1
+      if (nspinor > 1) ncplx=2
       do ikptp=1,orbsu%nkptsp
          ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
-         
+
          nvctrp=commu%nvctr_par(iproc,ikptp)
          if (nvctrp == 0) cycle
     
          if (.not. present(orbsv)) then
             call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
                  natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
-                 psi(ispsie:),psit(ispsi:))
+                 psi(ispsie:),psit(ispsi:),passmat(ispm))
          else
             call build_eigenvectors(iproc,orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
                  natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
-                 psi(ispsie:),psit(ispsi:),&
+                 psi(ispsie:),psit(ispsi:),passmat(ispm),&
                  (/orbsv%norbu,orbsv%norbd/),psivirt(ispsiv:))
          end if
          ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
          ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
+         ispm=ispm+ncplx*(orbsu%norbu*orbs%norbu+orbsu%norbd*orbs%norbd)
          if (present(orbsv)) ispsiv=ispsiv+nvctrp*orbsv%norb*orbs%nspinor
       end do
     
@@ -969,11 +988,11 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
      !reverse objects for the normal diagonalisation in serial
      !at this stage hpsi is the eigenvectors and psi is the old wavefunction
      !this will restore the correct identification
-     nullify(hpsi)
-     hpsi => psi
+!     nullify(hpsi)
+!     hpsi => psi
 !     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
-     nullify(psi)
-     psi => psit
+!     nullify(psi)
+!     psi => psit
   end if
 
   !orthogonalise the orbitals in the case of semi-core atoms
@@ -998,7 +1017,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,comms,&
   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
 
-  if (nproc == 1) then
+  if (nproc == 1 .and. minimal) then
      nullify(psit)
   end if
 

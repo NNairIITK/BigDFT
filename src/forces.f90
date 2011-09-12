@@ -272,9 +272,8 @@ subroutine calculate_forces(iproc,nproc,Glr,atoms,orbs,nlpspd,rxyz,hx,hy,hz,proj
        0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
 
   if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
-  
-  call nonlocal_forces(iproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,atoms,rxyz,&
-       orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj)
+ 
+  call nonlocal_forces(iproc,Glr,hx,hy,hz,atoms,rxyz,orbs,nlpspd,proj,Glr%wfd,psi,fxyz,refill_proj)
 
   if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
 
@@ -629,16 +628,15 @@ subroutine nonlocal_forces(iproc,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   integer :: ierr,ilr
+
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
      
-
   !always put complex scalprod
   !also nspinor for the moment is the biggest as possible
   allocate(scalprod(2,0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
   call razero(2*4*7*3*4*at%nat*orbs%norbp*orbs%nspinor,scalprod)
-
 
   !calculate the coefficients for the off-diagonal terms
   do l=1,3

@@ -745,10 +745,16 @@ call memocc(i_stat,i_all,'scalprod',subname)
            end do
 
         end do
+
 !        if (ieorb == orbs%norbp) exit loop_kptF
 !        ikpt=ikpt+1
 !        ispsi_k=ispsi
 !     end do loop_kptF
+
+        i_all=-product(shape(fxyz_tmorb))*kind(fxyz_tmorb)
+        deallocate(fxyz_tmorb,stat=i_stat)
+        call memocc(i_stat,i_all,'fxyz_tmorb',subname)
+ 
   else
      !apply the projectors  k-point of the processor
      !starting k-point

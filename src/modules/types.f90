@@ -1068,12 +1068,9 @@ END SUBROUTINE deallocate_orbs
     call deallocate_wfd(lr%wfd,subname)
 
     call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds,subname)
-    if(associated(lr%projflg)) then
-       nullify(lr%projflg)
-!       i_all=-product(shape(lr%projflg)*kind(lr%projflg))
-!       deallocate(lr%projflg,stat=i_stat)
-!       call memocc(i_stat,i_all,'lr%projflg',subname)
-    end if
+    i_all=-product(shape(lr%projflg)*kind(lr%projflg))
+    deallocate(lr%projflg,stat=i_stat)
+    call memocc(i_stat,i_all,'lr%projflg',subname)
 
   END SUBROUTINE deallocate_lr
 

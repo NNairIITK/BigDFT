@@ -248,6 +248,17 @@ real(8),dimension(:),pointer:: lpot
   deallocate(lin%lzd%doHamAppl, stat=istat)
   call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
 
+  if(.not.lin%useDerivativeBasisFunctions)then
+     iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
+     deallocate(lin%orbs%ispot, stat=istat)
+     call memocc(istat, iall, 'lin%orbs%ispot', subname)
+  else
+     iall=-product(shape(lin%lb%orbs%ispot))*kind(lin%lb%orbs%ispot) 
+     deallocate(lin%lb%orbs%ispot, stat=istat)
+     call memocc(istat, iall, 'lin%lb%orbs%ispot', subname)
+  end if
+
+
   iall=-product(shape(lpot))*kind(lpot)
   deallocate(lpot, stat=istat)
   call memocc(istat, iall, 'lpot', subname)
@@ -788,6 +799,9 @@ real(8),dimension(:),pointer:: lpot
 
   end do iterLoop
 
+  iall=-product(shape(lin%orbs%ispot))*kind(lin%orbs%ispot)
+  deallocate(lin%orbs%ispot, stat=istat)
+  call memocc(istat, iall, 'lin%orbs%ispot', subname)
   ! Deallocate potential
   iall=-product(shape(lpot))*kind(lpot)
   deallocate(lpot, stat=istat)

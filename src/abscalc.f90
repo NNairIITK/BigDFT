@@ -1315,6 +1315,9 @@ contains
 
     !De-allocations
     call deallocate_bounds(atoms%geocode,Glr%hybrid_on,  Glr%bounds,subname)
+    i_all=-product(shape(Glr%projflg))*kind(Glr%projflg)
+    deallocate(Glr%projflg,stat=i_stat)
+    call memocc(i_stat,i_all,'Glr%projflg',subname)  
 
 !!$    if (atoms%geocode == 'F') then
 !!$       call deallocate_bounds(Glr%bounds,subname)

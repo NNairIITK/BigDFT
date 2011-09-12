@@ -72,7 +72,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   exctX = xc_exctXfac() /= 0.0_gp
 
   ispot=lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1
-       size_pot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin + &
+       size_pot=lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin + &
          max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norb,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
 
 
@@ -127,7 +127,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      eexctX = 0._gp
      !print *,'iproc,eexctX',iproc,eexctX
   end if
-        size_pot=lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin + &
+        size_pot=lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin + &
          max(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norb,ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
 
   !GPU are supported only for ipotmethod=0
@@ -221,7 +221,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   
   else if(orbs%norbp > 0 .and. present(Lzd)) then
       stop 'the calling sequence of apply_local_projectors is wrong!'
-     call apply_local_projectors(at,hx,hy,hz,lr,nlpspd,proj,orbs,lr%projflg,psi,rxyz,hpsi,eproj_sum)
+!     call apply_local_projectors(at,hx,hy,hz,lr,nlpspd,proj,orbs,lr%projflg,psi,rxyz,hpsi,eproj_sum)
   end if
 
   if(OCLconv .and. ASYNCconv) then
