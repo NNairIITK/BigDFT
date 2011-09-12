@@ -77,7 +77,7 @@ defs.o: $(mpi_include) configure.inc
 base.o: defs.o
 types.o: base.o
 input.o: base.o
-interfaces.o: base.o types.o
+interfaces.o: base.o types.o xc.o
 op2p_module.o : base.o
 
 $(mod_bigdft) : base.o types.o interfaces.o
