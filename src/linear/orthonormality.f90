@@ -60,7 +60,7 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
       t1=mpi_wtime()
         !call postCommsOverlap(iproc, nproc, comon)
       call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
-      write(*,*) 'first timecommunp2p',timecommunp2p
+      !write(*,*) 'first timecommunp2p',timecommunp2p
         !call gatherOrbitals(iproc, nproc, lin%comon)
         !call gatherOrbitals2(iproc, nproc, comon)
       allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
@@ -71,7 +71,7 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
       call collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
            sendbufcopy, comon%nrecvbuf, comon%recvbuf, ovrlp, lphiovrlp, timecommunp2p, timecommuncoll, timeoverlap, timeexpand, timecompress)
       deallocate(sendbufcopy, stat=istat)
-      write(*,*) 'second timecommunp2p',timecommunp2p
+      !write(*,*) 'second timecommunp2p',timecommunp2p
       !call getOrbitals(iproc, nproc, comon)
       t2=mpi_wtime()
       timeCommun=timeCommun+t2-t1
@@ -137,8 +137,8 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
   else 
       if(iproc==0) write(*,'(3x,a,i0,a)') 'WARNING: orthonormalization not converged within ', nItOrtho, ' iterations.'
   end if
-  write(*,*)'iproc, timecommunp2p', iproc, timecommunp2p
-  write(*,*)'iproc, timecommuncoll', iproc, timecommuncoll
+  !write(*,*)'iproc, timecommunp2p', iproc, timecommunp2p
+  !write(*,*)'iproc, timecommuncoll', iproc, timecommuncoll
 
   timeComput=timeLoewdin+timeTransform+timeextract+timeoverlap+timeexpand+timecompress
   timeCommun=timecommunp2p+timecommuncoll
@@ -3920,7 +3920,7 @@ waitLoopRecv: do
     end if
 end do waitLoopRecv
 
-write(*,'(a,i0,a)') 'iproc=',iproc,' is here'
+!write(*,'(a,i0,a)') 'iproc=',iproc,' is here'
 
 iall=-product(shape(done))*kind(done)
 deallocate(done, stat=istat)

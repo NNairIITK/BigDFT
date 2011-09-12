@@ -4555,6 +4555,36 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine expandOneOrbital2
 
 
+      subroutine calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, atoms, in, comms, lin, nlpspd, proj, &
+                 ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rho, psi, fxyz, fnoise)
+        use module_base
+        use module_types
+        implicit none
+        
+        ! Calling arguments
+        integer,intent(in):: iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh
+        type(locreg_descriptors),intent(in):: Glr
+        type(orbitals_data),intent(in):: orbs
+        type(atoms_data),intent(in):: atoms
+        type(input_variables),intent(in):: in
+        type(communications_arrays),intent(in):: comms
+        type(linearParameters),intent(inout):: lin
+        type(nonlocal_psp_descriptors),intent(in) :: nlpspd
+        real(wp),dimension(nlpspd%nprojel),intent(inout) :: proj
+        integer,dimension(0:nproc-1,2),intent(in) :: ngatherarr   !!! NOT NEEDED
+        integer,dimension(0:nproc-1,4),intent(inout) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+        type(GPU_pointers),intent(inout):: GPU
+        integer,dimension(lin%as%size_irrzon(1),lin%as%size_irrzon(2),lin%as%size_irrzon(3)),intent(in) :: irrzon
+        real(dp),dimension(lin%as%size_phnons(1),lin%as%size_phnons(2),lin%as%size_phnons(3)),intent(in) :: phnons
+        real(dp),dimension(lin%as%size_pkernel),intent(in):: pkernel
+        real(8),dimension(3,atoms%nat),intent(in):: rxyz, fion, fdisp
+        real(8),dimension(3,atoms%nat),intent(out):: fxyz
+        real(8),intent(out):: fnoise
+        real(8),dimension(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)),intent(in):: rho
+        real(8),dimension(orbs%npsidim),intent(inout):: psi
+      end subroutine calculateForcesLinear
+
+
 
   end interface
 

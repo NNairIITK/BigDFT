@@ -361,9 +361,13 @@ type(workarr_sumrho):: w
   end if
 
   ! Calculate the forces we get with psi.
-  call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
-      proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, lphi, coeff, rhopot, &
-      fxyz, fnoise,radii_cf)
+  !!call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
+  !!    proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, lphi, coeff, rhopot, &
+  !!    fxyz, fnoise,radii_cf)
+
+  call calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
+       proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rhopot, psi, fxyz, fnoise)
+
 
   call free_lnlpspd(lin%orbs, lin%lzd)
 
