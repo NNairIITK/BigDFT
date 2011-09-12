@@ -112,8 +112,8 @@ real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(8),dimension(:),allocatable:: phiTemp
 real(wp),dimension(:),allocatable:: projTemp
-real(8):: t1, t2, time, t1tot, t2tot, timetot
-
+real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit
+real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
 integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot
@@ -130,12 +130,18 @@ type(workarr_sumrho):: w
       write(*,'(x,a)') repeat('*',84)
       write(*,'(x,a)') '****************************** LINEAR SCALING VERSION ******************************'
   end if
-  call cpu_time(t1tot)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1tot=mpi_wtime()
 
   ! Initialize the parameters for the linear scaling version and allocate all arrays.
   tag=0
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1init=mpi_wtime()
   call allocateAndInitializeLinear(iproc, nproc, Glr, orbs, at, nlpspd, lin, phi, &
        input, rxyz, nscatterarr, tag, coeff, lphi)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2init=mpi_wtime()
+  timeinit=t2init-t1init
 
   if(.not.lin%transformToGlobal) then
       ! psi and psit will not be calculated, so only allocate them with size 1
@@ -150,11 +156,17 @@ type(workarr_sumrho):: w
   call prepare_lnlpspd(iproc, at, input, lin%orbs, rxyz, radii_cf, lin%lzd)
 
   potshortcut=0 ! What is this?
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1ig=mpi_wtime()
   call inputguessConfinement(iproc, nproc, at, &
        comms, Glr, input, rhodsc, lin, orbs, rxyz, n3p, rhopot, rhocore, pot_ion,&
        nlpspd, proj, pkernel, pkernelseq, &
        nscatterarr, ngatherarr, potshortcut, irrzon, phnons, GPU, radii_cf, &
        tag, lphi, ehart, eexcu, vexcu)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2ig=mpi_wtime()
+  timeig=t2ig-t1ig
+  t1scc=mpi_wtime()
 
   ! Post communications for gathering the potential.
   ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
@@ -325,6 +337,10 @@ type(workarr_sumrho):: w
       call deallocateMixrhopotDIIS(mixdiis)
   end if
 
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2scc=mpi_wtime()
+  timescc=t2scc-t1scc
+
 
   ! Allocate the communication buffers for the calculation of the charge density.
   call allocateCommunicationbufferSumrho(lin%comsr, subname)
@@ -353,6 +369,8 @@ type(workarr_sumrho):: w
        rhopot, at, nscatterarr)
   call deallocateCommunicationbufferSumrho(lin%comsr, subname)
 
+  call mpi_barrier(mpi_comm_world, ierr)
+  t1force=mpi_wtime()
   ! Build global orbitals psi (the physical ones).
   if(lin%transformToGlobal) then
       !do iall=0,nproc-1
@@ -361,11 +379,11 @@ type(workarr_sumrho):: w
       call transformToGlobal(iproc, nproc, lin, orbs, comms, input, coeff, lphi, psi, psit)
   end if
 
-  do iorb=1,orbs%norb
-      do iall=1,lin%lb%orbs%norb
-          write(600+iproc,*) iorb, iall, coeff(iall,iorb)
-      end do
-  end do
+  !!do iorb=1,orbs%norb
+  !!    do iall=1,lin%lb%orbs%norb
+  !!        write(600+iproc,*) iorb, iall, coeff(iall,iorb)
+  !!    end do
+  !!end do
 
   ! Calculate the forces we get with psi.
   !!call calculateForcesSub(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
@@ -374,6 +392,9 @@ type(workarr_sumrho):: w
 
   call calculateForcesLinear(iproc, nproc, n3d, n3p, n3pi, i3s, i3xcsh, Glr, orbs, at, input, comms, lin, nlpspd, &
        proj, ngatherarr, nscatterarr, GPU, irrzon, phnons, pkernel, rxyz, fion, fdisp, rhopot, psi, fxyz, fnoise)
+  call mpi_barrier(mpi_comm_world, ierr)
+  t2force=mpi_wtime()
+  timeforce=t2force-t1force
 
 
   call free_lnlpspd(lin%orbs, lin%lzd)
@@ -383,10 +404,15 @@ type(workarr_sumrho):: w
 
 
   call mpi_barrier(mpi_comm_world, ierr)
-  call cpu_time(t2tot)
+  t2tot=mpi_wtime()
   timetot=t2tot-t1tot
   if(iproc==0) write(*,'(x,a)') '================================================'
   if(iproc==0) write(*,'(x,a,es9.2,a)') 'total time for linear scaling version:',timetot,'s'
+  if(iproc==0) write(*,'(3x,a)') 'of which:'
+  if(iproc==0) write(*,'(13x,a,es9.2,a,f4.1,a)') '- initialization:',timeinit,'s (',timeinit/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(13x,a,es9.2,a,f4.1,a)') '- input guess:',timeig,'s (',timeig/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(13x,a,es9.2,a,f4.1,a)') '- self consistency cycle:',timescc,'s (',timescc/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(13x,a,es9.2,a,f4.1,a)') '- forces:',timeforce,'s (',timeforce/timetot*100.d0,'%)'
   if(iproc==0) write(*,'(x,a)') '================================================'
 
 end subroutine linearScaling
