@@ -41,7 +41,7 @@ real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 
 ! Local variables
-integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb
+integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb
 integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
@@ -265,6 +265,14 @@ if(iproc==0) write(*,'(a)') 'done.'
 !!        write(*,'(a,4i8)') 'iall, lin%mad%keyvmatmul(iall), lin%mad%keygmatmul(1,iall), lin%mad%keygmatmul(2,iall)', iall, lin%mad%keyvmatmul(iall), lin%mad%keygmatmul(1,iall), lin%mad%keygmatmul(2,iall)
 !!    end do
 !!end if
+
+
+!!! Plot basis functions grid
+!!do iorb=1,lin%orbs%norbp
+!!    iiorb=lin%orbs%isorb+iorb
+!!    ilr=lin%orbs%inWhichLocreg(iiorb)
+!!    call plotGrid(iproc, nproc, lin%lb%orbs%norb, lin%orbs%nspinor, input%nspin, iiorb, lin%lzd%llr(ilr), lin%lzd%glr, at, rxyz, input%hx, input%hy, input%hz)
+!!end do
 
 
 end subroutine allocateAndInitializeLinear
@@ -2645,4 +2653,96 @@ end do
 
 
 end subroutine dgemm_compressed2
+
+
+
+subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms, rxyz, hx, hy, hz)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, norb, nspinor, nspin, orbitalNumber
+  type(locreg_descriptors),intent(in):: llr, glr
+  type(atoms_data),intent(in)::atoms
+  real(8),dimension(3,atoms%nat),intent(in):: rxyz
+  real(8),intent(in):: hx, hy, hz
+  
+  ! Local variables
+  integer:: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, iat, ldim, gdim, jjj, istat
+  character(len=10):: num
+  character(len=20):: filename
+  real(8),dimension(:),allocatable:: lphi, phi
+
+
+    ldim=llr%wfd%nvctr_c+7*llr%wfd%nvctr_f
+    gdim=glr%wfd%nvctr_c+7*glr%wfd%nvctr_f
+    allocate(lphi(ldim), stat=istat)
+    allocate(phi(gdim), stat=istat)
+    lphi=1.d0
+    phi=0.d0
+    call Lpsi_to_global2(iproc, nproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
+  
+    write(num,'(i0)') orbitalNumber
+    filename='orbital_'//trim(num)
+  
+    open(unit=2000+iproc,file=trim(filename)//'.xyz',status='unknown')
+    !write(2000+iproc,*) llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%nat,' atomic'
+    write(2000+iproc,*) glr%wfd%nvctr_c+glr%wfd%nvctr_f+llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%nat,' atomic'
+    if (atoms%geocode=='F') then
+       write(2000+iproc,*)'complete simulation grid with low and high resolution points'
+    else if (atoms%geocode =='S') then
+       write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'surface',atoms%alat1,atoms%alat2,atoms%alat3
+    else if (atoms%geocode =='P') then
+       write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%alat1,atoms%alat2,atoms%alat3
+    end if
+
+   do iat=1,atoms%nat
+      write(2000+iproc,'(a6,2x,3(1x,e12.5),3x)') trim(atoms%atomnames(atoms%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+   end do
+
+  
+    jjj=0
+    do iseg=1,glr%wfd%nseg_c
+       jj=glr%wfd%keyv(iseg)
+       j0=glr%wfd%keyg(1,iseg)
+       j1=glr%wfd%keyg(2,iseg)
+       ii=j0-1
+       i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
+       ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
+       i2=ii/(glr%d%n1+1)
+       i0=ii-i2*(glr%d%n1+1)
+       i1=i0+j1-j0
+       do i=i0,i1
+           jjj=jjj+1
+           if(phi(jjj)==1.d0) write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  lg ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+           write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  g ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+       enddo
+    enddo
+  
+    ! fine part
+    !$omp do
+    ishift=glr%wfd%nseg_c
+    do iseg=1,glr%wfd%nseg_f
+       jj=glr%wfd%keyv(ishift+iseg)
+       j0=glr%wfd%keyg(1,ishift+iseg)
+       j1=glr%wfd%keyg(2,ishift+iseg)
+       ii=j0-1
+       i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
+       ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
+       i2=ii/(glr%d%n1+1)
+       i0=ii-i2*(glr%d%n1+1)
+       i1=i0+j1-j0
+       do i=i0,i1
+          jjj=jjj+1
+          if(phi(jjj)==1.d0) write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  lG ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+          write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  G ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+          jjj=jjj+6
+       enddo
+    enddo
+  
+    close(unit=2000+iproc)
+
+end subroutine plotGrid
+
 

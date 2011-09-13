@@ -513,7 +513,7 @@ real(wp),dimension(nlpspd%nprojel),intent(inout):: proj
 
 ! Local variables
 real(8) ::epot_sum, ekin_sum, eexctX, eproj_sum, evalmax, eval_zero, t1tot, t2tot, timetot
-real(8):: tt, tt2, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2
+real(8):: tt, tt2, ddot, fnrm, fnrmMax, meanAlpha, gnrm, gnrm_zero, gnrmMax, t1, t2, timecommunp2p, timeextract, timecommuncoll, timeoverlap, timecompress
 integer:: iorb, icountSDSatur, icountSwitch, idsx, icountDIISFailureTot, icountDIISFailureCons, itBest
 integer:: istat, istart, ierr, ii, it, iall, nit, ind1, ind2, jorb, i
 integer:: ldim, gdim, ilr, ncount, offset, istsource, istdest
@@ -584,8 +584,11 @@ real(8),dimension(:),pointer:: lpot
           write(*,'(x,a)') 'Orthonormalization... '
       end if
       call cpu_time(t1)
-      call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
-           lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
+      !!call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
+      !!     lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
+      !!     input, lin%mad, lphi, ovrlp)
+      call orthonormalizeLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
+           lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%gorbs, lin%comms, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
            input, lin%mad, lphi, ovrlp)
       !!do iorb=1,lin%orbs%norb
       !!    do jorb=1,lin%orbs%norb
@@ -594,6 +597,15 @@ real(8),dimension(:),pointer:: lpot
       !!end do
       call cpu_time(t2)
       time(1)=time(1)+t2-t1
+
+      ! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
+      call allocateSendBufferOrtho(lin%comon, subname)
+      call allocateRecvBufferOrtho(lin%comon, subname)
+      ! Extract the overlap region from the orbitals phi and store them in comon%sendBuf.
+      call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
+      ! Post the send messages.
+      call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
+
   
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if(iproc==0) then
@@ -652,7 +664,18 @@ real(8),dimension(:),pointer:: lpot
       call cpu_time(t1)
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
 
-      call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH)
+      ! Gather the messages and calculate the overlap matrix.
+      call collectAndCalculateOverlap2(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+            lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ovrlp, timecommunp2p, timecommuncoll, timeoverlap, timecompress)
+      !call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
+      !     lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, lin%mad, ovrlp)
+      call deallocateRecvBufferOrtho(lin%comon, subname)
+      call deallocateSendBufferOrtho(lin%comon, subname)
+
+      !call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH)
+      call applyOrthoconstraintNonorthogonalCubic(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%gorbs, lin%comms, lin%lzd, input, &
+           lin%op, ovrlp, lin%mad, lphi, lhphi, trH)
+
       call cpu_time(t2)
       time(3)=time(3)+t2-t1
       if(iproc==0) then

@@ -4697,6 +4697,62 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(orbs%npsidim),intent(inout):: psi
       end subroutine calculateForcesLinear
 
+      subroutine collectAndCalculateOverlap2(iproc, nproc, comon, mad, op, orbs, input, lzd, &
+                 nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, timecommuncoll, timeoverlap, timecompress)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
+        type(p2pCommsOrthonormality),intent(inout):: comon
+        type(matrixDescriptors),intent(in):: mad
+        type(overlapParameters),intent(in):: op
+        type(orbitals_data),intent(in):: orbs
+        type(input_variables),intent(in):: input
+        type(local_zone_descriptors),intent(in):: lzd
+        real(8),dimension(nsendbuf),intent(in):: sendbuf
+        real(8),dimension(nrecvbuf),intent(inout):: recvbuf
+        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+        real(8),intent(inout):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
+      end subroutine collectAndCalculateOverlap2
+
+
+       subroutine orthonormalizeLocalized2(iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, &
+                  blocksize_pdgemm, orbs, op, comon, lzd, gorbs, comms, onWhichAtomAll, convCritOrtho, input, mad, lphi, ovrlp)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, methTransformOverlap, nItOrtho, blocksize_dsyev, blocksize_pdgemm
+         !type(linearParameters),intent(inout):: lin
+         type(orbitals_data),intent(in):: orbs, gorbs
+         type(overlapParameters),intent(inout):: op
+         type(p2pCommsOrthonormality),intent(inout):: comon
+         type(local_zone_descriptors),intent(in):: lzd
+         type(communications_arrays),intent(in):: comms
+         integer,dimension(orbs%norb),intent(in):: onWhichAtomAll
+         real(8),intent(in):: convCritOrtho
+         type(input_variables),intent(in):: input
+         !real(8),dimension(lin%lorbs%npsidim),intent(inout):: lphi
+         type(matrixDescriptors),intent(in):: mad
+         real(8),dimension(orbs%npsidim),intent(inout):: lphi
+         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+       end subroutine orthonormalizeLocalized2
+
+       subroutine applyOrthoconstraintNonorthogonalCubic(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, gorbs, comms, lzd, input, &
+                  op, ovrlp, mad, lphi, lhphi, trH)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
+         type(orbitals_data),intent(in):: orbs, gorbs
+         type(communications_arrays),intent(in):: comms
+         type(local_zone_descriptors),intent(in):: lzd
+         type(input_variables),intent(in):: input
+         type(overlapParameters),intent(in):: op
+         real(8),dimension(orbs%norb,orbs%norb),intent(in):: ovrlp
+         type(matrixDescriptors),intent(in):: mad
+         real(8),dimension(orbs%npsidim),intent(inout):: lphi, lhphi
+         real(8),intent(out):: trH
+       end subroutine applyOrthoconstraintNonorthogonalCubic
 
 
   end interface
