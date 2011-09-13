@@ -4498,12 +4498,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        integer,dimension(orbs%norbp),intent(in),optional:: confinementCenter
      end subroutine HamiltonianApplication3
 
-     subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,nspin,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
+     subroutine full_local_potential2(iproc,nproc,ndimpot,ndimgrid,ndimrhopot,nspin,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
        use module_base
        use module_types
        use module_xc
        implicit none
-       integer, intent(in) :: iproc,nproc,ndimpot,ndimgrid,flag,nspin
+       integer, intent(in) :: iproc,nproc,ndimpot,ndimgrid,flag,nspin,ndimrhopot
        type(orbitals_data),intent(inout):: orbs
        type(local_zone_descriptors),intent(inout):: lzd
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr

@@ -751,7 +751,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      return
 
 
-1  case(INPUT_PSI_MEMORY_WVL)
+  case(INPUT_PSI_MEMORY_WVL)
      !these parts should be reworked for the non-collinear spin case
 
      !restart from previously calculated wavefunctions, in memory

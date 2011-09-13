@@ -6,12 +6,12 @@ program BigDFT2Wannier
    character :: filetype*4
    !etsf
    type(locreg_descriptors) :: Glr
-   type(orbitals_data) :: orbs,orbs2,orbsv
+   type(orbitals_data) :: orbs,orbsp,orbsv,orbsb  !orbsp describes the projectors, orbsv only the non-occupied orbitals and orbsb the sum of all occupied and some unoccupied orbitals
    type(atoms_data) :: atoms
    type(input_variables) :: input 
    type(workarr_sumrho) :: w
-   type(communications_arrays), target :: comms, comms2,commsv
-   integer :: iproc, nproc, i_stat, nelec, ind, ierr, nvp, nbp, npsidim, npsidim2, npsidimv
+   type(communications_arrays), target :: comms, commsp,commsv,commsb
+   integer :: iproc, nproc, i_stat, nelec, ind, ierr, nbp, npsidim, npsidim2, npsidimv
    integer :: jproc, norb_tot,isvirt,isband,nvctrp,npp,nvirtu,nvirtd,nvirt
    integer, dimension(:), allocatable :: n_bands_par,n_virt_tot_par,isvirt_par,isband_par,isproj_par,n_proj_par,n_vctr_par
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old
@@ -32,9 +32,9 @@ program BigDFT2Wannier
    real(kind=8), allocatable :: at_pos(:,:)
    real(kind=8), allocatable :: amnk(:,:), amnk_tot(:), amnk_guess(:), amnk_guess_sorted(:)
    real(kind=8), allocatable :: mmnk_re(:,:,:), mmnk_im(:,:,:), mmnk_tot(:,:)
-   integer :: i, j, k, np
+   integer :: i, j, k, np,i_all
    character :: subname*10, seedname*16
-   logical :: calc_only_A
+   logical :: calc_only_A, chosen
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_proj, n_nnkpts, n_excb, n_at, n_bands, s
    integer :: n_occ, n_virt, n_virt_tot
@@ -45,14 +45,12 @@ program BigDFT2Wannier
    real, allocatable, dimension (:) :: zona
    integer, allocatable, dimension (:,:) :: k_plus_b
    integer, allocatable, dimension (:,:) :: G_vec
-   integer, allocatable, dimension (:) :: excb
+   integer, allocatable, dimension (:) :: excb,orblist
    integer, allocatable, dimension (:) :: virt_list, amnk_bands_sorted
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
    ! possible junk ?
    integer :: ncplx, j_end,pshft
-   integer, allocatable, dimension (:) :: orb_list
-
-
+   real(wp) :: norm
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
    call MPI_INIT(ierr)
@@ -85,8 +83,6 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
    call memocc(i_stat,radii_cf,'radii_cf',subname)
    call system_properties(iproc,nproc,input,atoms,orbs,radii_cf,nelec)
-   call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-        orbs%nkpts,orbs%kpts,orbs%kwgts,orbs2)
 
    ! Set-up number of states and shifting values.
    nvirtu = abs(input%norbv)
@@ -95,6 +91,9 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
        & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
 
+   !Setup the description of the projectors (they are similar to orbitals)
+   call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
+        orbs%nkpts,orbs%kpts,orbs%kwgts,orbsp)
 
    if(orbs%nkpts > 1) stop 'BigDFT2Wannier does not work for nkpts > 1'
  
@@ -115,30 +114,8 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    if(orbs%nspinor > 1) STOP 'BigDFT2Wannier does not work for nspinor > 1'
    call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
    if(orbsv%nspinor > 1) STOP 'BigDFT2Wannier does not work for nspinor > 1'
-
-
-   ! Read wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
-   allocate(psi_etsf(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp*orbs%nspinor),stat=i_stat)
-   call memocc(i_stat,psi_etsf,'psi_etsf',subname)
-   allocate(psi_etsfv(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbsv%norbp*orbsv%nspinor),stat=i_stat)
-   call memocc(i_stat,psi_etsfv,'psi_etsfv',subname)
-   allocate(rxyz_old(3,atoms%nat),stat=i_stat)
-   call memocc(i_stat,rxyz_old,'rxyz_old',subname)
-
-   if(associated(orbs%eval)) nullify(orbs%eval)
-   allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
-   filename='wavefunction.etsf'
-   call read_waves_etsf(iproc,filename,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
-      Glr%wfd,psi_etsf)
-
-   if(associated(orbsv%eval)) nullify(orbsv%eval)
-   allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
-   filename='virtuals.etsf'
-   call read_waves_etsf(iproc,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
-      Glr%wfd,psi_etsfv)
-
    
-   ! Read integers in order to allocate tables used to store wavefunctions, l, mr, rvalue, zona, ...
+   ! Read integers in order to allocate tables used to store l, mr, rvalue, zona, ...
    call read_nnkp_int_alloc(iproc,seedname, n_kpts, n_proj, n_nnkpts, n_excb)
    allocate(kpts(n_kpts,3))
    allocate(ctr_proj(n_proj,3))
@@ -151,6 +128,8 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    allocate(k_plus_b(n_kpts*n_nnkpts,2))
    allocate(G_vec(n_kpts*n_nnkpts,3))
    allocate(excb(n_excb))
+   allocate(rxyz_old(3,atoms%nat),stat=i_stat)
+   call memocc(i_stat,rxyz_old,'rxyz_old',subname)
 
 
    ! Read Wannier90 .nnkp file.
@@ -162,16 +141,8 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
                 n_excb, kpts, ctr_proj, x_proj, z_proj, l, mr, rvalue, &
                 zona, k_plus_b, G_vec, excb)
 
-   ! Initialise the arrays n_proj_par and isproj_par
-   allocate(n_proj_par(0:nproc-1))
-   allocate(isproj_par(0:nproc-1))
-   call parallel_repartition_with_kpoints(nproc,1,n_proj,n_proj_par)
-   !check the distribution
-   norb_tot=0
-   do jproc=0,nproc-1
-      isproj_par(jproc)=norb_tot
-      norb_tot=norb_tot+n_proj_par(jproc)
-   end do
+   !distribute the projectors on the processes (contained in orbsp: norb,norbp,isorb,...)
+   call split_vectors_for_parallel(iproc,nproc,n_proj,orbsp)
 
    ! Initialise the array n_vctr_par
    allocate(n_vctr_par(0:nproc-1))
@@ -185,19 +156,9 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    call initialize_work_arrays_sumrho(Glr,w)
 
    ! Allocations for Amnk calculation
-   ! Define orbs2 and comms2, used for the spherical harmonics transposition.
-   orbs2%isorb=isproj_par(iproc)
-   orbs2%nkpts=1
-   orbs2%nspinor=1
-   orbs2%iskpts=0
-   orbs2%norb=n_proj
-   orbs2%norb_par(:)=n_proj_par(:)
-   deallocate(orbs2%iokpt)
-   allocate(orbs2%iokpt(n_proj_par(iproc)))
-   orbs2%iokpt=1
-   orbs2%norbp=n_proj_par(iproc)
-   call orbitals_communicators(iproc,nproc,Glr,orbs2,comms2)
-   npsidim2=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*n_proj_par(iproc),sum(comms2%ncntt(0:nproc-1)))
+   ! Define orbsp and commsp, used for the spherical harmonics transposition.
+   call orbitals_communicators(iproc,nproc,Glr,orbsp,commsp)
+   npsidim2=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsp%norbp,sum(commsp%ncntt(0:nproc-1)))
    allocate(ylm(nx,ny,nz))
    allocate(func_r(nx,ny,nz))
    allocate(sph_har_etsf(nx*ny*nz))
@@ -207,49 +168,31 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    if (pre_check .eqv. .true.) then
 
       call timing(iproc,'CrtProjectors ','ON')
-      ! Initialise the arrays n_virt_par, isvirt_par
-      allocate(n_virt_tot_par(0:nproc-1))
-      allocate(isvirt_par(0:nproc-1))
-      call parallel_repartition_with_kpoints(nproc,n_kpts,n_virt_tot,n_virt_tot_par)
-      !check the distribution
-      norb_tot=0
-      do jproc=0,nproc-1
-         isvirt_par(jproc)=norb_tot
-         norb_tot=norb_tot+n_virt_tot_par(jproc)
-      end do
-      !check the distribution
-      norb_tot=0
-      do jproc=0,iproc-1
-         norb_tot=norb_tot+n_virt_tot_par(jproc)
-      end do
-      !reference orbital for process
-      isvirt=norb_tot
-      nvp=n_virt_tot_par(iproc)
 
+      ! Read wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
+      allocate(psi_etsfv(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbsv%norbp*orbsv%nspinor),stat=i_stat)
+      call memocc(i_stat,psi_etsfv,'psi_etsfv',subname)
+      if(associated(orbsv%eval)) nullify(orbsv%eval)
+      allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
+      filename='virtuals.etsf'
+      call read_waves_etsf(iproc,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+         Glr%wfd,psi_etsfv)
+
+      !Split the virtual orbitals on the processes (not needed anymore because correctly initialized)
+!      call split_vectors_for_parallel(iproc,nproc,n_virt_tot,orbsv)
 
       ! Initialisation :
       ! - define a new psi_etsf that can be transposed in order to keep psi_etsf in memory (psi_etsf will be used during the Mmnk matrix calculation,)
-      npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp*orbsv%nspinor,sum(commsv%ncntt(0:nproc-1)))
-      allocate(psi_etsf2(npsidim),stat=i_stat)
-      call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
-      k=0
-      do i=1,orbsv%norbp
-         do j=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-            k=k+1
-            psi_etsf2(k)=psi_etsfv(j,i)
-         end do
-      end do
 
       ! - b1, b2 and b3 are the norm of the lattice parameters.
       b1=atoms%alat1
       b2=atoms%alat2
       b3=atoms%alat3
       ! - Allocations
-      allocate(amnk(n_virt_tot,n_proj))
-      amnk=0.0
-      allocate(amnk_guess(n_virt_tot))
+      allocate(amnk(orbsv%norb,orbsp%norb))
+      allocate(amnk_guess(orbsv%norb))
       allocate(sph_daub(npsidim2), stat=i_stat)
-      call razero(npsidim2, sph_daub)
+
       ! Begining of the algorithm to compute the scalar product in order to find the best unoccupied orbitals to use to compute the actual Amnk matrix :
       if (iproc==0) then
          write(*,*) '!==================================!'
@@ -262,8 +205,8 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
       ! Calculation of the spherical harmonics in parallel.
       ! It is done in the real space and then converted in the Daubechies representation.
       pshft = 0
-      do npp=1, orbs2%norbp
-         np = npp + orbs2%isorb
+      do npp=1, orbsp%norbp
+         np = npp + orbsp%isorb
          ! Convolution buffer : n1i=2*n1+31 -> explains the '15*input%hx*0.5' term
          r0x=ctr_proj(np,1)*b1+15*input%hx*0.5
          r0y=ctr_proj(np,2)*b2+15*input%hy*0.5
@@ -285,35 +228,45 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
             end do
          end do
          call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
-         pshft=pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,comms2%ncntt(iproc)/n_proj_par(iproc))
+         pshft=pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
       end do
 
-      ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
       call timing(iproc,'CrtProjectors ','OF')
+
+      ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
+      npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp*orbsv%nspinor,sum(commsv%ncntt(0:nproc-1)))
+      allocate(psi_etsf2(npsidim))                   !!doing this becasue psi_etsfv does not incorporate enough space for transpose
+      k=0
+      do j=1,orbsv%norbp*orbsv%nspinor
+      do i=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+         k=k+1
+         psi_etsf2(k) = psi_etsfv(i,j)
+      end do
+      end do
       allocate(pwork(npsidim))
-      call transpose_v(iproc,nproc,orbsv,Glr%wfd,commsv,psi_etsf2,work=pwork)
+      call transpose_v(iproc,nproc,orbsv,Glr%wfd,commsv,psi_etsf2(1),work=pwork)!,outadd=psi_etsf2(1))
       deallocate(pwork)
 
       ! Tranposition of the distribution of the spherical harmonics: orbitals -> components.
       allocate(pwork(npsidim2))
-      call transpose_v(iproc,nproc,orbs2,Glr%wfd,comms2,sph_daub,work=pwork)
+      call transpose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub(1),work=pwork)
       deallocate(pwork)
       call timing(iproc,'ApplyProj     ','ON')
 
       ! Scalar product of amnk=<sph_daub|psi> in parallel.
-      call razero(n_proj*n_virt_tot,amnk)
+      call razero(orbsp%norb*orbsv%norb,amnk)
       nvctrp=n_vctr_par(iproc)
-      call gemm('T','N',n_virt_tot,n_proj,nvctrp,1.0_wp,psi_etsf2(1),max(1,nvctrp),&
-           sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),n_virt_tot)
+      call gemm('T','N',orbsv%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsf2(1),max(1,nvctrp),&
+           sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsv%norb)
 
       ! Construction of the whole Amnk_guess matrix.
-      call mpiallred(amnk(1,1),n_proj*n_virt_tot,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call mpiallred(amnk(1,1),orbsv%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
 
       ! For each unoccupied orbitals, check how they project on spherical harmonics.
       ! The greater amnk_guess(nb) is, the more they project on spherical harmonics.
-      do nb=1,n_virt_tot
+      do nb=1,orbsv%norb
          amnk_guess(nb)=0.0
-         do np=1,n_proj
+         do np=1,orbsp%norb
             amnk_guess(nb)=amnk_guess(nb)+(amnk(nb,np))**2
          end do
          if (iproc==0) write(*,'(I4,11x,F12.6)') nb, amnk_guess(nb)
@@ -327,20 +280,24 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
       end if
       allocate(amnk_guess_sorted(n_virt))
       do nb=1,n_virt
-         amnk_guess_sorted(nb)=maxval(amnk_guess,n_virt_tot)
-         amnk_bands_sorted(nb)=maxloc(amnk_guess,n_virt_tot)
+         amnk_guess_sorted(nb)=maxval(amnk_guess,orbsv%norb)
+         amnk_bands_sorted(nb)=maxloc(amnk_guess,orbsv%norb)
          amnk_guess(amnk_bands_sorted(nb))=0.d0
       if (iproc==0) write(*,'(I4,3x,F12.6)') amnk_bands_sorted(nb), amnk_guess_sorted(nb)
       end do
 
       ! End of the pre-check mode
-      allocate(pwork(npsidim2))
-      call timing(iproc,'ApplyProj     ','OF')
-      call untranspose_v(iproc,nproc,orbs2,Glr%wfd,comms2,sph_daub,work=pwork)
-      call timing(iproc,'ApplyProj     ','ON')
+      allocate(pwork(npsidim2))                                                                                                                                                                                 
+      call untranspose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub,work=pwork)
       deallocate(pwork)
       deallocate(sph_daub)
+      allocate(pwork(npsidim))
+      call untranspose_v(iproc,nproc,orbsv,Glr%wfd,commsv,psi_etsf2(1),work=pwork)
+      deallocate(pwork)
       deallocate(psi_etsf2)
+      i_all = -product(shape(psi_etsfv))*kind(psi_etsfv)
+      deallocate(psi_etsfv,stat=i_stat)
+      call memocc(i_stat,i_all,'psi_etsfv',subname)
       deallocate(amnk)
       deallocate(amnk_guess_sorted)
       deallocate(amnk_guess)
@@ -358,9 +315,9 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
       call timing(iproc,'ApplyProj     ','OF')
    end if
 
-   call timing(iproc,'CrtDescriptors','ON')
    ! Define which unoccupied orbitals have to be read.
    ! Here, virt_list nominates the virtual orbitals chosen in pre-check mode.
+   call timing(iproc,'CrtDescriptors','ON')
    if (n_virt .ne. 0) then
       allocate(virt_list(n_virt))
       if (pre_check .eqv. .true.) then 
@@ -372,27 +329,14 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
       end if
    end if
 
+   !Setup the description of the new subspace (they are similar to orbitals)
+   call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
+        orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb)
+
    ! Initialise the arrays n_bands_par, isband_par
-   n_bands=n_occ+n_virt
-   allocate(n_bands_par(0:nproc-1))
-   allocate(isband_par(0:nproc-1))
-   call parallel_repartition_with_kpoints(nproc,n_kpts,n_bands,n_bands_par)
-   !check the distribution
-   norb_tot=0
-   do jproc=0,nproc-1
-      isband_par(jproc)=norb_tot
-      norb_tot=norb_tot+n_bands_par(jproc)
-   end do
-   !check the distribution
-   norb_tot=0
-   do jproc=0,iproc-1
-      norb_tot=norb_tot+n_bands_par(jproc)
-   end do
-   !reference orbital for process
-   isband=norb_tot
-   nbp=n_bands_par(iproc)
-
-
+   call split_vectors_for_parallel(iproc,nproc,n_virt,orbsv)
+   call split_vectors_for_parallel(iproc,nproc,n_occ+n_virt,orbsb)
+   call orbitals_communicators(iproc,nproc,Glr,orbsb,commsb)
 
    ! Algorithm to compute the scalar product of the input guess:
    ! The term 'sqrt(bx(1)*by(2)*bz(3))' is there to normalize spherical harmonics.
@@ -405,35 +349,59 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
 
    call timing(iproc,'CrtDescriptors','OF')
    call timing(iproc,'CrtProjectors ','ON')
-   ! Initialisation :
-   ! - define a new psi_etsf that can be transposed in order to keep psi_etsf in memory (psi_etsf will be used during the Mmnk matrix calculation,)
-   npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*nbp,sum(comms%ncntt(0:nproc-1)))
-   allocate(psi_etsf2(npsidim),stat=i_stat)
-   k=0
-   do i=1,nbp
-      do j=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-         k=k+1
-         if (i + isband_par(iproc) > n_occ ) then
-            psi_etsf2(k)=psi_etsfv(j,virt_list(i+isband_par(iproc)-n_occ))
-         else
-            psi_etsf2(k)=psi_etsf(j,i)
-         end if
-      end do
-   end do
+
+   npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
+   allocate(psi_etsf(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbsb%norbp*orbsb%nspinor),stat=i_stat)
+   call memocc(i_stat,psi_etsf,'psi_etsf',subname)
+
+   ! For the occupied orbitals, need to modifify norbp,isorb to match the total distributed scheme
+   orbs%norbp = n_occ - orbsb%isorb
+   if (orbsb%isorb + orbsb%norbp < n_occ ) orbs%norbp = orbsb%norbp
+   if(orbsb%isorb > n_occ) orbs%norbp = 0
+   orbs%isorb = orbsb%isorb
+
+   if(associated(orbs%eval)) nullify(orbs%eval)
+   allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
+   filename='wavefunction.etsf'
+   call read_waves_etsf(iproc,filename,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+      Glr%wfd,psi_etsf(1,1))
+
+   ! For the non-occupied orbitals, need to change norbp,isorb
+   orbsv%norbp = orbsb%isorb + orbsb%norbp - n_occ
+   if (orbsb%isorb + orbsb%norbp < n_occ ) orbsv%norbp = 0
+   if (orbsb%isorb > n_occ) orbsv%norbp = orbsb%norbp
+   orbsv%isorb = 0
+
+   filename='virtuals.etsf'
+   if(orbsv%norbp > 0) then
+      call read_valence_etsf(iproc,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+         Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
+   end if
   
+!  do nb=1,orbsb%norbp*orbsb%nspinor
+!  norm = 0
+!  do np=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+!     norm = norm + psi_etsf(np,nb)*psi_etsf(np,nb)
+!  end do
+!  print *,'norm',iproc,nb+orbsb%isorb,norm
+!  end do
+!  call mpi_finalize(ierr)
+!  stop
+
    ! - b1, b2 and b3 are the norm of the lattice parameters.
    b1=atoms%alat1
    b2=atoms%alat2
    b3=atoms%alat3
    ! - Allocations
-   allocate(amnk(n_bands,n_proj))
-   allocate(amnk_tot(n_bands))
+   allocate(amnk(orbsb%norb,orbsp%norb))
+   allocate(amnk_tot(orbsb%norb))
    allocate(sph_daub(npsidim2), stat=i_stat)
 
    ! Calculation of the spherical harmonics in parallel.
    ! It is done in the real space and then converted in the Daubechies representation.
-   do npp=1, n_proj_par(iproc)
-      np=npp+isproj_par(iproc)
+   pshft = 0
+   do npp=1, orbsp%norbp
+      np=npp+orbsp%isorb
       ! Convolution buffer : n1i=2*n1+31 -> explains the '15*input%hx*0.5' term
       r0x=ctr_proj(np,1)*b1+15*input%hx*0.5
       r0y=ctr_proj(np,2)*b2+15*input%hy*0.5
@@ -454,33 +422,43 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
             end do
          end do
       end do
-      call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+(npp-1)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)))
+      call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
+      pshft=pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
    end do
 
-   ! Tranposition of distribution : orbitals -> components.
    call timing(iproc,'CrtProjectors ','OF')
+   ! Tranposition of distribution : orbitals -> components.
+   npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsv%ncntt(0:nproc-1)))
+   allocate(psi_etsf2(npsidim))                   !!doing this becasue psi_etsfv does not incorporate enough space for transpose
+   k=0
+   do j=1,orbsb%norbp*orbsb%nspinor
+   do i=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+      k=k+1
+      psi_etsf2(k) = psi_etsf(i,j)
+   end do
+   end do
    allocate(pwork(npsidim))
-   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,psi_etsf2,work=pwork)
+   call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_etsf2(1),work=pwork)!,outadd=psi_etsf2(1))
    deallocate(pwork)
 
    ! Tranposition of distribution : orbitals -> components.
    allocate(pwork(npsidim2))
-   call transpose_v(iproc,nproc,orbs2,Glr%wfd,comms2,sph_daub,work=pwork)
+   call transpose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub,work=pwork)
    deallocate(pwork)
    call timing(iproc,'ApplyProj     ','ON')
 
    ! Scalar product of amnk=<sph_daub|psi> in parallel.
    nvctrp=n_vctr_par(iproc)
-   call gemm('T','N',n_bands,n_proj,nvctrp,1.0_wp,psi_etsf2(1),max(1,nvctrp),&
-        sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),n_bands)
+   call gemm('T','N',orbsb%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsf2(1),max(1,nvctrp),&
+        sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsb%norb)
 
    ! Construction of the whole Amnk matrix.
-   call mpiallred(amnk(1,1),n_proj*n_bands,MPI_SUM,MPI_COMM_WORLD,ierr)
+   call mpiallred(amnk(1,1),orbsb%norb*orbsp%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
 
    if (iproc==0) then
       ! Check normalisation (the amnk_tot value must tend to 1).
       write(*,'(A4,4x,A17)') 'Band', 'sqrt(amnk_tot)='
-      do nb=1,n_bands
+      do nb=1,orbsb%norb
          amnk_tot(nb)=sum(amnk(nb,:)**2)
          write(*,'(I4,3x,F12.6)') nb, amnk_tot(nb)
       end do
@@ -493,32 +471,29 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    end if
 
    allocate(pwork(npsidim2))
-   call timing(iproc,'CrtDescriptors','OF')
-   call untranspose_v(iproc,nproc,orbs2,Glr%wfd,comms2,sph_daub,work=pwork)
-   call timing(iproc,'CrtDescriptors','ON')
+   call timing(iproc,'ApplyProj     ','OF')
+   call untranspose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub,work=pwork)
    deallocate(pwork)
-   allocate(pwork(npsidim))
-   call timing(iproc,'CrtDescriptors','OF')
-   call untranspose_v(iproc,nproc,orbs,Glr%wfd,comms,psi_etsf2,work=pwork)
-   call timing(iproc,'CrtDescriptors','ON')
-   deallocate(pwork)
+!   allocate(pwork(npsidim))
+!   call untranspose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_etsf2,work=pwork)
+!   call timing(iproc,'ApplyProj     ','ON')
+!   deallocate(pwork)
+!   deallocate(psi_etsf2)
    deallocate(func_r)
    deallocate(ylm)
    deallocate(sph_har_etsf)
    deallocate(sph_daub)
    deallocate(amnk_tot)
    deallocate(amnk_bands_sorted)
-   deallocate(psi_etsf2)
 
 
    ! Write the .amn file
-   if (iproc == 0) call write_amn(seedname, n_bands, n_kpts, n_proj, amnk)
+   if (iproc == 0) call write_amn(seedname, orbsb%norb, n_kpts, orbsp%norb, amnk)
    deallocate(amnk)
 
 
    call timing(iproc,'ApplyProj     ','OF')
    call timing(iproc,'Input_comput  ','ON')
-
 
    ! Calculate the overlap matrix (scalar product of wavefunctions psi calculated by BigDFT and themselves)
    ! This values are written in a .mmn file that will be then used by Wannier90.
@@ -531,36 +506,21 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    end if
    
    ! Allocations
-   allocate(mmnk_re(n_bands,n_bands,n_kpts*n_nnkpts))
-   allocate(mmnk_im(n_bands,n_bands,n_kpts*n_nnkpts))
-   allocate(mmnk_tot(n_bands,n_kpts*n_nnkpts))
+   allocate(mmnk_re(orbsb%norb,orbsb%norb,n_kpts*n_nnkpts))
+   allocate(mmnk_im(orbsb%norb,orbsb%norb,n_kpts*n_nnkpts))
+   allocate(mmnk_tot(orbsb%norb,n_kpts*n_nnkpts))
    allocate(psir(nx*ny*nz))
    allocate(psir_re(nx*ny*nz))
    allocate(psir_im(nx*ny*nz))
    allocate(psi_daub_re(npsidim))
    allocate(psi_daub_im(npsidim))
 
-   ! Copy psi_etsf into psi_etsf2
-   allocate(psi_etsf2(npsidim),stat=i_stat)
-   call memocc(i_stat,psi_etsf2,'psi_etsf2',subname)
-   k=0
-   do i=1,nbp
-      do j=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-         k=k+1
-         if (i > n_occ ) then
-            psi_etsf2(k)=psi_etsfv(j,virt_list(i-n_occ))
-         else
-            psi_etsf2(k)=psi_etsf(j,i)
-         end if
-      end do
-   end do
-
    ! Tranposition of distribution : orbitals -> components
-   call timing(iproc,'Input_comput  ','OF')
-   allocate(pwork(npsidim))
-   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,psi_etsf2,work=pwork)
-   deallocate(pwork)
-   call timing(iproc,'Input_comput  ','ON')
+!   call timing(iproc,'Input_comput  ','OF')
+!   allocate(pwork(npsidim))
+!   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,psi_etsf2,work=pwork)
+!   deallocate(pwork)
+!   call timing(iproc,'Input_comput  ','ON')
 
    ! Algorithm to compute the scalar product :
    do inn=1,n_kpts*n_nnkpts
@@ -575,9 +535,9 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
       ! 1- converting the Daubechies wavefunctions into real space, 
       ! 2- multiply psi by the cos(.) and sin(.) factor at each point of the real space to get real and imaginary parts,
       ! 3- convert back to the Daubechies representation for real and imaginary parts.
-      do nb1=1,nbp
-         if (nb1<=n_occ .and. nproc==1) call daub_to_isf(Glr,w,psi_etsf(1,nb1),psir)
-         if (nb1>n_occ .and. nproc==1) call daub_to_isf(Glr,w,psi_etsfv(1,virt_list(nb1-n_occ)),psir)
+      pshft = 0
+      do nb1=1,orbsb%norbp
+         call daub_to_isf(Glr,w,psi_etsf(1,nb1),psir)
          do k=1,nz
             zz=(k-1)*input%hz*0.5
             do j=1,ny
@@ -590,41 +550,42 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
                end do
             end do
          end do
-         call isf_to_daub(Glr,w,psir_re(1),psi_daub_re(1+(nb1-1)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)))
-         call isf_to_daub(Glr,w,psir_im(1),psi_daub_im(1+(nb1-1)*(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)))
+         call isf_to_daub(Glr,w,psir_re(1),psi_daub_re(1+pshft))
+         call isf_to_daub(Glr,w,psir_im(1),psi_daub_im(1+pshft))
+         pshft = pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsb%ncntt(iproc)/orbsb%norbp)
       end do
 
       ! Tranposition of distribution : orbitals -> components
       call timing(iproc,'Input_comput  ','OF')
       allocate(pwork(npsidim))
-      call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,psi_daub_re,work=pwork)
-      call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,psi_daub_im,work=pwork)
+      call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_daub_re,work=pwork)
+      call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_daub_im,work=pwork)
       deallocate(pwork)
       call timing(iproc,'Input_comput  ','ON')
 
       ! Scalar product to compute the overlap matrix
-      nvctrp=comms%nvctr_par(iproc,1)
-      allocate(mmnk_v_re(n_bands*n_bands))
-      allocate(mmnk_v_im(n_bands*n_bands))
-      call gemm('T','N',n_bands,n_bands,nvctrp,1.0_wp,psi_daub_re(1),max(1,nvctrp),&
-           psi_etsf2(1),max(1,nvctrp),0.0_wp,mmnk_v_re(1),n_bands)
-      call gemm('T','N',n_bands,n_bands,nvctrp,1.0_wp,psi_daub_im(1),max(1,nvctrp),&
-           psi_etsf2(1),max(1,nvctrp),0.0_wp,mmnk_v_im(1),n_bands)
+      nvctrp=commsb%nvctr_par(iproc,1)
+      allocate(mmnk_v_re(orbsb%norb*orbsb%norb))
+      allocate(mmnk_v_im(orbsb%norb*orbsb%norb))
+      call gemm('T','N',orbsb%norb,orbsb%norb,nvctrp,1.0_wp,psi_daub_re(1),max(1,nvctrp),&
+           psi_etsf2(1),max(1,nvctrp),0.0_wp,mmnk_v_re(1),orbsb%norb)
+      call gemm('T','N',orbsb%norb,orbsb%norb,nvctrp,1.0_wp,psi_daub_im(1),max(1,nvctrp),&
+           psi_etsf2(1),max(1,nvctrp),0.0_wp,mmnk_v_im(1),orbsb%norb)
 
       ! Reduce the overlap matrix between all the processors
       if (nproc > 1) then
-         call mpiallred(mmnk_v_re(1),n_bands*n_bands,MPI_SUM,MPI_COMM_WORLD,ierr)
-         call mpiallred(mmnk_v_im(1),n_bands*n_bands,MPI_SUM,MPI_COMM_WORLD,ierr)
+         call mpiallred(mmnk_v_re(1),orbsb%norb*orbsb%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
+         call mpiallred(mmnk_v_im(1),orbsb%norb*orbsb%norb,MPI_SUM,MPI_COMM_WORLD,ierr)
       end if
 
       ! Reshape the overlap matrix elements into a more manageable disposition
-      mmnk_re(:,:,inn)=reshape(mmnk_v_re,(/n_bands,n_bands/))
-      mmnk_im(:,:,inn)=reshape(mmnk_v_im,(/n_bands,n_bands/))
+      mmnk_re(:,:,inn)=reshape(mmnk_v_re,(/orbsb%norb,orbsb%norb/))
+      mmnk_im(:,:,inn)=reshape(mmnk_v_im,(/orbsb%norb,orbsb%norb/))
       deallocate(mmnk_v_re)
       deallocate(mmnk_v_im)
 
       ! Check the normalisation
-      do nb1=1, n_bands
+      do nb1=1, orbsb%norb
          mmnk_tot(nb1,inn)=sum(mmnk_re(nb1,:,inn)**2+mmnk_im(nb1,:,inn)**2)
          if (iproc==0) write(*,'(I4,3x,F12.6)') nb1, sqrt(mmnk_tot(nb1,inn))
       end do
@@ -647,7 +608,7 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    end if
 
    ! Write the .mmn file
-   if (iproc==0) call write_mmn(seedname, n_bands, n_kpts, n_nnkpts, k_plus_b, G_vec, mmnk_re, mmnk_im)
+   if (iproc==0) call write_mmn(seedname, orbsb%norb, n_kpts, n_nnkpts, k_plus_b, G_vec, mmnk_re, mmnk_im)
    deallocate(mmnk_re)
    deallocate(mmnk_im)
 
@@ -2776,3 +2737,438 @@ subroutine write_unk(n_bands, nx, ny, nz, nk, s, psi)
    write(*,*)
 
 end subroutine write_unk
+
+subroutine split_vectors_for_parallel(iproc,nproc,nvctr,orbs)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: nvctr
+  type(orbitals_data), intent(inout) :: orbs
+  !local variables
+  integer :: ntot,jproc,i_stat,i_all
+  character(len=*), parameter :: subname='split_vectors_for_parallel'
+  integer, dimension(:), allocatable :: nvctr_par,isvctr_par
+
+  ! Initialise the arrays n_proj_par and isproj_par
+  allocate(nvctr_par(0:nproc-1),stat=i_stat)
+  call memocc(i_stat,nvctr_par,'nvctr_par',subname)
+  allocate(isvctr_par(0:nproc-1),stat=i_stat)
+  call memocc(i_stat,isvctr_par,'isvctr_par',subname)
+
+  call parallel_repartition_with_kpoints(nproc,1,nvctr,nvctr_par)
+
+  !check the distribution                                                                                                                                                                                      
+  ntot=0
+  do jproc=0,nproc-1
+     isvctr_par(jproc)=ntot
+     ntot=ntot+nvctr_par(jproc)
+  end do
+
+  orbs%norb = nvctr
+  orbs%isorb = isvctr_par(iproc) 
+  orbs%norbp = nvctr_par(iproc)
+  
+  do jproc=0,nproc-1
+     orbs%norb_par(jproc) = nvctr_par(jproc)
+     orbs%isorb_par(jproc) = isvctr_par(jproc) 
+  end do
+
+  ! For now, don't worry about kpoints: MUST CHANGE THIS?
+  orbs%nkpts=1
+  orbs%nspinor=1
+  orbs%iskpts=0
+  if(associated(orbs%iokpt)) deallocate(orbs%iokpt)
+  allocate(orbs%iokpt(orbs%norbp))
+  orbs%iokpt=1
+
+  i_all = -product(shape(nvctr_par))*kind(nvctr_par)
+  deallocate(nvctr_par,stat=i_stat)
+  call memocc(i_stat,i_all,'nvctr_par',subname)
+  i_all = -product(shape(isvctr_par))*kind(isvctr_par) 
+  deallocate(isvctr_par,stat=i_stat)
+  call memocc(i_stat,i_all,'nvctr_par',subname)
+
+end subroutine split_vectors_for_parallel
+
+subroutine read_valence_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  &
+     wfd,psi,orblist)
+  use module_base
+  use module_types
+
+  use etsf_io_low_level
+  use etsf_io
+
+  implicit none
+
+  integer, intent(in) :: iproc,n1,n2,n3
+  real(gp), intent(in) :: hx,hy,hz
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(inout) :: orbs
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
+  character(len = *), intent(in) :: filename
+  integer, dimension(orbs%norbp*orbs%nspinor), intent(in) :: orblist
+  ! Local variables
+  character(len = *), parameter :: subname = "read_waves_etsf"
+  integer, pointer :: nvctr_old(:)
+  integer :: iCoeff, iFine, n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
+  integer :: i, iorb, iiorb, ncid, iGrid, diGrid, nspin
+  integer :: nb1, nb2, nb3, i_all, i_stat, ncount1,ncount_rate,ncount_max, ncount2
+  integer :: start(6), count(6), coord(3)
+  real :: tr0,tr1
+  real(gp) :: hx_old, hy_old, hz_old
+  real(gp) :: displ,tel
+  real(wp) :: fv(7)
+  logical :: perx, pery, perz
+  integer, dimension(:,:), allocatable :: gcoord
+  real(wp), dimension(:,:,:), allocatable :: psifscf
+  real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
+  type(orbitals_data) :: orbsd
+  type(etsf_io_low_error) :: error
+  logical :: lstat
+
+  if(orbs%norbp == 0) return  !quick return if no orbitals on this processor
+
+  call cpu_time(tr0)
+  call system_clock(ncount1,ncount_rate,ncount_max)
+
+  ! We open the ETSF file
+  call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
+  if (.not. lstat) call etsf_error(error)
+
+  ! We read the basis set description and the atomic definition.
+  call etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
+       & rxyz_old, at%nat, nvctr_old, nvctr_c_old, nvctr_f_old)
+  orbsd%isorb = orbs%isorb
+
+  !conditions for periodicity in the three directions
+  call calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
+
+  nspin = 1
+  if (orbs%norbd /= 0) nspin = 2
+
+  start(:) = 1
+  count(:) = 0
+  if (abs(hx_old - hx) < 1e-6 .and. abs(hy_old - hy) < 1e-6 .and. abs(hz_old - hz) < 1e-6 .and. &
+       & nvctr_c_old == wfd%nvctr_c .and. nvctr_f_old == wfd%nvctr_f .and. & 
+       & n1_old == n1 .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
+     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
+
+
+     do iorb = 1, orbs%norbp*orbs%nspinor, 1
+
+        call orbsToETSF2(start, count, iorb, orbsd,orblist,orbs%norbp*orbs%nspinor)
+
+        iFine = wfd%nvctr_c + 1
+        iCoeff = 1
+        iGrid = 1
+        do
+           if (iGrid > wfd%nvctr_c) exit
+           diGrid = 0
+           do
+              if (nvctr_old(iGrid + diGrid) /= 1 .or. &
+                   & iGrid + diGrid == wfd%nvctr_c) exit
+              diGrid = diGrid + 1
+           end do
+           ! Read diGrid + 1 coeff.
+           start(2) = iCoeff
+           count(2) = diGrid + 1
+           call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+                & psi(iGrid:iGrid + diGrid, iorb), lstat, error_data = error, start = start, count = count)
+           if (.not. lstat) call etsf_error(error)
+           iCoeff  = iCoeff + diGrid + 1
+           
+           if (nvctr_old(iGrid + diGrid) == 8) then
+              ! Write seven coeff.
+              start(2) = iCoeff
+              count(2) = 7
+              call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+                   & psi(iFine:iFine+6, iorb), lstat, error_data = error, start = start, count = count)
+              if (.not. lstat) call etsf_error(error)
+              iCoeff = iCoeff + 7
+              iFine  = iFine + 7
+           end if
+           iGrid = iGrid + diGrid + 1
+        end do
+     end do
+!!$     write(33 + iproc,"(G18.10)") psi
+  else
+     if (iproc == 0) then
+        write(*,*) 'wavefunctions need reformatting'
+        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) &
+             & write(*,*) 'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+        if (nvctr_c_old /= wfd%nvctr_c) &
+             & write(*,*) 'because nvctr_c_old /= nvctr_c',nvctr_c_old,wfd%nvctr_c
+        if (nvctr_f_old /= wfd%nvctr_f) &
+             & write(*,*) 'because nvctr_f_old /= nvctr_f',nvctr_f_old,wfd%nvctr_f
+        if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
+             & write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+        if (displ > 1.d-3 ) &
+             & write(*,*) 'because of large displacement of molecule'
+     end if
+
+     ! We read the coordinates of grid points.
+     allocate(gcoord(3,nvctr_c_old+ndebug),stat=i_stat)
+     call memocc(i_stat,gcoord,'gcoord',subname)
+     call etsf_io_low_read_var(ncid, "coordinates_of_basis_grid_points", &
+          & gcoord, lstat, error_data = error)
+     if (.not. lstat) call etsf_error(error)
+
+     !buffers realted to periodicity
+     !WARNING: the boundary conditions are not assumed to change between new and old
+     call ext_buffers_coarse(perx,nb1)
+     call ext_buffers_coarse(pery,nb2)
+     call ext_buffers_coarse(perz,nb3)
+
+     allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
+     call memocc(i_stat,psifscf,'psifscf',subname)
+
+     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+     call memocc(i_stat,psigold,'psigold',subname)
+     call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+
+     do iorb = 1, orbs%norbp*orbs%nspinor, 1
+        ! We read the coefficients.
+        call orbsToETSF2(start, count, iorb, orbsd,orblist,orbs%norbp*orbs%nspinor)
+
+        ! We transfer the coefficients in psigold.
+        iCoeff = 1
+        do i = 1, nvctr_c_old, 1
+           coord = gcoord(:, i)
+           start(2) = iCoeff
+           count(2) = 1
+           call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+                & psigold(coord(1), 1, coord(2), 1, coord(3), 1), &
+                & lstat, error_data = error, start = start, count = count)
+           if (.not. lstat) call etsf_error(error)
+           iCoeff = iCoeff + 1
+           if (nvctr_old(i) == 8) then
+              start(2) = iCoeff
+              count(2) = 7
+              call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+                   & fv, lstat, error_data = error, start = start, count = count)
+              if (.not. lstat) call etsf_error(error)
+              psigold(coord(1), 2, coord(2), 1, coord(3), 1) = fv(1)
+              psigold(coord(1), 1, coord(2), 2, coord(3), 1) = fv(2)
+              psigold(coord(1), 2, coord(2), 2, coord(3), 1) = fv(3)
+              psigold(coord(1), 1, coord(2), 1, coord(3), 2) = fv(4)
+              psigold(coord(1), 2, coord(2), 1, coord(3), 2) = fv(5)
+              psigold(coord(1), 1, coord(2), 2, coord(3), 2) = fv(6)
+              psigold(coord(1), 2, coord(2), 2, coord(3), 2) = fv(7)
+              iCoeff = iCoeff + 7
+           end if
+        end do
+
+        call reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+             rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi(1,iorb))
+     end do
+
+     i_all=-product(shape(psigold))*kind(psigold)
+     deallocate(psigold,stat=i_stat)
+     call memocc(i_stat,i_all,'psigold',subname)
+
+     i_all=-product(shape(gcoord))*kind(gcoord)
+     deallocate(gcoord,stat=i_stat)
+     call memocc(i_stat,i_all,'gcoord',subname)
+  end if
+
+  i_all=-product(shape(nvctr_old))*kind(nvctr_old)
+  deallocate(nvctr_old,stat=i_stat)
+  call memocc(i_stat,i_all,'nvctr_old',subname)
+
+  ! We transfer the eigenvalues & occupations.
+  call transferEvalAndOccup(orbs, orbsd)
+
+  ! We close the file.
+  call etsf_io_low_close(ncid, lstat, error)
+  if (.not. lstat) call etsf_error(error)
+
+  call cpu_time(tr1)
+  call system_clock(ncount2,ncount_rate,ncount_max)
+  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+  write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+
+contains
+  
+subroutine etsf_error(error)
+    type(etsf_io_low_error), intent(in) :: error
+
+    integer :: ierr
+    character(len=etsf_io_low_error_len)  :: errmess
+
+    call etsf_io_low_error_to_str(errmess, error)
+    write(0,"(A)") trim(errmess)
+    call MPI_ABORT(MPI_COMM_WORLD, ierr)
+  END SUBROUTINE etsf_error
+
+  subroutine general_error(error)
+    character(len = *), intent(in) :: error
+
+    integer :: ierr
+
+    write(0,"(A)") error
+    call MPI_ABORT(MPI_COMM_WORLD, ierr)
+  END SUBROUTINE general_error
+
+  subroutine etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, &
+       & hx_old, hy_old, hz_old, rxyz_old, nat, nvctr_old, nvctr_c_old, nvctr_f_old)
+    integer, intent(in) :: nat, ncid
+    type(orbitals_data), intent(out) :: orbsd
+    integer, intent(out) :: n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
+    real(gp), intent(out) :: hx_old, hy_old, hz_old
+    real(gp), dimension(3,nat), intent(out) :: rxyz_old
+    integer, pointer :: nvctr_old(:)
+
+    type(etsf_dims) :: dims
+    logical :: lstat
+    type(etsf_io_low_error) :: error
+    real(dp) :: rprimd(3,3)
+    integer :: iat, i_stat
+
+    call etsf_io_dims_get(ncid, dims, lstat, error)
+    if (.not. lstat) call etsf_error(error)
+    ! Sanity checks
+    if (dims%number_of_atoms /= nat) call general_error("Mismatch in number of atoms")
+    ! The number of grid steps.
+    n1_old = dims%number_of_grid_points_vector1
+    n2_old = dims%number_of_grid_points_vector2
+    n3_old = dims%number_of_grid_points_vector3
+    ! The hgrid parameters.
+    call etsf_io_low_read_var(ncid, "primitive_vectors", &
+         & rprimd, lstat, error_data = error)
+    if (.not. lstat) call etsf_error(error)
+    hx_old = rprimd(1,1) / n1_old
+    hy_old = rprimd(2,2) / n2_old
+    hz_old = rprimd(3,3) / n3_old
+    ! The old atomic coordinates.
+    call etsf_io_low_read_var(ncid, "reduced_atom_positions", &
+         & rxyz_old, lstat, error_data = error)
+    if (.not. lstat) call etsf_error(error)
+    do iat = 1, nat, 1
+       rxyz_old(1, iat) = rxyz_old(1, iat) * rprimd(1, 1)
+       rxyz_old(2, iat) = rxyz_old(2, iat) * rprimd(2, 2)
+       rxyz_old(3, iat) = rxyz_old(3, iat) * rprimd(3, 3)
+    end do
+    ! The number of coarse and fine grid points.
+    allocate(nvctr_old(dims%max_number_of_basis_grid_points+ndebug),stat=i_stat)
+    call memocc(i_stat,nvctr_old,'nvctr_old',subname)
+    call etsf_io_low_read_var(ncid, "number_of_coefficients_per_grid_point", &
+         & nvctr_old, lstat, error_data = error)
+    if (.not. lstat) call etsf_error(error)
+    nvctr_c_old = dims%max_number_of_basis_grid_points
+    nvctr_f_old = 0
+    do i = 1, dims%max_number_of_basis_grid_points, 1
+       if (nvctr_old(i) > 1) nvctr_f_old = nvctr_f_old + 1
+    end do
+    ! We read the eigenvalues & occupations.
+    allocate(orbsd%eval(dims%number_of_spins * dims%max_number_of_states * &
+         & dims%number_of_kpoints),stat=i_stat)
+    call memocc(i_stat,orbsd%eval,'orbsd%eval',subname)
+!!$    allocate(orbsd%occup(dims%number_of_spins * dims%max_number_of_states * &
+!!$         & dims%number_of_kpoints),stat=i_stat)
+!!$    call memocc(i_stat,orbsd%occup,'orbsd%occup',subname)
+    call etsf_io_low_read_var(ncid, "eigenvalues", &
+         & orbsd%eval, lstat, error_data = error)
+    if (.not. lstat) call etsf_error(error)
+!!$    call etsf_io_low_read_var(ncid, "occupations", &
+!!$         & orbsd%occup, lstat, error_data = error)
+!!$    if (.not. lstat) call etsf_error(error)
+    ! The orbitals description as on disk.
+    orbsd%nspin = dims%number_of_spins
+    orbsd%norbu = 0
+    orbsd%norbd = 0
+    do i = 1, dims%max_number_of_states, 1
+       if (orbsd%eval(i) /= UNINITIALIZED(1.d0)) orbsd%norbu = orbsd%norbu + 1
+       if (dims%number_of_spins > 1) then
+          if (orbsd%eval(i + dims%max_number_of_states * dims%number_of_kpoints) /= &
+               & UNINITIALIZED(1.d0)) orbsd%norbd = orbsd%norbd + 1
+       end if
+    end do
+    orbsd%norb = orbsd%norbu + orbsd%norbd
+    orbsd%nspinor = dims%number_of_spinor_components
+    orbsd%nkpts = dims%number_of_kpoints
+  END SUBROUTINE etsf_read_descr
+
+  subroutine transferEvalAndOccup(orbs, orbsd)
+    type(orbitals_data), intent(inout) :: orbs, orbsd
+
+    integer :: i, ik, ikd, isd
+
+    ! Eigenvalues are reduced later in cluster.
+    if (iproc == 0) then
+       ! We transfer the eigenvalues & occupations.
+       isd = max(orbsd%norbu, orbsd%norbd) * orbsd%nkpts
+       do i = 1, orbs%nkpts, 1
+          ik = (i - 1) * orbs%norb
+          ikd = (i - 1) * max(orbsd%norbu, orbsd%norbd)
+          orbs%eval(ik + 1:ik + orbs%norbu) = orbsd%eval(ikd + 1:ikd + orbs%norbu)
+!!$       orbs%occup(ik + 1:ik + orbs%norbu) = orbsd%occup(ikd + 1:ikd + orbs%norbu)
+          if (orbs%nspin > 1) then
+             orbs%eval(ik + orbs%norbu + 1:ik + orbs%norb) = &
+                  & orbsd%eval(isd + ikd + 1:isd + ikd + orbs%norbd)
+!!$          orbs%occup(ik + orbs%norbu + 1:ik + orbs%norb) = &
+!!$               & orbsd%occup(isd + ikd + 1:isd + ikd + orbs%norbd)
+          end if
+       end do
+       i_all=-product(shape(orbsd%eval))*kind(orbsd%eval)
+       deallocate(orbsd%eval,stat=i_stat)
+       call memocc(i_stat,i_all,'orbsd%eval',subname)
+!!$    i_all=-product(shape(orbsd%occup))*kind(orbsd%occup)
+!!$    deallocate(orbsd%occup,stat=i_stat)
+!!$    call memocc(i_stat,i_all,'orbsd%occup',subname)
+    else
+       orbs%eval = real(0, gp)
+    end if
+  end subroutine transferEvalAndOccup
+
+  subroutine calc_displ(at, rxyz, rxyz_old, displ, perx, pery, perz)
+    type(atoms_data), intent(in) :: at
+    real(gp), intent(in) :: rxyz_old(3,at%nat), rxyz(3, at%nat)
+    logical, intent(out) :: perx, pery, perz
+    real(gp), intent(out) :: displ
+
+    integer :: iat
+    real(gp) :: tx,ty,tz,mindist
+
+    perx=(at%geocode /= 'F')
+    pery=(at%geocode == 'P')
+    perz=(at%geocode /= 'F')
+
+    tx=0.0_gp 
+    ty=0.0_gp
+    tz=0.0_gp
+    do iat=1,at%nat
+       tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+       ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+       tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
+    enddo
+    displ=sqrt(tx+ty+tz)
+  END SUBROUTINE calc_displ
+
+  subroutine orbsToETSF2(start, count, iorb, orbs,orblist,norb)
+    integer, intent(inout) :: start(6), count(6)
+    integer, intent(in) :: iorb,norb
+    type(orbitals_data), intent(in) :: orbs
+    integer, dimension(norb) :: orblist
+    ! Read one spinor.
+    start(3) = modulo(iorb - 1, orbs%nspinor) + 1
+    count(3) = 1
+    ! Read one orbital.
+    start(4) = modulo(orblist(iorb), orbs%norb) !+ 1
+    count(4) = 1
+    ! Read one kpoint.
+    start(5) = (orblist(iorb)) / orbs%norb + 1
+    count(5) = 1
+    ! Write one spin.
+    start(6) = 1
+    if (start(4) > orbs%norbu) then
+       start(6) = 2
+       start(4) = start(4) - orbs%norbu
+    end if
+    count(6) = 1
+  end subroutine orbsToETSF2
+END SUBROUTINE read_valence_etsf
+

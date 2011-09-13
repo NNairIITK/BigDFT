@@ -673,9 +673,17 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
     !!     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin,&
     !!     orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)    
 
+    !check the size of the rhopot array related to NK SIC
+    nrhodim=nspin 
+    i3rho_add=0
+    if (input%SIC_approach=='NK') then
+       nrhodim=2*nrhodim
+       i3rho_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)+1
+    end if
+
     ! Create local potential
     call full_local_potential2(iproc, nproc, lzd%glr%d%n1i*lzd%glr%d%n2i*nscatterarr(iproc,2), &
-         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,nspin, orbse, lzd, &
+         lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,nspin, orbse, lzd, &
          ngatherarr, rhopot, Lpot, 1)
 
    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
@@ -1014,7 +1022,8 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
     ! Create local potential
     call full_local_potential2(iproc, nproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2), &
-         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,nspin, orbse, Lzd, ngatherarr, rhopot, pot, 0)
+         Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,&
+         nspin, orbse, Lzd, ngatherarr, rhopot, pot, 0)
 
     withConfinement=.false.
     call HamiltonianApplication3(iproc, nproc, at, orbse, hx, hy, hz, rxyz, &
