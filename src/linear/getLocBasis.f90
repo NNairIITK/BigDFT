@@ -583,7 +583,7 @@ real(8),dimension(:),pointer:: lpot
       if(iproc==0) then
           write(*,'(x,a)') 'Orthonormalization... '
       end if
-      call cpu_time(t1)
+      t1=mpi_wtime()
       call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
            lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
            input, lin%mad, lphi, ovrlp)
@@ -595,7 +595,7 @@ real(8),dimension(:),pointer:: lpot
       !!        if(iproc==0) write(5000,*) iorb, jorb, ovrlp(jorb,iorb)
       !!    end do
       !!end do
-      call cpu_time(t2)
+      t2=mpi_wtime()
       time(1)=time(1)+t2-t1
 
       ! Post the sends again to calculate the overlap matrix (will be needed for the orthoconstraint).
@@ -611,7 +611,7 @@ real(8),dimension(:),pointer:: lpot
       if(iproc==0) then
           write(*,'(x,a)', advance='no') 'Hamiltonian application... '
       end if
-      call cpu_time(t1)
+      t1=mpi_wtime()
       withConfinement=.false.
       !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
       !!     input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
@@ -633,7 +633,7 @@ real(8),dimension(:),pointer:: lpot
       deallocate(lin%lzd%doHamAppl, stat=istat)
       call memocc(istat, iall, 'lin%lzd%doHamAppl', subname)
 
-      call cpu_time(t2)
+      t2=mpi_wtime()
 
       !! NEW VESRION
       !call full_local_potential2(iproc, nproc, ndimpot, ndimgrid,orbs,lzd,ngatherarr,potential,Lpot,flag,comgp)
@@ -661,7 +661,6 @@ real(8),dimension(:),pointer:: lpot
       if(iproc==0) then
           write(*,'(a)', advance='no') 'Orthoconstraint... '
       end if
-      call cpu_time(t1)
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
 
       ! Gather the messages and calculate the overlap matrix.
@@ -676,11 +675,12 @@ real(8),dimension(:),pointer:: lpot
       call deallocateRecvBufferOrtho(lin%comon, subname)
       call deallocateSendBufferOrtho(lin%comon, subname)
 
+      t1=mpi_wtime()
       call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH)
       !call applyOrthoconstraintNonorthogonalCubic(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%gorbs, lin%comms, lin%lzd, input, &
       !     lin%op, ovrlp, lin%mad, lphi, lhphi, trH)
 
-      call cpu_time(t2)
+      t2=mpi_wtime()
       time(3)=time(3)+t2-t1
       if(iproc==0) then
           write(*,'(a)', advance='no') 'done. '
@@ -744,7 +744,7 @@ real(8),dimension(:),pointer:: lpot
           write(*,'(a)', advance='no') 'Preconditioning... '
       end if
       gnrm=1.d3 ; gnrm_zero=1.d3
-      call cpu_time(t1)
+      t1=mpi_wtime()
 
       !!evalmax=lin%orbs%eval(lin%orbs%isorb+1)
       !!do iorb=1,lin%orbs%norbp
@@ -761,7 +761,7 @@ real(8),dimension(:),pointer:: lpot
           ind2=ind2+lin%lzd%Llr(ilr)%wfd%nvctr_c+7*lin%lzd%Llr(ilr)%wfd%nvctr_f
       end do
       !call preconditionall(iproc, nproc, lin%orbs, lin%lzd%glr, input%hx, input%hy, input%hz, lin%nItPrecond, lhphi, tt, tt2)
-      call cpu_time(t2)
+      t2=mpi_wtime()
       time(4)=time(4)+t2-t1
       if(iproc==0) then
           write(*,'(a)') 'done. '
