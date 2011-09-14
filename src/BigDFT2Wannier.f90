@@ -11,15 +11,14 @@ program BigDFT2Wannier
    type(input_variables) :: input 
    type(workarr_sumrho) :: w
    type(communications_arrays), target :: comms, commsp,commsv,commsb
-   integer :: iproc, nproc, i_stat, nelec, ind, ierr, nbp, npsidim, npsidim2, npsidimv
-   integer :: jproc, norb_tot,isvirt,isband,nvctrp,npp,nvirtu,nvirtd,nvirt
-   integer, dimension(:), allocatable :: n_bands_par,n_virt_tot_par,isvirt_par,isband_par,isproj_par,n_proj_par,n_vctr_par
+   integer :: iproc, nproc, i_stat, nelec, ind, ierr, npsidim, npsidim2
+   integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft
    real(gp), dimension(:,:), pointer :: rxyz, rxyz_old
    real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
    real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:,:),sph_har_etsf(:),sph_daub(:),psir(:),psir_re(:),psir_im(:)
-   real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:),psi_etsf3(:)
-   real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
+   real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:)
+   real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:),norm(:,:)
    real(wp), pointer :: pwork(:)
    character :: filename*20
    !cube
@@ -34,9 +33,9 @@ program BigDFT2Wannier
    real(kind=8), allocatable :: mmnk_re(:,:,:), mmnk_im(:,:,:), mmnk_tot(:,:)
    integer :: i, j, k, np,i_all
    character :: subname*10, seedname*16
-   logical :: calc_only_A, chosen
+   logical :: calc_only_A 
    real, dimension(3,3) :: real_latt, recip_latt
-   integer :: n_kpts, n_proj, n_nnkpts, n_excb, n_at, n_bands, s
+   integer :: n_kpts, n_poj, n_nnkpts, n_excb, n_at, n_bands, s
    integer :: n_occ, n_virt, n_virt_tot
    logical :: w_sph, w_ang, w_rad, pre_check
    real, allocatable, dimension (:,:) :: kpts
@@ -45,12 +44,10 @@ program BigDFT2Wannier
    real, allocatable, dimension (:) :: zona
    integer, allocatable, dimension (:,:) :: k_plus_b
    integer, allocatable, dimension (:,:) :: G_vec
-   integer, allocatable, dimension (:) :: excb,orblist
+   integer, allocatable, dimension (:) :: excb
    integer, allocatable, dimension (:) :: virt_list, amnk_bands_sorted
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
-   ! possible junk ?
-   integer :: ncplx, j_end,pshft
-   real(wp) :: norm
+
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
    call MPI_INIT(ierr)
@@ -70,7 +67,6 @@ program BigDFT2Wannier
 ! Other logicals define if spherical harmonics and/or their angular and radial parts have to be written.
    call timing(iproc,'Precondition  ','ON')
    call read_inter_header(iproc,seedname, filetype, n_occ, pre_check, n_virt_tot, n_virt, w_sph, w_ang, w_rad)
-
 
 if (filetype == 'etsf' .or. filetype == 'ETSF') then
 
@@ -96,18 +92,15 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
         orbs%nkpts,orbs%kpts,orbs%kwgts,orbsp)
 
    if(orbs%nkpts > 1) stop 'BigDFT2Wannier does not work for nkpts > 1'
- 
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
    call system_size(iproc,atoms,rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         Glr,shift)
 
-
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
         atoms,rxyz,radii_cf,input%crmult,input%frmult,Glr)
-
 
    ! Allocate communications arrays (allocate it before Projectors because of the definition of iskpts and nkptsp)
    call orbitals_communicators(iproc,nproc,Glr,orbs,comms)
@@ -131,7 +124,6 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    allocate(rxyz_old(3,atoms%nat),stat=i_stat)
    call memocc(i_stat,rxyz_old,'rxyz_old',subname)
 
-
    ! Read Wannier90 .nnkp file.
    ! The most important informations to be read are : 
    !  - ctr_proj : the coordinates of the center of the projections
@@ -143,10 +135,6 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
 
    !distribute the projectors on the processes (contained in orbsp: norb,norbp,isorb,...)
    call split_vectors_for_parallel(iproc,nproc,n_proj,orbsp)
-
-   ! Initialise the array n_vctr_par
-   allocate(n_vctr_par(0:nproc-1))
-   call parallel_repartition_with_kpoints(nproc,n_kpts,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,n_vctr_par)
 
    ! Simplification of the notations
    nx=Glr%d%n1i
@@ -178,11 +166,27 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
       call read_waves_etsf(iproc,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
          Glr%wfd,psi_etsfv)
 
-      !Split the virtual orbitals on the processes (not needed anymore because correctly initialized)
-!      call split_vectors_for_parallel(iproc,nproc,n_virt_tot,orbsv)
-
-      ! Initialisation :
-      ! - define a new psi_etsf that can be transposed in order to keep psi_etsf in memory (psi_etsf will be used during the Mmnk matrix calculation,)
+      ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
+      npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp*orbsv%nspinor,sum(commsv%ncntt(0:nproc-1)))
+      allocate(psi_etsf2(npsidim))                   !!doing this because psi_etsfv does not incorporate enough space for transpose
+      call razero(npsidim,psi_etsf2)
+      if(nproc > 1) then
+        allocate(pwork(npsidim))
+        call transpose_v(iproc,nproc,orbsv,Glr%wfd,commsv,psi_etsfv(1,1),work=pwork,outadd=psi_etsf2(1))
+        deallocate(pwork)
+      else
+         ! just copy the wavefunctions 
+         k=0
+         do j=1,orbsv%norbp*orbsv%nspinor
+         do i=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+            k=k+1
+            psi_etsf2(k) = psi_etsfv(i,j)
+         end do
+         end do
+      end if
+      i_all=-product(shape(psi_etsfv))*kind(psi_etsfv)
+      deallocate(psi_etsfv,stat=i_stat)
+      call memocc(i_stat,i_all,'psi_etsfv',subname)
 
       ! - b1, b2 and b3 are the norm of the lattice parameters.
       b1=atoms%alat1
@@ -233,20 +237,6 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
 
       call timing(iproc,'CrtProjectors ','OF')
 
-      ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
-      npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp*orbsv%nspinor,sum(commsv%ncntt(0:nproc-1)))
-      allocate(psi_etsf2(npsidim))                   !!doing this becasue psi_etsfv does not incorporate enough space for transpose
-      k=0
-      do j=1,orbsv%norbp*orbsv%nspinor
-      do i=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-         k=k+1
-         psi_etsf2(k) = psi_etsfv(i,j)
-      end do
-      end do
-      allocate(pwork(npsidim))
-      call transpose_v(iproc,nproc,orbsv,Glr%wfd,commsv,psi_etsf2(1),work=pwork)!,outadd=psi_etsf2(1))
-      deallocate(pwork)
-
       ! Tranposition of the distribution of the spherical harmonics: orbitals -> components.
       allocate(pwork(npsidim2))
       call transpose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub(1),work=pwork)
@@ -255,7 +245,7 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
 
       ! Scalar product of amnk=<sph_daub|psi> in parallel.
       call razero(orbsp%norb*orbsv%norb,amnk)
-      nvctrp=n_vctr_par(iproc)
+      nvctrp=commsv%nvctr_par(iproc,1)
       call gemm('T','N',orbsv%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsf2(1),max(1,nvctrp),&
            sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsv%norb)
 
@@ -287,17 +277,14 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
       end do
 
       ! End of the pre-check mode
-      allocate(pwork(npsidim2))                                                                                                                                                                                 
-      call untranspose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub,work=pwork)
-      deallocate(pwork)
-      deallocate(sph_daub)
+      !allocate(pwork(npsidim2))                                                                                                                                                                                 
+      !call untranspose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub,work=pwork)
+      !deallocate(pwork)
+      !deallocate(sph_daub)
       allocate(pwork(npsidim))
       call untranspose_v(iproc,nproc,orbsv,Glr%wfd,commsv,psi_etsf2(1),work=pwork)
       deallocate(pwork)
       deallocate(psi_etsf2)
-      i_all = -product(shape(psi_etsfv))*kind(psi_etsfv)
-      deallocate(psi_etsfv,stat=i_stat)
-      call memocc(i_stat,i_all,'psi_etsfv',subname)
       deallocate(amnk)
       deallocate(amnk_guess_sorted)
       deallocate(amnk_guess)
@@ -309,6 +296,7 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
          write(*,*)
          write(*,*)
       end if
+
 
 !     ! Rewrite the input.inter file in order to leave the pre-check mode the next time the program is run
 !     if (iproc==0) call write_inter(n_virt, amnk_bands_sorted)
@@ -371,22 +359,15 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    if (orbsb%isorb + orbsb%norbp < n_occ ) orbsv%norbp = 0
    if (orbsb%isorb > n_occ) orbsv%norbp = orbsb%norbp
    orbsv%isorb = 0
+   if(orbsb%isorb >= n_occ) orbsv%isorb = orbsb%isorb - n_occ    
 
    filename='virtuals.etsf'
    if(orbsv%norbp > 0) then
+      if(associated(orbsv%eval)) nullify(orbsv%eval)
+      allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
       call read_valence_etsf(iproc,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
          Glr%wfd,psi_etsf(1,1+orbs%norbp),virt_list)
    end if
-  
-!  do nb=1,orbsb%norbp*orbsb%nspinor
-!  norm = 0
-!  do np=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-!     norm = norm + psi_etsf(np,nb)*psi_etsf(np,nb)
-!  end do
-!  print *,'norm',iproc,nb+orbsb%isorb,norm
-!  end do
-!  call mpi_finalize(ierr)
-!  stop
 
    ! - b1, b2 and b3 are the norm of the lattice parameters.
    b1=atoms%alat1
@@ -395,60 +376,68 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    ! - Allocations
    allocate(amnk(orbsb%norb,orbsp%norb))
    allocate(amnk_tot(orbsb%norb))
-   allocate(sph_daub(npsidim2), stat=i_stat)
+   call timing(iproc,'CrtProjectors ','OF')
 
-   ! Calculation of the spherical harmonics in parallel.
+   ! Calculation of the spherical harmonics in parallel (only if not done in precheck).
    ! It is done in the real space and then converted in the Daubechies representation.
-   pshft = 0
-   do npp=1, orbsp%norbp
-      np=npp+orbsp%isorb
-      ! Convolution buffer : n1i=2*n1+31 -> explains the '15*input%hx*0.5' term
-      r0x=ctr_proj(np,1)*b1+15*input%hx*0.5
-      r0y=ctr_proj(np,2)*b2+15*input%hy*0.5
-      r0z=ctr_proj(np,3)*b3+15*input%hz*0.5
-      do k=1,nz
-         zz=(k-1)*input%hz*0.5-r0z
-         do j=1,ny
-            yy=(j-1)*input%hy*0.5-r0y
-            do i=1,nx
-               ind=(k-1)*ny*nx+(j-1)*nx+i
-               xx=(i-1)*input%hx*0.5-r0x
-               call angularpart(l, mr, np, nx, ny, nz, i, j, k, &
-                     xx, yy, zz, n_proj, ylm)
-               call radialpart(rvalue, zona, np, nx, ny, nz, i, j, k, &
-                     xx, yy, zz, n_proj, func_r)
-               ! The 'sqrt(input%hx*0.5*input%hy*0.5*input%hz*0.5)' term is here to normalize spherical harmonics
-               sph_har_etsf(ind)=func_r(i,j,k)*ylm(i,j,k)*sqrt(input%hx*0.5*input%hy*0.5*input%hz*0.5)
+   if(pre_check .eqv. .false.) then
+      call timing(iproc,'CrtProjectors ','ON')
+      allocate(sph_daub(npsidim2), stat=i_stat)
+      pshft = 0
+      do npp=1, orbsp%norbp
+         np=npp+orbsp%isorb
+         ! Convolution buffer : n1i=2*n1+31 -> explains the '15*input%hx*0.5' term
+         r0x=ctr_proj(np,1)*b1+15*input%hx*0.5
+         r0y=ctr_proj(np,2)*b2+15*input%hy*0.5
+         r0z=ctr_proj(np,3)*b3+15*input%hz*0.5
+         do k=1,nz
+            zz=(k-1)*input%hz*0.5-r0z
+            do j=1,ny
+               yy=(j-1)*input%hy*0.5-r0y
+               do i=1,nx
+                  ind=(k-1)*ny*nx+(j-1)*nx+i
+                  xx=(i-1)*input%hx*0.5-r0x
+                  call angularpart(l, mr, np, nx, ny, nz, i, j, k, &
+                        xx, yy, zz, n_proj, ylm)
+                  call radialpart(rvalue, zona, np, nx, ny, nz, i, j, k, &
+                        xx, yy, zz, n_proj, func_r)
+                  ! The 'sqrt(input%hx*0.5*input%hy*0.5*input%hz*0.5)' term is here to normalize spherical harmonics
+                  sph_har_etsf(ind)=func_r(i,j,k)*ylm(i,j,k)*sqrt(input%hx*0.5*input%hy*0.5*input%hz*0.5)
+               end do
             end do
          end do
+         call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
+         pshft=pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
       end do
-      call isf_to_daub(Glr,w,sph_har_etsf(1),sph_daub(1+pshft))
-      pshft=pshft + max(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,commsp%ncntt(iproc)/orbsp%norbp)
-   end do
 
-   call timing(iproc,'CrtProjectors ','OF')
-   ! Tranposition of distribution : orbitals -> components.
-   npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsv%ncntt(0:nproc-1)))
-   allocate(psi_etsf2(npsidim))                   !!doing this becasue psi_etsfv does not incorporate enough space for transpose
-   k=0
-   do j=1,orbsb%norbp*orbsb%nspinor
-   do i=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
-      k=k+1
-      psi_etsf2(k) = psi_etsf(i,j)
-   end do
-   end do
-   allocate(pwork(npsidim))
-   call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_etsf2(1),work=pwork)!,outadd=psi_etsf2(1))
-   deallocate(pwork)
+      call timing(iproc,'CrtProjectors ','OF')
+      ! Tranposition of distribution : orbitals -> components.
+      allocate(pwork(npsidim2))
+      call transpose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub,work=pwork)
+      deallocate(pwork)
+   end if
 
-   ! Tranposition of distribution : orbitals -> components.
-   allocate(pwork(npsidim2))
-   call transpose_v(iproc,nproc,orbsp,Glr%wfd,commsp,sph_daub,work=pwork)
-   deallocate(pwork)
-   call timing(iproc,'ApplyProj     ','ON')
+   ! Tranposition of the distribution of the BigDFT wavefunctions : orbitals -> components.
+   npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsb%norbp*orbsb%nspinor,sum(commsb%ncntt(0:nproc-1)))
+   allocate(psi_etsf2(npsidim))                   !!doing this because psi_etsfv does not incorporate enough space for transpose
+   call razero(npsidim,psi_etsf2)
+   if(nproc > 1) then
+     allocate(pwork(npsidim))
+     call transpose_v(iproc,nproc,orbsb,Glr%wfd,commsb,psi_etsf(1,1),work=pwork,outadd=psi_etsf2(1))
+     deallocate(pwork)
+   else
+      ! just copy the wavefunctions 
+      k=0
+      do j=1,orbsb%norbp*orbsb%nspinor
+      do i=1,Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
+         k=k+1
+         psi_etsf2(k) = psi_etsf(i,j)
+      end do
+      end do
+   end if
 
    ! Scalar product of amnk=<sph_daub|psi> in parallel.
-   nvctrp=n_vctr_par(iproc)
+   nvctrp=commsb%nvctr_par(iproc,1)
    call gemm('T','N',orbsb%norb,orbsp%norb,nvctrp,1.0_wp,psi_etsf2(1),max(1,nvctrp),&
         sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsb%norb)
 
@@ -514,13 +503,6 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    allocate(psir_im(nx*ny*nz))
    allocate(psi_daub_re(npsidim))
    allocate(psi_daub_im(npsidim))
-
-   ! Tranposition of distribution : orbitals -> components
-!   call timing(iproc,'Input_comput  ','OF')
-!   allocate(pwork(npsidim))
-!   call transpose_v(iproc,nproc,orbs,Glr%wfd,comms,psi_etsf2,work=pwork)
-!   deallocate(pwork)
-!   call timing(iproc,'Input_comput  ','ON')
 
    ! Algorithm to compute the scalar product :
    do inn=1,n_kpts*n_nnkpts
@@ -1840,8 +1822,8 @@ subroutine angularpart(l, mr, np, nx, ny, nz, ix, iy, iz, &
    implicit none
 
    ! I/O variables
-   integer, intent(in) :: l(n_proj), mr(n_proj)
    integer, intent(in) :: np, nx, ny, nz, ix, iy, iz, n_proj
+   integer, intent(in) :: l(n_proj), mr(n_proj)
    real(kind=8), intent(in) :: xx, yy, zz
    real(kind=8), dimension(nx,ny,nz), intent(out) :: ylm
 
@@ -2359,9 +2341,9 @@ subroutine radialpart(rvalue, zona, np, nx, ny, nz, ix, iy, iz, &
    implicit none
 
    ! I/O variables
+   integer, intent(in) :: np, nx, ny, nz, ix, iy, iz, n_proj
    integer, intent(in) :: rvalue(n_proj)
    real, intent(in) :: zona(n_proj)
-   integer, intent(in) :: np, nx, ny, nz, ix, iy, iz, n_proj
    real(kind=8), intent(in) :: xx, yy, zz
    real(kind=8), dimension(nx,ny,nz), intent(out) :: func_r
 
@@ -2782,6 +2764,10 @@ subroutine split_vectors_for_parallel(iproc,nproc,nvctr,orbs)
   allocate(orbs%iokpt(orbs%norbp))
   orbs%iokpt=1
 
+  ! For now, also don't consider spin
+  orbs%norbu = nvctr
+  orbs%norbd = 0
+
   i_all = -product(shape(nvctr_par))*kind(nvctr_par)
   deallocate(nvctr_par,stat=i_stat)
   call memocc(i_stat,i_all,'nvctr_par',subname)
@@ -2815,7 +2801,7 @@ subroutine read_valence_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,r
   character(len = *), parameter :: subname = "read_waves_etsf"
   integer, pointer :: nvctr_old(:)
   integer :: iCoeff, iFine, n1_old, n2_old, n3_old, nvctr_c_old, nvctr_f_old
-  integer :: i, iorb, iiorb, ncid, iGrid, diGrid, nspin
+  integer :: i, iorb, ncid, iGrid, diGrid, nspin
   integer :: nb1, nb2, nb3, i_all, i_stat, ncount1,ncount_rate,ncount_max, ncount2
   integer :: start(6), count(6), coord(3)
   real :: tr0,tr1
@@ -2860,7 +2846,8 @@ subroutine read_valence_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,r
 
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
 
-        call orbsToETSF2(start, count, iorb, orbsd,orblist,orbs%norbp*orbs%nspinor)
+        call orbsToETSF2(start, count, iorb, orbsd,orblist,orbs%norb*orbs%nspinor)
+
 
         iFine = wfd%nvctr_c + 1
         iCoeff = 1
@@ -2932,7 +2919,7 @@ subroutine read_valence_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,r
 
      do iorb = 1, orbs%norbp*orbs%nspinor, 1
         ! We read the coefficients.
-        call orbsToETSF2(start, count, iorb, orbsd,orblist,orbs%norbp*orbs%nspinor)
+        call orbsToETSF2(start, count, iorb, orbsd,orblist,orbs%norb*orbs%nspinor)
 
         ! We transfer the coefficients in psigold.
         iCoeff = 1
@@ -3157,10 +3144,10 @@ subroutine etsf_error(error)
     start(3) = modulo(iorb - 1, orbs%nspinor) + 1
     count(3) = 1
     ! Read one orbital.
-    start(4) = modulo(orblist(iorb), orbs%norb) !+ 1
+    start(4) = modulo(orblist(iorb+orbs%isorb), orbs%norb) !+ 1
     count(4) = 1
     ! Read one kpoint.
-    start(5) = (orblist(iorb)) / orbs%norb + 1
+    start(5) = (orblist(iorb+orbs%isorb)) / orbs%norb + 1
     count(5) = 1
     ! Write one spin.
     start(6) = 1
