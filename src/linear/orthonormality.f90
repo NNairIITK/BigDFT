@@ -4292,8 +4292,8 @@ real(8),dimension(orbs%npsidim),intent(inout):: lphi, lhphi
 real(8),intent(out):: trH
 
 ! Local variables
-integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, info, i, istat, iall, ierr, iseg, nvctrp, ldim, gdim
-real(8):: tt, t1, t2, time_dsymm, time_daxpy, ind1, ind2
+integer:: iorb, jorb, iiorb, ilr, ist, jst, ilrold, jjorb, ncount, info, i, istat, iall, ierr, iseg, nvctrp, ldim, gdim, ind1, ind2
+real(8):: tt, t1, t2, time_dsymm, time_daxpy
 real(8),dimension(:,:),allocatable:: ovrlp2
 real(8),dimension(:,:),allocatable:: ovrlp_minus_one_lagmat, ovrlp_minus_one_lagmat_trans
 character(len=*),parameter:: subname='applyOrthoconstraintNonorthogonalCubic'
