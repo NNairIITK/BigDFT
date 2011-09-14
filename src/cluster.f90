@@ -893,14 +893,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rhopot,&
                    nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
               !here the density can be mixed
-              if (mix%kind == AB6_MIXING_DENSITY .and. in%itrpmax>1) then
-                 call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
-                      & rhopot,itrp,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hx*hy*hz,rpnrm,nscatterarr)
-                 if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                      'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
-                 endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
-                 ! xc_init_rho should be put in the mixing routines
-                 rhopot = abs(rhopot) + 1.0d-20
+              if (in%itrpmax>1) then
+                 if (mix%kind == AB6_MIXING_DENSITY) then
+                    call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
+                         & rhopot,itrp,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hx*hy*hz,rpnrm,nscatterarr)
+                    if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                         'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                    endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
+                    ! xc_init_rho should be put in the mixing routines
+                    rhopot = abs(rhopot) + 1.0d-20
+                 end if
               end if
 
               !before creating the potential, save the density in the second part 
