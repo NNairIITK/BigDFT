@@ -1478,6 +1478,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!$                orbs,orbsv,in%nvirt,Glr,comms,commsv,&
 !!$                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
 !!$                pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
+            
+        end if
+
+        ! Write virtual wavefunctions in ETSF format: WORKS ONLY FOR ONE KPOINT 
+        if(in%output_wf_format == 3 .and. abs(in%norbv) > 0) then
+           call  writemywaves(iproc,"virtuals" // trim(wfformat), &
+            & orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psivirt)
         end if
 
         !start the Casida's treatment 

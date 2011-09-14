@@ -1827,39 +1827,40 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
      if(iproc==0)write(*,'(1x,A,i3)')&
           "WARNING: More plots requested than orbitals calculated." 
   end if
+  if(output_wf_format .ne. 3) then
+     !add a modulo operator to get rid of the particular k-point
+     do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
 
-  !add a modulo operator to get rid of the particular k-point
-  do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
+        if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot)) then
+           exit 
+           !if(iproc == 0 .and. abs(nplot) > 0) write(*,'(A)')'No plots of occupied orbitals requested.'
+        end if
 
-     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot)) then
-        exit 
-        !if(iproc == 0 .and. abs(nplot) > 0) write(*,'(A)')'No plots of occupied orbitals requested.'
-     end if
-
-     ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-     !plot the orbital and the density
-     write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
-     write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
-     write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
-
-     call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psivirt(ind:),comment)
-     call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psivirt(ind:),comment)
-
-  end do
-
-  do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(nplot)) then  ! SG 
-        !address
         ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-        write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
-        write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
-        write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
+        !plot the orbital and the density
+        write(orbname,'(A,i4.4)')'virtual',iorb+orbsv%isorb
+        write(denname,'(A,i4.4)')'denvirt',iorb+orbsv%isorb
+        write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
 
-        call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-        call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
-        
-     endif
-  end do
+        call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psivirt(ind:),comment)
+        call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psivirt(ind:),comment)
+
+     end do
+
+     do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
+        if(modulo(orbs%norb-iorb-orbs%isorb-0,orbs%norb)+1 <=  abs(nplot)) then  ! SG 
+           !address
+           ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
+           write(orbname,'(A,i4.4)')'orbital',iorb+orbs%isorb
+           write(denname,'(A,i4.4)')'densocc',iorb+orbs%isorb
+           write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
+
+           call plot_wf(orbname,1,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+           call plot_wf(denname,2,at,lr,hx,hy,hz,rxyz,psi(ind:),comment)
+           
+        endif
+     end do
+  end if
   ! END OF PLOTTING
 
 
