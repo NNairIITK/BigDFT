@@ -62,11 +62,11 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
       call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
       call collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
            comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp, lphiovrlp, timecommunp2p, timecommuncoll, timeoverlap, timeexpand, timecompress)
-  do ind1=1,orbs%norb
-      do ind2=1,orbs%norb
-          write(500+iproc,*) ind1, ind2, ovrlp(ind2,ind1)
-      end do
-  end do
+  !!do ind1=1,orbs%norb
+  !!    do ind2=1,orbs%norb
+  !!        write(500+iproc,*) ind1, ind2, ovrlp(ind2,ind1)
+  !!    end do
+  !!end do
       t2=mpi_wtime()
       timeCommun=timeCommun+t2-t1
       t1=mpi_wtime()
@@ -4220,11 +4220,11 @@ call memocc(istat, ovrlp, 'ovrlp', subname)
 
   call mpiallred(ovrlp(1,1), orbs%norb**2, mpi_sum, mpi_comm_world, ierr)
 
-  do ind1=1,orbs%norb
-      do ind2=1,orbs%norb
-          write(600+iproc,*) ind1, ind2, ovrlp(ind2,ind1)
-      end do
-  end do
+  !!do ind1=1,orbs%norb
+  !!    do ind2=1,orbs%norb
+  !!        write(600+iproc,*) ind1, ind2, ovrlp(ind2,ind1)
+  !!    end do
+  !!end do
   call overlapPowerMinusOneHalf(iproc, nproc, mpi_comm_world, methTransformOverlap, blocksize_dsyev, &
         blocksize_pdgemm, orbs%norb, mad, ovrlp)
 
