@@ -4737,7 +4737,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
        end subroutine orthonormalizeLocalized2
 
-       subroutine applyOrthoconstraintNonorthogonalCubic(iproc, nproc, methTransformOverlap, blocksize_pdgemm, orbs, gorbs, comms, lzd, input, &
+       subroutine applyOrthoconstraintNonorthogonalCubic(iproc, nproc, methTransformOverlap, blocksize_pdgemm, &
+                  orbs, gorbs, comms, lzd, input, &
                   op, ovrlp, mad, lphi, lhphi, trH)
          use module_base
          use module_types
@@ -4754,6 +4755,24 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),intent(out):: trH
        end subroutine applyOrthoconstraintNonorthogonalCubic
 
+       subroutine collectnew(iproc, nproc, comon, mad, op, orbs, input, lzd, &
+                  nsendbuf, sendbuf, nrecvbuf, recvbuf, ovrlp, timecommunp2p, &
+                  timecommuncoll, timecompress)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, nsendbuf, nrecvbuf
+         type(p2pCommsOrthonormality),intent(inout):: comon
+         type(matrixDescriptors),intent(in):: mad
+         type(overlapParameters),intent(in):: op
+         type(orbitals_data),intent(in):: orbs
+         type(input_variables),intent(in):: input
+         type(local_zone_descriptors),intent(in):: lzd
+         real(8),dimension(nsendbuf),intent(in):: sendbuf
+         real(8),dimension(nrecvbuf),intent(inout):: recvbuf
+         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+         real(8),intent(inout):: timecommunp2p, timecommuncoll, timecompress
+       end subroutine collectnew
 
   end interface
 

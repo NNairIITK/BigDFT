@@ -584,12 +584,12 @@ real(8),dimension(:),pointer:: lpot
           write(*,'(x,a)') 'Orthonormalization... '
       end if
       call cpu_time(t1)
-      !!call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
-      !!     lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
-      !!     input, lin%mad, lphi, ovrlp)
-      call orthonormalizeLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
-           lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%gorbs, lin%comms, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
+      call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
+           lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
            input, lin%mad, lphi, ovrlp)
+      !!call orthonormalizeLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
+      !!     lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%gorbs, lin%comms, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
+      !!     input, lin%mad, lphi, ovrlp)
       !!do iorb=1,lin%orbs%norb
       !!    do jorb=1,lin%orbs%norb
       !!        if(iproc==0) write(5000,*) iorb, jorb, ovrlp(jorb,iorb)
@@ -665,16 +665,20 @@ real(8),dimension(:),pointer:: lpot
       !!!!!!!!!!!!!!!call orthoconstraintLocalized(iproc, nproc, lin, input, lphi, lhphi, trH)
 
       ! Gather the messages and calculate the overlap matrix.
-      call collectAndCalculateOverlap2(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
-            lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ovrlp, timecommunp2p, timecommuncoll, timeoverlap, timecompress)
+      !call collectAndCalculateOverlap2(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+      !      lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ovrlp, timecommunp2p, timecommuncoll, timeoverlap, timecompress)
+      call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+           lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
+      call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
+           lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, lin%mad, ovrlp)
       !call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
       !     lin%comon%sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, lin%mad, ovrlp)
       call deallocateRecvBufferOrtho(lin%comon, subname)
       call deallocateSendBufferOrtho(lin%comon, subname)
 
-      !call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH)
-      call applyOrthoconstraintNonorthogonalCubic(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%gorbs, lin%comms, lin%lzd, input, &
-           lin%op, ovrlp, lin%mad, lphi, lhphi, trH)
+      call orthoconstraintNonorthogonal(iproc, nproc, lin, input, ovrlp, lphi, lhphi, lin%mad, trH)
+      !call applyOrthoconstraintNonorthogonalCubic(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%gorbs, lin%comms, lin%lzd, input, &
+      !     lin%op, ovrlp, lin%mad, lphi, lhphi, trH)
 
       call cpu_time(t2)
       time(3)=time(3)+t2-t1

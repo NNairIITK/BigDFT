@@ -267,12 +267,12 @@ if(iproc==0) write(*,'(a)') 'done.'
 !!end if
 
 
-! Plot basis functions grid
-do iorb=1,lin%orbs%norbp
-    iiorb=lin%orbs%isorb+iorb
-    ilr=lin%orbs%inWhichLocreg(iiorb)
-    call plotGrid(iproc, nproc, lin%lb%orbs%norb, lin%orbs%nspinor, input%nspin, iiorb, lin%lzd%llr(ilr), lin%lzd%glr, at, rxyz, input%hx, input%hy, input%hz)
-end do
+!!! Plot basis functions grid
+!!do iorb=1,lin%orbs%norbp
+!!    iiorb=lin%orbs%isorb+iorb
+!!    ilr=lin%orbs%inWhichLocreg(iiorb)
+!!    call plotGrid(iproc, nproc, lin%lb%orbs%norb, lin%orbs%nspinor, input%nspin, iiorb, lin%lzd%llr(ilr), lin%lzd%glr, at, rxyz, input%hx, input%hy, input%hz)
+!!end do
 
 
 end subroutine allocateAndInitializeLinear
