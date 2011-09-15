@@ -11,6 +11,7 @@ PSPS = psppar.H \
        HGH/psppar.Si \
        HGH/psppar.Fe \
        HGH/psppar.Mg \
+       HGH/psppar.Ag \
        HGH-K/psppar.H \
        HGH-K/psppar.Si \
        HGH-K/psppar.N \
@@ -27,6 +28,7 @@ TESTDIRS = C \
 	  Ca2 \
 	  H2O-CP2K \
 	  SiBulk \
+	  AgBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
 	  TiMix \
@@ -59,6 +61,7 @@ Ca2.psp: psppar.Ca
 Mn2.psp: psppar.Mn
 H2O-CP2K.psp: HGH/psppar.H HGH/psppar.O
 SiBulk.psp: HGH/psppar.Si
+AgBulk.psp: HGH/psppar.Ag
 H2O-slab.psp: HGH-K/psppar.H HGH-K/psppar.O
 Davidson-SiH4.psp: psppar.H psppar.Si
 Graphene.psp: psppar.C
@@ -72,10 +75,6 @@ GEOPT-LBFGS.psp: HGH/psppar.Mg
 # Additional rules.
 H2O-slab.post-in:
 	cp -f velocities.in velocities.xyz
-
-
-
-
 
 # Generic part, do not touch.
 INS = $(TESTDIRS:=.in)
@@ -112,6 +111,7 @@ report:
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
           NaCl.out*)        prec="1.e-9" ;; \
           SiBulk.out*)      prec="2.e-7" ;; \
+          AgBulk.out*)      prec="6.e-8" ;; \
           SiH4.out*)        prec="2.5e-9" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \

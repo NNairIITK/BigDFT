@@ -15,6 +15,7 @@ subroutine print_logo()
   integer :: length
   character(len = 64) :: fmt
 
+  fmt=repeat(' ',64)
   length = 26 - 6 - len(package_version)
   write(fmt, "(A,I0,A)") "(23x,a,", length, "x,a)"
 
@@ -42,7 +43,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' g        g     i         B    B    '  
   write(*,'(23x,a)')'          g     i        B     B    ' 
   write(*,'(23x,a)')'         g               B    B     '
-  write(*,fmt)      '    ggggg       i         BBBB      ', &
+  write(*,trim(fmt))      '    ggggg       i         BBBB      ', &
        & '(Ver ' // package_version // ')'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'

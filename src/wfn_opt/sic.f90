@@ -192,7 +192,7 @@ subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_D
   use module_base
   use module_types
   use module_xc
-  use module_interfaces
+  use module_interfaces, except_this_one => NK_SIC_potential
   use Poisson_Solver
   implicit none
   integer, intent(in) :: ixc

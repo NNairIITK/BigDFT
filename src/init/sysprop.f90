@@ -1283,8 +1283,8 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   integer, intent(out) :: lub_orbs,lub_comps
   !local variables
   character(len=*), parameter :: subname='check_kpt_distributions'
-  logical :: notcompatible
-  integer :: ikpt,jproc,norbs,ncomps,i_all,i_stat,kproc,ieproc,isproc
+  logical :: notcompatible,couldbe
+  integer :: ikpt,jproc,norbs,ncomps,i_all,i_stat,kproc,ieproc,isproc,jkpt
   integer, dimension(:,:), allocatable :: load_unbalancing
   !before printing the distribution schemes, check that the two distributions contain
   !the same k-points
@@ -1317,7 +1317,15 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
         notcompatible=(ncomp_par(jproc,ikpt) == 0 .neqv. norb_par(jproc,ikpt) == 0) 
         !check whether there are only 0 orbitals
         if (notcompatible .and. norb_par(jproc,ikpt)==0) then
-           if (isproc < jproc .and. jproc <= ieproc) notcompatible=.false.
+           !if the processor is the last one then there should not be other k-points on this processors
+           couldbe=.false.
+           if (jproc == ieproc) then
+              couldbe=.true.
+              do jkpt=ikpt+1,nkpts
+                 couldbe=couldbe .and. (norb_par(jproc,jkpt) ==0 .and. ncomp_par(jproc,jkpt)==0)
+              end do
+           end if
+           if ((isproc < jproc .and. jproc < ieproc) .or. couldbe) notcompatible=.false.
         end if
         if (notcompatible) then     
            if (info == 0) write(*,*)' ERROR: processor ', jproc,' kpt,',ikpt,&
