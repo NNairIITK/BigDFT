@@ -376,6 +376,7 @@ real(8),dimension(:),allocatable:: lphiovrlp, sendBuf, ovrlpCompressed, ovrlpCom
 real(8),dimension(:,:),allocatable:: lagmat
 character(len=*),parameter:: subname='orthoconstraintLocalized'
 real(8):: t1, t2, timeExtract, timeExpand, timeApply, timeCalcMatrix, timeCommun, timeComput
+real(8):: timecommunp2p, timecommuncoll, timecompress
 logical,dimension(:,:),allocatable:: expanded
 integer,dimension(:),allocatable:: sendcounts, displs
 
@@ -390,6 +391,15 @@ integer,dimension(:),allocatable:: sendcounts, displs
   allocate(sendBuf(lin%comon%nsendBuf), stat=istat)
   call memocc(istat, sendBuf, 'sendBuf',subname)
   lphiovrlp=0.d0
+
+
+  timeComput=0.d0
+  timeCommun=0.d0
+  timeCalcMatrix=0.d0
+  timeExpand=0.d0
+  timeApply=0.d0
+  timeExtract=0.d0
+
   !!allocate(lhphiovrlp(lin%op%ndim_lphiovrlp), stat=istat)
   !!call memocc(istat, lhphiovrlp, 'lhphiovrlp',subname)
 
@@ -397,89 +407,53 @@ integer,dimension(:),allocatable:: sendcounts, displs
 
   ! Put lphi in the sendbuffer, i.e. lphi will be sent to other processes' receive buffer.
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lphi, lin%comon)
-  call cpu_time(t1)
+  t1=mpi_wtime()
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lphi, lin%comon)
   call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
        lphi, lin%comon%nsendBuf, lin%comon%sendBuf)
-  call cpu_time(t2)
+  t2=mpi_wtime()
   timeExtract=t2-t1
-  call cpu_time(t1)
-  call postCommsOverlap(iproc, nproc, lin%comon)
-  call cpu_time(t2)
-  timeCommun=t2-t1
-  call cpu_time(t1)
-  call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
-                       lhphi, lin%comon%nsendBuf, sendBuf)
-  call cpu_time(t2)
-  timeExtract=t2-t1
+  !call postCommsOverlap(iproc, nproc, lin%comon)
+  call postCommsOverlapNew(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
+  !call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
+  !                     lhphi, lin%comon%nsendBuf, sendBuf)
   !call gatherOrbitals2(iproc, nproc, lin%comon)
-  call cpu_time(t1)
-  call gatherOrbitalsOverlapWithComput(iproc, nproc, lin%orbs, input, lin%lzd, lin%op, lin%comon, lphiovrlp, expanded)
+  !call gatherOrbitalsOverlapWithComput(iproc, nproc, lin%orbs, input, lin%lzd, lin%op, lin%comon, lphiovrlp, expanded)
   !!call gatherOrbitalsOverlapWithComput2(iproc, nproc, lin%orbs, input, lin%lzd, lin%op, lin%comon, lin%comon%nsendbuf, sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, lphiovrlp, expanded, lagmat)
-  call cpu_time(t2)
-  timeCommun=t2-t1
+  call collectnew(iproc, nproc, lin%comon, lin%mad, lin%op, lin%orbs, input, lin%lzd, lin%comon%nsendbuf, &
+       lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, lagmat, timecommunp2p, timecommuncoll, timecompress)
   ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
   !call extractOrbital2(iproc, nproc, lin%orbs, lin%lorbs%npsidim, lin%onWhichAtomAll, lin%lzd, lin%op, lhphi, lin%comon)
-  call cpu_time(t1)
-  !call extractOrbital2(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lhphi, lin%comon)
-  call cpu_time(t2)
-  timeExtract=t2-t1
-  call cpu_time(t1)
   !!do iall=1,lin%comon%nsendBuf
   !!    !write(3000+iproc,*) iall, lin%comon%sendBuf(iall)
   !!    write(3000+iproc,*) iall, sendBuf(iall)
   !!end do
   !call calculateOverlapMatrix2(iproc, nproc, lin%orbs, lin%op, lin%comon, lin%orbs%inWhichLocreg, lagmat)
-  call mpi_barrier(mpi_comm_world, ierr)
+  t1=mpi_wtime()
+  call extractOrbital3(iproc, nproc, lin%orbs, lin%orbs%npsidim, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
+                       lhphi, lin%comon%nsendBuf, sendBuf)
+  t2=mpi_wtime()
+  timeextract=timeextract+t2-t1
+  t1=mpi_wtime()
   call calculateOverlapMatrix3(iproc, nproc, lin%orbs, lin%op, lin%orbs%inWhichLocreg, lin%comon%nsendBuf, &
                                sendBuf, lin%comon%nrecvBuf, lin%comon%recvBuf, mad, lagmat)
-
-!!!! NEW ###############################################################
-!!allocate(ovrlpCompressed(mad%nvctr), stat=istat)
-!!call memocc(istat, ovrlpCompressed, 'ovrlpCompressed', subname)
-!!
-!!!call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
-!!allocate(sendcounts(0:nproc-1), stat=istat)
-!!call memocc(istat, sendcounts, 'sendcounts', subname)
-!!allocate(displs(0:nproc-1), stat=istat)
-!!call memocc(istat, displs, 'displs', subname)
-!!call compressMatrix2(iproc, nproc, lin%orbs, mad, ovrlp, ovrlpCompressed, sendcounts, displs)
-!!!call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
-!!allocate(ovrlpCompressed2(mad%nvctr), stat=istat)
-!!call memocc(istat, ovrlpCompressed2, 'ovrlpCompressed2', subname)
-!!call mpi_allgatherv(ovrlpCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, ovrlpCompressed2(1), &
-!!     sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
-!!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
-!!call uncompressMatrix(lin%orbs%norb, mad, ovrlpCompressed2, ovrlp)
-!!
-!!iall=-product(shape(ovrlpCompressed))*kind(ovrlpCompressed)
-!!deallocate(ovrlpCompressed, stat=istat)
-!!call memocc(istat, iall, 'ovrlpCompressed', subname)
-!!iall=-product(shape(ovrlpCompressed2))*kind(ovrlpCompressed2)
-!!deallocate(ovrlpCompressed2, stat=istat)
-!!call memocc(istat, iall, 'ovrlpCompressed2', subname)
-!!iall=-product(shape(sendcounts))*kind(sendcounts)
-!!deallocate(sendcounts, stat=istat)
-!!call memocc(istat, iall, 'sendcounts', subname)
-!!iall=-product(shape(displs))*kind(displs)
-!!deallocate(displs, stat=istat)
-!!call memocc(istat, iall, 'displs', subname)
-!!!! NEW ###############################################################
+  t2=mpi_wtime()
+  timecalcmatrix=timecalcmatrix+t2-t1
 
 
 
-  call cpu_time(t2)
-  timeCalcMatrix=t2-t1
+  !call cpu_time(t2)
+  !timeCalcMatrix=t2-t1
   trH=0.d0
   do iorb=1,lin%orbs%norb
       trH=trH+lagmat(iorb,iorb)
   end do
   ! Expand the receive buffer, i.e. lphi
-  call cpu_time(t1)
-  !call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
-  call expandRemainingOrbitals(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
-       lin%comon, expanded, lphiovrlp)
-  call cpu_time(t2)
+  t1=mpi_wtime()
+  call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lphiovrlp)
+  !call expandRemainingOrbitals(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, &
+  !     lin%comon, expanded, lphiovrlp)
+  t2=mpi_wtime()
   timeExpand=t2-t1
   !!do iall=1,lin%op%ndim_lphiovrlp
   !!    write(2000+iproc,*) iall, lphiovrlp(iall)
@@ -493,11 +467,10 @@ integer,dimension(:),allocatable:: sendcounts, displs
   !!!call gatherOrbitals2(iproc, nproc, lin%comon)
   !!!! Expand the receive buffer, i.e. lhphi
   !!!call expandOrbital2(iproc, nproc, lin%orbs, input, lin%orbs%inWhichLocreg, lin%lzd, lin%op, lin%comon, lhphiovrlp)
-  call mpi_barrier(mpi_comm_world, ierr)
-  call cpu_time(t1)
+  t1=mpi_wtime()
   call applyOrthoconstraintNonorthogonal2(iproc, nproc, lin%methTransformOverlap, lin%blocksize_pdgemm, lin%orbs, lin%orbs, &
        lin%orbs%inWhichLocreg, lin%lzd, lin%op, lagmat, ovrlp, lphiovrlp, mad, lhphi)
-  call cpu_time(t2)
+  t2=mpi_wtime()
   timeApply=t2-t1
 
   call deallocateCommuncationBuffersOrtho(lin%comon, subname)
@@ -519,7 +492,8 @@ integer,dimension(:),allocatable:: sendcounts, displs
   !!call memocc(istat, iall, 'lhphiovrlp', subname)
 
 
-  timeComput=timeExtract+timeExpand+timeApply
+  timeComput=timeExtract+timeExpand+timeApply+timecalcmatrix
+  timeCommun=timecommunp2p+timecommuncoll
   call mpiallred(timeComput, 1, mpi_sum, mpi_comm_world, ierr)
   call mpiallred(timeCommun, 1, mpi_sum, mpi_comm_world, ierr)
   call mpiallred(timeCalcMatrix, 1, mpi_sum, mpi_comm_world, ierr)
@@ -3748,6 +3722,23 @@ do i=1,comon%nrecv
     indexarray(i)=i
 end do
 
+
+! Now the sends
+t1=mpi_wtime()
+nsend=0
+waitLoopSend: do
+    !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
+    !!nsend=nsend+ncomplete
+    !!if(nsend==comon%nsend) exit waitLoopSend
+    call mpi_waitany(comon%nsend-nsend, comon%requests(1,1), ind, mpi_status_ignore, ierr)
+    nsend=nsend+1
+    do i=ind,comon%nsend-nsend
+        comon%requests(i,1)=comon%requests(i+1,1)
+    end do
+    if(nsend==comon%nsend) exit waitLoopSend
+end do waitLoopSend
+t2=mpi_wtime()
+timecommunp2p=timecommunp2p+t2-t1
 
 
 ovrlp=0.d0

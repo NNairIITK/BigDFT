@@ -99,7 +99,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   call memocc(istat,iall,'lin%lig%orbsig%inWhichLocreg',subname)
 
   ! Assign the orbitals to the localization regions.
-  call assignToLocreg2(iproc, at%nat, lin%lig%lzdig%nlr, input%nspin, norbsPerAt, lin%lig%orbsig)
+  call assignToLocreg2(iproc, at%nat, lin%lig%lzdig%nlr, input%nspin, norbsPerAt, rxyz, lin%lig%orbsig)
 
   ! Nullify the locreg_descriptors and then copy Glr to it.
   call nullify_locreg_descriptors(lin%lig%lzdGauss%Glr)
@@ -288,7 +288,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat,iall,'lin%lig%orbsig%inWhichLocreg',subname)
   
   ! Assign the orbitals to the localization regions.
-  call assignToLocreg2(iproc, at%nat, lin%lig%lzdig%nlr, input%nspin, norbsPerAt, lin%lig%orbsig)
+  call assignToLocreg2(iproc, at%nat, lin%lig%lzdig%nlr, input%nspin, norbsPerAt, rxyz, lin%lig%orbsig)
 
   ! Copy lin%lig%orbsig to lin%lig%orbsGauss, but keep the size of the orbitals in lin%lig%orbsGauss.
   call deallocate_orbitals_data(lin%lig%orbsGauss, subname)
@@ -616,8 +616,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       jlr=lin%orbs%inWhichLocreg(jorb)
       !jproc=lin%orbs%onWhichMPI(jorb)
       jproc=onWhichMPITemp(jorb)
+      if(iproc==0) write(*,'(a,5i7)') 'jorb, jlr, jlrold, jproc, nlocregPerMPI', jorb, jlr, jlrold, jproc, nlocregPerMPI
       if(iproc==jproc) then
-          if(jlr>jlrold) then
+          if(jlr/=jlrold) then
               nlocregPerMPI=nlocregPerMPI+1
               jlrold=jlr
           end if
@@ -634,13 +635,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, &
        onWhichMPITemp, Glr, input, lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, &
        nlocregPerMPI, lchi, lhchi, skip, lin%lig%mad, tag, ham3)
-  !!do iat=1,nlocregPerMPI
-  !!    do iorb=1,lin%lig%orbsig%norb
-  !!        do jorb=1,lin%lig%orbsig%norb
-  !!            write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
-  !!        end do
-  !!    end do
-  !!end do
+  do iat=1,nlocregPerMPI
+      do iorb=1,lin%lig%orbsig%norb
+          do jorb=1,lin%lig%orbsig%norb
+              write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
+          end do
+      end do
+  end do
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
   call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
@@ -1261,7 +1262,7 @@ do jorb=1,norb
     jproc=onWhichMPI(jorb)
     if(iproc==jproc) then
         jjorb=jjorb+1
-        if(jlr>jlrold) then
+        if(jlr/=jlrold) then
            matmin%nlrp=matmin%nlrp+1
         end if
         if(matmin%mlr(jlr)%norbinlr>matmin%norbmax) then
@@ -1288,7 +1289,7 @@ do jorb=1,norb
     jlr=onWhichAtomPhi(jorb)
     jproc=onWhichMPI(jorb)
     if(iproc==jproc) then
-        if(jlr>jlrold) then
+        if(jlr/=jlrold) then
             jjlr=jjlr+1
             matmin%indexInLocreg(jjlr)=jlr
             ! To make it work for both input guess (where we have nmat>1 different matrices) and
@@ -1685,7 +1686,7 @@ ilrold=0
 do iorb=1,norbp
     iiorb=isorb+iorb
     ilr=onWhichAtom(iiorb)
-    if(ilr>ilrold) then
+    if(ilr/=ilrold) then
         noverlaps=noverlaps+comom%noverlap(ilr)
     end if
     ilrold=ilr
@@ -1794,7 +1795,7 @@ ilrold=0
 do iorb=1,norbp
     iiorb=isorb+iorb
     ilr=onWhichAtom(iiorb)
-    if(ilr>ilrold) then
+    if(ilr/=ilrold) then
         noverlaps=noverlaps+comom%noverlap(ilr)
     end if
     ilrold=ilr
