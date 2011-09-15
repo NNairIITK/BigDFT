@@ -666,9 +666,9 @@ allocate(comon%requests(comon%noverlapsmax,2), stat=istat)
 call memocc(istat, comon%requests, 'comon%requests', subname)
 call setCommsOrtho(iproc, nproc, orbs, onWhichAtomAll, lzd, op, comon, tag)
 
-do jproc=0,nproc-1
-    if(iproc==0) write(*,*) 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
-end do
+!do jproc=0,nproc-1
+!    if(iproc==0) write(*,*) 'jproc, comon%noverlaps(jproc)', jproc, comon%noverlaps(jproc)
+!end do
 
 !write(*,'(a,2i11)') 'iproc, comon%nsendBuf', iproc, comon%nsendBuf
 

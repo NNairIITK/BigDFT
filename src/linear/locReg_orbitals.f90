@@ -354,8 +354,8 @@ subroutine assignToLocreg2(iproc, natom, nlr, nspin, Localnorb, rxyz, orbse)
   deallocate(covered,stat=i_stat)
   call memocc(i_stat,i_all,'covered',subname)
 
-  write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocreg', iproc, orbse%inWhichLocreg
-  write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocregp', iproc, orbse%inWhichLocregp
+  !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocreg', iproc, orbse%inWhichLocreg
+  !write(*,'(a,i3,3x,100i4)') 'iproc, orbse%inWhichLocregp', iproc, orbse%inWhichLocregp
 
 end subroutine assignToLocreg2
 
