@@ -663,9 +663,9 @@ END SUBROUTINE G_switch_upcorn
 !!                      Distributed solution of the poisson equation (inout)
 !!   @param  zw         FFT work array
 !!   @param  n3         (twice the) dimension of the last FFTtransform.
-!!   @param   md1,md3   Dimensions of the undistributed part of the real grid
-!!   @param   nfft      number of planes
-!!   @param   scal      Needed to achieve unitarity and correct dimensions
+!!   @param  md1,md3   Dimensions of the undistributed part of the real grid
+!!   @param  nfft      number of planes
+!!   @param  scal      Needed to achieve unitarity and correct dimensions
 !!
 !! @warning
 !!     Assuming that high frequencies are in the corners 

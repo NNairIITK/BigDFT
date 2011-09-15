@@ -28,9 +28,9 @@ module module_input
 
    interface input_var
       module procedure var_character, var_logical, var_integer, &
-         &   var_integer_array, var_double, var_keyword, var_ids,&
-         &   var_double_compulsory,var_real_compulsory,var_int_compulsory,var_logical_compulsory,&
-         &   var_char_compulsory
+         & var_integer_array, var_double, var_keyword, var_ids,&
+         & var_double_compulsory,var_real_compulsory,var_int_compulsory,var_logical_compulsory,&
+         & var_char_compulsory
    end interface
 
    public :: input_set_file
@@ -67,7 +67,7 @@ module module_input
       lmpinit=.false.
       call MPI_INITIALIZED(lmpinit,ierr)
 
-      write(input_file, "(a)") trim(filename)
+      write(input_file, "(A)") trim(filename)
 
 
       !check if the file is present
@@ -116,14 +116,14 @@ module module_input
       !write the first line in the output
       if (exists) then
          write(inout_lines(iline_written),'(1x,5a)')&
-            &   '|... (file:', trim(filename),')',&
-            &   repeat('.',max_length-2-(len(trim(filename)//trim(comment_file_usage))+11)),&
-            &   trim(comment_file_usage)
+            &    '|... (file:', trim(filename),')',&
+            &    repeat('.',max_length-2-(len(trim(filename)//trim(comment_file_usage))+11)),&
+            &    trim(comment_file_usage)
       else
          write(inout_lines(iline_written),'(1x,5a)')&
-            &   '|... (file:',trim(filename),'.. not present)',&
-            &   repeat('.',max_length-2-(len(trim(filename)//trim(comment_file_usage))+26)),&
-            &   trim(comment_file_usage)
+            &     '|... (file:',trim(filename),'.. not present)',&
+            &     repeat('.',max_length-2-(len(trim(filename)//trim(comment_file_usage))+26)),&
+            &     trim(comment_file_usage)
       end if
       iline_written=iline_written+1
 
@@ -163,7 +163,7 @@ module module_input
                !add the writing of the file in the given unit
                open(unit=iunit,file=trim(input_file)//'_default', status ='unknown')
                do iline=1,iline_written-1
-                  write(iunit,'(a)') inout_lines(iline)
+                  write(iunit,*) inout_lines(iline)
                end do
                close(unit=iunit)
             end if
@@ -184,13 +184,13 @@ module module_input
       integer :: ierr
       if (output) then
          write(*,'(1x,a,a,2(a,i3))')'Error while reading the file "', &
-            &   trim(input_file), '", line=', iline_written,' argument=', iargument
+            & trim(input_file), '", line=', iline_written,' argument=', iargument
          if (iline_written <= nlines_total) write(*,*)inout_lines(iline_written),line_being_processed
          !to be called only if mpi is initialized
       end if
       if (lmpinit) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
       stop
-   END SUBROUTINE leave
+   end subroutine leave
 
    subroutine check(ierror)
       implicit none
@@ -231,7 +231,7 @@ module module_input
          nchars=min(len(line_comment),max_length-istart)
          inout_lines(iline_written)(istart:istart+nchars)=line_comment(1:nchars)
          iline_written=iline_written+1
-         iargument=0
+         iargument=0 !the argument should become 0 for the default case and one for the other one
       else if (.not. present(default) .and. .not. present(line_comment).and. iline_parsed/=0) then
          !traditional case, the argument should be parsed one after another
          !start with the entire line
@@ -247,17 +247,32 @@ module module_input
             do i=max_length-iblank+1,max_length
                line_being_processed(i:i)=' '
             end do
+            ipos=ipos+iblank
          end if
          !adjust the line to eliminate further blanks
          line_being_processed=adjustl(line_being_processed)
       else if (.not. present(default) .and. present(line_comment) .and. iline_parsed/=0) then
          !traditional case, close the line and skip to the next one
+         !case without file, close the line. Write also the predefined comment at the end
+         !Start the comment at column 16 if possible
+         iblank=scan(line_being_processed,' ')
+         ipos=ipos+iblank
+         istart=max(ipos+1,16)
+         do i=ipos+1,15
+            inout_lines(iline_written)(i:i)=' '
+         end do
+         nchars=min(len(line_comment),max_length-istart)
+         inout_lines(iline_written)(istart:istart+nchars)=line_comment(1:nchars)
+         !clean the rest of the line
+         do i=istart+nchars+1,max_length
+            inout_lines(iline_written)(i:i)=' '
+         end do
          iargument=1
          iline_parsed=iline_parsed+1
          iline_written=iline_written+1
       end if
 
-   END SUBROUTINE process_line
+   end subroutine process_line
 
    subroutine find(name, iline, ii)
       character(len = *), intent(in) :: name
@@ -271,8 +286,8 @@ module module_input
             k = 1
             do ii = 1, len(inout_lines(iline)), 1
                if (ichar(inout_lines(iline)(ii:ii)) == ichar(name(k:k)) .or. &
-                  &   ichar(inout_lines(iline)(ii:ii)) == ichar(name(k:k)) + 32 .or. &
-                  &   ichar(inout_lines(iline)(ii:ii)) == ichar(name(k:k)) - 32) then
+                  & ichar(inout_lines(iline)(ii:ii)) == ichar(name(k:k)) + 32 .or. &
+                  & ichar(inout_lines(iline)(ii:ii)) == ichar(name(k:k)) - 32) then
                k = k + 1
             else
                k = 1
@@ -365,7 +380,7 @@ do i=2,ilength
    ica=ichar(stra(i:i))
    icb=ichar(strb(i:i))
    case_insensitive_equiv=case_insensitive_equiv .and. &
-      &   (modulo(ica-icb,32) == 0)
+   (modulo(ica-icb,32) == 0)
    if (.not. case_insensitive_equiv) exit
 end do
 
@@ -424,7 +439,7 @@ subroutine var_double_compulsory(var,default,ranges,exclusive,comment,input_iost
          if (var < ranges(1) .or. var > ranges(2)) then
             if (output) then
                write(*,'(1x,a,i0,a,i0)') &
-                  &   'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+               'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
                write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
             end if
             if (present(input_iostat)) then
@@ -445,7 +460,7 @@ subroutine var_double_compulsory(var,default,ranges,exclusive,comment,input_iost
          if (.not. found) then
             if (output) then
                write(*,'(1x,a,i0,a,i0)') &
-                  &   'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+               'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
                write(*,*)'      values should be in list: ',exclusive(:)
             end if
             if (present(input_iostat)) then
@@ -516,7 +531,7 @@ subroutine var_real_compulsory(var,default,ranges,exclusive,comment,input_iostat
          if (var < ranges(1) .or. var > ranges(2)) then
             if (output) then
                write(*,'(1x,a,i0,a,i0)') &
-                  &   'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+               'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
                write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
             end if
             if (present(input_iostat)) then
@@ -537,7 +552,7 @@ subroutine var_real_compulsory(var,default,ranges,exclusive,comment,input_iostat
          if (.not. found) then
             if (output) then 
                write(*,'(1x,a,i0,a,i0)') &
-                  &   'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+               'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
                write(*,*)'      values should be in list: ',exclusive(:)
             end if
             if (present(input_iostat)) then
@@ -606,7 +621,7 @@ subroutine var_int_compulsory(var,default,ranges,exclusive,comment,input_iostat)
          if (var < ranges(1) .or. var > ranges(2)) then
             if (output) then
                write(*,'(1x,a,i0,a,i0)') &
-                  &   'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+               'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
                write(*,*)'      values should be in range: [',ranges(1),'-',ranges(2),']'
             end if
             if (present(input_iostat)) then
@@ -627,7 +642,7 @@ subroutine var_int_compulsory(var,default,ranges,exclusive,comment,input_iostat)
          if (.not. found) then
             if (output) then
                write(*,'(1x,a,i0,a,i0)') &
-                  &   'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+               'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
                write(*,*)'      values should be in list: ',exclusive(:)
             end if
             if (present(input_iostat)) then
@@ -700,9 +715,9 @@ subroutine var_char_compulsory(var,default,exclusive,comment,input_iostat)
          if (.not. found) then
             if (output) then 
                write(*,'(1x,a,i0,a,i0)') &
-                  &   'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
+               'ERROR in parsing file '//trim(input_file)//', line=', iline_written,' argument=', iargument-1
                write(*,'(6x,a,30(1x,a))')&
-                  &   'values should be in list: ',exclusive(:)
+               'values should be in list: ',exclusive(:)
             end if
             if (present(input_iostat)) then
                input_iostat=1
@@ -769,11 +784,11 @@ subroutine var_character(name, default, description, var)
       read(inout_lines(i)(j + 2:), fmt = *, iostat = ierror) var
       if (ierror/=0) then
          if (output) write(*,'(1x,a,a,a,i3)')  'Error while reading the file "', &
-            &   trim(input_file), '", line=', i
+            & trim(input_file), '", line=', i
          call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
       end if
    end if
-   if (output) write(*,"(1x,a,3x,a,1x,a,t30,2a)") "|", name, var, '!', description
+   if (output) write(*,"(1x,a,a,1x,a,t30,a)") "|", name, var, description
 END SUBROUTINE var_character
 
 subroutine var_logical(name, default, description, var)
@@ -792,7 +807,7 @@ subroutine var_logical(name, default, description, var)
          var = .true.
       end if
    end if
-   if (output) write(*,"(1x,a,3x,a,1x,l1,t30,2a)") "|", name, var, '!', description
+   if (output) write(*,"(1x,a,a,1x,l1,t30,a)") "|", name, var, description
 END SUBROUTINE var_logical
 
 subroutine var_integer(name, default, description, var)
@@ -809,11 +824,11 @@ subroutine var_integer(name, default, description, var)
       read(inout_lines(i)(j + 2:), fmt = *, iostat = ierror) var
       if (ierror/=0) then
          if (output) write(*,'(1x,a,a,a,i3)')  'Error while reading the file "', &
-            &   trim(input_file), '", line=', i
+            & trim(input_file), '", line=', i
          call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
       end if
    end if
-   if (output) write(*,"(1x,a,3x,a,1x,I0,t30,2a)") "|", name, var, '!', description
+   if (output) write(*,"(1x,a,a,1x,I0,t30,a)") "|", name, var, description
 END SUBROUTINE var_integer
 
 subroutine var_integer_array(name, default, description, var)
@@ -830,16 +845,16 @@ subroutine var_integer_array(name, default, description, var)
       read(inout_lines(i)(j + 2:), fmt = *, iostat = ierror) var
       if (ierror/=0) then
          if (output) write(*,'(1x,a,a,a,i3)')  'Error while reading the file "', &
-            &   trim(input_file), '", line=', i
+            & trim(input_file), '", line=', i
          call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
       end if
    end if
    if (output) then
-      write(*,"(1x,a,3x,a,1x)", advance = "NO") "|", name
+      write(*,"(1x,a,a,1x)", advance = "NO") "|", name
       do i = 1, size(var), 1
          write(*,"(1x,I0)", advance = "NO") var(i)
       end do
-      write(*,"(t7,2a)") '!', description
+      write(*,"(t10,a)")description
    end if
 END SUBROUTINE var_integer_array
 
@@ -857,11 +872,11 @@ subroutine var_double(name, default, description, var)
       read(inout_lines(i)(j + 2:), fmt = *, iostat = ierror) var
       if (ierror/=0) then
          if (output) write(*,'(1x,a,a,a,i3)')  'Error while reading the file "', &
-            &   trim(input_file), '", line=', i
+            & trim(input_file), '", line=', i
          call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
       end if
    end if
-   if (output) write(*,"(1x,a,3x,a,1x,es9.2,t30,2a)") "|", name, var, '!', description
+   if (output) write(*,"(1x,a,a,1x,es9.2,t30,a)") "|", name, var, description
 END SUBROUTINE var_double
 
 subroutine var_keyword(name, length, default, list, description, var)
@@ -886,7 +901,7 @@ subroutine var_keyword(name, length, default, list, description, var)
       read(inout_lines(i)(j + 2:), fmt = *, iostat = ierror) buf
       if (ierror/=0) then
          if (output) write(*,'(1x,a,a,a,i3)')  'Error while reading the file "', &
-            &   trim(input_file), '", line=', i
+            & trim(input_file), '", line=', i
          call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
       end if
       ! Look for buf in list.
@@ -895,14 +910,14 @@ subroutine var_keyword(name, length, default, list, description, var)
       end do
       if (j > size(list)) then
          if (output) write(*,'(1x,a,a,a,i3)')  'Error while reading the file "', &
-            &   trim(input_file), '", line=', i
+            & trim(input_file), '", line=', i
          call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
       end if
       var = j - 1
    end if
    if (output) then
-      write(*,"(1x,a,3x,a,1x,a,t30,3a)", advance = "NO") &
-         &   "|", name, list(var + 1), '!', description, " ("
+      write(*,"(1x,a,a,1x,a,t30,2a)", advance = "NO") &
+         & "|", name, list(var + 1), description, " ("
       write(*,"(A)", advance = "NO") trim(list(1))
       do i = 2, size(list), 1
          write(*,"(2A)", advance = "NO") ", ", trim(list(i))
@@ -926,7 +941,7 @@ subroutine var_ids(name, default, list, description, var)
       read(inout_lines(i)(j + 2:), fmt = *, iostat = ierror) var
       if (ierror/=0) then
          if (output) write(*,'(1x,a,a,a,i3)')  'Error while reading the file "', &
-            &   trim(input_file), '", line=', i
+            & trim(input_file), '", line=', i
          call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
       end if
       do j = 1, size(list), 1
@@ -934,11 +949,11 @@ subroutine var_ids(name, default, list, description, var)
       end do
       if (j > size(list)) then
          if (output) write(*,'(1x,a,a,a,i3)')  'Error while reading the file "', &
-            &   trim(input_file), '", line=', i
+            & trim(input_file), '", line=', i
          call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
       end if
    end if
-   if (output) write(*,"(1x,a,3x,a,1x,I0,t30,2a)") "|", name, var, '!', description
+   if (output) write(*,"(1x,a,a,1x,I0,t30,a)") "|", name, var, description
 END SUBROUTINE var_ids
 
-END MODULE module_input
+end module module_input

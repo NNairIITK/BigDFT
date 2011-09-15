@@ -11,18 +11,19 @@
 !> Application of the Hamiltonian
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
-     ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,ixcSIC,alphaSIC,GPU,pkernel,orbsocc,psirocc)
+     ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use module_xc
   use module_interfaces, except_this_one => HamiltonianApplication
   implicit none
-  integer, intent(in) :: iproc,nproc,ixcSIC
-  real(gp), intent(in) :: hx,hy,hz,alphaSIC
+  integer, intent(in) :: iproc,nproc
+  real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: lr 
+  type(SIC_data), intent(in) :: SIC
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
@@ -42,6 +43,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   logical :: exctX,op2p
   integer :: i_all,i_stat,ierr,iorb,n3p,ispot,istart_c,iat,ipotmethod
   integer :: istart_ck,isorb,ieorb,ikpt,ispsi_k,nspinor,ispsi
+  real(gp) :: eSIC_DC_tmp
   real(dp), dimension(:), pointer :: pkernelSIC
 !OCL  integer, dimension(3) :: periodic
 !OCL  real(wp) :: maxdiff
@@ -66,6 +68,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   op2p=(eexctX == UNINITIALIZED(1.0_gp))
   eexctX=0.0_gp
   eSIC_DC=0.0_gp
+  eSIC_DC_tmp=0.0_gp
 
   exctX = xc_exctXfac() /= 0.0_gp
 
@@ -77,25 +80,26 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   if (exctX) ipotmethod=1
 
   !the PZ-SIC correction does not makes sense for virtual orbitals procedure
-  if (alphaSIC /= 0.0 .and. .not. present(orbsocc)) ipotmethod=2
+  !if alphaSIC is zero no SIC correctino
+  if (SIC%approach == 'PZ' .and. .not. present(orbsocc) .and. SIC%alpha /= 0.0_gp ) ipotmethod=2
+  if (SIC%approach == 'NK' .and. SIC%alpha /= 0.0_gp) ipotmethod=3
 
   !the poisson kernel should be present and associated in the case of SIC
-  if (ipotmethod == 2 .and. .not. associated(pkernel)) then
+  if ((ipotmethod /= 0) .and. .not. associated(pkernel)) then
      if (iproc ==0) write(*,*)&
           'ERROR(HamiltonianApplication): Poisson Kernel must be associated in SIC case'
      stop
   end if
 
-
   !associate the poisson kernel pointer in case of SIC
-  if (ipotmethod == 2) then
+  if (ipotmethod == 2 .or. ipotmethod == 3) then
      pkernelSIC => pkernel
   else
      nullify(pkernelSIC)
   end if
-
+  
   !fill the rest of the potential with the exact-exchange terms
-  if (present(pkernel) .and. exctX) then
+  if (ipotmethod==1) then
      n3p=ngatherarr(iproc,1)/(lr%d%n1i*lr%d%n2i)
      !exact exchange for virtual orbitals (needs psirocc)
 
@@ -118,9 +122,15 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
         end if
      end if
-  else
-     eexctX = 0._gp
      !print *,'iproc,eexctX',iproc,eexctX
+  else if (ipotmethod==3) then
+     !put fref=1/2 for the moment
+     if (present(orbsocc) .and. present(psirocc)) then
+        call NK_SIC_potential(lr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot:),eSIC_DC_tmp,&
+             potandrho=psirocc)
+     else
+        call NK_SIC_potential(lr,orbs,SIC%ixc,SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernelSIC,psi,pot(ispot:),eSIC_DC_tmp)
+     end if
   end if
 
   !GPU are supported only for ipotmethod=0
@@ -153,8 +163,10 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      call local_hamiltonian_OCL(iproc,orbs,lr,hx,hy,hz,orbs%nspin,pot,psi,hpsi2,ekin_sum,epot_sum,GPU,ekin,epot)
   else
      !local hamiltonian application for different methods
-     !print *,'ecco',ipotmethod,associated(pkernelSIC),ixcSIC
-     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,ipotmethod,pot,psi,hpsi,pkernelSIC,ixcSIC,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
+     !print *,'here',ipotmethod,associated(pkernelSIC),ixcSIC
+     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,ipotmethod,pot,psi,hpsi,pkernelSIC,SIC%ixc,SIC%alpha,ekin_sum,epot_sum,eSIC_DC)
+     !sum the external and the BS double counting terms
+     eSIC_DC=eSIC_DC-SIC%alpha*eSIC_DC_tmp
   end if
   !test part to check the results wrt OCL convolutions
 !!$  if (OCLconv) then
@@ -245,7 +257,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !exact exchange operator (twice the exact exchange energy)
   if (exctX) epot_sum=epot_sum+2.0_gp*eexctX
 
-  if (ipotmethod == 2) then
+  if (ipotmethod == 2 .or. ipotmethod==3) then
      nullify(pkernelSIC)
   end if
 
@@ -253,13 +265,19 @@ END SUBROUTINE HamiltonianApplication
 
 
 !> Build the potential in the whole box
-subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
+!! Control also the generation of an orbital
+!! @ param i3rho_add Integer which controls the presence of a density after the potential array
+!!                   if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
+!!                   the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
+!!                   the same holds for non-collinear calculations
+subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3rho_add,norb,norbp,ngatherarr,potential,pot)
   use module_base
   use module_xc
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
+  integer, intent(in) :: ndimrhopot,i3rho_add
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+  real(wp), dimension(ndimrhopot), intent(in), target :: potential !< Distributed potential. Might contain the density for the 
   real(wp), dimension(:), pointer :: pot
   !local variables
   character(len=*), parameter :: subname='full_local_potential'
@@ -268,11 +286,16 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
 
   call timing(iproc,'Rho_commun    ','ON')
   
-  odp = xc_exctXfac() /= 0.0_gp
+  odp = (xc_exctXfac() /= 0.0_gp .or. (i3rho_add /= 0 .and. norbp > 0))
   !determine the dimension of the potential array
   if (odp) then
-     npot=ndimgrid*nspin+&
-          max(max(ndimgrid*norbp,ngatherarr(0,1)*norb),1) !part which refers to exact exchange
+     if (xc_exctXfac() /= 0.0_gp) then
+        npot=ndimgrid*nspin+&
+             max(max(ndimgrid*norbp,ngatherarr(0,1)*norb),1) !part which refers to exact exchange
+     else if (i3rho_add /= 0 .and. norbp > 0) then
+        npot=ndimgrid*nspin+&
+             ndimgrid*max(norbp,nspin) !part which refers to SIC correction
+     end if
   else
      npot=ndimgrid*nspin
   end if
@@ -292,15 +315,29 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ng
         ispot=ispot+ndimgrid
         ispotential=ispotential+max(1,ndimpot)
      end do
+     !continue to copy the density after the potential if required
+     if (i3rho_add >0 .and. norbp > 0) then
+        ispot=ispot+i3rho_add-1
+        do ispin=1,nspin
+           call MPI_ALLGATHERV(potential(ispotential),ndimpot,&
+                mpidtypw,pot(ispot),ngatherarr(0,1),&
+                ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+           ispot=ispot+ndimgrid
+           ispotential=ispotential+max(1,ndimpot)
+        end do
+     end if
   else
      if (odp) then
         allocate(pot(npot+ndebug),stat=i_stat)
         call memocc(i_stat,pot,'pot',subname)
         call dcopy(ndimgrid*nspin,potential,1,pot,1)
+        if (i3rho_add >0 .and. norbp > 0) then
+           ispot=ndimgrid*nspin+1
+           call dcopy(ndimgrid*nspin,potential(ispot+i3rho_add),1,pot(ispot),1)
+        end if
      else
         pot => potential
      end if
-     ispot=ndimgrid*nspin+1
   end if
 
   call timing(iproc,'Rho_commun    ','OF') 

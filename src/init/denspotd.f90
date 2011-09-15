@@ -311,7 +311,6 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      end if
   end do
 
-
   !before printing the distribution schemes, check that the two distributions contain
   !the same k-points
   yesorb=.false.

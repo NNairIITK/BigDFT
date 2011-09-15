@@ -1073,9 +1073,15 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
             do i1=1,n1f
                do i3=2,n3f
                   z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
-                  z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
                   z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
-                  z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+                  !!If statement added to cope with ifort 2011 optimization bug
+                  if (i3 /= n3+2-i3) then
+                     z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
+                     z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+                  else
+                     z3(2,i3,2*i1-1,i2,inzee)=0.0d0! z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
+                     z3(2,i3,2*i1  ,i2,inzee)=0.0d0!-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+                  end if
                end do
             end do
          end do

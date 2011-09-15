@@ -479,7 +479,7 @@ contains
        end do
     else if (xc%kind == XC_LIBXC) then
        ! Pure LibXC case.
-       ! WARNING: LDA implementation only, first derivative.
+       ! WARNING: LDA implementation only, first derivative, no fxc
 
        allocate(rho_(nspden, npts))
        allocate(exc_(npts))

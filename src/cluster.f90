@@ -214,10 +214,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
   integer :: ixc,ncong,idsx,ncongt,nspin,nsym,icycle,potden,input_wf_format
   integer :: nvirt,ndiis_sd_sw,norbv,idsx_actual_before
-  integer :: nelec,ndegree_ip,j,i,npoints
-  integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
+  integer :: nelec,ndegree_ip,j,i,npoints,nrhodim,i3rho_add,irhotot_add,irho_add
+  integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3,ispin
   integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt,ispin
+  integer :: iat,i_all,i_stat,iter,itrp,ierr,jproc,inputpsi,igroup,ikpt
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(gp) :: peakmem,evsum
@@ -392,7 +392,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
        quiet=PSquiet)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
-  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%alphaSIC /= 0.0_gp).and. nproc > 1) then
+  if ((xc_exctXfac() /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp).and. nproc > 1) then
      call createKernel(0,1,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,&
           pkernelseq,quiet='YES')
   else 
@@ -508,11 +508,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   call vdwcorrection_calculate_forces(fdisp,rxyz,atoms,in) 
 
   !Allocate Charge density, Potential in real space
+  nrhodim=in%nspin
+  i3rho_add=0
+  if (in%SIC%approach=='NK') then
+     nrhodim=2*nrhodim
+     i3rho_add=Glr%d%n1i*Glr%d%n2i*i3xcsh+1
+  end if
   if (n3d >0) then
-     allocate(rhopot(n1i*n2i*n3d*in%nspin+ndebug),stat=i_stat)
+     allocate(rhopot(n1i*n2i*n3d*nrhodim+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
   else
-     allocate(rhopot(in%nspin+ndebug),stat=i_stat)
+     allocate(rhopot(nrhodim+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
   end if
   !Allocate XC potential
@@ -887,16 +893,30 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
               call sumrho(iproc,nproc,orbs,Glr,hxh,hyh,hzh,psi,rhopot,&
                    nscatterarr,in%nspin,GPU,atoms%symObj,irrzon,phnons,rhodsc)
               !here the density can be mixed
-              if (mix%kind == AB6_MIXING_DENSITY .and. in%itrpmax>1) then
-                 call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
-                      & rhopot,itrp,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hx*hy*hz,rpnrm,nscatterarr)
-                 if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
-                      'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
-                 endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
-                 ! DEBUGGING, for not correct mixing !!!!!!
-                 rhopot = abs(rhopot) + 1.0d-20
+              if (in%itrpmax>1) then
+                 if (mix%kind == AB6_MIXING_DENSITY) then
+                    call mix_rhopot(iproc,nproc,mix%nfft*mix%nspden,in%alphamix,mix,&
+                         & rhopot,itrp,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hx*hy*hz,rpnrm,nscatterarr)
+                    if (iproc == 0 .and. itrp > 1) write( *,'(1x,a,i6,2x,(1x,1pe9.2))') &
+                         'DENSITY iteration,Delta P (Norm 2/Volume)',itrp,rpnrm
+                    endlooprp= (itrp > 1 .and. rpnrm <= in%rpnrm_cv) .or. itrp == in%itrpmax
+                    ! xc_init_rho should be put in the mixing routines
+                    rhopot = abs(rhopot) + 1.0d-20
+                 end if
               end if
 
+              !before creating the potential, save the density in the second part 
+              !if the case of NK SIC, so that the potential can be created afterwards
+              !copy the density contiguously since the GGA is calculated inside the NK routines
+              if (in%SIC%approach=='NK') then
+                 irhotot_add=Glr%d%n1i*Glr%d%n2i*i3xcsh+1
+                 irho_add=Glr%d%n1i*Glr%d%n2i*n3d*in%nspin+1
+                 do ispin=1,in%nspin
+                    call dcopy(Glr%d%n1i*Glr%d%n2i*n3p,rhopot(irhotot_add),1,rhopot(irho_add),1)
+                    irhotot_add=irhotot_add+Glr%d%n1i*Glr%d%n2i*n3d
+                    irho_add=irho_add+Glr%d%n1i*Glr%d%n2i*n3p
+                 end do
+              end if
               if(orbs%nspinor==4) then
                  !this wrapper can be inserted inside the XC_potential routine
                  call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
@@ -940,11 +960,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
            !allocate the potential in the full box
            call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*n3p,Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,in%nspin,&
+                Glr%d%n1i*Glr%d%n2i*n3d*nrhodim,i3rho_add,&
                 orbs%norb,orbs%norbp,ngatherarr,rhopot,potential)
 
            call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
                 nlpspd,proj,Glr,ngatherarr,potential,psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,&
-                ixc,in%alphaSIC,GPU,pkernel=pkernelseq)
+                in%SIC,GPU,pkernel=pkernelseq)
 
            !deallocate potential
            call free_full_potential(nproc,potential,subname)
@@ -1038,7 +1059,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
         if (iter == in%itermax .and. iproc == 0 .and. infocode/=0) &
              write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
-
+        
         call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
              comms,psi,hpsi,psit,evsum,.true.) !never deallocate psit and hpsi
 
@@ -1373,17 +1394,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         if (in%norbv < 0) then
            call direct_minimization(iproc,nproc,n1i,n2i,in,atoms,&
                 orbs,orbsv,nvirt,Glr,comms,commsv,&
-                hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
-                pkernelseq,psi,psivirt,ngatherarr,GPU)
+                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
+                pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
         else if (in%norbv > 0) then
            call davidson(iproc,nproc,n1i,n2i,in,atoms,&
                 orbs,orbsv,in%nvirt,Glr,comms,commsv,&
-                hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
-                pkernelseq,psi,psivirt,ngatherarr,GPU)
+                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
+                pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
 !!$           call constrained_davidson(iproc,nproc,n1i,n2i,in,atoms,&
 !!$                orbs,orbsv,in%nvirt,Glr,comms,commsv,&
-!!$                hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
-!!$                pkernelseq,psi,psivirt,ngatherarr,GPU)
+!!$                hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
+!!$                pkernelseq,psi,psivirt,nscatterarr,ngatherarr,GPU)
         end if
 
         !start the Casida's treatment 
@@ -1488,7 +1509,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'kernel',subname)
 
-  if (in%exctxpar == 'OP2P' .or. in%alphaSIC > 0.0_gp) then
+  if (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp) then
      i_all=-product(shape(pkernelseq))*kind(pkernelseq)
      deallocate(pkernelseq,stat=i_stat)
      call memocc(i_stat,i_all,'kernelseq',subname)
@@ -1498,7 +1519,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !------------------------------------------------------------------------
   if ((in%rbuf > 0.0_gp) .and. atoms%geocode == 'F' .and. DoLastRunThings ) then
-     if (in%alphaSIC > 0.0_gp) then
+     if (in%SIC%alpha /= 0.0_gp) then
         if (iproc==0)write(*,*)&
              'ERROR: Tail correction not admitted with SIC corrections for the moment'
         stop
@@ -1621,12 +1642,11 @@ contains
           call memocc(i_stat,i_all,'counter_ions',subname)
        end if
 
-       if (in%exctxpar == 'OP2P' .or. in%alphaSIC > 0.0_gp) then
+       if (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp) then
           i_all=-product(shape(pkernelseq))*kind(pkernelseq)
           deallocate(pkernelseq,stat=i_stat)
           call memocc(i_stat,i_all,'kernelseq',subname)
        end if
-
 
        i_all=-product(shape(pkernel))*kind(pkernel)
        deallocate(pkernel,stat=i_stat)

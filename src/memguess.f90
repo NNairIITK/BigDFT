@@ -215,7 +215,7 @@ program memguess
   end if
 
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
-  if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0)) then
+  if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
      allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
      call memocc(i_stat,scorb,'scorb',subname)
