@@ -635,13 +635,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, &
        onWhichMPITemp, Glr, input, lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, &
        nlocregPerMPI, lchi, lhchi, skip, lin%lig%mad, tag, ham3)
-  do iat=1,nlocregPerMPI
-      do iorb=1,lin%lig%orbsig%norb
-          do jorb=1,lin%lig%orbsig%norb
-              write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
-          end do
-      end do
-  end do
+  !!do iat=1,nlocregPerMPI
+  !!    do iorb=1,lin%lig%orbsig%norb
+  !!        do jorb=1,lin%lig%orbsig%norb
+  !!            write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
+  !!        end do
+  !!    end do
+  !!end do
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
   call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
