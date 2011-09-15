@@ -1,47 +1,47 @@
 
-subroutine paw_generator(izatom,ielpsp, lpmx, hsep, gpot, &
+subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
      alpz, alps, &
-     ng, noccmax,expo,&
+     ng, noccmax,noccmx, expo,&
      psi, aeval, occup, &
-     Nsol, Labs, Ngrid,Ngrid_box, Egrid,  rgrid , psigrid, Npaw,  PAWpatch , psipsigrid, rcov )
+     Nsol, Labs, Ngrid,Ngrid_box, Egrid,  rgrid , psigrid, Npaw,  PAWpatch , psipsigrid, rcov, rprb )
 
   implicit none
-  integer, intent(in) :: izatom,ielpsp,ng,noccmax, Nsol, labs, Ngrid,  Ngrid_box
+  integer, intent(in) :: izatom, ng,noccmax,noccmx,Nsol, labs, Ngrid,  Ngrid_box
 
   integer, intent(in) :: Npaw
   
   real(8), dimension(ng+1), intent(out) :: expo
-  integer , intent(in)::lpmx
+  integer , intent(in)::lpmx, lmx, lmax
 
   integer, parameter :: n_int=1000
 
   real(8), intent(in) :: rgrid(Ngrid)
 
-  real(8), dimension(0:ng,noccmax, lpmx), intent(out) :: psi, Egrid(Nsol),&
+  real(8), dimension(0:ng,noccmax, lmx), intent(out) :: psi, Egrid(Nsol),&
        psigrid(Ngrid,Nsol  )
   
   real(8), dimension(4), intent(in) :: gpot !! gpot dim e diventata 4!!!
   real(8),   intent(out)  :: psipsigrid(Ngrid,Nsol  )
-  real(8), intent(in) :: rcov
+  real(8), intent(in) :: rcov, rprb, zion
   
 
 
-  real(8), dimension(noccmax,lpmx  ), intent(in) ::  occup
-  real(8), dimension(noccmax,lpmx  ), intent(out) ::  aeval
+  real(8), dimension(noccmx,lmx  ), intent(in) ::  occup
+  real(8), dimension(noccmx,lmx  ), intent(out) ::  aeval
   real(8), intent(out):: PAWpatch(Npaw,Npaw)
   real(8), intent(in):: hsep(6,lpmx)
-  real(8), intent(in) :: alpz, alps(:)
+  real(8), intent(in) :: alpz, alps(*)
  
   !local variables
   real(8) alpl
   real(8), parameter :: fact=4.0_8
-  real(8), dimension(noccmax,lpmx) ::chrg,res
+  real(8), dimension(noccmx,lmx) ::chrg,res
   real(8), dimension(:), allocatable :: xp
   real(8), dimension(:,:), allocatable :: vh
 
   real(8), dimension(:,:,:,:), allocatable :: rmt
   integer :: l,i,iocc,i_all,i_stat,  j 
-  real(8) :: alrcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
+  real(8) :: alrcov, rij,a,a0,a0in,tt,ehomo
   real(8) :: value_at_r
   integer :: igrid, isol, lpx
   logical :: pawisactive
@@ -49,6 +49,7 @@ subroutine paw_generator(izatom,ielpsp, lpmx, hsep, gpot, &
   !filename = 'psppar.'//trim(atomname)
 
   lpx=0
+
   lpx_determination: do i=1,4
      if (alps(i) == 0.0_8) then
         exit lpx_determination
@@ -57,14 +58,13 @@ subroutine paw_generator(izatom,ielpsp, lpmx, hsep, gpot, &
      end if
   end do lpx_determination
 
-
   alpl=alpz
   
   !allocate arrays for the gatom routine
   allocate(vh(4*(ng+1)**2,4*(ng+1)**2))
   
   allocate(xp(0:ng))
-  allocate(rmt(n_int,0:ng,0:ng,lpmx))
+  allocate(rmt(n_int,0:ng,0:ng,lmax+1))
   
   !can be switched on for debugging
   !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
@@ -86,7 +86,7 @@ subroutine paw_generator(izatom,ielpsp, lpmx, hsep, gpot, &
   end do
   
   ! initial guess
-  do l=0,lpmx-1
+  do l=0,lmx-1
      do iocc=1,noccmax
         do i=0,ng
            psi(i,iocc,l+1)=0.0_8
@@ -94,27 +94,25 @@ subroutine paw_generator(izatom,ielpsp, lpmx, hsep, gpot, &
      end do
   end do
   
-  call crtvh_paw(ng,lpmx-1,xp,vh,rprb,fact,n_int,rmt)
+  call crtvh_paw(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
   
 !!!  call gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!!       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
 !!!       aeval,ng,psi,res,chrg)
   
-  
   PAWpatch=0.0_8
-  call gatom_modified(rcov,rprb,lpmx-1,lpx,noccmax,occup,&
+  call gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx, occup,&
        zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
        aeval,ng,psi,res,chrg,&
        Nsol, Labs, Ngrid,Ngrid_box,Egrid,  rgrid , psigrid,Npaw,  PAWpatch,&
-       psipsigrid)           
+       psipsigrid)              
  
-  
   
   do i=1,ng+1
      expo(i)=sqrt(0.5_8/xp(i-1))
   end do
   
-  do l=0,lpmx-1
+  do l=0,lmx-1
      do iocc=1,noccmax
         if( value_at_r(rprb, ng , expo,psi(0,iocc,l+1)).lt.0.0     ) then
            do i=0,ng

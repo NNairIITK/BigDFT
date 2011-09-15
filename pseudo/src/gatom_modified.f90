@@ -1,7 +1,7 @@
 
 
 
-subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
+subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg,&
                  Nsol, Labs, Ngrid,Ngrid_box, Egrid,  rgrid , psigrid, Npaw, PAWpatch, &
@@ -11,15 +11,15 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 
   logical :: noproj, readytoexit
   integer, parameter :: n_int=1000
-  dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
+  dimension psi(0:ng,noccmax,lmax+1),aeval(noccmx,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
-       gpot(3),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
-       pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
+       gpot(3),hsep(6,lpmx),rmt(n_int,0:ng,0:ng,lmax+1),&
+       pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpmx),&
        potgrd(n_int),&
        rho(0:ng,0:ng,lmax+1),rhoold(0:ng,0:ng,lmax+1),xcgrd(n_int),&
-       occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
+       occup(noccmx,lmax+1),chrg(noccmx,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
-       res(noccmax,lmax+1),xp(0:ng),& 
+       res(noccmx,lmax+1),xp(0:ng),& 
        psigrid(Ngrid, Nsol),psigrid_naked(Ngrid,Nsol),&
        psigrid_naked_2(Ngrid,Nsol), projgrid(Ngrid,3), &
        rhogrid(Ngrid), potgrid(Ngrid), psigrid_not_fitted(Ngrid,Nsol),&
@@ -143,6 +143,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 
      do l=0,lmax
         do iocc=1,noccmax
+           !!! print *, "  l, iocc   ", l, iocc ,  occup(iocc,l+1)
            if (occup(iocc,l+1).gt.0._gp) then
               do j=0,ng
                  do i=0,ng
@@ -152,10 +153,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
               end do
            end if
         end do
-
-       
      end do
-
 
      if( readytoexit) then
 
@@ -243,9 +241,31 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
      endif
 ! ------------------------------------------------------------------------------------
 
+     ! do i=1,6
+     !    do l=1, lmax
+     !       print *, " i= ", i, " l =  ", l, "  " , hsep(i,l)
+     !    end do
+     ! end do
+     ! do l=1, lpx+1
+     !    print *, "  l =  ", l, "  " , alps(l)
+     ! end do
+     ! print *, "  alpz, alpl   " , alpz, alpl
+     ! print *, "  fact, rprb  " , fact, rprb 
+     ! print *, " gpot  " , gpot
+     ! print *, "  ng      " ,  ng 
 
+     ! do i=1,6
+     !    do l=1, lmax
+     !       print *, " i= ", i, " l =  ", l, "  " , hsep(i,l)
+     !    end do
+     ! end do
+     ! do iocc=1, noccmax
+     !    do l=0, lmax
+     !       print *, " occup( ", iocc, ", ", l+1, ")=", occup(iocc,l+1)
+     !    end do
+     ! end do
 
- 
+     
 
      loop_l: do l=0,lmax
         gml=.5_gp*gamma_restricted(.5_gp+real(l,gp))
@@ -262,9 +282,11 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
               hh(i,j)=.5_gp*const*sxp**2* ( 3._gp*xp(i)*xp(j) +&
                    real(l,gp)*(6._gp*xp(i)*xp(j)-xp(i)**2-xp(j)**2) -&
                    real(l,gp)**2*(xp(i)-xp(j))**2  ) + .5_gp*real(l,gp)*(real(l,gp)+1._gp)*const
+
 ! potential energy from parabolic potential
               hh(i,j)=hh(i,j) +&
                    .5_gp*const*sxp**2*(real(l,gp)+.5_gp)*(real(l,gp)+1.5_gp)/rprb**4 
+
 ! hartree potential from ionic core charge
               tt=sqrt(1._gp+2._gp*alpz**2*d)
               if (l.eq.0) then
@@ -282,13 +304,16 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
               else 
                  stop 'l too big'
               end if
+
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5_gp+d*alpl**2)
               if (1.eq.1) then
-              hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
-                   + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
-                   + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
-           endif
+                 hh(i,j)=hh(i,j)+ gpot(1)*.5_gp*gamma_restricted(1.5_gp+real(l,gp))*tt**(1.5_gp+real(l,gp))&
+                      + (gpot(2)/alpl**2)*.5_gp*gamma_restricted(2.5_gp+real(l,gp))*tt**(2.5_gp+real(l,gp))&
+                      + (gpot(3)/alpl**4)*.5_gp*gamma_restricted(3.5_gp+real(l,gp))*tt**(3.5_gp+real(l,gp))
+              endif
+
+
 ! separable terms
               if (1.eq.1 .and. l.le.lpx) then
                  hh(i,j)=hh(i,j) + pp1(i,l+1)*hsep(1,l+1)*pp1(j,l+1)&
@@ -301,6 +326,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
                       + pp3(i,l+1)*hsep(5,l+1)*pp2(j,l+1)&
                       + pp3(i,l+1)*hsep(6,l+1)*pp3(j,l+1)
               end if
+
 ! hartree potential from valence charge distribution
 !              tt=0._gp
 !              do lp=0,lcx
@@ -312,6 +338,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 !              end do
               tt=DDOT((lcx+1)*(ng+1)**2,vh(0,0,1,i,j,l+1),1,rho(0,0,1),1)
               hh(i,j)=hh(i,j) + tt
+
 ! potential from XC potential
               dr=fact*rprb/real(n_int,gp)
 !              tt=0._gp
@@ -320,6 +347,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 !              end do
               tt=DDOT(n_int,rmt(1,i,j,l+1),1,xcgrd(1),1)
               hh(i,j)=hh(i,j)+tt*dr
+
            end do loop_j
         end do loop_i
 
@@ -333,6 +361,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
               evec(i,iocc)=hh(i,iocc)
            end do
         end do
+
 ! end LAPACK
         do iocc=1,noccmax
            evsum=evsum+eval(iocc-1)
@@ -364,17 +393,24 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
      end if
   end do big_loop
 ! End of the big loop
-
-
+  
+  !! print *, " aeval ist " , aeval
+  
+  !! open(unit=22,file='pot.dat')
   do igrid=1, ngrid
      r=rgrid(igrid)
      potgrid(igrid)=potgrid(igrid)+ 0.5_gp*labs*(labs+1.0_gp)/r/r
+     !! write(22,*) r, potgrid(igrid)
   enddo
+  !! close(unit=22)
   
   dumgrid1(:)=0.0_gp
   do isol=1,nsol
       psigrid_naked(:,isol)=0.0_gp
-     call schro(Egrid(isol),rgrid,potgrid,dumgrid1,psigrid_naked(1,isol),ngrid_box,isol+labs,labs*1.0_gp,zion)
+      call schro(Egrid(isol),rgrid,potgrid,dumgrid1,psigrid_naked(1,isol),ngrid_box,isol+labs,labs*1.0_gp,zion)
+      ! print *, Egrid(isol)
+      ! stop
+
   enddo
   
 
@@ -622,6 +658,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
         !!   H is still the non corrected matrix
         Hcorrected=H
         call DSYEV('V','U', Nsol, Hcorrected, Nsol,Egrid_tmp , WORK, Nsol*Nsol*2, INFO)
+
         call  DGEMM('N','N',Ngrid ,Nsol,Nsol,1.0d0,psigrid_naked,Ngrid,&
              Hcorrected ,Nsol, 0.0D0 , psigrid_not_fitted , Ngrid)
         
@@ -694,6 +731,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
            call  DGEMM('N','N',Npaw,Nsol_used,Npaw,1.0d0,PAWpatch ,Npaw,&
                 Soverlap ,Nsol, 0.0D0 , dumH , Nsol)
 
+
            call  DGEMM('T','N',Nsol_used,Nsol_used,Npaw,1.0d0,Soverlap ,Nsol,&
                 dumH ,Nsol, 0.0D0 , genH , Nsol)
 
@@ -720,6 +758,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
            
            call  DGEMM('N','N',Npaw,Nsol_used,Npaw,1.0d0,Spsitildes ,Npaw,&
                 Soverlap ,Nsol, 0.0D0 , dumH , Nsol)
+
            call  DGEMM('T','N',Nsol_used,Nsol_used,Npaw,1.0d0,Soverlap ,Nsol,&
                 dumH ,Nsol, 0.0D0 , genS , Nsol)
 
@@ -840,129 +879,127 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
      call  DGEMM('N','N',Ngrid ,Nsol,   Nsol,1.0d0 ,psigrid_naked, Ngrid ,H,Nsol, 0.0D0 , psigrid , Ngrid)
   endif
 
+!   call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
+!              zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
+!              potgrd,xcgrd,noproj)
 
+! ! charge up to radius rcov
+!   if (lmax.gt.3) stop 'cannot calculate chrg'
+!   do l=0,lmax
+!      do iocc=1,noccmax
+!         chrg(iocc,l+1)=0._gp
+!      end do
+!   end do
 
-  call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
-             zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
-             potgrd,xcgrd,noproj)
+!   do iocc=1,noccmax
+!      do j=0,ng
+!         do i=0,ng
+!            d=xp(i)+xp(j)
+!            sd=sqrt(d)
+!            terf=derf(sd*rcov) 
+!            texp=exp(-d*rcov**2)
 
-! charge up to radius rcov
-  if (lmax.gt.3) stop 'cannot calculate chrg'
-  do l=0,lmax
-     do iocc=1,noccmax
-        chrg(iocc,l+1)=0._gp
-     end do
-  end do
-
-  do iocc=1,noccmax
-     do j=0,ng
-        do i=0,ng
-           d=xp(i)+xp(j)
-           sd=sqrt(d)
-           terf=derf(sd*rcov) 
-           texp=exp(-d*rcov**2)
-
-           tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
-           chrg(iocc,1)=chrg(iocc,1) + psi(i,iocc,1)*psi(j,iocc,1)*tt
-           if (lmax.eq.0) then
-              cycle
-           end if
-           tt=0.6646701940895686_gp*terf/sd**5 + &
-              (-0.75_gp*rcov*texp - 0.5_gp*d*rcov**3*texp)/d**2
-           chrg(iocc,2)=chrg(iocc,2) + psi(i,iocc,2)*psi(j,iocc,2)*tt
-           if (lmax.eq.1) then
-               cycle
-           end if
-           tt=1.661675485223921_gp*terf/sd**7 + &
-              (-1.875_gp*rcov*texp-1.25_gp*d*rcov**3*texp-.5_gp*d**2*rcov**5*texp) &
-              /d**3
-           chrg(iocc,3)=chrg(iocc,3) + psi(i,iocc,3)*psi(j,iocc,3)*tt
-           if (lmax.eq.2) then
-              cycle
-           end if
-           tt=5.815864198283725_gp*terf/sd**9 + &
-              (-6.5625_gp*rcov*texp - 4.375_gp*d*rcov**3*texp - &
-              1.75_gp*d**2*rcov**5*texp - .5_gp*d**3*rcov**7*texp)/d**4
-           chrg(iocc,4)=chrg(iocc,4) + psi(i,iocc,4)*psi(j,iocc,4)*tt
-        end do
-     end do
-  end do
+!            tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
+!            chrg(iocc,1)=chrg(iocc,1) + psi(i,iocc,1)*psi(j,iocc,1)*tt
+!            if (lmax.eq.0) then
+!               cycle
+!            end if
+!            tt=0.6646701940895686_gp*terf/sd**5 + &
+!               (-0.75_gp*rcov*texp - 0.5_gp*d*rcov**3*texp)/d**2
+!            chrg(iocc,2)=chrg(iocc,2) + psi(i,iocc,2)*psi(j,iocc,2)*tt
+!            if (lmax.eq.1) then
+!                cycle
+!            end if
+!            tt=1.661675485223921_gp*terf/sd**7 + &
+!               (-1.875_gp*rcov*texp-1.25_gp*d*rcov**3*texp-.5_gp*d**2*rcov**5*texp) &
+!               /d**3
+!            chrg(iocc,3)=chrg(iocc,3) + psi(i,iocc,3)*psi(j,iocc,3)*tt
+!            if (lmax.eq.2) then
+!               cycle
+!            end if
+!            tt=5.815864198283725_gp*terf/sd**9 + &
+!               (-6.5625_gp*rcov*texp - 4.375_gp*d*rcov**3*texp - &
+!               1.75_gp*d**2*rcov**5*texp - .5_gp*d**3*rcov**7*texp)/d**4
+!            chrg(iocc,4)=chrg(iocc,4) + psi(i,iocc,4)*psi(j,iocc,4)*tt
+!         end do
+!      end do
+!   end do
 
 
 
-! ------------------------------------------------
+! ! ------------------------------------------------
   
 
 
-! -----------------------------------------------
+! ! -----------------------------------------------
 
 
 
 
-! writing lines suppressed
-!!!        write(66,*)  lmax+1
-!!!        write(66,*) ' #LINETYPE{1324}' 
-!!!        write(66,*) ' $' 
-!!!  do l=0,lmax
-!!!           write(66,*) ' 161'
-!!!     r=0._gp
-!!!     do
-!!!        tt= wave(ng,l,xp,psi(0,1,l+1),r)
-!!!              write(66,*) r,tt
-!!!        r=r+.025_gp
-!!!        if(r > 4.00001_gp) exit
-!!!     end do
-!!!  end do
-! writing lines suppressed
-!!!        write(67,*) min(lmax+1,3)
-!!!        write(67,*) ' #LINETYPE{132}'
-!!!        write(67,*) ' #TITLE{FOURIER}' 
-!!!        write(67,*) ' $'
-  dr=6.28_gp/rprb/200._gp
-!!!        write(67,*) ' 200'
-  rk=0._gp
-  loop_rk1: do 
-     tt=0._gp
-     do i=0,ng
-        texp=exp(-.25_gp*rk**2/xp(i))
-!        texp=exp(-.5_gp*energy/xp(i))
-        sd=sqrt(xp(i))
-        tt=tt+psi(i,1,1)*0.4431134627263791_gp*texp/sd**3
-     end do
-!!!           write(67,*) rk,tt
-     rk=rk+dr
-     if(rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk1
-  end do loop_rk1
-  if (lmax.ge.1) then
-!!!           write(67,*) ' 200'
-     rk=0._gp
-     loop_rk2: do 
-        tt=0._gp
-        do i=0,ng
-           texp=exp(-.25_gp*rk**2/xp(i))
-           sd=sqrt(xp(i))
-           tt=tt+psi(i,1,2)*0.2215567313631895_gp*rk*texp/sd**5
-        end do
-!!!              write(67,*) rk,tt
-        rk=rk+dr
-        if (rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk2
-     end do loop_rk2
-  end if
-  if (lmax.ge.2) then
-!!!           write(67,*) ' 200'
-     rk=0._gp
-     do 
-        tt=0._gp
-        do i=0,ng
-           texp=exp(-.25_gp*rk**2/xp(i))
-           sd=sqrt(xp(i))
-           tt=tt+psi(i,1,3)*0.1107783656815948_gp*rk**2*texp/sd**7
-        end do
-!!!              write(67,*) rk,tt
-        rk=rk+dr
-        if (rk > 6.28_gp/rprb-.5_gp*dr) exit
-     end do
-  end if
+! ! writing lines suppressed
+! !!!        write(66,*)  lmax+1
+! !!!        write(66,*) ' #LINETYPE{1324}' 
+! !!!        write(66,*) ' $' 
+! !!!  do l=0,lmax
+! !!!           write(66,*) ' 161'
+! !!!     r=0._gp
+! !!!     do
+! !!!        tt= wave(ng,l,xp,psi(0,1,l+1),r)
+! !!!              write(66,*) r,tt
+! !!!        r=r+.025_gp
+! !!!        if(r > 4.00001_gp) exit
+! !!!     end do
+! !!!  end do
+! ! writing lines suppressed
+! !!!        write(67,*) min(lmax+1,3)
+! !!!        write(67,*) ' #LINETYPE{132}'
+! !!!        write(67,*) ' #TITLE{FOURIER}' 
+! !!!        write(67,*) ' $'
+!   dr=6.28_gp/rprb/200._gp
+! !!!        write(67,*) ' 200'
+!   rk=0._gp
+!   loop_rk1: do 
+!      tt=0._gp
+!      do i=0,ng
+!         texp=exp(-.25_gp*rk**2/xp(i))
+! !        texp=exp(-.5_gp*energy/xp(i))
+!         sd=sqrt(xp(i))
+!         tt=tt+psi(i,1,1)*0.4431134627263791_gp*texp/sd**3
+!      end do
+! !!!           write(67,*) rk,tt
+!      rk=rk+dr
+!      if(rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk1
+!   end do loop_rk1
+!   if (lmax.ge.1) then
+! !!!           write(67,*) ' 200'
+!      rk=0._gp
+!      loop_rk2: do 
+!         tt=0._gp
+!         do i=0,ng
+!            texp=exp(-.25_gp*rk**2/xp(i))
+!            sd=sqrt(xp(i))
+!            tt=tt+psi(i,1,2)*0.2215567313631895_gp*rk*texp/sd**5
+!         end do
+! !!!              write(67,*) rk,tt
+!         rk=rk+dr
+!         if (rk > 6.28_gp/rprb-.5_gp*dr) exit loop_rk2
+!      end do loop_rk2
+!   end if
+!   if (lmax.ge.2) then
+! !!!           write(67,*) ' 200'
+!      rk=0._gp
+!      do 
+!         tt=0._gp
+!         do i=0,ng
+!            texp=exp(-.25_gp*rk**2/xp(i))
+!            sd=sqrt(xp(i))
+!            tt=tt+psi(i,1,3)*0.1107783656815948_gp*rk**2*texp/sd**7
+!         end do
+! !!!              write(67,*) rk,tt
+!         rk=rk+dr
+!         if (rk > 6.28_gp/rprb-.5_gp*dr) exit
+!      end do
+!   end if
 END SUBROUTINE gatom_modified
 
 
@@ -1212,16 +1249,16 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
   pathl = Phase(Elow ,NGRID, r,v,nonloc,y,  l ,0, 0);
  
 
-!!!  print *, Ehigh, pathh
-!!!  print *, Elow, pathl
+  ! print *, Ehigh, pathh
+  ! print *, Elow, pathl
 
   but= PI*(nsol-l-1)
-
-!!!  print *, " Z " , Z
 
   if( pathl.gt.but)  then
      print *, " pathl>but " 
      print *, " Elow " , Elow
+     print *, " but " , but
+     print *, " pathl " , pathl
      print *, " now exiting , routine schro" 
      stop
   endif

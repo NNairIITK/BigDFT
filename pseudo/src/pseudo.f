@@ -66,7 +66,7 @@ c
       character(len=25) :: form
       character(len=80) :: label
       integer :: namoeb,nsmplx
-      integer ::  nconfpaw, npawchannels, npawl, pawstN, pawstL, pawstP
+      integer ::  nconfpaw, nchannelspaw, npawl, pawstN, pawstL, pawstP
       character(len=125) :: pawstatom
       character(len=8) :: dateYMD
 
@@ -155,7 +155,7 @@ c
 
       npawconf=-1
       npawl   = 3
-      npawchannels = 4
+      nchannelspaw = 4
       pawstatom=''
       
       
@@ -249,12 +249,17 @@ c      No loop over command line arguments needed.
                write(6,*) 'transform the projectors as in ',
      :              'literature'
             endif
+
             ii=index(string,'-n')
-            if (ii.ne.0) then
+            if (ii.ne.0 .and.  string(1:2).eq."-n"  .and. string(3:3) 
+     :   .ne. 'o' .and.
+     :            string(3:3) .ne.'c') then
+               print *, label
                label=string(ii+2:min(ii+10,120))
-               read(label,*)nsmplx
+               read(label,*)  nsmplx
                write(6,*) nsmplx, 'max. simplex iterations'
             endif
+
             ii=index(string,'-g')
             if (ii.ne.0) then
                label=string(ii+2:min(ii+10,120))
@@ -339,23 +344,27 @@ c      No loop over command line arguments needed.
                label=string(ii+8:min(ii+16,120))
                read(label,*) npawl
                write(6,*)  'will calculate paw patches for the',
-     :          nconfpaw, ' first Ls '
+     :          npawl, ' first Ls '
 
             endif
 
             ii=index(string,'-nchannelspaw')
             if (ii.ne.0) then
                label=string(ii+13:min(ii+21,120))
-               read(label,*) npawchannels 
+               read(label,*)  nchannelspaw
                write(6,*)  'will consider',
-     :         npawchannels , ' paw channels  '
+     :         nchannelspaw , ' paw channels  '
 
             endif
 
             ii=index(string,'-pawstatom')
             if (ii.ne.0) then
-               pawstatom=string(ii+13:min(ii+133,120))
-               write(6,*)  'will consider',
+               pawstatom=trim(string(ii+10:min(ii+130,120)))
+               ii=index(pawstatom,' ')
+               if(ii.ne.0) then
+                  pawstatom=trim(pawstatom(:ii-1))
+               endif
+               write(6,*)  'will consider  ',
      :        pawstatom  , ' file for reading the initial potential '
             endif
 
@@ -381,6 +390,7 @@ c      No loop over command line arguments needed.
                write(6,*)  ' initial wf radial part is ',
      :          ' multiplied by r**' , pawstP
             endif
+
 c           End of rading options from input.dat's first line 
  11         continue
 
