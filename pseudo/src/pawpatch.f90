@@ -339,7 +339,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      Egrid_pseudo(:)= Egrid(:)  !! to fit these energies and find the dual
      !! Egrid different from zero, with psp_modifier=0,  activates the fit of psigrid
      !! energy by energy and the calculation of paw stuff
-     print *, "copy psigrid_pseudo "
+
      psigrid_pseudo=psigrid
  
 
@@ -367,14 +367,14 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      
      
      real_start=-1
-     print *, " >>  Comparaison Egrid  Egrid_pseudo "
+     write(38,*)  " >>  Comparaison Egrid  Egrid_pseudo "
      do n=1, Nsol
         if((Egrid(n)+0.1).ge.Egrid_pseudo(1)) then
            if(real_start==-1) then
                real_start = n
-              print *, Egrid(n)
+              write(38,*) Egrid(n)
            else
-              print *, Egrid(n), Egrid_pseudo(n -real_start+1)
+              write(38,*) Egrid(n), Egrid_pseudo(n -real_start+1)
            endif
         endif
      enddo

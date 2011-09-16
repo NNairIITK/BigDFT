@@ -521,16 +521,16 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
         endif
      enddo
 
-     print *, "real start ", real_start
+     write(38,*)  "real start ", real_start
      Nsol_used=Nsol-( real_start-1  )
 
      if(.true. )  then
-        print *, " routine gatom_modified  ,  comparaison between  energies real and  pseudo-not_fitted "
+        write(38,*) " routine gatom_modified  ,  comparaison between  energies real and  pseudo-not_fitted "
         do iocc=1, Nsol
            if(iocc.lt.real_start) then
-              print *,  iocc, Etofit(iocc) 
+              write(38,*)  iocc, Etofit(iocc) 
            else
-              print *,  iocc, Etofit(iocc) , Egrid_tmp(iocc-real_start +1)
+              write(38,*)  iocc, Etofit(iocc) , Egrid_tmp(iocc-real_start +1)
            endif
         enddo
      endif
@@ -557,7 +557,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
         call  DGEMM('N','N',Ngrid,1,Nsol,1.0d0,psigrid_naked,Ngrid,&
              Hcorrected(1,isol),Nsol,0.0D0,psigrid(1,isol),Ngrid)
         Egrid(isol)=Egrid_tmp(isol)
-        print *, " Egrid , fact_add " ,  Egrid(isol) , fact_add
+        write(38,*) " Egrid , fact_add " ,  Egrid(isol) , fact_add
         
      enddo
 
@@ -571,8 +571,6 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
      enddo
 
 
-
-        print *, "copy to psipsigrid  "
         psipsigrid=psigrid
   
 
@@ -624,7 +622,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
                  dumgrid1(:)=Tpsigrid_dum(isol,:)
                  dumgrid2=dumgrid1*psigrid(:,jsol)
                  call integrate(dumgrid2,dumgrid1, rgrid, Ngrid_box)
-                 print *, " duality ",isol,jsol, dumgrid1(Ngrid_box) 
+                 write(38,*) " duality ",isol,jsol, dumgrid1(Ngrid_box) 
               end do
            enddo
         endif
@@ -817,9 +815,9 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
            LDWORK=Ngrid
            CALL  DSYGV(ITYPE, "N", "U", Nsol_used, genH, Nsol, genS, Nsol , dumgrid2 , dumgrid3, &
                 LDWORK, INFO)
-           print *, " first  eigenvalues "
+           write(38,*) " first  eigenvalues "
            do i=1,Npaw
-              print *, dumgrid2( i)
+              write(38,*) dumgrid2( i)
            end do
         endif
 
