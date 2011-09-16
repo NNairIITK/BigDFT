@@ -694,7 +694,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   deallocate(lchi, stat=istat)
   call memocc(istat, iall, 'lchi',subname)
 
-
   iall=-product(shape(lchi2))*kind(lchi2)
   deallocate(lchi2, stat=istat)
   call memocc(istat, iall, 'lchi2',subname)
@@ -714,6 +713,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   iall=-product(shape(norb_parTemp))*kind(norb_parTemp)
   deallocate(norb_parTemp, stat=istat)
   call memocc(istat, iall, 'norb_parTemp',subname)
+
+  iall=-product(shape(onWhichMPITemp))*kind(onWhichMPITemp)
+  deallocate(onWhichMPITemp, stat=istat)
+  call memocc(istat, iall, 'onWhichMPITemp',subname)
+
 
 
 END SUBROUTINE inputguessConfinement

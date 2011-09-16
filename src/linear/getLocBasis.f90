@@ -116,6 +116,7 @@ real(8),dimension(:),pointer:: lpot
   if(updatePhi) then
       ! If we use the derivative basis functions, the trace minimizing orbitals of the last iteration are
       ! stored in lin%lphiRestart.
+      ! WARNING: Will probably not work if we use the random input guess
       if(lin%useDerivativeBasisFunctions) then
           call dcopy(lin%orbs%npsidim, lin%lphiRestart(1), 1, lphi(1), 1)
       end if
