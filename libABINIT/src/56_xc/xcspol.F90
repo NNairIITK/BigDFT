@@ -309,7 +309,7 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 
 
 !  Allows for nspden==1, in the case of testing nspden=1 against nspden=2
- else if (nspden<=2) then
+else if (nspden<=2) then
 
 
 !  DEBUG
@@ -434,6 +434,7 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 
        rs=rspts(ipts)
        zet=zeta(ipts)
+
        zetp=one+zet*alpha_zeta
        zetm=one-zet*alpha_zeta
        zetp_third=zetp**third
@@ -488,8 +489,8 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 !      vxc(ipts,2)=dexcdz
 !      ENDDEBUG
      end do
-   end if
- else
+  end if
+else
 
 !  Disallowed value for nspden
    write(message, '(a,a,a,a,a,a,i12,a)' ) ch10,&

@@ -1,5 +1,6 @@
 !> @file
-!!  Files containing the self-consistent loop routines
+!!  Files containing the self-consistent loop routines used
+!!  for molecular dynamics (see libABINIT/72_geoptim)
 !! @author
 !!    Copyright (C) 2007-2011 BigDFT group
 !!    This file is distributed under the terms of the
@@ -128,7 +129,7 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   real(dp), intent(in) :: epot, ekin
   real(dp), intent(in) :: acell(3)
   real(dp), intent(in) :: xred(3,natom)
-  real(dp), intent(in) :: fred(3, natom), vel(3, natom),rprimd(3,3) !the latter is not used
+  real(dp), intent(in) :: fred(3, natom), vel(3, natom),rprimd(3,3)
   !Local variables
   character(len=*), parameter :: subname='scfloop_output'
   character(len = 5) :: fn5
@@ -161,6 +162,10 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   i_all=-product(shape(xcart))*kind(xcart)
   deallocate(xcart,stat=i_stat)
   call memocc(i_stat,i_all,'xcart',subname)
+  
+  !To avoid warning from compiler
+  fnrm=real(rprimd(1,1),kind=4)
+
 END SUBROUTINE scfloop_output
 
 

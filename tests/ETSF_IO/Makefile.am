@@ -48,6 +48,6 @@ check : write.out read.out
 		$(srcdir)/write.out.ref | tee fldiff.write.report
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft read.out \
 		$(srcdir)/read.out.ref | tee fldiff.read.report
-	$(MAKE) clean.in
+#	$(MAKE) clean.in
 
 .PHONY: in clean.in

@@ -498,9 +498,10 @@ END SUBROUTINE abs_generator_modified
 subroutine integrate(f,fint,x,Nx)
   use module_base, only: gp
   implicit none
+    integer, intent(in):: Nx
   real(gp), intent(in) :: f(0:Nx-1), x(0:Nx-1)
   real(gp), intent(out):: fint(0:Nx-1)
-  integer, intent(in):: Nx
+
   ! -------------------------
   real(gp) sfin, sgro
   integer i
@@ -2938,7 +2939,7 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
   integer, intent(out) :: n1i,n2i,n3i
   real(gp) alat1, alat2, alat3, dum, dum1
   ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
-  real(gp), pointer :: rho(:)
+  real(gp), dimension(:), pointer :: rho
   !local variables
   integer :: nl1,nl2,nl3,i_stat,i1,i2,i3,ind
   real(gp) :: value

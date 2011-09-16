@@ -1,15 +1,13 @@
 !> @file
 !!  File defining parameters for BigDFT package (processed by the build system)
 !! @author
-!!    Copyright (C) 2008-2011 BigDFT group (LG)
-!! Author:
-!!
-!!
 !!    Copyright (C) 2008-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
+!! @warning
+!!   THIS FILE IS PROCESSED BY THE BUILD SYSTEM.
 
 #if defined HAVE_CONFIG_H
 #include <config.inc>
@@ -91,7 +89,7 @@ module module_defs
 
   !initialize to zero an array
   interface to_zero
-     module procedure put_to_zero_simple,put_to_zero_double
+     module procedure put_to_zero_simple,put_to_zero_double,put_to_zero_integer
   end interface
 
 
@@ -579,7 +577,7 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=4), intent(out) :: da
-      !call to BLAS routine
+      !call to custom routine
       call razero_simple(n,da)
     end subroutine put_to_zero_simple
 
@@ -587,10 +585,17 @@ module module_defs
       implicit none
       integer, intent(in) :: n
       real(kind=8), intent(out) :: da
-      !call to BLAS routine
+      !call to custom routine
       call razero(n,da)
     end subroutine put_to_zero_double
 
+    subroutine put_to_zero_integer(n,da)
+      implicit none
+      integer, intent(in) :: n
+      integer, intent(out) :: da
+      !call to custom routine
+      call razero_integer(n,da)
+    end subroutine put_to_zero_integer
 
     subroutine c_scal_simple(n,da,dx,incx)
       implicit none

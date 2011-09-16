@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 !> Extract the energy (the quantity which has to be minimised by the wavefunction)
 !! and calculate the corresponding gradient.
 !! The energy can be the actual Kohn-Sham energy or the trace of the hamiltonian, 
@@ -454,8 +455,8 @@ subroutine psimix(iproc,nproc,orbs,comms,diis,hpsit,psit)
   real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
   !real(wp), dimension(:), pointer :: psit,hpsit
   !local variables
-  integer :: ikptp,nvctrp,ispsi,ispsidst,jj,i
-  real(kind=4) :: tt
+  integer :: ikptp,nvctrp,ispsi,ispsidst
+ 
 
   if (diis%idsx > 0) then
      !do not transpose the hpsi wavefunction into the diis array
@@ -582,7 +583,7 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
 END SUBROUTINE diis_or_sd
 
 
-!> calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
+!> Calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 !! using  the previous iteration points psidst and the associated error 
 !! vectors (preconditioned gradients) hpsidst
 subroutine diisstp(iproc,nproc,orbs,comms,diis)
@@ -597,7 +598,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
   character(len=2) :: mesupdw
-  integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr,ipsi_spin_sh,iorb_group_sh
+  integer :: i,j,ist,jst,mi,info,jj,mj,i_all,i_stat,ierr,ipsi_spin_sh,iorb_group_sh
   integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp,icplx,ncplx,norbi,ngroup,igroup,iacc_add
   complex(tp) :: zdres,zdotc
   real(tp), dimension(2) :: psicoeff

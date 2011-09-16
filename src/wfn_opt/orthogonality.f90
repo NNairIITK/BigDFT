@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>    Orthogonality routine, for all the orbitals
-!!    Uses wavefunctions in their transposed form
+!> Orthogonality routine, for all the orbitals
+!! Uses wavefunctions in their transposed form
 subroutine orthogonalize(iproc,nproc,orbs,comms,wfd,psi,orthpar)
   use module_base
   use module_types
@@ -430,7 +430,6 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
         if(nspinor==1) then
 
-           !shift to be add for eval
            call syev('V','U',norb,hamks(ndimovrlp(ispin,ikpt-1)+1,1),norb,&
                 orbs%eval(isorb+(ikpt-1)*orbs%norb),work_lp(1),n_lp,info)
            if (info /= 0) write(*,*) 'SYEV ERROR',info
@@ -442,9 +441,6 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
            if (info /= 0) write(*,*) 'HEEV ERROR',info
 
         end if
-
-        !here we have to add evsum and the KS orbitals written in terms of linear algebra
-        !evsum should be corrected like the scprsum above
 
         !calculate the evsum if the k-point is associated to this processor
         if (orbs%ikptproc(ikpt) == iproc) then
@@ -1525,10 +1521,15 @@ END SUBROUTINE KStrans_p
 !!  and Cholesky orthonomalization. At the end the vectors are again untransposed.
 !!
 !!  Input arguments:
-!!   @param  iproc     process ID
-!!   @param  nproc     total number of processes
-!!   @param  norb      total number of vectors that have to be orthonomalized, shared over all processes
-!!   @param  input     data type containing many parameters
+!!   @param  iproc      process ID
+!!   @param  nproc      total number of processes
+!!   @param  norb       total number of vectors that have to be orthonomalized, shared over all processes
+!!   @param  orthpar    data type containing many parameters
+!!   @param  nspinor    size of spinor
+!!   @param  nspin      spin components
+!!   @param  ndilmovrlp dimension of overlap
+!!   @param  norbArr
+!!   @param  comms      Communication arrays
 !!  Input/Output arguments:
 !!   @param  psi
 !!       - on input: the vectors to be orthonormalized
@@ -1541,7 +1542,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndimovrlp,nor
   ! Calling arguments
   !integer, intent(in) :: ikpt
   integer, intent(in) :: iproc, nproc, nspinor,nspin
-  type(orthon_data):: orthpar
+  type(orthon_data), intent(in):: orthpar
   type(orbitals_data):: orbs
   type(communications_arrays), intent(in) :: comms
   integer, dimension(nspin), intent(in) :: norbArr

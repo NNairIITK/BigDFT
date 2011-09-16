@@ -200,8 +200,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
     call memocc(i_stat,zw,'zw',subname)
     allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
     call memocc(i_stat,zt,'zt',subname)
-    zw=0.0_dp
-    call razero(4*(ncache/4),zw)
+    call to_zero(4*(ncache/4),zw(1,1,1))
   !$omp end critical
   !$omp do schedule(static,1)
   do j2=1,md2/nproc
@@ -283,8 +282,7 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
     call memocc(i_stat,zw,'zw',subname)
     allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
     call memocc(i_stat,zt,'zt',subname)
-    zw=0.0_dp
-    call razero(4*(ncache/4),zw)
+    call to_zero(4*(ncache/4),zw(1,1,1))
   !$omp end critical
   !$omp do schedule(static,1)
   do j3=1,nd3/nproc
@@ -321,6 +319,13 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
            !input: I2,I1,j3,(jp3)
            inzee=1
            do i=1,ic1-1
+              !!test
+              !do jj=1,lot
+              !   do kk=1,n1
+              !      print *,'j,k,zw(:,i,inzee)',lot,n1,n1dim,jj,kk,jj+lot*(kk-1),zw(1:2,jj+lot*(kk-1),inzee)
+              !   end do
+              !end do
+              !end test
               call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee),&
                    ntrig,btrig1,after1(i),now1(i),before1(i),1)
               inzee=3-inzee
@@ -452,8 +457,8 @@ subroutine G_PoissonSolver(geocode,iproc,nproc,ncplx,n1,n2,n3,nd1,nd2,nd3,md1,md
     call memocc(i_stat,zw,'zw',subname)
     allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
     call memocc(i_stat,zt,'zt',subname)
-    zw=0.0_dp
-    call razero(4*(ncache/4),zw)
+
+    call to_zero(4*(ncache/4),zw(1,1,1))
   !$omp end critical
   !$omp do schedule(static,1)
   do j2=1,md2/nproc
@@ -590,7 +595,7 @@ subroutine G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
 !Arguments
   integer, intent(in) :: j3,nfft,lot,n1,md2,nd3,nproc,n1dim
   integer, intent(inout) :: Jp2stb,J2stb
-  real(kind=8) ::  zmpi1(2,n1dim,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
+  real(dp),intent(inout) ::  zmpi1(2,n1dim,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
 !Local variables
   integer :: mfft,Jp2,J2,I1,ish
 
@@ -625,7 +630,7 @@ subroutine G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt,zw)
   implicit none
   integer, intent(in) :: nfft,n2,lot,n1,lzt,n2dim
   real(dp), dimension(2,lzt,n1), intent(in) :: zt
-  real(dp), dimension(2,lot,n2), intent(out) :: zw
+  real(dp), dimension(2,lot,n2), intent(inout) :: zw
   !local variables
   integer :: i,j,ish
 
@@ -658,9 +663,9 @@ END SUBROUTINE G_switch_upcorn
 !!                      Distributed solution of the poisson equation (inout)
 !!   @param  zw         FFT work array
 !!   @param  n3         (twice the) dimension of the last FFTtransform.
-!!   @param   md1,md3   Dimensions of the undistributed part of the real grid
-!!   @param   nfft      number of planes
-!!   @param   scal      Needed to achieve unitarity and correct dimensions
+!!   @param  md1,md3   Dimensions of the undistributed part of the real grid
+!!   @param  nfft      number of planes
+!!   @param  scal      Needed to achieve unitarity and correct dimensions
 !!
 !! @warning
 !!     Assuming that high frequencies are in the corners 
@@ -750,7 +755,7 @@ subroutine C_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
   do i3=1,n3
      do i1=1,nfft
         zw(1,i1,i3)=zf(1,i1,i3)
-      zw(2,i1,i3)=zf(2,i1,i3)
+        zw(2,i1,i3)=zf(2,i1,i3)
      end do
   end do
 
@@ -781,7 +786,7 @@ subroutine scramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2)
   !Arguments
   integer, intent(in) :: i1,j2,lot,nfft,n1,n3,md2,nproc,nd3
   real(kind=8), dimension(2,lot,n3), intent(in) :: zw
-  real(kind=8), dimension(2,n1,md2/nproc,nd3), intent(out) :: zmpi2
+  real(kind=8), dimension(2,n1,md2/nproc,nd3), intent(inout) :: zmpi2
   !Local variables
   integer :: i3,i
 
@@ -966,7 +971,7 @@ subroutine G_unswitch_downcorn(nfft,n2,n2dim,lot,n1,lzt,zw,zt)
   implicit none
   integer, intent(in) :: nfft,n2,lot,n1,lzt,n2dim
   real(kind=8), dimension(2,lot,n2), intent(in) :: zw
-  real(kind=8), dimension(2,lzt,n1), intent(out) :: zt
+  real(kind=8), dimension(2,lzt,n1), intent(inout) :: zt
   !local variables
   integer :: i,j
 
@@ -986,7 +991,7 @@ subroutine G_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,&
   integer, intent(in) :: j3,nfft,lot,n1,md2,nd3,nproc,n1dim
   integer, intent(inout) :: Jp2stf,J2stf
   real(kind=8), dimension(2,lot,n1), intent(in) :: zw
-  real(kind=8), dimension(2,n1dim,md2/nproc,nd3/nproc,nproc), intent(out) :: zmpi1
+  real(kind=8), dimension(2,n1dim,md2/nproc,nd3/nproc,nproc), intent(inout) :: zmpi1
   !local variables
   integer :: I1,J2,Jp2,mfft
 
@@ -1063,7 +1068,6 @@ subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
   
 END SUBROUTINE unfill_downcorn
 
-
 subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
   implicit real(kind=8) (a-h,o-z)
 !Arguments
@@ -1119,7 +1123,7 @@ subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
   integer, intent(in) :: i1,j2,lot,nfft,n1,n3,md2,nproc,nd3
   real(kind=8), dimension(2,lot,n3/2), intent(in) :: zw
   real(kind=8), dimension(2,n3/2), intent(in) :: cosinarr
-  real(kind=8), dimension(2,n1,md2/nproc,nd3), intent(out) :: zmpi2
+  real(kind=8), dimension(2,n1,md2/nproc,nd3), intent(inout) :: zmpi2
   !Local variables
   integer :: i3,i,ind1,ind2
   real(kind=8) ::  a,b,c,d,cp,sp,feR,feI,foR,foI,fR,fI

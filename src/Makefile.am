@@ -105,7 +105,7 @@ EXTRA_DIST = \
 	wavelib/sym_16.inc \
 	NEB_driver.sh 
 
-AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver \
+AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@
@@ -171,6 +171,7 @@ modules_source = modules/base.f90 \
 	modules/interfaces.f90 \
 	modules/input.f90 \
 	modules/xc.f90 \
+	modules/op2p_module.f90 \
 	$(GPU_BLAS)
 
 modules_objects = $(modules_source:.f90=.o)
@@ -217,6 +218,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/exctX.f90 \
+	wfn_opt/sic.f90 \
 	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_hyb.f90 \
 	wfn_opt/precond_slab.f90 \

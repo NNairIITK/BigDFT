@@ -1,5 +1,5 @@
 BEGIN {
-    max_discrepancy = 2.e-10
+    max_discrepancy = 2.3e-10
     print max_discrepancy
     discrepancy = 0.0
     end = "\033[m"

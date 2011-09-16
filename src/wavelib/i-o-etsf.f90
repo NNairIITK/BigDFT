@@ -556,7 +556,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
      call cpu_time(tr1)
      call system_clock(ncount2,ncount_rate,ncount_max)
      tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     write(*,'(a,i4,2(1x,e10.3))') '- WRITING WAVES TIME',iproc,tr1-tr0,tel
+     write(*,'(a,i4,2(1x,1pe10.3))') '- WRITING WAVES TIME',iproc,tr1-tr0,tel
   end if
 
 contains

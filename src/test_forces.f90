@@ -114,7 +114,7 @@ do iconfig=1,nconfig
      call standard_inputfile_names(inputs)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 !     if (iproc == 0) then
- !       call print_general_parameters(inputs,atoms)
+ !       call print_general_parameters(nproc,inputs,atoms)
  !    end if
 
      !initialize memory counting
@@ -152,7 +152,7 @@ do iconfig=1,nconfig
      end if
 
      if (iproc == 0) then
-        call print_general_parameters(inputs,atoms) ! to know the new positions
+        call print_general_parameters(nproc,inputs,atoms) ! to know the new positions
      end if
                        
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)

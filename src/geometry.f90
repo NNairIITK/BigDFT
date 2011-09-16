@@ -681,8 +681,6 @@ subroutine fire(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft,fail)
      enddo
 
      in%inputPsiId=1
-     in%output_grid=0
-     in%output_wf=.false.
      call call_bigdft(nproc,iproc,at,pospred,in,epred,fpred,fnoise,rst,infocode)
      ncount_bigdft=ncount_bigdft+1
      call fnrmandforcemax(fpred,fnrm,fmax,at%nat)

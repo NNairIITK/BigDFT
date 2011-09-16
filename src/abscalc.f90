@@ -21,7 +21,7 @@ program abscalc_main
   !such that the implicit statement can be commented at will
 
   implicit none
-  character(len=*), parameter :: subname='BigDFT'
+  character(len=*), parameter :: subname='abscalc_main'
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
   real(gp) :: etot,sumx,sumy,sumz
   logical :: exist_list
@@ -95,7 +95,7 @@ program abscalc_main
         stop
      endif
 
-
+     !Allocations
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
 
@@ -123,6 +123,7 @@ program abscalc_main
         end if
      endif
 
+     !De-allocations
      call deallocate_atoms(atoms,subname) 
 
      call free_restart_objects(rst,subname)
@@ -143,9 +144,8 @@ program abscalc_main
 
   enddo !loop over iconfig
 
-  i_all=-product(shape(arr_posinp))*kind(arr_posinp)
+  !No referenced by memocc!
   deallocate(arr_posinp)
-  call memocc(i_stat,i_all,'arr_posinp',subname)
 
   call MPI_FINALIZE(ierr)
 
@@ -280,13 +280,7 @@ END SUBROUTINE call_abscalc
 
 
 !>   Absorption (XANES) calculation
-!!   @param inputPsiId = 
-!!          - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
-!!          - 1 : read waves from argument psi, using n1, n2, n3, hgrid
-!!                as definition of the previous system.
-!!          - 2 : read waves from disk
-!!                does an electronic structure calculation. Output is the total energy and the forces 
-!!   @param psi, keyg, keyv and eval should be freed after use outside of the routine.
+!!   @param psi should be freed after use outside of the routine.
 !!   @param infocode -> encloses some information about the status of the run
 !!          - 0 run succesfully succeded
 !!          - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
@@ -346,8 +340,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   real(kind=8), dimension(:,:,:,:), allocatable, target :: rhopot
   real(kind=8), dimension(:,:,:,:), pointer ::  rhopottmp, rhopotExtra, rhoXanes, rhotarget
-  integer b2Bcounter, b2BN
-  character(len=100) filename
+  integer :: b2Bcounter, b2BN
+  character(len=100) :: filename
   real(kind=8), dimension(:), pointer :: pkernel
 
   !wavefunction gradients, hamiltonian on vavefunction
@@ -363,7 +357,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   ! Arrays for the symmetrisation, not used here...
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
-  
+  character(len=5) :: gridformat
   !for xabsorber
   integer :: lpot_a, ix, iy, iz , ixnl, iynl, iznl
   real(gp) :: rpot_a,spot_a,hpot_a,espo,harmo,r,rx,ry,rz,minr  
@@ -374,12 +368,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   real(gp), dimension(:,:), pointer :: rxyz_b2B
   integer, dimension(:), pointer :: iatype_b2B, znucl_b2B
   real(gp) :: shift_b2B(3)
-  integer itype, nd
-  integer n1i_bB,n2i_bB,n3i_bB
+  integer :: itype, nd
+  integer :: n1i_bB,n2i_bB,n3i_bB
+  real(gp), dimension(:), pointer :: pot1_bB
   real(gp), dimension(:,:), pointer :: pot_bB
-  real(gp) alat1_bB, alat2_bB, alat3_bB
+  real(gp) :: alat1_bB, alat2_bB, alat3_bB
   real(gp), dimension(:), pointer ::  intfunc_x, intfunc_y
-  real(gp) factx, facty, factz
+  real(gp) :: factx, facty, factz
   integer :: idelta
   integer :: ix_bB, iy_bB, iz_bB
   integer :: maxX_B, maxY_B, maxZ_B
@@ -388,12 +383,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer :: nrange
   real(gp), pointer :: auxint(:)
 
-  logical exists 
-  integer nat_b2B
-  integer Nreplicas, ireplica, replicaoffset
-  real(gp) dumvect3D(3)
-  real(gp) shiftdiff
-  real(gp) potmodified_maxr, potmodified_shift
+  logical :: exists 
+  integer :: nat_b2B
+  integer :: Nreplicas, ireplica, replicaoffset
+  real(gp) :: dumvect3D(3)
+  real(gp) :: shiftdiff
+  real(gp) :: potmodified_maxr, potmodified_shift
 
 
   type(atoms_data) :: atoms_clone
@@ -425,6 +420,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   hx=in%hx
   hy=in%hy
   hz=in%hz
+
+  write(gridformat, "(A)") ""
+  select case (in%output_grid_format)
+     case (OUTPUT_GRID_FORMAT_ETSF)
+        write(gridformat, "(A)") ".etsf"
+     case (OUTPUT_GRID_FORMAT_CUBE)
+        write(gridformat, "(A)") ".bin"
+  end select
 
   if (ixc < 0) then
      call xc_init(ixc, XC_MIXED, nspin)
@@ -549,11 +552,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   print *, " IonicEnergyandForces  " 
 
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
-       psoffset,in%nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
+       psoffset,0,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-       in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,in%nvacancy,&
-       in%correct_offset)
+       in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,0,&
+       .false.)
 
   !this can be inserted inside the IonicEnergyandForces routine
   !(after insertion of the non-regression test)
@@ -684,15 +687,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         
         i_all=-product(shape(pot_bB))*kind(pot_bB)
         deallocate(pot_bB,stat=i_stat)
-        call memocc(i_stat,i_all,'rho',subname)
+        call memocc(i_stat,i_all,'pot_bB',subname)
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'rxyz',subname)
 
-
      endif
 
- 
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
@@ -709,10 +710,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
      deallocate(atoms_clone%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
+     nullify(atoms_clone%aocc)
      i_all=-product(shape(atoms_clone%iasctype))*kind(atoms_clone%iasctype)
      deallocate(atoms_clone%iasctype,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
-
+     nullify(atoms_clone%iasctype)
   endif
 
 
@@ -775,10 +777,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
      if (in%output_grid == OUTPUT_GRID_DENSPOT) then
         if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
-          if (iproc == 0) write(*,*) 'writing local_potential.pot'
-           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
-                n1,n2,n3,n1i,n2i,n3i,n3p,&
-                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
+          if (iproc == 0) write(*,*) 'writing local_potential'
+          call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
+               n1,n2,n3,n1i,n2i,n3i,n3p,&
+               in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
+!!$
+!!$           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
+!!$                n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!$                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
         else
            call plot_density_cube_old(atoms%geocode,'local_potentialb2B',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -792,15 +798,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      
      if(iproc==0) print *, " going to calculate spectra "
      
-     if(  iand( in%potshortcut, 2)  > 0 ) then
+     if( iand( in%potshortcut, 2)  > 0 ) then
 
-        if(  iand( in%potshortcut, 16)  > 0 ) then
+        if( iand( in%potshortcut, 16)  > 0 ) then
            b2BN=2
         else
            b2BN=1
         endif
-        
-
+       
+        !Big loop (b2Bcounter)
         do b2Bcounter=1,b2BN
 
            if(b2Bcounter==1) then
@@ -811,250 +817,257 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               rhotarget=>rhoXanes
            endif
 
+           inquire(file=trim(trim(filename)//'.cube'),exist=exists)
+           print *, "check ",  trim(filename)//'.cube', exists
+           if(exists) then
 
-        inquire(file=trim(trim(filename)//'.cube'),exist=exists)
-        print *, "controllo ",  trim(filename)//'.cube', exists
-        if(exists) then
+              call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, &
+                   & nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
+              !call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
+              hx_old=hx_old*2
+              hy_old=hy_old*2
+              hz_old=hz_old*2
 
-           call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, &
-                & nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
-           !call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
-           hx_old=hx_old*2
-           hy_old=hy_old*2
-           hz_old=hz_old*2
+              if( (atoms%nat/nat_b2B)*nat_b2B /=  atoms%nat ) then
+                 if(iproc==0) write(*,*)  "   b2B_xanes cube  is not compatible with actual positions" 
+                 if(nproc>1) call MPI_Finalize(ierr)
+                 stop '      b2B_xanes cube  is not compatible with actual positions          '
+              end if
 
-
-           if( (atoms%nat/nat_b2B)*nat_b2B /=  atoms%nat ) then
-              if(iproc==0) write(*,*)  "   b2B_xanes cube  is not compatible with actual positions" 
-              if(nproc>1) call MPI_Finalize(ierr)
-              stop '      b2B_xanes cube  is not compatible with actual positions          '
-           end if
-
-        else
-
-           if(b2BN>1) then
-              if(iproc==0) write(*,*)  " b2B must be read only from *.cube when potential is energy dependent  " 
-              if(nproc>1) call MPI_Finalize(ierr)
-              stop '   b2B must be read only from *.cube when potential is energy dependent         '
-           endif
-           print  *, " reading atomic positions from file ","b2B_xanes.xyz"
-           call read_atomic_file("b2B_xanes.xyz",iproc, atoms_b2B, rxyz_b2B )
-           print *, "OK ", shape( rxyz_b2B )
-
-           nat_b2B= (   Ubound(rxyz_b2B,2)  - Lbound(rxyz_b2B,2)  +  1 ) - ndebug
-
-
-           if( (atoms%nat/nat_b2B)*nat_b2B /= atoms%nat ) then
-              if(iproc==0) write(*,*)  "   b2B_xanes.xyz  is not compatible with actual positions" 
-              if(nproc>1) call MPI_Finalize(ierr)
-              stop '      b2B_xanes.xyz  is not compatible with actual positions          '
-           end if
-           
-           print  *, " reading potential from file ","b2B_xanes.pot"
-           !call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
-           print  *, " reading OK "
-           
-           
-           if( atoms_b2B%geocode/='F') then
-              hx_old = 2*alat1_bB / (n1i_bB)
-              hy_old = 2*alat2_bB / (n2i_bB)
-              hz_old = 2*alat3_bB / (n3i_bB)
            else
-              hx_old = 2*alat1_bB / (n1i_bB-2)
-              hy_old = 2*alat2_bB / (n2i_bB-2)
-              hz_old = 2*alat3_bB / (n3i_bB-2)
+
+              !Pb of initialization -- alat1_bB, alat2_bB, alat3_bB (TD 24/8/2011)
+
+              if(b2BN>1) then
+                 if(iproc==0) write(*,*)  " b2B must be read only from *.cube when potential is energy dependent  " 
+                 if(nproc>1) call MPI_Finalize(ierr)
+                 stop '   b2B must be read only from *.cube when potential is energy dependent         '
+              endif
+
+              print  *, " reading atomic positions from file ","b2B_xanes.xyz"
+              call read_atomic_file("b2B_xanes.xyz",iproc, atoms_b2B, rxyz_b2B )
+              print *, "OK ", shape( rxyz_b2B )
+
+              nat_b2B= (   Ubound(rxyz_b2B,2)  - Lbound(rxyz_b2B,2)  +  1 ) - ndebug
+
+              if( (atoms%nat/nat_b2B)*nat_b2B /= atoms%nat ) then
+                 if(iproc==0) write(*,*)  "   b2B_xanes.xyz  is not compatible with actual positions" 
+                 if(nproc>1) call MPI_Finalize(ierr)
+                 stop '      b2B_xanes.xyz  is not compatible with actual positions          '
+              end if
+              
+              print  *, " reading potential from file ","b2B_xanes.pot"
+              call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot1_bB, alat1_bB, alat2_bB, alat3_bB)
+              print  *, " reading OK "
+              
+              
+              if( atoms_b2B%geocode/='F') then
+                 hx_old = 2*alat1_bB / (n1i_bB)
+                 hy_old = 2*alat2_bB / (n2i_bB)
+                 hz_old = 2*alat3_bB / (n3i_bB)
+              else
+                 hx_old = 2*alat1_bB / (n1i_bB-2)
+                 hy_old = 2*alat2_bB / (n2i_bB-2)
+                 hz_old = 2*alat3_bB / (n3i_bB-2)
+              endif
+
+              !De-allocations
+              i_all=-product(shape(pot1_bB))*kind(pot1_bB)
+              deallocate(pot1_bB,stat=i_stat)
+              call memocc(i_stat,i_all,'pot1_bB',subname)
+
+              !call deallocate_atoms_scf(atoms_b2B,subname) 
+
+              call deallocate_atoms(atoms_b2B,subname) 
+
            endif
 
-           call deallocate_atoms(atoms_b2B,subname) 
+           allocate(rhopottmp( max(n1i_bB,n1i),max(n2i_bB,n2i),max(n3i_bB,n3d),in%nspin+ndebug),stat=i_stat)
+           call memocc(i_stat,rhopottmp,'rhopottmp',subname)
 
-        endif
+           rhotarget=0.0_gp
 
-
-        allocate(rhopottmp( max(n1i_bB,n1i),max(n2i_bB,n2i),max(n3i_bB,n3d),in%nspin+ndebug),stat=i_stat)
-        call memocc(i_stat,rhopottmp,'rhopottmp',subname)
-
-
-        rhotarget=0.0_gp
-
-
-
-        itype=16
-        nd=2**20
-        
-        allocate(  intfunc_x(0:nd+ndebug),stat=i_stat )
-        call memocc(i_stat,intfunc_x,'intfunc_x',subname)
-        allocate( intfunc_y(0:nd+ndebug) ,stat=i_stat )
-        call memocc(i_stat,intfunc_y,'intfunc_y',subname)
-        
-        print *, " scaling function for interpolation "
-        
-        call scaling_function4b2B(itype,nd,nrange,intfunc_x,intfunc_y)  ! intervallo di 32 con 2**20 punti
-        if( abs(intfunc_y(nd/2)-1)>1.0e-10 ) then
-           stop " wrong scaling function 4b2B: not a centered one "
-        endif
-        
-        i_all=-product(shape(intfunc_x))*kind(intfunc_x)
-        deallocate(intfunc_x,stat=i_stat)
-        call memocc(i_stat,i_all,'intfunc_x',subname)
-        
-        allocate(auxint(n1i+n2i+n3i+ndebug),stat=i_stat)
-        call memocc(i_stat,auxint,'auxint',subname)
-
-        Nreplicas = atoms%nat / nat_b2B
-        dumvect3d(1)=atoms%alat1
-        dumvect3d(2)=atoms%alat2
-        dumvect3d(3)=atoms%alat3
-
-        do ireplica=0, Nreplicas-1
+           itype=16
+           nd=2**20
            
-           replicaoffset = (ireplica)*(   nat_b2B      )
+           allocate(  intfunc_x(0:nd+ndebug),stat=i_stat )
+           call memocc(i_stat,intfunc_x,'intfunc_x',subname)
+           allocate( intfunc_y(0:nd+ndebug) ,stat=i_stat )
+           call memocc(i_stat,intfunc_y,'intfunc_y',subname)
+           
+           print *, " scaling function for interpolation "
+           
+           call scaling_function4b2B(itype,nd,nrange,intfunc_x,intfunc_y)  ! intervallo di 32 con 2**20 punti
+           if( abs(intfunc_y(nd/2)-1)>1.0e-10 ) then
+              stop " wrong scaling function 4b2B: not a centered one "
+           endif
+           
+           i_all=-product(shape(intfunc_x))*kind(intfunc_x)
+           deallocate(intfunc_x,stat=i_stat)
+           call memocc(i_stat,i_all,'intfunc_x',subname)
+           
+           allocate(auxint(n1i+n2i+n3i+ndebug),stat=i_stat)
+           call memocc(i_stat,auxint,'auxint',subname)
 
-           do j=1,3
-              shift_b2B(j) = rxyz(j,1+replicaoffset) - rxyz_b2B(j,1) 
+           Nreplicas = atoms%nat / nat_b2B
+           dumvect3d(1)=atoms%alat1
+           dumvect3d(2)=atoms%alat2
+           dumvect3d(3)=atoms%alat3
 
-              do iat=2+ireplica*nat_b2B, (ireplica+1)*nat_b2B
+           !Loop over ireplica
+           do ireplica=0, Nreplicas-1
+              
+              replicaoffset = (ireplica)*(   nat_b2B      )
 
-                 shiftdiff = shift_b2B(j) - (rxyz(j,iat) -rxyz_b2B(j,iat-replicaoffset)   )
-          
-                 if( abs( shiftdiff )>1.0e-4 .and.  abs(abs(shiftdiff)-dumvect3d(j))  >1.0e-4) then
-                    if(iproc==0) write(*,*)  "   b2B_xanes  positions are not compatible with actual positions" 
-                    if(nproc>1) call MPI_Finalize(ierr)
-                    stop '      b2B_xanes positions are not compatible with actual positions          '
-                 end if
-              enddo
-           enddo
+              do j=1,3
+                 shift_b2B(j) = rxyz(j,1+replicaoffset) - rxyz_b2B(j,1) 
 
-           print '(a,i6,a,3(1x,f18.14))',"for replica ", ireplica,  "SHIFT " , shift_b2B
+                 do iat=2+ireplica*nat_b2B, (ireplica+1)*nat_b2B
 
-           rhopottmp=0.0_gp
-           do iz_bB = 1,n3i_bB
-              do iy_bB=1,n2i_bB
-                 do ix_bB=1,n1i_bB
-                    rhopottmp(ix_bB,iy_bB,iz_bB +i3xcsh,1) =  pot_bB(ix_bB  + (iy_bB-1)*n1i_bB  + (iz_bB-1)*n1i_bB*n2i_bB,1)
+                    shiftdiff = shift_b2B(j) - (rxyz(j,iat) -rxyz_b2B(j,iat-replicaoffset)   )
+             
+                    if( abs( shiftdiff )>1.0e-4 .and.  abs(abs(shiftdiff)-dumvect3d(j))  >1.0e-4) then
+                       if(iproc==0) write(*,*)  "   b2B_xanes  positions are not compatible with actual positions" 
+                       if(nproc>1) call MPI_Finalize(ierr)
+                       stop '      b2B_xanes positions are not compatible with actual positions          '
+                    end if
                  enddo
               enddo
-           enddo
 
-           i_all=-product(shape(pot_bB))*kind(pot_bB)
-           deallocate(pot_bB,stat=i_stat)
-           call memocc(i_stat,i_all,'rho',subname)
+              print '(a,i6,a,3(1x,f18.14))',"for replica ", ireplica,  "SHIFT " , shift_b2B
 
-
-
-           do iz_bB = 1,n3i_bB-1
-              do iy_bB=1,n2i_bB
-                 auxint = 0.0_gp
-                 do ix_bB=1,n1i_bB
-                    rx_bB = hx_old*(ix_bB-1)           /2.0   +  shift_b2B(1)
-                    minX_B  =  max(1,NINT((rx_bB -8*hx_old/2)/(hx/2.0)))
-                    maxX_B  =  min(n1i,NINT((rx_bB +8*hx_old/2)/(hx/2.0)))
-
-                    minX_B  =  NINT((rx_bB -8*hx_old/2)/(hx/2.0))
-                    maxX_B  =  NINT((rx_bB +8*hx_old/2)/(hx/2.0))
-
-                    do ixnl= minX_B , maxX_B 
-                       ix = mod(ixnl-1 + n1i , n1i) +1
-
-                       rx = hx*(ix-1  )/2.0  
-
-                       shiftdiff = (rx-rx_bB)
-                       if ( abs(shiftdiff -atoms%alat1) < abs(shiftdiff)) shiftdiff=shiftdiff -atoms%alat1
-                       if ( abs(shiftdiff +atoms%alat1) < abs(shiftdiff)) shiftdiff=shiftdiff +atoms%alat1
-
-                       idelta = NINT( shiftdiff *2**15/(hx_old/2))  
-                       factx = intfunc_y(nd/2+idelta)
-!!$                    print *, rx, rx_bB, ix, ix_bB      , factx
-                       auxint(ix) = auxint(ix) + &
-                            factx * rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
-                    enddo
-!!$                 print *, auxint(ix_bB) ,  rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
-                 enddo
-                 rhopottmp(:,iy_bB,iz_bB+i3xcsh,1)=auxint(1:n1i)
-              enddo
-           enddo
-
-           do iz_bB = 1,n3i_bB-1
-              do ix_bB=1,n1i
-                 auxint = 0.0_gp
+              rhopottmp=0.0_gp
+              do iz_bB = 1,n3i_bB
                  do iy_bB=1,n2i_bB
-                    ry_bB = hy_old*(iy_bB-1)/2.0   +  shift_b2B(2)
-                    minY_B  =  max(1  ,NINT((ry_bB -8*hy_old/2)/(hy/2.0)))
-                    maxY_B  =  min(n2i,NINT((ry_bB +8*hy_old/2)/(hy/2.0)))
-
-                    minY_B  =  NINT((ry_bB -8*hy_old/2)/(hy/2.0))
-                    maxY_B  =  NINT((ry_bB +8*hy_old/2)/(hy/2.0))
-
-                    do iynl= minY_B , maxY_B 
-                       iy = mod(iynl-1 + n2i , n2i) +1
-                       
-                       ry = hy*(iy-1  )/2.0  
-
-                       shiftdiff = (ry-ry_bB)
-                       if ( abs(shiftdiff -atoms%alat2) < abs(shiftdiff)) shiftdiff=shiftdiff -atoms%alat2
-                       if ( abs(shiftdiff +atoms%alat2) < abs(shiftdiff)) shiftdiff=shiftdiff +atoms%alat2
-
-
-                       idelta = NINT(shiftdiff *2**15/(hy_old/2))
-                       facty = intfunc_y(nd/2+idelta)
-                       auxint(iy) = auxint(iy) + &
-                            facty * rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
+                    do ix_bB=1,n1i_bB
+                       rhopottmp(ix_bB,iy_bB,iz_bB +i3xcsh,1) =  pot_bB(ix_bB  + (iy_bB-1)*n1i_bB  + (iz_bB-1)*n1i_bB*n2i_bB,1)
                     enddo
                  enddo
-                 rhopottmp(ix_bB ,:,iz_bB+i3xcsh,1)=auxint(1:n2i)
               enddo
-           enddo
 
-           do ix_bB=1,n1i
-              do iy_bB=1,n2i
-                 auxint = 0.0_gp
-                 do iz_bB = 1,n3i_bB-1
-                    rz_bB = hz_old*(iz_bB-1)           /2.0   +  shift_b2B(3)
+              i_all=-product(shape(pot_bB))*kind(pot_bB)
+              deallocate(pot_bB,stat=i_stat)
+              call memocc(i_stat,i_all,'pot_bB',subname)
 
-                    minZ_B  =  max(1  ,  NINT((rz_bB -8*hz_old/2)/(hz/2.0)))
-                    maxZ_B  =  min(n3i-i3xcsh , NINT((rz_bB +8*hz_old/2)/(hz/2.0)))
 
-                    minZ_B  =    NINT((rz_bB -8*hz_old/2)/(hz/2.0))
-                    maxZ_B  =    NINT((rz_bB +8*hz_old/2)/(hz/2.0))
 
-                    do iznl= minZ_B , maxZ_B 
+              do iz_bB = 1,n3i_bB-1
+                 do iy_bB=1,n2i_bB
+                    auxint = 0.0_gp
+                    do ix_bB=1,n1i_bB
+                       rx_bB = hx_old*(ix_bB-1)           /2.0   +  shift_b2B(1)
+                       minX_B  =  max(1,NINT((rx_bB -8*hx_old/2)/(hx/2.0)))
+                       maxX_B  =  min(n1i,NINT((rx_bB +8*hx_old/2)/(hx/2.0)))
 
-                       iz = mod(iznl-1 + n3i , n3i) +1
+                       minX_B  =  NINT((rx_bB -8*hx_old/2)/(hx/2.0))
+                       maxX_B  =  NINT((rx_bB +8*hx_old/2)/(hx/2.0))
 
-                       rz = hz*(iz-1  )/2.0  
+                       do ixnl= minX_B , maxX_B 
+                          ix = mod(ixnl-1 + n1i , n1i) +1
 
-                       shiftdiff = (rz-rz_bB)
-                       if ( abs(shiftdiff -atoms%alat3) < abs(shiftdiff)) shiftdiff=shiftdiff -atoms%alat3
-                       if ( abs(shiftdiff +atoms%alat3) < abs(shiftdiff)) shiftdiff=shiftdiff +atoms%alat3
+                          rx = hx*(ix-1  )/2.0  
 
-                       idelta = NINT( shiftdiff *2**15/(hz_old/2.0))     
-                       factz = intfunc_y(nd/2+idelta)
-                       auxint(iz+i3xcsh) = auxint(iz+i3xcsh) + &
-                            factz * rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
+                          shiftdiff = (rx-rx_bB)
+                          if ( abs(shiftdiff -atoms%alat1) < abs(shiftdiff)) shiftdiff=shiftdiff -atoms%alat1
+                          if ( abs(shiftdiff +atoms%alat1) < abs(shiftdiff)) shiftdiff=shiftdiff +atoms%alat1
+
+                          idelta = NINT( shiftdiff *2**15/(hx_old/2))  
+                          factx = intfunc_y(nd/2+idelta)
+   !!$                    print *, rx, rx_bB, ix, ix_bB      , factx
+                          auxint(ix) = auxint(ix) + &
+                               factx * rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
+                       enddo
+   !!$                 print *, auxint(ix_bB) ,  rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
                     enddo
+                    rhopottmp(:,iy_bB,iz_bB+i3xcsh,1)=auxint(1:n1i)
                  enddo
-                 rhotarget(ix_bB ,iy_bB, : ,1)= rhotarget(ix_bB ,iy_bB, : ,1)+auxint(1:n3i)
               enddo
-           enddo
-        enddo
-        i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
-        deallocate(rxyz_b2B,stat=i_stat)
-        call memocc(i_stat,i_all,'rxyz',subname)
-        i_all=-product(shape(iatype_b2B))*kind(rxyz_b2B)
-        deallocate(iatype_b2B,stat=i_stat)
-        call memocc(i_stat,i_all,'iatype',subname)
-        i_all=-product(shape(znucl_b2B))*kind(rxyz_b2B)
-        deallocate(znucl_b2B,stat=i_stat)
-        call memocc(i_stat,i_all,'znucl',subname)
-        i_all=-product(shape(rhopottmp))*kind(rhopottmp)
-        deallocate(rhopottmp,stat=i_stat)
-        call memocc(i_stat,i_all,'rhopottmp',subname)
-        i_all=-product(shape(auxint))*kind(auxint)
-        deallocate(auxint,stat=i_stat)
-        call memocc(i_stat,i_all,'auxint',subname)
-        i_all=-product(shape(intfunc_y))*kind(intfunc_y)
-        deallocate(intfunc_y,stat=i_stat)
-        call memocc(i_stat,i_all,'intfunc_y',subname)
-     enddo
+
+              do iz_bB = 1,n3i_bB-1
+                 do ix_bB=1,n1i
+                    auxint = 0.0_gp
+                    do iy_bB=1,n2i_bB
+                       ry_bB = hy_old*(iy_bB-1)/2.0   +  shift_b2B(2)
+                       minY_B  =  max(1  ,NINT((ry_bB -8*hy_old/2)/(hy/2.0)))
+                       maxY_B  =  min(n2i,NINT((ry_bB +8*hy_old/2)/(hy/2.0)))
+
+                       minY_B  =  NINT((ry_bB -8*hy_old/2)/(hy/2.0))
+                       maxY_B  =  NINT((ry_bB +8*hy_old/2)/(hy/2.0))
+
+                       do iynl= minY_B , maxY_B 
+                          iy = mod(iynl-1 + n2i , n2i) +1
+                          
+                          ry = hy*(iy-1  )/2.0  
+
+                          shiftdiff = (ry-ry_bB)
+                          if ( abs(shiftdiff -atoms%alat2) < abs(shiftdiff)) shiftdiff=shiftdiff -atoms%alat2
+                          if ( abs(shiftdiff +atoms%alat2) < abs(shiftdiff)) shiftdiff=shiftdiff +atoms%alat2
+
+
+                          idelta = NINT(shiftdiff *2**15/(hy_old/2))
+                          facty = intfunc_y(nd/2+idelta)
+                          auxint(iy) = auxint(iy) + &
+                               facty * rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
+                       enddo
+                    enddo
+                    rhopottmp(ix_bB ,:,iz_bB+i3xcsh,1)=auxint(1:n2i)
+                 enddo
+              enddo
+
+              do ix_bB=1,n1i
+                 do iy_bB=1,n2i
+                    auxint = 0.0_gp
+                    do iz_bB = 1,n3i_bB-1
+                       rz_bB = hz_old*(iz_bB-1)           /2.0   +  shift_b2B(3)
+
+                       minZ_B  =  max(1  ,  NINT((rz_bB -8*hz_old/2)/(hz/2.0)))
+                       maxZ_B  =  min(n3i-i3xcsh , NINT((rz_bB +8*hz_old/2)/(hz/2.0)))
+
+                       minZ_B  =    NINT((rz_bB -8*hz_old/2)/(hz/2.0))
+                       maxZ_B  =    NINT((rz_bB +8*hz_old/2)/(hz/2.0))
+
+                       do iznl= minZ_B , maxZ_B 
+
+                          iz = mod(iznl-1 + n3i , n3i) +1
+
+                          rz = hz*(iz-1  )/2.0  
+
+                          shiftdiff = (rz-rz_bB)
+                          if ( abs(shiftdiff -atoms%alat3) < abs(shiftdiff)) shiftdiff=shiftdiff -atoms%alat3
+                          if ( abs(shiftdiff +atoms%alat3) < abs(shiftdiff)) shiftdiff=shiftdiff +atoms%alat3
+
+                          idelta = NINT( shiftdiff *2**15/(hz_old/2.0))     
+                          factz = intfunc_y(nd/2+idelta)
+                          auxint(iz+i3xcsh) = auxint(iz+i3xcsh) + &
+                               factz * rhopottmp(ix_bB,iy_bB,iz_bB+i3xcsh,1)
+                       enddo
+                    enddo
+                    rhotarget(ix_bB ,iy_bB, : ,1)= rhotarget(ix_bB ,iy_bB, : ,1)+auxint(1:n3i)
+                 enddo
+              enddo
+           enddo !End of loop over ireplica
+
+           !De-allocations
+           i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
+           deallocate(rxyz_b2B,stat=i_stat)
+           call memocc(i_stat,i_all,'rxyz',subname)
+           i_all=-product(shape(iatype_b2B))*kind(iatype_b2B)
+           deallocate(iatype_b2B,stat=i_stat)
+           call memocc(i_stat,i_all,'iatype',subname)
+           i_all=-product(shape(znucl_b2B))*kind(znucl_b2B)
+           deallocate(znucl_b2B,stat=i_stat)
+           call memocc(i_stat,i_all,'znucl',subname)
+           i_all=-product(shape(rhopottmp))*kind(rhopottmp)
+           deallocate(rhopottmp,stat=i_stat)
+           call memocc(i_stat,i_all,'rhopottmp',subname)
+           i_all=-product(shape(auxint))*kind(auxint)
+           deallocate(auxint,stat=i_stat)
+           call memocc(i_stat,i_all,'auxint',subname)
+           i_all=-product(shape(intfunc_y))*kind(intfunc_y)
+           deallocate(intfunc_y,stat=i_stat)
+           call memocc(i_stat,i_all,'intfunc_y',subname)
+
+           enddo !End of loop of B2counter
         
 
 
@@ -1067,9 +1080,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
         print *," exiting b2B"
 
+     endif !End of if ()
 
-
-     endif
 
      if( iand( in%potshortcut,4)  .gt. 0 ) then
         do ix=1,n1i
@@ -1084,8 +1096,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         call memocc(i_stat,i_all,'rhopotExtra',subname)
      endif
      
-
-
 
      if(in%abscalc_alterpot) then
         ! Attention :  modification of the  potential for the  
@@ -1109,7 +1119,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         potmodified_maxr=0
         potmodified_shift=0
 
-        
 
         do ix=1,n1i
            do iy=1,n2i
@@ -1178,18 +1187,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      if (in%iabscalc_type==2) then
         call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-             rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
+             rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,in%SIC,GPU &
              , in%iat_absorber  , in )
         
      else if (in%iabscalc_type==1) then
         call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-             rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
+             rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,in%SIC,GPU &
              , in%iat_absorber, in)
      else if (in%iabscalc_type==3) then
         call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-             rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU &
+             rhopot(1,1,1+i3xcsh,1) ,ekin_sum,epot_sum,eproj_sum,in%nspin,in%SIC,GPU &
              , in%iat_absorber, in, rhoXanes(1,1,1,1))
      else
         if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
@@ -1304,6 +1313,7 @@ contains
     end if
     
 
+    !De-allocations
     call deallocate_bounds(atoms%geocode,Glr%hybrid_on,  Glr%bounds,subname)
 
 !!$    if (atoms%geocode == 'F') then
