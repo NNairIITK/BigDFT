@@ -519,7 +519,8 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
         start(2) = iCoeff
         count(2) = diGrid + 1
         call etsf_io_low_write_var(ncid, "coefficients_of_wavefunctions", &
-             & psi(iGrid:iGrid + diGrid, iorb), lstat, error_data = error, start = start, count = count)
+             & psi(iGrid:iGrid + diGrid, iorb), lstat, error_data = error, &
+             & start = start, count = count)
         if (.not. lstat) call etsf_error(error)
         iCoeff  = iCoeff + diGrid + 1
 
@@ -528,14 +529,30 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
            start(2) = iCoeff
            count(2) = 7
            call etsf_io_low_write_var(ncid, "coefficients_of_wavefunctions", &
-                & psi(iFine:iFine+6, iorb), lstat, error_data = error, start = start, count = count)
+                & psi(iFine:iFine+6, iorb), lstat, error_data = error, &
+                & start = start, count = count)
            if (.not. lstat) call etsf_error(error)
            iCoeff = iCoeff + 7
            iFine  = iFine  + 7
         end if
         iGrid = iGrid + diGrid + 1
      end do
+!!$     if (iproc == 3) then
+!!$        call etsf_io_low_close(ncid, lstat, error)
+!!$        call etsf_io_low_open_modify(ncid, filename, lstat, error_data = error)
+!!$        call etsf_io_low_set_write_mode(ncid, lstat, error)
+!!$     end if
+     if (.not. sequential) then
+        do i = 0, iproc - 1, 1
+           call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+        end do
+        ierr = nf90_sync(ncid)
+        do i = iproc, nproc - 1, 1
+           call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+        end do
+     end if
   end do
+  
   i_all=-product(shape(nvctr))*kind(nvctr)
   deallocate(nvctr)
   call memocc(i_stat,i_all,'nvctr',subname)
