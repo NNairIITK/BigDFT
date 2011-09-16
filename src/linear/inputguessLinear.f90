@@ -368,7 +368,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
   ! Deallocate lin%lig%lzdGauss since it is not  needed anymore.
   call deallocate_local_zone_descriptors(lin%lig%lzdGauss, subname)
-     
+
   !-- if spectra calculation uses a energy dependent potential
   !    input_wf_diag will write (to be used in abscalc)
   !    the density to the file electronic_density.cube
@@ -536,10 +536,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           !!     ngatherarr, lin%lig%comgp%nrecvBuf, lin%lig%comgp%recvBuf, lchi, lhchi(1,ii), &
           !!     ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, radii_cf, lin%lig%comgp, onWhichAtomTemp,&
           !!     withConfinement, .false., doNotCalculate=doNotCalculate, pkernel=pkernelseq)
-          call HamiltonianApplication3(iproc, nproc, at, lin%lig%orbsig, input%hx, input%hy, input%hz, rxyz, &
-               proj, lin%lig%lzdig, ngatherarr, lpot, lchi, lhchi(1,ii), &
-               ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, withConfinement, .false., &
-               pkernel=pkernelseq, lin=lin, confinementCenter=onWhichAtomTemp)
+          if(lin%nItInguess>0) then
+              call HamiltonianApplication3(iproc, nproc, at, lin%lig%orbsig, input%hx, input%hy, input%hz, rxyz, &
+                   proj, lin%lig%lzdig, ngatherarr, lpot, lchi, lhchi(1,ii), &
+                   ekin_sum, epot_sum, eexctX, eproj_sum, input%nspin, GPU, withConfinement, .false., &
+                   pkernel=pkernelseq, lin=lin, confinementCenter=onWhichAtomTemp)
+          end if
 
       else
           !!! Call with some dummy array instead of lhchi. No calculations will be done, since it will cycle for all
@@ -616,7 +618,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       jlr=lin%orbs%inWhichLocreg(jorb)
       !jproc=lin%orbs%onWhichMPI(jorb)
       jproc=onWhichMPITemp(jorb)
-      if(iproc==0) write(*,'(a,5i7)') 'jorb, jlr, jlrold, jproc, nlocregPerMPI', jorb, jlr, jlrold, jproc, nlocregPerMPI
+      !if(iproc==0) write(*,'(a,5i7)') 'jorb, jlr, jlrold, jproc, nlocregPerMPI', jorb, jlr, jlrold, jproc, nlocregPerMPI
       if(iproc==jproc) then
           if(jlr/=jlrold) then
               nlocregPerMPI=nlocregPerMPI+1
@@ -632,9 +634,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, &
   !     onWhichMPITemp, Glr, input, lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, &
   !     nlocregPerMPI, lchi, lhchi, skip, lin%mad, ham3)
-  call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, &
-       onWhichMPITemp, Glr, input, lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, &
-       nlocregPerMPI, lchi, lhchi, skip, lin%lig%mad, tag, ham3)
+  if(lin%nItInguess>0) then
+      call getHamiltonianMatrix4(iproc, nproc, nprocTemp, lin%lig%lzdig, lin%lig%orbsig, lin%orbs, norb_parTemp, &
+           onWhichMPITemp, Glr, input, lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, &
+           nlocregPerMPI, lchi, lhchi, skip, lin%lig%mad, tag, ham3)
+  end if
   !!do iat=1,nlocregPerMPI
   !!    do iorb=1,lin%lig%orbsig%norb
   !!        do jorb=1,lin%lig%orbsig%norb
@@ -642,6 +646,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   !!        end do
   !!    end do
   !!end do
+
+
+  iall=-product(shape(lhchi))*kind(lhchi)
+  deallocate(lhchi, stat=istat)
+  call memocc(istat, iall, 'lhchi',subname)
+
 
   ! Build the orbitals phi as linear combinations of the atomic orbitals.
   call buildLinearCombinationsLocalized3(iproc, nproc, lin%lig%orbsig, lin%orbs, lin%comms, at, Glr, input, lin%norbsPerType, &
@@ -684,9 +694,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   deallocate(lchi, stat=istat)
   call memocc(istat, iall, 'lchi',subname)
 
-  iall=-product(shape(lhchi))*kind(lhchi)
-  deallocate(lhchi, stat=istat)
-  call memocc(istat, iall, 'lhchi',subname)
 
   iall=-product(shape(lchi2))*kind(lchi2)
   deallocate(lchi2, stat=istat)
@@ -708,9 +715,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   deallocate(norb_parTemp, stat=istat)
   call memocc(istat, iall, 'norb_parTemp',subname)
 
-  iall=-product(shape(onWhichMPITemp))*kind(onWhichMPITemp)
-  deallocate(onWhichMPITemp, stat=istat)
-  call memocc(istat, iall, 'onWhichMPITemp',subname)
 
 END SUBROUTINE inputguessConfinement
 
@@ -2707,6 +2711,16 @@ logical:: same
           ilr=matmin%inWhichLocregExtracted(iorb)
           call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
       end do
+
+
+      if(lin%nItInguess==0) then
+          ! Orthonormalize the coefficients.
+          methTransformOverlap=0
+          call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
+               lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
+               lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
+               lin%lzd%nlr, newComm, lin%mad, matmin%mlr, lcoeff, comom)
+      end if
     
       iterLoop: do it=1,lin%nItInguess
     
