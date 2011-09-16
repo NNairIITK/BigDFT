@@ -3,7 +3,7 @@ subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
      alpz, alps, &
      ng, noccmax,noccmx, expo,&
      psi, aeval, occup, &
-     Nsol, Labs, Ngrid,Ngrid_box, Egrid,  rgrid , psigrid, Npaw,  PAWpatch , psipsigrid, rcov, rprb )
+     Nsol, Labs, Ngrid,Ngrid_box, Egrid,  rgrid ,rd,rw,  psigrid, Npaw,  PAWpatch , psipsigrid, rcov, rprb )
 
   implicit none
   integer, intent(in) :: izatom, ng,noccmax,noccmx,Nsol, labs, Ngrid,  Ngrid_box
@@ -15,7 +15,7 @@ subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
 
   integer, parameter :: n_int=1000
 
-  real(8), intent(in) :: rgrid(Ngrid)
+  real(8), intent(in) :: rgrid(Ngrid), rd(Ngrid),rw(Ngrid)
 
   real(8), dimension(0:ng,noccmax, lmx), intent(out) :: psi, Egrid(Nsol),&
        psigrid(Ngrid,Nsol  )
@@ -104,7 +104,7 @@ subroutine paw_generator(izatom,zion, lmx,  lpmx, lmax,  hsep, gpot, &
   call gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx, occup,&
        zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
        aeval,ng,psi,res,chrg,&
-       Nsol, Labs, Ngrid,Ngrid_box,Egrid,  rgrid , psigrid,Npaw,  PAWpatch,&
+       Nsol, Labs, Ngrid,Ngrid_box,Egrid,  rgrid,rd, rw,  psigrid,Npaw,  PAWpatch,&
        psipsigrid)              
  
   

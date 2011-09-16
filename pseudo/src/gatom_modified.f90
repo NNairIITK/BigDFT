@@ -4,7 +4,7 @@
 subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg,&
-                 Nsol, Labs, Ngrid,Ngrid_box, Egrid,  rgrid , psigrid, Npaw, PAWpatch, &
+                 Nsol, Labs, Ngrid,Ngrid_box,Egrid,rgrid,rd,rw,psigrid, Npaw, PAWpatch, &
                  psipsigrid)
   implicit real(8) (a-h,o-z)
   integer, parameter :: gp=kind(1.0d0) 
@@ -22,7 +22,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
        res(noccmx,lmax+1),xp(0:ng),& 
        psigrid(Ngrid, Nsol),psigrid_naked(Ngrid,Nsol),&
        psigrid_naked_2(Ngrid,Nsol), projgrid(Ngrid,3), &
-       rhogrid(Ngrid), potgrid(Ngrid), psigrid_not_fitted(Ngrid,Nsol),&
+       rhogrid(Ngrid),excgrid(Ngrid),potgrid(Ngrid), psigrid_not_fitted(Ngrid,Nsol),&
        psigrid_not_fitted_2(Ngrid,Nsol),&
        vxcgrid(Ngrid), &
        Egrid(nsol), ppgrid(Nsol,3), work(nsol*nsol*2), &
@@ -36,7 +36,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
   real(gp)  :: psipsigrid(Ngrid, Nsol)
   
 
-  real(gp) :: rgrid(Ngrid), ene_m, ene_p, factadd, rcond, fixfact
+  real(gp) :: rgrid(Ngrid),rd(Ngrid),rw(Ngrid),ene_m, ene_p, factadd, rcond, fixfact
   real(gp), target :: dumgrid1(Ngrid),dumgrid2(Ngrid), dumgrid3(Ngrid)
   logical dofit
   integer real_start, iocc, iwork(Nsol), INFO, volta, ngrid_box_2
@@ -171,9 +171,11 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
                  end if
               end do
            enddo
-           dum = rhogrid(igrid)/r/r *0.07957747154594768_gp
-           vxcgrid(igrid)=emuxc(dum) 
-        enddo
+           !! dum = rhogrid(igrid)/r/r *0.07957747154594768_gp
+           !! vxcgrid(igrid)=emuxc(dum) 
+        end do
+        !! call driveXC(nspol,nint,rr,rw,rd,rhogrd,enexc,vxcgrd,excgrd)
+        call driveXC( 1 ,Ngrid,rr,rw,rd,rhogrid,enexc,vxcgrid,excgrid)
      endif
   
      rmix=.5_gp
@@ -205,6 +207,14 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
 
     
 
+     qui fai un array per gli r in modo da poi chiamare 
+     XC
+ c rw() weights for radial integration (dr/di)
+c rd() di/dr
+c            ^ /4pir?
+ 
+fare l array sopra e nel caso zcore e rcore
+ fare anche rhocore 
 
      dr=fact*rprb/real(n_int,gp)
      do k=1,n_int
@@ -407,7 +417,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
   dumgrid1(:)=0.0_gp
   do isol=1,nsol
       psigrid_naked(:,isol)=0.0_gp
-      call schro(Egrid(isol),rgrid,potgrid,dumgrid1,psigrid_naked(1,isol),ngrid_box,isol+labs,labs*1.0_gp,zion)
+      call schro(Egrid(isol),rgrid,potgrid,dumgrid1,psigrid_naked(1,isol),ngrid_box,isol+labs,labs,zion)
       ! print *, Egrid(isol)
       ! stop
 
@@ -1215,22 +1225,24 @@ function emuxc(rho)
 end function emuxc
 
 
-subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
+subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, larg,  Z)
   implicit none
   integer, parameter :: gp=kind(1.0d0) 
 
 
-  integer, intent(IN) :: nsol,ngrid
+  integer, intent(IN) :: nsol,ngrid,larg  
   real(gp), intent(IN) ::  r(ngrid),v(ngrid), nonloc(ngrid)
   real(gp), intent(OUT) ::  E
   real(gp), intent(OUT) ::  y(ngrid)
-  real(gp), intent(IN) ::  l,Z
+  real(gp), intent(IN) ::  Z
   ! -------------------------------
   real(gp) Elow, Ehigh, Eguess
   real(gp) pathh, pathl, fase
   integer :: i
   real(gp) :: Phase, but
-  real(gp) :: PI
+  real(gp) :: PI, l
+
+  l=larg
 
   PI=4.0*atan(1.0)
   Elow=0;
@@ -1343,14 +1355,16 @@ function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
      
      if(ii.eq.0) then 
         ii=N-10;
-        print *, " attention !!!I=N-1 in phase  "
-        print *, " l est " ,  l
+        ! print *, " attention !!!I=N-1 in phase  "
+        ! print *, " l est " ,  l
         ! stop
      endif
      
      
      !  if(I<100) I=100;
      
+     if(ii>N-10) ii=N-10;
+
   endif
   
 
@@ -1414,7 +1428,11 @@ function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
 
 
      else
-        print *, " needs taking smaller steps in the grid for the schroedinger equation , in phase"
+        
+        print *, " needs taking smaller steps in the grid for the schroedinger equation ( in routine phase)"
+        print *, " at point " , i, " of the grid " 
+        print *, " V(i) = " , V(i) , " E= " ,  E
+ 
         stop
      endif
      

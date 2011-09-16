@@ -61,12 +61,13 @@ c
       character(len=7) :: is(2)
       character(len=35) :: fname
       character(len=10) :: tname
-      character(len=125) :: string
+      character(len=525) :: string
       character(len=10) :: strcyc
       character(len=25) :: form
       character(len=80) :: label
       integer :: namoeb,nsmplx
       integer ::  nconfpaw, nchannelspaw, npawl, pawstN, pawstL, pawstP
+      real(8) pawrcovfact
       character(len=125) :: pawstatom
       character(len=8) :: dateYMD
 
@@ -157,7 +158,7 @@ c
       npawl   = 3
       nchannelspaw = 4
       pawstatom=''
-      
+      pawrcovfact=1.0_8
       
 c
 c     DO NOT read command line options as in previous versions.
@@ -222,8 +223,10 @@ c     This modification is needed for a parallel run.
      :           '  initial wave function has first quantum number N ' 
             write(6,*) '                  -pawstlL       ',
      :           '  initial wave function has angular momentum L' 
-            write(6,*) '                  -pawpowP       ',
+            write(6,*) '                  -pawstpP       ',
      :           '  initial wave function is multiplied by r**P' 
+            write(6,*) '                  -pawrcovfactF     ',
+     :      'Rbox for paw is equal to rcov*pawrcovfact. Defaults to 1' 
 
 
 
@@ -234,7 +237,7 @@ c      No loop over command line arguments needed.
 
             ii=index(string,'-c')
             if (ii.ne.0) then
-               label=string(ii+2:min(ii+10,120))
+               label=string(ii+2:min(ii+10,520))
                read(label,*)namoeb
                write(6,*) namoeb, 'fit cycles'
             endif
@@ -255,20 +258,20 @@ c      No loop over command line arguments needed.
      :   .ne. 'o' .and.
      :            string(3:3) .ne.'c') then
                print *, label
-               label=string(ii+2:min(ii+10,120))
+               label=string(ii+2:min(ii+10,520))
                read(label,*)  nsmplx
                write(6,*) nsmplx, 'max. simplex iterations'
             endif
 
             ii=index(string,'-g')
             if (ii.ne.0) then
-               label=string(ii+2:min(ii+10,120))
+               label=string(ii+2:min(ii+10,520))
                read(label,*)ng
                write(6,*)ng,"gaussians (don't use value from atom..ae)"
             endif
             ii=index(string,'-r')
             if (ii.ne.0) then
-               label=string(ii+2:min(ii+10,120))
+               label=string(ii+2:min(ii+10,520))
                read(label,*)rij
                write(6,*)rij,' rij (don''t use value from atom..ae)'
             endif
@@ -332,7 +335,7 @@ c      No loop over command line arguments needed.
             endif
             ii=index(string,'-paw')
             if (ii.ne.0) then
-               label=string(ii+4:min(ii+12,120))
+               label=string(ii+4:min(ii+12,520))
                read(label,*) nconfpaw
                write(6,*)  'will calculate pawpatches for conf No ',
      :                 nconfpaw
@@ -341,7 +344,7 @@ c      No loop over command line arguments needed.
             endif
             ii=index(string,'-noflpaw')
             if (ii.ne.0) then
-               label=string(ii+8:min(ii+16,120))
+               label=string(ii+8:min(ii+16,520))
                read(label,*) npawl
                write(6,*)  'will calculate paw patches for the',
      :          npawl, ' first Ls '
@@ -350,7 +353,7 @@ c      No loop over command line arguments needed.
 
             ii=index(string,'-nchannelspaw')
             if (ii.ne.0) then
-               label=string(ii+13:min(ii+21,120))
+               label=string(ii+13:min(ii+21,520))
                read(label,*)  nchannelspaw
                write(6,*)  'will consider',
      :         nchannelspaw , ' paw channels  '
@@ -359,36 +362,45 @@ c      No loop over command line arguments needed.
 
             ii=index(string,'-pawstatom')
             if (ii.ne.0) then
-               pawstatom=trim(string(ii+10:min(ii+130,120)))
+               pawstatom=trim(string(ii+10:min(ii+130,520)))
                ii=index(pawstatom,' ')
                if(ii.ne.0) then
                   pawstatom=trim(pawstatom(:ii-1))
                endif
                write(6,*)  'will consider  ',
-     :        pawstatom  , ' file for reading the initial potential '
+     :        trim(pawstatom) ,'file for reading the initial potential '
             endif
 
 
             ii=index(string,'-pawstn')
             if (ii.ne.0) then
-               label=string(ii+7:min(ii+15,120))
+               label=string(ii+7:min(ii+15,520))
                read(label,*)  pawstN
                write(6,*)  ' N of st. wf. is ', pawstN
             endif
 
             ii=index(string,'-pawstl')
             if (ii.ne.0) then
-               label=string(ii+7:min(ii+15,120))
+               label=string(ii+7:min(ii+15,520))
                read(label,*)  pawstL
                write(6,*)  ' L of st. wf. is ' , pawstL
             endif
 
-            ii=index(string,'-pawstP')
+            ii=index(string,'-pawstp')
             if (ii.ne.0) then
-               label=string(ii+7:min(ii+15,120))
+               label=string(ii+7:min(ii+15,520))
                read(label,*)  pawstP
                write(6,*)  ' initial wf radial part is ',
      :          ' multiplied by r**' , pawstP
+            endif
+
+            ii=index(string,'-pawrcovfact')
+            if (ii.ne.0) then
+               label=string(ii+12:min(ii+20,520))
+               print *, label
+               read(label,*)  pawrcovfact
+               write(6,*)  ' rbox is rcov   ',
+     :          ' multiplied by ' , pawrcovfact
             endif
 
 c           End of rading options from input.dat's first line 
@@ -1592,14 +1604,14 @@ c           if(ipspcod.le.9)lpx=-2
      :              wfnode,psir0,wghtp0,
      :              rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,
      :              vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,
-     :              avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae,rw,rd,
+     :              avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae,
 c                the following lines differ from pseudo2.2
      :              iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,
      :          wghthij,
      :              nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,
      :              excitAE,ntime,iter,itertot,penref,time,ngrid, 
      :               nconfpaw, npawl, nchannelspaw , ispp, pawstatom,
-     :              pawstN, pawstL  , pawstP        )
+     :              pawstN, pawstL  , pawstP,     pawrcovfact    )
 
 
             else
