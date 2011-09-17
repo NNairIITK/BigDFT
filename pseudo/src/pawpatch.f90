@@ -48,7 +48,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   integer Ngrid, Ngrid_box, Ngrid_biggerbox, iovrsmpl
   real(8) boxradius, biggerboxradius, a,b, EMAX
   real(8), pointer :: rgrid(:), yp(:), ypp(:), w(:), aepot(:), aepot_p(:), aepot_pp(:), &
-       rgrid_ab(:), aepot_cent(:), staepot(:), rw(:),rd(:),
+       rgrid_ab(:), aepot_cent(:), staepot(:), rw(:),rd(:)
   real(8) a1,b1,an,bn
   integer ierr, isx
   integer LPaw, n, Nsol
@@ -202,9 +202,9 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
                                                        !! is not constant and gets too big
                                                        !! going to r=0
      !! rgrid_ab(igrid) = (rgrid(igrid)+a) * b     NOT used in schro
-     rw(igrid)=b*rr(igrid)
+     rw(igrid)=b*rgrid(igrid)
      rd(igrid)=1.d0/rw(igrid)
-     rw(igrid)=rw(igrid)*fourpi*rr(igrid)**2
+     rw(igrid)=rw(igrid)*fourpi*rgrid(igrid)**2
   end do
   
   Ngrid_box= 1+iovrsmpl*( Ngrid_box-1)
@@ -384,8 +384,8 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      call paw_generator(znuc,zion,lmx,lpmx,lmax,hsep, gpot, &
           rloc, r_l, &                         !! rloc=alpz=alpl    r_l=alps
           ng-1 ,noccmax ,noccmx,   expo,  psi,aeval, occup ,  &
-          Nsol, Lpaw , Ngrid, Ngrid_box,Egrid_pseudo,  rgrid , rd,rw, psigrid_pseudo ,&
-          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rcov, rprb)
+          Nsol, Lpaw , Ngrid, Ngrid_box,Egrid_pseudo,  rgrid , rw,rd, psigrid_pseudo ,&
+          Npaw, PAWpatch_matrix,  psipsigrid_pseudo, rcov, rprb, rcore,zcore)
      
      if( dump_functions) then
         write(plotfile, '(a,i0,a)') 'ptildes.L=',LPaw,'.plt'

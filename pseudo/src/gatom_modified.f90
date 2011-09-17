@@ -4,8 +4,8 @@
 subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg,&
-                 Nsol, Labs, Ngrid,Ngrid_box,Egrid,rgrid,rd,rw,psigrid, Npaw, PAWpatch, &
-                 psipsigrid)
+                 Nsol, Labs, Ngrid,Ngrid_box,Egrid,rgrid,rw,rd,psigrid, Npaw, PAWpatch, &
+                 psipsigrid, rcore, zcore)
   implicit real(8) (a-h,o-z)
   integer, parameter :: gp=kind(1.0d0) 
 
@@ -17,12 +17,13 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
        pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpmx),&
        potgrd(n_int),&
        rho(0:ng,0:ng,lmax+1),rhoold(0:ng,0:ng,lmax+1),xcgrd(n_int),&
+       rhogrd(n_int),excgrd(n_int), &
        occup(noccmx,lmax+1),chrg(noccmx,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmx,lmax+1),xp(0:ng),& 
        psigrid(Ngrid, Nsol),psigrid_naked(Ngrid,Nsol),&
        psigrid_naked_2(Ngrid,Nsol), projgrid(Ngrid,3), &
-       rhogrid(Ngrid),excgrid(Ngrid),potgrid(Ngrid), psigrid_not_fitted(Ngrid,Nsol),&
+       rhogrid(Ngrid), rhogrid3(Ngrid) ,excgrid(Ngrid),potgrid(Ngrid), psigrid_not_fitted(Ngrid,Nsol),&
        psigrid_not_fitted_2(Ngrid,Nsol),&
        vxcgrid(Ngrid), &
        Egrid(nsol), ppgrid(Nsol,3), work(nsol*nsol*2), &
@@ -31,7 +32,8 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
        Hcorrected(Nsol, Nsol), &
        Hadd(Nsol, Nsol), Egrid_tmp(Nsol),Egrid_tmp_2(Nsol), Etofit(Nsol), &
        Soverlap(Nsol,Nsol), Tpsigrid(Nsol,Ngrid ),Tpsigrid_dum(Nsol, Ngrid),valuesatp(Nsol), &
-       PAWpatch(Npaw, Npaw ), Spsitildes(Npaw, Npaw), genS(Nsol,Nsol), genH(Nsol,Nsol) , dumH(Nsol,Nsol)
+       PAWpatch(Npaw, Npaw ), Spsitildes(Npaw, Npaw), genS(Nsol,Nsol), genH(Nsol,Nsol) , dumH(Nsol,Nsol),&
+       rint(nintp), rint_d(nintp), rint_w(nintp), rhoint_core(nintp), rhocore(nintp), rhocore_grid(Ngrid)
 
   real(gp)  :: psipsigrid(Ngrid, Nsol)
   
@@ -57,6 +59,32 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
 
 
   if (nintp.ne.n_int) stop 'n_int><nintp xabs'
+  fourpi=16.d0*atan(1.d0)
+  dr=fact*rprb/real(n_int,gp)
+
+  do k=1,n_int
+     rint(k)=(real(k,gp)-.5_gp)*dr
+     rint_w(k)=dr
+     rint_d(k)=1.0_8 / rint_w(k)
+     rint_w(k)=rint_w(k)*fourpi*rint(k)**2
+     if(rcore>0d0)then
+        tt=zcore* (sqrt(0.125d0/atan(1d0))/rcore)**3
+        rhocore(k)=tt*exp(-0.5d0*(rint(k)/rcore)**2)
+     else
+        tt =  zcore/(16d0*atan(1d0)*abs(rcore)**3)
+        rhocore(k)=tt*(1d0+2d0*rint(k)/rcore)*exp(2d0*rint(k)/rcore)
+     end if
+  end do
+  do k=1,Ngrid
+     if(rcore>0d0)then
+        tt=zcore* (sqrt(0.125d0/atan(1d0))/rcore)**3
+        rhocore_grid(k)=tt*exp(-0.5d0*(rgrid(k)/rcore)**2)
+     else
+        tt =  zcore/(16d0*atan(1d0)*abs(rcore)**3)
+        rhocore_grid(k)=tt*(1d0+2d0*rgrid(k)/rcore)*exp(2d0*rgrid(k)/rcore)
+     end if
+  end do
+
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l
@@ -171,13 +199,16 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
                  end if
               end do
            enddo
-           !! dum = rhogrid(igrid)/r/r *0.07957747154594768_gp
-           !! vxcgrid(igrid)=emuxc(dum) 
+           ! dum = rhogrid(igrid)/r/r *0.07957747154594768_gp
+           ! vxcgrid(igrid)=emuxc(dum) 
         end do
-        !! call driveXC(nspol,nint,rr,rw,rd,rhogrd,enexc,vxcgrd,excgrd)
-        call driveXC( 1 ,Ngrid,rr,rw,rd,rhogrid,enexc,vxcgrid,excgrid)
+        rhogrid3=((rhogrid/rgrid)/rgrid )* 0.07957747154594768_gp
+        if(zcore>0d0) rhogrid3 = rhogrid3 + rhocore_grid
+
+        call driveXC( 1 ,Ngrid,rgrid,rw,rd,rhogrid3,enexc,vxcgrid,excgrid)
      endif
   
+
      rmix=.5_gp
      if (it.eq.1) rmix=1._gp
      do l=0,lmax
@@ -204,26 +235,31 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
 !        end do
      call DGEMV('N',n_int,(lcx+1)*(ng+1)**2,1._gp,&
                 rmt,n_int,rho,1,0._gp,xcgrd,1)
+     ! _________________________________________________
+     ! dr=fact*rprb/real(n_int,gp)
+     ! do k=1,n_int
+     !    r=(real(k,gp)-.5_gp)*dr
+     !    ! divide by 4 pi
+     !    tt=xcgrd(k)*0.07957747154594768_gp
+     !    ! multiply with r^2 to speed up calculation of matrix elements
+     !    xcgrd(k)=emuxc(tt)*r**2
+     ! end do
+     ! _____________________________________________________________
 
-    
 
-     qui fai un array per gli r in modo da poi chiamare 
-     XC
- c rw() weights for radial integration (dr/di)
-c rd() di/dr
-c            ^ /4pir?
- 
-fare l array sopra e nel caso zcore e rcore
- fare anche rhocore 
 
-     dr=fact*rprb/real(n_int,gp)
+     call DGEMV('N',n_int,(lcx+1)*(ng+1)**2,1._gp,&
+                rmt,n_int,rho,1,0._gp,rhogrd,1)
+     ! divide by 4 pi
+     rhogrd=rhogrd*0.07957747154594768_gp
+     if(zcore>0d0) rhogrd = rhogrd + rhocore
+     !! call driveXC( 1 ,n_int,rint,rint_w,rint_d,rhogrd,enexc,xcgrd,excgrd)
+     call driveXC( 1 ,n_int,rint,rint_w,rint_d,rhogrd,enexc,xcgrd,excgrd)
      do k=1,n_int
-        r=(real(k,gp)-.5_gp)*dr
-! divide by 4 pi
-        tt=xcgrd(k)*0.07957747154594768_gp
-! multiply with r^2 to speed up calculation of matrix elements
-        xcgrd(k)=emuxc(tt)*r**2
+        xcgrd(k)=xcgrd(k)*rint(k)**2
      end do
+
+
 
 
      if(readytoexit) then
@@ -1739,3 +1775,16 @@ function pow(x,n)
   pow=x**n
 end function pow
  
+
+subroutine driveXC_bidon( nspin ,Ngrid,rgrid,rw,rd,rhogrid,enexc,vxcgrid,excgrid)
+  integer nspin , Ngrid, i
+  real(8) rgrid(Ngrid),rw(Ngrid),rd(Ngrid),rhogrid(Ngrid),enexc,vxcgrid(Ngrid) 
+  real(8) excgrid(Ngrid)
+  real(8) emuxc
+
+
+  do i=1, Ngrid
+     vxcgrid(i)=emuxc( rhogrid(i)  )
+  end do
+
+end subroutine driveXC_bidon
