@@ -2567,12 +2567,12 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
      end subroutine local_hamiltonian_LinearConfinement
 
 
-     subroutine apply_potentialConfinement2(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
+     subroutine apply_potentialConfinement2(iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
             rxyzConfinement, hxh, hyh, hzh, potentialPrefac, confPotOrder, offsetx, offsety, offsetz, &
             ibyyzz_r) !optional
        use module_base
        implicit none
-       integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot, confPotOrder, offsetx, offsety, offsetz
+       integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot, confPotOrder, offsetx, offsety, offsetz
        real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
        real(wp), dimension(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
             -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), intent(in) :: pot
@@ -4064,6 +4064,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         logical,dimension(lzdig%nlr),intent(in):: skip
         type(matrixDescriptors),intent(in):: mad
         integer,intent(inout):: tag
+        !logical,dimension(lin%lig%lzdig%nlr,0:nproc-1),intent(in):: skipGlobal
         real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
       end subroutine getHamiltonianMatrix4
 
@@ -4190,6 +4191,23 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(matrixDescriptors),intent(in):: mad
         real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
       end subroutine calculateOverlapMatrix3
+
+
+      subroutine calculateOverlapMatrix3Partial(iproc, nproc, orbs, op, onWhichAtom, &
+                 nsendBuf, sendBuf, nrecvBuf, recvBuf, mad, ovrlp)
+        use module_base
+        use module_types
+        implicit none
+        integer,intent(in):: iproc, nproc, nsendBuf, nrecvBuf
+        type(orbitals_data),intent(in):: orbs
+        type(overlapParameters),intent(in):: op
+        integer,dimension(orbs%norb),intent(in):: onWhichAtom
+        real(8),dimension(nsendBuf),intent(in):: sendBuf
+        real(8),dimension(nrecvBuf),intent(in):: recvBuf
+        type(matrixDescriptors),intent(in):: mad
+        !logical,dimension(0:nproc-1),intent(in):: skip
+        real(8),dimension(orbs%norb,orbs%norb),intent(out):: ovrlp
+      end subroutine calculateOverlapMatrix3Partial
 
       subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
         use module_base

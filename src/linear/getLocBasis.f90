@@ -613,7 +613,8 @@ real(8),dimension(:),pointer:: lpot
           write(*,'(x,a)', advance='no') 'Hamiltonian application... '
       end if
       t1=mpi_wtime()
-      withConfinement=.false.
+      !withConfinement=.false.
+      withConfinement=.true.
       !!call HamiltonianApplicationConfinement2(input, iproc, nproc, at, lin%lzd, lin%orbs, lin, input%hx, input%hy, &
       !!     input%hz, rxyz, ngatherarr, lin%comgp%nrecvBuf, lin%comgp%recvBuf, lphi, lhphi, &
       !!     ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, radii_cf, lin%comgp, lin%orbs%inWhichLocregp, &
@@ -628,7 +629,7 @@ real(8),dimension(:),pointer:: lpot
       call HamiltonianApplication3(iproc, nproc, at, lin%orbs, input%hx, input%hy, input%hz, rxyz, &
            proj, lin%lzd, ngatherarr, lpot, lphi, lhphi, &
            ekin_sum, epot_sum, eexctX, eproj_sum, nspin, GPU, withConfinement, .true., &
-           pkernel=pkernelseq, lin=lin, confinementCenter=lin%orbs%inWhichLocreg)
+           pkernel=pkernelseq, lin=lin, confinementCenter=lin%orbs%inWhichLocregp)
 
       iall=-product(shape(lin%lzd%doHamAppl))*kind(lin%lzd%doHamAppl)
       deallocate(lin%lzd%doHamAppl, stat=istat)

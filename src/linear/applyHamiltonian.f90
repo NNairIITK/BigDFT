@@ -1,4 +1,4 @@
-subroutine apply_potentialConfinement2(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
+subroutine apply_potentialConfinement2(iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot, &
      rxyzConfinement, hxh, hyh, hzh, potentialPrefac, confPotOrder, offsetx, offsety, offsetz, &
      ibyyzz_r) !optional
 !
@@ -38,7 +38,7 @@ subroutine apply_potentialConfinement2(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,ps
 !
 use module_base
 implicit none
-integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot, confPotOrder, offsetx, offsety, offsetz
+integer, intent(in) :: iproc, n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot, confPotOrder, offsetx, offsety, offsetz
 real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
 real(wp), dimension(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
      -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), intent(in) :: pot
@@ -78,6 +78,9 @@ real(gp) :: epot_p
   i1e=2*n1+1+15*nl1
   epot_p=0._gp
 !$omp do
+!write(*,*) 'iproc, -14*nl3,2*n3+1+15*nl3', iproc, -14*nl3,2*n3+1+15*nl3
+!write(*,*) 'iproc, -14*nl2,2*n2+1+15*nl2', iproc, -14*nl2,2*n2+1+15*nl2
+write(*,'(a,i5,3es14.6)') 'iproc, confinement center (on grid): ', iproc, rxyzConfinement(1)/hxh, rxyzConfinement(2)/hyh, rxyzConfinement(3)/hzh
   do i3=-14*nl3,2*n3+1+15*nl3
      if (i3 >= -14+2*nbuf .and. i3 <= 2*n3+16-2*nbuf) then !check for the nbuf case
         do i2=-14*nl2,2*n2+1+15*nl2
@@ -93,6 +96,7 @@ real(gp) :: epot_p
                  i1s=max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf)
                  i1e=min(ibyyzz_r(2,i2,i3)-14,2*n1+16-2*nbuf)
               end if
+              !write(*,'(a,5i8)') 'iproc, i1, i2, i1s, i1e', iproc, i1, i2, i1s, i1e
               
               !here we put the branchments wrt to the spin
               if (nspinor == 4) then
@@ -154,6 +158,11 @@ real(gp) :: epot_p
                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                            (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
                        tt=potentialPrefac*tt**order
+                       if(i1==55 .and. i2==64) then
+                           !write(*,'(a,i0,a)') 'process ',iproc,' writes to file.'
+                           write(1001+iproc,'(i8,3es20.12)') i3, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1), tt, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
+                           write(2001+iproc,'(i8,es20.12)') i3, psir(i1,i2,i3,ispinor)
+                       end if
                        tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
                        tt=tt*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
@@ -711,7 +720,7 @@ integer:: i, j, jj
      case('F')
 
         if(withConfinement) then
-            call apply_potentialConfinement2(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+            call apply_potentialConfinement2(iproc, lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
                  pot(nsoffset),epot, rxyz(1,onWhichAtomp(iorb)), hxh, hyh, hzh, &
                  lin%potentialprefac(at%iatype(onWhichAtomp(iorb))), lin%confpotorder, &
                  lr%nsi1, lr%nsi2, lr%nsi3, &

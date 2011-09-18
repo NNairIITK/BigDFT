@@ -204,6 +204,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   integer, parameter :: nmax=6,lmax=3,noccmax=2,nelecmax=32
   logical:: withConfinement, ovrlpx, ovrlpy, ovrlpz
   logical,dimension(:),allocatable:: doNotCalculate, skip
+  logical,dimension(:,:),allocatable:: skipGlobal
   integer, dimension(lmax+1) :: nl
   real(gp), dimension(noccmax,lmax+1) :: occup
   integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr, kk, iiorb, ndim_lhchi
@@ -461,6 +462,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call memocc(istat, doNotCalculate, 'doNotCalculate', subname)
   allocate(skip(lin%lig%lzdig%nlr), stat=istat)
   call memocc(istat, skip, 'skip', subname)
+  !allocate(skipGlobal(lin%lig%lzdig%nlr,0:nproc-1), stat=istat)
+  !call memocc(istat, skipGlobal, 'skipGlobal', subname)
 
 
   ! Determine for how many localization regions we need a Hamiltonian application.
@@ -483,6 +486,32 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           ndim_lhchi=ndim_lhchi+1
       end if
   end do
+
+    !!allocate(sendcounts(0:nproc-1), stat=istat)
+    !!call memocc(istat, sendcounts, 'sendcounts', subname)
+    !!allocate(displs(0:nproc-1), stat=istat)
+    !!call memocc(istat, displs, 'displs', subname)
+
+    !!displs(0)=0
+    !!do jproc=0,nproc-1
+    !!    sendcounts(jproc)=lin%lig%lzdig%nlr
+    !!    if(jproc>0) then
+    !!        displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+    !!    end if
+    !!end do
+    !!call mpi_allgatherv(skip(1), sendcounts(iproc), mpi_logical, skipGlobal(1,0), &
+    !!     sendcounts, displs, mpi_double_logical, mpi_comm_world, ierr)
+
+    !!iall=-product(shape(sendcounts))*kind(sendcounts)
+    !!deallocate(sendcounts, stat=istat)
+    !!call memocc(istat, iall, 'sendcounts', subname)
+    !!iall=-product(shape(displs))*kind(displs)
+    !!deallocate(displs, stat=istat)
+    !!call memocc(istat, iall, 'displs', subname)
+
+
+
+
   allocate(lhchi(lin%lig%orbsig%npsidim,ndim_lhchi),stat=istat)
   call memocc(istat, lhchi, 'lhchi', subname)
   lhchi=0.d0
@@ -705,6 +734,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   iall=-product(shape(skip))*kind(skip)
   deallocate(skip, stat=istat)
   call memocc(istat, iall, 'skip',subname)
+
+  !iall=-product(shape(skipGlobal))*kind(skipGlobal)
+  !deallocate(skipGlobal, stat=istat)
+  !call memocc(istat, iall, 'skipGlobal',subname)
 
   iall=-product(shape(ham3))*kind(ham3)
   deallocate(ham3, stat=istat)
@@ -1040,25 +1073,30 @@ real(8),dimension(orbsig%npsidim,ndim_lhchi),intent(in):: lhchi
 logical,dimension(lzdig%nlr),intent(in):: skip
 type(matrixDescriptors),intent(in):: mad
 integer,intent(inout):: tag
+!logical,dimension(lin%lig%lzdig%nlr,0:nproc-1),intent(in):: skipGlobal
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
 
 ! Local variables
 integer:: sizeChi, istat, iorb, ilr, iall, ind1, ind2, ldim, gdim, iat, jproc, ilrold, iilr, iatold, iiorb, jlr, ii
-integer:: jorb
+integer:: jorb, ierr
 logical:: copy
 type(overlapParameters):: op
 type(p2pCommsOrthonormality):: comon
 !real(8),dimension(:),allocatable:: lchi, lhchi, lphiovrlp
 real(8),dimension(:,:),allocatable:: hamTemp
 character(len=*),parameter:: subname='getHamiltonianMatrix'
-real(8),dimension(:),allocatable:: zeroArray
+real(8),dimension(:),allocatable:: zeroArray, hamTempCompressed, hamTempCompressed2
 real(8):: tt, ttmax
+integer,dimension(:),allocatable:: displs, sendcounts
+logical,dimension(:),allocatable:: skiptemp
 
 
 allocate(hamTemp(orbsig%norb,orbsig%norb), stat=istat)
 call memocc(istat, hamTemp, 'hamTemp', subname)
 allocate(zeroArray(orbsig%npsidim), stat=istat)
 call memocc(istat, zeroArray, 'zeroArray', subname)
+allocate(skiptemp(0:nproc-1), stat=istat)
+call memocc(istat, skiptemp, 'skiptemp', subname)
 zeroArray=0.d0
 
 !! CHANGE THIS LATER?
@@ -1084,22 +1122,64 @@ ii=0
 do iat=1,lzdig%nlr
     if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Calculating matrix for atom ', iat, '... '
 
+    !do jproc=0,nproc-1
+    !    skiptemp(jproc)=skipGlobal(iat,jproc)
+    !end do
+
     ! Put lhphi to the sendbuffer, so we can the calculate <lphi|lhphi>
     if(.not.skip(iat)) then
         ii=ii+1
         !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lhchi(1,ii), comon)
-        call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, &
-             lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
+        !!call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, &
+        !!     lhchi(1,ii), comon%nsendBuf, comon%sendBuf)
+        call calculateOverlapMatrix3Partial(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, &
+             comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
 
     else
         !write(*,'(2(a,i0))') 'iproc ',iproc,' skips locreg ',iat
         !call extractOrbital2(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, zeroArray, comon)
-        call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, &
-             op, zeroArray, comon%nsendBuf, comon%sendBuf)
+        !!call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, &
+        !!     op, zeroArray, comon%nsendBuf, comon%sendBuf)
+        hamTemp=0.d0
     end if
-    !!call calculateOverlapMatrix2(iproc, nproc, orbsig, op, comon, onWhichAtom, mad, hamTemp(1,1))
-    call calculateOverlapMatrix3(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, &
-         comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
+    !call calculateOverlapMatrix2(iproc, nproc, orbsig, op, comon, onWhichAtom, mad, hamTemp(1,1))
+    !!call calculateOverlapMatrix3(iproc, nproc, orbsig, op, onWhichAtom, comon%nsendBuf, comon%sendBuf, &
+    !!     comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
+
+
+    allocate(hamTempCompressed(mad%nvctr), stat=istat)
+    call memocc(istat, hamTempCompressed, 'hamTempCompressed', subname)
+    
+    !call compressMatrix(orbs%norb, mad, ovrlp, ovrlpCompressed)
+    allocate(sendcounts(0:nproc-1), stat=istat)
+    call memocc(istat, sendcounts, 'sendcounts', subname)
+    allocate(displs(0:nproc-1), stat=istat)
+    call memocc(istat, displs, 'displs', subname)
+    call compressMatrix2(iproc, nproc, orbs, mad, hamTemp, hamTempCompressed, sendcounts, displs)
+    !call mpiallred(ovrlpCompressed(1), mad%nvctr, mpi_sum, mpi_comm_world, ierr)
+    allocate(hamTempCompressed2(mad%nvctr), stat=istat)
+    call memocc(istat, hamTempCompressed2, 'ovrlpCompressed2', subname)
+    call mpi_allgatherv(hamTempCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, hamTempCompressed2(1), &
+         sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
+    !call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
+    call uncompressMatrix(orbs%norb, mad, hamTempCompressed2, hamTemp)
+    
+    iall=-product(shape(hamTempCompressed))*kind(hamTempCompressed)
+    deallocate(hamTempCompressed, stat=istat)
+    call memocc(istat, iall, 'hamTempCompressed', subname)
+    iall=-product(shape(hamTempCompressed2))*kind(hamTempCompressed2)
+    deallocate(hamTempCompressed2, stat=istat)
+    call memocc(istat, iall, 'hamTempCompressed2', subname)
+    iall=-product(shape(sendcounts))*kind(sendcounts)
+    deallocate(sendcounts, stat=istat)
+    call memocc(istat, iall, 'sendcounts', subname)
+    iall=-product(shape(displs))*kind(displs)
+    deallocate(displs, stat=istat)
+    call memocc(istat, iall, 'displs', subname)
+
+
+
+
     if(iproc==0) write(*,'(a)') 'done.'
     !ttmax=0.d0
     !do iorb=1,orbs%norb
@@ -1144,6 +1224,8 @@ end if
 call deallocate_overlapParameters(op, subname)
 call deallocate_p2pCommsOrthonormality(comon, subname)
 
+write(*,'(a,i0,a)') 'process ',iproc,' is here'
+
 iall=-product(shape(hamTemp))*kind(hamTemp)
 deallocate(hamTemp, stat=istat)
 call memocc(istat, iall, 'hamTemp', subname)
@@ -1151,6 +1233,10 @@ call memocc(istat, iall, 'hamTemp', subname)
 iall=-product(shape(zeroArray))*kind(zeroArray)
 deallocate(zeroArray, stat=istat)
 call memocc(istat, iall, 'zeroArray', subname)
+
+iall=-product(shape(skiptemp))*kind(skiptemp)
+deallocate(skiptemp, stat=istat)
+call memocc(istat, iall, 'skiptemp', subname)
 
 end subroutine getHamiltonianMatrix4
 
