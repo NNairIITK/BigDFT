@@ -90,6 +90,7 @@ amoeba.o: $(mpi_include)
 ekin_gauss_wvlt.cublas.o: $(mpi_include)
 ekin_gauss_wvlt.o: $(mpi_include)
 
+
 #Fake mpif.h for serial compilation
 mpif.h:
 	touch mpif.h &&\
