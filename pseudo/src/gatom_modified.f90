@@ -450,6 +450,7 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
   enddo
   !! close(unit=22)
   
+
   dumgrid1(:)=0.0_gp
   do isol=1,nsol
       psigrid_naked(:,isol)=0.0_gp
@@ -571,15 +572,19 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,lpmx, noccmax,noccmx,occup,&
      Nsol_used=Nsol-( real_start-1  )
 
      if(.true. )  then
+        write(6,*) " routine gatom_modified  ,  comparaison between  first 5 energies real and  pseudo-not_fitted "
         write(38,*) " routine gatom_modified  ,  comparaison between  energies real and  pseudo-not_fitted "
         do iocc=1, Nsol
            if(iocc.lt.real_start) then
               write(38,*)  iocc, Etofit(iocc) 
+              if (iocc.le.5) write(6,*)  iocc, Etofit(iocc) 
            else
               write(38,*)  iocc, Etofit(iocc) , Egrid_tmp(iocc-real_start +1)
+              if (iocc.le.5) write(6,*)  iocc, Etofit(iocc) , Egrid_tmp(iocc-real_start +1)
            endif
         enddo
      endif
+
      do isol=1,Nsol-real_start+1
         fact_add=0.0_gp
         do  volta=1,4

@@ -406,14 +406,17 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      
      real_start=-1
      write(38,*)  ">>  Comparaison Egrid  Egrid_pseudo "
+     write(6 ,*)  ">>  Comparaison betwenn first 5 Egrid and   Egrid_pseudo "
      do n=1, Nsol
         if((Egrid(n)+0.1).ge.Egrid_pseudo(1)) then
            if(real_start==-1) then
                real_start = n
-              write(38,*) Egrid(n)
-           else
-              write(38,*) Egrid(n), Egrid_pseudo(n -real_start+1)
-           endif
+            end if
+            write(38,*) Egrid(n), Egrid_pseudo(n -real_start+1)
+            if (n.le.5) write(6 ,*) Egrid(n), Egrid_pseudo(n -real_start+1)
+        else
+           write(38,*) Egrid(n)
+           if (n.le.5) write(6 ,*) Egrid(n)
         endif
      enddo
 
@@ -462,6 +465,15 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
         enddo
         close(unit=22)
      endif
+
+
+     do iout=1,2
+        uout=outunits(iout)
+        write(uout,*) "Initial Projected wf at igrid=100,500,2000"
+        write(uout,*) psigrid(100,2)
+        write(uout,*) psigrid(500,2)
+        write(uout,*) psigrid(2000,2)
+     end do
         
      write(plotfile, '(a,i0,a)') 'pawdata.L=',LPaw,'.dat'
      open(unit=22,file=trim(plotfile))
@@ -479,6 +491,12 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
            write(22,'(E20.14)') psigrid_pseudo(igrid, n)
         enddo
         write(22,'(A)') " "
+     enddo
+     
+
+     write(6,*) "PawPatch Matrix"
+     do n=1, Npaw
+           write(6,*) PawPatch_matrix(n,:)
      enddo
      
      do n=1, Npaw
