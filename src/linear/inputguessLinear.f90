@@ -1291,7 +1291,8 @@ do iat=max(lzdig%nlr-noverlaps+2,1),lzdig%nlr
     end if
 end do
 
-
+write(*,'(a,i0,a)') 'process ', iproc, ' is here'
+call mpi_barrier(mpi_comm_world, ierr)
 
 
 if(ii/=ndim_lhchi) then

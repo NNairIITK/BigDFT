@@ -1328,7 +1328,7 @@ subroutine my_iallgatherv2(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts
       end do
   end do
 
-  call mpi_barrier(mpi_comm_world, ierr)
+  !call mpi_barrier(mpi_comm_world, ierr)
   
   do jproc=0,nproc-1
       if(iproc==jproc .and. sendcount/=0) then
@@ -1337,7 +1337,8 @@ subroutine my_iallgatherv2(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts
               tag0=kproc
               tag=tagx+tag0
               !write(*,'(4(a,i0))') 'process ',jproc,' sends ',sendcount,' elements to process ',kproc,' with tag ',tag
-              call mpi_irsend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
+              !call mpi_irsend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
+              call mpi_isend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
               !call mpi_rsend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, ierr)
           end do
       end if
@@ -1386,6 +1387,6 @@ subroutine my_iallgather_collect2(iproc, nproc, sendcount, recvcounts, requests)
       end do
   end do
 
-  call mpi_barrier(mpi_comm_world, ierr)
+  !call mpi_barrier(mpi_comm_world, ierr)
 
 end subroutine my_iallgather_collect2
