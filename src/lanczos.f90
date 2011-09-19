@@ -106,29 +106,12 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
-  else
-     
-     if(iproc==0) then
-        print *, "xabs_lanczos : calculating  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-     endif
-     call GetExcitedOrbitalAsG(in_iat_absorber, & !!$ ,Gabsorber,&
-          at,rxyz,nproc,iproc,&
-          in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber , in%NPaw_absorber,  &
-          in%abscalc_eqdiff, filename, ha)
-     
-
-!     Gabs_coeffs(:)=in%Gabs_coeffs(:)    
-!      if( iproc.eq.0) then
-!         print *,"writing them on file " , filename
-!         call write_gaussian_information( 0 ,1 ,ha%orbs,Gabsorber, in%Gabs_coeffs,filename)
-!      endif
-
-
-        print * , " you will now have to process informations in " ,filename,"_in_coeffs"
-        STOP " Normal stop : data for initial wave have been prepared "
-
+  else     
+     print * ," You are asking for a spactra for atom " , in_iat_absorber
+     print *, " but at%paw_NofL( at%iatype(   in_iat_absorber ) )=0 " 
+     print *, " this mean that the pseudopotential file is not pawpatched. "
+     print *, " You'll have to generated the patch with pseudo"
+     STOP     
   endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
@@ -319,25 +302,11 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
   else
-     if(iproc==0) then
-        print *, "xabs_chebychev : calculating  projection on pseudofunctions"
-        print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-        print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-     endif
-
-     write(filename,'(A,A,A,I1,A,A,I1,A,I1,A,I0)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) ,&
-          "_", in%N_absorber,   "s" ,   "_pow=" ,  in%rpower_absorber,"_Labs=", &
-          in%L_absorber,"_npaw=",in%NPAW_absorber
-
-     call GetExcitedOrbitalAsG(in_iat_absorber, & !!$ ,Gabsorber,&
-          at,rxyz,nproc,iproc, &
-          in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber ,in%NPaw_absorber,  &
-          in%abscalc_eqdiff, filename, ha)
-
-     print * , " you will now have to process informations in " ,filename,"_in_coeffs"
-     STOP " Normal stop : data for initial wave have been prepared "
-
-    
+     print * ," You are asking for a spactra for atom " , in_iat_absorber
+     print *, " but at%paw_NofL( at%iatype(   in_iat_absorber ) )=0 " 
+     print *, " this mean that the pseudopotential file is not pawpatched. "
+     print *, " You'll have to generated the patch with pseudo"
+     STOP     
   endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
@@ -626,22 +595,12 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
      Gabs_coeffs(:)=in%Gabs_coeffs(:)
   else
-
-        if(iproc==0) then
-           print *, "xabs_cg : calculating  projection on pseudofunctions"
-           print *, "for 1s of atom number ", in_iat_absorber, " ( atomname = ", at%atomnames(at%iatype(  in_iat_absorber ))," )"
-           print *, "After application of a 2*L-pole  with L= ", in%L_absorber
-        endif
-        call GetExcitedOrbitalAsG(in_iat_absorber , & !!$  ,Gabsorber,&
-             at,rxyz,nproc,iproc, &
-             in%N_absorber   ,in%Linit_absorber      ,in%L_absorber ,in%rpower_absorber , in%NPaw_absorber, &
-             in%abscalc_eqdiff , filename , ha)
-        Gabs_coeffs(:)=in%Gabs_coeffs(:)
-        
-        print * , " you will now have to process informations in " ,filename,"_in_coeffs"
-        STOP " Normal stop : data for initial wave have been prepared "
-
-     endif
+     print * ," You are asking for a spactra for atom " , in_iat_absorber
+     print *, " but at%paw_NofL( at%iatype(   in_iat_absorber ) )=0 " 
+     print *, " this mean that the pseudopotential file is not pawpatched. "
+     print *, " You'll have to generated the patch with pseudo"
+     STOP     
+  endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
 
@@ -815,3 +774,80 @@ subroutine dirac_hara (rho, E , V)
   V=Vcorr
   return
 end subroutine dirac_hara
+
+!!****f* BigDFT/GetBottom
+!! FUNCTION
+!! SOURCE
+!!
+function GetBottom( atoms, iproc, nspin)
+  
+  use module_base
+  use module_types
+  use module_interfaces,except_this_one => GetBottom
+
+  implicit none
+  !Arguments
+  type(atoms_data), intent(in) :: atoms
+  real(gp) :: GetBottom
+  integer :: iproc, nspin
+  !Local variables
+  character(len=*), parameter :: subname='GetBottom'
+  integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32, ng=21
+
+
+  integer :: abs_final_L
+  integer :: ity,  i_all
+  real(gp) , pointer :: expo(:),  occup(:,:)
+  real(gp)   psi(ng,5)
+  integer :: psp_modifier
+
+
+  integer :: i_stat
+  real(gp) :: gaenes_aux(5)
+  integer, dimension(lmax) :: nl
+  integer nspinor, iat, noncoll
+
+  ! if (in_iat_absorber.ne.0) then
+
+  allocate(expo(ng +ndebug  ), stat=i_stat)
+  call memocc(i_stat,expo,'expo',subname)
+
+  allocate(occup ( noccmax  ,lmax+1+ndebug ), stat=i_stat)
+  call memocc(i_stat,occup,'occup',subname)
+
+  GetBottom=1.0D4
+
+  !for the moment, only collinear
+  nspinor=1
+  !if non-collinear it is like nspin=1 but with the double of orbitals
+  if (nspinor == 4) then
+     noncoll=2
+  else
+     noncoll=1
+  end if
+
+  do ity=1, atoms%ntypes
+     do iat=1, atoms%nat
+        if (ity.eq.atoms%iatype(iat)) exit
+     end do
+     call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,iat),occup,nl)
+
+     call iguess_generator_modified(atoms%nzatom(ity),atoms%nelpsp(ity),&
+          real(atoms%nelpsp(ity),gp),atoms%psppar(0,0,ity),&
+          atoms%npspcode(ity),&
+          ng-1,nl,5,noccmax,lmax,occup,expo,&
+          psi,.false., gaenes_aux  )
+
+     if( minval(gaenes_aux ) <GetBottom) GetBottom=minval(gaenes_aux )
+  enddo
+
+  i_all=-product(shape(occup))*kind(occup)
+  deallocate(occup,stat=i_stat)
+  call memocc(i_stat,i_all,'occup',subname)
+
+  i_all=-product(shape(expo))*kind(expo)
+  deallocate(expo,stat=i_stat)
+  call memocc(i_stat,i_all,'expo',subname)
+
+end function GetBottom
+!!***
