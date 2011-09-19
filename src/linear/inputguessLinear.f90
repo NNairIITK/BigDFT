@@ -321,6 +321,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call gaussians_to_wavelets_new2(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2)
 
+  iall=-product(shape(psigau))*kind(psigau)
+  deallocate(psigau,stat=istat)
+  call memocc(istat,iall,'psigau',subname)
+
+  call deallocate_gwf(G,subname)
+
+
   ! Orthonormalize the atomic orbitals.
   !call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
   !     lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lin%lig%mad, lchi2)
@@ -361,11 +368,19 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   deallocate(locrad,stat=istat)
   call memocc(istat,iall,'locrad',subname)
 
+  call deallocate_orbitals_data(lin%lig%orbsGauss, subname)
+
+
   ! Create the potential. First calculate the charge density.
   if(iproc==0) write(*,'(x,a)',advance='no') 'Calculating charge density...'
   call sumrhoLinear(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, hxh, hyh, hzh, lchi2, rhopot,&
        nscatterarr, input%nspin, GPU, at%symObj, irrzon, phnons, rhodsc)
   if(iproc==0) write(*,'(a)') 'done.'
+
+  iall=-product(shape(lchi2))*kind(lchi2)
+  deallocate(lchi2, stat=istat)
+  call memocc(istat, iall, 'lchi2',subname)
+
 
   ! Deallocate lin%lig%lzdGauss since it is not  needed anymore.
   call deallocate_local_zone_descriptors(lin%lig%lzdGauss, subname)
@@ -694,19 +709,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
 
 
   ! Deallocate all local arrays.
-  call deallocate_gwf(G,subname)
 
   ! Deallocate all types that are not needed any longer.
   call deallocate_local_zone_descriptors(lin%lig%lzdig, subname)
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
-  call deallocate_orbitals_data(lin%lig%orbsGauss, subname)
   call deallocate_matrixDescriptors(lin%lig%mad, subname)
 
   ! Deallocate all remaining local arrays.
-  iall=-product(shape(psigau))*kind(psigau)
-  deallocate(psigau,stat=istat)
-  call memocc(istat,iall,'psigau',subname)
-
   iall=-product(shape(norbsc_arr))*kind(norbsc_arr)
   deallocate(norbsc_arr,stat=istat)
   call memocc(istat,iall,'norbsc_arr',subname)
@@ -722,10 +731,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   iall=-product(shape(lchi))*kind(lchi)
   deallocate(lchi, stat=istat)
   call memocc(istat, iall, 'lchi',subname)
-
-  iall=-product(shape(lchi2))*kind(lchi2)
-  deallocate(lchi2, stat=istat)
-  call memocc(istat, iall, 'lchi2',subname)
 
   iall=-product(shape(doNotCalculate))*kind(doNotCalculate)
   deallocate(doNotCalculate, stat=istat)
