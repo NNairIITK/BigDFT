@@ -1356,7 +1356,7 @@ subroutine my_iallgather_collect2(iproc, nproc, sendcount, recvcounts, requests)
 
   ! Calling arguments
   integer,intent(in):: iproc, nproc, sendcount
-  integer,dimension(0:nproc),intent(in):: recvcounts
+  integer,dimension(0:nproc-1),intent(in):: recvcounts
   integer,dimension(2,0:nproc-1),intent(inout):: requests
 
   ! Local variables
@@ -1387,6 +1387,6 @@ subroutine my_iallgather_collect2(iproc, nproc, sendcount, recvcounts, requests)
       end do
   end do
 
-  !call mpi_barrier(mpi_comm_world, ierr)
+  call mpi_barrier(mpi_comm_world, ierr)
 
 end subroutine my_iallgather_collect2

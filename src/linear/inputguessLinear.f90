@@ -1095,7 +1095,7 @@ real(8),dimension(:),allocatable:: zeroArray
 real(8),dimension(:,:),allocatable:: hamTempCompressed, hamTempCompressed2
 real(8):: tt, ttmax
 integer,dimension(:),allocatable:: displs, sendcounts
-integer,dimension(:,:),allocatable:: requests
+integer,dimension(:,:,:),allocatable:: requests
 logical,dimension(:),allocatable:: skiptemp
 
 availableMemory=memoryForCommunOverlapIG*1048576
@@ -1112,7 +1112,7 @@ allocate(displs(0:nproc-1), stat=istat)
 call memocc(istat, displs, 'displs', subname)
 allocate(hamTempCompressed2(mad%nvctr,noverlaps), stat=istat)
 call memocc(istat, hamTempCompressed2, 'ovrlpCompressed2', subname)
-allocate(requests(0:nproc-1,noverlaps), stat=istat)
+allocate(requests(2,0:nproc-1,noverlaps), stat=istat)
 call memocc(istat, requests, 'requests', subname)
 
 allocate(hamTemp(orbsig%norb,orbsig%norb), stat=istat)
@@ -1174,19 +1174,33 @@ do iat=1,lzdig%nlr
     !!     comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
     if(iproc==0) write(*,'(a)') 'done.'
 
+    !do istat=1,orbsig%norb
+    !  do iall=1,orbsig%norb
+    !    write(2000+iproc*10+iat,*) istat, iall, hamTemp(iall,istat)
+    !  end do
+    !end do
+
 
     
     call compressMatrix2(iproc, nproc, orbs, mad, hamTemp, hamTempCompressed(1,ioverlap), sendcounts, displs)
     !call mpi_allgatherv(hamTempCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, hamTempCompressed2(1), &
     !     sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
     tagx=(ioverlap-1)*nproc+1
-    call my_iallgatherv(iproc, nproc, hamTempCompressed(displs(iproc)+1,ioverlap), sendcounts(iproc), hamTempCompressed2(1,ioverlap), sendcounts, displs, mpi_comm_world, tagx, requests(0,ioverlap))
+    !write(*,'(3(a,i0))') 'process ',iproc,' calls my_iallgatherv2 with tagx=',tagx,', ioverlap=',ioverlap
+    call my_iallgatherv2(iproc, nproc, hamTempCompressed(displs(iproc)+1,ioverlap), sendcounts(iproc), &
+         hamTempCompressed2(1,ioverlap), sendcounts, displs, mpi_comm_world, tagx, requests(2,0,ioverlap))
     !call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
     if(iat>=noverlaps) then
         iiat=iat-noverlaps+1
         iioverlap=mod(iiat-1,noverlaps)+1
-        call my_iallgather_collect(iproc, nproc, sendcounts(iproc), sendcounts, requests(0,iioverlap))
+        !write(*,'(2(a,i0))') 'process ',iproc,' calls my_iallgather_collect2 with iioverlap=',iioverlap
+        call my_iallgather_collect2(iproc, nproc, sendcounts(iproc), sendcounts, requests(2,0,iioverlap))
         call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,iioverlap), hamTemp)
+        !do istat=1,orbsig%norb
+        !  do iall=1,orbsig%norb
+        !    write(3000+iproc*10+iat,*) istat, iall, hamTemp(iall,istat)
+        !  end do
+        !end do
 
         !ttmax=0.d0
         !do iorb=1,orbs%norb
@@ -1257,8 +1271,14 @@ end do
 
 do iat=max(lzdig%nlr-noverlaps+2,1),lzdig%nlr
     iiat=mod(iat-1,noverlaps)+1
-    call my_iallgather_collect(iproc, nproc, sendcounts(iproc), sendcounts, requests(0,iiat))
+    !write(*,'(2(a,i0))') 'process ',iproc,' calls my_iallgather_collect2 with iiat=',iiat
+    call my_iallgather_collect2(iproc, nproc, sendcounts(iproc), sendcounts, requests(2,0,iiat))
     call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,iiat), hamTemp)
+    !do istat=1,orbsig%norb
+    !  do iall=1,orbsig%norb
+    !    write(3000+iproc*10+iat,*) istat, iall, hamTemp(iall,istat)
+    !  end do
+    !end do
     !if(iproc==0) write(*,'(a)') 'done.'
 
     !ttmax=0.d0
@@ -1291,7 +1311,6 @@ do iat=max(lzdig%nlr-noverlaps+2,1),lzdig%nlr
     end if
 end do
 
-write(*,'(a,i0,a)') 'process ', iproc, ' is here'
 call mpi_barrier(mpi_comm_world, ierr)
 
 

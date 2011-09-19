@@ -4794,6 +4794,27 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          real(8),intent(inout):: timecommunp2p, timecommuncoll, timecompress
        end subroutine collectnew
 
+
+       subroutine my_iallgatherv2(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
+         use module_base
+         implicit none
+         integer,intent(in):: iproc, nproc, sendcount, comm
+         integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
+         real(8),dimension(sendcount),intent(in):: sendbuf
+         integer,dimension(2,0:nproc-1),intent(in):: requests
+         integer,intent(in):: tagx
+         real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
+       end subroutine my_iallgatherv2
+
+
+       subroutine my_iallgather_collect2(iproc, nproc, sendcount, recvcounts, requests)
+         use module_base
+         implicit none
+         integer,intent(in):: iproc, nproc, sendcount
+         integer,dimension(0:nproc-1),intent(in):: recvcounts
+         integer,dimension(2,0:nproc-1),intent(inout):: requests
+       end subroutine my_iallgather_collect2
+
   end interface
 
 end module module_interfaces
