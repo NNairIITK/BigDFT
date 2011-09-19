@@ -80,7 +80,7 @@ real(gp) :: epot_p
 !$omp do
 !write(*,*) 'iproc, -14*nl3,2*n3+1+15*nl3', iproc, -14*nl3,2*n3+1+15*nl3
 !write(*,*) 'iproc, -14*nl2,2*n2+1+15*nl2', iproc, -14*nl2,2*n2+1+15*nl2
-write(*,'(a,i5,3es14.6)') 'iproc, confinement center (on grid): ', iproc, rxyzConfinement(1)/hxh, rxyzConfinement(2)/hyh, rxyzConfinement(3)/hzh
+!write(*,'(a,i5,3es14.6)') 'iproc, confinement center (on grid): ', iproc, rxyzConfinement(1)/hxh, rxyzConfinement(2)/hyh, rxyzConfinement(3)/hzh
   do i3=-14*nl3,2*n3+1+15*nl3
      if (i3 >= -14+2*nbuf .and. i3 <= 2*n3+16-2*nbuf) then !check for the nbuf case
         do i2=-14*nl2,2*n2+1+15*nl2
@@ -158,11 +158,11 @@ write(*,'(a,i5,3es14.6)') 'iproc, confinement center (on grid): ', iproc, rxyzCo
                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                            (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
                        tt=potentialPrefac*tt**order
-                       if(i1==55 .and. i2==64) then
-                           !write(*,'(a,i0,a)') 'process ',iproc,' writes to file.'
-                           write(1001+iproc,'(i8,3es20.12)') i3, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1), tt, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
-                           write(2001+iproc,'(i8,es20.12)') i3, psir(i1,i2,i3,ispinor)
-                       end if
+                       !if(i1==55 .and. i2==64) then
+                       !    !write(*,'(a,i0,a)') 'process ',iproc,' writes to file.'
+                       !    write(1001+iproc,'(i8,3es20.12)') i3, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1), tt, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
+                       !    write(2001+iproc,'(i8,es20.12)') i3, psir(i1,i2,i3,ispinor)
+                       !end if
                        tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
                        tt=tt*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
