@@ -326,7 +326,7 @@ subroutine readLinearParameters(iproc, nproc, lin, at, atomNames)
   read(99,*) lin%mixingMethod
   read(99,*) lin%mixHist, lin%nItSCC, lin%alphaMix, lin%convCritMix
   read(99,*) lin%useDerivativeBasisFunctions, lin%ConfPotOrder
-  read(99,*) lin%nItInguess
+  read(99,*) lin%nItInguess, lin%memoryForCommunOverlapIG
   read(99,*) lin%plotBasisFunctions
   read(99,*) lin%transformToGlobal
   read(99,*) lin%norbsPerProcIG

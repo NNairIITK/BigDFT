@@ -4046,7 +4046,8 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
       end subroutine getHamiltonianMatrix3
 
       subroutine getHamiltonianMatrix4(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, norb_parTemp, onWhichMPITemp, &
-                 Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, tag, ham)
+                 Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, &
+                 memoryForCommunOverlapIG, tag, ham)
         use module_base
         use module_types
         implicit none
@@ -4063,6 +4064,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(orbsig%npsidim,ndim_lhchi),intent(in):: lhchi
         logical,dimension(lzdig%nlr),intent(in):: skip
         type(matrixDescriptors),intent(in):: mad
+        integer,intent(in):: memoryForCommunOverlapIG
         integer,intent(inout):: tag
         !logical,dimension(lin%lig%lzdig%nlr,0:nproc-1),intent(in):: skipGlobal
         real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham

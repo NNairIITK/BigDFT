@@ -1296,3 +1296,96 @@ subroutine my_iallgather_collect(iproc, nproc, sendcount, recvcounts, requests)
   call mpi_barrier(mpi_comm_world, ierr)
 
 end subroutine my_iallgather_collect
+
+
+
+
+subroutine my_iallgatherv2(iproc, nproc, sendbuf, sendcount, recvbuf, recvcounts, displs, comm, tagx, requests)
+  use module_base
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, sendcount, comm
+  integer,dimension(0:nproc-1),intent(in):: recvcounts, displs
+  real(8),dimension(sendcount),intent(in):: sendbuf
+  integer,dimension(2,0:nproc-1),intent(in):: requests
+  integer,intent(in):: tagx
+  real(8),dimension(sum(recvcounts)),intent(out):: recvbuf
+  
+  ! Local variables
+  integer:: jproc, kproc, tag, tag0, ierr
+
+
+  do jproc=0,nproc-1
+      do kproc=0,nproc-1
+          if(iproc==kproc .and. recvcounts(jproc)/=0) then
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              tag=tagx+tag0
+              !write(*,'(5(a,i0))') 'process ',kproc,' receives ',recvcounts(jproc),' elements at position ',displs(jproc)+1,' from process ',jproc,' with tag ',tag
+              call mpi_irecv(recvbuf(displs(jproc)+1), recvcounts(jproc), mpi_double_precision, jproc, tag, comm, requests(2,tag0), ierr)
+          end if
+      end do
+  end do
+
+  !call mpi_barrier(mpi_comm_world, ierr)
+  
+  do jproc=0,nproc-1
+      if(iproc==jproc .and. sendcount/=0) then
+          do kproc=0,nproc-1
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              tag=tagx+tag0
+              !write(*,'(4(a,i0))') 'process ',jproc,' sends ',sendcount,' elements to process ',kproc,' with tag ',tag
+              call mpi_isend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, requests(1,tag0), ierr)
+              !call mpi_rsend(sendbuf, sendcount, mpi_double_precision, kproc, tag, comm, ierr)
+          end do
+      end if
+  end do
+
+
+
+end subroutine my_iallgatherv2
+
+
+
+subroutine my_iallgather_collect2(iproc, nproc, sendcount, recvcounts, requests)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, sendcount
+  integer,dimension(0:nproc),intent(in):: recvcounts
+  integer,dimension(2,0:nproc-1),intent(inout):: requests
+
+  ! Local variables
+  integer:: jproc, kproc, tag0, ierr
+
+
+  ! Wait for the send operation to finish.
+  do jproc=0,nproc-1
+      if(iproc==jproc .and. sendcount/=0) then
+          do kproc=0,nproc-1
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              !write(*,'(3(a,i0))') 'process ',iproc,' waits for send to finish; dest= ',kproc,', tag=',tag0
+              call mpi_wait(requests(1,tag0), mpi_status_ignore, ierr)
+          end do
+      end if
+  end do
+  
+  ! Wait for the receive operation to finish.
+  do jproc=0,nproc-1
+      do kproc=0,nproc-1
+          if(iproc==kproc .and. recvcounts(jproc)/=0) then
+              !tag0=jproc*nproc+kproc
+              tag0=kproc
+              !write(*,'(3(a,i0))') 'process ',iproc,' waits for receive to finish; source= ',jproc,', tag=',tag0
+              call mpi_wait(requests(2,tag0), mpi_status_ignore, ierr)
+          end if
+      end do
+  end do
+
+  call mpi_barrier(mpi_comm_world, ierr)
+
+end subroutine my_iallgather_collect2
