@@ -2215,7 +2215,9 @@ do it=1,nItOrtho
 
   !! THIS IS A TEST !!
   do iorb=1,orbs%norbp
-    call vectorLocalToGlobal(orbs%norb, mlr, vec(1,iorb), vecglobal(1))
+    ilr=onWhichAtom(iorb+orbs%isorb)
+    write(*,'(3(a,i0))') 'iproc=',iproc,', iorb=',iorb,' calls with ilr=',ilr
+    call vectorLocalToGlobal(orbs%norb, mlr(ilr), vec(1,iorb), vecglobal(1))
     do i=1,orbs%norb
         write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
     end do
@@ -3239,6 +3241,9 @@ logical:: same
       ! Transform to localization regions.
       do iorb=1,ip%norb_par(iproc)
           ilr=matmin%inWhichLocregExtracted(iorb)
+          if(ilr/=orbs%inWhichLocreg(iorb+orbs%isorb)) then
+              write(*,'(a,2i6,3x,2i8)') 'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)', iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
+          end if
           call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
       end do
 
