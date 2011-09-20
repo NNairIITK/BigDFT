@@ -1944,6 +1944,7 @@ do ilr=1,lzd%nlr
         if(ovrlpx .and. ovrlpy .and. ovrlpz) then
             novrlp=novrlp+1
             comom%overlaps(novrlp,ilr)=jorb
+            if(iproc==0) write(*,'(2(a,i0))') 'locreg ',ilr,' overlaps with orbital ',jorb
         end if
     end do
     !!if(iproc==0) write(*,'(a,i4,3x,100i5)') 'ilr, comom%overlaps(,ilr)', ilr, comom%overlaps(:,ilr) 
