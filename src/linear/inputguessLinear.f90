@@ -2269,7 +2269,7 @@ do it=1,nItOrtho
   ! Normalize the vectors
   do iorb=1,norbp
       tt=dnrm2(norbmax, vec(1,iorb), 1)
-      !write(*,*) 'iproc, iorb, tt',iproc, iorb, tt
+      write(*,'(a,2i8,es14.6)') 'iproc, iorb, tt',iproc, iorb, tt
       call dscal(norbmax, 1/tt, vec(1,iorb), 1)
   end do
 

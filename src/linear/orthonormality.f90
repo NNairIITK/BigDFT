@@ -2644,7 +2644,7 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           do jorb=1,norb
               if(iproc==0) write(1402,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
           end do
-          if(iproc==0) write(1450,*) iorb, eval(iorb)
+          if(iproc==0) write(1450,'(i6,es25.12)') iorb, eval(iorb)
       end do
       
       ! Calculate S^{-1/2}. 
@@ -2655,11 +2655,11 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
               tempArr(jorb,iorb,1)=ovrlp(jorb,iorb)*1.d0/sqrt(eval(iorb))
           end do
       end do
-      !!do iorb=1,norb
-      !!    do jorb=1,norb
-      !!        if(iproc==0) write(1403,'(2i6,es26.17)') iorb, jorb, temparr(iorb,jorb,1)
-      !!    end do
-      !!end do
+      do iorb=1,norb
+          do jorb=1,norb
+              if(iproc==0) write(1403,'(2i6,es26.17)') iorb, jorb, temparr(iorb,jorb,1)
+          end do
+      end do
       
       ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
       ! This will give S^{-1/2}.
@@ -2671,11 +2671,11 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
                norb, tempArr(1,1,1), norb, 0.d0, tempArr(1,1,2), norb)
       end if
       call dcopy(norb**2, tempArr(1,1,2), 1, ovrlp(1,1), 1)
-      !!do iorb=1,norb
-      !!    do jorb=1,norb
-      !!        if(iproc==0) write(1405,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
-      !!    end do
-      !!end do
+      do iorb=1,norb
+          do jorb=1,norb
+              if(iproc==0) write(1405,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
+          end do
+      end do
       
       
       iall=-product(shape(eval))*kind(eval)
