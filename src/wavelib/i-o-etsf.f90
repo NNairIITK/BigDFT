@@ -115,7 +115,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   else
      if (iproc == 0) then
         write(*,*) 'wavefunctions need reformatting'
-        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) &
+        if (abs(hx_old - hx) > 1e-6 .and. abs(hy_old - hy) > 1e-6 .and. abs(hz_old - hz) > 1e-6) &
              & write(*,*) 'because hgrid_old /= hgrid',hx_old,hy_old,hz_old,hx,hy,hz
         if (nvctr_c_old /= wfd%nvctr_c) &
              & write(*,*) 'because nvctr_c_old /= nvctr_c',nvctr_c_old,wfd%nvctr_c
@@ -210,7 +210,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
+!  write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 
 contains
 

@@ -173,4 +173,4 @@ else
   mpirun_message=
 endif
 
-EXTRA_DIST = example.O
+#EXTRA_DIST = example.O

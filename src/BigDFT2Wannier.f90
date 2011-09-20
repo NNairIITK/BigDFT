@@ -270,8 +270,8 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
       end if
       allocate(amnk_guess_sorted(n_virt))
       do nb=1,n_virt
-         amnk_guess_sorted(nb)=maxval(amnk_guess,orbsv%norb)
-         amnk_bands_sorted(nb)=maxloc(amnk_guess,orbsv%norb)
+         amnk_guess_sorted(nb)=maxval(amnk_guess,1)
+         amnk_bands_sorted(nb)=maxloc(amnk_guess,1)
          amnk_guess(amnk_bands_sorted(nb))=0.d0
       if (iproc==0) write(*,'(I4,3x,F12.6)') amnk_bands_sorted(nb), amnk_guess_sorted(nb)
       end do
@@ -347,12 +347,13 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    if (orbsb%isorb + orbsb%norbp < n_occ ) orbs%norbp = orbsb%norbp
    if(orbsb%isorb > n_occ) orbs%norbp = 0
    orbs%isorb = orbsb%isorb
-
-   if(associated(orbs%eval)) nullify(orbs%eval)
-   allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
-   filename='wavefunction.etsf'
-   call read_waves_etsf(iproc,filename,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
-      Glr%wfd,psi_etsf(1,1))
+   if(orbs%norbp > 0) then
+      if(associated(orbs%eval)) nullify(orbs%eval)
+      allocate(orbs%eval(orbs%norb*orbs%nkpts), stat=i_stat)
+      filename='wavefunction.etsf'
+      call read_waves_etsf(iproc,filename,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
+         Glr%wfd,psi_etsf(1,1))
+   end if
 
    ! For the non-occupied orbitals, need to change norbp,isorb
    orbsv%norbp = orbsb%isorb + orbsb%norbp - n_occ
@@ -361,8 +362,9 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
    orbsv%isorb = 0
    if(orbsb%isorb >= n_occ) orbsv%isorb = orbsb%isorb - n_occ    
 
-   filename='virtuals.etsf'
+   ! read unoccupied wavefunctions
    if(orbsv%norbp > 0) then
+   filename='virtuals.etsf'
       if(associated(orbsv%eval)) nullify(orbsv%eval)
       allocate(orbsv%eval(orbsv%norb*orbsv%nkpts), stat=i_stat)
       call read_valence_etsf(iproc,filename,orbsv,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,atoms,rxyz_old,rxyz,  & 
@@ -3144,10 +3146,11 @@ subroutine etsf_error(error)
     start(3) = modulo(iorb - 1, orbs%nspinor) + 1
     count(3) = 1
     ! Read one orbital.
-    start(4) = modulo(orblist(iorb+orbs%isorb), orbs%norb) !+ 1
     count(4) = 1
+!    start(4) = modulo(orblist(iorb+orbs%isorb), orbs%norb) !+ 1
+    start(4) = orblist(iorb+orbs%isorb)
     ! Read one kpoint.
-    start(5) = (orblist(iorb+orbs%isorb)) / orbs%norb + 1
+    start(5) = 1!(orblist(iorb+orbs%isorb)) / orbs%norb + 1
     count(5) = 1
     ! Write one spin.
     start(6) = 1

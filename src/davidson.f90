@@ -330,7 +330,7 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   call calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
 
   !the plotting should be added here (perhaps build a common routine?)
-  call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+  call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,in%output_wf_format)
   
 END SUBROUTINE direct_minimization
 
@@ -1192,7 +1192,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   call calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
 
   !write the results on the screen
-  call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,v)
+  call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,v,in%output_wf_format)
 
   if (GPUconv) then
      call free_gpu(GPU,orbsv%norbp)
@@ -1619,12 +1619,12 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,lr,comms,rxyz,hx,hy,hz,nsp
 END SUBROUTINE psivirt_from_gaussians
 
 
-subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
+subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,output_wf_format)
   use module_base
   use module_types
   implicit none
   logical, intent(in) :: occorbs
-  integer, intent(in) :: iproc,nspin,nvirt,nplot
+  integer, intent(in) :: iproc,nspin,nvirt,nplot,output_wf_format
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(locreg_descriptors), intent(in) :: lr
