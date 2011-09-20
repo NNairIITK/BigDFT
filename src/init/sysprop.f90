@@ -59,6 +59,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      call occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
+
 END SUBROUTINE system_properties
 
 
@@ -221,6 +222,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
 
      inquire(file=filename,exist=exists)
      if (.not. exists) then
+        !print *,'atomnames',atoms%atomnames(ityp),len(atoms%atomnames(ityp)),len(trim(atoms%atomnames(ityp)))
         !if (iproc == 0) 
             write(*,'(1x,3a)')&
              'ERROR: The pseudopotential parameter file "',trim(filename),&
@@ -343,7 +345,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      !NOTE this radius is chosen such as to make the projector be defined always on the same sphere
      !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
      !     and not for the gaussian decaying of the pseudopotential projector
-     !     add a proper varialbe in input.perf
+     !     add a proper variable in input.perf
      radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
 
      if (maxrad == 0.0_gp) then

@@ -2238,7 +2238,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
   end interface
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
-  character(len=2) :: symbol
+  character(len=20) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
@@ -2625,7 +2625,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
   end interface
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
-  character(len=2) :: symbol
+  character(len=20) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
@@ -2889,7 +2889,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
-  character(len=2) :: symbol
+  character(len=20) :: symbol
   character(len=10) :: name
   character(len=11) :: units
   character(len=50) :: extra

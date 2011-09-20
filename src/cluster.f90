@@ -96,6 +96,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
      if (exists) then
         in%last_run=1 !do the last_run things nonetheless
         in%inputPsiId=0 !the first run always restart from IG
+        !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
      call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,fnoise,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
@@ -208,7 +209,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
-  character(len=5) :: gridformat, wfformat, final_out
+  character(len=5) :: gridformat, wfformat,wfformat_read, final_out
   character(len=500) :: errmess
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
@@ -365,6 +366,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
+
   call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   ! Determine size alat of overall simulation cell and shift atom positions
@@ -552,22 +554,22 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      ! Test ETSF file.
      inquire(file="wavefunction.etsf",exist=onefile)
      if (onefile) input_wf_format=3
-     allfiles=.true.
+
      if (.not. onefile) then
+        print *,'here'
         call verify_file_presence(orbs,input_wf_format)
-     end if
-     if (.not. allfiles) then
-        if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-        inputpsi = 0
      end if
  
      !assign the input_wf_format
-     write(wfformat, "(A)") ""
+     write(wfformat_read, "(A)") ""
      select case (input_wf_format)
+     case (WF_FORMAT_NONE)
+        if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi = 0
      case (WF_FORMAT_ETSF)
-        write(wfformat, "(A)") ".etsf"
+        write(wfformat_read, "(A)") ".etsf"
      case (WF_FORMAT_BINARY)
-        write(wfformat, "(A)") ".bin"
+        write(wfformat_read, "(A)") ".bin"
      end select
 
   end if
@@ -722,7 +724,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !since each processor read only few eigenvalues, initialise them to zero for all
      call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
 
-     call readmywaves(iproc,"wavefunction" // trim(wfformat), &
+     call readmywaves(iproc,"wavefunction" // trim(wfformat_read), &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
      !reduce the value for all the eigenvectors

@@ -580,6 +580,10 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 !!$     !put the wxd term in the psirocc array (leav it like that in case the off-diagonal term is needed
 !!$     call NK_SIC_potential(lr,orbs,in%SIC%ixc,in%SIC%fref,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,&
 !!$          psi,pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1:),eSIC_DC,wxdsave=psirocc)
+     !experimental: add confining potential to the hamiltonian
+     !should already be guaranteed by the crmult terms
+     !call add_confining_potential(lr%d%n1i,lr%d%n2i,lr%d%n3i,orbs%nspin,1.e-10_gp,1.e-14_gp,-0.5_gp,&
+     !     pot(1),pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+1))
   end if
 
 
@@ -1934,7 +1938,36 @@ subroutine calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
   end if
 
 end subroutine calculate_HOMO_LUMO_gap
-  
+
+!> Add a potential to the local potential which has the function of confining the 
+!! Solutions to a given value
+subroutine add_confining_potential(n1i,n2i,n3i,nspin,eps,dencutoff,rpow,pot,rho)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1i,n2i,n3i,nspin
+  real(gp) , intent(in) :: rpow,eps,dencutoff
+  real(dp), dimension(n1i,n2i,n3i,nspin), intent(in) :: rho
+  real(wp), dimension(n1i,n2i,n3i,nspin), intent(inout) :: pot
+  !local variables
+  integer :: i1,i2,i3,ispin
+  real(dp) :: density
+
+  do ispin=1,nspin
+     do i3=1,n3i
+        do i2=1,n2i
+           do i1=1,n1i
+              !charge density value (not optimized)
+              if (nspin==2) then
+                 density=rho(i1,i2,i3,1)+rho(i1,i2,i3,2)
+              else
+                 density=rho(i1,i2,i3,1)
+              end if
+              pot(i1,i2,i3,ispin)=pot(i1,i2,i3,ispin)+eps*((density+dencutoff)**rpow)
+           end do
+        end do
+     end do
+  end do
+end subroutine add_confining_potential
 
 subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rxyz,pot)
   use module_base
