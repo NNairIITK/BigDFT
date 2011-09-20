@@ -20,11 +20,11 @@ program memguess
 
   implicit none
   character(len=*), parameter :: subname='memguess'
-  character(len=20) :: tatonam
+  character(len=20) :: tatonam, radical
   character(len=40) :: comment
   character(len=128) :: fileFrom, fileTo
   logical :: optimise,GPUtest,atwf,convert=.false.
-  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
+  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
   real(gp) :: peakmem,hx,hy,hz
@@ -52,6 +52,7 @@ program memguess
 
   call getarg(1,tatonam)
 
+  write(radical, "(A)") ""
   optimise=.false.
   GPUtest=.false.
   atwf=.false.
@@ -83,57 +84,75 @@ program memguess
      stop
   else
      read(unit=tatonam,fmt=*) nproc
-     call getarg(2,tatonam)
-     if(trim(tatonam)=='') then
-        output_grid=0
-     else if (trim(tatonam)=='y') then
-        output_grid=1
-        write(*,'(1x,a)')&
-             'The system grid will be displayed in the "grid.xyz" file'
-     else if (trim(tatonam)=='o') then
-        optimise=.true.
-        output_grid=1
-        write(*,'(1x,a)')&
-             'The optimised system grid will be displayed in the "grid.xyz" file'
-     else if (trim(tatonam)=='GPUtest') then
-        GPUtest=.true.
-        write(*,'(1x,a)')&
-             'Perform the test with GPU, if present.'
-        call getarg(3,tatonam)
-        ntimes=1
-        norbgpu=0
-        read(tatonam,*,iostat=ierror)ntimes
-        if (ierror==0) then
+     i_arg = 2
+     do
+        call getarg(i_arg,tatonam)
+        if(trim(tatonam)=='') then
+           output_grid=0
+           exit
+        else if (trim(tatonam)=='y') then
+           output_grid=1
+           write(*,'(1x,a)') 'The system grid will be displayed in the "grid.xyz" file'
+           exit
+        else if (trim(tatonam)=='o') then
+           optimise=.true.
+           output_grid=1
+           write(*,'(1x,a)')&
+                'The optimised system grid will be displayed in the "grid.xyz" file'
+           exit
+        else if (trim(tatonam)=='GPUtest') then
+           GPUtest=.true.
+           write(*,'(1x,a)')&
+                'Perform the test with GPU, if present.'
+           i_arg = i_arg + 1
+           call getarg(i_arg,tatonam)
+           ntimes=1
+           norbgpu=0
+           read(tatonam,*,iostat=ierror)ntimes
+           if (ierror==0) then
+              write(*,'(1x,a,i0,a)')&
+                   'Repeat each calculation ',ntimes,' times.'
+              i_arg = i_arg + 1
+              call getarg(i_arg,tatonam)
+              read(tatonam,*,iostat=ierror)norbgpu
+           end if
+           exit
+        else if (trim(tatonam)=='convert') then
+           convert=.true.
+           i_arg = i_arg + 1
+           call getarg(i_arg,fileFrom)
+           i_arg = i_arg + 1
+           call getarg(i_arg,fileTo)
+           write(*,'(1x,5a)')&
+                'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
+           exit
+        else if (trim(tatonam)=='atwf') then
+           atwf=.true.
+           write(*,'(1x,a)')&
+                'Perform the calculation of atomic wavefunction of the first atom'
+           i_arg = i_arg + 1
+           call getarg(i_arg,tatonam)
+           read(tatonam,*,iostat=ierror)ng
            write(*,'(1x,a,i0,a)')&
-                'Repeat each calculation ',ntimes,' times.'
-           call getarg(4,tatonam)
-           read(tatonam,*,iostat=ierror)norbgpu
+                'Use gaussian basis of',ng,' elements.'
+           exit
+        else
+           ! Use value as radical for input files.
+           if (trim(radical) /= "") then
+              write(*,'(1x,a)')&
+                   'Usage: ./memguess <nproc> [y]'
+              write(*,'(1x,a)')&
+                   'Indicate the number of processes after the executable'
+              write(*,'(1x,a)')&
+                   'ERROR: The only second argument which is accepted is "y", "o","convert", "GPUtest" or "atwf" ' 
+              write(*,'(1x,a)')&
+                   '       (type "memguess" without arguments to have an help)'
+              stop
+           end if
+           write(radical, "(A)") trim(tatonam)
         end if
-     else if (trim(tatonam)=='convert') then
-        convert=.true.
-        call getarg(3,fileFrom)
-        call getarg(4,fileTo)
-        write(*,'(1x,5a)')&
-             'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
-     else if (trim(tatonam)=='atwf') then
-        atwf=.true.
-        write(*,'(1x,a)')&
-             'Perform the calculation of atomic wavefunction of the first atom'
-        call getarg(3,tatonam)
-        read(tatonam,*,iostat=ierror)ng
-        write(*,'(1x,a,i0,a)')&
-             'Use gaussian basis of',ng,' elements.'
-     else
-        write(*,'(1x,a)')&
-             'Usage: ./memguess <nproc> [y]'
-        write(*,'(1x,a)')&
-             'Indicate the number of processes after the executable'
-        write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o","convert", "GPUtest" or "atwf" ' 
-        write(*,'(1x,a)')&
-             '       (type "memguess" without arguments to have an help)'
-        stop
-     end if
+        i_arg = i_arg + 1
+     end do
   end if
 
 !!!  open(unit=1,file='input.memguess',status='old')
@@ -177,7 +196,7 @@ program memguess
   end if
 
   !standard names
-  call standard_inputfile_names(in)
+  call standard_inputfile_names(in, radical)
   call read_input_variables(0, "posinp", in, atoms, rxyz)
   !initialize memory counting
   !call memocc(0,0,'count','start')

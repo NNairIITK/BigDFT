@@ -57,18 +57,25 @@ END SUBROUTINE print_logo
 
 
 !> Define the name of the input files
-subroutine standard_inputfile_names(inputs)
+subroutine standard_inputfile_names(inputs, radical)
   use module_types
   implicit none
   type(input_variables), intent(out) :: inputs
+  character(len = *), intent(in), optional :: radical
 
-  inputs%file_dft='input.dft'
-  inputs%file_geopt='input.geopt'
-  inputs%file_kpt='input.kpt'
-  inputs%file_perf='input.perf'
-  inputs%file_tddft='input.tddft'
-  inputs%file_mix='input.mix'
-  inputs%file_sic='input.sic'
+  character(len = 128) :: rad
+
+  write(rad, "(A)") ""
+  if (present(radical)) write(rad, "(A)") trim(radical)
+  if (trim(radical) == "") write(rad, "(A)") "input"
+
+  inputs%file_dft=trim(rad) // '.dft'
+  inputs%file_geopt=trim(rad) // '.geopt'
+  inputs%file_kpt=trim(rad) // '.kpt'
+  inputs%file_perf=trim(rad) // '.perf'
+  inputs%file_tddft=trim(rad) // '.tddft'
+  inputs%file_mix=trim(rad) // '.mix'
+  inputs%file_sic=trim(rad) // '.sic'
   
 END SUBROUTINE standard_inputfile_names
 
@@ -1267,7 +1274,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   
   call input_free(iproc)
   !control whether we are giving k-points to Free BC
-  if (atoms%geocode == 'F' .and. exists) then
+  if (atoms%geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
      if (iproc==0) write(*,*)&
           ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
      stop

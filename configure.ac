@@ -49,6 +49,7 @@ AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
 AX_FC_FLUSH()
+AX_FC_F2003()
 AX_FC_DEFS()
 
 dnl Set if the module name are capitalized or not with the FC compiler.
