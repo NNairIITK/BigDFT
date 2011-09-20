@@ -2640,12 +2640,12 @@ subroutine overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOrder, bloc
           deallocate(work, stat=istat)
           call memocc(istat, iall, 'work', subname)
       end if
-      !!do iorb=1,norb
-      !!    do jorb=1,norb
-      !!        if(iproc==0) write(1402,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
-      !!    end do
-      !!    if(iproc==0) write(1450,*) iorb, eval(iorb)
-      !!end do
+      do iorb=1,norb
+          do jorb=1,norb
+              if(iproc==0) write(1402,'(2i6,es26.17)') iorb, jorb, ovrlp(iorb,jorb)
+          end do
+          if(iproc==0) write(1450,*) iorb, eval(iorb)
+      end do
       
       ! Calculate S^{-1/2}. 
       ! First calulate ovrlp*diag(1/sqrt(evall)) (ovrlp is the diagonalized overlap
