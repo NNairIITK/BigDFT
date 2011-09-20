@@ -316,11 +316,9 @@ NEB_LDADD = libbigdft.a \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
-	$(mpi_source)
+	MPIfake.f90
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	$(LMPI) \
-	@MPI_LIBS@ \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
