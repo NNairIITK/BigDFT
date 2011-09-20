@@ -2471,32 +2471,32 @@ integer:: jorb, mpisource, mpidest, nfast, nslow, nsameproc, ierr, jproc
 integer,dimension(mpi_status_size):: stat
 logical:: sendComplete, receiveComplete
 
-! Check whether the communications have completed.
-nfast=0
-nsameproc=0
-testLoop: do
-    do jproc=0,nproc-1
-        do jorb=1,comom%noverlapProc(jproc)
-            if(comom%communComplete(jorb,jproc)) cycle
-            call mpi_test(comom%comarr(7,jorb,jproc), sendComplete, stat, ierr)
-            call mpi_test(comom%comarr(8,jorb,jproc), receiveComplete, stat, ierr)
-            if(sendComplete .and. receiveComplete) comom%communComplete(jorb,jproc)=.true.
-            if(comom%communComplete(jorb,jproc)) then
-                !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', jorb
-                mpisource=comom%comarr(1,jorb,jproc)
-                mpidest=comom%comarr(4,jorb,jproc)
-                if(mpisource/=mpidest) then
-                    nfast=nfast+1
-                else
-                    nsameproc=nsameproc+1
-                end if
-            end if
-        end do
-    end do
-    ! If we made it until here, either all all the communication is
-    ! complete or we better wait for each single orbital.
-    exit testLoop
-end do testLoop
+!!! Check whether the communications have completed.
+!!nfast=0
+!!nsameproc=0
+!!testLoop: do
+!!    do jproc=0,nproc-1
+!!        do jorb=1,comom%noverlapProc(jproc)
+!!            if(comom%communComplete(jorb,jproc)) cycle
+!!            call mpi_test(comom%comarr(7,jorb,jproc), sendComplete, stat, ierr)
+!!            call mpi_test(comom%comarr(8,jorb,jproc), receiveComplete, stat, ierr)
+!!            if(sendComplete .and. receiveComplete) comom%communComplete(jorb,jproc)=.true.
+!!            if(comom%communComplete(jorb,jproc)) then
+!!                !write(*,'(2(a,i0))') 'fast communication; process ', iproc, ' has received orbital ', jorb
+!!                mpisource=comom%comarr(1,jorb,jproc)
+!!                mpidest=comom%comarr(4,jorb,jproc)
+!!                if(mpisource/=mpidest) then
+!!                    nfast=nfast+1
+!!                else
+!!                    nsameproc=nsameproc+1
+!!                end if
+!!            end if
+!!        end do
+!!    end do
+!!    ! If we made it until here, either all all the communication is
+!!    ! complete or we better wait for each single orbital.
+!!    exit testLoop
+!!end do testLoop
 
 
 ! Wait for the communications that have not completed yet
@@ -2513,9 +2513,9 @@ do jproc=0,nproc-1
 end do
 
 !call mpiallred(nreceives, 1, mpi_sum, mpi_comm_world, ierr)
-call mpiallred(nfast, 1, mpi_sum, newComm, ierr)
-call mpiallred(nslow, 1, mpi_sum, newComm, ierr)
-call mpiallred(nsameproc, 1, mpi_sum, newComm, ierr)
+!call mpiallred(nfast, 1, mpi_sum, newComm, ierr)
+!call mpiallred(nslow, 1, mpi_sum, newComm, ierr)
+!call mpiallred(nsameproc, 1, mpi_sum, newComm, ierr)
 !if(iproc==0) write(*,'(x,2(a,i0),a)') 'statistics: - ', nfast+nslow, ' point to point communications, of which ', &
 !                       nfast, ' could be overlapped with computation.'
 !if(iproc==0) write(*,'(x,a,i0,a)') '            - ', nsameproc, ' copies on the same processor.'
