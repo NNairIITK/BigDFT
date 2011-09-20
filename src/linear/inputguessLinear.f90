@@ -2422,6 +2422,7 @@ do jproc=0,nproc-1
         mpidest=comom%comarr(4,iorb,jproc)
         istdest=comom%comarr(5,iorb,jproc)
         tag=comom%comarr(6,iorb,jproc)
+        if(iproc==0) write(*,'(a,4i9)') 'jproc, iorb, mpisource, mpidest', jproc, iorb, mpisource, mpidest
         if(mpisource/=mpidest) then
             ! The orbitals are on different processes, so we need a point to point communication.
             if(iproc==mpisource) then
