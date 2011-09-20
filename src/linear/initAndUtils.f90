@@ -2198,6 +2198,67 @@ end subroutine compressMatrix2
 
 
 
+subroutine initCommsCompression(iproc, nproc, orbs, mad, mat, lmat, sendcounts, displs)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(orbitals_data),intent(in):: orbs
+  type(matrixDescriptors),intent(in):: mad
+  real(8),dimension(orbs%norb**2),intent(in):: mat
+  real(8),dimension(mad%nvctr),intent(out):: lmat
+  integer,dimension(0:nproc-1),intent(out):: sendcounts, displs
+  
+  ! Local variables
+  integer:: iseg, jj, jorb, iiorb, jjorb, jjproc, jjprocold, ncount
+  
+  sendcounts=0
+  displs=0
+  
+  jj=0
+  ncount=0
+  jjprocold=0
+  displs(0)=0
+  do iseg=1,mad%nseg
+      do jorb=mad%keyg(1,iseg),mad%keyg(2,iseg)
+          jj=jj+1
+          lmat(jj)=mat(jorb)
+          
+          ncount=ncount+1
+          jjorb=(jorb-1)/orbs%norb+1
+          jjproc=orbs%onWhichMPI(jjorb)
+          if(jjproc>jjprocold) then
+              ! This part of the matrix is calculated by a new MPI process.
+              sendcounts(jjproc-1)=ncount-1
+              displs(jjproc)=displs(jjproc-1)+sendcounts(jjproc-1)
+              ncount=1
+              jjprocold=jjproc
+          end if
+      end do
+  end do
+  sendcounts(nproc-1)=ncount
+  if(jj/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix: jj/=mad%nvctr',jj,mad%nvctr
+      stop
+  end if
+
+  if(sum(sendcounts)/=mad%nvctr) then
+      write(*,'(a,2(2x,i0))') 'ERROR in compressMatrix2: sum(sendcounts)/=mad%nvctr',sum(sendcounts),mad%nvctr
+      stop
+  end if
+
+  !if(iproc==0) then
+  !    do jjproc=0,nproc-1
+  !        write(*,'(a,3i8)') 'jjproc, displs(jjproc), sendcounts(jjproc)', jjproc, displs(jjproc), sendcounts(jjproc)
+  !    end do
+  !end if
+  
+end subroutine initCommsCompression
+
+
+
 subroutine uncompressMatrix(norb, mad, lmat, mat)
   use module_base
   use module_types

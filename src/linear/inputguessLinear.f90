@@ -2190,7 +2190,7 @@ real(8),dimension(norbmax,norbp),intent(inout):: vec
 type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
 
 ! Local variables
-integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, it
+integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, it, iorbmax, jorbmax
 real(8):: tt, dnrm2, dev
 real(8),dimension(:,:),allocatable:: vecOvrlp, ovrlp
 character(len=*),parameter:: subname='orthonormalizeVectors'
@@ -2222,9 +2222,11 @@ do it=1,nItOrtho
   call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, &
        vec, vecOvrlp, newComm, ovrlp)
   dev=0.d0
+  iorbmax=0
+  jorbmax=0
   do iorb=1,orbs%norb
       do jorb=1,orbs%norb
-          !if(iproc==0) write(300,*) iorb, jorb, ovrlp(jorb,iorb)
+          if(iproc==0) write(300,*) iorb, jorb, ovrlp(jorb,iorb)
           if(iorb==jorb) then
               tt=abs(1.d0-ovrlp(jorb,iorb))
           else
@@ -2232,11 +2234,13 @@ do it=1,nItOrtho
           end if
           if(tt>dev) then
               dev=tt
+              iorbmax=iorb
+              jorbmax=jorb
           end if
       end do
   end do
   if(iproc==0) then
-      write(*,'(a,es14.6)') 'max deviation from unity:',dev
+      write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
   end if
   call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, orbs%norb, mad, ovrlp)
   !!if(methTransformOverlap==0) then

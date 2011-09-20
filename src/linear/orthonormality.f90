@@ -84,6 +84,7 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
       call calculateOverlapMatrix3(iproc, nproc, orbs, op, orbs%inWhichLocreg, comon%nsendBuf, &
            comon%sendBuf, comon%nrecvBuf, comon%recvBuf, mad, ovrlp)
       t4=mpi_wtime()
+      call checkUnity(iproc, orbs%norb, ovrlp, maxError)
       timeoverlap=timeoverlap+t4-t3
 
       t3=mpi_wtime()
