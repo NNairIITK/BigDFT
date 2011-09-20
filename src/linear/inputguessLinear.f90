@@ -2226,7 +2226,7 @@ do it=1,nItOrtho
   jorbmax=0
   do iorb=1,orbs%norb
       do jorb=1,orbs%norb
-          if(iproc==0) write(300,*) iorb, jorb, ovrlp(jorb,iorb)
+          if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
           if(iorb==jorb) then
               tt=abs(1.d0-ovrlp(jorb,iorb))
           else
@@ -2243,6 +2243,11 @@ do it=1,nItOrtho
       write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
   end if
   call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, orbs%norb, mad, ovrlp)
+  do iorb=1,orbs%norb
+      do jorb=1,orbs%norb
+          if(iproc==0) write(400,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
+      end do
+  end do
   !!if(methTransformOverlap==0) then
   !!    !write(*,'(a,i0)') 'call transformOverlapMatrix in orthonormalizeVectors, iproc=',iproc
   !!    call transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
