@@ -2190,10 +2190,11 @@ real(8),dimension(norbmax,norbp),intent(inout):: vec
 type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
 
 ! Local variables
-integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, it, iorbmax, jorbmax
+integer:: noverlaps, iorb, iiorb, ilr, istat, ilrold, jorb, iall, it, iorbmax, jorbmax, i
 real(8):: tt, dnrm2, dev
 real(8),dimension(:,:),allocatable:: vecOvrlp, ovrlp
 character(len=*),parameter:: subname='orthonormalizeVectors'
+real(8),dimension(orbs%norb):: vecglobal
 
 noverlaps=0
 ilrold=0
@@ -2211,6 +2212,15 @@ allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
 do it=1,nItOrtho
+
+  !! THIS IS A TEST !!
+  do iorb=1,orbs%norbp
+    call vectorLocalToGlobal(orbs%norb, mlr, vec(1,iorb), vecglobal(1))
+    do i=1,orbs%norb
+        write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
+    end do
+  end do
+  !!!!!!!!!!!!!!!!!!!!
  
   call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
   call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
