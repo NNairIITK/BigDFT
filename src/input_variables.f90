@@ -102,6 +102,9 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
+  ! Read associated pseudo files.
+  call init_atomic_values(iproc, atoms)
+
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
 END SUBROUTINE read_input_variables
@@ -2211,6 +2214,9 @@ subroutine deallocate_atoms_scf(atoms,subname)
   i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
   deallocate(atoms%nelpsp,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%nelpsp',subname)
+  i_all=-product(shape(atoms%ixcpsp))*kind(atoms%ixcpsp)
+  deallocate(atoms%ixcpsp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%ixcpsp',subname)
   i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
   deallocate(atoms%npspcode,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%npspcode',subname)
@@ -2223,6 +2229,9 @@ subroutine deallocate_atoms_scf(atoms,subname)
   i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
   deallocate(atoms%nlccpar,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%nlccpar',subname)
+  i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
+  deallocate(atoms%radii_cf,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%radii_cf',subname)
 
 END SUBROUTINE deallocate_atoms_scf
 

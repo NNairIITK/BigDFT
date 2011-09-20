@@ -147,45 +147,20 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
 END SUBROUTINE calculate_rhocore
 
-
-!>   Assign some of the physical system variables
-!!   Performs also some cross-checks with other variables
-!!   The pointer in atoms structure have to be associated or nullified.
-subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
-     nelec,norb,norbu,norbd,norbuempty,norbdempty,iunit)
+subroutine init_atomic_values(iproc, atoms)
   use module_base
   use module_types
-  use module_xc
-  use ab6_symmetry
   implicit none
-  character (len=*), intent(in) :: fileocc
-  type(input_variables), intent(in) :: in
+  
   integer, intent(in) :: iproc
   type(atoms_data), intent(inout) :: atoms
-  integer, intent(out) :: nelec,norb,norbu,norbd,iunit,norbuempty,norbdempty
-  real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
+
   !local variables
-  character(len=*), parameter :: subname='read_system_variables'
-  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  character(len=*), parameter :: subname='init_atomic_values'
+  integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat
   logical :: exists
-  character(len=2) :: symbol
-  character(len=24) :: message
   character(len=27) :: filename
-  character(len=50) :: format
-  character(len=100) :: line
-  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,ixcpsp,ispinsum,mxpl,ig
-  integer :: ispol,mxchg,ichg,ichgsum,nsccode,ierror1,norbe,norbat,nspinor,nspin,nlcc_dim,ngv,ngc
-  real(gp) :: rcov,rprb,ehomo,radfine,minrad,maxrad
-  real(gp), dimension(3,3) :: hij
-  real(gp), dimension(2,2,3) :: offdiagarr
-  !integer, dimension(nmax,0:lmax-1) :: neleconf
-  real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
-  integer, dimension(lmax) :: nl
-  real(gp), dimension(0:4) :: fake_nlcc
-  real(gp), dimension(noccmax,lmax) :: occup
-  character(len=500) :: name_xc1, name_xc2
-
-
+  
   !allocate atoms data variables
   ! store PSP parameters
   ! modified to accept both GTH and HGHs pseudopotential types
@@ -197,10 +172,10 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   call memocc(i_stat,atoms%npspcode,'atoms%npspcode',subname)
   allocate(atoms%nzatom(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nzatom,'atoms%nzatom',subname)
-  allocate(atoms%iasctype(atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
-  allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
+  allocate(atoms%ixcpsp(atoms%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%ixcpsp,'atoms%ixcpsp',subname)
+  allocate(atoms%radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%radii_cf,'atoms%radii_cf',subname)
 
   !parameters for NLCC
   allocate(atoms%nlcc_ngv(atoms%ntypes+ndebug),stat=i_stat)
@@ -208,201 +183,20 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   allocate(atoms%nlcc_ngc(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nlcc_ngc,'atoms%nlcc_ngc',subname)
 
-  if (iproc == 0) then
-     write(*,'(1x,a)')&
-          ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
-  end if
-
-  !logical variable for non-linear core correction
-  atoms%donlcc=.false.
+  ! Read values from pseudo files.
   nlcc_dim=0
+  atoms%donlcc=.false.
   do ityp=1,atoms%ntypes
      filename = 'psppar.'//atoms%atomnames(ityp)
-
-     inquire(file=filename,exist=exists)
-     if (.not. exists) then
-        !if (iproc == 0) 
-            write(*,'(1x,3a)')&
-             'ERROR: The pseudopotential parameter file "',trim(filename),&
-             '" is lacking, exiting...'
-        stop
-     end if
-     ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
-     open(unit=11,file=filename,status='old',iostat=ierror)
-     !Check the open statement
-     if (ierror /= 0) then
-        write(*,*) 'iproc=',iproc,&
-             ': Failed to open the file (it must be in ABINIT format!): "',&
-             trim(filename),'"'
-        stop
-     end if
-     read(11,*)
-     read(11,*) atoms%nzatom(ityp),atoms%nelpsp(ityp)
-     read(11,*) atoms%npspcode(ityp),ixcpsp
-     !control if the PSP is calculated with the same XC value
-     if (ixcpsp < 0) then
-        call xc_get_name(name_xc1, ixcpsp, XC_MIXED)
-     else
-        call xc_get_name(name_xc1, ixcpsp, XC_ABINIT)
-     end if
-     if (in%ixc < 0) then
-        call xc_get_name(name_xc2, in%ixc, XC_MIXED)
-     else
-        call xc_get_name(name_xc2, in%ixc, XC_ABINIT)
-     end if
-     if (trim(name_xc1) /= trim(name_xc2) .and. iproc==0) then
-        write(*,'(1x,a)')&
-             'WARNING: The pseudopotential file "'//trim(filename)//'"'
-        write(*,'(1x,a,i0,a,i0)')&
-             '         contains a PSP generated with an XC id=',&
-             ixcpsp,' while for this run ixc=',in%ixc
-     end if
-
-     atoms%psppar(:,:,ityp)=0._gp
-     if (atoms%npspcode(ityp) == 2) then !GTH case
-        read(11,*) (atoms%psppar(0,j,ityp),j=0,4)
-        do i=1,2
-           read(11,*) (atoms%psppar(i,j,ityp),j=0,3-i)
-        enddo
-     else if (atoms%npspcode(ityp) == 3) then !HGH case
-        read(11,*) (atoms%psppar(0,j,ityp),j=0,4)
-        read(11,*) (atoms%psppar(1,j,ityp),j=0,3)
-        do i=2,4
-           read(11,*) (atoms%psppar(i,j,ityp),j=0,3)
-           read(11,*) !k coefficients, not used for the moment (no spin-orbit coupling)
-        enddo
-     else if (atoms%npspcode(ityp) == 10) then !HGH-K case
-        read(11,*) atoms%psppar(0,0,ityp),nn,(atoms%psppar(0,j,ityp),j=1,nn) !local PSP parameters
-        read(11,*) nlterms !number of channels of the pseudo
-        prjloop: do l=1,nlterms
-           read(11,*) atoms%psppar(l,0,ityp),nprl,atoms%psppar(l,1,ityp),&
-                (atoms%psppar(l,j+2,ityp),j=2,nprl) !h_ij terms
-           do i=2,nprl
-              read(11,*) atoms%psppar(l,i,ityp),(atoms%psppar(l,i+j+1,ityp),j=i+1,nprl) !h_ij 
-           end do
-           if (l==1) cycle
-           do i=1,nprl
-              read(11,*) !k coefficients, not used
-           end do
-        end do prjloop
-     else
-        !if (iproc == 0) then
-           write(*,'(1x,a,a)')trim(atoms%atomnames(ityp)),&
-                'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
-        !end if
-        stop
-     end if
-     !see whether the atom is semicore or not
-     !and consider the ground state electronic configuration
-     call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-          neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
-
-     !control the hardest and the softest gaussian
-     minrad=1.e10_gp
-     maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
-     do i=0,4
-        !the maximum radii is useful only for projectors
-        if (i==1) maxrad=0.0_gp
-        if (atoms%psppar(i,0,ityp)/=0._gp) then
-           minrad=min(minrad,atoms%psppar(i,0,ityp))
-           maxrad=max(maxrad,atoms%psppar(i,0,ityp))
-        end if
-     end do
-
-     !old way of calculating the radii, requires modification of the PSP files
-     read(11,'(a100)',iostat=ierror)line
-     if (ierror /=0) then
-        !if (iproc ==0) write(*,*)&
-        !     ' WARNING: last line of pseudopotential missing, put an empty line'
-        line=''
-     end if
-     read(line,*,iostat=ierror1) radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3)
-     if (ierror1 /= 0 ) then
-        read(line,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
-        radii_cf(ityp,3)=radii_cf(ityp,2)
-     end if
-     message='                   X ' 
-
-     if (ierror /= 0) then
-        !assigning the radii by calculating physical parameters
-        radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
-        radfine=100._gp
-        do i=0,4
-           if (atoms%psppar(i,0,ityp)/=0._gp) then
-              radfine=min(radfine,atoms%psppar(i,0,ityp))
-           end if
-        end do
-        radii_cf(ityp,2)=radfine
-        message='         X              '
-        radii_cf(ityp,3)=radfine
-     end if
-     close(11)
-
-     !correct the coarse radius for projectors
-     !it is always multiplied by frmult
-     !NOTE this radius is chosen such as to make the projector be defined always on the same sphere
-     !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
-     !     and not for the gaussian decaying of the pseudopotential projector
-     !     add a proper varialbe in input.perf
-     radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
-
-     if (maxrad == 0.0_gp) then
-        radii_cf(ityp,3)=0.0_gp
-     end if
-
-     if (iproc==0) write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
-          trim(atoms%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&
-          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
-
-     !control whether the grid spacing is too high
-     if (iproc == 0 .and. max(in%hx,in%hy,in%hz) > 2.5_gp*minrad) then
-        write(*,'(1x,a)')&
-             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
-        write(*,'(1x,a,f5.2,a)')&
-             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
-             '. At your own risk!'
-     end if
-
-     call atomic_occupation_numbers(fileocc,ityp,in%nspin,atoms,nmax,lmax,nelecmax,&
-          neleconf,nsccode,mxpl,mxchg)
-
-     !inquire for non-linear core correction and count the components
+     call psp_from_file(iproc, filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
+          & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
+          & atoms%radii_cf(ityp, :), exists)
+     if (.not. exists) atoms%radii_cf(ityp, :) = UNINITIALIZED(1.0_gp)
      filename ='nlcc.'//atoms%atomnames(ityp)
-
-     inquire(file=filename,exist=exists)
-     if (exists) then
-        atoms%donlcc=.true. !just one atom would be enough
-        !associate the number of gaussians
-        open(unit=79,file=filename,status='unknown')
-        read(79,*)ngv
-        if (ngv==0) then
-           atoms%nlcc_ngv(ityp)=UNINITIALIZED(1)
-        else
-           atoms%nlcc_ngv(ityp)=ngv
-        end if
-        nlcc_dim=nlcc_dim+(ngv*(ngv+1)/2)
-        do ig=1,(ngv*(ngv+1))/2
-           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
-        end do
-        read(79,*)ngc
-        if (ngc==0) then
-           atoms%nlcc_ngc(ityp)=UNINITIALIZED(1)
-        else
-           atoms%nlcc_ngc(ityp)=ngc
-        end if
-        nlcc_dim=nlcc_dim+(ngc*(ngc+1))/2
-        !better to read values in a fake array
-        do ig=1,(ngc*(ngc+1))/2
-           read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
-        end do
-        !no need to go further for the moment
-        close(unit=79)
-     else
-        atoms%nlcc_ngv(ityp)=UNINITIALIZED(1)
-        atoms%nlcc_ngc(ityp)=UNINITIALIZED(1)
-     end if
-  enddo
-
+     call nlcc_dim_from_file(filename, atoms%nlcc_ngv(ityp), &
+          & atoms%nlcc_ngc(ityp), nlcc_dim, exists)
+     atoms%donlcc = (atoms%donlcc .or. exists)
+  end do
   !process the nlcc parameters if present 
   !(allocation is performed also with zero size)
   allocate(atoms%nlccpar(0:4,max(nlcc_dim,1)+ndebug),stat=i_stat)
@@ -430,6 +224,239 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         end if
      end do fill_nlcc
   end if
+end subroutine init_atomic_values
+
+subroutine psp_from_file(iproc, filename, nzatom, nelpsp, npspcode, &
+     & ixcpsp, psppar, radii_cf, read_radii)
+  use module_base
+  implicit none
+  
+  character(len = *), intent(in) :: filename
+  integer, intent(in) :: iproc
+  integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
+  real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3)
+  logical, intent(out) :: read_radii
+
+  integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l
+  character(len=100) :: line
+  logical :: exists
+
+  inquire(file=trim(filename),exist=exists)
+  if (.not. exists) then
+     !if (iproc == 0) 
+     write(*,'(1x,3a)')&
+          'ERROR: The pseudopotential parameter file "',trim(filename),&
+          '" is lacking, exiting...'
+     stop
+  end if
+  ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
+  open(unit=11,file=trim(filename),status='old',iostat=ierror)
+  !Check the open statement
+  if (ierror /= 0) then
+     write(*,*) 'iproc=',iproc,&
+          ': Failed to open the file (it must be in ABINIT format!): "',&
+          trim(filename),'"'
+     stop
+  end if
+  read(11,*)
+  read(11,*) nzatom, nelpsp
+  read(11,*) npspcode, ixcpsp
+
+  psppar(:,:)=0._gp
+  if (npspcode == 2) then !GTH case
+     read(11,*) (psppar(0,j),j=0,4)
+     do i=1,2
+        read(11,*) (psppar(i,j),j=0,3-i)
+     enddo
+  else if (npspcode == 3) then !HGH case
+     read(11,*) (psppar(0,j),j=0,4)
+     read(11,*) (psppar(1,j),j=0,3)
+     do i=2,4
+        read(11,*) (psppar(i,j),j=0,3)
+        read(11,*) !k coefficients, not used for the moment (no spin-orbit coupling)
+     enddo
+  else if (npspcode == 10) then !HGH-K case
+     read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
+     read(11,*) nlterms !number of channels of the pseudo
+     prjloop: do l=1,nlterms
+        read(11,*) psppar(l,0),nprl,psppar(l,1),&
+             (psppar(l,j+2),j=2,nprl) !h_ij terms
+        do i=2,nprl
+           read(11,*) psppar(l,i),(psppar(l,i+j+1),j=i+1,nprl) !h_ij 
+        end do
+        if (l==1) cycle
+        do i=1,nprl
+           read(11,*) !k coefficients, not used
+        end do
+     end do prjloop
+  else
+     !if (iproc == 0) then
+     write(*,'(1x,a,a)') trim(filename),&
+          'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
+     !end if
+     stop
+  end if
+
+  !old way of calculating the radii, requires modification of the PSP files
+  read(11,'(a100)',iostat=ierror)line
+  if (ierror /=0) then
+     !if (iproc ==0) write(*,*)&
+     !     ' WARNING: last line of pseudopotential missing, put an empty line'
+     line=''
+  end if
+  read(line,*,iostat=ierror1) radii_cf(1),radii_cf(2),radii_cf(3)
+  if (ierror1 /= 0 ) then
+     read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
+     radii_cf(3)=radii_cf(2)
+  end if
+  close(11)
+
+  read_radii = (ierror == 0)
+end subroutine psp_from_file
+
+subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
+  use module_base
+  implicit none
+  
+  character(len = *), intent(in) :: filename
+  integer, intent(inout) :: dim
+  integer, intent(out) :: ngv, ngc
+  logical, intent(out) :: read_nlcc
+
+  integer :: ig, j
+  real(gp), dimension(0:4) :: fake_nlcc
+
+  inquire(file=filename,exist=read_nlcc)
+  if (read_nlcc) then
+     !associate the number of gaussians
+     open(unit=79,file=filename,status='unknown')
+     read(79,*)ngv
+     if (ngv==0) ngv=UNINITIALIZED(1)
+     dim=dim+(ngv*(ngv+1)/2)
+     do ig=1,(ngv*(ngv+1))/2
+        read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
+     end do
+     read(79,*)ngc
+     if (ngc==0) ngc=UNINITIALIZED(1)
+     dim=dim+(ngc*(ngc+1))/2
+     !better to read values in a fake array
+     do ig=1,(ngc*(ngc+1))/2
+        read(79,*) (fake_nlcc(j),j=0,4)!jump the suitable lines (the file is organised with one element per line)
+     end do
+     !no need to go further for the moment
+     close(unit=79)
+  else
+     ngv=UNINITIALIZED(1)
+     ngc=UNINITIALIZED(1)
+  end if
+end subroutine nlcc_dim_from_file
+
+!>   Assign some of the physical system variables
+!!   Performs also some cross-checks with other variables
+!!   The pointer in atoms structure have to be associated or nullified.
+subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
+     nelec,norb,norbu,norbd,norbuempty,norbdempty,iunit)
+  use module_base
+  use module_types
+  use module_xc
+  use ab6_symmetry
+  implicit none
+  character (len=*), intent(in) :: fileocc
+  type(input_variables), intent(in) :: in
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(inout) :: atoms
+  integer, intent(out) :: nelec,norb,norbu,norbd,iunit,norbuempty,norbdempty
+  real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
+  !local variables
+  character(len=*), parameter :: subname='read_system_variables'
+  integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  logical :: exists
+  character(len=2) :: symbol
+  character(len=24) :: message
+  character(len=27) :: filename
+  character(len=50) :: format
+  integer :: i,j,k,l,iat,nt,ntu,ntd,ityp,ierror,i_stat,ispinsum,mxpl
+  integer :: ispol,mxchg,ichg,ichgsum,nsccode,norbe,norbat,nspinor,nspin
+  real(gp) :: rcov,rprb,ehomo,radfine,minrad,maxrad
+  real(gp), dimension(3,3) :: hij
+  real(gp), dimension(2,2,3) :: offdiagarr
+  !integer, dimension(nmax,0:lmax-1) :: neleconf
+  real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
+  integer, dimension(lmax) :: nl
+  real(gp), dimension(noccmax,lmax) :: occup
+  character(len=500) :: name_xc1, name_xc2
+
+  allocate(atoms%iasctype(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
+  allocate(atoms%aocc(nelecmax,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%aocc,'atoms%aocc',subname)
+
+  ! Update radii_cf and occupation.
+  if (iproc == 0) then
+     write(*,'(1x,a)')&
+          ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
+  end if
+  do ityp=1,atoms%ntypes
+     message='                   X ' 
+     !see whether the atom is semicore or not
+     !and consider the ground state electronic configuration
+     call eleconf(atoms%nzatom(ityp),atoms%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
+          neleconf,nsccode,mxpl,mxchg,atoms%amu(ityp))
+     if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+        !assigning the radii by calculating physical parameters
+        radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
+        radfine=100._gp
+        do i=0,4
+           if (atoms%psppar(i,0,ityp)/=0._gp) then
+              radfine=min(radfine,atoms%psppar(i,0,ityp))
+           end if
+        end do
+        radii_cf(ityp,2)=radfine
+        message='         X              '
+        radii_cf(ityp,3)=radfine
+     else
+        radii_cf(ityp, :) = atoms%radii_cf(ityp, :)
+     end if
+
+     !control the hardest and the softest gaussian
+     minrad=1.e10_gp
+     maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
+     do i=0,4
+        !the maximum radii is useful only for projectors
+        if (i==1) maxrad=0.0_gp
+        if (atoms%psppar(i,0,ityp)/=0._gp) then
+           minrad=min(minrad,atoms%psppar(i,0,ityp))
+           maxrad=max(maxrad,atoms%psppar(i,0,ityp))
+        end if
+     end do
+
+     !correct the coarse radius for projectors
+     !it is always multiplied by frmult
+     !NOTE this radius is chosen such as to make the projector be defined always on the same sphere
+     !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
+     !     and not for the gaussian decaying of the pseudopotential projector
+     !     add a proper varialbe in input.perf
+     radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
+     if (maxrad == 0.0_gp) then
+        radii_cf(ityp,3)=0.0_gp
+     end if
+
+     if (iproc==0) write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
+          trim(atoms%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&
+          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
+
+     !control whether the grid spacing is too high
+     if (iproc == 0 .and. max(in%hx,in%hy,in%hz) > 2.5_gp*minrad) then
+        write(*,'(1x,a)')&
+             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
+        write(*,'(1x,a,f5.2,a)')&
+             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
+             '. At your own risk!'
+     end if
+
+     call atomic_occupation_numbers(fileocc,ityp,in%nspin,atoms,nmax,lmax,nelecmax,&
+          neleconf,nsccode,mxpl,mxchg)
+  enddo
 
   !print *,'iatsctype',atOMS%iasctype(:)
 
@@ -512,6 +539,24 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
               end if
            end if
         end do
+        !control if the PSP is calculated with the same XC value
+        if (atoms%ixcpsp(ityp) < 0) then
+           call xc_get_name(name_xc1, atoms%ixcpsp(ityp), XC_MIXED)
+        else
+           call xc_get_name(name_xc1, atoms%ixcpsp(ityp), XC_ABINIT)
+        end if
+        if (in%ixc < 0) then
+           call xc_get_name(name_xc2, in%ixc, XC_MIXED)
+        else
+           call xc_get_name(name_xc2, in%ixc, XC_ABINIT)
+        end if
+        if (trim(name_xc1) /= trim(name_xc2) .and. iproc==0) then
+           write(*,'(1x,a)')&
+                'WARNING: The pseudopotential file "'//trim(filename)//'"'
+           write(*,'(1x,a,i0,a,i0)')&
+                '         contains a PSP generated with an XC id=',&
+                atoms%ixcpsp(ityp),' while for this run ixc=',in%ixc
+        end if
      end do
   end if
 

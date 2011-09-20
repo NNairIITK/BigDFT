@@ -246,7 +246,9 @@ module module_types
      integer, dimension(:), pointer :: natpol
      integer, dimension(:), pointer :: nelpsp
      integer, dimension(:), pointer :: npspcode
+     integer, dimension(:), pointer :: ixcpsp
      integer, dimension(:), pointer :: nzatom
+     real(gp), dimension(:,:), pointer :: radii_cf         !< user defined radii_cf, overridden in sysprop.f90
      integer, dimension(:), pointer :: ifrztyp             !< ifrztyp(nat) Frozen atoms
      real(gp), dimension(:), pointer :: amu                !< amu(ntypes)  Atomic Mass Unit for each type of atoms
      real(gp), dimension(:,:), pointer :: aocc
