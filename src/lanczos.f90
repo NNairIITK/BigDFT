@@ -10,7 +10,7 @@
 !>   Lanczos diagonalization
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
+   ekin_sum,epot_sum,eproj_sum,nspin,SIC,GPU,in_iat_absorber,&
    in  )! aggiunger a interface
    use module_base
    use module_types
@@ -34,6 +34,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    real(gp) :: ekin_sum,epot_sum,eproj_sum
    type(GPU_pointers), intent(inout) , target :: GPU
+   type(SIC_data), intent(inout) , target :: SIC
+
    integer, intent(in) :: in_iat_absorber
 
 
@@ -136,7 +138,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    !allocate the potential in the full box
    call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
-   ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+        lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
+        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
 
 
    ha%iproc=iproc
@@ -157,8 +160,10 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%ekin_sum=ekin_sum
    ha%epot_sum=epot_sum
    ha%eproj_sum=eproj_sum
+   ha%eSIC_DC=0.0_gp
    ha%nspin=nspin
    ha%GPU=>GPU !!
+   ha%SIC=>SIC
    ha%Gabsorber=>Gabsorber 
    ha%Gabs_coeffs=>Gabs_coeffs
 
@@ -232,7 +237,7 @@ END SUBROUTINE xabs_lanczos
 !>   Chebychev polynomials to calculate the density of states
 subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
+   ekin_sum,epot_sum,eproj_sum,nspin,SIC,GPU,in_iat_absorber,in  )! aggiunger a interface
 
    use module_base
    use module_types
@@ -255,6 +260,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    real(gp) :: ekin_sum,epot_sum,eproj_sum
    type(GPU_pointers), intent(inout) , target :: GPU
+   type(SIC_data), intent(inout) , target :: SIC
    integer, intent(in) :: in_iat_absorber
 
    type(input_variables),intent(in) :: in
@@ -364,7 +370,8 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    !allocate the potential in the full box
    call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
-   ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+        lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
+        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
 
    print *, "OK "
    !associate hamapp_arg pointers
@@ -386,8 +393,10 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%ekin_sum=ekin_sum
    ha%epot_sum=epot_sum
    ha%eproj_sum=eproj_sum
+   ha%eSIC_DC=0.0_gp
    ha%nspin=nspin
    ha%GPU=>GPU !!
+   ha%SIC=>SIC
    ha%Gabsorber=>Gabsorber 
    ha%Gabs_coeffs=>Gabs_coeffs
 
@@ -540,7 +549,7 @@ END SUBROUTINE xabs_chebychev
 !>   finds the spectra solving  (H-omega)x=b
 subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-   ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
+   ekin_sum,epot_sum,eproj_sum,nspin,SIC,GPU,in_iat_absorber,&
    in , rhoXanes )
    use module_base
    use module_types
@@ -567,6 +576,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    real(gp) :: ekin_sum,epot_sum,eproj_sum
    type(GPU_pointers), intent(inout) , target :: GPU
+   type(SIC_data), intent(inout) , target :: SIC
    integer, intent(in) :: in_iat_absorber
 
    type(input_variables),intent(in) :: in
@@ -677,7 +687,8 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
 
    !allocate the potential in the full box
    call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
-   ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
+        lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
+        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
 
    ha%iproc=iproc
    ha%nproc=nproc
@@ -697,8 +708,10 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
    ha%ekin_sum=ekin_sum
    ha%epot_sum=epot_sum
    ha%eproj_sum=eproj_sum
+   ha%eSIC_DC=0.0_gp
    ha%nspin=nspin
    ha%GPU=>GPU !!
+   ha%SIC=>SIC
    ha%Gabsorber=>Gabsorber 
    ha%Gabs_coeffs=>Gabs_coeffs
 

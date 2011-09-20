@@ -15,6 +15,7 @@ subroutine print_logo()
   integer :: length
   character(len = 64) :: fmt
 
+  fmt=repeat(' ',64)
   length = 26 - 6 - len(package_version)
   write(fmt, "(A,I0,A)") "(23x,a,", length, "x,a)"
 
@@ -42,7 +43,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' g        g     i         B    B    '  
   write(*,'(23x,a)')'          g     i        B     B    ' 
   write(*,'(23x,a)')'         g               B    B     '
-  write(*,fmt)      '    ggggg       i         BBBB      ', &
+  write(*,trim(fmt))      '    ggggg       i         BBBB      ', &
        & '(Ver ' // package_version // ')'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
@@ -435,7 +436,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !coarse and fine radii around atoms
   call input_var(in%crmult,'5.0',ranges=xrmult_rng)
   call input_var(in%frmult,'8.0',ranges=xrmult_rng,&
-       comment='crmult, frmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-centered radius')
+       comment='c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius')
 
   !XC functional (ABINIT XC codes)
   call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
@@ -455,16 +456,16 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !convergence parameters
   call input_var(in%itermax,'50',ranges=(/0,10000/))
   call input_var(in%nrepmax,'1',ranges=(/0,1000/),&
-       comment='itermax,nrepmax: max. # of wavefunction optimizations and of re-diagonalised runs')
+       comment='itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs')
 
   !convergence parameters
   call input_var(in%ncong,'6',ranges=(/0,20/))
   call input_var(in%idsx,'6',ranges=(/0,15/),&
-       comment='ncong, idsx: # of CG iterations for preconditioning equation, length of the diis history')
+       comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
   !does not maxes sense a DIIS history longer than the number of iterations
   in%idsx = min(in%idsx, in%itermax)
 
-  call input_var(in%dispersion,'0',comment='dispersion correction functional (values 1,2,3), 0=no correction')
+  call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
   call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12/),input_iostat=ierror)
@@ -515,7 +516,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   call input_var(in%norbv,'0',ranges=(/-1000,1000/))
   call input_var(in%nvirt,'0',ranges=(/0,abs(in%norbv)/))
   call input_var(in%nplot,'0',ranges=(/0,abs(in%norbv)/),&
-       comment='Dimension of davidson treatment subspace, # of interesting orbitals, # of plotted orbitals')
+       comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
 
   !in%nvirt = min(in%nvirt, in%norbv) commented out
 
@@ -597,7 +598,7 @@ subroutine mix_input_variables_new(iproc,filename,in)
        comment="Stop criterion on the residue of potential or density")
   call input_var(in%norbsempty,'0',ranges=(/0,10000/))
   call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/),&
-       comment="Number of additional bands aand the electronic temperature")
+       comment="Number of additional bands, electronic temperature")
   call input_var(in%alphamix,'0.0',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%alphadiis,'2.0',ranges=(/0.0_gp,10.0_gp/),&
        comment="Multiplying factors for the mixing and the elctronic DIIS")
@@ -895,8 +896,9 @@ subroutine sic_input_variables_default(in)
   implicit none
   type(input_variables), intent(inout) :: in
 
-  in%SIC_approach='NONE'
-  in%alphaSIC=0.0_gp
+  in%SIC%approach='NONE'
+  in%SIC%alpha=0.0_gp
+  in%SIC%fref=0.0_gp
 
 END SUBROUTINE sic_input_variables_default
 
@@ -917,57 +919,13 @@ subroutine sic_input_variables_new(iproc,filename,in)
   !Self-Interaction Correction input parameters
   call input_set_file(iproc,trim(filename),exists,'SIC Parameters')  
 
-  call input_var(in%SIC_approach,'NONE',exclusive=(/'NONE','PZ  '/),comment='SIC method: NONE or PZ')
-  call input_var(in%alphaSIC,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='SIC parameter')
-
+  call input_var(in%SIC%approach,'NONE',exclusive=(/'NONE','PZ  ','NK  '/),comment='SIC method: NONE, PZ, NK')
+  call input_var(in%SIC%alpha,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='SIC downscaling parameter')
+  call input_var(in%SIC%fref,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='Reference occupation fref (NK case only)')
+  in%SIC%ixc=in%ixc
   call input_free(iproc)
 
 END SUBROUTINE sic_input_variables_new
-
-
-subroutine sic_input_variables(filename,in)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  !local variables
-  logical :: exists
-  character(len=*), parameter :: subname='sic_input_variables'
-  integer :: iline, ierror
-
-  inquire(file=trim(filename),exist=exists)
-
-  if (.not. exists) then
-     return
-  end if
-
- ! Read the input variables.
-  open(unit=1,file=filename,status='old')
-
-  !line number, to control the input values
-  iline=0
-  read(1,*,iostat=ierror) in%SIC_approach
-  call check()
-  read(1,*,iostat=ierror) in%alphaSIC
-  call check()
-  
-  close(unit=1,iostat=ierror)
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE sic_input_variables
-
 
 
 !> Assign default values for TDDFT variables
@@ -999,7 +957,7 @@ subroutine tddft_input_variables_new(iproc,filename,in)
   !call the variable, its default value, the line ends if there is a comment
 
   call input_var(in%tddft_approach,"NONE",exclusive=(/'NONE','TDA '/),&
-       comment="Tamm-Dancoff approximation")
+       comment="TDDFT Method")
   call input_free(iproc)
 
 END SUBROUTINE tddft_input_variables_new
@@ -1221,7 +1179,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
         call input_var( in%kpt(1,i),'0.')
         call input_var( in%kpt(2,i),'0.')
         call input_var( in%kpt(3,i),'0.')
-        call input_var( in%wkpt(i),'1.',comment=' ')
+        call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
         norm=norm+in%wkpt(i)
      end do
      ! We normalise the weights.
@@ -2280,7 +2238,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
   end interface
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
-  character(len=2) :: symbol
+  character(len=20) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
@@ -2667,7 +2625,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
   end interface
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
-  character(len=2) :: symbol
+  character(len=20) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
@@ -2931,7 +2889,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
-  character(len=2) :: symbol
+  character(len=20) :: symbol
   character(len=10) :: name
   character(len=11) :: units
   character(len=50) :: extra

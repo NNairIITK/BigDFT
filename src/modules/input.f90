@@ -231,7 +231,7 @@ contains
        nchars=min(len(line_comment),max_length-istart)
        inout_lines(iline_written)(istart:istart+nchars)=line_comment(1:nchars)
        iline_written=iline_written+1
-       iargument=0
+       iargument=0 !the argument should become 0 for the default case and one for the other one
     else if (.not. present(default) .and. .not. present(line_comment).and. iline_parsed/=0) then
        !traditional case, the argument should be parsed one after another
        !start with the entire line
@@ -247,11 +247,26 @@ contains
           do i=max_length-iblank+1,max_length
              line_being_processed(i:i)=' '
           end do
+          ipos=ipos+iblank
        end if
        !adjust the line to eliminate further blanks
        line_being_processed=adjustl(line_being_processed)
     else if (.not. present(default) .and. present(line_comment) .and. iline_parsed/=0) then
        !traditional case, close the line and skip to the next one
+       !case without file, close the line. Write also the predefined comment at the end
+       !Start the comment at column 16 if possible
+       iblank=scan(line_being_processed,' ')
+       ipos=ipos+iblank
+       istart=max(ipos+1,16)
+       do i=ipos+1,15
+         inout_lines(iline_written)(i:i)=' '
+       end do
+       nchars=min(len(line_comment),max_length-istart)
+       inout_lines(iline_written)(istart:istart+nchars)=line_comment(1:nchars)
+       !clean the rest of the line
+       do i=istart+nchars+1,max_length
+          inout_lines(iline_written)(i:i)=' '
+       end do
        iargument=1
        iline_parsed=iline_parsed+1
        iline_written=iline_written+1
@@ -773,7 +788,7 @@ contains
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
     end if
-    if (output) write(*,"(1x,a,3x,a,1x,a,t30,2a)") "|", name, var, '!', description
+    if (output) write(*,"(1x,a,a,1x,a,t30,a)") "|", name, var, description
   END SUBROUTINE var_character
 
   subroutine var_logical(name, default, description, var)
@@ -792,7 +807,7 @@ contains
           var = .true.
        end if
     end if
-    if (output) write(*,"(1x,a,3x,a,1x,l1,t30,2a)") "|", name, var, '!', description
+    if (output) write(*,"(1x,a,a,1x,l1,t30,a)") "|", name, var, description
   END SUBROUTINE var_logical
 
   subroutine var_integer(name, default, description, var)
@@ -813,7 +828,7 @@ contains
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
     end if
-    if (output) write(*,"(1x,a,3x,a,1x,I0,t30,2a)") "|", name, var, '!', description
+    if (output) write(*,"(1x,a,a,1x,I0,t30,a)") "|", name, var, description
   END SUBROUTINE var_integer
 
   subroutine var_integer_array(name, default, description, var)
@@ -835,11 +850,11 @@ contains
        end if
     end if
     if (output) then
-       write(*,"(1x,a,3x,a,1x)", advance = "NO") "|", name
+       write(*,"(1x,a,a,1x)", advance = "NO") "|", name
        do i = 1, size(var), 1
           write(*,"(1x,I0)", advance = "NO") var(i)
        end do
-       write(*,"(t7,2a)") '!', description
+       write(*,"(t10,a)")description
     end if
   END SUBROUTINE var_integer_array
 
@@ -861,7 +876,7 @@ contains
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
     end if
-    if (output) write(*,"(1x,a,3x,a,1x,es9.2,t30,2a)") "|", name, var, '!', description
+    if (output) write(*,"(1x,a,a,1x,es9.2,t30,a)") "|", name, var, description
   END SUBROUTINE var_double
 
   subroutine var_keyword(name, length, default, list, description, var)
@@ -901,8 +916,8 @@ contains
        var = j - 1
     end if
     if (output) then
-       write(*,"(1x,a,3x,a,1x,a,t30,3a)", advance = "NO") &
-            & "|", name, list(var + 1), '!', description, " ("
+       write(*,"(1x,a,a,1x,a,t30,2a)", advance = "NO") &
+            & "|", name, list(var + 1), description, " ("
        write(*,"(A)", advance = "NO") trim(list(1))
        do i = 2, size(list), 1
           write(*,"(2A)", advance = "NO") ", ", trim(list(i))
@@ -938,7 +953,7 @@ contains
           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
        end if
     end if
-    if (output) write(*,"(1x,a,3x,a,1x,I0,t30,2a)") "|", name, var, '!', description
+    if (output) write(*,"(1x,a,a,1x,I0,t30,a)") "|", name, var, description
   END SUBROUTINE var_ids
 
 end module module_input

@@ -59,6 +59,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      call occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
+
 END SUBROUTINE system_properties
 
 
@@ -221,6 +222,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
 
      inquire(file=filename,exist=exists)
      if (.not. exists) then
+        !print *,'atomnames',atoms%atomnames(ityp),len(atoms%atomnames(ityp)),len(trim(atoms%atomnames(ityp)))
         !if (iproc == 0) 
             write(*,'(1x,3a)')&
              'ERROR: The pseudopotential parameter file "',trim(filename),&
@@ -343,7 +345,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      !NOTE this radius is chosen such as to make the projector be defined always on the same sphere
      !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
      !     and not for the gaussian decaying of the pseudopotential projector
-     !     add a proper varialbe in input.perf
+     !     add a proper variable in input.perf
      radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
 
      if (maxrad == 0.0_gp) then
@@ -1283,8 +1285,8 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
   integer, intent(out) :: lub_orbs,lub_comps
   !local variables
   character(len=*), parameter :: subname='check_kpt_distributions'
-  logical :: notcompatible
-  integer :: ikpt,jproc,norbs,ncomps,i_all,i_stat,kproc,ieproc,isproc
+  logical :: notcompatible,couldbe
+  integer :: ikpt,jproc,norbs,ncomps,i_all,i_stat,kproc,ieproc,isproc,jkpt
   integer, dimension(:,:), allocatable :: load_unbalancing
   !before printing the distribution schemes, check that the two distributions contain
   !the same k-points
@@ -1317,7 +1319,15 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
         notcompatible=(ncomp_par(jproc,ikpt) == 0 .neqv. norb_par(jproc,ikpt) == 0) 
         !check whether there are only 0 orbitals
         if (notcompatible .and. norb_par(jproc,ikpt)==0) then
-           if (isproc < jproc .and. jproc <= ieproc) notcompatible=.false.
+           !if the processor is the last one then there should not be other k-points on this processors
+           couldbe=.false.
+           if (jproc == ieproc) then
+              couldbe=.true.
+              do jkpt=ikpt+1,nkpts
+                 couldbe=couldbe .and. (norb_par(jproc,jkpt) ==0 .and. ncomp_par(jproc,jkpt)==0)
+              end do
+           end if
+           if ((isproc < jproc .and. jproc < ieproc) .or. couldbe) notcompatible=.false.
         end if
         if (notcompatible) then     
            if (info == 0) write(*,*)' ERROR: processor ', jproc,' kpt,',ikpt,&
@@ -1338,7 +1348,6 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
 
   allocate(load_unbalancing(0:nproc-1,2+ndebug),stat=i_stat)
   call memocc(i_stat,load_unbalancing,'load_unbalancing',subname)
-
 
   do jproc=0,nproc-1
      load_unbalancing(jproc,:)=0

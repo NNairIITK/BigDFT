@@ -430,7 +430,6 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
         if(nspinor==1) then
 
-           !shift to be add for eval
            call syev('V','U',norb,hamks(ndimovrlp(ispin,ikpt-1)+1,1),norb,&
                 orbs%eval(isorb+(ikpt-1)*orbs%norb),work_lp(1),n_lp,info)
            if (info /= 0) write(*,*) 'SYEV ERROR',info
@@ -442,9 +441,6 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
            if (info /= 0) write(*,*) 'HEEV ERROR',info
 
         end if
-
-        !here we have to add evsum and the KS orbitals written in terms of linear algebra
-        !evsum should be corrected like the scprsum above
 
         !calculate the evsum if the k-point is associated to this processor
         if (orbs%ikptproc(ikpt) == iproc) then

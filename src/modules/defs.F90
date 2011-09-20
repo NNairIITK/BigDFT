@@ -62,6 +62,10 @@ module module_defs
   !! inside localize_projectors routines
   logical :: DistProjApply=.true.
 
+  !> experimental variables to test the add of new functionalities
+  logical :: experimental_modulebase_var_onlyfion=.false.
+
+
   !> Physical constants.
   real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem
   real(gp), parameter :: ha2ev = 27.21138386_gp                         ! 1 Ha in eV

@@ -440,22 +440,23 @@ module module_interfaces
 
      subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
           nlpspd,proj,lr,ngatherarr,pot,psi,hpsi,&
-          ekin_sum,epot_sum,eexctX,eproj_sum,ixcSIC,alphaSIC,GPU,pkernel,orbsocc,psirocc)
+          ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,SIC,GPU,pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,ixcSIC
-       real(gp), intent(in) :: hx,hy,hz,alphaSIC
+       integer, intent(in) :: iproc,nproc
+       real(gp), intent(in) :: hx,hy,hz
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
        type(locreg_descriptors), intent(in) :: lr 
+       type(SIC_data), intent(in) :: SIC
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
        real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
        real(wp), dimension(:), pointer :: pot
-       real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum
+       real(gp), intent(out) :: ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC
        real(wp), target, dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(out) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
        real(dp), dimension(:), pointer, optional :: pkernel
@@ -616,14 +617,15 @@ module module_interfaces
        real(gp), dimension(3,nat), intent(in) :: rxyz
      END SUBROUTINE writeonewave
 
-     subroutine davidson(iproc,nproc,n1i,n2i,in,at,& 
+     subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
-          hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
+          hx,hy,hz,rxyz,rhopot,nlpspd,proj,pkernel,psi,v,nscatterarr,ngatherarr,GPU)
        use module_base
        use module_types
+       use module_xc
        implicit none
        integer, intent(in) :: iproc,nproc,n1i,n2i
-       integer, intent(in) :: nvirt,n3p
+       integer, intent(in) :: nvirt
        type(input_variables), intent(in) :: in
        type(atoms_data), intent(in) :: at
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -632,6 +634,7 @@ module module_interfaces
        type(communications_arrays), intent(in) :: comms, commsv
        real(gp), intent(in) :: hx,hy,hz
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
        real(dp), dimension(:), pointer :: pkernel
@@ -829,7 +832,7 @@ module module_interfaces
 
      subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU, in_iat_absorber, in )
+          ekin_sum,epot_sum,eproj_sum,nspin,SIC,GPU, in_iat_absorber, in )
        use module_base
        use module_types
        implicit none
@@ -845,6 +848,7 @@ module module_interfaces
        real(wp), dimension(max(ndimpot,1),nspin), target :: potential
        real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
+       type(SIC_data), intent(in) , target :: SIC
        integer, intent(in) :: in_iat_absorber
 
        type(input_variables),intent(in) :: in
@@ -853,7 +857,7 @@ module module_interfaces
 
      subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
+          ekin_sum,epot_sum,eproj_sum,nspin,SIC,GPU,in_iat_absorber,in  )! aggiunger a interface
        use module_base
        use module_types
        implicit none
@@ -870,6 +874,7 @@ module module_interfaces
 
        real(gp) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
+       type(SIC_data), intent(in) , target :: SIC
        integer, intent(in) :: in_iat_absorber
 
 
@@ -879,7 +884,7 @@ module module_interfaces
 
      subroutine cg_spectra(iproc,nproc,at,hx,hy,hz,rxyz,&
           radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
-          ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,in  )! aggiunger a interface
+          ekin_sum,epot_sum,eproj_sum,nspin,SIC,GPU,in_iat_absorber,in  )! aggiunger a interface
        use module_base
        use module_types
        implicit none
@@ -896,6 +901,7 @@ module module_interfaces
 
        real(gp) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
+       type(SIC_data), intent(in) , target :: SIC
        integer, intent(in) :: in_iat_absorber
 
 
@@ -1090,12 +1096,12 @@ module module_interfaces
 
      subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
           orbs,orbsv,nvirt,lr,comms,commsv,&
-          hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj, &
-          pkernel,psi,psivirt,ngatherarr,GPU)
+          hx,hy,hz,rxyz,rhopot,nlpspd,proj, &
+          pkernel,psi,psivirt,nscatterarr,ngatherarr,GPU)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,n1i,n2i,nvirt,n3p
+       integer, intent(in) :: iproc,nproc,n1i,n2i,nvirt
        type(input_variables), intent(in) :: in
        type(atoms_data), intent(in) :: at
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -1104,6 +1110,7 @@ module module_interfaces
        type(communications_arrays), intent(in) :: comms, commsv
        real(gp), intent(in) :: hx,hy,hz
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+       integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
        real(dp), dimension(:), pointer :: pkernel
@@ -1162,12 +1169,13 @@ module module_interfaces
       real(wp), dimension(:), pointer :: psi,psivirt
     END SUBROUTINE write_eigen_objects
 
-    subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,norb,norbp,ngatherarr,potential,pot)
+    subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3rho_add,norb,norbp,ngatherarr,potential,pot)
       use module_base
       implicit none
       integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
+      integer, intent(in) :: ndimrhopot,i3rho_add
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-      real(wp), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
+      real(wp), dimension(ndimrhopot), intent(in), target :: potential
       real(wp), dimension(:), pointer :: pot
     END SUBROUTINE full_local_potential
 
@@ -1195,12 +1203,12 @@ module module_interfaces
     END SUBROUTINE select_active_space
 
     subroutine calculate_energy_and_gradient(iter,iproc,nproc,orbs,comms,GPU,lr,hx,hy,hz,ncong,iscf,&
-         ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
+         ekin,epot,eproj,eSIC_DC,ehart,exc,evxc,eexctX,eion,edisp,psi,psit,hpsi,gnrm,gnrm_zero,energy)
       use module_base
       use module_types
       implicit none
       integer, intent(in) :: iproc,nproc,ncong,iscf,iter
-      real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp
+      real(gp), intent(in) :: hx,hy,hz,ekin,epot,eproj,ehart,exc,evxc,eexctX,eion,edisp,eSIC_DC
       type(orbitals_data), intent(in) :: orbs
       type(communications_arrays), intent(in) :: comms
       type(locreg_descriptors), intent(in) :: lr
@@ -1229,12 +1237,12 @@ module module_interfaces
 
     subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
          orbs,orbsv,nvirt,lr,comms,commsv,&
-         hx,hy,hz,rxyz,rhopot,n3p,nlpspd,proj,pkernel,psi,v,ngatherarr,GPU)
+         hx,hy,hz,rxyz,rhopot,nlpspd,proj,pkernel,psi,v,nscatterarr,ngatherarr,GPU)
       use module_base
       use module_types
       implicit none
       integer, intent(in) :: iproc,nproc,n1i,n2i
-      integer, intent(in) :: nvirt,n3p
+      integer, intent(in) :: nvirt
       type(input_variables), intent(in) :: in
       type(atoms_data), intent(in) :: at
       type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -1243,17 +1251,18 @@ module module_interfaces
       type(communications_arrays), intent(in) :: comms, commsv
       real(gp), intent(in) :: hx,hy,hz
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
       real(gp), dimension(3,at%nat), intent(in) :: rxyz
       real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-      real(dp), dimension(:), pointer :: pkernel
       real(dp), dimension(*), intent(in) :: rhopot
+      real(dp), dimension(:), pointer :: pkernel
       type(orbitals_data), intent(inout) :: orbsv
       type(GPU_pointers), intent(inout) :: GPU
       real(wp), dimension(:), pointer :: psi,v
     end subroutine constrained_davidson
 
     subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
-         ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum)
+         ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
       use module_base
       use module_types
       implicit none
@@ -1263,10 +1272,26 @@ module module_interfaces
       type(locreg_descriptors), intent(in) :: lr
       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
       real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
-      real(gp), intent(out) :: ekin_sum,epot_sum
+      real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
       real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
     end subroutine local_hamiltonian
+
+    subroutine NK_SIC_potential(lr,orbs,ixc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC,potandrho,wxdsave)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: ixc
+      real(gp), intent(in) :: hxh,hyh,hzh,fref
+      type(locreg_descriptors), intent(in) :: lr
+      type(orbitals_data), intent(in) :: orbs
+      real(dp), dimension(*), intent(in) :: pkernel
+      real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+      real(wp), dimension((lr%d%n1i*lr%d%n2i*lr%d%n3i*((orbs%nspinor/3)*3+1)),max(orbs%norbp,orbs%nspin)), intent(inout) :: poti
+      real(gp), intent(out) :: eSIC_DC
+      real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,2*orbs%nspin), intent(in), optional :: potandrho 
+      real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave 
+    end subroutine NK_SIC_potential
     
   end interface
 

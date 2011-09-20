@@ -400,7 +400,7 @@ subroutine verify_file_presence(orbs,iformat)
      allfiles = .true.
      loop_binary: do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
-           call filename_of_iorb(.true.,"wavefunction",orbs,iorb,ispinor,filename,iorb_out)
+           call filename_of_iorb(.true.,"wavefunction.bin",orbs,iorb,ispinor,filename,iorb_out)
 
            inquire(file=filename,exist=onefile)
            allfiles=allfiles .and. onefile
@@ -415,6 +415,9 @@ subroutine verify_file_presence(orbs,iformat)
   end if
 
   if (allfiles) iformat=2
+
+  !otherwise, switch to normal input guess
+  if (.not. allfiles) iformat=0
 
 end subroutine verify_file_presence
 

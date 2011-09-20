@@ -14,8 +14,9 @@
 !!                   0 is the traditional potential application
 !!                   1 is the application of the exact exchange (which has to be precomputed and stored in the potential array)
 !!                   2 is the application of the Perdew-Zunger SIC
+!!                   3 is the application of the Non-Koopman's correction SIC
 subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
-     ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum)
+     ipotmethod,pot,psi,hpsi,pkernel,ixc,alphaSIC,ekin_sum,epot_sum,eSIC_DC)
   use module_base
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian
@@ -28,14 +29,14 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension(*) :: pot !< the potential, with the dimension compatible with the ipotmethod flag
   !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
-  real(gp), intent(out) :: ekin_sum,epot_sum
+  real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   real(dp), dimension(:), pointer :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   integer :: i_all,i_stat,iorb,npot,nsoffset,oidx,ispot
   real(wp) :: exctXcoeff
-  real(gp) :: ekin,epot,kx,ky,kz,etest,eSICi
+  real(gp) :: ekin,epot,kx,ky,kz,etest,eSICi,eSIC_DCi
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir
 
@@ -48,7 +49,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      stop
   end if
 
-  if ((associated(pkernel) .or. alphaSIC /=0.0_gp) .neqv. ipotmethod == 2) then
+  if (.not.(associated(pkernel) .and. alphaSIC /=0.0_gp) .and. ipotmethod == 2) then
      if (iproc==0) write(*,*)&
           'ERROR (local_hamiltonian): potential method not compatible with SIC'
      stop
@@ -67,7 +68,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
 
   call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 
-  if (ipotmethod == 2) then! wavefunction after application of the self-interaction potential
+  if (ipotmethod == 2 .or. ipotmethod == 3) then! wavefunction after application of the self-interaction potential
      allocate(vsicpsir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,vsicpsir,'vsicpsir',subname)
   end if
@@ -75,6 +76,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
 
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
+  eSIC_DC=0.0_gp
 
   etest=0.0_gp
 
@@ -97,34 +99,35 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      !print *,'epot, iorb,iproc,norbp',iproc,orbs%norbp,iorb,etest
 
      !Perdew-Zunger SIC scheme
+     eSIC_DCi=0.0_gp
      if (ipotmethod == 2) then
-        call PZ_SIC_potential(iorb,lr,orbs,ixc,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psir,vsicpsir,eSICi)
+        call PZ_SIC_potential(iorb,lr,orbs,ixc,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
+     else if (ipotmethod == 3) then !NonKoopmans' correction scheme
+        call vcopy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir(1,1),1,vsicpsir(1,1),1)
+        call psir_to_vpsi(npot,orbs%nspinor,lr,&
+             pot(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin+(iorb-1)*lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor+1),vsicpsir,eSICi)
      end if
-     
 
      !apply the potential to the psir wavefunction and calculate potential energy
-     select case(lr%geocode)
-     case('F')
+     call psir_to_vpsi(npot,orbs%nspinor,lr,pot(nsoffset),psir,epot)
 
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot,&
-             lr%bounds%ibyyzz_r) !optional
-          
-     case('P') 
-        !here the hybrid BC act the same way
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot)
-
-     case('S')
-
-        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
-             pot(nsoffset),epot)
-     end select
-
-     !k-point values, if present
-     kx=orbs%kpts(1,orbs%iokpt(iorb))
-     ky=orbs%kpts(2,orbs%iokpt(iorb))
-     kz=orbs%kpts(3,orbs%iokpt(iorb))
+!!$     select case(lr%geocode)
+!!$     case('F')
+!!$
+!!$        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+!!$             pot(nsoffset),epot,&
+!!$             lr%bounds%ibyyzz_r) !optional
+!!$          
+!!$     case('P') 
+!!$        !here the hybrid BC act the same way
+!!$        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
+!!$             pot(nsoffset),epot)
+!!$
+!!$     case('S')
+!!$
+!!$        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
+!!$             pot(nsoffset),epot)
+!!$     end select
 
      if (ipotmethod==1) then
         ispot=1+lr%d%n1i*lr%d%n2i*lr%d%n3i*(orbs%nspin+iorb-1)
@@ -135,23 +138,34 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
         call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,-alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
         !add the SIC caorrection to the potential energy
         epot=epot-alphaSIC*eSICi
-        !accumulate the ESIC energy
+        !accumulate the Double-Counted SIC energy
+        eSIC_DC=eSIC_DC+alphaSIC*eSIC_DCi
+     else if (ipotmethod == 3) then
+        !add the sic potential from the vpsi function
+        call axpy(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
+        epot=epot+alphaSIC*eSICi
+        !accumulate the Double-Counted SIC energy
+        eSIC_DC=eSIC_DC+alphaSIC*orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eSICi
      end if
 
      !apply the kinetic term, sum with the potential and transform back to Daubechies basis
+     !k-point values, if present
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
           psir,hpsi(1,oidx),ekin)
+
      !print *,iorb, ekin, epot,orbs%kwgts(orbs%iokpt(iorb))
      ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
-
   enddo
 
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
-  if (ipotmethod == 2) then
+  if (ipotmethod == 2 .or. ipotmethod ==3) then
      i_all=-product(shape(vsicpsir))*kind(vsicpsir)
      deallocate(vsicpsir,stat=i_stat)
      call memocc(i_stat,i_all,'vsicpsir',subname)
@@ -218,6 +232,7 @@ END SUBROUTINE transpose_for_kpoints
 !>   routine for applying the local potentials
 !!   supports the non-collinear case, the buffer for tails and different Boundary Conditions
 !!   Optimal also for the complex wavefuntion case
+!!   might generalize the buffers for two different localization regions, provided that the potential lies in a bigger region
 subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
      ibyyzz_r) !optional
   use module_base

@@ -45,7 +45,8 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,geocode,nspin,lr,orbs,&
   
   !the number of groups is associated to the spin value
   !wavefunctions which belong to the same group has to be contiguously distributed on the processor
-  !this might poses problems once generalising this technique to different k-points.
+  !this might poses problems once generalising this technique to different k-points, since the k-points 
+  !should be considered altogether
   !A lookup array should be defined, once the Poisson Solver updated
   do iorb=1,norb
      if (orbs%spinsgn(iorb) == 1.0_gp) then
@@ -58,7 +59,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,geocode,nspin,lr,orbs,&
      objects_attributes(iorb,3)=lr%d%n1i*lr%d%n2i*lr%d%n3i !results
   end do
 
-
+  !call the module for executing the exctX routine
 
   i_all=-product(shape(orbs_attributes))*kind(orbs_attributes)
   deallocate(orbs_attributes,stat=i_stat)
@@ -80,14 +81,17 @@ module module_exctx_op2p
 
   public :: op2p_exctx_binding
 
-  character(len=1) :: geocode
+  integer :: ncalls,ncalltot
   real(gp) :: sfac,hfac,hxh,hyh,hzh,eexctX
+  character(len=1) :: geocode
   type(locreg_descriptors), pointer :: lr
   type(orbitals_data), pointer :: orbs
   real(dp), dimension(:), pointer :: pkernel
 
 contains
 
+  !> internal operation which calculates the partial densities for any of the orbitals
+  !! then uses these information to evaluate the exact exchange operator
   subroutine internal_exctx_operation(istep,iproc,igroup,remote_result,&
      isorb,jsorb,iorbs,jorbs,norbi,norbj,&
      nvctri,nvctrj,nvctri_results,nvctrj_results,&
@@ -105,7 +109,7 @@ contains
     real(wp), dimension(nvctri_results), intent(inout) :: dpsir_i
     real(wp), dimension(nvctrj_results), intent(inout) :: dpsir_j
     !local variables
-    integer :: iorb,jorb,i_all,i_stat,iorb_glob,jorb_glob
+    integer :: iorb,jorb,i_all,i_stat,iorb_glob,jorb_glob,ierr
     real(gp) :: hfaci,hfacj,hfac2,ehart
     real(wp), dimension(:), allocatable :: rp_ij
 
@@ -122,7 +126,7 @@ contains
           if (orbs%spinsgn(iorb_glob) /= orbs%spinsgn(jorb_glob)) then
              write(*,*)'ERROR in partitioning the orbitals',&
                   iorb_glob,jorb_glob,igroup,jsorb,iproc
-             stop
+             call MPI_ABORT(MPI_COMM_WORLD,ierr)
           end if
           hfaci=-sfac*orbs%occup(jorb_glob)
           !do it only for upper triangular results
@@ -137,18 +141,19 @@ contains
                 end do
              end if
              ncalls=ncalls+1                    
-             !Poisson solver in sequential
-             if (iproc == OP2P%iprocref .and. verbose > 1) then
-                write(*,'(1x,a,i3,a2)')'Exact exchange calculation: ',&
-                     nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp),' %'
-             end if
 
              call H_potential(geocode,'D',0,1,&
                   lr%d%n1i,lr%d%n2i,lr%d%n3i,hxh,hyh,hzh,&
                   rp_ij,pkernel,rp_ij,ehart,0.0_dp,.false.,&
                   quiet='YES')
 
-             !this factor is only valid with one k-point
+             !Poisson solver in sequential
+             if (iproc == OP2P%iprocref .and. verbose > 1) then
+                write(*,'(1x,a,i3,a2)')'Exact exchange calculation: ',&
+                     nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp),' %'
+             end if
+
+             !this factor is only valid with one k-point (weigth equal to one)
              !can be easily generalised to the k-point case
              hfac2=sfac*orbs%occup(iorb_glob)*orbs%occup(jorb_glob)
 
@@ -221,9 +226,13 @@ contains
 
     !here any processor will initialise the global communications arrays needed for executing the op2p
     !the operation is symmetric
+    !descriptors might be initialized outside of the routine
     call initialize_OP2P_descriptors(.true.,iproc,nproc,norb,orbs_attributes,norb_par,OP2P)
 
-    call OP2P_communication(iproc,nproc,OP2P,psir,dpsir,fake_operation)
+    !here the values necessary for the internal exctx operations should be passed
+    call bind_op2p_eexctx
+ 
+    call OP2P_communication(iproc,nproc,OP2P,psir,dpsir,internal_exctx_operation)
 
     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
     !print *,'iproc,icount2',iproc,icount
@@ -231,11 +240,14 @@ contains
 
   end subroutine op2p_exctx_binding
 
+  !> This routine uses the 
   subroutine bind_op2p_eexctx
     use module_base
     use module_types
     implicit none
     
+
+    ncalltot !to be calculated
   end subroutine bind_op2p_eexctx
 
 end module module_exctx_op2p
