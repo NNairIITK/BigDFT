@@ -3323,7 +3323,7 @@ logical:: same
               write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
           endif
 
-          if(it<=1) then
+          if(it<=10) then
               methTransformOverlap=0
           else
               methTransformOverlap=lin%methTransformOverlap
