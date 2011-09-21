@@ -77,9 +77,9 @@ subroutine standard_inputfile_names(inputs, radical)
   inputs%file_mix=trim(rad) // '.mix'
   inputs%file_sic=trim(rad) // '.sic'
   if (trim(rad) == "input") then
-     inputs%file_radical="output"
+     inputs%file_output="data"
   else
-     inputs%file_radical=trim(rad)
+     inputs%file_output=trim(rad)
   end if
 END SUBROUTINE standard_inputfile_names
 
