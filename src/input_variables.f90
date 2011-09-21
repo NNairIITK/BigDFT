@@ -76,7 +76,11 @@ subroutine standard_inputfile_names(inputs, radical)
   inputs%file_tddft=trim(rad) // '.tddft'
   inputs%file_mix=trim(rad) // '.mix'
   inputs%file_sic=trim(rad) // '.sic'
-  inputs%file_radical=trim(rad)
+  if (trim(rad) == "input") then
+     inputs%file_radical="output"
+  else
+     inputs%file_radical=trim(rad)
+  end if
 END SUBROUTINE standard_inputfile_names
 
 

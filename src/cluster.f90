@@ -1186,7 +1186,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
      ! Create a directory to put the files in.
      if (iproc == 0) then
-        call mkdir(in%file_radical, len_trim(in%file_radical), dir, 128, i_stat)
+        call getdir(in%file_output, len_trim(in%file_output), dir, 128, i_stat)
         if (i_stat /= 0) write(*,*) "WARNING cannot create output directory."
      end if
      call MPI_BCAST(dir,128,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)

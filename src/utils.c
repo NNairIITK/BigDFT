@@ -32,9 +32,9 @@ char* strndup(const char *src, size_t len)
 }
 #endif
 
-void FC_FUNC(mkdir, MKDIR)(const char *dir, int *lgDir,
-                           char *out, int *lgOut,
-                           int *status)
+void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
+                             char *out, int *lgOut,
+                             int *status)
 {
   char *path;
   struct stat sb;
@@ -52,13 +52,13 @@ void FC_FUNC(mkdir, MKDIR)(const char *dir, int *lgDir,
       if (S_ISDIR(sb.st_mode))
         {
           *status = 0;
-          return;
+          lgCpy = ((*lgDir > *lgOut - 1)?*lgOut - 1:*lgDir);
+          memcpy(out, dir, sizeof(char) * lgCpy);
+          out[lgCpy] = '/';
         }
       else
-        {
-          *status = 1;
-          return;
-        }
+        *status = 1;
+      return;
     }
 
   /* Try to create it. */
