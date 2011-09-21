@@ -780,7 +780,7 @@ end subroutine dirac_hara
 !! SOURCE
 !!
 function GetBottom( atoms, iproc, nspin)
-  
+   
   use module_base
   use module_types
   use module_interfaces,except_this_one => GetBottom
@@ -831,7 +831,7 @@ function GetBottom( atoms, iproc, nspin)
         if (ity.eq.atoms%iatype(iat)) exit
      end do
      call count_atomic_shells(lmax,noccmax,nelecmax,nspin,nspinor,atoms%aocc(1,iat),occup,nl)
-
+ 
      call iguess_generator_modified(atoms%nzatom(ity),atoms%nelpsp(ity),&
           real(atoms%nelpsp(ity),gp),atoms%psppar(0,0,ity),&
           atoms%npspcode(ity),&

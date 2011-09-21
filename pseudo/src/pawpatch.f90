@@ -53,7 +53,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   integer ierr, isx
   integer LPaw, n, Nsol
   integer igrid
-  real(8), pointer :: psi_initial(:), dumpsi_p(:)
+  real(8), pointer :: psi_initial_copy(:),psi_initial(:), dumpsi_p(:)
   real(8) dum_energy
   character(1000) filename
   character(len=125) :: pawstatom
@@ -293,6 +293,7 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
 
   allocate( psigrid_bigger(Ngrid  , Nsol ))
 
+  allocate(psi_initial_copy( Ngrid )) 
   allocate(psi_initial( Ngrid )) 
   allocate(dumpsi_p(Ngrid))
   allocate(expo(ng))
@@ -304,11 +305,11 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      aepot_cent= 0.5_8*staepot + (pawstL*(pawstL+1) )/rgrid/rgrid/2   !! energies were in Rydeberg
      
      call schro( dum_energy ,rgrid , &
-          aepot_cent  ,nonloc, psi_initial(1)   , Ngrid ,&
+          aepot_cent  ,nonloc, psi_initial_copy(1)   , Ngrid ,&
           pawstN  , pawstL  ,   znuc )
      
      ! dum_energy=-2000.0D0 
-     ! call difnrl(aepot_cent ,psi_initial(1) , dumpsi_p  ,&
+     ! call difnrl(aepot_cent ,psi_initial_copy(1) , dumpsi_p  ,&
      !      Ngrid, a,b, rgrid,rgrid_ab, pawstN+pawstL , pawstL , znuc,dum_energy, EMAX )
      
      
@@ -318,12 +319,12 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      write(filename,'(a,I0)')'psi_initial_L_',pawstL
      open(unit=22,file=trim(filename))
      do igrid=1, Ngrid
-        write(22,'(2(f20.10,1x))') rgrid(igrid),psi_initial(igrid )  
+        write(22,'(2(f20.10,1x))') rgrid(igrid),psi_initial_copy(igrid )  
      enddo
      close(unit=22)
      
      do igrid=1, Ngrid
-        psi_initial(igrid)=psi_initial(igrid)*rgrid(igrid)**pawstP 
+        psi_initial_copy(igrid)=psi_initial_copy(igrid)*rgrid(igrid)**pawstP 
      enddo
   endif
   
@@ -334,7 +335,8 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
   write(38,*) "------------------------------------------------------ "
 
   do LPaw=0, npawl-1     
-     
+     psi_initial=psi_initial_copy
+
      write(6,*)   "==============================================================="
      write(6,*)   "========== now CALCULATING PAWpatch correction  for l  =  " ,  LPaw
      write(6,*)   "==============================================================="
@@ -342,14 +344,10 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
      write(38,*)   "========= now CALCULATING PAWpatch correction  for l  =  " ,  LPaw
      write(38,*)   "==============================================================="
 
-     
-
-     aepot_cent=staepot*0.5_8 + (Lpaw*(Lpaw+1) )/rgrid/rgrid/2 
+     aepot_cent=aepot*0.5_8 + (Lpaw*(Lpaw+1) )/rgrid/rgrid/2 
 
      psigrid=0.0D0
      
-
-
      write(6,*)     "now calculating " , NSol, " function of the AE basis for LPaw=", LPaw 
      write(38,*)  "now calculating " , NSol, " function of the AE basis for LPaw=", LPaw 
 
@@ -359,8 +357,13 @@ subroutine pawpatch(energ,verbose,maxdim,pp,penal,&
              aepot_cent  ,nonloc,  psigrid(1, n )  , Ngrid_box ,&
              n+LPaw , Lpaw  ,   znuc )                     
         write(38,*)  "schro ae  n = ", n, " Egrid(n) " , Egrid(n),  "  lpaw " , Lpaw
+        if( psigrid(Ngrid_box-1, n)<0) then
+           do igrid=1, ngrid
+              psigrid(igrid, n)=-psigrid(igrid,n)
+           end do
+        endif
      enddo
-  
+ 
      if( dump_functions) then
         write(plotfile, '(a,i0,a)') 'ae.wfs.L=',LPaw,'.plt'
         open(unit=22,file= trim(plotfile) )

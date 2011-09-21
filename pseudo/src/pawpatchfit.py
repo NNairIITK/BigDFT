@@ -828,14 +828,28 @@ def AsciiMatrixReader(filename):
 lstart = string.atoi(sys.argv[1])
 lend   = string.atoi(sys.argv[2])
 
+ltot=0
+l_ltot=[]
 
 for lpartial in range(lstart, lend+1):
-
     nomefile="pawdata.L=%0d.dat" % lpartial
-
     s=open( nomefile ,"r").read()
     sl=string.split(s,"\n")
+    lpar=0
+    for l in sl:
+        if "now writing the dual functions and PAWpatch"  in l:
+            ltot=ltot+1
+            lpar=lpar+1
+    l_ltot.append(lpar)
 
+lcount=-1
+for lpartial in range(lstart, lend+1):
+  lcount+=1
+  nomefile="pawdata.L=%0d.dat" % lpartial
+
+  s=open( nomefile ,"r").read()
+  sl=string.split(s,"\n")
+  for volta in range(l_ltot[lcount]):
     while "now writing the dual functions and PAWpatch" not in sl[0]:
         del sl[0]
     del sl[0]
@@ -917,10 +931,10 @@ for lpartial in range(lstart, lend+1):
     gaussfit = results[0]["fitobject"]
 
 
-    if lpartial==lstart:
+    if lpartial==lstart and volta==0:
         f=open("pseudopaw","w")
         f.write("PAWPATCH\n")
-        f.write("%d           !!  paw_NofL\n "%  (lend-lstart+1)    )
+        f.write("%d           !!  paw_NofL\n "%  ltot    )
 
 
 
