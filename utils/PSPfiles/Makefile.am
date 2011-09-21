@@ -1,4 +1,5 @@
 EXTRA_DIST = \
+	README \
 	psppar.Al_lda \
 	psppar.Ca \
 	psppar.Cl \
@@ -33,4 +34,6 @@ EXTRA_DIST = \
 	HGH-K/psppar.O \
 	HGH-K/psppar.C \
 	HGH-K/psppar.N \
-	HGH-K/psppar.Ti
+	HGH-K/psppar.Ti \
+	Krach-LDA/*-q* \
+	Krach-PBE/*-q*
