@@ -1705,6 +1705,7 @@ do ilr=1,nlr
             mlr(ilr)%norbinlr=mlr(ilr)%norbinlr+1
         end if
     end do
+    !if(iproc==0) write(*,'(a,2i8)') 'ilr, mlr(ilr)%norbinlr', ilr, mlr(ilr)%norbinlr
     allocate(mlr(ilr)%indexInGlobal(mlr(ilr)%norbinlr), stat=istat)
     call memocc(istat, mlr(ilr)%indexInGlobal, 'mlr(ilr)%indexInGlobal', subname)
     !if(iproc==0) write(*,'(a,i4,i7)') 'ilr, mlr(ilr)%norbinlr', ilr, mlr(ilr)%norbinlr
@@ -1724,6 +1725,7 @@ do ilr=1,nlr
         if(ovrlpx .and. ovrlpy .and. ovrlpz) then
             ii=ii+1
             mlr(ilr)%indexInGlobal(ii)=jorb
+            !if(iproc==0) write(*,'(a,3i8)') 'ilr, ii, mlr(ilr)%indexInGlobal(ii)', ilr, ii, mlr(ilr)%indexInGlobal(ii)
         end if
     end do
     if(ii/=mlr(ilr)%norbinlr) then
@@ -1900,7 +1902,7 @@ type(matrixLocalizationRegion),dimension(lzd%nlr),intent(in):: mlr
 type(p2pCommsOrthonormalityMatrix),intent(out):: comom
 
 ! Local variables
-integer:: ilr, jlr, klr, novrlp, korb, istat, jlrold, jjlr, jjorb, jorb, kkorb, lorb, iorb
+integer:: ilr, jlr, klr, novrlp, korb, istat, jlrold, jjlr, jjorb, jorb, kkorb, lorb, iorb, jorbout, iiorb
 integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, ks1, ke1, ks2, ke2, ks3, ke3
 logical:: ovrlpx_ki, ovrlpy_ki, ovrlpz_ki, ovrlpx_kj, ovrlpy_kj, ovrlpz_kj, ovrlpx, ovrlpy, ovrlpz
 logical:: overlapFound
@@ -1914,15 +1916,27 @@ call memocc(istat, comom%noverlap, 'comom%noverlap', subname)
 do ilr=1,lzd%nlr
     call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
     novrlp=0
-    do jorb=1,orbs%norb
-        jlr=onWhichAtomPhi(jorb)
-        call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-        ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-        ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-        ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-        if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-            novrlp=novrlp+1
-        end if
+    do jorbout=1,orbs%norb
+        jlr=onWhichAtomPhi(jorbout)
+        !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        !!ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+        !!ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+        !!ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+        !!if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+        !!    novrlp=novrlp+1
+        !!end if
+        ! THIS IS NEW ############################
+        ! Check whether there is a common element.
+        outloop1: do iorb=1,mlr(ilr)%norbinlr
+            iiorb=mlr(ilr)%indexInGlobal(iorb)
+            do jorb=1,mlr(jlr)%norbinlr
+                jjorb=mlr(jlr)%indexInGlobal(jorb)
+                if(iiorb==jjorb) then
+                    novrlp=novrlp+1
+                    exit outloop1
+                end if
+            end do
+        end do outloop1
     end do
     comom%noverlap(ilr)=novrlp
     !!if(iproc==0) write(*,*) 'ilr, comom%noverlap(ilr)', ilr, comom%noverlap(ilr) 
@@ -1935,17 +1949,31 @@ do ilr=1,lzd%nlr
     comom%overlaps(:,ilr)=0
     call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
     novrlp=0
-    do jorb=1,orbs%norb
-        jlr=onWhichAtomPhi(jorb)
-        call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-        ovrlpx = ( is1<=je1 .and. ie1>=js1 )
-        ovrlpy = ( is2<=je2 .and. ie2>=js2 )
-        ovrlpz = ( is3<=je3 .and. ie3>=js3 )
-        if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-            novrlp=novrlp+1
-            comom%overlaps(novrlp,ilr)=jorb
-            if(iproc==0) write(*,'(2(a,i0))') 'locreg ',ilr,' overlaps with orbital ',jorb
-        end if
+    do jorbout=1,orbs%norb
+        jlr=onWhichAtomPhi(jorbout)
+        !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        !!ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+        !!ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+        !!ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+        !!if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+        !!    novrlp=novrlp+1
+        !!    comom%overlaps(novrlp,ilr)=jorbout
+        !!    if(iproc==0) write(*,'(2(a,i0))') 'locreg ',ilr,' overlaps with orbital ',jorbout
+        !!end if
+        ! THIS IS NEW ############################
+        ! Check whether there is a common element.
+        outloop2: do iorb=1,mlr(ilr)%norbinlr
+            iiorb=mlr(ilr)%indexInGlobal(iorb)
+            do jorb=1,mlr(jlr)%norbinlr
+                jjorb=mlr(jlr)%indexInGlobal(jorb)
+                if(iiorb==jjorb) then
+                    novrlp=novrlp+1
+                    comom%overlaps(novrlp,ilr)=jorbout
+                    !if(iproc==0) write(*,'(2(a,i0))') 'locreg ',ilr,' overlaps with orbital ',jorbout
+                    exit outloop2
+                end if
+            end do
+        end do outloop2
     end do
     !!if(iproc==0) write(*,'(a,i4,3x,100i5)') 'ilr, comom%overlaps(,ilr)', ilr, comom%overlaps(:,ilr) 
 end do
@@ -1963,29 +1991,42 @@ end do
 do ilr=1,lzd%nlr
     call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
     comom%olr(:,ilr)%norbinlr=0
-    do jorb=1,comom%noverlap(ilr)
-        jjorb=comom%overlaps(jorb,ilr)
+    do jorbout=1,comom%noverlap(ilr)
+        jjorb=comom%overlaps(jorbout,ilr)
         jlr=onWhichAtomPhi(jjorb)
-        call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
-        do korb=1,mlr(jlr)%norbinlr
-            lorb=mlr(jlr)%indexInGlobal(korb)
-            klr=onWhichAtom(lorb)
-            call getIndices(lzd%llr(klr), ks1, ke1, ks2, ke2, ks3, ke3)
-            ovrlpx_ki = ( ks1<=ie1 .and. ke1>=is1 )
-            ovrlpy_ki = ( ks2<=ie2 .and. ke2>=is2 )
-            ovrlpz_ki = ( ks3<=ie3 .and. ke3>=is3 )
-            ovrlpx_kj = ( ks1<=je1 .and. ke1>=js1 )
-            ovrlpy_kj = ( ks2<=je2 .and. ke2>=js2 )
-            ovrlpz_kj = ( ks3<=je3 .and. ke3>=js3 )
-            ovrlpx = ( ovrlpx_ki .and. ovrlpx_kj )
-            ovrlpy = ( ovrlpy_ki .and. ovrlpy_kj )
-            ovrlpz = ( ovrlpz_ki .and. ovrlpz_kj )
-            if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-                comom%olr(jorb,ilr)%norbinlr=comom%olr(jorb,ilr)%norbinlr+1
-            end if
+        !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        !!do korb=1,mlr(jlr)%norbinlr
+        !!    lorb=mlr(jlr)%indexInGlobal(korb)
+        !!    klr=onWhichAtom(lorb)
+        !!    call getIndices(lzd%llr(klr), ks1, ke1, ks2, ke2, ks3, ke3)
+        !!    ovrlpx_ki = ( ks1<=ie1 .and. ke1>=is1 )
+        !!    ovrlpy_ki = ( ks2<=ie2 .and. ke2>=is2 )
+        !!    ovrlpz_ki = ( ks3<=ie3 .and. ke3>=is3 )
+        !!    ovrlpx_kj = ( ks1<=je1 .and. ke1>=js1 )
+        !!    ovrlpy_kj = ( ks2<=je2 .and. ke2>=js2 )
+        !!    ovrlpz_kj = ( ks3<=je3 .and. ke3>=js3 )
+        !!    ovrlpx = ( ovrlpx_ki .and. ovrlpx_kj )
+        !!    ovrlpy = ( ovrlpy_ki .and. ovrlpy_kj )
+        !!    ovrlpz = ( ovrlpz_ki .and. ovrlpz_kj )
+        !!    if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+        !!        comom%olr(jorbout,ilr)%norbinlr=comom%olr(jorbout,ilr)%norbinlr+1
+        !!    end if
+        !!end do
+        ! THIS IS NEW ############################
+        ! Check whether there is a common element.
+        do iorb=1,mlr(ilr)%norbinlr
+            iiorb=mlr(ilr)%indexInGlobal(iorb)
+            do jorb=1,mlr(jlr)%norbinlr
+                jjorb=mlr(jlr)%indexInGlobal(jorb)
+                if(iiorb==jjorb) then
+                    novrlp=novrlp+1
+                    comom%olr(jorbout,ilr)%norbinlr=comom%olr(jorbout,ilr)%norbinlr+1
+                    !exit
+                end if
+            end do
         end do
-        allocate(comom%olr(jorb,ilr)%indexInGlobal(comom%olr(jorb,ilr)%norbinlr), stat=istat)
-        call memocc(istat, comom%olr(jorb,ilr)%indexInGlobal, 'comom%olr(jorb,ilr)%indexInGlobal', subname)
+        allocate(comom%olr(jorbout,ilr)%indexInGlobal(comom%olr(jorbout,ilr)%norbinlr), stat=istat)
+        call memocc(istat, comom%olr(jorbout,ilr)%indexInGlobal, 'comom%olr(jorbout,ilr)%indexInGlobal', subname)
     end do
 end do
 
@@ -1999,29 +2040,47 @@ end do
 ! Determine the indices to switch from global region to localization region.
 do ilr=1,lzd%nlr
     call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
-    do jorb=1,comom%noverlap(ilr)
-        jjorb=comom%overlaps(jorb,ilr)
+    do jorbout=1,comom%noverlap(ilr)
+        jjorb=comom%overlaps(jorbout,ilr)
         jlr=onWhichAtomPhi(jjorb)
-        call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        !!kkorb=0
+        !!comom%olr(jorbout,ilr)%indexInGlobal(:)=0
+        !!do korb=1,mlr(jlr)%norbinlr
+        !!    lorb=mlr(jlr)%indexInGlobal(korb)
+        !!    klr=onWhichAtom(lorb)
+        !!    call getIndices(lzd%llr(klr), ks1, ke1, ks2, ke2, ks3, ke3)
+        !!    ovrlpx_ki = ( ks1<=ie1 .and. ke1>=is1 )
+        !!    ovrlpy_ki = ( ks2<=ie2 .and. ke2>=is2 )
+        !!    ovrlpz_ki = ( ks3<=ie3 .and. ke3>=is3 )
+        !!    ovrlpx_kj = ( ks1<=je1 .and. ke1>=js1 )
+        !!    ovrlpy_kj = ( ks2<=je2 .and. ke2>=js2 )
+        !!    ovrlpz_kj = ( ks3<=je3 .and. ke3>=js3 )
+        !!    ovrlpx = ( ovrlpx_ki .and. ovrlpx_kj )
+        !!    ovrlpy = ( ovrlpy_ki .and. ovrlpy_kj )
+        !!    ovrlpz = ( ovrlpz_ki .and. ovrlpz_kj )
+        !!    if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+        !!        kkorb=kkorb+1
+        !!        comom%olr(jorbout,ilr)%indexInGlobal(kkorb)=korb
+        !!        !if(iproc==0) write(*,'(a,4i9)') 'orbitals in overlap region: ilr, jlr, kkorb, comom%olr(jorbout,ilr)%indexInGlobal(kkorb)', ilr, jlr, kkorb, comom%olr(jorbout,ilr)%indexInGlobal(kkorb)
+        !!    end if
+        !!end do
+        ! THIS IS NEW ############################
+        ! Check whether there is a common element.
         kkorb=0
-        comom%olr(jorb,ilr)%indexInGlobal(:)=0
-        do korb=1,mlr(jlr)%norbinlr
-            lorb=mlr(jlr)%indexInGlobal(korb)
-            klr=onWhichAtom(lorb)
-            call getIndices(lzd%llr(klr), ks1, ke1, ks2, ke2, ks3, ke3)
-            ovrlpx_ki = ( ks1<=ie1 .and. ke1>=is1 )
-            ovrlpy_ki = ( ks2<=ie2 .and. ke2>=is2 )
-            ovrlpz_ki = ( ks3<=ie3 .and. ke3>=is3 )
-            ovrlpx_kj = ( ks1<=je1 .and. ke1>=js1 )
-            ovrlpy_kj = ( ks2<=je2 .and. ke2>=js2 )
-            ovrlpz_kj = ( ks3<=je3 .and. ke3>=js3 )
-            ovrlpx = ( ovrlpx_ki .and. ovrlpx_kj )
-            ovrlpy = ( ovrlpy_ki .and. ovrlpy_kj )
-            ovrlpz = ( ovrlpz_ki .and. ovrlpz_kj )
-            if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-                kkorb=kkorb+1
-                comom%olr(jorb,ilr)%indexInGlobal(kkorb)=korb
-            end if
+        do iorb=1,mlr(ilr)%norbinlr
+            iiorb=mlr(ilr)%indexInGlobal(iorb)
+            do jorb=1,mlr(jlr)%norbinlr
+                jjorb=mlr(jlr)%indexInGlobal(jorb)
+                if(iiorb==jjorb) then
+                    kkorb=kkorb+1
+                    !comom%olr(jorbout,ilr)%indexInGlobal(kkorb)=iiorb
+                    !comom%olr(jorbout,ilr)%indexInGlobal(kkorb)=iorb
+                    comom%olr(jorbout,ilr)%indexInGlobal(kkorb)=jorb
+                    !if(iproc==0) write(*,'(a,4i9)') 'orbitals in overlap region: ilr, jlr, kkorb, comom%olr(jorbout,ilr)%indexInGlobal(kkorb)', ilr, jlr, kkorb, comom%olr(jorbout,ilr)%indexInGlobal(kkorb)
+                    !exit
+                end if
+            end do
         end do
     end do
 end do
@@ -2214,16 +2273,16 @@ call memocc(istat, ovrlp, 'ovrlp', subname)
 
 do it=1,nItOrtho
 
-  !! THIS IS A TEST !!
-  do iorb=1,orbs%norbp
-    ilr=onWhichAtom(iorb+orbs%isorb)
-    write(*,'(3(a,i0))') 'iproc=',iproc,', iorb=',iorb,' calls with ilr=',ilr
-    call vectorLocalToGlobal(orbs%norb, mlr(ilr), vec(1,iorb), vecglobal(1))
-    do i=1,orbs%norb
-        write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
-    end do
-  end do
-  !!!!!!!!!!!!!!!!!!!!
+  !!!! THIS IS A TEST !!
+  !!do iorb=1,orbs%norbp
+  !!  ilr=onWhichAtom(iorb+orbs%isorb)
+  !!  write(*,'(3(a,i0))') 'iproc=',iproc,', iorb=',iorb,' calls with ilr=',ilr
+  !!  call vectorLocalToGlobal(orbs%norb, mlr(ilr), vec(1,iorb), vecglobal(1))
+  !!  do i=1,orbs%norb
+  !!      write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
+  !!  end do
+  !!end do
+  !!!!!!!!!!!!!!!!!!!!!!
  
   call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
   call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
@@ -2282,7 +2341,7 @@ do it=1,nItOrtho
   ! Normalize the vectors
   do iorb=1,norbp
       tt=dnrm2(norbmax, vec(1,iorb), 1)
-      write(*,'(a,2i8,es14.6)') 'iproc, iorb, tt',iproc, iorb, tt
+      !write(*,'(a,2i8,es14.6)') 'iproc, iorb, tt',iproc, iorb, tt
       call dscal(norbmax, 1/tt, vec(1,iorb), 1)
   end do
 
@@ -2425,7 +2484,7 @@ do jproc=0,nproc-1
         mpidest=comom%comarr(4,iorb,jproc)
         istdest=comom%comarr(5,iorb,jproc)
         tag=comom%comarr(6,iorb,jproc)
-        if(iproc==0) write(*,'(a,4i9)') 'jproc, iorb, mpisource, mpidest', jproc, iorb, mpisource, mpidest
+        !if(iproc==0) write(*,'(a,4i9)') 'jproc, iorb, mpisource, mpidest', jproc, iorb, mpisource, mpidest
         if(mpisource/=mpidest) then
             ! The orbitals are on different processes, so we need a point to point communication.
             if(iproc==mpisource) then
