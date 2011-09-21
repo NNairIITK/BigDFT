@@ -2186,25 +2186,7 @@ subroutine deallocate_atoms(atoms,subname)
   if (atoms%symObj >= 0) then
      call ab6_symmetry_free(atoms%symObj)
   end if
-END SUBROUTINE deallocate_atoms
-
-
-!> Deallocate the structure atoms_data after scf loop.
-subroutine deallocate_atoms_scf(atoms,subname) 
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: subname
-  type(atoms_data), intent(inout) :: atoms
-  !local variables
-  integer :: i_stat, i_all
-  !semicores useful only for the input guess
-  i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-  deallocate(atoms%iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%iasctype',subname)
-  i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
-  deallocate(atoms%aocc,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%aocc',subname)
+  ! Deallocations related to pseudos.
   i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
   deallocate(atoms%nzatom,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%nzatom',subname)
@@ -2232,7 +2214,25 @@ subroutine deallocate_atoms_scf(atoms,subname)
   i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
   deallocate(atoms%radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%radii_cf',subname)
+END SUBROUTINE deallocate_atoms
 
+
+!> Deallocate the structure atoms_data after scf loop.
+subroutine deallocate_atoms_scf(atoms,subname) 
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: subname
+  type(atoms_data), intent(inout) :: atoms
+  !local variables
+  integer :: i_stat, i_all
+  !semicores useful only for the input guess
+  i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
+  deallocate(atoms%iasctype,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%iasctype',subname)
+  i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
+  deallocate(atoms%aocc,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%aocc',subname)
 END SUBROUTINE deallocate_atoms_scf
 
 

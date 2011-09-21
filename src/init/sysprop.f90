@@ -158,7 +158,7 @@ subroutine init_atomic_values(iproc, atoms)
   !local variables
   character(len=*), parameter :: subname='init_atomic_values'
   integer :: nlcc_dim, ityp, ig, j, ngv, ngc, i_stat
-  logical :: exists
+  logical :: exists, read_radii
   character(len=27) :: filename
   
   !allocate atoms data variables
@@ -190,8 +190,14 @@ subroutine init_atomic_values(iproc, atoms)
      filename = 'psppar.'//atoms%atomnames(ityp)
      call psp_from_file(iproc, filename, atoms%nzatom(ityp), atoms%nelpsp(ityp), &
           & atoms%npspcode(ityp), atoms%ixcpsp(ityp), atoms%psppar(:,:,ityp), &
-          & atoms%radii_cf(ityp, :), exists)
-     if (.not. exists) atoms%radii_cf(ityp, :) = UNINITIALIZED(1.0_gp)
+          & atoms%radii_cf(ityp, :), read_radii, exists)
+     if (.not. read_radii) atoms%radii_cf(ityp, :) = UNINITIALIZED(1.0_gp)
+     if (.not. exists) then
+        write(*,'(1x,3a)')&
+             'ERROR: The pseudopotential parameter file "',trim(filename),&
+             '" is lacking, exiting...'
+        stop
+     end if
      filename ='nlcc.'//atoms%atomnames(ityp)
      call nlcc_dim_from_file(filename, atoms%nlcc_ngv(ityp), &
           & atoms%nlcc_ngc(ityp), nlcc_dim, exists)
@@ -227,7 +233,7 @@ subroutine init_atomic_values(iproc, atoms)
 end subroutine init_atomic_values
 
 subroutine psp_from_file(iproc, filename, nzatom, nelpsp, npspcode, &
-     & ixcpsp, psppar, radii_cf, read_radii)
+     & ixcpsp, psppar, radii_cf, read_radii, exists)
   use module_base
   implicit none
   
@@ -235,20 +241,14 @@ subroutine psp_from_file(iproc, filename, nzatom, nelpsp, npspcode, &
   integer, intent(in) :: iproc
   integer, intent(out) :: nzatom, nelpsp, npspcode, ixcpsp
   real(gp), intent(out) :: psppar(0:4,0:6), radii_cf(3)
-  logical, intent(out) :: read_radii
+  logical, intent(out) :: read_radii, exists
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l
   character(len=100) :: line
-  logical :: exists
 
   inquire(file=trim(filename),exist=exists)
-  if (.not. exists) then
-     !if (iproc == 0) 
-     write(*,'(1x,3a)')&
-          'ERROR: The pseudopotential parameter file "',trim(filename),&
-          '" is lacking, exiting...'
-     stop
-  end if
+  if (.not. exists) return
+
   ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
   open(unit=11,file=trim(filename),status='old',iostat=ierror)
   !Check the open statement
