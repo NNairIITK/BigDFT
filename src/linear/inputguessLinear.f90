@@ -2177,6 +2177,8 @@ allocate(comom%overlapsProc(maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat
 call memocc(istat, comom%overlapsProc, 'comom%overlapsProc', subname)
 allocate(comom%communComplete(maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
 call memocc(istat, comom%communComplete, 'comom%communComplete', subname)
+allocate(comom%requests(maxval(comom%noverlapProc(:)),2), stat=istat)
+call memocc(istat, comom%requests, 'comom%requests', subname)
 
 comom%nsendBuf=0
 comom%nrecvBuf=0
@@ -2285,8 +2287,10 @@ do it=1,nItOrtho
   !!!!!!!!!!!!!!!!!!!!!!
  
   call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
-  call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
-  call gatherVectors(iproc, nproc, newComm, comom)
+  !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
+  !call gatherVectors(iproc, nproc, newComm, comom)
+  call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+  call gatherVectorsNew(iproc, nproc, comom)
   
   call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
   
@@ -2405,8 +2409,10 @@ allocate(ovrlp(orbs%norb,orbs%norb), stat=istat)
 call memocc(istat, ovrlp, 'ovrlp', subname)
 
 call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, grad, comom)
-call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
-call gatherVectors(iproc, nproc, newComm, comom)
+!call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
+!call gatherVectors(iproc, nproc, newComm, comom)
+call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+call gatherVectorsNew(iproc, nproc, comom)
 
 call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, gradOvrlp)
 
@@ -2425,8 +2431,10 @@ end do
 
 ! Now we also have to calculate the overlap matrix.
 call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
-call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
-call gatherVectors(iproc, nproc, newComm, comom)
+!call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
+!call gatherVectors(iproc, nproc, newComm, comom)
+call postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+call gatherVectorsNew(iproc, nproc, comom)
 call expandFromOverlapregion(iproc, nproc, isorb, norbp, orbs, onWhichAtom, comom, norbmax, noverlaps, vecOvrlp)
 call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vec,&
      vecOvrlp, newComm, ovrlp)
@@ -2530,6 +2538,73 @@ end subroutine postCommsVectorOrthonormalization
 
 
 
+
+subroutine postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, newComm
+type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+
+! Local variables
+integer:: isend, irecv, jproc, iorb, mpisource, istsource, ncount, mpidest, istdest, tag, ierr
+
+irecv=0
+comom%communComplete=.false.
+do jproc=0,nproc-1
+    do iorb=1,comom%noverlapProc(jproc)
+        mpisource=comom%comarr(1,iorb,jproc)
+        istsource=comom%comarr(2,iorb,jproc)
+        ncount=comom%comarr(3,iorb,jproc)
+        mpidest=comom%comarr(4,iorb,jproc)
+        istdest=comom%comarr(5,iorb,jproc)
+        tag=comom%comarr(6,iorb,jproc)
+        ! The orbitals are on different processes, so we need a point to point communication.
+        if(iproc==mpidest) then
+            !write(*,'(6(a,i0))') 'process ', mpidest, ' receives ', ncount, ' elements at position ', istdest, ' from position ', istsource, ' on process ', mpisource, ', tag=',tag
+            tag=iorb
+            irecv=irecv+1
+            call mpi_irecv(comom%recvBuf(istdest), ncount, mpi_double_precision, mpisource, tag, newComm,&
+                 comom%requests(irecv,2), ierr)
+        end if
+    end do
+end do
+
+! Number of receives per process, will be used later
+comom%nrecv=irecv
+
+isend=0
+do jproc=0,nproc-1
+    do iorb=1,comom%noverlapProc(jproc)
+        mpisource=comom%comarr(1,iorb,jproc)
+        istsource=comom%comarr(2,iorb,jproc)
+        ncount=comom%comarr(3,iorb,jproc)
+        mpidest=comom%comarr(4,iorb,jproc)
+        istdest=comom%comarr(5,iorb,jproc)
+        tag=comom%comarr(6,iorb,jproc)
+        ! The orbitals are on different processes, so we need a point to point communication.
+        if(iproc==mpisource) then
+            !write(*,'(6(a,i0))') 'process ', mpisource, ' sends ', ncount, ' elements from position ', istsource, ' to position ', istdest, ' on process ', mpidest, ', tag=',tag
+            tag=iorb
+            isend=isend+1
+            call mpi_isend(comom%sendBuf(istsource), ncount, mpi_double_precision, mpidest, tag, newComm,&
+                 comom%requests(isend,1), ierr)
+        end if
+    end do
+end do
+! Number of sends per process, will be used later
+comom%nsend=isend
+
+
+end subroutine postCommsVectorOrthonormalizationNew
+
+
+
+
+
+
 subroutine gatherVectors(iproc, nproc, newComm, comom)
 use module_base
 use module_types
@@ -2595,6 +2670,51 @@ end do
 
 
 end subroutine gatherVectors
+
+
+
+
+
+
+subroutine gatherVectorsNew(iproc, nproc, comom)
+  use module_base
+  use module_types
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+  
+  ! Local variables
+  integer:: i, nsend, nrecv, ind, ierr
+  
+  
+  nsend=0
+  waitLoopSend: do
+      call mpi_waitany(comom%nsend-nsend, comom%requests(1,1), ind, mpi_status_ignore, ierr)
+      nsend=nsend+1
+      do i=ind,comom%nsend-nsend
+          comom%requests(i,1)=comom%requests(i+1,1)
+      end do
+      if(nsend==comom%nsend) exit waitLoopSend
+  end do waitLoopSend
+  
+  
+  nrecv=0
+  waitLoopRecv: do
+      call mpi_waitany(comom%nrecv-nrecv, comom%requests(1,2), ind, mpi_status_ignore, ierr)
+      nrecv=nrecv+1
+      do i=ind,comom%nrecv-nrecv
+          comom%requests(i,2)=comom%requests(i+1,2)
+      end do
+      if(nrecv==comom%nrecv) exit waitLoopRecv
+  end do waitLoopRecv
+
+end subroutine gatherVectorsNew
+
+
+
+
 
 
 

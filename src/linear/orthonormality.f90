@@ -4054,6 +4054,24 @@ do i=1,comon%nrecv
 end do
 
 
+! Wait for the sends to complete.
+t1=mpi_wtime()
+nsend=0
+waitLoopSend: do
+    !!call mpi_waitsome(comon%nsend, comon%requests(1,1), ncomplete, indcomplete, mpi_statuses_ignore, ierr)
+    !!nsend=nsend+ncomplete
+    !!if(nsend==comon%nsend) exit waitLoopSend
+    call mpi_waitany(comon%nsend-nsend, comon%requests(1,1), ind, mpi_status_ignore, ierr)
+    nsend=nsend+1
+    do i=ind,comon%nsend-nsend
+        comon%requests(i,1)=comon%requests(i+1,1)
+    end do
+    if(nsend==comon%nsend) exit waitLoopSend
+end do waitLoopSend
+t2=mpi_wtime()
+timecommunp2p=timecommunp2p+t2-t1
+
+
 
 ovrlp=0.d0
 nrecv=0

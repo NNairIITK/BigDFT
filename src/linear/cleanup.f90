@@ -1364,6 +1364,7 @@ subroutine deallocate_p2pCommsOrthonormalityMatrix(comom, subname)
   call checkAndDeallocatePointer(comom%recvBuf, 'comom%recvBuf', subname)
   call checkAndDeallocatePointer(comom%sendBuf, 'comom%sendBuf', subname)
   call checkAndDeallocatePointer(comom%communComplete, 'comom%communComplete', subname)
+  call checkAndDeallocatePointer(comom%requests, 'comom%requests', subname)
 
   iis1=lbound(comom%olr,1)
   iie1=ubound(comom%olr,1)

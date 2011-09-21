@@ -4853,6 +4853,25 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          type(matrixDescriptors),intent(out):: mad
        end subroutine initMatrixCompressionForInguess
 
+
+       subroutine postCommsVectorOrthonormalizationNew(iproc, nproc, newComm, comom)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, newComm
+         type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+       end subroutine postCommsVectorOrthonormalizationNew
+
+
+       subroutine gatherVectorsNew(iproc, nproc, comom)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
+       end subroutine gatherVectorsNew
+
+
   end interface
 
 end module module_interfaces

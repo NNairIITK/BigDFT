@@ -472,9 +472,9 @@ module module_types
 
 
   type,public:: p2pCommsOrthonormalityMatrix
-      integer:: nrecvBuf, nsendBuf
+      integer:: nrecvBuf, nsendBuf, nrecv, nsend
       integer,dimension(:),pointer:: noverlap, noverlapProc
-      integer,dimension(:,:),pointer:: overlaps, indexInRecvBuf, overlapsProc
+      integer,dimension(:,:),pointer:: overlaps, indexInRecvBuf, overlapsProc, requests
       integer,dimension(:,:,:),pointer:: comarr, olrForExpansion
       real(8),dimension(:),pointer:: recvBuf, sendBuf
       logical,dimension(:,:),pointer:: communComplete
