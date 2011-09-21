@@ -6,6 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Routine to plot wavefunctions (old version)
 subroutine plot_wf_old(kindplot,orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
@@ -290,7 +293,8 @@ subroutine plot_pot_full(nexpo,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
      nl1,nl2,nl3,orbname,pot,comment)
   use module_base
   implicit none
-  character(len=11), intent(in) :: orbname,comment
+  character(len=10), intent(in) :: comment
+  character(len=11), intent(in) :: orbname
   integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i,nexpo
   real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(*), intent(in) :: pot
@@ -1273,6 +1277,7 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
 END SUBROUTINE plot_wf
 
 
+!> Read density or potential in cube format
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz, iatypes, znucl)
   use module_base
@@ -1398,7 +1403,7 @@ contains
     allocate(rxyz(3,nat+ndebug),stat=i_stat)
     call memocc(i_stat,rxyz,'rxyz',subname)
     allocate(iatypes(nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rxyz,'rxyz',subname)
+    call memocc(i_stat,iatypes,'iatypes',subname)
     allocate(znucl_(nat+ndebug),stat=i_stat)
     call memocc(i_stat,znucl_,'znucl_',subname)
     znucl_(:) = -1

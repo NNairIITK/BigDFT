@@ -54,7 +54,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   end if
 
   if (iproc == 0) then
-     write(*,'(1x,a,1pe12.5)')'Mean L2 norm of gaussian-wavelet difference:',&
+     write(*,'(1x,a,1pe12.4)')'Mean L2 norm of gaussian-wavelet difference:',&
           sqrt(maxdiff/real(orbs%norb,wp))
   end if
   i_all=-product(shape(workpsi))*kind(workpsi)
@@ -1736,7 +1736,7 @@ END SUBROUTINE segments_to_grid
 !> Parse the output of CP2K to read the basis set information
 subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hx,hy,hz,psi,eks)
+     nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hx,hy,hz,psi)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -1749,7 +1749,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   real(gp), intent(in) :: hx,hy,hz
   real(gp), dimension(3,nat), intent(in) :: rxyz
   real(gp), dimension(norb), intent(in) :: occup
-  real(gp), intent(out) :: eks
+  !real(gp), intent(out) :: eks
   real(wp), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='gautowav'

@@ -8,13 +8,14 @@
 !!   For the list of contributors, see ~/AUTHORS 
 
 
-!>  Test the input files and estimates the memory occupation versus the number
-!!  of processors
+!> Test the input files and estimates the memory occupation versus the number
+!! of processors
 program memguess
 
   use module_base
   use module_types
   use module_interfaces
+  use module_xc
   use ab6_symmetry
 
   implicit none
@@ -22,7 +23,7 @@ program memguess
   character(len=20) :: tatonam
   character(len=40) :: comment
   character(len=128) :: fileFrom, fileTo
-  logical :: optimise,GPUtest,atwf,convert=.false.,upgrade=.false.
+  logical :: optimise,GPUtest,atwf,convert=.false.
   integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
@@ -108,10 +109,6 @@ program memguess
            call getarg(4,tatonam)
            read(tatonam,*,iostat=ierror)norbgpu
         end if
-     else if (trim(tatonam)=='ugrade') then
-        upgrade=.true.
-        write(*,'(1x,a)')&
-             'ugrades the input.dat file in "input_convert.dft" (current version format)'
      else if (trim(tatonam)=='convert') then
         convert=.true.
         call getarg(3,fileFrom)
@@ -132,7 +129,7 @@ program memguess
         write(*,'(1x,a)')&
              'Indicate the number of processes after the executable'
         write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o", "upgrade", "convert", "GPUtest" or "atwf" ' 
+             'ERROR: The only second argument which is accepted are "y", "o","convert", "GPUtest" or "atwf" ' 
         write(*,'(1x,a)')&
              '       (type "memguess" without arguments to have an help)'
         stop
@@ -179,27 +176,21 @@ program memguess
      stop
   end if
 
-  if (upgrade) then
-     !initialize memory counting
-     !call memocc(0,0,'count','start')
+  !standard names
+  call standard_inputfile_names(in)
+  call read_input_variables(0, "posinp", in, atoms, rxyz)
+  !initialize memory counting
+  !call memocc(0,0,'count','start')
 
-     !read number of atoms
-     call read_atomic_file('posinp',0,atoms,rxyz)
-
-     call read_input_variables_old(0,'input.dat',in)
-     write(*,'(a)',advance='NO')' Conversion of the input file...'
-     call dft_input_converter(in)
-     write(*,*)' ...done'
+  if (in%ixc < 0) then
+     call xc_init(in%ixc, XC_MIXED, nspin)
   else
-     !standard names
-     call standard_inputfile_names(in)
-     call read_input_variables(0, "posinp", in, atoms, rxyz)
-     !initialize memory counting
-     !call memocc(0,0,'count','start')
+     call xc_init(in%ixc, XC_ABINIT, nspin)
   end if
 
-  call print_general_parameters(in,atoms)
+  call print_general_parameters(nproc,in,atoms)
   call print_dft_parameters(in,atoms)
+  call xc_dump()
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
@@ -221,11 +212,10 @@ program memguess
      write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
      call write_atomic_file('posopt',0.d0,rxyz,atoms,trim(comment))
      !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
-
   end if
 
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
-  if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0)) then
+  if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .or. .true.) then
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
      allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
      call memocc(i_stat,scorb,'scorb',subname)
@@ -284,7 +274,6 @@ program memguess
            stop
         end if
      end if
-
   end if
 
   ! Determine size alat of overall simulation cell and shift atom positions
@@ -367,7 +356,6 @@ program memguess
   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*atoms%nat)+ndebug),stat=i_stat)
   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
 
-
   if (atwf) then
      !here the treatment of the AE Core charge density
      !number of gaussians defined in the input of memguess
@@ -391,7 +379,6 @@ program memguess
      end if
      !deallocate the gaussian basis descriptors
      call deallocate_gwf(G,subname)
-
 
 !!$  !plot the wavefunctions for the AE atom
 !!$  !not possible, the code should recognize the AE eleconf
@@ -442,6 +429,7 @@ program memguess
 
   call deallocate_lr(Glr,subname)
 
+  call xc_end()
 
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
@@ -721,7 +709,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   use module_types
   use module_interfaces
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
 
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
@@ -737,7 +725,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
   real(kind=4) :: tt,t0,t1
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrm_zero,gnrmGPU
-  real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec
+  real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec,eSIC_DC
   real(kind=8) :: CPUtime,GPUtime
   type(gaussian_basis) :: G
   type(GPU_pointers) :: GPU
@@ -746,6 +734,10 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
   real(wp), dimension(:,:,:), allocatable :: overlap
   real(wp), dimension(:), pointer :: gbd_occ
+  real(wp), dimension(:), pointer :: fake_pkernelSIC
+
+  !nullify pkernelSIC pointer
+  nullify(fake_pkernelSIC)
 
   !nullify the G%rxyz pointer
   nullify(G%rxyz)
@@ -813,8 +805,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   end if
 
   !flag for toggling the REDUCE_SCATTER stategy
-  rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
-       & (ixc < 0 .and. libxc_functionals_isgga()))
+  rsflag = .not.xc_isgga()
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
@@ -912,7 +903,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !take timings
   call cpu_time(t0)
   do j=1,ntimes
-     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
+     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,0,pot,psi,hpsi,fake_pkernelSIC,0,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
+     !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
   end do
   call cpu_time(t1)
 
@@ -1111,289 +1103,3 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 
 END SUBROUTINE compare_data_and_gflops
-
-
-!>    Read the input variables in the file 'input.dat', old format.
-subroutine read_input_variables_old(iproc,filename,in)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: in
-  !local variables
-  character(len=7) :: cudagpu
-  character(len=100) :: line
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
-
-  ! Read the input variables.
-  open(unit=1,file=filename,status='old')
-
-  iline=0
-  !read the line for force the CUDA GPU calculation for all processors
-  read(1,'(a100)')line
-  read(line,*,iostat=ierrfrc) cudagpu
-  if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-!     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-!     call sg_init(GPUshare,iconv,iproc,initerror)
-iconv = 1
-iblas = 1
-     if (initerror == 1) then
-
-        write(*,'(1x,a)')'**** ERROR: GPU library init failed, aborting...'
-        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
-
-
-
-     
-     end if
-    ! GPUshare=.true.
-     if (iconv == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUconv=.true.
-     end if
-     if (iblas == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUblas=.true.
-     end if
-     read(1,*,iostat=ierror) in%ncount_cluster_x
-     call check()
-  else
-     read(line,*,iostat=ierror) in%ncount_cluster_x
-     call check()
-  end if
-
-  read(1,'(a100)')line
-  read(line,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
-  if (ierrfrc /= 0) then
-     read(line,*,iostat=ierror) in%frac_fluct
-     in%forcemax=0.0_gp
-  end if
-  call check()
-  read(1,*,iostat=ierror) in%randdis
-  call check()
-  read(1,*,iostat=ierror) in%betax
-  call check()
-  read(1,*,iostat=ierror) in%hx,in%hy,in%hz
-  call check()
-  read(1,*,iostat=ierror) in%crmult
-  call check()
-  read(1,*,iostat=ierror) in%frmult
-  call check()
-
-  read(1,*,iostat=ierror) in%ixc
-  call check()
-  read(1,*,iostat=ierror) in%elecfield
-  call check()
-  read(1,*,iostat=ierror) in%gnrm_cv
-  call check()
-  read(1,'(a100)')line
-  read(line,*,iostat=ierror) in%itermax,in%nrepmax
-  if (ierror == 0) then
-     !read(line,*,iostat=ierror) in%ncharge,in%elecfield
-  else
-     read(line,*,iostat=ierror)in%itermax
-     in%nrepmax=10
-  end if
-  call check()
-  read(1,*,iostat=ierror) in%ncong
-  call check()
-  read(1,*,iostat=ierror) in%idsx
-  call check()
-  read(1,*,iostat=ierror) in%calc_tail
-  call check()
-  read(1,*,iostat=ierror) in%rbuf
-  call check()
-  read(1,*,iostat=ierror) in%ncongt
-  call check()
-  read(1,*,iostat=ierror) in%nspin,in%mpol
-  call check()
-  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
-  call check()
-
-  !project however the wavefunction on gaussians if asking to write them on disk
-  in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
-  !switch on the gaussian auxiliary treatment 
-  !and the zero of the forces
-  if (in%inputPsiId == 10) then
-     in%inputPsiId=0
-  end if
-
-  ! qoh: Try to read dispersion input variable
-  read(1,'(a100)',iostat=ierror)line
-  if (ierror == 0) then
-     if (index(line,"dispersion") /= 0) then 
-        read(line,*,iostat=ierror) in%dispersion
-        !add reading lines for Davidson treatment 
-        !(optional for backward compatibility)
-        read(1,*,iostat=ierror) in%nvirt, in%nplot
-     else 
-        in%dispersion = 0
-        read(line,*,iostat=ierror) in%nvirt, in%nplot
-     endif   
-     ! add reading for absorbing atom. iat_absorber=0 ( default ) means no absorption calculation
-     if(ierror==0) then
-        read(1,*,iostat=ierror)  in%iat_absorber
-        if(ierror/=0) then
-           in%iat_absorber=0
-        endif
-     else
-        in%iat_absorber=0
-     endif
-
-  ! AMmodif end
-
-  else
-     in%dispersion = 0
-     in%nvirt=0
-     in%nplot=0
-     in%iat_absorber=0
- end if
-
-  !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
-  !systems
-  if (in%nspin/=1 .and. in%nvirt/=0) then
-     !if (iproc==0) then
-        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-     !end if
-     stop
-  end if
- 
-  close(unit=1,iostat=ierror)
-
-  if (iproc == 0) then
-     write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
-     write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
-          in%frac_fluct
-     write(*,'(1x,a,1pe10.2)') '                                : maximal component ',&
-          in%forcemax
-     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
-     write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
-     if (in%nvirt > 0) then
-        !read virtual orbital and plotting request
-        write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
-        write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',abs(in%nplot),' orbitals'
-     end if
-  end if
-
-     if (in%nspin==4) then
-        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Non-collinear)'
-     else if (in%nspin==2) then
-        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Collinear)'
-     else if (in%nspin==1) then
-        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
-     else
-        !if (iproc == 0) 
-        write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
-        stop
-     end if
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE read_input_variables_old
-
-
-!>  Convert the format of input variables
-subroutine dft_input_converter(in)
-  use module_base
-  use module_types
-  implicit none
-  type(input_variables), intent(in) :: in
-  !local variables
-  character(len=100) :: line
-  integer :: iline
-
-  ! Read the input variables.
-  open(unit=1,file='input_convert.dft',status='new')
-
-  !line number, to control the input values
-  iline=0
-  !grid spacings
-  line=''
-  line=' hx,hy,hz: grid spacing in the three directions'
-  write(1,'(3(f6.3),a)') in%hx,in%hy,in%hz,trim(line)
-  !coarse and fine radii around atoms
-  line=''
-  line=' crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom'
-  write(1,'(2(1x,f4.1),a)') in%crmult,in%frmult,trim(line)
-  line=''
-  line=' ixc: exchange-correlation parameter (LDA=1,PBE=11)'
-  !XC functional (ABINIT XC codes)
-  write(1,'(i3,a)') in%ixc,trim(line)
-
-  line=''
-  line=' ncharge: charge of the system, Electric field'
-  write(1,'(i3,1(f6.3),a)') in%ncharge,in%elecfield,trim(line)
-
-  line=''
-  line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
-  write(1,'(2(i3),a)') in%nspin,in%mpol,trim(line)
-
-  line=''
-  line=' gnrm_cv: convergence criterion gradient'
-  write(1,'(1pe7.0,a)') in%gnrm_cv,trim(line)
-  
-  line=''
-  line=' itermax,nrepmax: maximum number of wavefunction optimizations and of re-diagonalised runs'
-  write(1,'(2(i3),a)') in%itermax,in%nrepmax,trim(line)
-  
-  line=''
-  line=' ncong, idsx: # CG iterations for the preconditioning equation, length of the diis history'
-  write(1,'(2(i3),a)') in%ncong,in%idsx,trim(line)
-  
-  line=''
-  line=' dispersion correction functional (values 1,2,3), 0=no correction'
-  write(1,'(i3,a)') in%dispersion,trim(line)
-  
-  line=''
-  line=' write "CUDAGPU" on this line to use GPU acceleration (GPU.config file is needed)'
-  write(1,'(a)') trim(line)
-
-  !now the varaibles which are to be used only for the last run
-  line=''
-  line=' InputPsiId, output_wf, output_grid'
-  write(1,*) in%inputPsiId,in%output_wf,in%output_grid,trim(line)
-  
-
-  line=''
-  line=' rbuf, ncongt: length of the tail (AU),# tail CG iterations'
-  if (in%calc_tail) then
-     write(1,'(f4.1,i4,a)') in%rbuf,in%ncongt,trim(line)
-  else
-     write(1,'(f4.1,i4,a)') 0.0_gp,in%ncongt,trim(line)
-  end if
-
-
-  !davidson treatment
-  line=''
-  line=' davidson treatment, no. of virtual orbitals, no of plotted orbitals'
-  write(1,'(3(i3),a)') in%nvirt, in%nvirt,in%nplot,trim(line)
-  
-!  line=''
-!  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_sw'
-!  !electrostatic treatment of the vacancy (experimental)
-!  write(1,*) trim(line)
-
-
-  line=''
-  line=' 2   verbosity of the output 0=low, 2=high'
-  !electrostatic treatment of the vacancy (experimental)
-  write(1,*) trim(line)
-
-  line=''
-  line='disable the symmetry detection'
-  !Disable automatic capabilities...
-  write(1,*) in%disableSym, trim(line)
-   
-  close(unit=1)
-END SUBROUTINE dft_input_converter

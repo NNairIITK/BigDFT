@@ -207,6 +207,7 @@
  1659 allocations and 1656 deallocations, remaining memory(B): 48
  memory occupation peak: 85 MB
  for the array  wz in the routine gaussians_to_wavelets_orb
+<<<<<<< TREE
  Use the python script 'memcheck.py' in utils/scripts to check 'malloc.prc' file
                              TTTT         F       DDDDD    
                             T    T               D         
@@ -875,3 +876,5 @@ for replica   0 SHIFT   9.448627E-01 9.448627E-01 9.448627E-01
  memory occupation peak: 103 MB
  for the array  wz in the routine gaussians_to_wavelets_orb
  Use the python script 'memcheck.py' in utils/scripts to check 'malloc.prc' file
+=======
+>>>>>>> MERGE-SOURCE

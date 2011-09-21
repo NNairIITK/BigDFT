@@ -1,15 +1,16 @@
-!!****m* BigDFT/lanczos_interface
-!! FUNCTION
-!!   Interface for routines which handle diagonalization
-!! COPYRIGHT
-!!    Copyright (C) 2009 BigDFT group
+!> @file
+!!    Define routines for Lanczos diagonalization
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+
+!>   Interface for routines which handle diagonalization
+
+
 module lanczos_interface
   use module_base
   use module_types
@@ -654,113 +655,111 @@ END SUBROUTINE EP_set_random_interna
        print *, "GramSchmidt done "
     endif
 
-  END SUBROUTINE EP_GramSchmidt_interna
+   END SUBROUTINE EP_GramSchmidt_interna
 
-!!****f* BigDFT/hit_with_kernel
-!! FUNCTION
-!!   Hits the input array x with the kernel ((-1/2\Delta+C)_{ij})^{-1}
-!! SOURCE
+
+!>   Hits the input array x with the kernel @f$((-1/2\Delta+C)_{ij})^{-1}@f$
+   subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
+     n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,ene, gamma )
+     use module_base
+     implicit none
+   ! Arguments
+     integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
+     integer, intent(in) :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
+     real(gp), intent(in) :: kern_k1(n1)
+     real(gp), intent(in) :: kern_k2(n2)
+     real(gp), intent(in) :: kern_k3(n3)
+     real(kind=8), intent(in):: ene, gamma
+
+     real(wp),intent(inout) :: x(n1,n2,n3)! input/output
+   !Local variables
+     real(wp) :: z1(2,nd1b,nd2,nd3,2)! work array
+     real(wp) :: z3(2,nd1,nd2,nd3f,2)! work array
+     real(gp) :: tt
+     integer :: i1,i2,i3,inzee
+
+   ! fft the input array x:
+
+     call FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x,z1,z3,inzee)
+
+   ! hit the Fourier transform of x with the kernel. At the same time, transform the array
+   ! from the form z3 (where only half of values of i3 are stored)
+   ! to the form z1   (where only half of values of i1 are stored)
+   ! The latter thing could be done separately by the subroutine z3_to_z1 that is contained
+   ! in FFT_back, but then the code would be slower.
+
+     !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3)&
+     !$omp shared(n1b,n3f,inzee,n1,n2,n3)
+
+     ! i3=1: then z1 is contained in z3 
+     !$omp do 
+     do i2=1,n2
+       do i1=1,n1b
+         ! tt=1._gp/(kern_k1(i1)+kern_k2(i2)+kern_k3(1)+c)
+         tt= 1._gp/((kern_k1(i1)+kern_k2(i2)+kern_k3(1)-ene)**2+gamma**2)
+         z1(1,i1,i2,1,inzee)=z3(1,i1,i2,1,inzee)*tt
+         z1(2,i1,i2,1,inzee)=z3(2,i1,i2,1,inzee)*tt
+       enddo
+     enddo  
+     !$omp enddo
+
+     !$omp do
+     do i3=2,n3f
+       ! i2=1
+       ! i1=1
+       ! tt=1._gp/(kern_k1(1)+kern_k2(1)+kern_k3(i3)+c)
+       tt= 1._gp/((kern_k1(1)+kern_k2(1)+kern_k3(i3)-ene)**2+gamma**2)
+       z1(1,1,1,i3,inzee)=z3(1,1,1,i3,inzee)*tt
+       z1(2,1,1,i3,inzee)=z3(2,1,1,i3,inzee)*tt
+
+       z1(1,1,1,n3+2-i3,inzee)=z3(1,1,1,i3,inzee)*tt
+       z1(2,1,1,n3+2-i3,inzee)=-z3(2,1,1,i3,inzee)*tt
+
+       ! i2=1
+       do i1=2,n1b  
+         ! tt=1._gp/(kern_k1(i1)+kern_k2(1)+kern_k3(i3)+c)
+         tt= 1._gp/((kern_k1(i1)+kern_k2(1)+kern_k3(i3)-ene)**2+gamma**2)
+         z1(1,i1,1,i3,inzee)=z3(1,i1,1,i3,inzee)*tt
+         z1(2,i1,1,i3,inzee)=z3(2,i1,1,i3,inzee)*tt
+
+         z1(1,i1,1,n3+2-i3,inzee)= z3(1,n1+2-i1,1,i3,inzee)*tt
+         z1(2,i1,1,n3+2-i3,inzee)=-z3(2,n1+2-i1,1,i3,inzee)*tt
+       enddo
+
+       do i2=2,n2
+         ! i1=1
+         ! tt=1._gp/(kern_k1(1)+kern_k2(i2)+kern_k3(i3)+c)
+         tt= 1._gp/((kern_k1(1)+kern_k2(i2)+kern_k3(i3)-ene)**2+gamma**2)
+         z1(1,1,i2,i3,inzee)=z3(1,1,i2,i3,inzee)*tt
+         z1(2,1,i2,i3,inzee)=z3(2,1,i2,i3,inzee)*tt
+
+         z1(1,1,i2,n3+2-i3,inzee)= z3(1,1,n2+2-i2,i3,inzee)*tt
+         z1(2,1,i2,n3+2-i3,inzee)=-z3(2,1,n2+2-i2,i3,inzee)*tt
+
+         do i1=2,n1b
+           ! tt=1._gp/(kern_k1(i1)+kern_k2(i2)+kern_k3(i3)+c)
+           tt= 1._gp/((kern_k1(i1)+kern_k2(i2)+kern_k3(i3)-ene)**2+gamma**2)
+           z1(1,i1,i2,i3,inzee)=z3(1,i1,i2,i3,inzee)*tt
+           z1(2,i1,i2,i3,inzee)=z3(2,i1,i2,i3,inzee)*tt
+
+           z1(1,i1,i2,n3+2-i3,inzee)= z3(1,n1+2-i1,n2+2-i2,i3,inzee)*tt
+           z1(2,i1,i2,n3+2-i3,inzee)=-z3(2,n1+2-i1,n2+2-i2,i3,inzee)*tt
+         enddo
+       enddo
+     enddo
+     !$omp enddo
+
+     !$omp end parallel
+
+     call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
+
+   END SUBROUTINE hit_with_kernel_spectra
+
+
+
+!>   Multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 !!
-subroutine hit_with_kernel_spectra(x,z1,z3,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,&
-  n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,ene, gamma )
-  use module_base
-  implicit none
-! Arguments
-  integer,intent(in) :: n1,n2,n3,nd1,nd2,nd3
-  integer,intent(in) :: n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b
-  real(gp),intent(in) :: kern_k1(n1)
-  real(gp),intent(in) :: kern_k2(n2)
-  real(gp),intent(in) :: kern_k3(n3)
-  real*8,intent(in)::ene, gamma
-
-  real(wp),intent(inout) :: x(n1,n2,n3)! input/output
-!Local variables
-  real(wp) :: z1(2,nd1b,nd2,nd3,2)! work array
-  real(wp) :: z3(2,nd1,nd2,nd3f,2)! work array
-  real(gp) :: tt
-  integer :: i1,i2,i3,inzee
-
-! fft the input array x:
-
-  call FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x,z1,z3,inzee)
-
-! hit the Fourier transform of x with the kernel. At the same time, transform the array
-! from the form z3 (where only half of values of i3 are stored)
-! to the form z1   (where only half of values of i1 are stored)
-! The latter thing could be done separately by the subroutine z3_to_z1 that is contained
-! in FFT_back, but then the code would be slower.
-
-  !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3)&
-  !$omp shared(n1b,n3f,inzee,n1,n2,n3)
-
-  ! i3=1: then z1 is contained in z3 
-  !$omp do 
-  do i2=1,n2
-    do i1=1,n1b
-      ! tt=1._gp/(kern_k1(i1)+kern_k2(i2)+kern_k3(1)+c)
-      tt= 1._gp/((kern_k1(i1)+kern_k2(i2)+kern_k3(1)-ene)**2+gamma**2)
-      z1(1,i1,i2,1,inzee)=z3(1,i1,i2,1,inzee)*tt
-      z1(2,i1,i2,1,inzee)=z3(2,i1,i2,1,inzee)*tt
-    enddo
-  enddo  
-  !$omp enddo
-
-  !$omp do
-  do i3=2,n3f
-    ! i2=1
-    ! i1=1
-    ! tt=1._gp/(kern_k1(1)+kern_k2(1)+kern_k3(i3)+c)
-    tt= 1._gp/((kern_k1(1)+kern_k2(1)+kern_k3(i3)-ene)**2+gamma**2)
-    z1(1,1,1,i3,inzee)=z3(1,1,1,i3,inzee)*tt
-    z1(2,1,1,i3,inzee)=z3(2,1,1,i3,inzee)*tt
-
-    z1(1,1,1,n3+2-i3,inzee)=z3(1,1,1,i3,inzee)*tt
-    z1(2,1,1,n3+2-i3,inzee)=-z3(2,1,1,i3,inzee)*tt
-
-    ! i2=1
-    do i1=2,n1b  
-      ! tt=1._gp/(kern_k1(i1)+kern_k2(1)+kern_k3(i3)+c)
-      tt= 1._gp/((kern_k1(i1)+kern_k2(1)+kern_k3(i3)-ene)**2+gamma**2)
-      z1(1,i1,1,i3,inzee)=z3(1,i1,1,i3,inzee)*tt
-      z1(2,i1,1,i3,inzee)=z3(2,i1,1,i3,inzee)*tt
-
-      z1(1,i1,1,n3+2-i3,inzee)= z3(1,n1+2-i1,1,i3,inzee)*tt
-      z1(2,i1,1,n3+2-i3,inzee)=-z3(2,n1+2-i1,1,i3,inzee)*tt
-    enddo
-
-    do i2=2,n2
-      ! i1=1
-      ! tt=1._gp/(kern_k1(1)+kern_k2(i2)+kern_k3(i3)+c)
-      tt= 1._gp/((kern_k1(1)+kern_k2(i2)+kern_k3(i3)-ene)**2+gamma**2)
-      z1(1,1,i2,i3,inzee)=z3(1,1,i2,i3,inzee)*tt
-      z1(2,1,i2,i3,inzee)=z3(2,1,i2,i3,inzee)*tt
-
-      z1(1,1,i2,n3+2-i3,inzee)= z3(1,1,n2+2-i2,i3,inzee)*tt
-      z1(2,1,i2,n3+2-i3,inzee)=-z3(2,1,n2+2-i2,i3,inzee)*tt
-
-      do i1=2,n1b
-        ! tt=1._gp/(kern_k1(i1)+kern_k2(i2)+kern_k3(i3)+c)
-        tt= 1._gp/((kern_k1(i1)+kern_k2(i2)+kern_k3(i3)-ene)**2+gamma**2)
-        z1(1,i1,i2,i3,inzee)=z3(1,i1,i2,i3,inzee)*tt
-        z1(2,i1,i2,i3,inzee)=z3(2,i1,i2,i3,inzee)*tt
-
-        z1(1,i1,i2,n3+2-i3,inzee)= z3(1,n1+2-i1,n2+2-i2,i3,inzee)*tt
-        z1(2,i1,i2,n3+2-i3,inzee)=-z3(2,n1+2-i1,n2+2-i2,i3,inzee)*tt
-      enddo
-    enddo
-  enddo
-  !$omp enddo
-
-  !$omp end parallel
-
-  call FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,x,z1,z3,inzee)
-
-END SUBROUTINE hit_with_kernel_spectra
-!!***
-
-
-
-
+!!
   subroutine wscal_f_spectra(mvctr_f,psi_f,hx,hy,hz,ene, gamma)
     ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
     use module_base
@@ -1040,12 +1039,13 @@ END SUBROUTINE hit_with_kernel_spectra
       endif
    endif
    
-   
    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
         ha%rxyz,&
         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-        ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
+        ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+
+
    
    call axpy(EP_dim_tot, mene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
    
@@ -1053,11 +1053,13 @@ END SUBROUTINE hit_with_kernel_spectra
       Qvect_tmp(k)   =  wrk(k)
    end do
    
-   call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
-        ha%rxyz,&
-        ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
-        ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-        ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
+ 
+    call HamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%hx,ha%hy,ha%hz,&
+         ha%rxyz,&
+         ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
+         ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
+         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+
    call axpy(EP_dim_tot, mene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
    
    
@@ -1152,7 +1154,8 @@ END SUBROUTINE hit_with_kernel_spectra
          ha%rxyz,&
          ha%nlpspd,ha%proj,ha%lr,ha%ngatherarr,            &
          ha%potential,  Qvect_tmp    ,  wrk   ,ha%ekin_sum,&
-         ha%epot_sum,ha%eexctX,ha%eproj_sum,1,ha%GPU)
+         ha%epot_sum,ha%eexctX,ha%eproj_sum,ha%eSIC_DC,ha%SIC,ha%GPU)
+
     if(  ha%iproc ==0 ) write(*,*)" done "
 
 

@@ -1,0 +1,13 @@
+ rcore=   0.1526890000000000     
+ c0=    477.5070000000000     
+ c2=   -86.97770000000000     
+ c4=    7.938170000000000     
+ c6=    0.000000000000000     
+ r(x)=x/rcore
+ p(x)=(c0 +c2*x*x +c4*x**4 +c6*x**6)
+ g(x)=exp(-0.5*x**2)
+ rho(x)=p(r(x))*g(r(x))
+ set xrange [0.2*rcore:5.0*rcore]
+   p rho(x)*x*x
+ rep 'ae.core.dens.plt','ae.core.dens.plt' u 1:3
+ show function

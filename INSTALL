@@ -1,237 +1,243 @@
-Installation Instructions
-*************************
+<div class="floatingmenu"><h3>Quick links: </h3>
+  <ul>
+    <li class="section"><a href="#confMKL">Configure with MKL</a></li>
+    <li class="section"><a href="#confMPI">Configure with MPI</a></li>
+    <li class="section"><a href="#confOCL">Configure with OpenCL</a></li>
+    <li class="section"><a href="#confETSFIO">Configure with ETSF_IO</a></li>
+    <li class="section"><a href="#tests">Run tests</a></li>
+    <li class="section"><a href="#runs">The executables</a></li>
+  </ul>
+</div>
 
-Copyright (C) 1994, 1995, 1996, 1999, 2000, 2001, 2002, 2004, 2005,
-2006, 2007 Free Software Foundation, Inc.
+<h1>Install BigDFT</h1>
 
-This file is free documentation; the Free Software Foundation gives
-unlimited permission to copy, distribute and modify it.
+<h2>Configure script</h2>
 
-Basic Installation
-==================
+<p>BigDFT build system is based on standard GNU autotools. The end
+  user does not need to have the Autotools package installed on his
+  computer, the <code>configure</code> script provided in BigDFT package
+  will to the job to create the <code>Makefile</code> and set the
+  options, like the optimisation level, the associated libraries to link
+  with...</p>
 
-Briefly, the shell commands `./configure; make; make install' should
-configure, build, and install this package.  The following
-more-detailed instructions are generic; see the `README' file for
-instructions specific to this package.
+<p>After the package has been untared, the sources should be configured, depending on the system we want to run on. Thanks to the Autotools, it is possible to generate several builds from the same source tree. It is adviced to create a compilation directory, either inside or outside the source tree. Lets call this directory <code>compile-gfortran</code> for instance. One starts the configure from there <code>'source tree path'/configure</code>.
 
-   The `configure' shell script attempts to guess correct values for
-various system-dependent variables used during compilation.  It uses
-those values to create a `Makefile' in each directory of the package.
-It may also create one or more `.h' files containing system-dependent
-definitions.  Finally, it creates a shell script `config.status' that
-you can run in the future to recreate the current configuration, and a
-file `config.log' containing compiler output (useful mainly for
-debugging `configure').
+  <h3>General description of the options</h3>
 
-   It can also use an optional file (typically called `config.cache'
-and enabled with `--cache-file=config.cache' or simply `-C') that saves
-the results of its tests to speed up reconfiguring.  Caching is
-disabled by default to prevent problems with accidental use of stale
-cache files.
+<p>All possible options at compile time are available using: <code>./configure --help</code>.</p>
 
-   If you need to do unusual things to compile the package, please try
-to figure out how `configure' could check whether to do them, and mail
-diffs or instructions to the address given in the `README' so they can
-be considered for the next release.  If you are using the cache, and at
-some point `config.cache' contains results you don't want to keep, you
-may remove or edit it.
+<p>The following modularities during compilation are available:</p>
+<ul>
+  <li> <code class="emph">--disable-mpi</code>: force not to use MPI during build. By default the configure will try to detect if the compiler has some native MPI capabilities. If not MPI will be automatically disabled.</li>
+  <li> <code class="emph">--enable-cuda-gpu</code> / <code
+                                                        class="emph">--enable-opencl</code>: compile the CUDA parts to run on
+    NVidia GPUs or OpenCL parts. These options require to add some others to find the CUDA/OpenCL environnement, see the <code>--with</code> options later.</li>
+</ul>
 
-   The file `configure.ac' (or `configure.in') is used to create
-`configure' by a program called `autoconf'.  You need `configure.ac' if
-you want to change it or regenerate `configure' using a newer version
-of `autoconf'.
+<p>One can tune the compilation environnement using the following options:</p>
+<ul>
+  <li><code class="emph">--with-cuda-path</code>: give the path to the NVidia Cuda tools (default is <code>/usr/local/cuda</code>).</li>
+  <li><code class="emph">--with-cuda-cflags</code>: specify the flags for the NVidia Cuda Compiler.</li>
+  <li><code class="emph">--with-ocl-path</code>: give the path to the
+    OpenCL installation (default is <code>/usr</code>).</li>
+  <li><code class="emph">--with-ext-linalg</code>: Give the name of the libraries replacing Blas and Lapack (default = none specified). Use the -l before the name(s).</li>
+  <li><code class="emph">--with-ext-linalg-path</code>: Give the path of the other linear algebra libraries (default = <code>-L/usr/lib</code>). Use the -L before the path(es).</li>
+  <li><code class="emph">--with-etsf-io</code>: link with ETSF_IO library for I/O (based on NetCDF).</li>
+  <li><code class="emph">--with-etsf-io-path</code>: Give the path of the ETSF_IO installation.</li>
+  <li><code class="emph">FC</code>: Specify the compiler.</li>
+  <li><code class="emph">FC_FLAGS</code>: Specify the flags, like the
+    optimisation flags, to pass to the compiler (default are <code>-g
+      -O2</code> for GNU compilers).</li>
+  <li><code class="emph">--prefix=DIR</code>: Specify your installation directory (<code>/usr/local</code> is default).</li>
+</ul>
 
-The simplest way to compile this package is:
+<p>There are some other less important options to customize BigDFT more
+  precisely, see <code>configure --help</code> for a extensive list.</p>
 
-  1. `cd' to the directory containing the package's source code and type
-     `./configure' to configure the package for your system.
+<p>At the end of the configure script a summary is printed. It looks
+  like that:</p>
+<pre>
+  ~/bigdft-trunk/tmp-gfortran$ ../configure \
+  FC=mpif90.openmpi \
+  FCFLAGS="-fbounds-check -O2 -Wall"
+  [...]
+  Basics:
+  Fortran90 compiler:        mpif90.openmpi
+  Fortran90 compiler name:
+  Fortran90 flags:           -fbounds-check -O2 -Wall
+  Fortran77 compiler:        gfortran
+  Fortran77 flags:           -g -O2
+  Linker flags:               -L$(top_builddir)/libXC/src -L$(top_builddir)/libABINIT/src
+  Linked libraries:          -labinit -lxc    -llapack -lblas
 
-     Running `configure' might take a while.  While running, it prints
-     some messages telling which features it is checking for.
+  Build:
+  Library ABINIT:            yes
+  Library PSolver:           yes
+  Library BigDFT:            yes
+  Main binaries (cluster...):yes
+  Minima hopping binary:     no
+  atom and pseudo binaries:  no
+  User documentation:        yes
+  Devel. documentation:      yes / no
 
-  2. Type `make' to compile the package.
+  Options:
+  Debug version:             no
+  With MPI:                  yes
+  | Include dir.:
+  | Linker flags:
+  | Linked libraries:
+  | MPI2 support:           yes
+  With optimised conv.:      yes
+  With Cuda GPU conv.:       no
+  | NVidia Cuda Compiler:
+  | Cuda flags:
+  With OpenCL support:       no
+  With dgemmsy support:      no
+  With libXC:                yes
+  | internal built:         yes
+  | include dir.:           -I$(top_builddir)/libXC/src
+  With libABINIT:            yes
+  | internal built:         yes
+  | include dir.:           -I$(top_builddir)/libABINIT/src
+  With libS_GPU:             no
+  | internal built:         no
+  | include dir.:
+  With ETSF_IO:              no
+  | include dir.:           
 
-  3. Optionally, type `make check' to run any self-tests that come with
-     the package.
+  Installation paths:
+  Source code location:      ..
+  Prefix:                    /usr/local
+  Exec prefix:               ${prefix}
+  Binaries:                  ${exec_prefix}/bin
+  Static libraries:          ${exec_prefix}/lib
+  Fortran modules:           ${prefix}/include/
+  Documentation:             ${datarootdir}/doc/${PACKAGE_TARNAME}
+</pre>
 
-  4. Type `make install' to install the programs and any data files and
-     documentation.
+<p>Now, let's look at some most common cases...</p>
 
-  5. You can remove the program binaries and object files from the
-     source code directory by typing `make clean'.  To also remove the
-     files that `configure' created (so you can compile the package for
-     a different kind of computer), type `make distclean'.  There is
-     also a `make maintainer-clean' target, but that is intended mainly
-     for the package's developers.  If you use it, you may have to get
-     all sorts of other programs in order to regenerate files that came
-     with the distribution.
+<h3>Use Intel MKL libraries</h3>
+<a name="confMKL"></a>
+<p>The Intel compiler is usually provided with native Lapack and Blas
+  implementations, called the MKL libraries. To use them, the option to
+  pass to configure is <code>--with-ext-linalg</code>.</p>
 
-  6. Often, you can also type `make uninstall' to remove the installed
-     files again.
+<pre>
+  ../configure --with-ext-linalg="-lmkl_ia32 -lmkl_lapack"
+  --with-ext-linalg-path="-L/opt/intel/mkl72/lib/32"
+  --prefix=/home/caliste/usr FC=ifort
+</pre>
+<p>In this example, the <code>--prefix</code> option is provided also
+  to specify the destination directory for installation.</p>
 
-Compilers and Options
-=====================
+<h3>MPI compilation</h3>
+<a name="confMPI"></a>
+<p>MPI detection is enable by default and the current Fortran compiler
+  is tested with respect to MPI capabilities. MPI and MPI2 are
+  supported. If MPI2 is not available a fallback has been
+  implemented.</p>
 
-Some systems require unusual options for compilation or linking that the
-`configure' script does not know about.  Run `./configure --help' for
-details on some of the pertinent environment variables.
+<p>If the Fortran compiler does not support MPI, a warning message is
+  output by configure script. To remove this message, one needs to
+  specify not to detect MPI capabilities with <code>--disable-mpi</code>
+  option.</p>
 
-   You can give `configure' initial values for configuration parameters
-by setting variables in the command line or in the environment.  Here
-is an example:
+<p>One can also pass all the options for the MPI link proceeding using
+  the options <code>--with-mpi-include</code>, <code>--with-mpi-ldflags</code and <code>--with-mpi-libs</code>.</p>
 
-     ./configure CC=c99 CFLAGS=-g LIBS=-lposix
+                                                                              <h3>OpenCL compilation</h3>
+                                                                              <a name="confOCL"></a>
+<p>Here is a example using the Intel
+  Fortran compiler and OpenCL installed in <code>/applications/cuda-3.2</code>:</p>
 
-   *Note Defining Variables::, for more details.
+<pre>
+  ../../sources/bigdft-1.5.1/configure FC=ifort
+  --enable-opencl --with-ocl-path=/applications/cuda-3.2
+</pre>
 
-Compiling For Multiple Architectures
-====================================
+<h3>CUDA compilation</h3>
+<p>The compilation with CUDA currently required to compile the code
+  with "second underscore". It is for the compiler to know how to link C
+  and Fortran sources together. Here is a example using the Intel
+  Fortran compiler and CUDA installed in <code>/applications/cuda-2.2</code>:</p>
 
-You can compile the package for more than one kind of computer at the
-same time, by placing the object files for each architecture in their
-own directory.  To do this, you can use GNU `make'.  `cd' to the
-directory where you want the object files and executables to go and run
-the `configure' script.  `configure' automatically checks for the
-source code in the directory that `configure' is in and in `..'.
+<pre>
+  ../../sources/bigdft-1.3.0-dev/configure
+  FC=ifort FCFLAGS="-O2 -assume 2underscores"
+  CC=icc CXX=icc CXXFLAGS="-O2 -I/applications/cuda-2.2/include/"
+  CFLAGS="-O2 -I/applications/cuda-2.2/include/"
+  --enable-cuda-gpu --with-cuda-path=/applications/cuda-2.2
+</pre>
 
-   With a non-GNU `make', it is safer to compile the package for one
-architecture at a time in the source code directory.  After you have
-installed the package for one architecture, use `make distclean' before
-reconfiguring for another architecture.
+<h3>NetCDF I/O</h3>
+<a name="confETSFIO"></a>
+<p>Here is a example using the Intel
+  Fortran compiler, NetCDF installed in <code>/applications/netcdf-3.6.3</code> and ETSF_IO compiled in a home directory:</p>
 
-Installation Names
-==================
+<pre>
+  ../../sources/bigdft-1.5.1/configure FC=ifort --with-etsf-io
+  --with-etsf-io-path=$HOME/usr
+  --with-netcdf-path=/applications/netcdf-3.6.3
+</pre>
 
-By default, `make install' installs the package's commands under
-`/usr/local/bin', include files under `/usr/local/include', etc.  You
-can specify an installation prefix other than `/usr/local' by giving
-`configure' the option `--prefix=PREFIX'.
 
-   You can specify separate installation prefixes for
-architecture-specific files and architecture-independent files.  If you
-pass the option `--exec-prefix=PREFIX' to `configure', the package uses
-PREFIX as the prefix for installing programs and libraries.
-Documentation and other data files still use the regular prefix.
+<!--<p><em>Warning</em>: This "second underscore" stuff means that in case
+                         of MPI usage, the MPI library must support it also (<i>i.e.</i> has
+                         been compiled with the second underscore option also).</p>
 
-   In addition, if you use an unusual directory layout you can give
-options like `--bindir=DIR' to specify different values for particular
-kinds of files.  Run `configure --help' for a list of the directories
-you can set and what kinds of files go in them.
+                         <p>We plan to remove this constraint soon.</p>-->
 
-   If the package supports it, you can cause programs to be installed
-with an extra prefix or suffix on their names by giving `configure' the
-option `--program-prefix=PREFIX' or `--program-suffix=SUFFIX'.
+<h2>Run the tests</h2>
+<a name="tests"></a>
 
-Optional Features
-=================
+<p>BigDFT is provided with several test cases (that can also be
+  studied as examples). They are located in the <code>tests</code>
+  directory. To run the tests, after compilation, issue <code>make
+  check</code> in this directory.</p>
 
-Some packages pay attention to `--enable-FEATURE' options to
-`configure', where FEATURE indicates an optional part of the package.
-They may also pay attention to `--with-PACKAGE' options, where PACKAGE
-is something like `gnu-as' or `x' (for the X Window System).  The
-`README' should mention any `--enable-' and `--with-' options that the
-package recognizes.
+<p>To run tests with MPI support, use the environment variable 'run_parallel' as:</p>
+<pre>export run_parallel='mpirun -np 2'</pre>
+<p>To run tests with OCL support, use the environment variable 'run_ocl' as:</p>
+<pre>export run_ocl='on'</pre>
 
-   For packages that use the X Window System, `configure' can usually
-find the X include and library files automatically, but if it doesn't,
-you can use the `configure' options `--x-includes=DIR' and
-`--x-libraries=DIR' to specify their locations.
+<p> The following tests are available:</p>
+<!-- %%TESTS%% list autogenerated in doc/tests.xml at build time -->
 
-Specifying the System Type
-==========================
+<h2>The executables</h2>
+<a name="runs"></a>
 
-There may be some features `configure' cannot figure out automatically,
-but needs to determine by the type of machine the package will run on.
-Usually, assuming the package is built to be run on the _same_
-architectures, `configure' can figure that out, but if it prints a
-message saying it cannot guess the machine type, give it the
-`--build=TYPE' option.  TYPE can either be a short name for the system
-type, such as `sun4', or a canonical name which has the form:
-
-     CPU-COMPANY-SYSTEM
-
-where SYSTEM can have one of these forms:
-
-     OS KERNEL-OS
-
-   See the file `config.sub' for the possible values of each field.  If
-`config.sub' isn't included in this package, then this package doesn't
-need to know the machine type.
-
-   If you are _building_ compiler tools for cross-compiling, you should
-use the option `--target=TYPE' to select the type of system they will
-produce code for.
-
-   If you want to _use_ a cross compiler, that generates code for a
-platform different from the build platform, you should specify the
-"host" platform (i.e., that on which the generated programs will
-eventually be run) with `--host=TYPE'.
-
-Sharing Defaults
-================
-
-If you want to set default values for `configure' scripts to share, you
-can create a site shell script called `config.site' that gives default
-values for variables like `CC', `cache_file', and `prefix'.
-`configure' looks for `PREFIX/share/config.site' if it exists, then
-`PREFIX/etc/config.site' if it exists.  Or, you can set the
-`CONFIG_SITE' environment variable to the location of the site script.
-A warning: not all `configure' scripts look for a site script.
-
-Defining Variables
-==================
-
-Variables not defined in a site shell script can be set in the
-environment passed to `configure'.  However, some packages may run
-configure again during the build, and the customized values of these
-variables may be lost.  In order to avoid this problem, you should set
-them in the `configure' command line, using `VAR=value'.  For example:
-
-     ./configure CC=/usr/local2/bin/gcc
-
-causes the specified `gcc' to be used as the C compiler (unless it is
-overridden in the site shell script).
-
-Unfortunately, this technique does not work for `CONFIG_SHELL' due to
-an Autoconf bug.  Until the bug is fixed you can use this workaround:
-
-     CONFIG_SHELL=/bin/bash /bin/bash ./configure CONFIG_SHELL=/bin/bash
-
-`configure' Invocation
-======================
-
-`configure' recognizes the following options to control how it operates.
-
-`--help'
-`-h'
-     Print a summary of the options to `configure', and exit.
-
-`--version'
-`-V'
-     Print the version of Autoconf used to generate the `configure'
-     script, and exit.
-
-`--cache-file=FILE'
-     Enable the cache: use and save the results of the tests in FILE,
-     traditionally `config.cache'.  FILE defaults to `/dev/null' to
-     disable caching.
-
-`--config-cache'
-`-C'
-     Alias for `--cache-file=config.cache'.
-
-`--quiet'
-`--silent'
-`-q'
-     Do not print messages saying which checks are being made.  To
-     suppress all normal output, redirect it to `/dev/null' (any error
-     messages will still be shown).
-
-`--srcdir=DIR'
-     Look for the package's source code in directory DIR.  Usually
-     `configure' can determine that directory automatically.
-
-`configure' also accepts some other, not widely useful, options.  Run
-`configure --help' for more details.
-
+<p>BigDFT provides the following executables:</p>
+<ul>
+  <li><code class="emph">bigdft</code> (previously called <code>cluster</code>): run DFT ground state
+    calculations with or without geometry relaxations.</li>
+  <li><code class="emph">memguess</code>: read BigDFT inputs and provide
+    an accurate estimation of memory requirement (for each CPU in case of
+    MPI run). It can also do some simple jobs:
+    <pre>
+      Usage: ./memguess &lt;nproc&gt; [option]
+      Indicate the number of processes after the executable
+      [option] can be the following: 
+      "y": grid to be plotted with V_Sim
+      "o" rotate the molecule such that the volume of the simulation box is optimised
+      "GPUtest &lt;nrep&gt;" case of a CUDAGPU calculation, to test the speed of 3d operators
+      &lt;nrep&gt; is the number of repeats
+      "ugrade" ugrades input files older than 1.2 into actual format
+      "convert &lt;from.[cube,etsf]&gt; &lt;to.[cube,etsf]&gt;" converts file "from" to file "to"
+      using the given formats
+      "atwf &lt;ng&gt;" calculates the atomic wavefunctions of the first atom in the gatom
+      basis and write their expression in the "gatom-wfn.dat" file  &lt;ng&gt; is
+      the number of gaussians used for the gatom calculation.
+    </pre>
+  </li>
+  <li><code class="emph">NEB</code>: run a NEB path search (requires to
+    provide also NEB_driver.sh and NEB_include.sh).</li>
+  <li><code class="emph">frequencies</code>: run a finite difference
+    calculation to find vibrations for a molecule.</li>
+  <li><code class="emph">MDanaysis</code>: browse the 'posout' files
+    generated during a molecular dynamic to compute several quantities,
+    like the radial distribution g(r).</li>
+  <li><code class="emph">bart</code>: EXPERIMENTAL, <a href="http://www.phys.umontreal.ca/~mousseau/index.php?n=Main.Logiciels">ART</a> implementation
+    using BigDFT for the force calculation.</li>
+  <li><code class="emph">abscalc</code>: EXPERIMENTAL, compute XANES spectrum.</li>
+</ul>

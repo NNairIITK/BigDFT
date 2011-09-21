@@ -1171,9 +1171,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx
+  integer :: i_stat,i_all,iat,nspin_ig,iorb,idum=0,ncplx,nrhodim,i3rho_add,irhotot_add,irho_add,ispin
   real(kind=4) :: tt,builtin_rand
-  real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,etol,accurex
+  real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eexctX,eproj_sum,eSIC_DC,etol,accurex
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
@@ -1200,12 +1200,16 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      nspin_ig=nspin
   end if
 
-  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
+  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
        orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
 
   !allocate communications arrays for inputguess orbitals
   !call allocate_comms(nproc,orbse,commse,subname)
   call orbitals_communicators(iproc,nproc,Glr,orbse,commse)  
+
+  !use the eval array of orbse structure to save the original values
+  allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbse%eval,'orbse%eval',subname)
 
   hxh=.5_gp*hx
   hyh=.5_gp*hy
@@ -1279,6 +1283,14 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
 
+  !check the size of the rhopot array related to NK SIC
+  nrhodim=nspin
+  i3rho_add=0
+  if (input%SIC%approach=='NK') then
+     nrhodim=2*nrhodim
+     i3rho_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)+1
+  end if
+
   !application of the hamiltonian for gaussian based treatment
   call sumrho(iproc,nproc,orbse,Glr,hxh,hyh,hzh,psi,rhopot,&
        nscatterarr,nspin,GPU,symObj,irrzon,phnons,rhodsc)
@@ -1294,6 +1306,18 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   endif
   !---
   
+  !before creating the potential, save the density in the second part 
+  !if the case of NK SIC, so that the potential can be created afterwards
+  !copy the density contiguously since the GGA is calculated inside the NK routines
+  if (input%SIC%approach=='NK') then
+     irhotot_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)+1
+     irho_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)*input%nspin+1
+     do ispin=1,input%nspin
+        call dcopy(Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),rhopot(irhotot_add),1,rhopot(irho_add),1)
+        irhotot_add=irhotot_add+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)
+        irho_add=irho_add+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2)
+     end do
+  end if
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
      call PSolverNC(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
@@ -1314,13 +1338,11 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
           Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
           rhopot,eexcu,vexcu,nspin,rhocore,potxc)
 
-
      if( iand(potshortcut,4)==0) then
         call H_potential(at%geocode,'D',iproc,nproc,&
              Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,0.0_dp,.true.)
      endif
-
 
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised
@@ -1423,6 +1445,10 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      end if
 
      call deallocate_orbs(orbse,subname)
+     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
+     deallocate(orbse%eval,stat=i_stat)
+     call memocc(i_stat,i_all,'orbse%eval',subname)
+
      
      !deallocate the gaussian basis descriptors
      call deallocate_gwf(G,subname)
@@ -1434,22 +1460,24 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
      deallocate(norbsc_arr,stat=i_stat)
      call memocc(i_stat,i_all,'norbsc_arr',subname)
+ 
     return 
-  end if
+ end if
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
 
   !call dcopy(orbse%npsidim,psi,1,hpsi,1)
-  if (input%exctxpar == 'OP2P') eexctX = -99.0_gp
+  if (input%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
 
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,nspin,&
+       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
        orbse%norb,orbse%norbp,ngatherarr,rhopot,pot)
 
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,&
        nlpspd,proj,Glr,ngatherarr,pot,&
-       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,nspin,GPU,pkernel=pkernelseq)
+       psi,hpsi,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,input%SIC,GPU,pkernel=pkernelseq)
 
   !deallocate potential
   call free_full_potential(nproc,pot,subname)
@@ -1527,10 +1555,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   call memocc(i_stat,i_all,'passmat',subname)
 
   if (input%itrpmax > 1 .or. input%Tel > 0.0_gp) then
-     !use the eval array of orbse structure to save the original values
-     allocate(orbse%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,orbse%eval,'orbse%eval',subname)
      
+     !clean the array of the IG eigenvalues
+     call to_zero(orbse%norb*orbse%nkpts,orbse%eval(1))
      call dcopy(orbs%norb*orbs%nkpts,orbs%eval(1),1,orbse%eval(1),1)
 
      !add a small displacement in the eigenvalues
@@ -1545,9 +1572,6 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
      !restore the occupation numbers
      call dcopy(orbs%norb*orbs%nkpts,orbse%eval(1),1,orbs%eval(1),1)
 
-     i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-     deallocate(orbse%eval,stat=i_stat)
-     call memocc(i_stat,i_all,'orbse%eval',subname)
   end if
 
   call deallocate_comms(commse,subname)
@@ -1575,5 +1599,9 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   call memocc(i_stat,i_all,'psigau',subname)
 
   call deallocate_orbs(orbse,subname)
+  i_all=-product(shape(orbse%eval))*kind(orbse%eval)
+  deallocate(orbse%eval,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%eval',subname)
+
      
 END SUBROUTINE input_wf_diag

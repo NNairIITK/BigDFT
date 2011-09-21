@@ -1,15 +1,13 @@
 !> @file
 !!  File defining parameters for BigDFT package (processed by the build system)
 !! @author
-!!    Copyright (C) 2008-2011 BigDFT group (LG)
-!! Author:
-!!
-!!
 !!    Copyright (C) 2008-2011 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
+!! @warning
+!!   THIS FILE IS PROCESSED BY THE BUILD SYSTEM.
 
 #if defined HAVE_CONFIG_H
 #include <config.inc>
@@ -64,6 +62,10 @@ module module_defs
   !! inside localize_projectors routines
   logical :: DistProjApply=.true.
 
+  !> experimental variables to test the add of new functionalities
+  logical :: experimental_modulebase_var_onlyfion=.false.
+
+
   !> Physical constants.
   real(gp), parameter :: bohr2ang = 0.5291772108_gp                     ! 1 AU in angstroem
   real(gp), parameter :: ha2ev = 27.21138386_gp                         ! 1 Ha in eV
@@ -88,6 +90,12 @@ module module_defs
   interface UNINITIALIZED
      module procedure uninitialized_dbl,uninitialized_int,uninitialized_real
   end interface
+
+  !initialize to zero an array
+  interface to_zero
+     module procedure put_to_zero_simple,put_to_zero_double,put_to_zero_integer
+  end interface
+
 
   !> interfaces for LAPACK routines
   interface potrf
@@ -114,6 +122,12 @@ module module_defs
   interface hegv
      module procedure hegv_simple,hegv_double
   end interface
+  interface gesv
+     module procedure gesv_simple,gesv_double
+  end interface
+  interface c_gesv
+     module procedure c_gesv_simple,c_gesv_double
+  end interface
 
 
   !> interfaces for BLAS routines
@@ -139,7 +153,7 @@ module module_defs
      module procedure scal_simple,scal_double
   end interface
   interface vcopy
-     module procedure copy_simple,copy_double,&
+     module procedure copy_simple,copy_double,copy_double_to_simple,&
           copy_complex_real_simple,copy_complex_real_double
   end interface
   interface c_vscal
@@ -158,7 +172,7 @@ module module_defs
      module procedure c_trmm_simple,c_trmm_double
   end interface
   interface axpy
-     module procedure axpy_simple,axpy_double
+     module procedure axpy_simple,axpy_double,axpy_simple_to_double
   end interface
   interface c_axpy
      module procedure c_axpy_simple,c_axpy_double
@@ -486,6 +500,26 @@ module module_defs
       call chegv(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,rwork,info)
     end subroutine hegv_simple
 
+    subroutine gesv_double(n,nrhs,a,lda,ipiv,b,ldb,info)
+      implicit none
+      integer, intent(in) :: n,lda,nrhs,ldb
+      integer, intent(out) :: info
+      real(kind=8), intent(inout) :: a,b
+      integer, intent(out) :: ipiv
+      !call to LAPACK routine
+      call dgesv(n,nrhs,a,lda,ipiv,b,ldb,info)
+    end subroutine gesv_double
+
+    subroutine gesv_simple(n,nrhs,a,lda,ipiv,b,ldb,info)
+      implicit none
+      integer, intent(in) :: n,lda,nrhs,ldb
+      integer, intent(out) :: info
+      real(kind=4), intent(inout) :: a,b
+      integer, intent(out) :: ipiv
+      !call to LAPACK routine
+      call sgesv(n,nrhs,a,lda,ipiv,b,ldb,info)
+    end subroutine gesv_simple
+
     subroutine hegv_double(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,rwork,info)
       implicit none
       character(len=1), intent(in) :: jobz,uplo
@@ -496,6 +530,26 @@ module module_defs
       !call to LAPACK routine
       call zhegv(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,rwork,info)
     end subroutine hegv_double
+
+    subroutine c_gesv_double(n,nrhs,a,lda,ipiv,b,ldb,info)
+      implicit none
+      integer, intent(in) :: n,lda,nrhs,ldb
+      integer, intent(out) :: info
+      real(kind=8), intent(inout) :: a,b
+      integer, intent(out) :: ipiv
+      !call to LAPACK routine
+      call zgesv(n,nrhs,a,lda,ipiv,b,ldb,info)
+    end subroutine c_gesv_double
+
+    subroutine c_gesv_simple(n,nrhs,a,lda,ipiv,b,ldb,info)
+      implicit none
+      integer, intent(in) :: n,lda,nrhs,ldb
+      integer, intent(out) :: info
+      real(kind=4), intent(inout) :: a,b
+      integer, intent(out) :: ipiv
+      !call to LAPACK routine
+      call cgesv(n,nrhs,a,lda,ipiv,b,ldb,info)
+    end subroutine c_gesv_simple
 
 
     !> Interfaces for BLAS routines
@@ -522,6 +576,30 @@ module module_defs
       !call to BLAS routine
       call DSCAL(n,da,dx,incx)
     end subroutine scal_double
+
+    subroutine put_to_zero_simple(n,da)
+      implicit none
+      integer, intent(in) :: n
+      real(kind=4), intent(out) :: da
+      !call to custom routine
+      call razero_simple(n,da)
+    end subroutine put_to_zero_simple
+
+    subroutine put_to_zero_double(n,da)
+      implicit none
+      integer, intent(in) :: n
+      real(kind=8), intent(out) :: da
+      !call to custom routine
+      call razero(n,da)
+    end subroutine put_to_zero_double
+
+    subroutine put_to_zero_integer(n,da)
+      implicit none
+      integer, intent(in) :: n
+      integer, intent(out) :: da
+      !call to custom routine
+      call razero_integer(n,da)
+    end subroutine put_to_zero_integer
 
     subroutine c_scal_simple(n,da,dx,incx)
       implicit none
@@ -583,6 +661,14 @@ module module_defs
       call DCOPY(n,dx,incx,dy,incy)
     end subroutine copy_double
 
+    subroutine copy_double_to_simple(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      real(kind=8), intent(in) :: dx
+      real(kind=4), intent(out) :: dy
+      !call to custom routine
+      call dscopy(n,dx,incx,dy,incy)
+    end subroutine copy_double_to_simple
 
     subroutine trmm_simple(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
       implicit none
@@ -667,6 +753,16 @@ module module_defs
       !call to BLAS routine
       call DAXPY(n,da,dx,incx,dy,incy)
     end subroutine axpy_double
+
+    subroutine axpy_simple_to_double(n,da,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: incx,incy,n
+      real(kind=8), intent(in) :: da
+      real(kind=4), intent(in) :: dx
+      real(kind=8), intent(inout) :: dy
+      !call to custom routine, for mixed precision sum
+      call dasxpdy(n,da,dx,incx,dy,incy)
+    end subroutine axpy_simple_to_double
 
     subroutine c_axpy_simple(n,da,dx,incx,dy,incy)
       implicit none

@@ -233,7 +233,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   integer, parameter :: noccmax=2,lmax=4,nmax=6,nelecmax=32
   logical :: occeq
   integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,ictotpsi,norbe,norbsc,ishltmp
-  integer :: ityx,ntypesx,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll
+  integer :: ityx,ntypesx,nspinor,jat,noncoll,icoeff,iocc,nlo,ispin,m,icoll,ngv,ngc,islcc
   real(gp) :: ek
   integer, dimension(lmax) :: nl
   real(gp), dimension(noccmax,lmax) :: occup
@@ -253,6 +253,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   !quick return if possible
   !if the positions are already associated it means that the basis is generated
   if (associated(G%rxyz)) then
+     nullify(Gocc) !to avoid problem with the initialization
      return
   end if
 
@@ -358,20 +359,25 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
         end if
 
         firstperityx( ityx)=iat
+        !positions for the nlcc arrays
+        call nlcc_start_position(ityp,at,ngv,ngc,islcc)
+
 
         if( present(gaenes)) then
            call iguess_generator_modified(at%nzatom(ityp),at%nelpsp(ityp),&
                 real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
-                at%npspcode(ityp),&
+                at%npspcode(ityp),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
                 ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
                 psiat(1,1,ityx),enlargerprb, gaenes_aux(1+5*( firstperityx( ityx)   -1))  )
         else
            call iguess_generator(at%nzatom(ityp),at%nelpsp(ityp),&
                 real(at%nelpsp(ityp),gp),at%psppar(0,0,ityp),&
-                at%npspcode(ityp),&
+                at%npspcode(ityp),ngv,ngc,at%nlccpar(0,max(islcc,1)),&
                 ng-1,nl,5,noccmax,lmax,occup,xpt(1,ityx),&
                 psiat(1,1,ityx),enlargerprb)
         endif
+
+
         ntypesx=ntypesx+1
         if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
      end if

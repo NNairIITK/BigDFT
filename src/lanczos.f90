@@ -1,15 +1,14 @@
-!!****f* BigDFT/lanczos
-!! FUNCTION
-!!   Lanczos diagonalization
-!! COPYRIGHT
-!!    Copyright (C) 2009 ESRF (AM, LG)
+!> @file
+!!  Lanczos diagonalisation used by XANES calculation
+!! @author
+!!    Copyright (C) 2009-2011 BigDFT group (AM, LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+
+!>   Lanczos diagonalization
+
 subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU,in_iat_absorber,&
@@ -98,10 +97,6 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   case default
      STOP "unknown in%Linit_absorber    "
   end select
-  write(filename,'(A,A,A,I1,A,A,I1,A,I1,A,I0)') "gproje_", trim(at%atomnames(at%iatype(  in_iat_absorber ))) ,&
-       "_", in%N_absorber,   "s" ,   "_pow=" ,  in%rpower_absorber,"_Labs=", &
-       in%L_absorber,"_npaw=",in%NPAW_absorber
- 
 
   
   if(   at%paw_NofL( at%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
@@ -114,6 +109,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
      STOP     
   endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
   
   ha%in_iat_absorber=in_iat_absorber
@@ -141,6 +137,8 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%Gabs_coeffs=>Gabs_coeffs
   ha%PAWD=> PAWD
 
+  ha%eSIC_DC=0.0_gp
+  ha%SIC=>SIC
 
 
   call EP_inizializza(ha) 
@@ -246,7 +244,6 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   real(8) :: shift, tol
   integer :: i, cercacount
 
-  real(wp), pointer :: Gabs_coeffs(:)
   real(wp), pointer, dimension (:,:) :: dum_coeffs
   real(wp), dimension(:), pointer  :: pot
  
@@ -336,7 +333,9 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%GPU=>GPU !!
   ha%Gabs_coeffs=>in%Gabs_coeffs
   ha%PAWD=> PAWD
-
+  ha%eSIC_DC=0.0_gp
+  ha%SIC=>SIC
+  
   call EP_inizializza(ha)  
  
 !!$  if(.false.) then
@@ -629,6 +628,10 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%Gabs_coeffs=>Gabs_coeffs
   ha%PAWD=> PAWD 
   ha%PPD=> PPD
+
+  ha%eSIC_DC=0.0_gp
+  ha%SIC=>SIC
+
 
   call EP_inizializza(ha) 
 

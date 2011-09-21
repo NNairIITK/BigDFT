@@ -1,15 +1,14 @@
-!!****m* BigDFT/lanczos_base
-!! FUNCTION
-!!   Module to handle diagonalization scheme
-!! COPYRIGHT
-!!    Copyright (C) 2010 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-!!
-!! SOURCE
-!!
+!> @file 
+!!   Diagonalization schme (module)
+!! @author
+!!   Copyright (C) 2010-2011 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+
+
+!> Module to handle diagonalization scheme
 module lanczos_base
   use module_base
   implicit none
@@ -1237,9 +1236,6 @@ contains
     write(*,'(1x,A30,ES13.2,ES13.4)') " CG ERR ,  result :  ", err,   EP_scalare(x,b)
     LB_cg= EP_scalare(x,b)
     call EP_copy(remember,x)
-
-
-    return  
 
   END function LB_cg
 

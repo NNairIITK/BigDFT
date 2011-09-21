@@ -306,17 +306,17 @@ contains
 
 
     SUBROUTINE ZGEMM_i(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
-      DOUBLE COMPLEX ALPHA,BETA
-      INTEGER K,LDA,LDB,LDC,M,N
-      CHARACTER TRANSA,TRANSB
-      DOUBLE COMPLEX A(LDA,*),B(LDB,*),C(LDC,*)
+      complex(kind=8) :: ALPHA,BETA
+      integer :: K,LDA,LDB,LDC,M,N
+      character(len=1) :: TRANSA,TRANSB
+      complex(kind=8) :: A(LDA,*),B(LDB,*),C(LDC,*)
       print *, TRANSA,TRANSB,M,N,K,ALPHA,LDA,LDB,BETA,LDC
       call ZGEMM(TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
     END SUBROUTINE ZGEMM_i
 
 
    subroutine Propaga( R1, R2,Energy, E, dE_dz)
-     real(gp) R1,R2,Energy
+     real(gp) :: R1,R2,Energy
      complex(gp) :: E(0:nls-1,0:nls-1), dE_dz(0:nls-1,0:nls-1)
 
      real(gp) hh,h6
@@ -413,9 +413,9 @@ contains
 
    real(gp) function esatto_CalcolaRiflettivita( ngrid_A ,rgrid, dumgrid1, nls_a, lpot_a, rpot_a,spot_a,hpot_a,y_r,d_r,&
         Rmts,    Rinf ,nsteps_coarse ,nsteps_fine, Energia , Labs)
-     real(gp), target :: rgrid(1:ngrid_A), dumgrid1(1:ngrid_A)
      real(gp) rpot_a, spot_a, hpot_a,Rmts , Rinf, Energia
      integer nls_a, lpot_a, nsteps_coarse, nsteps_fine, ngrid_A
+     real(gp), target :: rgrid(1:ngrid_A), dumgrid1(1:ngrid_A)
      real(gp), pointer ::  y_r(:), d_r(:)
      integer Labs
 

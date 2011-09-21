@@ -7,5 +7,5 @@ This program tests GPU and CPU and gives a ratio of performance:
 <pre>
 echo '1024 1024 4096 4096 10' > fort.1
 ./conv_check
-/bin/bash: :wqa : commande introuvable
+</pre>
 */

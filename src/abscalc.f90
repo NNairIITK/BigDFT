@@ -21,7 +21,7 @@ program abscalc_main
   !such that the implicit statement can be commented at will
 
   implicit none
-  character(len=*), parameter :: subname='BigDFT'
+  character(len=*), parameter :: subname='abscalc_main'
   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
   real(gp) :: etot,sumx,sumy,sumz
   logical :: exist_list
@@ -96,13 +96,13 @@ program abscalc_main
      endif
 
 
+     !Allocations
      allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fxyz,'fxyz',subname)
 
      call init_restart_objects(iproc,inputs%iacceleration,atoms,rst,subname)
 
      call call_abscalc(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
-     call deallocate_abscalc_input(inputs, subname)
 
      if (iproc.eq.0) then
         sumx=0.d0
@@ -124,8 +124,9 @@ program abscalc_main
         end if
      endif
 
+     !De-allocations
+     call deallocate_abscalc_input(inputs, subname)
      call deallocate_atoms(atoms,subname) 
-
      call free_restart_objects(rst,subname)
 
      i_all=-product(shape(rxyz))*kind(rxyz)
@@ -144,9 +145,9 @@ program abscalc_main
 
   enddo !loop over iconfig
 
-  i_all=-product(shape(arr_posinp))*kind(arr_posinp)
+  
+  !No referenced by memocc!
   deallocate(arr_posinp)
-  call memocc(i_stat,i_all,'arr_posinp',subname)
 
   call MPI_FINALIZE(ierr)
 
@@ -282,13 +283,7 @@ END SUBROUTINE call_abscalc
 
 
 !>   Absorption (XANES) calculation
-!!   @param inputPsiId = 
-!!          - 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
-!!          - 1 : read waves from argument psi, using n1, n2, n3, hgrid
-!!                as definition of the previous system.
-!!          - 2 : read waves from disk
-!!                does an electronic structure calculation. Output is the total energy and the forces 
-!!   @param psi, keyg, keyv and eval should be freed after use outside of the routine.
+!!   @param psi should be freed after use outside of the routine.
 !!   @param infocode -> encloses some information about the status of the run
 !!          - 0 run succesfully succeded
 !!          - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
@@ -304,7 +299,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   use module_types
   use module_interfaces
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
   implicit none
@@ -348,8 +343,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
   real(kind=8), dimension(:,:,:,:), allocatable, target :: rhopot
   real(kind=8), dimension(:,:,:,:), pointer ::  rhopottmp, rhopotExtra, rhoXanes, rhotarget
-  integer b2Bcounter, b2BN
-  character(len=100) filename
+  integer :: b2Bcounter, b2BN
+  character(len=100) :: filename
   real(kind=8), dimension(:), pointer :: pkernel
 
   !wavefunction gradients, hamiltonian on vavefunction
@@ -365,7 +360,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   ! Arrays for the symmetrisation, not used here...
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
-  
+  character(len=5) :: gridformat
+
   !for xabsorber
   integer :: lpot_a, ix, iy, iz , ixnl, iynl, iznl
   real(gp) :: rpot_a,spot_a,hpot_a,espo,harmo,r,rx,ry,rz,minr  
@@ -376,12 +372,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   real(gp), dimension(:,:), pointer :: rxyz_b2B
   integer, dimension(:), pointer :: iatype_b2B, znucl_b2B
   real(gp) :: shift_b2B(3)
-  integer itype, nd
-  integer n1i_bB,n2i_bB,n3i_bB
+  integer :: itype, nd
+  integer :: n1i_bB,n2i_bB,n3i_bB
+  real(gp), dimension(:), pointer :: pot1_bB
   real(gp), dimension(:,:), pointer :: pot_bB
-  real(gp) alat1_bB, alat2_bB, alat3_bB
+  real(gp) :: alat1_bB, alat2_bB, alat3_bB
   real(gp), dimension(:), pointer ::  intfunc_x, intfunc_y
-  real(gp) factx, facty, factz
+  real(gp) :: factx, facty, factz
   integer :: idelta
   integer :: ix_bB, iy_bB, iz_bB
   integer :: maxX_B, maxY_B, maxZ_B
@@ -390,21 +387,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   integer :: nrange
   real(gp), pointer :: auxint(:)
 
-  logical exists 
-  integer nat_b2B
-  integer Nreplicas, ireplica, replicaoffset
-  real(gp) dumvect3D(3)
-  real(gp) shiftdiff
-  real(gp) potmodified_maxr, potmodified_shift
-  real(gp), pointer :: deldel(:)
+  logical  :: exists 
+  integer  :: nat_b2B
+  integer  :: Nreplicas, ireplica, replicaoffset
+  real(gp) :: dumvect3D(3)
+  real(gp) :: shiftdiff
+  real(gp) :: potmodified_maxr, potmodified_shift
 
   type(atoms_data) :: atoms_clone
   integer :: nsp, nspinor, noncoll
   integer, parameter :: nelecmax=32,nmax=6,lmax=4
   integer, parameter :: noccmax=2
   
-
-
   !! to apply pc_projector
   type(pcproj_data_type) ::PPD
   !! to apply paw projectors
@@ -435,8 +429,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   hy=in%hy
   hz=in%hz
 
+  write(gridformat, "(A)") ""
+  select case (in%output_grid_format)
+     case (OUTPUT_GRID_FORMAT_ETSF)
+        write(gridformat, "(A)") ".etsf"
+     case (OUTPUT_GRID_FORMAT_CUBE)
+        write(gridformat, "(A)") ".bin"
+  end select
+
   if (ixc < 0) then
-     call libxc_functionals_init(ixc, nspin)
+     call xc_init(ixc, XC_MIXED, nspin)
+  else
+     call xc_init(ixc, XC_ABINIT, nspin)
   end if
 
   !character string for quieting the Poisson solver
@@ -587,11 +591,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   print *, " IonicEnergyandForces  " 
 
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,in%elecfield,rxyz,eion,fion,&
-       psoffset,in%nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
+       psoffset,0,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-       in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,in%nvacancy,&
-       in%correct_offset)
+       in%elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,0,&
+       .false.)
 
   !this can be inserted inside the IonicEnergyandForces routine
   !(after insertion of the non-regression test)
@@ -735,7 +739,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         
         i_all=-product(shape(pot_bB))*kind(pot_bB)
         deallocate(pot_bB,stat=i_stat)
-        call memocc(i_stat,i_all,'rho',subname)
+        call memocc(i_stat,i_all,'pot_bB',subname)
+
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'rxyz',subname)
@@ -760,9 +765,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      i_all=-product(shape(atoms_clone%aocc))*kind(atoms_clone%aocc)
      deallocate(atoms_clone%aocc,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%aocc',subname)
+     nullify(atoms_clone%aocc)
      i_all=-product(shape(atoms_clone%iasctype))*kind(atoms_clone%iasctype)
      deallocate(atoms_clone%iasctype,stat=i_stat)
      call memocc(i_stat,i_all,'atoms_clone%iasctype',subname)
+     nullify(atoms_clone%iasctype)
 
   endif
 
@@ -827,10 +834,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
      if (in%output_grid == OUTPUT_GRID_DENSPOT) then
         if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
-          if (iproc == 0) write(*,*) 'writing local_potential.pot'
-           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
-                n1,n2,n3,n1i,n2i,n3i,n3p,&
-                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
+          if (iproc == 0) write(*,*) 'writing local_potential'
+
+          call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
+               n1,n2,n3,n1i,n2i,n3i,n3p,&
+               in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
+!!$
+!!$           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
+!!$                n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!$                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
         else
            call plot_density_cube_old(atoms%geocode,'local_potentialb2B',iproc,nproc,&
                 n1,n2,n3,n1i,n2i,n3i,n3p,&
@@ -852,7 +864,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            b2BN=1
         endif
         
-
+        !Big loop (b2Bcounter)
         do b2Bcounter=1,b2BN
 
            if(b2Bcounter==1) then
@@ -864,66 +876,69 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            endif
 
 
-        inquire(file=trim(trim(filename)//'.cube'),exist=exists)
-        print *, "control ",  trim(filename)//'.cube', exists
-        if(exists) then
+           inquire(file=trim(trim(filename)//'.cube'),exist=exists)
+           print *, "check ",  trim(filename)//'.cube', exists
 
-           call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, &
-                & nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
-           !call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
-           hx_old=hx_old*2
-           hy_old=hy_old*2
-           hz_old=hz_old*2
+           if(exists) then
 
-
-           if( (atoms%nat/nat_b2B)*nat_b2B /=  atoms%nat ) then
-              if(iproc==0) write(*,*)  "   b2B_xanes cube  is not compatible with actual positions" 
-              if(nproc>1) call MPI_Finalize(ierr)
-              stop '      b2B_xanes cube  is not compatible with actual positions          '
-           end if
-
-        else
-
-           if(b2BN>1) then
-              if(iproc==0) write(*,*)  " b2B must be read only from *.cube when potential is energy dependent  " 
-              if(nproc>1) call MPI_Finalize(ierr)
-              stop '   b2B must be read only from *.cube when potential is energy dependent         '
-           endif
-           print  *, " reading atomic positions from file ","b2B_xanes.xyz"
-           call read_atomic_file("b2B_xanes.xyz",iproc, atoms_b2B, rxyz_b2B )
-           print *, "OK ", shape( rxyz_b2B )
-
-           nat_b2B= (   Ubound(rxyz_b2B,2)  - Lbound(rxyz_b2B,2)  +  1 ) - ndebug
-
-
-           if( (atoms%nat/nat_b2B)*nat_b2B /= atoms%nat ) then
-              if(iproc==0) write(*,*)  "   b2B_xanes.xyz  is not compatible with actual positions" 
-              if(nproc>1) call MPI_Finalize(ierr)
-              stop '      b2B_xanes.xyz  is not compatible with actual positions          '
-           end if
-           
-           print  *, " reading potential from file ","b2B_xanes.pot"
-           !call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
-           print  *, " reading OK "
-           
-           
-           if( atoms_b2B%geocode/='F') then
-              hx_old = 2*alat1_bB / (n1i_bB)
-              hy_old = 2*alat2_bB / (n2i_bB)
-              hz_old = 2*alat3_bB / (n3i_bB)
+              call read_cube(trim(filename),atoms%geocode,n1i_bB,n2i_bB,n3i_bB, &
+                   & nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
+              !call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
+              hx_old=hx_old*2
+              hy_old=hy_old*2
+              hz_old=hz_old*2
+              
+              
+              if( (atoms%nat/nat_b2B)*nat_b2B /=  atoms%nat ) then
+                 if(iproc==0) write(*,*)  "   b2B_xanes cube  is not compatible with actual positions" 
+                 if(nproc>1) call MPI_Finalize(ierr)
+                 stop '      b2B_xanes cube  is not compatible with actual positions          '
+              end if
+              
            else
-              hx_old = 2*alat1_bB / (n1i_bB-2)
-              hy_old = 2*alat2_bB / (n2i_bB-2)
-              hz_old = 2*alat3_bB / (n3i_bB-2)
+
+              !Pb of initialization -- alat1_bB, alat2_bB, alat3_bB (TD 24/8/2011)
+
+              if(b2BN>1) then
+                 if(iproc==0) write(*,*)  " b2B must be read only from *.cube when potential is energy dependent  " 
+                 if(nproc>1) call MPI_Finalize(ierr)
+                 stop '   b2B must be read only from *.cube when potential is energy dependent         '
+              endif
+              print  *, " reading atomic positions from file ","b2B_xanes.xyz"
+              call read_atomic_file("b2B_xanes.xyz",iproc, atoms_b2B, rxyz_b2B )
+              print *, "OK ", shape( rxyz_b2B )
+
+              nat_b2B= (   Ubound(rxyz_b2B,2)  - Lbound(rxyz_b2B,2)  +  1 ) - ndebug
+
+              
+              if( (atoms%nat/nat_b2B)*nat_b2B /= atoms%nat ) then
+                 if(iproc==0) write(*,*)  "   b2B_xanes.xyz  is not compatible with actual positions" 
+                 if(nproc>1) call MPI_Finalize(ierr)
+                 stop '      b2B_xanes.xyz  is not compatible with actual positions          '
+              end if
+              
+              print  *, " reading potential from file ","b2B_xanes.pot"
+              call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
+              print  *, " reading OK "
+              
+              
+              if( atoms_b2B%geocode/='F') then
+                 hx_old = 2*alat1_bB / (n1i_bB)
+                 hy_old = 2*alat2_bB / (n2i_bB)
+                 hz_old = 2*alat3_bB / (n3i_bB)
+              else
+                 hx_old = 2*alat1_bB / (n1i_bB-2)
+                 hy_old = 2*alat2_bB / (n2i_bB-2)
+                 hz_old = 2*alat3_bB / (n3i_bB-2)
+              endif
+              
+              call deallocate_atoms(atoms_b2B,subname) 
+              
            endif
-
-           call deallocate_atoms(atoms_b2B,subname) 
-
-        endif
-
-
-        allocate(rhopottmp( max(n1i_bB,n1i),max(n2i_bB,n2i),max(n3i_bB,n3d),in%nspin+ndebug),stat=i_stat)
-        call memocc(i_stat,rhopottmp,'rhopottmp',subname)
+           
+           
+           allocate(rhopottmp( max(n1i_bB,n1i),max(n2i_bB,n2i),max(n3i_bB,n3d),in%nspin+ndebug),stat=i_stat)
+           call memocc(i_stat,rhopottmp,'rhopottmp',subname)
 
 
         rhotarget=0.0_gp
@@ -957,6 +972,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         dumvect3d(2)=atoms%alat2
         dumvect3d(3)=atoms%alat3
 
+        !Loop over ireplica
         do ireplica=0, Nreplicas-1
            
            replicaoffset = (ireplica)*(   nat_b2B      )
@@ -990,7 +1006,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
            if (ireplica==Nreplicas-1) then
               i_all=-product(shape(pot_bB))*kind(pot_bB)
               deallocate(pot_bB,stat=i_stat)
-              call memocc(i_stat,i_all,'rho',subname)
+              call memocc(i_stat,i_all,'pot_bB',subname)
            endif
 
 
@@ -1088,7 +1104,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                  rhotarget(ix_bB ,iy_bB, : ,1)= rhotarget(ix_bB ,iy_bB, : ,1)+auxint(1:n3i)
               enddo
            enddo
-        enddo
+        enddo !End of loop over ireplica
+        
+        !De-allocations
         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
         deallocate(rxyz_b2B,stat=i_stat)
         call memocc(i_stat,i_all,'rxyz',subname)
@@ -1107,7 +1125,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         i_all=-product(shape(intfunc_y))*kind(intfunc_y)
         deallocate(intfunc_y,stat=i_stat)
         call memocc(i_stat,i_all,'intfunc_y',subname)
-     enddo
+     enddo  !End of loop of B2counter
+
         
 
 
@@ -1122,7 +1141,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 
 
-     endif
+     endif !End of if ( iand( in%potshortcut, 2)  > 0)
+
 
      if( iand( in%potshortcut,4)  .gt. 0 ) then
         do ix=1,n1i
@@ -1253,8 +1273,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      
 
   end if
-  !!$ call deallocate_abscalc_input(in, subname)
-
 
   !    No tail calculation
   if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -1363,6 +1381,7 @@ contains
     end if
     
 
+    !De-allocations
     call deallocate_bounds(atoms%geocode,Glr%hybrid_on,  Glr%bounds,subname)
 
 !!$    if (atoms%geocode == 'F') then
@@ -1409,17 +1428,9 @@ contains
     call deallocate_comms(comms,subname)
 
     call deallocate_orbs(orbs,subname)
+    call deallocate_atoms_scf(atoms,subname) 
 
-    !semicores useful only for the input guess
-    i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-    deallocate(atoms%iasctype,stat=i_stat)
-    call memocc(i_stat,i_all,'iasctype',subname)
-    i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
-    deallocate(atoms%aocc,stat=i_stat)
-    call memocc(i_stat,i_all,'aocc',subname)
-    i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-    deallocate(atoms%nzatom,stat=i_stat)
-    call memocc(i_stat,i_all,'nzatom',subname)
+
     i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
     deallocate(nlpspd%nboxp_c,stat=i_stat)
     call memocc(i_stat,i_all,'nboxp_c',subname)
@@ -1443,18 +1454,9 @@ contains
     deallocate(proj,stat=i_stat)
     call memocc(i_stat,i_all,'proj',subname)
 
-    i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-    deallocate(atoms%psppar,stat=i_stat)
-    call memocc(i_stat,i_all,'psppar',subname)
-    i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-    deallocate(atoms%nelpsp,stat=i_stat)
-    call memocc(i_stat,i_all,'nelpsp',subname)
     i_all=-product(shape(radii_cf))*kind(radii_cf)
     deallocate(radii_cf,stat=i_stat)
     call memocc(i_stat,i_all,'radii_cf',subname)
-    i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-    deallocate(atoms%npspcode,stat=i_stat)
-    call memocc(i_stat,i_all,'npspcode',subname)
 
     call deallocate_rho_descriptors(rhodsc,subname)
 
@@ -1467,9 +1469,7 @@ contains
     call deallocate_atomdatapaw(atoms,subname)
 
     ! Free the libXC stuff if necessary.
-    if (ixc < 0) then
-       call libxc_functionals_end()
-    end if
+    call xc_end()
 
     !end of wavefunction minimisation
     call timing(iproc,'LAST','PR')

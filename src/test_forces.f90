@@ -1,22 +1,21 @@
-!!****p* BigDFT/test_forces
-!! FUNCTION
-!!    Runs BigDFT and test whether the forces are the 
-!!    derivative of the energy.
-!!    Performs the integration of the calculated forces over
-!!    some random displacement and compare the result with the 
-!!    difference of the energy between the final and the initial 
-!!    position
+!> @file 
+!!   Routines to test atomic forces
+!! @author
+!!   Copyright (C) 2005-2011 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
+
+!> Runs BigDFT and test whether the forces are the 
+!! derivative of the energy.
+!! Performs the integration of the calculated forces over
+!! some random displacement and compare the result with the 
+!! difference of the energy between the final and the initial 
+!! position
 !! WARNING
 !!    Date: 10/07; THIS PROGRAM MUST BE COMPLETELY CHANGED
 !!  ***  Date: Feb 2011:  This program was modified and updated by Ali Sadeghi ***
-!! AUTHOR
-!!    Luigi Genovese
-!! COPYRIGHT
-!!    Copyright (C) 2005-2008 CEA
-!! CREATION DATE
-!!    09/2006
-!! SOURCE
-!!
 program test_forces
 
   use module_base
@@ -115,7 +114,7 @@ do iconfig=1,nconfig
      call standard_inputfile_names(inputs)
      call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
 !     if (iproc == 0) then
- !       call print_general_parameters(inputs,atoms)
+ !       call print_general_parameters(nproc,inputs,atoms)
  !    end if
 
      !initialize memory counting
@@ -153,7 +152,7 @@ do iconfig=1,nconfig
      end if
 
      if (iproc == 0) then
-        call print_general_parameters(inputs,atoms) ! to know the new positions
+        call print_general_parameters(nproc,inputs,atoms) ! to know the new positions
      end if
                        
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
@@ -218,6 +217,4 @@ do iconfig=1,nconfig
 
   call MPI_FINALIZE(ierr)
 
-
 end program test_forces
-!!***

@@ -27,6 +27,7 @@ EXTRA_DIST = \
 	HGH/psppar.Si \
 	HGH/psppar.Fe \
 	HGH/psppar.Mg \
+	HGH/psppar.Ag \
 	HGH-K/psppar.H \
 	HGH-K/psppar.Si \
 	HGH-K/psppar.O \

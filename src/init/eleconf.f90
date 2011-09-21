@@ -233,6 +233,16 @@ neleconf(3,0)=1
 nsccode=12
 amu=22.989768d0
 
+case(12*1000+2)
+! -----------------------          16
+! Mg          12           2     Symbol, Z, Zion
+symbol = "Mg"
+rcov=2.65d0
+rprb=5.30d0
+ehomo=-0.175427d0
+neleconf(3,0)=2
+amu=24.3050d0
+
 case(12*1000+10)
 ! -----------------------          15
 ! Mg          12          10     Symbol, Z, Zion
@@ -244,16 +254,6 @@ neleconf(2,0)=2
 neleconf(2,1)=6
 neleconf(3,0)=2
 nsccode=12
-amu=24.3050d0
-
-case(12*1000+2)
-! -----------------------          16
-! Mg          12           2     Symbol, Z, Zion
-symbol = "Mg"
-rcov=2.65d0
-rprb=5.30d0
-ehomo=-0.175427d0
-neleconf(3,0)=2
 amu=24.3050d0
 
 case(13*1000+3)
@@ -274,6 +274,19 @@ symbol = "Si"
 rcov=2.09d0
 rprb=4.19d0
 ehomo=-0.153293d0
+neleconf(3,0)=2
+neleconf(3,1)=2
+amu=28.0855d0
+
+case(14*1000+12)
+! -----------------------          18
+! Si          14          12     Symbol, Z, Zion
+symbol = "Si"
+rcov=2.09d0   !< From Si without semi-core
+rprb=4.19d0   !< same
+ehomo=-0.153293d0
+neleconf(2,0)=2
+neleconf(2,1)=6
 neleconf(3,0)=2
 neleconf(3,1)=2
 amu=28.0855d0

@@ -29,49 +29,50 @@ some error message with additional information.
                  all penalty contributions that depend on the following data. In a parallel run,
                  one file per MPI process is needed, atom.00.ae, atom.01.ae, atom.02.ae and so on.
 
- input.dat       This specifies the actions to be performed and some options on the first line.
-                 In previous versions, this input was passed via the command line. Additional lines
-                 define the parameters to perform wavelet transformations, as described in the file
-                 README.pseudo.parallel.
-                 The first line can be a string as a command options:
-                     -c[N]        number of fitting cycles for ameoeba (-1< N< 10000)
-                     -n[N]        number of iterations per simplex
-                     -g[N]        number gaussians (don't use value from atom)
-                     -r[N]        set rij=N/10 (don't use value from atom)
-                     -fullacc     use max. number of gaussians
-                     -orth        orthogonalisation of the projectors
-                     -lith        transformation of the projectors as in literature
-                                  The option -orth and -lith can not be used together
-                     -denbas      use dense gaussian basis    
-                     -mixref      allow mixed reference data
-                                  (allow contradictions in AE ref data)
-                     -info        write gaussian coefficients of final
-                                  wavefunctions to gauss.par
-                     -plot        plot wfs after each iteration
-                     -l[N]so      average nonlocal potential = 0 for l=N
-                                  (only for the highest projector)
-                     -dump        dump file for ekin.test.f requested
-                 Read additional parameters for wavelet tranforms
-                 from the following lines of the file input.dat
+ input.dat       This is an input file with options that have been read as command line arguments
+                 in previous versions and some additional parameters the user can specify. If this
+                 file is absent, pseudo will print a notification with a list of recognized options:
+
+                   -cy      N number of fitting cycles (-1< N< 10000)
+                   -fit       equivalent to -cy 1
+                   -maxiter N number of iterations per simplex
+                   -ng      N number of Gaussians
+                   -rij     F max length scale of Gaussians/rloc 
+                   -fullacc   use max. number of gaussians
+                   -orth      orthogonalisation of the projectors
+                   -lith      transformation of the projectors as in lit.
+                   -denbas    use dense gaussian basis    
+                   -mixref    allow contradictions in AE ref data
+                   -info      write gaussian coefficients of final
+                              wavefunctions to gauss.par
+                   -plot      plot wfs after each iteration
+                   -lNso      avg nonlocal potential =0 for l=N  
+                              (only for the highest projector)
+                   -inwidth F initial width of the simplex
+                   -stuck   N max steps to consider simplex stuck
+                   -cvg     F convergence crit for simplex spread
+
+                 Notice that the entire file is parsed for keywords, of which some need to be followed
+                 with numeric values. If the same option is specified several times, the previous 
+                 settings will be overridden with its latest occurrence. 
 
  psppar          This is the pseudopotential in ABINIT's GTH, HGH or HGH-K format (code 2,3 or 10).
                  The file serves as an initial guess for and output of resulting PSP parameters.
                  Previous versions used psp.par files of a different format. If you want to convert
                  such a psp.par file to the ABINIT format, you can invoke the program psp.import.f.
-                 Notice the comment on line one contains some important parameters that need to be
-                 consistent with the all electron calculation, unless mixed reference data is used.  
-                 This lines also specifies to Gaussian  basis used during the fit.
+                 Notice the comment on line one may contain some optional input parameters. 
+                 If present, these will be compared with the current settings for proofreading.
+                 The same holds for a list of NLCC parameters possibly located on line 5. 
 
- FITPAR          This defines which parameters of the pseudopotential are to be fitted (t) and which
-                 shall remain constant (f). The second line may contain some optional settings that 
-                 grant more control of the simplex parameters, i.e. the initial spread, tolerated 
-                 number of successive steps of no improvement and the criterion for convergence.
+ FITPAR          This file specifies which parameters of psppar shall be free during the fit.
+                 In previous versions, a logical array was read in some fixed format. This version 
+                 will parse the file for keywords instead. If no matches are found, pseudo will print
+                 some more instructions. The keyword "auto" will free most params from psppar.
 
  ae.orbitals.plt This file contains a list of all electron wavefunctions and is needed when plots
                  are requested from pseudo with the -plot option. Comparing the pseudowavefunctions
                  with the AE wavefunctions is indeed needful to check the outcome of any fit.
-                 Plotting utilities are provided for the use with gnuplot (and maybe R in a later
-                 version).
+                 Plotting utilities are provided for the use with gnuplot.
 
 
 
@@ -85,7 +86,7 @@ Below is an example input file. The first line is a comment and the second line 
 weights absent in previous versions of pseudo.
 
  weights file for nonrelativistic carbon
- 0d0 1d5 1d0 1d0 1d3      psi(0), dEkin_wvlt, radii, hij, E_exct
+ 0d0 1d5 1d0 1d0 1d0 1d3      psi(0), dEkin_wvlt, radii, hij, locality E_exct
    n   l  so    eigval  chrg    dchrg  ddchrg  res    rnode dnode ddnode
    2   0 0.00   1.0e3   1.0e3   0.0e0  0.0e0   0.0e0  1.0e0 0.0e0 0.0e0
    3   0 0.00   1.0e0   1.0e0   0.0e0  0.0e0   0.0e0  0.0e0 0.0e0 0.0e0
@@ -113,6 +114,10 @@ The weights on the second line are defined as follows.
 
  hij           Large matrix elements of the projectors may lead to numerical instabilities. This
                weight applies to the empirical term                        sum( (hij/10.0)**12 )
+
+ locality      A common problem when searching for soft pseudopotentials are wide extensions
+               of the local Gaussian potential. This weight is used to make sure V_loc is
+               sufficiently small beyond a distance to the origin of rcov. 
 
  E_exct        This is the overall weight for all excitation energies. Deviations in the mHa
                range will give contributions around 1 with this weight.

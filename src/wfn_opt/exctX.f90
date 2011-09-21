@@ -14,7 +14,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   use module_base
   use module_types
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
 
   implicit none
   character(len=1), intent(in) :: geocode
@@ -39,7 +39,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
-  exctXfac = libxc_functionals_exctXfac()
+  exctXfac = xc_exctXfac()
 
   eexctX=0.0_gp
 
@@ -271,7 +271,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,nspin,lr,orbs,n3parr,n3p
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX
 
-  if (iproc == 0) write(*,'(a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
+  if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
 
   !assign the potential for each function
   if (nproc > 1) then
@@ -699,7 +699,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   use module_base
   use module_types
   use Poisson_Solver
-  use libxc_functionals
+  use module_xc
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,nspin
@@ -729,7 +729,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
-  exctXfac = libxc_functionals_exctXfac()
+  exctXfac = xc_exctXfac()
 
   eexctX=0.0_gp
 
@@ -1303,7 +1303,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,geocode,nspin,lr,orbs,&
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX
   
-  if (iproc == 0) write(*,'(a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
+  if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
   !close(100+iproc)
   i_all=-product(shape(nvctr_par))*kind(nvctr_par)
   deallocate(nvctr_par,stat=i_stat)
@@ -1367,7 +1367,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$  use module_base
 !!$  use module_types
 !!$  use Poisson_Solver
-!!$  use libxc_functionals
+!!$  use module_xc
 !!$  implicit none
 !!$  character(len=1), intent(in) :: geocode
 !!$  integer, intent(in) :: iproc,nproc,nspin
@@ -1397,7 +1397,7 @@ END SUBROUTINE exact_exchange_potential_round
 !!$
 !!$  !call timing(iproc,'Exchangecorr  ','ON')
 !!$
-!!$  exctXfac = libxc_functionals_exctXfac()
+!!$  exctXfac = xc_exctXfac()
 !!$
 !!$  eexctX=0.0_gp
 !!$
