@@ -3171,6 +3171,7 @@ real(8),dimension(:,:,:),pointer:: hamextract
 type(p2pCommsOrthonormalityMatrix):: comom
 type(matrixMinimization):: matmin
 logical:: same
+type(matrixDescriptors):: mad
 
   if(iproc==0) write(*,'(x,a)') '------------------------------- Minimizing trace in the basis of the atomic orbitals'
 
@@ -3226,6 +3227,12 @@ logical:: same
       !tag=1
       call initCommsMatrixOrtho(iproc, ip%nproc, lin%orbs%norb, ip%norb_par, ip%isorb_par, &
            onWhichAtomPhi, ip%onWhichMPI, tag, comom)
+ 
+      call nullify_matrixDescriptors(mad)
+      call initMatrixCompressionForInguess(iproc, nproc, lzdig%nlr, orbsig, comom%noverlap, comom%overlaps, mad)
+      call initCompressedMatmul3(orbs%norb, mad)
+
+
       allocate(lcoeff(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
       call memocc(istat, lcoeff, 'lcoeff', subname)
       allocate(lgrad(matmin%norbmax,ip%norb_par(iproc)), stat=istat)
@@ -3314,7 +3321,7 @@ logical:: same
           call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
                lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
-               lin%lzd%nlr, newComm, lin%mad, matmin%mlr, lcoeff, comom)
+               lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
       end if
     
       iterLoop: do it=1,lin%nItInguess
@@ -3323,12 +3330,12 @@ logical:: same
               write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
           endif
 
-          !if(it<=10) then
-          !    methTransformOverlap=0
-          !else
-          !    methTransformOverlap=lin%methTransformOverlap
-          !end if
-          methTransformOverlap=0
+          if(it<=10) then
+              methTransformOverlap=0
+          else
+              methTransformOverlap=lin%methTransformOverlap
+          end if
+          !methTransformOverlap=0
           !methTransformOverlap=lin%methTransformOverlap
     
     
@@ -3336,7 +3343,7 @@ logical:: same
           call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
                lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
-               lin%lzd%nlr, newComm, lin%mad, matmin%mlr, lcoeff, comom)
+               lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
           !call orthonormalizeVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
           !     matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
           !     matmin%mlr, lcoeff, comom)
@@ -3368,7 +3375,7 @@ logical:: same
           call orthoconstraintVectors(iproc, ip%nproc, methTransformOverlap, lin%correctionOrthoconstraint, lin%blocksize_pdgemm, &
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, &
                matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
-               matmin%mlr, lin%mad, lcoeff, lgrad, comom, trace)
+               matmin%mlr, mad, lcoeff, lgrad, comom, trace)
           !!do jorb=1,matmin%norbmax
           !!    write(660+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
           !!end do
@@ -3475,6 +3482,8 @@ logical:: same
       iall=-product(shape(hamextract))*kind(hamextract)
       deallocate(hamextract, stat=istat)
       call memocc(istat, iall, 'hamextract', subname)
+
+      call deallocate_matrixDescriptors(mad, subname)
 
 
   end if processIf

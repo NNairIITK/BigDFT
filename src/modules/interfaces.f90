@@ -4841,6 +4841,18 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
          integer,dimension(2,0:nproc-1),intent(inout):: requests
        end subroutine my_iallgather_collect2
 
+
+       subroutine initMatrixCompressionForInguess(iproc, nproc, nlr, orbs, noverlaps, overlaps, mad)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, nlr
+         type(orbitals_data),intent(in):: orbs
+         integer,dimension(nlr),intent(in):: noverlaps
+         integer,dimension(maxval(noverlaps(:)),nlr),intent(in):: overlaps
+         type(matrixDescriptors),intent(out):: mad
+       end subroutine initMatrixCompressionForInguess
+
   end interface
 
 end module module_interfaces
