@@ -102,11 +102,11 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
   ! Read atomic file
   call read_atomic_file(posinp,iproc,atoms,rxyz)
 
-  ! Read associated pseudo files.
-  call init_atomic_values(iproc, atoms)
-
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
+
+  ! Read associated pseudo files.
+  call init_atomic_values(iproc, atoms, inputs%ixc)
 END SUBROUTINE read_input_variables
 
 

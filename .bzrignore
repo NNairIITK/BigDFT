@@ -56,3 +56,5 @@ S_GPU/src/CUDA/.deps/
 tmp.c
 .deps
 *.orig
+utils/PSPfiles/Krach-LDA/CVS
+utils/PSPfiles/Krach-PBE/CVS

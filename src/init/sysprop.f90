@@ -147,12 +147,12 @@ subroutine calculate_rhocore(iproc,at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhoc
 
 END SUBROUTINE calculate_rhocore
 
-subroutine init_atomic_values(iproc, atoms)
+subroutine init_atomic_values(iproc, atoms, ixc)
   use module_base
   use module_types
   implicit none
   
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc, ixc
   type(atoms_data), intent(inout) :: atoms
 
   !local variables
@@ -193,10 +193,17 @@ subroutine init_atomic_values(iproc, atoms)
           & atoms%radii_cf(ityp, :), read_radii, exists)
      if (.not. read_radii) atoms%radii_cf(ityp, :) = UNINITIALIZED(1.0_gp)
      if (.not. exists) then
-        write(*,'(1x,3a)')&
-             'ERROR: The pseudopotential parameter file "',trim(filename),&
-             '" is lacking, exiting...'
-        stop
+        atoms%ixcpsp(ityp) = ixc
+        call psp_from_data(atoms%atomnames(ityp), atoms%nzatom(ityp), &
+             & atoms%nelpsp(ityp), atoms%npspcode(ityp), atoms%ixcpsp(ityp), &
+             & atoms%psppar(:,:,ityp), exists)
+        if (.not. exists) then
+           write(*,'(1x,5a)')&
+                'ERROR: The pseudopotential parameter file "',trim(filename),&
+                '" is lacking, and no registered pseudo found for "', &
+                & trim(atoms%atomnames(ityp)), '", exiting...'
+           stop
+        end if
      end if
      filename ='nlcc.'//atoms%atomnames(ityp)
      call nlcc_dim_from_file(filename, atoms%nlcc_ngv(ityp), &
@@ -246,6 +253,7 @@ subroutine psp_from_file(iproc, filename, nzatom, nelpsp, npspcode, &
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l
   character(len=100) :: line
 
+  read_radii = .false.
   inquire(file=trim(filename),exist=exists)
   if (.not. exists) return
 

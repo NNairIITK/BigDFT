@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Sn
+   50   4  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.60500000    1     4.61091234                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.66354369    3     1.64879146     0.05498623    -0.14066273                   rs ns hs11 hs12 hs13
+                                       -0.14197384     0.36318961                              hs22 hs23
+                                                      -0.57654563                                   hs33
+     0.74586492    2     0.76935544     0.18807652                                  rp np hp11 hp12
+                                       -0.44507028                                             hp22
+                         0.10393057    -0.00213712                                        kp11 kp12
+                                        0.00505735                                             kp22
+     0.94445897    1     0.22511508                                                 rd nd hd11
+                         0.00706571                                                       kd11

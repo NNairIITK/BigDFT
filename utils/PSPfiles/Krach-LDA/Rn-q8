@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Rn
+   86   8  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.57000000    1    14.62918461                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.61518195    3     0.98183224     0.40238854    -0.02938821                   rs ns hs11 hs12 hs13
+                                       -1.03896274     0.07588004                              hs22 hs23
+                                                      -0.12045584                                   hs33
+     0.67669721    2     0.61227859     0.14541822                                  rp np hp11 hp12
+                                       -0.34412231                                             hp22
+                         0.54989620     0.01004055                                        kp11 kp12
+                                       -0.02376028                                             kp22
+     0.78833715    1     0.55774596                                                 rd nd hd11
+                         0.04548755                                                       kd11
