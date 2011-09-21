@@ -209,6 +209,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
   character(len=5) :: gridformat, wfformat, final_out
+  character(len=128) :: dir
   character(len=500) :: errmess
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
@@ -1183,6 +1184,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !  write all the wavefunctions into files
   if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
+     ! Create a directory to put the files in.
+     if (iproc == 0) then
+        call mkdir(in%file_radical, len_trim(in%file_radical), dir, 128, i_stat)
+        if (i_stat /= 0) write(*,*) "WARNING cannot create output directory."
+     end if
+     call MPI_BCAST(dir,128,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
      !add flag for writing waves in the gaussian basis form
      if (in%gaussian_help) then
 
@@ -1191,7 +1198,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
         if (iproc ==0) write(*,*)'Writing wavefunctions in wavefunction.gau file'
-        call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
+        call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,dir // 'wavefunctions.gau')
 
         !build dual coefficients
         call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
@@ -1206,7 +1213,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         nullify(gbd%rxyz)
 
      else
-        call  writemywaves(iproc,"wavefunction" // trim(wfformat), &
+        call  writemywaves(iproc,dir // "wavefunction" // trim(wfformat), &
              & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psi)
      end if
   end if
