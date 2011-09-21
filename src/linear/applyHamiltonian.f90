@@ -158,11 +158,11 @@ real(gp) :: epot_p
                        tt=(hxh*dble(i1+offsetx)-rxyzConfinement(1))**2 + (hyh*dble(i2+offsety)-rxyzConfinement(2))**2 + &
                            (hzh*dble(i3+offsetz)-rxyzConfinement(3))**2
                        tt=potentialPrefac*tt**order
-                       !if(i1==55 .and. i2==64) then
-                       !    !write(*,'(a,i0,a)') 'process ',iproc,' writes to file.'
-                       !    write(1001+iproc,'(i8,3es20.12)') i3, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1), tt, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
-                       !    write(2001+iproc,'(i8,es20.12)') i3, psir(i1,i2,i3,ispinor)
-                       !end if
+                       if(i1==55 .and. i2==64) then
+                           !write(*,'(a,i0,a)') 'process ',iproc,' writes to file.'
+                           write(1001+iproc,'(i8,3es20.12)') i3, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1), tt, pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
+                           write(2001+iproc,'(i8,es20.12)') i3, psir(i1,i2,i3,ispinor)
+                       end if
                        tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)+tt
                        tt=tt*psir(i1,i2,i3,ispinor)
                        epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
