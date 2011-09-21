@@ -1664,7 +1664,7 @@ end subroutine getHamiltonianMatrix5
 
 
 
-subroutine determineLocalizationRegions(iproc, nproc, nlr, norb, at, onWhichAtomAll, locrad, rxyz, lzd, mlr)
+subroutine determineLocalizationRegions(iproc, nproc, nlr, norb, at, onWhichAtomAll, locrad, rxyz, lzd, hx, hy, hz, mlr)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => determineLocalizationRegions
@@ -1677,6 +1677,7 @@ integer,dimension(norb),intent(in):: onWhichAtomAll
 real(8),dimension(at%nat),intent(in):: locrad
 real(8),dimension(3,at%nat),intent(in):: rxyz
 type(local_zone_descriptors),intent(in):: lzd
+real(8),intent(in):: hx, hy, hz
 type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
 
 ! Local variables
@@ -1691,13 +1692,64 @@ do ilr=1,nlr
     call nullify_matrixLocalizationRegion(mlr(ilr))
 end do
 
+!! THIS WAS THE ORIGINAL
+!!! Count for each localization region the number of matrix elements within the cutoff.
+!!do ilr=1,nlr
+!!    mlr(ilr)%norbinlr=0
+!!    call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!!    do jorb=1,norb
+!!        jlr=onWhichAtomAll(jorb)
+!!        call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+!!        ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!!        ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!!        ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!!        if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!!            mlr(ilr)%norbinlr=mlr(ilr)%norbinlr+1
+!!        end if
+!!    end do
+!!    !if(iproc==0) write(*,'(a,2i8)') 'ilr, mlr(ilr)%norbinlr', ilr, mlr(ilr)%norbinlr
+!!    allocate(mlr(ilr)%indexInGlobal(mlr(ilr)%norbinlr), stat=istat)
+!!    call memocc(istat, mlr(ilr)%indexInGlobal, 'mlr(ilr)%indexInGlobal', subname)
+!!    !if(iproc==0) write(*,'(a,i4,i7)') 'ilr, mlr(ilr)%norbinlr', ilr, mlr(ilr)%norbinlr
+!!end do
+!!
+!!
+!!! Now determine the indices of the elements with an overlap.
+!!do ilr=1,nlr
+!!    ii=0
+!!    call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
+!!    do jorb=1,norb
+!!        jlr=onWhichAtomAll(jorb)
+!!        call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+!!        ovrlpx = ( is1<=je1 .and. ie1>=js1 )
+!!        ovrlpy = ( is2<=je2 .and. ie2>=js2 )
+!!        ovrlpz = ( is3<=je3 .and. ie3>=js3 )
+!!        if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!!            ii=ii+1
+!!            mlr(ilr)%indexInGlobal(ii)=jorb
+!!            !if(iproc==0) write(*,'(a,3i8)') 'ilr, ii, mlr(ilr)%indexInGlobal(ii)', ilr, ii, mlr(ilr)%indexInGlobal(ii)
+!!        end if
+!!    end do
+!!    if(ii/=mlr(ilr)%norbinlr) then
+!!        write(*,'(a,i0,a,2(2x,i0))') 'ERROR on process ', iproc, ': ii/=mlr(ilr)%norbinlr', ii, mlr(ilr)%norbinlr
+!!    end if
+!!    !if(iproc==0) write(*,'(a,i6,200i5)') 'ilr, mlr(ilr)%indexInGlobal(ii)', ilr, mlr(ilr)%indexInGlobal(:)
+!!end do
+
+!! THIS IS NEW
 ! Count for each localization region the number of matrix elements within the cutoff.
 do ilr=1,nlr
     mlr(ilr)%norbinlr=0
     call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
     do jorb=1,norb
         jlr=onWhichAtomAll(jorb)
-        call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        !call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        js1=floor(rxyz(1,jlr)/hx)
+        je1=ceiling(rxyz(1,jlr)/hx)
+        js2=floor(rxyz(2,jlr)/hy)
+        je2=ceiling(rxyz(2,jlr)/hy)
+        js3=floor(rxyz(3,jlr)/hz)
+        je3=ceiling(rxyz(3,jlr)/hz)
         ovrlpx = ( is1<=je1 .and. ie1>=js1 )
         ovrlpy = ( is2<=je2 .and. ie2>=js2 )
         ovrlpz = ( is3<=je3 .and. ie3>=js3 )
@@ -1718,7 +1770,13 @@ do ilr=1,nlr
     call getIndices(lzd%llr(ilr), is1, ie1, is2, ie2, is3, ie3)
     do jorb=1,norb
         jlr=onWhichAtomAll(jorb)
-        call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        !call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
+        js1=floor(rxyz(1,jlr)/hx)
+        je1=ceiling(rxyz(1,jlr)/hx)
+        js2=floor(rxyz(2,jlr)/hy)
+        je2=ceiling(rxyz(2,jlr)/hy)
+        js2=floor(rxyz(3,jlr)/hz)
+        je2=ceiling(rxyz(3,jlr)/hz)
         ovrlpx = ( is1<=je1 .and. ie1>=js1 )
         ovrlpy = ( is2<=je2 .and. ie2>=js2 )
         ovrlpz = ( is3<=je3 .and. ie3>=js3 )
@@ -1733,7 +1791,6 @@ do ilr=1,nlr
     end if
     !if(iproc==0) write(*,'(a,i6,200i5)') 'ilr, mlr(ilr)%indexInGlobal(ii)', ilr, mlr(ilr)%indexInGlobal(:)
 end do
-
 
 end subroutine determineLocalizationRegions
 
@@ -3275,7 +3332,7 @@ real(8),dimension(:,:),allocatable:: coeff, lagMat, coeffOld, lcoeff, lgrad, lgr
 !!real(8),dimension(:,:,:),allocatable:: HamPad
 real(8),dimension(:),pointer:: chiw
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
-real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax
+real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax, valin, valout
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinationsLocalized'
 real(4):: ttreal, builtin_rand
@@ -3338,7 +3395,7 @@ type(matrixDescriptors):: mad
       call allocateArrays()
 
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
-           lin%locrad, rxyz, lin%lzd, matmin%mlr)
+           lin%locrad, rxyz, lin%lzd, input%hx, input%hy, input%hz, matmin%mlr)
       !call extractMatrix(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, at%nat, ham, matmin, hamextract)
       call extractMatrix3(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
            ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
@@ -3425,13 +3482,81 @@ type(matrixDescriptors):: mad
     
       ! The optimization loop.
     
-      ! Transform to localization regions.
-      do iorb=1,ip%norb_par(iproc)
-          ilr=matmin%inWhichLocregExtracted(iorb)
-          if(ilr/=orbs%inWhichLocreg(iorb+orbs%isorb)) then
-              write(*,'(a,2i6,3x,2i8)') 'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)', iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
+      !!! Transform to localization regions
+      !!do iorb=1,ip%norb_par(iproc)
+      !!    ilr=matmin%inWhichLocregExtracted(iorb)
+      !!    if(ilr/=orbs%inWhichLocreg(iorb+orbs%isorb)) then
+      !!        write(*,'(a,2i6,3x,2i8)') 'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)', iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
+      !!    end if
+      !!    call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
+      !!end do
+
+
+      do i=1,5
+          do iall=1,ip%norbtotPad
+              write(500+iproc,*) iall, coeffPad(iall)
+          end do
+          ! Transform to localization regions and cut at the edge.
+          do iorb=1,ip%norb_par(iproc)
+              ilr=matmin%inWhichLocregExtracted(iorb)
+              if(ilr/=orbs%inWhichLocreg(iorb+orbs%isorb)) then
+                  write(*,'(a,2i6,3x,2i8)') 'THIS IS STRANGE -- iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)', iproc, iorb, ilr, orbs%inWhichLocreg(iorb+orbs%isorb)
+              end if
+              call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
+          end do
+
+          ilr=onWhichAtom(ip%isorb+1)
+          do iall=1,matmin%mlr(ilr)%norbinlr
+              write(600+iproc,*) iall, lcoeff(iall,1)
+          end do
+
+          methTransformOverlap=0
+          call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
+               lin%blocksize_pdsyev, lin%blocksize_pdgemm, &
+               lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
+               lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
+          ilr=onWhichAtom(ip%isorb+1)
+          do iall=1,matmin%mlr(ilr)%norbinlr
+              write(700+iproc,*) iall, lcoeff(iall,1)
+          end do
+
+          do iorb=1,ip%norb_par(iproc)
+              ilr=matmin%inWhichLocregExtracted(iorb)
+              call vectorLocalToGlobal(ip%norbtotPad, matmin%mlr(ilr), lcoeff(1,iorb), coeffPad((iorb-1)*ip%norbtotPad+1))
+          end do
+
+          valout=0.d0
+          valin=0.d0
+          ii=0
+          do jproc=0,ip%nproc-1
+              do iorb=1,ip%norb_par(jproc)
+                  iiAt=onWhichAtomPhi(ip%isorb_par(jproc)+iorb)
+                  ! Do not fill up to the boundary of the localization region, but only up to one fourth of it.
+                  cut=0.0625d0*lin%locrad(at%iatype(iiAt))**2
+                  do jorb=1,ip%norbtot
+                      ii=ii+1
+                      if(iproc==jproc) then
+                          jjAt=onWhichAtom(jorb)
+                          tt = (rxyz(1,iiat)-rxyz(1,jjAt))**2 + (rxyz(2,iiat)-rxyz(2,jjAt))**2 + (rxyz(3,iiat)-rxyz(3,jjAt))**2
+                          if(tt>cut) then
+                              ! set to zero
+                              valout=valout+coeffPad((iorb-1)*ip%norbtotPad+jorb)**2
+                              coeffPad((iorb-1)*ip%norbtotPad+jorb)=0.d0
+                          else
+                              ! keep the current value
+                              valin=valin+coeffPad((iorb-1)*ip%norbtotPad+jorb)**2
+                          end if
+                      end if
+                  end do
+              end do
+          end do
+          call mpiallred(valin, 1, mpi_sum, mpi_comm_world, ierr)
+          call mpiallred(valout, 1, mpi_sum, mpi_comm_world, ierr)
+          if(iproc==0) then
+              write(*,'(a,es15.6)') 'valin',valin
+              write(*,'(a,es15.6)') 'valout',valout
+              write(*,'(a,es15.6)') 'ratio:',valout/(valout+valin)
           end if
-          call vectorGlobalToLocal(ip%norbtotPad, matmin%mlr(ilr), coeffPad((iorb-1)*ip%norbtotPad+1), lcoeff(1,iorb))
       end do
 
 
@@ -3443,6 +3568,8 @@ type(matrixDescriptors):: mad
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
                lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
       end if
+
+
     
       iterLoop: do it=1,lin%nItInguess
     
@@ -3467,6 +3594,10 @@ type(matrixDescriptors):: mad
           !call orthonormalizeVectors(iproc, ip%nproc, lin%orbs, onWhichAtom, ip%onWhichMPI, ip%isorb_par, &
           !     matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
           !     matmin%mlr, lcoeff, comom)
+          ilr=onWhichAtom(ip%isorb+1)
+          do iall=1,matmin%mlr(ilr)%norbinlr
+              write(800+iproc,*) iall, lcoeff(iall,1)
+          end do
     
           ! Calculate the gradient grad.
           ilrold=0
@@ -3480,6 +3611,10 @@ type(matrixDescriptors):: mad
               !!end if
               call dgemv('n', matmin%mlr(ilr)%norbinlr, matmin%mlr(ilr)%norbinlr, 1.d0, hamextract(1,1,iilr), matmin%norbmax, &
                    lcoeff(1,iorb), 1, 0.d0, lgrad(1,iorb), 1)
+          end do
+          ilr=onWhichAtom(ip%isorb+1)
+          do iall=1,matmin%mlr(ilr)%norbinlr
+              write(850+iproc,*) iall, lgrad(iall,1)
           end do
       
           !!do jorb=1,matmin%norbmax
@@ -3499,6 +3634,10 @@ type(matrixDescriptors):: mad
           !!do jorb=1,matmin%norbmax
           !!    write(660+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
           !!end do
+          ilr=onWhichAtom(ip%isorb+1)
+          do iall=1,matmin%mlr(ilr)%norbinlr
+              write(900+iproc,*) iall, lgrad(iall,1)
+          end do
     
           ! Calculate the gradient norm.
           fnrm=0.d0

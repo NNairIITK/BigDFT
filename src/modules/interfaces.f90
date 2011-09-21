@@ -2927,7 +2927,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
 
 
-     subroutine determineLocalizationRegions(iproc, nproc, nlr, norb, at, onWhichAtomALl, locrad, rxyz, lzd, mlr)
+     subroutine determineLocalizationRegions(iproc, nproc, nlr, norb, at, onWhichAtomALl, locrad, rxyz, lzd, hx, hy, hz, mlr)
        use module_base
        use module_types
        implicit none
@@ -2937,6 +2937,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        real(8),dimension(at%nat),intent(in):: locrad
        real(8),dimension(3,at%nat),intent(in):: rxyz
        type(local_zone_descriptors),intent(in):: lzd
+       real(8),intent(in):: hx, hy, hz
        type(matrixLocalizationRegion),dimension(:),pointer,intent(out):: mlr
      end subroutine determineLocalizationRegions
 
