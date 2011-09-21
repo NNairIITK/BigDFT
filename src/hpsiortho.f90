@@ -277,7 +277,7 @@ subroutine full_local_potential(iproc,nproc,ndimpot,ndimgrid,nspin,ndimrhopot,i3
   integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
   integer, intent(in) :: ndimrhopot,i3rho_add
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(wp), dimension(ndimrhopot), intent(in), target :: potential !< Distributed potential. Might contain the density for the 
+  real(wp), dimension(max(ndimrhopot,1)), intent(in), target :: potential !< Distributed potential. Might contain the density for the 
   real(wp), dimension(:), pointer :: pot
   !local variables
   character(len=*), parameter :: subname='full_local_potential'

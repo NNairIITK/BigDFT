@@ -67,7 +67,7 @@
   Fortran90 flags:           -fbounds-check -O2 -Wall
   Fortran77 compiler:        gfortran
   Fortran77 flags:           -g -O2
-  Linker flags:               -L$(top_builddir)/libXC/src -L$(top_builddir)/libABINIT/src
+  Linker flags:              -L$(top_builddir)/libXC/src -L$(top_builddir)/libABINIT/src
   Linked libraries:          -labinit -lxc    -llapack -lblas
 
   Build:
@@ -86,7 +86,7 @@
   | Include dir.:
   | Linker flags:
   | Linked libraries:
-  | MPI2 support:           yes
+  | MPI2 support:            yes
   With optimised conv.:      yes
   With Cuda GPU conv.:       no
   | NVidia Cuda Compiler:
@@ -94,13 +94,13 @@
   With OpenCL support:       no
   With dgemmsy support:      no
   With libXC:                yes
-  | internal built:         yes
-  | include dir.:           -I$(top_builddir)/libXC/src
+  | internal built:          yes
+  | include dir.:            -I$(top_builddir)/libXC/src
   With libABINIT:            yes
-  | internal built:         yes
-  | include dir.:           -I$(top_builddir)/libABINIT/src
+  | internal built:          yes
+  | include dir.:            -I$(top_builddir)/libABINIT/src
   With libS_GPU:             no
-  | internal built:         no
+  | internal built:          no
   | include dir.:
   With ETSF_IO:              no
   | include dir.:           
@@ -144,10 +144,11 @@
   option.</p>
 
 <p>One can also pass all the options for the MPI link proceeding using
-  the options <code>--with-mpi-include</code>, <code>--with-mpi-ldflags</code and <code>--with-mpi-libs</code>.</p>
+  the options <code>--with-mpi-include</code>, <code>--with-mpi-ldflags</code>
+  and <code>--with-mpi-libs</code>.</p>
 
-                                                                              <h3>OpenCL compilation</h3>
-                                                                              <a name="confOCL"></a>
+<h3>OpenCL compilation</h3>
+<a name="confOCL"></a>
 <p>Here is a example using the Intel
   Fortran compiler and OpenCL installed in <code>/applications/cuda-3.2</code>:</p>
 

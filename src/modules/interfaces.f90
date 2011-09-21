@@ -114,6 +114,13 @@ module module_interfaces
        real(gp), dimension(3), intent(out) :: shift
      END SUBROUTINE system_size
 
+     subroutine standard_inputfile_names(inputs, radical)
+       use module_types
+       implicit none
+       type(input_variables), intent(out) :: inputs
+       character(len = *), intent(in), optional :: radical
+     END SUBROUTINE standard_inputfile_names
+
      subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
        use module_base
        use module_types
@@ -704,8 +711,8 @@ module module_interfaces
        use module_base
        use module_types
        implicit none
-       character(len=10) :: comment
-       character(len=11) :: orbname
+       character(len=*) :: comment
+       character(len=*) :: orbname
        integer, intent(in) :: nexpo
        real(gp), intent(in) :: hx,hy,hz
        type(atoms_data), intent(in) :: at
@@ -1175,7 +1182,7 @@ module module_interfaces
       integer, intent(in) :: iproc,nproc,nspin,ndimpot,norb,norbp,ndimgrid
       integer, intent(in) :: ndimrhopot,i3rho_add
       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-      real(wp), dimension(ndimrhopot), intent(in), target :: potential
+      real(wp), dimension(max(ndimrhopot,1)), intent(in), target :: potential
       real(wp), dimension(:), pointer :: pot
     END SUBROUTINE full_local_potential
 

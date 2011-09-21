@@ -20,7 +20,7 @@ module module_input
   integer, parameter :: nmax_lines=500
   !> Max length of a line
   integer, parameter :: max_length=85
-  character(len=max_length) :: input_file,line_being_processed
+  character(len=max_length) :: input_file,input_radical,input_type,line_being_processed
   logical :: output,lmpinit
   integer :: iline_parsed,iline_written,iargument,ipos,nlines_total
   character(len=max_length), dimension(:), allocatable :: inout_lines
@@ -68,7 +68,9 @@ contains
     call MPI_INITIALIZED(lmpinit,ierr)
 
     write(input_file, "(A)") trim(filename)
-           
+    i = index(input_file, ".", back = .true.)
+    write(input_radical, "(A)") input_file(1:i - 1)
+    write(input_type, "(A)") trim(input_file(i + 1:))
 
     !check if the file is present
     inquire(file=trim(input_file),exist=exists)
@@ -161,7 +163,7 @@ contains
        if (iproc ==0) then
           if (iline_parsed==0) then !the file does not exist
              !add the writing of the file in the given unit
-             open(unit=iunit,file=trim(input_file)//'_default', status ='unknown')
+             open(unit=iunit,file='default.' // trim(input_type), status ='unknown')
              do iline=1,iline_written-1
                 write(iunit,*) inout_lines(iline)
              end do

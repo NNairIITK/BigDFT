@@ -79,6 +79,12 @@ else
 flush_files = modules/flush_fake.f90
 endif
 
+if HAVE_FC_GET_COMMAND_ARGUMENT
+getarg_files =
+else
+getarg_files = modules/get_command_argument_fake.f90
+endif
+
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
 else
@@ -245,7 +251,9 @@ libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	BigDFT_API.f90 \
 	$(low_level) \
-	$(high_level)
+	$(high_level) \
+	$(flush_files) \
+	$(getarg_files)
 
 libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memoryestimator.o \
@@ -316,11 +324,9 @@ NEB_LDADD = libbigdft.a \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
-	$(mpi_source)
+	MPIfake.f90
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	$(LMPI) \
-	@MPI_LIBS@ \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \
