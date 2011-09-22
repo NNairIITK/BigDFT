@@ -112,13 +112,14 @@ real(8),dimension(:),pointer:: lphi, lphir, phibuffr
 integer,dimension(:,:),allocatable:: nscatterarrTemp !n3d,n3p,i3s+i3xcsh-1,i3xcsh
 real(8),dimension(:),allocatable:: phiTemp
 real(wp),dimension(:),allocatable:: projTemp
-real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit
+real(8):: t1, t2, time, t1tot, t2tot, timetot, t1ig, t2ig, timeig, t1init, t2init, timeinit, ddot, dnrm2
 real(8):: t1scc, t2scc, timescc, t1force, t2force, timeforce
 character(len=11):: orbName
 character(len=10):: comment, procName, orbNumber
-integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot
+integer:: iorb, istart, sizeLphir, sizePhibuffr, ndimtot, iiorb, ncount
 type(mixrhopotDIISParameters):: mixdiis
 type(workarr_sumrho):: w
+real(8),dimension(:,:),allocatable:: ovrlp
 
 
   !do iall=0,nproc-1
@@ -171,6 +172,23 @@ type(workarr_sumrho):: w
   t2ig=mpi_wtime()
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
+
+  ist=1
+  do iorb=1,lin%orbs%norbp
+      iiorb=iorb+lin%orbs%isorb
+      ilr=lin%orbs%inWhichLocreg(iiorb)
+      ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+      write(*,'(a,3i8,es15.6)') 'iproc, iorb, iiorb, ddot', iproc, iorb, iiorb, ddot(ncount, lphi(ist), 1, lphi(ist), 1)
+      tt=dnrm2(ncount, lphi(ist), 1)
+      call dscal(ncount, 1/tt, lphi(ist), 1)
+      ist=ist+ncount
+  end do
+
+  !!allocate(ovrlp(lin%orbs%norb,lin%orbs%norb))
+  !!call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
+  !!     lin%blocksize_pdgemm, lin%orbs, lin%op, lin%comon, lin%lzd, lin%orbs%inWhichLocreg, lin%convCritOrtho, &
+  !!     input, lin%mad, lphi, ovrlp)
+  !!deallocate(ovrlp)
 
 
   allocate(rhopotold(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin), stat=istat)

@@ -1692,7 +1692,7 @@ do ilr=1,nlr
     call nullify_matrixLocalizationRegion(mlr(ilr))
 end do
 
-!! THIS WAS THE ORIGINAL
+!!!! THIS WAS THE ORIGINAL
 !!! Count for each localization region the number of matrix elements within the cutoff.
 !!do ilr=1,nlr
 !!    mlr(ilr)%norbinlr=0
@@ -1775,8 +1775,8 @@ do ilr=1,nlr
         je1=ceiling(rxyz(1,jlr)/hx)
         js2=floor(rxyz(2,jlr)/hy)
         je2=ceiling(rxyz(2,jlr)/hy)
-        js2=floor(rxyz(3,jlr)/hz)
-        je2=ceiling(rxyz(3,jlr)/hz)
+        js3=floor(rxyz(3,jlr)/hz)
+        je3=ceiling(rxyz(3,jlr)/hz)
         ovrlpx = ( is1<=je1 .and. ie1>=js1 )
         ovrlpy = ( is2<=je2 .and. ie2>=js2 )
         ovrlpz = ( is3<=je3 .and. ie3>=js3 )
@@ -1975,6 +1975,7 @@ do ilr=1,lzd%nlr
     novrlp=0
     do jorbout=1,orbs%norb
         jlr=onWhichAtomPhi(jorbout)
+        !!!! THIS IS THE ORIGINAL
         !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
         !!ovrlpx = ( is1<=je1 .and. ie1>=js1 )
         !!ovrlpy = ( is2<=je2 .and. ie2>=js2 )
@@ -1982,7 +1983,7 @@ do ilr=1,lzd%nlr
         !!if(ovrlpx .and. ovrlpy .and. ovrlpz) then
         !!    novrlp=novrlp+1
         !!end if
-        ! THIS IS NEW ############################
+        !! THIS IS NEW ############################
         ! Check whether there is a common element.
         outloop1: do iorb=1,mlr(ilr)%norbinlr
             iiorb=mlr(ilr)%indexInGlobal(iorb)
@@ -2008,6 +2009,7 @@ do ilr=1,lzd%nlr
     novrlp=0
     do jorbout=1,orbs%norb
         jlr=onWhichAtomPhi(jorbout)
+        !!!! THIS IS THE ORIGINAL
         !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
         !!ovrlpx = ( is1<=je1 .and. ie1>=js1 )
         !!ovrlpy = ( is2<=je2 .and. ie2>=js2 )
@@ -2051,6 +2053,7 @@ do ilr=1,lzd%nlr
     do jorbout=1,comom%noverlap(ilr)
         jjorb=comom%overlaps(jorbout,ilr)
         jlr=onWhichAtomPhi(jjorb)
+        !!!! THIS IS THE ORIGINAL
         !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
         !!do korb=1,mlr(jlr)%norbinlr
         !!    lorb=mlr(jlr)%indexInGlobal(korb)
@@ -2100,6 +2103,7 @@ do ilr=1,lzd%nlr
     do jorbout=1,comom%noverlap(ilr)
         jjorb=comom%overlaps(jorbout,ilr)
         jlr=onWhichAtomPhi(jjorb)
+        !!!! THIS IS THE ORIGINAL
         !!call getIndices(lzd%llr(jlr), js1, je1, js2, je2, js3, je3)
         !!kkorb=0
         !!comom%olr(jorbout,ilr)%indexInGlobal(:)=0
