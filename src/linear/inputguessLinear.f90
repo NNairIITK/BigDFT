@@ -686,13 +686,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
            onWhichMPITemp, Glr, input, lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, &
            nlocregPerMPI, lchi, lhchi, skip, lin%lig%mad, lin%memoryForCommunOverlapIG, tag, ham3)
   end if
-  !!do iat=1,nlocregPerMPI
-  !!    do iorb=1,lin%lig%orbsig%norb
-  !!        do jorb=1,lin%lig%orbsig%norb
-  !!            write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
-  !!        end do
-  !!    end do
-  !!end do
+  do iat=1,nlocregPerMPI
+      do iorb=1,lin%lig%orbsig%norb
+          do jorb=1,lin%lig%orbsig%norb
+              write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
+          end do
+      end do
+  end do
 
 
   iall=-product(shape(lhchi))*kind(lhchi)
@@ -2336,16 +2336,16 @@ call memocc(istat, ovrlp, 'ovrlp', subname)
 
 do it=1,nItOrtho
 
-  !! THIS IS A TEST !!
-  do iorb=1,orbs%norbp
-    ilr=onWhichAtom(iorb+orbs%isorb)
-    write(*,'(3(a,i0))') 'iproc=',iproc,', iorb=',iorb,' calls with ilr=',ilr
-    call vectorLocalToGlobal(orbs%norb, mlr(ilr), vec(1,iorb), vecglobal(1))
-    do i=1,orbs%norb
-        write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
-    end do
-  end do
-  !!!!!!!!!!!!!!!!!!!!
+  !!!! THIS IS A TEST !!
+  !!do iorb=1,orbs%norbp
+  !!  ilr=onWhichAtom(iorb+orbs%isorb)
+  !!  !write(*,'(3(a,i0))') 'iproc=',iproc,', iorb=',iorb,' calls with ilr=',ilr
+  !!  call vectorLocalToGlobal(orbs%norb, mlr(ilr), vec(1,iorb), vecglobal(1))
+  !!  do i=1,orbs%norb
+  !!      write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
+  !!  end do
+  !!end do
+  !!!!!!!!!!!!!!!!!!!!!!
  
   call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
   !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
