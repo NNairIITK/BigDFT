@@ -3401,6 +3401,15 @@ type(matrixDescriptors):: mad
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
            lin%locrad, rxyz, lin%lzd, input%hx, input%hy, input%hz, matmin%mlr)
       !call extractMatrix(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, at%nat, ham, matmin, hamextract)
+      !! DEBUG ######################
+      do ilr=1,nlocregPerMPI
+          tt=0.d0
+          do iall=1,orbsig%norb
+              tt=tt+dsum(orbsig%norb, ham3(1,iall,ilr))
+          end do
+          write(*,'(a,2i8,es15.6)') 'iproc, ilr, tt', iproc, ilr, tt
+      end do
+      !! END DEBUG ######################
       call extractMatrix3(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
            ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
       call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lin%orbs, orbsig, &
@@ -3620,6 +3629,7 @@ type(matrixDescriptors):: mad
                   tt=tt+dsum(matmin%mlr(ilr)%norbinlr, hamextract(1,iall,iilr))
               end do
               write(*,'(a,3i8,es15.6)') 'iproc, iorb, iiorb, tt', iproc, iorb, iiorb, tt
+              !! END DEBUG ######################
               call dgemv('n', matmin%mlr(ilr)%norbinlr, matmin%mlr(ilr)%norbinlr, 1.d0, hamextract(1,1,iilr), matmin%norbmax, &
                    lcoeff(1,iorb), 1, 0.d0, lgrad(1,iorb), 1)
           end do
