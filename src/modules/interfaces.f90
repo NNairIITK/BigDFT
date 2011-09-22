@@ -262,6 +262,18 @@ module module_interfaces
        real(gp), dimension(3,nkpt), intent(in) :: kpt
      END SUBROUTINE orbitals_descriptors
 
+
+     subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
+       integer, intent(in) :: nspinor
+       type(orbitals_data), intent(out) :: orbs
+       real(gp), dimension(nkpt), intent(in) :: wkpt
+       real(gp), dimension(3,nkpt), intent(in) :: kpt
+     END SUBROUTINE orbitals_descriptors_forLinear
+
      subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
           crmult,frmult,Glr,output_grid)
        use module_base

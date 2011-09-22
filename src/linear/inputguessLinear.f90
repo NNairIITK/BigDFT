@@ -88,7 +88,9 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
 
   ! Nullify the orbitals_data type and then determine its values.
   call nullify_orbitals_data(lin%lig%orbsig)
-  call orbitals_descriptors(iproc, nproc, norbtot, norbtot, 0, &
+  !call orbitals_descriptors(iproc, nproc, norbtot, norbtot, 0, &
+  !     input%nspin, lin%orbs%nspinor, lin%orbs%nkpts, lin%orbs%kpts, lin%orbs%kwgts, lin%lig%orbsig)
+  call orbitals_descriptors_forLinear(iproc, nproc, norbtot, norbtot, 0, &
        input%nspin, lin%orbs%nspinor, lin%orbs%nkpts, lin%orbs%kpts, lin%orbs%kwgts, lin%lig%orbsig)
   call repartitionOrbitals(iproc, nproc, lin%lig%orbsig%norb, lin%lig%orbsig%norb_par, lin%lig%orbsig%norbp, lin%lig%orbsig%isorb_par, lin%lig%orbsig%isorb, lin%lig%orbsig%onWhichMPI)
 
@@ -548,7 +550,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       iiorb=lin%lig%orbsig%isorb+iorb
       ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
       ncount=lin%lig%lzdig%llr(ilr)%wfd%nvctr_c+7*lin%lig%lzdig%llr(ilr)%wfd%nvctr_f
-      write(*,'(a,6i9,es15.7)') 'lchi2: iproc, iorb, iiorb, ilr, ncount, ist, ddot', iproc, iorb, iiorb, ilr, ncount, ist, ddot(ncount, lchi(ist), 1, lchi(ist), 1)
+      write(*,'(a,6i9,es15.7)') 'lchi here: iproc, iorb, iiorb, ilr, ncount, ist, ddot', iproc, iorb, iiorb, ilr, ncount, ist, ddot(ncount, lchi(ist), 1, lchi(ist), 1)
       ist=ist+ncount
   end do
   if(ist/=lin%lig%orbsig%npsidim+1) stop 'ERROR in debug section: ist/=lin%lig%orbsig%npsidim+1'

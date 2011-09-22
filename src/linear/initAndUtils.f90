@@ -84,10 +84,14 @@ write(*,'(a,2i9)') 'iproc, norb',iproc, norb
 ! Distribute the basis functions among the processors.
 norbu=norb
 norbd=0
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+!     input%nkpt, input%kpt, input%wkpt, lin%orbs)
+call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
 call repartitionOrbitals(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, lin%orbs%norbp, lin%orbs%isorb_par, lin%orbs%isorb, lin%orbs%onWhichMPI)
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
+!     input%nkpt, input%kpt, input%wkpt, lin%gorbs)
+call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, lin%gorbs%norbp, lin%gorbs%isorb_par, lin%gorbs%isorb, lin%gorbs%onWhichMPI)
 ii=0
@@ -113,9 +117,12 @@ else
     norbu=norb
     norbd=0
 end if
-call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
+!call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
+call orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
 call repartitionOrbitals(iproc, nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par, lin%lb%orbs%norbp, lin%lb%orbs%isorb_par, lin%lb%orbs%isorb, lin%lb%orbs%onWhichMPI)
-call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
+!call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
+!     lin%lb%gorbs)
+call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
      lin%lb%gorbs)
 call repartitionOrbitals(iproc, nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par, lin%lb%gorbs%norbp, lin%lb%gorbs%isorb_par, lin%lb%gorbs%isorb, lin%lb%gorbs%onWhichMPI)
 
@@ -3051,3 +3058,40 @@ subroutine repartitionOrbitals(iproc, nproc, norb, norb_par, norbp, isorb_par, i
 
 
 end subroutine repartitionOrbitals
+
+
+
+
+subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
+  use module_base
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc, norb
+  integer,dimension(0:nproc-1),intent(out):: norb_par
+  integer,intent(out):: norbp, isorb
+
+  ! Local variables
+  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
+  real(8):: tt
+
+  ! Determine norb_par
+  norb_par=0
+  tt=dble(norb)/dble(nproc)
+  ii=floor(tt)
+  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
+  norb_par(0:nproc-1)=ii
+  kk=norb-nproc*ii
+  norb_par(0:kk-1)=ii+1
+
+  ! Determine norbp
+  norbp=norb_par(iproc)
+
+  ! Determine isorb
+  isorb=0
+  do jproc=0,iproc-1
+      isorb=isorb+norb_par(jproc)
+  end do
+
+
+end subroutine repartitionOrbitals2
