@@ -86,10 +86,10 @@ norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
-call repartitionOrbitals(nproc, lin%orbs%norb, lin%orbs%norb_par)
+call repartitionOrbitals(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, lin%orbs%norbp)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
-call repartitionOrbitals(nproc, lin%gorbs%norb, lin%gorbs%norb_par)
+call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, lin%gorbs%norbp)
 ii=0
 do jproc=0,nproc-1
     ii=ii+lin%orbs%norb_par(jproc)
@@ -114,10 +114,10 @@ else
     norbd=0
 end if
 call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
-call repartitionOrbitals(nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par)
+call repartitionOrbitals(iproc, nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par, lin%lb%orbs%norbp)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
      lin%lb%gorbs)
-call repartitionOrbitals(nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par)
+call repartitionOrbitals(iproc, nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par, lin%lb%gorbs%norbp)
 
 
 
@@ -3002,12 +3002,13 @@ end subroutine plotGrid
 
 
 
-subroutine repartitionOrbitals(nproc, norb, norb_par)
+subroutine repartitionOrbitals(iproc, nproc, norb, norb_par, norbp)
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: nproc, norb
+  integer,intent(in):: iproc, nproc, norb
   integer,dimension(0:nproc-1),intent(out):: norb_par
+  integer,intent(out):: norbp
 
   ! Local variables
   integer:: ii, kk
@@ -3020,5 +3021,7 @@ subroutine repartitionOrbitals(nproc, norb, norb_par)
   norb_par(0:nproc-1)=ii
   kk=norb-nproc*ii
   norb_par(0:kk-1)=ii+1
+
+  norbp=norb_par(iproc)
 
 end subroutine repartitionOrbitals
