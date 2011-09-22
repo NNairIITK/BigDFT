@@ -2381,9 +2381,11 @@
 !      extremum
 !
        nextr = nextr + 1
-       rextr(nextr) = (arp*r(i-1)-arpm*r(i)) / (arp-arpm)
-       aextr(nextr) = (ar(i)+ar(i-1))/2  &
-       - (arp**2+arpm**2) * (r(i)-r(i-1)) / (4*(arp-arpm))
+       if((arp-arpm) /=0.0_8) then
+          rextr(nextr) = (arp*r(i-1)-arpm*r(i)) / (arp-arpm)
+          aextr(nextr) = (ar(i)+ar(i-1))/2  &
+               - (arp**2+arpm**2) * (r(i)-r(i-1)) / (4*(arp-arpm))
+       endif
        bextr(nextr) = br(i)
  20    continue
 !
@@ -2807,8 +2809,10 @@
 
           open(unit=33,file='ae.core.dens.plt')
           write(33,'(a)')'# plot file for all electron charges'
-          write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,  &
+          if( zcore/=0.0_8) then
+             write(33,'(a,3e15.6,a)') '#',zcore,dcrc/zcore,ddcrc/zcore,  &
                        ' 0th, 2nd and 4th moment of core charge'
+          endif
           write(33,'(40x,a)')  &
                       '# radial charge distributions rho(r)*4pi*r**2'
           write(33,'(4(a,14x),a))')'#',' r ','core','valence','total'

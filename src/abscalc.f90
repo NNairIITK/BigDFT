@@ -501,12 +501,19 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
   n2=Glr%d%n2
   n3=Glr%d%n3
 
+
+
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
   call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
        atoms,rxyz,radii_cf,crmult,frmult,Glr)
   call timing(iproc,'CrtDescriptors','OF')
   ! Calculate all projectors, or allocate array for on-the-fly calculation
+
+  !allocate communications arrays (allocate it before Projectors because of the definition
+  !of iskpts and nkptsp)
+  call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
+
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
@@ -548,10 +555,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
           in%nspin,in%itrpmax,in%iscf,peakmem)
   end if
 
-
-  !allocate communications arrays
-  !call allocate_comms(nproc,orbs,comms,subname)
-  call orbitals_communicators(iproc,nproc,Glr,orbs,comms)  
 
   !these arrays should be included in the comms descriptor
   !allocate values of the array for the data scattering in sumrho

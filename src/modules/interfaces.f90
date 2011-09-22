@@ -1035,14 +1035,6 @@ module module_interfaces
 
      END SUBROUTINE cg_spectra
 
-     function GetBottom(  atoms, iproc)
-       use module_base
-       use module_types
-       implicit none
-       type(atoms_data), intent(in) :: atoms
-       integer iproc
-       real(gp) GetBottom
-     end function GetBottom
 
      subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
        implicit none

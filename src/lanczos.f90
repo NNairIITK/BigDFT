@@ -254,6 +254,9 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   real(gp) :: Pi
   character(len=1) wtag
   logical:: dopaw
+  real(gp) :: GetBottom
+
+
   if (iproc==0) print *, " IN ROUTINE  chebychev  "
 
   Pi=acos(-1.0_gp)
@@ -372,7 +375,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 !!$
 !!$  else
 
-     eval_min = GetBottom(  at, iproc)-1.0
+     eval_min = GetBottom(  at, iproc,nspin)-1.0
      eval_max = 4.0*Pi*Pi*(1.0/hx/hx + 1.0/hy/hy + 1.0/hz/hz  )/2.0*1.1 +2
 
 !   endif
@@ -788,7 +791,7 @@ function GetBottom( atoms, iproc, nspin)
    
   use module_base
   use module_types
-  use module_interfaces,except_this_one => GetBottom
+  use module_interfaces
 
   implicit none
   !Arguments
@@ -839,7 +842,8 @@ function GetBottom( atoms, iproc, nspin)
  
      call iguess_generator_modified(atoms%nzatom(ity),atoms%nelpsp(ity),&
           real(atoms%nelpsp(ity),gp),atoms%psppar(0,0,ity),&
-          atoms%npspcode(ity),&
+          atoms%npspcode(ity),  &
+          atoms%nlcc_ngv,atoms%nlcc_ngc,atoms%nlccpar,&
           ng-1,nl,5,noccmax,lmax,occup,expo,&
           psi,.false., gaenes_aux  )
 
