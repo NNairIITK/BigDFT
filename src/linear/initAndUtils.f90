@@ -41,7 +41,7 @@ real(8),dimension(:,:),pointer,intent(out):: coeff
 real(8),dimension(:),pointer,intent(out):: lphi
 
 ! Local variables
-integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb
+integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ii, jproc
 integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
@@ -76,6 +76,7 @@ do iat=1,at%nat
     norbsPerAtom(iat)=lin%norbsPerType(ityp)
     norb=norb+norbsPerAtom(iat)
 end do
+write(*,'(a,2i9)') 'iproc, norb',iproc, norb
 !!! ATTENTION: DEBUG
 !norb=31
 !!!!!!!!!!!!!!!!!!!
@@ -85,8 +86,19 @@ norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
+call repartitionOrbitals(nproc, lin%orbs%norb, lin%orbs%norb_par)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
+call repartitionOrbitals(nproc, lin%gorbs%norb, lin%gorbs%norb_par)
+ii=0
+do jproc=0,nproc-1
+    ii=ii+lin%orbs%norb_par(jproc)
+    if(iproc==0) write(*,'(a,2i9)') 'jproc, lin%orbs%norb_par(jproc)', jproc, lin%orbs%norb_par(jproc)
+end do
+if(ii/=lin%orbs%norb) then
+    write(*,'(a,2(2x,i0))') 'ERROR: ii/=lin%orbs%norb', ii, lin%orbs%norb
+end if
+
 
 
 ! Do the same again, but take into acount that we may also use the derivatives of the basis functions with
@@ -102,8 +114,10 @@ else
     norbd=0
 end if
 call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
+call repartitionOrbitals(nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
      lin%lb%gorbs)
+call repartitionOrbitals(nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par)
 
 
 
@@ -2986,3 +3000,25 @@ subroutine plotGrid(iproc, nproc, norb, nspinor, nspin, orbitalNumber, llr, glr,
 end subroutine plotGrid
 
 
+
+
+subroutine repartitionOrbitals(nproc, norb, norb_par)
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: nproc, norb
+  integer,dimension(0:nproc-1),intent(out):: norb_par
+
+  ! Local variables
+  integer:: ii, kk
+  real(8):: tt
+
+  norb_par=0
+  tt=dble(norb)/dble(nproc)
+  ii=floor(tt)
+  ! ii is now the number of orbitals that every process has. Distribute the remaining ones.
+  norb_par(0:nproc-1)=ii
+  kk=norb-nproc*ii
+  norb_par(0:kk-1)=ii+1
+
+end subroutine repartitionOrbitals

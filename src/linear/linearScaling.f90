@@ -180,7 +180,9 @@ real(8),dimension(:,:),allocatable:: ovrlp
       ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
       write(*,'(a,3i8,es15.6)') 'iproc, iorb, iiorb, ddot', iproc, iorb, iiorb, ddot(ncount, lphi(ist), 1, lphi(ist), 1)
       tt=dnrm2(ncount, lphi(ist), 1)
+      tt=2.d0
       call dscal(ncount, 1/tt, lphi(ist), 1)
+      write(*,'(a,3i8,es15.6)') 'iproc, iorb, iiorb, ddot', iproc, iorb, iiorb, ddot(ncount, lphi(ist), 1, lphi(ist), 1)
       ist=ist+ncount
   end do
 
