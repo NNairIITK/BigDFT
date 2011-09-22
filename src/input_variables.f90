@@ -43,7 +43,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' g        g     i         B    B    '  
   write(*,'(23x,a)')'          g     i        B     B    ' 
   write(*,'(23x,a)')'         g               B    B     '
-  write(*,trim(fmt))      '    ggggg       i         BBBB      ', &
+  write(*,trim(fmt))'    ggggg       i         BBBB      ', &
        & '(Ver ' // package_version // ')'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
@@ -53,6 +53,7 @@ subroutine print_logo()
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
        '                                  The Journal of Chemical Physics 129, 014109 (2008)'
+  write(*,*)
 END SUBROUTINE print_logo
 
 
