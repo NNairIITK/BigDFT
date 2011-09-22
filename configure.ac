@@ -731,6 +731,7 @@ tests/fft/Makefile
 tests/PSolver/Makefile
 tests/H2-freq/Makefile
 tests/Linear/Makefile
+tests/BigDFT2Wannier/Makefile
 tests/MINHOP/Makefile
 tests/NEB/Makefile
 tests/NEB/input

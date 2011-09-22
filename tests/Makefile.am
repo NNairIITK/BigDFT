@@ -11,6 +11,7 @@ SUBDIRS = \
 	  TDDFT \
 	  OP2P \
 	  Linear \
+          BigDFT2Wannier \
 	  tutorials \
 	  xc
 
