@@ -86,10 +86,10 @@ norbu=norb
 norbd=0
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%orbs)
-call repartitionOrbitals(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, lin%orbs%norbp)
+call repartitionOrbitals(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, lin%orbs%norbp, lin%orbs%isorb_par, lin%orbs%isorb, lin%orbs%onWhichMPI)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
-call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, lin%gorbs%norbp)
+call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, lin%gorbs%norbp, lin%gorbs%isorb_par, lin%gorbs%isorb, lin%gorbs%onWhichMPI)
 ii=0
 do jproc=0,nproc-1
     ii=ii+lin%orbs%norb_par(jproc)
@@ -114,10 +114,10 @@ else
     norbd=0
 end if
 call orbitals_descriptors(iproc,nproc,norb,norbu,norbd,input%nspin,orbs%nspinor,input%nkpt,input%kpt,input%wkpt,lin%lb%orbs)
-call repartitionOrbitals(iproc, nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par, lin%lb%orbs%norbp)
+call repartitionOrbitals(iproc, nproc, lin%lb%orbs%norb, lin%lb%orbs%norb_par, lin%lb%orbs%norbp, lin%lb%orbs%isorb_par, lin%lb%orbs%isorb, lin%lb%orbs%onWhichMPI)
 call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor, input%nkpt, input%kpt, input%wkpt, &
      lin%lb%gorbs)
-call repartitionOrbitals(iproc, nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par, lin%lb%gorbs%norbp)
+call repartitionOrbitals(iproc, nproc, lin%lb%gorbs%norb, lin%lb%gorbs%norb_par, lin%lb%gorbs%norbp, lin%lb%gorbs%isorb_par, lin%lb%gorbs%isorb, lin%lb%gorbs%onWhichMPI)
 
 
 
@@ -3002,18 +3002,21 @@ end subroutine plotGrid
 
 
 
-subroutine repartitionOrbitals(iproc, nproc, norb, norb_par, norbp)
+subroutine repartitionOrbitals(iproc, nproc, norb, norb_par, norbp, isorb_par, isorb, onWhichMPI)
+  use module_base
   implicit none
   
   ! Calling arguments
   integer,intent(in):: iproc, nproc, norb
-  integer,dimension(0:nproc-1),intent(out):: norb_par
-  integer,intent(out):: norbp
+  integer,dimension(0:nproc-1),intent(out):: norb_par, isorb_par
+  integer,dimension(norb),intent(out):: onWhichMPI
+  integer,intent(out):: norbp, isorb
 
   ! Local variables
-  integer:: ii, kk
+  integer:: ii, kk, iiorb, mpiflag, iorb, ierr, jproc
   real(8):: tt
 
+  ! Determine norb_par
   norb_par=0
   tt=dble(norb)/dble(nproc)
   ii=floor(tt)
@@ -3022,6 +3025,29 @@ subroutine repartitionOrbitals(iproc, nproc, norb, norb_par, norbp)
   kk=norb-nproc*ii
   norb_par(0:kk-1)=ii+1
 
+  ! Determine norbp
   norbp=norb_par(iproc)
+
+  ! Determine isorb
+  isorb=0
+  do jproc=0,iproc-1
+      isorb=isorb+norb_par(jproc)
+  end do
+
+  ! Determine onWhichMPI and isorb_par
+  iiorb=0
+  isorb_par=0
+  do jproc=0,nproc-1
+      do iorb=1,norb_par(jproc)
+          iiorb=iiorb+1
+          onWhichMPI(iiorb)=jproc
+      end do
+      if(iproc==jproc) then
+          isorb_par(jproc)=isorb
+      end if
+  end do
+  call MPI_Initialized(mpiflag,ierr)
+  if(mpiflag /= 0) call mpiallred(isorb_par(0), nproc, mpi_sum, mpi_comm_world, ierr)
+
 
 end subroutine repartitionOrbitals
