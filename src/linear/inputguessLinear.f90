@@ -280,7 +280,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! recalculated in inputguess_gaussian_orbitals.
   nvirt=0
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
-  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
+  !call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
+  !     orbs,lin%lig%orbsig,norbsc_arr,locrad,G,psigau,eks)
+  call inputguess_gaussian_orbitals_forLinear(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
        orbs,lin%lig%orbsig,norbsc_arr,locrad,G,psigau,eks)
   ! Since inputguess_gaussian_orbitals overwrites lin%lig%orbsig, we again have to assign the correct value (neeed due to
   ! a different orbital distribution.
