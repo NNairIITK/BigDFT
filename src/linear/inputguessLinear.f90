@@ -3329,14 +3329,14 @@ integer,intent(inout):: tag
 real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(inout):: ham3
 
 ! Local variables
-integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, ierr, infoCoeff, k, l,it, iiAt, jjAt, methTransformOverlap
+integer:: iorb, jorb, korb, iat, ist, jst, nvctrp, iall, istat, ierr, infoCoeff, k, l,it, iiAt, jjAt, methTransformOverlap, iiorb
 real(8),dimension(:),allocatable:: alpha, coeffPad, coeff2, gradTemp, gradOld, fnrmArr, fnrmOvrlpArr, fnrmOldArr, grad
 real(8),dimension(:,:),allocatable:: ovrlp, ovrlpTemp
 real(8),dimension(:,:),allocatable:: coeff, lagMat, coeffOld, lcoeff, lgrad, lgradold
 !!real(8),dimension(:,:,:),allocatable:: HamPad
 real(8),dimension(:),pointer:: chiw
 integer,dimension(:),allocatable:: recvcounts, displs, norb_par
-real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax, valin, valout
+real(8):: ddot, cosangle, tt, dnrm2, fnrm, meanAlpha, cut, trace, traceOld, fnrmMax, valin, valout, dsum
 logical:: converged
 character(len=*),parameter:: subname='buildLinearCombinationsLocalized'
 real(4):: ttreal, builtin_rand
@@ -3613,6 +3613,13 @@ type(matrixDescriptors):: mad
               !!    iilr=iilr+1
               !!    ilrold=ilr
               !!end if
+              !! DEBUG ######################
+              iiorb=ip%isorb+iorb
+              tt=0.d0
+              do iall=1,matmin%mlr(ilr)%norbinlr
+                  tt=tt+dsum(matmin%mlr(ilr)%norbinlr, hamextract(1,iall,iilr))
+              end do
+              write(*,'(a,3i8,es15.6)') 'iproc, iorb, iiorb, tt', iproc, iorb, iiorb, tt
               call dgemv('n', matmin%mlr(ilr)%norbinlr, matmin%mlr(ilr)%norbinlr, 1.d0, hamextract(1,1,iilr), matmin%norbmax, &
                    lcoeff(1,iorb), 1, 0.d0, lgrad(1,iorb), 1)
           end do
