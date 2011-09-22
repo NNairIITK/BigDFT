@@ -829,6 +829,25 @@ module module_interfaces
        real(wp), dimension(:,:,:), pointer :: psigau
      END SUBROUTINE inputguess_gaussian_orbitals
 
+
+     subroutine inputguess_gaussian_orbitals_forLinear(iproc,nproc,at,rxyz,nvirt,nspin,&
+          orbs,orbse,norbsc_arr,locrad,G,psigau,eks)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,nspin
+       integer, intent(inout) :: nvirt
+       type(atoms_data), intent(inout) :: at
+       type(orbitals_data), intent(in) :: orbs
+       real(gp), dimension(3,at%nat), intent(in) :: rxyz
+       real(gp), intent(out) :: eks
+       integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
+       real(gp), dimension(at%nat), intent(out) :: locrad
+       type(orbitals_data), intent(out) :: orbse
+       type(gaussian_basis), intent(out) :: G
+       real(wp), dimension(:,:,:), pointer :: psigau
+     END SUBROUTINE inputguess_gaussian_orbitals_forLinear
+
      subroutine inputguess_gaussian_orbitals_withOnWhichAtom(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
           orbs,orbse,norbsc_arr,locrad,G,psigau,eks,onWhichAtom)
        use module_base
