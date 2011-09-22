@@ -282,6 +282,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
        orbs,lin%lig%orbsig,norbsc_arr,locrad,G,psigau,eks)
+  ! Since inputguess_gaussian_orbitals overwrites lin%lig%orbsig, we again have to assign the correct value (neeed due to
+  ! a different orbital distribution.
+  call repartitionOrbitals(iproc, nproc, lin%lig%orbsig%norb, lin%lig%orbsig%norb_par, lin%lig%orbsig%norbp, lin%lig%orbsig%isorb_par, lin%lig%orbsig%isorb, lin%lig%orbsig%onWhichMPI)
 
   ! lin%lig%orbsig%inWhichLocreg has been allocated in inputguess_gaussian_orbitals. Since it will again be allcoated
   ! in assignToLocreg2, deallocate it first.
