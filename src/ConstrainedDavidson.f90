@@ -132,7 +132,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin
   i3rho_add=0
-  if (in%SIC_approach=='NK') then
+  if (in%SIC%approach=='NK') then
      nrhodim=2*nrhodim
      i3rho_add=lr%d%n1i*lr%d%n2i*nscatterarr(iproc,4)+1
   end if
@@ -285,7 +285,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
   !   compute H|v> => hv, <v|H|v> => e(:,1) and <v|P|v> => e(:,2)
   !
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
+       nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
        pkernel,orbs,psirocc) ! optional arguments
   ! 
   !transpose  v and hv
@@ -560,7 +560,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      ! apply hamiltonian on gradients
      !
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,g,hg,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
           pkernel,orbs,psirocc) 
      !
      ! transpose  g and hg and Pg (v, hv and Pv are already transposed)
@@ -810,7 +810,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      !   compute H|v> => hv 
      !
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,&
-          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%ixc,in%alphaSIC,GPU,&
+          nlpspd,proj,lr,ngatherarr,pot,v,hv,ekin_sum,epot_sum,eexctX,eproj_sum,eSIC_DC,in%SIC,GPU,&
           pkernel,orbs,psirocc)
      if(iproc==0)write(*,'(1x,a)')"done."
      ! 

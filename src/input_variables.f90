@@ -15,6 +15,7 @@ subroutine print_logo()
   integer :: length
   character(len = 64) :: fmt
 
+  fmt=repeat(' ',64)
   length = 26 - 6 - len(package_version)
   write(fmt, "(A,I0,A)") "(23x,a,", length, "x,a)"
 
@@ -42,7 +43,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' g        g     i         B    B    '  
   write(*,'(23x,a)')'          g     i        B     B    ' 
   write(*,'(23x,a)')'         g               B    B     '
-  write(*,fmt)      '    ggggg       i         BBBB      ', &
+  write(*,trim(fmt))      '    ggggg       i         BBBB      ', &
        & '(Ver ' // package_version // ')'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
@@ -56,19 +57,30 @@ END SUBROUTINE print_logo
 
 
 !> Define the name of the input files
-subroutine standard_inputfile_names(inputs)
+subroutine standard_inputfile_names(inputs, radical)
   use module_types
   implicit none
   type(input_variables), intent(out) :: inputs
+  character(len = *), intent(in), optional :: radical
 
-  inputs%file_dft='input.dft'
-  inputs%file_geopt='input.geopt'
-  inputs%file_kpt='input.kpt'
-  inputs%file_perf='input.perf'
-  inputs%file_tddft='input.tddft'
-  inputs%file_mix='input.mix'
-  inputs%file_sic='input.sic'
-  
+  character(len = 128) :: rad
+
+  write(rad, "(A)") ""
+  if (present(radical)) write(rad, "(A)") trim(radical)
+  if (trim(radical) == "") write(rad, "(A)") "input"
+
+  inputs%file_dft=trim(rad) // '.dft'
+  inputs%file_geopt=trim(rad) // '.geopt'
+  inputs%file_kpt=trim(rad) // '.kpt'
+  inputs%file_perf=trim(rad) // '.perf'
+  inputs%file_tddft=trim(rad) // '.tddft'
+  inputs%file_mix=trim(rad) // '.mix'
+  inputs%file_sic=trim(rad) // '.sic'
+  if (trim(rad) == "input") then
+     inputs%dir_output="data"
+  else
+     inputs%dir_output="data-"//trim(rad)
+  end if
 END SUBROUTINE standard_inputfile_names
 
 
@@ -96,6 +108,9 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
+
+  ! Read associated pseudo files.
+  call init_atomic_values(iproc, atoms, inputs%ixc)
 END SUBROUTINE read_input_variables
 
 
@@ -190,7 +205,54 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
 
+  !check whether a directory name should be associated for the data storage
+  call check_for_data_writing_directory(iproc,inputs)
+
 END SUBROUTINE read_input_parameters
+
+subroutine check_for_data_writing_directory(iproc,in)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+  !local variables
+  logical :: shouldwrite
+  integer :: i_stat,ierror,ierr
+  character(len=100) :: dirname
+
+  if (iproc==0)write(*,'(1x,a)')'|'//repeat('-',82)
+
+  !initialize directory name
+  shouldwrite=.false.
+
+  shouldwrite=shouldwrite .or. &
+       in%output_wf_format /= WF_FORMAT_NONE .or. & !write wavefunctions
+       in%output_grid /= OUTPUT_GRID_NONE .or. &    !write output density
+       in%ncount_cluster_x > 1 .or. &               !write posouts or posmds
+       in%inputPsiId == 2 .or. &                    !have wavefunctions to read
+       in%inputPsiId == 12 .or.  &                    !read in gaussian basis
+       in%gaussian_help                             !mulliken and local density of states
+  
+  if (shouldwrite) then
+     ! Create a directory to put the files in.
+     dirname=repeat(' ',len(dirname))
+     if (iproc == 0) then
+        call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
+        if (i_stat /= 0) then
+           write(*,*) "ERROR: cannot create output directory."
+           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+        end if
+     end if
+     call MPI_BCAST(dirname,128,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
+     in%dir_output=dirname
+     if (iproc==0) write(*,'(1x,2a)')'|  Data Writing directory:    ',trim(in%dir_output)
+  else
+     if (iproc==0) write(*,'(1x,2a)')'|  Data Writing directory:    not needed'
+     in%dir_output=repeat(' ',len(in%dir_output))
+  end if
+
+end subroutine check_for_data_writing_directory
 
 
 
@@ -363,7 +425,9 @@ subroutine dft_input_variables(iproc,filename,in)
   else
      in%verbosity=ivrbproj
   end if
-  call memocc_set_verbosity(in%verbosity)
+  if (in%verbosity ==0 ) then
+     call memocc_set_state(0)
+  end if
 !!  !temporary correction
 !!  DistProjApply=.false.
 
@@ -435,7 +499,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !coarse and fine radii around atoms
   call input_var(in%crmult,'5.0',ranges=xrmult_rng)
   call input_var(in%frmult,'8.0',ranges=xrmult_rng,&
-       comment='crmult, frmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-centered radius')
+       comment='c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius')
 
   !XC functional (ABINIT XC codes)
   call input_var(in%ixc,'1',comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
@@ -455,16 +519,16 @@ subroutine dft_input_variables_new(iproc,filename,in)
   !convergence parameters
   call input_var(in%itermax,'50',ranges=(/0,10000/))
   call input_var(in%nrepmax,'1',ranges=(/0,1000/),&
-       comment='itermax,nrepmax: max. # of wavefunction optimizations and of re-diagonalised runs')
+       comment='itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs')
 
   !convergence parameters
   call input_var(in%ncong,'6',ranges=(/0,20/))
   call input_var(in%idsx,'6',ranges=(/0,15/),&
-       comment='ncong, idsx: # of CG iterations for preconditioning equation, length of the diis history')
+       comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
   !does not maxes sense a DIIS history longer than the number of iterations
   in%idsx = min(in%idsx, in%itermax)
 
-  call input_var(in%dispersion,'0',comment='dispersion correction functional (values 1,2,3), 0=no correction')
+  call input_var(in%dispersion,'0',comment='dispersion correction potential (values 1,2,3), 0=none')
     
   ! Now the variables which are to be used only for the last run
   call input_var(in%inputPsiId,'0',exclusive=(/-2,-1,0,2,10,12,100/),input_iostat=ierror)
@@ -515,7 +579,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   call input_var(in%norbv,'0',ranges=(/-1000,1000/))
   call input_var(in%nvirt,'0',ranges=(/0,abs(in%norbv)/))
   call input_var(in%nplot,'0',ranges=(/0,abs(in%norbv)/),&
-       comment='Dimension of davidson treatment subspace, # of interesting orbitals, # of plotted orbitals')
+       comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
 
   !in%nvirt = min(in%nvirt, in%norbv) commented out
 
@@ -531,14 +595,17 @@ subroutine dft_input_variables_new(iproc,filename,in)
   else
      in%verbosity=ivrbproj
   end if
-  call memocc_set_verbosity(in%verbosity)
+  if (in%verbosity ==0 ) then
+     call memocc_set_state(0)
+  end if
 
   ! Line to disable automatic behaviours (currently only symmetries).
   call input_var(in%disableSym,'F',comment='disable the symmetry detection')
 
   !define whether there should be a last_run after geometry optimization
   !also the mulliken charge population should be inserted
-  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. in%output_grid /= 0 .or. in%norbv /= 0) then
+  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. &
+       in%output_grid /= OUTPUT_GRID_NONE .or. in%norbv /= 0) then
      in%last_run=-1 !last run to be done depending of the external conditions
   else
      in%last_run=0
@@ -597,7 +664,7 @@ subroutine mix_input_variables_new(iproc,filename,in)
        comment="Stop criterion on the residue of potential or density")
   call input_var(in%norbsempty,'0',ranges=(/0,10000/))
   call input_var(in%Tel,'0.0',ranges=(/0.0_gp,1.0e6_gp/),&
-       comment="Number of additional bands aand the electronic temperature")
+       comment="Number of additional bands, electronic temperature")
   call input_var(in%alphamix,'0.0',ranges=(/0.0_gp,1.0_gp/))
   call input_var(in%alphadiis,'2.0',ranges=(/0.0_gp,10.0_gp/),&
        comment="Multiplying factors for the mixing and the elctronic DIIS")
@@ -895,8 +962,9 @@ subroutine sic_input_variables_default(in)
   implicit none
   type(input_variables), intent(inout) :: in
 
-  in%SIC_approach='NONE'
-  in%alphaSIC=0.0_gp
+  in%SIC%approach='NONE'
+  in%SIC%alpha=0.0_gp
+  in%SIC%fref=0.0_gp
 
 END SUBROUTINE sic_input_variables_default
 
@@ -917,57 +985,13 @@ subroutine sic_input_variables_new(iproc,filename,in)
   !Self-Interaction Correction input parameters
   call input_set_file(iproc,trim(filename),exists,'SIC Parameters')  
 
-  call input_var(in%SIC_approach,'NONE',exclusive=(/'NONE','PZ  '/),comment='SIC method: NONE or PZ')
-  call input_var(in%alphaSIC,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='SIC parameter')
-
+  call input_var(in%SIC%approach,'NONE',exclusive=(/'NONE','PZ  ','NK  '/),comment='SIC method: NONE, PZ, NK')
+  call input_var(in%SIC%alpha,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='SIC downscaling parameter')
+  call input_var(in%SIC%fref,'0.0',ranges=(/0.0_gp,1.0_gp/),comment='Reference occupation fref (NK case only)')
+  in%SIC%ixc=in%ixc
   call input_free(iproc)
 
 END SUBROUTINE sic_input_variables_new
-
-
-subroutine sic_input_variables(filename,in)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename
-  type(input_variables), intent(inout) :: in
-  !local variables
-  logical :: exists
-  character(len=*), parameter :: subname='sic_input_variables'
-  integer :: iline, ierror
-
-  inquire(file=trim(filename),exist=exists)
-
-  if (.not. exists) then
-     return
-  end if
-
- ! Read the input variables.
-  open(unit=1,file=filename,status='old')
-
-  !line number, to control the input values
-  iline=0
-  read(1,*,iostat=ierror) in%SIC_approach
-  call check()
-  read(1,*,iostat=ierror) in%alphaSIC
-  call check()
-  
-  close(unit=1,iostat=ierror)
-
-contains
-
-  subroutine check()
-    iline=iline+1
-    if (ierror/=0) then
-       !if (iproc == 0) 
-            write(*,'(1x,a,a,a,i3)') &
-            'Error while reading the file "',trim(filename),'", line=',iline
-       stop
-    end if
-  END SUBROUTINE check
-
-END SUBROUTINE sic_input_variables
-
 
 
 !> Assign default values for TDDFT variables
@@ -999,7 +1023,7 @@ subroutine tddft_input_variables_new(iproc,filename,in)
   !call the variable, its default value, the line ends if there is a comment
 
   call input_var(in%tddft_approach,"NONE",exclusive=(/'NONE','TDA '/),&
-       comment="Tamm-Dancoff approximation")
+       comment="TDDFT Method")
   call input_free(iproc)
 
 END SUBROUTINE tddft_input_variables_new
@@ -1221,7 +1245,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
         call input_var( in%kpt(1,i),'0.')
         call input_var( in%kpt(2,i),'0.')
         call input_var( in%kpt(3,i),'0.')
-        call input_var( in%wkpt(i),'1.',comment=' ')
+        call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
         norm=norm+in%wkpt(i)
      end do
      ! We normalise the weights.
@@ -1309,7 +1333,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   
   call input_free(iproc)
   !control whether we are giving k-points to Free BC
-  if (atoms%geocode == 'F' .and. exists) then
+  if (atoms%geocode == 'F' .and. in%nkpt > 1 .and. minval(abs(in%kpt)) > 0) then
      if (iproc==0) write(*,*)&
           ' NONSENSE: Trying to use k-points with Free Boundary Conditions!'
      stop
@@ -1579,9 +1603,10 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%orthpar%bsUp  = blocks(2)
   
   ! Set performance variables
-  call memocc_set_debug(inputs%debug)
+  if (.not. inputs%debug) then
+     call memocc_set_state(1)
+  end if
   call set_cache_size(inputs%ncache_fft)
-  
 
   !Check after collecting all values
   if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
@@ -2223,6 +2248,34 @@ subroutine deallocate_atoms(atoms,subname)
   if (atoms%symObj >= 0) then
      call ab6_symmetry_free(atoms%symObj)
   end if
+  ! Deallocations related to pseudos.
+  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
+  deallocate(atoms%nzatom,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nzatom',subname)
+  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
+  deallocate(atoms%psppar,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%psppar',subname)
+  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
+  deallocate(atoms%nelpsp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
+  i_all=-product(shape(atoms%ixcpsp))*kind(atoms%ixcpsp)
+  deallocate(atoms%ixcpsp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%ixcpsp',subname)
+  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
+  deallocate(atoms%npspcode,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%npspcode',subname)
+  i_all=-product(shape(atoms%nlcc_ngv))*kind(atoms%nlcc_ngv)
+  deallocate(atoms%nlcc_ngv,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nlcc_ngv',subname)
+  i_all=-product(shape(atoms%nlcc_ngc))*kind(atoms%nlcc_ngc)
+  deallocate(atoms%nlcc_ngc,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nlcc_ngc',subname)
+  i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
+  deallocate(atoms%nlccpar,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nlccpar',subname)
+  i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
+  deallocate(atoms%radii_cf,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%radii_cf',subname)
 END SUBROUTINE deallocate_atoms
 
 
@@ -2242,28 +2295,6 @@ subroutine deallocate_atoms_scf(atoms,subname)
   i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
   deallocate(atoms%aocc,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%aocc',subname)
-  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-  deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nzatom',subname)
-  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-  deallocate(atoms%psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%psppar',subname)
-  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-  deallocate(atoms%nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
-  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-  deallocate(atoms%npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%npspcode',subname)
-  i_all=-product(shape(atoms%nlcc_ngv))*kind(atoms%nlcc_ngv)
-  deallocate(atoms%nlcc_ngv,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nlcc_ngv',subname)
-  i_all=-product(shape(atoms%nlcc_ngc))*kind(atoms%nlcc_ngc)
-  deallocate(atoms%nlcc_ngc,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nlcc_ngc',subname)
-  i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
-  deallocate(atoms%nlccpar,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nlccpar',subname)
-
 END SUBROUTINE deallocate_atoms_scf
 
 
@@ -2285,7 +2316,7 @@ subroutine read_xyz_positions(iproc,ifile,atoms,rxyz,getLine)
   end interface
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
-  character(len=2) :: symbol
+  character(len=20) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
@@ -2672,7 +2703,7 @@ subroutine read_ascii_positions(iproc,ifile,atoms,rxyz,getline)
   end interface
   !local variables
   character(len=*), parameter :: subname='read_ascii_positions'
-  character(len=2) :: symbol
+  character(len=20) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
@@ -2936,7 +2967,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
-  character(len=2) :: symbol
+  character(len=20) :: symbol
   character(len=10) :: name
   character(len=11) :: units
   character(len=50) :: extra

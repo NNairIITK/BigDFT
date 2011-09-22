@@ -1,0 +1,13 @@
+Goedecker pseudopotential for Sr
+   38  10  070301 zatom,zion,pspdat
+10  1  2 2 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.48000000    2     5.57145509    -1.07996304                                  rloc nloc c1 c2
+    3                                                                               nnonloc
+     0.27544056    2     9.99513531    -3.61608019                                  rs ns hs11 hs12
+                                        9.33667892                                             hs22
+     0.30224313    2     3.16912572    -1.71111259                                  rp np hp11 hp12
+                                        4.04923144                                             hp22
+                        -0.57626460    -0.41837761                                        kp11 kp12
+                                        0.99006212                                             kp22
+     0.50204544    1     0.43872821                                                 rd nd hd11
+                         0.00899140                                                       kd11

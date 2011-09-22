@@ -154,8 +154,6 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 !!$  i_all=-product(shape(rhocc))*kind(rhocc)
 !!$  deallocate(rhocc,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'rhocc',subname)
-        
-        
   
 END SUBROUTINE calc_rhocore_iat
 
@@ -318,7 +316,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   nwb=nxcl+nxc+nxcr-2
   nxt=nwbr+nwb+nwbl
 
-  !quick return if no Semilocal XC potential is required (Hartree or Hratree-Fock)
+  !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
   if (ixc == 0 .or. ixc == 100) then
      if (datacode == 'G') then
         call to_zero(n01*n02*n03,potxc(1))
@@ -352,12 +350,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         !allocation of an auxiliary array for avoiding the shift of the density
         allocate(rho_G(m1*m3*nxt*2+ndebug),stat=i_stat)
         call memocc(i_stat,rho_G,'rho_G',subname)
-        !we cannot use these calls due to non-isolated GGAs
-!!$        call dcopy(m1*m3*nxt,rhopot(1+(i3start-1)*n01*n02),1,&
-!!$             rhopot_G(1),1)
-!!$        call dcopy(m1*m3*nxt,rhopot(1+(i3start-1)*n01*n02+n01*n02*n03),1,&
-!!$             rhopot_G(1+m1*m3*nxt),1)
-        !here we should put the modulo of the results for the non-isolated GGA
+        !here we put the modulo of the results for the non-isolated GGA
         do ispin=1,nspin
            do i3=1,nxt
               do i2=1,m3
@@ -407,6 +400,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   else
      order=1
      ndvxc=0
+     !here ndebug is not put since it is taken form dvxcdrho (not very good)
      allocate(dvxci(m1,m3,max(1,nwb),ndvxc),stat=i_stat)
      call memocc(i_stat,dvxci,'dvxci',subname)
   end if

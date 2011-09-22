@@ -85,10 +85,18 @@ module module_types
      real(gp):: iguessTol
   end type orthon_data
 
+  type, public :: SIC_data
+     character(len=4) :: approach !< approach for the Self-Interaction-Correction (PZ, NK)
+     integer :: ixc !< base for the SIC correction
+     real(gp) :: alpha !<downscaling coefficient
+     real(gp) :: fref !< reference occupation (for alphaNK case)
+  end type SIC_data
+
 !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
      !strings of the input files
-     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft,file_mix,file_sic
+     character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
+          & file_mix,file_sic, dir_output
      !miscellaneous variables
      logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
@@ -133,8 +141,7 @@ module module_types
      ! tddft variables from *.tddft
      character(len=10) :: tddft_approach
      !variables for SIC
-     character(len=4) :: sic_approach
-     real(gp) :: alphaSIC
+     type(SIC_data) :: SIC !<parameters for the SIC methods
 
      !> variable for material acceleration
      !! values 0: traditional CPU calculation
@@ -243,7 +250,9 @@ module module_types
      integer, dimension(:), pointer :: natpol
      integer, dimension(:), pointer :: nelpsp
      integer, dimension(:), pointer :: npspcode
+     integer, dimension(:), pointer :: ixcpsp
      integer, dimension(:), pointer :: nzatom
+     real(gp), dimension(:,:), pointer :: radii_cf         !< user defined radii_cf, overridden in sysprop.f90
      integer, dimension(:), pointer :: ifrztyp             !< ifrztyp(nat) Frozen atoms
      real(gp), dimension(:), pointer :: amu                !< amu(ntypes)  Atomic Mass Unit for each type of atoms
      real(gp), dimension(:,:), pointer :: aocc,rloc
@@ -390,6 +399,7 @@ module module_types
      type(nonlocal_psp_descriptors), pointer :: nlpspd
      type(locreg_descriptors), pointer :: lr 
      type(gaussian_basis), pointer :: Gabsorber    
+     type(SIC_data), pointer :: SIC
      integer, dimension(:,:), pointer :: ngatherarr 
      real(gp), dimension(:,:),  pointer :: rxyz,radii_cf
      real(wp), dimension(:), pointer :: proj

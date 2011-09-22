@@ -237,6 +237,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc)
   !quick return if possible
   !if the positions are already associated it means that the basis is generated
   if (associated(G%rxyz)) then
+     nullify(Gocc) !to avoid problem with the initialization
      return
   end if
 

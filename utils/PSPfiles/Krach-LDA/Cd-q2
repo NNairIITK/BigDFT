@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Cd
+   48   2  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.62500000    1    -1.79683799                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.82846467    3     1.48529241     0.16450606    -0.09953846                   rs ns hs11 hs12 hs13
+                                       -0.42475283     0.25700719                              hs22 hs23
+                                                      -0.40798627                                   hs33
+     0.97287254    2     0.46920843     0.18936149                                  rp np hp11 hp12
+                                       -0.44811107                                             hp22
+                         0.03771366     0.00084877                                        kp11 kp12
+                                       -0.00200856                                             kp22
+     1.24094900    1     0.06541164                                                 rd nd hd11
+                         0.00310866                                                       kd11
