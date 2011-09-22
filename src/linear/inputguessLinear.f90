@@ -324,6 +324,17 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   lchi2=0.d0
   call gaussians_to_wavelets_new2(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2)
+  !! DEBUG ############################
+  ist=1
+  do iorb=1,lin%lig%orbsig%norbp
+      iiorb=lin%lig%orbsig%isorb+iorb
+      ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
+      ncount=lin%lig%lzdGauss%llr(ilr)%wfd%nvctr_c+7*lin%lig%lzdGauss%llr(ilr)%wfd%nvctr_f
+      write(*,'(a,6i9,es15.7)') 'lchi2: iproc, iorb, iiorb, ilr, ncount, ist, ddot', iproc, iorb, iiorb, ilr, ncount, ist, ddot(ncount, lchi2(ist), 1, lchi2(ist), 1)
+      ist=ist+ncount
+  end do
+  if(ist/=lin%lig%orbsGauss%npsidim+1) stop 'ERROR in debug section: ist/=lin%lig%orbsig%npsidim+1'
+  !! END DEBUG ########################
 
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)
