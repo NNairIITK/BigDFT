@@ -689,7 +689,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   do iat=1,nlocregPerMPI
       do iorb=1,lin%lig%orbsig%norb
           do jorb=1,lin%lig%orbsig%norb
-              write(1000*(iproc+1)+100+iat,*) iorb, jorb, ham3(jorb,iorb,iat)
+              write(1000*(iproc+1)+100+iat,'(2i9,es16.7)') iorb, jorb, ham3(jorb,iorb,iat)
           end do
       end do
   end do
@@ -1440,6 +1440,11 @@ do iat=1,lzdig%nlr
     if(iproc==0) write(*,'(a)') 'done.'
 
 
+    do iall=1,orbs%norb
+        do istat=1,orbs%norb
+            write(3000*(iproc+1)+iat,'(2i9,es16.7)') iall, istat, hamTemp(istat,iall)
+        end do
+    end do
 
     
     call compressMatrix2(iproc, nproc, orbs, mad, hamTemp, hamTempCompressed(1,ioverlap), sendcounts, displs)
