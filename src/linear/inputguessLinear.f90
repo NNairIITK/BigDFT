@@ -542,6 +542,17 @@ subroutine inputguessConfinement(iproc, nproc, at, &
     !!call memocc(istat, iall, 'displs', subname)
 
 
+  !! DEBUG ############################
+  ist=1
+  do iorb=1,lin%lig%orbsig%norbp
+      iiorb=lin%lig%orbsig%isorb+iorb
+      ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
+      ncount=lin%lig%lzdig%llr(ilr)%wfd%nvctr_c+7*lin%lig%lzdig%llr(ilr)%wfd%nvctr_f
+      write(*,'(a,6i9,es15.7)') 'lchi2: iproc, iorb, iiorb, ilr, ncount, ist, ddot', iproc, iorb, iiorb, ilr, ncount, ist, ddot(ncount, lchi(ist), 1, lchi(ist), 1)
+      ist=ist+ncount
+  end do
+  if(ist/=lin%lig%orbsig%npsidim+1) stop 'ERROR in debug section: ist/=lin%lig%orbsig%npsidim+1'
+  !! END DEBUG ########################
 
 
   allocate(lhchi(lin%lig%orbsig%npsidim,ndim_lhchi),stat=istat)
