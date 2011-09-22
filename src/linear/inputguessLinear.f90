@@ -605,22 +605,21 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           !!call memocc(istat,iall,'dummyArray',subname)
       end if
 
-      !! DEBUG ############################
-      do iall=1,ndim_lhchi
-          ist=1
-          do iorb=1,lin%lig%orbsig%norbp
-              iiorb=lin%lig%orbsig%isorb+iorb
-              ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
-              ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-              write(*,'(a,4i9,es15.7)') 'iproc, iorb, iiorb, iall, ddot', iproc, iorb, iiorb, iall, ddot(ncount, lhchi(ist,iall), 1, lhchi(ist,iall), 1)
-              ist=ist+ncount
-          end do
-      end do
-      !! END DEBUG ########################
-
       if(iproc==0) write(*,'(a)') 'done.'
   end do
 
+  !! DEBUG ############################
+  do iall=1,ndim_lhchi
+      ist=1
+      do iorb=1,lin%lig%orbsig%norbp
+          iiorb=lin%lig%orbsig%isorb+iorb
+          ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
+          ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+          write(*,'(a,4i9,es15.7)') 'iproc, iorb, iiorb, iall, ddot', iproc, iorb, iiorb, iall, ddot(ncount, lhchi(ist,iall), 1, lhchi(ist,iall), 1)
+          ist=ist+ncount
+      end do
+  end do
+  !! END DEBUG ########################
 
   iall=-product(shape(lpot))*kind(lpot)
   deallocate(lpot, stat=istat)
