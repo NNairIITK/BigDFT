@@ -1983,18 +1983,18 @@ do ilr=1,lzd%nlr
         !!if(ovrlpx .and. ovrlpy .and. ovrlpz) then
         !!    novrlp=novrlp+1
         !!end if
-        !! THIS IS NEW ############################
-        ! Check whether there is a common element.
-        outloop1: do iorb=1,mlr(ilr)%norbinlr
-            iiorb=mlr(ilr)%indexInGlobal(iorb)
-            do jorb=1,mlr(jlr)%norbinlr
-                jjorb=mlr(jlr)%indexInGlobal(jorb)
-                if(iiorb==jjorb) then
-                    novrlp=novrlp+1
-                    exit outloop1
-                end if
-            end do
-        end do outloop1
+        !!!! THIS IS NEW ############################
+        !!! Check whether there is a common element.
+        !!outloop1: do iorb=1,mlr(ilr)%norbinlr
+        !!    iiorb=mlr(ilr)%indexInGlobal(iorb)
+        !!    do jorb=1,mlr(jlr)%norbinlr
+        !!        jjorb=mlr(jlr)%indexInGlobal(jorb)
+        !!        if(iiorb==jjorb) then
+        !!            novrlp=novrlp+1
+        !!            exit outloop1
+        !!        end if
+        !!    end do
+        !!end do outloop1
     end do
     comom%noverlap(ilr)=novrlp
     !!if(iproc==0) write(*,*) 'ilr, comom%noverlap(ilr)', ilr, comom%noverlap(ilr) 
