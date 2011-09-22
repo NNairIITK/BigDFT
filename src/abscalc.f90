@@ -918,7 +918,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
               end if
               
               print  *, " reading potential from file ","b2B_xanes.pot"
-              call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
+              write(6,*) " reading pot for b2B from potfile has been disactivated. Use cube format instead  " 
+              stop  " reading pot for b2B from potfile has been disactivated. Use cube format instead  " 
+
+
+              !! call  read_potfile4b2B("b2B_xanes.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
               print  *, " reading OK "
               
               

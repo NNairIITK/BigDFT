@@ -37,7 +37,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   type(GPU_pointers), intent(inout) , target :: GPU
   integer, intent(in) :: in_iat_absorber
   
-  type(input_variables),intent(in) :: in
+  type(input_variables),intent(in), target :: in
   type(pawproj_data_type), target ::PAWD
 
   !local variables
@@ -138,7 +138,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%PAWD=> PAWD
 
   ha%eSIC_DC=0.0_gp
-  ha%SIC=>SIC
+  ha%SIC=>in%SIC
 
 
   call EP_inizializza(ha) 
@@ -234,7 +234,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   type(GPU_pointers), intent(inout) , target :: GPU
   integer, intent(in) :: in_iat_absorber
   
-  type(input_variables),intent(in) :: in
+  type(input_variables),intent(in), target :: in
   type(pawproj_data_type), target ::PAWD
 
   !Local variables
@@ -306,6 +306,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
      STOP     
   endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
 
   !associate hamapp_arg pointers
@@ -334,7 +335,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%Gabs_coeffs=>in%Gabs_coeffs
   ha%PAWD=> PAWD
   ha%eSIC_DC=0.0_gp
-  ha%SIC=>SIC
+  ha%SIC=>in%SIC
   
   call EP_inizializza(ha)  
  
@@ -514,14 +515,14 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   type(GPU_pointers), intent(inout) , target :: GPU
   integer, intent(in) :: in_iat_absorber
   type(pawproj_data_type), target ::PAWD
-  type(input_variables),intent(in) :: in
+  type(input_variables),intent(in), target :: in
 
   !local variables
   character(len=*), parameter :: subname='xabs_cg'
   integer :: i_stat,i_all
   type(lanczos_args) :: ha
   integer :: i,j
-  real(gp) Ene,gamma,  res
+  real(gp) Ene,gamma,  res 
 
 
   real(wp),   pointer  :: Gabs_coeffs(:)
@@ -601,6 +602,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
      STOP     
   endif
   call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
+       lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
 
   ha%in_iat_absorber=in_iat_absorber
@@ -630,7 +632,7 @@ subroutine xabs_cg(iproc,nproc,at,hx,hy,hz,rxyz,&
   ha%PPD=> PPD
 
   ha%eSIC_DC=0.0_gp
-  ha%SIC=>SIC
+  ha%SIC=>in%SIC
 
 
   call EP_inizializza(ha) 

@@ -910,7 +910,6 @@ module module_interfaces
        real(wp), dimension(max(ndimpot,1),nspin), target :: potential
        real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
-       type(SIC_data), intent(in) , target :: SIC
        integer, intent(in) :: in_iat_absorber
        type(pawproj_data_type), target ::PAWD
 
@@ -1003,7 +1002,6 @@ module module_interfaces
 
        real(gp) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
-       type(SIC_data), intent(in) , target :: SIC
        integer, intent(in) :: in_iat_absorber
 
 
@@ -1030,7 +1028,6 @@ module module_interfaces
 
        real(gp) :: ekin_sum,epot_sum,eproj_sum
        type(GPU_pointers), intent(inout) , target :: GPU
-       type(SIC_data), intent(in) , target :: SIC
        integer, intent(in) :: in_iat_absorber
        type(pawproj_data_type), target ::PAWD
 

@@ -2815,7 +2815,7 @@
           do i=1,npoint
               tt=cdu(i)+cdd(i)
               write(33,'(4e20.12)')r(i),cdc(i),tt-cdc(i),tt
-          end do
+           end do
           close(unit=33)
 
 

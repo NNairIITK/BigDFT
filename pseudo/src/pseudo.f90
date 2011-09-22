@@ -1829,21 +1829,21 @@
             verbose=.true.
 
             if (nconfpaw/=-1) then
-               call pawpatch(energ,verbose,nfit,pp(1),yp(1),
-               :              noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,
-               :              no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,
-               :              occup,aeval,chrg,dhrg,ehrg,res,wght,
-               :              wfnode,psir0,wghtp0,
-               :              rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,
-               :              vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,
-               :              avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae,
-               c                the following lines differ from pseudo2.2
-               :              iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,
-               :          wghthij,
-               :              nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,
-               :              excitAE,ntime,iter,itertot,penref,time,ngrid, 
-               :               nconfpaw, npawl, nchannelspaw , ispp, pawstatom,
-               :              pawstN, pawstL  , pawstP,     pawrcovfact    )
+               call pawpatch(energ,verbose,nfit,pp(1),yp(1), &
+                             noccmax,noccmx,lmax,lmx,lpx,lpmx,lcx,nspin,pol,nsmx,&
+                             no,lo,so,ev,crcov,dcrcov,ddcrcov,norb,&
+                             occup,aeval,chrg,dhrg,ehrg,res,wght,&
+                             wfnode,psir0,wghtp0,&
+                             rcov,rprb,rcore,zcore,znuc,zion,rloc,gpot,r_l,hsep,&
+                             vh,xp,rmt,rmtg,ud,nint,ng,ngmx,psi,&
+                             avgl1,avgl2,avgl3,ortprj,litprj,igrad,rae,&
+!                               the following lines differ from pseudo2.2
+                             iproc,nproc,wghtconf,wghtexci,wghtsoft,wghtrad,&
+                         wghthij,&
+                             nhgrid,hgridmin,hgridmax,nhpow,ampl,crmult,frmult,&
+                             excitAE,ntime,iter,itertot,penref,time,ngrid, &
+                              nconfpaw, npawl, nchannelspaw , ispp, pawstatom,&
+                             pawstN, pawstL  , pawstP,     pawrcovfact    )
                
                stop " pawpatch normal stop"
             endif
