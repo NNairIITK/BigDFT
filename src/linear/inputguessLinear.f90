@@ -192,7 +192,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat, iall, iat, nspin_ig, iorb, nvirt, norbat
-  real(gp) :: hxh, hyh, hzh, eks, epot_sum, ekin_sum, eexctX, eproj_sum, t1, t2, time, tt
+  real(gp) :: hxh, hyh, hzh, eks, epot_sum, ekin_sum, eexctX, eproj_sum, t1, t2, time, tt, ddot
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
@@ -210,7 +210,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   real(gp), dimension(noccmax,lmax+1) :: occup
   integer:: ist, jst, jorb, iiAt, i, iadd, ii, jj, ndimpot, ilr, ind1, ind2, ldim, gdim, ierr, jlr, kk, iiorb, ndim_lhchi
   integer:: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3, nlocregPerMPI, jproc, jlrold
-  integer:: norbTarget, norbpTemp, isorbTemp, nprocTemp
+  integer:: norbTarget, norbpTemp, isorbTemp, nprocTemp, ncount
   integer,dimension(:),allocatable:: norb_parTemp, onWhichMPITemp
 
 
@@ -604,6 +604,19 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           !!deallocate(dummyArray,stat=istat)
           !!call memocc(istat,iall,'dummyArray',subname)
       end if
+
+      !! DEBUG ############################
+      do iall=1,ndim_lhchi
+          ist=1
+          do iorb=1,lin%lig%orbsig%norbp
+              iiorb=lin%lig%orbsig%isorb+iorb
+              ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
+              ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
+              write(*,'(a,4i9,es15.7)') 'iproc, iorb, iiorb, iall, ddot', iproc, iorb, iiorb, iall, ddot(ncount, lhchi(ist,iall), 1, lhchi(ist,iall), 1)
+              ist=ist+ncount
+          end do
+      end do
+      !! END DEBUG ########################
 
       if(iproc==0) write(*,'(a)') 'done.'
   end do
