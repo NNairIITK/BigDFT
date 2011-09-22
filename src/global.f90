@@ -124,6 +124,9 @@ program MINHOP
   call geopt_input_variables('mdinput.geopt',inputs_md)
   call kpt_input_variables(iproc,'input.kpt',inputs_md,atoms)
 
+  ! Read associated pseudo files. Based on the inputs_opt set
+  call init_atomic_values(iproc, atoms, inputs_opt%ixc)
+
 
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then

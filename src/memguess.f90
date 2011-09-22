@@ -321,10 +321,10 @@ program memguess
 
        allocate(psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
        call memocc(i_stat,psi,'psi',subname)
-       
+
        call take_psi_from_file(filename_wfn,in%hx,in%hy,in%hz,Glr,atoms,rxyz,psi)
 
-       call plot_wf(filename_wfn,1,atoms,Glr,in%hx,in%hy,in%hz,,psi,' ')
+       call plot_wf(filename_wfn,1,atoms,Glr,in%hx,in%hy,in%hz,rxyz,psi,' ')
   
        i_all=-product(shape(psi))*kind(psi)
        deallocate(psi,stat=i_stat)
@@ -1195,14 +1195,11 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,psi)
   end if
 
   !find the value of iorb_out
-  print *,'ciao',filename,' hello',index(filename, ".", back = .true.)
-  print *,'adesso',filename(index(filename, ".", back = .true.):len(filename))
   read(filename(index(filename, ".", back = .true.)+1:len(filename)),*)iorb_out
-  print *,'iorb_out',iorb_out
 
   !@ todo geocode should be passed in the localisation regions descriptors
   call readonewave(99, .not. exists,iorb_out,0,lr%d%n1,lr%d%n2,lr%d%n3, &
-       hx,hy,hz,at,lr%wfd,rxyz,rxyz_file,&
+       hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,&
        psi,eval_fake,psifscf)
 
   i_all=-product(shape(psifscf))*kind(psifscf)

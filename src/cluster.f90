@@ -552,12 +552,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !otherwise switch to normal input guess
   if (in%inputPsiId ==2) then
      ! Test ETSF file.
-     inquire(file="wavefunction.etsf",exist=onefile)
+     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
      if (onefile) input_wf_format=3
 
      if (.not. onefile) then
-        print *,'here'
-        call verify_file_presence(orbs,input_wf_format)
+        call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
      end if
  
      !assign the input_wf_format
@@ -724,7 +723,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !since each processor read only few eigenvalues, initialise them to zero for all
      call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
 
-     call readmywaves(iproc,"wavefunction" // trim(wfformat_read), &
+     call readmywaves(iproc,trim(in%dir_output) // "wavefunction" // trim(wfformat_read), &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
      !reduce the value for all the eigenvectors
@@ -751,7 +750,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              '------------------------------------------- Reading Wavefunctions from gaussian file'
      end if
 
-     call read_gaussian_information(orbs,gbd,gaucoeffs,'wavefunctions.gau')
+     call read_gaussian_information(orbs,gbd,gaucoeffs,trim(in%dir_output) // 'wavefunctions.gau')
      !associate the new positions, provided that the atom number is good
      if (gbd%nat == atoms%nat) then
         gbd%rxyz=>rxyz
@@ -1193,7 +1192,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
         if (iproc ==0) write(*,*)'Writing wavefunctions in wavefunction.gau file'
-        call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
+        call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,trim(in%dir_output) // 'wavefunctions.gau')
 
         !build dual coefficients
         call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
@@ -1208,7 +1207,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         nullify(gbd%rxyz)
 
      else
-        call  writemywaves(iproc,"wavefunction" // trim(wfformat), &
+        call  writemywaves(iproc,trim(in%dir_output) // "wavefunction" // trim(wfformat), &
              & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psi)
      end if
   end if
@@ -1216,11 +1215,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !plot the ionic potential, if required by output_grid
   if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
      if (iproc == 0) write(*,*) 'writing ionic_potential' // gridformat
-     call plot_density('ionic_potential' // gridformat,iproc,nproc,&
+     call plot_density(trim(in%dir_output)//'ionic_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
           1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
      if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
-     call plot_density('local_potential' // gridformat,iproc,nproc,&
+     call plot_density(trim(in%dir_output)//'local_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
           1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot)
   end if
@@ -1271,12 +1270,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      if ((in%output_grid >= OUTPUT_GRID_DENSITY) .and. DoLastRunThings) then
         if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
 
-        call plot_density('electronic_density' // gridformat,&
+        call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
              iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
         if (associated(rhocore)) then
            if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
-           call plot_density('core_density' // gridformat,&
+           call plot_density(trim(in%dir_output)//'core_density' // gridformat,&
                 iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
                 1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhocore(1+n1i*n2i*i3xcsh:))
         end if
@@ -1301,7 +1300,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !plot also the electrostatic potential
      if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
         if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
-        call plot_density('hartree_potential' // gridformat, &
+        call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
              & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
              & in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
      end if

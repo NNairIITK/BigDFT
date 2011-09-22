@@ -1,0 +1,8 @@
+Goedecker pseudopotential for Mg
+   12  10  070301 zatom,zion,pspdat
+10  1  1 2 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.21094954    2   -19.41900751     2.87133099                                  rloc nloc c1 c2
+    2                                                                               nnonloc
+     0.14154696    1    40.31662629                                                 rs ns hs11
+     0.10546902    1   -10.89111329                                                 rp np hp11
+                         0.09627735                                                       kp11

@@ -109,6 +109,7 @@ EXTRA_DIST = \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
+	init/pspconf.in.f90 \
 	NEB_driver.sh 
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdir)/wavelib \
@@ -214,6 +215,7 @@ low_level = init/projectors.f90  \
 	init/inputguess.f90 \
 	init/gautowav.f90 \
 	init/eleconf.f90 \
+	init/pspconf.f90 \
 	init/locreg.f90 \
 	init/sysprop.f90 \
 	init/gaussians.f90 \
@@ -243,6 +245,7 @@ low_level = init/projectors.f90  \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
 	posfiles.c \
+	utils.c \
 	sdcg.f90 \
 	bfgs.f90 \
 	$(DGEMMSY_INTERFACE)

@@ -76,7 +76,11 @@ subroutine standard_inputfile_names(inputs, radical)
   inputs%file_tddft=trim(rad) // '.tddft'
   inputs%file_mix=trim(rad) // '.mix'
   inputs%file_sic=trim(rad) // '.sic'
-  
+  if (trim(rad) == "input") then
+     inputs%dir_output="data"
+  else
+     inputs%dir_output="data-"//trim(rad)
+  end if
 END SUBROUTINE standard_inputfile_names
 
 
@@ -104,6 +108,9 @@ subroutine read_input_variables(iproc,posinp,inputs,atoms,rxyz)
 
   ! Read all parameters and update atoms and rxyz.
   call read_input_parameters(iproc,inputs, atoms, rxyz)
+
+  ! Read associated pseudo files.
+  call init_atomic_values(iproc, atoms, inputs%ixc)
 END SUBROUTINE read_input_variables
 
 
@@ -198,7 +205,54 @@ subroutine read_input_parameters(iproc,inputs,atoms,rxyz)
      call MPI_ABORT(MPI_COMM_WORLD,0,ierr)
   end if
 
+  !check whether a directory name should be associated for the data storage
+  call check_for_data_writing_directory(iproc,inputs)
+
 END SUBROUTINE read_input_parameters
+
+subroutine check_for_data_writing_directory(iproc,in)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(inout) :: in
+  !local variables
+  logical :: shouldwrite
+  integer :: i_stat,ierror,ierr
+  character(len=100) :: dirname
+
+  if (iproc==0)write(*,'(1x,a)')'|'//repeat('-',82)
+
+  !initialize directory name
+  shouldwrite=.false.
+
+  shouldwrite=shouldwrite .or. &
+       in%output_wf_format /= WF_FORMAT_NONE .or. & !write wavefunctions
+       in%output_grid /= OUTPUT_GRID_NONE .or. &    !write output density
+       in%ncount_cluster_x > 1 .or. &               !write posouts or posmds
+       in%inputPsiId == 2 .or. &                    !have wavefunctions to read
+       in%inputPsiId == 12 .or.  &                    !read in gaussian basis
+       in%gaussian_help                             !mulliken and local density of states
+  
+  if (shouldwrite) then
+     ! Create a directory to put the files in.
+     dirname=repeat(' ',len(dirname))
+     if (iproc == 0) then
+        call getdir(in%dir_output, len_trim(in%dir_output), dirname, 100, i_stat)
+        if (i_stat /= 0) then
+           write(*,*) "ERROR: cannot create output directory."
+           call MPI_ABORT(MPI_COMM_WORLD,ierror,ierr)
+        end if
+     end if
+     call MPI_BCAST(dirname,128,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
+     in%dir_output=dirname
+     if (iproc==0) write(*,'(1x,2a)')'|  Data Writing directory:    ',trim(in%dir_output)
+  else
+     if (iproc==0) write(*,'(1x,2a)')'|  Data Writing directory:    not needed'
+     in%dir_output=repeat(' ',len(in%dir_output))
+  end if
+
+end subroutine check_for_data_writing_directory
 
 
 
@@ -371,7 +425,9 @@ subroutine dft_input_variables(iproc,filename,in)
   else
      in%verbosity=ivrbproj
   end if
-  call memocc_set_verbosity(in%verbosity)
+  if (in%verbosity ==0 ) then
+     call memocc_set_state(0)
+  end if
 !!  !temporary correction
 !!  DistProjApply=.false.
 
@@ -539,14 +595,17 @@ subroutine dft_input_variables_new(iproc,filename,in)
   else
      in%verbosity=ivrbproj
   end if
-  call memocc_set_verbosity(in%verbosity)
+  if (in%verbosity ==0 ) then
+     call memocc_set_state(0)
+  end if
 
   ! Line to disable automatic behaviours (currently only symmetries).
   call input_var(in%disableSym,'F',comment='disable the symmetry detection')
 
   !define whether there should be a last_run after geometry optimization
   !also the mulliken charge population should be inserted
-  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. in%output_grid /= 0 .or. in%norbv /= 0) then
+  if ((in%rbuf > 0.0_gp) .or. in%output_wf_format /= WF_FORMAT_NONE .or. &
+       in%output_grid /= OUTPUT_GRID_NONE .or. in%norbv /= 0) then
      in%last_run=-1 !last run to be done depending of the external conditions
   else
      in%last_run=0
@@ -1539,9 +1598,10 @@ subroutine perf_input_variables(iproc,filename,inputs)
   inputs%orthpar%bsUp  = blocks(2)
   
   ! Set performance variables
-  call memocc_set_debug(inputs%debug)
+  if (.not. inputs%debug) then
+     call memocc_set_state(1)
+  end if
   call set_cache_size(inputs%ncache_fft)
-  
 
   !Check after collecting all values
   if(.not.inputs%orthpar%directDiag .or. inputs%orthpar%methOrtho==1) then 
@@ -2183,6 +2243,34 @@ subroutine deallocate_atoms(atoms,subname)
   if (atoms%symObj >= 0) then
      call ab6_symmetry_free(atoms%symObj)
   end if
+  ! Deallocations related to pseudos.
+  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
+  deallocate(atoms%nzatom,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nzatom',subname)
+  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
+  deallocate(atoms%psppar,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%psppar',subname)
+  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
+  deallocate(atoms%nelpsp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
+  i_all=-product(shape(atoms%ixcpsp))*kind(atoms%ixcpsp)
+  deallocate(atoms%ixcpsp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%ixcpsp',subname)
+  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
+  deallocate(atoms%npspcode,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%npspcode',subname)
+  i_all=-product(shape(atoms%nlcc_ngv))*kind(atoms%nlcc_ngv)
+  deallocate(atoms%nlcc_ngv,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nlcc_ngv',subname)
+  i_all=-product(shape(atoms%nlcc_ngc))*kind(atoms%nlcc_ngc)
+  deallocate(atoms%nlcc_ngc,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nlcc_ngc',subname)
+  i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
+  deallocate(atoms%nlccpar,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nlccpar',subname)
+  i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
+  deallocate(atoms%radii_cf,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%radii_cf',subname)
 END SUBROUTINE deallocate_atoms
 
 
@@ -2202,28 +2290,6 @@ subroutine deallocate_atoms_scf(atoms,subname)
   i_all=-product(shape(atoms%aocc))*kind(atoms%aocc)
   deallocate(atoms%aocc,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%aocc',subname)
-  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-  deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nzatom',subname)
-  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-  deallocate(atoms%psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%psppar',subname)
-  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-  deallocate(atoms%nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
-  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-  deallocate(atoms%npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%npspcode',subname)
-  i_all=-product(shape(atoms%nlcc_ngv))*kind(atoms%nlcc_ngv)
-  deallocate(atoms%nlcc_ngv,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nlcc_ngv',subname)
-  i_all=-product(shape(atoms%nlcc_ngc))*kind(atoms%nlcc_ngc)
-  deallocate(atoms%nlcc_ngc,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nlcc_ngc',subname)
-  i_all=-product(shape(atoms%nlccpar))*kind(atoms%nlccpar)
-  deallocate(atoms%nlccpar,stat=i_stat)
-  call memocc(i_stat,i_all,'atoms%nlccpar',subname)
-
 END SUBROUTINE deallocate_atoms_scf
 
 
