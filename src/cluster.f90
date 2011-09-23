@@ -765,7 +765,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
           n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,hx,hy,hz,n1,n2,n3,rxyz,Glr%wfd,psi)
 
      call deallocate_wfd(wfd_old,subname)
-
+     
      i_all=-product(shape(psi_old))*kind(psi_old)
      deallocate(psi_old,stat=i_stat)
      call memocc(i_stat,i_all,'psi_old',subname)
@@ -1485,10 +1485,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         end if
 
         ! Write virtual wavefunctions in ETSF format: WORKS ONLY FOR ONE KPOINT 
-        if(in%output_wf_format == 3 .and. abs(in%norbv) > 0) then
-           call  writemywaves(iproc,"virtuals" // trim(wfformat), &
-            & orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psivirt)
-        end if
+!        if(in%output_wf_format == 3 .and. abs(in%norbv) > 0) then
+!           call  writemywaves(iproc,"virtuals" // trim(wfformat), &
+!            & orbsv,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psivirt)
+!        end if
 
         !start the Casida's treatment 
         if (in%tddft_approach=='TDA') then
@@ -1809,11 +1809,6 @@ contains
 
     ! Free the libXC stuff if necessary.
     call xc_end()
-
-    !deallocate the mixing
-    if (in%itrpmax > 1) then
-       call ab6_mixing_deallocate(mix)
-    end if
 
     !deallocate the mixing
     if (in%itrpmax > 1) then

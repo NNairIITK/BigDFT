@@ -351,6 +351,7 @@ module module_types
      real(wp), dimension(:,:), pointer :: gaucoeffs
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(locreg_descriptors) :: Glr
+     type(local_zone_descriptors) :: Lzd
      type(gaussian_basis) :: gbd
      type(orbitals_data) :: orbs
      type(GPU_pointers) :: GPU

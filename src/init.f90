@@ -676,7 +676,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
     !check the size of the rhopot array related to NK SIC
     nrhodim=nspin 
     i3rho_add=0
-    if (input%SIC_approach=='NK') then
+    if (input%SIC%approach=='NK') then
        nrhodim=2*nrhodim
        i3rho_add=Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)+1
     end if

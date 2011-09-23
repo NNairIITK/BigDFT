@@ -324,7 +324,7 @@ program memguess
 
        call take_psi_from_file(filename_wfn,in%hx,in%hy,in%hz,Glr,atoms,rxyz,psi)
 
-       call plot_wf(filename_wfn,1,atoms,Glr,in%hx,in%hy,in%hz,rxyz,psi,' ')
+       call plot_wf(filename_wfn,1,atoms,1.0_wp,Glr,in%hx,in%hy,in%hz,rxyz,psi,' ')
   
        i_all=-product(shape(psi))*kind(psi)
        deallocate(psi,stat=i_stat)

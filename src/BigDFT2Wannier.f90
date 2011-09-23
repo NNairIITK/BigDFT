@@ -193,6 +193,7 @@ if (filetype == 'etsf' .or. filetype == 'ETSF') then
 
       call timing(iproc,'CrtProjectors ','ON')
       call split_vectors_for_parallel(iproc,nproc,n_virt_tot,orbsv)
+      call deallocate_comms(commsv,subname)
       call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
 
 !      if(orbsv%norbp > 0) then
@@ -2100,6 +2101,11 @@ subroutine angularpart(l, mr, np, nx, ny, nz, ix, iy, iz, &
 
    rr=sqrt(xx*xx+yy*yy+zz*zz)
 
+   if(rr < eps8)then
+     ylm(ix,iy,iz) = 1.d0/ sqrt(4*pi)
+     return
+   end if      
+
    cost = zz / rr
 
    if (xx > eps8) then
@@ -2597,9 +2603,9 @@ subroutine radialpart(rvalue, zona, np, nx, ny, nz, ix, iy, iz, &
 
    rr = sqrt( xx*xx + yy*yy + zz*zz )
 
-   if (rr < eps8) then
-      write(*,*) 'rr too small '
-   end if
+!   if (rr < eps8) then
+!      write(*,*) 'rr too small '
+!   end if
    if (rvalue(np)==1) func_r(ix,iy,iz) = 2.d0 * (zona(np)/0.529177208)**(3.d0/2.d0) * exp(-(zona(np)/0.529177208)*rr)
    if (rvalue(np)==2) func_r(ix,iy,iz) = 1.d0/sqrt(8.d0) * (zona(np)/0.529177208)**(3.d0/2.d0) * & 
       (2.0d0 - (zona(np)/0.529177208)*rr) * exp(-(zona(np)/0.529177208)*rr*0.5d0)
