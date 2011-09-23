@@ -1348,6 +1348,10 @@ subroutine ApplyProjectorsLinear(iproc,hx,hy,hz,atoms,Lzd,orbs,rxyz,psi,hpsi,epr
   
            do iorb=isorb,ieorb
               if (orbs%inwhichlocreg(iorb+orbs%isorb) /= ilr) cycle
+              !! These two lines are new #################
+              ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+              if(.not.lzd%doHamAppl(ilr)) cycle
+              !! #########################################
               istart_o=1
               do ispinor=1,nspinor,ncplx
                  eproj_spinor = 0.0_gp

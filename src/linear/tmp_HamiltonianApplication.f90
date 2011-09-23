@@ -404,10 +404,10 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         ! loop over all my orbitals
         ispsi=ispsi_k
         do iorb=isorb,ieorb
-           !! These two lines are new #################
-           ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-           if(.not.lzd%doHamAppl(ilr)) cycle
-           !! #########################################
+           !!!! These two lines are new #################
+           !!ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+           !!if(.not.lzd%doHamAppl(ilr)) cycle
+           !!!! #########################################
            istart_c=istart_ck
            do iat=1,at%nat
               call apply_atproj_iorb(iat,iorb,istart_c,at,orbs,Lzd%Glr%wfd,Lzd%Gnlpspd,&
