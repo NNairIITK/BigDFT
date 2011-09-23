@@ -658,13 +658,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
               iiorb=lin%lig%orbsig%isorb+iorb
               ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
               ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-              write(7000+iproc,'(a,2i9,es15.7)') 'iat, iiorb, ddot', iat, iiorb, ddot(ncount, lhchi(ist,ii), 1, lhchi(ist,ii), 1)
+              write(7000+iproc,'(a,2i9,es15.7,a)') 'iat, iiorb, ddot', iat, iiorb, ddot(ncount, lhchi(ist,ii), 1, lhchi(ist,ii), 1), '  calculated'
               ist=ist+ncount
           end do
       else
           do iorb=1,lin%lig%orbsig%norbp
               iiorb=lin%lig%orbsig%isorb+iorb
-              write(7000+iproc,'(a,2i9,es15.7)') 'iat, iiorb, ddot', iat, iiorb, 0.d0
+              write(7000+iproc,'(a,2i9,es15.7,a)') 'iat, iiorb, ddot', iat, iiorb, 0.d0, '  manually'
           end do
       end if
       !! END DEBUG ########################
