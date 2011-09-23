@@ -616,6 +616,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
               doNotCalculate(jlr)=.true.
               lin%lig%lzdig%doHamAppl(jlr)=.false.
           end if
+          write(9000+iproc,'(a,i0,a,i0)') 'no calculation for orbital ', jorb+lin%lig%orbsig%isorb, ' for atom ', iat
       end do
       !write(*,'(a,2i4,4x,100l4)') 'iat, iproc, doNotCalculate', iat, iproc, doNotCalculate
       if(iproc==0) write(*,'(3x,a,i0,a)', advance='no') 'Hamiltonian application for atom ', iat, '... '
