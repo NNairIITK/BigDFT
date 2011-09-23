@@ -522,12 +522,14 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           onWhichAtomTemp(jorb)=iat
           jlr=lin%lig%orbsig%inWhichLocregp(jorb)
           if(iat==1) write(*,'(a,5i9)') 'iproc, jorb, jorb+lin%lig%orbsig%isorb, lin%lig%orbsig%inWhichlocreg(jorb+lin%lig%orbsig%isorb), jlr', iproc, jorb, jorb+lin%lig%orbsig%isorb, lin%lig%orbsig%inWhichlocreg(jorb+lin%lig%orbsig%isorb), jlr
+          if(lin%lig%orbsig%inWhichlocreg(jorb+lin%lig%orbsig%isorb)/=jlr) stop 'this should not happen'
           call getIndices(lin%lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
           if(ovrlpx .and. ovrlpy .and. ovrlpz) then
               write(*,'(a,2i9)') 'not skipping: iat, jorb+lin%lig%orbsig%isorb', iat, jorb+lin%lig%orbsig%isorb
+              write(8000+iproc,'(a,2i9)') 'not skipping: iat, jorb+lin%lig%orbsig%isorb', iat, jorb+lin%lig%orbsig%isorb
               skip(iat)=.false.
           end if
       end do
