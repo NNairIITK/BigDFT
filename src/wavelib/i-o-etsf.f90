@@ -486,7 +486,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
 
   ! We run over a processor independant number of orbitals
   ! to ensure the synchronisation to disk (see later).
-  do iorb = 1, (orbs%norb / nproc + 1 ) * orbs%nspinor, 1
+  do iorb = 1, (orbs%norb * orbs%nkpts / nproc + 1 ) * orbs%nspinor, 1
      if (iorb <= (orbs%norbp * orbs%nspinor)) then
         ! Write one spinor.
         start(3) = modulo(iorb - 1, orbs%nspinor) + 1
