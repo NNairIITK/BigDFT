@@ -1550,6 +1550,9 @@ do iat=1,lzdig%nlr
         end do
         call mpi_allgatherv(sendbuf(1), sendcounts2(iproc), mpi_double_precision, recvbuf(1), &
              sendcounts2, displs2, mpi_double_precision, mpi_comm_world, ierr)
+    do iall=1,mad%nvctr*jj
+        write(500000+1000*iproc,'(i9,es16.7)') iall, recvbuf(iall)
+    end do
         ! Unpack data
         !if(iproc==0) write(*,'(a,3i8)') 'mad%nvctr, jj, mad%nvctr*jj', mad%nvctr, jj, mad%nvctr*jj
         do jproc=0,nproc-1
