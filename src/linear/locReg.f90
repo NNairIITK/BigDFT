@@ -1241,11 +1241,9 @@ subroutine get_overlap_region_periodic2(alr,blr,Glr,isovrlp,Llr,nlr,Olr)
 
 ! Check on the number of zones
   if (index /= isovrlp) then
-      write(*,*)&
-          'ERROR: problem in get_overlap_region_periodic ',&
-          'index:',index,'not equal to isovrlp:',isovrlp,&
-          'The number of overlap descriptors constructed does not',&
-          'correspond to the number of overlap regions.'
+      write(*,'(a,i0,a,i0,a)')&
+          'ERROR: problem in get_overlap_region_periodic; index: ',index,' not equal to isovrlp: ',isovrlp,'&
+          &. The number of overlap descriptors constructed does not correspond to the number of overlap regions.'
      stop
   end if
 

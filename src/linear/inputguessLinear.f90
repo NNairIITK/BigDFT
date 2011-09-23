@@ -110,6 +110,7 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
 
   ! Determine the localization regions.
   call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdig, lin%lig%orbsig, input, Glr, lin%locrad)
+  call copy_locreg_descriptors(Glr, lin%lig%lzdig%Glr, subname)
 
   ! Determine the localization regions for the atomic orbitals, which have a different localization radius.
   locrad=max(12.d0,maxval(lin%locrad(:)))
@@ -118,19 +119,24 @@ subroutine initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, ns
   call initLocregs2(iproc, at%nat, rxyz, lin%lig%lzdGauss, lin%lig%orbsGauss, input, Glr, locrad)
 
   ! Initialize the parameters needed for the orthonormalization of the atomic orbitals.
-  !tag=20000
-  call initCommsOrtho(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%orbsGauss%inWhichLocreg, &
+  !!! Attention: this is initialized for lzdGauss and not for lzdig!
+  !!call initCommsOrtho(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%orbsGauss%inWhichLocreg, &
+  !!     input, lin%lig%op, lin%lig%comon, tag)
+  call initCommsOrtho(iproc, nproc, lin%lig%lzdig, lin%lig%orbsig, lin%lig%orbsig%inWhichLocreg, &
        input, lin%lig%op, lin%lig%comon, tag)
 
   ! Initialize the parameters needed for communicationg the potential.
-  !tag=40000
   call copy_locreg_descriptors(Glr, lin%lig%lzdig%Glr, subname)
   call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lig%orbsig, lin%lig%lzdig, lin%lig%comgp, &
        lin%lig%orbsig%inWhichLocreg, tag)
 
+  !!! Attention: this is initialized for lzdGauss and not for lzdig!
+  !!call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
+  !!!call initCompressedMatmul2(lin%lig%orbsig%norb, lin%lig%mad%nseg, lin%lig%mad%keyg, lin%lig%mad%nsegmatmul, &
+  !!!      lin%lig%mad%keygmatmul, lin%lig%mad%keyvmatmul)
+  !!call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
+
   call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
-  !call initCompressedMatmul2(lin%lig%orbsig%norb, lin%lig%mad%nseg, lin%lig%mad%keyg, lin%lig%mad%nsegmatmul, &
-  !      lin%lig%mad%keygmatmul, lin%lig%mad%keyvmatmul)
   call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
 
   ! Deallocate the local arrays.
@@ -350,10 +356,12 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   ! Orthonormalize the atomic orbitals.
   !call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &
   !     lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, lin%lig%op, input, lin%lig%mad, lchi2)
-  ! Always use the exact Loewdin method.
-  call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, lin%nItOrtho, lin%blocksize_pdsyev, &
-       lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, &
-       lin%lig%op, input, lin%lig%mad, lchi2)
+
+  !! MOVE THIS AFTER THE TRANSFORMATION OF THE LCHI LOCREGS
+  !!! Always use the exact Loewdin method.
+  !!call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, lin%nItOrtho, lin%blocksize_pdsyev, &
+  !!     lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdGauss, lin%lig%orbsGauss, lin%lig%comon, &
+  !!     lin%lig%op, input, lin%lig%mad, lchi2)
 
   allocate(lchi(lin%lig%orbsig%npsidim+ndebug),stat=istat)
   call memocc(istat,lchi,'lchi',subname)
@@ -381,6 +389,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       write(*,'(2(a,i0))') 'ERROR on process ',iproc,': ind2/=lin%lig%orbsig%npsidim+1',ind2,lin%lig%orbsig%npsidim+1
       stop
   end if
+
+  ! Always use the exact Loewdin method.
+  call orthonormalizeAtomicOrbitalsLocalized2(iproc, nproc, 0, lin%nItOrtho, lin%blocksize_pdsyev, &
+       lin%blocksize_pdgemm, lin%convCritOrtho, lin%lig%lzdig, lin%lig%orbsig, lin%lig%comon, &
+       lin%lig%op, input, lin%lig%mad, lchi)
 
   ! Deallocate locrad, which is not used any longer.
   iall=-product(shape(locrad))*kind(locrad)
@@ -713,6 +726,20 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       end if
   end do
 
+
+
+  !! Reinitialize some parameters needed for the calculation of the Hamiltonian matrices
+  !call deallocate_matrixDescriptors(lin%lig%mad, subname)
+  !call deallocate_overlapParameters(lin%lig%op, subname)
+  !call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
+  !tag=0
+  !call initCommsOrtho(iproc, nproc, lin%lig%lzdig, lin%lig%orbsig, lin%lig%orbsig%inWhichLocreg, &
+  !     input, lin%lig%op, lin%lig%comon, tag)
+  !call initMatrixCompression(iproc, nproc, lin%lig%orbsig, lin%lig%op, lin%lig%mad)
+  !call initCompressedMatmul3(lin%lig%orbsig%norb, lin%lig%mad)
+
+
+
   ! Calculate the Hamiltonian matrix.
   call cpu_time(t1)
   allocate(ham3(lin%lig%orbsig%norb,lin%lig%orbsig%norb,nlocregPerMPI), stat=istat)
@@ -764,6 +791,8 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   call deallocate_local_zone_descriptors(lin%lig%lzdig, subname)
   call deallocate_orbitals_data(lin%lig%orbsig, subname)
   call deallocate_matrixDescriptors(lin%lig%mad, subname)
+  !!call deallocate_overlapParameters(lin%lig%op, subname)
+  !!call deallocate_p2pCommsOrthonormality(lin%lig%comon, subname)
 
   ! Deallocate all remaining local arrays.
   iall=-product(shape(norbsc_arr))*kind(norbsc_arr)
