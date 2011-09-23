@@ -734,6 +734,11 @@ subroutine inputguessConfinement(iproc, nproc, at, &
               write(1000*(iproc+1)+100+iat,'(2i9,es16.7)') iorb, jorb, ham3(jorb,iorb,iat)
           end do
       end do
+      tt=0.d0
+      do iall=1,lin%lig%orbsig%norb
+          tt=tt+dsum(lin%lig%orbsig%norb, ham3(1,iall,iat))
+      end do
+      write(*,'(a,2i8,es15.6)') 'iproc, iat, tt', iproc, iat, tt
   end do
 
 
