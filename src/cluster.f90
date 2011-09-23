@@ -96,6 +96,7 @@ subroutine call_bigdft(nproc,iproc,atoms,rxyz0,in,energy,fxyz,fnoise,rst,infocod
      if (exists) then
         in%last_run=1 !do the last_run things nonetheless
         in%inputPsiId=0 !the first run always restart from IG
+        !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
      call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,fxyz,fnoise,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
@@ -208,8 +209,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
-  character(len=5) :: gridformat, wfformat, final_out
-  character(len=128) :: dir
+  character(len=5) :: gridformat, wfformat,wfformat_read, final_out
   character(len=500) :: errmess
   logical :: endloop,endlooprp,allfiles,onefile,refill_proj
   logical :: DoDavidson,counterions,DoLastRunThings=.false.,lcs,scpot
@@ -366,6 +366,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
+
   call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   ! Determine size alat of overall simulation cell and shift atom positions
@@ -551,24 +552,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !otherwise switch to normal input guess
   if (in%inputPsiId ==2) then
      ! Test ETSF file.
-     inquire(file="wavefunction.etsf",exist=onefile)
+     inquire(file=trim(in%dir_output)//"wavefunction.etsf",exist=onefile)
      if (onefile) input_wf_format=3
-     allfiles=.true.
+
      if (.not. onefile) then
-        call verify_file_presence(orbs,input_wf_format)
-     end if
-     if (.not. allfiles) then
-        if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
-        inputpsi = 0
+        call verify_file_presence(trim(in%dir_output)//"wavefunction",orbs,input_wf_format)
      end if
  
      !assign the input_wf_format
-     write(wfformat, "(A)") ""
+     write(wfformat_read, "(A)") ""
      select case (input_wf_format)
+     case (WF_FORMAT_NONE)
+        if (iproc == 0) write(*,*)' WARNING: Missing wavefunction files, switch to normal input guess'
+        inputpsi = 0
      case (WF_FORMAT_ETSF)
-        write(wfformat, "(A)") ".etsf"
+        write(wfformat_read, "(A)") ".etsf"
      case (WF_FORMAT_BINARY)
-        write(wfformat, "(A)") ".bin"
+        write(wfformat_read, "(A)") ".bin"
      end select
 
   end if
@@ -723,7 +723,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !since each processor read only few eigenvalues, initialise them to zero for all
      call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
 
-     call readmywaves(iproc,"wavefunction" // trim(wfformat), &
+     call readmywaves(iproc,trim(in%dir_output) // "wavefunction" // trim(wfformat_read), &
           & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
      !reduce the value for all the eigenvectors
@@ -750,7 +750,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
              '------------------------------------------- Reading Wavefunctions from gaussian file'
      end if
 
-     call read_gaussian_information(orbs,gbd,gaucoeffs,'wavefunctions.gau')
+     call read_gaussian_information(orbs,gbd,gaucoeffs,trim(in%dir_output) // 'wavefunctions.gau')
      !associate the new positions, provided that the atom number is good
      if (gbd%nat == atoms%nat) then
         gbd%rxyz=>rxyz
@@ -1184,12 +1184,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 
   !  write all the wavefunctions into files
   if (in%output_wf_format /= WF_FORMAT_NONE .and. DoLastRunThings) then
-     ! Create a directory to put the files in.
-     if (iproc == 0) then
-        call getdir(in%file_output, len_trim(in%file_output), dir, 128, i_stat)
-        if (i_stat /= 0) write(*,*) "WARNING cannot create output directory."
-     end if
-     call MPI_BCAST(dir,128,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
      !add flag for writing waves in the gaussian basis form
      if (in%gaussian_help) then
 
@@ -1198,7 +1192,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
 !!!        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
         if (iproc ==0) write(*,*)'Writing wavefunctions in wavefunction.gau file'
-        call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,dir // 'wavefunctions.gau')
+        call write_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,trim(in%dir_output) // 'wavefunctions.gau')
 
         !build dual coefficients
         call dual_gaussian_coefficients(orbs%norbp,gbd,gaucoeffs)
@@ -1213,7 +1207,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
         nullify(gbd%rxyz)
 
      else
-        call  writemywaves(iproc,dir // "wavefunction" // trim(wfformat), &
+        call  writemywaves(iproc,trim(in%dir_output) // "wavefunction" // trim(wfformat), &
              & orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psi)
      end if
   end if
@@ -1221,11 +1215,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   !plot the ionic potential, if required by output_grid
   if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
      if (iproc == 0) write(*,*) 'writing ionic_potential' // gridformat
-     call plot_density('ionic_potential' // gridformat,iproc,nproc,&
+     call plot_density(trim(in%dir_output)//'ionic_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
           1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot_ion)
      if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
-     call plot_density('local_potential' // gridformat,iproc,nproc,&
+     call plot_density(trim(in%dir_output)//'local_potential' // gridformat,iproc,nproc,&
           n1,n2,n3,n1i,n2i,n3i,n3p,&
           1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot)
   end if
@@ -1276,12 +1270,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      if ((in%output_grid >= OUTPUT_GRID_DENSITY) .and. DoLastRunThings) then
         if (iproc == 0) write(*,*) 'writing electronic_density' // gridformat
 
-        call plot_density('electronic_density' // gridformat,&
+        call plot_density(trim(in%dir_output)//'electronic_density' // gridformat,&
              iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
              in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
         if (associated(rhocore)) then
            if (iproc == 0) write(*,*) 'writing grid core_density' // gridformat
-           call plot_density('core_density' // gridformat,&
+           call plot_density(trim(in%dir_output)//'core_density' // gridformat,&
                 iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,  & 
                 1,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhocore(1+n1i*n2i*i3xcsh:))
         end if
@@ -1306,7 +1300,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
      !plot also the electrostatic potential
      if (in%output_grid == OUTPUT_GRID_DENSPOT .and. DoLastRunThings) then
         if (iproc == 0) write(*,*) 'writing hartree_potential' // gridformat
-        call plot_density('hartree_potential' // gridformat, &
+        call plot_density(trim(in%dir_output)//'hartree_potential' // gridformat, &
              & iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
              & in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,pot)
      end if

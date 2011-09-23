@@ -59,6 +59,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
      call occupation_input_variables(iproc,iunit,nelec,norb,norbu,norbuempty,norbdempty,in%nspin,&
           orbs%occup(1+(ikpts-1)*orbs%norb),orbs%spinsgn(1+(ikpts-1)*orbs%norb))
   end do
+
 END SUBROUTINE system_properties
 
 
@@ -198,7 +199,7 @@ subroutine init_atomic_values(iproc, atoms, ixc)
              & atoms%nelpsp(ityp), atoms%npspcode(ityp), atoms%ixcpsp(ityp), &
              & atoms%psppar(:,:,ityp), exists)
         if (.not. exists) then
-           write(*,'(1x,5a)')&
+           if (iproc ==0) write(*,'(1x,5a)')&
                 'ERROR: The pseudopotential parameter file "',trim(filename),&
                 '" is lacking, and no registered pseudo found for "', &
                 & trim(atoms%atomnames(ityp)), '", exiting...'
@@ -443,7 +444,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      !NOTE this radius is chosen such as to make the projector be defined always on the same sphere
      !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
      !     and not for the gaussian decaying of the pseudopotential projector
-     !     add a proper varialbe in input.perf
+     !     add a proper variable in input.perf
      radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
      if (maxrad == 0.0_gp) then
         radii_cf(ityp,3)=0.0_gp
@@ -560,7 +561,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         end if
         if (trim(name_xc1) /= trim(name_xc2) .and. iproc==0) then
            write(*,'(1x,a)')&
-                'WARNING: The pseudopotential file "'//trim(filename)//'"'
+                'WARNING: The pseudopotential file psppar."'//trim(atoms%atomnames(ityp))//'"'
            write(*,'(1x,a,i0,a,i0)')&
                 '         contains a PSP generated with an XC id=',&
                 atoms%ixcpsp(ityp),' while for this run ixc=',in%ixc
