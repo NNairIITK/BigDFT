@@ -194,7 +194,7 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   type(gaussian_basis):: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
   integer :: istat, iall, iat, nspin_ig, iorb, nvirt, norbat
-  real(gp) :: hxh, hyh, hzh, eks, epot_sum, ekin_sum, eexctX, eproj_sum, t1, t2, time, tt, ddot
+  real(gp) :: hxh, hyh, hzh, eks, epot_sum, ekin_sum, eexctX, eproj_sum, t1, t2, time, tt, ddot, dsum
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   real(gp), dimension(:), allocatable :: locrad
