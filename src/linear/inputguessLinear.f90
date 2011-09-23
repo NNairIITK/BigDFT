@@ -529,7 +529,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
               skip(iat)=.false.
           end if
       end do
-      write(*,'(a,4i9,l4)') 'jorb+lin%lig%orbsig%isorb, jorb, iproc, iat, skip(iat)', jorb+lin%lig%orbsig%isorb, jorb, iproc, iat, skip(iat)
+      do jorb=1,lin%lig%orbsig%norbp
+        write(*,'(a,4i9,l4)') 'jorb+lin%lig%orbsig%isorb, jorb, iproc, iat, skip(iat)', jorb+lin%lig%orbsig%isorb, jorb, iproc, iat, skip(iat)
+      end do
       if(.not.skip(iat)) then
           ndim_lhchi=ndim_lhchi+1
       end if
