@@ -1090,16 +1090,16 @@ contains
                alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD, ierr )
           if(LB_iproc==0) then
              print *, "  new cheb coeffs (nkpts=", nkpts, ")"
-             write( *,*)  alphacollect
+             write( *,"(10(d20.10,1x))")  alphacollect
           endif
           call MPI_Gatherv( LB_alpha_cheb(1,2*i+2) , norb_par(LB_iproc),mpidtypw, &
                alphacollect(1),norb_par(0), dspl(0), mpidtypw, 0, MPI_COMM_WORLD , ierr)
           if(LB_iproc==0) then
              print *, "  and  "
-             write( *,*)  alphacollect
+             write( *,"(10(d20.10,1x))")  alphacollect
           endif
        else
-          write( *,*)  "new cheb coeffs " ,  LB_alpha_cheb(1:LB_norbp ,2*i+1) , LB_alpha_cheb(1:LB_norbp,2*i+2)
+          write( *,"(A,1x,10(d20.10,1x))")  "new cheb coeffs " ,  LB_alpha_cheb(1:LB_norbp ,2*i+1) , LB_alpha_cheb(1:LB_norbp,2*i+2)
        endif
        call EP_copy(precedente,attuale)
        call EP_copy(attuale,tmp1)
@@ -1223,7 +1223,7 @@ contains
 
        rhoold=rho
        rho = EP_scalare(z,r)
-       
+ 
        beta= rho/rhoold
 
        call EP_multbyfact(p,beta)
@@ -1231,6 +1231,7 @@ contains
        call EP_add_from_vect_with_fact( p,z,1.0_gp  )
        
        err = EP_scalare(r,r)
+       !! write(*,'(1x,A30,ES13.2,ES13.4)') " CG ERR ,  result :  ", err,   EP_scalare(x,b)
        k = k+1
     enddo
     write(*,'(1x,A30,ES13.2,ES13.4)') " CG ERR ,  result :  ", err,   EP_scalare(x,b)

@@ -1508,7 +1508,7 @@ subroutine applyPCprojectors(orbs,at,&
   real(wp), dimension(:), pointer :: psi, hpsi
   logical, optional :: dotest
  
-  
+    
   ! local variables
   character(len=*), parameter :: subname='applyPCprojectors'
   character(len=11) :: orbname

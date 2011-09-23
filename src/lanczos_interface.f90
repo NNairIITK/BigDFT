@@ -828,8 +828,12 @@ END SUBROUTINE EP_set_random_interna
     real(gp):: kern_k1(0:n1),kern_k2(0:n2),kern_k3(0:n3)
     real(wp),dimension(0:n1,0:n2,0:n3):: x_c! in and out of Fourier preconditioning
     real(wp)::z1(2,nd1b,nd2,nd3,2)! work array
-    real(wp)::z3(2,nd1,nd2,nd3f,2)! work array
+    real(wp)::z3(2,nd1,nd2,nd3f,2)! work array 
     
+    x_c=0.0_wp
+    z1=0.0_wp
+    z3=0.0_wp
+
     if (nvctr_f > 0) then
        call wscal_f_spectra(nvctr_f,hpsi(nvctr_c+1),hx,hy,hz,ene, gamma)
     end if
@@ -849,7 +853,7 @@ END SUBROUTINE EP_set_random_interna
   !!***
   
 
-
+    
 
 
   subroutine EP_precondition(p,i, ene, gamma)
