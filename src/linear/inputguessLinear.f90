@@ -688,6 +688,13 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           ist=ist+ncount
       end do
   end do
+
+  do iorb=1,orbs%norbp
+         write(20000+iproc,'(a,i0)') ' --- FOR GREP --- cycling for orbital ', iorb+orbs%isorb
+         write(21000+iproc,'(a,i0)') ' --- FOR GREP --- cycling for orbital ', iorb+orbs%isorb
+  end do
+
+
   !! END DEBUG ########################
 
   iall=-product(shape(lpot))*kind(lpot)
