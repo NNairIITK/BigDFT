@@ -1524,6 +1524,9 @@ do iat=1,lzdig%nlr
 
     
     call compressMatrix2(iproc, nproc, orbs, mad, hamTemp, hamTempCompressed(1,ioverlap), sendcounts, displs)
+    do iall=1,mad%nvctr
+        write(100000+1000*iproc+ioverlap,'(i9,es16.7)') iall, hamTempCompressed(iall,ioverlap)
+    end do
 
     if(ioverlap==noverlaps .or. iat==lzdig%nlr) then
         ! Rearrange data to communicate.
