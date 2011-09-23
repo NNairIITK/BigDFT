@@ -671,7 +671,7 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
   call orbitals_descriptors(iproc,nproc,norbu_as+norbd_as,norbu_as,norbd_as, &
        & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbs_as,basedist=orbs%norb_par(0:,1))
   !allocate communications arrays for virtual orbitals
-  call orbitals_communicators(iproc,nproc,Glr,orbs_as,comms_as)  
+  call orbitals_communicators(iproc,nproc,Glr,orbs_as,comms_as,basedist=comms_as%nvctr_par(0:,1))  
   !allocate array of the eigenvalues
   allocate(orbs_as%eval(orbs_as%norb*orbs_as%nkpts+ndebug),stat=i_stat)
   call memocc(i_stat,orbs_as%eval,'orbs_as%eval',subname)
@@ -692,9 +692,9 @@ subroutine select_active_space(iproc,nproc,orbs,comms,mask_array,Glr,orbs_as,com
   ispsi=1
   do ikptp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptp
-     nvctrp=comms%nvctr_par(iproc,ikptp) 
+     nvctrp=comms%nvctr_par(iproc,ikpt) 
      !this should be identical in both the distributions
-     if (nvctrp /= comms_as%nvctr_par(iproc,ikptp)) then
+     if (nvctrp /= comms_as%nvctr_par(iproc,ikpt)) then
         write(*,*)'ERROR(select_active_space): the component distrbution is not identical'
         stop
      end if
@@ -1262,9 +1262,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      !calculate the starting point for the component distribution
      iscomp=0
      do jproc=0,iproc-1
-        iscomp=iscomp+comms%nvctr_par(jproc,ikptsp)
+        iscomp=iscomp+comms%nvctr_par(jproc,ikpt)
      end do
-     nvctrp=comms%nvctr_par(iproc,ikptsp)
+     nvctrp=comms%nvctr_par(iproc,ikpt)
      nspinor=orbs%nspinor
 
      do iorb=1,orbs%norb
@@ -1305,9 +1305,9 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
         !calculate the starting point for the component distribution
         iscomp=0
         do jproc=0,iproc-1
-           iscomp=iscomp+comms%nvctr_par(jproc,ikptsp)
+           iscomp=iscomp+comms%nvctr_par(jproc,ikpt)
         end do
-        nvctrp=comms%nvctr_par(iproc,ikptsp)
+        nvctrp=comms%nvctr_par(iproc,ikpt)
         nspinor=orbs%nspinor
 
         do iorb=1,orbs%norb
@@ -1336,13 +1336,13 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
      abort = .true.
      write(filename, "(A,I0,A)") 'distscheme', iproc, '.log'
      open(unit=22,file=trim(filename),status='unknown')
-     call print_distribution_schemes(22,nproc,orbs%nkpts,orbs%norb_par,comms%nvctr_par)
+     call print_distribution_schemes(22,nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
      close(unit=22)
   end if
 
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
   if (abort) then
-     if (iproc == 0) call print_distribution_schemes(6,nproc,orbs%nkpts,orbs%norb_par,comms%nvctr_par)
+     if (iproc == 0) call print_distribution_schemes(6,nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
      call MPI_ABORT(MPI_COMM_WORLD,ierr)
   end if
 

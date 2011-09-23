@@ -487,28 +487,28 @@ contains
   END SUBROUTINE deallocate_diis_objects
 
 
-!> Allocate communications_arrays
-  subroutine allocate_comms(nproc,orbs,comms,subname)
-    use module_base
-    implicit none
-    character(len=*), intent(in) :: subname
-    integer, intent(in) :: nproc
-    type(orbitals_data), intent(in) :: orbs
-    type(communications_arrays), intent(out) :: comms
-    !local variables
-    integer :: i_stat
-
-    allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
-    allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ncntd,'ncntd',subname)
-    allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ncntt,'ncntt',subname)
-    allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ndspld,'ndspld',subname)
-    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
-  END SUBROUTINE allocate_comms
+!!$!> Allocate communications_arrays
+!!$  subroutine allocate_comms(nproc,orbs,comms,subname)
+!!$    use module_base
+!!$    implicit none
+!!$    character(len=*), intent(in) :: subname
+!!$    integer, intent(in) :: nproc
+!!$    type(orbitals_data), intent(in) :: orbs
+!!$    type(communications_arrays), intent(out) :: comms
+!!$    !local variables
+!!$    integer :: i_stat
+!!$
+!!$    allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
+!!$    allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ncntd,'ncntd',subname)
+!!$    allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ncntt,'ncntt',subname)
+!!$    allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ndspld,'ndspld',subname)
+!!$    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
+!!$  END SUBROUTINE allocate_comms
 
 
 !> De-Allocate communications_arrays

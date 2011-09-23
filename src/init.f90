@@ -388,7 +388,7 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
 
   !allocate communications arrays for inputguess orbitals
   !call allocate_comms(nproc,orbse,commse,subname)
-  call orbitals_communicators(iproc,nproc,Glr,orbse,commse)  
+  call orbitals_communicators(iproc,nproc,Glr,orbse,commse,basedist=comms%nvctr_par(0:,1))  
 
   !use the eval array of orbse structure to save the original values
   allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)

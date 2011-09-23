@@ -80,12 +80,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
      end do
   end if
 
-  !allocate communications arrays for virtual orbitals
-  !warning: here the aim is just to calculate npsidim, should be fixed
-  !call allocate_comms(nproc,orbsv,commsv,subname)
-!!$  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
-!!$  call deallocate_comms(commsv,subname)
-
   !!!orbitals descriptor for inguess orbitals
   nspinorfororbse=orbs%nspinor
 

@@ -612,7 +612,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   ispsi=1
   do ikptp=1,orbsv%nkptsp
      ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-     nvctrp=commsv%nvctr_par(iproc,ikptp)
+     nvctrp=commsv%nvctr_par(iproc,ikpt)
      if (nvctrp == 0) cycle
 
      nspinor=orbsv%nspinor
@@ -709,7 +709,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      ispsi=1
      do ikptp=1,orbsv%nkptsp
         ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         if (nvctrp == 0) cycle
 
         nspinor=orbsv%nspinor
@@ -776,7 +776,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
         ispsi=1
         do ikptp=1,orbsv%nkptsp
            ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-           nvctrp=commsv%nvctr_par(iproc,ikptp)
+           nvctrp=commsv%nvctr_par(iproc,ikpt)
            if (nvctrp == 0) cycle
            
            nspinor=orbsv%nspinor
@@ -882,7 +882,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
         ispsi=1
         do ikptp=1,orbsv%nkptsp
            ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-           nvctrp=commsv%nvctr_par(iproc,ikptp)
+           nvctrp=commsv%nvctr_par(iproc,ikpt)
            if (nvctrp == 0) cycle
            
            nspinor=orbsv%nspinor
