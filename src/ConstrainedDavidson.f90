@@ -585,7 +585,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! loop on spin
         do ispin=1,nspin
            ! get dimensions 
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            ! cycle if nothing to be done
            if (nvctrp == 0) cycle
@@ -660,7 +660,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! loop on spin
         do ispin=1,nspin
            ! get dimensions
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            ! loop if noting to be done
            if (nvctrp == 0) cycle

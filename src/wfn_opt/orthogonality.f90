@@ -197,7 +197,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
      do ispin=1,nspin
 
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
@@ -238,7 +238,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,wfd,psi,hpsi,scprsum)
 
      do ispin=1,nspin
         if (ispin==1) ise=0
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
@@ -372,7 +372,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
      do ispin=1,nspin
 
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
@@ -424,7 +424,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
      isorb=1
      do ispin=1,nspin
 
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
@@ -582,9 +582,9 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
      do ispin=1,nspin
 
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
-        call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
              nvctrpv,norbv,norbsv,ncompv,nspinorv)
         !there checks ensure that the component distribution scheme of virtual and occupied states is the same
         if (nvctrpv /= nvctrp) stop 'nvctrp'
@@ -641,7 +641,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
      do ispin=1,nspin
 
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         if (nvctrp == 0) cycle
 
@@ -718,19 +718,16 @@ subroutine complex_components(nspinor,norb,norbs,ncomp)
 END SUBROUTINE complex_components
 
 
-subroutine orbitals_and_components(iproc,ikptp,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor)
+subroutine orbitals_and_components(iproc,ikpt,ispin,orbs,comms,nvctrp,norb,norbs,ncomp,nspinor)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,ikptp,ispin
+  integer, intent(in) :: iproc,ikpt,ispin
   type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
   integer, intent(out) :: nvctrp,norb,norbs,ncomp,nspinor
-  !local variables
-  integer :: ikpt
   
-  ikpt=orbs%iskpts+ikptp
-  nvctrp=comms%nvctr_par(iproc,ikptp)
+  nvctrp=comms%nvctr_par(iproc,ikpt)
   norb=orbs%norbu
   nspinor=orbs%nspinor
   if (ispin==2) norb=orbs%norbd
@@ -1701,7 +1698,7 @@ do ikptp=1,orbs%nkptsp
     do ispin=1,nspin
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for.
         ! In addition it sets the value of nspinor to orbs%nspinor.
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
             nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we possibly treat only a part of the orbitals).
@@ -1799,7 +1796,7 @@ do ikptp=1,orbs%nkptsp
     do ispin=1,nspin
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for.
         ! In addition it sets the value of nspinor to orbs%nspinor.
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
             nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we possibly treat only a part of the orbitals).
@@ -1900,7 +1897,7 @@ do ikptp=1,orbs%nkptsp
     do ispin=1,nspin
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for.
         ! In addition it sets the value of nspinor to orbs%nspinor.
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
             nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we possibly treat only a part of the orbitals).
@@ -2042,7 +2039,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
 
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for which the overlap
         ! matrix shall be calculated. In addition it sets the value of nspinor to orbs%nspinor.
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we treat only a part of the orbitals).
@@ -2150,7 +2147,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
         
         ! This subroutine gives essentially back nvctrp, i.e. the length of the vectors for which the overlap
         ! matrix shall be calculated. In addition it sets the value of nspinor to orbs%nspinor.
-        call orbitals_and_components(iproc,ikptp,ispin,orbs,comms,&
+        call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
              nvctrp,norb,norbs,ncomp,nspinor)
         ! The subroutine also overwrite the variable norb with the total number of orbitals.
         ! However we want to keep the value of norbIn (since we treat only a part of the orbitals).

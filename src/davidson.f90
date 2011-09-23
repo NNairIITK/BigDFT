@@ -927,7 +927,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
         do ispin=1,nspin
 
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
            !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
@@ -959,7 +959,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
         ise=0
         do ispin=1,nspin
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
 
