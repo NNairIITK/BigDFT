@@ -1,0 +1,15 @@
+Goedecker pseudopotential for Re
+   75   7  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.69300000    1     8.18081618                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.50981621    2     2.26937936    -1.36659354                                  rs ns hs11 hs12
+                                        3.52852934                                             hs22
+     0.74583906    2     0.49669329    -0.39123421                                  rp np hp11 hp12
+                                        0.92582911                                             hp22
+                        -0.37058909    -0.26063064                                        kp11 kp12
+                                        0.61676466                                             kp22
+     0.50095420    2    -3.68962967     0.83544051                                  rd nd hd11 hd12
+                                       -1.89460099                                             hd22
+                         0.11155664     0.05802813                                        kd11 kd12
+                                       -0.13159543                                             kd22

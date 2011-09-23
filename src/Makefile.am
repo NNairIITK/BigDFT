@@ -79,6 +79,12 @@ else
 flush_files = modules/flush_fake.f90
 endif
 
+if HAVE_FC_GET_COMMAND_ARGUMENT
+getarg_files =
+else
+getarg_files = modules/get_command_argument_fake.f90
+endif
+
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
 else
@@ -103,6 +109,7 @@ EXTRA_DIST = \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
+	init/pspconf.in.f90 \
 	NEB_driver.sh 
 
 AM_FCFLAGS = -I. -Imodules @MPI_INCLUDE@ -IPSolver -I$(srcdir)/PSolver -I$(srcdir)/wavelib \
@@ -208,6 +215,7 @@ low_level = init/projectors.f90  \
 	init/inputguess.f90 \
 	init/gautowav.f90 \
 	init/eleconf.f90 \
+	init/pspconf.f90 \
 	init/locreg.f90 \
 	init/sysprop.f90 \
 	init/gaussians.f90 \
@@ -237,6 +245,7 @@ low_level = init/projectors.f90  \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
 	posfiles.c \
+	utils.c \
 	sdcg.f90 \
 	bfgs.f90 \
 	$(DGEMMSY_INTERFACE)
@@ -245,7 +254,9 @@ libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	BigDFT_API.f90 \
 	$(low_level) \
-	$(high_level)
+	$(high_level) \
+	$(flush_files) \
+	$(getarg_files)
 
 libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memoryestimator.o \
@@ -316,11 +327,9 @@ NEB_LDADD = libbigdft.a \
 	$(libs_opt) 
 
 memguess_SOURCES = memguess.f90 \
-	$(mpi_source)
+	MPIfake.f90
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	$(LMPI) \
-	@MPI_LIBS@ \
 	$(libs_opt) 
 
 frequencies_SOURCES = frequencies.f90  \

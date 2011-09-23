@@ -8,6 +8,8 @@ program kpts_check
   character(len=20) :: argstring
   integer :: i_all,i_stat,info,lubo,lubc
 
+  !@todo : load balancing verifications of particular k-points distributions
+
   call getarg(1,argstring)
   read(argstring,*)nproc
   call getarg(2,argstring)

@@ -604,3 +604,37 @@ AC_DEFUN([ABI_PROG_FC],
  _ABI_CHECK_FC_EXIT
  _ABI_CHECK_FC_FLUSH
 ]) # ABI_PROG_FC
+
+
+# Define a macro to test Fortran2003 implementation.
+#
+# Copyright (c) 2011-2011 BigDFT Group (Damien Caliste)
+# All rights reserved.
+#
+# This file is part of the BigDFT software package. For license information,
+# please see the COPYING file in the top-level directory of the BigDFT source
+# distribution.
+AC_DEFUN([AX_FC_F2003],
+[
+  AC_LANG_PUSH(Fortran)
+  AC_REQUIRE([AC_PROG_FC])
+
+  dnl We start with get_command_argument().
+  AC_MSG_CHECKING([for get_command_argument() in Fortran.])
+
+  AC_COMPILE_IFELSE([
+program test
+  character(len = 128) :: arg
+
+  call get_command_argument(1, arg)
+
+end program test],
+  [ax_fc_get_command_argument="yes"], [ax_fc_get_command_argument="no"])
+  if test x"$ax_fc_get_command_argument" == x"yes" ; then
+    AC_DEFINE([HAVE_FC_GET_COMMAND_ARGUMENT], [1], [get_command_argument() can be used safely in Fortran])
+  fi
+  AM_CONDITIONAL([HAVE_FC_GET_COMMAND_ARGUMENT], [test x"$ax_fc_get_command_argument" == x"yes"])
+  AC_MSG_RESULT([$ax_fc_get_command_argument])
+
+  AC_LANG_POP(Fortran)
+])

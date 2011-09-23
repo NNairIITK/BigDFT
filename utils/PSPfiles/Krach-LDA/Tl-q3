@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Tl
+   81   3  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.63000000    1    -1.23584552                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.75400547    3     1.87576571     0.11761462    -0.19062668                   rs ns hs11 hs12 hs13
+                                       -0.30367964     0.49219597                              hs22 hs23
+                                                      -0.78133689                                   hs33
+     0.90374170    2     0.75966830     0.24793467                                  rp np hp11 hp12
+                                       -0.58672051                                             hp22
+                         0.16864149    -0.00188436                                        kp11 kp12
+                                        0.00445921                                             kp22
+     1.06351212    1     0.24761396                                                 rd nd hd11
+                         0.02294091                                                       kd11
