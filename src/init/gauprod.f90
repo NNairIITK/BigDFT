@@ -155,12 +155,12 @@ subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
      call memocc(i_stat,gatherarr,'gatherarr',subname)
      
      norb_tot=0
-     gatherarr(0,1)=G%ncoeff*orbs%norb_par(0)*orbs%nspinor
+     gatherarr(0,1)=G%ncoeff*orbs%norb_par(0,0)*orbs%nspinor
      gatherarr(0,2)=G%ncoeff*norb_tot*orbs%nspinor
      !gather the coefficients in a unique array
      do jproc=1,nproc-1
-        norb_tot=norb_tot+orbs%norb_par(jproc-1)
-        gatherarr(jproc,1)=G%ncoeff*orbs%norb_par(jproc)
+        norb_tot=norb_tot+orbs%norb_par(jproc-1,0)
+        gatherarr(jproc,1)=G%ncoeff*orbs%norb_par(jproc,0)
         gatherarr(jproc,2)=G%ncoeff*norb_tot*orbs%nspinor
      end do
 

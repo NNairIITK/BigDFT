@@ -1381,8 +1381,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
            call timing(iproc,'CrtProjectors ','OF') 
 
         else
+           !the virtual orbitals should be in agreement with the traditional k-points
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-                & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv)
+                & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,basedist=orbs%norb_par(0,1))
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
 

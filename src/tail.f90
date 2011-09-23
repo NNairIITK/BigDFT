@@ -15,6 +15,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs

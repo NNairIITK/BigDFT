@@ -298,11 +298,11 @@ subroutine gaussian_pdos(iproc,nproc,orbs,Gocc,G,coeff,duals)
 
         norb_displ(0)=0
         do jproc=1,nproc-1
-           norb_displ(jproc)=norb_displ(jproc-1)+orbs%norb_par(jproc-1)
+           norb_displ(jproc)=norb_displ(jproc-1)+orbs%norb_par(jproc-1,0)
         end do
         
-        call MPI_GATHERV(pdos(1,min(orbs%isorb+1,orbs%norb)),(G%ncoeff+1)*orbs%norb_par(iproc),mpidtypw,&
-             pdos(1,1),(G%ncoeff+1)*orbs%norb_par,(G%ncoeff+1)*norb_displ,mpidtypw,&
+        call MPI_GATHERV(pdos(1,min(orbs%isorb+1,orbs%norb)),(G%ncoeff+1)*orbs%norb_par(iproc,0),mpidtypw,&
+             pdos(1,1),(G%ncoeff+1)*orbs%norb_par(:,0),(G%ncoeff+1)*norb_displ,mpidtypw,&
              0,MPI_COMM_WORLD,ierr)
 
         i_all=-product(shape(norb_displ))*kind(norb_displ)

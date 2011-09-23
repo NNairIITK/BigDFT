@@ -12,6 +12,7 @@
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(out) :: nelec
@@ -41,8 +42,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   if (iproc == 0 .and. nproc > 1) then
      jpst=0
      do jproc=0,nproc-1
-        norbme=orbs%norb_par(jproc)
-        norbyou=orbs%norb_par(min(jproc+1,nproc-1))
+        norbme=orbs%norb_par(jproc,0)
+        norbyou=orbs%norb_par(min(jproc+1,nproc-1),0)
         if (norbme /= norbyou .or. jproc == nproc-1) then
            !this is a screen output that must be modified
            write(*,'(3(a,i0),a)')&
@@ -945,7 +946,7 @@ END SUBROUTINE atomic_occupation_numbers
 
 !> Define the descriptors of the orbitals from a given norb
 !! It uses the cubic strategy for partitioning the orbitals
-subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
+subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,basedist)
   use module_base
   use module_types
   implicit none
@@ -954,13 +955,14 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   type(orbitals_data), intent(out) :: orbs
   real(gp), dimension(nkpt), intent(in) :: wkpt
   real(gp), dimension(3,nkpt), intent(in) :: kpt
+  integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb,ierr,i_all,norb_base
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 
-  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
+  allocate(orbs%norb_par(0:nproc-1,0:nkpt+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 
   !assign the value of the k-points
@@ -982,9 +984,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%nspin = nspin
 
   !initialise the array
-  do jproc=0,nproc-1
-     orbs%norb_par(jproc)=0 !size 0 nproc-1
-  end do
+  call to_zero(nproc*(nkpt+1),orbs%norb_par(0,0))
 
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines (deprecated, not used anymore)
@@ -1043,20 +1043,30 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 !!$  call memocc(i_stat,i_all,'mykpts',subname)
 
   !new system for k-point repartition
-  call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
+  norb_base=0
+  if (present(basedist)) then
+     !the first k-point takes the number of orbitals
+     do jproc=0,nproc-1
+        norb_base=norb_base+basedist(jproc,1)
+     end do
+     call components_kpt_distribution(nproc,orbs%nkpts,norb_base,norb,basedist,norb_par)
+  else
+     call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
+  end if
   !assign the values for norb_par and check the distribution
   norb_tot=0
   do jproc=0,nproc-1
      if (jproc==iproc) orbs%isorb=norb_tot
      do ikpt=1,orbs%nkpts
-        orbs%norb_par(jproc)=orbs%norb_par(jproc)+norb_par(jproc,ikpt)
+        orbs%norb_par(jproc,0)=orbs%norb_par(jproc,0)+norb_par(jproc,ikpt)
+        orbs%norb_par(jproc,ikpt)=norb_par(jproc,ikpt)
      end do
-     norb_tot=norb_tot+orbs%norb_par(jproc)
+     norb_tot=norb_tot+orbs%norb_par(jproc,0)
   end do
 
   if(norb_tot /= norb*orbs%nkpts) then
      write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
-     write(*,*)orbs%norb_par(:),norb*orbs%nkpts
+     write(*,*)orbs%norb_par(:,0),norb*orbs%nkpts
      stop
   end if
 
@@ -1072,7 +1082,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
   !assign the values of the orbitals data
   orbs%norb=norb
-  orbs%norbp=orbs%norb_par(iproc)
+  orbs%norbp=orbs%norb_par(iproc,0)
   orbs%norbu=norbu
   orbs%norbd=norbd
 
@@ -1135,8 +1145,9 @@ subroutine kpts_to_procs_via_obj(nproc,nkpts,nobj,nobj_par)
 
   !maximum number of objects which has to go to each processor per k-point
   nobjp_max_kpt=ceiling(modulo(robjp-epsilon(1.0_gp),real(nobj,gp)))
-  !print *,'eccoqui',nobjp_max_kpt,robjp
-  !see the conditions for the integer repartition of k-points
+  !print *,'hereweare',nobjp_max_kpt,robjp,nobj
+
+!see the conditions for the integer repartition of k-points
   if (nobjp_max_kpt == nobj .or. (nobjp_max_kpt==1 .and. robjp < 1.0_gp)) then
      intrep=.true.
      rounding_ratio=0.0_gp
@@ -1302,18 +1313,19 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
      end if
      !assign the number of components which corresponds to the same orbital distribution
      numproc=jeproc-jsproc+1
-     ivctr=0
+     icount=0
 
      !print *,'kpoint',ikpt,jsproc,jeproc,strprc,endprc,ceiling(strprc*real(nvctr,gp)),nvctr
      !start filling the first processor
-     nvctr_par(jsproc,ikpt)=min(ceiling(strprc*real(nvctr,gp)),nvctr)
-     ivctr=min(ceiling(strprc*real(nvctr,gp)),nvctr)
+     ivctr=min(ceiling(strprc*real(nvctr,gp)-epsilon(1.0_gp)),nvctr)
+     nvctr_par(jsproc,ikpt)=ivctr!min(ceiling(strprc*real(nvctr,gp)),nvctr)
      fill_array: do 
         if (ivctr==nvctr) exit fill_array
         icount=icount+1
         kproc=jsproc+modulo(icount,numproc)
         !put the floor of the components to the first processor
-        if (strprc /= 1.0_gp .and. kproc==jsproc .and. nvctr_par(kproc,ikpt)==ceiling(strprc*real(nvctr,gp))) then
+        if (strprc /= 1.0_gp .and. kproc==jsproc .and. &
+             nvctr_par(kproc,ikpt)==ceiling(strprc*real(nvctr,gp)-epsilon(1.0_gp))) then
            !do nothing, skip away
         else
            nvctr_par(kproc,ikpt)=&
@@ -1321,6 +1333,8 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
            ivctr=ivctr+1
         end if
      end do fill_array
+     !print '(a,i3,i3,i6,2(1pe25.17),i7,20i5)','here',ikpt,jsproc,jeproc,strprc,endprc,sum(nvctr_par(:,ikpt)),nvctr_par(:,ikpt)
+     !print '(a,i3,i3,i6,2(1pe25.17),i7,20i5)','there',ikpt,jsproc,jeproc,strprc,endprc,sum(nvctr_par(:,ikpt)),norb_par(:,ikpt)
   end do
 
 END SUBROUTINE components_kpt_distribution

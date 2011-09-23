@@ -258,7 +258,7 @@ module module_interfaces
        logical, intent(out) :: lcs
      END SUBROUTINE check_closed_shell
 
-     subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
+     subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,basedist)
        use module_base
        use module_types
        implicit none
@@ -267,7 +267,8 @@ module module_interfaces
        type(orbitals_data), intent(out) :: orbs
        real(gp), dimension(nkpt), intent(in) :: wkpt
        real(gp), dimension(3,nkpt), intent(in) :: kpt
-     END SUBROUTINE orbitals_descriptors
+       integer, dimension(0:nproc-1), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
+     end subroutine orbitals_descriptors
 
      subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
           crmult,frmult,Glr,output_grid)

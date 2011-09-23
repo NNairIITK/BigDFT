@@ -282,7 +282,8 @@ module module_types
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap
-     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
+     integer, dimension(:), pointer :: iokpt,ikptproc
+     integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts

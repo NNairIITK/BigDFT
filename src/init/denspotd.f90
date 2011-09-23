@@ -144,7 +144,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   jorb=1
   ikpts=1
   do jproc=0,nproc-1
-     do iorbp=1,orbs%norb_par(jproc)
+     do iorbp=1,orbs%norb_par(jproc,0)
         norb_par(jproc,ikpts)=norb_par(jproc,ikpts)+1
         if (mod(jorb,orbs%norb)==0) then
            ikpts=ikpts+1
@@ -261,7 +261,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
      end do loop_jproc
   end do
   
-  !print *,'check',orbs%ikptproc(:)
+  !print*,'check',orbs%ikptproc(:)
 
 
   !calculate the number of k-points treated by each processor in both
@@ -287,6 +287,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
      call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
   end if
+
   !print *,iproc,orbs%nkptsp,orbs%norbp,orbs%norb,orbs%nkpts
   !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   !call MPI_FINALIZE(ierr)
@@ -295,16 +296,16 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   do jproc=0,nproc-1
      jsorb=0
      do kproc=0,jproc-1
-        jsorb=jsorb+orbs%norb_par(kproc)
+        jsorb=jsorb+orbs%norb_par(kproc,0)
      end do
      jkpts=min(jsorb/orbs%norb+1,orbs%nkpts)
-     if (nvctr_par(jproc,jkpts) == 0 .and. orbs%norb_par(jproc) /=0 ) then
+     if (nvctr_par(jproc,jkpts) == 0 .and. orbs%norb_par(jproc,0) /=0 ) then
         if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution starts before the components one'
         !print *,jsorb,jkpts,jproc,orbs%iskpts,nvctr_par(jproc,jkpts)
         stop
      end if
-     jkpte=min((jsorb+orbs%norb_par(jproc)-1)/orbs%norb+1,orbs%nkpts)
-     if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc) /=0) then
+     jkpte=min((jsorb+orbs%norb_par(jproc,0)-1)/orbs%norb+1,orbs%nkpts)
+     if (nvctr_par(jproc,jkpte) == 0 .and. orbs%norb_par(jproc,0) /=0) then
         if (iproc ==0) write(*,*)'ERROR, jproc: ',jproc,' the orbital k-points distribution ends after the components one'
         print *,jsorb,jkpte,jproc,orbs%iskpts,orbs%nkptsp,nvctr_par(jproc,jkpte)
         stop
@@ -405,7 +406,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
 
   !calculate the dimension of the wavefunction
   !for the given processor
-  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc)*orbs%nspinor,&
+  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
        sum(comms%ncntt(0:nproc-1)))
 
   if (iproc == 0) write(*,'(1x,a,i0)') &

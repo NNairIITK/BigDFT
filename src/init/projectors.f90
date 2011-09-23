@@ -201,7 +201,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   end if
   nlpspd%nprojel=nkptsproj*nlpspd%nprojel
 
-  !print *,'iproc,nkptsproj',iproc,nkptsproj,orbs%iskpts,orbs%iskpts+orbs%nkptsp
+  !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
 
   if (iproc == 0) then
      if (DistProjApply) then
@@ -324,7 +324,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
                 nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
            iproj=iproj+2*l-1
            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
-           !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,nlpspd%nprojel,ncplx
+           !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,nlpspd%nprojel,ncplx, kx, ky, kz, ikpt
            if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
         endif
      enddo

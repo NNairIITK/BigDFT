@@ -94,7 +94,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
   !also for non-collinear case
   !nspin*noncoll is always <= 2
   call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse)
+       & nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,basedist=orbs%norb_par(0,1))
   do ikpt = 1, orbse%nkpts
      ist=1 + (ikpt - 1 ) * nspin*noncoll*norbe
      do ispin=1,nspin
@@ -108,8 +108,8 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
   if (iproc == 0 .and. nproc > 1) then
      jpst=0
      do jproc=0,nproc-1
-        norbme=orbse%norb_par(jproc)
-        norbyou=orbse%norb_par(min(jproc+1,nproc-1))
+        norbme=orbse%norb_par(jproc,0)
+        norbyou=orbse%norb_par(min(jproc+1,nproc-1),0)
         if (norbme /= norbyou .or. jproc == nproc-1) then
            !this is a screen output that must be modified
            write(*,'(3(a,i0),a)')&

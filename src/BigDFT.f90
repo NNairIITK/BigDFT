@@ -19,7 +19,7 @@ program BigDFT
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
    !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
-   character(len=*), parameter :: subname='BigDFT' !< Use by memocc routine (timing)
+   character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
    integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
    integer :: ncount_bigdft
    real(gp) :: etot,sumx,sumy,sumz,fnoise
