@@ -8,7 +8,18 @@ EXTRA_DIST = \
 	posinpRef.xyz \
 	XabsCheb.out.ref \
 	psppar.Fe_patched_plus_initialwave	\
-	input.kpt
+	input.kpt \
+	inputRef.abscalc \
+	input.abscalcLanc \
+	input.abscalcLanc \
+	inputGenPot.dft \
+	posinpGenPot.xyz \
+	inputb2B.abscalc \
+	inputCG.abscalc \
+	XabsCheb.out.ref	 \
+	XabsLanc.out  \
+	Xabsb2B.out \
+	XabsCG.out
 
 PPFILES = \
 	psppar.Fe
@@ -16,7 +27,7 @@ PPFILES = \
 CLEANFILES = $(PPFILES) Xabs*.out posout* *.pot *.prc *.cube *.report \
 	coeffs_chebychev cheb_spectra_199 cheb_spectra_399 \
 	fldiff.report  cheb_spectra_* alpha_beta* \
-	alphabeta* local_potential* potx.dat
+	alphabeta* local_potential* potx.dat  input* posi*
 
 #dependencies
 $(PPFILES):
@@ -83,9 +94,12 @@ check: XabsCheb.out  XabsLanc.out Xabsb2B.out XabsCG.out
 		$(top_srcdir)/tests/XabsCheb/XabsCheb.out.ref | tee XabsCheb.out.report
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft XabsLanc.out \
 		$(top_srcdir)/tests/XabsCheb/XabsLanc.out.ref | tee XabsLanc.out.report
-	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Xabsdel.out \
-		$(top_srcdir)/tests/XabsCheb/Xabsdel.out.ref | tee Xabsdel.out.report
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Xabsb2B.out \
 		$(top_srcdir)/tests/XabsCheb/Xabsb2B.out.ref | tee Xabsb2B.out.report
 	python $(top_srcdir)/tests/fldiff.py --mode=bigdft XabsCG.out \
 		$(top_srcdir)/tests/XabsCheb/XabsCG.out.ref | tee XabsCG.out.report
+
+
+
+#	python $(top_srcdir)/tests/fldiff.py --mode=bigdft Xabsdel.out \
+#		$(top_srcdir)/tests/XabsCheb/Xabsdel.out.ref | tee Xabsdel.out.report
