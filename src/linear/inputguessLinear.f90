@@ -1573,8 +1573,10 @@ do iat=1,lzdig%nlr
         iall=-product(shape(recvbuf))*kind(recvbuf)
         deallocate(recvbuf, stat=istat)
         call memocc(istat, iall, 'recvbuf', subname)
-    do iall=1,mad%nvctr
-        write(1000000+1000*iproc+ioverlap,'(i9,es16.7)') iall, hamTempCompressed2(iall,ioverlap)
+    do i=1,jj
+      do iall=1,mad%nvctr
+          write(1000000+1000*iproc+i,'(i9,es16.7)') iall, hamTempCompressed2(iall,i)
+      end do
     end do
 
 
