@@ -19,19 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef HAVE_STRNDUP
-char* strndup(const char *src, size_t len)
-{
-  char *out;
-
-  out = malloc(sizeof(char) * (len + 1));
-  memcpy(out, src, sizeof(char) * len);
-  out[len] = '\0';
-
-  return out;
-}
-#endif
-
 void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
                              char *out, int *lgOut,
                              int *status)
@@ -75,4 +62,13 @@ void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
   out[lgCpy] = '/';
   *status = 0;
   return;
+}
+
+void FC_FUNC(delete, DELETE)(const char *f, int *lgF, int *status)
+{
+  char *path;
+
+  path = strndup(f, (size_t)*lgF);
+  *status = unlink(path);
+  free(path);
 }

@@ -14,7 +14,8 @@ EXTRA_CLEAN = wavefunction.etsf
 
 PPFILES = psppar.O
 
-CLEANFILES = write.out read.out *.prc fldiff.*.report geopt.mon input.*_default $(EXTRA_CLEAN) $(PPFILES)
+CLEANFILES = write.out read.out *.prc fldiff.*.report geopt.mon default.* input.dft \
+	$(EXTRA_CLEAN) $(PPFILES)
 
 #dependencies
 $(PPFILES):
