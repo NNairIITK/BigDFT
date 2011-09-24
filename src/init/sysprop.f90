@@ -12,7 +12,7 @@
 subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => system_properties
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(out) :: nelec
