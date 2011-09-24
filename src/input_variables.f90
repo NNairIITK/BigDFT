@@ -423,7 +423,7 @@ subroutine dft_input_variables_new(iproc,filename,in)
   logical :: exists
   integer :: ivrbproj,ierror
   real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
-  real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,20.0_gp/)
+  real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
 
   !dft parameters, needed for the SCF part
   call input_set_file(iproc,trim(filename),exists,'DFT Calculation Parameters')  
