@@ -291,7 +291,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
       if(iproc==0) write(*,'(x,a,es10.3)') 'time for sumrho:', time
 
       ! Mix the density.
-      if(lin%nItInguess>0 .or. itSCC>1) then
+      if(lin%nItInguess>0 .or. itSCC>2) then
           if(trim(lin%mixingMethod)=='dens') then
               if(lin%mixHist==0) then
                   !if(n3p>0) call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
@@ -323,7 +323,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
 
       ! Mix the potential
-      if(lin%nItInguess>0 .or. itSCC>1) then
+      if(lin%nItInguess>0 .or. itSCC>2) then
           if(trim(lin%mixingMethod)=='pot') then
               if(lin%mixHist==0) then
                   call mixPotential(iproc, n3p, Glr, input, lin, rhopotOld, rhopot, pnrm)
