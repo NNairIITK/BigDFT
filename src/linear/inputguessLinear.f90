@@ -595,6 +595,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   withConfinement=.true.
   ii=0
   do iat=1,at%nat
+      do iorb=1,lin%orbs%norbp
+             write(20000+iproc,'(2(a,i0))') ' start of atom ',iat,' for orbital ', iorb+lin%orbs%isorb
+             write(21000+iproc,'(2(a,i0))') ' start of atom ',iat,' for orbital ', iorb+lin%orbs%isorb
+      end do
       doNotCalculate=.true.
       lin%lig%lzdig%doHamAppl=.false.
       !!call mpi_barrier(mpi_comm_world, ierr)
@@ -689,9 +693,9 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       end do
   end do
 
-  do iorb=1,orbs%norbp
-         write(20000+iproc,'(a,i0)') ' --- FOR GREP --- cycling for orbital ', iorb+orbs%isorb
-         write(21000+iproc,'(a,i0)') ' --- FOR GREP --- cycling for orbital ', iorb+orbs%isorb
+  do iorb=1,lin%orbs%norbp
+         write(20000+iproc,'(a,i0)') ' --- FOR GREP --- cycling for orbital ', iorb+lin%orbs%isorb
+         write(21000+iproc,'(a,i0)') ' --- FOR GREP --- cycling for orbital ', iorb+lin%orbs%isorb
   end do
 
 
