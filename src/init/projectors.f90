@@ -17,7 +17,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+  type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid

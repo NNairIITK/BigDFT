@@ -284,7 +284,7 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      else
         nproc=1
      end if
-     open(unit=60,file='time.prc',status='unknown')
+     !open(unit=60,file='time.prc',status='unknown')
      write(60,*)
      write(60,*) 'CATEGORY          mean TIME(sec)       PERCENT'
      total_pc=0.d0

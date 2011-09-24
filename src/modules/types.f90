@@ -516,7 +516,7 @@ contains
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(communications_arrays), intent(out) :: comms
+    type(communications_arrays), intent(inout) :: comms
     !local variables
     integer :: i_all,i_stat
 

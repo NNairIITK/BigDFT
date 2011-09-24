@@ -817,6 +817,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   epot_sum=0.d0 
   eproj_sum=0.d0
   eSIC_DC=0.0_gp
+  eexctX=0.0_gp
 
   !number of switching betweed DIIS and SD during self-consistent loop
   ndiis_sd_sw=0

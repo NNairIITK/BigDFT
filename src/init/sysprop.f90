@@ -446,9 +446,10 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      !     of the atom. This is clearly too much since such sphere is built to the exp decay of the wavefunction
      !     and not for the gaussian decaying of the pseudopotential projector
      !     add a proper variable in input.perf
-     radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
      if (maxrad == 0.0_gp) then
         radii_cf(ityp,3)=0.0_gp
+     else
+        radii_cf(ityp,3)=max(min(in%crmult*radii_cf(ityp,1),in%projrad*maxrad)/in%frmult,radii_cf(ityp,2))
      end if
 
      if (iproc==0) write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&

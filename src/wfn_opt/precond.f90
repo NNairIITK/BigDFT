@@ -649,7 +649,7 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   character(len=1), intent(in) :: geocode
   logical, intent(in) :: hybrid_on
   integer, intent(in) :: ncplx
-  type(workarr_precond), intent(out) :: w
+  type(workarr_precond), intent(inout) :: w
   !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays'
   integer :: i_stat,i_all
