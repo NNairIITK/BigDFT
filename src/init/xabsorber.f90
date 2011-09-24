@@ -1262,7 +1262,8 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
         do igrid=1, Ngrid
            r=rgrid(igrid)
            potgrid(igrid) =0.5_gp*r*r  /    rprb**4*0 
-           potgrid(igrid) = potgrid(igrid) - zion/r * derf( r/alpz/sqrt(2.0)   )
+           call derf_ab(tt_derf,r/alpz/sqrt(2.0))
+           potgrid(igrid) = potgrid(igrid) - zion/r * tt_derf!( r/alpz/sqrt(2.0)   )
            rr = r/alpz
            potgrid(igrid) = potgrid(igrid) + exp(-0.5_gp * rr**2 )*( gpot(1)+gpot(2)*rr**2 + gpot(3)*rr**4 )
         enddo
@@ -1472,7 +1473,8 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
         do i=0,ng
            d=xp(i)+xp(j)
            sd=sqrt(d)
-           terf=derf(sd*rcov) 
+           call derf_ab(terf,sd*rcov)
+           !terf=derf(sd*rcov) 
            texp=exp(-d*rcov**2)
 
            tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
@@ -1789,7 +1791,8 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
         do igrid=1, Ngrid
            r=rgrid(igrid)
            potgrid(igrid) =0.5_gp*r*r  /    rprb**4*0 
-           potgrid(igrid) = potgrid(igrid) - zion/r * derf( r/alpz/sqrt(2.0)   )
+           call derf_ab(tt_derf,r/alpz/sqrt(2.0))
+           potgrid(igrid) = potgrid(igrid) - zion/r * tt_derf!( r/alpz/sqrt(2.0)   )
            rr = r/alpz
            potgrid(igrid) = potgrid(igrid) + exp(-0.5_gp * rr**2 )*( gpot(1)+gpot(2)*rr**2 + gpot(3)*rr**4 )
         enddo
@@ -1985,7 +1988,8 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
            do igrid=1, Ngrid
               r=rgrid(igrid)
               newpotgrid(igrid) =0.5_gp*r*r  /    rprb**4*0 
-              newpotgrid(igrid) = newpotgrid(igrid) - zion/r * derf( r/alpz/sqrt(2.0)   )
+              call derf_ab(tt_derf,r/alpz/sqrt(2.0))
+              newpotgrid(igrid) = newpotgrid(igrid) - zion/r * tt_derf!( r/alpz/sqrt(2.0)   )
               rr = r/alpz
               newpotgrid(igrid) = newpotgrid(igrid) + exp(-0.5_gp * rr**2 )*( gpot(1)+gpot(2)*rr**2 + gpot(3)*rr**4 )
            enddo
@@ -2172,7 +2176,8 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
         do i=0,ng
            d=xp(i)+xp(j)
            sd=sqrt(d)
-           terf=derf(sd*rcov) 
+           call derf_ab(terf,sd*rcov)
+           !terf=derf(sd*rcov) 
            texp=exp(-d*rcov**2)
 
            tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
