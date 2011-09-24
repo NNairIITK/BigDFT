@@ -24,7 +24,7 @@ program memguess
   character(len=40) :: comment
   character(len=128) :: fileFrom, fileTo,filename_wfn
   logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
-  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg
+  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
   real(gp) :: peakmem,hx,hy,hz
@@ -50,13 +50,14 @@ program memguess
 
   ! Get arguments
 
-  call getarg(1,tatonam)
+  !call getarg(1,tatonam)
+  call get_command_argument(1, value = tatonam, status = istat)
 
   write(radical, "(A)") ""
   optimise=.false.
   GPUtest=.false.
   atwf=.false.
-  if(trim(tatonam)=='') then
+  if(trim(tatonam)=='' .or. istat>0) then
      write(*,'(1x,a)')&
           'Usage: ./memguess <nproc> [option]'
      write(*,'(1x,a)')&
@@ -89,8 +90,9 @@ program memguess
      read(unit=tatonam,fmt=*) nproc
      i_arg = 2
      loop_getargs: do
-        call getarg(i_arg,tatonam)
-        if(trim(tatonam)=='') then
+        call get_command_argument(i_arg, value = tatonam, status = istat)
+        !call getarg(i_arg,tatonam)
+        if(trim(tatonam)=='' .or. istat > 0) then
            output_grid=0
            exit loop_getargs
         else if (trim(tatonam)=='y') then
