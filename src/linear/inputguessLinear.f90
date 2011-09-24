@@ -2378,16 +2378,16 @@ call memocc(istat, ovrlp, 'ovrlp', subname)
 
 do it=1,nItOrtho
 
-  !!!! THIS IS A TEST !!
-  !!do iorb=1,orbs%norbp
-  !!  ilr=onWhichAtom(iorb+orbs%isorb)
-  !!  !write(*,'(3(a,i0))') 'iproc=',iproc,', iorb=',iorb,' calls with ilr=',ilr
-  !!  call vectorLocalToGlobal(orbs%norb, mlr(ilr), vec(1,iorb), vecglobal(1))
-  !!  do i=1,orbs%norb
-  !!      write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
-  !!  end do
-  !!end do
-  !!!!!!!!!!!!!!!!!!!!!!
+  !! THIS IS A TEST !!
+  do iorb=1,orbs%norbp
+    ilr=onWhichAtom(iorb+orbs%isorb)
+    !write(*,'(3(a,i0))') 'iproc=',iproc,', iorb=',iorb,' calls with ilr=',ilr
+    call vectorLocalToGlobal(orbs%norb, mlr(ilr), vec(1,iorb), vecglobal(1))
+    do i=1,orbs%norb
+        write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
+    end do
+  end do
+  !!!!!!!!!!!!!!!!!!!!
  
   call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
   !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
