@@ -573,13 +573,13 @@ function pow(x,n)
 end function pow
 
 
-function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
+function phase_xabs(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
   use module_base, only: gp,wp
   implicit none
   !Arguments
   integer :: N, normalize, onlyout
   real(gp) :: E,rgrid(N),V(N), nonloc(N), y(N),l
-  real(gp) :: phase
+  real(gp) :: phase_xabs
   !Local variables
   integer :: ii, i,j
   real(gp) :: ypi
@@ -597,7 +597,7 @@ function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
 
   PI=4*atan(1.0d0)
   
-  phase=0
+  phase_xabs=0
   yNcross=0
   yflag=0
   
@@ -783,19 +783,19 @@ function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
   
   if( onlyout.eq.1) then
      ypI = ypI+ dh*(  y(ii)*Gb  +y(ii+1)*Gc )/2 
-     phase=ypI
+     phase_xabs=ypI
      return
   endif
 
 
   if(dabs(y(ii)) .gt. dabs( ypI ) ) then
-     phase=-atan(ypI/y(ii))
+     phase_xabs=-atan(ypI/y(ii))
   else
      r = y(ii)/ypI ;
      if(  r .gt.0.  ) then
-        phase=-( PI/2.0 - atan(r) )
+        phase_xabs=-( PI/2.0 - atan(r) )
      else
-        phase=- ( - PI/2. - atan( r ));
+        phase_xabs=- ( - PI/2. - atan( r ));
      endif
   endif
 
@@ -948,17 +948,17 @@ function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
 
   !}
 
-  phase=phase+PI*yNcross 
+  phase_xabs=phase_xabs+PI*yNcross 
 
 
   if(dabs(y(ii)) .gt. dabs( ypI ) ) Then
-     phase =phase+atan(ypI/y(ii))
+     phase_xabs =phase_xabs+atan(ypI/y(ii))
   else
      r = y(ii)/ypI 
      if(  r .gt.0.  ) then
-        phase =phase+( PI/2. - atan(r) )
+        phase_xabs =phase_xabs+( PI/2. - atan(r) )
      else
-        phase = phase+ ( - PI/2. - atan( r ))
+        phase_xabs = phase_xabs+ ( - PI/2. - atan( r ))
      endif
   endif
 
@@ -988,7 +988,7 @@ function phase(E, N, rgrid, V, nonloc, y, l, normalize, onlyout)
      enddo
   endif
   return 
-end function phase
+end function phase_xabs
 
 
 subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
@@ -1003,7 +1003,7 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
   real(gp) Elow, Ehigh, Eguess
   real(gp) pathh, pathl, fase
   integer :: i
-  real(gp) :: Phase, but
+  real(gp) :: Phase_xabs, but
   real(gp) :: PI
 
   PI=4.0*atan(1.0)
@@ -1017,8 +1017,8 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
 
   Ehigh = 0.0;
 
-  pathh = Phase(Ehigh,NGRID,r,v,nonloc,y,  l ,0, 0);
-  pathl = Phase(Elow ,NGRID, r,v,nonloc,y,  l ,0, 0);
+  pathh = Phase_xabs(Ehigh,NGRID,r,v,nonloc,y,  l ,0, 0);
+  pathl = Phase_xabs(Elow ,NGRID, r,v,nonloc,y,  l ,0, 0);
  
 
 !!!  print *, Ehigh, pathh
@@ -1038,7 +1038,7 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
       
   if(but .gt. pathh) then
      Ehigh = (but+1)*(but+1)/r(NGRID-1)/r(NGRID-1)
-     do while( but .gt. Phase(Ehigh ,NGRID, r,V,nonloc,y,  l , 0, 0 ) )
+     do while( but .gt. Phase_xabs(Ehigh ,NGRID, r,V,nonloc,y,  l , 0, 0 ) )
          Ehigh =2*Ehigh;
       enddo
    endif
@@ -1047,7 +1047,7 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
 
       Eguess = (Elow+Ehigh)/2
 
-      fase=  Phase(Eguess ,NGRID, r,V,nonloc,y,  l , 0, 0)
+      fase=  Phase_xabs(Eguess ,NGRID, r,V,nonloc,y,  l , 0, 0)
 
       if( fase.gt.but) then
          Ehigh=Eguess
@@ -1059,7 +1059,7 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
    enddo
 
    
-   fase  = Phase(Eguess,NGRID, r,v,nonloc,y, l,1 ,0)
+   fase  = Phase_xabs(Eguess,NGRID, r,v,nonloc,y, l,1 ,0)
    E=Eguess;
 
    return
@@ -2031,7 +2031,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
                  dumgrid2 (igrid)=dumgrid2 (igrid)+ 0.5_gp*(2.0_gp*l)/rgrid(igrid)/rgrid(igrid)
               enddo
            endif
-           d_r(l)=phase( Ediff, Nrdiff, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+l) , l*1.0_gp ,0, 1)
+           d_r(l)=phase_xabs( Ediff, Nrdiff, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+l) , l*1.0_gp ,0, 1)
            y_r(l)= psigrid(Nrdiff,2+l)
            
         enddo
@@ -2077,7 +2077,7 @@ subroutine gatom_modified_eqdiff(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!!           do igrid=1,Ngrid
 !!!              dumgrid2 (igrid)=potgrid(igrid)+vxcgrid(igrid)+ 0.5_gp*(2.0_gp)/rgrid(igrid)/rgrid(igrid)
 !!!           enddo
-!!!           d_r(1)=phase( Ediff, Ngrid, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+1) , 1*1.0_gp ,0, 1)
+!!!           d_r(1)=phase_xabs( Ediff, Ngrid, rgrid,dumgrid2  , dumgrid1 , psigrid(1,2+1) , 1*1.0_gp ,0, 1)
 !!!           y_r(1)= psigrid(Ngrid,2+1)
 !!!
 !!!           print *,"C2 ", Ediff, 4*fattore*fattore/(   y_r(1)*y_r(1) +  d_r(1)*d_r(1)/2.0/Ediff   )
