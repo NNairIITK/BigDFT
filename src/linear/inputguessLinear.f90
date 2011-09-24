@@ -2378,16 +2378,16 @@ call memocc(istat, ovrlp, 'ovrlp', subname)
 
 do it=1,nItOrtho
 
-  !! THIS IS A TEST !!
-  do iorb=1,orbs%norbp
-    ilr=onWhichAtom(iorb+orbs%isorb)
-    !write(*,'(3(a,i0))') 'iproc=',iproc,', iorb=',iorb,' calls with ilr=',ilr
-    call vectorLocalToGlobal(orbs%norb, mlr(ilr), vec(1,iorb), vecglobal(1))
-    do i=1,orbs%norb
-        write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
-    end do
-  end do
-  !!!!!!!!!!!!!!!!!!!!
+  !!!! THIS IS A TEST !!
+  !!do iorb=1,orbs%norbp
+  !!  ilr=onWhichAtom(iorb+orbs%isorb)
+  !!  !write(*,'(3(a,i0))') 'iproc=',iproc,', iorb=',iorb,' calls with ilr=',ilr
+  !!  call vectorLocalToGlobal(orbs%norb, mlr(ilr), vec(1,iorb), vecglobal(1))
+  !!  do i=1,orbs%norb
+  !!      write(8000+iproc,'(i8,es20.12)') i, vecglobal(i)
+  !!  end do
+  !!end do
+  !!!!!!!!!!!!!!!!!!!!!!
  
   call extractToOverlapregion(iproc, nproc, orbs%norb, onWhichAtom, onWhichMPI, isorb_par, norbmax, norbp, vec, comom)
   !call postCommsVectorOrthonormalization(iproc, nproc, newComm, comom)
@@ -2405,7 +2405,7 @@ do it=1,nItOrtho
   jorbmax=0
   do iorb=1,orbs%norb
       do jorb=1,orbs%norb
-          if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
+          !if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
           if(iorb==jorb) then
               tt=abs(1.d0-ovrlp(jorb,iorb))
           else
@@ -3614,7 +3614,7 @@ type(matrixDescriptors):: mad
               write( *,'(1x,a,i0)') repeat('-',77 - int(log(real(it))/log(10.))) // ' iter=', it
           endif
 
-          if(it<=10) then
+          if(it<=2) then
               methTransformOverlap=0
           else
               methTransformOverlap=lin%methTransformOverlap

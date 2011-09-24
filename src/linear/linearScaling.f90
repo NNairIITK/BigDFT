@@ -188,7 +188,7 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !!    call dcopy(max(glr%d%n1i*glr%d%n2i*n3p,1)*input%nspin, rhopot(1), 1, rhopotold(1), 1)
   !!end if
 
-  if(lin%nItInguess>0) then
+  if(lin%nItInguess>0 .and. .false.) then
       ! Post communications for gathering the potential.
       ndimpot = lin%lzd%Glr%d%n1i*lin%lzd%Glr%d%n2i*nscatterarr(iproc,2)
       call allocateCommunicationsBuffersPotential(lin%comgp, subname)
