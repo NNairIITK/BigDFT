@@ -425,7 +425,7 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
 ! Linear part of the NLPSP
   else if(orbs%norbp > 0 .and. Lzd%linear) then
-     call ApplyProjectorsLinear(iproc,hx,hy,hz,at,Lzd,orbs,rxyz,psi,hpsi,eproj_sum)
+     !!!call ApplyProjectorsLinear(iproc,hx,hy,hz,at,Lzd,orbs,rxyz,psi,hpsi,eproj_sum)
   end if
 
   if(OCLconv .and. ASYNCconv) then
