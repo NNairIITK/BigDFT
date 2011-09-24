@@ -425,7 +425,7 @@ subroutine HamiltonianApplication3(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
 ! Linear part of the NLPSP
   else if(orbs%norbp > 0 .and. Lzd%linear) then
-     !!!call ApplyProjectorsLinear(iproc,hx,hy,hz,at,Lzd,orbs,rxyz,psi,hpsi,eproj_sum)
+     call ApplyProjectorsLinear(iproc,hx,hy,hz,at,Lzd,orbs,rxyz,psi,hpsi,eproj_sum)
   end if
 
   if(OCLconv .and. ASYNCconv) then
@@ -704,6 +704,8 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
      if(.not.lzd%doHamAppl(ilr)) then
          write(20000+iproc,'(2(a,i0))') 'local_hamiltonian3: cycling for orbital ', iorb+orbs%isorb, ' in locreg ', ilr
+         oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+         ilrold=ilr
          cycle
      else
          write(20000+iproc,'(2(a,i0))') 'local_hamiltonian3: not cycling for orbital ', iorb+orbs%isorb, ' in locreg ', ilr
