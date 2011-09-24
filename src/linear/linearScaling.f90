@@ -173,18 +173,6 @@ real(8),dimension(:,:),allocatable:: ovrlp
   timeig=t2ig-t1ig
   t1scc=mpi_wtime()
 
-  ist=1
-  do iorb=1,lin%orbs%norbp
-      iiorb=iorb+lin%orbs%isorb
-      ilr=lin%orbs%inWhichLocreg(iiorb)
-      ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-      write(*,'(a,3i8,es15.6)') 'iproc, iorb, iiorb, ddot', iproc, iorb, iiorb, ddot(ncount, lphi(ist), 1, lphi(ist), 1)
-      tt=dnrm2(ncount, lphi(ist), 1)
-      tt=2.d0
-      call dscal(ncount, 1/tt, lphi(ist), 1)
-      write(*,'(a,3i8,es15.6)') 'iproc, iorb, iiorb, ddot', iproc, iorb, iiorb, ddot(ncount, lphi(ist), 1, lphi(ist), 1)
-      ist=ist+ncount
-  end do
 
   !!allocate(ovrlp(lin%orbs%norb,lin%orbs%norb))
   !!call orthonormalizeLocalized(iproc, nproc, lin%methTransformOverlap, lin%nItOrtho, lin%blocksize_pdsyev, &

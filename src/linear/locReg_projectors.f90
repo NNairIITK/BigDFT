@@ -1351,10 +1351,7 @@ subroutine ApplyProjectorsLinear(iproc,hx,hy,hz,atoms,Lzd,orbs,rxyz,psi,hpsi,epr
               !! These two lines are new #################
               ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
               if(.not.lzd%doHamAppl(ilr)) then
-                  write(21000+iproc,'(2(a,i0))') 'ApplyProjectorsLinear: cycling for orbital ', iorb+orbs%isorb, ' in locreg ', ilr
                   cycle
-              else
-                  write(21000+iproc,'(2(a,i0))') 'ApplyProjectorsLinear: not cycling for orbital ', iorb+orbs%isorb, ' in locreg ', ilr
               end if
 
 

@@ -703,12 +703,9 @@ subroutine local_hamiltonian3(iproc,exctX,orbs,Lzd,hx,hy,hz,&
   do iorb=1,orbs%norbp
      ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
      if(.not.lzd%doHamAppl(ilr)) then
-         write(20000+iproc,'(2(a,i0))') 'local_hamiltonian3: cycling for orbital ', iorb+orbs%isorb, ' in locreg ', ilr
          oidx = oidx + (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
          ilrold=ilr
          cycle
-     else
-         write(20000+iproc,'(2(a,i0))') 'local_hamiltonian3: not cycling for orbital ', iorb+orbs%isorb, ' in locreg ', ilr
      end if
   
      !initialise the work arrays

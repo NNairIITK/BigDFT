@@ -334,17 +334,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   lchi2=0.d0
   call gaussians_to_wavelets_new2(iproc, nproc, lin%lig%lzdGauss, lin%lig%orbsig, input%hx, input%hy, input%hz, G, &
        psigau(1,1,min(lin%lig%orbsGauss%isorb+1, lin%lig%orbsGauss%norb)), lchi2)
-  !! DEBUG ############################
-  ist=1
-  do iorb=1,lin%lig%orbsig%norbp
-      iiorb=lin%lig%orbsig%isorb+iorb
-      ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
-      ncount=lin%lig%lzdGauss%llr(ilr)%wfd%nvctr_c+7*lin%lig%lzdGauss%llr(ilr)%wfd%nvctr_f
-      write(*,'(a,6i9,es15.7)') 'lchi2: iproc, iorb, iiorb, ilr, ncount, ist, ddot', iproc, iorb, iiorb, ilr, ncount, ist, ddot(ncount, lchi2(ist), 1, lchi2(ist), 1)
-      ist=ist+ncount
-  end do
-  if(ist/=lin%lig%orbsGauss%npsidim+1) stop 'ERROR in debug section: ist/=lin%lig%orbsig%npsidim+1'
-  !! END DEBUG ########################
 
   iall=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=istat)
@@ -521,20 +510,14 @@ subroutine inputguessConfinement(iproc, nproc, at, &
       do jorb=1,lin%lig%orbsig%norbp
           onWhichAtomTemp(jorb)=iat
           jlr=lin%lig%orbsig%inWhichLocregp(jorb)
-          if(iat==1) write(*,'(a,5i9)') 'iproc, jorb, jorb+lin%lig%orbsig%isorb, lin%lig%orbsig%inWhichlocreg(jorb+lin%lig%orbsig%isorb), jlr', iproc, jorb, jorb+lin%lig%orbsig%isorb, lin%lig%orbsig%inWhichlocreg(jorb+lin%lig%orbsig%isorb), jlr
           if(lin%lig%orbsig%inWhichlocreg(jorb+lin%lig%orbsig%isorb)/=jlr) stop 'this should not happen'
           call getIndices(lin%lig%lzdig%llr(jlr), js1, je1, js2, je2, js3, je3)
           ovrlpx = ( is1<=je1 .and. ie1>=js1 )
           ovrlpy = ( is2<=je2 .and. ie2>=js2 )
           ovrlpz = ( is3<=je3 .and. ie3>=js3 )
           if(ovrlpx .and. ovrlpy .and. ovrlpz) then
-              write(*,'(a,2i9)') 'not skipping: iat, jorb+lin%lig%orbsig%isorb', iat, jorb+lin%lig%orbsig%isorb
-              write(8000+iproc,'(a,2i9)') 'not skipping: iat, jorb+lin%lig%orbsig%isorb', iat, jorb+lin%lig%orbsig%isorb
               skip(iat)=.false.
           end if
-      end do
-      do jorb=1,lin%lig%orbsig%norbp
-        write(*,'(a,4i9,l4)') 'jorb+lin%lig%orbsig%isorb, jorb, iproc, iat, skip(iat)', jorb+lin%lig%orbsig%isorb, jorb, iproc, iat, skip(iat)
       end do
       if(.not.skip(iat)) then
           ndim_lhchi=ndim_lhchi+1
@@ -564,17 +547,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
     !!call memocc(istat, iall, 'displs', subname)
 
 
-  !! DEBUG ############################
-  ist=1
-  do iorb=1,lin%lig%orbsig%norbp
-      iiorb=lin%lig%orbsig%isorb+iorb
-      ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
-      ncount=lin%lig%lzdig%llr(ilr)%wfd%nvctr_c+7*lin%lig%lzdig%llr(ilr)%wfd%nvctr_f
-      write(*,'(a,6i9,es15.7)') 'lchi here: iproc, iorb, iiorb, ilr, ncount, ist, ddot', iproc, iorb, iiorb, ilr, ncount, ist, ddot(ncount, lchi(ist), 1, lchi(ist), 1)
-      ist=ist+ncount
-  end do
-  if(ist/=lin%lig%orbsig%npsidim+1) stop 'ERROR in debug section: ist/=lin%lig%orbsig%npsidim+1'
-  !! END DEBUG ########################
 
 
   allocate(lhchi(lin%lig%orbsig%npsidim,ndim_lhchi),stat=istat)
@@ -595,10 +567,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
   withConfinement=.true.
   ii=0
   do iat=1,at%nat
-      do iorb=1,lin%orbs%norbp
-             write(20000+iproc,'(2(a,i0))') ' start of atom ',iat,' for orbital ', iorb+lin%orbs%isorb
-             write(21000+iproc,'(2(a,i0))') ' start of atom ',iat,' for orbital ', iorb+lin%orbs%isorb
-      end do
       doNotCalculate=.true.
       lin%lig%lzdig%doHamAppl=.false.
       !!call mpi_barrier(mpi_comm_world, ierr)
@@ -619,11 +587,6 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           else
               doNotCalculate(jlr)=.true.
               lin%lig%lzdig%doHamAppl(jlr)=.false.
-          end if
-          if(.not. lin%lig%lzdig%doHamAppl(jlr)) then
-              write(9000+iproc,'(a,i0,a,i0)') 'NO calculation for orbital ', jorb+lin%lig%orbsig%isorb, ' for atom ', iat
-          else
-              write(9000+iproc,'(a,i0,a,i0)') 'DO calculation for orbital ', jorb+lin%lig%orbsig%isorb, ' for atom ', iat
           end if
       end do
       !write(*,'(a,2i4,4x,100l4)') 'iat, iproc, doNotCalculate', iat, iproc, doNotCalculate
@@ -660,46 +623,10 @@ subroutine inputguessConfinement(iproc, nproc, at, &
           !!call memocc(istat,iall,'dummyArray',subname)
       end if
 
-      !! DEBUG ############################
-      if(.not.skip(iat)) then
-          ist=1
-          do iorb=1,lin%lig%orbsig%norbp
-              iiorb=lin%lig%orbsig%isorb+iorb
-              ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
-              ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-              write(7000+iproc,'(a,2i9,es15.7,a)') 'iat, iiorb, ddot', iat, iiorb, ddot(ncount, lhchi(ist,ii), 1, lhchi(ist,ii), 1), '  calculated'
-              ist=ist+ncount
-          end do
-      else
-          do iorb=1,lin%lig%orbsig%norbp
-              iiorb=lin%lig%orbsig%isorb+iorb
-              write(7000+iproc,'(a,2i9,es15.7,a)') 'iat, iiorb, ddot', iat, iiorb, 0.d0, '  manually'
-          end do
-      end if
-      !! END DEBUG ########################
 
       if(iproc==0) write(*,'(a)') 'done.'
   end do
 
-  !! DEBUG ############################
-  do iall=1,ndim_lhchi
-      ist=1
-      do iorb=1,lin%lig%orbsig%norbp
-          iiorb=lin%lig%orbsig%isorb+iorb
-          ilr=lin%lig%orbsig%inWhichLocreg(iiorb)
-          ncount=lin%lzd%llr(ilr)%wfd%nvctr_c+7*lin%lzd%llr(ilr)%wfd%nvctr_f
-          write(*,'(a,4i9,es15.7)') 'iproc, iorb, iiorb, iall, ddot', iproc, iorb, iiorb, iall, ddot(ncount, lhchi(ist,iall), 1, lhchi(ist,iall), 1)
-          ist=ist+ncount
-      end do
-  end do
-
-  do iorb=1,lin%orbs%norbp
-         write(20000+iproc,'(a,i0)') ' --- FOR GREP --- cycling for orbital ', iorb+lin%orbs%isorb
-         write(21000+iproc,'(a,i0)') ' --- FOR GREP --- cycling for orbital ', iorb+lin%orbs%isorb
-  end do
-
-
-  !! END DEBUG ########################
 
   iall=-product(shape(lpot))*kind(lpot)
   deallocate(lpot, stat=istat)
@@ -796,18 +723,18 @@ subroutine inputguessConfinement(iproc, nproc, at, &
            onWhichMPITemp, Glr, input, lin%lig%orbsig%inWhichLocreg, lin%lig%orbsig%inWhichLocregp, ndim_lhchi, &
            nlocregPerMPI, lchi, lhchi, skip, lin%lig%mad, lin%memoryForCommunOverlapIG, tag, ham3)
   end if
-  do iat=1,nlocregPerMPI
-      do iorb=1,lin%lig%orbsig%norb
-          do jorb=1,lin%lig%orbsig%norb
-              write(1000*(iproc+1)+100+iat,'(2i9,es16.7)') iorb, jorb, ham3(jorb,iorb,iat)
-          end do
-      end do
-      tt=0.d0
-      do iall=1,lin%lig%orbsig%norb
-          tt=tt+dsum(lin%lig%orbsig%norb, ham3(1,iall,iat))
-      end do
-      write(*,'(a,2i8,es15.6)') 'iproc, iat, tt', iproc, iat, tt
-  end do
+  !!do iat=1,nlocregPerMPI
+  !!    do iorb=1,lin%lig%orbsig%norb
+  !!        do jorb=1,lin%lig%orbsig%norb
+  !!            write(1000*(iproc+1)+100+iat,'(2i9,es16.7)') iorb, jorb, ham3(jorb,iorb,iat)
+  !!        end do
+  !!    end do
+  !!    tt=0.d0
+  !!    do iall=1,lin%lig%orbsig%norb
+  !!        tt=tt+dsum(lin%lig%orbsig%norb, ham3(1,iall,iat))
+  !!    end do
+  !!    write(*,'(a,2i8,es15.6)') 'iproc, iat, tt', iproc, iat, tt
+  !!end do
 
 
   iall=-product(shape(lhchi))*kind(lhchi)
@@ -1556,18 +1483,8 @@ do iat=1,lzdig%nlr
     !!     comon%nrecvBuf, comon%recvBuf, mad, hamTemp(1,1))
     if(iproc==0) write(*,'(a)') 'done.'
 
-
-    do iall=1,orbs%norb
-        do istat=1,orbs%norb
-            write(3000*(iproc+1)+iat,'(2i9,es16.7)') iall, istat, hamTemp(istat,iall)
-        end do
-    end do
-
     
     call compressMatrix2(iproc, nproc, orbs, mad, hamTemp, hamTempCompressed(1,ioverlap), sendcounts, displs)
-    do iall=1,mad%nvctr
-        write(100000+1000*iproc+ioverlap,'(i9,es16.7)') iall, hamTempCompressed(iall,ioverlap)
-    end do
 
     if(ioverlap==noverlaps .or. iat==lzdig%nlr) then
         ! Rearrange data to communicate.
@@ -1591,9 +1508,6 @@ do iat=1,lzdig%nlr
         end do
         call mpi_allgatherv(sendbuf(1), sendcounts2(iproc), mpi_double_precision, recvbuf(1), &
              sendcounts2, displs2, mpi_double_precision, mpi_comm_world, ierr)
-    do iall=1,mad%nvctr*jj
-        write(500000+1000*iproc,'(i9,es16.7)') iall, recvbuf(iall)
-    end do
         ! Unpack data
         !if(iproc==0) write(*,'(a,3i8)') 'mad%nvctr, jj, mad%nvctr*jj', mad%nvctr, jj, mad%nvctr*jj
         do jproc=0,nproc-1
@@ -1614,11 +1528,6 @@ do iat=1,lzdig%nlr
         iall=-product(shape(recvbuf))*kind(recvbuf)
         deallocate(recvbuf, stat=istat)
         call memocc(istat, iall, 'recvbuf', subname)
-    do i=1,jj
-      do iall=1,mad%nvctr
-          write(1000000+1000*iproc+i,'(i9,es16.7)') iall, hamTempCompressed2(iall,i)
-      end do
-    end do
 
 
         do iioverlap=1,jj
@@ -2496,7 +2405,7 @@ do it=1,nItOrtho
   jorbmax=0
   do iorb=1,orbs%norb
       do jorb=1,orbs%norb
-          if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
+          !!if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
           if(iorb==jorb) then
               tt=abs(1.d0-ovrlp(jorb,iorb))
           else
@@ -2513,11 +2422,11 @@ do it=1,nItOrtho
       write(*,'(a,es14.6,2(2x,i0))') 'max deviation from unity, position:',dev, iorbmax, jorbmax
   end if
   call overlapPowerMinusOneHalf(iproc, nproc, comm, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm, orbs%norb, mad, ovrlp)
-  do iorb=1,orbs%norb
-      do jorb=1,orbs%norb
-          if(iproc==0) write(400,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
-      end do
-  end do
+  !!do iorb=1,orbs%norb
+  !!    do jorb=1,orbs%norb
+  !!        if(iproc==0) write(400,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
+  !!    end do
+  !!end do
   !!if(methTransformOverlap==0) then
   !!    !write(*,'(a,i0)') 'call transformOverlapMatrix in orthonormalizeVectors, iproc=',iproc
   !!    call transformOverlapMatrix(iproc, nproc, comm, blocksize_dsyev, blocksize_pdgemm, orbs%norb, ovrlp)
@@ -3534,15 +3443,6 @@ type(matrixDescriptors):: mad
       call determineLocalizationRegions(iproc, ip%nproc, lzdig%nlr, orbsig%norb, at, onWhichAtom, &
            lin%locrad, rxyz, lin%lzd, input%hx, input%hy, input%hz, matmin%mlr)
       !call extractMatrix(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, ip%onWhichMPI, at%nat, ham, matmin, hamextract)
-      !! DEBUG ######################
-      do ilr=1,nlocregPerMPI
-          tt=0.d0
-          do iall=1,orbsig%norb
-              tt=tt+dsum(orbsig%norb, ham3(1,iall,ilr))
-          end do
-          write(*,'(a,2i8,es15.6)') 'iproc, ilr, tt', iproc, ilr, tt
-      end do
-      !! END DEBUG ######################
       call extractMatrix3(iproc, ip%nproc, lin%orbs%norb, ip%norb_par(iproc), orbsig, onWhichAtomPhi, &
            ip%onWhichMPI, nlocregPerMPI, ham3, matmin, hamextract)
       call determineOverlapRegionMatrix(iproc, ip%nproc, lin%lzd, matmin%mlr, lin%orbs, orbsig, &
@@ -3639,9 +3539,6 @@ type(matrixDescriptors):: mad
 
 
       do i=1,5
-          do iall=1,ip%norbtotPad
-              write(500+iproc,*) iall, coeffPad(iall)
-          end do
           ! Transform to localization regions and cut at the edge.
           do iorb=1,ip%norb_par(iproc)
               ilr=matmin%inWhichLocregExtracted(iorb)
@@ -3652,9 +3549,6 @@ type(matrixDescriptors):: mad
           end do
 
           ilr=onWhichAtom(ip%isorb+1)
-          do iall=1,matmin%mlr(ilr)%norbinlr
-              write(600+iproc,*) iall, lcoeff(iall,1)
-          end do
 
           methTransformOverlap=0
           call orthonormalizeVectors(iproc, ip%nproc, newComm, lin%nItOrtho, methTransformOverlap, &
@@ -3662,9 +3556,6 @@ type(matrixDescriptors):: mad
                lin%orbs, onWhichAtomPhi, ip%onWhichMPI, ip%isorb_par, matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), &
                lin%lzd%nlr, newComm, mad, matmin%mlr, lcoeff, comom)
           ilr=onWhichAtom(ip%isorb+1)
-          do iall=1,matmin%mlr(ilr)%norbinlr
-              write(700+iproc,*) iall, lcoeff(iall,1)
-          end do
 
           do iorb=1,ip%norb_par(iproc)
               ilr=matmin%inWhichLocregExtracted(iorb)
@@ -3741,9 +3632,6 @@ type(matrixDescriptors):: mad
           !     matmin%norbmax, ip%norb_par(iproc), ip%isorb_par(iproc), lin%lzd%nlr, newComm, &
           !     matmin%mlr, lcoeff, comom)
           ilr=onWhichAtom(ip%isorb+1)
-          do iall=1,matmin%mlr(ilr)%norbinlr
-              write(800+iproc,*) iall, lcoeff(iall,1)
-          end do
     
           ! Calculate the gradient grad.
           ilrold=0
@@ -3755,21 +3643,10 @@ type(matrixDescriptors):: mad
               !!    iilr=iilr+1
               !!    ilrold=ilr
               !!end if
-              !! DEBUG ######################
-              iiorb=ip%isorb+iorb
-              tt=0.d0
-              do iall=1,matmin%mlr(ilr)%norbinlr
-                  tt=tt+dsum(matmin%mlr(ilr)%norbinlr, hamextract(1,iall,iilr))
-              end do
-              write(*,'(a,3i8,es15.6)') 'iproc, iorb, iiorb, tt', iproc, iorb, iiorb, tt
-              !! END DEBUG ######################
               call dgemv('n', matmin%mlr(ilr)%norbinlr, matmin%mlr(ilr)%norbinlr, 1.d0, hamextract(1,1,iilr), matmin%norbmax, &
                    lcoeff(1,iorb), 1, 0.d0, lgrad(1,iorb), 1)
           end do
           ilr=onWhichAtom(ip%isorb+1)
-          do iall=1,matmin%mlr(ilr)%norbinlr
-              write(850+iproc,*) iall, lgrad(iall,1)
-          end do
       
           !!do jorb=1,matmin%norbmax
           !!    write(650+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
@@ -3789,9 +3666,6 @@ type(matrixDescriptors):: mad
           !!    write(660+iproc,'(100f15.5)') (lgrad(jorb,iorb), iorb=1,ip%norb_par(iproc))
           !!end do
           ilr=onWhichAtom(ip%isorb+1)
-          do iall=1,matmin%mlr(ilr)%norbinlr
-              write(900+iproc,*) iall, lgrad(iall,1)
-          end do
     
           ! Calculate the gradient norm.
           fnrm=0.d0
