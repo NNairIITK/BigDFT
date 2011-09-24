@@ -2405,7 +2405,7 @@ do it=1,nItOrtho
   jorbmax=0
   do iorb=1,orbs%norb
       do jorb=1,orbs%norb
-          !!if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
+          if(iproc==0) write(300,'(2i8,es15.7)') iorb, jorb, ovrlp(jorb,iorb)
           if(iorb==jorb) then
               tt=abs(1.d0-ovrlp(jorb,iorb))
           else
