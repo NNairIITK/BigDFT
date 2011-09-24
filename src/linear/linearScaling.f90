@@ -126,10 +126,10 @@ real(8),dimension(:,:),allocatable:: ovrlp
   !    write(*,'(a,i5,4i12)') 'START: iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)', iproc, comms%ncntt(iall), comms%ndsplt(iall), comms%ncntd(iall), comms%ndspld(iall)  
   !end do
 
-  do istat=1,at%nat
-      if(iproc==0) write(*,'(a,i5,3es14.6)') 'iat, confinement center (on grid): ', istat, rxyz(1,istat)/(.5d0*input%hx), rxyz(2,istat)/(.5d0*input%hy), rxyz(3,istat)/(.5d0*input%hz)
-  end do
-
+!!  do istat=1,at%nat
+!!      if(iproc==0) write(*,'(a,i5,3es14.6)') 'iat, confinement center (on grid): ', istat, rxyz(1,istat)/(.5d0*input%hx), rxyz(2,istat)/(.5d0*input%hy), rxyz(3,istat)/(.5d0*input%hz)
+!!  end do
+!!
 
   if(iproc==0) then
       write(*,'(x,a)') repeat('*',84)

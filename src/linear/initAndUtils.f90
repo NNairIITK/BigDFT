@@ -76,7 +76,7 @@ do iat=1,at%nat
     norbsPerAtom(iat)=lin%norbsPerType(ityp)
     norb=norb+norbsPerAtom(iat)
 end do
-write(*,'(a,2i9)') 'iproc, norb',iproc, norb
+!!write(*,'(a,2i9)') 'iproc, norb',iproc, norb
 !!! ATTENTION: DEBUG
 !norb=31
 !!!!!!!!!!!!!!!!!!!
@@ -94,14 +94,14 @@ call repartitionOrbitals(iproc, nproc, lin%orbs%norb, lin%orbs%norb_par, lin%orb
 call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, orbs%nspinor,&
      input%nkpt, input%kpt, input%wkpt, lin%gorbs)
 call repartitionOrbitals(iproc, nproc, lin%gorbs%norb, lin%gorbs%norb_par, lin%gorbs%norbp, lin%gorbs%isorb_par, lin%gorbs%isorb, lin%gorbs%onWhichMPI)
-ii=0
-do jproc=0,nproc-1
-    ii=ii+lin%orbs%norb_par(jproc)
-    if(iproc==0) write(*,'(a,2i9)') 'jproc, lin%orbs%norb_par(jproc)', jproc, lin%orbs%norb_par(jproc)
-end do
-if(ii/=lin%orbs%norb) then
-    write(*,'(a,2(2x,i0))') 'ERROR: ii/=lin%orbs%norb', ii, lin%orbs%norb
-end if
+!!ii=0
+!!do jproc=0,nproc-1
+!!    ii=ii+lin%orbs%norb_par(jproc)
+!!    if(iproc==0) write(*,'(a,2i9)') 'jproc, lin%orbs%norb_par(jproc)', jproc, lin%orbs%norb_par(jproc)
+!!end do
+!!if(ii/=lin%orbs%norb) then
+!!    write(*,'(a,2(2x,i0))') 'ERROR: ii/=lin%orbs%norb', ii, lin%orbs%norb
+!!end if
 
 
 
