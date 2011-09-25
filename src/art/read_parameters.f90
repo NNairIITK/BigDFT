@@ -417,7 +417,7 @@ subroutine read_parameters()
     else 
        if (i .gt. 1 ) then
          commande = "mv " // LOGFILE // "  " // fname
-         !call system(commande)
+         call system(commande)
        endif
        exit
     endif 
