@@ -87,8 +87,9 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be performed
+  eexctX=0.0_gp
   exctX = xc_exctXfac() /= 0.0_gp
-
+  if (in%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin
   i3rho_add=0
@@ -468,7 +469,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be performed
+  eexctX=0.0_gp
   exctX = xc_exctXfac() /= 0.0_gp
+  if (in%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
 
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin

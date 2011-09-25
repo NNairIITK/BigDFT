@@ -652,7 +652,11 @@ subroutine input_wf_diag(iproc,nproc,at,rhodsc,&
   call memocc(i_stat,hpsi,'hpsi',subname)
 
   !call dcopy(orbse%npsidim,psi,1,hpsi,1)
-  if (input%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
+  if (input%exctxpar == 'OP2P') then
+     eexctX = UNINITIALIZED(1.0_gp)
+  else
+     eexctX=0.0_gp
+  end if
 
   call full_local_potential(iproc,nproc,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,nspin,&
        Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&

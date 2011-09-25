@@ -1200,7 +1200,7 @@ MODULE NEB_routines
 
       IF ( flag ) THEN
 
-        CALL SYSTEM( "./NEB_driver.sh all " // trim(job_name) // &
+         CALL SYSTEM( "./NEB_driver.sh all " // trim(job_name) // &
              & " " // trim(scratch_dir) // " " // trim(first_config))
 
         N_in  = 1
@@ -1208,8 +1208,8 @@ MODULE NEB_routines
 
       ELSE
          
-        CALL SYSTEM( "./NEB_driver.sh free_only " // trim(job_name) // &
-             & " " // trim(scratch_dir) // " " // trim(first_config))
+         CALL SYSTEM( "./NEB_driver.sh free_only " // trim(job_name) // &
+              & " " // trim(scratch_dir) // " " // trim(first_config))
 
         N_in  = 2
         N_fin = ( num_of_images - 1 )
