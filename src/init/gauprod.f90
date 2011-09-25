@@ -744,7 +744,7 @@ function gauinth(a,l)
   real(gp), intent(in) :: a
   real(gp) :: gauinth
   !local variables
-  real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
+  real(gp), parameter :: gammaonehalf=1.772453850905516027298_gp
   integer :: p
   real(gp) :: xfac,prefac,tt,sh
   !build the prefactor
@@ -919,8 +919,8 @@ function govrlp(a1,a2,d,l1,l2)
   ceff=ceff/aeff
 
   !build the first term in the sum
-  stot=gauint(aeff,ceff,l1)
-  if (l2/=0)  stot=stot*((-d)**l2)
+  stot=(-d)**l2
+  stot=gauint(aeff,ceff,l1)*stot
 
   !perform the sum
   do p=1,l2/2
@@ -933,7 +933,7 @@ function govrlp(a1,a2,d,l1,l2)
      fsum=fsum*tt
      stot=stot+fsum
   end do
-  do p=l2/2+1,l2-1
+  do p=l2/2+1,l2
      tt=rfac(1,l2-p)
      fsum=rfac(p+1,l2)
      fsum=fsum/tt
@@ -943,9 +943,6 @@ function govrlp(a1,a2,d,l1,l2)
      fsum=fsum*tt
      stot=stot+fsum
   end do
-  !p=l2
-  fsum=gauint(aeff,ceff,l1+l2)
-  stot=stot+fsum
 
   !final result
   govrlp=prefac*stot
@@ -954,7 +951,7 @@ END FUNCTION govrlp
 
 
 !>   Calculates @f$\int \exp^{-a*(x-c)^2} x^l dx@f$
-!!   this works ALSO when c=0.d0
+!!   this works ALSO when c/=0.d0
 !!
 !!
 function gauint(a,c,l)
@@ -964,7 +961,7 @@ function gauint(a,c,l)
   real(gp), intent(in) :: a,c
   real(gp) :: gauint
   !local variables
-  real(gp), parameter :: gammaonehalf=1.772453850905516027298_gp
+  real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
   real(gp) :: rfac,prefac,stot,fsum,tt,firstprod
   !build the prefactor
@@ -974,11 +971,8 @@ function gauint(a,c,l)
 
   !the first term of the sum is one
   !but we have to multiply for the prefactor
-  if (l/=0) then
-     stot=c**l
-  else
-     stot=1.0_gp
-  end if
+  stot=c**l
+
   !calculate the sum
   do p=1,l/4
      tt=rfac(p+1,2*p)
