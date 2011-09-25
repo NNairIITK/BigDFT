@@ -77,6 +77,8 @@ subroutine standard_inputfile_names(inputs, radical)
   inputs%file_tddft=trim(rad) // '.tddft'
   inputs%file_mix=trim(rad) // '.mix'
   inputs%file_sic=trim(rad) // '.sic'
+  inputs%file_occnum=trim(rad) // '.occ'
+
   if (trim(rad) == "input") then
      inputs%dir_output="data"
   else

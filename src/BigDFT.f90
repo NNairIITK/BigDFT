@@ -62,15 +62,24 @@ program BigDFT
             read(54,*) arr_posinp(iconfig)
          enddo
       else
+         !normal case
          nconfig=1
          allocate(arr_posinp(1:1))
-         arr_posinp(1)='posinp'
+         if (istat > 0) then
+            arr_posinp(1)='posinp'
+         else
+            arr_posinp(1)=trim(radical)
+         end if
       endif
       close(54)
    else
       nconfig=1
       allocate(arr_posinp(1:1))
-      arr_posinp(1)='posinp'
+         if (istat > 0) then
+            arr_posinp(1)='posinp'
+         else
+            arr_posinp(1)=trim(radical)
+         end if
    end if
 
    do iconfig=1,nconfig

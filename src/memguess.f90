@@ -110,7 +110,8 @@ program memguess
            write(*,'(1x,a)')&
                 'Perform the test with GPU, if present.'
            i_arg = i_arg + 1
-           call getarg(i_arg,tatonam)
+           call get_command_argument(i_arg, value = tatonam, status = istat)
+           !call getarg(i_arg,tatonam)
            ntimes=1
            norbgpu=0
            read(tatonam,*,iostat=ierror)ntimes
@@ -118,14 +119,16 @@ program memguess
               write(*,'(1x,a,i0,a)')&
                    'Repeat each calculation ',ntimes,' times.'
               i_arg = i_arg + 1
-              call getarg(i_arg,tatonam)
+              call get_command_argument(i_arg, value = tatonam, status = istat)
+              !call getarg(i_arg,tatonam)
               read(tatonam,*,iostat=ierror)norbgpu
            end if
            exit loop_getargs
         else if (trim(tatonam)=='convert') then
            convert=.true.
            i_arg = i_arg + 1
-           call getarg(i_arg,fileFrom)
+           call get_command_argument(i_arg, value = fileFrom, status = istat)
+           !call getarg(i_arg,fileFrom)
            i_arg = i_arg + 1
            call getarg(i_arg,fileTo)
            write(*,'(1x,5a)')&

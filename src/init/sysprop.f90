@@ -669,11 +669,11 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   norbdempty=0
 
   ! Test if the file 'input.occ exists
-  inquire(file='input.occ',exist=exists)
+  inquire(file=trim(in%file_occnum),exist=exists)
   iunit=0
   if (exists) then
      iunit=25
-     open(unit=iunit,file='input.occ',form='formatted',action='read',status='old')
+     open(unit=iunit,file=trim(in%file_occnum),form='formatted',action='read',status='old')
      if (in%nspin==1) then
         !The first line gives the number of orbitals
         read(unit=iunit,fmt=*,iostat=ierror) nt
@@ -684,7 +684,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
      if (ierror /=0) then
         !if (iproc==0) 
           write(*,'(1x,a)') &
-             'ERROR: reading the number of orbitals in the file "input.occ"'
+             'ERROR: reading the number of orbitals in the file "'//trim(in%file_occnum)//'"'
         stop
      end if
      !Check
@@ -692,7 +692,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         if (nt<norb) then
            !if (iproc==0) 
                write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "input.occ", the number of orbitals norb=',nt,&
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals norb=',nt,&
                 ' should be greater or equal than (nelec+1)/2=',norb
            stop
         else
@@ -705,7 +705,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         if (nt<norb) then
            !if (iproc==0) 
                write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "input.occ", the number of orbitals norb=',nt,&
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals norb=',nt,&
                 ' should be greater or equal than nelec=',norb
            stop
         else
@@ -714,7 +714,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         if (ntu<norbu) then
            !if (iproc==0) 
                 write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "input.occ", the number of orbitals up norbu=',ntu,&
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals up norbu=',ntu,&
                 ' should be greater or equal than min((nelec+mpol)/2,nelec)=',norbu
            stop
         else
@@ -723,7 +723,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
         if (ntd<norbd) then
            !if (iproc==0) 
                   write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "input.occ", the number of orbitals down norbd=',ntd,&
+                'ERROR: In the file "'//trim(in%file_occnum)//'" the number of orbitals down norbd=',ntd,&
                 ' should be greater or equal than min((nelec-mpol/2),0)=',norbd
            stop
         else
