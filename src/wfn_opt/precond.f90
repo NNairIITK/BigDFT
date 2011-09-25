@@ -297,7 +297,7 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   real(gp), intent(in) :: hx,hy,hz,cprecr
   type(locreg_descriptors), intent(in) :: lr
   type(workarr_precond), intent(inout) :: w
-  real(gp), dimension(0:7), intent(inout) :: scal
+  real(gp), dimension(0:7), intent(out) :: scal
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(inout) ::  x
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,ncplx), intent(out) ::  b
   !local variables

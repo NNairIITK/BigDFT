@@ -562,6 +562,7 @@ subroutine geopt_input_variables_default(in)
   in%history = 1
   in%ionmov = -1
   in%dtion = 0.0_gp
+  in%strtarget(:)=0.0_gp
   nullify(in%qmass)
 
 END SUBROUTINE geopt_input_variables_default
@@ -581,6 +582,9 @@ subroutine geopt_input_variables_new(iproc,filename,in)
   character(len=*), parameter :: subname='geopt_input_variables'
   integer :: i_stat,i
   logical :: exists
+
+  !target stress tensor
+  in%strtarget(:)=0.0_gp
 
   !geometry input parameters
   call input_set_file(iproc,trim(filename),exists,'Geometry Parameters')  

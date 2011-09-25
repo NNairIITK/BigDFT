@@ -179,7 +179,7 @@ subroutine moldyn(acell,amass,me,&
  integer,intent(out) :: iexit
  real(dp), intent(in) :: dtion, noseinert, mditemp, mdftemp, friction, mdwall
  real(dp), intent(in) :: strprecon, strfact, tolmxf, bmass, vmass
- real(dp), intent(out) :: etotal
+ real(dp), intent(inout) :: etotal
 !arrays
  integer, intent(in) :: iatfix(3, natom)
  real(dp),intent(in) :: amass(natom), qmass(nnos), strtarget(6)
@@ -255,6 +255,7 @@ subroutine moldyn(acell,amass,me,&
  acell0(:)=acell(:)
  rprimd0(:,:)=rprimd(:,:)
  ucvol0=ucvol
+ strten=0_dp
 
  if (ionmov==6 .and. maxval(vel) == zero) then
     call md_nose_init(amass, natom, mditemp, vel)

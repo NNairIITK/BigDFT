@@ -535,7 +535,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   type(orbitals_data), intent(in) :: orbs,orbsv
   type(communications_arrays), intent(in) :: comms,commsv
   real(wp), dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb), intent(in) :: psi_occ
-  real(wp), dimension(commsv%nvctr_par(iproc,0)*orbsv%nspinor*orbsv%norb), intent(out) :: psi_virt
+  real(wp), dimension(commsv%nvctr_par(iproc,0)*orbsv%nspinor*orbsv%norb), intent(inout) :: psi_virt
   !local variables
   character(len=*), parameter :: subname='orthon_virt_occup'
   integer :: i_stat,i_all,ierr,ispsiv,iorb,jorb,isorb

@@ -29,8 +29,8 @@ subroutine Convolkinetic(n1,n2,n3, &
   real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f1
   real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(in) :: x_f2
   real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: x_f3
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
-  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
   !logical :: firstcall=.true. 

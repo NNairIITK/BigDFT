@@ -288,7 +288,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   integer, intent(inout) :: istart_c,iproj,nwarnings
-  real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   !Local variables
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,ncplx
   real(gp) :: kx,ky,kz

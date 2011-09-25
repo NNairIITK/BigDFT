@@ -18,7 +18,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
   integer, intent(out) :: nelec
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(inout) :: atoms
-  type(orbitals_data), intent(out) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   real(gp), dimension(atoms%ntypes,3), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='system_properties'
@@ -953,7 +953,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   implicit none
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
   integer, intent(in) :: nspinor
-  type(orbitals_data), intent(out) :: orbs
+  type(orbitals_data), intent(inout) :: orbs
   real(gp), dimension(nkpt), intent(in) :: wkpt
   real(gp), dimension(3,nkpt), intent(in) :: kpt
   integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
