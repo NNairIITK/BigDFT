@@ -3538,7 +3538,7 @@ type(matrixDescriptors):: mad
       !!end do
 
 
-      do i=1,0
+      do i=1,1
           ! Transform to localization regions and cut at the edge.
           do iorb=1,ip%norb_par(iproc)
               ilr=matmin%inWhichLocregExtracted(iorb)
