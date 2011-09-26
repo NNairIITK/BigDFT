@@ -57,17 +57,17 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
 
       t1=mpi_wtime()
       ! Post the send messages.
-      call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
+      !call postCommsOverlapNew(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
       allocate(lphiovrlp(op%ndim_lphiovrlp), stat=istat)
       call memocc(istat, lphiovrlp, 'lphiovrlp',subname)
       !call collectAndCalculateOverlap(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
       !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp, lphiovrlp, timecommunp2p, timecommuncoll, timeoverlap, timeexpand, timecompress)
-      call collectnew(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
-           comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
+      !call collectnew(iproc, nproc, comon, mad, op, orbs, input, lzd, comon%nsendbuf, &
+      !     comon%sendbuf, comon%nrecvbuf, comon%recvbuf, ovrlp, timecommunp2p, timecommuncoll, timecompress)
 
       ! THIS IS NEW #####################
       maxvaloverlap=maxval(comon%noverlaps)
-      comon%nstepoverlap=10
+      comon%nstepoverlap=5
       comon%isoverlap=1
       do 
           call postCommsOverlapNew2(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
@@ -440,7 +440,7 @@ integer,dimension(:),allocatable:: sendcounts, displs
   !     lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, lagmat, timecommunp2p, timecommuncoll, timecompress)
   !! THIS IS NEW #####################
   maxvaloverlap=maxval(lin%comon%noverlaps)
-  lin%comon%nstepoverlap=10
+  lin%comon%nstepoverlap=5
   lin%comon%isoverlap=1
   do 
       call postCommsOverlapNew2(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
