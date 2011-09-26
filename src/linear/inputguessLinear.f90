@@ -1405,8 +1405,6 @@ real(8),dimension(:),allocatable:: zeroArray, sendbuf, recvbuf
 real(8),dimension(:,:),allocatable:: hamTempCompressed, hamTempCompressed2
 real(8):: tt, ttmax
 integer,dimension(:),allocatable:: displs, sendcounts, displs2, sendcounts2
-integer,dimension(:,:,:),allocatable:: requests
-logical,dimension(:),allocatable:: skiptemp
 
 availableMemory=memoryForCommunOverlapIG*1048576
 availableMemory=availableMemory/8 ! double precision
@@ -1414,8 +1412,6 @@ noverlaps=max(availableMemory/mad%nvctr,1)
 if(iproc==0) write(*,'(x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
 noverlaps=min(noverlaps,lzdig%nlr)
 
-allocate(hamTempCompressed(mad%nvctr,noverlaps), stat=istat)
-call memocc(istat, hamTempCompressed, 'hamTempCompressed', subname)
 allocate(sendcounts(0:nproc-1), stat=istat)
 call memocc(istat, sendcounts, 'sendcounts', subname)
 allocate(displs(0:nproc-1), stat=istat)
@@ -1426,16 +1422,9 @@ allocate(displs2(0:nproc-1), stat=istat)
 call memocc(istat, displs2, 'displs2', subname)
 allocate(hamTempCompressed2(mad%nvctr,noverlaps), stat=istat)
 call memocc(istat, hamTempCompressed2, 'ovrlpCompressed2', subname)
-allocate(requests(2,0:nproc-1,noverlaps), stat=istat)
-call memocc(istat, requests, 'requests', subname)
 
 allocate(hamTemp(orbsig%norb,orbsig%norb), stat=istat)
 call memocc(istat, hamTemp, 'hamTemp', subname)
-allocate(zeroArray(orbsig%npsidim), stat=istat)
-call memocc(istat, zeroArray, 'zeroArray', subname)
-allocate(skiptemp(0:nproc-1), stat=istat)
-call memocc(istat, skiptemp, 'skiptemp', subname)
-zeroArray=0.d0
 
 ! Initialize the parameters for calculating the matrix.
 call initCommsOrtho(iproc, nproc, lzdig, orbsig, onWhichAtom, input, op, comon, tag)
@@ -1449,6 +1438,10 @@ call allocateCommuncationBuffersOrtho(comon, subname)
 call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, op, lchi, comon%nsendBuf, comon%sendBuf)
 call postCommsOverlap(iproc, nproc, comon)
 call gatherOrbitals2(iproc, nproc, comon)
+
+call getCommunArraysMatrixCompression(iproc, nproc, orbsig, mad, sendcounts, displs)
+allocate(hamTempCompressed(sendcounts(iproc),noverlaps), stat=istat)
+call memocc(istat, hamTempCompressed, 'hamTempCompressed', subname)
 
 if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
 ilrold=0
@@ -1484,7 +1477,8 @@ do iat=1,lzdig%nlr
     if(iproc==0) write(*,'(a)') 'done.'
 
     
-    call compressMatrix2(iproc, nproc, orbs, mad, hamTemp, hamTempCompressed(1,ioverlap), sendcounts, displs)
+    !call compressMatrix2(iproc, nproc, orbs, mad, hamTemp, hamTempCompressed(1,ioverlap), sendcounts, displs)
+    call compressMatrixPerProcess(iproc, nproc, orbsig, mad, hamTemp, sendcounts(iproc), hamTempCompressed(1,ioverlap))
 
     if(ioverlap==noverlaps .or. iat==lzdig%nlr) then
         ! Rearrange data to communicate.
@@ -1497,7 +1491,8 @@ do iat=1,lzdig%nlr
         call memocc(istat, recvbuf, 'recvbuf', subname)
         ist=1
         do i=1,jj
-            call dcopy(sendcounts(iproc), hamTempCompressed(displs(iproc)+1,i), 1, sendbuf(ist), 1)
+            !call dcopy(sendcounts(iproc), hamTempCompressed(displs(iproc)+1,i), 1, sendbuf(ist), 1)
+            call dcopy(sendcounts(iproc), hamTempCompressed(1,i), 1, sendbuf(ist), 1)
             ist=ist+sendcounts(iproc)
         end do
         ! modify sendcounts / displs
@@ -1555,102 +1550,9 @@ do iat=1,lzdig%nlr
         end do
     end if
 
-    !!!call mpi_allgatherv(hamTempCompressed(displs(iproc)+1), sendcounts(iproc), mpi_double_precision, hamTempCompressed2(1), &
-    !!!     sendcounts, displs, mpi_double_precision, mpi_comm_world, ierr)
-    !!tagx=(ioverlap-1)*nproc+1
-    !!!write(*,'(3(a,i0))') 'process ',iproc,' calls my_iallgatherv2 with tagx=',tagx,', ioverlap=',ioverlap
-    !!call my_iallgatherv2(iproc, nproc, hamTempCompressed(displs(iproc)+1,ioverlap), sendcounts(iproc), &
-    !!     hamTempCompressed2(1,ioverlap), sendcounts, displs, mpi_comm_world, tagx, requests(2,0,ioverlap))
-    !!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed, ovrlp)
-    !!if(iat>=noverlaps) then
-    !!    iiat=iat-noverlaps+1
-    !!    iioverlap=mod(iiat-1,noverlaps)+1
-    !!    call my_iallgather_collect2(iproc, nproc, sendcounts(iproc), sendcounts, requests(2,0,iioverlap))
-    !!    call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,iioverlap), hamTemp)
-    !!    
-    !!    ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
-    !!    ! in calculating the input guess, this check has to be done only for those processes.
-    !!    if(iproc<nprocTemp) then
-    !!        copy=.false.
-    !!        !do iorb=1,orbsig%norbp
-    !!        do iorb=1,orbs%norb
-    !!            !iiorb=orbs%isorb+iorb
-    !!            ilr=orbs%inWhichLocreg(iorb)
-    !!            jproc=onWhichMPITemp(iorb)
-    !!            if(iproc==jproc .and. ilr==iiat) then
-    !!                copy=.true.
-    !!                exit
-    !!            end if
-    !!        end do
-    !!        if(copy) then
-    !!            iilr=iilr+1
-    !!            call dcopy(orbsig%norb**2, hamTemp(1,1), 1, ham(1,1,iilr), 1)
-    !!        end if
-    !!    end if
-    !!end if
-    
-
-
-
-
-    !!if(iproc==0) write(*,'(a)') 'done.'
-    !!!ttmax=0.d0
-    !!!do iorb=1,orbs%norb
-    !!!    do jorb=iorb,orbs%norb
-    !!!        tt=abs(hamTemp(jorb,iorb)-hamTemp(iorb,jorb))
-    !!!        if(tt>ttmax) ttmax=tt
-    !!!    end do
-    !!!end do
-    !!!if(iproc==0) write(*,*) 'max dev from symmetry: ',ttmax
-    !!
-    !!! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
-    !!! in calculating the input guess, this check has to be done only for those processes.
-    !!if(iproc<nprocTemp) then
-    !!    copy=.false.
-    !!    !do iorb=1,orbsig%norbp
-    !!    do iorb=1,orbs%norb
-    !!        !iiorb=orbs%isorb+iorb
-    !!        ilr=orbs%inWhichLocreg(iorb)
-    !!        jproc=onWhichMPITemp(iorb)
-    !!        if(iproc==jproc .and. ilr==iat) then
-    !!            copy=.true.
-    !!            exit
-    !!        end if
-    !!    end do
-    !!    if(copy) then
-    !!        iilr=iilr+1
-    !!        call dcopy(orbsig%norb**2, hamTemp(1,1), 1, ham(1,1,iilr), 1)
-    !!    end if
-    !!end if
 end do
 
 
-
-!do iat=max(lzdig%nlr-noverlaps+2,1),lzdig%nlr
-!    iiat=mod(iat-1,noverlaps)+1
-!    call my_iallgather_collect2(iproc, nproc, sendcounts(iproc), sendcounts, requests(2,0,iiat))
-!    call uncompressMatrix(orbs%norb, mad, hamTempCompressed2(1,iiat), hamTemp)
-!    
-!    ! Check whether this MPI needs this matrix. Since only nprocTemp processes will be involved
-!    ! in calculating the input guess, this check has to be done only for those processes.
-!    if(iproc<nprocTemp) then
-!        copy=.false.
-!        !do iorb=1,orbsig%norbp
-!        do iorb=1,orbs%norb
-!            !iiorb=orbs%isorb+iorb
-!            ilr=orbs%inWhichLocreg(iorb)
-!            jproc=onWhichMPITemp(iorb)
-!            if(iproc==jproc .and. ilr==iat) then
-!                copy=.true.
-!                exit
-!            end if
-!        end do
-!        if(copy) then
-!            iilr=iilr+1
-!            call dcopy(orbsig%norb**2, hamTemp(1,1), 1, ham(1,1,iilr), 1)
-!        end if
-!    end if
-!end do
 
 call mpi_barrier(mpi_comm_world, ierr)
 
@@ -1680,9 +1582,6 @@ call memocc(istat, iall, 'sendcounts', subname)
 iall=-product(shape(displs))*kind(displs)
 deallocate(displs, stat=istat)
 call memocc(istat, iall, 'displs', subname)
-iall=-product(shape(requests))*kind(requests)
-deallocate(requests, stat=istat)
-call memocc(istat, iall, 'requests', subname)
 iall=-product(shape(displs2))*kind(displs2)
 deallocate(displs2, stat=istat)
 call memocc(istat, iall, 'displs2', subname)
@@ -1693,14 +1592,6 @@ call memocc(istat, iall, 'sendcounts2', subname)
 iall=-product(shape(hamTemp))*kind(hamTemp)
 deallocate(hamTemp, stat=istat)
 call memocc(istat, iall, 'hamTemp', subname)
-
-iall=-product(shape(zeroArray))*kind(zeroArray)
-deallocate(zeroArray, stat=istat)
-call memocc(istat, iall, 'zeroArray', subname)
-
-iall=-product(shape(skiptemp))*kind(skiptemp)
-deallocate(skiptemp, stat=istat)
-call memocc(istat, iall, 'skiptemp', subname)
 
 end subroutine getHamiltonianMatrix5
 

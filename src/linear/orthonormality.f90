@@ -2078,7 +2078,7 @@ type(p2pCommsOrthonormality),intent(in):: comon
 real(8),dimension(op%ndim_lphiovrlp),intent(out):: lphiovrlp
 
 ! Local variables
-integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, i, indDest
+integer:: ind, iorb, iiorb, ilr, gdim, ldim, jorb, jjorb, jst, ilrold, i, indDest, m
 
 
 lphiovrlp=0.d0
@@ -2098,9 +2098,28 @@ do iorb=1,orbs%norbp
         ldim=op%olr(jorb,iorb)%wfd%nvctr_c+7*op%olr(jorb,iorb)%wfd%nvctr_f
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iiorb), comon%recvBuf(jst), lphiovrlp(ind))
         !call Lpsi_to_global2(iproc, nproc, ldim, gdim, orbs%norbp, orbs%nspinor, input%nspin, lzd%llr(ilr), op%olr(jorb,iorb), comon%recvBuf(jst), lphiovrlp(ind))
-        do i=0,ldim-1
-            indDest=ind+op%indexExpand(jst+i)-1
-            lphiovrlp(indDest)=comon%recvBuf(jst+i)
+        !! THIS IS THE OLD VERSION
+        !!do i=0,ldim-1
+        !!    indDest=ind+op%indexExpand(jst+i)-1
+        !!    lphiovrlp(indDest)=comon%recvBuf(jst+i)
+        !!end do
+        !! THIS IS NEW
+        m=mod(ldim,4)
+        if(m/=0) then
+            do i=0,m-1
+                indDest=ind+op%indexExpand(jst+i)-1
+                lphiovrlp(indDest)=comon%recvBuf(jst+i)
+            end do
+        end if
+        do i=m,ldim-1,4
+                indDest=ind+op%indexExpand(jst+i+0)-1
+                lphiovrlp(indDest)=comon%recvBuf(jst+i+0)
+                indDest=ind+op%indexExpand(jst+i+1)-1
+                lphiovrlp(indDest)=comon%recvBuf(jst+i+1)
+                indDest=ind+op%indexExpand(jst+i+2)-1
+                lphiovrlp(indDest)=comon%recvBuf(jst+i+2)
+                indDest=ind+op%indexExpand(jst+i+3)-1
+                lphiovrlp(indDest)=comon%recvBuf(jst+i+3)
         end do
         ind=ind+gdim
     end do

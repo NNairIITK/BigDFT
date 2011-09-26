@@ -4904,6 +4904,28 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine gatherVectorsNew
 
 
+       subroutine compressMatrixPerProcess(iproc, nproc, orbs, mad, mat, size_lmat, lmat)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, size_lmat
+         type(orbitals_data),intent(in):: orbs
+         type(matrixDescriptors),intent(in):: mad
+         real(8),dimension(orbs%norb**2),intent(in):: mat
+         real(8),dimension(size_lmat),intent(out):: lmat
+       end subroutine compressMatrixPerProcess
+
+
+       subroutine getCommunArraysMatrixCompression(iproc, nproc, orbs, mad, sendcounts, displs)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc
+         type(orbitals_data),intent(in):: orbs
+         type(matrixDescriptors),intent(in):: mad
+         integer,dimension(0:nproc-1),intent(out):: sendcounts, displs
+       end subroutine getCommunArraysMatrixCompression
+
   end interface
 
 end module module_interfaces
