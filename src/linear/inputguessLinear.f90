@@ -1406,11 +1406,6 @@ real(8),dimension(:,:),allocatable:: hamTempCompressed, hamTempCompressed2
 real(8):: tt, ttmax
 integer,dimension(:),allocatable:: displs, sendcounts, displs2, sendcounts2
 
-availableMemory=memoryForCommunOverlapIG*1048576
-availableMemory=availableMemory/8 ! double precision
-noverlaps=max(availableMemory/mad%nvctr,1)
-if(iproc==0) write(*,'(x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
-noverlaps=min(noverlaps,lzdig%nlr)
 
 allocate(sendcounts(0:nproc-1), stat=istat)
 call memocc(istat, sendcounts, 'sendcounts', subname)
@@ -1420,6 +1415,18 @@ allocate(sendcounts2(0:nproc-1), stat=istat)
 call memocc(istat, sendcounts2, 'sendcounts2', subname)
 allocate(displs2(0:nproc-1), stat=istat)
 call memocc(istat, displs2, 'displs2', subname)
+
+call getCommunArraysMatrixCompression(iproc, nproc, orbsig, mad, sendcounts, displs)
+availableMemory=memoryForCommunOverlapIG*1048576
+availableMemory=availableMemory/8 ! double precision
+ii=maxval(sendcounts)
+noverlaps=max(availableMemory/ii,1)
+if(iproc==0) write(*,'(x,a,i0,a)') 'the specified memory allows to overlap ', noverlaps,' iterations with communication'
+noverlaps=min(noverlaps,lzdig%nlr)
+
+
+allocate(hamTempCompressed(sendcounts(iproc),noverlaps), stat=istat)
+call memocc(istat, hamTempCompressed, 'hamTempCompressed', subname)
 allocate(hamTempCompressed2(mad%nvctr,noverlaps), stat=istat)
 call memocc(istat, hamTempCompressed2, 'ovrlpCompressed2', subname)
 
@@ -1439,9 +1446,6 @@ call extractOrbital3(iproc, nproc, orbsig, orbsig%npsidim, onWhichAtom, lzdig, o
 call postCommsOverlap(iproc, nproc, comon)
 call gatherOrbitals2(iproc, nproc, comon)
 
-call getCommunArraysMatrixCompression(iproc, nproc, orbsig, mad, sendcounts, displs)
-allocate(hamTempCompressed(sendcounts(iproc),noverlaps), stat=istat)
-call memocc(istat, hamTempCompressed, 'hamTempCompressed', subname)
 
 if(iproc==0) write(*,'(x,a)') 'Calculating Hamiltonian matrix for all atoms. This may take some time.'
 ilrold=0

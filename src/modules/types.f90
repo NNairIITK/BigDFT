@@ -437,7 +437,7 @@ module module_types
 !> Contains the parameter needed for the point to point communication for
 !! the orthonormlization.
    type,public:: p2pCommsOrthonormality
-       integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend
+       integer:: nsendBuf, nrecvBuf, noverlapsmax, nrecv, nsend, nrecvtemp, nsendtemp, isoverlap, nstepoverlap
        integer,dimension(:),pointer:: noverlaps
        integer,dimension(:,:),pointer:: overlaps
        integer,dimension(:,:,:),pointer:: comarr
