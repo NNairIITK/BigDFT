@@ -4,4 +4,5 @@
   0.0   0.0   1.0              and its componenent
   1                            pot short_cut
   20                         number of Hamiltonian multiplications 
-  .false. .false.              flags for test pourposes 
+  0.0                           bottomshift
+ 

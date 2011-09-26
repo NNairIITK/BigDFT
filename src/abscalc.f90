@@ -979,6 +979,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         dumvect3d(2)=atoms%alat2
         dumvect3d(3)=atoms%alat3
 
+
         !Loop over ireplica
         do ireplica=0, Nreplicas-1
            
@@ -1137,14 +1138,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         
 
 
-        if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
+        ! if (iproc == 0) write(*,*) 'writing NEW local_potential.pot'
 
-        call plot_density_old(atoms%geocode,'local_potentialb2BNEW.pot',iproc,nproc,&
-             n1,n2,n3,n1i,n2i,n3i,n3p,&
-             atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+        ! ! call plot_density_old(atoms%geocode,'local_potentialb2BNEW.pot',iproc,nproc,&
+        ! !      n1,n2,n3,n1i,n2i,n3i,n3p,&
+        ! !      atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,
+        ! ! 1))
+        ! call plot_density('local_potentialb2BNEW',iproc,nproc,&
+        !      n1,n2,n3,n1i,n2i,n3i,n3p,&
+        !      in%nspin,hxh,hyh,hzh,&
+        !      atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
 
-
-        print *," exiting b2B"
+        ! print *," exiting b2B"
 
 
 

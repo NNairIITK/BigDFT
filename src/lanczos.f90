@@ -375,7 +375,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
 !!$
 !!$  else
 
-     eval_min = GetBottom(  at, iproc,nspin)-1.0
+     eval_min = GetBottom(  at, iproc,nspin)-1.0 - in%abscalc_bottomshift
      eval_max = 4.0*Pi*Pi*(1.0/hx/hx + 1.0/hy/hy + 1.0/hz/hz  )/2.0*1.1 +2
 
 !   endif

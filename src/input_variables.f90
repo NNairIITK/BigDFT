@@ -1135,7 +1135,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
 
   if (case_insensitive_equiv(trim(type),'auto')) then
      call input_var(kptrlen,'0.0',ranges=(/0.0_gp,1.e4_gp/),&
-          comment='Equivalent length of K-space resolution (Bohr)')
+          comment='Equivalent legth of K-space resolution (Bohr)')
      call ab6_symmetry_get_auto_k_grid(atoms%symObj, in%nkpt, in%kpt, in%wkpt, &
           & kptrlen, ierror)
      if (ierror /= AB6_NO_ERROR) then
@@ -1617,6 +1617,7 @@ subroutine abscalc_input_variables_default(in)
   in%c_absorbtion=.false.
   in%potshortcut=0
   in%iat_absorber=0
+  in%abscalc_bottomshift=0
   in%abscalc_S_do_cg=.false.
   in%abscalc_Sinv_do_cg=.false.
 
@@ -1675,6 +1676,21 @@ subroutine abscalc_input_variables(iproc,filename,in)
      read(iunit,'(a100)',iostat=ierror) in%extraOrbital
   end if
   
+  read(iunit,*,iostat=ierror) in%abscalc_bottomshift
+  if(ierror==0) then
+  else
+     in%abscalc_bottomshift=0
+  endif
+
+ 
+
+  read(iunit, '(a100)' ,iostat=ierror) in%xabs_res_prefix
+  if(ierror==0) then
+  else
+     in%xabs_res_prefix=""
+  endif
+
+
   read(iunit,*,iostat=ierror) in%abscalc_alterpot, in%abscalc_eqdiff 
   !!, &
   !!     in%abscalc_S_do_cg ,in%abscalc_Sinv_do_cg
@@ -1685,11 +1701,6 @@ subroutine abscalc_input_variables(iproc,filename,in)
   endif
 
 
-  read(iunit, '(a100)' ,iostat=ierror) in%xabs_res_prefix
-  if(ierror==0) then
-  else
-     in%xabs_res_prefix=""
-  endif
 
   in%c_absorbtion=.true.
 
