@@ -67,7 +67,7 @@ real(8):: timecommunp2p, timecommuncoll, timeoverlap, timecompress
 
       ! THIS IS NEW #####################
       maxvaloverlap=maxval(comon%noverlaps)
-      comon%nstepoverlap=5
+      comon%nstepoverlap=20
       comon%isoverlap=1
       do 
           call postCommsOverlapNew2(iproc, nproc, orbs, op, lzd, lphi, comon, timecommunp2p, timeextract)
@@ -440,7 +440,7 @@ integer,dimension(:),allocatable:: sendcounts, displs
   !     lin%comon%sendbuf, lin%comon%nrecvbuf, lin%comon%recvbuf, lagmat, timecommunp2p, timecommuncoll, timecompress)
   !! THIS IS NEW #####################
   maxvaloverlap=maxval(lin%comon%noverlaps)
-  lin%comon%nstepoverlap=5
+  lin%comon%nstepoverlap=20
   lin%comon%isoverlap=1
   do 
       call postCommsOverlapNew2(iproc, nproc, lin%orbs, lin%op, lin%lzd, lphi, lin%comon, timecommunp2p, timeextract)
