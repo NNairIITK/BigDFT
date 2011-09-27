@@ -2136,6 +2136,7 @@ type(p2pCommsOrthonormalityMatrix),intent(inout):: comom
 
 ! Local variables
 integer:: jlrold,jproc,jj,jorb,jjorb,jlr,jjmax,istat,jkorb,mpisource,mpidest,istsource,istdest,ncount,korb,iall,kkorb
+integer:: iorb, irecv, isend
 integer,dimension(:),allocatable:: istsourcearr, istdestarr
 character(len=*),parameter:: subname='initCommsMatrixOrtho'
 
@@ -2175,8 +2176,6 @@ allocate(comom%overlapsProc(maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat
 call memocc(istat, comom%overlapsProc, 'comom%overlapsProc', subname)
 allocate(comom%communComplete(maxval(comom%noverlapProc(:)),0:nproc-1), stat=istat)
 call memocc(istat, comom%communComplete, 'comom%communComplete', subname)
-allocate(comom%requests(maxval(comom%noverlapProc(:)),2), stat=istat)
-call memocc(istat, comom%requests, 'comom%requests', subname)
 
 comom%nsendBuf=0
 comom%nrecvBuf=0
@@ -2225,6 +2224,36 @@ call memocc(istat, iall, 'istsourcearr', subname)
 iall=-product(shape(istdestarr))*kind(istdestarr)
 deallocate(istdestarr, stat=istat)
 call memocc(istat, iall, 'istdestarr', subname)
+
+
+irecv=0
+do jproc=0,nproc-1
+    do iorb=1,comom%noverlapProc(jproc)
+        mpidest=comom%comarr(4,iorb,jproc)
+        ! The orbitals are on different processes, so we need a point to point communication.
+        if(iproc==mpidest) then
+            irecv=irecv+1
+        end if
+    end do
+end do
+! Number of receives per process, will be used later
+comom%nrecv=irecv
+
+isend=0
+do jproc=0,nproc-1
+    do iorb=1,comom%noverlapProc(jproc)
+        mpisource=comom%comarr(1,iorb,jproc)
+        ! The orbitals are on different processes, so we need a point to point communication.
+        if(iproc==mpisource) then
+            isend=isend+1
+        end if
+    end do
+end do
+! Number of sends per process, will be used later
+comom%nsend=isend
+
+allocate(comom%requests(max(comom%nrecv,comom%nsend),2), stat=istat)
+call memocc(istat, comom%requests, 'comom%requests', subname)
 
 end subroutine initCommsMatrixOrtho
 
