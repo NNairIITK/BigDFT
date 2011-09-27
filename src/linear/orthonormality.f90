@@ -693,9 +693,6 @@ allocate(comon%comarr(10,comon%noverlapsmax,0:nproc-1), stat=istat)
 call memocc(istat, comon%comarr, 'comon%comarr', subname)
 allocate(comon%communComplete(comon%noverlapsmax,0:nproc-1), stat=istat)
 call memocc(istat, comon%communComplete, 'comun%communComplete', subname)
-allocate(comon%requests(comon%noverlapsmax,2), stat=istat)
-!allocate(comon%requests(sum(comon%noverlaps),2), stat=istat)
-call memocc(istat, comon%requests, 'comon%requests', subname)
 call setCommsOrtho(iproc, nproc, orbs, onWhichAtomAll, lzd, op, comon, tag)
 
 !do jproc=0,nproc-1
@@ -743,6 +740,9 @@ do jproc=0,nproc-1
     end do
 end do
 comon%nsend=isend
+
+allocate(comon%requests(max(comon%nsend,comon%nrecv),2), stat=istat)
+call memocc(istat, comon%requests, 'comon%requests', subname)
 
 end subroutine initCommsOrtho
 
