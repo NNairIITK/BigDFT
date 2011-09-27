@@ -19,7 +19,7 @@ program BigDFT
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
    !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
-   character(len=*), parameter :: subname='BigDFT' !< Use by memocc routine (timing)
+   character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
    integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
    integer :: ncount_bigdft
    real(gp) :: etot,sumx,sumy,sumz,fnoise
@@ -29,11 +29,11 @@ program BigDFT
    type(input_variables) :: inputs
    type(restart_objects) :: rst
    character(len=50), dimension(:), allocatable :: arr_posinp
-   character(len=60) :: filename
+   character(len=60) :: filename, radical
    ! atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: fxyz
    real(gp), dimension(:,:), pointer :: rxyz
-   integer :: iconfig,nconfig
+   integer :: iconfig,nconfig,istat
 
    ! Start MPI in parallel version
    !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -42,6 +42,12 @@ program BigDFT
    call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
    call memocc_set_memory_limit(memorylimit)
+
+   ! Read a possible radical format argument.
+   call get_command_argument(1, value = radical, status = istat)
+   if (istat > 0) then
+      write(radical, "(A)") "input"
+   end if
 
    ! find out which input files will be used
    inquire(file="list_posinp",exist=exist_list)
@@ -56,26 +62,33 @@ program BigDFT
             read(54,*) arr_posinp(iconfig)
          enddo
       else
+         !normal case
          nconfig=1
          allocate(arr_posinp(1:1))
-         arr_posinp(1)='posinp'
+         if (istat > 0) then
+            arr_posinp(1)='posinp'
+         else
+            arr_posinp(1)=trim(radical)
+         end if
       endif
       close(54)
    else
       nconfig=1
       allocate(arr_posinp(1:1))
-      arr_posinp(1)='posinp'
+         if (istat > 0) then
+            arr_posinp(1)='posinp'
+         else
+            arr_posinp(1)=trim(radical)
+         end if
    end if
 
-   open(unit=16,file='geopt.mon',status='unknown',position='append')
-   if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
    do iconfig=1,nconfig
       !welcome screen
       if (iproc==0) call print_logo()
 
       ! Read all input files.
       !standard names
-      call standard_inputfile_names(inputs)
+      call standard_inputfile_names(inputs, radical)
       call read_input_variables(iproc,trim(arr_posinp(iconfig)),inputs, atoms, rxyz)
       if (iproc == 0) then
          call print_general_parameters(nproc,inputs,atoms)
@@ -98,6 +111,8 @@ program BigDFT
       call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,fnoise,rst,infocode)
 
       if (inputs%ncount_cluster_x > 1) then
+         open(unit=16,file='geopt.mon',status='unknown',position='append')
+         if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
          if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
          ! geometry optimization
          call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)

@@ -563,7 +563,7 @@ module module_defs
       implicit none
       integer, intent(in) :: incx,n
       real(kind=4), intent(in) :: da
-      real(kind=4), intent(out) :: dx
+      real(kind=4), intent(inout) :: dx
       !call to BLAS routine
       call SSCAL(n,da,dx,incx)
     end subroutine scal_simple
@@ -572,7 +572,7 @@ module module_defs
       implicit none
       integer, intent(in) :: incx,n
       real(kind=8), intent(in) :: da
-      real(kind=8), intent(out) :: dx
+      real(kind=8), intent(inout) :: dx
       !call to BLAS routine
       call DSCAL(n,da,dx,incx)
     end subroutine scal_double

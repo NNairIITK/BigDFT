@@ -994,6 +994,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
       real(kind=8),intent(out)::z1(2,nd1f,nd2,nd3,2)
       !Local variables
       integer :: i2,i3
+z1=0.d0
       do i3=1,n3
          do i2=1,n2
             ! 2*n1f=n1 for even n1
@@ -1057,7 +1058,7 @@ subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
       real(kind=8), intent(out) :: z3( 2,nd3f,nd1 ,nd2,2)
       !Local variables
       integer :: i1,i2,i3
-
+z3=0.d0
       if (n1f*2.eq.n1) then
          ! i3=1
          do i2=1,n2
@@ -1168,7 +1169,7 @@ subroutine FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,y,z1,z3,inze
    ntrig=max(n1,n2,n3)
    allocate(trig(2,ntrig))
 
-   !     call z3_to_z1(z3,z1,inzee)
+   !call z3_to_z1(z3,z1,inzee)
 
    if (ncache.eq.0) then
       ! vector computer with memory banks:
@@ -1429,7 +1430,7 @@ subroutine FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,y,z1,z3,inze
       real(kind=8),intent(in):: z3(2,nd1 ,nd2,nd3f,2)
       real(kind=8),intent(out)::z1(2,nd1b,nd2,nd3,2)
       integer i1,i2,i3
-
+z1=0.d0
       ! i3=1: then z1 is contained in z3 
       do i2=1,n2
          do i1=1,n1b
@@ -1486,7 +1487,7 @@ subroutine FFT_back(n1,n2,n3,n1b,n3f,n3b,nd1,nd2,nd3,nd1b,nd3f,nd3b,y,z1,z3,inze
       real(kind=8),intent(in):: z1(2,nd2,nd3,nd1b,2)
       real(kind=8),intent(out)::z3(2,nd2,nd3b,nd1,2)
       integer i1,i2,i3
-
+z3=0.d0
       if (2*n3b.eq.n3) then 
          ! i1=1
          do i3=1,n3b

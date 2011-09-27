@@ -1,0 +1,13 @@
+Goedecker pseudopotential for Ca
+   20  10  070301 zatom,zion,pspdat
+10  1  2 2 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.39000000    2    -4.92814602    -1.23285409                                  rloc nloc c1 c2
+    3                                                                               nnonloc
+     0.28190948    2    12.35233956    -2.96571964                                  rs ns hs11 hs12
+                                        7.65745518                                             hs22
+     0.31034528    2     5.72242348    -0.39028860                                  rp np hp11 hp12
+                                        0.92359141                                             hp22
+                         0.02170091    -0.02394376                                        kp11 kp12
+                                        0.05666128                                             kp22
+     0.90433011    1     0.01680633                                                 rd nd hd11
+                         0.00037106                                                       kd11

@@ -31,10 +31,8 @@
     ! Save values for memocc.
 #if defined DEBUG_MODE
     integer, parameter :: ndebug = 5
-    integer :: verbose = 2
 #else
     integer, parameter :: ndebug = 0
-    integer :: verbose = 0
 #endif
     real :: memorylimit = 0.e0
     logical :: meminit = .false.
@@ -42,7 +40,8 @@
     type(memstat) :: memloc,memtot
     integer :: memalloc,memdealloc,memproc = 0
     !Debug option for memocc, set in the input file
-    logical :: memdebug
+    !logical :: memdebug=.true.
+    integer :: malloc_level=2
 
     !interface for the memory allocation control, depends on ndebug
     interface memocc
@@ -56,50 +55,74 @@
 
     public :: ndebug
     public :: memocc
-    public :: memocc_set_verbosity
-    public :: memocc_set_debug
+    public :: memocc_set_state
     public :: memocc_set_memory_limit
     public :: d_nan,r_nan
 
   contains
 
-    subroutine memocc_set_verbosity(verb)
-      integer, intent(in) :: verb
+    !> State of malloc.prc file and of counters
+    !!  @param istatus 0 no file malloc.prc is created, only memory allocation counters running
+    !!                 1 file malloc.prc is created in a light version (only current information is written)
+    !!                 2 file malloc.prc is created with full information inside (default state if not specified)
+    !! The status can only be downgraded. A stop signal is produced if status is increased
+    subroutine memocc_set_state(istatus)
+      integer, intent(in) :: istatus
 
-      if (verbose < 2 .and. verb >= 2) then
-         ! The malloc.prc file should be created.
-         if (memproc == 0) then
-            open(unit=mallocFile,file='malloc.prc',status='unknown')
-            if (memdebug) then
-               write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
-                    '(Data in KB) Routine','Array name    ',&
-                    'Array size','Total Memory'
-            else
-               write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
-                    '(Data in KB) Routine','Peak Array    ',&
-                    'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
-            end if
-         end if
+      if (istatus > malloc_level) stop 'malloc_level can be only downgraded'
+
+      malloc_level = istatus
+      
+      if (istatus == 2) return !the default situation
+
+      if (istatus == 1) then 
+         !clean the file situation
+         close(unit=mallocFile)
+         open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
       end if
 
-      if (verbose >= 2 .and. verb < 2) then
+      if (istatus == 0) then
+         !the file should be deleted
+         close(unit=mallocFile)
+         open(unit=mallocFile,file='malloc.prc',status='replace')
          close(unit=mallocFile)
       end if
-      ! Assign the verbosity.
-      verbose = verb
-    end subroutine memocc_set_verbosity
+    end subroutine memocc_set_state
 
-    subroutine memocc_set_debug(debug)
-      logical, intent(in) :: debug
-
-      memdebug = debug
-    end subroutine memocc_set_debug
 
     subroutine memocc_set_memory_limit(limit)
       real, intent(in) :: limit
 
       memorylimit = limit
     end subroutine memocc_set_memory_limit
+
+    !> Put to zero memocc counters
+    subroutine memocc_variables_init()
+      memtot%memory=int(0,kind=8)
+      memtot%peak=int(0,kind=8)
+      memalloc=0
+      memdealloc=0
+
+      memloc%routine='routine'
+      memloc%array='array'
+      memloc%memory=int(0,kind=8) !fake initialisation to print the first routine
+      memloc%peak=int(0,kind=8)
+    end subroutine memocc_variables_init
+
+    subroutine memocc_open_file()
+      open(unit=mallocFile,file='malloc.prc',status='unknown')
+      !if (memdebug) then
+         write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
+              '(Data in KB) Routine','Array name    ',&
+              'Array size','Total Memory'
+      !else
+      !write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
+      !     '(Data in KB) Routine','Peak Array    ',&
+      !     'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
+      !end if
+    end subroutine memocc_open_file
+
+
 
     !!****f* ABINIT/memory_occupation
     !! FUNCTION
@@ -148,19 +171,10 @@
       include 'mpif.h'
 
       !print *,memproc,array,routine
-
       ! Initialised first
       if (.not.meminit) then
-         memtot%memory=int(0,kind=8)
-         memtot%peak=int(0,kind=8)
-         memalloc=0
-         memdealloc=0
 
-         memloc%routine='routine'
-         memloc%array='array'
-         memloc%memory=int(0,kind=8) !fake initialisation to print the first routine
-         memloc%peak=int(0,kind=8)
-
+         call memocc_variables_init()
          !Use MPI to have the mpi rank
          call MPI_INITIALIZED(lmpinit,ierr)
          if (lmpinit) then
@@ -171,18 +185,8 @@
          end if
 
          !open the writing file for the root process
-         if (memproc == 0 .and. verbose >= 2) then
-            open(unit=mallocFile,file='malloc.prc',status='unknown')
-            !print *,'here',memproc
-            if (memdebug) then
-               write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
-                    '(Data in KB) Routine','Array name    ',&
-                    'Array size','Total Memory'
-            else
-               write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
-                    '(Data in KB) Routine','Peak Array    ',&
-                    'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
-            end if
+         if (memproc == 0 .and. malloc_level > 0) then
+            call memocc_open_file()
          end if
          meminit = .true.
       end if
@@ -190,7 +194,8 @@
       select case(array)
       case('count')
          if (trim(routine)=='stop' .and. memproc==0) then
-            if (verbose >= 2) then
+            if (malloc_level > 0) then
+               if (malloc_level == 1) rewind(mallocFile)
                write(mallocFile,'(a,t40,a,t70,4(1x,i12))')&
                     trim(memloc%routine),trim(memloc%array),&
                     memloc%memory/int(1024,kind=8),memloc%peak/int(1024,kind=8),&
@@ -208,15 +213,13 @@
                  'in the routine',trim(memtot%routine)
             !here we can add a routine which open the malloc.prc file in case of some 
             !memory allocation problem, and which eliminates it for a successful run
-            if (.not.memdebug .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
-               !clean the malloc file
-               if (verbose >= 2) then
-                  open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
-                  write(unit=mallocFile,fmt='()',advance='no')
-                  close(unit=mallocFile)
-               end if
+            if (malloc_level == 1 .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
+               !remove file should be put here
+               open(unit=mallocFile,file='malloc.prc',status='unknown',action='write')
+               write(unit=mallocFile,fmt='()',advance='no')
+               close(unit=mallocFile)
             else
-               call memory_malloc_check(memdebug,memalloc,memdealloc)
+               call memory_malloc_check(memalloc,memdealloc)
             end if
          else if (trim(routine)/='stop') then
             write(*,*) "memocc: ",array," ",routine
@@ -230,12 +233,12 @@
             if (isize>=0) then
                write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
                     ', error code=',istat,' exiting...'
-               if (memproc == 0 .and. verbose >= 2) close(unit=mallocFile)
+               if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
                call MPI_ABORT(MPI_COMM_WORLD,ierr)
             else if (isize<0) then
                write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
                     ', error code=',istat,' exiting...'
-               if (memproc == 0 .and. verbose >= 2) close(unit=mallocFile)
+               if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
                call MPI_ABORT(MPI_COMM_WORLD,ierr)
             end if
          end if
@@ -264,13 +267,14 @@
 
          select case(memproc)
          case (0)
-            if (memdebug .and. verbose >= 2) then
+            if (malloc_level ==2) then
                !to be used for inspecting an array which is not deallocated
                write(mallocFile,'(a,t40,a,t70,4(1x,i12))')trim(routine),trim(array),isize,memtot%memory
-            else
+            else if (malloc_level ==1) then
                !Compact format
                if (trim(memloc%routine) /= routine) then
-                  if (memloc%memory /= int(0,kind=8) .and. verbose >= 2) then
+                  if (memloc%memory /= int(0,kind=8)) then
+                     rewind(mallocFile)
                      write(mallocFile,'(a,t40,a,t70,4(1x,i12))')&
                           trim(memloc%routine),trim(memloc%array),&
                           memloc%memory/int(1024,kind=8),memloc%peak/int(1024,kind=8),&
@@ -302,15 +306,14 @@
     !!   Check the malloc.prc file (verbose format)
     !! SOURCE
     !!
-    subroutine memory_malloc_check(memdebug,nalloc,ndealloc)
+    subroutine memory_malloc_check(nalloc,ndealloc)
 
 
       implicit none
       !Arguments
-      logical, intent(in) :: memdebug
       integer, intent(in) :: nalloc,ndealloc
       !Local variables
-      if (memdebug .and. nalloc /= ndealloc) then
+      if (malloc_level==2 .and. nalloc /= ndealloc) then
          write(*,*) &
               "Use the python script 'memcheck.py' in utils/scripts to check 'malloc.prc' file"
       end if

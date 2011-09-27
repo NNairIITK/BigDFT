@@ -1231,8 +1231,8 @@ subroutine plot_wf(orbname,nexpo,at,lr,hx,hy,hz,rxyz,psi,comment)
   use module_base
   use module_types
   implicit none
-  character(len=10) :: comment
-  character(len=11) :: orbname
+  character(len=*) :: comment
+  character(len=*) :: orbname
   integer, intent(in) :: nexpo
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at

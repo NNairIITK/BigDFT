@@ -1,0 +1,13 @@
+Goedecker pseudopotential for V
+   23  13  070301 zatom,zion,pspdat
+10  1  2 2 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.37500000    2     4.94129058    -0.09644336                                  rloc nloc c1 c2
+    3                                                                               nnonloc
+     0.32665112    2     7.65939048     1.50745391                                  rs ns hs11 hs12
+                                       -3.89222925                                             hs22
+     0.24640748    2     4.25623049     2.51062024                                  rp np hp11 hp12
+                                       -5.94121187                                             hp22
+                         0.15640785    -0.00339312                                        kp11 kp12
+                                        0.00802959                                             kp22
+     0.24079150    1    -8.82851757                                                 rd nd hd11
+                         0.00654774                                                       kd11

@@ -462,6 +462,7 @@ program frequencies
       inquire(file='frequencies.res', exist=exists)
       if (.not.exists) then
          !There is no restart file.
+         call razero(n_order*(3*nat+1),energies(1,0))
          if (iproc == 0) write(*,freq_form) 'No "frequencies.res" file present.'
          return
       end if

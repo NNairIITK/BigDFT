@@ -20,11 +20,11 @@ program memguess
 
   implicit none
   character(len=*), parameter :: subname='memguess'
-  character(len=20) :: tatonam
+  character(len=20) :: tatonam, radical
   character(len=40) :: comment
-  character(len=128) :: fileFrom, fileTo
-  logical :: optimise,GPUtest,atwf,convert=.false.
-  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid
+  character(len=128) :: fileFrom, fileTo,filename_wfn
+  logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
+  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
   real(gp) :: peakmem,hx,hy,hz
@@ -39,7 +39,7 @@ program memguess
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:,:), pointer :: rxyz
-  real(wp), dimension(:), allocatable :: rhoexpo
+  real(wp), dimension(:), allocatable :: rhoexpo,psi
   real(wp), dimension(:,:), pointer :: rhocoeff
   real(kind=8), dimension(:,:), allocatable :: radii_cf
   logical, dimension(:,:,:), allocatable :: scorb
@@ -50,12 +50,14 @@ program memguess
 
   ! Get arguments
 
-  call getarg(1,tatonam)
+  !call getarg(1,tatonam)
+  call get_command_argument(1, value = tatonam, status = istat)
 
+  write(radical, "(A)") ""
   optimise=.false.
   GPUtest=.false.
   atwf=.false.
-  if(trim(tatonam)=='') then
+  if(trim(tatonam)=='' .or. istat>0) then
      write(*,'(1x,a)')&
           'Usage: ./memguess <nproc> [option]'
      write(*,'(1x,a)')&
@@ -71,9 +73,12 @@ program memguess
      write(*,'(1x,a)')&
           '         <nrep> is the number of repeats'
      write(*,'(1x,a)')&
-          '"ugrade" ugrades input files older than 1.2 into actual format'
+          '"upgrade" upgrades input files older than 1.2 into actual format'
      write(*,'(1x,a)')&
-          '"convert <from.[cube,etsf]> <to.[cube,etsf]>" converts file "from" to file "to" using the given formats'
+          '"convert <from.[cube,etsf]> <to.[cube,etsf]>" converts "from" to file "to" using the given formats'
+     write(*,'(1x,a)')&
+          '"exportwf <n>[u,d] <from.[bin,formatted,etsf]> "'//&
+          ' converts n-th wavefunction of file "from" to cube using BigDFT uncompression'
      write(*,'(1x,a)')&
           '"atwf" <ng> calculates the atomic wavefunctions of the first atom in the gatom basis and write their expression '
      write(*,'(1x,a)')&
@@ -83,57 +88,89 @@ program memguess
      stop
   else
      read(unit=tatonam,fmt=*) nproc
-     call getarg(2,tatonam)
-     if(trim(tatonam)=='') then
-        output_grid=0
-     else if (trim(tatonam)=='y') then
-        output_grid=1
-        write(*,'(1x,a)')&
-             'The system grid will be displayed in the "grid.xyz" file'
-     else if (trim(tatonam)=='o') then
-        optimise=.true.
-        output_grid=1
-        write(*,'(1x,a)')&
-             'The optimised system grid will be displayed in the "grid.xyz" file'
-     else if (trim(tatonam)=='GPUtest') then
-        GPUtest=.true.
-        write(*,'(1x,a)')&
-             'Perform the test with GPU, if present.'
-        call getarg(3,tatonam)
-        ntimes=1
-        norbgpu=0
-        read(tatonam,*,iostat=ierror)ntimes
-        if (ierror==0) then
+     i_arg = 2
+     loop_getargs: do
+        call get_command_argument(i_arg, value = tatonam, status = istat)
+        !call getarg(i_arg,tatonam)
+        if(trim(tatonam)=='' .or. istat > 0) then
+           output_grid=0
+           exit loop_getargs
+        else if (trim(tatonam)=='y') then
+           output_grid=1
+           write(*,'(1x,a)') 'The system grid will be displayed in the "grid.xyz" file'
+           exit loop_getargs
+        else if (trim(tatonam)=='o') then
+           optimise=.true.
+           output_grid=1
+           write(*,'(1x,a)')&
+                'The optimised system grid will be displayed in the "grid.xyz" file'
+           exit loop_getargs
+        else if (trim(tatonam)=='GPUtest') then
+           GPUtest=.true.
+           write(*,'(1x,a)')&
+                'Perform the test with GPU, if present.'
+           i_arg = i_arg + 1
+           call get_command_argument(i_arg, value = tatonam, status = istat)
+           !call getarg(i_arg,tatonam)
+           ntimes=1
+           norbgpu=0
+           read(tatonam,*,iostat=ierror)ntimes
+           if (ierror==0) then
+              write(*,'(1x,a,i0,a)')&
+                   'Repeat each calculation ',ntimes,' times.'
+              i_arg = i_arg + 1
+              call get_command_argument(i_arg, value = tatonam)
+              !call getarg(i_arg,tatonam)
+              read(tatonam,*,iostat=ierror)norbgpu
+           end if
+           exit loop_getargs
+        else if (trim(tatonam)=='convert') then
+           convert=.true.
+           i_arg = i_arg + 1
+           call get_command_argument(i_arg, value = fileFrom)
+           !call getarg(i_arg,fileFrom)
+           i_arg = i_arg + 1
+           call get_command_argument(i_arg, value = fileTo)
+           !call getarg(i_arg,fileTo)
+           write(*,'(1x,5a)')&
+                'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
+           exit loop_getargs
+        else if (trim(tatonam)=='exportwf') then
+           exportwf=.true.
+           i_arg = i_arg + 1
+           call get_command_argument(i_arg, value = filename_wfn)
+           !call getarg(i_arg,filename_wfn)
+           write(*,'(1x,3a)')&
+                'export wavefunction file: "', trim(filename_wfn),'" in .cube format'
+           exit loop_getargs
+        else if (trim(tatonam)=='atwf') then
+           atwf=.true.
+           write(*,'(1x,a)')&
+                'Perform the calculation of atomic wavefunction of the first atom'
+           i_arg = i_arg + 1
+           call get_command_argument(i_arg, value = tatonam)
+           !call getarg(i_arg,tatonam)
+           read(tatonam,*,iostat=ierror)ng
            write(*,'(1x,a,i0,a)')&
-                'Repeat each calculation ',ntimes,' times.'
-           call getarg(4,tatonam)
-           read(tatonam,*,iostat=ierror)norbgpu
+                'Use gaussian basis of',ng,' elements.'
+           exit loop_getargs
+        else 
+           ! Use value as radical for input files.
+           if (trim(radical) /= "") then
+              write(*,'(1x,a)')&
+                   'Usage: ./memguess <nproc> [y]'
+              write(*,'(1x,a)')&
+                   'Indicate the number of processes after the executable'
+              write(*,'(1x,a)')&
+                   'ERROR: The only second argument which is accepted is "y", "o","convert", "GPUtest" or "atwf" ' 
+              write(*,'(1x,a)')&
+                   '       (type "memguess" without arguments to have an help)'
+              stop
+           end if
+           write(radical, "(A)") trim(tatonam)
         end if
-     else if (trim(tatonam)=='convert') then
-        convert=.true.
-        call getarg(3,fileFrom)
-        call getarg(4,fileTo)
-        write(*,'(1x,5a)')&
-             'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
-     else if (trim(tatonam)=='atwf') then
-        atwf=.true.
-        write(*,'(1x,a)')&
-             'Perform the calculation of atomic wavefunction of the first atom'
-        call getarg(3,tatonam)
-        read(tatonam,*,iostat=ierror)ng
-        write(*,'(1x,a,i0,a)')&
-             'Use gaussian basis of',ng,' elements.'
-     else
-        write(*,'(1x,a)')&
-             'Usage: ./memguess <nproc> [y]'
-        write(*,'(1x,a)')&
-             'Indicate the number of processes after the executable'
-        write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o","convert", "GPUtest" or "atwf" ' 
-        write(*,'(1x,a)')&
-             '       (type "memguess" without arguments to have an help)'
-        stop
-     end if
+        i_arg = i_arg + 1
+     end do loop_getargs
   end if
 
 !!!  open(unit=1,file='input.memguess',status='old')
@@ -177,7 +214,7 @@ program memguess
   end if
 
   !standard names
-  call standard_inputfile_names(in)
+  call standard_inputfile_names(in, radical)
   call read_input_variables(0, "posinp", in, atoms, rxyz)
   !initialize memory counting
   !call memocc(0,0,'count','start')
@@ -194,7 +231,6 @@ program memguess
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
-
 
   ! store PSP parameters
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
@@ -288,6 +324,22 @@ program memguess
   call createWavefunctionsDescriptors(0,hx,hy,hz,&
        atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr, output_grid = (output_grid > 0))
   call orbitals_communicators(0,nproc,Glr,orbs,comms)  
+
+  if (exportwf) then
+
+       allocate(psi((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp+ndebug),stat=i_stat)
+       call memocc(i_stat,psi,'psi',subname)
+
+       call take_psi_from_file(filename_wfn,in%hx,in%hy,in%hz,Glr,atoms,rxyz,psi)
+
+       call plot_wf(filename_wfn,1,atoms,Glr,in%hx,in%hy,in%hz,rxyz,psi,' ')
+  
+       i_all=-product(shape(psi))*kind(psi)
+       deallocate(psi,stat=i_stat)
+       call memocc(i_stat,i_all,'psi',subname)
+
+  end if
+
 
   if (GPUtest .and. .not. GPUconv) then
      write(*,*)' ERROR: you can not put a GPUtest flag if there is no GPUrun.'
@@ -1105,3 +1157,67 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
 
 
 END SUBROUTINE compare_data_and_gflops
+
+!> Extract the compressed wavefunction from the given file 
+subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,psi)
+  use module_base
+  use module_types
+  implicit none
+  real(gp), intent(in) :: hx,hy,hz
+  character(len=*), intent(in) :: filename
+  type(locreg_descriptors), intent(in) :: lr
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(out) :: psi
+  !local variables
+  character(len=*), parameter :: subname='take_psi_form_file'
+  logical :: perx,pery,perz,exists
+  integer :: nb1,nb2,nb3,i_stat,i_err,isuffix,iorb_out,i_all
+  real(gp) :: eval_fake
+  real(wp), dimension(:,:,:), allocatable :: psifscf
+  real(gp), dimension(:,:), allocatable :: rxyz_file
+
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  !buffers realted to periodicity
+  !WARNING: the boundary conditions are not assumed to change between new and old
+  call ext_buffers_coarse(perx,nb1)
+  call ext_buffers_coarse(pery,nb2)
+  call ext_buffers_coarse(perz,nb3)
+
+  allocate(psifscf(-nb1:2*lr%d%n1+1+nb1,-nb2:2*lr%d%n2+1+nb2,-nb3:2*lr%d%n3+1+nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,psifscf,'psifscf',subname)
+
+  allocate(rxyz_file(at%nat,3+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz_file,'rxyz_file',subname)
+     
+  isuffix = index(filename, ".bin", back = .true.)
+  exists=(isuffix > 0) !the file is written in binary format
+  if (exists) then
+     write(*,*) "Reading wavefunctions in BigDFT binary file format."
+     open(unit=99,file=trim(filename),status='unknown',form="unformatted")
+  else
+     write(*,*) "Reading wavefunctions in plain text file format."
+     open(unit=99,file=trim(filename),status='unknown')
+  end if
+
+  !find the value of iorb_out
+  read(filename(index(filename, ".", back = .true.)+1:len(filename)),*)iorb_out
+
+  !@ todo geocode should be passed in the localisation regions descriptors
+  call readonewave(99, .not. exists,iorb_out,0,lr%d%n1,lr%d%n2,lr%d%n3, &
+       hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,&
+       psi,eval_fake,psifscf)
+
+  i_all=-product(shape(psifscf))*kind(psifscf)
+  deallocate(psifscf,stat=i_stat)
+  call memocc(i_stat,i_all,'psifscf',subname)
+
+  i_all=-product(shape(rxyz_file))*kind(rxyz_file)
+  deallocate(rxyz_file,stat=i_stat)
+  call memocc(i_stat,i_all,'rxyz_file',subname)
+
+end subroutine take_psi_from_file

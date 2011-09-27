@@ -17,7 +17,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+  type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
@@ -229,7 +229,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   end if
   nlpspd%nprojel=nkptsproj*nlpspd%nprojel
 
-  !print *,'iproc,nkptsproj',iproc,nkptsproj,orbs%iskpts,orbs%iskpts+orbs%nkptsp
+  !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
 
   if (iproc == 0) then
      if (DistProjApply) then
@@ -316,7 +316,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   integer, intent(inout) :: istart_c,iproj,nwarnings
-  real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+  real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   !Local variables
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,jseg_c,l,i,ncplx
   real(gp) :: kx,ky,kz
@@ -352,7 +352,7 @@ subroutine atom_projector(ikpt,iat,idir,istart_c,iproj,&
                 nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),nwarnings)
            iproj=iproj+2*l-1
            istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)*ncplx
-           !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,nlpspd%nprojel,ncplx
+           !print *,'iproc,istart_c,nlpspd%nprojel',istart_c,nlpspd%nprojel,ncplx, kx, ky, kz, ikpt
            if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
         endif
      enddo

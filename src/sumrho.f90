@@ -654,6 +654,7 @@ subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho
      !    Note : it should be possible to reuse rhog in the antiferromagnetic case
      !    this would avoid one FFT
      ! fft the input array x:
+     rhog=0.0_gp !put to avoid fpe in the FFT
      do i3=0,n3i-1
         do i2=0,n2i-1
            do i1=0,n1i-1
