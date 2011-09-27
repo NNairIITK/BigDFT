@@ -94,7 +94,7 @@ contains
     ha=>ha_actual
 
     !! for the transposed representation
-    EP_dim=sum( ha%comms%nvctr_par(ha%iproc,:)) *ha%orbs%nspinor
+    EP_dim=sum( ha%comms%nvctr_par(ha%iproc,1)) *ha%orbs%nspinor
 
     !!   EP_dim_tot=(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nspinor*ha%orbs%nkpts
     !! for the direct representation
@@ -104,11 +104,15 @@ contains
     EP_dim_tot_touse=max(EP_dim_tot,1)
     
 
-    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nkptsp /= &
-         sum(ha%comms%nvctr_par(:,:))  ) then
+!!$    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nkptsp /= &
+!!$         sum(ha%comms%nvctr_par(:,1))  ) then
+!!$       stop "array size inconsistency" 
+!!$    endif
+
+    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f) /= &
+         sum(ha%comms%nvctr_par(:,1))  ) then
        stop "array size inconsistency" 
     endif
-
     !! arrays which are used in the direct rep after retrieval
     !! from transposed memory
     
