@@ -427,14 +427,24 @@ contains
           call process_line(default=default)
        end if
        call read_fraction_string(default,var,ierror)
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
        !print *,line_being_processed
        call read_fraction_string(line_being_processed,var,ierror)
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
 
        !check the validity of the variable
        if (present(ranges)) then
@@ -518,14 +528,24 @@ contains
           call process_line(default=default)
        end if
        call read_fraction_string(default,double_var,ierror)
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
        var=real(double_var,kind=4)
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
        call read_fraction_string(line_being_processed,double_var,ierror)
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
        var=real(double_var,kind=4)
 
        !check the validity of the variable
@@ -609,14 +629,24 @@ contains
           call process_line(default=default)
        end if
        read(default,*,iostat=ierror)var
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
 
        read(line_being_processed,fmt=*,iostat=ierror) var
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
 
        !check the validity of the variable
        if (present(ranges)) then
@@ -698,14 +728,23 @@ contains
           call process_line(default=default)
        end if
        read(default,*,iostat=ierror)var
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
        read(line_being_processed,fmt=*,iostat=ierror) var
-       call check(ierror)
-
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
        if (present(exclusive)) then
           found=.false.
           found_loop: do ilist=1,size(exclusive)
@@ -737,11 +776,12 @@ contains
     end if   
   END SUBROUTINE var_char_compulsory
 
-  subroutine var_logical_compulsory(var,default,comment)
+  subroutine var_logical_compulsory(var,default,comment,input_iostat)
     implicit none
     character(len=*), intent(in) :: default
     logical, intent(out) :: var
     character(len=*), intent(in), optional :: comment
+    integer, intent(out), optional :: input_iostat
     !Local variables
     integer :: ierror
 
@@ -755,14 +795,24 @@ contains
           call process_line(default=default)
        end if
        read(default,*,iostat=ierror)var
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
     !otherwise read the corresponding argument and check its validity
     else
        !read the argument
        call process_line()
 
        read(line_being_processed,fmt=*,iostat=ierror) var
-       call check(ierror)
+       if (present(input_iostat) .and. ierror /= 0) then
+          input_iostat=-2
+          return
+       else
+          call check(ierror)
+       end if
       
        !increment the line if comment is present, do not touch the input file
        if (present(comment)) then

@@ -166,7 +166,7 @@ subroutine ab6md(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp), intent(inout) :: epot
   real(gp), dimension(3*at%nat), intent(inout) :: x
   logical, intent(out) :: fail
-  real(gp), dimension(3*at%nat), intent(out) :: f
+  real(gp), dimension(3*at%nat), intent(inout) :: f
   !local variables
   character(len=*), parameter :: subname='ab6md'
   ! 1 atomic mass unit, in electronic mass
@@ -430,7 +430,7 @@ subroutine rundiis(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp), intent(inout) :: epot
   real(gp), dimension(3*at%nat), intent(inout) :: x
   logical, intent(out) :: fail
-  real(gp), dimension(3*at%nat), intent(out) :: f
+  real(gp), dimension(3*at%nat), intent(inout) :: f
   !local variables
   character(len=*), parameter :: subname='rundiis'
   real(gp), dimension(:,:), allocatable  :: previous_forces

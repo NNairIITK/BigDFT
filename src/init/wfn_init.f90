@@ -429,7 +429,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
   do ikptp=1,orbsu%nkptsp
      ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
      
-     nvctrp=commu%nvctr_par(iproc,ikptp)
+     nvctrp=commu%nvctr_par(iproc,ikpt )
      if (nvctrp == 0) cycle
      
      !print *,'iproc,nvctrp,nspin,norb,ispsi,ndimovrlp',iproc,nvctrp,nspin,norb,ispsi,ndimovrlp(ispin,ikpt-1)
@@ -541,7 +541,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      do ikptp=1,orbsu%nkptsp
         ikpt=orbsu%iskpts+ikptp!orbsu%ikptsp(ikptp)
 
-        nvctrp=commu%nvctr_par(iproc,ikptp)
+        nvctrp=commu%nvctr_par(iproc,ikpt )
         if (nvctrp == 0) cycle
 
         if (.not. present(orbsv)) then
@@ -616,7 +616,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
         psi => psit
      end if
   end if
-
   !this untranspose also the wavefunctions 
   call untranspose_v(iproc,nproc,orbs,wfd,comms,&
        psit,work=hpsi,outadd=psi(1))
@@ -2175,7 +2174,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
         ! ikpt is the index of the k point.
         ikpt=orbs%iskpts+ikptp
         ! nvctrp is the length of the vectors.
-        nvctrp=comms%nvctr_par(iproc,ikptp)
+        nvctrp=comms%nvctr_par(iproc,ikpt)
 
         ! If simul is false and ispin==2, we are treating the down orbitals. Therefore we have to skip
         ! the up orbitals. We have to do this skipping for each k-point since in memory the spin up and 
@@ -2433,7 +2432,7 @@ semicoreIf: if(natsc>0) then
         ! ikpt is the number of the k-point.
         ikpt=orbs%iskpts+ikptp
         ! nvctrp is the number of components for this k-point which are handled by this process.
-        nvctrp=comms%nvctr_par(iproc,ikptp)
+        nvctrp=comms%nvctr_par(iproc,ikpt)
         ! Make a loop over the spins.
         do jspin=1,nspin
            imatrst=1
