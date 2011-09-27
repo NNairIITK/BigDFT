@@ -1639,15 +1639,13 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   real(gp) :: paw_greal, paw_gimag, paw_ccoeff, paw_scoeff, dumpaw
   character(len=100) :: string
 
-
-  print *, " IN PAWPATCH_FROM_FILE " 
-
   !parameters for abscalc-paw
 
   if(.not. storeit) then
-     allocate(atoms%paw_NofL(atoms%ntypes+ndebug), stat=i_stat)
-     call memocc(i_stat,atoms%paw_NofL,'atoms%paw_NofL',subname)
-     
+     if(ityp.eq.1) then
+        allocate(atoms%paw_NofL(atoms%ntypes+ndebug), stat=i_stat)
+        call memocc(i_stat,atoms%paw_NofL,'atoms%paw_NofL',subname)
+     end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
      open(unit=11,file=filename,status='old',iostat=ierror)
      !Check the open statement
@@ -1830,6 +1828,5 @@ subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      end if
      close(11)
   endif
-  print *, " IN PAWPATCH_FROM_FILE OK "
 end subroutine pawpatch_from_file
   

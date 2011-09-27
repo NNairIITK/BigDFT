@@ -2114,6 +2114,12 @@ subroutine deallocate_atoms(atoms,subname)
   i_all=-product(shape(atoms%radii_cf))*kind(atoms%radii_cf)
   deallocate(atoms%radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%radii_cf',subname)
+
+  
+  !  Free data for pawpatch
+  call deallocate_atomdatapaw(atoms,subname)
+
+
 END SUBROUTINE deallocate_atoms
 
 

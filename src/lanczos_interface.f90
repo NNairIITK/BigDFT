@@ -94,7 +94,7 @@ contains
     ha=>ha_actual
 
     !! for the transposed representation
-    EP_dim=sum( ha%comms%nvctr_par(ha%iproc,1)) *ha%orbs%nspinor
+    EP_dim=sum( ha%comms%nvctr_par(ha%iproc,ha%orbs%iskpts+1:ha%orbs%iskpts+ ha%orbs%nkptsp )) *ha%orbs%nspinor
 
     !!   EP_dim_tot=(ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f)*ha%orbs%nspinor*ha%orbs%nkpts
     !! for the direct representation
@@ -109,8 +109,8 @@ contains
 !!$       stop "array size inconsistency" 
 !!$    endif
 
-    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f) /= &
-         sum(ha%comms%nvctr_par(:,1))  ) then
+    if( (ha%lr%wfd%nvctr_c+7*ha%lr%wfd%nvctr_f) * ha%orbs%nkptsp  /= &
+         sum(ha%comms%nvctr_par(:, ha%orbs%iskpts+1:ha%orbs%iskpts+ ha%orbs%nkptsp   ))  ) then
        stop "array size inconsistency" 
     endif
     !! arrays which are used in the direct rep after retrieval
@@ -395,7 +395,7 @@ contains
     if(ha%orbs%nspinor==1) then
        ipos=1
        do ik = 1, ha%orbs%nkptsp  !! this supposes norb=1 for chebychev
-          do ic = 1, ha%comms%nvctr_par(ha%iproc,ik)
+          do ic = 1, ha%comms%nvctr_par(ha%iproc,ha%orbs%iskpts+ik)
              ovrlp_local( ha%orbs%iskpts+ik)=ovrlp_local( ha%orbs%iskpts+ik)+a(ipos)*b(ipos)
              ipos=ipos+1
           end do
@@ -403,7 +403,7 @@ contains
     else if (ha%orbs%nspinor ==2) then
        ipos=1
        do ik = 1, ha%orbs%nkptsp  !! this supposes norb=1 for chebychev
-          do ic = 1, ha%comms%nvctr_par(ha%iproc,ik)
+          do ic = 1, ha%comms%nvctr_par(ha%iproc,ha%orbs%iskpts+ik)
              ovrlp_local( ha%orbs%iskpts+ik)=ovrlp_local( ha%orbs%iskpts+ik)+a(ipos)*b(ipos)
              ovrlp_local( ha%orbs%iskpts+ik)=ovrlp_local( ha%orbs%iskpts+ik)+a(ipos+1)*b(ipos+1)
              !! for chebychev all scalar product should be real

@@ -494,7 +494,6 @@ program memguess
   ! De-allocations
   call deallocate_orbs(orbs,subname)
   call free_input_variables(in)  
-  call deallocate_atomdatapaw(atoms,subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

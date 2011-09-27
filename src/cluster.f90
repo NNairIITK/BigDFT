@@ -1724,8 +1724,6 @@ contains
     ! Free the libXC stuff if necessary.
     call xc_end()
 
-    !  Free data for pawpatch
-    call deallocate_atomdatapaw(atoms,subname)
 
     !deallocate the mixing
     if (in%itrpmax > 1) then
@@ -1740,10 +1738,6 @@ contains
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
     if (iproc == 0) &
          write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', iproc,tel,tcpu1-tcpu0
-
-
-
-    
 
 
   END SUBROUTINE deallocate_before_exiting

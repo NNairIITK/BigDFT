@@ -1458,7 +1458,8 @@ contains
     if(sum(atoms%paw_NofL).gt.0) then
        call deallocate_pawproj_data(PAWD,subname)       
     endif
-    call deallocate_atomdatapaw(atoms,subname)
+    !! this is included in deallocate_atomdatapaw
+    !! call deallocate_atomdatapaw(atoms,subname)
 
     ! Free the libXC stuff if necessary.
     call xc_end()
