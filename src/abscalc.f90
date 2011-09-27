@@ -841,23 +841,23 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 !!$
 !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
-!      if (in%output_grid == OUTPUT_GRID_DENSPOT) then
-!         if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
-!           if (iproc == 0) write(*,*) 'writing local_potential'
+     if (in%output_grid == OUTPUT_GRID_DENSPOT) then
+        if (in%output_grid_format == OUTPUT_GRID_FORMAT_TEXT) then
+          if (iproc == 0) write(*,*) 'writing local_potential'
 
-!           call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
-!                n1,n2,n3,n1i,n2i,n3i,n3p,&
-!                in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
-! !!$
-! !!$           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
-! !!$                n1,n2,n3,n1i,n2i,n3i,n3p,&
-! !!$                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
-!         else
-!            call plot_density_cube_old(atoms%geocode,'local_potentialb2B',iproc,nproc,&
-!                 n1,n2,n3,n1i,n2i,n3i,n3p,&
-!                 in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
-!         endif
-!      end if
+          call plot_density('local_potentialb2B' // gridformat,iproc,nproc,&
+               n1,n2,n3,n1i,n2i,n3i,n3p,&
+               in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
+!!$
+!!$           call plot_density_old(atoms%geocode,'local_potentialb2B.pot',iproc,nproc,&
+!!$                n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!$                atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1,1))
+        else
+           call plot_density_cube_old(atoms%geocode,'local_potentialb2B',iproc,nproc,&
+                n1,n2,n3,n1i,n2i,n3i,n3p,&
+                in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rhopot(1,1,1,1))
+        endif
+     end if
 
 !!$     call  read_potfile4b2B("local_potential.pot",n1i_bB,n2i_bB,n3i_bB, pot_bB, alat1_bB, alat2_bB, alat3_bB)
 !!$     print *, pot_bB(10  + (9-1)*n1i_bB  + (8-1)*n1i_bB*n2i_bB)
