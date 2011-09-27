@@ -1607,17 +1607,20 @@ subroutine parallel_repartition_per_kpoints(iproc,nproc,nkpts,nobj,nobj_par,&
   end do
 
 END SUBROUTINE parallel_repartition_per_kpoints
+
 subroutine   pawpatch_from_file( filename, atoms,ityp, paw_tot_l)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
   type(atoms_data), intent(inout) :: atoms
-  integer , intent(IN):: paw_tot_l,ityp 
+  integer , intent(IN):: ityp 
+  integer , intent(INOUT):: paw_tot_l
 
 !! local variables  
-  integer ::  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, dumi, npawl, ipawl, paw_l
-  integer :: paw_nofgaussians, paw_nofchannels, il
+  character(len=*), parameter :: subname='pawpatch_from_file'
+  integer ::  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, dumi, npawl, ipawl, paw_l, i_stat
+  integer :: paw_nofgaussians, paw_nofchannels, il, ierror, ig
   real(gp) :: paw_greal, paw_gimag, paw_ccoeff, paw_scoeff, dumpaw
   character(len=100) :: string
 

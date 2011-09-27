@@ -412,7 +412,7 @@ subroutine xabs_chebychev(iproc,nproc,at,hx,hy,hz,rxyz,&
        EP_Moltiplica, EP_GramSchmidt ,EP_set_all_random, EP_copy,   EP_mat_mult, &
        EP_scalare_multik,EP_add_from_vect_with_fact  , EP_multbyfact, EP_ApplySinv, EP_ApplyS, dopaw, &
        in%abscalc_S_do_cg,  in%abscalc_Sinv_do_cg, in%xabs_res_prefix, ha%orbs%nkpts , ha%orbs%norb_par, &
-       ha%orbs%kwgts(   ha%orbs%iskpts+1    :    ha%orbs%iskpts + ha%orbs%norb_par(ha%iproc))   )
+       ha%orbs%kwgts(   ha%orbs%iskpts+1    :    ha%orbs%iskpts + ha%orbs%norb_par(ha%iproc,0))   )
 
   if(ha%iproc==0) then
      print *, "coefficients from Chebychev "
