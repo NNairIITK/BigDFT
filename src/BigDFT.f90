@@ -20,7 +20,7 @@ program BigDFT
    !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
    character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
-   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode,istat
    integer :: ncount_bigdft
    real(gp) :: etot,sumx,sumy,sumz,fnoise
    logical :: exist_list

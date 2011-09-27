@@ -188,6 +188,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 !!$  end if
   call timing(iproc,'ApplyLocPotKin','OF') 
 
+
+
+
   ! apply all PSP projectors for all orbitals belonging to iproc
   call timing(iproc,'ApplyProj     ','ON')
 
@@ -229,7 +232,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   if(OCLconv .and. ASYNCconv) then
     call finish_hamiltonian_OCL(orbs,ekin_sum,epot_sum,GPU,ekin,epot)
-    call daxpy(size(hpsi), 1.0_wp, hpsi2(1), 1, hpsi(1),1)
+    call daxpy(size(hpsi),1.0_wp,hpsi2(1),1,hpsi(1),1)
     i_all=-product(shape(hpsi2))*kind(hpsi2)
     deallocate(hpsi2,stat=i_stat)
     call memocc(i_stat,i_all,'hpsi2',subname)

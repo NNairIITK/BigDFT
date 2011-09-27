@@ -67,8 +67,10 @@ subroutine standard_inputfile_names(inputs, radical)
   character(len = 128) :: rad
 
   write(rad, "(A)") ""
-  if (present(radical)) write(rad, "(A)") trim(radical)
-  if (trim(radical) == "") write(rad, "(A)") "input"
+  if (present(radical)) then 
+     write(rad, "(A)") trim(radical)
+     if (trim(radical) == "") write(rad, "(A)") "input"
+  end if
 
   inputs%file_dft=trim(rad) // '.dft'
   inputs%file_geopt=trim(rad) // '.geopt'
