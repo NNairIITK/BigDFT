@@ -255,6 +255,7 @@ c_level = posfiles.c \
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	BigDFT_API.f90 \
+	$(c_level) \
 	$(low_level) \
 	$(high_level) \
 	$(flush_files) \
