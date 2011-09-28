@@ -45,6 +45,7 @@ integer:: norb, norbu, norbd, istat, iat, ityp, iall, ilr, iorb, iiorb, ii, jpro
 integer,dimension(:),allocatable:: norbsPerAtom
 character(len=*),parameter:: subname='allocateAndInitializeLinear'
 character(len=20),dimension(:),allocatable:: atomNames
+real(8):: t1, t2
 integer :: npsidim
 
 
@@ -169,8 +170,10 @@ if(lin%useDerivativeBasisFunctions) norbsPerAtom=norbsPerAtom/4
 
 ! Initialize the localization regions.
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing localization regions... '
+t1=mpi_wtime()
 call initLocregs(iproc, at%nat, rxyz, lin, input, Glr, phi, lphi)
-if(iproc==0) write(*,'(a)') 'done.'
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 npsidim = 0
 do iorb=1,lin%orbs%norbp
  ilr=lin%orbs%inwhichlocreg(iorb+lin%orbs%isorb)
@@ -192,8 +195,10 @@ call initCoefficients(iproc, orbs, lin, coeff)
 ! Initialize the parameters for the point to point communication for the
 ! calculation of the charge density.
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications sumrho... '
+t1=mpi_wtime()
 call initializeCommsSumrho2(iproc, nproc, nscatterarr, lin, tag)
-if(iproc==0) write(*,'(a)') 'done.'
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 !call allocateCommunicationbufferSumrho(lin%comsr, subname)
 
 ! Copy Glr to lin%lzd
@@ -231,18 +236,22 @@ end do
 ! Initialize the parameters for the communication for the
 ! potential.
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications potential... '
+t1=mpi_wtime()
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%orbs, lin%lzd, lin%comgp, lin%orbs%inWhichLocreg, tag)
 !call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lb%lzd, lin%lb%comgp, &
 !     lin%lb%lzd%orbs%inWhichLocreg, tag)
 call initializeCommunicationPotential(iproc, nproc, nscatterarr, lin%lb%orbs, lin%lzd, lin%lb%comgp, &
      lin%orbs%inWhichLocreg, tag)
-if(iproc==0) write(*,'(a)') 'done.'
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 ! Initialize the parameters for the communication for the orthonormalization.
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing communications orthonormalization... '
+t1=mpi_wtime()
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%orbs, lin%orbs%inWhichLocreg, input, lin%op, lin%comon, tag)
 call initCommsOrtho(iproc, nproc, lin%lzd, lin%lb%orbs, lin%lb%orbs%inWhichLocreg, input, lin%lb%op, lin%lb%comon, tag)
-if(iproc==0) write(*,'(a)') 'done.'
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
 ! Initialize the parameters for the repartitioning of the orbitals.
 if(lin%useDerivativeBasisFunctions) call initializeRepartitionOrbitals(iproc, nproc, tag, lin)
@@ -265,22 +274,24 @@ deallocate(norbsPerAtom, stat=istat)
 call memocc(istat, iall, 'norbsPerAtom', subname)
 
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing input guess... '
+t1=mpi_wtime()
 call initInputguessConfinement(iproc, nproc, at, Glr, input, lin, rxyz, nscatterarr, tag)
-if(iproc==0) write(*,'(a)') 'done.'
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 
-! The initializations are done.
-if(iproc==0) write(*,'(a)') 'done.'
 
 ! Estimate the memory requirements.
 call estimateMemory(iproc, nproc, at%nat, lin, nscatterarr)
 
 
 if(iproc==0) write(*,'(x,a)',advance='no') 'Initializing matrix compression... '
+t1=mpi_wtime()
 call initMatrixCompression(iproc, nproc, lin%orbs, lin%op, lin%mad)
 !call initCompressedMatmul(iproc, nproc, lin%lb%orbs%norb, lin%mad)
 !call initCompressedMatmul2(norb, lin%mad%nseg, lin%mad%keyg, lin%mad%nsegmatmul, lin%mad%keygmatmul, lin%mad%keyvmatmul)
 call initCompressedMatmul3(norb, lin%mad)
-if(iproc==0) write(*,'(a)') 'done.'
+t2=mpi_wtime()
+if(iproc==0) write(*,'(a,es9.3,a)') 'done in ',t2-t1,'s.'
 !!if(iproc==0) then
 !!    do iall=1,lin%mad%nsegmatmul
 !!        write(*,'(a,4i8)') 'iall, lin%mad%keyvmatmul(iall), lin%mad%keygmatmul(1,iall), lin%mad%keygmatmul(2,iall)', iall, lin%mad%keyvmatmul(iall), lin%mad%keygmatmul(1,iall), lin%mad%keygmatmul(2,iall)
@@ -2994,13 +3005,138 @@ do iseg=1,nsegmatmul
                 jjseg=jjseg+1
             end if
         end do
+        if(iproc==0) write(*,'(3(a,i0),a,es15.6)') 'process ',iproc,': c(',irow,',',icolumn,')=',c(irow,icolumn)
     end do
 end do
 !write(*,*) 'ii, norb**2', ii, norb**2
+do icolumn=1,norb
+    do irow=1,norb
+        if(iproc==0) write(200,*) icolumn, irow, c(irow,icolumn)
+    end do
+end do
 
 
 
 end subroutine dgemm_compressed2
+
+
+
+subroutine dgemm_compressed_parallel(iproc, nproc, norb, nsegline, nseglinemax, keygline, &
+           nsegmatmul, keygmatmul, norb_par, isorb_par, norbp, a, b, c)
+!! ATTENTION: A MUST BE SYMMETRIC
+use module_base
+use module_types
+implicit none
+
+! Calling arguments
+integer,intent(in):: iproc, nproc, norb, norbp, nseglinemax, nsegmatmul
+integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
+integer,dimension(norb):: nsegline
+!integer,dimension(2,maxval(nsegline),norb):: keygline
+integer,dimension(2,nseglinemax,norb):: keygline
+integer,dimension(0:nproc-1),intent(in):: norb_par, isorb_par
+real(8),dimension(norb,norb),intent(in):: a, b
+real(8),dimension(norb,norb),intent(out):: c
+
+! Local variables
+integer:: iseg, i, irow, icolumn, k, iorb, jorb, korb, jseg, j, jrow, jcolumn, ii
+integer:: ierr, istart, iend, iiseg, jjseg, ncount, jproc, istat, iall, iirow, iicolumn
+real(8):: tt, ddot
+logical:: iistop, jjstop
+integer,dimension(:),allocatable:: sendcounts, displs
+real(8),dimension(:,:),allocatable:: c_loc
+character(len=*),parameter:: subname='dgemm_compressed_parallel'
+
+
+allocate(c_loc(norb,norbp), stat=istat)
+call memocc(istat, c_loc, 'c_loc', subname)
+
+!c=0.d0
+c_loc=0.d0
+ii=0
+do iseg=1,nsegmatmul
+    do i=keygmatmul(1,iseg),keygmatmul(2,iseg)
+        ii=ii+1
+        ! Get the row and column index
+        !irow=(i-1)/norb+1
+        !icolumn=i-(irow-1)*norb
+        icolumn=(i-1)/norb+1
+        irow=i-(icolumn-1)*norb
+        !if(irow>isorb_par(iproc) .and. irow<=isorb_par(min(iproc+1,nproc-1))) then
+        if((icolumn>isorb_par(iproc) .and. icolumn<=isorb_par(min(iproc+1,nproc-1))) .or. (iproc==nproc-1 .and. icolumn>isorb_par(iproc))) then
+            !iirow=irow-isorb_par(iproc)
+            iicolumn=icolumn-isorb_par(iproc)
+            ! This process handles this entry of the matrix
+            !c(irow,icolumn)=ddot(norb, a(1,irow), 1, b(1,icolumn), 1)
+            iiseg=1
+            jjseg=1
+            iistop=.false.
+            jjstop=.false.
+            !write(*,'(a,3(i0,a))') 'process ',iproc,' calculates entry (',irow,',',iicolumn,')'
+            do
+                istart=max(keygline(1,iiseg,irow),keygline(1,jjseg,icolumn))
+                iend=min(keygline(2,iiseg,irow),keygline(2,jjseg,icolumn))
+                ncount=iend-istart+1
+
+                if(ncount>0) then
+                    tt=ddot(ncount, a(istart,irow), 1, b(istart,icolumn), 1)
+                    !tt=ddot(ncount, a(istart,icolumn), 1, b(istart,irow), 1)
+                else
+                    tt=0.d0
+                end if
+                !c(irow,icolumn) = c(irow,icolumn) + tt
+                !c_loc(icolumn,iirow) = c_loc(icolumn,iirow) + tt
+                c_loc(irow,iicolumn) = c(irow,iicolumn) + tt
+                if(iiseg==nsegline(irow)) iistop=.true.
+                if(jjseg==nsegline(icolumn)) jjstop=.true.
+                if(iistop .and. jjstop) exit
+                if((keygline(1,iiseg,irow)<=keygline(1,jjseg,icolumn) .or. jjstop) .and. .not.iistop) then
+                    iiseg=iiseg+1
+                else
+                    jjseg=jjseg+1
+                end if
+            end do
+            !write(*,'(5(a,i0),a,es15.6)') 'process ',iproc,': c_loc(',irow,',',iicolumn,')=c(',irow,',',icolumn,')=',c_loc(irow,iicolumn)
+        end if
+    end do
+end do
+!write(*,*) 'ii, norb**2', ii, norb**2
+
+! Communicate the matrix.
+allocate(sendcounts(0:nproc-1), stat=istat)
+call memocc(istat, sendcounts, 'sendcounts', subname)
+allocate(displs(0:nproc-1), stat=istat)
+call memocc(istat, displs, 'displs', subname)
+
+displs(0)=0
+do jproc=0,nproc-1
+    sendcounts(jproc)=norb*norb_par(jproc)
+    if(jproc>0) displs(jproc)=displs(jproc-1)+sendcounts(jproc-1)
+end do
+call mpi_allgatherv(c_loc(1,1), sendcounts(iproc), mpi_double_precision, c(1,1), sendcounts, displs, &
+     mpi_double_precision, mpi_comm_world, ierr)
+
+iall=-product(shape(sendcounts))*kind(sendcounts)
+deallocate(sendcounts, stat=istat)
+call memocc(istat, iall, 'sendcounts', subname)
+iall=-product(shape(displs))*kind(displs)
+deallocate(displs, stat=istat)
+call memocc(istat, iall, 'displs', subname)
+iall=-product(shape(c_loc))*kind(c_loc)
+deallocate(c_loc, stat=istat)
+call memocc(istat, iall, 'c_loc', subname)
+
+!do icolumn=1,norb
+!    do irow=1,norb
+!        if(iproc==0) write(201,*) icolumn, irow, c(irow,icolumn)
+!    end do
+!end do
+
+
+end subroutine dgemm_compressed_parallel
+
+
+
 
 
 

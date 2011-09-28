@@ -436,12 +436,12 @@ real(8),dimension(:,:),allocatable:: ovrlp
   t2tot=mpi_wtime()
   timetot=t2tot-t1tot
   if(iproc==0) write(*,'(x,a)') '================================================'
-  if(iproc==0) write(*,'(x,a,es9.2,a)') 'total time for linear scaling version:',timetot,'s'
+  if(iproc==0) write(*,'(x,a,es10.3,a)') 'total time for linear scaling version:',timetot,'s'
   if(iproc==0) write(*,'(3x,a)') 'of which:'
-  if(iproc==0) write(*,'(13x,a,es9.2,a,f4.1,a)') '- initialization:',timeinit,'s (',timeinit/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(13x,a,es9.2,a,f4.1,a)') '- input guess:',timeig,'s (',timeig/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(13x,a,es9.2,a,f4.1,a)') '- self consistency cycle:',timescc,'s (',timescc/timetot*100.d0,'%)'
-  if(iproc==0) write(*,'(13x,a,es9.2,a,f4.1,a)') '- forces:',timeforce,'s (',timeforce/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- initialization:',timeinit,'s (',timeinit/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- input guess:',timeig,'s (',timeig/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- self consistency cycle:',timescc,'s (',timescc/timetot*100.d0,'%)'
+  if(iproc==0) write(*,'(13x,a,es10.3,a,f4.1,a)') '- forces:',timeforce,'s (',timeforce/timetot*100.d0,'%)'
   if(iproc==0) write(*,'(x,a)') '================================================'
 
 end subroutine linearScaling

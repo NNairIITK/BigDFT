@@ -4927,28 +4927,40 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
        end subroutine getCommunArraysMatrixCompression
 
 
-subroutine getHamiltonianMatrix6(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, norb_parTemp, onWhichMPITemp, &
-           Glr, input, onWhichAtom, onWhichAtomp, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, tagout, ham)
-  use module_base
-  use module_types
-  implicit none
-  integer,intent(in):: iproc, nproc, nprocTemp, ndim_lhchi, nlocregPerMPI
-  type(local_zone_descriptors),intent(in):: lzdig
-  type(orbitals_data),intent(in):: orbsig, orbs
-  integer,dimension(0:nprocTemp),intent(in):: norb_parTemp
-  integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
-  type(locreg_descriptors),intent(in):: Glr
-  type(input_variables),intent(in):: input
-  integer,dimension(orbsig%norb),intent(in):: onWhichAtom
-  integer,dimension(orbsig%norbp),intent(in):: onWhichAtomp
-  real(8),dimension(orbsig%npsidim),intent(in):: lchi
-  real(8),dimension(orbsig%npsidim,ndim_lhchi),intent(in):: lhchi
-  logical,dimension(lzdig%nlr),intent(in):: skip
-  type(matrixDescriptors),intent(in):: mad
-  integer,intent(in):: memoryForCommunOverlapIG
-  integer,intent(inout):: tagout
-  real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
-end subroutine getHamiltonianMatrix6
+       subroutine getHamiltonianMatrix6(iproc, nproc, nprocTemp, lzdig, orbsig, orbs, onWhichMPITemp, &
+                  input, onWhichAtom, ndim_lhchi, nlocregPerMPI, lchi, lhchi, skip, mad, memoryForCommunOverlapIG, tagout, ham)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, nprocTemp, ndim_lhchi, nlocregPerMPI
+         type(local_zone_descriptors),intent(in):: lzdig
+         type(orbitals_data),intent(in):: orbsig, orbs
+         integer,dimension(orbs%norb),intent(in):: onWhichMPITemp
+         type(input_variables),intent(in):: input
+         integer,dimension(orbsig%norb),intent(in):: onWhichAtom
+         real(8),dimension(orbsig%npsidim),intent(in):: lchi
+         real(8),dimension(orbsig%npsidim,ndim_lhchi),intent(in):: lhchi
+         logical,dimension(lzdig%nlr),intent(in):: skip
+         type(matrixDescriptors),intent(in):: mad
+         integer,intent(in):: memoryForCommunOverlapIG
+         integer,intent(inout):: tagout
+         real(8),dimension(orbsig%norb,orbsig%norb,nlocregPerMPI),intent(out):: ham
+       end subroutine getHamiltonianMatrix6
+       
+       subroutine dgemm_compressed_parallel(iproc, nproc, norb, nsegline, nseglinemax, keygline, &
+                  nsegmatmul, keygmatmul, norb_par, isorb_par, norbp, a, b, c)
+         use module_base
+         use module_types
+         implicit none
+         integer,intent(in):: iproc, nproc, norb, norbp, nseglinemax, nsegmatmul
+         integer,dimension(2,nsegmatmul),intent(in):: keygmatmul
+         integer,dimension(norb):: nsegline
+         !integer,dimension(2,maxval(nsegline),norb):: keygline
+         integer,dimension(2,nseglinemax,norb):: keygline
+         integer,dimension(0:nproc-1),intent(in):: norb_par, isorb_par
+         real(8),dimension(norb,norb),intent(in):: a, b
+         real(8),dimension(norb,norb),intent(out):: c
+       end subroutine dgemm_compressed_parallel
 
 
   end interface

@@ -2469,11 +2469,15 @@ do iorb=1,orbs%norb
 end do
 call cpu_time(t1)
 if(blocksize_pdgemm<0) then
+    !! ATTENTION: HERE IT IS ASSUMED THAT THE INVERSE OF THE OVERLAP MATRIX HAS THE SAME SPARITY
+    !! AS THE OVERLAP MATRIX ITSELF. CHECK THIS!!
     !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
     ovrlp_minus_one_lagmat=0.d0
-    call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
-         mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+    !!call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
+    !!     mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+    call dgemm_compressed_parallel(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
+         mad%keygmatmul, orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
     ! Transpose lagmat
     do iorb=1,orbs%norb
         do jorb=iorb+1,orbs%norb
@@ -2485,8 +2489,10 @@ if(blocksize_pdgemm<0) then
     !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
     ovrlp_minus_one_lagmat_trans=0.d0
-    call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
-         mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+    !!call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
+    !!     mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+    call dgemm_compressed_parallel(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
+         mad%keygmatmul, orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
 else
     call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, &
          ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, 0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
