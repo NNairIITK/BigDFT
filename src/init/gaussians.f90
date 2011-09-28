@@ -345,17 +345,17 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
      call memocc(i_stat,mpicd,'mpicd',subname)
 
      !count
-     mpicd(0,1)=orbs%norb_par(0)*(orbs%norb_par(0)+1)
+     mpicd(0,1)=orbs%norb_par(0,0)*(orbs%norb_par(0,0)+1)
      !displacement
      mpicd(0,2)=0
-     isorb=orbs%norb_par(0)
+     isorb=orbs%norb_par(0,0)
      do jproc=1,nproc-1
         !count
-        mpicd(jproc,1)=(isorb+orbs%norb_par(jproc))*(isorb+orbs%norb_par(jproc)+1)-&
+        mpicd(jproc,1)=(isorb+orbs%norb_par(jproc,0))*(isorb+orbs%norb_par(jproc,0)+1)-&
              isorb*(isorb+1)
         !displacements
         mpicd(jproc,2)=mpicd(jproc-1,2)+mpicd(jproc-1,1)
-        isorb=isorb+orbs%norb_par(jproc)
+        isorb=isorb+orbs%norb_par(jproc,0)
      end do
 
      call MPI_ALLGATHERV(MPI_IN_PLACE,0,mpidtypw,overlaps,mpicd(0,1),mpicd(0,2),&
@@ -376,7 +376,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
   imatrst=0
   do jproc=0,nproc-1
      do i=1,2
-        do iorb=isorb+1,isorb+orbs%norb_par(jproc)
+        do iorb=isorb+1,isorb+orbs%norb_par(jproc,0)
            !determine the index of the overlap in the semicore arrangement
            if (iorb > norbsc_arr(iarr)+iarrsum) then
               iarrsum=iarrsum+norbsc_arr(iarr)
@@ -396,7 +396,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
            end do
         end do
      end do
-     isorb=isorb+orbs%norb_par(jproc)
+     isorb=isorb+orbs%norb_par(jproc,0)
   end do
 
   !fill the final array with the values of the overlap matrix

@@ -87,8 +87,9 @@ subroutine direct_minimization(iproc,nproc,n1i,n2i,in,at,&
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be performed
+  eexctX=0.0_gp
   exctX = xc_exctXfac() /= 0.0_gp
-
+  if (in%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin
   i3rho_add=0
@@ -468,7 +469,9 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   GPU%full_locham=.true.
   !verify whether the calculation of the exact exchange term
   !should be performed
+  eexctX=0.0_gp
   exctX = xc_exctXfac() /= 0.0_gp
+  if (in%exctxpar == 'OP2P') eexctX = UNINITIALIZED(1.0_gp)
 
   !check the size of the rhopot array related to NK SIC
   nrhodim=in%nspin
@@ -612,7 +615,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
   ispsi=1
   do ikptp=1,orbsv%nkptsp
      ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-     nvctrp=commsv%nvctr_par(iproc,ikptp)
+     nvctrp=commsv%nvctr_par(iproc,ikpt)
      if (nvctrp == 0) cycle
 
      nspinor=orbsv%nspinor
@@ -709,7 +712,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
      ispsi=1
      do ikptp=1,orbsv%nkptsp
         ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         if (nvctrp == 0) cycle
 
         nspinor=orbsv%nspinor
@@ -776,7 +779,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
         ispsi=1
         do ikptp=1,orbsv%nkptsp
            ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-           nvctrp=commsv%nvctr_par(iproc,ikptp)
+           nvctrp=commsv%nvctr_par(iproc,ikpt)
            if (nvctrp == 0) cycle
            
            nspinor=orbsv%nspinor
@@ -882,7 +885,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
         ispsi=1
         do ikptp=1,orbsv%nkptsp
            ikpt=orbsv%iskpts+ikptp!orbsv%ikptsp(ikptp)
-           nvctrp=commsv%nvctr_par(iproc,ikptp)
+           nvctrp=commsv%nvctr_par(iproc,ikpt)
            if (nvctrp == 0) cycle
            
            nspinor=orbsv%nspinor
@@ -927,7 +930,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
         do ispin=1,nspin
 
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
            !print *,iproc,ikpt,ispin,norb,nspinor,ncplx,nvctrp,8*ndimovrlp(ispin,ikpt-1)+1,8*ndimovrlp(nspin,orbsv%nkpts)
@@ -959,7 +962,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,in,at,&
 
         ise=0
         do ispin=1,nspin
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            if (nvctrp == 0) cycle
 

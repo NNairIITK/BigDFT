@@ -308,7 +308,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
      ! find kpoint starting index
      ikpt=orbsv%iskpts+ikptp
      ! number of coeff for this k point
-     nvctrp=commsv%nvctr_par(iproc,ikptp)
+     nvctrp=commsv%nvctr_par(iproc,ikpt)
      ! cycle if nothing to be done
      if (nvctrp == 0) cycle
      ! otherwise loop on orbitals 
@@ -423,7 +423,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! this kpoint starting index
         ikpt=orbsv%iskpts+ikptp
         ! number of coeff for this kpoint
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         ! cycle if nothing to do
         if (nvctrp == 0) cycle
         ! otherwise, loop on orbitals
@@ -452,7 +452,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! this kpoint starting index
         ikpt=orbsv%iskpts+ikptp
         ! number of coeff for this kpoint
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         ! cycle if nothing to do
         if (nvctrp == 0) cycle
         ! otherwise, loop on orbitals
@@ -585,7 +585,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! loop on spin
         do ispin=1,nspin
            ! get dimensions 
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            ! cycle if nothing to be done
            if (nvctrp == 0) cycle
@@ -660,7 +660,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! loop on spin
         do ispin=1,nspin
            ! get dimensions
-           call orbitals_and_components(iproc,ikptp,ispin,orbsv,commsv,&
+           call orbitals_and_components(iproc,ikpt,ispin,orbsv,commsv,&
                 nvctrp,norb,norbs,ncomp,nspinor)
            ! loop if noting to be done
            if (nvctrp == 0) cycle
@@ -756,7 +756,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! index of this kpoint 
         ikpt=orbsv%iskpts+ikptp
         ! number of coeff
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         ! loop on spin
         do ispin=1,nspin
            !
@@ -831,7 +831,7 @@ subroutine constrained_davidson(iproc,nproc,n1i,n2i,in,at,&
         ! find kpoint starting index
         ikpt=orbsv%iskpts+ikptp
         ! number of coeff for this k point
-        nvctrp=commsv%nvctr_par(iproc,ikptp)
+        nvctrp=commsv%nvctr_par(iproc,ikpt)
         ! cycle if nothing to be done
         if (nvctrp == 0) cycle
         ! otherwise loop on orbitals 

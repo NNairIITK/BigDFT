@@ -149,9 +149,9 @@ subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
 
       else
 
-         do j=1,nd2,lot
+         do j=1,n2,lot
             ma=j
-            mb=min(j+(lot-1),nd2)
+            mb=min(j+(lot-1),n2)
             nfft=mb-ma+1
             jj=j*nd1-nd1+1
 

@@ -24,7 +24,7 @@ program memguess
   character(len=40) :: comment
   character(len=128) :: fileFrom, fileTo,filename_wfn
   logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
-  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg
+  integer :: nelec,ntimes,nproc,i_stat,i_all,output_grid, i_arg,istat
   integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: norbgpu,nspin_ig,ng
   real(gp) :: peakmem,hx,hy,hz
@@ -50,13 +50,14 @@ program memguess
 
   ! Get arguments
 
-  call getarg(1,tatonam)
+  !call getarg(1,tatonam)
+  call get_command_argument(1, value = tatonam, status = istat)
 
   write(radical, "(A)") ""
   optimise=.false.
   GPUtest=.false.
   atwf=.false.
-  if(trim(tatonam)=='') then
+  if(trim(tatonam)=='' .or. istat>0) then
      write(*,'(1x,a)')&
           'Usage: ./memguess <nproc> [option]'
      write(*,'(1x,a)')&
@@ -89,8 +90,9 @@ program memguess
      read(unit=tatonam,fmt=*) nproc
      i_arg = 2
      loop_getargs: do
-        call getarg(i_arg,tatonam)
-        if(trim(tatonam)=='') then
+        call get_command_argument(i_arg, value = tatonam, status = istat)
+        !call getarg(i_arg,tatonam)
+        if(trim(tatonam)=='' .or. istat > 0) then
            output_grid=0
            exit loop_getargs
         else if (trim(tatonam)=='y') then
@@ -108,7 +110,8 @@ program memguess
            write(*,'(1x,a)')&
                 'Perform the test with GPU, if present.'
            i_arg = i_arg + 1
-           call getarg(i_arg,tatonam)
+           call get_command_argument(i_arg, value = tatonam, status = istat)
+           !call getarg(i_arg,tatonam)
            ntimes=1
            norbgpu=0
            read(tatonam,*,iostat=ierror)ntimes
@@ -116,23 +119,27 @@ program memguess
               write(*,'(1x,a,i0,a)')&
                    'Repeat each calculation ',ntimes,' times.'
               i_arg = i_arg + 1
-              call getarg(i_arg,tatonam)
+              call get_command_argument(i_arg, value = tatonam)
+              !call getarg(i_arg,tatonam)
               read(tatonam,*,iostat=ierror)norbgpu
            end if
            exit loop_getargs
         else if (trim(tatonam)=='convert') then
            convert=.true.
            i_arg = i_arg + 1
-           call getarg(i_arg,fileFrom)
+           call get_command_argument(i_arg, value = fileFrom)
+           !call getarg(i_arg,fileFrom)
            i_arg = i_arg + 1
-           call getarg(i_arg,fileTo)
+           call get_command_argument(i_arg, value = fileTo)
+           !call getarg(i_arg,fileTo)
            write(*,'(1x,5a)')&
                 'convert "', trim(fileFrom),'" file to "', trim(fileTo),'"'
            exit loop_getargs
         else if (trim(tatonam)=='exportwf') then
            exportwf=.true.
            i_arg = i_arg + 1
-           call getarg(i_arg,filename_wfn)
+           call get_command_argument(i_arg, value = filename_wfn)
+           !call getarg(i_arg,filename_wfn)
            write(*,'(1x,3a)')&
                 'export wavefunction file: "', trim(filename_wfn),'" in .cube format'
            exit loop_getargs
@@ -141,7 +148,8 @@ program memguess
            write(*,'(1x,a)')&
                 'Perform the calculation of atomic wavefunction of the first atom'
            i_arg = i_arg + 1
-           call getarg(i_arg,tatonam)
+           call get_command_argument(i_arg, value = tatonam)
+           !call getarg(i_arg,tatonam)
            read(tatonam,*,iostat=ierror)ng
            write(*,'(1x,a,i0,a)')&
                 'Use gaussian basis of',ng,' elements.'

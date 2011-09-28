@@ -39,7 +39,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
   real(gp), dimension(:,:), allocatable :: fewald,xred
 
   pi=4.d0*datan(1.d0)
-
+  psoffset=0.0_gp
   if (at%geocode == 'P') then
      !here we insert the calculation of the ewald forces
      allocate(fewald(3,at%nat+ndebug),stat=i_stat)
@@ -292,7 +292,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,elecfield,&
 
      !if (nproc==1) 
      !print *,'iproc,eself',iproc,eself
-     call razero(n1i*n2i*n3pi,pot_ion)
+     call to_zero(n1i*n2i*n3pi,pot_ion(1))
 
      if (n3pi >0 ) then
         !then calculate the hartree energy and forces of the charge distributions
@@ -497,7 +497,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call razero(n1i*n2i*n3pi,pot_ion)
+  call to_zero(n1i*n2i*n3pi,pot_ion(1))
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')

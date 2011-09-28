@@ -94,7 +94,7 @@ module module_types
   type, public :: input_variables
      !strings of the input files
      character(len=100) :: file_dft,file_geopt,file_kpt,file_perf,file_tddft, &
-          & file_mix,file_sic, dir_output
+          & file_mix,file_sic,file_occnum, dir_output
      !miscellaneous variables
      logical :: gaussian_help
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,itrpmax
@@ -282,7 +282,8 @@ module module_types
   type, public :: orbitals_data
      integer :: norb,norbp,norbu,norbd,nspin,nspinor,isorb,npsidim,nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap
-     integer, dimension(:), pointer :: norb_par,iokpt,ikptproc!,ikptsp
+     integer, dimension(:), pointer :: iokpt,ikptproc
+     integer, dimension(:,:), pointer :: norb_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -486,28 +487,28 @@ contains
   END SUBROUTINE deallocate_diis_objects
 
 
-!> Allocate communications_arrays
-  subroutine allocate_comms(nproc,orbs,comms,subname)
-    use module_base
-    implicit none
-    character(len=*), intent(in) :: subname
-    integer, intent(in) :: nproc
-    type(orbitals_data), intent(in) :: orbs
-    type(communications_arrays), intent(out) :: comms
-    !local variables
-    integer :: i_stat
-
-    allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
-    allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ncntd,'ncntd',subname)
-    allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ncntt,'ncntt',subname)
-    allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ndspld,'ndspld',subname)
-    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
-  END SUBROUTINE allocate_comms
+!!$!> Allocate communications_arrays
+!!$  subroutine allocate_comms(nproc,orbs,comms,subname)
+!!$    use module_base
+!!$    implicit none
+!!$    character(len=*), intent(in) :: subname
+!!$    integer, intent(in) :: nproc
+!!$    type(orbitals_data), intent(in) :: orbs
+!!$    type(communications_arrays), intent(out) :: comms
+!!$    !local variables
+!!$    integer :: i_stat
+!!$
+!!$    allocate(comms%nvctr_par(0:nproc-1,orbs%nkptsp+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
+!!$    allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ncntd,'ncntd',subname)
+!!$    allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ncntt,'ncntt',subname)
+!!$    allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ndspld,'ndspld',subname)
+!!$    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
+!!$    call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
+!!$  END SUBROUTINE allocate_comms
 
 
 !> De-Allocate communications_arrays
@@ -515,7 +516,7 @@ contains
     use module_base
     implicit none
     character(len=*), intent(in) :: subname
-    type(communications_arrays), intent(out) :: comms
+    type(communications_arrays), intent(inout) :: comms
     !local variables
     integer :: i_all,i_stat
 

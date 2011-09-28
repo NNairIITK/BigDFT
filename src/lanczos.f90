@@ -139,8 +139,7 @@ subroutine xabs_lanczos(iproc,nproc,at,hx,hy,hz,rxyz,&
    !allocate the potential in the full box
    call full_local_potential(iproc,nproc,ndimpot,lr%d%n1i*lr%d%n2i*lr%d%n3i,in%nspin,&
         lr%d%n1i*lr%d%n2i*lr%d%n3i*in%nspin,0,&
-        ha%orbs%norb,ha%orbs%norbp,ngatherarr,potential,pot)
-
+        ha%orbs%norb,ha%orbs%norbp,ngatherarr,pot)
 
    ha%iproc=iproc
    ha%nproc=nproc

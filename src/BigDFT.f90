@@ -19,8 +19,8 @@ program BigDFT
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
    !! name convention as "implicit real(kind=8) (a-h,o-z)"
 
-   character(len=*), parameter :: subname='BigDFT' !< Use by memocc routine (timing)
-   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode
+   character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
+   integer :: iproc,nproc,iat,j,i_stat,i_all,ierr,infocode,istat
    integer :: ncount_bigdft
    real(gp) :: etot,sumx,sumy,sumz,fnoise
    logical :: exist_list
@@ -62,15 +62,24 @@ program BigDFT
             read(54,*) arr_posinp(iconfig)
          enddo
       else
+         !normal case
          nconfig=1
          allocate(arr_posinp(1:1))
-         arr_posinp(1)='posinp'
+         if (istat > 0) then
+            arr_posinp(1)='posinp'
+         else
+            arr_posinp(1)=trim(radical)
+         end if
       endif
       close(54)
    else
       nconfig=1
       allocate(arr_posinp(1:1))
-      arr_posinp(1)='posinp'
+         if (istat > 0) then
+            arr_posinp(1)='posinp'
+         else
+            arr_posinp(1)=trim(radical)
+         end if
    end if
 
    do iconfig=1,nconfig
