@@ -4295,7 +4295,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
 
       subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOverlap, blocksize_pdgemm, &
                  comm, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, &
-                 lagmat, comom, mlr, mad, grad)
+                 lagmat, comom, mlr, mad, orbs, grad)
         use module_base
         use module_types
         implicit none
@@ -4308,6 +4308,7 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         type(p2pCommsOrthonormalityMatrix),intent(in):: comom
         type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
         type(matrixDescriptors),intent(in):: mad
+        type(orbitals_data),intent(in):: orbs
         real(8),dimension(norbmax,norbp),intent(inout):: grad
       end subroutine applyOrthoconstraintVectors
 
@@ -4438,12 +4439,13 @@ subroutine HamiltonianApplicationConfinementForAllLocregs(iproc,nproc,at,orbs,li
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine overlapPowerMinusOneHalf
 
-      subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
+      subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
         use module_base
         use module_types
         implicit none
         integer,intent(in):: iproc, nproc, iorder, norb
         type(matrixDescriptors),intent(in):: mad
+        type(orbitals_data),intent(in):: orbs
         real(8),dimension(norb,norb),intent(inout):: ovrlp
       end subroutine overlapPowerMinusOne
 

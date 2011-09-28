@@ -2745,7 +2745,7 @@ call calculateOverlap(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%
 ! Now apply the orthoconstraint.
 call applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, &
      blocksize_pdgemm, newComm, orbs%norb, &
-     norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, mad, grad)
+     norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, lagmat, comom, mlr, mad, orbs, grad)
 
 !call transformOverlapMatrix(iproc, nproc, orbs%norb, ovrlp)
 !call orthonormalLinearCombinations(iproc, nproc, nlr, norbmax, norbp, noverlaps, isorb, orbs%norb, comom, mlr, onWhichAtom, vecOvrlp, ovrlp, vec)
@@ -3229,7 +3229,7 @@ end subroutine orthonormalLinearCombinations
 
 subroutine applyOrthoconstraintVectors(iproc, nproc, methTransformOverlap, correctionOrthoconstraint, blocksize_pdgemm, &
            comm, norb, norbmax, norbp, isorb, nlr, noverlaps, onWhichAtom, vecOvrlp, ovrlp, &
-           lagmat, comom, mlr, mad, grad)
+           lagmat, comom, mlr, mad, orbs, grad)
 use module_base
 use module_types
 use module_interfaces, exceptThisOne => applyOrthoconstraintVectors
@@ -3245,6 +3245,7 @@ real(8),dimension(norb,norb),intent(inout):: lagmat
 type(p2pCommsOrthonormalityMatrix),intent(in):: comom
 type(matrixLocalizationRegion),dimension(nlr),intent(in):: mlr
 type(matrixDescriptors),intent(in):: mad
+type(orbitals_data),intent(in):: orbs
 real(8),dimension(norbmax,norbp),intent(inout):: grad
 
 ! Local variables
@@ -3276,7 +3277,7 @@ call dcopy(norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 
 correctionIf: if(correctionOrthoconstraint==0) then
     ! Invert the overlap matrix
-    call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, norb, mad, ovrlp2)
+    call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, norb, mad, orbs, ovrlp2)
     
     ! Multiply the Lagrange multiplier matrix with S^-1/2.
     ! First fill the upper triangle.
@@ -3293,8 +3294,10 @@ correctionIf: if(correctionOrthoconstraint==0) then
         !!call dsymm('l', 'l', norb, norb, 1.d0, ovrlp2(1,1), norb, lagmat(1,1), norb, &
         !!     0.d0, ovrlp_minus_one_lagmat(1,1), norb)
         ovrlp_minus_one_lagmat=0.d0
-        call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
-             ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+        !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+        !!     ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+        call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+             orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
         !ovrlp_minus_one_lagmat=lagmat
         ! Transpose lagmat
         do iorb=1,norb
@@ -3308,8 +3311,10 @@ correctionIf: if(correctionOrthoconstraint==0) then
         !!     0.d0, ovrlp_minus_one_lagmat_trans(1,1), norb)
         !ovrlp_minus_one_lagmat_trans=lagmat
         ovrlp_minus_one_lagmat_trans=0.d0
-        call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
-             ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+        !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+        !!     ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+        call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, mad%keygmatmul, &
+             orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
     
     else
         call dsymm_parallel(iproc, nproc, blocksize_pdgemm, comm, 'l', 'l', norb, norb, 1.d0, ovrlp2(1,1), &

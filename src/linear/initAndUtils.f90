@@ -3005,15 +3005,15 @@ do iseg=1,nsegmatmul
                 jjseg=jjseg+1
             end if
         end do
-        if(iproc==0) write(*,'(3(a,i0),a,es15.6)') 'process ',iproc,': c(',irow,',',icolumn,')=',c(irow,icolumn)
+        !if(iproc==0) write(*,'(3(a,i0),a,es15.6)') 'process ',iproc,': c(',irow,',',icolumn,')=',c(irow,icolumn)
     end do
 end do
 !write(*,*) 'ii, norb**2', ii, norb**2
-do icolumn=1,norb
-    do irow=1,norb
-        if(iproc==0) write(200,*) icolumn, irow, c(irow,icolumn)
-    end do
-end do
+!!do icolumn=1,norb
+!!    do irow=1,norb
+!!        if(iproc==0) write(200,*) icolumn, irow, c(irow,icolumn)
+!!    end do
+!!end do
 
 
 
@@ -3086,7 +3086,7 @@ do iseg=1,nsegmatmul
                 end if
                 !c(irow,icolumn) = c(irow,icolumn) + tt
                 !c_loc(icolumn,iirow) = c_loc(icolumn,iirow) + tt
-                c_loc(irow,iicolumn) = c(irow,iicolumn) + tt
+                c_loc(irow,iicolumn) = c_loc(irow,iicolumn) + tt
                 if(iiseg==nsegline(irow)) iistop=.true.
                 if(jjseg==nsegline(icolumn)) jjstop=.true.
                 if(iistop .and. jjstop) exit
@@ -3126,11 +3126,11 @@ iall=-product(shape(c_loc))*kind(c_loc)
 deallocate(c_loc, stat=istat)
 call memocc(istat, iall, 'c_loc', subname)
 
-!do icolumn=1,norb
-!    do irow=1,norb
-!        if(iproc==0) write(201,*) icolumn, irow, c(irow,icolumn)
-!    end do
-!end do
+!!do icolumn=1,norb
+!!    do irow=1,norb
+!!        if(iproc==0) write(201,*) icolumn, irow, c(irow,icolumn)
+!!    end do
+!!end do
 
 
 end subroutine dgemm_compressed_parallel

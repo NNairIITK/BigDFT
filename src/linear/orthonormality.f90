@@ -2457,7 +2457,7 @@ call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 
 ! Invert the overlap matrix
 call mpi_barrier(mpi_comm_world, ierr)
-call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp2)
+call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, orbs, ovrlp2)
 
 
 ! Multiply the Lagrange multiplier matrix with S^-1/2.
@@ -2467,17 +2467,31 @@ do iorb=1,orbs%norb
         ovrlp2(jorb,iorb)=ovrlp2(iorb,jorb)
     end do
 end do
-call cpu_time(t1)
 if(blocksize_pdgemm<0) then
     !! ATTENTION: HERE IT IS ASSUMED THAT THE INVERSE OF THE OVERLAP MATRIX HAS THE SAME SPARITY
     !! AS THE OVERLAP MATRIX ITSELF. CHECK THIS!!
     !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !     0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
+    t1=mpi_wtime()
     ovrlp_minus_one_lagmat=0.d0
     !!call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
     !!     mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+    !!do iorb=1,orbs%norb
+    !!    do jorb=1,orbs%norb
+    !!        if(iproc==0) write(200,*) iorb, jorb, ovrlp_minus_one_lagmat(jorb,iorb)
+    !!    end do
+    !!end do
     call dgemm_compressed_parallel(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
          mad%keygmatmul, orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat)
+    !!do iorb=1,orbs%norb
+    !!    do jorb=1,orbs%norb
+    !!        if(iproc==0) write(201,*) iorb, jorb, ovrlp_minus_one_lagmat(jorb,iorb)
+    !!    end do
+    !!end do
+
+    t2=mpi_wtime()
+    if(iproc==0) write(*,*) 'time for first dgemm_compressed_parallel', t2-t1
+    t1=mpi_wtime()
     ! Transpose lagmat
     do iorb=1,orbs%norb
         do jorb=iorb+1,orbs%norb
@@ -2486,13 +2500,18 @@ if(blocksize_pdgemm<0) then
             lagmat(iorb,jorb)=tt
         end do
     end do
+    t2=mpi_wtime()
+    if(iproc==0) write(*,*) 'time for transposing', t2-t1
     !call dsymm('l', 'l', orbs%norb, orbs%norb, 1.d0, ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, &
     !     0.d0, ovrlp_minus_one_lagmat_trans(1,1), orbs%norb)
+    t1=mpi_wtime()
     ovrlp_minus_one_lagmat_trans=0.d0
     !!call dgemm_compressed2(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
     !!     mad%keygmatmul, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
     call dgemm_compressed_parallel(iproc, nproc, orbs%norb, mad%nsegline, mad%nseglinemax, mad%keygline, mad%nsegmatmul, &
          mad%keygmatmul, orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp2, lagmat, ovrlp_minus_one_lagmat_trans)
+    t2=mpi_wtime()
+    if(iproc==0) write(*,*) 'time for first dgemm_compressed_parallel', t2-t1
 else
     call dsymm_parallel(iproc, nproc, blocksize_pdgemm, mpi_comm_world, 'l', 'l', orbs%norb, orbs%norb, 1.d0, &
          ovrlp2(1,1), orbs%norb, lagmat(1,1), orbs%norb, 0.d0, ovrlp_minus_one_lagmat(1,1), orbs%norb)
@@ -2559,7 +2578,7 @@ call memocc(istat, iall, 'ovrlp2', subname)
 end subroutine applyOrthoconstraintNonorthogonal2
 
 
-subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
+subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, orbs, ovrlp)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => overlapPowerMinusOne
@@ -2567,6 +2586,7 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
   
   ! Calling arguments
   integer,intent(in):: iproc, nproc, iorder, norb
+  type(orbitals_data),intent(in):: orbs
   type(matrixDescriptors),intent(in):: mad
   real(8),dimension(norb,norb),intent(inout):: ovrlp
   
@@ -2607,8 +2627,10 @@ subroutine overlapPowerMinusOne(iproc, nproc, iorder, norb, mad, ovrlp)
       ! Calculate ovrlp**2
       allocate(ovrlp2(norb,norb), stat=istat)
       call memocc(istat, ovrlp2, 'ovrlp2', subname)
-      call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
-           mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      !!call dgemm_compressed2(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+      !!     mad%nsegmatmul, mad%keygmatmul, ovrlp, ovrlp, ovrlp2)
+      call dgemm_compressed_parallel(iproc, nproc, norb, mad%nsegline, mad%nseglinemax, mad%keygline, &
+           mad%nsegmatmul, mad%keygmatmul, orbs%norb_par, orbs%isorb_par, orbs%norbp, ovrlp, ovrlp, ovrlp2)
       
       ! Build ovrlp**(-1) with a Taylor expansion up to second order.  
       do iorb=1,norb
@@ -4961,7 +4983,7 @@ call dcopy(orbs%norb**2, ovrlp(1,1), 1, ovrlp2(1,1), 1)
 
 ! Invert the overlap matrix
 call mpi_barrier(mpi_comm_world, ierr)
-call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, ovrlp2)
+call overlapPowerMinusOne(iproc, nproc, methTransformOverlap, orbs%norb, mad, orbs, ovrlp2)
 
 
 ! Multiply the Lagrange multiplier matrix with S^-1/2.
