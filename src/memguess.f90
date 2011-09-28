@@ -1162,7 +1162,7 @@ subroutine take_psi_from_file(filename,hx,hy,hz,lr,at,rxyz,psi)
   !local variables
   character(len=*), parameter :: subname='take_psi_form_file'
   logical :: perx,pery,perz,exists
-  integer :: nb1,nb2,nb3,i_stat,i_err,isuffix,iorb_out,i_all
+  integer :: nb1,nb2,nb3,i_stat,isuffix,iorb_out,i_all
   real(gp) :: eval_fake
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(gp), dimension(:,:), allocatable :: rxyz_file
