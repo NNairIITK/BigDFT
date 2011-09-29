@@ -605,7 +605,7 @@ END SUBROUTINE partial_density_free
 subroutine symmetrise_density(iproc,nproc,n1i,n2i,n3i,nscatterarr,nspin,nrho,rho,&
      symObj,irrzon,phnons)
   use module_base!, only: gp,dp,wp,ndebug,memocc
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   implicit none
   integer, intent(in) :: iproc,nproc,nrho,symObj,nspin, n1i, n2i, n3i

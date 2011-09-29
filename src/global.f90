@@ -14,7 +14,7 @@ program MINHOP
   use module_base
   use module_types
   use module_interfaces
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
@@ -621,7 +621,7 @@ contains
     use module_base
     use module_types
     use module_interfaces
-    use ab6_symmetry
+    use m_ab6_symmetry
     implicit real*8 (a-h,o-z)
     type(atoms_data) :: atoms
     type(restart_objects) :: rst
@@ -760,7 +760,7 @@ rkin=dot(3*atoms%nat,vxyz(1,1),1,vxyz(1,1),1)
     use module_base
     use module_types
     use module_interfaces
-    use ab6_symmetry
+    use m_ab6_symmetry
     implicit real*8 (a-h,o-z)
     type(atoms_data) :: atoms
     dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
@@ -1029,7 +1029,7 @@ END SUBROUTINE hunt_g
 subroutine velopt(at,rxyz,ekinetic,vxyz)
   use module_base
   use module_types
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
   real(gp), intent(in) :: ekinetic
@@ -1354,7 +1354,7 @@ END SUBROUTINE elim_moment
 subroutine fix_fragmentation(iproc,at,rxyz,nputback)
   use module_base
   use module_types
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
   integer, intent(in) :: iproc
@@ -1497,7 +1497,7 @@ subroutine winter(at,re_pos,pos,npminx,nlminx,nlmin,npmin,accur, &
      earr,elocmin,poslocmin,eref,ediff,ekinetic,dt,nsoften)
   use module_base
   use module_types
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
   integer, intent(in) :: npminx,nlminx,nlmin,npmin,nsoften
@@ -1549,7 +1549,7 @@ END SUBROUTINE wtioput
 subroutine wtpos(at,npminx,nlminx,nlmin,npmin,pos,earr,elocmin)
   use module_base
   use module_types
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   !implicit real*8 (a-h,o-z)
   integer, intent(in) :: npminx,nlminx,nlmin,npmin

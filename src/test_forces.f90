@@ -21,7 +21,7 @@ program test_forces
   use module_base
   use module_types
   use module_interfaces
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   !as a general policy, we'll have "implicit none" by assuming the same
   !name convention as "implicit real(kind=8) (a-h,o-z)"

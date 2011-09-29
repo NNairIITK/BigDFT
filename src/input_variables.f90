@@ -903,7 +903,7 @@ subroutine update_symmetries(in, atoms, rxyz)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(inout) :: atoms
@@ -978,7 +978,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   use module_input
   implicit none
   character(len=*), intent(in) :: filename
@@ -1183,7 +1183,7 @@ subroutine kpt_input_variables(iproc,filename,in,atoms)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
@@ -1922,7 +1922,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
    use module_base
    use module_types
    use module_interfaces, except_this_one => read_atomic_file
-   use ab6_symmetry
+   use m_ab6_symmetry
    use position_files
    implicit none
    character(len=*), intent(in) :: file
@@ -2038,7 +2038,7 @@ END SUBROUTINE read_atomic_file
 subroutine deallocate_atoms(atoms,subname) 
   use module_base
   use module_types
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   character(len=*), intent(in) :: subname
   type(atoms_data), intent(inout) :: atoms
@@ -3002,7 +3002,7 @@ subroutine print_general_parameters(nproc,input,atoms)
   use module_base
   use module_types
   use defs_basis
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   !Arguments
   integer, intent(in) :: nproc

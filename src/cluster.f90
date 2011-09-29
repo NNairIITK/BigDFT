@@ -188,7 +188,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,fnoise,&
   use module_xc
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces, vdwcorrection_warnings
   use esatto
-  use ab6_symmetry
+  use m_ab6_symmetry
   use m_ab6_mixing
   implicit none
   integer, intent(in) :: nproc,iproc

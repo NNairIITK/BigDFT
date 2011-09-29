@@ -275,7 +275,7 @@ contains
   subroutine box_features(whichone,contcar,nrep,nat,ntypes,iatype,pos,factor)
     use BigDFT_API
     use module_interfaces
-    use ab6_symmetry
+    use m_ab6_symmetry
     implicit none
     character(len=1), intent(in) :: whichone
     character(len=40), intent(in) :: contcar
@@ -381,7 +381,7 @@ end program find_angles
 subroutine read_pos(iunit,whichone,nat,pos,nrep)
   use BigDFT_API
   use module_interfaces
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   character(len=1), intent(in) :: whichone
   integer, intent(in) :: iunit,nat,nrep

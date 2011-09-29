@@ -16,7 +16,7 @@ program memguess
   use module_types
   use module_interfaces
   use module_xc
-  use ab6_symmetry
+  use m_ab6_symmetry
 
   implicit none
   character(len=*), parameter :: subname='memguess'

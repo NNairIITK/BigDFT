@@ -369,7 +369,7 @@ subroutine read_system_variables(fileocc,iproc,in,atoms,radii_cf,&
   use module_base
   use module_types
   use module_xc
-  use ab6_symmetry
+  use m_ab6_symmetry
   implicit none
   character (len=*), intent(in) :: fileocc
   type(input_variables), intent(in) :: in
