@@ -1071,6 +1071,7 @@ subroutine kpt_input_variables_new(iproc,filename,in,atoms)
         call input_var( in%wkpt(i),'1.',comment='K-pt coords, K-pt weigth')
         norm=norm+in%wkpt(i)
      end do
+
      ! We normalise the weights.
      in%wkpt(:)=in%wkpt/norm
   end if
